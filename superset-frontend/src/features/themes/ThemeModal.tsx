@@ -24,7 +24,7 @@ import {
   useMemo,
   ChangeEvent,
 } from 'react';
-import { omit } from 'lodash';
+import { omit } from 'lodash-es';
 
 import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';

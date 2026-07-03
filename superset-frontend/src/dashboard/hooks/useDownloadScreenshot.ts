@@ -19,9 +19,9 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { last } from 'lodash';
+import { last } from 'lodash-es';
 import rison from 'rison';
-import contentDisposition from 'content-disposition';
+import { parse as parseContentDisposition } from 'content-disposition';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient, SupersetApiError } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
@@ -105,7 +105,7 @@ export const useDownloadScreenshot = (
 
             if (disposition) {
               try {
-                const parsed = contentDisposition.parse(disposition);
+                const parsed = parseContentDisposition(disposition);
                 if (parsed?.parameters?.filename) {
                   fileName = parsed.parameters.filename;
                 }

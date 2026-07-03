@@ -97,6 +97,26 @@ from superset.security.analytics_db_safety import check_sqlalchemy_uri
             True,
             "shillelagh cannot be used as a data source for security reasons.",
         ),
+        (
+            "duckdb:///:memory:",
+            True,
+            "duckdb cannot be used as a data source for security reasons.",
+        ),
+        (
+            "duckdb:////tmp/local.db",
+            True,
+            "duckdb cannot be used as a data source for security reasons.",
+        ),
+        (
+            "duckdb+duckdb_engine:////tmp/local.db",
+            True,
+            "duckdb cannot be used as a data source for security reasons.",
+        ),
+        (
+            "duckdb:///md:my_db?motherduck_token=tok",
+            True,
+            "duckdb cannot be used as a data source for security reasons.",
+        ),
     ],
 )
 def test_check_sqlalchemy_uri(

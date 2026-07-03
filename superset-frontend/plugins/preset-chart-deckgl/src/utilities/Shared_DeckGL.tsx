@@ -25,9 +25,20 @@ import {
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
   SequentialScheme,
+  type QueryFormData,
 } from '@superset-ui/core';
 import {
+  getDefaultMapRenderer,
+  getBootstrapDataFromDocument,
+  getMapRendererOptions,
+  OSM_TILE_STYLE_URL,
+  type MapRendererOption,
+  type MapProvider,
+} from '@superset-ui/core/utils/mapStyles';
+import {
   ControlPanelState,
+  ControlStateMapping,
+  ControlState,
   CustomControlItem,
   D3_FORMAT_OPTIONS,
   getColorControlsProps,
@@ -40,15 +51,23 @@ import {
   isColorSchemeTypeVisible,
 } from './utils';
 import { TooltipTemplateControl } from './TooltipTemplateControl';
+import { hasMapboxApiKey } from '../utils/mapbox';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 
 export const DEFAULT_DECKGL_COLOR = { r: 158, g: 158, b: 158, a: 1 };
 
-let deckglTiles: string[][];
+type DeckGLTileChoice = [string, string];
+type MapStyleVisibilityProps = {
+  controls?: ControlStateMapping;
+};
+type MetricControlValue = {
+  type?: unknown;
+  value?: unknown;
+};
 
-export const DEFAULT_DECKGL_TILES = [
+export const DEFAULT_DECKGL_TILES: DeckGLTileChoice[] = [
   [
     'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
     'Light (Carto)',
@@ -62,9 +81,10 @@ export const DEFAULT_DECKGL_TILES = [
     'Streets (Carto)',
   ],
   ['https://tiles.openfreemap.org/styles/liberty', 'Liberty (OpenFreeMap)'],
+  [OSM_TILE_STYLE_URL, 'Streets (OSM)'],
 ];
 
-export const DEFAULT_MAPBOX_TILES = [
+export const DEFAULT_MAPBOX_TILES: DeckGLTileChoice[] = [
   ['mapbox://styles/mapbox/streets-v9', 'Streets (Mapbox)'],
   ['mapbox://styles/mapbox/dark-v9', 'Dark (Mapbox)'],
   ['mapbox://styles/mapbox/light-v9', 'Light (Mapbox)'],
@@ -73,16 +93,55 @@ export const DEFAULT_MAPBOX_TILES = [
   ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors (Mapbox)'],
 ];
 
+const isDeckGLTileChoices = (value: unknown): value is DeckGLTileChoice[] =>
+  Array.isArray(value) &&
+  value.length > 0 &&
+  value.every(
+    choice =>
+      Array.isArray(choice) &&
+      choice.length === 2 &&
+      typeof choice[0] === 'string' &&
+      choice[0].trim().length > 0 &&
+      typeof choice[1] === 'string' &&
+      choice[1].trim().length > 0,
+  );
+
 const getDeckGLTiles = () => {
-  if (!deckglTiles) {
-    const appContainer = document.getElementById('app');
-    const { common } = JSON.parse(
-      appContainer?.getAttribute('data-bootstrap') || '{}',
-    );
-    deckglTiles = common?.deckgl_tiles ?? DEFAULT_DECKGL_TILES;
-  }
-  return deckglTiles;
+  const bootstrapData = getBootstrapDataFromDocument();
+  const deckglTilesOverride = (
+    bootstrapData as {
+      common?: { deckgl_tiles?: unknown };
+    } | null
+  )?.common?.deckgl_tiles;
+  return isDeckGLTileChoices(deckglTilesOverride)
+    ? deckglTilesOverride
+    : DEFAULT_DECKGL_TILES;
 };
+
+const getMapLibreStyleProps = () => {
+  const choices = getDeckGLTiles();
+  return {
+    choices,
+    default: choices[0][0],
+  };
+};
+
+const getLabeledMapRendererOptions = ({
+  hasMapboxKey,
+  currentValue,
+}: {
+  hasMapboxKey: boolean;
+  currentValue?: MapProvider;
+}) =>
+  getMapRendererOptions({ hasMapboxKey, currentValue }).map(
+    (option: MapRendererOption) => ({
+      ...option,
+      label:
+        option.value === 'maplibre'
+          ? t('MapLibre (open-source)')
+          : t('Mapbox (API key required)'),
+    }),
+  );
 
 const DEFAULT_VIEWPORT = {
   longitude: 6.85236157047845,
@@ -285,6 +344,22 @@ export const lineWidth = {
   },
 };
 
+// created new const so as not to break lineWidth usages in other charts
+export const pathLineWidthFixedOrMetric = {
+  name: 'line_width',
+  config: {
+    type: 'FixedOrMetricControl', // using existing type
+    label: t('Line width'),
+    default: { type: 'fix', value: 1 }, // kept same default as before
+    description: t(
+      'The width of the lines as either a fixed value or variable width based on a metric.',
+    ),
+    mapStateToProps: (state: ControlPanelState) => ({
+      datasource: state.datasource,
+    }),
+  },
+};
+
 export const fillColorPicker: CustomControlItem = {
   name: 'fill_color_picker',
   config: {
@@ -440,15 +515,26 @@ export const mapProvider = {
     label: t('Map Renderer'),
     clearable: false,
     renderTrigger: true,
-    choices: [
-      ['maplibre', t('MapLibre (open-source)')],
-      ['mapbox', t('Mapbox (API key required)')],
-    ],
+    options: getLabeledMapRendererOptions({
+      hasMapboxKey: hasMapboxApiKey(),
+    }),
     default: 'maplibre',
     description: t(
       'Select the map tile provider. MapLibre is open-source and requires no API key. ' +
         'Mapbox requires MAPBOX_API_KEY to be configured in Superset.',
     ),
+    mapStateToProps: (state: ControlPanelState) => {
+      const hasKey = hasMapboxApiKey();
+      return {
+        options: getLabeledMapRendererOptions({
+          hasMapboxKey: hasKey,
+          currentValue: state.form_data?.map_renderer as
+            | MapProvider
+            | undefined,
+        }),
+        default: getDefaultMapRenderer(),
+      };
+    },
   },
 };
 
@@ -460,13 +546,14 @@ export const maplibreStyle = {
     clearable: false,
     renderTrigger: true,
     freeForm: true,
-    choices: getDeckGLTiles(),
-    default: getDeckGLTiles()[0][0],
+    choices: DEFAULT_DECKGL_TILES,
+    default: DEFAULT_DECKGL_TILES[0][0],
     description: t(
       'Base layer map style. Accepts a MapLibre-compatible style URL.',
     ),
-    visibility: ({ controls }: ControlPanelState) =>
+    visibility: ({ controls }: MapStyleVisibilityProps) =>
       controls?.map_renderer?.value !== 'mapbox',
+    mapStateToProps: getMapLibreStyleProps,
   },
 };
 
@@ -483,7 +570,7 @@ export const mapboxStyle = {
     description: t(
       'Base layer map style. Accepts a Mapbox style URL (mapbox://styles/...).',
     ),
-    visibility: ({ controls }: ControlPanelState) =>
+    visibility: ({ controls }: MapStyleVisibilityProps) =>
       controls?.map_renderer?.value === 'mapbox',
   },
 };
@@ -501,14 +588,14 @@ export const geojsonColumn = {
   },
 };
 
-const extractMetricsFromFormData = (formData: any) => {
-  const metrics = new Set<string>();
+const extractMetricsFromFormData = (formData: QueryFormData) => {
+  const metrics = new Set<unknown>();
 
   if (formData.metrics) {
     (Array.isArray(formData.metrics)
       ? formData.metrics
       : [formData.metrics]
-    ).forEach((metric: any) => metrics.add(metric));
+    ).forEach((metric: unknown) => metrics.add(metric));
   }
 
   if (formData.point_radius_fixed?.value) {
@@ -517,8 +604,9 @@ const extractMetricsFromFormData = (formData: any) => {
 
   Object.entries(formData).forEach(([, value]) => {
     if (!value || typeof value !== 'object') return;
-    if ((value as any).type === 'metric' && (value as any).value) {
-      metrics.add((value as any).value);
+    const controlValue = value as MetricControlValue;
+    if (controlValue.type === 'metric' && controlValue.value) {
+      metrics.add(controlValue.value);
     }
   });
 
@@ -539,7 +627,7 @@ export const tooltipContents = {
     ),
     ghostButtonText: t('Drop columns/metrics here or click'),
     disabledTabs: new Set(['saved', 'sqlExpression']),
-    mapStateToProps: (state: any) => {
+    mapStateToProps: (state: ControlPanelState) => {
       const { datasource, form_data: formData } = state;
 
       const selectedMetrics = formData
@@ -548,7 +636,8 @@ export const tooltipContents = {
 
       return {
         columns: datasource?.columns || [],
-        savedMetrics: datasource?.metrics || [],
+        savedMetrics:
+          datasource && 'metrics' in datasource ? datasource.metrics || [] : [],
         datasource,
         selectedMetrics,
         disabledTabs: new Set(['saved', 'sqlExpression']),
@@ -568,7 +657,7 @@ export const tooltipTemplate = {
     default: '',
     description: '',
     placeholder: '',
-    mapStateToProps: (_state: any, control: any) => ({
+    mapStateToProps: (_state: ControlPanelState, control: ControlState) => ({
       value: control.value,
     }),
   },
@@ -673,6 +762,29 @@ export const deckGLColorBreakpointsSelect: CustomControlItem = {
   },
 };
 
+export const deckGLBreakpointMetric: CustomControlItem = {
+  name: 'breakpoint_metric',
+  config: {
+    ...sharedControls.metric,
+    label: t('Breakpoint Metric'),
+    default: null,
+    validators: [],
+    description: t(
+      'Select the metric used to determine which color breakpoint range each path falls into.',
+    ),
+    // mapStateToProps: (state: ControlPanelState) => ({
+    //   datasource: state.datasource,
+    // }),
+    visibility: ({ controls }: MapStyleVisibilityProps) =>
+      controls
+        ? isColorSchemeTypeVisible(
+            controls,
+            COLOR_SCHEME_TYPES.color_breakpoints,
+          )
+        : false,
+  },
+};
+
 export const breakpointsDefaultColor: CustomControlItem = {
   name: 'default_breakpoint_color',
   config: {
@@ -725,6 +837,7 @@ export const generateDeckGLColorSchemeControls = ({
   [deckGLFixedColor],
   disableCategoricalColumn ? [] : [deckGLCategoricalColor],
   [deckGLCategoricalColorSchemeSelect],
+  [deckGLBreakpointMetric],
   [breakpointsDefaultColor],
   [deckGLColorBreakpointsSelect],
 ];

@@ -21,7 +21,7 @@
  */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import { createSelector } from '@reduxjs/toolkit';
 import {
   AdhocFilter,
@@ -38,6 +38,7 @@ import {
   QueryFormData,
   QueryObjectFilterClause,
   SupersetClient,
+  getMapProviderMapStyle,
   usePrevious,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
@@ -397,6 +398,12 @@ const DeckMulti = (props: DeckMultiProps) => {
         .filter(layer => layer !== undefined),
     [layerOrder, subSlicesLayers],
   );
+  const selectedMap = getMapProviderMapStyle({
+    mapProvider: formData.map_renderer,
+    maplibreStyle: formData.maplibre_style,
+    mapboxStyle: formData.mapbox_style,
+    legacyMapStyle: formData.map_style,
+  });
 
   return (
     <MultiWrapper height={height} width={width}>
@@ -404,12 +411,8 @@ const DeckMulti = (props: DeckMultiProps) => {
         ref={containerRef}
         viewport={viewport}
         layers={layers}
-        mapStyle={
-          formData.map_renderer === 'mapbox'
-            ? formData.mapbox_style
-            : formData.maplibre_style
-        }
-        mapProvider={formData.map_renderer === 'mapbox' ? 'mapbox' : 'maplibre'}
+        mapStyle={selectedMap.mapStyle}
+        mapProvider={selectedMap.mapProvider}
         mapboxApiKey={getMapboxApiKey()}
         setControlValue={setControlValue}
         onViewportChange={setViewport}

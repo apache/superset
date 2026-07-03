@@ -117,6 +117,7 @@ type LaunchQueue = {
 
 const pendingTimerIds = new Set<ReturnType<typeof setTimeout>>();
 const MAX_CONSUMER_POLL_ATTEMPTS = 50;
+const consumerPromises: Promise<void>[] = [];
 
 // Defer the consumer call to a macrotask so it doesn't fire synchronously inside
 // the component's useEffect — calling it inline deadlocks Jest because the
@@ -131,7 +132,11 @@ const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
       if (fileHandle) {
         const id = setTimeout(() => {
           pendingTimerIds.delete(id);
-          consumer({ files: [fileHandle] });
+          consumerPromises.push(
+            Promise.resolve(consumer({ files: [fileHandle] })).then(
+              () => undefined,
+            ),
+          );
         }, 0);
         pendingTimerIds.add(id);
       }
@@ -165,9 +170,19 @@ beforeEach(() => {
     .launchQueue;
 });
 
-afterEach(() => {
+afterEach(async () => {
   pendingTimerIds.forEach(id => clearTimeout(id));
   pendingTimerIds.clear();
+  if (consumerPromises.length > 0) {
+    const results = await Promise.allSettled(consumerPromises);
+    results.forEach(r => {
+      if (r.status === 'rejected') {
+        // eslint-disable-next-line no-console
+        console.warn('LaunchQueue consumer rejected:', r.reason);
+      }
+    });
+    consumerPromises.length = 0;
+  }
   delete (window as unknown as Window & { launchQueue?: LaunchQueue })
     .launchQueue;
 });
@@ -186,7 +201,7 @@ test('shows error when launchQueue is not supported', async () => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
       'File handling is not supported in this browser. Please use a modern browser like Chrome or Edge.',
     );
-    expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');
+    expect(mockHistoryPush).toHaveBeenCalledWith('/welcome/');
   });
 });
 
@@ -206,7 +221,7 @@ test('redirects when no files are provided', async () => {
   await triggerConsumer({ files: [] });
 
   await waitFor(() => {
-    expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');
+    expect(mockHistoryPush).toHaveBeenCalledWith('/welcome/');
   });
 });
 
@@ -311,7 +326,7 @@ test('shows error for unsupported file type', async () => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
       'Unsupported file type. Please use CSV, Excel, or Columnar files.',
     );
-    expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');
+    expect(mockHistoryPush).toHaveBeenCalledWith('/welcome/');
   });
 });
 
@@ -363,7 +378,7 @@ test('handles errors during file processing', async () => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
       'Failed to open file. Please try again.',
     );
-    expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');
+    expect(mockHistoryPush).toHaveBeenCalledWith('/welcome/');
   });
 });
 
@@ -387,7 +402,7 @@ test('modal close redirects to welcome page', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Close' }));
 
   await waitFor(() => {
-    expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');
+    expect(mockHistoryPush).toHaveBeenCalledWith('/welcome/');
   });
 });
 

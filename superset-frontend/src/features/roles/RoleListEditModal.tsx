@@ -30,9 +30,11 @@ import {
 import {
   BaseModalProps,
   RoleForm,
+  RolePermissions,
   SelectOption,
 } from 'src/features/roles/types';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { SupersetClient } from '@superset-ui/core';
 import { fetchPaginatedData } from 'src/utils/fetchOptions';
 import { type UserObject } from 'src/pages/UsersList/types';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
@@ -49,6 +51,7 @@ import {
   updateRoleUsers,
   formatPermissionLabel,
 } from './utils';
+import { getUserDisplayLabel } from 'src/features/users/utils';
 
 export interface RoleListEditModalProps extends BaseModalProps {
   role: RoleObject;
@@ -162,34 +165,38 @@ function RoleListEditModal({
       return;
     }
 
+    let cancelled = false;
     setLoadingRolePermissions(true);
     permissionFetchSucceeded.current = false;
-    const filters = [{ col: 'id', opr: 'in', value: stablePermissionIds }];
 
-    fetchPaginatedData({
-      endpoint: `/api/v1/security/permissions-resources/`,
-      pageSize: 100,
-      setData: (data: SelectOption[]) => {
+    SupersetClient.get({
+      endpoint: `/api/v1/security/roles/${id}/permissions/`,
+    })
+      .then(response => {
+        if (cancelled) return;
         permissionFetchSucceeded.current = true;
-        setRolePermissions(data);
-      },
-      filters,
-      setLoadingState: (loading: boolean) => setLoadingRolePermissions(loading),
-      loadingKey: 'rolePermissions',
-      addDangerToast,
-      errorMessage: t('There was an error loading permissions.'),
-      mapResult: (permission: {
-        id: number;
-        permission: { name: string };
-        view_menu: { name: string };
-      }) => ({
-        value: permission.id,
-        label: formatPermissionLabel(
-          permission.permission.name,
-          permission.view_menu.name,
-        ),
-      }),
-    });
+        const result: RolePermissions[] = response.json.result ?? [];
+        setRolePermissions(
+          result.map(p => ({
+            value: p.id,
+            label: formatPermissionLabel(p.permission_name, p.view_menu_name),
+          })),
+        );
+      })
+      .catch(() => {
+        if (!cancelled) {
+          addDangerToast(t('There was an error loading permissions.'));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingRolePermissions(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [addDangerToast, id, stablePermissionIds]);
 
   useEffect(() => {
@@ -226,7 +233,7 @@ function RoleListEditModal({
     if (!loadingRoleUsers && formRef.current) {
       const userOptions = roleUsers.map(user => ({
         value: user.id,
-        label: user.username,
+        label: getUserDisplayLabel(user),
       }));
       formRef.current.setFieldsValue({
         roleUsers: userOptions,
@@ -315,7 +322,7 @@ function RoleListEditModal({
     roleUsers:
       roleUsers?.map(user => ({
         value: user.id,
-        label: user.username,
+        label: getUserDisplayLabel(user),
       })) || [],
     roleGroups: group_ids.map(groupId => ({
       value: groupId,

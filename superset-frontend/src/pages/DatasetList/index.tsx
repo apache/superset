@@ -71,6 +71,7 @@ import {
 import type { SelectOption } from 'src/components/ListView/types';
 import { Typography } from '@superset-ui/core/components/Typography';
 import handleResourceExport from 'src/utils/export';
+import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -610,7 +611,39 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const handleBulkDatasetExport = useCallback(
     async (datasetsToExport: Dataset[]) => {
-      const ids = datasetsToExport.map(({ id }) => id);
+      // The combined Datasources list mixes regular datasets (SqlaTable) with
+      // semantic views, which live in their own table with an independent id
+      // sequence. The dataset export endpoint looks rows up by bare numeric
+      // id against ``tables`` only — passing a semantic-view id silently
+      // returns whatever SqlaTable happens to share that id. Until a proper
+      // semantic-view export path exists, partition the selection and only
+      // ship dataset ids over to ``/api/v1/dataset/export/``.
+      const datasetRows = datasetsToExport.filter(
+        ({ kind }) => kind !== 'semantic_view',
+      );
+      const semanticViewCount = datasetsToExport.length - datasetRows.length;
+
+      if (datasetRows.length === 0) {
+        addDangerToast(
+          t(
+            'Exporting semantic views is not supported yet. ' +
+              'Deselect the semantic-view rows and try again.',
+          ),
+        );
+        return;
+      }
+
+      if (semanticViewCount > 0) {
+        addDangerToast(
+          t(
+            'Exporting semantic views is not supported yet — ' +
+              '%s semantic-view row(s) were skipped.',
+            semanticViewCount,
+          ),
+        );
+      }
+
+      const ids = datasetRows.map(({ id }) => id);
       setPreparingExport(true);
       try {
         await handleResourceExport('dataset', ids, () => {
@@ -672,10 +705,17 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             },
           },
         }: CellProps<Dataset>) => {
+          // `explore_url` arrives router-relative from the backend (already
+          // carrying the application root under a subdirectory deployment).
+          // react-router's <Link>/<GenericLink> resolve `to` against the
+          // Router basename, which re-prefixes the root — so strip it here to
+          // avoid a doubled `/superset/superset/...`. External
+          // `default_endpoint` URLs pass through unchanged.
+          const exploreTo = stripAppRoot(exploreURL);
           let titleLink: JSX.Element;
           if (PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET) {
             titleLink = (
-              <Link data-test="internal-link" to={exploreURL}>
+              <Link data-test="internal-link" to={exploreTo}>
                 {datasetTitle}
               </Link>
             );
@@ -683,7 +723,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             titleLink = (
               // exploreUrl can be a link to Explore or an external link
               // in the first case use SPA routing, else use HTML anchor
-              <GenericLink to={exploreURL}>{datasetTitle}</GenericLink>
+              <GenericLink to={exploreTo}>{datasetTitle}</GenericLink>
             );
           }
           try {
@@ -818,6 +858,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     placement="bottom"
                   >
                     <span
+                      data-test="dataset-row-delete"
                       role="button"
                       tabIndex={0}
                       className="action-button"
@@ -834,6 +875,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     placement="bottom"
                   >
                     <span
+                      data-test="dataset-row-edit"
                       role="button"
                       tabIndex={0}
                       className="action-button"
@@ -879,6 +921,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   placement="bottom"
                 >
                   <span
+                    data-test="dataset-row-edit"
                     role="button"
                     tabIndex={0}
                     className={`action-button ${allowEdit ? '' : 'disabled'}`}
@@ -895,6 +938,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   placement="bottom"
                 >
                   <span
+                    data-test="dataset-row-export"
                     role="button"
                     tabIndex={0}
                     className="action-button"
@@ -911,6 +955,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   placement="bottom"
                 >
                   <span
+                    data-test="dataset-row-duplicate"
                     role="button"
                     tabIndex={0}
                     className="action-button"
@@ -927,6 +972,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   placement="bottom"
                 >
                   <span
+                    data-test="dataset-row-delete"
                     role="button"
                     tabIndex={0}
                     className="action-button"
@@ -1358,7 +1404,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                           avatar={<span>•</span>}
                           title={
                             <Typography.Link
-                              href={`/superset/dashboard/${result.id}`}
+                              href={ensureAppRoot(`/dashboard/${result.id}`)}
                               target="_atRiskItem"
                             >
                               {result.title}
@@ -1401,7 +1447,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                           avatar={<span>•</span>}
                           title={
                             <Typography.Link
-                              href={`/explore/?slice_id=${result.id}`}
+                              href={ensureAppRoot(
+                                `/explore/?slice_id=${result.id}`,
+                              )}
                               target="_atRiskItem"
                             >
                               {result.slice_name}

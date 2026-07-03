@@ -24,7 +24,7 @@ import {
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 
 import {
   CellClickedEvent,
@@ -86,6 +86,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     onChartStateChange,
     chartState,
     metricSqlExpressions,
+    showNumberedColumn,
   } = props;
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
@@ -230,6 +231,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       : (columns as InputColumn[]),
     data,
     serverPagination,
+    serverPaginationData,
+    serverPageLength,
+    showNumberedColumn: showNumberedColumn && !emitCrossFilters,
     isRawRecords,
     defaultAlignPN: alignPositiveNegative,
     showCellBars,

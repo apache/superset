@@ -292,6 +292,59 @@ async def test_successful_add(
     assert content["error"] is None
     assert content["permission_denied"] is False
     assert content["dashboard_url"] is not None
-    assert "/superset/dashboard/1/" in content["dashboard_url"]
+    assert content["dashboard_url"].endswith("/dashboard/1/")
+    assert "/superset/superset/dashboard/" not in content["dashboard_url"]
     assert content["position"] is not None
     assert "chart_key" in content["position"]
+
+
+def test_empty_target_tab_rejected_by_schema() -> None:
+    """Empty string target_tab is rejected at schema layer, not as 'Tab not found'."""
+    from pydantic import ValidationError
+
+    from superset.mcp_service.dashboard.schemas import AddChartToDashboardRequest
+
+    with pytest.raises(ValidationError):
+        AddChartToDashboardRequest(dashboard_id=1, chart_id=10, target_tab="")
+
+    # None is valid (tab omitted)
+    req = AddChartToDashboardRequest(dashboard_id=1, chart_id=10, target_tab=None)
+    assert req.target_tab is None
+
+
+def test_add_chart_response_error_is_sanitized_for_llm_context() -> None:
+    """Error field wraps user-supplied target_tab and dashboard tab labels.
+
+    The error string echoes user-provided input (target_tab) and
+    dashboard-controlled tab labels.  Both must be wrapped in
+    UNTRUSTED-CONTENT delimiters so the LLM treats them as data, not
+    instructions.
+    """
+    from superset.mcp_service.dashboard.schemas import AddChartToDashboardResponse
+    from superset.mcp_service.utils.sanitization import (
+        LLM_CONTEXT_CLOSE_DELIMITER,
+        LLM_CONTEXT_OPEN_DELIMITER,
+    )
+
+    raw_error = (
+        "Tab 'malicious tab <script>alert(1)</script>' not found in dashboard 42. "
+        "Available tabs: Sales (TAB-abc), <b>Marketing</b> (TAB-xyz)."
+    )
+    response = AddChartToDashboardResponse(
+        dashboard=None,
+        dashboard_url=None,
+        position=None,
+        error=raw_error,
+    )
+
+    assert response.error is not None
+    assert LLM_CONTEXT_OPEN_DELIMITER in response.error
+    assert LLM_CONTEXT_CLOSE_DELIMITER in response.error
+    # Core text is still present inside the wrapper
+    assert "not found" in response.error
+    assert "Available tabs" in response.error
+    # None error is passed through unchanged
+    empty_response = AddChartToDashboardResponse(
+        dashboard=None, dashboard_url=None, position=None, error=None
+    )
+    assert empty_response.error is None

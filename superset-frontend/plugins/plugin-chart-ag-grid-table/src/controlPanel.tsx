@@ -55,7 +55,7 @@ import {
   withLabel,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import { isEmpty, last } from 'lodash';
+import { isEmpty, last } from 'lodash-es';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 
 /**
@@ -281,11 +281,7 @@ const config: ControlPanelConfig = {
                 { controls, datasource, form_data }: ControlPanelState,
                 controlState: ControlState,
               ) => ({
-                columns: datasource?.columns[0]?.hasOwnProperty('filterable')
-                  ? (datasource as Dataset)?.columns?.filter(
-                      (c: ColumnMeta) => c.filterable,
-                    )
-                  : datasource?.columns,
+                columns: datasource?.columns || [],
                 savedMetrics: defineSavedMetrics(datasource),
                 // current active adhoc metrics
                 selectedMetrics:
@@ -500,6 +496,18 @@ const config: ControlPanelConfig = {
       label: t('Visual formatting'),
       expanded: true,
       controlSetRows: [
+        [
+          {
+            name: 'show_numbered_column',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Add numbered column'),
+              renderTrigger: true,
+              default: false,
+              description: t('Whether to display the numbered column'),
+            },
+          },
+        ],
         [
           {
             name: 'column_config',
