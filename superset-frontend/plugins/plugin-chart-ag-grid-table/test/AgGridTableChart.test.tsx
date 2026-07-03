@@ -525,7 +525,7 @@ test('AgGridTableChart requests aggregate totals when the summary toggles on wit
   await waitFor(() => {
     expect(mockSetDataMask).toHaveBeenCalledWith(
       expect.objectContaining({
-        ownState: expect.objectContaining({ aggregateTotalsRequested: true }),
+        ownState: expect.objectContaining({ totalsRequested: true }),
       }),
     );
   });
@@ -533,7 +533,7 @@ test('AgGridTableChart requests aggregate totals when the summary toggles on wit
 
 test('AgGridTableChart clears the aggregate totals request when the summary is off', async () => {
   const props = transformProps(testData.basic);
-  props.serverPaginationData = { aggregateTotalsRequested: true };
+  props.serverPaginationData = { totalsRequested: true };
 
   render(
     ProviderWrapper({
@@ -551,7 +551,38 @@ test('AgGridTableChart clears the aggregate totals request when the summary is o
     expect(mockSetDataMask).toHaveBeenCalledWith(
       expect.objectContaining({
         ownState: expect.objectContaining({
-          aggregateTotalsRequested: false,
+          totalsRequested: false,
+        }),
+      }),
+    );
+  });
+});
+
+test('AgGridTableChart re-requests raw totals when toggled back on with a matching prime', async () => {
+  const props = transformProps({
+    ...rawSummaryProps,
+    queriesData: [rawSummaryProps.queriesData[0]],
+  });
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+          serverPaginationData={{ rawSummaryColumns: ['sum__num'] }}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(mockSetDataMask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownState: expect.objectContaining({
+          rawSummaryColumns: ['sum__num'],
+          totalsRequested: true,
         }),
       }),
     );

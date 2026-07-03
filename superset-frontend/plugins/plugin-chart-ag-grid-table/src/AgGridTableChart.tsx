@@ -137,44 +137,42 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     setDataMask,
   ]);
 
+  // A single effect owns every totals-related ownState write. Two separate
+  // effects that each spread serverPaginationData in the same render would
+  // clobber one another's writes, so priming the raw-mode summary columns
+  // and nudging a re-query for missing totals must be one combined delta.
   useEffect(() => {
-    if (!isRawRecords || !showTotals) {
-      return;
-    }
     const primed = (serverPaginationData?.rawSummaryColumns ?? []) as string[];
-    if (!isEqual(primed, rawSummaryColumns)) {
-      updateTableOwnState(setDataMask, {
-        ...serverPaginationData,
-        rawSummaryColumns,
-      });
+    const requested = Boolean(serverPaginationData?.totalsRequested);
+    const nextOwnState = { ...serverPaginationData };
+    let changed = false;
+
+    if (isRawRecords && showTotals && !isEqual(primed, rawSummaryColumns)) {
+      nextOwnState.rawSummaryColumns = rawSummaryColumns;
+      changed = true;
+    }
+    // A renderTrigger toggle re-renders without re-querying; requesting totals
+    // through ownState dispatches the standard re-query whose buildQuery
+    // carries the totals query for the active mode.
+    if (showTotals && totals === undefined && !requested) {
+      nextOwnState.totalsRequested = true;
+      changed = true;
+    } else if (!showTotals && requested) {
+      nextOwnState.totalsRequested = false;
+      changed = true;
+    }
+
+    if (changed) {
+      updateTableOwnState(setDataMask, nextOwnState);
     }
   }, [
     isRawRecords,
     showTotals,
+    totals,
     rawSummaryColumns,
     serverPaginationData,
     setDataMask,
   ]);
-
-  useEffect(() => {
-    if (isRawRecords) {
-      return;
-    }
-    const requested = Boolean(serverPaginationData?.aggregateTotalsRequested);
-    // A renderTrigger toggle re-renders without re-querying; nudging ownState
-    // dispatches the standard re-query whose buildQuery carries the totals.
-    if (showTotals && totals === undefined && !requested) {
-      updateTableOwnState(setDataMask, {
-        ...serverPaginationData,
-        aggregateTotalsRequested: true,
-      });
-    } else if (!showTotals && requested) {
-      updateTableOwnState(setDataMask, {
-        ...serverPaginationData,
-        aggregateTotalsRequested: false,
-      });
-    }
-  }, [isRawRecords, showTotals, totals, serverPaginationData, setDataMask]);
 
   const comparisonColumns = [
     { key: 'all', label: t('Display all') },
