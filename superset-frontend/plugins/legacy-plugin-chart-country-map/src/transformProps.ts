@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, getValueFormatter } from '@superset-ui/core';
+import {
+  ChartProps,
+  getColumnLabel,
+  getMetricLabel,
+  getValueFormatter,
+} from '@superset-ui/core';
 
 export default function transformProps(chartProps: ChartProps) {
   const {
@@ -45,7 +50,18 @@ export default function transformProps(chartProps: ChartProps) {
     columnFormats = {},
     currencyCodeColumn,
   } = datasource;
-  const { data, detected_currency: detectedCurrency } = queriesData[0];
+  const { data: rawData, detected_currency: detectedCurrency } = queriesData[0];
+
+  // The legacy explore_json endpoint renamed the entity and metric columns
+  // server-side; the v1 chart data endpoint returns them under their own
+  // labels, so the rename happens here.
+  const entityLabel = getColumnLabel(entity);
+  const metricLabel = getMetricLabel(metric);
+  const data = (rawData ?? []).map((row: Record<string, unknown>) =>
+    'country_id' in row
+      ? row
+      : { country_id: row[entityLabel], metric: row[metricLabel] },
+  );
 
   const formatter = getValueFormatter(
     metric,
@@ -64,7 +80,7 @@ export default function transformProps(chartProps: ChartProps) {
   return {
     width,
     height,
-    data: queriesData[0].data,
+    data,
     country: selectCountry ? String(selectCountry).toLowerCase() : null,
     linearColorScheme,
     numberFormat, // left for backward compatibility
