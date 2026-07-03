@@ -34,7 +34,6 @@ import TableChartPlugin from '@superset-ui/plugin-chart-table';
 import { WordCloudChartPlugin } from '@superset-ui/plugin-chart-word-cloud';
 import WorldMapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
 import {
-  BubbleChartPlugin,
   BulletChartPlugin,
   CompareChartPlugin,
   TimePivotChartPlugin,
@@ -114,7 +113,6 @@ export default class MainPreset extends Preset {
           key: VizType.BigNumberTotal,
         }),
         new EchartsBoxPlotChartPlugin().configure({ key: VizType.BoxPlot }),
-        new BubbleChartPlugin().configure({ key: VizType.LegacyBubble }),
         new BulletChartPlugin().configure({ key: VizType.Bullet }),
         new CalendarChartPlugin().configure({ key: VizType.Calendar }),
         new ChordChartPlugin().configure({ key: VizType.Chord }),
