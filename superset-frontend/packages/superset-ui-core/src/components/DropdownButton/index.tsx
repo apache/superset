@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Dropdown } from 'antd';
-import { kebabCase } from 'lodash';
+import { kebabCase } from 'lodash-es';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Tooltip } from '../Tooltip';
 import type { DropdownButtonProps } from './types';
@@ -27,6 +27,7 @@ export const DropdownButton = ({
   tooltip,
   tooltipPlacement,
   children,
+  styleConfig,
   ...rest
 }: DropdownButtonProps) => {
   const theme = useTheme();
@@ -57,10 +58,14 @@ export const DropdownButton = ({
         defaultBtnCss,
         css`
           .ant-btn {
-            height: 30px;
-            box-shadow: none;
-            font-size: ${theme.fontSizeSM}px;
-            font-weight: ${theme.fontWeightStrong};
+            height: ${styleConfig?.controlHeight ??
+            theme.buttonControlHeightSM ??
+            30}px;
+            box-shadow: ${styleConfig?.boxShadow ?? 'none'};
+            font-size: ${styleConfig?.fontSize ??
+            theme.buttonFontSize ??
+            theme.fontSizeSM}px;
+            font-weight: ${styleConfig?.fontWeight ?? theme.fontWeightStrong};
           }
         `,
       ]}
@@ -85,4 +90,4 @@ export const DropdownButton = ({
   return button;
 };
 
-export type { DropdownButtonProps };
+export type { DropdownButtonProps, DropdownButtonStyleConfig } from './types';

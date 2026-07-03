@@ -38,7 +38,7 @@ import {
   AgGridFilterModel,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import { isEmpty, isEqual, merge } from 'lodash';
+import { isEmpty, isEqual, merge } from 'lodash-es';
 import {
   ConditionalFormattingConfig,
   getColorFormatters,

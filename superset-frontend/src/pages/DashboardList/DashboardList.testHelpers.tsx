@@ -39,7 +39,7 @@ export const mockHandleResourceExport =
 export const mockDashboards = [
   {
     id: 1,
-    url: '/superset/dashboard/1/',
+    url: '/dashboard/1/',
     dashboard_title: 'Sales Dashboard',
     published: true,
     changed_by_name: 'admin',
@@ -61,7 +61,7 @@ export const mockDashboards = [
   },
   {
     id: 2,
-    url: '/superset/dashboard/2/',
+    url: '/dashboard/2/',
     dashboard_title: 'Analytics Dashboard',
     published: false,
     changed_by_name: 'analyst',
@@ -86,7 +86,7 @@ export const mockDashboards = [
   },
   {
     id: 3,
-    url: '/superset/dashboard/3/',
+    url: '/dashboard/3/',
     dashboard_title: 'Executive Overview',
     published: true,
     changed_by_name: 'admin',
@@ -111,7 +111,7 @@ export const mockDashboards = [
   },
   {
     id: 4,
-    url: '/superset/dashboard/4/',
+    url: '/dashboard/4/',
     dashboard_title: 'Marketing Metrics',
     published: false,
     changed_by_name: 'marketing',
@@ -133,7 +133,7 @@ export const mockDashboards = [
   },
   {
     id: 5,
-    url: '/superset/dashboard/5/',
+    url: '/dashboard/5/',
     dashboard_title: 'Ops Monitor',
     published: true,
     changed_by_name: 'ops',

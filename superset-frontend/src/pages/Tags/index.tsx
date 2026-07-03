@@ -133,8 +133,9 @@ function TagList(props: TagListProps) {
   const emptyState = {
     title: t('No Tags created'),
     image: 'dashboard.svg',
-    description:
+    description: t(
       'Create a new tag and assign it to existing entities like charts or dashboards',
+    ),
     buttonAction: () => setShowTagModal(true),
     buttonIcon: <Icons.PlusOutlined iconSize="m" data-test="add-rule-empty" />,
     buttonText: t('Create a new Tag'),
@@ -168,7 +169,7 @@ function TagList(props: TagListProps) {
           },
         }: any) => (
           <AntdTag>
-            <Link to={`/superset/all_entities/?id=${id}`}>{tagName}</Link>
+            <Link to={`/all_entities/?id=${id}`}>{tagName}</Link>
           </AntdTag>
         ),
         Header: t('Name'),
@@ -257,7 +258,15 @@ function TagList(props: TagListProps) {
         id: QueryObjectColumns.ChangedBy,
       },
     ],
-    [userId, canDelete, refreshData, addSuccessToast, addDangerToast],
+    [
+      userId,
+      canDelete,
+      refreshData,
+      addSuccessToast,
+      addDangerToast,
+      saveFavoriteStatus,
+      favoriteStatus,
+    ],
   );
 
   const filters: ListViewFilters = useMemo(() => {

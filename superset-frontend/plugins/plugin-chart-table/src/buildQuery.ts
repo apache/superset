@@ -34,7 +34,7 @@ import {
   isTimeComparison,
   timeCompareOperator,
 } from '@superset-ui/chart-controls';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import { TableChartFormData } from './types';
 import { updateTableOwnState } from './DataTable/utils/externalAPIs';
 
@@ -86,6 +86,13 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
     let { metrics, orderby = [], columns = [] } = baseQueryObject;
     const { extras = {} } = baseQueryObject;
     const postProcessing: PostProcessingRule[] = [];
+    // Capture the percent-metric `contribution` rule so it can be reused for
+    // the totals query below. Without it the totals row's percent-metric
+    // columns are keyed `metric` instead of `%metric`, so the footer renders
+    // 0.000%. We reuse only this rule and not the full `postProcessing` array,
+    // which may also contain a time-comparison operator that must not run on
+    // the single totals row.
+    let contributionPostProcessing: PostProcessingRule | undefined;
     const nonCustomNorInheritShifts = ensureIsArray(
       formData.time_compare,
     ).filter((shift: string) => shift !== 'custom' && shift !== 'inherit');
@@ -137,12 +144,6 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
         orderby = [[metrics[0], false]];
       }
       // add postprocessing for percent metrics only when in aggregation mode
-      type PercentMetricCalculationMode = 'row_limit' | 'all_records';
-
-      const calculationMode: PercentMetricCalculationMode =
-        (formData.percent_metric_calculation as PercentMetricCalculationMode) ||
-        'row_limit';
-
       if (percentMetrics && percentMetrics.length > 0) {
         const percentMetricsLabelsWithTimeComparison = isTimeComparison(
           formData,
@@ -162,23 +163,14 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
           getMetricLabel,
         );
 
-        if (calculationMode === 'all_records') {
-          postProcessing.push({
-            operation: 'contribution',
-            options: {
-              columns: percentMetricLabels,
-              rename_columns: percentMetricLabels.map(m => `%${m}`),
-            },
-          });
-        } else {
-          postProcessing.push({
-            operation: 'contribution',
-            options: {
-              columns: percentMetricLabels,
-              rename_columns: percentMetricLabels.map(m => `%${m}`),
-            },
-          });
-        }
+        contributionPostProcessing = {
+          operation: 'contribution',
+          options: {
+            columns: percentMetricLabels,
+            rename_columns: percentMetricLabels.map(m => `%${m}`),
+          },
+        };
+        postProcessing.push(contributionPostProcessing);
       }
 
       // Add the operator for the time comparison if some is selected
@@ -357,7 +349,13 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
         columns: [],
         row_limit: 0,
         row_offset: 0,
-        post_processing: [],
+        // Reapply only the percent-metric contribution rule so the totals row
+        // exposes `%metric` keys (value/value = 100% on the single aggregated
+        // row). The time-comparison operator from the main query is omitted on
+        // purpose; it must not run against the single-row totals query.
+        post_processing: contributionPostProcessing
+          ? [contributionPostProcessing]
+          : [],
         order_desc: undefined,
         orderby: undefined,
       });
