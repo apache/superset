@@ -200,7 +200,9 @@ describe('SavedQuery', () => {
 
     userEvent.click(screen.getByRole('button', { name: /save/i }));
 
-    const descriptionTextbox = screen.getAllByRole('textbox')[1];
+    const descriptionTextbox = screen.getByRole('textbox', {
+      name: 'Description',
+    });
     expect(descriptionTextbox).toHaveValue(storedDescription);
 
     userEvent.click(screen.getByRole('button', { name: /update/i }));
