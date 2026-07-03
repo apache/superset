@@ -1422,7 +1422,7 @@ msgstr "已添加"
 #, fuzzy, python-format
 msgid "Added 1 new column to the virtual dataset"
 msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "已向虚拟数据集添加了 1 个新列"
+msgstr[0] "已将 %s 个新列添加到虚拟数据集"
 
 #, fuzzy, python-format
 msgid "Added to 1 dashboard"
