@@ -1949,7 +1949,7 @@ msgstr "Aggiunto"
 #, fuzzy, python-format
 msgid "Added 1 new column to the virtual dataset"
 msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Aggiunta 1 nuova colonna al set di dati virtuale"
+msgstr[0] "Aggiunte %s nuove colonne al dataset virtuale"
 
 #, fuzzy, python-format
 msgid "Added to 1 dashboard"
@@ -14316,7 +14316,7 @@ msgstr "Ultima Modifica"
 #, fuzzy, python-format
 msgid "Modified 1 column in the virtual dataset"
 msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Modificata 1 colonna nel dataset virtuale"
+msgstr[0] "Modificate %s colonne nel dataset virtuale"
 
 msgid "Modified by"
 msgstr "Modificato"
@@ -17501,7 +17501,7 @@ msgstr "Rimuovi anteprima tabella"
 #, fuzzy, python-format
 msgid "Removed 1 column from the virtual dataset"
 msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Rimossa 1 colonna dal dataset virtuale"
+msgstr[0] "Rimosse %s colonne dal dataset virtuale"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
