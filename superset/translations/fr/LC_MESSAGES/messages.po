@@ -4768,7 +4768,7 @@ msgid "Dataset Name"
 msgstr "Nom du jeu de données"
 
 msgid "Dataset column delete failed."
-msgstr "La suppression du jeu de données a échoué."
+msgstr "La suppression de la colonne du jeu de données a échoué."
 
 msgid "Dataset column not found."
 msgstr "Colonne du jeu de données introuvable."
@@ -4789,7 +4789,7 @@ msgid "Dataset is required"
 msgstr "Un jeu de données est requis"
 
 msgid "Dataset metric delete failed."
-msgstr "La suppression du jeu de données a échoué."
+msgstr "La suppression de la mesure a échoué."
 
 msgid "Dataset metric not found."
 msgstr "Mesure du jeu de données non trouvée."
@@ -13650,7 +13650,7 @@ msgstr "Réussite"
 
 #, python-format
 msgid "Successfully changed %s!"
-msgstr "%s modifé avec succès !"
+msgstr "%s modifié avec succès !"
 
 msgid "Suffix"
 msgstr "Suffixe"
