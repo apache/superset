@@ -138,7 +138,6 @@ test('should not render chart context menu if the context menu is suppressed for
     new ChartMetadata({
       name: 'chart with suppressed context menu',
       thumbnail: '.png',
-      useLegacyApi: false,
       suppressContextMenu: true,
     }),
   );

@@ -56,8 +56,6 @@ from superset.utils.core import (
     is_adhoc_metric,
 )
 from superset.utils.pandas_postprocessing.utils import unescape_separator
-from superset.views.utils import get_viz
-from superset.viz import viz_types
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -632,29 +630,6 @@ class QueryContextProcessor:
             )
 
         try:
-            if chart.viz_type in viz_types:
-                if not chart.datasource:
-                    raise QueryObjectValidationError(
-                        _(
-                            f"""The dataset for chart ID {chart.id} (referenced by
-                            annotation layer '{annotation_layer["name"]}') was
-                            not found. Please check that the dataset exists and
-                            is accessible."""
-                        )
-                    )
-
-                form_data = chart.form_data.copy()
-                form_data.update(annotation_layer.get("overrides", {}))
-
-                payload = get_viz(
-                    datasource_type=chart.datasource.type,
-                    datasource_id=chart.datasource.id,
-                    form_data=form_data,
-                    force=force,
-                ).get_payload()
-
-                return payload["data"]
-
             if not (query_context := chart.get_query_context()):
                 raise QueryObjectValidationError(
                     _(

@@ -169,7 +169,6 @@ interface ChartHooks {
   handleAsyncChartData?: (
     response: Response,
     json: JsonObject,
-    useLegacyApi?: boolean,
     signal?: AbortSignal,
   ) => Promise<QueryData[]> | QueryData[];
 }
