@@ -202,10 +202,9 @@ class CompositeTokenVerifier(TokenVerifier):
                 claims={API_KEY_PASSTHROUGH_CLAIM: True},
             )
 
-        # Embedded guest token: validated against the core GUEST_TOKEN_JWT_*
-        # config. Tried before the JWT verifier because guest tokens are
-        # HS256-signed with a different key and would otherwise be rejected.
-        # A non-guest token yields None here and falls through to the JWT path.
+        # Guest tokens are tried before the JWT verifier (they're HS256-signed
+        # with a different key and would otherwise be rejected). A non-guest
+        # token returns None and falls through to the JWT path.
         if self._guest_verifier is not None:
             guest_access_token = await self._guest_verifier.verify_token(token)
             if guest_access_token is not None:
@@ -219,10 +218,9 @@ class CompositeTokenVerifier(TokenVerifier):
             return None
 
         jwt_access_token = await self._jwt_verifier.verify_token(token)
-        # Defense-in-depth: the embedded-guest marker must only ever be set by the
-        # GuestTokenVerifier. Strip it from JWT-verified tokens so a crafted IdP
-        # JWT carrying the marker (and a "guest" client_id) cannot be mistaken for
-        # a verified guest during user resolution.
+        # Anti-forgery: only the GuestTokenVerifier may set the guest marker.
+        # Strip it from JWT-verified tokens so a crafted IdP JWT can't pose as
+        # a verified guest.
         if jwt_access_token is not None:
             jwt_claims = getattr(jwt_access_token, "claims", None)
             if isinstance(jwt_claims, dict) and GUEST_TOKEN_CLAIM in jwt_claims:

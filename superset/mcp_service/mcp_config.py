@@ -149,25 +149,13 @@ MCP_API_KEY_ENABLED: bool | None = None
 # own key-management UI without forking the auth code.
 MCP_API_KEY_CREATE_URL = "/profile/"
 
-# MCP Embedded Guest Authentication - controls whether Superset embedded guest
-# tokens (the kind minted by ``create_guest_access_token`` for embedded
-# dashboards) are accepted by the MCP transport. Opt-in, default False.
-#
-# REQUIRES the ``EMBEDDED_SUPERSET`` feature flag (guest tokens only exist, and
-# ``is_guest_user`` only returns True, when embedding is enabled). The guest
-# token is verified against the SHARED core config (``GUEST_TOKEN_JWT_SECRET`` /
-# ``GUEST_TOKEN_JWT_ALGO`` / ``GUEST_TOKEN_JWT_AUDIENCE`` / ``GUEST_ROLE_NAME``);
-# no MCP-specific guest config is introduced. The guest token must be presented
-# as ``Authorization: Bearer <guest_token>``. Guests are scoped by core's
-# existing ``raise_for_access`` (dataset allowlist, dashboard access, RLS) and
-# may not call tools listed in ``MCP_GUEST_DENIED_TOOLS``.
+# Accept Superset embedded guest tokens on the MCP transport (opt-in, default
+# False). Requires the EMBEDDED_SUPERSET flag and the shared core
+# GUEST_TOKEN_JWT_* config. See SECURITY.md "Embedded Guest Authentication".
 MCP_EMBEDDED_GUEST_AUTH_ENABLED: bool = False
 
-# Tools an embedded guest may never call, even when the tool declares no RBAC
-# permission class (which would otherwise fall open). Enforced both at tool
-# visibility (tools/list) and at call time. Operators may override this set.
-# Keep in sync with ``_DEFAULT_GUEST_DENIED_TOOLS`` in auth.py (the fallback used
-# when this config is unset/invalid).
+# Tools a guest may never call (enforced at tools/list and call time, regardless
+# of RBAC). Sync with _DEFAULT_GUEST_DENIED_TOOLS in auth.py.
 MCP_GUEST_DENIED_TOOLS: set[str] = {"find_users", "get_instance_info"}
 
 
@@ -514,18 +502,16 @@ def _is_mcp_guest_auth_enabled(app: Flask) -> bool:
 def _validate_guest_config(app: Flask) -> None:
     """Hard-fail on the default GUEST_TOKEN_JWT_SECRET; warn on an unset audience."""
     if app.config.get("GUEST_TOKEN_JWT_SECRET") == CHANGE_ME_GUEST_TOKEN_JWT_SECRET:
-        # MCPAuthConfigError, not a generic error: the bootstrap re-raises this
-        # type to refuse startup, but swallows others (and would boot without
-        # auth). See _create_auth_provider in server.py.
+        # MCPAuthConfigError specifically: the bootstrap re-raises this type to
+        # refuse startup but swallows others. See _create_auth_provider.
         raise MCPAuthConfigError(
             "MCP_EMBEDDED_GUEST_AUTH_ENABLED is set but GUEST_TOKEN_JWT_SECRET is "
             "the insecure default; refusing to wire guest auth. Set a strong "
             "GUEST_TOKEN_JWT_SECRET shared with the guest-token minting service."
         )
     if not app.config.get("GUEST_TOKEN_JWT_AUDIENCE"):
-        # Do not interpolate the resolved fallback host: it is read from app
-        # config and CodeQL flags logging config-derived values as clear-text
-        # secrets. The warning alone is enough to prompt operators to set it.
+        # Don't interpolate the fallback host: CodeQL flags logging config-derived
+        # values as clear-text secrets, and the warning alone suffices.
         logger.warning(
             "MCP embedded guest auth enabled but GUEST_TOKEN_JWT_AUDIENCE is unset; "
             "audience validation falls back to the request URL host. Set "

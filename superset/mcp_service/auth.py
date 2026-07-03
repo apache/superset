@@ -236,30 +236,21 @@ def _log_scope_denial(
         )
 
 
-# Tools an embedded guest may never call, even when the tool declares no RBAC
-# permission class (which would otherwise fall open in ``check_tool_permission``).
-# Used as the default when ``MCP_GUEST_DENIED_TOOLS`` is not configured. Keep in
-# sync with the ``MCP_GUEST_DENIED_TOOLS`` default in mcp_config.py.
+# Guest deny-list default (when MCP_GUEST_DENIED_TOOLS is unset); blocks tools
+# with no RBAC class that would otherwise fall open. Sync with mcp_config.py.
 _DEFAULT_GUEST_DENIED_TOOLS = frozenset({"find_users", "get_instance_info"})
 
 
 def _tool_denied_for_guest(func: Callable[..., Any]) -> bool:
-    """Return True when the current user is an embedded guest and ``func`` is on
-    the guest deny-list (``MCP_GUEST_DENIED_TOOLS``).
-
-    Embedded guests are intentionally barred from sensitive enumeration tools
-    (e.g. user listing, instance metadata). This is enforced independently of
-    RBAC because such tools may declare no permission class and would otherwise
-    be allowed by default. The ``isinstance`` check (rather than
-    ``security_manager.is_guest_user``) keeps this off the feature-flag path so
-    it stays cheap on every permission/visibility check.
-    """
+    """True when the current user is a guest and ``func`` is on the guest
+    deny-list — barring enumeration tools (user listing, instance metadata) that
+    may declare no RBAC class. ``isinstance`` (not ``is_guest_user``) keeps this
+    cheap and off the feature-flag path."""
     if not isinstance(getattr(g, "user", None), GuestUser):
         return False
     denied = current_app.config.get("MCP_GUEST_DENIED_TOOLS")
-    # Guard against misconfiguration: a string would make ``in`` do substring
-    # matching (e.g. "find_user" in "find_users,..."), silently corrupting the
-    # access decision. Require a real collection of names, else fail safe.
+    # A str would make ``in`` do substring matching and corrupt the decision;
+    # require a real collection, else fall back to the default.
     if not isinstance(denied, (set, frozenset, list, tuple)):
         if denied is not None:
             logger.warning(
@@ -500,16 +491,11 @@ def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
     # claim name is not misclassified as an API-key pass-through.
     claims = getattr(access_token, "claims", None)
 
-    # Embedded guest token: the GuestTokenVerifier (transport layer) admitted
-    # this token (signature/audience, structural checks, revocation, guest role).
-    # Build the GuestUser as the highest-priority identity so a valid guest is
-    # never downgraded to API-key / dev-user / g.user resolution.
-    #
-    # Anti-forgery: the guest marker is only ever set by the GuestTokenVerifier —
-    # the CompositeTokenVerifier strips it from JWT-verified tokens, and this
-    # branch additionally requires guest auth to be enabled. So a crafted IdP JWT
-    # carrying the marker + ``client_id == "guest"`` cannot be mistaken for a
-    # verified guest.
+    # Embedded guest token (already admitted by the GuestTokenVerifier): resolve
+    # as the highest-priority identity so a valid guest is never downgraded.
+    # Anti-forgery: only the GuestTokenVerifier sets the marker (the composite
+    # verifier strips it from JWT tokens) and this branch requires guest auth
+    # enabled, so a crafted IdP JWT with the marker can't pose as a guest.
     if (
         isinstance(claims, dict)
         and claims.get(GUEST_TOKEN_CLAIM)

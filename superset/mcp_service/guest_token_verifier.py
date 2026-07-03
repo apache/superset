@@ -45,10 +45,8 @@ from fastmcp.server.auth.providers.jwt import TokenVerifier
 
 logger = logging.getLogger(__name__)
 
-# Namespaced claim that flags an AccessToken as a verified embedded guest token.
-# Namespacing (and the paired ``client_id == "guest"`` check in
-# ``_resolve_user_from_jwt_context``) prevents an external IdP JWT that happens to
-# carry a ``type`` claim from being misclassified as a guest.
+# Namespaced claim flagging an AccessToken as a verified guest token. The paired
+# ``client_id == "guest"`` check keeps an external IdP JWT from posing as a guest.
 GUEST_TOKEN_CLAIM = "_superset_mcp_guest_token"  # noqa: S105
 
 
@@ -74,13 +72,10 @@ class GuestTokenVerifier(TokenVerifier):
     def _verify_guest_sync(self, token: str) -> dict[str, Any] | None:
         """Validate a guest token against core's guest-token machinery.
 
-        Runs synchronously inside a thread executor under a fresh app context so
-        the SecurityManager and metadata DB are reachable. Returns the
-        parsed/validated guest-token claims dict on success, or ``None`` on any
-        failure (fall through to the next verifier).
-
-        Revocation is checked here, not re-checked at GuestUser build — a
-        mid-request revocation lasts the request, matching the web flow.
+        Runs in a thread executor under a fresh app context (SecurityManager +
+        metadata DB reachable). Returns the validated claims, or ``None`` on any
+        failure (defer to the next verifier). Revocation is checked here, matching
+        the web flow.
         """
         if self._app is None:
             return None
@@ -100,9 +95,8 @@ class GuestTokenVerifier(TokenVerifier):
                 try:
                     parsed = sm.parse_jwt_guest_token(token)
                 except Exception:  # noqa: BLE001 — not a guest token / bad sig / exp
-                    # Most Bearer tokens are NOT guest tokens; this is the common
-                    # path (e.g. a regular OIDC JWT bound for the JWT verifier).
-                    # Keep it quiet and fall through.
+                    # Most Bearer tokens aren't guest tokens (e.g. a regular OIDC
+                    # JWT for the JWT verifier); keep quiet and fall through.
                     logger.debug("Bearer token is not a valid guest token; deferring")
                     return None
 
@@ -122,9 +116,8 @@ class GuestTokenVerifier(TokenVerifier):
                     logger.debug("Guest token has been revoked; rejecting")
                     return None
 
-                # The GuestUser is built from GUEST_ROLE_NAME; a missing role
-                # would yield a null role and fail RBAC in a confusing way.
-                # Reject up front with an actionable message instead.
+                # GuestUser is built from GUEST_ROLE_NAME; a missing role fails
+                # RBAC confusingly, so reject up front with an actionable message.
                 role_name = self._app.config["GUEST_ROLE_NAME"]
                 if sm.find_role(role_name) is None:
                     logger.error(
