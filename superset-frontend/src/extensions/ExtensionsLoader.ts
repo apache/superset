@@ -19,6 +19,7 @@
 import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import type { common as core } from '@apache-superset/core';
+import { makeUrl } from 'src/utils/navigationUtils';
 
 type Extension = core.Extension;
 
@@ -33,6 +34,8 @@ class ExtensionsLoader {
   private static instance: ExtensionsLoader;
 
   private extensionIndex: Map<string, Extension> = new Map();
+
+  private initializationPromise: Promise<void> | null = null;
 
   // eslint-disable-next-line no-useless-constructor
   private constructor() {
@@ -54,16 +57,27 @@ class ExtensionsLoader {
    * Initializes extensions by fetching the list from the API and loading each one.
    * @throws Error if initialization fails.
    */
-  public async initializeExtensions(): Promise<void> {
-    const response = await SupersetClient.get({
-      endpoint: '/api/v1/extensions/',
-    });
-    const extensions: Extension[] = response.json.result;
-    await Promise.all(
-      extensions.map(async extension => {
-        await this.initializeExtension(extension);
-      }),
-    );
+  public initializeExtensions(): Promise<void> {
+    if (this.initializationPromise) {
+      return this.initializationPromise;
+    }
+    this.initializationPromise = (async () => {
+      try {
+        const response = await SupersetClient.get({
+          endpoint: '/api/v1/extensions/',
+        });
+        const extensions: Extension[] = response.json.result;
+        await Promise.all(
+          extensions.map(async extension => {
+            await this.initializeExtension(extension);
+          }),
+        );
+        logging.info('Extensions initialized successfully.');
+      } catch (error) {
+        logging.error('Error setting up extensions:', error);
+      }
+    })();
+    return this.initializationPromise;
   }
 
   /**
@@ -94,10 +108,12 @@ class ExtensionsLoader {
   private async loadModule(extension: Extension): Promise<void> {
     const { remoteEntry, id } = extension;
 
-    // Load the remote entry script
+    // Load the remote entry script. The backend emits a router-relative
+    // remoteEntry URL; `makeUrl` applies the application root for
+    // subdirectory deployments (idempotent, and absolute URLs pass through).
     await new Promise<void>((resolve, reject) => {
       const element = document.createElement('script');
-      element.src = remoteEntry;
+      element.src = makeUrl(remoteEntry);
       element.type = 'text/javascript';
       element.async = true;
       element.onload = () => resolve();

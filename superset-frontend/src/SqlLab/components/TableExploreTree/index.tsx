@@ -18,13 +18,15 @@
  */
 import {
   useCallback,
+  useDeferredValue,
   useEffect,
   useState,
   useRef,
   type ChangeEvent,
   useMemo,
 } from 'react';
-import { useSelector, useDispatch, shallowEqual } from 'react-redux';
+import { useSelector, shallowEqual } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import AutoSizer from 'react-virtualized-auto-sizer';
@@ -162,7 +164,7 @@ const savePinnedSchemasToStorage = (
 };
 
 const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const theme = useTheme();
   const treeRef = useRef<TreeApi<TreeNodeData>>(null);
   const tables = useSelector(
@@ -313,6 +315,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
   }, [sortedTreeData, sortedTables]);
 
   const [searchTerm, setSearchTerm] = useState('');
+  const deferredSearchTerm = useDeferredValue(searchTerm);
   const handleSearchChange = useCallback(
     ({ target }: ChangeEvent<HTMLInputElement>) => setSearchTerm(target.value),
     [],
@@ -370,9 +373,9 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
 
   // Check if any nodes match the search term
   const hasMatchingNodes = useMemo(() => {
-    if (!searchTerm) return true;
+    if (!deferredSearchTerm) return true;
 
-    const lowerTerm = searchTerm.toLowerCase();
+    const lowerTerm = deferredSearchTerm.toLowerCase();
 
     const checkNode = (node: TreeNodeData): boolean => {
       if (node.type === 'empty') return false;
@@ -384,7 +387,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     };
 
     return displayTreeData.some(node => checkNode(node));
-  }, [searchTerm, displayTreeData]);
+  }, [deferredSearchTerm, displayTreeData]);
 
   // Node renderer for react-arborist
   const renderNode = useCallback(
@@ -393,7 +396,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
         {...props}
         manuallyOpenedNodes={manuallyOpenedNodes}
         loadingNodes={loadingNodes}
-        searchTerm={searchTerm}
+        searchTerm={deferredSearchTerm}
         catalog={catalog}
         pinnedTableKeys={pinnedTableKeys}
         pinnedSchemas={pinnedSchemas}
@@ -423,7 +426,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
       toggleSortColumns,
       loadingNodes,
       manuallyOpenedNodes,
-      searchTerm,
+      deferredSearchTerm,
     ],
   );
 
@@ -482,7 +485,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
               return <Skeleton active />;
             }
 
-            if (searchTerm && !hasMatchingNodes) {
+            if (deferredSearchTerm && !hasMatchingNodes) {
               return (
                 <Empty
                   description={t('No matching results found')}
@@ -499,7 +502,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
                 height={height || 500}
                 rowHeight={ROW_HEIGHT}
                 indent={16}
-                searchTerm={searchTerm}
+                searchTerm={deferredSearchTerm}
                 searchMatch={searchMatch}
                 disableDrag
                 disableDrop
@@ -525,7 +528,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
                   // react-arborist marks all schemas as open (isOpen=true) even before any
                   // user interaction. Using treeRef in that case would treat every first
                   // click as a close action, so fall back to manuallyOpenedNodes instead.
-                  const wasOpen = searchTerm
+                  const wasOpen = deferredSearchTerm
                     ? (treeRef.current?.get(id)?.isOpen ??
                       manuallyOpenedNodes[id] ??
                       false)

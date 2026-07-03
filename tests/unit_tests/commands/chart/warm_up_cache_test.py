@@ -22,6 +22,12 @@ from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
 from superset.models.slice import Slice
 
 
+@pytest.fixture(autouse=True)
+def mock_security_manager():
+    with patch("superset.commands.chart.warm_up_cache.security_manager"):
+        yield
+
+
 @patch("superset.commands.chart.warm_up_cache.get_dashboard_extra_filters")
 @patch("superset.commands.chart.warm_up_cache.ChartDataCommand")
 def test_applies_dashboard_filters_to_non_legacy_chart(

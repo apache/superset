@@ -107,9 +107,9 @@ export const DEFAULT_LEGEND_FORM_DATA: LegendFormData = {
 
 export const DEFAULT_TITLE_FORM_DATA: TitleFormData = {
   xAxisTitle: '',
-  xAxisTitleMargin: 0,
+  xAxisTitleMargin: 40,
   yAxisTitle: '',
-  yAxisTitleMargin: 15,
+  yAxisTitleMargin: 50,
   yAxisTitlePosition: 'Top',
 };
 
@@ -121,5 +121,9 @@ export const TOOLTIP_POINTER_MARGIN = 10;
 // If no satisfactory position can be found, how far away
 // from the edge of the window should the tooltip be kept
 export const TOOLTIP_OVERFLOW_MARGIN = 5;
+
+// Minimum distance from the top of the chart container to keep the tooltip,
+// reserving space for annotation labels rendered at insideEndTop of markLines/markAreas
+export const TOOLTIP_TOP_CLEARANCE = 40;
 
 export const DEFAULT_LOCALE = 'en';

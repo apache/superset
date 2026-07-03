@@ -20,7 +20,6 @@ import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import type { NodeRendererProps } from 'react-arborist';
 import { Icons, Typography } from '@superset-ui/core/components';
-import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 import ColumnElement from 'src/SqlLab/components/ColumnElement';
 import { ActionButton } from '@superset-ui/core/components/ActionButton';
 import copyTextToClipboard from 'src/utils/copy';
@@ -260,16 +259,17 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
             </div>
           )}
           <div className="action-hover">
-            <RefreshLabel
-              onClick={e => {
-                e.stopPropagation();
+            <ActionButton
+              label={`refresh-schema-${schema}`}
+              tooltip={t('Force refresh table list')}
+              icon={<Icons.SyncOutlined iconSize="m" />}
+              onClick={() => {
                 handleRefreshTables({
                   dbId: Number(_dbId),
                   catalog,
                   schema,
                 });
               }}
-              tooltipContent={t('Force refresh table list')}
             />
             <ActionButton
               label={
@@ -386,18 +386,19 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
                       : handlePinTable(tableName, schema, catalog ?? null)
                   }
                 />
+                <ActionButton
+                  label={`toggle-${schema}-${tableName}`}
+                  tooltip={isManuallyOpen ? t('Collapse') : t('Expand')}
+                  icon={
+                    isManuallyOpen ? (
+                      <Icons.UpOutlined iconSize="m" />
+                    ) : (
+                      <Icons.DownOutlined iconSize="m" />
+                    )
+                  }
+                  onClick={() => node.toggle()}
+                />
               </div>
-              <ActionButton
-                label={`toggle-${schema}-${tableName}`}
-                icon={
-                  isManuallyOpen ? (
-                    <Icons.UpOutlined iconSize="m" />
-                  ) : (
-                    <Icons.DownOutlined iconSize="m" />
-                  )
-                }
-                onClick={() => node.toggle()}
-              />
             </div>
           );
         })()}

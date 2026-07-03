@@ -47,7 +47,7 @@ export interface ResultsPaneProps {
   setForceQuery?: SetForceQueryAction;
   dataSize?: number;
   // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
-  isVisible: boolean;
+  isVisible?: boolean; // Visibility is managed by the parent tab container
   canDownload: boolean;
   // Optional map of column/metric name -> verbose label
   columnDisplayNames?: Record<string, string>;
@@ -63,7 +63,13 @@ export interface SamplesPaneProps {
   canDownload: boolean;
 }
 
-export interface TableControlsProps {
+export interface DrillControlsProps {
+  onDownloadCSV?: () => void;
+  onDownloadXLSX?: () => void;
+  onReload?: () => void;
+}
+
+export interface TableControlsProps extends DrillControlsProps {
   data: Record<string, any>[];
   // {datasource.id}__{datasource.type}, eg: 1__table
   datasourceId?: string;
@@ -85,7 +91,8 @@ export interface QueryResultInterface {
   data: Record<string, any>[][];
 }
 
-export interface SingleQueryResultPaneProp extends QueryResultInterface {
+export interface SingleQueryResultPaneProp
+  extends QueryResultInterface, DrillControlsProps {
   // {datasource.id}__{datasource.type}, eg: 1__table
   datasourceId?: string;
   isVisible: boolean;

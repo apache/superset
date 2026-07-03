@@ -32,6 +32,7 @@ export default function transformProps(chartProps: ChartProps) {
   }
 
   const records = getRecordsFromQuery(chartProps.queriesData);
+  const crossFilterCol = formData.cross_filter_column || undefined;
 
   // Parse each record's geojson column value (replicates backend DeckGeoJson.get_properties)
   const features = records
@@ -39,7 +40,17 @@ export default function transformProps(chartProps: ChartProps) {
       const geojsonStr = record[geojsonCol];
       if (geojsonStr == null) return null;
       try {
-        return JSON.parse(String(geojsonStr));
+        const feature = JSON.parse(String(geojsonStr));
+        // Surface cross_filter_column from the row onto feature.properties so
+        // that picking can emit a dimension filter even when the GeoJSON blob
+        // doesn't carry the column itself.
+        if (crossFilterCol && record[crossFilterCol] !== undefined) {
+          feature.properties = {
+            ...feature.properties,
+            [crossFilterCol]: record[crossFilterCol],
+          };
+        }
+        return feature;
       } catch {
         return null;
       }

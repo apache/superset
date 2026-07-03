@@ -70,7 +70,10 @@ class TestBigNumberChartConfig:
             )
 
     def test_metric_without_aggregate_fails(self) -> None:
-        with pytest.raises(ValidationError, match="saved dataset metric"):
+        # Matches "include an aggregate function" — the error message lists
+        # all three valid metric forms (aggregate, saved_metric, sql_expression)
+        # since Ticket #3 added SQL-expression support.
+        with pytest.raises(ValidationError, match="aggregate function"):
             BigNumberChartConfig(
                 chart_type="big_number",
                 metric=ColumnRef(name="revenue"),
@@ -90,9 +93,54 @@ class TestBigNumberChartConfig:
             "chart_type": "big_number",
             "metric": {"name": "total_sales", "saved_metric": True},
         }
-        is_valid, error = SchemaValidator._pre_validate_big_number_config(data)
+        is_valid, error = SchemaValidator._pre_validate_chart_type("big_number", data)
         assert is_valid is True
         assert error is None
+
+    def test_sql_expression_with_label_passes_pre_validation(self) -> None:
+        """A custom SQL metric is a valid third option alongside aggregate and
+        saved_metric in Tier-1 validation."""
+        from superset.mcp_service.chart.registry import get_registry
+
+        data = {
+            "chart_type": "big_number",
+            "metric": {"sql_expression": "SUM(a)/SUM(b)", "label": "Ratio"},
+        }
+        plugin = get_registry().get("big_number")
+        assert plugin is not None
+        error = plugin.pre_validate(data)
+        assert error is None
+
+    def test_sql_expression_without_label_fails_pre_validation(self) -> None:
+        """Tier-1 surfaces the label-required error with an LLM-actionable
+        suggestion before the request reaches Pydantic's stricter error."""
+        from superset.mcp_service.chart.registry import get_registry
+
+        data = {
+            "chart_type": "big_number",
+            "metric": {"sql_expression": "SUM(a)/SUM(b)"},
+        }
+        plugin = get_registry().get("big_number")
+        assert plugin is not None
+        error = plugin.pre_validate(data)
+        assert error is not None
+        assert error.error_code == "MISSING_SQL_METRIC_LABEL"
+
+    def test_sql_expression_with_non_string_label_fails_cleanly(self) -> None:
+        """Pre-validation runs on raw dict input before Pydantic coercion, so
+        a non-string ``label`` (e.g. an int from a buggy client) must surface
+        as a validation error, not an AttributeError from ``.strip()``."""
+        from superset.mcp_service.chart.registry import get_registry
+
+        data = {
+            "chart_type": "big_number",
+            "metric": {"sql_expression": "SUM(a)/SUM(b)", "label": 123},
+        }
+        plugin = get_registry().get("big_number")
+        assert plugin is not None
+        error = plugin.pre_validate(data)
+        assert error is not None
+        assert error.error_code == "MISSING_SQL_METRIC_LABEL"
 
     def test_with_subheader(self) -> None:
         config = BigNumberChartConfig(
@@ -138,6 +186,17 @@ class TestBigNumberChartConfig:
                 compare_lag=1,
             )
 
+    def test_aggregation_requires_trendline(self) -> None:
+        """aggregation without show_trendline=True must raise ValidationError."""
+        with pytest.raises(
+            ValidationError, match="aggregation requires show_trendline"
+        ):
+            BigNumberChartConfig(
+                chart_type="big_number",
+                metric=ColumnRef(name="revenue", aggregate="SUM"),
+                aggregation="sum",
+            )
+
     def test_with_filters(self) -> None:
         config = BigNumberChartConfig(
             chart_type="big_number",
@@ -148,6 +207,36 @@ class TestBigNumberChartConfig:
         )
         assert config.filters is not None
         assert len(config.filters) == 1
+
+    def test_with_aggregation_sum(self) -> None:
+        """aggregation='sum' is accepted when show_trendline=True."""
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            temporal_column="ds",
+            show_trendline=True,
+            aggregation="sum",
+        )
+        assert config.aggregation == "sum"
+
+    def test_with_aggregation_last_value(self) -> None:
+        """aggregation='LAST_VALUE' is accepted when show_trendline=True."""
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            temporal_column="ds",
+            show_trendline=True,
+            aggregation="LAST_VALUE",
+        )
+        assert config.aggregation == "LAST_VALUE"
+
+    def test_aggregation_defaults_to_none(self) -> None:
+        """aggregation field is None when omitted."""
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+        )
+        assert config.aggregation is None
 
     def test_extra_fields_forbidden(self) -> None:
         with pytest.raises(ValueError, match="Unknown field 'unknown_field'"):
@@ -267,6 +356,52 @@ class TestMapBigNumberConfig:
         assert "granularity_sqla" not in form_data
         assert "time_grain_sqla" not in form_data
         assert "start_y_axis_at_zero" not in form_data
+
+    def test_with_aggregation_sum(self) -> None:
+        """aggregation='sum' is written to form_data for trendline charts."""
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            temporal_column="order_date",
+            show_trendline=True,
+            aggregation="sum",
+        )
+        form_data = map_big_number_config(config)
+        assert form_data["aggregation"] == "sum"
+
+    def test_with_aggregation_last_value(self) -> None:
+        """aggregation='LAST_VALUE' is written to form_data for trendline charts."""
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            temporal_column="order_date",
+            show_trendline=True,
+            aggregation="LAST_VALUE",
+        )
+        form_data = map_big_number_config(config)
+        assert form_data["aggregation"] == "LAST_VALUE"
+
+    def test_aggregation_absent_when_not_set(self) -> None:
+        """aggregation key is absent from form_data when config.aggregation is None."""
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            temporal_column="order_date",
+            show_trendline=True,
+        )
+        form_data = map_big_number_config(config)
+        assert "aggregation" not in form_data
+
+    def test_aggregation_not_allowed_for_big_number_total(self) -> None:
+        """aggregation is rejected when show_trendline=False (big_number_total)."""
+        with pytest.raises(
+            ValidationError, match="aggregation requires show_trendline"
+        ):
+            BigNumberChartConfig(
+                chart_type="big_number",
+                metric=ColumnRef(name="revenue", aggregate="SUM"),
+                aggregation="sum",
+            )
 
 
 class TestMapConfigToFormDataBigNumber:

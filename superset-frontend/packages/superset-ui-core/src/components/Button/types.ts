@@ -24,7 +24,6 @@ import type {
   ButtonVariantType,
   ButtonColorType,
 } from 'antd/es/button';
-import { IconType } from '@superset-ui/core/components/Icons/types';
 import type { TooltipPlacement } from '../Tooltip/types';
 
 export type { AntdButtonProps, ButtonType, ButtonVariantType, ButtonColorType };
@@ -41,6 +40,17 @@ export type ButtonStyle =
 
 export type ButtonSize = 'default' | 'small' | 'xsmall';
 
+export type ButtonStyleConfig = {
+  controlHeight?: number;
+  paddingInline?: number;
+  fontSize?: number;
+  fontWeight?: number;
+  ctaMinWidth?: number;
+  ctaMinHeight?: number;
+  iconGap?: number;
+  borderRadius?: number;
+};
+
 export type ButtonProps = Omit<AntdButtonProps, 'css'> & {
   placement?: TooltipPlacement;
   tooltip?: ReactNode;
@@ -49,5 +59,6 @@ export type ButtonProps = Omit<AntdButtonProps, 'css'> & {
   buttonStyle?: ButtonStyle;
   cta?: boolean;
   showMarginRight?: boolean;
-  icon?: IconType;
+  icon?: ReactNode;
+  styleConfig?: ButtonStyleConfig;
 };

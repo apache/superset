@@ -212,6 +212,7 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
                   onRemove(id);
                 }}
                 alt={t('Remove filter')}
+                data-test="filter-remove-button"
               />
             )}
           </div>

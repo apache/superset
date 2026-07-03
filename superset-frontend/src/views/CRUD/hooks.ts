@@ -42,7 +42,7 @@ import type {
 } from 'src/components';
 import Chart, { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
-import { ensureAppRoot } from 'src/utils/pathUtils';
+import { getShareableUrl } from 'src/utils/navigationUtils';
 import SupersetText from 'src/utils/textUtils';
 import { DatabaseObject } from 'src/features/databases/types';
 import {
@@ -142,7 +142,7 @@ export function useListViewResource<D extends object = any>(
         return false;
       }
 
-      return Boolean(state.permissions.find(p => p === perm));
+      return Boolean(state.permissions.some(p => p === perm));
     },
     [state.permissions],
   );
@@ -747,9 +747,7 @@ export const copyQueryLink = (
   addSuccessToast: (arg0: string) => void,
 ) => {
   copyTextToClipboard(() =>
-    Promise.resolve(
-      `${window.location.origin}${ensureAppRoot(`/sqllab?savedQueryId=${id}`)}`,
-    ),
+    Promise.resolve(getShareableUrl(`/sqllab?savedQueryId=${id}`)),
   )
     .then(() => {
       addSuccessToast(t('Link Copied!'));
@@ -819,16 +817,13 @@ export function useDatabaseValidation() {
   );
   const [isValidating, setIsValidating] = useState(false);
   const [hasValidated, setHasValidated] = useState(false);
+  const latestRequestIdRef = useRef(0);
 
   const getValidation = useCallback(
     async (database: Partial<DatabaseObject> | null, onCreate = false) => {
-      if (database?.parameters?.ssh) {
-        setValidationErrors(null);
-        setIsValidating(false);
-        setHasValidated(true);
-        return Promise.resolve([]);
-      }
-
+      const requestId = latestRequestIdRef.current + 1;
+      latestRequestIdRef.current = requestId;
+      const isLatest = () => latestRequestIdRef.current === requestId;
       setIsValidating(true);
 
       try {
@@ -837,6 +832,9 @@ export function useDatabaseValidation() {
           body: JSON.stringify(transformDB(database)),
           headers: { 'Content-Type': 'application/json' },
         });
+        // Stale responses return ``null`` so callers can tell the result
+        // apart from a real, current outcome and skip caching it.
+        if (!isLatest()) return null;
         setValidationErrors(null);
         setIsValidating(false);
         setHasValidated(true);
@@ -845,12 +843,18 @@ export function useDatabaseValidation() {
         if (typeof error.json === 'function') {
           return error.json().then(({ errors = [] }) => {
             const parsedErrors = errors
-              .filter((err: { error_type: string }) => {
+              .filter((err: { error_type: string; extra?: JsonObject }) => {
                 const allowed = [
                   'CONNECTION_MISSING_PARAMETERS_ERROR',
                   'CONNECTION_ACCESS_DENIED_ERROR',
                   'INVALID_PAYLOAD_SCHEMA_ERROR',
                 ];
+                // SSH-tunnel section errors carry their own ``ssh_tunnel``
+                // marker and need to surface during blur validation too,
+                // otherwise feature-gate failures become invisible
+                // blockers (the save guard would still trip but with no
+                // hint about why).
+                if (err.extra?.ssh_tunnel) return true;
                 return allowed.includes(err.error_type) || onCreate;
               })
               .reduce((acc: JsonObject, err2: any) => {
@@ -862,6 +866,28 @@ export function useDatabaseValidation() {
                     ...acc[idx],
                     ...(extra.catalog.name ? { name: message } : {}),
                     ...(extra.catalog.url ? { url: message } : {}),
+                  };
+                  return acc;
+                }
+
+                if (extra?.ssh_tunnel) {
+                  // Field-level errors come in via ``extra.missing``;
+                  // section-level errors (e.g. feature flag disabled) do
+                  // not name a specific field, so preserve the server
+                  // message under a reserved ``_error`` key so the SSH
+                  // form can render it instead of silently dropping it.
+                  const missingFields = extra.missing ?? [];
+                  acc.ssh_tunnel = {
+                    ...acc.ssh_tunnel,
+                    ...Object.fromEntries(
+                      missingFields.map((field: string) => [
+                        field,
+                        'This is a required field',
+                      ]),
+                    ),
+                    ...(missingFields.length === 0 && message
+                      ? { _error: message }
+                      : {}),
                   };
                   return acc;
                 }
@@ -885,6 +911,7 @@ export function useDatabaseValidation() {
                 return acc;
               }, {});
 
+            if (!isLatest()) return null;
             setValidationErrors(parsedErrors);
             setIsValidating(false);
             setHasValidated(true);
@@ -893,9 +920,16 @@ export function useDatabaseValidation() {
         }
 
         console.error('Unexpected error during validation:', error);
-        setIsValidating(false);
-        setHasValidated(true);
-        return {};
+        // A request that produced no usable response (network drop, no JSON
+        // body) is not a completed validation cycle, so ``hasValidated``
+        // must stay false: otherwise the Connect button would enable
+        // without any real result. The blur snapshot is not cached for
+        // ``null`` results, so the next blur retries.
+        if (isLatest()) {
+          setIsValidating(false);
+          setHasValidated(false);
+        }
+        return null;
       }
     },
     [setValidationErrors],

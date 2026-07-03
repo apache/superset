@@ -33,10 +33,11 @@ from typing import (
 )
 
 import sqlalchemy as sa
+from flask import current_app
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from pydantic import BaseModel, Field
-from sqlalchemy import asc, cast, desc, or_, Text
+from sqlalchemy import asc, cast, desc, false, or_, Text
 from sqlalchemy.exc import SQLAlchemyError, StatementError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.inspection import inspect
@@ -44,6 +45,8 @@ from sqlalchemy.orm import ColumnProperty, joinedload, Query, RelationshipProper
 from superset_core.common.daos import BaseDAO as CoreBaseDAO
 from superset_core.common.models import CoreModel
 
+from superset import is_feature_enabled
+from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.daos.exceptions import (
     DAOFindFailedError,
 )
@@ -60,6 +63,7 @@ class ColumnOperatorEnum(str, Enum):
     ne = "ne"
     sw = "sw"
     ew = "ew"
+    ct = "ct"
     in_ = "in"
     nin = "nin"
     gt = "gt"
@@ -78,24 +82,58 @@ class ColumnOperatorEnum(str, Enum):
         return op_func(column, value)
 
 
+def _escape_like(value: Any) -> str:
+    """Escape LIKE/ILIKE wildcards to prevent wildcard injection.
+
+    The filter payload is typed ``Any``, so non-string scalars (e.g. numeric
+    JSON values) can reach LIKE-family operators; coerce them to ``str`` so
+    they degrade to a literal match instead of raising ``AttributeError``.
+    ``None`` never reaches this function — ``_like_op`` short-circuits it
+    first, because coercing ``None`` to ``""`` would build a wildcard-only
+    pattern (``%%``) that matches every row.
+    """
+    return str(value).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def _like_op(template: str, case_insensitive: bool = False) -> Any:
+    """Build a LIKE-family operator with SQL-faithful NULL semantics.
+
+    ``template`` places the escaped value inside the pattern (e.g. ``"%{}%"``
+    for contains). A ``None`` value matches no rows — mirroring SQL's
+    three-valued logic, where ``x LIKE NULL`` evaluates to NULL — rather
+    than raising or degenerating into a match-everything pattern.
+    """
+
+    def op(col: Any, val: Any) -> Any:
+        if val is None:
+            return false()
+        pattern = template.format(_escape_like(val))
+        if case_insensitive:
+            return col.ilike(pattern, escape="\\")
+        return col.like(pattern, escape="\\")
+
+    return op
+
+
 # Define operator_map as a module-level dict after the enum is defined
 operator_map: Dict[ColumnOperatorEnum, Any] = {
     ColumnOperatorEnum.eq: lambda col, val: col == val,
     ColumnOperatorEnum.ne: lambda col, val: col != val,
-    ColumnOperatorEnum.sw: lambda col, val: col.like(f"{val}%"),
-    ColumnOperatorEnum.ew: lambda col, val: col.like(f"%{val}"),
+    ColumnOperatorEnum.sw: _like_op("{}%"),
+    ColumnOperatorEnum.ew: _like_op("%{}"),
+    ColumnOperatorEnum.ct: _like_op("%{}%", case_insensitive=True),
     ColumnOperatorEnum.in_: lambda col, val: col.in_(
         val if isinstance(val, (list, tuple)) else [val]
     ),
-    ColumnOperatorEnum.nin: lambda col, val: ~col.in_(
-        val if isinstance(val, (list, tuple)) else [val]
+    ColumnOperatorEnum.nin: lambda col, val: (
+        ~col.in_(val if isinstance(val, (list, tuple)) else [val])
     ),
     ColumnOperatorEnum.gt: lambda col, val: col > val,
     ColumnOperatorEnum.gte: lambda col, val: col >= val,
     ColumnOperatorEnum.lt: lambda col, val: col < val,
     ColumnOperatorEnum.lte: lambda col, val: col <= val,
-    ColumnOperatorEnum.like: lambda col, val: col.like(f"%{val}%"),
-    ColumnOperatorEnum.ilike: lambda col, val: col.ilike(f"%{val}%"),
+    ColumnOperatorEnum.like: _like_op("%{}%"),
+    ColumnOperatorEnum.ilike: _like_op("%{}%", case_insensitive=True),
     ColumnOperatorEnum.is_null: lambda col, _: col.is_(None),
     ColumnOperatorEnum.is_not_null: lambda col, _: col.isnot(None),
 }
@@ -107,6 +145,7 @@ TYPE_OPERATOR_MAP = {
         ColumnOperatorEnum.ne,
         ColumnOperatorEnum.sw,
         ColumnOperatorEnum.ew,
+        ColumnOperatorEnum.ct,
         ColumnOperatorEnum.in_,
         ColumnOperatorEnum.nin,
         ColumnOperatorEnum.like,
@@ -171,6 +210,16 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
     id_column_name: ClassVar[str] = "id"
     uuid_column_name: ClassVar[str] = "uuid"
 
+    filterable_relationships: ClassVar[frozenset[str]] = frozenset()
+    """
+    Names of collection relationships (m2m / one-to-many) this DAO advertises
+    as filterable via ``get_filterable_columns_and_operators``. Empty means
+    no relationships are advertised — important because consumer tools
+    constrain filter columns via Pydantic ``Literal`` and would silently
+    reject anything advertised here that isn't in their allowlist.
+    Child DAOs override with the relationship names they wish to expose.
+    """
+
     def __init_subclass__(cls) -> None:
         cls.model_cls = get_args(
             cls.__orig_bases__[0]  # type: ignore[attr-defined]  # pylint: disable=no-member
@@ -181,11 +230,17 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         cls,
         model_id_or_uuid: str,
         skip_base_filter: bool = False,
+        *,
+        skip_visibility_filter: bool = False,
     ) -> T | None:
         """
         Find a model by id or uuid, if defined applies `base_filter`
         """
         query = db.session.query(cls.model_cls)
+        if skip_visibility_filter:
+            query = query.execution_options(
+                **{SKIP_VISIBILITY_FILTER_CLASSES: {cls.model_cls}}
+            )
         if cls.base_filter and not skip_base_filter:
             data_model = SQLAInterface(cls.model_cls, db.session)
             query = cls.base_filter(  # pylint: disable=not-callable
@@ -249,6 +304,8 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         value: str | int,
         skip_base_filter: bool = False,
         query_options: list[Any] | None = None,
+        *,
+        skip_visibility_filter: bool = False,
     ) -> T | None:
         """
         Private method to find a model by any column value.
@@ -257,6 +314,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             column_name: Name of the column to search by
             value: Value to search for
             skip_base_filter: Whether to skip base filtering
+            skip_visibility_filter: Whether to skip the soft-delete visibility filter
             query_options: SQLAlchemy query options (e.g., joinedload,
                 subqueryload) to apply to the query for eager loading
 
@@ -264,6 +322,10 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             Model instance or None if not found
         """
         query = db.session.query(cls.model_cls)
+        if skip_visibility_filter:
+            query = query.execution_options(
+                **{SKIP_VISIBILITY_FILTER_CLASSES: {cls.model_cls}}
+            )
         query = cls._apply_base_filter(query, skip_base_filter)
 
         if query_options:
@@ -290,6 +352,8 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         skip_base_filter: bool = False,
         id_column: str | None = None,
         query_options: list[Any] | None = None,
+        *,
+        skip_visibility_filter: bool = False,
     ) -> T | None:
         """
         Find a model by ID using specified or default ID column.
@@ -300,12 +364,20 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             id_column: Column name to use (defaults to cls.id_column_name)
             query_options: SQLAlchemy query options (e.g., joinedload,
                 subqueryload) to apply to the query for eager loading
+            skip_visibility_filter: Keyword-only. Whether to skip the
+                soft-delete visibility filter
 
         Returns:
             Model instance or None if not found
         """
         column = id_column or cls.id_column_name
-        return cls._find_by_column(column, model_id, skip_base_filter, query_options)
+        return cls._find_by_column(
+            column,
+            model_id,
+            skip_base_filter,
+            query_options,
+            skip_visibility_filter=skip_visibility_filter,
+        )
 
     @classmethod
     def find_by_ids(
@@ -313,6 +385,8 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         model_ids: Sequence[str | int],
         skip_base_filter: bool = False,
         id_column: str | None = None,
+        *,
+        skip_visibility_filter: bool = False,
     ) -> list[T]:
         """
         Find a List of models by a list of ids, if defined applies `base_filter`
@@ -321,6 +395,8 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         :param skip_base_filter: If true, skip applying the base filter
         :param id_column: Optional column name to use for ID lookup
                          (defaults to id_column_name)
+        :param skip_visibility_filter: Keyword-only. If true, skip the
+            soft-delete visibility filter so soft-deleted rows are returned
         """
         column = id_column or cls.id_column_name
         id_col = getattr(cls.model_cls, column, None)
@@ -347,7 +423,12 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         if not converted_ids:
             return []
 
-        query = db.session.query(cls.model_cls).filter(id_col.in_(converted_ids))
+        query = db.session.query(cls.model_cls)
+        if skip_visibility_filter:
+            query = query.execution_options(
+                **{SKIP_VISIBILITY_FILTER_CLASSES: {cls.model_cls}}
+            )
+        query = query.filter(id_col.in_(converted_ids))
         query = cls._apply_base_filter(query, skip_base_filter)
 
         try:
@@ -429,24 +510,60 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         return item  # type: ignore
 
     @classmethod
-    def delete(cls, items: list[T]) -> None:
+    def soft_delete(cls, items: list[T]) -> None:
+        """Mark items as soft-deleted by setting ``deleted_at``.
+
+        Only valid for models that include ``SoftDeleteMixin``.
+
+        :param items: The items to soft-delete
         """
-        Delete the specified items including their associated relationships.
+        for item in items:
+            item.soft_delete()
 
-        Note that bulk deletion via `delete` is not invoked in the base class as this
-        does not dispatch the ORM `after_delete` event which may be required to augment
-        additional records loosely defined via implicit relationships. Instead ORM
-        objects are deleted one-by-one via `Session.delete`.
+    @classmethod
+    def hard_delete(cls, items: list[T]) -> None:
+        """Permanently remove rows from the database.
 
-        Subclasses may invoke bulk deletion but are responsible for instrumenting any
-        post-deletion logic.
+        Note that bulk deletion via ``delete`` is not invoked in the base
+        class as this does not dispatch the ORM ``after_delete`` event which
+        may be required to augment additional records loosely defined via
+        implicit relationships. Instead ORM objects are deleted one-by-one
+        via ``Session.delete``.
+
+        Subclasses may invoke bulk deletion but are responsible for
+        instrumenting any post-deletion logic.
 
         :param items: The items to delete
         :see: https://docs.sqlalchemy.org/en/latest/orm/queryguide/dml.html
         """
-
         for item in items:
             db.session.delete(item)
+
+    @classmethod
+    def delete(cls, items: list[T]) -> None:
+        """Route to soft or hard delete based on whether the model supports
+        soft delete.
+
+        For models that include ``SoftDeleteMixin``, this calls
+        ``soft_delete()`` — but only while the temporary ``SOFT_DELETE`` rollout
+        gate is enabled. When the gate is off, every model
+        hard-deletes (the original behaviour), so the substrate can ship dark.
+        For all other models, this always calls ``hard_delete()``.
+
+        :param items: The items to delete
+        """
+        from superset.models.helpers import (
+            SoftDeleteMixin,  # avoid circular import: models.helpers <-> daos
+        )
+
+        if (
+            cls.model_cls is not None
+            and issubclass(cls.model_cls, SoftDeleteMixin)
+            and is_feature_enabled("SOFT_DELETE")
+        ):
+            cls.soft_delete(items)
+        else:
+            cls.hard_delete(items)
 
     @classmethod
     def query(cls, query: Query) -> list[T]:
@@ -499,13 +616,82 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
                 )
             column = getattr(cls.model_cls, col)
             try:
-                # Always use ColumnOperatorEnum's apply method
                 operator_enum = ColumnOperatorEnum(opr)
-                query = query.filter(operator_enum.apply(column, value))
+                # Relationship attributes (many-to-many or one-to-many)
+                # can't be compared directly with scalar operators —
+                # SQLAlchemy needs `.any(...)`. Detect the collection
+                # case and dispatch to the related model's primary key
+                # column. This lets callers use the natural shapes
+                # `{col: "<relationship>", opr: "eq", value: <id>}` or
+                # `{opr: "in", value: [<id>, ...]}` etc. to find rows
+                # whose related collection contains those id(s).
+                is_collection_relationship = (
+                    hasattr(column, "property")
+                    and isinstance(column.property, RelationshipProperty)
+                    and column.property.uselist
+                )
+                if is_collection_relationship:
+                    query = cls._apply_relationship_filter(
+                        query, column, col, operator_enum, value
+                    )
+                else:
+                    query = query.filter(operator_enum.apply(column, value))
             except Exception as e:
                 logging.error("Error applying filter on column '%s': %s", col, e)
                 raise
         return query
+
+    @classmethod
+    def _apply_relationship_filter(
+        cls,
+        query: Any,
+        column: Any,
+        col_name: str,
+        operator_enum: "ColumnOperatorEnum",
+        value: Any,
+    ) -> Any:
+        """Apply a filter on a many-to-many or one-to-many relationship column.
+
+        Translates the caller's operator into a SQLAlchemy ``.any()``
+        expression against the related model's primary key. Supports
+        eq / ne / in / nin / is_null / is_not_null. Other operators
+        (sw, like, gt, etc.) don't make sense on a collection of related
+        rows and raise a clear ValueError instead of producing a
+        cryptic SQLAlchemy error at query time.
+        """
+        pk_cols = inspect(column.property.mapper).primary_key
+        if len(pk_cols) != 1:
+            # Composite PKs would need a tuple `.in_()` and per-operator
+            # tuple handling; no Superset model uses one today, so we
+            # fail loudly rather than silently drop the trailing columns.
+            raise ValueError(
+                f"Relationship filter on '{col_name}' requires a "
+                f"single-column primary key on the related model; "
+                f"found {len(pk_cols)} columns."
+            )
+        related_pk = pk_cols[0]
+        if operator_enum == ColumnOperatorEnum.eq:
+            return query.filter(column.any(related_pk == value))
+        if operator_enum == ColumnOperatorEnum.ne:
+            # "no related row has id == value"
+            return query.filter(~column.any(related_pk == value))
+        if operator_enum == ColumnOperatorEnum.in_:
+            values = value if isinstance(value, (list, tuple)) else [value]
+            return query.filter(column.any(related_pk.in_(values)))
+        if operator_enum == ColumnOperatorEnum.nin:
+            values = value if isinstance(value, (list, tuple)) else [value]
+            return query.filter(~column.any(related_pk.in_(values)))
+        if operator_enum == ColumnOperatorEnum.is_null:
+            # "has no related rows at all"
+            return query.filter(~column.any())
+        if operator_enum == ColumnOperatorEnum.is_not_null:
+            # "has at least one related row"
+            return query.filter(column.any())
+        raise ValueError(
+            f"Operator '{operator_enum.value}' is not supported on "
+            f"relationship column '{col_name}'. Use one of: eq, ne, in, "
+            f"nin, is_null, is_not_null."
+        )
 
     @classmethod
     def get_filterable_columns_and_operators(cls) -> Dict[str, List[str]]:
@@ -518,6 +704,17 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
 
         mapper = inspect(cls.model_cls)
         columns = {c.key: c for c in mapper.columns}
+        # Collection relationships (m2m / one-to-many) are filterable via
+        # `.any()` against the related model's primary key. Only advertise
+        # the relationships the DAO has opted into via
+        # ``filterable_relationships`` so schema discovery stays in sync
+        # with the consumer tool's input ``Literal`` allowlist (otherwise
+        # the LLM sees fields it cannot actually pass).
+        relationship_columns = {
+            rel.key: rel
+            for rel in mapper.relationships
+            if rel.uselist and rel.key in cls.filterable_relationships
+        }
         # Add hybrid properties
         hybrids = {
             name: attr
@@ -527,6 +724,17 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         # You may add custom fields here, e.g.:
         # custom_fields = {"tags": ["eq", "in_", "like"], ...}
         custom_fields: Dict[str, List[str]] = {}
+
+        # Operators apply_relationship_filter supports for collection
+        # relationships. Keep in sync with that method.
+        relationship_operators = [
+            ColumnOperatorEnum.eq,
+            ColumnOperatorEnum.ne,
+            ColumnOperatorEnum.in_,
+            ColumnOperatorEnum.nin,
+            ColumnOperatorEnum.is_null,
+            ColumnOperatorEnum.is_not_null,
+        ]
 
         filterable: Dict[str, Any] = {}
         for name, col in columns.items():
@@ -549,6 +757,9 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         # Add hybrid properties as string fields by default
         for name in hybrids:
             filterable[name] = TYPE_OPERATOR_MAP["string"]
+        # Add collection relationships
+        for name in relationship_columns:
+            filterable[name] = relationship_operators
         # Add custom fields
         filterable.update(custom_fields)
 
@@ -591,7 +802,11 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             for column_name in search_columns:
                 if hasattr(cls.model_cls, column_name):
                     column = getattr(cls.model_cls, column_name)
-                    search_filters.append(cast(column, Text).ilike(f"%{search}%"))
+                    search_filters.append(
+                        cast(column, Text).ilike(
+                            f"%{_escape_like(search)}%", escape="\\"
+                        )
+                    )
             if search_filters:
                 query = query.filter(or_(*search_filters))
         if custom_filters:
@@ -658,7 +873,11 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             for column_name in search_columns:
                 if hasattr(cls.model_cls, column_name):
                     column = getattr(cls.model_cls, column_name)
-                    search_filters.append(cast(column, Text).ilike(f"%{search}%"))
+                    search_filters.append(
+                        cast(column, Text).ilike(
+                            f"%{_escape_like(search)}%", escape="\\"
+                        )
+                    )
             if search_filters:
                 query = query.filter(or_(*search_filters))
         if custom_filters:
@@ -683,7 +902,19 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             else:
                 query = query.order_by(asc(column))
         page = page
-        page_size = max(page_size, 1)
+        # Clamp the page size to a sane range: at least 1, and no larger than
+        # the configured upper bound, to keep result sets bounded.
+        # Normalize the configured maximum to a positive integer so that a
+        # misconfigured value (non-int or <= 0) cannot produce a non-positive
+        # page size, which would break pagination or yield unbounded queries.
+        try:
+            max_page_size = int(
+                current_app.config.get("SQLALCHEMY_DAO_MAX_PAGE_SIZE", 1000)
+            )
+        except (TypeError, ValueError):
+            max_page_size = 1000
+        max_page_size = max(max_page_size, 1)
+        page_size = min(max(page_size, 1), max_page_size)
         query = query.offset(page * page_size).limit(page_size)
         items = query.all()
         # If columns are specified, SQLAlchemy returns Row objects (not tuples or

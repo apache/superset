@@ -21,10 +21,12 @@ from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import patch
 
+from kombu.exceptions import OperationalError as KombuOperationalError
+
 import pytz
 
 import pytest
-import prison
+import rison
 from parameterized import parameterized
 from sqlalchemy.sql import func
 
@@ -331,13 +333,15 @@ class TestReportSchedulesApi(SupersetTestCase):
         """
         self.login(ADMIN_USERNAME)
         params = {"keys": ["permissions"]}
-        uri = f"api/v1/report/_info?q={prison.dumps(params)}"
+        uri = f"api/v1/report/_info?q={rison.dumps(params)}"
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
         assert "can_read" in data["permissions"]
         assert "can_write" in data["permissions"]
-        assert len(data["permissions"]) == 2
+        assert "can_subscribe" in data["permissions"]
+        assert "can_execute" in data["permissions"]
+        assert len(data["permissions"]) == 4
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_get_report_schedule_not_found(self):
@@ -477,7 +481,7 @@ class TestReportSchedulesApi(SupersetTestCase):
 
         for order_column in order_columns:
             arguments = {"order_column": order_column, "order_direction": "asc"}
-            uri = f"api/v1/report/?q={prison.dumps(arguments)}"
+            uri = f"api/v1/report/?q={rison.dumps(arguments)}"
             rv = self.get_assert_metric(uri, "get_list")
             assert rv.status_code == 200
 
@@ -492,7 +496,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "columns": ["name"],
             "filters": [{"col": "name", "opr": "ct", "value": "2"}],
         }
-        uri = f"api/v1/report/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/report/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
 
         expected_result = {
@@ -514,7 +518,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "columns": ["name"],
             "filters": [{"col": "name", "opr": "report_all_text", "value": "table3"}],
         }
-        uri = f"api/v1/report/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/report/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
 
         expected_result = {
@@ -535,7 +539,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "columns": ["name"],
             "filters": [{"col": "active", "opr": "eq", "value": True}],
         }
-        uri = f"api/v1/report/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/report/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
 
         assert rv.status_code == 200
@@ -554,7 +558,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                 {"col": "type", "opr": "eq", "value": ReportScheduleType.ALERT}
             ],
         }
-        uri = f"api/v1/report/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/report/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
 
         assert rv.status_code == 200
@@ -568,7 +572,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                 {"col": "type", "opr": "eq", "value": ReportScheduleType.REPORT}
             ],
         }
-        uri = f"api/v1/report/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/report/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
 
         assert rv.status_code == 200
@@ -2301,7 +2305,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             report_schedule.id for report_schedule in report_schedules
         ]
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/report/?q={prison.dumps(report_schedules_ids)}"
+        uri = f"api/v1/report/?q={rison.dumps(report_schedules_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 200
         deleted_report_schedules = query_report_schedules.all()
@@ -2324,7 +2328,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         max_id = db.session.query(func.max(ReportSchedule.id)).scalar()
         report_schedules_ids.append(max_id + 1)
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/report/?q={prison.dumps(report_schedules_ids)}"
+        uri = f"api/v1/report/?q={rison.dumps(report_schedules_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 404
 
@@ -2342,7 +2346,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         report_schedules_ids = [report_schedule.id]
 
         self.login(username="alpha2", password="password")  # noqa: S106
-        uri = f"api/v1/report/?q={prison.dumps(report_schedules_ids)}"
+        uri = f"api/v1/report/?q={rison.dumps(report_schedules_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 403
 
@@ -2389,7 +2393,7 @@ class TestReportSchedulesApi(SupersetTestCase):
 
         for order_column in order_columns:
             arguments = {"order_column": order_column, "order_direction": "asc"}
-            uri = f"api/v1/report/{report_schedule.id}/log/?q={prison.dumps(arguments)}"
+            uri = f"api/v1/report/{report_schedule.id}/log/?q={rison.dumps(arguments)}"
             rv = self.get_assert_metric(uri, "get_list")
             if rv.status_code == 400:
                 raise Exception(json.loads(rv.data.decode("utf-8")))
@@ -2411,7 +2415,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "columns": ["name"],
             "filters": [{"col": "state", "opr": "eq", "value": ReportState.SUCCESS}],
         }
-        uri = f"api/v1/report/{report_schedule.id}/log/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/report/{report_schedule.id}/log/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
 
         assert rv.status_code == 200
@@ -2884,3 +2888,94 @@ class TestReportSchedulesApi(SupersetTestCase):
         db.session.delete(report_b)
         db.session.delete(dashboard)
         db.session.commit()
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    @patch("superset.tasks.scheduler.execute.apply_async")
+    def test_execute_report_schedule(self, mock_execute: Any) -> None:
+        """
+        ReportSchedule Api: Test execute report schedule
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name1")
+            .one_or_none()
+        )
+        assert report_schedule is not None
+
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/report/{report_schedule.id}/execute"
+        rv = self.client.post(uri)
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "execution_id" in data
+        assert "message" in data
+        assert data["message"] == "Report schedule execution started successfully"
+
+        mock_execute.assert_called_once()
+        call_args = mock_execute.call_args
+        # First positional arg is the tuple of task args
+        assert call_args[0][0] == (report_schedule.id,)
+        # eta must be set so the downstream task receives a valid scheduled_dttm
+        assert "eta" in call_args[1]
+        assert call_args[1]["eta"] is not None
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_execute_report_schedule_not_found(self) -> None:
+        """
+        ReportSchedule Api: Test execute report schedule not found
+        """
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/report/9999999/execute"
+        rv = self.client.post(uri)
+        assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_execute_report_schedule_not_owned(self) -> None:
+        """
+        ReportSchedule Api: Test execute report schedule forbidden for non-owner
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name1")
+            .one_or_none()
+        )
+        assert report_schedule is not None
+
+        self.login(GAMMA_USERNAME)
+        uri = f"api/v1/report/{report_schedule.id}/execute"
+        rv = self.client.post(uri)
+        assert rv.status_code == 403
+
+    @with_feature_flags(ALERT_REPORTS=False)
+    def test_execute_report_schedule_feature_disabled(self) -> None:
+        """
+        ReportSchedule Api: Test execute returns 404 when ALERT_REPORTS
+        feature is disabled
+        """
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/report/1/execute"
+        rv = self.client.post(uri)
+        assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    @patch("superset.tasks.scheduler.execute.apply_async")
+    def test_execute_report_schedule_celery_error(self, mock_execute: Any) -> None:
+        """
+        ReportSchedule Api: Test execute returns 503 when Celery broker is unreachable
+        """
+        mock_execute.side_effect = KombuOperationalError("broker connection refused")
+
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name1")
+            .one_or_none()
+        )
+        assert report_schedule is not None
+
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/report/{report_schedule.id}/execute"
+        rv = self.client.post(uri)
+        assert rv.status_code == 503
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "Celery" in data["message"]
+        assert "broker" in data["message"].lower()

@@ -29,3 +29,15 @@ test('render owner name correctly', () => {
 test('return empty string for undefined owner', () => {
   expect(getOwnerName(undefined)).toEqual('');
 });
+
+test('return empty string when no name fields are set', () => {
+  expect(getOwnerName({ id: 1 })).toEqual('');
+});
+
+test('handle only first_name set', () => {
+  expect(getOwnerName({ id: 1, first_name: 'Foo' })).toEqual('Foo');
+});
+
+test('handle only last_name set', () => {
+  expect(getOwnerName({ id: 1, last_name: 'Bar' })).toEqual('Bar');
+});

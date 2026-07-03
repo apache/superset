@@ -28,7 +28,7 @@ from shillelagh.exceptions import UnauthenticatedError
 from sqlalchemy.engine.url import make_url
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetException
+from superset.exceptions import OAuth2TokenRefreshError, SupersetException
 from superset.sql.parse import Table
 from superset.superset_typing import OAuth2ClientConfig
 from superset.utils import json
@@ -217,8 +217,14 @@ def test_validate_parameters_catalog(
 
     create_engine.assert_called_with(
         "gsheets://",
-        service_account_info={},
-        subject="admin@example.com",
+        connect_args={
+            "adapter_kwargs": {
+                "gsheetsapi": {
+                    "service_account_info": {},
+                    "subject": "admin@example.com",
+                }
+            }
+        },
     )
 
 
@@ -284,8 +290,14 @@ def test_validate_parameters_catalog_and_credentials(
 
     create_engine.assert_called_with(
         "gsheets://",
-        service_account_info={},
-        subject="admin@example.com",
+        connect_args={
+            "adapter_kwargs": {
+                "gsheetsapi": {
+                    "service_account_info": {},
+                    "subject": "admin@example.com",
+                }
+            }
+        },
     )
 
 
@@ -724,6 +736,12 @@ def test_get_oauth2_fresh_token(
 def test_update_params_from_encrypted_extra(mocker: MockerFixture) -> None:
     """
     Test `update_params_from_encrypted_extra`.
+
+    - oauth2_client_info must be removed
+    - service_account_info must be moved to connect_args.adapter_kwargs.gsheetsapi
+    - catalog must be copied to connect_args.adapter_kwargs.gsheetsapi (and kept
+      top-level)
+    - other keys must remain as top-level params
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
@@ -731,6 +749,11 @@ def test_update_params_from_encrypted_extra(mocker: MockerFixture) -> None:
         encrypted_extra=json.dumps(
             {
                 "oauth2_client_info": "SECRET",
+                "service_account_info": {
+                    "private_key": "KEY",
+                    "client_email": "x@y.com",
+                },
+                "catalog": {"Sheet1": "https://docs.google.com/spreadsheets/d/1/edit"},
                 "foo": "bar",
             }
         )
@@ -738,7 +761,19 @@ def test_update_params_from_encrypted_extra(mocker: MockerFixture) -> None:
     params: dict[str, Any] = {}
 
     GSheetsEngineSpec.update_params_from_encrypted_extra(database, params)
-    assert params == {"foo": "bar"}
+
+    assert "oauth2_client_info" not in params
+    assert "service_account_info" not in params
+    assert params["connect_args"]["adapter_kwargs"]["gsheetsapi"][
+        "service_account_info"
+    ] == {"private_key": "KEY", "client_email": "x@y.com"}
+    assert params["connect_args"]["adapter_kwargs"]["gsheetsapi"]["catalog"] == {
+        "Sheet1": "https://docs.google.com/spreadsheets/d/1/edit"
+    }
+    assert params["catalog"] == {
+        "Sheet1": "https://docs.google.com/spreadsheets/d/1/edit"
+    }
+    assert params["foo"] == "bar"
 
 
 def test_needs_oauth2_with_credentials_error(mocker: MockerFixture) -> None:
@@ -790,6 +825,36 @@ def test_needs_oauth2_with_other_error(mocker: MockerFixture) -> None:
     assert GSheetsEngineSpec.needs_oauth2(ex) is False
 
 
+def test_needs_oauth2_with_shillelagh_unauthenticated_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that needs_oauth2 returns True when UnauthenticatedError is raised.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user = mocker.MagicMock()
+
+    ex = UnauthenticatedError("Token has been revoked")
+    assert GSheetsEngineSpec.needs_oauth2(ex) is True
+
+
+def test_needs_oauth2_with_unrelated_exception_type(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that an unrelated exception type (with no matching message) returns
+    False.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user = mocker.MagicMock()
+
+    assert GSheetsEngineSpec.needs_oauth2(ValueError("unrelated")) is False
+
+
 def test_get_oauth2_fresh_token_success(
     mocker: MockerFixture,
     oauth2_config: OAuth2ClientConfig,
@@ -817,26 +882,20 @@ def test_get_oauth2_fresh_token_invalid_grant(
     oauth2_config: OAuth2ClientConfig,
 ) -> None:
     """
-    Test that get_oauth2_fresh_token raises UnauthenticatedError for invalid_grant.
+    Test that get_oauth2_fresh_token raises OAuth2TokenRefreshError for a 400 response.
 
-    When a token is revoked on Google side, the refresh request returns 400
-    with error=invalid_grant.
+    When a token is revoked on Google side, the refresh request returns 400.
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
-    mock_response = mocker.MagicMock()
-    mock_response.status_code = 400
-    mock_response.json.return_value = {
-        "error": "invalid_grant",
-        "error_description": "Token has been expired or revoked.",
-    }
-    http_error = HTTPError()
-    http_error.response = mock_response
-
     requests = mocker.patch("superset.db_engine_specs.base.requests")
-    requests.post().raise_for_status.side_effect = http_error
+    requests.post().status_code = 400
+    requests.post().text = (
+        '{"error": "invalid_grant",'
+        ' "error_description": "Token has been expired or revoked."}'
+    )
 
-    with pytest.raises(UnauthenticatedError):
+    with pytest.raises(OAuth2TokenRefreshError):
         GSheetsEngineSpec.get_oauth2_fresh_token(oauth2_config, "refresh-token")
 
 

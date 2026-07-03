@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { flatMapDeep } from 'lodash';
+import { flatMapDeep } from 'lodash-es';
 import type { FormInstance } from '@superset-ui/core/components';
 import { useState, useCallback } from 'react';
 import { CustomControlItem, Dataset } from '@superset-ui/chart-controls';
@@ -26,6 +26,16 @@ import { DatasourcesState, ChartsState } from 'src/dashboard/types';
 import { FILTER_SUPPORTED_TYPES } from './constants';
 
 const FILTERS_FIELD_NAME = 'filters';
+
+type TimeGrainTuple = [string, string];
+
+export const getTimeGrainOptions = (
+  timeGrains: TimeGrainTuple[] = [],
+): { value: string; label: string }[] =>
+  timeGrains.map(timeGrain => {
+    const [value, label] = timeGrain;
+    return { value, label: label || value };
+  });
 
 export const useForceUpdate = (isActive = true) => {
   const [, updateState] = useState({});

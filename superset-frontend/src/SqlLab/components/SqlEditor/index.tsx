@@ -30,7 +30,8 @@ import {
 
 import type { editors } from '@apache-superset/core';
 import useEffectEvent from 'src/hooks/useEffectEvent';
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -48,7 +49,7 @@ import type {
   CursorPosition,
 } from 'src/SqlLab/types';
 import type { DatabaseObject } from 'src/features/databases/types';
-import { debounce, isEmpty } from 'lodash';
+import { debounce, isEmpty } from 'lodash-es';
 import Mousetrap from 'mousetrap';
 import {
   Button,
@@ -237,7 +238,7 @@ const SqlEditor: FC<Props> = ({
   scheduleQueryWarning,
 }) => {
   const theme = useTheme();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   const { database, latestQuery, currentQueryEditorId, hasSqlStatement } =
     useSelector<
@@ -292,7 +293,10 @@ const SqlEditor: FC<Props> = ({
   const SqlFormExtension = extensionsRegistry.get('sqleditor.extension.form');
 
   const startQuery = useCallback(
-    (ctasArg = false, ctas_method = CtasEnum.Table) => {
+    (
+      ctasArg = false,
+      ctas_method: (typeof CtasEnum)[keyof typeof CtasEnum] = CtasEnum.Table,
+    ) => {
       if (!database) {
         return;
       }
@@ -887,7 +891,7 @@ const SqlEditor: FC<Props> = ({
     callback(currentSQL.current);
   };
   const renderCopyQueryButton = () => (
-    <Button type="primary">{t('COPY QUERY')}</Button>
+    <Button type="primary">{t('Copy query')}</Button>
   );
 
   const renderDatasetWarning = () => (

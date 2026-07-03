@@ -16,93 +16,61 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-syntax
 import * as supersetCore from '@apache-superset/core';
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import {
   authentication,
+  chat,
   core,
   commands,
   editors,
   extensions,
   menus,
+  navigation,
+  useNavigationTracker,
   sqlLab,
   views,
 } from 'src/core';
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/views/store';
 import ExtensionsLoader from './ExtensionsLoader';
-
-declare global {
-  interface Window {
-    superset: {
-      authentication: typeof authentication;
-      core: typeof core;
-      commands: typeof commands;
-      editors: typeof editors;
-      extensions: typeof extensions;
-      menus: typeof menus;
-      sqlLab: typeof sqlLab;
-      views: typeof views;
-    };
-  }
-}
+import 'src/extensions/Namespaces';
 
 const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
   children,
 }) => {
-  const [initialized, setInitialized] = useState(false);
+  useNavigationTracker();
 
   const userId = useSelector<RootState, number | undefined>(
     ({ user }) => user.userId,
   );
 
   useEffect(() => {
-    if (initialized) return;
+    if (userId == null) return;
 
-    if (!userId) {
-      // No user logged in — nothing to initialize
-      setInitialized(true);
-      return;
-    }
-
-    // Provide the implementations for @apache-superset/core
+    // Provide the implementations for @apache-superset/core.
+    // Namespaces are listed explicitly — do not spread the core package here,
+    // as that would leak un-contracted symbols onto window.superset.
     window.superset = {
       ...supersetCore,
       authentication,
+      chat,
       core,
       commands,
       editors,
       extensions,
       menus,
+      navigation,
       sqlLab,
       views,
     };
 
-    const setup = async () => {
-      if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
-        try {
-          await ExtensionsLoader.getInstance().initializeExtensions();
-          supersetCore.utils.logging.info(
-            'Extensions initialized successfully.',
-          );
-        } catch (error) {
-          supersetCore.utils.logging.error(
-            'Error setting up extensions:',
-            error,
-          );
-        }
-      }
-      setInitialized(true);
-    };
-
-    setup();
-  }, [initialized, userId]);
-
-  if (!initialized) {
-    return null;
-  }
+    if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
+      ExtensionsLoader.getInstance().initializeExtensions();
+    }
+  }, [userId]);
 
   return <>{children}</>;
 };

@@ -18,7 +18,7 @@
  */
 import { SyntheticEvent } from 'react';
 import domToImage from 'dom-to-image-more';
-import { kebabCase } from 'lodash';
+import { kebabCase } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
@@ -350,8 +350,7 @@ export default function downloadAsImageOptimized(
 
     if (agContainer && agRootWrapper) {
       const api = agContainer._agGridApi;
-      const isFirstDataRendered =
-        agContainer._agGridFirstDataRendered === true;
+      const isFirstDataRendered = agContainer._agGridFirstDataRendered === true;
 
       if (!isFirstDataRendered) {
         addWarningToast(

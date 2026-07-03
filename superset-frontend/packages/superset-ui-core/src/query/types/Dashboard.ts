@@ -81,6 +81,7 @@ export type Filter = {
   granularity?: string;
   time_grain_sqla?: string;
   time_range?: string;
+  time_grains?: string[];
   requiredFirst?: boolean;
   tabsInScope?: string[];
   chartsInScope?: number[];
@@ -101,11 +102,11 @@ export type ChartCustomization = {
   defaultDataMask: DataMask;
   controlValues: {
     sortAscending?: boolean;
-    sortMetric?: string;
     [key: string]: any;
   };
   description?: string;
   removed?: boolean;
+  time_grains?: string[];
 };
 
 export type ChartCustomizationDivider = Partial<

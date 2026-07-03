@@ -38,7 +38,7 @@ import {
   AgGridFilterModel,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import { isEmpty, isEqual, merge } from 'lodash';
+import { isEmpty, isEqual, merge } from 'lodash-es';
 import {
   ConditionalFormattingConfig,
   getColorFormatters,
@@ -431,6 +431,11 @@ const processColumns = memoizeOne(function processColumns(
         formatter,
         config,
       };
+    })
+    .sort((a, b) => {
+      const aIsMetric = a.isMetric || a.isPercentMetric ? 1 : 0;
+      const bIsMetric = b.isMetric || b.isPercentMetric ? 1 : 0;
+      return aIsMetric - bIsMetric;
     });
   return [metrics, percentMetrics, columns] as [
     typeof metrics,
@@ -502,6 +507,7 @@ const transformProps = (
     conditional_formatting: conditionalFormatting,
     comparison_color_enabled: comparisonColorEnabled = false,
     comparison_color_scheme: comparisonColorScheme = ColorSchemeEnum.Green,
+    show_numbered_column: showNumberedColumn = false,
   } = formData;
 
   const allowRearrangeColumns = true;
@@ -780,6 +786,7 @@ const transformProps = (
     metricSqlExpressions,
     chartState,
     onChartStateChange,
+    showNumberedColumn,
   };
 };
 

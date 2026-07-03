@@ -19,7 +19,7 @@
 import logging
 from typing import Any, Optional
 
-import prison
+import rison
 from cron_descriptor import get_description
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
@@ -101,20 +101,18 @@ class ReportSourceFormat(StrEnum):
 report_schedule_user = Table(
     "report_schedule_user",
     metadata,
-    Column("id", Integer, primary_key=True),
     Column(
         "user_id",
         Integer,
         ForeignKey("ab_user.id", ondelete="CASCADE"),
-        nullable=False,
+        primary_key=True,
     ),
     Column(
         "report_schedule_id",
         Integer,
         ForeignKey("report_schedule.id", ondelete="CASCADE"),
-        nullable=False,
+        primary_key=True,
     ),
-    UniqueConstraint("user_id", "report_schedule_id"),
 )
 
 
@@ -227,9 +225,9 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
                     warnings.append(filter_warning)
                 params = {**params, **filter_config}
         # hack(hughhh): workaround for escaping prison not handling quotes right
-        rison = prison.dumps(params)
-        rison = rison.replace("'", "%27")
-        return rison, warnings
+        decoded = rison.dumps(params)
+        decoded = decoded.replace("'", "%27")
+        return decoded, warnings
 
     def _generate_native_filter(
         self,
