@@ -101,6 +101,8 @@ def upgrade() -> None:
         _strip_params(slc)
         _strip_query_context(slc)
 
+    session.flush()
+
 
 def downgrade() -> None:
     # The stripped data was runtime-derived and is regenerated automatically
