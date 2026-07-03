@@ -12297,8 +12297,7 @@ msgid "Select a database"
 msgstr "Sélectionner la base de données"
 
 msgid "Select a database table and create dataset"
-msgstr ""
-"Sélectionner une tableau de base de données et créer un jeu de données"
+msgstr "Sélectionner une table de base de données et créer un jeu de données"
 
 #, fuzzy
 msgid "Select a database table."
@@ -15356,7 +15355,7 @@ msgid "There was an error creating the user. Please, try again."
 msgstr "Une erreur s'est produite lors de la récupération des schémas"
 
 msgid "There was an error duplicating the role. Please, try again."
-msgstr "Il y a eu un problème de duplication du jeu de données."
+msgstr "Il y a eu un problème de duplication du rôle."
 
 msgid "There was an error fetching dataset"
 msgstr ""
@@ -15441,8 +15440,7 @@ msgstr ""
 
 msgid "There was an error while fetching users"
 msgstr ""
-"Désolé, une erreur s'est produite lors de la récupération des informations "
-"de ce jeu de données"
+"Désolé, une erreur s'est produite lors de la récupération des utilisateurs"
 
 msgid "There was an error with your request"
 msgstr "Il y avait une erreur avec vore requête"
