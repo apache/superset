@@ -123,7 +123,7 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_viz_cache_key(self):
         self.login(ADMIN_USERNAME)
-        slc = self.get_slice("Life Expectancy VS Rural %")
+        slc = self.get_slice("% Rural")
 
         viz = slc.viz
         qobj = viz.query_obj()
@@ -487,7 +487,7 @@ class TestCore(SupersetTestCase):
         )
 
         self.login(ADMIN_USERNAME)
-        slc = self.get_slice("Life Expectancy VS Rural %")
+        slc = self.get_slice("% Rural")
         rv = self.client.post(
             f"/explore_json/{slc.datasource_type}/{slc.datasource_id}/",
             data={"form_data": json.dumps(slc.form_data)},
@@ -514,7 +514,7 @@ class TestCore(SupersetTestCase):
         mock_get_df.side_effect = RuntimeError("boom")
 
         self.login(ADMIN_USERNAME)
-        slc = self.get_slice("Life Expectancy VS Rural %")
+        slc = self.get_slice("% Rural")
         rv = self.client.post(
             f"/explore_json/{slc.datasource_type}/{slc.datasource_id}/",
             data={"form_data": json.dumps(slc.form_data)},
