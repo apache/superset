@@ -33,7 +33,7 @@
  */
 import { render } from '@superset-ui/core/spec';
 // eslint-disable-next-line no-restricted-imports
-import { Modal, Popover, Tabs, Tooltip } from 'antd';
+import { Modal, Popover, Steps, Tabs, Tooltip } from 'antd';
 import { Select } from './Select';
 
 const antClasses = (root: ParentNode): string[] => {
@@ -140,6 +140,38 @@ test('Tabs content DOM chain (SQL Lab / Explore fullHeight overrides target it)'
   const panel = container.querySelector('[role="tabpanel"]');
   expect(panel).toHaveClass('ant-tabs-content');
   expect(classes).not.toContain('ant-tabs-tabpane');
+});
+
+test('Steps classes (QueryStatusBar, ChartCreation, SQL Lab loading detection)', () => {
+  // `.ant-steps` is what executeQuery()/waitForQueryResults() watch to detect the
+  // SQL Lab loading cycle, and QueryStatusBar/ChartCreation style the item parts.
+  // antd 6 renamed the connector line `.ant-steps-item-tail` -> `.ant-steps-item-rail`
+  // (ChartCreation hides it), while `-item-icon`/`-item-title`/`-item-content` survive.
+  const { container } = render(
+    <Steps
+      current={0}
+      items={[{ title: 'A', description: 'd' }, { title: 'B' }]}
+    />,
+  );
+  const classes = antClasses(container);
+  expect(classes).toEqual(
+    expect.arrayContaining([
+      'ant-steps',
+      'ant-steps-item',
+      'ant-steps-item-icon',
+      'ant-steps-item-title',
+      'ant-steps-item-rail',
+    ]),
+  );
+  expect(classes).not.toContain('ant-steps-item-tail');
+});
+
+test('Select suffix (arrow) class (plugin-chart-table page-size Select targets it)', () => {
+  const { container } = render(
+    <Select ariaLabel="suffix" options={[{ label: 'A', value: 'a' }]} />,
+  );
+  // antd 6 renamed the Select arrow container `.ant-select-arrow` -> `.ant-select-suffix`.
+  expect(antClasses(container)).toContain('ant-select-suffix');
 });
 
 test('Modal body class (many *.styles.ts modal overrides target it)', () => {

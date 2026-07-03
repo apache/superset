@@ -122,7 +122,7 @@ const StyledContainer = styled.div`
 
     /* The following extra ampersands (&&&&) are used to boost selector specificity */
 
-    &&&& .ant-steps-item-tail {
+    &&&& .ant-steps-item-rail {
       display: none;
     }
 

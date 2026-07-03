@@ -338,7 +338,7 @@ export const DropdownContainer = forwardRef(
           <>
             <Global
               styles={css`
-                .ant-popover-inner {
+                .ant-popover-container {
                   /* Some OS versions only show the scroll when hovering. */
                   /* These settings will make the scroll always visible. */
                   ::-webkit-scrollbar {
