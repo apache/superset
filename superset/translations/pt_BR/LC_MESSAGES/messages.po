@@ -99,6 +99,7 @@ msgstr ""
 "seguinte erro: %(text)s</p>\n"
 "            <p>Por favor, verifique seu painel/gráfico para erros.</p>\n"
 "            <p><b><a href=\"%(url)s\">%(call_to_action)s</a></b></p>\n"
+"            "
 
 #, fuzzy
 msgid " (excluded)"

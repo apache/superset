@@ -371,7 +371,7 @@ msgstr "%s 列"
 #, fuzzy, python-format
 msgid "%s day ago"
 msgid_plural "%s days ago"
-msgstr[0] "1天之前"
+msgstr[0] "%s 天前"
 
 #, fuzzy, python-format
 msgid "%s hr ago"
@@ -402,12 +402,12 @@ msgstr "%s 个项目无法标记，因为您没有所有所选对象的编辑权
 #, fuzzy, python-format
 msgid "%s metric"
 msgid_plural "%s metrics"
-msgstr[0] "排序指标"
+msgstr[0] "%s 指标"
 
 #, fuzzy, python-format
 msgid "%s min ago"
 msgid_plural "%s min ago"
-msgstr[0] "月"
+msgstr[0] "%s 分钟前"
 
 #, python-format
 msgid "%s operator(s)"
@@ -425,12 +425,12 @@ msgstr "%s 个选项"
 #, fuzzy, python-format
 msgid "%s out of %s column"
 msgid_plural "%s out of %s columns"
-msgstr[0] "自定义列"
+msgstr[0] "%s 列中的 %s 列"
 
 #, fuzzy, python-format
 msgid "%s out of %s metric"
 msgid_plural "%s out of %s metrics"
-msgstr[0] "排序指标"
+msgstr[0] "%s 个指标中的 %s 个"
 
 #, fuzzy, python-format
 msgid "%s out of %s selected"
@@ -458,7 +458,7 @@ msgstr[0] "%s 行"
 #, fuzzy, python-format
 msgid "%s s ago"
 msgid_plural "%s s ago"
-msgstr[0] "30天之前"
+msgstr[0] "%s 秒前"
 
 #, python-format
 msgid "%s saved metric(s)"
@@ -467,7 +467,7 @@ msgstr "%s 保存的指标"
 #, fuzzy, python-format
 msgid "%s second"
 msgid_plural "%s seconds"
-msgstr[0] "5秒"
+msgstr[0] "%s 秒"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
 # sr_Latn]
@@ -1427,7 +1427,7 @@ msgstr[0] "已将 %s 个新列添加到虚拟数据集"
 #, fuzzy, python-format
 msgid "Added to 1 dashboard"
 msgid_plural "Added to %s dashboards"
-msgstr[0] "添加到看板"
+msgstr[0] "已添加至 %s 个仪表板"
 
 msgid "Additional Parameters"
 msgstr "附加参数"
@@ -16669,7 +16669,7 @@ msgstr "该表已经有了数据集"
 msgid ""
 "This table already has a dataset associated with it. You can only "
 "associate one dataset with a table.\n"
-msgstr "此表已经关联了一个数据集。一个表只能关联一个数据集。"
+msgstr "此表已经关联了一个数据集。一个表只能关联一个数据集。\n"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]

@@ -396,9 +396,11 @@ msgstr "dia"
 msgid "%s ENCRYPTED EXTRA"
 msgstr "Segurança"
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid "%s Error"
-msgstr "Erro"
+msgstr "%s Erro"
 
 #, fuzzy, python-format
 msgid "%s PASSWORD"
@@ -431,9 +433,11 @@ msgstr "%s CHAVE PRIVADA DO TÚNEL SSH"
 msgid "%s SSH TUNNEL PRIVATE KEY PASSWORD"
 msgstr "%s SENHA DA CHAVE PRIVADA DO TÚNEL SSH"
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid "%s Selected"
-msgstr "Executar a query selecionada"
+msgstr "%s Selecionado"
 
 #, fuzzy, python-format
 msgid "%s Selected (%s)"
@@ -480,9 +484,11 @@ msgid_plural "%s columns"
 msgstr[0] "Lista de Colunas"
 msgstr[1] ""
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid "%s column(s)"
-msgstr "Lista de Colunas"
+msgstr "%s coluna(s)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
 # sr_Latn]
@@ -534,9 +540,11 @@ msgid_plural "%s min ago"
 msgstr[0] "mês"
 msgstr[1] ""
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid "%s operator(s)"
-msgstr "Selecione operador"
+msgstr "%s operador(es)"
 
 #, fuzzy, python-format
 msgid "%s option"
@@ -544,9 +552,11 @@ msgid_plural "%s options"
 msgstr[0] "Opções"
 msgstr[1] ""
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid "%s option(s)"
-msgstr "Opções"
+msgstr "%s opção(ões)"
 
 #, fuzzy, python-format
 msgid "%s out of %s column"
@@ -2619,9 +2629,11 @@ msgstr "Ocorreu um erro ao carregar os metadados da tabela"
 msgid "An error occurred while fetching available views"
 msgstr "Ocorreu um erro ao carregar os metadados da tabela"
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid "An error occurred while fetching chart owners values: %s"
-msgstr "Ocorreu um erro ao criar a origem dos dados"
+msgstr "Ocorreu um erro ao buscar os valores dos proprietários do gráfico: %s"
 
 #, fuzzy
 msgid "An error occurred while fetching connections"
@@ -2631,32 +2643,46 @@ msgstr "Ocorreu um erro ao carregar os metadados da tabela"
 msgid "An error occurred while fetching created by values: %s"
 msgstr "Ocorreu um erro ao renderizar a visualização: %s"
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid "An error occurred while fetching dashboard owner values: %s"
-msgstr "Ocorreu um erro ao criar a origem dos dados"
+msgstr "Ocorreu um erro ao buscar os valores do proprietário do painel: %s"
 
 msgid "An error occurred while fetching dashboards"
 msgstr "Ocorreu um erro ao criar a origem dos dados"
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid "An error occurred while fetching dashboards: %s"
-msgstr "Ocorreu um erro ao criar a origem dos dados"
+msgstr "Ocorreu um erro ao buscar painéis: %s"
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid "An error occurred while fetching database related data: %s"
-msgstr "Ocorreu um erro ao carregar os metadados da tabela"
+msgstr "Ocorreu um erro ao buscar dados relacionados ao banco de dados: %s"
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid "An error occurred while fetching database values: %s"
-msgstr "Ocorreu um erro ao criar a origem dos dados"
+msgstr "Ocorreu um erro ao buscar valores do banco de dados: %s"
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid "An error occurred while fetching dataset datasource values: %s"
-msgstr "Ocorreu um erro ao criar a origem dos dados"
+msgstr ""
+"Ocorreu um erro ao buscar valores da fonte de dados do conjunto de dados:"
+" %s"
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid "An error occurred while fetching dataset related data: %s"
-msgstr "Ocorreu um erro ao carregar os metadados da tabela"
+msgstr "Ocorreu um erro ao buscar dados relacionados ao conjunto de dados: %s"
 
 #, fuzzy
 msgid "An error occurred while fetching function names."
@@ -7698,9 +7724,11 @@ msgstr "Eliminar"
 msgid "Delete %s"
 msgstr "Eliminar"
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid "Delete %s?"
-msgstr "Eliminar"
+msgstr "Excluir %s?"
 
 msgid "Delete Annotation?"
 msgstr "Anotações"
@@ -7923,9 +7951,11 @@ msgstr "Eliminar"
 msgid "Deleted users: %s"
 msgstr "Eliminar"
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid "Deleted: %s"
-msgstr "Eliminar"
+msgstr "Excluído: %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -11564,9 +11594,11 @@ msgstr "Personificar o utilizador conectado"
 msgid "Import"
 msgstr "Importar"
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid "Import %s"
-msgstr "Importar"
+msgstr "Importar %s"
 
 #, fuzzy
 msgid "Import Error"
@@ -20078,9 +20110,11 @@ msgstr ""
 msgid "Something went wrong."
 msgstr "Algo correu mal."
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid "Sorry there was an error fetching database information: %s"
-msgstr "Desculpe, houve um erro ao gravar este dashbard: "
+msgstr "Desculpe, ocorreu um erro ao buscar informações do banco de dados: %s"
 
 msgid "Sorry there was an error fetching saved charts: "
 msgstr "Desculpe, houve um erro ao gravar este dashbard: "
@@ -20943,9 +20977,11 @@ msgstr "Título do separador"
 msgid "Table"
 msgstr "Tabela"
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid "Table %(table)s wasn't found in the database %(db)s"
-msgstr "A tabela %(t)s não foi encontrada na base de dados %(d)s"
+msgstr "Tabela %(table)s não foi encontrada no banco de dados %(db)s"
 
 msgid "Table Name"
 msgstr "Nome da Tabela"
