@@ -16,15 +16,71 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps } from '@superset-ui/core';
+import {
+  ChartProps,
+  ensureIsArray,
+  getColumnLabel,
+  getMetricLabel,
+} from '@superset-ui/core';
+
+interface ChordData {
+  nodes: unknown[];
+  matrix: unknown[][];
+}
+
+/**
+ * Builds the square adjacency matrix that d3.chord expects, the way the
+ * legacy explore_json endpoint used to server-side: nodes are the union
+ * of source and target values, matrix[target][source] holds the
+ * (directional) metric value.
+ */
+function buildChordData(
+  records: Record<string, unknown>[],
+  sourceLabel: string,
+  targetLabel: string,
+  metricLabel: string,
+): ChordData {
+  const nodes = Array.from(
+    new Set(
+      records.flatMap(record => [record[sourceLabel], record[targetLabel]]),
+    ),
+  );
+  const values = new Map<unknown, Map<unknown, unknown>>();
+  records.forEach(record => {
+    const source = record[sourceLabel];
+    if (!values.has(source)) {
+      values.set(source, new Map());
+    }
+    values.get(source)!.set(record[targetLabel], record[metricLabel]);
+  });
+  return {
+    nodes,
+    matrix: nodes.map(target =>
+      nodes.map(source => values.get(source)?.get(target) ?? 0),
+    ),
+  };
+}
 
 export default function transformProps(chartProps: ChartProps) {
   const { width, height, formData, queriesData } = chartProps;
-  const { yAxisFormat, colorScheme, sliceId } = formData;
+  const { yAxisFormat, colorScheme, sliceId, groupby, columns, metric } =
+    formData;
+
+  const rawData = queriesData[0].data;
+  const data =
+    Array.isArray(rawData) && metric
+      ? buildChordData(
+          rawData,
+          getColumnLabel(ensureIsArray(groupby)[0]),
+          getColumnLabel(ensureIsArray(columns)[0]),
+          getMetricLabel(metric),
+        )
+      : // legacy explore_json payloads arrive pre-shaped
+        rawData;
 
   return {
     colorScheme,
-    data: queriesData[0].data,
+    data,
     height,
     numberFormat: yAxisFormat,
     width,

@@ -39,16 +39,16 @@ const metadata = new ChartMetadata({
     },
   ],
   name: t('Chord Diagram'),
-  tags: [t('Circular'), t('Legacy'), t('Proportional'), t('Relational')],
+  tags: [t('Circular'), t('Proportional'), t('Relational')],
   thumbnail,
   thumbnailDark,
-  useLegacyApi: true,
 });
 
 export default class ChordChartPlugin extends ChartPlugin {
   constructor() {
     super({
       loadChart: () => import('./ReactChord'),
+      loadBuildQuery: () => import('./buildQuery'),
       metadata,
       transformProps,
       controlPanel,
