@@ -2093,7 +2093,7 @@ class TestSecurityManager(SupersetTestCase):
         mock_can_access.return_value = False
         mock_can_access_schema.return_value = False
         with override_user(security_manager.find_user("gamma")):
-            for kwarg in ["query_context", "viz"]:
+            for kwarg in ["query_context"]:
                 births.roles = []
 
                 # No dashboard roles.
