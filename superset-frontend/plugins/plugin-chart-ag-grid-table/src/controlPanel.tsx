@@ -433,10 +433,8 @@ const config: ControlPanelConfig = {
               label: t('Show summary'),
               default: false,
               description: t(
-                'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
+                'Show a summary row of total aggregations: the selected metrics in aggregate mode, or the sum of numeric columns in raw records mode. Note that row limit does not apply to the result.',
               ),
-              visibility: isAggMode,
-              resetOnHide: false,
             },
           },
         ],

@@ -75,3 +75,26 @@ test('time_grain_sqla visibility should be case-insensitive', () => {
   expect(vis(mkProps(['ORDERDATE']), controlState)).toBe(true);
   expect(vis(mkProps(['some_other_col']), controlState)).toBe(false);
 });
+
+test('show_totals is available in both query modes', () => {
+  let showTotals: CustomControlItem | undefined;
+  config.controlPanelSections.forEach(section => {
+    section?.controlSetRows.forEach(row => {
+      row.forEach(item => {
+        if (
+          typeof item === 'object' &&
+          item !== null &&
+          'name' in item &&
+          (item as CustomControlItem).name === 'show_totals'
+        ) {
+          showTotals = item as CustomControlItem;
+        }
+      });
+    });
+  });
+
+  expect(showTotals).toBeDefined();
+  // No visibility gate: the summary checkbox must render in raw records
+  // mode as well as aggregate mode.
+  expect(showTotals?.config?.visibility).toBeUndefined();
+});
