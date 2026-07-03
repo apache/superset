@@ -37,13 +37,13 @@ this branch is the EOL.
 
 | # | viz_type | Plugin | Strategy | Status |
 |---|----------|--------|----------|--------|
-| 1 | `para` | legacy-plugin-chart-parallel-coordinates | Convert in place (pass-through) | ⬜ |
-| 2 | `country_map` | legacy-plugin-chart-country-map | Convert in place (select/rename) | ⬜ |
-| 3 | `bullet` | legacy-preset-chart-nvd3/Bullet | Convert in place (single metric) | ⬜ |
-| 4 | `chord` | legacy-plugin-chart-chord | Convert in place (matrix in transformProps) | ⬜ |
-| 5 | `world_map` | legacy-plugin-chart-world-map | Convert in place (country join in JS) | ⬜ |
-| 6 | `paired_ttest` | legacy-plugin-chart-paired-t-test | Convert in place (pivot op) | ⬜ |
-| 7 | `time_table` | src/visualizations/TimeTable | Convert in place (pivot op) | ⬜ |
+| 1 | `para` | legacy-plugin-chart-parallel-coordinates | Convert in place (pass-through) | ✅ (merged) |
+| 2 | `country_map` | legacy-plugin-chart-country-map | Convert in place (select/rename) | ✅ (merged) |
+| 3 | `bullet` | legacy-preset-chart-nvd3/Bullet | Convert in place (single metric) | ✅ (merged) |
+| 4 | `chord` | legacy-plugin-chart-chord | Convert in place (matrix in transformProps) | 🔃 (PR open) |
+| 5 | `world_map` | legacy-plugin-chart-world-map | Convert in place (country join in JS) | 🔃 (PR open) |
+| 6 | `paired_ttest` | legacy-plugin-chart-paired-t-test | Convert in place (pivot op) | 🔃 (PR open) |
+| 7 | `time_table` | src/visualizations/TimeTable | Convert in place (pivot op) | 🔃 (PR open) |
 | 8 | `cal_heatmap` | legacy-plugin-chart-calendar | Convert in place (pivot + epoch keys in JS) | ⬜ |
 | 9 | `horizon` | legacy-plugin-chart-horizon | Convert in place (timeseries pipeline) | ⬜ |
 | 10 | `rose` | legacy-plugin-chart-rose | Convert in place (timeseries pipeline) | ⬜ |
@@ -92,6 +92,17 @@ Per-chart checklist:
 
 (append entries as sub-PRs merge: date, sub-PR #, summary)
 
+- 2026-07-02 — #41715 Phase 0 merged: removed orphaned `viz.py` classes
+  (`MapboxViz`, `MapLibreViz`, `EventFlowViz`) and nvd3 BoxPlot leftovers.
+- 2026-07-02 — #41716 `para` merged: buildQuery (series→columns, secondary
+  metric alias, sort-metric append, explicit orderby ownership), 8 Jest tests.
+- 2026-07-02 — #41717 `country_map` merged: buildQuery (entity+metric),
+  country_id/metric rename in transformProps with both-labels guard, 15 tests.
+- 2026-07-02 — #41718 `bullet` merged: buildQuery (single ungrouped metric),
+  records→{measures} reshape in nvd3 transformProps Bullet branch, 5 tests.
+- Open PRs: #41719 `chord`, #41720 `world_map`, #41721 `paired_ttest`,
+  #41723 `time_table`.
+
 - 2026-07-02 — Phase 0: removed orphaned `viz.py` classes (`MapboxViz`, `MapLibreViz`,
   `EventFlowViz`, −204 lines) and the unregistered nvd3 BoxPlot story leftovers.
   Verified: `ruff` clean, `tests/unit_tests/test_viz_*` pass.
@@ -101,6 +112,7 @@ Per-chart checklist:
 - **compare** → migrating to `echarts_timeseries_line`; nvd3's interactive % rebasing is not preserved (flagged in UPDATES.md).
 - **partition** → attempting convert-in-place; if the transformProps port proves unmaintainable, fall back to proposing deprecation on dev@.
 - Feature branch lives on `apache/superset` so phase PRs can target it. Tracking files (SCOPE.md, UPDATES.md) are stripped before final merge.
+- Tracking files are updated ONLY via direct commits to the feature branch (sub-PRs editing SCOPE.md all conflicted after the first squash-merge).
 
 ## Open questions
 
