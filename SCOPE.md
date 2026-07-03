@@ -48,10 +48,10 @@ this branch is the EOL.
 | 9 | `horizon` | legacy-plugin-chart-horizon | Convert in place (timeseries pipeline) | ✅ (merged) |
 | 10 | `rose` | legacy-plugin-chart-rose | Convert in place (timeseries pipeline) | ✅ (merged) |
 | 11 | `time_pivot` | legacy-preset-chart-nvd3/TimePivot | Convert in place (pivot + rank in JS) | ✅ (merged) |
-| 12 | `bubble` | legacy-preset-chart-nvd3/Bubble | Retarget → `bubble_v2` (MigrateViz exists, needs Alembic revision) | 🔃 (#41728) |
-| 13 | `compare` | legacy-preset-chart-nvd3/Compare | Retarget → `echarts_timeseries_line` (new MigrateViz) | 🔃 (staged on #41728) |
-| 14 | `partition` | legacy-plugin-chart-partition | Convert in place (hierarchy in transformProps) | 🔃 (#41729) |
-| 15 | `deck_multi` | preset-chart-deckgl/Multi | Client-side filter-metadata merge + stub buildQuery | 🔃 (#41730) |
+| 12 | `bubble` | legacy-preset-chart-nvd3/Bubble | Retarget → `bubble_v2` (MigrateViz exists, needs Alembic revision) | ✅ (merged) |
+| 13 | `compare` | legacy-preset-chart-nvd3/Compare | Retarget → `echarts_timeseries_line` (new MigrateViz) | ✅ (merged) |
+| 14 | `partition` | legacy-plugin-chart-partition | Convert in place (hierarchy in transformProps) | ✅ (merged) |
+| 15 | `deck_multi` | preset-chart-deckgl/Multi | Client-side filter-metadata merge + stub buildQuery | ✅ (merged) |
 
 "Convert in place" = keep the renderer and the `viz_type` key, add a modern
 `buildQuery.ts`, move the `viz.py` `get_data()` reshape into `transformProps.ts`,
@@ -76,17 +76,17 @@ Per-chart checklist:
 - [ ] For retargets: `MigrateViz` processor + `superset/cli/viz_migrations.py` registration + Alembic revision (with MySQL MEDIUMTEXT widening) + migration tests
 - [ ] UPDATES.md entry if user-facing behavior changes
 
-### Phase 2 — Backend removal
-- [ ] Remove `explore_json` / `explore_json_data` / `generate_json` from `superset/views/core.py` (incl. CSV/XLSX/async branches)
-- [ ] Remove CSRF exemption (`superset/config.py`) and GLOBAL_ASYNC_QUERIES explore_json path
-- [ ] Delete `superset/viz.py`; unwind importers: `views/utils.py` (`get_viz`), `models/slice.py` (`Slice.viz`), `commands/chart/warm_up_cache.py`, `common/query_context_processor.py` (annotation path), `security/manager.py` (`BaseViz` overload)
-- [ ] Delete `tests/unit_tests/test_viz_*.py`, `tests/integration_tests/viz_tests.py`
-- [ ] Frontend plumbing: remove `useLegacyApi` from `ChartMetadata`, `shouldUseLegacyApi`, `/explore_json/` branches in `exploreUtils`, `chartAction.ts`, `ChartClient.ts`, `StatefulChart.tsx`, `DrillByModal.tsx`
+### Phase 2 — Backend removal (#41750)
+- [x] Remove `explore_json` / `explore_json_data` / `generate_json` from `superset/views/core.py` (incl. CSV/XLSX/async branches)
+- [x] Remove CSRF exemption (`superset/config.py`), the `load_explore_json_into_cache` celery task and async manager plumbing
+- [x] Delete `superset/viz.py`; unwind importers: `views/utils.py` (`get_viz` + explore-cache perm checkers), `models/slice.py` (`Slice.viz`, `explore_json_url`), `commands/chart/warm_up_cache.py`, `common/query_context_processor.py` (annotation path), `security/manager.py` (`BaseViz` overload + public-role `can_explore_json` grant)
+- [x] Delete `tests/unit_tests/test_viz_*.py`, `tests/integration_tests/viz_tests.py`; retarget/remove other explore_json test coverage
+- [x] Frontend plumbing: remove `useLegacyApi` from `ChartMetadata`, `shouldUseLegacyApi`, `/explore_json/` branches in `exploreUtils`, `chartAction.ts`, `ChartClient.ts`, `StatefulChart.tsx`, `DrillByModal.tsx`
 
-### Phase 3 — Renames (folded into per-chart PRs where possible)
-- [ ] `legacy-plugin-chart-*` → `plugin-chart-*` (dirs, npm names, `file:` deps, MainPreset imports, Storybook/docs)
-- [ ] Resolve what remains of `legacy-preset-chart-nvd3` (bullet, time_pivot survivors)
-- [ ] Drop "(legacy)" suffixes from user-facing chart names
+### Phase 3 — Renames (#41751)
+- [x] `legacy-plugin-chart-*` → `plugin-chart-*` (dirs, npm names, `file:` deps, MainPreset imports, Storybook/docs)
+- [x] `legacy-preset-chart-nvd3` → `preset-chart-nvd3` (bullet, time_pivot survive there)
+- [x] "(legacy)" chart names and Legacy gallery tags removed with each chart migration
 
 ## Log of work completed
 
@@ -109,15 +109,14 @@ Per-chart checklist:
   pipeline; bot caught the legacy 'absolute'→'difference' comparison-type
   mismatch), #41727 `time_pivot` (pandas offset rollback ported to JS, incl.
   quarters) merged. All 11 convert-in-place charts are migrated.
-- Open PRs: #41728 `bubble` retarget (adds the never-shipped Alembic revision
-  for MigrateBubbleChart; first attempt chained off the wrong alembic head —
-  filename timestamps lie), #41729 `partition` (full hierarchy port incl.
-  period analysis), #41730 `deck_multi` (fully client-side; container issues
-  an empty-queries context, layers fetched via their own buildQuery +
-  /api/v1/chart/data), #41732 horizon/rose default-ordering parity fix.
-  `compare` → echarts_timeseries_line is staged on the bubble branch
-  (migration revision chains after bubble's) and its PR opens when #41728
-  merges.
+- 2026-07-03 — #41728 `bubble`, #41729 `partition`, #41730 `deck_multi`,
+  #41732 ordering parity, #41738 `compare` merged. **All 15 legacy charts
+  are migrated.** Notable: bubble's revision initially chained off the wrong
+  alembic head (filename timestamps lie — walk the down_revision graph);
+  the world bank example now ships `bubble_v2`.
+- Open PRs: #41750 Phase 2 (explore_json + viz.py + frontend useLegacyApi
+  plumbing removal), #41751 Phase 3 (legacy- prefix renames:
+  plugin-chart-*, preset-chart-nvd3).
 
 - 2026-07-02 — Phase 0: removed orphaned `viz.py` classes (`MapboxViz`, `MapLibreViz`,
   `EventFlowViz`, −204 lines) and the unregistered nvd3 BoxPlot story leftovers.
