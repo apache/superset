@@ -53,7 +53,9 @@ export default function buildQuery(formData: QueryFormData) {
       {
         ...baseQueryObject,
         metrics,
-        ...(orderby.length > 0 && { orderby }),
+        // own the ordering entirely: the legacy pipeline ignored residual
+        // orderby fields (e.g. order_by_cols left over from other viz types)
+        orderby: orderby.length > 0 ? orderby : undefined,
       },
     ];
   });

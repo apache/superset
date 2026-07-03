@@ -76,6 +76,14 @@ test('orders by the sort metric descending only when order_desc is set', () => {
   expect(query.orderby).toEqual([['count', false]]);
 });
 
+test('ignores residual order_by_cols from other viz types', () => {
+  const [query] = buildQuery({
+    ...basicFormData,
+    order_by_cols: ['["count", false]'],
+  }).queries;
+  expect(query.orderby).toBeUndefined();
+});
+
 test('supports adhoc sort metrics', () => {
   const adhocMetric = {
     expressionType: 'SIMPLE' as const,
