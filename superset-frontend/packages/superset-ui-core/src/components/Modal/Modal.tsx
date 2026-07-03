@@ -24,7 +24,7 @@ import {
   useState,
   type ComponentType,
 } from 'react';
-import { isNil } from 'lodash';
+import { isNil } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Modal as AntdModal, ModalProps as AntdModalProps } from 'antd';
@@ -369,8 +369,11 @@ const CustomModal = ({
         resizable || draggable ? (
           <Draggable
             disabled={!draggable || dragDisabled}
-            bounds={bounds}
+            bounds={bounds ?? false}
             onStart={(event, uiData) => onDragStart(event, uiData)}
+            // Pass nodeRef so react-draggable does not fall back to
+            // ReactDOM.findDOMNode (deprecated in React 18+ Strict Mode).
+            nodeRef={draggableRef}
             {...draggableConfig}
           >
             {resizable ? (

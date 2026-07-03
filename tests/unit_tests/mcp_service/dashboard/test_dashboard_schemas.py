@@ -30,10 +30,14 @@ from pydantic import ValidationError
 from superset.mcp_service.dashboard.schemas import (
     _extract_cross_filters_enabled,
     _extract_native_filters,
+    _safe_user_label,
     dashboard_serializer,
+    DuplicateDashboardRequest,
+    DuplicateDashboardResponse,
     GenerateDashboardRequest,
     serialize_chart_summary,
     serialize_dashboard_object,
+    UpdateDashboardRequest,
 )
 from superset.mcp_service.utils.sanitization import (
     LLM_CONTEXT_CLOSE_DELIMITER,
@@ -87,8 +91,8 @@ def _mock_dashboard(
 class TestSerializeDashboardObject:
     """Tests for serialize_dashboard_object slug handling."""
 
-    @patch("superset.mcp_service.utils.url_utils.get_superset_base_url")
-    def test_slug_none_returns_empty_string(self, mock_base_url):
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
+    def test_slug_none_returns_empty_string(self, mock_base_url) -> None:
         """Dashboards with slug=None should return slug="" for consistency
         with dashboard_serializer."""
         mock_base_url.return_value = "http://localhost:8088"
@@ -98,8 +102,8 @@ class TestSerializeDashboardObject:
 
         assert result.slug == ""
 
-    @patch("superset.mcp_service.utils.url_utils.get_superset_base_url")
-    def test_slug_empty_string_returns_empty_string(self, mock_base_url):
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
+    def test_slug_empty_string_returns_empty_string(self, mock_base_url) -> None:
         """Dashboards with slug="" should return slug=""."""
         mock_base_url.return_value = "http://localhost:8088"
 
@@ -108,8 +112,8 @@ class TestSerializeDashboardObject:
 
         assert result.slug == ""
 
-    @patch("superset.mcp_service.utils.url_utils.get_superset_base_url")
-    def test_slug_with_value_preserved(self, mock_base_url):
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
+    def test_slug_with_value_preserved(self, mock_base_url) -> None:
         """Dashboards with a real slug should preserve it."""
         mock_base_url.return_value = "http://localhost:8088"
 
@@ -118,28 +122,28 @@ class TestSerializeDashboardObject:
 
         assert result.slug == "my-dashboard"
 
-    @patch("superset.mcp_service.utils.url_utils.get_superset_base_url")
-    def test_url_uses_id_when_no_slug(self, mock_base_url):
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
+    def test_url_uses_id_when_no_slug(self, mock_base_url) -> None:
         """URL should use dashboard id when slug is None."""
         mock_base_url.return_value = "http://localhost:8088"
 
         dashboard = _mock_dashboard(id=42, slug=None)
         result = serialize_dashboard_object(dashboard)
 
-        assert result.url == "http://localhost:8088/superset/dashboard/42/"
+        assert result.url == "http://localhost:8088/dashboard/42/"
 
-    @patch("superset.mcp_service.utils.url_utils.get_superset_base_url")
-    def test_url_uses_slug_when_available(self, mock_base_url):
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
+    def test_url_uses_slug_when_available(self, mock_base_url) -> None:
         """URL should use slug when available."""
         mock_base_url.return_value = "http://localhost:8088"
 
         dashboard = _mock_dashboard(id=42, slug="my-dashboard")
         result = serialize_dashboard_object(dashboard)
 
-        assert result.url == "http://localhost:8088/superset/dashboard/my-dashboard/"
+        assert result.url == "http://localhost:8088/dashboard/my-dashboard/"
 
-    @patch("superset.mcp_service.utils.url_utils.get_superset_base_url")
-    def test_no_json_metadata_or_position_json_in_response(self, mock_base_url):
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
+    def test_no_json_metadata_or_position_json_in_response(self, mock_base_url) -> None:
         """DashboardInfo should not contain json_metadata or position_json."""
         mock_base_url.return_value = "http://localhost:8088"
 
@@ -150,7 +154,7 @@ class TestSerializeDashboardObject:
         assert not hasattr(result, "position_json")
 
     @patch("superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata")
-    @patch("superset.mcp_service.utils.url_utils.get_superset_base_url")
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
     def test_native_filters_extracted_from_json_metadata(
         self,
         mock_base_url,
@@ -196,7 +200,7 @@ class TestSerializeDashboardObject:
         assert result.cross_filters_enabled is True
 
     @patch("superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata")
-    @patch("superset.mcp_service.utils.url_utils.get_superset_base_url")
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
     def test_restricted_user_redacts_native_filter_targets(
         self,
         mock_base_url,
@@ -230,7 +234,7 @@ class TestSerializeDashboardObject:
         assert result.cross_filters_enabled is True
 
     @patch("superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata")
-    @patch("superset.mcp_service.utils.url_utils.get_superset_base_url")
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
     def test_chart_summaries_are_lightweight(
         self,
         mock_base_url,
@@ -262,7 +266,7 @@ class TestSerializeDashboardObject:
         assert not hasattr(result.charts[0], "owners")
 
     @patch("superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata")
-    @patch("superset.mcp_service.utils.url_utils.get_superset_base_url")
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
     def test_restricted_user_redacts_chart_datasource_name(
         self,
         mock_base_url,
@@ -288,7 +292,7 @@ class TestSerializeDashboardObject:
         assert result.charts[0].url == "http://localhost:8088/explore/?slice_id=5"
 
     @patch("superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata")
-    @patch("superset.mcp_service.utils.url_utils.get_superset_base_url")
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
     def test_dashboard_serializer_restricted_user_redacts_data_model_metadata(
         self,
         mock_base_url,
@@ -318,7 +322,7 @@ class TestSerializeDashboardObject:
             "cross_filters_enabled": True,
         }
         dashboard = _mock_dashboard(id=1, slices=[chart])
-        dashboard.url = "/superset/dashboard/1/"
+        dashboard.url = "/dashboard/1/"
         dashboard.json_metadata = json_dumps(metadata)
 
         result = dashboard_serializer(dashboard)
@@ -327,7 +331,7 @@ class TestSerializeDashboardObject:
         assert result.native_filters[0].targets == []
 
     @patch("superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata")
-    @patch("superset.mcp_service.utils.url_utils.get_superset_base_url")
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
     def test_descriptive_fields_are_sanitized(
         self,
         mock_base_url: MagicMock,
@@ -377,7 +381,7 @@ class TestSerializeDashboardObject:
         assert result.certified_by == _wrapped("Analytics Team")
         assert result.certification_details == _wrapped("Certified by analytics")
         assert result.slug == "safe-slug"
-        assert result.url == "http://localhost:8088/superset/dashboard/safe-slug/"
+        assert result.url == "http://localhost:8088/dashboard/safe-slug/"
         assert result.uuid == "dashboard-uuid-7"
         assert result.native_filters[0].id == "NATIVE_FILTER-abc123"
         assert result.native_filters[0].name == _wrapped("Region Filter")
@@ -393,22 +397,22 @@ class TestSerializeDashboardObject:
 class TestExtractNativeFilters:
     """Tests for _extract_native_filters helper."""
 
-    def test_none_input(self):
+    def test_none_input(self) -> None:
         assert _extract_native_filters(None) == []
 
-    def test_empty_string(self):
+    def test_empty_string(self) -> None:
         assert _extract_native_filters("") == []
 
-    def test_invalid_json(self):
+    def test_invalid_json(self) -> None:
         assert _extract_native_filters("not json") == []
 
-    def test_no_filter_config(self):
+    def test_no_filter_config(self) -> None:
         assert _extract_native_filters("{}") == []
 
-    def test_non_list_filter_config(self):
+    def test_non_list_filter_config(self) -> None:
         assert _extract_native_filters('{"native_filter_configuration": "bad"}') == []
 
-    def test_valid_filters(self):
+    def test_valid_filters(self) -> None:
         metadata = json_dumps(
             {
                 "native_filter_configuration": [
@@ -428,7 +432,7 @@ class TestExtractNativeFilters:
         assert result[0].filter_type == "filter_select"
         assert result[0].targets == []
 
-    def test_valid_filters_include_targets_when_metadata_allowed(self):
+    def test_valid_filters_include_targets_when_metadata_allowed(self) -> None:
         metadata = json_dumps(
             {
                 "native_filter_configuration": [
@@ -447,14 +451,14 @@ class TestExtractNativeFilters:
         )
         assert result[0].targets == [{"column": {"name": "col1"}}]
 
-    def test_skips_non_dict_entries(self):
+    def test_skips_non_dict_entries(self) -> None:
         metadata = json_dumps(
             {"native_filter_configuration": [{"id": "f1", "name": "ok"}, "bad", 123]}
         )
         result = _extract_native_filters(metadata)
         assert len(result) == 1
 
-    def test_non_dict_top_level_json(self):
+    def test_non_dict_top_level_json(self) -> None:
         """json_metadata that parses to a list/number should return empty."""
         assert _extract_native_filters("[]") == []
         assert _extract_native_filters("123") == []
@@ -464,26 +468,26 @@ class TestExtractNativeFilters:
 class TestExtractCrossFiltersEnabled:
     """Tests for _extract_cross_filters_enabled helper."""
 
-    def test_none_input(self):
+    def test_none_input(self) -> None:
         assert _extract_cross_filters_enabled(None) is None
 
-    def test_empty_json(self):
+    def test_empty_json(self) -> None:
         assert _extract_cross_filters_enabled("{}") is None
 
-    def test_true(self):
+    def test_true(self) -> None:
         assert _extract_cross_filters_enabled('{"cross_filters_enabled": true}') is True
 
-    def test_false(self):
+    def test_false(self) -> None:
         assert (
             _extract_cross_filters_enabled('{"cross_filters_enabled": false}') is False
         )
 
-    def test_non_bool_value(self):
+    def test_non_bool_value(self) -> None:
         assert (
             _extract_cross_filters_enabled('{"cross_filters_enabled": "yes"}') is None
         )
 
-    def test_non_dict_top_level_json(self):
+    def test_non_dict_top_level_json(self) -> None:
         """json_metadata that parses to a list/number should return None."""
         assert _extract_cross_filters_enabled("[]") is None
         assert _extract_cross_filters_enabled("123") is None
@@ -493,7 +497,7 @@ class TestExtractCrossFiltersEnabled:
 class TestSerializeChartSummary:
     """Tests for serialize_chart_summary helper."""
 
-    def test_datasource_name_redacted_by_default(self):
+    def test_datasource_name_redacted_by_default(self) -> None:
         chart = MagicMock()
         chart.id = 5
         chart.slice_name = "Revenue Chart"
@@ -510,7 +514,7 @@ class TestSerializeChartSummary:
 class TestOmittedFieldsBuilder:
     """Tests for the shared OmittedFieldsBuilder utility."""
 
-    def test_builder_basic(self):
+    def test_builder_basic(self) -> None:
         from superset.mcp_service.utils.response_utils import OmittedFieldsBuilder
 
         result = (
@@ -525,7 +529,7 @@ class TestOmittedFieldsBuilder:
         assert "meta_field" in result
         assert "extracted" in result["meta_field"]
 
-    def test_builder_none_values(self):
+    def test_builder_none_values(self) -> None:
         from superset.mcp_service.utils.response_utils import OmittedFieldsBuilder
 
         result = (
@@ -537,8 +541,8 @@ class TestOmittedFieldsBuilder:
         assert "empty" in result["empty_field"]
         assert "empty" in result["also_empty"]
 
-    @patch("superset.mcp_service.utils.url_utils.get_superset_base_url")
-    def test_omitted_fields_in_serialized_dashboard(self, mock_base_url):
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
+    def test_omitted_fields_in_serialized_dashboard(self, mock_base_url) -> None:
         """omitted_fields should describe what was stripped and include sizes."""
         mock_base_url.return_value = "http://localhost:8088"
 
@@ -555,8 +559,8 @@ class TestOmittedFieldsBuilder:
         assert "extracted" in result.omitted_fields["json_metadata"]
         assert "layout tree" in result.omitted_fields["position_json"].lower()
 
-    @patch("superset.mcp_service.utils.url_utils.get_superset_base_url")
-    def test_omitted_fields_with_none_values(self, mock_base_url):
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
+    def test_omitted_fields_with_none_values(self, mock_base_url) -> None:
         """omitted_fields should still be present when raw fields are None."""
         mock_base_url.return_value = "http://localhost:8088"
 
@@ -625,3 +629,280 @@ class TestGenerateDashboardRequestTitleSanitization:
         assert len(req.sanitization_warnings) == 1
         assert "dashboard_title" in req.sanitization_warnings[0]
         assert "injected" not in req.sanitization_warnings[0]
+
+
+class TestGenerateDashboardRequestLayoutTheme:
+    """generate_dashboard accepts optional position_json, theme overrides, CSS."""
+
+    def test_layout_theme_css_fields_default_to_none(self) -> None:
+        req = GenerateDashboardRequest(chart_ids=[1])
+        assert req.position_json is None
+        assert req.json_metadata_overrides is None
+        assert req.css is None
+        assert req.slug is None
+
+    def test_position_json_accepted(self) -> None:
+        position = {
+            "ROOT_ID": {"children": ["GRID_ID"], "type": "ROOT"},
+            "GRID_ID": {"children": ["ROW-1"], "type": "GRID"},
+        }
+        req = GenerateDashboardRequest(chart_ids=[1], position_json=position)
+        assert req.position_json == position
+
+    def test_json_metadata_overrides_accepted(self) -> None:
+        overrides = {
+            "label_colors": {"Electronics": "#4C78A8"},
+            "cross_filters_enabled": False,
+        }
+        req = GenerateDashboardRequest(chart_ids=[1], json_metadata_overrides=overrides)
+        assert req.json_metadata_overrides == overrides
+
+    def test_css_accepted(self) -> None:
+        req = GenerateDashboardRequest(
+            chart_ids=[1], css=".header-controls{display:none}"
+        )
+        assert req.css == ".header-controls{display:none}"
+
+    def test_slug_accepted(self) -> None:
+        req = GenerateDashboardRequest(chart_ids=[1], slug="my-dashboard")
+        assert req.slug == "my-dashboard"
+
+    def test_css_max_length_enforced(self) -> None:
+        with pytest.raises(ValidationError, match="at most 50000"):
+            GenerateDashboardRequest(chart_ids=[1], css="x" * 50001)
+
+    def test_title_alias_accepted(self) -> None:
+        """``title`` is one of the AliasChoices for ``dashboard_title``
+        — JSON callers using either name resolve to the same field."""
+        req = GenerateDashboardRequest(chart_ids=[1], title="Q4 Review")
+        assert req.dashboard_title == "Q4 Review"
+
+    def test_name_alias_accepted(self) -> None:
+        """``name`` is the third AliasChoice for ``dashboard_title``
+        and must resolve identically to ``title`` and ``dashboard_title``."""
+        req = GenerateDashboardRequest(chart_ids=[1], name="Q4 Review")
+        assert req.dashboard_title == "Q4 Review"
+
+    def test_published_defaults_to_false(self) -> None:
+        """``published`` defaults to False — newly generated dashboards
+        are drafts by default to avoid accidentally publishing partial
+        work-in-progress to all users."""
+        req = GenerateDashboardRequest(chart_ids=[1])
+        assert req.published is False
+
+    def test_published_true_accepted(self) -> None:
+        """An explicit ``published=True`` is preserved."""
+        req = GenerateDashboardRequest(chart_ids=[1], published=True)
+        assert req.published is True
+
+
+class TestUpdateDashboardRequest:
+    """Schema validation for update_dashboard's request."""
+
+    def test_identifier_required(self) -> None:
+        with pytest.raises(ValidationError, match="Field required"):
+            UpdateDashboardRequest()
+
+    def test_int_identifier_accepted(self) -> None:
+        req = UpdateDashboardRequest(identifier=42)
+        assert req.identifier == 42
+
+    def test_string_identifier_accepted(self) -> None:
+        req = UpdateDashboardRequest(identifier="my-slug")
+        assert req.identifier == "my-slug"
+
+    def test_all_optional_fields_default_to_none(self) -> None:
+        req = UpdateDashboardRequest(identifier=1)
+        assert req.dashboard_title is None
+        assert req.description is None
+        assert req.slug is None
+        assert req.published is None
+        assert req.position_json is None
+        assert req.json_metadata_overrides is None
+        assert req.css is None
+
+    def test_position_json_and_overrides_and_css(self) -> None:
+        req = UpdateDashboardRequest(
+            identifier=42,
+            position_json={"ROOT_ID": {"type": "ROOT"}},
+            json_metadata_overrides={"cross_filters_enabled": True},
+            css=".x{}",
+        )
+        assert req.position_json == {"ROOT_ID": {"type": "ROOT"}}
+        assert req.json_metadata_overrides == {"cross_filters_enabled": True}
+        assert req.css == ".x{}"
+
+    def test_title_alias_accepted(self) -> None:
+        """`title` is accepted as an alias for `dashboard_title`."""
+        req = UpdateDashboardRequest(identifier=1, title="New Title")
+        assert req.dashboard_title == "New Title"
+
+    def test_name_alias_accepted(self) -> None:
+        """`name` is accepted as an alias for `dashboard_title` — mirrors
+        ``GenerateDashboardRequest``'s third AliasChoice so callers can
+        use the same key name on both create and update paths."""
+        req = UpdateDashboardRequest(identifier=1, name="New Title")
+        assert req.dashboard_title == "New Title"
+
+    def test_css_max_length_enforced(self) -> None:
+        with pytest.raises(ValidationError, match="at most 50000"):
+            UpdateDashboardRequest(identifier=1, css="x" * 50001)
+
+    def test_title_partial_strip_emits_warning(self) -> None:
+        """Mirror of ``test_title_partial_strip_emits_warning`` on the
+        create path — sanitization removes the HTML, the title survives,
+        and a warning records that the input was altered."""
+        req = UpdateDashboardRequest(identifier=1, dashboard_title="Q1 <b>Review</b>")
+        assert req.dashboard_title == "Q1 Review"
+        assert len(req.sanitization_warnings) == 1
+        assert "dashboard_title" in req.sanitization_warnings[0]
+
+    def test_client_supplied_warnings_are_discarded(self) -> None:
+        """``sanitization_warnings`` is server-only on the update path
+        too — caller-supplied entries are dropped so an attacker cannot
+        smuggle warning text through the response."""
+        req = UpdateDashboardRequest(
+            identifier=1,
+            dashboard_title="Clean Title",
+            sanitization_warnings=["<script>injected</script>"],
+        )
+        assert req.sanitization_warnings == []
+
+    def test_title_xss_only_rejected_at_schema_level(self) -> None:
+        """An XSS-only title is rejected by the Pydantic validator
+        before the tool ever runs — matches the create path's guard."""
+        with pytest.raises(ValidationError, match="removed entirely"):
+            UpdateDashboardRequest(
+                identifier=1,
+                dashboard_title="<script>alert(1)</script>",
+            )
+
+    def test_title_alias_xss_rejected(self) -> None:
+        """The ``title`` alias resolves to the same sanitized field, so
+        XSS-only input supplied via the alias must be rejected with the
+        same guard. Otherwise an attacker could bypass sanitization just
+        by choosing a different request key."""
+        with pytest.raises(ValidationError, match="removed entirely"):
+            UpdateDashboardRequest(
+                identifier=1,
+                title="<script>alert(1)</script>",
+            )
+
+    def test_name_alias_xss_rejected(self) -> None:
+        """Same as ``test_title_alias_xss_rejected`` for the ``name``
+        AliasChoice — every alias funnels through the same validator,
+        not just the canonical field name."""
+        with pytest.raises(ValidationError, match="removed entirely"):
+            UpdateDashboardRequest(
+                identifier=1,
+                name="<script>alert(1)</script>",
+            )
+
+
+class TestSafeUserLabel:
+    """``_safe_user_label`` defensively coerces ``*_by_name`` attributes
+    so dashboard serialization never leaks a ``repr(user)`` or trips
+    Pydantic with a non-string value."""
+
+    def test_plain_string_passes_through(self) -> None:
+        assert _safe_user_label("alice") == "alice"
+
+    def test_empty_string_returns_none(self) -> None:
+        """Empty string is collapsed to None so the response carries
+        an explicit "no author" signal rather than a misleading ""."""
+        assert _safe_user_label("") is None
+
+    def test_none_returns_none(self) -> None:
+        assert _safe_user_label(None) is None
+
+    def test_mock_object_returns_none(self) -> None:
+        """Mocks (and anything else non-string) become None — this is
+        the case the helper was specifically introduced to handle."""
+        from unittest.mock import MagicMock
+
+        assert _safe_user_label(MagicMock()) is None
+
+    def test_user_object_returns_none(self) -> None:
+        """A User instance also coerces to None rather than leaking
+        ``repr(user)`` (which can contain memory addresses, hashes, or
+        internal id fields). Callers that want a user display name
+        should resolve it explicitly via ``created_by_name`` upstream."""
+
+        class _User:
+            def __repr__(self) -> str:
+                return "<User id=42 username='alice'>"
+
+        assert _safe_user_label(_User()) is None
+
+    def test_integer_returns_none(self) -> None:
+        """Numbers and other non-string scalars also coerce to None
+        rather than being str-cast and silently leaking the value."""
+        assert _safe_user_label(42) is None
+
+
+class TestDuplicateDashboardRequestTitleSanitization:
+    """XSS / sanitization behavior for DuplicateDashboardRequest.dashboard_title."""
+
+    def test_plain_title_passes_without_warning(self) -> None:
+        """A clean title is accepted unchanged with no sanitization warning."""
+        req = DuplicateDashboardRequest(dashboard_id=1, dashboard_title="Regional Copy")
+        assert req.dashboard_title == "Regional Copy"
+        assert req.sanitization_warnings == []
+
+    def test_title_accepts_aliases(self) -> None:
+        """The title can be supplied via the ``name``/``title`` aliases."""
+        req = DuplicateDashboardRequest(dashboard_id="my-slug", name="From Name")
+        assert req.dashboard_title == "From Name"
+
+    def test_script_only_title_is_rejected(self) -> None:
+        """A title that sanitizes to nothing (XSS-only) is rejected."""
+        with pytest.raises(ValidationError, match="removed entirely by sanitization"):
+            DuplicateDashboardRequest(
+                dashboard_id=1, dashboard_title="<script>alert(1)</script>"
+            )
+
+    def test_empty_title_is_rejected(self) -> None:
+        """An empty title is rejected at the schema layer."""
+        with pytest.raises(ValidationError):
+            DuplicateDashboardRequest(dashboard_id=1, dashboard_title="")
+
+    def test_partial_strip_emits_warning(self) -> None:
+        """A partially stripped title is kept but flagged with a warning."""
+        req = DuplicateDashboardRequest(
+            dashboard_id=1, dashboard_title="Q1 <b>Review</b>"
+        )
+        assert req.dashboard_title == "Q1 Review"
+        assert len(req.sanitization_warnings) == 1
+        assert "dashboard_title" in req.sanitization_warnings[0]
+
+    def test_client_supplied_warnings_are_discarded(self) -> None:
+        """``sanitization_warnings`` is server-only; client input is dropped."""
+        req = DuplicateDashboardRequest(
+            dashboard_id=1,
+            dashboard_title="Plain Title",
+            sanitization_warnings=["<script>fake notice</script>"],
+        )
+        assert req.sanitization_warnings == []
+
+
+class TestDuplicateDashboardResponse:
+    """Serialization and error sanitization for DuplicateDashboardResponse."""
+
+    def test_defaults(self) -> None:
+        """An empty response has null payload fields and no flags set."""
+        resp = DuplicateDashboardResponse()
+        assert resp.dashboard is None
+        assert resp.dashboard_url is None
+        assert resp.duplicated_slices is False
+        assert resp.error is None
+        assert resp.warnings == []
+
+    def test_error_is_wrapped_for_llm_context(self) -> None:
+        """Error text is wrapped in LLM-context delimiters before exposure."""
+        resp = DuplicateDashboardResponse(error="Dashboard 'x' not found.")
+        assert resp.error == _wrapped("Dashboard 'x' not found.")
+
+    def test_none_error_is_not_wrapped(self) -> None:
+        """A null error stays null rather than being wrapped."""
+        resp = DuplicateDashboardResponse(dashboard_url="http://host/d/1/")
+        assert resp.error is None

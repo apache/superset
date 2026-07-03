@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -4005,6 +4005,9 @@ msgstr ""
 msgid "Dashboard could not be deleted."
 msgstr ""
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr ""
 
@@ -4199,6 +4202,9 @@ msgid "Database settings updated"
 msgstr ""
 
 msgid "Database type does not support file uploads."
+msgstr ""
+
+msgid "Database upload file exceeds the maximum allowed size."
 msgstr ""
 
 msgid "Database upload file failed"
@@ -13534,6 +13540,9 @@ msgid ""
 "and positions by using drag & drop in the dashboard view"
 msgstr ""
 
+msgid "This link cannot be followed because its address is unsafe."
+msgstr ""
+
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
@@ -14251,6 +14260,9 @@ msgid "Unpin from the result panel"
 msgstr ""
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid "Unsafe link blocked"
 msgstr ""
 
 #, python-format
@@ -15621,6 +15633,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr ""
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr ""
 
@@ -16441,9 +16457,6 @@ msgid "value ascending"
 msgstr ""
 
 msgid "value descending"
-msgstr ""
-
-msgid "valuename"
 msgstr ""
 
 msgid "var"

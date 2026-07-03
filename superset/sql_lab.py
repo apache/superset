@@ -271,6 +271,19 @@ def execute_query(  # pylint: disable=too-many-statements, too-many-locals  # no
                 log_params,
             )
         db.session.commit()
+        # Eagerly reload query attributes so no lazy-load triggers a new
+        # metadata DB connection during the (potentially long) cursor
+        # execution. With NullPool each lazy-load opens a fresh connection
+        # that stays idle for the query duration; if the query runs longer
+        # than the DB's idle_in_transaction_session_timeout the connection
+        # is killed, leaving the query stuck in "running" state forever.
+        db.session.expire_on_commit = False
+        try:
+            db.session.refresh(query)
+            _ = query.database
+            db.session.commit()
+        finally:
+            db.session.expire_on_commit = True
         with event_logger.log_context(
             action="execute_sql",
             database=database,
@@ -420,23 +433,34 @@ def execute_sql_statements(  # noqa: C901
         db_engine_spec.engine,
         set(),
     )
-    if disallowed_tables and parsed_script.check_tables_present(disallowed_tables):
-        # Report only the tables actually found in the query
-        found_tables = set()
-        for statement in parsed_script.statements:
-            present = {table.table.lower() for table in statement.tables}
-            for table in disallowed_tables:
-                if table.lower() in present:
-                    found_tables.add(table)
-        raise SupersetDisallowedSQLTableException(found_tables or disallowed_tables)
+    rls_enabled = is_feature_enabled("RLS_IN_SQLLAB")
+
+    # Resolve the effective per-query schema once and share it between the
+    # denylist check and RLS injection, but only when a control below needs it.
+    # Going through the query-aware ``get_default_schema_for_query`` (rather than
+    # the static ``get_default_schema``) resolves an unqualified reference to the
+    # schema the engine actually uses at runtime -- engines without dynamic-schema
+    # support ignore the request's selected schema -- so both controls match the
+    # execution path instead of a schema that may never apply.
+    effective_schema = ""
+    if disallowed_tables or rls_enabled:
+        effective_schema = database.get_default_schema_for_query(query)
+
+    if disallowed_tables:
+        # Report only the denylisted tables actually referenced in the query,
+        # honoring schema-qualified entries (e.g. ``information_schema.tables``).
+        found_tables = parsed_script.get_disallowed_tables(
+            disallowed_tables, effective_schema
+        )
+        if found_tables:
+            raise SupersetDisallowedSQLTableException(found_tables)
 
     if parsed_script.has_mutation() and not database.allow_dml:
         raise SupersetDMLNotAllowedException()
 
-    if is_feature_enabled("RLS_IN_SQLLAB"):
-        default_schema = query.database.get_default_schema_for_query(query)
+    if rls_enabled:
         for statement in parsed_script.statements:
-            apply_rls(query.database, query.catalog, default_schema, statement)
+            apply_rls(query.database, query.catalog, effective_schema, statement)
 
     if query.select_as_cta:
         # CTAS is valid when the last statement is a SELECT, while CVAS is valid when

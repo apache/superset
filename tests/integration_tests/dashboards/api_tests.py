@@ -81,6 +81,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     dashboard_data = {
         "dashboard_title": "title1_changed",
         "slug": "slug1_changed",
+        "description": "desc_changed",
         "position_json": '{"b": "B"}',
         "css": "css_changed",
         "json_metadata": '{"refresh_frequency": 30, "timed_refresh_immune_slices": [], "expanded_slices": {}, "color_scheme": "", "label_colors": {}, "shared_label_colors": [], "map_label_colors": {}, "color_scheme_domain": [], "cross_filters_enabled": false}',  # noqa: E501
@@ -538,7 +539,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         admin = self.get_user("admin")
         dashboard = self.insert_dashboard(
-            "title", "slug1", [admin.id], created_by=admin
+            "title", "slug1", [admin.id], created_by=admin, desc="description"
         )
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard.id}"
@@ -572,12 +573,13 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                 "roles": [],
                 "position_json": "",
                 "published": False,
-                "url": "/superset/dashboard/slug1/",
+                "url": "/dashboard/slug1/",
                 "slug": "slug1",
                 "tags": [],
                 "thumbnail_url": dashboard.thumbnail_url,
                 "is_managed_externally": False,
                 "theme": None,
+                "description": "description",
             }
         data = json.loads(rv.data.decode("utf-8"))
         assert "changed_on" in data["result"]
@@ -1213,11 +1215,11 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         expected_results = [
             {
                 "dashboard_title": "create_title1",
-                "url": "/superset/dashboard/create_slug1/",
+                "url": "/dashboard/create_slug1/",
             },
             {
                 "dashboard_title": "create_title0",
-                "url": "/superset/dashboard/create_slug0/",
+                "url": "/dashboard/create_slug0/",
             },
         ]
         for idx, response_item in enumerate(data["result"]):
@@ -1746,6 +1748,9 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert rv.status_code == 201
         data = json.loads(rv.data.decode("utf-8"))
         model = db.session.query(Dashboard).get(data.get("id"))
+        # uuid should be returned in the response
+        assert "uuid" in data
+        assert str(model.uuid) == str(data["uuid"])
         db.session.delete(model)
         db.session.commit()
 
@@ -2960,6 +2965,70 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert rv.status_code == 200
         assert "Content-Disposition" in rv.headers
         assert "_example.zip" in rv.headers["Content-Disposition"]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_export_as_example_data_respects_row_level_filters(self) -> None:
+        """
+        Dashboard API: export_as_example with export_data must apply the
+        dataset's row-level filters, so a restricted user only receives the
+        rows they are entitled to (not the full underlying table).
+        """
+        import pandas as pd
+
+        from superset.connectors.sqla.models import RowLevelSecurityFilter
+
+        table = self.get_table(name="birth_names")
+        gamma = security_manager.find_role("Gamma")
+        # birth_names access so the row-level filter (not the access check) is
+        # what scopes the result, and permission to call the endpoint. Track
+        # what we grant so the shared test role is restored afterwards.
+        granted = []
+        for perm, view in (
+            ("datasource_access", table.perm),
+            ("can_export_as_example", "Dashboard"),
+            ("can_export", "Dashboard"),
+        ):
+            pvm = security_manager.find_permission_view_menu(perm, view)
+            if pvm and pvm not in gamma.permissions:
+                gamma.permissions.append(pvm)
+                granted.append(pvm)
+        rls = RowLevelSecurityFilter(
+            name="export_example_girls_only",
+            filter_type="Regular",
+            clause="gender = 'girl'",
+            group_key="gender",
+        )
+        rls.tables.append(table)
+        rls.roles.append(gamma)
+        db.session.add(rls)
+        db.session.commit()
+        try:
+            self.login(GAMMA_USERNAME)
+            dashboard_id = get_dashboards_ids(["births"])[0]
+            uri = (
+                f"api/v1/dashboard/{dashboard_id}/export_as_example/"
+                "?export_data=true&sample_rows=500"
+            )
+            rv = self.client.get(uri)
+            assert rv.status_code == 200
+
+            with ZipFile(BytesIO(rv.data)) as zf:
+                parquet_files = [n for n in zf.namelist() if n.endswith(".parquet")]
+                assert parquet_files, f"expected a data file: {zf.namelist()}"
+                for name in parquet_files:
+                    df = pd.read_parquet(BytesIO(zf.read(name)))
+                    if "gender" in df.columns:
+                        unexpected = set(df["gender"].unique()) - {"girl"}
+                        assert not unexpected, (
+                            f"export returned rows outside the configured "
+                            f"row-level filter: {unexpected}"
+                        )
+        finally:
+            db.session.delete(rls)
+            for pvm in granted:
+                if pvm in gamma.permissions:
+                    gamma.permissions.remove(pvm)
+            db.session.commit()
 
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_dashboard(self, mock_add_permissions):

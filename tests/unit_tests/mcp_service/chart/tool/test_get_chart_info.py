@@ -183,6 +183,7 @@ class TestBuildAppliedDashboardFilters:
             "type": "NATIVE_FILTER",
             "filterType": "filter_select",
             "chartsInScope": [1],
+            "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
             "targets": [{"column": {"name": "country"}, "datasetId": 7}],
             "defaultDataMask": {
                 "filterState": {"value": ["US"]},
@@ -226,7 +227,8 @@ class TestBuildAppliedDashboardFilters:
             "name": "Region",
             "type": "NATIVE_FILTER",
             "filterType": "filter_select",
-            "chartsInScope": [2, 3],  # chart 1 excluded
+            "chartsInScope": [2, 3],
+            "scope": {"rootPath": ["ROOT_ID"], "excluded": [1]},  # chart 1 excluded
             "targets": [{"column": {"name": "region"}, "datasetId": 7}],
             "defaultDataMask": {
                 "filterState": {"value": ["NA"]},
@@ -257,6 +259,7 @@ class TestBuildAppliedDashboardFilters:
             "type": "NATIVE_FILTER",
             "filterType": "filter_select",
             "chartsInScope": [1],
+            "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
             "targets": [{"column": {"name": "region"}, "datasetId": 7}],
             "controlValues": {"defaultToFirstItem": True},
             "defaultDataMask": {},
@@ -577,3 +580,31 @@ class TestGetChartInfoPrivacy:
             )
 
         assert result is error
+
+
+def test_apply_unsaved_state_override_updates_display_name_for_new_viz_type() -> None:
+    """Stale display name is recomputed when viz_type is overridden from form_data."""
+    module = get_chart_info_module
+
+    result = ChartInfo(
+        id=1,
+        slice_name="My Chart",
+        viz_type="table",
+        chart_type_display_name="Table",
+    )
+
+    with (
+        patch.object(
+            module,
+            "get_cached_form_data",
+            return_value='{"viz_type": "pie"}',
+        ),
+        patch(
+            "superset.mcp_service.chart.registry.display_name_for_viz_type",
+            return_value="Pie Chart",
+        ),
+    ):
+        module._apply_unsaved_state_override(result, "key")
+
+    assert result.viz_type == "pie"
+    assert result.chart_type_display_name == "Pie Chart"

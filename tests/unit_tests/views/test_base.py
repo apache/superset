@@ -16,6 +16,7 @@
 # under the License.
 """Tests for superset.views.base module"""
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -67,6 +68,74 @@ def test_common_bootstrap_payload_handles_none_locale(
     common_bootstrap_payload()
 
     mock_cached.assert_called_once_with(1, None)
+
+
+def test_default_map_renderer_is_exposed_to_frontend_config() -> None:
+    from superset.views.base import FRONTEND_CONF_KEYS
+
+    assert "DEFAULT_MAP_RENDERER" in FRONTEND_CONF_KEYS
+
+
+_FULL_METADATA = {
+    "version_string": "4.0.0",
+    "version_sha": "abcdef12",
+    "build_number": "build-42",
+    "full_sha": "abcdef1234567890",
+}
+
+
+def _menu_data_navbar(*, is_admin: bool, config_opt_in: bool) -> dict[str, Any]:
+    """Call menu_data with appbuilder isolated, returning navbar_right."""
+    from superset.views import base as base_module
+
+    with (
+        patch.object(
+            base_module, "get_version_metadata", return_value=dict(_FULL_METADATA)
+        ),
+        patch.object(base_module, "security_manager") as mock_sm,
+        patch.object(base_module, "get_environment_tag", return_value={}),
+        patch.object(base_module, "appbuilder") as mock_appbuilder,
+        base_module.app.test_request_context(),
+    ):
+        mock_sm.is_admin = MagicMock(return_value=is_admin)
+        mock_appbuilder.languages = {}
+        mock_appbuilder.menu.get_data.return_value = {}
+        with patch.dict(
+            base_module.app.config,
+            {"EXPOSE_BUILD_DETAILS_TO_USERS": config_opt_in},
+        ):
+            return base_module.menu_data(MagicMock())["navbar_right"]
+
+
+def test_menu_data_exposes_build_details_to_admin() -> None:
+    """Admins see the precise build details in the navbar payload."""
+    navbar_right = _menu_data_navbar(is_admin=True, config_opt_in=False)
+    assert navbar_right["version_sha"] == "abcdef12"
+    assert navbar_right["build_number"] == "build-42"
+
+
+def test_menu_data_redacts_build_details_for_non_admin() -> None:
+    """Non-admins get the version string but redacted build details."""
+    navbar_right = _menu_data_navbar(is_admin=False, config_opt_in=False)
+    assert navbar_right["version_string"] == "4.0.0"
+    assert navbar_right["version_sha"] == ""
+    assert navbar_right["build_number"] is None
+
+
+def test_menu_data_exposes_build_details_when_config_opts_in() -> None:
+    """The config opt-in exposes build details even for non-admins."""
+    navbar_right = _menu_data_navbar(is_admin=False, config_opt_in=True)
+    assert navbar_right["version_sha"] == "abcdef12"
+    assert navbar_right["build_number"] == "build-42"
+
+
+def test_scarf_analytics_is_exposed_to_frontend_config() -> None:
+    """Verify SCARF_ANALYTICS is exposed in the frontend config keys."""
+    # Exposed at runtime so pre-built images can opt out via the SCARF_ANALYTICS
+    # config/env var (the webpack build-time flag cannot be changed there).
+    from superset.views.base import FRONTEND_CONF_KEYS
+
+    assert "SCARF_ANALYTICS" in FRONTEND_CONF_KEYS
 
 
 def _extract_language(
@@ -171,3 +240,56 @@ def test_api_query_returns_json_content_type() -> None:
 
     assert response.mimetype == "application/json"
     assert response.content_type.startswith("application/json")
+
+
+@pytest.mark.parametrize(
+    "encoding, payload, expected",
+    [
+        ("utf-8-sig", "Ürün,Şehir\n", "Ürün,Şehir\n".encode("utf-8-sig")),
+        ("utf-8", "Ürün,Şehir\n", "Ürün,Şehir\n".encode()),
+    ],
+)
+def test_csv_response_applies_csv_export_encoding(
+    encoding: str, payload: str, expected: bytes
+) -> None:
+    """str bodies are encoded with CSV_EXPORT["encoding"]."""
+    from flask import current_app
+
+    from superset.views.base import CsvResponse
+
+    original = current_app.config["CSV_EXPORT"]
+    try:
+        current_app.config["CSV_EXPORT"] = {"encoding": encoding}
+        response = CsvResponse(payload)
+        assert response.get_data() == expected
+        assert response.mimetype == "text/csv"
+    finally:
+        current_app.config["CSV_EXPORT"] = original
+
+
+def test_csv_response_leaves_bytes_untouched() -> None:
+    from superset.views.base import CsvResponse
+
+    payload = "Ürün\n".encode("utf-8-sig")
+    assert CsvResponse(payload).get_data() == payload
+
+
+def test_deprecated_logs_warning_exactly_once() -> None:
+    from superset.views.base import BaseSupersetView, deprecated
+
+    @deprecated(eol_version="5.0.0", new_target="/api/v1/chart/data")
+    def endpoint(self: BaseSupersetView) -> None:
+        return None
+
+    view = MagicMock(spec=BaseSupersetView)
+    view.__class__.__name__ = "Superset"
+
+    with patch("superset.views.base.logger") as mock_logger:
+        endpoint(view)
+        endpoint(view)
+
+    assert mock_logger.warning.call_count == 1
+    # logger.warning uses lazy %-style formatting, so the version is a
+    # separate positional arg rather than being interpolated into the
+    # message template string itself.
+    assert "5.0.0" in mock_logger.warning.call_args[0]

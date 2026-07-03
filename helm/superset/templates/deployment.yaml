@@ -23,15 +23,9 @@ metadata:
   name: {{ template "superset.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "superset.name" . }}
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
-    {{- if .Values.extraLabels }}
-      {{- toYaml .Values.extraLabels | nindent 4 }}
-    {{- end }}
-    {{- if .Values.supersetNode.deploymentLabels }}
-      {{- toYaml .Values.supersetNode.deploymentLabels | nindent 4 }}
+    {{- include "superset.componentLabels" (dict "component" "web" "root" .) | nindent 4 }}
+    {{- with .Values.supersetNode.deploymentLabels }}
+      {{- toYaml . | nindent 4 }}
     {{- end }}
   {{- if .Values.supersetNode.deploymentAnnotations }}
   annotations: {{- toYaml .Values.supersetNode.deploymentAnnotations | nindent 4 }}
@@ -67,15 +61,14 @@ spec:
           {{- toYaml .Values.supersetNode.podAnnotations | nindent 8 }}
         {{- end }}
       labels:
-        app: {{ template "superset.name" . }}
-        release: {{ .Release.Name }}
-        {{- if .Values.extraLabels }}
-          {{- toYaml .Values.extraLabels | nindent 8 }}
-        {{- end }}
+        {{- include "supersetNode.selectorLabels" . | nindent 8 }}
         {{- if .Values.supersetNode.podLabels }}
           {{- toYaml .Values.supersetNode.podLabels | nindent 8 }}
         {{- end }}
     spec:
+      {{- if .Values.supersetNode.deploymentAdditionalPodSpec }}
+      {{- tpl (toYaml .Values.supersetNode.deploymentAdditionalPodSpec) . | nindent 6 }}
+      {{- end }}
       {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
       serviceAccountName: {{ template "superset.serviceAccountName" . }}
       {{- end }}
@@ -144,6 +137,9 @@ spec:
           {{- if .Values.supersetNode.livenessProbe }}
           livenessProbe: {{- .Values.supersetNode.livenessProbe | toYaml | nindent 12 }}
           {{- end }}
+          {{- if .Values.supersetNode.lifecycle }}
+          lifecycle: {{- .Values.supersetNode.lifecycle | toYaml | nindent 12 }}
+          {{- end }}
           resources:
             {{- if .Values.supersetNode.resources }}
               {{- toYaml .Values.supersetNode.resources | nindent 12 }}
@@ -151,7 +147,7 @@ spec:
               {{- toYaml .Values.resources | nindent 12 }}
             {{- end }}
         {{- if .Values.supersetNode.extraContainers }}
-          {{- toYaml .Values.supersetNode.extraContainers | nindent 8 }}
+          {{- tpl (toYaml .Values.supersetNode.extraContainers) . | nindent 8 }}
         {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}
@@ -179,6 +175,9 @@ spec:
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.supersetNode.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ .Values.supersetNode.terminationGracePeriodSeconds }}
       {{- end }}
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets: {{- toYaml .Values.imagePullSecrets | nindent 8 }}

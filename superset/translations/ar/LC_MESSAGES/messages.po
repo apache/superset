@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -4441,6 +4441,9 @@ msgstr "تعذر تحديث لوحة المعلومات."
 msgid "Dashboard could not be deleted."
 msgstr "تعذر حذف لوحة المعلومات."
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "تعذر تحديث لوحة المعلومات."
 
@@ -4661,6 +4664,9 @@ msgstr "تم تحديث إعدادات قاعدة البيانات"
 #, fuzzy
 msgid "Database type does not support file uploads."
 msgstr "قاعدة البيانات لا تدعم الاستعلامات الفرعية"
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 #, fuzzy
 msgid "Database upload file failed"
@@ -15093,6 +15099,9 @@ msgstr ""
 "عند ضبط حجم الأدوات والمواضع باستخدام السحب والإسقاط في عرض لوحة "
 "المعلومات"
 
+msgid "This link cannot be followed because its address is unsafe."
+msgstr ""
+
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
@@ -15876,6 +15885,9 @@ msgid "Unpin from the result panel"
 msgstr ""
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid "Unsafe link blocked"
 msgstr ""
 
 #, python-format
@@ -17412,6 +17424,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "خاصية «التشغيل» لكائن ما بعد المعالجة غير محددة"
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr "لم يتم تثبيت حزمة `prophet`"
 
@@ -18303,10 +18319,6 @@ msgstr "قيمة تصاعدية"
 
 msgid "value descending"
 msgstr "قيمة تنازلي"
-
-#, fuzzy
-msgid "valuename"
-msgstr "اسم الجدول"
 
 msgid "var"
 msgstr "VAR"

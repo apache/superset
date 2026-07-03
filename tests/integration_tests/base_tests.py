@@ -38,6 +38,7 @@ from sqlalchemy.sql import func
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
+from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.models import core as models
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -583,6 +584,7 @@ class SupersetTestCase(TestCase):
         published: bool = False,
         certified_by: Optional[str] = None,
         certification_details: Optional[str] = None,
+        desc: Optional[str] = None,
     ) -> Dashboard:
         obj_owners = list()  # noqa: C408
         obj_roles = list()  # noqa: C408
@@ -594,10 +596,17 @@ class SupersetTestCase(TestCase):
             role_obj = db.session.query(security_manager.role_model).get(role)
             obj_roles.append(role_obj)
 
-        # Defensive cleanup: remove any existing dashboard with the same slug
+        # Defensive cleanup: remove any existing dashboard with the same slug.
+        # Bypass the soft-delete visibility filter so a soft-deleted row from
+        # a prior test still gets cleared — without the bypass the lookup
+        # returns ``None`` and the INSERT below trips the unique constraint
+        # on ``slug`` against the soft-deleted (but hidden) row.
         if slug:
             existing_dashboard = (
-                db.session.query(Dashboard).filter_by(slug=slug).first()
+                db.session.query(Dashboard)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Dashboard}})
+                .filter_by(slug=slug)
+                .first()
             )
             if existing_dashboard:
                 db.session.delete(existing_dashboard)
@@ -606,6 +615,7 @@ class SupersetTestCase(TestCase):
         dashboard = Dashboard(
             dashboard_title=dashboard_title,
             slug=slug,
+            description=desc,
             owners=obj_owners,
             roles=obj_roles,
             position_json=position_json,

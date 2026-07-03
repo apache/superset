@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -4341,6 +4341,9 @@ msgstr "La tua query non può essere salvata"
 msgid "Dashboard could not be deleted."
 msgstr "La tua query non può essere salvata"
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "La tua query non può essere salvata"
 
@@ -4562,6 +4565,9 @@ msgstr "La tua query non può essere salvata"
 #, fuzzy
 msgid "Database type does not support file uploads."
 msgstr "Sorgente dati e tipo di grafico"
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 #, fuzzy
 msgid "Database upload file failed"
@@ -14787,6 +14793,9 @@ msgstr ""
 "la dimensione usando la funzione di drag & drop nella vista della "
 "dashboard. "
 
+msgid "This link cannot be followed because its address is unsafe."
+msgstr ""
+
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
@@ -15553,6 +15562,9 @@ msgid "Unpin from the result panel"
 msgstr ""
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid "Unsafe link blocked"
 msgstr ""
 
 #, python-format
@@ -17015,6 +17027,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr ""
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr ""
 
@@ -17927,10 +17943,6 @@ msgstr "Importa"
 #, fuzzy
 msgid "value descending"
 msgstr "Importa"
-
-#, fuzzy
-msgid "valuename"
-msgstr "Database"
 
 msgid "var"
 msgstr ""

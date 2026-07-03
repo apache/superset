@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -4322,6 +4322,9 @@ msgstr "대시보드를 업데이트할 수 없습니다."
 msgid "Dashboard could not be deleted."
 msgstr "대시보드를 삭제할 수 없습니다."
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "대시보드를 업데이트할 수 없습니다."
 
@@ -4540,6 +4543,9 @@ msgid "Database settings updated"
 msgstr "데이터베이스를 업데이트할 수 없습니다."
 
 msgid "Database type does not support file uploads."
+msgstr ""
+
+msgid "Database upload file exceeds the maximum allowed size."
 msgstr ""
 
 msgid "Database upload file failed"
@@ -14666,6 +14672,9 @@ msgid ""
 "and positions by using drag & drop in the dashboard view"
 msgstr ""
 
+msgid "This link cannot be followed because its address is unsafe."
+msgstr ""
+
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
@@ -15426,6 +15435,9 @@ msgid "Unpin from the result panel"
 msgstr ""
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid "Unsafe link blocked"
 msgstr ""
 
 #, python-format
@@ -16853,6 +16865,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr ""
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr ""
 
@@ -17761,10 +17777,6 @@ msgstr ""
 
 msgid "value descending"
 msgstr ""
-
-#, fuzzy
-msgid "valuename"
-msgstr "테이블 명"
 
 msgid "var"
 msgstr ""

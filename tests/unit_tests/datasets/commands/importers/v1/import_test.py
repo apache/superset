@@ -22,6 +22,7 @@ import re
 import uuid
 from typing import Any
 from unittest.mock import Mock, patch
+from urllib import request
 
 import pytest
 from flask import current_app
@@ -809,16 +810,78 @@ def test_import_dataset_extra_empty_string(
     assert sqla_table.extra is None  # noqa: E711
 
 
-@patch("superset.commands.dataset.importers.v1.utils.request.urlopen")
+def test_import_dataset_template_params_is_empty_string(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Test importing a dataset when the template_params field is an empty string.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    dataset_uuid = uuid.uuid4()
+    yaml_config: dict[str, Any] = {
+        "version": "1.0.0",
+        "table_name": "my_table",
+        "main_dttm_col": "ds",
+        "schema": "my_schema",
+        "sql": None,
+        "params": {
+            "remote_id": 64,
+            "database_name": "examples",
+            "import_time": 1606677834,
+        },
+        "template_params": "",
+        "extra": None,
+        "uuid": dataset_uuid,
+        "metrics": [
+            {
+                "metric_name": "cnt",
+                "expression": "COUNT(*)",
+            }
+        ],
+        "columns": [
+            {
+                "column_name": "profit",
+                "is_dttm": False,
+                "is_active": True,
+                "type": "INTEGER",
+                "groupby": False,
+                "filterable": False,
+                "expression": "revenue-expenses",
+            }
+        ],
+        "database_uuid": database.uuid,
+    }
+
+    schema = ImportV1DatasetSchema()
+    dataset_config = schema.load(yaml_config)
+    dataset_config["database_id"] = database.id
+    sqla_table = import_dataset(dataset_config)
+
+    assert sqla_table.template_params is None  # noqa: E711
+
+
+@patch("superset.commands.dataset.importers.v1.utils.is_safe_host", return_value=True)
+@patch("superset.commands.dataset.importers.v1.utils.request.build_opener")
 def test_import_column_allowed_data_url(
-    mock_urlopen: Mock,
+    mock_build_opener: Mock,
+    mock_is_safe_host: Mock,
     mocker: MockerFixture,
     session: Session,
 ) -> None:
     """
     Test importing a dataset when using data key to fetch data from a URL.
     """
-    mock_urlopen.return_value = io.StringIO("col1\nvalue1\nvalue2\n")
+    mock_opener = Mock()
+    mock_opener.open.return_value = io.StringIO("col1\nvalue1\nvalue2\n")
+    mock_build_opener.return_value = mock_opener
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
@@ -1046,10 +1109,134 @@ def test_import_dataset_access_check(
         (["*"], "https://host1.domain3.com/data.csv", False, re.error),
     ],
 )
-def test_validate_data_uri(allowed_urls, data_uri, expected, exception_class):
+def test_validate_data_uri(
+    allowed_urls: list[str],
+    data_uri: str,
+    expected: bool,
+    exception_class: type[Exception] | None,
+) -> None:
+    """Tests allowlist pattern matching. is_safe_host is stubbed out so that
+    fake/unresolvable test hostnames do not interfere with DNS-based checks
+    (those are covered by the dedicated is_safe_host tests below)."""
     current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = allowed_urls
-    if expected:
-        validate_data_uri(data_uri)
-    else:
-        with pytest.raises(exception_class):
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+    with patch(
+        "superset.commands.dataset.importers.v1.utils.is_safe_host",
+        return_value=True,
+    ):
+        if expected:
             validate_data_uri(data_uri)
+        else:
+            with pytest.raises(exception_class):
+                validate_data_uri(data_uri)
+
+
+def test_validate_data_uri_file_scheme_examples_allowed() -> None:
+    """file:// URIs pointing inside the examples folder are permitted."""
+    import os
+
+    from superset.examples.helpers import get_examples_folder
+
+    examples_folder = get_examples_folder()
+    uri_in_examples = (
+        f"file://{os.path.join(examples_folder, 'birth_names', 'data.parquet')}"
+    )
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = []
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+    # Should not raise
+    validate_data_uri(uri_in_examples)
+
+
+def test_validate_data_uri_file_scheme_outside_examples_blocked() -> None:
+    """file:// URIs outside the examples folder are blocked."""
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = []
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+    with pytest.raises(DatasetForbiddenDataURI):
+        validate_data_uri("file:///etc/passwd")
+
+
+@pytest.mark.parametrize(
+    "data_uri",
+    ["FiLe:///etc/passwd", "FILE:///etc/passwd", "file:/etc/passwd"],
+)
+def test_validate_data_uri_file_scheme_case_insensitive(data_uri: str) -> None:
+    """Mixed-case / single-slash file URIs still go through the sandbox check
+    and are blocked when outside the examples folder, so they cannot skip the
+    local-file check via a case-sensitive scheme gate."""
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = []
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+    with pytest.raises(DatasetForbiddenDataURI):
+        validate_data_uri(data_uri)
+
+
+@pytest.mark.parametrize(
+    "data_uri",
+    [
+        # Userinfo-injection: allowlist matches the trusted hostname in the
+        # authority but urlparse().hostname resolves to the actual target.
+        "https://allowed.example.com@169.254.169.254/latest/meta-data/",
+        "https://allowed.example.com@10.0.0.1/internal",
+        "https://allowed.example.com@127.0.0.1/admin",
+    ],
+)
+def test_validate_data_uri_blocks_userinfo_ssrf_injection(data_uri: str) -> None:
+    """Userinfo-injected private IPs must be rejected even when the leading
+    hostname matches an allowlist pattern."""
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = [r".*"]
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+    with patch(
+        "superset.commands.dataset.importers.v1.utils.is_safe_host",
+        return_value=False,
+    ):
+        with pytest.raises(DatasetForbiddenDataURI):
+            validate_data_uri(data_uri)
+
+
+def test_validate_data_uri_allow_internal_flag_bypasses_host_check() -> None:
+    """When DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS is True, internal hosts
+    must be permitted to support air-gapped / on-premises deployments."""
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = [r".*"]
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = True
+    with patch(
+        "superset.commands.dataset.importers.v1.utils.is_safe_host",
+        return_value=False,
+    ) as mock_check:
+        validate_data_uri("http://10.0.0.5/data.csv")
+        mock_check.assert_not_called()
+
+
+def test_validate_data_uri_no_hostname_raises() -> None:
+    """A URI that produces no parseable hostname (e.g. opaque data: URIs) must
+    be rejected — fail-closed: no hostname means no safe host confirmation."""
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = [r".*"]
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+    # urlparse("data:text/csv,...").hostname is None, which fails the
+    # "not hostname or not is_safe_host(hostname)" guard.
+    with pytest.raises(DatasetForbiddenDataURI):
+        validate_data_uri("data:text/csv,col1,col2")
+
+
+def test_redirect_handler_blocks_disallowed_redirect_target() -> None:
+    """The redirect handler must reject a redirect to a disallowed host by
+    re-running validate_data_uri() on the new URL before following it."""
+    from superset.commands.dataset.importers.v1.utils import (
+        _ValidatingRedirectHandler,
+    )
+
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = [r".*"]
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+
+    handler = _ValidatingRedirectHandler()
+    with patch(
+        "superset.commands.dataset.importers.v1.utils.is_safe_host",
+        return_value=False,
+    ):
+        with pytest.raises(DatasetForbiddenDataURI):
+            handler.redirect_request(
+                request.Request("http://public.example.com/data.csv"),
+                None,
+                302,
+                "Found",
+                {},
+                "http://169.254.169.254/latest/meta-data/",
+            )

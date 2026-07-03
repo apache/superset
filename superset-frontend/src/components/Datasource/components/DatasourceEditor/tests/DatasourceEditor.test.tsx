@@ -25,6 +25,7 @@ import {
   within,
 } from 'spec/helpers/testing-library';
 import { DatasourceType, isFeatureEnabled } from '@superset-ui/core';
+import * as getBootstrapData from 'src/utils/getBootstrapData';
 import {
   createProps,
   DATASOURCE_ENDPOINT,
@@ -337,7 +338,8 @@ test('calls onChange with empty SQL when switching to physical dataset', async (
 
   // Assert that the latest onChange call has empty SQL
   expect(testProps.onChange).toHaveBeenCalled();
-  const updatedDatasource = testProps.onChange.mock.calls[0];
+  const lastCallIndex = testProps.onChange.mock.calls.length - 1;
+  const updatedDatasource = testProps.onChange.mock.calls[lastCallIndex];
   expect(updatedDatasource[0].sql).toBe('');
 });
 
@@ -820,4 +822,58 @@ test('calculated column search is case-insensitive', async () => {
   await waitFor(() => {
     expect(screen.getByDisplayValue('upper_name')).toBeInTheDocument();
   });
+});
+
+test('Open in SQL lab href is single-prefixed under subdirectory deployment', () => {
+  // The Open-in-SQL-Lab link's href is produced by `getSQLLabUrl()`:
+  //   return makeUrl(`/sqllab/?${queryParams.toString()}`);
+  // `makeUrl` is the idempotent app-root prefix helper from
+  // `src/utils/navigationUtils`. Rendering the link requires both the
+  // virtual datasourceType state AND a populated Redux `database.queryResult`
+  // slice (which is not part of the default test reducer tree). Calling
+  // `makeUrl` directly with a `/superset` mock exercises the exact path the
+  // component takes and pins the dedupe invariant for the underlying helper.
+  const applicationRootSpy = jest
+    .spyOn(getBootstrapData, 'applicationRoot')
+    .mockReturnValue('/superset');
+  try {
+    const { makeUrl } = jest.requireActual('src/utils/navigationUtils');
+    const queryParams = new URLSearchParams({
+      dbid: '1',
+      sql: 'SELECT * FROM users',
+      name: 'Vehicle Sales',
+      schema: 'public',
+      autorun: 'true',
+      isDataset: 'true',
+    });
+    const url = makeUrl(`/sqllab/?${queryParams.toString()}`);
+    expect(url).toMatch(/^\/superset\/sqllab\/\?/);
+    expect(url).not.toMatch(/\/superset\/superset\//);
+  } finally {
+    applicationRootSpy.mockRestore();
+  }
+});
+
+test('DatasourceEditor source pins getSQLLabUrl/openOnSqlLab to the makeUrl + openInNewTab helpers', () => {
+  // Source-pin: lock the exact two-line shape the runtime behaviour depends
+  // on. `getSQLLabUrl` MUST wrap its `/sqllab/?...` path in `makeUrl` so the
+  // Layer-2 idempotent prefix runs at the click boundary; `openOnSqlLab`
+  // MUST delegate to `openInNewTab` so `ensureAppRoot` runs again (idempotent
+  // dedupe, see `navigationUtils.appRoot.test.tsx`). A refactor that drops
+  // either layer would let a doubled-prefix URL escape into a new tab.
+  // eslint-disable-next-line global-require
+  const { readFileSync } = require('fs');
+  // eslint-disable-next-line global-require
+  const { join } = require('path');
+  const src = readFileSync(
+    join(__dirname, '..', 'DatasourceEditor.tsx'),
+    'utf8',
+  );
+  expect(src).toMatch(
+    /return makeUrl\(`\/sqllab\/\?\$\{queryParams\.toString\(\)\}`\);/,
+  );
+  expect(src).toMatch(/openInNewTab\(getSQLLabUrl\(\)\);/);
+  expect(src).toMatch(
+    /import \{ makeUrl, openInNewTab \} from 'src\/utils\/navigationUtils';/,
+  );
 });

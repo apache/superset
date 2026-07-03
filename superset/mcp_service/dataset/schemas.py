@@ -21,7 +21,7 @@ Pydantic schemas for dataset-related responses
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List, Literal
 
 from pydantic import (
@@ -120,8 +120,10 @@ class TableColumnInfo(BaseModel):
 class SqlMetricInfo(BaseModel):
     metric_name: str = Field(
         ...,
-        description="Saved metric name. In chart configs, reference as "
-        '{"name": "<metric_name>", "saved_metric": true}.',
+        description=(
+            "Saved metric name. In chart configs, reference as "
+            '{"name": "<metric_name>", "saved_metric": true}.'
+        ),
     )
     verbose_name: str | None = Field(None, description="Verbose name")
     expression: str | None = Field(None, description="SQL expression")
@@ -325,8 +327,6 @@ class DatasetError(BaseModel):
     @classmethod
     def create(cls, error: str, error_type: str) -> "DatasetError":
         """Create a standardized DatasetError with timestamp."""
-        from datetime import datetime, timezone
-
         return cls(
             error=error,
             error_type=error_type,
@@ -369,10 +369,17 @@ class GetDatasetInfoRequest(MetadataCacheControl):
         Field(
             default_factory=lambda: list(DEFAULT_GET_DATASET_INFO_COLUMNS),
             description=(
-                "Top-level fields to include in the response. Defaults to a lean "
-                "set that excludes verbose fields like params, template_params, "
-                "extra, tags, certification_details. Pass an explicit list to "
-                "override (e.g. ['id','table_name','columns'] for minimal output)."
+                "Top-level fields to include in the response. "
+                "Default set: 'id', 'table_name', 'schema', 'database_name', "
+                "'database_id', 'uuid', 'is_virtual', 'description', "
+                "'main_dttm_col', 'sql', 'url', 'columns', 'metrics'. "
+                "Additional available fields: 'certified_by', "
+                "'certification_details', 'changed_on', 'changed_on_humanized', "
+                "'created_on', 'created_on_humanized', 'tags', 'schema_perm', "
+                "'offset', 'cache_timeout', 'params', 'template_params', "
+                "'extra', 'is_favorite'. "
+                "Pass an explicit list to select only what you need "
+                "(e.g. ['id', 'table_name', 'columns', 'metrics'])."
             ),
         ),
     ]
@@ -410,6 +417,100 @@ class GetDatasetInfoRequest(MetadataCacheControl):
         return parsed
 
 
+class CreateDatasetMetric(BaseModel):
+    """Metric definition for dataset creation."""
+
+    metric_name: str = Field(..., description="Name of the metric")
+    expression: str = Field(..., description="SQL expression for the metric")
+    verbose_name: str | None = None
+    description: str | None = None
+    metric_type: str | None = None
+    d3format: str | None = None
+    warning_text: str | None = None
+
+
+class CreateDatasetCalculatedColumn(BaseModel):
+    """Calculated column definition for dataset creation."""
+
+    column_name: str = Field(..., description="Name of the calculated column")
+    expression: str = Field(..., description="SQL expression for the column")
+    verbose_name: str | None = None
+    description: str | None = None
+    type: str | None = None
+    advanced_data_type: str | None = None
+    is_dttm: bool | None = None
+
+
+class CreateDatasetRequest(BaseModel):
+    """Request schema for create_dataset to register a physical table as a dataset."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    database_id: Annotated[
+        int,
+        Field(
+            description="ID of the database connection to register the table against"
+        ),
+    ]
+    schema_: Annotated[
+        str | None,
+        Field(
+            default=None,
+            alias="schema",
+            serialization_alias="schema",
+            max_length=250,
+            description="Schema (namespace) where the table lives, e.g. 'public'. "
+            "Omit or pass None for databases without schema namespaces (e.g. SQLite).",
+        ),
+    ]
+    catalog: Annotated[
+        str | None,
+        Field(
+            default=None,
+            max_length=250,
+            description="Catalog where the table lives. Omit for databases without "
+            "catalog support.",
+        ),
+    ]
+    table_name: Annotated[
+        str,
+        Field(
+            min_length=1,
+            max_length=250,
+            description="Name of the physical table to register as a dataset",
+        ),
+    ]
+    owners: Annotated[
+        List[int] | None,
+        Field(
+            default=None,
+            description="Optional list of owner user IDs. "
+            "Defaults to the calling user.",
+        ),
+    ]
+
+    @field_validator("schema_", "catalog", mode="before")
+    @classmethod
+    def _normalize_optional_str(cls, v: object) -> object:
+        """Strip whitespace and convert blank strings to None.
+
+        Non-string values pass through unchanged so Pydantic's type validation
+        rejects them, rather than silently treating a malformed value (e.g. an
+        int or dict) as an omitted namespace.
+        """
+        if isinstance(v, str):
+            return v.strip() or None
+        return v
+
+    @field_validator("table_name", mode="before")
+    @classmethod
+    def _strip_table_name(cls, v: object) -> object:
+        """Strip leading/trailing whitespace from table_name."""
+        if isinstance(v, str):
+            return v.strip()
+        return v
+
+
 class CreateVirtualDatasetRequest(BaseModel):
     """Request schema for create_virtual_dataset."""
 
@@ -443,6 +544,16 @@ class CreateVirtualDatasetRequest(BaseModel):
     description: str | None = Field(
         None,
         description="Human-readable description of the dataset (optional).",
+    )
+    metrics: list[CreateDatasetMetric] | None = Field(
+        None,
+        description="Optional list of saved metrics to create. Each metric "
+        "must have 'metric_name' and 'expression'.",
+    )
+    calculated_columns: list[CreateDatasetCalculatedColumn] | None = Field(
+        None,
+        description="Optional list of calculated columns to create. Each column "
+        "must have 'column_name' and 'expression'.",
     )
 
     @field_validator("sql")
@@ -734,7 +845,7 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
     if isinstance(params, str):
         try:
             params = json.loads(params)
-        except Exception:
+        except (json.JSONDecodeError, TypeError):
             params = None
     columns = [
         TableColumnInfo(
