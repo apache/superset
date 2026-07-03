@@ -37,9 +37,7 @@ test('joins country metadata from camelized chart props form data', () => {
       color_picker: { r: 0, g: 122, b: 135, a: 1 },
       show_bubbles: true,
     },
-    queriesData: [
-      { data: [{ country_code: 'FRA', sum__num: 42, count: 7 }] },
-    ],
+    queriesData: [{ data: [{ country_code: 'FRA', sum__num: 42, count: 7 }] }],
   });
   const { data } = transformProps(chartProps) as {
     data: Record<string, unknown>[];
