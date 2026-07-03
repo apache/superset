@@ -53,7 +53,7 @@ export const Label = forwardRef<HTMLSpanElement, LabelProps>((props, ref) => {
     overflow: hidden;
     text-overflow: ellipsis;
     background-color: ${backgroundColor};
-    border-radius: 8px;
+    border-radius: ${theme.labelBorderRadius ?? 8}px;
     border-color: ${borderColor};
     padding: 0.35em 0.8em;
     line-height: 1;
