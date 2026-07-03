@@ -40,14 +40,14 @@ this branch is the EOL.
 | 1 | `para` | legacy-plugin-chart-parallel-coordinates | Convert in place (pass-through) | ✅ (merged) |
 | 2 | `country_map` | legacy-plugin-chart-country-map | Convert in place (select/rename) | ✅ (merged) |
 | 3 | `bullet` | legacy-preset-chart-nvd3/Bullet | Convert in place (single metric) | ✅ (merged) |
-| 4 | `chord` | legacy-plugin-chart-chord | Convert in place (matrix in transformProps) | 🔃 (PR open) |
-| 5 | `world_map` | legacy-plugin-chart-world-map | Convert in place (country join in JS) | 🔃 (PR open) |
-| 6 | `paired_ttest` | legacy-plugin-chart-paired-t-test | Convert in place (pivot op) | 🔃 (PR open) |
-| 7 | `time_table` | src/visualizations/TimeTable | Convert in place (pivot op) | 🔃 (PR open) |
-| 8 | `cal_heatmap` | legacy-plugin-chart-calendar | Convert in place (pivot + epoch keys in JS) | ⬜ |
-| 9 | `horizon` | legacy-plugin-chart-horizon | Convert in place (timeseries pipeline) | ⬜ |
-| 10 | `rose` | legacy-plugin-chart-rose | Convert in place (timeseries pipeline) | ⬜ |
-| 11 | `time_pivot` | legacy-preset-chart-nvd3/TimePivot | Convert in place (pivot + rank in JS) | ⬜ |
+| 4 | `chord` | legacy-plugin-chart-chord | Convert in place (matrix in transformProps) | ✅ (merged) |
+| 5 | `world_map` | legacy-plugin-chart-world-map | Convert in place (country join in JS) | ✅ (merged) |
+| 6 | `paired_ttest` | legacy-plugin-chart-paired-t-test | Convert in place (pivot op) | ✅ (merged) |
+| 7 | `time_table` | src/visualizations/TimeTable | Convert in place (pivot op) | ✅ (merged) |
+| 8 | `cal_heatmap` | legacy-plugin-chart-calendar | Convert in place (pivot + epoch keys in JS) | ✅ (merged) |
+| 9 | `horizon` | legacy-plugin-chart-horizon | Convert in place (timeseries pipeline) | 🔃 (#41725) |
+| 10 | `rose` | legacy-plugin-chart-rose | Convert in place (timeseries pipeline) | 🔃 (#41726) |
+| 11 | `time_pivot` | legacy-preset-chart-nvd3/TimePivot | Convert in place (pivot + rank in JS) | 🔃 (#41727) |
 | 12 | `bubble` | legacy-preset-chart-nvd3/Bubble | Retarget → `bubble_v2` (MigrateViz exists, needs Alembic revision) | ⬜ |
 | 13 | `compare` | legacy-preset-chart-nvd3/Compare | Retarget → `echarts_timeseries_line` (new MigrateViz) | ⬜ |
 | 14 | `partition` | legacy-plugin-chart-partition | Convert in place (hierarchy in transformProps) | ⬜ |
@@ -100,8 +100,14 @@ Per-chart checklist:
   country_id/metric rename in transformProps with both-labels guard, 15 tests.
 - 2026-07-02 — #41718 `bullet` merged: buildQuery (single ungrouped metric),
   records→{measures} reshape in nvd3 transformProps Bullet branch, 5 tests.
-- Open PRs: #41719 `chord`, #41720 `world_map`, #41721 `paired_ttest`,
-  #41723 `time_table`.
+- 2026-07-02 — #41719 `chord`, #41720 `world_map`, #41721 `paired_ttest`,
+  #41723 `time_table`, #41724 `cal_heatmap` merged. Notable bot-caught fixes
+  along the way: ChartProps camelization bug in world_map's country join,
+  numeric group ordering in paired_ttest, comma escaping + sub-second keys +
+  grouped single-metric guard in time_table.
+- Open PRs: #41725 `horizon`, #41726 `rose` (uses server-side post_processing
+  pipeline: pivot/resample/rolling/compare/contribution/flatten),
+  #41727 `time_pivot` (pandas offset rollback ported to JS).
 
 - 2026-07-02 — Phase 0: removed orphaned `viz.py` classes (`MapboxViz`, `MapLibreViz`,
   `EventFlowViz`, −204 lines) and the unregistered nvd3 BoxPlot story leftovers.
