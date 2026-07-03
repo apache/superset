@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps } from '@superset-ui/core';
+import {
+  ChartProps,
+  ensureIsArray,
+  getMetricLabel,
+  QueryFormMetric,
+} from '@superset-ui/core';
+import transformData from './transformData';
 
 export default function transformProps(chartProps: ChartProps) {
   const { width, height, formData, queriesData } = chartProps;
@@ -27,12 +33,29 @@ export default function transformProps(chartProps: ChartProps) {
     richTooltip,
     roseAreaProportion,
     sliceId,
+    metrics,
+    timeCompare,
+    comparisonType,
   } = formData;
+
+  // v1 responses arrive as flattened pivot records; the legacy
+  // explore_json endpoint delivered the timestamp-keyed shape directly.
+  const rawData = queriesData[0].data;
+  const data = Array.isArray(rawData)
+    ? transformData(rawData, {
+        metricLabels: ensureIsArray(metrics as QueryFormMetric[]).map(
+          getMetricLabel,
+        ),
+        timeCompare: ensureIsArray(timeCompare),
+        comparisonType:
+          comparisonType === 'absolute' ? 'difference' : comparisonType,
+      })
+    : rawData;
 
   return {
     width,
     height,
-    data: queriesData[0].data,
+    data,
     colorScheme,
     dateTimeFormat,
     numberFormat,
