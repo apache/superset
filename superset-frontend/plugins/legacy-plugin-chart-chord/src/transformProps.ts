@@ -29,10 +29,10 @@ interface ChordData {
 }
 
 /**
- * Builds the symmetrical adjacency matrix that d3.chord expects, the way
- * the legacy explore_json endpoint used to server-side: nodes are the
- * union of source and target values, matrix[target][source] holds the
- * metric value.
+ * Builds the square adjacency matrix that d3.chord expects, the way the
+ * legacy explore_json endpoint used to server-side: nodes are the union
+ * of source and target values, matrix[target][source] holds the
+ * (directional) metric value.
  */
 function buildChordData(
   records: Record<string, unknown>[],
@@ -67,15 +67,16 @@ export default function transformProps(chartProps: ChartProps) {
     formData;
 
   const rawData = queriesData[0].data;
-  const data = Array.isArray(rawData)
-    ? buildChordData(
-        rawData,
-        getColumnLabel(ensureIsArray(groupby)[0]),
-        getColumnLabel(ensureIsArray(columns)[0]),
-        getMetricLabel(metric),
-      )
-    : // legacy explore_json payloads arrive pre-shaped
-      rawData;
+  const data =
+    Array.isArray(rawData) && metric
+      ? buildChordData(
+          rawData,
+          getColumnLabel(ensureIsArray(groupby)[0]),
+          getColumnLabel(ensureIsArray(columns)[0]),
+          getMetricLabel(metric),
+        )
+      : // legacy explore_json payloads arrive pre-shaped
+        rawData;
 
   return {
     colorScheme,
