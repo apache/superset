@@ -66,6 +66,7 @@ import {
 } from './styles';
 import {
   DEFAULT_SORT_COMPARATOR,
+  DROPDOWN_BUILTIN_PLACEMENTS,
   EMPTY_OPTIONS,
   MAX_TAG_COUNT,
   TOKEN_SEPARATORS,
@@ -876,6 +877,7 @@ const Select = forwardRef(
           optionRender={option => <Space>{option.label || option.value}</Space>}
           oneLine={oneLine}
           popupMatchSelectWidth={oneLine ? dropdownWidth : true}
+          builtinPlacements={DROPDOWN_BUILTIN_PLACEMENTS}
           css={props.css}
           {...props}
           showSearch={shouldShowSearch}

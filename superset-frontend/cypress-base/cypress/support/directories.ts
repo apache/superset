@@ -52,7 +52,7 @@ export const securityAccess = {
 };
 export const homePage = {
   homeSection: {
-    sectionArea: '.ant-collapse-content-box',
+    sectionArea: '.ant-collapse-body',
     sectionElement: '.ant-card-meta-title',
   },
   sections: {
@@ -366,7 +366,7 @@ export const nativeFilters = {
     infoTooltip: '[aria-label="Show info tooltip"]',
     parentFilterInput: dataTestLocator('parent-filter-input'),
     filterPlaceholder: '.ant-select-placeholder',
-    collapsedSectionContainer: '[class="ant-collapse-content-box"]',
+    collapsedSectionContainer: '[class="ant-collapse-body"]',
   },
   filtersList: {
     list: '.ant-tabs-nav-list',
@@ -495,7 +495,7 @@ export const exploreView = {
   },
   controlPanel: {
     panel: dataTestLocator('control-tabs'),
-    categoryArea: '.ant-collapse-content-box',
+    categoryArea: '.ant-collapse-body',
     dragField: dataTestLocator('datasource'),
     metricsField: dataTestLocator('metrics'),
     optionField: dataTestLocator('option-label'),

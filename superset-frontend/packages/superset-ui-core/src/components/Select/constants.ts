@@ -16,12 +16,53 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { LabeledValue as AntdLabeledValue } from 'antd/es/select';
+import {
+  LabeledValue as AntdLabeledValue,
+  SelectProps as AntdSelectProps,
+} from 'antd/es/select';
 import { t } from '@apache-superset/core/translation';
 import { rankedSearchCompare } from '../../utils/rankedSearchCompare';
 import { RawValue } from './types';
 
 export const MAX_TAG_COUNT = 4;
+
+const PLACEMENT_SHARED_CONFIG = {
+  overflow: { adjustX: false, adjustY: true, shiftY: true },
+  htmlRegion: 'visible' as const,
+  dynamicInset: true,
+};
+
+/**
+ * antd 6's default Select popup placements with horizontal viewport
+ * adjustment disabled, preserving the dropdown-positioning fix from
+ * #36963. antd 6 removed the `dropdownAlign` prop that fix was expressed
+ * through; `builtinPlacements` is its supported replacement, but it
+ * replaces the entire placement map, so all four entries are provided
+ * (mirroring antd's own defaults except for `adjustX`).
+ */
+export const DROPDOWN_BUILTIN_PLACEMENTS: AntdSelectProps['builtinPlacements'] =
+  {
+    bottomLeft: {
+      ...PLACEMENT_SHARED_CONFIG,
+      points: ['tl', 'bl'],
+      offset: [0, 4],
+    },
+    bottomRight: {
+      ...PLACEMENT_SHARED_CONFIG,
+      points: ['tr', 'br'],
+      offset: [0, 4],
+    },
+    topLeft: {
+      ...PLACEMENT_SHARED_CONFIG,
+      points: ['bl', 'tl'],
+      offset: [0, -4],
+    },
+    topRight: {
+      ...PLACEMENT_SHARED_CONFIG,
+      points: ['br', 'tr'],
+      offset: [0, -4],
+    },
+  };
 
 export const TOKEN_SEPARATORS = [',', '\r\n', '\n', '\t', ';'];
 

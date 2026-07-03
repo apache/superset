@@ -92,7 +92,7 @@ const StyledModal = styled(Modal)`
   }
 
   /* Ensure collapse sections have proper padding */
-  .ant-collapse-content-box {
+  .ant-collapse-body {
     padding: ${({ theme }) => theme.sizeUnit * 4}px;
   }
 `;

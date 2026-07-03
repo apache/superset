@@ -152,6 +152,7 @@ const AsyncSelect = forwardRef(
     ref: ForwardedRef<AsyncSelectRef>,
   ) => {
     const isSingleMode = mode === 'single';
+    const shouldShowSearch = allowNewOptions ? true : Boolean(showSearch);
     const [selectValue, setSelectValue] = useState(value);
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(loading);
@@ -777,7 +778,7 @@ const AsyncSelect = forwardRef(
           // surface, but the underlying input accepts it and we rely on that.
           onPaste={onPaste}
           onPopupScroll={handlePagination}
-          onSearch={showSearch ? handleOnSearch : undefined}
+          onSearch={shouldShowSearch ? handleOnSearch : undefined}
           onSelect={
             handleOnSelect as unknown as (
               value: unknown,
@@ -788,12 +789,12 @@ const AsyncSelect = forwardRef(
           options={fullSelectOptions}
           optionRender={option => <Space>{option.label || option.value}</Space>}
           placeholder={placeholder}
-          showSearch={allowNewOptions ? true : showSearch}
+          showSearch={shouldShowSearch}
           tokenSeparators={tokenSeparators}
           value={selectValue}
           suffixIcon={getSuffixIcon(
             isLoading,
-            Boolean(showSearch),
+            shouldShowSearch,
             isDropdownVisible,
           )}
           menuItemSelectedIcon={

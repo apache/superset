@@ -183,11 +183,11 @@ const Styles = styled.div`
   }
 
   /* Ensure collapse components can expand */
-  .ant-collapse-content {
+  .ant-collapse-panel {
     overflow: visible;
   }
 
-  .ant-collapse-content-box {
+  .ant-collapse-body {
     overflow: visible;
   }
 

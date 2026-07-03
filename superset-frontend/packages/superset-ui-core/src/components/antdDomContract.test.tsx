@@ -33,7 +33,7 @@
  */
 import { render } from '@superset-ui/core/spec';
 // eslint-disable-next-line no-restricted-imports
-import { Modal, Popover, Steps, Tabs, Tooltip } from 'antd';
+import { Collapse, Modal, Popover, Steps, Tabs, Tooltip } from 'antd';
 import { Select } from './Select';
 
 const antClasses = (root: ParentNode): string[] => {
@@ -58,6 +58,8 @@ test('Select single-value container class (Select/styles.tsx targets it)', () =>
     expect.arrayContaining([
       'ant-select-content',
       'ant-select-content-has-value',
+      // the search <input>; Select/styles.tsx and the E2E helpers target it
+      'ant-select-input',
     ]),
   );
 });
@@ -79,6 +81,8 @@ test('Select multiple overflow + placeholder classes (Select/styles.tsx, CronPic
     expect.arrayContaining([
       'ant-select-content-item',
       'ant-select-content-item-rest',
+      // the search-input overflow item; Select/styles.tsx oneLine targets it
+      'ant-select-content-item-suffix',
       // multiple-mode tags keep the v5 class name
       'ant-select-selection-item',
     ]),
@@ -96,7 +100,16 @@ test('Popover container class (GlobalStyles explore-popover override targets it)
       <span>anchor</span>
     </Popover>,
   );
-  expect(antClasses(document.body)).toContain('ant-popover-container');
+  const classes = antClasses(document.body);
+  expect(classes).toEqual(
+    expect.arrayContaining([
+      'ant-popover-container',
+      // body element (was .ant-popover-inner-content in v5); Cypress helpers
+      // and DropdownContainer/ag-grid overrides depend on these
+      'ant-popover-content',
+      'ant-popover-title',
+    ]),
+  );
 });
 
 test('Tooltip container class (ColumnElement/DateFunctionTooltip overrides target it)', () => {
@@ -133,6 +146,8 @@ test('Tabs content DOM chain (SQL Lab / Explore fullHeight overrides target it)'
       'ant-tabs-body-holder',
       'ant-tabs-body',
       'ant-tabs-content',
+      // active-panel modifier; DatasourceEditor's height override targets it
+      'ant-tabs-content-active',
     ]),
   );
   // The [role=tabpanel] must be `.ant-tabs-content` (was `.ant-tabs-tabpane`),
@@ -172,6 +187,33 @@ test('Select suffix (arrow) class (plugin-chart-table page-size Select targets i
   );
   // antd 6 renamed the Select arrow container `.ant-select-arrow` -> `.ant-select-suffix`.
   expect(antClasses(container)).toContain('ant-select-suffix');
+});
+
+test('Collapse panel/body classes (Collapse.tsx, VizTypeGallery, config modals)', () => {
+  // antd 6 renamed the Collapse content family: .ant-collapse-content ->
+  // .ant-collapse-panel and .ant-collapse-content-box -> .ant-collapse-body
+  // (with -active/-hidden moving to the panel). Several styled overrides and
+  // Cypress helpers walk these classes.
+  const { container } = render(
+    <Collapse
+      defaultActiveKey={['1']}
+      items={[
+        { key: '1', label: 'One', children: <div>open</div> },
+        { key: '2', label: 'Two', children: <div>closed</div> },
+      ]}
+    />,
+  );
+  const classes = antClasses(container);
+  expect(classes).toEqual(
+    expect.arrayContaining([
+      'ant-collapse-item',
+      'ant-collapse-panel',
+      'ant-collapse-panel-active',
+      'ant-collapse-body',
+    ]),
+  );
+  expect(classes).not.toContain('ant-collapse-content');
+  expect(classes).not.toContain('ant-collapse-content-box');
 });
 
 test('Modal body class (many *.styles.ts modal overrides target it)', () => {
