@@ -79,7 +79,7 @@ def apply_markers(pot_path: Path, registry: set[str]) -> int:
     lines = pot_path.read_text(encoding="utf-8").split("\n")
     targets = {f'msgid "{_escape(m)}"' for m in registry}
     out: list[str] = []
-    changed = 0
+    changed: int = 0
     for line in lines:
         if line in targets and (not out or out[-1] != _MARKER_LINE):
             # `#.` extracted comments precede `msgid`; these registry entries are
@@ -94,7 +94,7 @@ def apply_markers(pot_path: Path, registry: set[str]) -> int:
 
 def main() -> None:
     """Stamp the marker onto the target .pot from the registry."""
-    pot_path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_POT
+    pot_path: Path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_POT
     if not pot_path.exists():
         print(f"POT file not found: {pot_path}", file=sys.stderr)
         sys.exit(1)
@@ -109,7 +109,7 @@ def main() -> None:
             file=sys.stderr,
         )
         sys.exit(1)
-    registry = load_registry()
+    registry: set[str] = load_registry()
     if not registry:
         print(
             f"do-not-translate registry {REGISTRY} is empty; nothing to mark.",

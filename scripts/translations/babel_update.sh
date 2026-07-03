@@ -59,7 +59,9 @@ cat $LICENSE_TMP superset/translations/messages.pot > messages.pot.tmp \
 # a `#. MACHINE_READ-DO_NOT_TRANSLATE` extracted comment. Extracted comments
 # propagate from the .pot into every catalog on the `pybabel update` below, so
 # the do-not-translate status stays consistent across all languages.
-python scripts/translations/apply_do_not_translate.py superset/translations/messages.pot
+# Fail fast: without this guard the script would continue past a marker-stamping
+# failure and `pybabel update` would publish catalogs missing the markers.
+python scripts/translations/apply_do_not_translate.py superset/translations/messages.pot || exit 1
 
 # --no-fuzzy-matching: when a *new* source string is added, Babel's fuzzy
 # matcher otherwise guesses a "close" existing translation and marks it

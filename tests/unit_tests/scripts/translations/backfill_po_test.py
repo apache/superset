@@ -448,6 +448,19 @@ def test_is_do_not_translate_registry_msgid() -> None:
         assert backfill_po._is_do_not_translate(polib.POEntry(msgid=msgid, msgstr=""))
 
 
+def test_load_do_not_translate_strips_whitespace(tmp_path: Path) -> None:
+    """Registry lines are stripped before the blank/comment checks (matching
+    apply_do_not_translate.py), so trailing spaces or indented comments never
+    yield msgids that fail to match catalog entries."""
+    registry = tmp_path / "do-not-translate.txt"
+    registry.write_text(
+        "error_message \n  # indented comment\n\t\nbolt\n", encoding="utf-8"
+    )
+    assert backfill_po._load_do_not_translate(registry) == frozenset(
+        {"error_message", "bolt"}
+    )
+
+
 def test_is_do_not_translate_honors_extracted_marker() -> None:
     """The standardized `#. MACHINE_READ-DO_NOT_TRANSLATE` extracted comment
     (propagated from the .pot) is honored even for a msgid not in the registry."""

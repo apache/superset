@@ -164,13 +164,18 @@ DO_NOT_TRANSLATE_REGISTRY: Path = TRANSLATIONS_DIR / "do-not-translate.txt"
 
 
 def _load_do_not_translate(path: Path = DO_NOT_TRANSLATE_REGISTRY) -> frozenset[str]:
-    """Load the do-not-translate msgids (skips comment/blank lines)."""
+    """Load the do-not-translate msgids (skips comment/blank lines).
+
+    Lines are stripped before the blank/comment checks, matching the parsing in
+    apply_do_not_translate.py, so trailing whitespace or an indented comment
+    never yields a msgid that fails to match a catalog entry.
+    """
     if not path.exists():
         return frozenset()
     return frozenset(
-        line
+        stripped
         for line in path.read_text(encoding="utf-8").splitlines()
-        if line and not line.startswith("#")
+        if (stripped := line.strip()) and not stripped.startswith("#")
     )
 
 
