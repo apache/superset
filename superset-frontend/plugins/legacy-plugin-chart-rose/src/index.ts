@@ -38,7 +38,6 @@ const metadata = new ChartMetadata({
   ],
   name: t('Nightingale Rose Chart'),
   tags: [
-    t('Legacy'),
     t('Advanced-Analytics'),
     t('Circular'),
     t('Multi-Layers'),
@@ -48,13 +47,13 @@ const metadata = new ChartMetadata({
   ],
   thumbnail,
   thumbnailDark,
-  useLegacyApi: true,
 });
 
 export default class RoseChartPlugin extends ChartPlugin {
   constructor() {
     super({
       loadChart: () => import('./ReactRose'),
+      loadBuildQuery: () => import('./buildQuery'),
       metadata,
       transformProps,
       controlPanel,
