@@ -19,6 +19,7 @@
 import '@testing-library/jest-dom';
 import { render, screen, waitFor } from '@superset-ui/core/spec';
 import { QueryMode, TimeGranularity, SMART_DATE_ID } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import AgGridTableChart from '../src/AgGridTableChart';
 import transformProps from '../src/transformProps';
@@ -338,15 +339,24 @@ const rawSummaryProps = {
     columns: [{ column_name: 'name' }, { column_name: 'sum__num' }],
   },
   queriesData: [
-    testData.basic.queriesData[0],
+    {
+      ...testData.basic.queriesData[0],
+      colnames: [...testData.basic.queriesData[0].colnames, 'num_free'],
+      coltypes: [
+        ...testData.basic.queriesData[0].coltypes,
+        GenericDataType.Numeric,
+      ],
+      data: testData.basic.queriesData[0].data,
+    },
     { ...testData.basic.queriesData[0], data: [{ sum__num: 12345 }] },
   ],
 };
 
 test('transformProps derives numeric dataset columns as rawSummaryColumns in raw mode', () => {
   const transformed = transformProps(rawSummaryProps);
-  // 'sum__num' is the only numeric column of the selection that is backed by
-  // a dataset column; free-form/percent columns must not be summarized.
+  // 'sum__num' is the only numeric column of the selection that is both
+  // numeric and backed by a dataset column: 'num_free' is Numeric but not
+  // dataset-backed, and 'name' is dataset-backed but not numeric.
   expect(transformed.rawSummaryColumns).toEqual(['sum__num']);
 });
 
@@ -458,4 +468,65 @@ test('AgGridTableChart does not prime summary columns when the summary is off', 
     ([arg]) => arg?.ownState?.rawSummaryColumns,
   );
   expect(primedCalls).toHaveLength(0);
+});
+
+test('AgGridTableChart clears a stale summary prime when no numeric columns remain', async () => {
+  const props = transformProps({
+    ...rawSummaryProps,
+    datasource: {
+      ...testData.basic.datasource,
+      columns: [{ column_name: 'name' }],
+    },
+  });
+  props.serverPaginationData = { rawSummaryColumns: ['sum__num'] };
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(mockSetDataMask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownState: expect.objectContaining({ rawSummaryColumns: [] }),
+      }),
+    );
+  });
+});
+
+test('AgGridTableChart pins no summary row when totals are absent', async () => {
+  const props = transformProps({
+    ...rawSummaryProps,
+    datasource: {
+      ...testData.basic.datasource,
+      columns: [{ column_name: 'name' }],
+    },
+    queriesData: [rawSummaryProps.queriesData[0]],
+  });
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(document.querySelector('.ag-container')).toBeInTheDocument();
+  });
+
+  const pinnedRows = document.querySelectorAll('.ag-floating-bottom .ag-row');
+  expect(pinnedRows.length).toBe(0);
 });

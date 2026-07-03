@@ -138,7 +138,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   ]);
 
   useEffect(() => {
-    if (!isRawRecords || !showTotals || rawSummaryColumns.length === 0) {
+    if (!isRawRecords || !showTotals) {
       return;
     }
     const primed = (serverPaginationData?.rawSummaryColumns ?? []) as string[];
@@ -467,7 +467,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           isUsingTimeComparison ? renderTimeComparisonVisibility : () => null
         }
         cleanedTotals={totals || {}}
-        showTotals={showTotals}
+        showTotals={showTotals && totals !== undefined}
         width={width}
         onColumnStateChange={handleColumnStateChange}
         chartState={chartState}
