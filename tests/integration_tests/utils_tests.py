@@ -37,7 +37,7 @@ import tests.integration_tests.test_app  # noqa: F401
 from superset import db, security_manager
 from superset.constants import NO_TIME_RANGE
 from superset.exceptions import CertificateException, SupersetException  # noqa: F401
-from superset.models.core import Database, Log
+from superset.models.core import Database
 from superset.models.dashboard import Dashboard  # noqa: F401
 from superset.models.slice import Slice  # noqa: F401
 from superset.utils.core import (
@@ -63,7 +63,6 @@ from superset.utils import schema
 from superset.utils.hashing import hash_from_str
 from superset.views.utils import build_extra_filters, get_form_data  # noqa: F401
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,  # noqa: F401
     load_world_bank_data,  # noqa: F401
@@ -353,36 +352,6 @@ class TestUtils(SupersetTestCase):
             form_data, slc = get_form_data()
             assert form_data == {}
             assert slc is None
-
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_log_this(self) -> None:
-        # TODO: Add additional scenarios.
-        self.login(ADMIN_USERNAME)
-        slc = self.get_slice("% Rural")
-        dashboard_id = 1
-
-        assert slc.viz is not None
-        resp = self.get_json_resp(  # noqa: F841
-            f"/explore_json/{slc.datasource_type}/{slc.datasource_id}/"
-            + f'?form_data={{"slice_id": {slc.id}}}&dashboard_id={dashboard_id}',
-            {"form_data": json.dumps(slc.viz.form_data)},
-        )
-
-        record = (
-            db.session.query(Log)
-            .filter_by(action="explore_json", slice_id=slc.id)
-            .order_by(Log.dttm.desc())
-            .first()
-        )
-
-        assert record.dashboard_id == dashboard_id
-        assert json.loads(record.json)["dashboard_id"] == str(dashboard_id)
-        assert json.loads(record.json)["form_data"]["slice_id"] == slc.id
-
-        assert (
-            json.loads(record.json)["form_data"]["viz_type"]
-            == slc.viz.form_data["viz_type"]
-        )
 
     def test_schema_validate_json(self):
         valid = '{"a": 5, "b": [1, 5, ["g", "h"]]}'

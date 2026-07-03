@@ -115,7 +115,6 @@ if TYPE_CHECKING:
     from superset.models.slice import Slice
     from superset.models.sql_lab import Query
     from superset.semantic_layers.models import SemanticLayer, SemanticView
-    from superset.viz import BaseViz
 
 logger = logging.getLogger(__name__)
 
@@ -1257,7 +1256,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("can_read", "Chart"),
         ("can_dashboard", "Superset"),
         ("can_slice", "Superset"),
-        ("can_explore_json", "Superset"),
         ("can_dashboard_permalink", "Superset"),
         ("can_read", "DashboardPermalinkRestApi"),
         # Dashboard filter interactions
@@ -3637,7 +3635,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         query: Optional["Query | Explorable"] = None,
         query_context: Optional["QueryContext"] = None,
         table: Optional["Table"] = None,
-        viz: Optional["BaseViz"] = None,
         sql: Optional[str] = None,
         catalog: Optional[str] = None,
         schema: Optional[str] = None,
@@ -3652,7 +3649,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param query: The SQL Lab query
         :param query_context: The query context
         :param table: The Superset table (requires database)
-        :param viz: The visualization
         :param sql: The SQL string (requires database)
         :param catalog: Optional catalog name
         :param schema: Optional schema name
@@ -3882,15 +3878,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 )
             )
 
-        if datasource or query_context or viz:
+        if datasource or query_context:
             form_data = None
 
             if query_context:
                 datasource = query_context.datasource
                 form_data = query_context.form_data
-            elif viz:
-                datasource = viz.datasource
-                form_data = viz.form_data
 
             assert datasource
 

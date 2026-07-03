@@ -55,7 +55,7 @@ SENSITIVE_FIELD_PERMISSIONS = {
     "sql": "can_sql_json",  # SQL Lab permissions
     "extra": "can_this_form_get",  # Advanced form permissions
     "database_id": "can_this_form_get",  # Database access permissions
-    "query_context": "can_explore_json",  # Explore permissions
+    "query_context": "can_explore",  # Explore permissions
     "cache_key": "can_warm_up_cache",  # Cache management permissions
     "css": "can_this_form_get",  # Dashboard styling permissions
 }

@@ -39,7 +39,6 @@ from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import (
     has_access,
     has_access_api,
-    permission_name,
 )
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
@@ -51,7 +50,6 @@ from superset import (
     is_feature_enabled,
     security_manager,
 )
-from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
 from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
@@ -60,19 +58,15 @@ from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.commands.explore.form_data.get import GetFormDataCommand
 from superset.commands.explore.form_data.parameters import CommandParameters
 from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
-from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.daos.chart import ChartDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.exceptions import (
-    CacheLoadError,
-    SupersetErrorException,
     SupersetException,
     SupersetSecurityException,
 )
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
-from superset.extensions import async_query_manager, cache_manager
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -83,10 +77,8 @@ from superset.superset_typing import (
 )
 from superset.tasks.utils import get_current_user
 from superset.utils import core as utils, json
-from superset.utils.cache import etag_cache
 from superset.utils.core import (
     DatasourceType,
-    GenericDataType,
     get_user_id,
     ReservedUrlParameters,
 )
@@ -94,28 +86,19 @@ from superset.views.base import (
     api,
     BaseSupersetView,
     common_bootstrap_payload,
-    CsvResponse,
-    data_payload_response,
     deprecated,
-    generate_download_headers,
     json_error_response,
     json_success,
-    XlsxResponse,
 )
 from superset.views.error_handling import handle_api_exception
 from superset.views.utils import (
     bootstrap_user_data,
-    check_datasource_perms,
-    check_explore_cache_perms,
-    check_resource_permissions,
     get_datasource_info,
     get_explore_redirect_url,
     get_form_data,
-    get_viz,
     redirect_to_login,
     sanitize_datasource_data,
 )
-from superset.viz import BaseViz
 
 logger = logging.getLogger(__name__)
 
@@ -158,245 +141,6 @@ class Superset(BaseSupersetView):
         if ReservedUrlParameters.is_standalone_mode():
             endpoint_params[ReservedUrlParameters.STANDALONE.value] = "true"
         return redirect(url_for("ExploreView.root", **endpoint_params))
-
-    def get_query_string_response(self, viz_obj: BaseViz) -> FlaskResponse:
-        query = None
-        try:
-            if query_obj := viz_obj.query_obj():
-                query = viz_obj.datasource.get_query_str(query_obj)
-        except Exception as ex:  # pylint: disable=broad-except
-            err_msg = utils.error_msg_from_exception(ex)
-            logger.exception(err_msg)
-            return json_error_response(err_msg)
-
-        if not query:
-            query = __("Query cannot be loaded.")
-
-        return self.json_response(
-            {"query": query, "language": viz_obj.datasource.query_language}
-        )
-
-    def get_raw_results(self, viz_obj: BaseViz) -> FlaskResponse:
-        payload = viz_obj.get_df_payload()
-        if viz_obj.has_error(payload):
-            return json_error_response(payload=payload, status=400)
-        response = {
-            "data": payload["df"].to_dict("records")
-            if payload["df"] is not None
-            else [],
-            "colnames": payload.get("colnames"),
-            "coltypes": payload.get("coltypes"),
-            "rowcount": payload.get("rowcount"),
-            "sql_rowcount": payload.get("sql_rowcount"),
-        }
-        return self.json_response(response)
-
-    def get_samples(self, viz_obj: BaseViz) -> FlaskResponse:
-        return self.json_response(viz_obj.get_samples())
-
-    @staticmethod
-    def send_data_payload_response(viz_obj: BaseViz, payload: Any) -> FlaskResponse:
-        return data_payload_response(*viz_obj.payload_json_and_has_error(payload))
-
-    def generate_json(
-        self, viz_obj: BaseViz, response_type: str | None = None
-    ) -> FlaskResponse:
-        if response_type == ChartDataResultFormat.CSV:
-            return CsvResponse(
-                viz_obj.get_csv(), headers=generate_download_headers("csv")
-            )
-
-        if response_type == ChartDataResultFormat.XLSX:
-            return self._generate_xlsx(viz_obj)
-
-        if response_type == ChartDataResultType.QUERY:
-            return self.get_query_string_response(viz_obj)
-
-        if response_type == ChartDataResultType.RESULTS:
-            return self.get_raw_results(viz_obj)
-
-        if response_type == ChartDataResultType.SAMPLES:
-            return self.get_samples(viz_obj)
-
-        payload = viz_obj.get_payload()
-        return self.send_data_payload_response(viz_obj, payload)
-
-    @staticmethod
-    def _generate_xlsx(viz_obj: BaseViz) -> FlaskResponse:
-        import pandas as pd
-
-        from superset.utils.excel import apply_column_types, df_to_excel
-
-        payload = viz_obj.get_df_payload()
-        df = payload.get("df")
-        if df is None:
-            df = pd.DataFrame()
-            coltypes: list[GenericDataType] = []
-        else:
-            coltypes = payload.get("coltypes") or []
-            if coltypes:
-                df = apply_column_types(df, coltypes)
-        xlsx_data = df_to_excel(df, index=False)
-        return XlsxResponse(xlsx_data, headers=generate_download_headers("xlsx"))
-
-    @event_logger.log_this
-    @api
-    @has_access_api
-    @handle_api_exception
-    @permission_name("explore_json")
-    @expose("/explore_json/data/<cache_key>", methods=("GET",))
-    @check_resource_permissions(check_explore_cache_perms)
-    @deprecated(eol_version="5.0.0", new_target="/api/v1/chart/data/<cache_key>")
-    def explore_json_data(self, cache_key: str) -> FlaskResponse:
-        """Serves cached result data for async explore_json calls
-
-        `self.generate_json` receives this input and returns different
-        payloads based on the request args in the first block
-
-        TODO: form_data should not be loaded twice from cache
-          (also loaded in `check_explore_cache_perms`)
-        """
-        try:
-            cached = cache_manager.cache.get(cache_key)
-            if not cached:
-                raise CacheLoadError("Cached data not found")
-
-            form_data = cached.get("form_data")
-            response_type = cached.get("response_type")
-            # Set form_data in Flask Global as it is used as a fallback
-            # for async queries with jinja context
-            g.form_data = form_data
-            datasource_id, datasource_type = get_datasource_info(None, None, form_data)
-
-            viz_obj = get_viz(
-                datasource_type=cast(str, datasource_type),
-                datasource_id=datasource_id,
-                form_data=form_data,
-                force_cached=True,
-            )
-
-            return self.generate_json(viz_obj, response_type)
-        except SupersetErrorException:
-            # Let structured Superset errors (e.g. OAuth2RedirectError) propagate
-            # so the global Flask error handler serializes them.
-            raise
-        except SupersetException as ex:
-            return json_error_response(utils.error_msg_from_exception(ex), 400)
-
-    @api
-    @has_access_api
-    @handle_api_exception
-    @event_logger.log_this
-    @expose(
-        "/explore_json/<datasource_type>/<int:datasource_id>/",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )
-    @expose(
-        "/explore_json/",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )
-    @etag_cache()
-    @check_resource_permissions(check_datasource_perms)
-    @deprecated(eol_version="5.0.0", new_target="/api/v1/chart/data")
-    def explore_json(  # noqa: C901
-        self, datasource_type: str | None = None, datasource_id: int | None = None
-    ) -> FlaskResponse:
-        """Serves all request that GET or POST form_data
-
-        This endpoint evolved to be the entry point of many different
-        requests that GETs or POSTs a form_data.
-
-        `self.generate_json` receives this input and returns different
-        payloads based on the request args in the first block
-
-        TODO: break into one endpoint for each return shape"""
-
-        response_type = ChartDataResultFormat.JSON.value
-        responses: list[ChartDataResultFormat | ChartDataResultType] = list(
-            ChartDataResultFormat
-        )
-        responses.extend(list(ChartDataResultType))
-        for response_option in responses:
-            if request.args.get(response_option) == "true":
-                response_type = response_option
-                break
-
-        # Verify user has permission to export data files
-        if response_type in (
-            ChartDataResultFormat.CSV,
-            ChartDataResultFormat.XLSX,
-        ):
-            if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
-                can_export = security_manager.can_access("can_export_data", "Superset")
-            else:
-                can_export = security_manager.can_access("can_csv", "Superset")
-            if not can_export:
-                return json_error_response(
-                    _("You don't have the rights to export data"),
-                    status=403,
-                )
-
-        form_data = get_form_data()[0]
-        try:
-            datasource_id, datasource_type = get_datasource_info(
-                datasource_id, datasource_type, form_data
-            )
-            force = request.args.get("force") == "true"
-
-            # TODO: support CSV, SQL query and other non-JSON types
-            if (
-                is_feature_enabled("GLOBAL_ASYNC_QUERIES")
-                and response_type == ChartDataResultFormat.JSON
-            ):
-                # First, look for the chart query results in the cache.
-                with contextlib.suppress(CacheLoadError):
-                    viz_obj = get_viz(
-                        datasource_type=cast(str, datasource_type),
-                        datasource_id=datasource_id,
-                        form_data=form_data,
-                        force_cached=True,
-                        force=force,
-                    )
-                    payload = viz_obj.get_payload()
-                    # If the chart query has already been cached, return it immediately.
-                    if payload is not None:
-                        return self.send_data_payload_response(viz_obj, payload)
-                # Otherwise, kick off a background job to run the chart query.
-                # Clients will either poll or be notified of query completion,
-                # at which point they will call the /explore_json/data/<cache_key>
-                # endpoint to retrieve the results.
-                try:
-                    async_channel_id = (
-                        async_query_manager.parse_channel_id_from_request(request)
-                    )
-                    job_metadata = async_query_manager.submit_explore_json_job(
-                        async_channel_id, form_data, response_type, force, get_user_id()
-                    )
-                except AsyncQueryTokenException:
-                    return json_error_response("Not authorized", 401)
-
-                return json_success(json.dumps(job_metadata), status=202)
-
-            viz_obj = get_viz(
-                datasource_type=cast(str, datasource_type),
-                datasource_id=datasource_id,
-                form_data=form_data,
-                force=force,
-            )
-
-            return self.generate_json(viz_obj, response_type)
-        except SupersetErrorException:
-            # Let structured Superset errors (e.g. OAuth2RedirectError) propagate
-            # so the global Flask error handler serializes them.
-            raise
-        except SupersetException as ex:
-            return json_error_response(utils.error_msg_from_exception(ex), 400)
 
     @has_access
     @event_logger.log_this
@@ -726,7 +470,7 @@ class Superset(BaseSupersetView):
         Note for slices a force refresh occurs.
 
         In terms of the `extra_filters` these can be obtained from records in the JSON
-        encoded `logs.json` column associated with the `explore_json` action.
+        encoded `logs.json` column associated with the `explore` action.
         """
         slice_id = request.args.get("slice_id")
         dashboard_id = request.args.get("dashboard_id")
