@@ -468,7 +468,9 @@ const Header = (): JSX.Element => {
     if (positionJSONLength >= limit) {
       boundActionCreators.addDangerToast(
         t(
-          'Your dashboard is too large. Please reduce its size before saving it.',
+          'Your dashboard is too large to save: the serialized layout length is %s but the limit is %s. Reduce the dashboard size (for example, split it into multiple dashboards) or raise the SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting.',
+          positionJSONLength.toLocaleString(),
+          limit.toLocaleString(),
         ),
       );
     } else {
