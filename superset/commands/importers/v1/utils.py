@@ -410,11 +410,21 @@ def find_existing_for_import(model_cls: type[Any], uuid: str) -> Any | None:
     the matching UUID is returned, not hidden. Side-effect-free: returns
     the row as-is whether it's live or soft-deleted (or ``None`` if no
     row exists). The caller is responsible for deciding what to do with
-    a soft-deleted match — typically calling
-    :func:`clear_soft_deleted_for_import` to remove it before re-import,
-    but only after the caller has validated overwrite/permission decisions.
+    a soft-deleted match.
 
-    Splitting the lookup from the destructive cleanup keeps the
+    **Canonical pattern — restore in place.** The dashboard importer
+    (``superset/commands/dashboard/importers/v1/utils.py``) establishes
+    the reference handling: after validating permissions/ownership, clear
+    ``deleted_at`` on the existing row (``existing.restore()``) and apply
+    the config as an update, preserving the PK and all relationship rows
+    (junction tables, role grants, owners, tags) that a hard delete would
+    cascade away. Entity importers adopting soft delete should follow the
+    same pattern so re-import semantics stay uniform across entities.
+    :func:`clear_soft_deleted_for_import` (hard-delete-and-replace) is the
+    escape hatch for entities where restore-in-place is unworkable —
+    prefer restore-in-place unless there's a specific reason not to.
+
+    Splitting the lookup from any destructive cleanup keeps the
     destructive action explicit at the call site, so a future change
     that adds a permission check on the overwrite path doesn't
     silently leave a "duck around it via soft-delete" backdoor.

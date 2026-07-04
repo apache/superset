@@ -1507,6 +1507,53 @@ def test_get_results_with_multiple_time_offsets(
     pd.testing.assert_frame_equal(result.df, expected_df)
 
 
+def test_get_results_with_time_offset_and_no_dimensions(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Aggregate-only queries (no dimensions) with a time offset should not
+    crash. Regression for ``IndexError: list index out of range`` inside
+    pandas, which fired when ``main_df.merge(..., on=[])`` was attempted
+    because the empty ``columns`` list left no join keys.
+    """
+    # Aggregate without group-by produces a single row per query.
+    main_df = pd.DataFrame({"total_sales": [1000.0]})
+    offset_df = pd.DataFrame({"total_sales": [950.0]})
+
+    mock_main_result = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="SELECT SUM(amount)")],
+        results=pa.Table.from_pandas(main_df.copy()),
+    )
+    mock_offset_result = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="SELECT SUM(amount)")],
+        results=pa.Table.from_pandas(offset_df.copy()),
+    )
+    mock_datasource.implementation.get_table = mocker.Mock(
+        side_effect=[mock_main_result, mock_offset_result]
+    )
+
+    query_object = ValidatedQueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=[],
+        granularity="order_date",
+        time_offsets=["1 day ago"],
+    )
+
+    # No exception, and the offset value rides alongside the main one.
+    result = get_results(query_object)
+    expected_df = pd.DataFrame(
+        {
+            "total_sales": [1000.0],
+            "total_sales__1 day ago": [950.0],
+        }
+    )
+    pd.testing.assert_frame_equal(result.df, expected_df)
+
+
 def test_get_results_with_empty_offset_result(
     mock_datasource: MagicMock,
     mocker: MockerFixture,
@@ -2983,8 +3030,9 @@ def test_coerce_integer_rejects_non_integer_float() -> None:
 
 
 def test_coerce_integer_rejects_other_types() -> None:
+    raw: Any = [1]
     with pytest.raises(ValueError, match="Invalid integer value"):
-        _coerce_scalar_filter_value([1], _dim(pa.int64()))
+        _coerce_scalar_filter_value(raw, _dim(pa.int64()))
 
 
 @pytest.mark.parametrize(
@@ -3008,8 +3056,9 @@ def test_coerce_floating_invalid_string_raises() -> None:
 
 
 def test_coerce_floating_rejects_other_types() -> None:
+    raw: Any = [1.0]
     with pytest.raises(ValueError, match="Invalid numeric value"):
-        _coerce_scalar_filter_value([1.0], _dim(pa.float64()))
+        _coerce_scalar_filter_value(raw, _dim(pa.float64()))
 
 
 def test_coerce_date_from_datetime() -> None:

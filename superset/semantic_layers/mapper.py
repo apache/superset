@@ -165,6 +165,18 @@ def get_results(query_object: QueryObject) -> QueryResult:
             for metric in metric_names:
                 offset_col_name = TIME_COMPARISON.join([metric, time_offset])
                 main_df[offset_col_name] = np.nan
+        elif not join_keys:
+            # No dimensions to join on — this is an aggregate-only query
+            # (e.g. ``metrics: ["Orders Count"]`` with empty ``columns``),
+            # which produces a single-row DataFrame. ``pandas.merge`` on an
+            # empty ``on=`` list crashes with ``IndexError`` deep in the
+            # join-indexer code, so we lift the offset metric values from
+            # the first row of ``offset_df`` straight onto ``main_df``.
+            for metric in metric_names:
+                offset_col_name = TIME_COMPARISON.join([metric, time_offset])
+                main_df[offset_col_name] = (
+                    offset_df[metric].iloc[0] if metric in offset_df else np.nan
+                )
         else:
             # Rename metric columns with time offset suffix
             # Format: "{metric_name}__{time_offset}"
