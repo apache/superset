@@ -582,16 +582,18 @@ export default typedMemo(function DataTable<D extends object>({
             <Flex wrap align="center" gap="middle">
               {searchInput && (
                 <>
-                  {serverPagination && (
-                    <Space direction="vertical" size={4}>
-                      {t('Search by')}
-                      <SearchSelectDropdown
-                        searchOptions={searchOptions}
-                        value={serverPaginationData?.searchColumn || ''}
-                        onChange={onSearchColChange}
-                      />
-                    </Space>
-                  )}
+                  {serverPagination &&
+                    searchOptions &&
+                    searchOptions.length > 0 && (
+                      <Space direction="vertical" size={4}>
+                        {t('Search by')}
+                        <SearchSelectDropdown
+                          searchOptions={searchOptions}
+                          value={serverPaginationData?.searchColumn || ''}
+                          onChange={onSearchColChange}
+                        />
+                      </Space>
+                    )}
                   <GlobalFilter<D>
                     searchInput={
                       typeof searchInput === 'boolean' ? undefined : searchInput

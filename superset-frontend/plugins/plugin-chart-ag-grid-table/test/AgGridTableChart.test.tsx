@@ -195,6 +195,72 @@ test('AgGridTableChart renders with search enabled', async () => {
   expect(searchInput).toHaveAttribute('id', 'filter-text-box');
 });
 
+test('AgGridTableChart hides Search by dropdown if includeSearch is false', async () => {
+  const props = transformProps({
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      server_pagination: true,
+      include_search: false,
+    },
+  });
+  props.serverPagination = true;
+  props.includeSearch = false;
+  props.searchOptions = [{ label: 'Name', value: 'name' }];
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    const grid = document.querySelector('.ag-container');
+    expect(grid).toBeInTheDocument();
+  });
+
+  expect(screen.queryByText(/Search by/i)).not.toBeInTheDocument();
+});
+
+test('AgGridTableChart renders Search by dropdown if includeSearch is true and there are search options', async () => {
+  const props = transformProps({
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      server_pagination: true,
+      include_search: true,
+    },
+  });
+  props.serverPagination = true;
+  props.includeSearch = true;
+  props.searchOptions = [{ label: 'Name', value: 'name' }];
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    const grid = document.querySelector('.ag-container');
+    expect(grid).toBeInTheDocument();
+  });
+
+  expect(screen.getByText(/Search by/i)).toBeInTheDocument();
+});
+
 test('AgGridTableChart renders with totals', async () => {
   const props = transformProps({
     ...testData.basic,
