@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AppSection } from '@superset-ui/core';
+import { AppSection, FilterState } from '@superset-ui/core';
 import {
   render,
   screen,
@@ -26,6 +26,11 @@ import {
 import { NULL_STRING } from 'src/utils/common';
 import SelectFilterPlugin from './SelectFilterPlugin';
 import transformProps from './transformProps';
+import {
+  PluginFilterSelectChartProps,
+  PluginFilterSelectProps,
+  PluginFilterSelectQueryFormData,
+} from './types';
 
 jest.useFakeTimers();
 
@@ -73,6 +78,27 @@ const selectMultipleProps = {
   isRefreshing: false,
   appSection: AppSection.Dashboard,
 };
+
+type SelectTestOverrides = {
+  formData?: Partial<PluginFilterSelectQueryFormData>;
+  filterState?: FilterState;
+  setDataMask?: jest.Mock;
+};
+
+const buildSelectFilterProps = ({
+  formData,
+  filterState,
+  setDataMask = jest.fn(),
+}: SelectTestOverrides = {}) =>
+  ({
+    ...transformProps({
+      ...selectMultipleProps,
+      formData: { ...selectMultipleProps.formData, ...formData },
+      ...(filterState && { filterState }),
+    } as unknown as PluginFilterSelectChartProps),
+    setDataMask,
+    showOverflow: false,
+  }) as unknown as PluginFilterSelectProps;
 
 describe('SelectFilterPlugin', () => {
   const setDataMask = jest.fn();
@@ -679,6 +705,18 @@ describe('SelectFilterPlugin', () => {
     expect(options[1]).toHaveTextContent('alpha');
     expect(options[2]).toHaveTextContent('beta');
   });
+
+  test('shows create option for multi-select creatable filter when typing', async () => {
+    getWrapper({ creatable: true, multiSelect: true });
+    userEvent.type(screen.getByRole('combobox'), 'brand-new');
+    expect(await screen.findByTitle('brand-new')).toBeInTheDocument();
+  });
+
+  test('does not show create option when searchAllOptions is true', () => {
+    getWrapper({ creatable: true, searchAllOptions: true });
+    userEvent.type(screen.getByRole('combobox'), 'brand-new');
+    expect(screen.queryByTitle('brand-new')).not.toBeInTheDocument();
+  });
 });
 
 test('Select boolean FALSE value in single-select mode', async () => {
@@ -1247,4 +1285,47 @@ test('resets dependent filter to first item when value does not exist in data', 
       }),
     );
   });
+});
+
+test('renders created filterState values not in dataset as selectable chips', async () => {
+  const props = buildSelectFilterProps({
+    formData: { creatable: true },
+    filterState: { value: ['custom-created-value'] },
+    setDataMask: jest.fn(),
+  });
+  render(<SelectFilterPlugin {...props} />, {
+    useRedux: true,
+    initialState: {
+      nativeFilters: { filters: { 'test-filter': { name: 'Test Filter' } } },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {},
+          filterState: { value: ['custom-created-value'] },
+        },
+      },
+    },
+  });
+  expect(await screen.findByTitle('custom-created-value')).toBeInTheDocument();
+});
+
+test('does not duplicate chip when filterState value is already in the dataset', async () => {
+  const props = buildSelectFilterProps({
+    formData: { creatable: true },
+    filterState: { value: ['boy'] },
+    setDataMask: jest.fn(),
+  });
+  render(<SelectFilterPlugin {...props} />, {
+    useRedux: true,
+    initialState: {
+      nativeFilters: { filters: { 'test-filter': { name: 'Test Filter' } } },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {},
+          filterState: { value: ['boy'] },
+        },
+      },
+    },
+  });
+  await screen.findByTitle('boy');
+  expect(screen.queryAllByTitle('boy')).toHaveLength(1);
 });

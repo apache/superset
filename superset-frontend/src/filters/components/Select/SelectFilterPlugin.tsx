@@ -293,24 +293,36 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [filterState.validateMessage, filterState.validateStatus]);
 
   const uniqueOptions = useMemo(() => {
-    const allOptions = new Set([...data.map(el => el[col])]);
-    return [...allOptions].map((value: string) => ({
+    const allOptions = new Set(data.map(el => el[col]));
+    const baseOptions = [...allOptions].map((value: string) => ({
       label: labelFormatter(value, datatype),
       value,
       isNewOption: false,
     }));
-  }, [data, datatype, col, labelFormatter]);
+    if (creatable !== false && filterState.value) {
+      ensureIsArray(filterState.value)
+        .filter(v => v != null && !hasOption(v, baseOptions, true))
+        .forEach(v => {
+          baseOptions.push({ label: String(v), value: v, isNewOption: true });
+        });
+    }
+    return baseOptions;
+  }, [data, datatype, col, labelFormatter, creatable, filterState.value]);
 
   const options = useMemo(() => {
-    if (search && !multiSelect && !hasOption(search, uniqueOptions, true)) {
-      uniqueOptions.unshift({
-        label: search,
-        value: search,
-        isNewOption: true,
-      });
+    if (
+      search &&
+      !searchAllOptions &&
+      creatable !== false &&
+      !hasOption(search, uniqueOptions, true)
+    ) {
+      return [
+        { label: search, value: search, isNewOption: true },
+        ...uniqueOptions,
+      ];
     }
     return uniqueOptions;
-  }, [multiSelect, search, uniqueOptions]);
+  }, [search, uniqueOptions, creatable, searchAllOptions]);
 
   const sortComparator = useCallback(
     (a: LabeledValue, b: LabeledValue) => {

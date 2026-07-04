@@ -378,6 +378,23 @@ test('removes duplicated values', async () => {
   expect(values[3]).toHaveTextContent('d');
 });
 
+test('trims whitespace from pasted comma-separated values', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'a, b,  c , d',
+    },
+  });
+  fireEvent(input, paste);
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(4);
+  expect(values[0]).toHaveTextContent('a');
+  expect(values[1]).toHaveTextContent('b');
+  expect(values[2]).toHaveTextContent('c');
+  expect(values[3]).toHaveTextContent('d');
+});
+
 test('renders a custom label', async () => {
   const options = [
     { value: 'John', label: <h1>John</h1> },
