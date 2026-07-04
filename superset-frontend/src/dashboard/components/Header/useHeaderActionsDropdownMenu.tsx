@@ -37,6 +37,7 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
 import { usePermissions } from 'src/hooks/usePermissions';
+import { LineageModal } from 'src/features/lineage';
 
 export const useHeaderActionsMenu = ({
   customCss,
@@ -232,6 +233,23 @@ export const useHeaderActionsMenu = ({
           ? t('Exit fullscreen')
           : t('Enter fullscreen'),
       });
+    }
+
+    // View lineage (available in both view and edit mode; lineage is
+    // read-only information about the dashboard's upstream assets)
+    if (dashboardId) {
+      menuItems.push(
+        createModalMenuItem(
+          MenuKeys.ViewLineage,
+          <LineageModal
+            entityType="dashboard"
+            entityId={dashboardId}
+            triggerNode={
+              <div data-test="view-lineage-menu-item">{t('View lineage')}</div>
+            }
+          />,
+        ),
+      );
     }
 
     // Edit properties
