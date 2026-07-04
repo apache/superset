@@ -1147,6 +1147,46 @@ describe('async actions', () => {
       defaultStore.dispatch(api.util.resetApiState());
     });
 
+    test('removeQuery removes duplicate cache entries for the deleted query', async () => {
+      isFeatureEnabledMock.mockReturnValue(false);
+      const editorId = 'editor1';
+      const queryToRemove = {
+        ...query,
+        id: 'queryToRemove',
+        sqlEditorId: editorId,
+      };
+
+      // The infinite-scroll merge can append the same query twice when
+      // offsets shift between page fetches; deletion must drop every copy.
+      await defaultStore.dispatch(
+        queryHistoryApi.util.upsertQueryData('editorQueries', { editorId }, {
+          count: 3,
+          ids: [],
+          result: [
+            { id: 'queryToRemove' },
+            { id: 'keep' },
+            { id: 'queryToRemove' },
+          ],
+        } as unknown as QueryResult),
+      );
+
+      await defaultStore.dispatch(
+        actions.removeQuery(queryToRemove) as unknown as AnyAction,
+      );
+
+      const { data } = queryHistoryApi.endpoints.editorQueries.select({
+        editorId,
+      })(defaultStore.getState());
+
+      expect(data).toEqual({
+        count: 2,
+        ids: [],
+        result: [{ id: 'keep' }],
+      });
+
+      defaultStore.dispatch(api.util.resetApiState());
+    });
+
     // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('queryEditorSetDb', () => {
       test('updates the tab state in the backend', () => {

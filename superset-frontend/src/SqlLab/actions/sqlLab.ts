@@ -1005,9 +1005,13 @@ export function removeQuery(query: Query): SqlLabThunkAction<Promise<unknown>> {
             'editorQueries',
             { editorId: queryEditorId },
             draft => {
-              const index = draft.result.findIndex(({ id }) => id === query.id);
-              if (index !== -1) {
-                draft.result.splice(index, 1);
+              // The infinite-scroll merge can leave duplicate entries for the
+              // same id (offset shifts between page fetches), so drop them all.
+              const remaining = draft.result.filter(
+                ({ id }) => id !== query.id,
+              );
+              if (remaining.length !== draft.result.length) {
+                draft.result = remaining;
                 draft.count = Math.max(0, draft.count - 1);
               }
             },
