@@ -71,7 +71,7 @@ def _get_file_handler_class() -> Any:  # noqa: C901
                 # Trailing debounce: schedule a single reload after a quiet
                 # window so simultaneous webpack writes coalesce into one
                 # restart that fires *after* the build settles.
-                self._debounce_seconds = 1.0
+                self._debounce_seconds: float = 1.0
                 self._pending_timer: threading.Timer | None = None
 
             # ── helpers ──────────────────────────────────────────────────────
@@ -157,28 +157,35 @@ def _get_file_handler_class() -> Any:  # noqa: C901
                 ):
                     return
 
-                # For atomic-build move workflows (e.g., webpack writing to
-                # tmp + rename into dist) the meaningful path is dest_path.
-                # For Create/Modify events watchdog only sets src_path.
+                # Moves into/out of `dist` are explicit signals — trigger
+                # regardless of content match (the source may already be gone
+                # or the destination may not have a meaningful hash yet).
+                # Atomic-build workflows rename tmp -> dist (dest in dist),
+                # while removing an artifact renames dist -> elsewhere (src in
+                # dist); either side touching `dist` is a real signal.
                 if isinstance(event, FileMovedEvent):
-                    target = getattr(event, "dest_path", None) or getattr(
-                        event, "src_path", None
+                    dest = getattr(event, "dest_path", None)
+                    src = getattr(event, "src_path", None)
+                    dist_side = next(
+                        (
+                            p
+                            for p in (dest, src)
+                            if isinstance(p, str) and "dist" in Path(p).parts
+                        ),
+                        None,
                     )
-                else:
-                    target = getattr(event, "src_path", None)
+                    if dist_side is None:
+                        return
+                    self._schedule_reload(dist_side)
+                    return
 
+                # For Create/Modify events watchdog only sets src_path.
+                target = getattr(event, "src_path", None)
                 if not isinstance(target, str):
                     return
 
                 # Only care about paths inside a `dist` directory.
                 if "dist" not in Path(target).parts:
-                    return
-
-                # Moves into/out of `dist` are explicit signals — trigger
-                # regardless of content match (the source may already be gone
-                # or the destination may not have a meaningful hash yet).
-                if isinstance(event, FileMovedEvent):
-                    self._schedule_reload(target)
                     return
 
                 # For Create/Modify, verify the content actually changed to

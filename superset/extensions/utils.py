@@ -40,12 +40,12 @@ logger = logging.getLogger(__name__)
 # conservatively excluding parent traversal segments so a crafted entry name
 # cannot escape the bundle directory (defense in depth; check_is_safe_zip runs
 # first).
-FRONTEND_REGEX = re.compile(r"^frontend/dist/(?!.*\.\.)(.+)$")
+FRONTEND_REGEX: re.Pattern[str] = re.compile(r"^frontend/dist/(?!.*\.\.)(.+)$")
 # Reject any entry whose path contains "..", conservatively excluding parent
 # traversal segments along with the (in practice nonexistent) case of a module
 # path embedding consecutive dots, so a crafted entry name cannot produce a
 # traversal-style module path (defense in depth; check_is_safe_zip runs first).
-BACKEND_REGEX = re.compile(r"^backend/src/(?!.*\.\.)(.+)$")
+BACKEND_REGEX: re.Pattern[str] = re.compile(r"^backend/src/(?!.*\.\.)(.+)$")
 
 
 class InMemoryLoader(importlib.abc.Loader):
