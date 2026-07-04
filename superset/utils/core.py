@@ -417,7 +417,7 @@ def sanitize_cookie_token(token: str | None) -> str | None:
     return None
 
 
-def cast_to_num(value: float | int | str | None) -> float | int | None:
+def cast_to_num(value: float | int | str) -> float | int | None:
     """Casts a value to an int/float
 
     >>> cast_to_num('1 ')
@@ -441,8 +441,6 @@ def cast_to_num(value: float | int | str | None) -> float | int | None:
     :returns: value cast to `int` if value is all digits, `float` if `value` is
               decimal value and `None`` if it can't be converted
     """
-    if value is None:
-        return None
     if isinstance(value, (int, float)):
         return value
     if value.isdigit():
