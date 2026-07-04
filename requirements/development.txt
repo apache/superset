@@ -443,6 +443,10 @@ importlib-resources==6.5.2
     # via prophet
 iniconfig==2.0.0
     # via pytest
+invoke==3.0.3
+    # via
+    #   -c requirements/base-constraint.txt
+    #   paramiko
 isodate==0.7.2
     # via
     #   -c requirements/base-constraint.txt
@@ -652,7 +656,7 @@ pandas-gbq==0.19.1
     # via apache-superset
 parameterized==0.9.0
     # via apache-superset
-paramiko==3.5.1
+paramiko==5.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
