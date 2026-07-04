@@ -33,7 +33,7 @@
  */
 import { render } from '@superset-ui/core/spec';
 // eslint-disable-next-line no-restricted-imports
-import { Collapse, Modal, Popover, Steps, Tabs, Tooltip } from 'antd';
+import { Collapse, Modal, Popover, Steps, Tabs, Tag, Tooltip } from 'antd';
 import { Select } from './Select';
 
 const antClasses = (root: ParentNode): string[] => {
@@ -223,4 +223,18 @@ test('Modal body class (many *.styles.ts modal overrides target it)', () => {
     </Modal>,
   );
   expect(antClasses(document.body)).toContain('ant-modal-body');
+});
+
+test('Tag keeps its v5 trailing margin (GlobalStyles parity rule)', () => {
+  // antd 6 removed the Tag's default margin-inline-end: 8px, expecting
+  // parents to space tags via flex/Space gaps. App layouts rely on the v5
+  // default (e.g. the dashboard header's Published tag sat flush against
+  // the metadata bar without it), so GlobalStyles restores it. The spec
+  // renderer mounts SupersetThemeProvider, which renders GlobalStyles, so
+  // the computed style asserts the whole chain.
+  const { getByText } = render(<Tag>spacing</Tag>);
+  const tag = getByText('spacing').closest('.ant-tag') as HTMLElement;
+  expect(getComputedStyle(tag).getPropertyValue('margin-inline-end')).toBe(
+    '8px',
+  );
 });

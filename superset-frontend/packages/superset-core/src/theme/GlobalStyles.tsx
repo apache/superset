@@ -105,6 +105,16 @@ export const GlobalStyles = () => {
           cursor: pointer;
         }
 
+        /* antd 6 removed the Tag's default trailing margin (v5 shipped */
+        /* margin-inline-end: 8px on every tag) in favor of parents spacing */
+        /* tags via flex/Space gaps. The app's layouts predate that and rely */
+        /* on the v5 default (e.g. the dashboard header's Published tag), */
+        /* so restore it for visual parity. Remove once Tag-adjacent layouts */
+        /* declare their own gaps. */
+        .ant-tag {
+          margin-inline-end: ${theme.marginXS}px;
+        }
+
         /* Override geostyler CSS that hides AntD ColorPicker alpha input */
         /* See: https://github.com/apache/superset/issues/34721 */
         .ant-color-picker .ant-color-picker-alpha-input {
