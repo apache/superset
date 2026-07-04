@@ -60,6 +60,7 @@ function createTestQueryData(
     queried_dttm: null,
     data,
     colnames: [],
+    collabels: [],
     coltypes: [],
     error: null,
     is_cached: false,

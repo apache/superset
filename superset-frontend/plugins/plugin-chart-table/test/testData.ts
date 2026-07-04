@@ -78,6 +78,7 @@ const basicQueryResult: ChartDataResponseResult = {
   queried_dttm: null,
   data: [],
   colnames: [],
+  collabels: [],
   coltypes: [],
   error: null,
   is_cached: false,
@@ -99,6 +100,7 @@ const basic: TableChartProps = {
     {
       ...basicQueryResult,
       colnames: ['__timestamp', 'name', 'sum__num', 'abc.com'],
+      collabels: ['Timestamp', 'Name', 'Sum of Num', 'ABC'],
       coltypes: [
         GenericDataType.Temporal,
         GenericDataType.String,
@@ -168,6 +170,7 @@ const advanced: TableChartProps = {
     {
       ...basicQueryResult,
       colnames: ['name', 'sum__num', '%pct_nice'],
+      collabels: ['Name', 'Sum of Num', '% Pct Nice'],
       coltypes: [
         GenericDataType.String,
         GenericDataType.Numeric,
@@ -221,6 +224,7 @@ const comparison: TableChartProps = {
         },
       ],
       colnames: ['metric_1', 'metric_2', 'percent_metric_1', 'date'],
+      collabels: ['Metric 1', 'Metric 2', 'Percent Metric 1', 'Date'],
       coltypes: [
         GenericDataType.Numeric,
         GenericDataType.Numeric,
@@ -431,6 +435,7 @@ const bigint = {
     {
       ...basicQueryResult,
       colnames: ['name', 'id'],
+      collabels: ['Name', 'ID'],
       coltypes: [GenericDataType.String, GenericDataType.Numeric],
       data: [
         {
@@ -452,6 +457,7 @@ const nameAndBoolean: TableChartProps = {
     {
       ...basicQueryResult,
       colnames: ['name', 'is_adult'],
+      collabels: ['Name', 'Is Adult'],
       coltypes: [GenericDataType.String, GenericDataType.Boolean],
       data: [
         {

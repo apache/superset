@@ -113,7 +113,7 @@ export const FilterInput = ({
         inputRef.current.focus();
       }
     }
-  }, []);
+  }, [shouldFocus]);
 
   const theme = useTheme();
   const debouncedChangeHandler = debounce(
