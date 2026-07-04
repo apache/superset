@@ -278,7 +278,9 @@ def extra_validator(value: str) -> str:
                     ]
                 )
 
-        metadata_cache_timeout = extra_.get("metadata_cache_timeout") or {}
+        metadata_cache_timeout = extra_.get("metadata_cache_timeout")
+        if metadata_cache_timeout is None:
+            metadata_cache_timeout = {}
         if not isinstance(metadata_cache_timeout, dict):
             raise ValidationError(
                 [
@@ -288,7 +290,11 @@ def extra_validator(value: str) -> str:
                     )
                 ]
             )
-        for key in ("schema_cache_timeout", "table_cache_timeout"):
+        for key in (
+            "schema_cache_timeout",
+            "table_cache_timeout",
+            "catalog_cache_timeout",
+        ):
             timeout = metadata_cache_timeout.get(key)
             if timeout is not None and (not isinstance(timeout, int) or timeout < 0):
                 raise ValidationError(
