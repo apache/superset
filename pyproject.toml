@@ -88,7 +88,7 @@ dependencies = [
     "bottleneck", # recommended performance dependency for pandas, see https://pandas.pydata.org/docs/getting_started/install.html#performance-dependencies-recommended
     # --------------------------
     "parsedatetime",
-    "paramiko>=3.4.0, <4.0", # 4.0 removed DSSKey, still referenced by sshtunnel
+    "paramiko>=5.0.0, <6.0", # 4.0 removed DSSKey, still referenced by sshtunnel
     "pgsanity",
     "Pillow>=11.0.0, <13",
     "polyline>=2.0.0, <3.0",
