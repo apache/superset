@@ -1,0 +1,48 @@
+# Lightweight verification for fleet PRs — copy into the superset fork at
+# .github/workflows/devin-verify.yml
+#
+# Deliberately dependency-free (no pip/npm install): checks the repo's two
+# machine-checkable conventions on the files a PR actually touches, so every
+# fleet PR carries a fast, visible green check. Deeper verification (mypy,
+# pytest, tsc) is run by Devin inside the session before the PR is opened,
+# per the acceptance criteria embedded in each issue.
+name: devin-verify
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  conventions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check changed files against repo conventions
+        run: |
+          set -u
+          fail=0
+          files=$(git diff --name-only "origin/${GITHUB_BASE_REF}...HEAD")
+          echo "changed files:"; echo "$files"
+          for f in $files; do
+            [ -f "$f" ] || continue
+            case "$f" in
+              *.py)
+                if grep -n "datetime\.utcnow()" "$f"; then
+                  echo "::error file=$f::deprecated datetime.utcnow() present"
+                  fail=1
+                fi
+                ;;
+              superset-frontend/src/*.ts|superset-frontend/src/*.tsx)
+                if grep -n "from 'antd'" "$f"; then
+                  echo "::error file=$f::direct antd import (use @superset-ui/core wrappers)"
+                  fail=1
+                fi
+                ;;
+            esac
+          done
+          exit $fail
