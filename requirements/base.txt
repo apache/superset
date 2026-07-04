@@ -169,7 +169,7 @@ greenlet==3.5.1
     #   apache-superset (pyproject.toml)
     #   shillelagh
     #   sqlalchemy
-gunicorn==25.3.0
+gunicorn==26.0.0
     # via apache-superset (pyproject.toml)
 h11==0.16.0
     # via wsproto
