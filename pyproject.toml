@@ -178,7 +178,7 @@ kylin = ["kylinpy>=2.8.1, <2.9"]
 mssql = ["pymssql>=2.3.13, <3"]
 # motherduck is an alias for duckdb - MotherDuck works via the duckdb driver
 motherduck = ["apache-superset[duckdb]"]
-mysql = ["mysqlclient>=2.1.0, <3"]
+mysql = ["mysqlclient>=2.2.8, <3"]
 ocient = [
     "sqlalchemy-ocient>=1.0.0",
     "pyocient>=1.0.15, <4",
