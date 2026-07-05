@@ -22,6 +22,7 @@ import { connect } from 'react-redux';
 import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { t } from '@apache-superset/core/translation';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import { styled, css } from '@apache-superset/core/theme';
 import { Logger } from 'src/logger/LogUtils';
 import { Dropdown, EmptyState, Tooltip } from '@superset-ui/core/components';
@@ -147,7 +148,12 @@ function NewTabButton({ onAddSqlEditor }: { onAddSqlEditor: () => void }) {
             icon: <Icon iconSize="m" />,
             onClick: () => {
               setOpen(false);
-              commands.executeCommand(item.command);
+              commands.executeCommand(item.command).catch(error => {
+                logging.error(
+                  `Failed to execute command ${item.command}`,
+                  error,
+                );
+              });
             },
           } as MenuItemType,
         ];
