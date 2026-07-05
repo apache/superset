@@ -269,9 +269,11 @@ msgstr ""
 " una programación con un intervalo mínimo de %(minimum_interval)d minutos"
 " por ejecución."
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid "%(rows)d rows returned"
-msgstr "líneas obtenidas"
+msgstr "%(rows)d filas devueltas"
 
 #, fuzzy, python-format
 msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
@@ -2834,8 +2836,8 @@ msgid ""
 " not applying, ask your Superset administrator to adjust the HTML "
 "sanitization configuration."
 msgstr ""
-"Los estilos CSS pueden ser eliminados por la sanitización HTML del lado del"
-" servidor. Si los estilos no se aplican, solicite al administrador de "
+"Los estilos CSS pueden ser eliminados por la sanitización HTML del lado "
+"del servidor. Si los estilos no se aplican, solicite al administrador de "
 "Superset que ajuste la configuración de sanitización HTML."
 
 msgid "CSS template"
@@ -5243,7 +5245,6 @@ msgid ""
 "Defines the value that determines the boundary between different regions "
 "or levels in the data "
 msgstr ""
-"\n"
 "Define el valor que determina el límite entre diferentes regiones o "
 "niveles en los datos "
 
@@ -19264,10 +19265,8 @@ msgstr "en ejecución"
 msgid "save"
 msgstr "guardar"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "schema1,schema2"
-msgstr "schema1,schema2"
+msgstr ""
 
 msgid "seconds"
 msgstr "segundos"
@@ -19324,10 +19323,8 @@ msgstr "correcto"
 msgid "sum"
 msgstr "suma"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "superset.example.com"
-msgstr "superset.example.com"
+msgstr ""
 
 msgid "syntax."
 msgstr "sintaxis"
@@ -19444,10 +19441,8 @@ msgstr "y: los valores se normalizan dentro de cada fila"
 msgid "year"
 msgstr "año"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "your-project-1234-a1"
-msgstr "your-project-1234-a1"
+msgstr ""
 
 msgid "zoom area"
 msgstr "área del «zoom»"

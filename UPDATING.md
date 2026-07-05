@@ -79,6 +79,19 @@ When the MCP service has JWT auth enabled (`MCP_AUTH_ENABLED = True`), an audien
 
 The git SHA and build number surfaced in the "About" section, the bootstrap payload, and the public `/version` endpoint are now only included for admin users by default; the release version string is still shown to everyone. To expose the build details to all users (the previous behavior), set the `SUPERSET_EXPOSE_BUILD_DETAILS` environment variable (or `EXPOSE_BUILD_DETAILS_TO_USERS = True` in `superset_config.py`).
 
+### Helm chart adopts Kubernetes recommended labels (breaking upgrade)
+
+The Helm chart now labels and selects workloads using the [Kubernetes recommended labels](https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/) (`app.kubernetes.io/*`) instead of the legacy `app`/`release` labels. Because a Deployment's `spec.selector.matchLabels` is immutable, `helm upgrade` against an existing release will fail with a `field is immutable` error.
+
+To upgrade, delete the affected workloads (which selector labels changed) before upgrading, then run the upgrade so they are recreated with the new labels:
+
+```bash
+kubectl delete deployment,statefulset -l release=<release-name> -n <namespace>
+helm upgrade <release-name> superset/superset
+```
+
+Alternatively, perform a fresh install. This is a one-time migration; subsequent upgrades are unaffected.
+
 ### Pivot table First/Last aggregations follow data order
 
 The pivot table chart's `First` and `Last` aggregations now return the first and last value in data (query result) order, instead of effectively returning the minimum and maximum. Existing pivot tables that use these aggregations for totals/subtotals may show different values after upgrading. For deterministic results, ensure the underlying query has a stable sort order.
@@ -288,6 +301,8 @@ SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = "aes"
 Schedule the cutover in a quiet window. Runtime reads use only the single configured engine, so in a multi-worker deployment there is an unavoidable brief decrypt-outage between the migration commit and the last worker restarting with the new config — each migrator run is transactional, but the fleet-wide cutover is not zero-downtime.
 
 The migration is transactional (all-or-nothing) and idempotent — it can be safely re-run or resumed. Note that AES-GCM, unlike AES-CBC, does not support querying directly over encrypted columns; audit any code that filters on an encrypted column before switching. See the SIP at `docs/sip/authenticated-encryption-at-rest.md` for details.
+
+- [39914](https://github.com/apache/superset/pull/39914) `ALERT_REPORT_SLACK_V2` now defaults to `True` and the legacy Slack v1 integration (`Slack` recipient type, `files.upload` API) is deprecated for removal in the next major. Slack blocked new apps from `files.upload` in May 2024 and fully retired the method for all apps on November 12, 2025; because the v1 path sends files through `files.upload`, v1 file-bearing sends now fail at the API level — only text-only `chat_postMessage` still works via the legacy path. Grant your Slack bot the `channels:read` and `groups:read` scopes so existing `Slack` recipients can be auto-upgraded to `SlackV2` on next send. Operators who explicitly override the flag to `False`, or whose Slack bot is missing those scopes, will see deprecation warnings while text-only sends continue through the legacy path.
 
 ### Soft delete and restore for dashboards
 

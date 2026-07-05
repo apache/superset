@@ -321,6 +321,9 @@ export function Menu({
     };
   };
   const renderBrand = () => {
+    if (brand.hide_logo) {
+      return null;
+    }
     let link;
     if (theme.brandLogoUrl) {
       const brandHref = ensureAppRoot(theme.brandLogoHref);
@@ -398,15 +401,17 @@ export function Menu({
     >
       <StyledRow>
         <StyledCol md={16} xs={24}>
-          <Tooltip
-            id="brand-tooltip"
-            placement="bottomLeft"
-            title={brand.tooltip}
-            arrow={{ pointAtCenter: true }}
-          >
-            {renderBrand()}
-          </Tooltip>
-          {brand.text && (
+          {!brand.hide_logo && (
+            <Tooltip
+              id="brand-tooltip"
+              placement="bottomLeft"
+              title={brand.tooltip}
+              arrow={{ pointAtCenter: true }}
+            >
+              {renderBrand()}
+            </Tooltip>
+          )}
+          {!brand.hide_logo && brand.text && (
             <StyledBrandText>
               <span>{brand.text}</span>
             </StyledBrandText>
