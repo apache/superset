@@ -282,17 +282,18 @@ export function AsyncAceEditor(
           };
         }, [ref]);
 
-        // Ace measures glyph width once, when the editor is constructed, and
-        // caches it in its internal FontMetrics. If the editor font finishes
-        // loading after that measurement, the cached width no longer matches
-        // the rendered glyphs and the caret drifts further from the text the
-        // longer the line — the residual misalignment in issue #41664, which
-        // the font-family CSS from #38928 does not address. Re-measure once the
-        // document's fonts have settled (and immediately, for the already-
-        // loaded case) so the caret stays aligned. `updateFontSize` runs Ace's
-        // `checkForSizeChanges`, which on a metrics change emits
-        // `changeCharacterSize` — Ace's renderer reacts with a forced resize
-        // and full re-render, so no explicit resize call is needed here.
+        // Ace caches the measured glyph width in its internal FontMetrics and
+        // only re-measures when its hidden measure node's own size changes. If
+        // the editor font finishes loading after construction, the cached width
+        // can stop matching the rendered glyphs and the caret drifts further
+        // from the text the longer the line, the residual misalignment in issue
+        // #41664 that the font-family CSS from #38928 does not address. Force a
+        // re-measure once the document's fonts have settled (and immediately,
+        // for the already-loaded case) so the caret stays aligned.
+        // `updateFontSize` runs Ace's `checkForSizeChanges`, which on a metrics
+        // change emits `changeCharacterSize`; Ace's renderer reacts with a
+        // forced resize and full re-render, so no explicit resize call is
+        // needed here.
         const handleLoad = useCallback(
           (editor: Ace.Editor) => {
             const remeasure = () => {
