@@ -57,6 +57,7 @@ import { useDrillDetailMenuItems } from 'src/components/Chart/useDrillDetailMenu
 import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
+import { openInNewTab } from 'src/utils/navigationUtils';
 import { usePermissions } from 'src/hooks/usePermissions';
 import { useDatasetDrillInfo } from 'src/hooks/apiResources/datasets';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
@@ -81,22 +82,18 @@ const RefreshTooltip = styled.div`
 const getScreenshotNodeSelector = (chartId: string | number) =>
   `.dashboard-chart-id-${chartId}`;
 
-const VerticalDotsTrigger = () => {
-  const theme = useTheme();
-  return (
-    <Icons.EllipsisOutlined
-      css={css`
-        transform: rotate(90deg);
-        &:hover {
-          cursor: pointer;
-        }
-      `}
-      iconSize="xl"
-      iconColor={theme.colorTextLabel}
-      className="dot"
-    />
-  );
-};
+const VerticalDotsTrigger = () => (
+  <Icons.EllipsisOutlined
+    css={css`
+      transform: rotate(90deg);
+      &:hover {
+        cursor: pointer;
+      }
+    `}
+    iconSize="xl"
+    className="dot"
+  />
+);
 
 export interface SliceHeaderControlsProps {
   chartHolderRef?: RefObject<HTMLDivElement>;
@@ -140,7 +137,7 @@ export interface SliceHeaderControlsProps {
 
   supersetCanExplore?: boolean;
   supersetCanShare?: boolean;
-  supersetCanCSV?: boolean;
+  supersetCanDownload?: boolean;
 
   crossFiltersEnabled?: boolean;
 }
@@ -263,7 +260,7 @@ const SliceHeaderControls = (
         props.logExploreChart?.(props.slice.slice_id);
         if (domEvent.metaKey || domEvent.ctrlKey) {
           domEvent.preventDefault();
-          window.open(props.exploreUrl, '_blank');
+          openInNewTab(props.exploreUrl);
         } else {
           history.push(props.exploreUrl);
         }
@@ -518,7 +515,7 @@ const SliceHeaderControls = (
               dataSize={20}
               isRequest
               isVisible
-              canDownload={!!props.supersetCanCSV}
+              canDownload={!!props.supersetCanDownload}
               columnDisplayNames={datasetWithVerboseMap?.verbose_map}
             />
           }
@@ -561,7 +558,7 @@ const SliceHeaderControls = (
     newMenuItems.push(shareMenuItems);
   }
 
-  if (props.supersetCanCSV) {
+  if (props.supersetCanDownload) {
     newMenuItems.push({
       type: 'submenu',
       key: MenuKeys.Download,
@@ -592,7 +589,7 @@ const SliceHeaderControls = (
           icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
         },
         ...(isFeatureEnabled(FeatureFlag.AllowFullCsvExport) &&
-        props.supersetCanCSV &&
+        props.supersetCanDownload &&
         isTable
           ? [
               {
@@ -670,8 +667,10 @@ const SliceHeaderControls = (
           aria-label={t('More Options')}
           aria-haspopup="true"
           css={theme => css`
-            padding: ${theme.sizeUnit * 2}px;
-            padding-right: 0px;
+            width: ${theme.sizeUnit * 8}px;
+            height: ${theme.sizeUnit * 8}px;
+            padding: 0;
+            margin-right: -${theme.sizeUnit * 2}px;
           `}
         >
           <VerticalDotsTrigger />

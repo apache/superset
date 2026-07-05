@@ -1116,7 +1116,7 @@ class TestGenerateChartName:
 
     def test_unsupported_config_type(self) -> None:
         """Unsupported config type returns generic name."""
-        result = generate_chart_name("invalid_config")  # type: ignore
+        result = generate_chart_name("invalid_config")
         assert result == "Chart"
 
     def test_custom_labels_used(self) -> None:
@@ -2155,7 +2155,7 @@ class TestDatasetValidatorSkipsSqlMetrics:
 
     def test_normalize_column_names_skips_sql_metric_dicts(self) -> None:
         """A SQL-metric ColumnRef dumps to {name: None, sql_expression: ...};
-        _get_canonical_column_name(None, ...) would crash without the guard."""
+        get_canonical_column_name(None, ...) would crash without the guard."""
         from superset.mcp_service.chart.validation.dataset_validator import (
             DatasetValidator,
         )

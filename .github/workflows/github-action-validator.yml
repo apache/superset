@@ -37,8 +37,9 @@ jobs:
           node-version: "20"
 
       - name: Install Dependencies
-        # Versions are pinned to avoid ad-hoc, unpinned package installs
-        # (zizmor adhoc-packages). Bump deliberately when upgrading.
+        # Versions are pinned to avoid ad-hoc, unpinned package installs.
+        # Bump deliberately when upgrading.
+        # zizmor: ignore[adhoc-packages] - @action-validator is a global CLI tool installed to validate the repo's workflows; a global CLI install has no application manifest/lockfile context, and the versions are pinned above
         run: npm install -g @action-validator/core@0.6.0 @action-validator/cli@0.6.0
 
       - name: Run Script
