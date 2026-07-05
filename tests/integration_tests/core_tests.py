@@ -22,7 +22,6 @@ import html
 import logging
 import random
 import unittest
-from typing import Any
 from unittest import mock
 from urllib.parse import parse_qs, quote, urlsplit
 
@@ -914,8 +913,7 @@ class TestCore(SupersetTestCase):
         self.client.post(f"/explore/table/{tbl_id}/")
 
         mock_raise_for_access.assert_called_once()
-        kwargs: dict[str, Any] = mock_raise_for_access.call_args.kwargs
-        assert kwargs["datasource"].id == tbl_id
+        assert mock_raise_for_access.call_args.kwargs["datasource"].id == tbl_id
 
     def test_explore_no_datasource_renders_spa(self):
         # `Slice.slice_url` emits form_data carrying only `slice_id`; without a
