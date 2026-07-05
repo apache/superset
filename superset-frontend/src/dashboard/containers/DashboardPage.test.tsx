@@ -18,16 +18,28 @@
  */
 import type { ReactNode } from 'react';
 import { Suspense } from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  createStore,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import {
   useDashboard,
   useDashboardCharts,
   useDashboardDatasets,
 } from 'src/hooks/apiResources';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetApiError, SupersetClient } from '@superset-ui/core';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
-import { clearDashboardHistory } from 'src/dashboard/actions/dashboardLayout';
+import {
+  clearDashboardHistory,
+  UPDATE_COMPONENTS,
+} from 'src/dashboard/actions/dashboardLayout';
+import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
 import DashboardPage from './DashboardPage';
 
 const mockTheme = {
@@ -123,8 +135,10 @@ jest.mock('src/dashboard/util/activeDashboardFilters', () => ({
 }));
 
 jest.mock('src/utils/urlUtils', () => ({
-  getUrlParam: () => null,
+  getUrlParam: jest.fn().mockReturnValue(null),
 }));
+
+const mockGetUrlParam = getUrlParam as jest.Mock;
 
 jest.mock('src/dashboard/components/nativeFilters/FilterBar/keyValue', () => ({
   getFilterValue: jest.fn(),
@@ -148,6 +162,13 @@ afterEach(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Tests assert against the global document.title and the unmount restore
+  // effect can carry title state across tests, so reset it for isolation.
+  document.title = '';
+  // clearAllMocks does not reset mockImplementation — reset explicitly so
+  // per-test overrides don't leak into subsequent tests.
+  mockGetUrlParam.mockReset();
+  mockGetUrlParam.mockReturnValue(null);
   mockUseDashboard.mockReturnValue({
     result: mockDashboard,
     error: null,
@@ -233,6 +254,174 @@ test('uses theme from Redux dashboardInfo when it differs from API response (Pro
   );
 });
 
+test('document.title tracks the live Redux dashboard title after a rename, not the stale API value', async () => {
+  // Renaming a dashboard updates the live title in Redux
+  // (dashboardLayout HEADER meta.text) and persists via an in-SPA save with
+  // no full reload, so the useDashboard() API result stays stale. The browser
+  // tab title must follow the live title, otherwise a newly created dashboard
+  // keeps showing "[ untitled dashboard ]" after being renamed and saved.
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        dashboardLayout: {
+          past: [],
+          future: [],
+          present: {
+            [DASHBOARD_HEADER_ID]: {
+              id: DASHBOARD_HEADER_ID,
+              type: 'HEADER',
+              meta: { text: 'Live Renamed Title' },
+            },
+          },
+        },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  // API result (mockDashboard.dashboard_title) is 'Test Dashboard', but the
+  // live title is 'Live Renamed Title' — the tab title must reflect the latter.
+  await waitFor(() => {
+    expect(document.title).toBe('Live Renamed Title');
+  });
+});
+
+test('document.title updates when the dashboard is renamed after mount', async () => {
+  // The bug is a live rename: the title is edited in Redux after the page has
+  // already mounted, so the tab title must react to the change rather than only
+  // reflecting the title present at initial render.
+  const store = createStore(
+    {
+      dashboardInfo: { id: 1, metadata: {} },
+      dashboardState: { sliceIds: [] },
+      dashboardLayout: {
+        past: [],
+        future: [],
+        present: {
+          [DASHBOARD_HEADER_ID]: {
+            id: DASHBOARD_HEADER_ID,
+            type: 'HEADER',
+            meta: { text: 'Title At Mount' },
+          },
+        },
+      },
+      nativeFilters: { filters: {} },
+      dataMask: {},
+    },
+    reducerIndex,
+  );
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    { store, useRouter: true },
+  );
+
+  await waitFor(() => expect(document.title).toBe('Title At Mount'));
+
+  // Simulate the in-SPA rename mutating the live header title.
+  store.dispatch({
+    type: UPDATE_COMPONENTS,
+    payload: {
+      nextComponents: {
+        [DASHBOARD_HEADER_ID]: {
+          id: DASHBOARD_HEADER_ID,
+          type: 'HEADER',
+          meta: { text: 'Renamed After Mount' },
+        },
+      },
+    },
+  });
+
+  await waitFor(() => expect(document.title).toBe('Renamed After Mount'));
+});
+
+test('document.title uses the fresh API title during dashboard-to-dashboard navigation', async () => {
+  // While switching dashboards in the SPA the component instance and Redux store
+  // are reused, so the previous dashboard's layout (header title) lingers until
+  // the new dashboard hydrates. The tab title must follow the newly loaded
+  // dashboard's API title, not the stale live layout title.
+  mockUseDashboard.mockReturnValue({
+    result: { ...mockDashboard, id: 2, dashboard_title: 'Dashboard Two' },
+    error: null,
+  });
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="2" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        // dashboardInfo still describes the previously hydrated dashboard 1.
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        dashboardLayout: {
+          past: [],
+          future: [],
+          present: {
+            [DASHBOARD_HEADER_ID]: {
+              id: DASHBOARD_HEADER_ID,
+              type: 'HEADER',
+              meta: { text: 'Dashboard One' },
+            },
+          },
+        },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  await waitFor(() => expect(document.title).toBe('Dashboard Two'));
+});
+
+test('document.title falls back to the API dashboard_title before the layout is hydrated', async () => {
+  // Before hydration there is no HEADER component in the layout, so the tab
+  // title should still come from the dashboard API response.
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  await waitFor(() => {
+    expect(document.title).toBe('Test Dashboard');
+  });
+});
+
 test('passes null theme when Redux dashboardInfo.theme is explicitly null (theme removed)', async () => {
   render(
     <Suspense fallback="loading">
@@ -262,6 +451,157 @@ test('passes null theme when Redux dashboardInfo.theme is explicitly null (theme
   );
 });
 
+test('copies currentState to filterState for legacy native_filters URL params', async () => {
+  // Pre-2021 URLs encode filter selections under `currentState`. The dataMask
+  // reducer uses `filterState`, so without normalization the filter panel shows
+  // no active selections even though extraFormData still filters chart queries.
+  mockGetUrlParam.mockImplementation((param: { name: string }) => {
+    if (param.name === 'native_filters') {
+      return {
+        'NATIVE_FILTER-OvPTDNKc9': {
+          extraFormData: {
+            filters: [{ col: 'team_name', op: 'IN', val: ['MarginEdge'] }],
+          },
+          currentState: { value: ['MarginEdge'] },
+        },
+      };
+    }
+    return null;
+  });
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  expect(hydrateDashboard).toHaveBeenCalledWith(
+    expect.objectContaining({
+      dataMask: expect.objectContaining({
+        'NATIVE_FILTER-OvPTDNKc9': expect.objectContaining({
+          filterState: { value: ['MarginEdge'] },
+          extraFormData: {
+            filters: [{ col: 'team_name', op: 'IN', val: ['MarginEdge'] }],
+          },
+          currentState: { value: ['MarginEdge'] },
+        }),
+      }),
+    }),
+  );
+});
+
+test('does not overwrite filterState when modern native_filters URL format is used', async () => {
+  // Modern URLs already carry `filterState`; the normalization must not clobber it.
+  mockGetUrlParam.mockImplementation((param: { name: string }) => {
+    if (param.name === 'native_filters') {
+      return {
+        'NATIVE_FILTER-OvPTDNKc9': {
+          extraFormData: {
+            filters: [{ col: 'team_name', op: 'IN', val: ['MarginEdge'] }],
+          },
+          filterState: { value: ['MarginEdge'] },
+        },
+      };
+    }
+    return null;
+  });
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  expect(hydrateDashboard).toHaveBeenCalledWith(
+    expect.objectContaining({
+      dataMask: expect.objectContaining({
+        'NATIVE_FILTER-OvPTDNKc9': expect.objectContaining({
+          filterState: { value: ['MarginEdge'] },
+          extraFormData: {
+            filters: [{ col: 'team_name', op: 'IN', val: ['MarginEdge'] }],
+          },
+        }),
+      }),
+    }),
+  );
+
+  // currentState must not have been injected
+  const callArg = (hydrateDashboard as jest.Mock).mock.calls[0][0];
+  expect(
+    callArg.dataMask['NATIVE_FILTER-OvPTDNKc9'].currentState,
+  ).toBeUndefined();
+});
+
+test('renders a not-found state instead of throwing when the dashboard 404s', async () => {
+  mockUseDashboard.mockReturnValue({
+    result: null,
+    error: new SupersetApiError({ status: 404, message: 'Not found' }),
+  });
+  mockUseDashboardCharts.mockReturnValue({
+    result: null,
+    error: new SupersetApiError({ status: 404, message: 'Not found' }),
+  });
+  mockUseDashboardDatasets.mockReturnValue({
+    result: null,
+    error: new SupersetApiError({ status: 404, message: 'Not found' }),
+    status: 'error',
+  });
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="404" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: {},
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  expect(
+    await screen.findByText('This dashboard does not exist'),
+  ).toBeInTheDocument();
+  expect(screen.queryByTestId('dashboard-builder')).not.toBeInTheDocument();
+
+  await userEvent.click(
+    screen.getByRole('button', { name: 'See all dashboards' }),
+  );
+  expect(window.location.pathname).toBe('/dashboard/list/');
+});
+
 test('clears undo history after hydrating the dashboard', async () => {
   render(
     <Suspense fallback="loading">
@@ -285,7 +625,9 @@ test('clears undo history after hydrating the dashboard', async () => {
 
   expect(hydrateDashboard).toHaveBeenCalled();
   expect(clearDashboardHistory).toHaveBeenCalled();
-  const hydrateOrder = (hydrateDashboard as jest.Mock).mock.invocationCallOrder[0];
-  const clearOrder = (clearDashboardHistory as jest.Mock).mock.invocationCallOrder[0];
+  const hydrateOrder = (hydrateDashboard as jest.Mock).mock
+    .invocationCallOrder[0];
+  const clearOrder = (clearDashboardHistory as jest.Mock).mock
+    .invocationCallOrder[0];
   expect(clearOrder).toBeGreaterThan(hydrateOrder);
 });

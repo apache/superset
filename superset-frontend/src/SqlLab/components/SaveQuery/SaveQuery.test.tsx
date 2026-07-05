@@ -337,4 +337,32 @@ describe('SavedQuery', () => {
       ).not.toBeInTheDocument();
     });
   });
+
+  test('disables the save button when the query name is empty or whitespace-only', async () => {
+    render(<SaveQuery {...mockedProps} />, {
+      useRedux: true,
+      store: mockStore(mockState),
+    });
+
+    userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    const nameInput = screen.getAllByRole('textbox')[0] as HTMLInputElement;
+    const modalSaveBtn = () =>
+      screen.getAllByRole('button', { name: /save/i })[1];
+
+    // Default label is present, so the save button starts enabled
+    expect(modalSaveBtn()).toBeEnabled();
+
+    // Clearing the name disables the save button
+    userEvent.clear(nameInput);
+    await waitFor(() => expect(modalSaveBtn()).toBeDisabled());
+
+    // A whitespace-only name keeps the save button disabled
+    userEvent.type(nameInput, '   ');
+    await waitFor(() => expect(modalSaveBtn()).toBeDisabled());
+
+    // A non-empty name re-enables the save button
+    userEvent.type(nameInput, 'My query');
+    await waitFor(() => expect(modalSaveBtn()).toBeEnabled());
+  });
 });

@@ -20,7 +20,6 @@ import urllib.request
 from typing import Any, Optional, Union
 from urllib.error import URLError
 
-import numpy as np
 import pandas as pd
 
 from superset.utils import json
@@ -74,25 +73,35 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
     # Escape csv headers
     df = df.rename(columns=escape_values)
 
-    # Escape csv values
+    # Escape csv values. Iterate by index label (via ``items``) rather than by
+    # positional offset so the escaped value is written back to the correct row
+    # even when the DataFrame has a non-default index (e.g. the flattened
+    # MultiIndex produced by pivot_table_v2 post-processing). Pairing positional
+    # indices with the label-based ``.at`` accessor would otherwise create
+    # phantom rows and corrupt the output. Only string cells are reassigned, so
+    # the dtype of mixed object columns (e.g. nullable integers) is preserved.
     for name, column in df.items():
-        if column.dtype == np.dtype(object):
-            for idx, value in enumerate(column.values):
+        if pd.api.types.is_string_dtype(column.dtype):
+            for label, value in column.items():
                 if isinstance(value, str):
-                    df.at[idx, name] = escape_value(value)
+                    df.at[label, name] = escape_value(value)
 
     return df.to_csv(escapechar="\\", **kwargs)
 
 
 def get_chart_csv_data(
-    chart_url: str, auth_cookies: Optional[dict[str, str]] = None
+    chart_url: str,
+    auth_cookies: Optional[dict[str, str]] = None,
+    timeout: Optional[float] = None,
 ) -> Optional[bytes]:
     content = None
     if auth_cookies:
         opener = urllib.request.build_opener()
         cookie_str = ";".join([f"{key}={val}" for key, val in auth_cookies.items()])
         opener.addheaders.append(("Cookie", cookie_str))
-        response = opener.open(chart_url)
+        # A missing timeout means the socket blocks forever when the Superset
+        # webserver is unreachable, wedging the report schedule in WORKING.
+        response = opener.open(chart_url, timeout=timeout)
         content = response.read()
         if response.getcode() != 200:
             raise URLError(response.getcode())
@@ -102,11 +111,13 @@ def get_chart_csv_data(
 
 
 def get_chart_dataframe(
-    chart_url: str, auth_cookies: Optional[dict[str, str]] = None
+    chart_url: str,
+    auth_cookies: Optional[dict[str, str]] = None,
+    timeout: Optional[float] = None,
 ) -> Optional[pd.DataFrame]:
     # Disable all the unnecessary-lambda violations in this function
     # pylint: disable=unnecessary-lambda
-    content = get_chart_csv_data(chart_url, auth_cookies)
+    content = get_chart_csv_data(chart_url, auth_cookies, timeout)
     if content is None:
         return None
 

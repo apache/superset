@@ -20,6 +20,7 @@ import cx from 'classnames';
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useMemo,
   useState,
@@ -30,7 +31,7 @@ import type { ChartCustomization, JsonObject } from '@superset-ui/core';
 import { VizType } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
-import { debounce } from 'lodash';
+import { debounce } from 'lodash-es';
 import { bindActionCreators } from 'redux';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -128,6 +129,10 @@ const SliceContainer = styled.div`
 
 const EMPTY_OBJECT: Record<string, never> = {};
 
+// Stable no-op fallback for optional callbacks so we don't allocate a new
+// function on every render (keeps referential equality for memoized children).
+const NOOP = () => {};
+
 // Helper function to get chart state with fallback
 const getChartStateWithFallback = (
   chartState: { state?: JsonObject } | undefined,
@@ -213,9 +218,9 @@ const Chart = (props: ChartProps) => {
     (state: RootState) =>
       !!(state.dashboardInfo as JsonObject).superset_can_share,
   );
-  const supersetCanCSV = useSelector(
+  const supersetCanDownload = useSelector(
     (state: RootState) =>
-      !!(state.dashboardInfo as JsonObject).superset_can_csv,
+      !!(state.dashboardInfo as JsonObject).superset_can_download,
   );
   const timeout: number = useSelector(
     (state: RootState) =>
@@ -314,13 +319,9 @@ const Chart = (props: ChartProps) => {
     [dispatch, props.id, sliceVizType],
   );
 
-  useEffect(() => {
-    if (isExpanded) {
-      const descHeight =
-        isExpanded && descriptionRef.current
-          ? descriptionRef.current?.offsetHeight
-          : 0;
-      setDescriptionHeight(descHeight);
+  useLayoutEffect(() => {
+    if (isExpanded && descriptionRef.current) {
+      setDescriptionHeight(descriptionRef.current.offsetHeight);
     } else {
       setDescriptionHeight(0);
     }
@@ -480,7 +481,7 @@ const Chart = (props: ChartProps) => {
   (formData as JsonObject).dashboardId = dashboardInfo.id;
 
   const exportTable = useCallback(
-    (format: string, isFullCSV: boolean, isPivot = false) => {
+    async (format: string, isFullCSV: boolean, isPivot = false) => {
       const logAction =
         format === 'csv'
           ? LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART
@@ -555,24 +556,48 @@ const Chart = (props: ChartProps) => {
           }
         : baseOwnState;
 
-      exportChart({
-        formData:
-          exportFormData as unknown as import('@superset-ui/core').QueryFormData,
-        resultType,
-        resultFormat: format,
-        force: true,
-        ownState: exportOwnState,
-        onStartStreamingExport: shouldUseStreaming
-          ? (exportParams: JsonObject) => {
-              setIsStreamingModalVisible(true);
-              startExport({
-                ...(exportParams as Record<string, unknown>),
-                filename,
-                expectedRows: actualRowCount,
-              } as Parameters<typeof startExport>[0]);
-            }
-          : null,
-      });
+      try {
+        await exportChart({
+          formData:
+            exportFormData as unknown as import('@superset-ui/core').QueryFormData,
+          resultType,
+          resultFormat: format,
+          force: true,
+          ownState: exportOwnState,
+          onStartStreamingExport: shouldUseStreaming
+            ? (exportParams: JsonObject) => {
+                setIsStreamingModalVisible(true);
+                startExport({
+                  ...(exportParams as Record<string, unknown>),
+                  filename,
+                  expectedRows: actualRowCount,
+                } as Parameters<typeof startExport>[0]);
+              }
+            : null,
+        });
+      } catch (error) {
+        const exportError = error as Error & {
+          status?: number;
+          statusText?: string;
+          response?: { status?: number };
+        };
+        const status = exportError.status || exportError.response?.status;
+        if (status === 413) {
+          boundActionCreators.addDangerToast(
+            t(
+              'The chart data is too large to download. Please try reducing the date range, limiting rows, or using fewer columns.',
+            ),
+          );
+        } else {
+          const errorMessage =
+            exportError.message ||
+            exportError.statusText ||
+            t(
+              'Failed to export chart data. Please try again or contact your administrator.',
+            );
+          boundActionCreators.addDangerToast(errorMessage);
+        }
+      }
     },
     [
       sliceSliceId,
@@ -584,6 +609,7 @@ const Chart = (props: ChartProps) => {
       chartState,
       props.id,
       boundActionCreators.logEvent,
+      boundActionCreators.addDangerToast,
       queriesResponse,
       startExport,
       resetExport,
@@ -684,7 +710,7 @@ const Chart = (props: ChartProps) => {
         sliceName={props.sliceName}
         supersetCanExplore={supersetCanExplore}
         supersetCanShare={supersetCanShare}
-        supersetCanCSV={supersetCanCSV}
+        supersetCanDownload={supersetCanDownload}
         componentId={props.componentId}
         dashboardId={props.dashboardId}
         filters={getActiveFilters() || EMPTY_OBJECT}
@@ -763,11 +789,11 @@ const Chart = (props: ChartProps) => {
             },
             slice.viz_type,
           )}
-          queriesResponse={chart.queriesResponse ?? undefined}
+          queriesResponse={chart.queriesResponse ?? null}
           timeout={timeout}
           triggerQuery={chart.triggerQuery}
           vizType={slice.viz_type}
-          setControlValue={props.setControlValue}
+          setControlValue={props.setControlValue ?? NOOP}
           datasetsStatus={
             datasetsStatus as 'loading' | 'error' | 'complete' | undefined
           }

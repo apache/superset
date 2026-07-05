@@ -102,11 +102,11 @@ export type ChartCustomization = {
   defaultDataMask: DataMask;
   controlValues: {
     sortAscending?: boolean;
-    sortMetric?: string;
     [key: string]: any;
   };
   description?: string;
   removed?: boolean;
+  time_grains?: string[];
 };
 
 export type ChartCustomizationDivider = Partial<

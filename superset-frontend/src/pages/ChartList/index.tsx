@@ -29,7 +29,7 @@ import {
 import { css, styled } from '@apache-superset/core/theme';
 import { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
-import { uniqBy } from 'lodash';
+import { uniqBy } from 'lodash-es';
 import { useSelector } from 'react-redux';
 import {
   createErrorHandler,
@@ -95,6 +95,7 @@ const FlexRowContainer = styled.div`
     text-overflow: ellipsis;
     white-space: nowrap;
     line-height: 1.2;
+    min-width: 0;
   }
 
   svg {

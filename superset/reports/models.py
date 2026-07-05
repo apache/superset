@@ -101,20 +101,18 @@ class ReportSourceFormat(StrEnum):
 report_schedule_user = Table(
     "report_schedule_user",
     metadata,
-    Column("id", Integer, primary_key=True),
     Column(
         "user_id",
         Integer,
         ForeignKey("ab_user.id", ondelete="CASCADE"),
-        nullable=False,
+        primary_key=True,
     ),
     Column(
         "report_schedule_id",
         Integer,
         ForeignKey("report_schedule.id", ondelete="CASCADE"),
-        nullable=False,
+        primary_key=True,
     ),
-    UniqueConstraint("user_id", "report_schedule_id"),
 )
 
 

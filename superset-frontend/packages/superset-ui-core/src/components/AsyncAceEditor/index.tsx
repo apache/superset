@@ -32,7 +32,7 @@ import {
   AsyncEsmComponent,
   PlaceholderProps,
 } from '@superset-ui/core/components/AsyncEsmComponent';
-import { useTheme, css } from '@apache-superset/core/theme';
+import { useTheme, css, type SupersetTheme } from '@apache-superset/core/theme';
 import { Global } from '@emotion/react';
 
 export { getTooltipHTML } from './Tooltip';
@@ -104,6 +104,19 @@ export type AsyncAceEditorOptions = {
     PlaceholderProps & Partial<IAceEditorProps>
   > | null;
 };
+
+/**
+ * Theme-aware styling for the matched-prefix highlight in the autocomplete
+ * popup. Ace ships a hardcoded `color: #000` that is invisible on the dark
+ * popup, so the override needs `!important` to win. Lives in the shared editor
+ * so every Ace editor (SQL Lab, Explore Custom SQL, ...) stays consistent.
+ */
+export const aceCompletionHighlightStyles = (token: SupersetTheme) => css`
+  .ace_completion-highlight {
+    color: ${token.colorPrimaryText} !important;
+    background-color: ${token.colorPrimaryBgHover};
+  }
+`;
 
 /**
  * Get an async AceEditor with automatical loading of specified ace modules.
@@ -369,6 +382,8 @@ export function AsyncAceEditor(
                 .ace_tooltip.ace_doc-tooltip {
                   display: flex !important;
                 }
+
+                ${aceCompletionHighlightStyles(token)}
 
                 &&& .tooltip-detail {
                   display: flex;

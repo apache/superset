@@ -16,7 +16,15 @@
 # under the License.
 
 from flask_appbuilder import Model
-from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 
 from superset import security_manager
@@ -34,6 +42,9 @@ class UserAttribute(Model, AuditMixinNullable):
     """
 
     __tablename__ = "user_attribute"
+    # One attribute row per user; readers rely on ``extra_attributes[0]`` and the
+    # session-invalidation upsert depends on this for race safety.
+    __table_args__ = (UniqueConstraint("user_id", name="uq_user_attribute_user_id"),)
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("ab_user.id"))
     user = relationship(
@@ -42,3 +53,12 @@ class UserAttribute(Model, AuditMixinNullable):
     welcome_dashboard_id = Column(Integer, ForeignKey("dashboards.id"))
     welcome_dashboard = relationship("Dashboard")
     avatar_url = Column(String(100))
+    # When set, any session for this user whose login predates this timestamp
+    # is forced to log out (see ``superset.security.session_invalidation``).
+    # Stamped when the account is disabled, so outstanding sessions terminate
+    # regardless of the session backend. NULL means "never invalidated".
+    sessions_invalidated_at = Column(DateTime, nullable=True, index=True)
+    # When True, the user must change their password before they can use the
+    # rest of the app (enforced by the before-request hook in
+    # superset.security.password_change when ENABLE_FORCE_PASSWORD_CHANGE is on).
+    password_must_change = Column(Boolean, nullable=False, default=False)

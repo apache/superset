@@ -52,10 +52,14 @@ from superset_core.semantic_layers.view import SemanticViewFeature
 
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_object import QueryObject
-from superset.common.utils.time_range_utils import get_since_until_from_query_object
+from superset.common.utils.time_range_utils import (
+    get_since_until_from_query_object,
+    get_since_until_from_time_range,
+)
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import NO_TIME_RANGE
 from superset.models.helpers import QueryResult
+from superset.result_set import stringify_extension_columns
 from superset.superset_typing import AdhocColumn
 from superset.utils.core import (
     FilterOperator,
@@ -121,7 +125,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
     main_query = queries[0]
     main_result = dispatcher(main_query)
 
-    main_df = main_result.results.to_pandas()
+    main_df = stringify_extension_columns(main_result.results).to_pandas()
 
     # Collect all requests (SQL queries, HTTP requests, etc.) for troubleshooting
     all_requests = list(main_result.requests)
@@ -155,7 +159,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
         # Add this query's requests to the collection
         all_requests.extend(result.requests)
 
-        offset_df = result.results.to_pandas()
+        offset_df = stringify_extension_columns(result.results).to_pandas()
 
         # Handle empty results - add NaN columns directly instead of merging
         # This avoids dtype mismatch issues with empty DataFrames
@@ -164,6 +168,18 @@ def get_results(query_object: QueryObject) -> QueryResult:
             for metric in metric_names:
                 offset_col_name = TIME_COMPARISON.join([metric, time_offset])
                 main_df[offset_col_name] = np.nan
+        elif not join_keys:
+            # No dimensions to join on — this is an aggregate-only query
+            # (e.g. ``metrics: ["Orders Count"]`` with empty ``columns``),
+            # which produces a single-row DataFrame. ``pandas.merge`` on an
+            # empty ``on=`` list crashes with ``IndexError`` deep in the
+            # join-indexer code, so we lift the offset metric values from
+            # the first row of ``offset_df`` straight onto ``main_df``.
+            for metric in metric_names:
+                offset_col_name = TIME_COMPARISON.join([metric, time_offset])
+                main_df[offset_col_name] = (
+                    offset_df[metric].iloc[0] if metric in offset_df else np.nan
+                )
         else:
             # Rename metric columns with time offset suffix
             # Format: "{metric_name}__{time_offset}"
@@ -229,7 +245,7 @@ def map_semantic_result_to_query_result(
 
     return QueryResult(
         # Core data
-        df=semantic_result.results.to_pandas(),
+        df=stringify_extension_columns(semantic_result.results).to_pandas(),
         query=query_str,
         duration=duration,
         # Template filters - not applicable to semantic layers
@@ -542,9 +558,9 @@ def _convert_query_object_filter(
     if operator_str == FilterOperator.TEMPORAL_RANGE.value:
         if not isinstance(value, str) or value == NO_TIME_RANGE:
             return None
-        start, end = (side.strip() for side in value.split(" : "))
+        start, end = get_since_until_from_time_range(time_range=value)
         filters: set[Filter] = set()
-        if start:
+        if start is not None:
             filters.add(
                 Filter(
                     type=PredicateType.WHERE,
@@ -553,7 +569,7 @@ def _convert_query_object_filter(
                     value=_coerce_scalar_filter_value(start, dimension),
                 )
             )
-        if end:
+        if end is not None:
             filters.add(
                 Filter(
                     type=PredicateType.WHERE,

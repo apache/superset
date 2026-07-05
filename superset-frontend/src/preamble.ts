@@ -26,7 +26,7 @@ import setupFormatters from './setup/setupFormatters';
 import setupDashboardComponents from './setup/setupDashboardComponents';
 import { User } from './types/bootstrapTypes';
 import getBootstrapData, { applicationRoot } from './utils/getBootstrapData';
-import { makeUrl } from './utils/pathUtils';
+import { makeUrl } from './utils/navigationUtils';
 import './hooks/useLocale';
 
 // Import dayjs plugin types for global TypeScript support
@@ -53,10 +53,12 @@ export default function initPreamble(): Promise<void> {
 
     // Grab initial bootstrap data
     const bootstrapData = getBootstrapData();
+    const lang = bootstrapData.common.locale || 'en';
 
     setupFormatters(
       bootstrapData.common.d3_format,
       bootstrapData.common.d3_time_format,
+      lang,
     );
 
     // Setup SupersetClient early so we can fetch language pack
@@ -64,7 +66,6 @@ export default function initPreamble(): Promise<void> {
 
     // Load language pack before rendering
     // Use native fetch to avoid race condition with SupersetClient initialization
-    const lang = bootstrapData.common.locale || 'en';
     if (lang !== 'en') {
       const abortController = new AbortController();
       const timeoutId = window.setTimeout(() => {
@@ -72,7 +73,7 @@ export default function initPreamble(): Promise<void> {
       }, LANGUAGE_PACK_REQUEST_TIMEOUT_MS);
 
       try {
-        const languagePackUrl = makeUrl(`/superset/language_pack/${lang}/`);
+        const languagePackUrl = makeUrl(`/language_pack/${lang}/`);
         const resp = await fetch(languagePackUrl, {
           signal: abortController.signal,
         });

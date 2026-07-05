@@ -27,10 +27,15 @@ import {
 } from 'react-table';
 import { styled } from '@apache-superset/core/theme';
 import { Table, TableSize } from '@superset-ui/core/components/Table';
-import { TableRowSelection, SorterResult } from 'antd/es/table/interface';
+import {
+  ColumnsType,
+  TableRowSelection,
+  SorterResult,
+} from 'antd/es/table/interface';
+import type { TableProps } from 'antd/es/table';
 import { mapColumns, mapRows } from './utils';
 
-interface TableCollectionProps<T extends object> {
+export interface TableCollectionProps<T extends object> {
   getTableProps: TablePropGetter<T>;
   getTableBodyProps: TableBodyPropGetter<T>;
   prepareRow: (row: Row<T>) => void;
@@ -53,6 +58,7 @@ interface TableCollectionProps<T extends object> {
   onPageChange?: (page: number, pageSize: number) => void;
   isPaginationSticky?: boolean;
   showRowCount?: boolean;
+  expandable?: Record<string, unknown>;
 }
 
 const StyledTable = styled(Table)<{
@@ -177,6 +183,7 @@ function TableCollection<T extends object>({
   onPageChange,
   isPaginationSticky = false,
   showRowCount = true,
+  expandable,
 }: TableCollectionProps<T>) {
   const mappedColumns = useMemo(
     () => mapColumns<T>(columns, headerGroups, columnsForWrapText),
@@ -301,7 +308,10 @@ function TableCollection<T extends object>({
     <StyledTable
       loading={loading}
       sticky={sticky ?? false}
-      columns={mappedColumns}
+      // Forward-compat: TS 6.0 tightens antd Table's generic inference so our
+      // typed-against-react-table mapped columns must be widened to the antd
+      // ColumnsType<object> surface the Table expects here.
+      columns={mappedColumns as unknown as ColumnsType<object>}
       data={mappedRows}
       size={size}
       data-test="listview-table"
@@ -314,7 +324,10 @@ function TableCollection<T extends object>({
       sortDirections={['ascend', 'descend', 'ascend']}
       isPaginationSticky={isPaginationSticky}
       showRowCount={showRowCount}
-      rowClassName={getRowClassName}
+      rowClassName={
+        getRowClassName as unknown as TableProps<object>['rowClassName']
+      }
+      expandable={expandable}
       components={{
         header: {
           cell: (props: HTMLAttributes<HTMLTableCellElement>) => {
@@ -339,7 +352,7 @@ function TableCollection<T extends object>({
           ),
         },
       }}
-      onChange={handleTableChange}
+      onChange={handleTableChange as unknown as TableProps<object>['onChange']}
     />
   );
 }
