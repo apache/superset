@@ -40,9 +40,13 @@ const HeadlessAutoRefresh = (): null => {
   const refreshFrequency = useSelector(
     (state: RootState) => state.dashboardState.refreshFrequency ?? 0,
   );
-  const timedRefreshImmuneSlices = useSelector(
+  const immuneSlices = useSelector(
     (state: RootState) =>
-      state.dashboardInfo.metadata?.timed_refresh_immune_slices || [],
+      state.dashboardInfo.metadata?.timed_refresh_immune_slices,
+  );
+  const timedRefreshImmuneSlices = useMemo(
+    () => immuneSlices || [],
+    [immuneSlices],
   );
   const autoRefreshMode = useSelector(
     (state: RootState) =>

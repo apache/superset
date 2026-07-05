@@ -73,6 +73,9 @@ test('drives the auto-refresh hook from redux state without a header', () => {
       timedRefreshImmuneSlices: [7],
       autoRefreshMode: 'fetch',
       isLoading: false,
+      onRefresh: expect.any(Function),
+      setRefreshFrequency: expect.any(Function),
+      logEvent: expect.any(Function),
     }),
   );
 });
