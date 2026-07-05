@@ -22,6 +22,7 @@ import html
 import logging
 import random
 import unittest
+from typing import Any
 from unittest import mock
 from urllib.parse import parse_qs, quote, urlsplit
 
@@ -908,12 +909,12 @@ class TestCore(SupersetTestCase):
         datasource, consistent with the explore command, before rendering its
         metadata."""
         self.login(ADMIN_USERNAME)
-        tbl_id = self.table_ids.get("energy_usage")
+        tbl_id: int | None = self.table_ids.get("energy_usage")
 
         self.client.post(f"/explore/table/{tbl_id}/")
 
         mock_raise_for_access.assert_called_once()
-        _, kwargs = mock_raise_for_access.call_args
+        kwargs: dict[str, Any] = mock_raise_for_access.call_args.kwargs
         assert kwargs["datasource"].id == tbl_id
 
     def test_explore_no_datasource_renders_spa(self):
