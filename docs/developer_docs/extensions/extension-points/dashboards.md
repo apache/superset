@@ -108,6 +108,66 @@ dashboards.registerDashboardRenderer(
 );
 ```
 
+## Example Implementation
+
+A minimal renderer that presents the dashboard as a flat list of chart cards, ignoring the grid layout — the kind of starting point a kiosk or mobile-style renderer might build on:
+
+### ChartListRenderer.tsx
+
+```tsx
+import type { dashboards } from '@apache-superset/core';
+
+export default function ChartListRenderer({
+  dashboard,
+  charts,
+  uiConfig,
+}: dashboards.DashboardRendererProps) {
+  return (
+    <main>
+      {!uiConfig?.hideTitle && <h1>{dashboard.title}</h1>}
+      <ul>
+        {charts.map(chart => (
+          <li key={chart.id}>
+            <h2>{chart.slice_name}</h2>
+            <p>{String(chart.viz_type)}</p>
+            {/* Fetch and render data for this chart, e.g. by building a
+                query context from chart.form_data and POSTing to
+                /api/v1/chart/data */}
+          </li>
+        ))}
+      </ul>
+    </main>
+  );
+}
+```
+
+### index.tsx
+
+```tsx
+import { dashboards } from '@apache-superset/core';
+import ChartListRenderer from './ChartListRenderer';
+
+// Registration is a module-load side effect — no activate() call needed
+dashboards.registerDashboardRenderer(
+  { id: 'my-extension.chart-list', name: 'Chart List Renderer' },
+  ChartListRenderer,
+);
+```
+
+To interpret the full grid instead, walk `dashboard.layout` from its `ROOT_ID` entry — each node's `type` (`TABS`, `TAB`, `ROW`, `COLUMN`, `CHART`, `MARKDOWN`, ...) and `children` describe the arrangement, and `CHART` nodes carry the chart id in `meta.chartId`.
+
+## Dashboards API Reference
+
+All methods are available on the `dashboards` namespace from `@apache-superset/core`:
+
+| Method / Event | Description |
+|----------------|-------------|
+| `registerDashboardRenderer(descriptor, component)` | Register a custom dashboard renderer. Returns a `Disposable` to unregister; disposing falls back to the built-in default. |
+| `getDashboardRenderer()` | Returns the active provider — the custom renderer when one is registered, otherwise the built-in default. |
+| `getDefaultDashboardRenderer()` | Returns the built-in default provider (`superset.dashboard-renderer`), e.g. to wrap it. |
+| `onDidRegisterDashboardRenderer(listener)` | Subscribe to registration events. Returns a `Disposable`. |
+| `onDidUnregisterDashboardRenderer(listener)` | Subscribe to unregistration events (including displacement by a newer registration). Returns a `Disposable`. |
+
 ## Manifest Declaration
 
 Declare the renderer in your extension's `Contributions` metadata (at most one per extension):
@@ -127,3 +187,9 @@ Declare the renderer in your extension's `Contributions` metadata (at most one p
 - Extensions load asynchronously after startup, so a dashboard opened before your extension finishes loading renders with the built-in renderer first and swaps to yours when registration lands.
 - `onDataMaskChange` and `onActiveTabsChange` are defined in the contract but not consumed by the host yet — filter state changed inside a custom renderer does not persist to permalinks.
 - While a custom renderer is active the host still hydrates its internal dashboard state so permalinks and embedded behavior remain intact; this is transparent to renderers but means the built-in state bookkeeping still runs.
+
+## Next Steps
+
+- **[Contribution Types](../contribution-types.md)** — Explore other contribution types
+- **[Editors Extension Point](./editors.md)** — Another replace-the-default contribution point
+- **[Development](../development.md)** — Set up your development environment

@@ -131,7 +131,7 @@ See [Chat](./extension-points/chat.md) for implementation details.
 
 ### Dashboard Renderers
 
-Extensions can replace Superset's built-in dashboard renderer with a custom implementation, changing how dashboards are displayed while reusing the host's data fetching, theming, and URL handling. The dashboard renderer is a single slot: the most recently registered renderer is active, and the built-in renderer is used when none is registered or when the dashboard enters edit mode.
+Extensions can replace Superset's built-in dashboard renderer with a custom implementation, changing how dashboards are displayed while reusing the host's data fetching, theming, and URL handling. The dashboard renderer is a single slot with the built-in renderer registered through the same contribution point as the default provider (`superset.dashboard-renderer`): the most recently registered custom renderer is active, and the default renders when none is registered, when the dashboard enters edit mode, or when the extensions feature flag is off.
 
 ```tsx
 import { dashboards } from '@apache-superset/core';
