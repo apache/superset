@@ -1119,15 +1119,6 @@ const SqlEditor: FC<Props> = ({
         >
           <Skeleton active />
         </div>
-      ) : showEmptyState && !hasSqlStatement ? (
-        <EmptyState
-          image="vector.svg"
-          size="large"
-          title={t('Select a database to write a query')}
-          description={t(
-            'Choose one of the available databases from the panel on the left.',
-          )}
-        />
       ) : northPaneViewId &&
         northPaneViews.some(v => v.id === northPaneViewId) ? (
         <Flex
@@ -1151,6 +1142,15 @@ const SqlEditor: FC<Props> = ({
             {resolveView(northPaneViewId)}
           </div>
         </Flex>
+      ) : showEmptyState && !hasSqlStatement ? (
+        <EmptyState
+          image="vector.svg"
+          size="large"
+          title={t('Select a database to write a query')}
+          description={t(
+            'Choose one of the available databases from the panel on the left.',
+          )}
+        />
       ) : (
         queryPane()
       )}
