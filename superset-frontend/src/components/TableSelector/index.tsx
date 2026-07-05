@@ -340,7 +340,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       <>
         <StyledFormLabel>{label}</StyledFormLabel>
         {renderSelectRow(select, refreshLabel)}
-        {hasMoreTables && (
+        {hasMoreTables && !disabled && (
           <div className="table-length">
             {t('Some tables are not shown. Refine your search.')}
           </div>

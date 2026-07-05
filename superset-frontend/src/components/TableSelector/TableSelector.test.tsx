@@ -95,6 +95,22 @@ test('shows a helper message when some tables are not shown', async () => {
   ).toBeInTheDocument();
 });
 
+test('does not show the helper message when table search is read-only', async () => {
+  fetchMock.get(catalogApiRoute, { result: [] });
+  fetchMock.get(schemaApiRoute, { result: ['test_schema'] });
+  fetchMock.get(tablesApiRoute, getTableMockFunction(5));
+
+  const props = createProps({ readOnly: true });
+  render(<TableSelector {...props} />, { useRedux: true, store });
+
+  await waitFor(() => {
+    expect(fetchMock.callHistory.called(tablesApiRoute)).toBe(true);
+  });
+  expect(
+    screen.queryByText('Some tables are not shown. Refine your search.'),
+  ).not.toBeInTheDocument();
+});
+
 test('renders with default props', async () => {
   fetchMock.get(catalogApiRoute, { result: [] });
   fetchMock.get(schemaApiRoute, { result: [] });
