@@ -910,7 +910,7 @@ class TestCore(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         tbl_id = self.table_ids.get("energy_usage")
 
-        self.client.post(f"/superset/explore/table/{tbl_id}/")
+        self.client.post(f"/explore/table/{tbl_id}/")
 
         mock_raise_for_access.assert_called_once()
         _, kwargs = mock_raise_for_access.call_args
