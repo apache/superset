@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 # Sentinel file Flask watches via --extra-files.  Touching it on a real change
 # triggers a server reload without depending on cwd or the location of any
 # Python source file.
-RELOAD_TRIGGER = Path(__file__).resolve().parent / ".reload_trigger"
+RELOAD_TRIGGER: Path = Path(__file__).resolve().parent / ".reload_trigger"
 
 # Guard to prevent multiple initializations
 _watcher_initialized = False
@@ -73,6 +73,10 @@ def _get_file_handler_class() -> Any:  # noqa: C901
                 # restart that fires *after* the build settles.
                 self._debounce_seconds: float = 1.0
                 self._pending_timer: threading.Timer | None = None
+                # Monotonically increasing token identifying the most recently
+                # scheduled timer. Guards the timer-already-fired race where
+                # `Timer.cancel()` can't stop a callback that has begun running.
+                self._reload_generation: int = 0
 
             # ── helpers ──────────────────────────────────────────────────────
 
@@ -116,9 +120,15 @@ def _get_file_handler_class() -> Any:  # noqa: C901
                 # New file (not in baseline) is a real change; otherwise compare.
                 return old_digest != digest
 
-            def _trigger_reload(self, source_path: str) -> None:
+            def _trigger_reload(self, source_path: str, generation: int) -> None:
                 """Touch the reload-trigger sentinel; Flask's --extra-files
                 watcher reloads on its mtime change."""
+                # A newer event may have superseded this timer after it began
+                # running (`cancel()` can't stop an in-flight callback), so only
+                # the most recently scheduled generation is allowed to fire.
+                with self._lock:
+                    if generation != self._reload_generation:
+                        return
                 logger.info("File change settled in LOCAL_EXTENSIONS: %s", source_path)
                 logger.info("Triggering restart by touching %s", RELOAD_TRIGGER)
                 try:
@@ -135,10 +145,11 @@ def _get_file_handler_class() -> Any:  # noqa: C901
                 with self._lock:
                     if self._pending_timer is not None:
                         self._pending_timer.cancel()
+                    self._reload_generation += 1
                     timer = threading.Timer(
                         self._debounce_seconds,
                         self._trigger_reload,
-                        args=(source_path,),
+                        args=(source_path, self._reload_generation),
                     )
                     timer.daemon = True
                     self._pending_timer = timer
