@@ -45,6 +45,11 @@ jest.mock('src/utils/getBootstrapData', () => ({
                 format: 'date-time',
                 default: 'tomorrow at 9am',
               },
+              recipients: {
+                type: 'array',
+                title: 'Recipients',
+                items: { type: 'string' },
+              },
             },
             required: ['output_table'],
           },
@@ -88,4 +93,45 @@ test('renders the rjsf schedule form fields inside the modal', async () => {
   });
   expect(screen.getByText('Start date')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Submit' })).toBeInTheDocument();
+});
+
+// StyledJsonSchema hides rjsf's glyphicon <i> (no font shipped) and draws
+// +/up/down/- glyphs via ::after on the button classes. rjsf 6 renamed the
+// array-item classes from "array-item-*" to "rjsf-array-item-*" — with the
+// old selectors the buttons rendered completely empty. Pin the v6 class
+// names the styled overrides depend on.
+test('array fields render add/reorder/remove buttons with the rjsf 6 classes', async () => {
+  render(
+    <ScheduleQueryButton
+      sql="SELECT 1"
+      schema="main"
+      dbId={1}
+      scheduleQueryWarning={null}
+      disabled={false}
+      tooltip="Schedule query"
+    />,
+    { useRedux: true },
+  );
+
+  await userEvent.click(screen.getByTestId('span-modal-trigger'));
+  expect(await screen.findByText('Recipients')).toBeInTheDocument();
+
+  const addButton = document.querySelector('button.btn-add');
+  expect(addButton).toBeInTheDocument();
+
+  // Add two items so both move buttons can render enabled
+  await userEvent.click(addButton as HTMLElement);
+  await userEvent.click(addButton as HTMLElement);
+
+  await waitFor(() => {
+    expect(
+      document.querySelectorAll('button.rjsf-array-item-remove'),
+    ).toHaveLength(2);
+  });
+  expect(
+    document.querySelector('button.rjsf-array-item-move-up'),
+  ).toBeInTheDocument();
+  expect(
+    document.querySelector('button.rjsf-array-item-move-down'),
+  ).toBeInTheDocument();
 });
