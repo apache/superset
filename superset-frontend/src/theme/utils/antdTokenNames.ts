@@ -31,6 +31,7 @@ const SUPERSET_CUSTOM_TOKENS: Set<string> = new Set([
 
   // Brand tokens
   'brandIconMaxWidth',
+  'brandAppName',
   'brandLogoAlt',
   'brandLogoUrl',
   'brandLogoMargin',
@@ -81,6 +82,24 @@ const SUPERSET_CUSTOM_TOKENS: Set<string> = new Set([
   'buttonSecondaryActiveColor',
   'buttonSecondaryActiveBg',
   'buttonSecondaryActiveBorderColor',
+
+  // Component flexibility tokens
+  'selectOptionActiveOutline',
+  'labelBorderRadius',
+  'buttonControlHeight',
+  'buttonControlHeightSM',
+  'buttonControlHeightXS',
+  'buttonPaddingInline',
+  'buttonPaddingInlineSM',
+  'buttonFontSize',
+  'buttonBorderRadius',
+  'buttonStyleMap',
+
+  // Dashboard tile tokens
+  'dashboardTileBg',
+  'dashboardTileBorder',
+  'dashboardTileBorderRadius',
+  'dashboardTileBoxShadow',
 ]);
 
 /**
