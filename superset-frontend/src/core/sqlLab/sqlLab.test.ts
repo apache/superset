@@ -579,9 +579,9 @@ test('getTabs surfaces the editor tabViewId as the tab backendId', () => {
   (mockStore.getState().sqlLab.queryEditors[0] as QueryEditor).tabViewId =
     'backend-42';
 
-  const tab = sqlLab.getCurrentTab();
+  const [tab] = sqlLab.getTabs();
   expect(tab).toBeDefined();
-  expect(tab!.backendId).toBe('backend-42');
+  expect(tab.backendId).toBe('backend-42');
 });
 
 test('setActiveTab switches the active tab', async () => {
