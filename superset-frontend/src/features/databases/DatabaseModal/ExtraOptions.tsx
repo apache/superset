@@ -63,9 +63,7 @@ const ExtraOptions = ({
   onExtraEditorChange: Function;
   extraExtension: DatabaseConnectionExtension | undefined;
 }) => {
-  const onExtraInputChangeNonNegative = (
-    e: ChangeEvent<HTMLInputElement>,
-  ) => {
+  const onExtraInputChangeNonNegative = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     if (
       (name === 'schema_cache_timeout' || name === 'table_cache_timeout') &&
