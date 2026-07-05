@@ -332,23 +332,27 @@ const Chart = (props: ChartProps) => {
       isDescriptionHeightSet = true;
     }
 
-    const observer = new ResizeObserver(entries => {
-      for (const entry of entries) {
-        if (entry.target === descriptionRef.current) {
-          const height = (entry.target as HTMLElement).offsetHeight;
-          if (height > 0 || !isDescriptionHeightSet) {
-            setDescriptionHeight(height);
-            isDescriptionHeightSet = true;
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(entries => {
+        for (const entry of entries) {
+          if (entry.target === descriptionRef.current) {
+            const height = (entry.target as HTMLElement).offsetHeight;
+            if (height > 0 || !isDescriptionHeightSet) {
+              setDescriptionHeight(height);
+              isDescriptionHeightSet = true;
+            }
           }
         }
-      }
-    });
+      });
 
-    observer.observe(descriptionRef.current);
+      observer.observe(descriptionRef.current);
 
-    return () => {
-      observer.disconnect();
-    };
+      return () => {
+        observer.disconnect();
+      };
+    }
+
+    return undefined;
   }, [isExpanded]);
 
   useEffect(
