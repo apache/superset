@@ -31,7 +31,7 @@ import type { ChartCustomization, JsonObject } from '@superset-ui/core';
 import { VizType } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
-import { debounce } from 'lodash';
+import { debounce } from 'lodash-es';
 import { bindActionCreators } from 'redux';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -320,11 +320,35 @@ const Chart = (props: ChartProps) => {
   );
 
   useLayoutEffect(() => {
-    if (isExpanded && descriptionRef.current) {
-      setDescriptionHeight(descriptionRef.current.offsetHeight);
-    } else {
+    if (!isExpanded || !descriptionRef.current) {
       setDescriptionHeight(0);
+      return undefined;
     }
+
+    let isDescriptionHeightSet = false;
+    const initialHeight = descriptionRef.current.offsetHeight;
+    if (initialHeight > 0) {
+      setDescriptionHeight(initialHeight);
+      isDescriptionHeightSet = true;
+    }
+
+    const observer = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        if (entry.target === descriptionRef.current) {
+          const height = (entry.target as HTMLElement).offsetHeight;
+          if (height > 0 || !isDescriptionHeightSet) {
+            setDescriptionHeight(height);
+            isDescriptionHeightSet = true;
+          }
+        }
+      }
+    });
+
+    observer.observe(descriptionRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
   }, [isExpanded]);
 
   useEffect(
