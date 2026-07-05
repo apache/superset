@@ -312,3 +312,160 @@ def test_full_setting(
     assert dttm_col.is_dttm
     assert dttm_col.python_date_format == "epoch_s"
     assert dttm_col.expression == "CAST(dttm as INTEGER)"
+
+
+def test_sync_theme_logo_href() -> None:
+    """
+    Verify LOGO_TARGET_PATH is wired into a theme's brandLogoHref.
+
+    THEME_DEFAULT is built before superset_config.py overrides load, so the link
+    is re-synced afterwards via sync_theme_logo_href. A provided LOGO_TARGET_PATH
+    must update brandLogoHref; None must leave the existing value untouched.
+    """
+    from copy import deepcopy
+
+    from superset.config import sync_theme_logo_href, THEME_DEFAULT
+
+    # A user-provided LOGO_TARGET_PATH propagates to the logo link.
+    theme = deepcopy(THEME_DEFAULT)
+    theme["token"]["brandLogoHref"] = "/"
+    sync_theme_logo_href(theme, "https://custom.url")
+    assert theme["token"]["brandLogoHref"] == "https://custom.url"
+
+    # The default (None) leaves the existing link untouched.
+    default_theme = deepcopy(THEME_DEFAULT)
+    default_theme["token"]["brandLogoHref"] = "/"
+    sync_theme_logo_href(default_theme, None)
+    assert default_theme["token"]["brandLogoHref"] == "/"
+
+    # A disabled theme (None) is a no-op rather than an error.
+    sync_theme_logo_href(None, "https://custom.url")
+
+
+def test_theme_default_logo_defaults() -> None:
+    """With the shipped defaults, brandLogoHref is "/" and brandLogoUrl is APP_ICON."""
+    from superset import config
+
+    assert config.LOGO_TARGET_PATH is None
+    assert config.THEME_DEFAULT["token"]["brandLogoHref"] == "/"
+    assert config.THEME_DEFAULT["token"]["brandLogoUrl"] == config.APP_ICON
+
+
+def test_smtp_ssl_server_auth_defaults_to_true() -> None:
+    """
+    The shipped default for SMTP_SSL_SERVER_AUTH validates the SMTP server's
+    TLS certificate. Operators can still opt out by overriding it to False.
+    """
+    from superset import config
+
+    assert config.SMTP_SSL_SERVER_AUTH is True
+
+
+def _smtp_config(**overrides: Any) -> dict[str, Any]:
+    """
+    Build a minimal SMTP config dict for ``send_mime_email`` tests, with
+    plaintext transport defaults; keyword ``overrides`` replace any key.
+    """
+    config = {
+        "SMTP_HOST": "localhost",
+        "SMTP_PORT": 25,
+        "SMTP_USER": "",
+        "SMTP_PASSWORD": "",
+        "SMTP_STARTTLS": False,
+        "SMTP_SSL": False,
+        "SMTP_SSL_SERVER_AUTH": True,
+    }
+    config.update(overrides)
+    return config
+
+
+def test_send_mime_email_ssl_server_auth_passes_context(
+    mocker: MockerFixture,
+) -> None:
+    """
+    With SMTP_SSL and SMTP_SSL_SERVER_AUTH enabled, ``send_mime_email`` builds a
+    default SSL context and threads it through to ``smtplib.SMTP_SSL`` so the
+    server certificate is validated.
+    """
+    from email.mime.multipart import MIMEMultipart
+
+    from superset.utils import core as utils
+
+    create_default_context = mocker.patch(
+        "superset.utils.core.ssl.create_default_context"
+    )
+    smtp_ssl = mocker.patch("smtplib.SMTP_SSL")
+    smtp = mocker.patch("smtplib.SMTP")
+
+    utils.send_mime_email(
+        "from",
+        ["to"],
+        MIMEMultipart(),
+        _smtp_config(SMTP_SSL=True, SMTP_SSL_SERVER_AUTH=True),
+        dryrun=False,
+    )
+
+    create_default_context.assert_called_once_with()
+    assert not smtp.called
+    smtp_ssl.assert_called_once_with(
+        "localhost", 25, context=create_default_context.return_value, timeout=30
+    )
+
+
+def test_send_mime_email_starttls_server_auth_passes_context(
+    mocker: MockerFixture,
+) -> None:
+    """
+    With STARTTLS and SMTP_SSL_SERVER_AUTH enabled, ``send_mime_email`` builds a
+    default SSL context and threads it through to ``starttls`` so the server
+    certificate is validated.
+    """
+    from email.mime.multipart import MIMEMultipart
+
+    from superset.utils import core as utils
+
+    create_default_context = mocker.patch(
+        "superset.utils.core.ssl.create_default_context"
+    )
+    smtp = mocker.patch("smtplib.SMTP")
+
+    utils.send_mime_email(
+        "from",
+        ["to"],
+        MIMEMultipart(),
+        _smtp_config(SMTP_STARTTLS=True, SMTP_SSL_SERVER_AUTH=True),
+        dryrun=False,
+    )
+
+    create_default_context.assert_called_once_with()
+    smtp.return_value.starttls.assert_called_once_with(
+        context=create_default_context.return_value
+    )
+
+
+def test_send_mime_email_server_auth_disabled_skips_context(
+    mocker: MockerFixture,
+) -> None:
+    """
+    When SMTP_SSL_SERVER_AUTH is disabled no SSL context is built and ``None`` is
+    passed through, preserving the opt-out (certificate validation skipped).
+    """
+    from email.mime.multipart import MIMEMultipart
+
+    from superset.utils import core as utils
+
+    create_default_context = mocker.patch(
+        "superset.utils.core.ssl.create_default_context"
+    )
+    smtp_ssl = mocker.patch("smtplib.SMTP_SSL")
+
+    utils.send_mime_email(
+        "from",
+        ["to"],
+        MIMEMultipart(),
+        _smtp_config(SMTP_SSL=True, SMTP_SSL_SERVER_AUTH=False),
+        dryrun=False,
+    )
+
+    assert not create_default_context.called
+    smtp_ssl.assert_called_once_with("localhost", 25, context=None, timeout=30)

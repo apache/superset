@@ -331,10 +331,16 @@ export default function transformProps(
     type: legendType,
   });
 
+  const chartPadding = getChartPadding(
+    showLegend,
+    legendOrientation,
+    effectiveLegendMargin,
+  );
+
   const series: RadarSeriesOption[] = [
     {
       type: 'radar',
-      ...getChartPadding(showLegend, legendOrientation, effectiveLegendMargin),
+      ...chartPadding,
       animation: false,
       emphasis: {
         label: {
@@ -360,6 +366,15 @@ export default function transformProps(
       metricsWithCustomBounds,
       numberFormatter,
     );
+
+  const centerX = width
+    ? ((width + chartPadding.left - chartPadding.right) / 2 / width) * 100
+    : 50;
+  const centerY = height
+    ? ((height + chartPadding.top - chartPadding.bottom) / 2 / height) * 100
+    : 50;
+
+  const radarCenter: [string, string] = [`${centerX}%`, `${centerY}%`];
 
   const echartOptions: EChartsCoreOption = {
     grid: {
@@ -390,6 +405,7 @@ export default function transformProps(
           color: theme.colorSplit,
         },
       },
+      center: radarCenter,
       splitArea: {
         show: true,
         areaStyle: {

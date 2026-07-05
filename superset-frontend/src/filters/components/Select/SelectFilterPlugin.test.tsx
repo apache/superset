@@ -715,6 +715,18 @@ describe('SelectFilterPlugin', () => {
     expect(options[1]).toHaveTextContent('alpha');
     expect(options[2]).toHaveTextContent('beta');
   });
+
+  test('shows create option for multi-select creatable filter when typing', async () => {
+    getWrapper({ creatable: true, multiSelect: true });
+    userEvent.type(screen.getByRole('combobox'), 'brand-new');
+    expect(await screen.findByTitle('brand-new')).toBeInTheDocument();
+  });
+
+  test('does not show create option when searchAllOptions is true', () => {
+    getWrapper({ creatable: true, searchAllOptions: true });
+    userEvent.type(screen.getByRole('combobox'), 'brand-new');
+    expect(screen.queryByTitle('brand-new')).not.toBeInTheDocument();
+  });
 });
 
 test('Select boolean FALSE value in single-select mode', async () => {
@@ -1657,4 +1669,86 @@ test('renders standard Select dropdown when operatorType is Exact', () => {
   });
 
   expect(screen.getAllByRole('combobox').length).toBeGreaterThan(0);
+});
+
+test('renders created filterState values not in dataset as selectable chips', async () => {
+  const props = buildSelectFilterProps({
+    formData: { creatable: true },
+    filterState: { value: ['custom-created-value'] },
+    setDataMask: jest.fn(),
+  });
+  render(<SelectFilterPlugin {...props} />, {
+    useRedux: true,
+    initialState: {
+      nativeFilters: { filters: { 'test-filter': { name: 'Test Filter' } } },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {},
+          filterState: { value: ['custom-created-value'] },
+        },
+      },
+    },
+  });
+  expect(await screen.findByTitle('custom-created-value')).toBeInTheDocument();
+});
+
+test('does not duplicate chip when filterState value is already in the dataset', async () => {
+  const props = buildSelectFilterProps({
+    formData: { creatable: true },
+    filterState: { value: ['boy'] },
+    setDataMask: jest.fn(),
+  });
+  render(<SelectFilterPlugin {...props} />, {
+    useRedux: true,
+    initialState: {
+      nativeFilters: { filters: { 'test-filter': { name: 'Test Filter' } } },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {},
+          filterState: { value: ['boy'] },
+        },
+      },
+    },
+  });
+  await screen.findByTitle('boy');
+  expect(screen.queryAllByTitle('boy')).toHaveLength(1);
+});
+
+test('renders dashboard select dropdown popup under document body', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  render(<SelectFilterPlugin {...buildSelectFilterProps()} />, {
+    useRedux: true,
+    initialState: {
+      nativeFilters: {
+        filters: { 'test-filter': { name: 'Test Filter' } },
+      },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {
+            filters: [{ col: 'gender', op: 'IN', val: ['boy'] }],
+          },
+          filterState: {
+            value: ['boy'],
+            label: 'boy',
+            excludeFilterValues: true,
+          },
+        },
+      },
+    },
+  });
+
+  const [filterSelect] = screen.getAllByRole('combobox');
+  userEvent.click(filterSelect);
+
+  let dropdown: Element | undefined;
+  await waitFor(() => {
+    dropdown = Array.from(
+      document.querySelectorAll('.ant-select-dropdown'),
+    ).find(
+      element => !element.classList.contains('ant-select-dropdown-hidden'),
+    );
+    expect(dropdown).toBeDefined();
+  });
+
+  expect(dropdown?.parentElement).toBe(document.body);
 });

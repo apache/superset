@@ -15,7 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
+from importlib import import_module
 from importlib.util import find_spec
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -24,6 +26,8 @@ from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import DTTM_ALIAS
 from superset.utils.pandas_postprocessing import prophet
 from tests.unit_tests.fixtures.dataframes import prophet_df
+
+prophet_module = import_module("superset.utils.pandas_postprocessing.prophet")
 
 
 def test_prophet_valid():
@@ -184,6 +188,41 @@ def test_prophet_incorrect_time_grain():
             periods=10,
             confidence_interval=0.8,
         )
+
+
+def test_prophet_insufficient_data():
+    single_row_df = pd.DataFrame(
+        {
+            DTTM_ALIAS: [datetime(2022, 1, 1)],
+            "sales": [100.0],
+        }
+    )
+    with pytest.raises(InvalidPostProcessingError, match="at least 2 data points"):
+        prophet(
+            df=single_row_df,
+            time_grain="P1D",
+            periods=3,
+            confidence_interval=0.9,
+        )
+
+
+def test_prophet_fit_error():
+    if find_spec("prophet") is None:
+        pytest.skip("prophet not installed")
+
+    with patch.object(prophet_module, "_prophet_fit_and_predict") as mock_fit:
+        mock_fit.side_effect = InvalidPostProcessingError(
+            "Unable to generate forecast: Dataframe has fewer than 2 non-NaN rows."
+        )
+        with pytest.raises(
+            InvalidPostProcessingError, match="Unable to generate forecast"
+        ):
+            prophet(
+                df=prophet_df,
+                time_grain="P1D",
+                periods=3,
+                confidence_interval=0.9,
+            )
 
 
 def test_prophet_uncertainty_lower_bound_can_be_negative_for_negative_series():

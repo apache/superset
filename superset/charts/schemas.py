@@ -1455,6 +1455,18 @@ class ChartDataQueryObjectSchema(Schema):
         fields.String(),
         allow_none=True,
     )
+    time_compare_full_range = fields.Boolean(
+        required=False,
+        allow_none=True,
+        metadata={
+            "description": (
+                "When using a time comparison (time_offsets), plot each shifted "
+                "series across its full time range instead of truncating it to the "
+                "main series' range. Useful for comparing a partial current period "
+                "against complete prior periods."
+            )
+        },
+    )
 
     @post_load
     def rename_deprecated_fields(
@@ -1467,7 +1479,8 @@ class ChartDataQueryObjectSchema(Schema):
             ("timeseries_limit_metric", "series_limit_metric"),
         )
         for old, new in _renames:
-            if value := data.pop(old, None):
+            value = data.pop(old, None)
+            if value or value == 0:
                 data[new] = value
         return data
 
