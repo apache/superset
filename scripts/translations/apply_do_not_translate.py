@@ -76,8 +76,8 @@ def apply_markers(pot_path: Path, registry: set[str]) -> int:
     exact wrapping/layout, so the only change is the added marker lines.
     Idempotent. Returns the number of entries newly marked.
     """
-    lines = pot_path.read_text(encoding="utf-8").split("\n")
-    targets = {f'msgid "{_escape(m)}"' for m in registry}
+    lines: list[str] = pot_path.read_text(encoding="utf-8").split("\n")
+    targets: set[str] = {f'msgid "{_escape(m)}"' for m in registry}
     out: list[str] = []
     changed: int = 0
     for line in lines:
@@ -116,7 +116,7 @@ def main() -> None:
             file=sys.stderr,
         )
         return
-    changed = apply_markers(pot_path, registry)
+    changed: int = apply_markers(pot_path, registry)
     print(
         f"do-not-translate: marked {changed} new entr(y/ies) with {MARKER} "
         f"in {pot_path.name} ({len(registry)} msgids in registry).",
