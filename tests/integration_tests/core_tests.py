@@ -29,6 +29,7 @@ import pandas as pd
 import pytest
 import pytz
 import sqlalchemy as sqla
+from flask import current_app
 from flask_babel import lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -37,6 +38,7 @@ import superset.views.utils
 from superset import dataframe, db, security_manager, sql_lab
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
+from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -109,13 +111,13 @@ class TestCore(SupersetTestCase):
 
     def test_dashboard_endpoint(self):
         self.login(ADMIN_USERNAME)
-        resp = self.client.get("/superset/dashboard/-1/")
+        resp = self.client.get("/dashboard/-1/")
         assert resp.status_code == 404
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_endpoint(self):
         self.login(ADMIN_USERNAME)
-        resp = self.client.get("/superset/slice/-1/")
+        resp = self.client.get("/slice/-1/")
         assert resp.status_code == 404
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -164,10 +166,7 @@ class TestCore(SupersetTestCase):
         tbl_id = self.table_ids.get("energy_usage")
         new_slice_name = f"{copy_name_prefix}[overwrite]{random.random()}"  # noqa: S311
 
-        url = (
-            "/superset/explore/table/{}/?slice_name={}&"
-            "action={}&datasource_name=energy_usage"
-        )
+        url = "/explore/table/{}/?slice_name={}&action={}&datasource_name=energy_usage"
 
         form_data = {
             "adhoc_filters": [],
@@ -320,7 +319,7 @@ class TestCore(SupersetTestCase):
                 )
             ),
         ):
-            assert self.get_json_resp(f"/superset/warm_up_cache?slice_id={slc.id}") == [
+            assert self.get_json_resp(f"/warm_up_cache?slice_id={slc.id}") == [
                 {
                     "slice_id": slc.id,
                     "viz_error": "Error: Empty query?",
@@ -333,6 +332,21 @@ class TestCore(SupersetTestCase):
         assert "Charts" in self.get_resp("/chart/list/")
         assert "Dashboards" in self.get_resp("/dashboard/list/")
 
+    def test_security_fab_views_have_valid_list_template(self) -> None:
+        # Regression test for #36130: the FAB permission views pointed at a custom
+        # list template (superset/fab_overrides/list.html) that was deleted during a
+        # cleanup, so they 500'd with TemplateNotFound. Ensure each view's list
+        # widget template still resolves in the Jinja environment.
+        from superset.security.manager import (
+            PermissionModelView,
+            PermissionViewModelView,
+        )
+
+        for view_cls in (PermissionModelView, PermissionViewModelView):
+            template = view_cls.list_widget.template
+            # Raises TemplateNotFound if the template is missing (the #36130 bug).
+            current_app.jinja_env.get_template(template)
+
     def test_templated_sql_json(self):
         if superset.utils.database.get_example_database().backend == "presto":
             # TODO: make it work for presto
@@ -344,7 +358,7 @@ class TestCore(SupersetTestCase):
 
     def test_fetch_datasource_metadata(self):
         self.login(ADMIN_USERNAME)
-        url = "/superset/fetch_datasource_metadata?datasourceKey=1__table"
+        url = "/fetch_datasource_metadata?datasourceKey=1__table"
         resp = self.get_json_resp(url)
         keys = [
             "name",
@@ -439,7 +453,7 @@ class TestCore(SupersetTestCase):
         }
         self.login(ADMIN_USERNAME)
         rv = self.client.post(
-            "/superset/explore_json/",
+            "/explore_json/",
             data={"form_data": json.dumps(form_data)},
         )
         data = json.loads(rv.data.decode("utf-8"))
@@ -452,7 +466,7 @@ class TestCore(SupersetTestCase):
     def test_explore_json_data_invalid_cache_key(self):
         self.login(ADMIN_USERNAME)
         cache_key = "invalid-cache-key"
-        rv = self.client.get(f"/superset/explore_json/data/{cache_key}")
+        rv = self.client.get(f"/explore_json/data/{cache_key}")
         data = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 404
@@ -475,7 +489,7 @@ class TestCore(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         slc = self.get_slice("Life Expectancy VS Rural %")
         rv = self.client.post(
-            f"/superset/explore_json/{slc.datasource_type}/{slc.datasource_id}/",
+            f"/explore_json/{slc.datasource_type}/{slc.datasource_id}/",
             data={"form_data": json.dumps(slc.form_data)},
         )
         data = json.loads(rv.data.decode("utf-8"))
@@ -502,7 +516,7 @@ class TestCore(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         slc = self.get_slice("Life Expectancy VS Rural %")
         rv = self.client.post(
-            f"/superset/explore_json/{slc.datasource_type}/{slc.datasource_id}/",
+            f"/explore_json/{slc.datasource_type}/{slc.datasource_id}/",
             data={"form_data": json.dumps(slc.form_data)},
         )
         data = json.loads(rv.data.decode("utf-8"))
@@ -640,8 +654,8 @@ class TestCore(SupersetTestCase):
         dash_id = db.session.query(Dashboard.id).first()[0]
         tbl_id = self.table_ids.get("wb_health_population")
         urls = [
-            "/superset/welcome",
-            f"/superset/dashboard/{dash_id}/",
+            "/welcome",
+            f"/dashboard/{dash_id}/",
             f"/explore/?datasource_type=table&datasource_id={tbl_id}",
         ]
         for url in urls:
@@ -857,7 +871,7 @@ class TestCore(SupersetTestCase):
         exception = SupersetException("Error message")
         mock_db_connection_mutator.side_effect = exception
         dash = db.session.query(Dashboard).first()
-        url = f"/superset/dashboard/{dash.id}/"
+        url = f"/dashboard/{dash.id}/"
 
         self.login(ADMIN_USERNAME)
         data = self.get_resp(url)
@@ -867,7 +881,7 @@ class TestCore(SupersetTestCase):
         exception = SQLAlchemyError("Error message")
         mock_db_connection_mutator.side_effect = exception
         dash = db.session.query(Dashboard).first()
-        url = f"/superset/dashboard/{dash.id}/"
+        url = f"/dashboard/{dash.id}/"
 
         self.login(ADMIN_USERNAME)
         data = self.get_resp(url)
@@ -882,9 +896,7 @@ class TestCore(SupersetTestCase):
         slice_name = f"Energy Sankey"  # noqa: F541
         slice_id = self.get_slice(slice_name).id
         form_data = {"slice_id": slice_id, "viz_type": "line", "datasource": "1__table"}
-        rv = self.client.get(
-            f"/superset/explore/?form_data={quote(json.dumps(form_data))}"
-        )
+        rv = self.client.get(f"/explore/?form_data={quote(json.dumps(form_data))}")
         assert rv.headers["Location"] == f"/explore/?form_data_key={random_key}"
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
@@ -904,6 +916,16 @@ class TestCore(SupersetTestCase):
         _, kwargs = mock_raise_for_access.call_args
         assert kwargs["datasource"].id == tbl_id
 
+    def test_explore_no_datasource_renders_spa(self):
+        # `Slice.slice_url` emits form_data carrying only `slice_id`; without a
+        # datasource the cache-and-redirect contract can't produce a different
+        # URL, so ExploreView.root must fall through to the SPA instead of
+        # 302-looping back to itself.
+        self.login(ADMIN_USERNAME)
+        form_data = {"slice_id": 1}
+        rv = self.client.get(f"/explore/?form_data={quote(json.dumps(form_data))}")
+        assert rv.status_code == 200
+
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_has_table(self):
         if backend() in ("sqlite", "mysql"):
@@ -919,9 +941,9 @@ class TestCore(SupersetTestCase):
         request_mock.query_string = b"standalone=3"
         get_dashboard_permalink_mock.return_value = {"dashboardId": 1}
         self.login(ADMIN_USERNAME)
-        resp = self.client.get("superset/dashboard/p/123/")
+        resp = self.client.get("/dashboard/p/123/")
 
-        expected_url = "/superset/dashboard/1/?permalink_key=123&standalone=3"
+        expected_url = "/dashboard/1/?permalink_key=123&standalone=3"
 
         assert resp.headers["Location"] == expected_url
         assert resp.status_code == 302
@@ -943,7 +965,7 @@ class TestCore(SupersetTestCase):
             "state": {"urlParams": [["native_filters", native_filters_value]]},
         }
         self.login(ADMIN_USERNAME)
-        resp = self.client.get("superset/dashboard/p/123/")
+        resp = self.client.get("/dashboard/p/123/")
 
         location = resp.headers["Location"]
         assert resp.status_code == 302
@@ -953,6 +975,36 @@ class TestCore(SupersetTestCase):
         # Round-trips back to the original value when decoded.
         parsed = parse_qs(urlsplit(location).query)
         assert parsed["native_filters"] == [native_filters_value]
+
+    @mock.patch(
+        "superset.commands.dashboard.permalink.get.GetDashboardPermalinkCommand.run"
+    )
+    def test_dashboard_permalink_redirects_anonymous_access_denied(
+        self,
+        get_dashboard_permalink_mock,
+    ):
+        get_dashboard_permalink_mock.side_effect = DashboardAccessDeniedError()
+
+        resp = self.client.get("/dashboard/p/123/")
+
+        expected_url = "/login/?next=%2Fdashboard%2Fp%2F123%2F"
+
+        assert resp.status_code == 302
+        assert resp.headers["Location"] == expected_url
+
+    @mock.patch(
+        "superset.commands.dashboard.permalink.get.GetDashboardPermalinkCommand.run"
+    )
+    def test_dashboard_permalink_returns_404_for_missing_state(
+        self,
+        get_dashboard_permalink_mock,
+    ):
+        get_dashboard_permalink_mock.return_value = None
+
+        resp = self.client.get("/dashboard/p/123/")
+
+        assert resp.status_code == 404
+        assert "Location" not in resp.headers
 
 
 class TestLocalePatch(SupersetTestCase):

@@ -522,6 +522,37 @@ def test_clickhouse_json_column_in_pa_table_is_valid_json() -> None:
     assert parsed1 == {"e": 5}
 
 
+def test_stringify_values_preserves_non_ascii_characters() -> None:
+    """
+    Non-ASCII text inside array/struct/JSON column values (e.g. the Cyrillic and
+    CJK strings produced by ``array_agg``) must render verbatim in the result
+    grid, not as ``\\uXXXX`` escape sequences. Regression test for #19388 and
+    #22904, where such values were displayed as "unicode gibberish".
+    """
+    data = np.array(
+        [
+            ["Лонгсливы", "Свитшоты"],
+            {"city": "北京", "country": "中国"},
+            "你好，世界！",
+        ],
+        dtype=object,
+    )
+    result = stringify_values(data)
+
+    # Array and dict values keep their characters intact and stay valid JSON
+    assert result[0] == '["Лонгсливы", "Свитшоты"]'
+    assert result[1] == '{"city": "北京", "country": "中国"}'
+    assert result[2] == "你好，世界！"
+
+    # No escape sequences leak through
+    assert "\\u" not in result[0]
+    assert "\\u" not in result[1]
+
+    # Still round-trips through a JSON parser
+    assert superset_json.loads(result[0]) == ["Лонгсливы", "Свитшоты"]
+    assert superset_json.loads(result[1]) == {"city": "北京", "country": "中国"}
+
+
 def test_stringify_values_non_serializable_dict_falls_back_to_str() -> None:
     """
     When a dict/list contains a value that json.dumps cannot serialize (e.g. bytes),

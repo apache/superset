@@ -141,8 +141,22 @@ const Legend = ({
   }
 
   const categories = Object.entries(categoriesObject).map(([k, v]) => {
-    const style = { color: `rgba(${v.color?.join(', ')})` };
-    const icon = v.enabled ? '\u25FC' : '\u25FB';
+    const color = `rgba(${v.color?.join(', ')})`;
+    // Render the swatch as a real coloured box rather than a colour-tinted
+    // text glyph. U+25FC/U+25FB are in Unicode's Emoji set but lack
+    // Emoji_Presentation, so Chromium resolves them to a colour-emoji font
+    // whose glyphs carry baked-in colour and ignore the CSS `color` property,
+    // producing a black square regardless of the category colour. A bordered
+    // box has no such dependency: filled when enabled, hollow when disabled.
+    const swatchStyle = {
+      display: 'inline-block',
+      width: '12px',
+      height: '12px',
+      border: `1px solid ${color}`,
+      backgroundColor: v.enabled ? color : 'transparent',
+      alignSelf: 'center',
+      flex: '0 0 auto',
+    };
 
     return (
       <li key={k}>
@@ -158,7 +172,7 @@ const Legend = ({
             showSingleCategory(k);
           }}
         >
-          <span style={style}>{icon}</span> {formatCategoryLabel(k)}
+          <span aria-hidden style={swatchStyle} /> {formatCategoryLabel(k)}
         </a>
       </li>
     );
@@ -173,7 +187,7 @@ const Legend = ({
   };
 
   return (
-    <StyledLegend className="dupa" style={style}>
+    <StyledLegend style={style}>
       <ul>{categories}</ul>
     </StyledLegend>
   );
