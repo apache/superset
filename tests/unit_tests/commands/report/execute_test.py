@@ -269,21 +269,21 @@ def test_log_data_with_missing_values(mocker: MockerFixture) -> None:
             ["mock_tab_anchor_1", "mock_tab_anchor_2"],
             ["url1", "url2"],
             [
-                "superset/dashboard/p/url1/",
-                "superset/dashboard/p/url2/",
+                "dashboard/p/url1/",
+                "dashboard/p/url2/",
             ],
         ),
         # Test user select one tab to export in a dashboard report
         (
             "mock_tab_anchor_1",
             ["url1"],
-            ["superset/dashboard/p/url1/"],
+            ["dashboard/p/url1/"],
         ),
         # Test JSON scalar string anchor falls back to single tab
         (
             json.dumps("mock_tab_anchor_1"),
             ["url1"],
-            ["superset/dashboard/p/url1/"],
+            ["dashboard/p/url1/"],
         ),
     ],
 )
@@ -498,8 +498,8 @@ def test_get_dashboard_urls_with_filters_and_tabs(
 
     base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
     assert result == [
-        urllib.parse.urljoin(base_url, "superset/dashboard/p/key1/"),
-        urllib.parse.urljoin(base_url, "superset/dashboard/p/key2/"),
+        urllib.parse.urljoin(base_url, "dashboard/p/key1/"),
+        urllib.parse.urljoin(base_url, "dashboard/p/key2/"),
     ]
     mock_report_schedule.get_native_filters_params.assert_called_once()  # type: ignore[attr-defined]
     assert mock_permalink_cls.call_count == 2
@@ -660,7 +660,7 @@ def test_get_dashboard_urls_with_filters_no_tabs(
 
     base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
     assert result == [
-        urllib.parse.urljoin(base_url, "superset/dashboard/p/key1/"),
+        urllib.parse.urljoin(base_url, "dashboard/p/key1/"),
     ]
     mock_report_schedule.get_native_filters_params.assert_called_once()  # type: ignore[attr-defined]
     assert mock_permalink_cls.call_count == 1
@@ -793,8 +793,8 @@ def test_get_tab_urls(
 
     base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
     assert result == [
-        urllib.parse.urljoin(base_url, "superset/dashboard/p/uri1/"),
-        urllib.parse.urljoin(base_url, "superset/dashboard/p/uri2/"),
+        urllib.parse.urljoin(base_url, "dashboard/p/uri1/"),
+        urllib.parse.urljoin(base_url, "dashboard/p/uri2/"),
     ]
 
 
@@ -883,7 +883,47 @@ def test_get_tab_url(
     import urllib.parse
 
     base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
-    assert result == urllib.parse.urljoin(base_url, "superset/dashboard/p/uri/")
+    assert result == urllib.parse.urljoin(base_url, "dashboard/p/uri/")
+
+
+@patch("superset.commands.report.execute.db.session")
+@patch(
+    "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
+)
+def test_get_tab_url_commits_permalink_before_returning(
+    mock_run,
+    mock_session,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """Regression test for #40996.
+
+    The report-generation flow runs inside an outer ``@transaction`` block,
+    so ``CreateDashboardPermalinkCommand``'s inner ``@transaction`` decorator
+    skips its own commit and leaves the permalink row flushed but uncommitted.
+    Playwright then opens the permalink on a separate database connection and
+    404s. ``_get_tab_url`` must therefore commit explicitly **after** the
+    permalink command returns so the row is visible across connections.
+    """
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.dashboard_id = 123
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+    mock_run.return_value = "uri"
+    dashboard_state = DashboardPermalinkState(
+        anchor="1",
+        dataMask=None,
+        activeTabs=None,
+        urlParams=None,
+    )
+
+    class_instance._get_tab_url(dashboard_state)
+
+    mock_run.assert_called_once()
+    mock_session.commit.assert_called_once()
 
 
 @patch(
@@ -1269,73 +1309,109 @@ def test_update_recipient_to_slack_v2_missing_channels(mocker: MockerFixture):
         mock_cmmd.update_report_schedule_slack_v2()
 
 
-def test_update_recipient_to_slack_v2_reverts_all_on_partial_failure(
+def test_update_recipient_to_slack_v2_multiple_recipients(
     mocker: MockerFixture,
 ) -> None:
-    """
-    When the second of two Slack recipients fails channel resolution, BOTH
-    recipients are fully reverted — type AND exact original
-    ``recipient_config_json`` string — not just the loop variable's type. This
-    prevents the intervening ``create_log`` commit from flushing a half-migrated,
-    inconsistent state.
-    """
+    """All Slack recipients are upgraded atomically when every channel resolves."""
 
-    def channels_side_effect(search_string, types, exact_match):
-        if search_string == "Channel-1":
-            return [
-                {
-                    "id": "id_channel_1",
-                    "name": "Channel-1",
-                    "is_member": True,
-                    "is_private": False,
-                }
-            ]
-        # Second recipient: no channel found → length mismatch → UpdateFailedError
-        return []
+    def fake_get_channels(search_string, types, exact_match):
+        return {
+            "channel-1": [{"id": "C1", "name": "channel-1", "is_private": False}],
+            "channel-2": [{"id": "C2", "name": "channel-2", "is_private": False}],
+        }[search_string]
 
     mocker.patch(
         "superset.commands.report.execute.get_channels_with_search",
-        side_effect=channels_side_effect,
+        side_effect=fake_get_channels,
     )
-    original_config_1 = json.dumps({"target": "Channel-1"})
-    original_config_2 = json.dumps({"target": "Channel-2"})
     mock_report_schedule = ReportSchedule(
-        name="Test Report",
         recipients=[
             ReportRecipients(
                 type=ReportRecipientType.SLACK,
-                recipient_config_json=original_config_1,
+                recipient_config_json=json.dumps({"target": "channel-1"}),
             ),
             ReportRecipients(
                 type=ReportRecipientType.SLACK,
-                recipient_config_json=original_config_2,
+                recipient_config_json=json.dumps({"target": "channel-2"}),
             ),
         ],
     )
 
-    mock_cmmd = BaseReportState(
+    mock_cmmd: BaseReportState = BaseReportState(
         mock_report_schedule, "January 1, 2021", "execution_id_example"
     )
+    mock_cmmd.update_report_schedule_slack_v2()
 
+    recipients = mock_cmmd._report_schedule.recipients
+    assert [r.type for r in recipients] == [
+        ReportRecipientType.SLACKV2,
+        ReportRecipientType.SLACKV2,
+    ]
+    assert recipients[0].recipient_config_json == '{"target": "C1"}'
+    assert recipients[1].recipient_config_json == '{"target": "C2"}'
+
+
+def test_update_recipient_to_slack_v2_partial_failure_is_atomic(
+    mocker: MockerFixture,
+) -> None:
+    """Regression: when one of several Slack recipients fails to resolve, no
+    recipient may be left partially upgraded.
+
+    The first recipient resolves cleanly and the second references a missing
+    channel. The upgrade must raise and leave *both* recipients untouched:
+    previously the already-resolved first recipient kept its mutated
+    ``type``/``recipient_config_json``, which a later error-log commit could
+    persist as a half-upgraded schedule.
+    """
+
+    def fake_get_channels(search_string, types, exact_match):
+        if search_string == "channel-1":
+            return [{"id": "C1", "name": "channel-1", "is_private": False}]
+        # "missing-channel" resolves to nothing -> triggers UpdateFailedError
+        return []
+
+    mocker.patch(
+        "superset.commands.report.execute.get_channels_with_search",
+        side_effect=fake_get_channels,
+    )
+    first_config = json.dumps({"target": "channel-1"})
+    second_config = json.dumps({"target": "missing-channel"})
+    mock_report_schedule = ReportSchedule(
+        recipients=[
+            ReportRecipients(
+                type=ReportRecipientType.SLACK,
+                recipient_config_json=first_config,
+            ),
+            ReportRecipients(
+                type=ReportRecipientType.SLACK,
+                recipient_config_json=second_config,
+            ),
+        ],
+    )
+
+    mock_cmmd: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
     with pytest.raises(UpdateFailedError):
         mock_cmmd.update_report_schedule_slack_v2()
 
-    first, second = mock_report_schedule.recipients
-    # The first recipient was mutated to v2 before the second failed; it must be
-    # reverted to its exact original type AND config string.
-    assert first.type == ReportRecipientType.SLACK
-    assert first.recipient_config_json == original_config_1
-    assert second.type == ReportRecipientType.SLACK
-    assert second.recipient_config_json == original_config_2
+    recipients = mock_cmmd._report_schedule.recipients
+    # Neither recipient may be mutated: types stay SLACK and configs stay as the
+    # original channel-name targets (not resolved ids).
+    assert [r.type for r in recipients] == [
+        ReportRecipientType.SLACK,
+        ReportRecipientType.SLACK,
+    ]
+    assert recipients[0].recipient_config_json == first_config
+    assert recipients[1].recipient_config_json == second_config
 
 
 def test_update_recipient_to_slack_v2_pre_iteration_failure(
     mocker: MockerFixture,
 ) -> None:
     """
-    A failure raised while accessing/iterating the recipients (before the loop
-    variable is bound) surfaces as ``UpdateFailedError``, not a ``NameError``
-    that would mask the real error.
+    A failure raised while accessing/iterating the recipients surfaces as
+    ``UpdateFailedError``, not a ``NameError`` that masks the real error.
     """
 
     class _ExplodingRecipients:
@@ -1721,7 +1797,7 @@ def test_get_dashboard_urls_no_state_fallback(
     result = state.get_dashboard_urls()
 
     assert len(result) == 1
-    assert "superset/dashboard/" in result[0]
+    assert "dashboard/" in result[0]
     assert "dashboard/p/" not in result[0]  # not a permalink
 
 

@@ -29,6 +29,7 @@ import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import { detectOS } from 'src/utils/common';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { SQLLAB_TAB_OVERFLOW_POPUP_CLASS } from 'src/SqlLab/SqlLabGlobalStyles';
 import SqlEditor from '../SqlEditor';
 import SqlEditorTabHeader from '../SqlEditorTabHeader';
 
@@ -262,6 +263,7 @@ function TabbedSqlEditors({
       hideAdd={offline}
       onTabClick={onTabClicked}
       onEdit={handleEdit}
+      popupClassName={SQLLAB_TAB_OVERFLOW_POPUP_CLASS}
       type={queryEditors?.length === 0 ? 'card' : 'editable-card'}
       addIcon={
         <Tooltip

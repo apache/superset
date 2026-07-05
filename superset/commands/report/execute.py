@@ -163,61 +163,55 @@ class BaseReportState:
         """
         Update the report schedule type and channels for all slack recipients to v2.
         V2 uses ids instead of names for channels.
+
+        Channel ids for every Slack recipient are resolved first and the
+        recipients are only mutated once all of them resolve. This keeps the
+        upgrade all-or-nothing: a single unresolvable channel can no longer
+        leave the schedule with some recipients already switched to v2 (and
+        persisted by a later error-log commit) while others are untouched.
         """
-        # Track each recipient mutated in this pass with its original (type,
-        # config) so a partial failure can revert ALL of them — not just the
-        # loop variable. Restoring the in-memory values to their loaded state
-        # keeps a later commit from persisting a half-migrated set.
-        mutated: list[tuple[ReportRecipients, ReportRecipientType, str]] = []
+        resolved: list[tuple[ReportRecipients, str]] = []
         try:
             for recipient in self._report_schedule.recipients:
-                if recipient.type == ReportRecipientType.SLACK:
-                    mutated.append(
-                        (recipient, recipient.type, recipient.recipient_config_json)
+                if recipient.type != ReportRecipientType.SLACK:
+                    continue
+                slack_recipients = json.loads(recipient.recipient_config_json)
+                # V1 method allowed to use leading `#` in the channel name
+                channel_names = (slack_recipients["target"] or "").replace("#", "")
+                # we need to ensure that existing reports can also fetch
+                # ids from private channels
+                channels = get_channels_with_search(
+                    search_string=channel_names,
+                    types=[
+                        SlackChannelTypes.PRIVATE,
+                        SlackChannelTypes.PUBLIC,
+                    ],
+                    exact_match=True,
+                )
+                channels_list = recipients_string_to_list(channel_names)
+                if len(channels_list) != len(channels):
+                    missing_channels = set(channels_list) - {
+                        channel["name"] for channel in channels
+                    }
+                    msg = (
+                        "Could not find the following channels: "
+                        f"{', '.join(missing_channels)}"
                     )
-                    recipient.type = ReportRecipientType.SLACKV2
-                    slack_recipients = json.loads(recipient.recipient_config_json)
-                    # V1 method allowed to use leading `#` in the channel name
-                    channel_names = (slack_recipients["target"] or "").replace("#", "")
-                    # we need to ensure that existing reports can also fetch
-                    # ids from private channels
-                    channels = get_channels_with_search(
-                        search_string=channel_names,
-                        types=[
-                            SlackChannelTypes.PRIVATE,
-                            SlackChannelTypes.PUBLIC,
-                        ],
-                        exact_match=True,
-                    )
-                    channels_list = recipients_string_to_list(channel_names)
-                    if len(channels_list) != len(channels):
-                        missing_channels = set(channels_list) - {
-                            channel["name"] for channel in channels
-                        }
-                        msg = (
-                            "Could not find the following channels: "
-                            f"{', '.join(missing_channels)}"
-                        )
-                        raise UpdateFailedError(msg)
-                    channel_ids = ",".join(channel["id"] for channel in channels)
-                    recipient.recipient_config_json = json.dumps(
-                        {
-                            "target": channel_ids,
-                        }
-                    )
+                    raise UpdateFailedError(msg)
+                channel_ids = ",".join(channel["id"] for channel in channels)
+                resolved.append((recipient, json.dumps({"target": channel_ids})))
         except Exception as ex:
-            # Revert every mutated recipient to v1 (both type AND config) to
-            # preserve configuration (requires manual fix). Reverting the full
-            # set — not just the loop variable — keeps earlier recipients
-            # consistent; iterating the snapshot also avoids the UnboundLocalError
-            # that a bare loop-variable reference raises on a pre-iteration
-            # failure (which would mask the real error).
-            for reverted_recipient, original_type, original_config in mutated:
-                reverted_recipient.type = original_type
-                reverted_recipient.recipient_config_json = original_config
+            # No recipient has been mutated yet, so there is no partial upgrade
+            # to revert; surface the failure so the configuration can be fixed
+            # manually.
             msg = f"Failed to update slack recipients to v2: {str(ex)}"
             logger.exception(msg)
             raise UpdateFailedError(msg) from ex
+
+        # Every Slack recipient resolved; apply the upgrade atomically.
+        for recipient, recipient_config_json in resolved:
+            recipient.type = ReportRecipientType.SLACKV2
+            recipient.recipient_config_json = recipient_config_json
 
     def create_log(self, error_message: Optional[str] = None) -> None:
         """
@@ -402,6 +396,18 @@ class BaseReportState:
             dashboard_id=str(self._report_schedule.dashboard.uuid),
             state=dashboard_state,
         ).run()
+
+        # The report-generation flow runs inside an outer ``@transaction``
+        # block (``ReportScheduleStateMachine.run``). Because of that,
+        # ``CreateDashboardPermalinkCommand``'s inner ``@transaction``
+        # decorator detects the active transaction and skips its own
+        # commit — the new row is flushed to the session but not yet
+        # visible to other database connections. Playwright then opens
+        # the permalink URL on a separate connection to render the
+        # report, which 404s because the row isn't committed. Commit
+        # explicitly here so the permalink is visible before navigation
+        # (#40996).
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
         return get_url_path(
             "Superset.dashboard_permalink",
@@ -1200,7 +1206,6 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
         self._scheduled_dttm = scheduled_dttm
         self._execution_id = UUID(task_id)
 
-    @transaction()
     def run(self) -> None:
         try:
             self.validate()
@@ -1226,6 +1231,19 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
 
             start_time = datetime.utcnow()
             with override_user(user):
+                # Pre-commit any permalink rows before the state machine's
+                # @transaction() opens. When called inside a transaction,
+                # CreateDashboardPermalinkCommand only flushes (not commits),
+                # leaving the row invisible to Playwright's separate DB
+                # connection. Running get_dashboard_urls() here — outside any
+                # transaction — lets the command commit normally. The state
+                # machine's inner call to get_dashboard_urls() hits get_entry()
+                # for the same deterministic UUID and returns the
+                # already-committed row without a second INSERT.
+                if self._model.dashboard_id:
+                    BaseReportState(
+                        self._model, self._scheduled_dttm, self._execution_id
+                    ).get_dashboard_urls()
                 ReportScheduleStateMachine(
                     self._execution_id, self._model, self._scheduled_dttm
                 ).run()

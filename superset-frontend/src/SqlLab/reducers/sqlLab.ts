@@ -18,7 +18,7 @@
  */
 import { normalizeTimestamp, QueryState } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
-import { isEqual, omit } from 'lodash';
+import { isEqual, omit } from 'lodash-es';
 import { shallowEqual } from 'react-redux';
 import { now } from '@superset-ui/core/utils/dates';
 import type { SqlLabRootState, QueryEditor, Table } from '../types';
