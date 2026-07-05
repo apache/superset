@@ -82,22 +82,18 @@ const RefreshTooltip = styled.div`
 const getScreenshotNodeSelector = (chartId: string | number) =>
   `.dashboard-chart-id-${chartId}`;
 
-const VerticalDotsTrigger = () => {
-  const theme = useTheme();
-  return (
-    <Icons.EllipsisOutlined
-      css={css`
-        transform: rotate(90deg);
-        &:hover {
-          cursor: pointer;
-        }
-      `}
-      iconSize="xl"
-      iconColor={theme.colorTextLabel}
-      className="dot"
-    />
-  );
-};
+const VerticalDotsTrigger = () => (
+  <Icons.EllipsisOutlined
+    css={css`
+      transform: rotate(90deg);
+      &:hover {
+        cursor: pointer;
+      }
+    `}
+    iconSize="xl"
+    className="dot"
+  />
+);
 
 export interface SliceHeaderControlsProps {
   chartHolderRef?: RefObject<HTMLDivElement>;
