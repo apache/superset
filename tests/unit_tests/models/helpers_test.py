@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import copy
 from contextlib import contextmanager
-from typing import cast, TYPE_CHECKING
+from typing import Any, cast, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -2057,6 +2057,106 @@ def test_orderby_adhoc_column(database: Database) -> None:
     assert "ORDER BY" in sql.upper()
 
 
+def test_orderby_adhoc_column_label_takes_precedence_over_saved_metric(
+    database: Database,
+) -> None:
+    """
+    Test that orderby by an adhoc column label resolves to the selected column.
+    """
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+    table: SqlaTable = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a"),
+            TableColumn(column_name="b"),
+        ],
+        metrics=[
+            SqlMetric(metric_name="custom_col", expression="SUM(a)"),
+        ],
+    )
+
+    result = table.get_sqla_query(
+        columns=[
+            {"expressionType": "SQL", "label": "custom_col", "sqlExpression": "a + 1"},
+            "b",
+        ],
+        orderby=[("custom_col", False)],
+        metrics=[],
+        extras={},
+        filter=[],
+        granularity=None,
+        is_timeseries=False,
+    )
+
+    sql = str(result.sqla_query).upper()
+    assert "ORDER BY" in sql
+    assert "SUM(A)" not in sql
+
+
+@pytest.mark.parametrize("aggregate", [None, "MEDIAN", ["SUM"], {"op": "SUM"}])
+def test_adhoc_metric_to_sqla_invalid_simple_aggregate_raises_validation_error(
+    database: Database,
+    aggregate: Any,
+) -> None:
+    """
+    Test that malformed SIMPLE adhoc metrics fail with a validation error.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table: SqlaTable = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a"),
+        ],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "a"},
+        "label": "Invalid metric",
+    }
+    if aggregate is not None:
+        metric["aggregate"] = aggregate
+
+    with pytest.raises(QueryObjectValidationError):
+        table.adhoc_metric_to_sqla(metric, {})
+
+
+@pytest.mark.parametrize("sql_expression", [None, "", "   "])
+def test_adhoc_metric_to_sqla_invalid_sql_expression_raises_validation_error(
+    database: Database,
+    sql_expression: str | None,
+) -> None:
+    """
+    Test that malformed SQL adhoc metrics fail with a validation error.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a"),
+        ],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "label": "Invalid metric",
+    }
+    if sql_expression is not None:
+        metric["sqlExpression"] = sql_expression
+
+    with pytest.raises(QueryObjectValidationError):
+        table.adhoc_metric_to_sqla(metric, {})
+
+
 def test_extras_where_is_parenthesized(
     database: Database,
 ) -> None:
@@ -3193,6 +3293,61 @@ def test_process_sql_expression_no_gate_when_denylists_empty(
         template_processor=None,
     )
     assert result is not None
+
+
+def test_resolve_denylist_schema_uses_query_aware_resolution(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """A datasource without an explicit schema resolves the denylist schema
+    through the query-aware ``get_default_schema_for_query`` (matching the SQL
+    Lab / executor gate), not the static inspector-based ``get_default_schema``."""
+    from superset.connectors.sqla.models import SqlaTable
+
+    query_aware = mocker.patch.object(
+        database, "get_default_schema_for_query", return_value="resolved"
+    )
+    static = mocker.patch.object(database, "get_default_schema")
+    table = SqlaTable(database=database, schema=None, table_name="t")
+
+    assert table._resolve_denylist_schema("SELECT 1") == "resolved"
+    query_aware.assert_called_once()
+    static.assert_not_called()
+
+
+def test_resolve_denylist_schema_memoizes_across_expressions(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """The resolved schema is cached per datasource so adhoc-expression
+    validation, which runs once per column/metric/order-by, does not re-resolve
+    (and re-probe) the schema for every expression."""
+    from superset.connectors.sqla.models import SqlaTable
+
+    query_aware = mocker.patch.object(
+        database, "get_default_schema_for_query", return_value="resolved"
+    )
+    table = SqlaTable(database=database, schema=None, table_name="t")
+
+    # Distinct expression shapes (column / metric / order-by) mirror a real
+    # request, where validation runs once per selected field with different
+    # SQL each time. Caching must be keyed on the datasource instance, not the
+    # SQL string, so a single resolution still covers all of them.
+    for sql in ("price", "SUM(price)", "created_at DESC"):
+        assert table._resolve_denylist_schema(sql) == "resolved"
+    query_aware.assert_called_once()
+
+
+def test_resolve_denylist_schema_explicit_schema_skips_probe(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """An explicit datasource schema is returned directly, with no probe Query
+    and no inspector round-trip."""
+    from superset.connectors.sqla.models import SqlaTable
+
+    query_aware = mocker.patch.object(database, "get_default_schema_for_query")
+    table = SqlaTable(database=database, schema="analytics", table_name="t")
+
+    assert table._resolve_denylist_schema("SELECT 1") == "analytics"
+    query_aware.assert_not_called()
 
 
 def test_get_sqla_query_dotted_struct_column_bigquery(

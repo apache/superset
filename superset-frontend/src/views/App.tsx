@@ -104,7 +104,7 @@ const RouteSwitch = () => {
           </Suspense>
         </Route>
       ))}
-      <Redirect from="/" to="/superset/welcome/" exact />
+      <Redirect from="/" to="/welcome/" exact />
     </Switch>
   );
 };

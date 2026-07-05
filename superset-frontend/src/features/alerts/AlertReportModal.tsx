@@ -1427,7 +1427,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const openDashboardInNewTab = (dashboardId?: number | string | null) => {
     if (!dashboardId) return;
-    navigateTo(`/superset/dashboard/${dashboardId}`, { newWindow: true });
+    navigateTo(`/dashboard/${dashboardId}/`, { newWindow: true });
   };
 
   const onChartChange = (chart: SelectValue) => {

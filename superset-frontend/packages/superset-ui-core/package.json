@@ -67,7 +67,7 @@
     "rison": "^0.1.1",
     "seedrandom": "^3.0.5",
     "xss": "^1.0.15",
-    "lodash-es": "^4.17.21"
+    "lodash-es": "^4.18.1"
   },
   "devDependencies": {
     "@emotion/styled": "^11.14.1",
@@ -78,7 +78,7 @@
     "@types/d3-time-format": "^4.0.3",
     "@types/jquery": "^4.0.1",
     "@types/lodash": "^4.17.24",
-    "@types/node": "^26.0.0",
+    "@types/node": "^26.0.1",
     "@types/prop-types": "^15.7.15",
     "@types/react-syntax-highlighter": "^15.5.13",
     "@types/react-table": "^7.7.20",

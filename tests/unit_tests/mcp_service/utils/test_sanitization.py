@@ -1024,3 +1024,44 @@ def test_sanitize_sql_expression_allows_url_scheme_in_string_literal():
     sanitize_sql_expression = _sanitize_sql()
     expr = "COUNT(CASE WHEN url LIKE 'javascript:%' THEN 1 END)"
     assert sanitize_sql_expression(expr, "sql_expression") == expr
+
+
+# ---------------------------------------------------------------------------
+# escape_like
+# ---------------------------------------------------------------------------
+
+
+def test_escape_like_plain_text():
+    from superset.mcp_service.utils.sanitization import escape_like
+
+    assert escape_like("maxime") == "maxime"
+
+
+def test_escape_like_percent():
+    from superset.mcp_service.utils.sanitization import escape_like
+
+    assert escape_like("%") == "\\%"
+
+
+def test_escape_like_underscore():
+    from superset.mcp_service.utils.sanitization import escape_like
+
+    assert escape_like("_") == "\\_"
+
+
+def test_escape_like_backslash():
+    from superset.mcp_service.utils.sanitization import escape_like
+
+    assert escape_like("\\") == "\\\\"
+
+
+def test_escape_like_mixed():
+    from superset.mcp_service.utils.sanitization import escape_like
+
+    assert escape_like("a%b_c\\") == "a\\%b\\_c\\\\"
+
+
+def test_escape_like_empty_string():
+    from superset.mcp_service.utils.sanitization import escape_like
+
+    assert escape_like("") == ""

@@ -17,6 +17,7 @@
 
 """Unit tests for the MCP get_dashboard_datasets tool."""
 
+from importlib import import_module
 from unittest.mock import Mock, patch
 
 import pytest
@@ -28,6 +29,10 @@ from superset.mcp_service.utils.sanitization import (
     LLM_CONTEXT_OPEN_DELIMITER,
 )
 from superset.utils import json
+
+get_dashboard_datasets_module = import_module(
+    "superset.mcp_service.dashboard.tool.get_dashboard_datasets"
+)
 
 
 def _wrapped(value: str) -> str:
@@ -142,8 +147,8 @@ def mock_dataset_access():
 @pytest.fixture(autouse=True)
 def allow_data_model_metadata():
     """Keep tests in the metadata-allowed path unless a test overrides it."""
-    with patch(
-        "superset.mcp_service.dashboard.tool.get_dashboard_datasets."
+    with patch.object(
+        get_dashboard_datasets_module,
         "user_can_view_data_model_metadata",
         return_value=True,
     ) as mock_allow:

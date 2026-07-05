@@ -263,9 +263,7 @@ export default function StatefulChart(props: StatefulChartProps) {
       if (!useLegacyApi && !queryContext.queries) {
         queryContext = { queries: [queryContext] };
       }
-      const endpoint = useLegacyApi
-        ? '/superset/explore_json/'
-        : '/api/v1/chart/data';
+      const endpoint = useLegacyApi ? '/explore_json/' : '/api/v1/chart/data';
 
       const requestConfig: RequestConfig = {
         endpoint,
