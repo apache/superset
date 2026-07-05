@@ -138,7 +138,6 @@ export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   zoomable: TIMESERIES_DEFAULTS.zoomable,
   richTooltip: TIMESERIES_DEFAULTS.richTooltip,
   showQueryIdentifiers: false,
-  //new
   truncateMetric: false,
   truncateMetricB: false,
   xAxisLabelRotation: TIMESERIES_DEFAULTS.xAxisLabelRotation,

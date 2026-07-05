@@ -227,9 +227,6 @@ export default function transformProps(
     truncateMetricB,
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
-  //debug logs for truncate_metric and truncate_metric_b values
-  console.log('truncateMetric:', truncateMetric, 'truncateMetricB:', truncateMetricB);
-  console.log('Full formData:', formData);
   const refs: Refs = {};
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
 
@@ -420,162 +417,163 @@ export default function transformProps(
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
 
- 
+  rawSeriesA.forEach(entry => {
+    const entryName = String(entry.name || '');
+    const seriesName = inverted[entryName] || entryName;
+    const colorScaleKey = getOriginalSeries(seriesName, array);
 
-rawSeriesA.forEach(entry => {
-  const entryName = String(entry.name || '');
-  const seriesName = inverted[entryName] || entryName;
-  const colorScaleKey = getOriginalSeries(seriesName, array);
+    let displayName: string;
 
-  let displayName: string;
-
-  if (truncateMetric && groupby.length > 0) {
-    const groupbyValues = labelMap?.[seriesName] || [];
-    displayName = groupbyValues.length > 0 ? groupbyValues.join(', ') : entryName;
-  } else {
-    if (groupby.length > 0) {
-      const metricPart: string = showQueryIdentifiers
-        ? `${MetricDisplayNameA} (Query A)`
-        : MetricDisplayNameA;
-      displayName = entryName.includes(metricPart)
-        ? entryName
-        : `${metricPart}, ${entryName}`;
+    if (truncateMetric && groupby.length > 0) {
+      const groupbyValues = labelMap?.[seriesName] || [];
+      displayName =
+        groupbyValues.length > 0 ? groupbyValues.join(', ') : entryName;
     } else {
-      displayName = showQueryIdentifiers ? `${entryName} (Query A)` : entryName;
+      if (groupby.length > 0) {
+        const metricPart: string = showQueryIdentifiers
+          ? `${MetricDisplayNameA} (Query A)`
+          : MetricDisplayNameA;
+        displayName = entryName.includes(metricPart)
+          ? entryName
+          : `${metricPart}, ${entryName}`;
+      } else {
+        displayName = showQueryIdentifiers
+          ? `${entryName} (Query A)`
+          : entryName;
+      }
     }
-  }
 
-  const seriesFormatter = getFormatter(
-    customFormatters,
-    formatter,
-    metrics,
-    labelMap?.[seriesName]?.[0],
-    !!contributionMode,
-  );
+    const seriesFormatter = getFormatter(
+      customFormatters,
+      formatter,
+      metrics,
+      labelMap?.[seriesName]?.[0],
+      !!contributionMode,
+    );
 
-  const transformedSeries = transformSeries(
-    {
-      ...entry,
-      id: `${displayName || ''}`,
-      name: `${displayName || ''}`,
-    },
-    colorScale,
-    colorScaleKey,
-    {
-      area,
-      markerEnabled,
-      markerSize,
-      areaOpacity: opacity,
-      seriesType,
-      showValue,
-      onlyTotal,
-      stack: Boolean(stack),
-      stackIdSuffix: '\na',
-      yAxisIndex,
-      filterState,
-      seriesKey: entry.name,
-      sliceId,
-      queryIndex: 0,
-      formatter:
-        seriesType === EchartsTimeseriesSeriesType.Bar
-          ? getOverMaxHiddenFormatter({
-              max: yAxisMax,
-              formatter: seriesFormatter,
-            })
-          : seriesFormatter,
-      totalStackedValues: sortedTotalValuesA,
-      showValueIndexes: showValueIndexesA,
-      thresholdValues,
-      timeShiftColor,
-      theme,
-    },
-  );
+    const transformedSeries = transformSeries(
+      {
+        ...entry,
+        id: `${displayName || ''}`,
+        name: `${displayName || ''}`,
+      },
+      colorScale,
+      colorScaleKey,
+      {
+        area,
+        markerEnabled,
+        markerSize,
+        areaOpacity: opacity,
+        seriesType,
+        showValue,
+        onlyTotal,
+        stack: Boolean(stack),
+        stackIdSuffix: '\na',
+        yAxisIndex,
+        filterState,
+        seriesKey: entry.name,
+        sliceId,
+        queryIndex: 0,
+        formatter:
+          seriesType === EchartsTimeseriesSeriesType.Bar
+            ? getOverMaxHiddenFormatter({
+                max: yAxisMax,
+                formatter: seriesFormatter,
+              })
+            : seriesFormatter,
+        totalStackedValues: sortedTotalValuesA,
+        showValueIndexes: showValueIndexesA,
+        thresholdValues,
+        timeShiftColor,
+        theme,
+      },
+    );
 
-  if (transformedSeries) {
-    series.push(transformedSeries);
-    mapSeriesIdToAxis(transformedSeries, yAxisIndex);
-  }
-});
+    if (transformedSeries) {
+      series.push(transformedSeries);
+      mapSeriesIdToAxis(transformedSeries, yAxisIndex);
+    }
+  });
 
+  rawSeriesB.forEach(entry => {
+    const entryName = String(entry.name || '');
+    const seriesEntry = inverted[entryName] || entryName;
+    const seriesName = `${seriesEntry} (1)`;
+    const colorScaleKey = getOriginalSeries(seriesEntry, array);
 
+    let displayName: string;
 
-rawSeriesB.forEach(entry => {
-  const entryName = String(entry.name || '');
-  const seriesEntry = inverted[entryName] || entryName;
-  const seriesName = `${seriesEntry} (1)`;
-  const colorScaleKey = getOriginalSeries(seriesEntry, array);
-
-  let displayName: string;
-
-  if (truncateMetricB && groupbyB.length > 0) {
-    const groupbyValues = labelMapB?.[seriesEntry] || labelMapB?.[entryName] || [];
-    displayName = groupbyValues.length > 0 ? groupbyValues.join(', ') : entryName;
-  } else {
-    if (groupbyB.length > 0) {
-      const metricPart: string = showQueryIdentifiers
-        ? `${MetricDisplayNameB} (Query B)`
-        : MetricDisplayNameB;
-      displayName = entryName.includes(metricPart)
-        ? entryName
-        : `${metricPart}, ${entryName}`;
+    if (truncateMetricB && groupbyB.length > 0) {
+      const groupbyValues =
+        labelMapB?.[seriesEntry] || labelMapB?.[entryName] || [];
+      displayName =
+        groupbyValues.length > 0 ? groupbyValues.join(', ') : entryName;
     } else {
-      displayName = showQueryIdentifiers ? `${entryName} (Query B)` : entryName;
+      if (groupbyB.length > 0) {
+        const metricPart: string = showQueryIdentifiers
+          ? `${MetricDisplayNameB} (Query B)`
+          : MetricDisplayNameB;
+        displayName = entryName.includes(metricPart)
+          ? entryName
+          : `${metricPart}, ${entryName}`;
+      } else {
+        displayName = showQueryIdentifiers
+          ? `${entryName} (Query B)`
+          : entryName;
+      }
     }
-  }
 
-  const seriesFormatter = getFormatter(
-    customFormattersSecondary,
-    formatterSecondary,
-    metricsB,
-    labelMapB?.[seriesName]?.[0],
-    !!contributionMode,
-  );
+    const seriesFormatter = getFormatter(
+      customFormattersSecondary,
+      formatterSecondary,
+      metricsB,
+      labelMapB?.[seriesName]?.[0],
+      !!contributionMode,
+    );
 
-  const transformedSeries = transformSeries(
-    {
-      ...entry,
-      id: `${displayName || ''}`,
-      name: `${displayName || ''}`,
-    },
-    colorScale,
-    colorScaleKey,
-    {
-      area: areaB,
-      markerEnabled: markerEnabledB,
-      markerSize: markerSizeB,
-      areaOpacity: opacityB,
-      seriesType: seriesTypeB,
-      showValue: showValueB,
-      onlyTotal: onlyTotalB,
-      stack: Boolean(stackB),
-      stackIdSuffix: '\nb',
-      yAxisIndex: yAxisIndexB,
-      filterState,
-      seriesKey: entry.name,
-      sliceId,
-      queryIndex: 1,
-      formatter:
-        seriesTypeB === EchartsTimeseriesSeriesType.Bar
-          ? getOverMaxHiddenFormatter({
-              max: maxSecondary,
-              formatter: seriesFormatter,
-            })
-          : seriesFormatter,
-      totalStackedValues: sortedTotalValuesB,
-      showValueIndexes: showValueIndexesB,
-      thresholdValues: thresholdValuesB,
-      timeShiftColor,
-      theme,
-    },
-  );
+    const transformedSeries = transformSeries(
+      {
+        ...entry,
+        id: `${displayName || ''}`,
+        name: `${displayName || ''}`,
+      },
+      colorScale,
+      colorScaleKey,
+      {
+        area: areaB,
+        markerEnabled: markerEnabledB,
+        markerSize: markerSizeB,
+        areaOpacity: opacityB,
+        seriesType: seriesTypeB,
+        showValue: showValueB,
+        onlyTotal: onlyTotalB,
+        stack: Boolean(stackB),
+        stackIdSuffix: '\nb',
+        yAxisIndex: yAxisIndexB,
+        filterState,
+        seriesKey: entry.name,
+        sliceId,
+        queryIndex: 1,
+        formatter:
+          seriesTypeB === EchartsTimeseriesSeriesType.Bar
+            ? getOverMaxHiddenFormatter({
+                max: maxSecondary,
+                formatter: seriesFormatter,
+              })
+            : seriesFormatter,
+        totalStackedValues: sortedTotalValuesB,
+        showValueIndexes: showValueIndexesB,
+        thresholdValues: thresholdValuesB,
+        timeShiftColor,
+        theme,
+      },
+    );
 
-  if (transformedSeries) {
-    series.push(transformedSeries);
-    mapSeriesIdToAxis(transformedSeries, yAxisIndexB);
-  }
-});
-
- 
+    if (transformedSeries) {
+      series.push(transformedSeries);
+      mapSeriesIdToAxis(transformedSeries, yAxisIndexB);
+    }
+  });
 
   // default to 0-100% range when doing row-level contribution chart
   if (contributionMode === 'row' && stack) {
