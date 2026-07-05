@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
@@ -75,3 +76,40 @@ def test_script_rejects_malformed_lang_and_version(client: Any) -> None:
         404,
     )
     assert client.get("/language_pack/fr/not-a-hash!/script.js").status_code == 400
+
+
+def test_script_serves_only_the_requested_locale(client: Any) -> None:
+    """The endpoint resolves exactly one pack: the locale in the URL."""
+    with (
+        patch(
+            "superset.views.core.get_language_pack_version",
+            return_value=FAKE_VERSION,
+        ) as mock_version,
+        patch(
+            "superset.views.core.get_language_pack", return_value=FAKE_PACK
+        ) as mock_pack,
+    ):
+        client.get(f"/language_pack/pt_BR/{FAKE_VERSION}/script.js")
+
+    mock_version.assert_called_once_with("pt_BR")
+    mock_pack.assert_called_once_with("pt_BR")
+
+
+def test_spa_template_loads_pack_before_entry_bundle() -> None:
+    """Static guard on spa.html: the language pack script tag must precede
+    the entry bundle and stay a classic script (no async/defer). A deferred
+    or reordered tag would let code-split chunks evaluate module-level
+    `t('...')` calls before the translator is configured (issue #35330)."""
+    import superset
+
+    template = (
+        Path(superset.__file__).parent / "templates" / "superset" / "spa.html"
+    ).read_text()
+
+    tag_start = template.index('<script src="{{ language_pack_src }}"')
+    entry_start = template.index("js_bundle(assets_prefix, entry)")
+    assert tag_start < entry_start
+
+    script_tag = template[tag_start : template.index(">", tag_start)]
+    assert "async" not in script_tag
+    assert "defer" not in script_tag

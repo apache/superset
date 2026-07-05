@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import hashlib
+from collections.abc import Iterator
 
 import pytest
 
@@ -26,7 +27,7 @@ from superset.translations.utils import (
 
 
 @pytest.fixture(autouse=True)
-def _clear_version_cache() -> None:
+def _clear_version_cache() -> Iterator[None]:
     translations_utils.ALL_LANGUAGE_PACK_VERSIONS.clear()
     yield
     translations_utils.ALL_LANGUAGE_PACK_VERSIONS.clear()
