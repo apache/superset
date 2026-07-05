@@ -206,7 +206,6 @@ test('AgGridTableChart hides Search by dropdown if includeSearch is false', asyn
   });
   props.serverPagination = true;
   props.includeSearch = false;
-  props.searchOptions = [{ label: 'Name', value: 'name' }];
 
   render(
     ProviderWrapper({
@@ -239,7 +238,6 @@ test('AgGridTableChart renders Search by dropdown if includeSearch is true and t
   });
   props.serverPagination = true;
   props.includeSearch = true;
-  props.searchOptions = [{ label: 'Name', value: 'name' }];
 
   render(
     ProviderWrapper({
