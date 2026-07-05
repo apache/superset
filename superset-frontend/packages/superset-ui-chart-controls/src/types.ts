@@ -677,7 +677,9 @@ export interface ServerPaginationData {
 
 export type TableColumnConfig = {
   d3NumberFormat?: string;
-  d3SmallNumberFormat?: string;
+  // Allow null to match JSON round-trips, where an unset value deserializes
+  // from the metadata DB as `null` rather than `undefined`.
+  d3SmallNumberFormat?: string | null;
   d3TimeFormat?: string;
   columnWidth?: number;
   horizontalAlign?: 'left' | 'right' | 'center';
@@ -711,4 +713,5 @@ export interface DataColumnMeta {
   isChildColumn?: boolean;
   description?: string;
   currencyCodeColumn?: string;
+  isFilterable?: boolean;
 }

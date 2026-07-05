@@ -128,7 +128,9 @@ def update_chart_preview(  # noqa: C901
     - Iterating on chart design without creating permanent charts
     - Testing different configurations
 
-    Returns new form_data_key, preview images, and explore URL.
+    Returns new form_data_key, preview images, and explore URL. The explore_url
+    scheme matches the configured instance URL (HTTPS in production/staging,
+    HTTP in local development).
     """
     start_time = time.time()
 
@@ -240,8 +242,11 @@ def update_chart_preview(  # noqa: C901
                     "api_version": "v1",
                 }
 
-            # Generate new explore link with updated form_data
-            explore_url = generate_explore_link(request.dataset_id, new_form_data)
+            # Generate new explore link with updated form_data. This preview flow
+            # extracts and re-caches the form_data_key, so force that URL shape.
+            explore_url = generate_explore_link(
+                request.dataset_id, new_form_data, prefer_permalink=False
+            )
 
         # Extract new form_data_key from the explore URL
         new_form_data_key = extract_form_data_key_from_url(explore_url)

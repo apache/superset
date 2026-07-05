@@ -90,14 +90,18 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
 
 
 def get_chart_csv_data(
-    chart_url: str, auth_cookies: Optional[dict[str, str]] = None
+    chart_url: str,
+    auth_cookies: Optional[dict[str, str]] = None,
+    timeout: Optional[float] = None,
 ) -> Optional[bytes]:
     content = None
     if auth_cookies:
         opener = urllib.request.build_opener()
         cookie_str = ";".join([f"{key}={val}" for key, val in auth_cookies.items()])
         opener.addheaders.append(("Cookie", cookie_str))
-        response = opener.open(chart_url)
+        # A missing timeout means the socket blocks forever when the Superset
+        # webserver is unreachable, wedging the report schedule in WORKING.
+        response = opener.open(chart_url, timeout=timeout)
         content = response.read()
         if response.getcode() != 200:
             raise URLError(response.getcode())
@@ -107,11 +111,13 @@ def get_chart_csv_data(
 
 
 def get_chart_dataframe(
-    chart_url: str, auth_cookies: Optional[dict[str, str]] = None
+    chart_url: str,
+    auth_cookies: Optional[dict[str, str]] = None,
+    timeout: Optional[float] = None,
 ) -> Optional[pd.DataFrame]:
     # Disable all the unnecessary-lambda violations in this function
     # pylint: disable=unnecessary-lambda
-    content = get_chart_csv_data(chart_url, auth_cookies)
+    content = get_chart_csv_data(chart_url, auth_cookies, timeout)
     if content is None:
         return None
 

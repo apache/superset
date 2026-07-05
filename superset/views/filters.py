@@ -180,8 +180,18 @@ class BaseDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-meth
     # rather than crashing at runtime on ``.deleted_at``.
     model: ClassVar[type[SoftDeleteMixin]]
 
+    @staticmethod
+    def _normalize(value: Any) -> str:
+        """Canonical lowercase token for a raw filter value.
+
+        Single source of truth so subclasses that also need the normalized
+        value reuse this rather than recomputing (and silently drifting from)
+        the expression.
+        """
+        return str(value).lower().strip() if value is not None else ""
+
     def apply(self, query: Query, value: Any) -> Query:
-        normalized = str(value).lower().strip() if value is not None else ""
+        normalized = self._normalize(value)
         if normalized not in {"include", "only"}:
             return query
         self._opt_into_deleted_state(query)

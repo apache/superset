@@ -19,7 +19,8 @@
 
 import json  # noqa: TID251
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, Optional
+from unittest.mock import MagicMock
 
 import pytest
 from flask_appbuilder.security.sqla.models import Role, User
@@ -31,6 +32,8 @@ from superset.exceptions import SupersetSecurityException
 from superset.extensions import appbuilder
 from superset.models.slice import Slice
 from superset.security.manager import (
+    _collect_sortable_identifiers,
+    freeze_value,
     query_context_modified,
     SupersetSecurityManager,
 )
@@ -402,8 +405,8 @@ def test_raise_for_access_query_default_schema(
         )
     assert (
         str(excinfo.value)
-        == """You need access to the following tables: `public.ab_user`,
-            `all_database_access` or `all_datasource_access` permission"""
+        == 'You need access to the following tables: "public.ab_user", '
+        "'all_database_access' or 'all_datasource_access' permission"
     )
 
 
@@ -1218,6 +1221,161 @@ def test_query_context_modified_orderby(mocker: MockerFixture) -> None:
     assert query_context_modified(query_context)
 
 
+def _table_sort_query_context(
+    mocker: MockerFixture,
+    orderby: list[Any],
+    *,
+    stored_metrics: Optional[list[Any]] = None,
+    with_stored_query_context: bool = True,
+) -> Any:
+    """
+    Build a minimal table-chart query context for a guest that sorts by
+    ``orderby``. The stored chart groups by ``gender`` and aggregates ``count``.
+    """
+    metrics: list[Any] = stored_metrics if stored_metrics is not None else ["count"]
+    query_context = mocker.MagicMock()
+    query_context.queries = [
+        QueryObject(columns=["gender"], metrics=metrics, orderby=orderby),
+    ]
+    query_context.form_data = {"slice_id": 101, "groupby": ["gender"]}
+    query_context.slice_.id = 101
+    query_context.slice_.params_dict = {"groupby": ["gender"], "metrics": metrics}
+    query_context.slice_.query_context = (
+        json.dumps({"queries": [{"columns": ["gender"], "metrics": metrics}]})
+        if with_stored_query_context
+        else None
+    )
+    return query_context
+
+
+def _series_limit_metric_query_context(
+    mocker: MockerFixture,
+    requested_metric: Any,
+    *,
+    stored_metrics: Optional[list[Any]] = None,
+    form_metric_key: str = "series_limit_metric",
+) -> Any:
+    """
+    Build a minimal chart query context with a series-limit metric selector.
+    """
+    metrics: list[Any] = stored_metrics if stored_metrics is not None else ["count"]
+    query_kwargs: dict[str, Any] = {"metrics": metrics}
+    if form_metric_key == "series_limit_metric":
+        query_kwargs["series_limit_metric"] = requested_metric
+
+    query_context = mocker.MagicMock()
+    query_context.queries = [
+        QueryObject(**query_kwargs),
+    ]
+    query_context.form_data = {
+        "slice_id": 101,
+        "metrics": metrics,
+        form_metric_key: requested_metric,
+    }
+    query_context.slice_.id = 101
+    query_context.slice_.params_dict = {
+        "metrics": metrics,
+    }
+    query_context.slice_.query_context = json.dumps({"queries": [{"metrics": metrics}]})
+    return query_context
+
+
+def test_query_context_modified_orderby_sort_by_column(mocker: MockerFixture) -> None:
+    """A guest sorting an embedded table by an existing column is allowed."""
+    query_context = _table_sort_query_context(mocker, orderby=[("gender", True)])
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_sort_by_metric(mocker: MockerFixture) -> None:
+    """A guest sorting by an existing metric is allowed."""
+    query_context = _table_sort_query_context(mocker, orderby=[("count", False)])
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_sort_by_adhoc_metric(
+    mocker: MockerFixture,
+) -> None:
+    """A guest sorting by an existing adhoc metric definition is allowed."""
+    adhoc_metric: AdhocMetric = {
+        "aggregate": "SUM",
+        "column": {"column_name": "num"},
+        "expressionType": "SIMPLE",
+        "hasCustomLabel": False,
+        "label": "SUM(num)",
+    }
+    query_context = _table_sort_query_context(
+        mocker,
+        orderby=[(adhoc_metric, False)],
+        stored_metrics=[adhoc_metric],
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_unknown_column(mocker: MockerFixture) -> None:
+    """A guest sorting by a column the chart does not reference is rejected."""
+    query_context = _table_sort_query_context(mocker, orderby=[("salary", True)])
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_empty(mocker: MockerFixture) -> None:
+    """An empty order-by is not a modification."""
+    query_context = _table_sort_query_context(mocker, orderby=[])
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_legacy_singular_metric(
+    mocker: MockerFixture,
+) -> None:
+    """A guest sorting by a legacy ``metric`` (singular) field is allowed."""
+    query_context = _table_sort_query_context(
+        mocker,
+        orderby=[("num_sold", False)],
+        stored_metrics=[],
+        with_stored_query_context=False,
+    )
+    query_context.slice_.params_dict = {
+        "columns": ["gender"],
+        "groupby": ["gender"],
+        "metric": "num_sold",
+    }
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_malformed_entry(
+    mocker: MockerFixture,
+) -> None:
+    """A malformed order-by entry (not a ``(term, bool)`` pair) is rejected."""
+    query_context = _table_sort_query_context(mocker, orderby=[["gender"]])
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_sort_by_stored_qc_only_column(
+    mocker: MockerFixture,
+) -> None:
+    """A column present only in the stored query context is an allowed sort target."""
+    query_context = _table_sort_query_context(mocker, orderby=[("age", True)])
+    # "age" is absent from params_dict but exposed via the stored query context,
+    # so sorting by it must be allowed.
+    query_context.slice_.params_dict = {"groupby": ["gender"], "metrics": ["count"]}
+    query_context.slice_.query_context = json.dumps(
+        {"queries": [{"columns": ["gender", "age"], "metrics": ["count"]}]}
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_collect_sortable_identifiers_includes_stored_qc_all_columns(
+    mocker: MockerFixture,
+) -> None:
+    """``all_columns`` exposed via the stored query context is a valid sort target."""
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {"groupby": ["gender"], "metrics": ["count"]}
+    allowed = _collect_sortable_identifiers(
+        stored_chart,
+        {"queries": [{"all_columns": ["gender", "age"], "metrics": ["count"]}]},
+    )
+    assert freeze_value("age") in allowed
+
+
 def test_query_context_modified_time_grain_native_filter(
     mocker: MockerFixture,
 ) -> None:
@@ -1287,6 +1445,31 @@ def test_query_context_modified_time_grain_native_filter(
     assert not query_context_modified(query_context)
 
 
+def test_query_context_modified_orderby_visible_column_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that guest user can sort by a visible column (whitelist approach).
+    """
+    query_context: MagicMock = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name", "country"],
+        "groupby": [],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        "orderby": [["name", True]],  # Sort by visible column
+    }
+    query_context.queries = []
+
+    assert not query_context_modified(query_context)
+
+
 def test_query_context_modified_time_grain_with_tampered_column(
     mocker: MockerFixture,
 ) -> None:
@@ -1342,6 +1525,31 @@ def test_query_context_modified_time_grain_with_tampered_column(
     assert query_context_modified(query_context)
 
 
+def test_query_context_modified_orderby_hidden_column_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that guest user cannot sort by a hidden column (data exfiltration prevention).
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "groupby": [],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        "orderby": [["credit_card_number", True]],  # Hidden column - blocked!
+    }
+    query_context.queries = []
+
+    assert query_context_modified(query_context)
+
+
 def test_query_context_modified_time_grain_in_orderby(
     mocker: MockerFixture,
 ) -> None:
@@ -1392,6 +1600,442 @@ def test_query_context_modified_time_grain_in_orderby(
     ]
 
     assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_direction_change_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that changing sort direction (ASC/DESC) is allowed for visible columns.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "groupby": [],
+        "metrics": ["count"],
+        "orderby": [["name", True]],  # Original: ASC
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        "orderby": [["name", False]],  # Changed to DESC - should be allowed
+    }
+    query_context.queries = []
+
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_raw_table_all_columns_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a raw-records Table chart can be sorted by its `all_columns`.
+
+    The Table plugin's raw "Query mode" stores its selected columns under
+    `all_columns` rather than `columns`, so guests must be able to sort by them.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "query_mode": "raw",
+        "all_columns": ["name", "country"],
+        "orderby": [],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "orderby": [["country", True]],  # Sort by a raw-mode column
+    }
+    query_context.queries = []
+
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_column_config_hidden_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that hidden Table columns cannot be used for guest sorting.
+
+    Table renders only columns whose column_config entry is not visible=false,
+    so a manually supplied sort by a hidden-but-selected column must be blocked.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "query_mode": "raw",
+        "all_columns": ["name", "secret_column"],
+        "column_config": {
+            "secret_column": {
+                "visible": False,
+            },
+        },
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "orderby": [["secret_column", True]],
+    }
+    query_context.queries = [
+        QueryObject(
+            orderby=[("secret_column", True)],
+        ),
+    ]
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_adhoc_metric_without_label_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that guests may sort by a visible adhoc SIMPLE metric without a label.
+    """
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "sales", "type": "BIGINT"},
+        "aggregate": "SUM",
+    }
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "metrics": [metric],
+        "orderby": [],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": [metric],
+        "orderby": [["SUM(sales)", True]],
+    }
+    query_context.queries = [
+        QueryObject(
+            columns=["name"],
+            metrics=[metric],
+            orderby=[("SUM(sales)", True)],
+        ),
+    ]
+
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_simple_metric_reused_metric_label_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that dict-shaped orderby terms cannot pass by reusing a metric label.
+    """
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "secret_sales"},
+        "aggregate": "SUM",
+        "label": "count",
+    }
+    query_context = _table_sort_query_context(
+        mocker,
+        orderby=[(metric, True)],
+        stored_metrics=["count"],
+    )
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_simple_metric_reused_column_label_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that dict-shaped orderby terms cannot pass by reusing a column label.
+    """
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "secret_sales"},
+        "aggregate": "SUM",
+        "label": "name",
+    }
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        "orderby": [[metric, True]],
+    }
+    query_context.queries = [
+        QueryObject(
+            columns=["name"],
+            metrics=["count"],
+            orderby=[(metric, True)],
+        ),
+    ]
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_simple_metric_bad_aggregate_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that malformed SIMPLE metric orderby cannot pass through label spoofing.
+    """
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "secret_sales"},
+        "label": "count",
+    }
+    query_context = _table_sort_query_context(
+        mocker,
+        orderby=[(metric, True)],
+        stored_metrics=["count"],
+    )
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_adhoc_column_label_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that guests may sort by a visible adhoc column result key.
+    """
+    column: AdhocColumn = {
+        "label": "Full Name",
+        "sqlExpression": "CONCAT(first_name, last_name)",
+    }
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": [column],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": [column],
+        "metrics": ["count"],
+        "orderby": [["Full Name", True]],
+    }
+    query_context.queries = [
+        QueryObject(
+            columns=[column],
+            metrics=["count"],
+            orderby=[("Full Name", True)],
+        ),
+    ]
+
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_hidden_stored_orderby_replay_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that replaying an exact owner-defined orderby is not tampering.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "all_columns": ["name", "secret_column"],
+        "column_config": {
+            "secret_column": {
+                "visible": False,
+            },
+        },
+        "orderby": [["secret_column", True]],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "orderby": [["secret_column", True]],
+    }
+    query_context.queries = [
+        QueryObject(
+            orderby=[("secret_column", True)],
+        ),
+    ]
+
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_hidden_stored_orderby_direction_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that guests cannot change direction on a hidden owner-defined sort.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "all_columns": ["name", "secret_column"],
+        "column_config": {
+            "secret_column": {
+                "visible": False,
+            },
+        },
+        "orderby": [["secret_column", True]],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "orderby": [["secret_column", False]],
+    }
+    query_context.queries = [
+        QueryObject(
+            orderby=[("secret_column", False)],
+        ),
+    ]
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_sql_expression_reused_label_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a new SQL expression object cannot pass by reusing a visible label.
+    """
+    sql_expression: AdhocColumn = {
+        "label": "name",
+        "sqlExpression": "random()",
+    }
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        "orderby": [[sql_expression, True]],
+    }
+    query_context.queries = [
+        QueryObject(
+            columns=["name"],
+            metrics=["count"],
+            orderby=[(sql_expression, True)],
+        ),
+    ]
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_series_limit_metric_stored_metric_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a stored metric can be reused as the series-limit selector.
+    """
+    query_context = _series_limit_metric_query_context(
+        mocker,
+        requested_metric="count",
+        stored_metrics=["count"],
+    )
+
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_timeseries_limit_metric_stored_metric_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the deprecated form-data control name follows the same guard.
+    """
+    query_context = _series_limit_metric_query_context(
+        mocker,
+        requested_metric="count",
+        stored_metrics=["count"],
+        form_metric_key="timeseries_limit_metric",
+    )
+
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_series_limit_metric_exact_adhoc_metric_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a stored adhoc metric can be reused as the series-limit selector.
+    """
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "sales"},
+        "aggregate": "SUM",
+        "label": "SUM(sales)",
+    }
+    query_context = _series_limit_metric_query_context(
+        mocker,
+        requested_metric=metric,
+        stored_metrics=[metric],
+    )
+
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_series_limit_metric_off_chart_metric_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a guest cannot introduce an off-chart series-limit metric.
+    """
+    query_context = _series_limit_metric_query_context(
+        mocker,
+        requested_metric="revenue",
+        stored_metrics=["count"],
+    )
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_series_limit_metric_sql_expression_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a guest cannot introduce a SQL expression as series-limit metric.
+    """
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "random()",
+        "label": "count",
+    }
+    query_context = _series_limit_metric_query_context(
+        mocker,
+        requested_metric=metric,
+        stored_metrics=["count"],
+    )
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_series_limit_metric_bad_aggregate_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that malformed series-limit metrics cannot pass through label spoofing.
+    """
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "secret_sales"},
+        "label": "count",
+    }
+    query_context = _series_limit_metric_query_context(
+        mocker,
+        requested_metric=metric,
+        stored_metrics=["count"],
+    )
+
+    assert query_context_modified(query_context)
 
 
 def test_get_catalog_perm() -> None:
@@ -1454,8 +2098,8 @@ def test_raise_for_access_catalog(
         sm.raise_for_access(query=query)
     assert (
         str(excinfo.value)
-        == """You need access to the following tables: `db1.public.ab_user`,
-            `all_database_access` or `all_datasource_access` permission"""
+        == 'You need access to the following tables: "db1.public.ab_user", '
+        "'all_database_access' or 'all_datasource_access' permission"
     )
 
     query.sql = "SELECT * FROM db2.public.ab_user"
@@ -1463,8 +2107,8 @@ def test_raise_for_access_catalog(
         sm.raise_for_access(query=query)
     assert (
         str(excinfo.value)
-        == """You need access to the following tables: `db2.public.ab_user`,
-            `all_database_access` or `all_datasource_access` permission"""
+        == 'You need access to the following tables: "db2.public.ab_user", '
+        "'all_database_access' or 'all_datasource_access' permission"
     )
 
 
@@ -2041,3 +2685,204 @@ def test_reset_password_self_service_pk_string_clears_flag(
 
     # Coerced to int when clearing, regardless of the inbound id type.
     mock_clear.assert_called_once_with(5)
+
+
+# -----------------------------------------------------------------------------
+# Tests for orderby with invalid formats - unit tests
+# -----------------------------------------------------------------------------
+
+
+def test_query_context_modified_orderby_sql_expression_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that SQL expressions in orderby are blocked.
+
+    Security: prevents SQL injection via sorting.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "groupby": [],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        "orderby": [[{"expressionType": "SQL", "sqlExpression": "random()"}, True]],
+    }
+    query_context.queries = []
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_invalid_format_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that invalid orderby formats are blocked (not crash).
+
+    The invalid format {"column": "string"} should be blocked,
+    not cause AttributeError.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "groupby": [],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        # Invalid format - should be blocked, not crash
+        "orderby": [[{"column": "country"}, True]],
+    }
+    query_context.queries = []
+
+    # Should return True (modified/blocked), not raise exception
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_string_instead_of_list_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that orderby as string (instead of list) is blocked.
+
+    Defensive barrier: if orderby is not a list, block (fail-closed).
+    Without this barrier, iterating over string would yield characters,
+    each would be skipped, and the check would pass (fail-open).
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "groupby": [],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        # Invalid: string instead of list
+        "orderby": "malicious_string",
+    }
+    query_context.queries = []
+
+    # Should return True (blocked), not pass through
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_element_not_tuple_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that orderby element that is not tuple/list is blocked.
+
+    Defensive barrier: each orderby element must be [column, bool].
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "groupby": [],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        # Invalid: element is string, not tuple
+        "orderby": ["name"],
+    }
+    query_context.queries = []
+
+    # Should return True (blocked)
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_empty_tuple_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that empty orderby tuple is blocked.
+
+    Defensive barrier: empty tuples are invalid.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "groupby": [],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        # Invalid: empty tuple
+        "orderby": [[]],
+    }
+    query_context.queries = []
+
+    # Should return True (blocked)
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_missing_direction_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that orderby entries without a direction are blocked.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "groupby": [],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        "orderby": [["name"]],
+    }
+    query_context.queries = []
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_non_bool_direction_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that orderby direction must be a boolean for new guest sort terms.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "groupby": [],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        "orderby": [["name", "true"]],
+    }
+    query_context.queries = []
+
+    assert query_context_modified(query_context)

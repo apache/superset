@@ -23,7 +23,7 @@ jobs:
       run:
         working-directory: superset-embedded-sdk
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
       # Note: registry-url is intentionally omitted. When set, actions/setup-node
@@ -34,15 +34,5 @@ jobs:
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version-file: "./superset-embedded-sdk/.nvmrc"
-      # Diagnostic: confirm GitHub OIDC is granted to this job. npm trusted
-      # publishing needs the id-token request env vars; "no" here means OIDC was
-      # not issued and publishing cannot authenticate.
-      - name: Check OIDC availability
-        run: |
-          if [ -n "${ACTIONS_ID_TOKEN_REQUEST_URL}" ]; then
-            echo "GitHub OIDC available to job: yes"
-          else
-            echo "GitHub OIDC available to job: no"
-          fi
       - run: npm ci
       - run: npm run ci:release

@@ -497,17 +497,26 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             engine_context_manager = app.config["ENGINE_CONTEXT_MANAGER"]
             with engine_context_manager(self, catalog, schema):
                 with check_for_oauth2(self):
+                    prequeries = self.db_engine_spec.get_prequeries(
+                        database=self,
+                        catalog=catalog,
+                        schema=schema,
+                    )
+                    # Prequeries attach a per-call ``connect`` listener below
+                    # (and remove it on exit). SQLAlchemy's listener collection
+                    # is an unlocked deque, so mutating it on an engine shared
+                    # via ``_ENGINE_CACHE`` races with concurrent connection
+                    # checkouts iterating the same deque ("RuntimeError: deque
+                    # mutated during iteration", surfacing as 500s). Request a
+                    # private, uncached engine whenever prequeries are present
+                    # so the listener add/remove never touches a shared object.
                     engine = self._get_sqla_engine(
                         catalog=catalog,
                         schema=schema,
                         nullpool=nullpool,
                         source=source,
                         sqlalchemy_uri=sqlalchemy_uri,
-                    )
-                    prequeries = self.db_engine_spec.get_prequeries(
-                        database=self,
-                        catalog=catalog,
-                        schema=schema,
+                        cacheable=not prequeries,
                     )
                     if prequeries:
                         # SQLAlchemy connect event: runs prequeries on every new
@@ -528,6 +537,14 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                             yield engine
                         finally:
                             sqla.event.remove(engine, "connect", run_prequeries)
+                            # The engine is private (cacheable=False above), so
+                            # nothing else can hold a reference: dispose it to
+                            # release its pool immediately. With the default
+                            # nullpool=True this is a no-op safety net; it
+                            # matters if a caller ever passes nullpool=False,
+                            # where each private engine would otherwise keep a
+                            # short-lived QueuePool alive until GC.
+                            engine.dispose()
                     else:
                         yield engine
 
@@ -538,6 +555,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         nullpool: bool = True,
         source: utils.QuerySource | None = None,
         sqlalchemy_uri: str | None = None,
+        cacheable: bool = True,
     ) -> Engine:
         sqlalchemy_url = make_url_safe(
             sqlalchemy_uri if sqlalchemy_uri else self.sqlalchemy_uri_decrypted
@@ -610,9 +628,13 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         # cache on ``not nullpool`` would leave it dormant everywhere it
         # actually matters. Unsaved instances (``self.id is None``) are
         # excluded so two distinct in-memory ``Database`` objects with the
-        # same URI can't collide on a shared cache entry.
+        # same URI can't collide on a shared cache entry. Callers that need to
+        # mutate the engine's event listeners (``get_sqla_engine`` with
+        # prequeries) pass ``cacheable=False`` for a private engine: listener
+        # registration on a shared engine races with concurrent connection
+        # checkouts iterating the same unlocked listener deque.
         cache_key: tuple[int, str, str] | None = None
-        if self.id is not None:
+        if cacheable and self.id is not None:
             cache_key = (
                 self.id,
                 str(sqlalchemy_url),
@@ -698,13 +720,53 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             self, query, template_params
         )
 
+    def resolve_query_default_schema(
+        self,
+        sql: str,
+        schema: str | None,
+        catalog: str | None,
+        template_params: Optional[dict[str, Any]] = None,
+    ) -> str | None:
+        """
+        Resolve the effective per-query default schema for a SQL string through
+        the query-aware :meth:`get_default_schema_for_query`.
+
+        Builds a transient (unsaved) ``Query`` probe so the engine spec resolves
+        the schema exactly as execution does -- running engine-specific per-query
+        security gates too -- then expunges it so the ``database`` backref's
+        ``cascade="all, delete-orphan"`` cannot autoflush this incomplete row
+        into the session. Centralizes the probe construction shared by the SQL
+        Lab executor, the cost-estimate command, and datasource denylist checks
+        so the schema-resolution behavior stays in sync across these
+        security-sensitive paths.
+
+        :param sql: Original (pre-render) SQL the query will execute
+        :param schema: Explicit per-query schema, if any
+        :param catalog: Resolved catalog
+        :param template_params: Jinja template parameters, if any
+        :returns: The runtime-resolved default schema, or None
+        """
+        from superset.models.sql_lab import Query
+
+        probe_query = Query(
+            database=self,
+            sql=sql,
+            schema=schema or None,
+            catalog=catalog,
+            client_id=utils.shortid()[:10],
+            user_id=utils.get_user_id(),
+        )
+        if probe_query in db.session:
+            db.session.expunge(probe_query)
+        return self.get_default_schema_for_query(probe_query, template_params)
+
     @staticmethod
     def post_process_df(df: pd.DataFrame) -> pd.DataFrame:
         def column_needs_conversion(df_series: pd.Series) -> bool:
             return (
                 not df_series.empty
                 and isinstance(df_series, pd.Series)
-                and isinstance(df_series[0], (list, dict))
+                and isinstance(df_series.iloc[0], (list, dict))
             )
 
         for col, coltype in df.dtypes.to_dict().items():
@@ -780,8 +842,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             description = None
 
             for i, statement in enumerate(script.statements):
+                # For a single statement, execute the original SQL as-is. Re-rendering
+                # via statement.format() would round-trip through sqlglot
+                rendered = sql if len(script.statements) == 1 else statement.format()
                 sql_ = self.mutate_sql_based_on_config(
-                    statement.format(),
+                    rendered,
                     is_split=True,
                 )
                 _log_query(sql_)
@@ -1253,7 +1318,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
     @property
     def sql_url(self) -> str:
-        return f"/superset/sql/{self.id}/"
+        # SQL Lab moved to its own blueprint at /sqllab/; the legacy
+        # /superset/sql/<id>/ route was removed when Superset.route_base
+        # collapsed to "". Deep-link by databaseId instead so this property
+        # resolves to a live route under any application_root.
+        return f"/sqllab/?dbid={self.id}"
 
     @hybrid_property
     def perm(self) -> str:

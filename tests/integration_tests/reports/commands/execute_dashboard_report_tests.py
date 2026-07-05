@@ -114,7 +114,7 @@ def test_report_with_header_data(
         assert dashboard_screenshot_mock.call_count == 1
         url = dashboard_screenshot_mock.call_args.args[0]
 
-        assert url.endswith(f"/superset/dashboard/p/{permalink_key}/")
+        assert url.endswith(f"/dashboard/p/{permalink_key}/")
         assert send_email_smtp_mock.call_count == 1
         header_data = send_email_smtp_mock.call_args.kwargs["header_data"]
         assert header_data.get("dashboard_id") == dashboard.id

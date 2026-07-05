@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { cloneDeep } from 'lodash';
+import { cloneDeep } from 'lodash-es';
 import {
   Behavior,
   getChartMetadataRegistry,
