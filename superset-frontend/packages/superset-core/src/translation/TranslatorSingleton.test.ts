@@ -181,7 +181,7 @@ test('resetTranslation does nothing when not yet configured', () => {
 
 test('t() self-configures from window.__SUPERSET_LANGUAGE_PACK__ on first call', () => {
   jest.isolateModules(() => {
-    (window as any).__SUPERSET_LANGUAGE_PACK__ = {
+    window.__SUPERSET_LANGUAGE_PACK__ = {
       domain: 'superset',
       locale_data: {
         superset: {
@@ -200,13 +200,13 @@ test('t() self-configures from window.__SUPERSET_LANGUAGE_PACK__ on first call',
     // No "should call configure" warning because we self-configured first.
     expect(consoleSpy).not.toHaveBeenCalled();
     consoleSpy.mockRestore();
-    delete (window as any).__SUPERSET_LANGUAGE_PACK__;
+    delete window.__SUPERSET_LANGUAGE_PACK__;
   });
 });
 
 test('t() falls back to msgid when window has no language pack', () => {
   jest.isolateModules(() => {
-    delete (window as any).__SUPERSET_LANGUAGE_PACK__;
+    delete window.__SUPERSET_LANGUAGE_PACK__;
     const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const { t } = require('./TranslatorSingleton');
     expect(t('hello')).toBe('hello');
@@ -219,7 +219,7 @@ test('t() falls back to msgid when window has no language pack', () => {
 
 test('explicit configure() takes precedence over window pack', () => {
   jest.isolateModules(() => {
-    (window as any).__SUPERSET_LANGUAGE_PACK__ = {
+    window.__SUPERSET_LANGUAGE_PACK__ = {
       domain: 'superset',
       locale_data: {
         superset: {
@@ -249,6 +249,6 @@ test('explicit configure() takes precedence over window pack', () => {
       },
     });
     expect(t('hello')).toBe('hola');
-    delete (window as any).__SUPERSET_LANGUAGE_PACK__;
+    delete window.__SUPERSET_LANGUAGE_PACK__;
   });
 });
