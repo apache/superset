@@ -370,3 +370,16 @@ def test_cache_key_cache_impersonation_on_with_different_user_and_db_impersonati
         ],
         any_order=True,
     )
+
+
+def test_cache_key_ignores_force_query():
+    """``force_query`` is an execution-control flag, not query identity.
+
+    If it were hashed into the cache key, a forced refresh would write its
+    fresh result under a different key while ordinary requests keep reading
+    the stale entry under the old one — making force-refresh ineffective
+    for every subsequent viewer and doubling cache storage per chart.
+    """
+    normal = QueryObject(row_limit=1, force_query=False)
+    forced = QueryObject(row_limit=1, force_query=True)
+    assert normal.cache_key() == forced.cache_key()

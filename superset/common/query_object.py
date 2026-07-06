@@ -442,6 +442,11 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         #  cached results will be invalidated.
         if not self.apply_fetch_values_predicate:
             del cache_dict["apply_fetch_values_predicate"]
+        # ``force_query`` is an execution-control flag (bypass the cache for
+        # THIS request), not part of the query's identity: hashing it would
+        # send a forced refresh to a different cache key, so the fresh result
+        # never replaces the stale entry that ordinary requests keep reading.
+        del cache_dict["force_query"]
         if self.datasource:
             cache_dict["datasource"] = self.datasource.uid
         if self.result_type:
