@@ -1095,6 +1095,109 @@ def test_map_query_object_picks_raw_variant_when_no_grain_selected(
     assert order_date_dims[0].grain is None
 
 
+def test_map_query_object_falls_back_when_no_grain_variant_matches(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Regression: when the time-axis column exposes only grained variants (no
+    ``grain=None``) and the user picks a grain that isn't in the list, the
+    old code silently dropped the axis. It must now fall back to a variant
+    so the axis stays on the query.
+    """
+    datasource = mocker.Mock()
+    base = {
+        "id": "orders.order_date",
+        "name": "order_date",
+        "type": pa.timestamp("us"),
+        "description": "Order date",
+        "definition": "order_date",
+    }
+    # HOUR and DAY only — no grain=None, no MONTH.
+    variants = {
+        Dimension(**base, grain=Grains.HOUR),
+        Dimension(**base, grain=Grains.DAY),
+    }
+    sales = Metric(
+        id="orders.total_sales",
+        name="total_sales",
+        type=pa.float64(),
+        definition="SUM(amount)",
+        description="Total sales",
+    )
+    implementation = MockSemanticView(
+        dimensions=variants,
+        metrics={sales},
+        features=frozenset(),
+    )
+    datasource.implementation = implementation
+    datasource.fetch_values_predicate = None
+
+    query_object = ValidatedQueryObject(
+        datasource=datasource,
+        metrics=["total_sales"],
+        columns=["order_date"],
+        granularity="order_date",
+        extras={"time_grain_sqla": "P1M"},  # MONTH — not in variants
+    )
+
+    result = map_query_object(query_object)
+
+    order_date_dims = [d for d in result[0].dimensions if d.name == "order_date"]
+    assert len(order_date_dims) == 1
+    # Deterministic fallback: alphabetically first grain name — "Day" < "Hour".
+    assert order_date_dims[0].grain == Grains.DAY
+
+
+def test_map_query_object_falls_back_to_raw_when_no_grain_variant_matches(
+    mocker: MockerFixture,
+) -> None:
+    """
+    When no grained variant matches the requested grain but a ``grain=None``
+    variant exists, the raw variant is preferred over any other grained
+    fallback.
+    """
+    datasource = mocker.Mock()
+    base = {
+        "id": "orders.order_date",
+        "name": "order_date",
+        "type": pa.timestamp("us"),
+        "description": "Order date",
+        "definition": "order_date",
+    }
+    variants = {
+        Dimension(**base, grain=None),
+        Dimension(**base, grain=Grains.HOUR),
+    }
+    sales = Metric(
+        id="orders.total_sales",
+        name="total_sales",
+        type=pa.float64(),
+        definition="SUM(amount)",
+        description="Total sales",
+    )
+    implementation = MockSemanticView(
+        dimensions=variants,
+        metrics={sales},
+        features=frozenset(),
+    )
+    datasource.implementation = implementation
+    datasource.fetch_values_predicate = None
+
+    query_object = ValidatedQueryObject(
+        datasource=datasource,
+        metrics=["total_sales"],
+        columns=["order_date"],
+        granularity="order_date",
+        extras={"time_grain_sqla": "P1D"},  # DAY — not in variants
+    )
+
+    result = map_query_object(query_object)
+
+    order_date_dims = [d for d in result[0].dimensions if d.name == "order_date"]
+    assert len(order_date_dims) == 1
+    assert order_date_dims[0].grain is None
+
+
 def test_map_query_object_picks_raw_variant_for_non_axis_time_dim(
     mocker: MockerFixture,
 ) -> None:
@@ -1225,6 +1328,36 @@ def test_get_time_axis_column_skips_unparseable_adhoc_columns(
     # ``_normalize_column`` and the loop should keep going.
     qo.columns = [{"label": "unsupported", "sqlExpression": "lower(x)"}, "order_date"]
     assert _get_time_axis_column(qo, all_dims) == "order_date"
+
+
+def test_get_time_axis_column_returns_none_on_multiple_temporal_columns(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Ambiguity guard: with ``granularity`` unset and more than one temporal
+    column selected, ``QueryObject`` alone cannot identify the x-axis
+    (``form_data`` is not carried through). We return ``None`` rather than
+    picking one arbitrarily, and the grain-application path falls back to
+    raw variants for every column.
+    """
+    all_dims = {
+        "created_at": Dimension(
+            id="orders.created_at",
+            name="created_at",
+            type=pa.timestamp("us"),
+            definition="created_at",
+        ),
+        "shipped_at": Dimension(
+            id="orders.shipped_at",
+            name="shipped_at",
+            type=pa.timestamp("us"),
+            definition="shipped_at",
+        ),
+    }
+    qo = mocker.Mock()
+    qo.granularity = None
+    qo.columns = ["created_at", "shipped_at"]
+    assert _get_time_axis_column(qo, all_dims) is None
 
 
 def test_get_time_axis_column_returns_none_when_no_temporal_columns(

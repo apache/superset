@@ -342,8 +342,8 @@ class SemanticView(AuditMixinNullable, Model):
         # expression" and renders it with the fx icon and no time-grain
         # affordance. Semantic-view dimensions are physical from the UI's
         # perspective; the backend is responsible for any underlying
-        # expression. ``dimension.definition`` is preserved on
-        # ``description`` instead, where applicable.
+        # expression. ``dimension.definition`` is not surfaced to the UI —
+        # only ``dimension.description`` is passed through.
         return [
             ColumnMetadata(
                 column_name=dimension.name,

@@ -340,22 +340,39 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
     time_axis_column = _get_time_axis_column(query_object, all_dimensions)
     # A semantic view can expose multiple Dimension variants per name (one per
     # supported time grain). Pick exactly one variant per selected column:
-    # for the time-axis column we honor the user's grain selection (falling
-    # back to the raw / no-grain variant when none was chosen); for every
-    # other selected column we prefer the raw variant and otherwise take any
-    # available variant.
+    # for the time-axis column we honor the user's grain selection, falling
+    # back to the raw / no-grain variant when no exact match exists and then
+    # to any available variant so the axis is never silently dropped; for
+    # every other selected column we prefer the raw variant and otherwise
+    # take any available variant.
     dimensions: list[Dimension] = []
     seen_non_axis: dict[str, Dimension] = {}
+    axis_variants: list[Dimension] = []
+    axis_match: Dimension | None = None
     for dimension in semantic_view.dimensions:
         if dimension.name not in normalized_columns:
             continue
         if dimension.name == time_axis_column:
-            if dimension.grain == grain:
-                dimensions.append(dimension)
+            axis_variants.append(dimension)
+            if axis_match is None and dimension.grain == grain:
+                axis_match = dimension
             continue
         existing = seen_non_axis.get(dimension.name)
         if existing is None or (existing.grain is not None and dimension.grain is None):
             seen_non_axis[dimension.name] = dimension
+
+    if axis_match is not None:
+        dimensions.append(axis_match)
+    elif axis_variants:
+        # No variant matches the requested grain. Prefer the raw (grain=None)
+        # variant; otherwise pick a deterministic fallback so the axis stays
+        # on the query instead of being silently dropped.
+        raw_variant = next((v for v in axis_variants if v.grain is None), None)
+        dimensions.append(
+            raw_variant
+            if raw_variant is not None
+            else min(axis_variants, key=lambda v: v.grain.name if v.grain else "")
+        )
     dimensions.extend(seen_non_axis.values())
 
     order = _get_order_from_query_object(query_object, all_metrics, all_dimensions)
@@ -951,13 +968,19 @@ def _get_time_axis_column(
     Legacy time-series charts encode this as ``query_object.granularity``;
     modern x-axis charts leave that empty and put the temporal column in
     ``query_object.columns`` instead, with the grain on
-    ``extras["time_grain_sqla"]``. In that case we pick the first temporal
-    dimension from the normalized column list.
+    ``extras["time_grain_sqla"]``. In that case we only claim an axis when
+    the selected columns include exactly one temporal dimension — otherwise
+    which one is the x-axis is ambiguous from the ``QueryObject`` alone
+    (form_data's ``x_axis`` is not available here). Returning ``None`` on
+    ambiguity lets the grain-application code fall back to raw variants for
+    every column rather than silently applying the grain to whichever
+    temporal column happens to be iterated first.
     """
     if query_object.granularity:
         return query_object.granularity
 
     dimension_names = set(all_dimensions.keys())
+    temporal_columns: list[str] = []
     for column in query_object.columns or []:
         try:
             name = _normalize_column(column, dimension_names)
@@ -971,7 +994,10 @@ def _get_time_axis_column(
             or pa.types.is_date(dim.type)
             or pa.types.is_time(dim.type)
         ):
-            return name
+            temporal_columns.append(name)
+
+    if len(temporal_columns) == 1:
+        return temporal_columns[0]
     return None
 
 
