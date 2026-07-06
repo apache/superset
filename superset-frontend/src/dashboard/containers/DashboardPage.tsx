@@ -221,8 +221,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         if (permalinkValue?.state) {
           ({ dataMask, activeTabs, anchor } = permalinkValue.state);
           chartStates = permalinkValue.state.chartStates as
-            | DashboardChartStates
-            | undefined;
+            DashboardChartStates | undefined;
         }
       } else if (nativeFilterKeyValue) {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);

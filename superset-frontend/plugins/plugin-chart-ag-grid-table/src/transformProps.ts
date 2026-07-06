@@ -753,8 +753,7 @@ const transformProps = (
 
   // Strip saved filter from chartState after initial application to prevent re-injection
   let chartState = serverPaginationData?.chartState as
-    | AgGridChartState
-    | undefined;
+    AgGridChartState | undefined;
   const chartStateHasFilter = !!(
     chartState?.filterModel && Object.keys(chartState.filterModel).length > 0
   );
