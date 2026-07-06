@@ -201,7 +201,7 @@
     "mustache": "^4.2.0",
     "nanoid": "^5.1.16",
     "ol": "^10.9.0",
-    "query-string": "9.4.0",
+    "query-string": "9.4.1",
     "re-resizable": "^6.11.2",
     "react": "^18.3.0",
     "react-arborist": "^3.12.0",
