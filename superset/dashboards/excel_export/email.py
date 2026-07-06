@@ -59,11 +59,10 @@ def _humanize_ttl(seconds: int) -> str:
     always matches the real pre-signed URL expiration.
     """
     hours, remainder = divmod(seconds, 3600)
-    minutes = remainder // 60
     parts: list[str] = []
     if hours:
         parts.append(ngettext("%(num)d hour", "%(num)d hours", hours))
-    if minutes:
+    if minutes := remainder // 60:
         parts.append(ngettext("%(num)d minute", "%(num)d minutes", minutes))
     if not parts:
         parts.append(ngettext("%(num)d second", "%(num)d seconds", seconds))
