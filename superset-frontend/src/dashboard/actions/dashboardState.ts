@@ -717,8 +717,7 @@ export function saveDashboardRequest(
                 updatedBy: dashboard.changed_by_name as string,
                 overwriteConfirmItems:
                   overwriteConfirmItems as DashboardState['overwriteConfirmMetadata'] extends
-                    | { overwriteConfirmItems: infer I }
-                    | undefined
+                    { overwriteConfirmItems: infer I } | undefined
                     ? I
                     : never,
                 dashboardId: id,
