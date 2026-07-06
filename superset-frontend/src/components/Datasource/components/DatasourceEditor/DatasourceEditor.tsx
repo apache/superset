@@ -870,8 +870,7 @@ function DatasourceEditor({
           label: typeof editorName === 'string' ? editorName : '',
           type: editor.type as SubjectType | undefined,
           secondaryLabel: (editor.secondary_label || editor.email) as
-            | string
-            | undefined,
+            string | undefined,
         }),
         [SUBJECT_TEXT_LABEL_PROP]:
           typeof editorName === 'string' ? editorName : '',

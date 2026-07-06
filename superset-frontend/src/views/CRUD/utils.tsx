@@ -288,8 +288,7 @@ const createFetchSubjects =
         ...result,
         data: result.data.map(item => {
           const secondaryLabel = item.extra?.secondary_label as
-            | string
-            | undefined;
+            string | undefined;
           const type = item.extra?.type as number | undefined;
           return {
             label: SubjectSelectLabel({
