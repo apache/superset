@@ -114,39 +114,28 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     }
   }, [columns]);
 
+  // A single effect owns every ownState write derived from render state.
+  // updateTableOwnState replaces ownState wholesale, so separate effects that
+  // each spread serverPaginationData in the same render would clobber one
+  // another's keys: clamping the current page, priming the raw-mode summary
+  // columns and nudging a re-query for missing totals must be one combined
+  // delta.
   useEffect(() => {
-    if (!serverPagination || !serverPaginationData || !rowCount) return;
-
-    const currentPage = serverPaginationData.currentPage ?? 0;
-    const currentPageSize = serverPaginationData.pageSize ?? serverPageLength;
-    const totalPages = Math.ceil(rowCount / currentPageSize);
-
-    if (currentPage >= totalPages && totalPages > 0) {
-      const validPage = Math.max(0, totalPages - 1);
-      const modifiedOwnState = {
-        ...serverPaginationData,
-        currentPage: validPage,
-      };
-      updateTableOwnState(setDataMask, modifiedOwnState);
-    }
-  }, [
-    rowCount,
-    serverPagination,
-    serverPaginationData,
-    serverPageLength,
-    setDataMask,
-  ]);
-
-  // A single effect owns every totals-related ownState write. Two separate
-  // effects that each spread serverPaginationData in the same render would
-  // clobber one another's writes, so priming the raw-mode summary columns
-  // and nudging a re-query for missing totals must be one combined delta.
-  useEffect(() => {
-    const primed = (serverPaginationData?.rawSummaryColumns ?? []) as string[];
-    const requested = Boolean(serverPaginationData?.totalsRequested);
     const nextOwnState = { ...serverPaginationData };
     let changed = false;
 
+    if (serverPagination && serverPaginationData && rowCount) {
+      const currentPage = serverPaginationData.currentPage ?? 0;
+      const currentPageSize = serverPaginationData.pageSize ?? serverPageLength;
+      const totalPages = Math.ceil(rowCount / currentPageSize);
+      if (currentPage >= totalPages && totalPages > 0) {
+        nextOwnState.currentPage = Math.max(0, totalPages - 1);
+        changed = true;
+      }
+    }
+
+    const primed = (serverPaginationData?.rawSummaryColumns ?? []) as string[];
+    const requested = Boolean(serverPaginationData?.totalsRequested);
     if (isRawRecords && showTotals && !isEqual(primed, rawSummaryColumns)) {
       nextOwnState.rawSummaryColumns = rawSummaryColumns;
       changed = true;
@@ -166,6 +155,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       updateTableOwnState(setDataMask, nextOwnState);
     }
   }, [
+    serverPagination,
+    rowCount,
+    serverPageLength,
     isRawRecords,
     showTotals,
     totals,

@@ -558,6 +558,43 @@ test('AgGridTableChart clears the aggregate totals request when the summary is o
   });
 });
 
+test('AgGridTableChart merges the page clamp and totals request into one own-state write', async () => {
+  const props = transformProps({
+    ...rawSummaryProps,
+    queriesData: [rawSummaryProps.queriesData[0]],
+  });
+  props.serverPagination = true;
+  props.rowCount = 41;
+  props.serverPaginationData = { currentPage: 5, pageSize: 20 };
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  // 41 rows at page size 20 leave 3 pages, so page 5 must clamp to 2 in the
+  // same write that primes the summary columns and requests totals; separate
+  // writes would overwrite each other's keys.
+  await waitFor(() => {
+    expect(mockSetDataMask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownState: expect.objectContaining({
+          currentPage: 2,
+          rawSummaryColumns: ['sum__num'],
+          totalsRequested: true,
+        }),
+      }),
+    );
+  });
+});
+
 test('AgGridTableChart re-requests raw totals when toggled back on with a matching prime', async () => {
   const props = transformProps({
     ...rawSummaryProps,
