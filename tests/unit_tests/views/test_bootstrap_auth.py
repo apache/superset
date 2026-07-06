@@ -223,12 +223,6 @@ def _language_pack_context(locale: str, payload_extra: dict[str, Any]) -> Any:
 
     with (
         patch(
-            "superset.views.base.cached_common_bootstrap_data",
-            return_value={"locale": locale, **payload_extra},
-        ),
-        patch("superset.views.base.utils.get_user_id", return_value=1),
-        patch("superset.views.base.get_locale", return_value=locale),
-        patch(
             "superset.views.base.get_language_pack_version",
             return_value="abc123def456",
         ),
@@ -237,7 +231,7 @@ def _language_pack_context(locale: str, payload_extra: dict[str, Any]) -> Any:
             return_value="/language_pack/fr/abc123def456/script.js",
         ),
     ):
-        return get_language_pack_template_context()
+        return get_language_pack_template_context({"locale": locale, **payload_extra})
 
 
 def test_language_pack_template_context_versioned_src_for_non_english(

@@ -17,6 +17,8 @@
  * under the License.
  */
 
+import type { LanguagePack } from '@apache-superset/core/translation';
+
 const mockConfigure = jest.fn();
 const mockInitFeatureFlags = jest.fn();
 const mockMakeApi = jest.fn(() => jest.fn());
@@ -119,10 +121,16 @@ test('falls back to en when passing locale to setupFormatters', async () => {
 // English flash can occur. The async fetch is a fallback only, and it only
 // ever requests the selected locale.
 
-const FAKE_PACK = {
+const FAKE_PACK: LanguagePack = {
   domain: 'superset',
   locale_data: {
-    superset: { '': { domain: 'superset', lang: 'fr' } },
+    superset: {
+      '': {
+        domain: 'superset',
+        lang: 'fr',
+        plural_forms: 'nplurals=2; plural=(n > 1);',
+      },
+    },
   },
 };
 

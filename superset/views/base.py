@@ -621,8 +621,12 @@ def common_bootstrap_payload() -> dict[str, Any]:
     return payload
 
 
-def get_language_pack_template_context() -> dict[str, Any]:
+def get_language_pack_template_context(common: dict[str, Any]) -> dict[str, Any]:
     """Template vars controlling how spa.html delivers the language pack.
+
+    ``common`` is the already-built common bootstrap payload for the request
+    (passed in rather than re-derived, so callers that assembled or mocked
+    their own payload stay consistent with what the template sees).
 
     Three mutually exclusive outcomes:
     - English (or no locale): no script tag, nothing to stash.
@@ -631,11 +635,10 @@ def get_language_pack_template_context() -> dict[str, Any]:
     - Otherwise: emit the content-addressed script URL so the browser can
       cache the pack as immutable and cache-bust on translation changes.
     """
-    payload = common_bootstrap_payload()
-    language = payload.get("locale")
+    language = common.get("locale")
     if not language or language == "en":
         return {"language_pack_src": None, "language_pack_inline": False}
-    if payload.get("language_pack"):
+    if common.get("language_pack"):
         return {"language_pack_src": None, "language_pack_inline": True}
     version = get_language_pack_version(language)
     return {
@@ -750,7 +753,7 @@ def get_spa_template_context(
         "dark_theme_bg": dark_theme_bg,
         "spinner_svg": spinner_svg,
         "default_title": default_title,
-        **get_language_pack_template_context(),
+        **get_language_pack_template_context(payload.get("common") or {}),
         **template_kwargs,
     }
 
