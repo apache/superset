@@ -58,7 +58,7 @@ def load_registry(path: Path = REGISTRY) -> set[str]:
         return set()
     entries: set[str] = set()
     for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
+        line: str = raw_line.strip()
         if line and not line.startswith("#"):
             entries.add(line)
     return entries
