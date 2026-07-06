@@ -36,7 +36,7 @@ def test_delete_database_blocked_by_soft_deleted_dataset(
     from superset import db
     from superset.commands.database.delete import DeleteDatabaseCommand
     from superset.commands.database.exceptions import (
-        DatabaseDeleteDatasetsExistFailedError,
+        DatabaseDeleteSoftDeletedDatasetsExistFailedError,
     )
     from superset.connectors.sqla.models import SqlaTable
     from superset.daos.database import DatabaseDAO
@@ -60,8 +60,47 @@ def test_delete_database_blocked_by_soft_deleted_dataset(
     mocker.patch.object(ReportScheduleDAO, "find_by_database_id", return_value=[])
 
     command = DeleteDatabaseCommand(database.id)
-    with pytest.raises(DatabaseDeleteDatasetsExistFailedError):
+    # The soft-deleted-only branch raises the *specific* subclass so the
+    # message tells the operator the blockers are hidden rows.
+    with pytest.raises(DatabaseDeleteSoftDeletedDatasetsExistFailedError):
         command.validate()
+
+
+def test_delete_database_blocked_by_live_dataset(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """A database with a live (non-deleted) dataset raises the base error, not
+    the soft-deleted subclass — pinning that the two ``validate`` branches map
+    to distinct messages."""
+    from superset import db
+    from superset.commands.database.delete import DeleteDatabaseCommand
+    from superset.commands.database.exceptions import (
+        DatabaseDeleteDatasetsExistFailedError,
+        DatabaseDeleteSoftDeletedDatasetsExistFailedError,
+    )
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.daos.database import DatabaseDAO
+    from superset.daos.report import ReportScheduleDAO
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    database = Database(database_name="live_db", sqlalchemy_uri="sqlite://")
+    live = SqlaTable(table_name="present", database=database)
+    db.session.add_all([database, live])
+    db.session.flush()
+
+    mocker.patch.object(DatabaseDAO, "find_by_id", return_value=database)
+    mocker.patch.object(ReportScheduleDAO, "find_by_database_id", return_value=[])
+
+    command = DeleteDatabaseCommand(database.id)
+    with pytest.raises(DatabaseDeleteDatasetsExistFailedError) as exc_info:
+        command.validate()
+    # The live branch must NOT surface the hidden-rows message.
+    assert not isinstance(
+        exc_info.value, DatabaseDeleteSoftDeletedDatasetsExistFailedError
+    )
 
 
 def test_delete_database_allowed_when_no_datasets(

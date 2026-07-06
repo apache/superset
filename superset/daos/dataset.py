@@ -279,6 +279,12 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         probe_table_name = table.table if table else model.table_name
         probe_schema = table.schema if table else model.schema
         probe_catalog = (table.catalog if table else model.catalog) or default_catalog
+        # This is a best-effort read for a friendly early error; it does not
+        # lock, so two concurrent creates could both pass it. That race is
+        # benign: the DB-level UniqueConstraint on
+        # (database_id, catalog, schema, table_name) (see SqlaTable.__table_args__)
+        # is the real guard — the losing commit fails with IntegrityError rather
+        # than landing a second active dataset over the same physical table.
         return (
             db.session.query(SqlaTable.id)
             .filter(
