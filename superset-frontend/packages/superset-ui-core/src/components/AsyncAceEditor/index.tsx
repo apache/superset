@@ -41,6 +41,8 @@ import {
 import { useTheme, css, type SupersetTheme } from '@apache-superset/core/theme';
 import { Global } from '@emotion/react';
 
+import { patchAceEmojiWidths } from './emojiWidthPatch';
+
 export { getTooltipHTML } from './Tooltip';
 export { useJsonValidation } from './useJsonValidation';
 export type {
@@ -167,6 +169,14 @@ export function AsyncAceEditor(
     config.setModuleUrl('ace/mode/css_worker', cssWorkerUrl);
     config.setModuleUrl('ace/mode/javascript_worker', javascriptWorkerUrl);
     config.setModuleUrl('ace/mode/html_worker', htmlWorkerUrl);
+
+    // Align caret math and rendered glyph geometry for emoji (issue #41664);
+    // see emojiWidthPatch for the full story. Applied once, globally, since
+    // the prototypes are shared by every Ace editor instance.
+    patchAceEmojiWidths(
+      acequire('ace/edit_session').EditSession,
+      acequire('ace/layer/text').Text,
+    );
 
     await Promise.all(aceModules.map(x => aceModuleLoaders[x]()));
 
