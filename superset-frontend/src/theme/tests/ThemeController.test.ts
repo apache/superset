@@ -2167,7 +2167,7 @@ test('bootstrapDefaultMode: falls back to DEFAULT when defaultMode is an invalid
     createMockBootstrapData({
       default: DEFAULT_THEME,
       dark: DARK_THEME,
-      defaultMode: 'invalid' as any,
+      defaultMode: 'invalid' as unknown as string,
     }),
   );
   const controller = createController();
@@ -2179,7 +2179,7 @@ test('bootstrapDefaultMode: prototype-poison key does not override mode', () => 
     createMockBootstrapData({
       default: DEFAULT_THEME,
       dark: DARK_THEME,
-      defaultMode: 'constructor' as any,
+      defaultMode: 'constructor' as unknown as string,
     }),
   );
   const controller = createController();
