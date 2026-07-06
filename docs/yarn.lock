@@ -10321,10 +10321,10 @@ js-yaml@^3.13.1:
     argparse "^1.0.7"
     esprima "^4.0.0"
 
-js-yaml@^5.1.0:
-  version "5.1.0"
-  resolved "https://registry.yarnpkg.com/js-yaml/-/js-yaml-5.1.0.tgz#c084ac880197833810a69e9c7e51eae12ff35448"
-  integrity sha512-s8VA5jkR8f22S3NAXmhKPFqGUduqZGlsufabVOgN14iTdw/RXcym7bKkbwjxLK9Yw2lEvvmJjFp119+KPeo8Kg==
+js-yaml@^5.2.0:
+  version "5.2.0"
+  resolved "https://registry.yarnpkg.com/js-yaml/-/js-yaml-5.2.0.tgz#b559a892cae3e32fc5afecc9f18e1672378ddb68"
+  integrity sha512-YeLUMlvR4Ou1B119LIaM0r65JvbOBooJDc9yEu0dClb/uSC5P4FrLU8OCCz/HXWvtPoIrR0dRzABTjo1sTN9Bw==
   dependencies:
     argparse "^2.0.1"
 
@@ -16073,10 +16073,10 @@ webpack-virtual-modules@^0.6.2:
   resolved "https://registry.npmjs.org/webpack-virtual-modules/-/webpack-virtual-modules-0.6.2.tgz"
   integrity sha512-66/V2i5hQanC51vBQKPH4aI8NMAcBW59FVBs+rC7eGHupMyfn34q7rZIE+ETlJ+XTevqfUhVVBgSUNSW2flEUQ==
 
-webpack@^5.108.0, webpack@^5.88.1, webpack@^5.95.0:
-  version "5.108.0"
-  resolved "https://registry.yarnpkg.com/webpack/-/webpack-5.108.0.tgz#f8bb9b554f25374e8dfa3e1b137b0791a56d7614"
-  integrity sha512-Ln1JuYGPRTXcHECapSFSvACtHmWEN5sQqFJeLLGQ0057S7qzT2eXUz0MZUedtmIrNy3nJgnITSubIYKGED9jSQ==
+webpack@^5.108.2, webpack@^5.88.1, webpack@^5.95.0:
+  version "5.108.2"
+  resolved "https://registry.yarnpkg.com/webpack/-/webpack-5.108.2.tgz#3b76d7fec173be8673ff45f6dcaf0442574ee286"
+  integrity sha512-sUWBWPJwWH+QHUObS4lfNaQ368Tj8NaHDBsRJcU/NmQpeOqxV5iQUT2c5nvDWi8WYR5ynF7az+PuMdc+oDLJOA==
   dependencies:
     "@types/estree" "^1.0.8"
     "@types/json-schema" "^7.0.15"
