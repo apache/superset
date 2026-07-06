@@ -219,10 +219,13 @@ def _make_cached_dispatch(
     """
     Wrap the semantic view dispatcher with a containment-aware cache.
 
-    Row-count queries bypass the cache. Cache failures are logged and the
-    dispatcher is called as if the cache were absent.
+    Row-count queries bypass the cache entirely. Forced queries skip the
+    cache READ but still STORE their fresh result — a forced refresh must
+    replace the stale entry that other requests' containment lookups keep
+    reading, not leave it in place until TTL. Cache failures are logged and
+    the dispatcher is called as if the cache were absent.
     """
-    if query_object.is_rowcount or query_object.force_query:
+    if query_object.is_rowcount:
         return dispatcher
 
     view = query_object.datasource
@@ -232,9 +235,13 @@ def _make_cached_dispatch(
         changed_on_iso=changed_on.isoformat() if changed_on else "",
         cache_timeout=getattr(view, "cache_timeout", None),
     )
+    skip_read = query_object.force_query
 
     def cached_dispatch(query: SemanticQuery) -> SemanticResult:
-        if (hit := try_serve_from_cache(view_meta, query)) is not None:
+        if (
+            not skip_read
+            and (hit := try_serve_from_cache(view_meta, query)) is not None
+        ):
             return hit
         result = dispatcher(query)
         store_result(view_meta, query, result)
