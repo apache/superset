@@ -142,6 +142,20 @@ def test_validate_auth_db_password_rejects_bcrypt_password_over_max_bytes() -> N
         validate_auth_db_password("a" * 73, cfg)
 
 
+def test_validate_auth_db_password_rejects_unencodable_password() -> None:
+    cfg = {
+        "password_min_length": 0,
+        "password_require_uppercase": False,
+        "password_require_lowercase": False,
+        "password_require_digit": False,
+        "password_require_special": False,
+        "password_common_list_check": False,
+        "password_hash_algorithm": "bcrypt",
+    }
+    with pytest.raises(ValidationError, match="cannot be encoded as UTF-8"):
+        validate_auth_db_password("\ud800", cfg)
+
+
 def test_validate_auth_db_password_allows_long_password_for_argon2() -> None:
     """Argon2 has no bcrypt-style byte cap; long passwords remain valid."""
     cfg = {

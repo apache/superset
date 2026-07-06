@@ -28,6 +28,7 @@ from werkzeug.exceptions import Unauthorized
 from superset.app import SupersetApp
 from superset.utils.auth_session_stamp import (
     bump_user_session_auth_stamp,
+    cache_user_session_auth_stamp,
     clear_flask_login_remember_cookie,
     ensure_user_session_stamp_value,
     SESSION_AUTH_STAMP_VALIDATED_AT_KEY,
@@ -119,6 +120,40 @@ def test_bump_user_session_auth_stamp_does_not_write_cache(app: SupersetApp) -> 
         bump_user_session_auth_stamp(42)
 
     mock_cache.assert_not_called()
+
+
+def test_cache_user_session_auth_stamp_writes_to_shared_cache(
+    app: SupersetApp,
+) -> None:
+    mock_cache = MagicMock()
+    app.config["SESSION_AUTH_STAMP_REVALIDATION_SECONDS"] = 300
+
+    with (
+        app.test_request_context(),
+        patch("superset.extensions.cache_manager") as mock_cache_manager,
+    ):
+        mock_cache_manager.cache = mock_cache
+        cache_user_session_auth_stamp(42, "my-stamp")
+
+    mock_cache.set.assert_called_once_with(
+        "auth_session_stamp:42",
+        "my-stamp",
+        timeout=300,
+    )
+
+
+def test_cache_user_session_auth_stamp_handles_cache_errors(app: SupersetApp) -> None:
+    mock_cache = MagicMock()
+    mock_cache.set.side_effect = Exception("cache down")
+
+    with (
+        app.test_request_context(),
+        patch("superset.extensions.cache_manager") as mock_cache_manager,
+    ):
+        mock_cache_manager.cache = mock_cache
+        cache_user_session_auth_stamp(42, "my-stamp")
+
+    mock_cache.set.assert_called_once()
 
 
 def test_validate_stamp_skips_when_current_user_is_detached(

@@ -234,7 +234,11 @@ def _common_password_errors(password: str, cfg: dict[str, Any]) -> list[str]:
 def _bcrypt_byte_limit_errors(password: str, cfg: dict[str, Any]) -> list[str]:
     if get_auth_db_password_hash_algorithm(cfg) != "bcrypt":
         return []
-    if len(password.encode("utf-8")) > BCRYPT_MAX_PASSWORD_BYTES:
+    try:
+        encoded_length = len(password.encode("utf-8"))
+    except UnicodeEncodeError:
+        return ["Password cannot be encoded as UTF-8."]
+    if encoded_length > BCRYPT_MAX_PASSWORD_BYTES:
         return [
             f"Password must be at most {BCRYPT_MAX_PASSWORD_BYTES} bytes when "
             "using the bcrypt hash algorithm."

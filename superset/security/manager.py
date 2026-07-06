@@ -125,7 +125,7 @@ logger = logging.getLogger(__name__)
 # ``AUTH_DB_FAKE_PASSWORD_HASH_CHECK`` is not provided by the Flask-AppBuilder
 # config defaults. Mirrors FAB's pbkdf2 default so ``check_password_hash`` does
 # comparable work whether or not the target user exists.
-DEFAULT_AUTH_DB_FAKE_PASSWORD_HASH_CHECK = (
+DEFAULT_AUTH_DB_FAKE_PASSWORD_HASH_CHECK: str = (
     "pbkdf2:sha256:150000$Z3t6fmj2$22da622d94a1f8118"  # noqa: S105
     "c0976a03d2f18f680bfff877c9a965db9eedc51bc0be87c"
 )

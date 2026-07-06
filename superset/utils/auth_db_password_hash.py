@@ -57,7 +57,10 @@ def hash_auth_db_password(password: str, algorithm: str | None = None) -> str:
     if resolved == "argon2":
         return _argon2_hasher.hash(password)
     if resolved == "bcrypt":
-        encoded: bytes = password.encode("utf-8")
+        try:
+            encoded: bytes = password.encode("utf-8")
+        except UnicodeEncodeError as exc:
+            raise ValueError("Password cannot be encoded as UTF-8.") from exc
         if len(encoded) > BCRYPT_MAX_PASSWORD_BYTES:
             raise ValueError(
                 f"Password exceeds bcrypt's {BCRYPT_MAX_PASSWORD_BYTES}-byte limit."
@@ -76,7 +79,10 @@ def verify_auth_db_password(password_hash: str, password: str) -> bool:
     if not password_hash:
         return False
     if is_bcrypt_password_hash(password_hash):
-        encoded: bytes = password.encode("utf-8")
+        try:
+            encoded: bytes = password.encode("utf-8")
+        except UnicodeEncodeError:
+            return False
         if len(encoded) > BCRYPT_MAX_PASSWORD_BYTES:
             return False
         try:

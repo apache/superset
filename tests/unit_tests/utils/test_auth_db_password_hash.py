@@ -56,6 +56,16 @@ def test_bcrypt_hash_rejects_password_over_max_bytes() -> None:
         hash_auth_db_password("a" * (BCRYPT_MAX_PASSWORD_BYTES + 1), algorithm="bcrypt")
 
 
+def test_bcrypt_hash_rejects_unencodable_password() -> None:
+    with pytest.raises(ValueError, match="cannot be encoded as UTF-8"):
+        hash_auth_db_password("\ud800", algorithm="bcrypt")
+
+
+def test_bcrypt_verify_rejects_unencodable_password() -> None:
+    password_hash = hash_auth_db_password("AnotherStr0ng!Pass", algorithm="bcrypt")
+    assert not verify_auth_db_password(password_hash, "\ud800")
+
+
 def test_bcrypt_verify_rejects_password_over_max_bytes() -> None:
     password_hash = hash_auth_db_password("AnotherStr0ng!Pass", algorithm="bcrypt")
     long_password = "a" * (BCRYPT_MAX_PASSWORD_BYTES + 1)
