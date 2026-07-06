@@ -16,6 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// Mark this file as a module so its top-level declarations stay file-scoped
+// (the file has no imports; modules are loaded via require() inside tests).
+export {};
+
 // Stable mock references so they survive jest.resetModules() between tests
 // (a factory-created jest.fn() would otherwise be replaced on each reset,
 // leaving these imported handles pointing at a stale instance).
