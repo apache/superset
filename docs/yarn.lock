@@ -212,18 +212,18 @@
   resolved "https://registry.npmjs.org/@ant-design/fast-color/-/fast-color-3.0.1.tgz"
   integrity sha512-esKJegpW4nckh0o6kV3Tkb7NPIZYbPnnFxmQDUmL08ukXZAvV85TZBr70eGuke/CIArLaP6aw8lt9KILjnWuOw==
 
-"@ant-design/icons-svg@^4.4.2":
-  version "4.4.2"
-  resolved "https://registry.npmjs.org/@ant-design/icons-svg/-/icons-svg-4.4.2.tgz"
-  integrity sha512-vHbT+zJEVzllwP+CM+ul7reTEfBR0vgxFe7+lREAsAA7YGsYpboiq2sQNeQeRvh09GfQgs/GyFEvZpJ9cLXpXA==
+"@ant-design/icons-svg@^4.5.0":
+  version "4.5.0"
+  resolved "https://registry.yarnpkg.com/@ant-design/icons-svg/-/icons-svg-4.5.0.tgz#7b1c567e489840d747f211d3688949bcba363ad2"
+  integrity sha512-1BTUFyKPTBZ53MuTP8s0k5SFEXL7o3VHEOwLgzaoWKwnBeqIcqUtVshc4SKzhI6uACfqhJqBwBUE9FsWR3uULA==
 
-"@ant-design/icons@^6.2.5":
-  version "6.2.5"
-  resolved "https://registry.yarnpkg.com/@ant-design/icons/-/icons-6.2.5.tgz#31c142aa6ce5eaf99598aaead222f4c459693512"
-  integrity sha512-0hKtoKqTjGFOndUyJLJmC9Cg6k4rEO7rLo6xmgbNJH+/ZX1C57RVals2v1j1knHl9n7Q+sBOveTvn931wLOCKw==
+"@ant-design/icons@^6.2.5", "@ant-design/icons@^6.3.2":
+  version "6.3.2"
+  resolved "https://registry.yarnpkg.com/@ant-design/icons/-/icons-6.3.2.tgz#8291dffc53003db9a5df59f80ed758473cd5c8df"
+  integrity sha512-B6O5a5XJ4wjtNOfZejXYwHW5zvKV5gYkjGf11dHGLEbKn0ABDGndo41+gfIiXyTFhvESj4XTotuud33mUFid0g==
   dependencies:
     "@ant-design/colors" "^8.0.1"
-    "@ant-design/icons-svg" "^4.4.2"
+    "@ant-design/icons-svg" "^4.5.0"
     "@rc-component/util" "^1.11.0"
     clsx "^2.1.1"
 
