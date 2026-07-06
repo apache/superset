@@ -1067,6 +1067,7 @@ export const useExploreAdditionalActionsMenu = (
           modalBody={
             <ViewQueryModal
               latestQueryFormData={latestQueryFormData as QueryFormData}
+              ownState={ownState}
             />
           }
           draggable

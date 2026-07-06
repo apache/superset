@@ -19,6 +19,7 @@
 import '@testing-library/jest-dom';
 import { render, screen, waitFor } from '@superset-ui/core/spec';
 import { QueryMode, TimeGranularity, SMART_DATE_ID } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   setupAGGridModules,
   type ColumnState,
@@ -329,6 +330,61 @@ test('AgGridTableChart handles raw records mode', async () => {
   expect(headerCells.length).toBeGreaterThan(0);
 });
 
+const rawSummaryProps = {
+  ...testData.basic,
+  rawFormData: {
+    ...testData.basic.rawFormData,
+    query_mode: QueryMode.Raw,
+    show_totals: true,
+  },
+  datasource: {
+    ...testData.basic.datasource,
+    columns: [{ column_name: 'name' }, { column_name: 'sum__num' }],
+  },
+  queriesData: [
+    {
+      ...testData.basic.queriesData[0],
+      colnames: [...testData.basic.queriesData[0].colnames, 'num_free'],
+      coltypes: [
+        ...testData.basic.queriesData[0].coltypes,
+        GenericDataType.Numeric,
+      ],
+      data: testData.basic.queriesData[0].data,
+    },
+    { ...testData.basic.queriesData[0], data: [{ sum__num: 12345 }] },
+  ],
+};
+
+test('transformProps derives numeric dataset columns as rawSummaryColumns in raw mode', () => {
+  const transformed = transformProps(rawSummaryProps);
+  // 'sum__num' is the only numeric column of the selection that is both
+  // numeric and backed by a dataset column: 'num_free' is Numeric but not
+  // dataset-backed, and 'name' is dataset-backed but not numeric.
+  expect(transformed.rawSummaryColumns).toEqual(['sum__num']);
+});
+
+test('transformProps surfaces raw records totals when the summary is on', () => {
+  const transformed = transformProps(rawSummaryProps);
+  expect(transformed.totals).toEqual({ sum__num: 12345 });
+});
+
+test('transformProps leaves totals undefined in raw mode when the summary is off', () => {
+  const transformed = transformProps({
+    ...rawSummaryProps,
+    rawFormData: {
+      ...rawSummaryProps.rawFormData,
+      show_totals: false,
+    },
+  });
+  expect(transformed.totals).toBeUndefined();
+  expect(transformed.rawSummaryColumns).toEqual([]);
+});
+
+test('transformProps returns empty rawSummaryColumns in aggregate mode', () => {
+  const transformed = transformProps(testData.basic);
+  expect(transformed.rawSummaryColumns).toEqual([]);
+});
+
 test('AgGridTableChart corrects invalid page number when currentPage >= totalPages', async () => {
   const props = transformProps({
     ...testData.basic,
@@ -359,6 +415,319 @@ test('AgGridTableChart corrects invalid page number when currentPage >= totalPag
   await waitFor(() => {
     expect(mockSetDataMask).toHaveBeenCalled();
   });
+});
+
+test('AgGridTableChart primes raw summary columns into own state', async () => {
+  const props = transformProps(rawSummaryProps);
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(mockSetDataMask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownState: expect.objectContaining({
+          rawSummaryColumns: ['sum__num'],
+        }),
+      }),
+    );
+  });
+});
+
+test('AgGridTableChart does not prime summary columns when the summary is off', async () => {
+  const props = transformProps({
+    ...rawSummaryProps,
+    rawFormData: {
+      ...rawSummaryProps.rawFormData,
+      show_totals: false,
+    },
+  });
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(document.querySelector('.ag-container')).toBeInTheDocument();
+  });
+  const primedCalls = mockSetDataMask.mock.calls.filter(
+    ([arg]) => arg?.ownState?.rawSummaryColumns,
+  );
+  expect(primedCalls).toHaveLength(0);
+});
+
+test('AgGridTableChart clears a stale summary prime when no numeric columns remain', async () => {
+  const props = transformProps({
+    ...rawSummaryProps,
+    datasource: {
+      ...testData.basic.datasource,
+      columns: [{ column_name: 'name' }],
+    },
+  });
+  props.serverPaginationData = { rawSummaryColumns: ['sum__num'] };
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(mockSetDataMask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownState: expect.objectContaining({ rawSummaryColumns: [] }),
+      }),
+    );
+  });
+});
+
+test('AgGridTableChart requests aggregate totals when the summary toggles on without data', async () => {
+  const props = transformProps({
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      show_totals: true,
+    },
+  });
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(mockSetDataMask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownState: expect.objectContaining({ totalsRequested: true }),
+      }),
+    );
+  });
+});
+
+test('AgGridTableChart clears the aggregate totals request when the summary is off', async () => {
+  const props = transformProps(testData.basic);
+  props.serverPaginationData = { totalsRequested: true };
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(mockSetDataMask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownState: expect.objectContaining({
+          totalsRequested: false,
+        }),
+      }),
+    );
+  });
+});
+
+test('AgGridTableChart clamps the page to zero when the result set is empty', async () => {
+  const props = transformProps({
+    ...rawSummaryProps,
+    queriesData: [rawSummaryProps.queriesData[0]],
+  });
+  props.serverPagination = true;
+  props.rowCount = 0;
+  props.serverPaginationData = { currentPage: 5, pageSize: 20 };
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  // Zero rows means zero pages; a stale page index must reset so row_offset
+  // does not keep pointing past the (now empty) result set. Asserting the
+  // totals keys alongside pins the write to the unified effect rather than
+  // the pagination footer's own page reset.
+  await waitFor(() => {
+    expect(mockSetDataMask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownState: expect.objectContaining({
+          currentPage: 0,
+          rawSummaryColumns: ['sum__num'],
+          totalsRequested: true,
+        }),
+      }),
+    );
+  });
+});
+
+test('AgGridTableChart merges the page clamp and totals request into one own-state write', async () => {
+  const props = transformProps({
+    ...rawSummaryProps,
+    queriesData: [rawSummaryProps.queriesData[0]],
+  });
+  props.serverPagination = true;
+  props.rowCount = 41;
+  props.serverPaginationData = { currentPage: 5, pageSize: 20 };
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  // 41 rows at page size 20 leave 3 pages, so page 5 must clamp to 2 in the
+  // same write that primes the summary columns and requests totals; separate
+  // writes would overwrite each other's keys.
+  await waitFor(() => {
+    expect(mockSetDataMask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownState: expect.objectContaining({
+          currentPage: 2,
+          rawSummaryColumns: ['sum__num'],
+          totalsRequested: true,
+        }),
+      }),
+    );
+  });
+});
+
+test('AgGridTableChart re-requests raw totals when toggled back on with a matching prime', async () => {
+  const props = transformProps({
+    ...rawSummaryProps,
+    queriesData: [rawSummaryProps.queriesData[0]],
+  });
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+          serverPaginationData={{ rawSummaryColumns: ['sum__num'] }}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(mockSetDataMask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownState: expect.objectContaining({
+          rawSummaryColumns: ['sum__num'],
+          totalsRequested: true,
+        }),
+      }),
+    );
+  });
+});
+
+test('AgGridTableChart pins no summary row when totals come back empty', async () => {
+  const props = transformProps({
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      show_totals: true,
+    },
+  });
+  props.showTotals = true;
+  // An empty totals object (e.g. a time-comparison totals result with no
+  // rows) carries nothing to display and must not pin a blank row.
+  props.totals = {};
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(document.querySelector('.ag-container')).toBeInTheDocument();
+  });
+
+  const pinnedRows = document.querySelectorAll('.ag-floating-bottom .ag-row');
+  expect(pinnedRows.length).toBe(0);
+});
+
+test('AgGridTableChart pins no summary row when totals are absent', async () => {
+  const props = transformProps({
+    ...rawSummaryProps,
+    datasource: {
+      ...testData.basic.datasource,
+      columns: [{ column_name: 'name' }],
+    },
+    queriesData: [rawSummaryProps.queriesData[0]],
+  });
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(document.querySelector('.ag-container')).toBeInTheDocument();
+  });
+
+  const pinnedRows = document.querySelectorAll('.ag-floating-bottom .ag-row');
+  expect(pinnedRows.length).toBe(0);
 });
 
 test('AgGridTableChart emits column state with aggFunc through the debounced save path', async () => {

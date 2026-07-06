@@ -3161,6 +3161,9 @@ msgstr "Zmeny grafu"
 msgid "Chart could not be created."
 msgstr "Graf sa nepodarilo vytvoriť."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "Graf sa nepodarilo aktualizovať."
 
@@ -8701,9 +8704,11 @@ msgstr ""
 msgid "Mapbox"
 msgstr "Mapbox"
 
+# Machine-corrected via backfill_po.py (claude-sonnet-4-6) [replaced a
+# mistranslation]
 #, fuzzy
 msgid "Mapbox (API key required)"
-msgstr "E-mail je povinný"
+msgstr "Mapbox (vyžaduje sa kľúč API)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -11255,9 +11260,11 @@ msgstr "Obrátit zemepisnou šírku/délku "
 msgid "Revoke"
 msgstr "Odstrániť"
 
+# Machine-corrected via backfill_po.py (claude-sonnet-4-6) [replaced a
+# mistranslation]
 #, fuzzy
 msgid "Revoke API Key"
-msgstr "Kľúč skupiny"
+msgstr "Odvolať API kľúč"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
@@ -13859,6 +13866,11 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+
 msgid "The chart is still loading. Please wait a moment and try again."
 msgstr "Graf sa ešte načítava. Chvíľu počkajte a skúste to znova."
 
@@ -13944,6 +13956,11 @@ msgstr "Standard kódu zeme, ktorý by mel Superset očekávat ve stĺpci [zeme]
 
 msgid "The dashboard has been saved"
 msgstr "Nástenka bola uložena"
+
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
+msgstr ""
 
 msgid "The data source seems to have been deleted"
 msgstr "Zdá se, že zdroj dat bol zmazaný"
