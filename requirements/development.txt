@@ -784,7 +784,6 @@ pyjwt==2.13.0
     #   flask-appbuilder
     #   flask-jwt-extended
     #   mcp
-    #   redis
 pylint==3.3.7
     # via apache-superset
 pynacl==1.6.2
@@ -870,7 +869,7 @@ pyyaml==6.0.3
     #   fastmcp-slim
     #   jsonschema-path
     #   pre-commit
-redis==5.3.1
+redis==8.0.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
