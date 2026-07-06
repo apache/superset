@@ -516,7 +516,11 @@ const DashboardBuilder = () => {
   const headerContent = useMemo(
     () => (
       <>
-        {hideDashboardHeader ? <HeadlessAutoRefresh /> : <DashboardHeader />}
+        {!hideDashboardHeader && <DashboardHeader />}
+        {/* Report mode is a one-shot screenshot render (reports, thumbnails),
+            so it must never start a refresh timer that could re-fetch charts
+            mid-capture. */}
+        {hideDashboardHeader && !isReport && <HeadlessAutoRefresh />}
         {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.Horizontal && (
             <FilterBar
