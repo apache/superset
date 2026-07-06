@@ -20,6 +20,7 @@ from .dremio import Dremio
 from .firebolt import Firebolt, FireboltOld
 from .opensearch import OpenSearch
 from .pinot import Pinot
+from .trino import Trino
 from .vertica import Vertica
 
 __all__ = [
@@ -29,5 +30,6 @@ __all__ = [
     "FireboltOld",
     "OpenSearch",
     "Pinot",
+    "Trino",
     "Vertica",
 ]
