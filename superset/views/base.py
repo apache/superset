@@ -65,6 +65,7 @@ from superset.themes.types import Theme, ThemeMode
 from superset.themes.utils import (
     is_valid_theme,
 )
+from superset.translations.utils import get_language_pack
 from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
 from superset.utils.version import get_version_metadata, visible_version_metadata
@@ -576,7 +577,24 @@ def common_bootstrap_payload() -> dict[str, Any]:
     locale = get_locale()
     # Convert locale to string for proper cache key hashing
     locale_str = str(locale) if locale else None
-    return cached_common_bootstrap_data(utils.get_user_id(), locale_str)
+    payload = dict(cached_common_bootstrap_data(utils.get_user_id(), locale_str))
+    # Inject the Jed language pack outside the per-user memoize so the cached
+    # payload stays small and the pack is shared across users for the same
+    # locale. The frontend uses it to configure the translator synchronously,
+    # before any code-split chunk evaluates a module-level `const X = t('...')`
+    # (upstream issue #35330).
+    language = payload.get("locale")
+    if language and language != "en":
+        # Respect a pack already provided via COMMON_BOOTSTRAP_OVERRIDES_FUNC
+        # (the workaround in #35330 does exactly that), otherwise load the
+        # shared one. `get_language_pack` returns the empty English pack on a
+        # miss, which is the right result (English) when no translation file
+        # exists.
+        pack = payload.get("language_pack") or get_language_pack(language)
+    else:
+        pack = None
+    payload["language_pack"] = pack
+    return payload
 
 
 def get_spa_payload(extra_data: dict[str, Any] | None = None) -> dict[str, Any]:

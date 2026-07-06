@@ -129,7 +129,7 @@ flask==2.3.3
     #   flask-session
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==5.2.1
+flask-appbuilder==5.2.2
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
@@ -176,7 +176,7 @@ greenlet==3.5.1
     #   apache-superset (pyproject.toml)
     #   shillelagh
     #   sqlalchemy
-gunicorn==25.3.0
+gunicorn==26.0.0
     # via apache-superset (pyproject.toml)
 h11==0.16.0
     # via wsproto
@@ -376,7 +376,7 @@ rfc3339-validator==0.1.4
     # via openapi-schema-validator
 rich==13.9.4
     # via flask-limiter
-rison==2.0.0
+rison==2.0.1
     # via apache-superset (pyproject.toml)
 rpds-py==0.25.0
     # via
