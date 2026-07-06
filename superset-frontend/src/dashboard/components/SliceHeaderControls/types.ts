@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryFormData } from '@superset-ui/core';
+import { JsonObject, QueryFormData } from '@superset-ui/core';
 
 export interface SliceHeaderControlsProps {
   slice: {
@@ -60,4 +60,5 @@ export interface SliceHeaderControlsProps {
   supersetCanDownload?: boolean;
 
   crossFiltersEnabled?: boolean;
+  ownState?: JsonObject;
 }
