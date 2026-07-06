@@ -20,7 +20,10 @@ import '@testing-library/jest-dom';
 import { render, screen, waitFor } from '@superset-ui/core/spec';
 import { QueryMode, TimeGranularity, SMART_DATE_ID } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
+import {
+  setupAGGridModules,
+  type ColumnState,
+} from '@superset-ui/core/components/ThemedAgGridReact';
 import AgGridTableChart from '../src/AgGridTableChart';
 import transformProps from '../src/transformProps';
 import { ProviderWrapper } from '../../plugin-chart-table/test/testHelpers';
@@ -725,4 +728,47 @@ test('AgGridTableChart pins no summary row when totals are absent', async () => 
 
   const pinnedRows = document.querySelectorAll('.ag-floating-bottom .ag-row');
   expect(pinnedRows.length).toBe(0);
+});
+
+test('AgGridTableChart emits column state with aggFunc through the debounced save path', async () => {
+  const props = transformProps(testData.basic);
+  const onChartStateChange = jest.fn();
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+          onChartStateChange={onChartStateChange}
+          chartState={{
+            columnState: [{ colId: 'sum__num', aggFunc: null }],
+            sortModel: [],
+            filterModel: {},
+          }}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(document.querySelector('.ag-container')).toBeInTheDocument();
+  });
+
+  // The save path is debounced (SLOW_DEBOUNCE = 500ms); wait for a capture.
+  await waitFor(() => expect(onChartStateChange).toHaveBeenCalled(), {
+    timeout: 3000,
+  });
+
+  const savedState =
+    onChartStateChange.mock.calls[onChartStateChange.mock.calls.length - 1][0];
+  const savedColumn = (savedState.columnState as ColumnState[]).find(
+    col => col.colId === 'sum__num',
+  );
+
+  // Entries must carry an aggFunc key so "None" survives reload. The value
+  // itself is not assertable here: aggregation state needs an enterprise
+  // (SharedAggregation) module; the community modules always report null.
+  expect(savedColumn).toMatchObject({ aggFunc: null });
 });
