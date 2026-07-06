@@ -3063,6 +3063,9 @@ msgstr "Modificado pela última vez"
 msgid "Chart could not be created."
 msgstr "Não foi possível gravar a sua query"
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "Não foi possível gravar a sua query"
 
@@ -13775,6 +13778,14 @@ msgid ""
 "associated with more than one category, only the first will be used."
 msgstr ""
 
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "The chart is still loading. Please wait a moment and try again."
 msgstr ""
 
@@ -13849,6 +13860,11 @@ msgstr ""
 
 msgid "The dashboard has been saved"
 msgstr "Dashboard gravado com sucesso."
+
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
+msgstr ""
 
 msgid "The data source seems to have been deleted"
 msgstr "Esta origem de dados parece ter sido excluída"

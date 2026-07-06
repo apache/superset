@@ -35,6 +35,7 @@ from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
     ChartCreatedByMeFilter,
+    ChartDeletedStateFilter,
     ChartEditableFilter,
     ChartFavoriteFilter,
     ChartFilter,
@@ -65,12 +66,14 @@ from superset.commands.chart.exceptions import (
     ChartForbiddenError,
     ChartInvalidError,
     ChartNotFoundError,
+    ChartRestoreFailedError,
     ChartUpdateFailedError,
     DashboardsForbiddenError,
 )
 from superset.commands.chart.export import ExportChartsCommand
 from superset.commands.chart.fave import AddFavoriteChartCommand
 from superset.commands.chart.importers.dispatcher import ImportChartsCommand
+from superset.commands.chart.restore import RestoreChartCommand
 from superset.commands.chart.unfave import DelFavoriteChartCommand
 from superset.commands.chart.update import UpdateChartCommand
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
@@ -108,12 +111,16 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
+from superset.views.filters import (
+    BaseFilterRelatedUsers,
+    FilterRelatedUsers,
+    SoftDeleteApiMixin,
+)
 
 logger = logging.getLogger(__name__)
 
 
-class ChartRestApi(BaseSupersetModelRestApi):
+class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Slice)
 
     resource_name = "chart"
@@ -130,6 +137,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         RouteMethod.IMPORT,
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
+        "restore",
         "viz_types",
         "favorite_status",
         "add_favorite",
@@ -140,7 +148,17 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "warm_up_cache",
     }
     class_permission_name = "Chart"
-    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+    # Custom methods (``restore``) need an explicit entry; FAB's @protect()
+    # decorator falls back to ``can_<method>_<class>`` (i.e.
+    # ``can_restore_Chart``) when the mapping is missing, which standard
+    # roles don't carry. Mirrors the permission model documented for
+    # ``DELETE`` / ``bulk_delete``: endpoint-level ``can_write`` plus
+    # resource-level ``raise_for_ownership``. See themes/api.py for the
+    # established pattern.
+    method_permission_name = {
+        **MODEL_API_RW_METHOD_PERMISSION_MAP,
+        "restore": "write",
+    }
 
     list_columns = [
         "is_managed_externally",
@@ -231,6 +249,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             ChartFavoriteFilter,
             ChartCertifiedFilter,
             ChartEditableFilter,
+            ChartDeletedStateFilter,
             ChartOwnedCreatedFavoredByMeFilter,
         ],
         "slice_name": [ChartAllTextFilter],
@@ -500,9 +519,17 @@ class ChartRestApi(BaseSupersetModelRestApi):
     )
     def delete(self, pk: int) -> Response:
         """Delete a chart.
+
+        When the ``SOFT_DELETE`` feature flag is enabled, marks the chart as
+        deleted (sets ``deleted_at``) and hides it from list/detail endpoints
+        and relationship loads; the row is preserved and recoverable via
+        ``POST /api/v1/chart/<uuid>/restore`` by an owner or admin. With the
+        flag disabled (the default), the chart is permanently hard-deleted
+        and is not recoverable.
         ---
         delete:
-          summary: Delete a chart
+          summary: Delete a chart (soft delete, recoverable via restore, when
+            the SOFT_DELETE feature flag is enabled; permanent otherwise)
           parameters:
           - in: path
             schema:
@@ -556,9 +583,17 @@ class ChartRestApi(BaseSupersetModelRestApi):
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Bulk delete charts.
+
+        When the ``SOFT_DELETE`` feature flag is enabled, marks each chart as
+        deleted (sets ``deleted_at``) and hides it from list/detail endpoints
+        and relationship loads; rows are preserved and recoverable via
+        ``POST /api/v1/chart/<uuid>/restore`` by an owner or admin. With the
+        flag disabled (the default), the charts are permanently hard-deleted
+        and are not recoverable.
         ---
         delete:
-          summary: Bulk delete charts
+          summary: Bulk delete charts (soft delete, recoverable via restore,
+            when the SOFT_DELETE feature flag is enabled; permanent otherwise)
           parameters:
           - in: query
             name: q
@@ -601,6 +636,62 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ChartForbiddenError:
             return self.response_403()
         except ChartDeleteFailedError as ex:
+            return self.response_422(message=str(ex))
+
+    @expose("/<uuid>/restore", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.restore",
+        log_to_statsd=False,
+    )
+    def restore(self, uuid: str) -> Response:
+        """Restore a soft-deleted chart.
+        ---
+        post:
+          summary: Restore a soft-deleted chart
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid
+          responses:
+            200:
+              description: Chart restored
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            RestoreChartCommand(uuid).run()
+            return self.response(200, message="OK")
+        except ChartNotFoundError:
+            return self.response_404()
+        except ChartForbiddenError:
+            return self.response_403()
+        except ChartRestoreFailedError as ex:
+            logger.error(
+                "Error restoring model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
             return self.response_422(message=str(ex))
 
     @expose("/<pk>/cache_screenshot/", methods=("GET",))
@@ -1132,6 +1223,15 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @requires_form_data
     def import_(self) -> Response:
         """Import chart(s) with associated datasets and databases.
+
+        When the ``SOFT_DELETE`` feature flag is enabled and an imported
+        chart's UUID matches an existing **soft-deleted** chart, the import
+        restores that chart and applies the upload's contents — **even when
+        ``overwrite`` is not set**. Active charts keep the usual contract
+        (never mutated without ``overwrite=true``); a soft-deleted UUID match
+        is treated as an explicit request to bring the chart back. Requires
+        ``can_write`` and ownership of the deleted row (or admin). See
+        UPDATING.md for details.
         ---
         post:
           summary: Import chart(s) with associated datasets and databases

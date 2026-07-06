@@ -3305,6 +3305,9 @@ msgstr "Canvis del gràfic"
 msgid "Chart could not be created."
 msgstr "El gràfic no s'ha pogut crear."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "El gràfic no s'ha pogut actualitzar."
 
@@ -14463,6 +14466,11 @@ msgstr ""
 "La categoria de nodes font usada per assignar colors. Si un node està "
 "associat amb més d'una categoria, només la primera s'usarà."
 
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -14556,6 +14564,11 @@ msgstr ""
 
 msgid "The dashboard has been saved"
 msgstr "El dashboard s'ha desat"
+
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
+msgstr ""
 
 msgid "The data source seems to have been deleted"
 msgstr "La font de dades sembla haver estat eliminada"

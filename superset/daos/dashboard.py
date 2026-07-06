@@ -40,6 +40,7 @@ from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard, id_or_slug_filter
 from superset.models.embedded_dashboard import EmbeddedDashboard
+from superset.models.helpers import skip_visibility_filter
 from superset.models.slice import Slice
 from superset.utils import json
 from superset.utils.core import get_user_id
@@ -312,11 +313,30 @@ class DashboardDAO(BaseDAO[Dashboard]):
                 if isinstance(value, dict)
             ]
 
-            current_slices = (
-                db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
-            )
-
-            dashboard.slices = current_slices
+            # Bypass the soft-delete visibility filter when resolving the
+            # incoming chart ids: a dashboard's ``position_json`` may still
+            # reference a chart that is currently soft-deleted, and this
+            # assignment REBUILDS ``dashboard.slices`` wholesale. With the
+            # filter active, the hidden member would be silently dropped —
+            # deleting its ``dashboard_slices`` junction row (breaking the
+            # documented restore-reattach contract) and writing
+            # ``uuid: None`` into its position slot via ``uuid_map`` below.
+            #
+            # The bypass must be session-scoped and cover the ASSIGNMENT,
+            # not just the resolution query: assigning to
+            # ``dashboard.slices`` makes the unit of work diff the new
+            # collection against the existing one, which it lazy-loads at
+            # that moment. A filtered baseline load would exclude the
+            # trashed member, so the diff would treat it as net-new and
+            # INSERT a ``dashboard_slices`` row that still exists (soft
+            # delete never removes junction rows) — an IntegrityError on
+            # the composite primary key on every save of a dashboard
+            # containing a trashed chart.
+            with skip_visibility_filter(db.session, Slice):
+                current_slices = (
+                    db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+                )
+                dashboard.slices = current_slices
 
             # add UUID to positions
             uuid_map = {slice.id: str(slice.uuid) for slice in current_slices}

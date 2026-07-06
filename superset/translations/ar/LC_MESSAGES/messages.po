@@ -3116,6 +3116,9 @@ msgstr "تغييرات المخطط"
 msgid "Chart could not be created."
 msgstr "تعذر إنشاء مخطط."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "تعذر تحديث المخطط."
 
@@ -13745,6 +13748,14 @@ msgstr ""
 "فئة العقد المصدر المستخدمة لتعيين الألوان. إذا كانت العقدة مرتبطة بأكثر "
 "من فئة واحدة، فسيتم استخدام الأولى فقط."
 
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "The chart is still loading. Please wait a moment and try again."
 msgstr ""
 
@@ -13828,6 +13839,11 @@ msgstr "معيار رمز البلد الذي يجب أن تتوقع Superset ا
 
 msgid "The dashboard has been saved"
 msgstr "تم حفظ لوحة التحكم"
+
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
+msgstr ""
 
 msgid "The data source seems to have been deleted"
 msgstr "يبدو أن مصدر البيانات قد تم حذفه"

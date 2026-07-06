@@ -123,6 +123,16 @@ class ChartDeleteFailedError(DeleteFailedError):
     message = _("Charts could not be deleted.")
 
 
+class ChartRestoreFailedError(UpdateFailedError):
+    # Restore semantically clears ``deleted_at``; it is an UPDATE, not a new
+    # row. ``UpdateFailedError`` is the nearest typed middle-tier base in the
+    # codebase. A dedicated ``RestoreFailedError`` in
+    # ``superset/commands/exceptions.py`` would be more precise across the
+    # entity rollouts but lives in already-merged infrastructure (#39977);
+    # introducing it can be a cross-entity follow-up.
+    message = _("Chart could not be restored.")
+
+
 class ChartDeleteFailedReportsExistError(ChartDeleteFailedError):
     message = _("There are associated alerts or reports")
 

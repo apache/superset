@@ -2998,6 +2998,9 @@ msgstr ""
 msgid "Chart could not be created."
 msgstr "차트를 생성할 수 없습니다."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "차트를 업데이트할 수 없습니다."
 
@@ -13478,6 +13481,14 @@ msgid ""
 "associated with more than one category, only the first will be used."
 msgstr ""
 
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "The chart is still loading. Please wait a moment and try again."
 msgstr ""
 
@@ -13550,6 +13561,15 @@ msgstr ""
 msgid "The dashboard has been saved"
 msgstr ""
 
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
+msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
+# tr, uk, zh, zh_TW]
+#, fuzzy
 msgid "The data source seems to have been deleted"
 msgstr ""
 

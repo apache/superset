@@ -3402,6 +3402,9 @@ msgstr "Zmiany wykresu"
 msgid "Chart could not be created."
 msgstr "Nie można utworzyć wykresu."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "Nie można zaktualizować wykresu."
 
@@ -15265,6 +15268,11 @@ msgstr ""
 "jest związany z więcej niż jedną kategorią, używana będzie tylko "
 "pierwsza."
 
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -15365,6 +15373,11 @@ msgstr ""
 
 msgid "The dashboard has been saved"
 msgstr "Pulpit nawigacyjny został zapisany."
+
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
+msgstr ""
 
 msgid "The data source seems to have been deleted"
 msgstr "Źródło danych wydaje się zostało usunięte."

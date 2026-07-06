@@ -3049,6 +3049,9 @@ msgstr "圖表變化"
 msgid "Chart could not be created."
 msgstr "您的圖表無法創建。"
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "您的圖表無法更新。"
 
@@ -13717,6 +13720,14 @@ msgid ""
 "associated with more than one category, only the first will be used."
 msgstr "用於分配颜色的源節點類别。如果一個節點與多個類别關聯，则只使用第一個類别"
 
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "The chart is still loading. Please wait a moment and try again."
 msgstr ""
 
@@ -13796,6 +13807,11 @@ msgstr "Superset 希望能够在 [國家] 欄中找到的 國家 / 地區 的標
 
 msgid "The dashboard has been saved"
 msgstr "該看板已成功保存。"
+
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
+msgstr ""
 
 msgid "The data source seems to have been deleted"
 msgstr "數據源已經被删除"
