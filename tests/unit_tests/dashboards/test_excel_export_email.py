@@ -32,7 +32,7 @@ def test_success_email_contains_link_and_expiry() -> None:
         requested_at=REQUESTED,
         expires_at=EXPIRES,
         ttl_seconds=86400,
-        skipped_charts=[],
+        errored={},
     )
     assert "https://signed.example/file.xlsx?sig=abc" in html
     assert "expires in 24 hours" in html
@@ -41,17 +41,79 @@ def test_success_email_contains_link_and_expiry() -> None:
     assert "<li>" not in html  # no skipped section
 
 
-def test_success_email_lists_skipped_charts() -> None:
+def test_success_email_sub_hour_ttl_reports_minutes() -> None:
+    # A sub-hour TTL must not truncate to "0 hours"; it should report minutes.
+    html = email.build_success_email(
+        dashboard_title="Sales",
+        download_url="https://x",
+        requested_at=REQUESTED,
+        expires_at=EXPIRES,
+        ttl_seconds=900,
+        errored={},
+    )
+    assert "expires in 15 minutes" in html
+    assert "0 hours" not in html
+
+
+def test_success_email_mixed_ttl_reports_hours_and_minutes() -> None:
+    html = email.build_success_email(
+        dashboard_title="Sales",
+        download_url="https://x",
+        requested_at=REQUESTED,
+        expires_at=EXPIRES,
+        ttl_seconds=5400,
+        errored={},
+    )
+    assert "expires in 1 hour 30 minutes" in html
+
+
+def test_success_email_lists_charts_with_no_query_context() -> None:
     html = email.build_success_email(
         dashboard_title="Sales",
         download_url="https://x",
         requested_at=REQUESTED,
         expires_at=EXPIRES,
         ttl_seconds=86400,
-        skipped_charts=["10 - Broken chart"],
+        errored={email.ERROR_NO_QUERY_CONTEXT: ["10 - Broken chart"]},
     )
     assert "no saved query context" in html
     assert "<li>10 - Broken chart</li>" in html
+
+
+def test_success_email_groups_errors_by_reason() -> None:
+    html = email.build_success_email(
+        dashboard_title="Sales",
+        download_url="https://x",
+        requested_at=REQUESTED,
+        expires_at=EXPIRES,
+        ttl_seconds=86400,
+        errored={
+            email.ERROR_NO_QUERY_CONTEXT: ["10 - NoContext"],
+            email.ERROR_TIMEOUT: ["20 - Slow"],
+            email.ERROR_GENERAL: ["30 - Boom"],
+        },
+    )
+    # Each reason renders its own labelled section with the right chart.
+    assert "no saved query context" in html
+    assert "timed out" in html
+    assert "an error occurred" in html
+    assert "<li>10 - NoContext</li>" in html
+    assert "<li>20 - Slow</li>" in html
+    assert "<li>30 - Boom</li>" in html
+
+
+def test_success_email_omits_empty_reason_groups() -> None:
+    html = email.build_success_email(
+        dashboard_title="Sales",
+        download_url="https://x",
+        requested_at=REQUESTED,
+        expires_at=EXPIRES,
+        ttl_seconds=86400,
+        errored={email.ERROR_TIMEOUT: ["20 - Slow"]},
+    )
+    assert "timed out" in html
+    assert "no saved query context" not in html
+    assert "<li>20 - Slow</li>" in html
 
 
 def test_success_email_escapes_title() -> None:
@@ -61,7 +123,7 @@ def test_success_email_escapes_title() -> None:
         requested_at=REQUESTED,
         expires_at=EXPIRES,
         ttl_seconds=86400,
-        skipped_charts=[],
+        errored={},
     )
     assert "<script>" not in html
     assert "&lt;script&gt;" in html

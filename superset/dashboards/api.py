@@ -130,11 +130,14 @@ from superset.exceptions import (
     ScreenshotImageNotAvailableException,
     SupersetSecurityException,
 )
-from superset.extensions import event_logger, security_manager
+from superset.extensions import cache_manager, event_logger, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.security.guest_token import GuestUser
-from superset.tasks.export_dashboard_excel import export_dashboard_excel
+from superset.tasks.export_dashboard_excel import (
+    export_dashboard_excel,
+    EXPORT_INFLIGHT_CACHE_TTL,
+)
 from superset.tasks.thumbnails import (
     cache_dashboard_screenshot,
     cache_dashboard_thumbnail,
@@ -1560,7 +1563,17 @@ class DashboardRestApi(
         if not dashboard.slices:
             return self.response_400(message="Dashboard has no charts to export.")
 
+        # Throttle: one concurrent export per user+dashboard. The lock is set
+        # here and cleared by the task; its TTL guards against a lost cleanup.
+        inflight_key = f"excel-export-inflight:{g.user.id}:{dashboard.id}"
+        if cache_manager.cache.get(inflight_key):
+            return self.response(
+                202,
+                message="An Excel export for this dashboard is already in progress.",
+            )
+
         job_id = str(uuid.uuid4())
+        cache_manager.cache.set(inflight_key, job_id, timeout=EXPORT_INFLIGHT_CACHE_TTL)
         export_dashboard_excel.apply_async(
             kwargs={
                 "dashboard_id": dashboard.id,
@@ -1568,6 +1581,7 @@ class DashboardRestApi(
                 "active_data_mask": payload.get("active_data_mask", {}),
                 "job_id": job_id,
                 "mode": payload.get("mode", "data"),
+                "inflight_key": inflight_key,
             },
             task_id=job_id,
         )

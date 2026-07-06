@@ -27,6 +27,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from flask import current_app
+from flask_babel import gettext as __, ngettext
 from markupsafe import escape
 
 from superset.utils.core import send_email_smtp
@@ -38,28 +39,86 @@ _BUTTON_STYLE = (
     "text-decoration:none;border-radius:4px;"
 )
 
+# Reason keys under which the export task groups charts it could not export.
+# The task classifies each omitted chart under one of these; the email renders a
+# separate, labelled section per non-empty group with its own remediation text.
+ERROR_NO_QUERY_CONTEXT = "no-query-context"
+ERROR_TIMEOUT = "timeout"
+ERROR_GENERAL = "general-exception"
+
 
 def _fmt(dt: datetime) -> str:
     return dt.strftime(_DATETIME_FORMAT)
+
+
+def _humanize_ttl(seconds: int) -> str:
+    """Render a TTL as a human-readable, pluralized, translatable duration.
+
+    Whole hours read as "24 hours"; sub-hour and non-hour values keep their
+    minutes (e.g. "1 hour 30 minutes", "15 minutes") so the stated lifetime
+    always matches the real pre-signed URL expiration.
+    """
+    hours, remainder = divmod(seconds, 3600)
+    minutes = remainder // 60
+    parts: list[str] = []
+    if hours:
+        parts.append(ngettext("%(num)d hour", "%(num)d hours", hours))
+    if minutes:
+        parts.append(ngettext("%(num)d minute", "%(num)d minutes", minutes))
+    if not parts:
+        parts.append(ngettext("%(num)d second", "%(num)d seconds", seconds))
+    return " ".join(parts)
 
 
 def build_subject(dashboard_title: str, *, success: bool) -> str:
     """Build the email subject, prefixed with EMAIL_REPORTS_SUBJECT_PREFIX."""
     prefix = current_app.config["EMAIL_REPORTS_SUBJECT_PREFIX"]
     if success:
-        return f"{prefix}Your dashboard export is ready: {dashboard_title}"
-    return f"{prefix}Your dashboard export could not be completed: {dashboard_title}"
-
-
-def _skipped_section(skipped_charts: list[str]) -> str:
-    if not skipped_charts:
-        return ""
-    items = "".join(f"<li>{escape(label)}</li>" for label in skipped_charts)
-    return (
-        "<p>Note: the following charts were omitted because they have no saved "
-        "query context. To include them, open each chart in Explore and re-save."
-        f"</p><ul>{items}</ul>"
+        return prefix + __(
+            "Your dashboard export is ready: %(title)s", title=dashboard_title
+        )
+    return prefix + __(
+        "Your dashboard export could not be completed: %(title)s",
+        title=dashboard_title,
     )
+
+
+def _errored_section(errored: dict[str, list[str]]) -> str:
+    """Render one labelled, translated sub-list per non-empty error group.
+
+    ``errored`` maps a reason key (see the ``ERROR_*`` constants) to the labels
+    of the charts that were omitted for that reason. Known reasons are rendered
+    first, in a stable order, each with its own remediation text; any unknown
+    reason key falls back to a generic message so nothing is silently dropped.
+    """
+    if not errored:
+        return ""
+    notes = {
+        ERROR_NO_QUERY_CONTEXT: __(
+            "The following charts were omitted because they have no saved query "
+            "context. To include them, open each chart in Explore and re-save."
+        ),
+        ERROR_TIMEOUT: __(
+            "The following charts were omitted because they timed out before "
+            "their data could be exported:"
+        ),
+        ERROR_GENERAL: __(
+            "The following charts were omitted because an error occurred while "
+            "exporting them:"
+        ),
+    }
+    fallback = __("The following charts could not be exported:")
+    ordered = [ERROR_NO_QUERY_CONTEXT, ERROR_TIMEOUT, ERROR_GENERAL]
+    reasons = ordered + [reason for reason in errored if reason not in ordered]
+    sections = []
+    for reason in reasons:
+        labels = errored.get(reason)
+        if not labels:
+            continue
+        note = notes.get(reason, fallback)
+        items = "".join(f"<li>{escape(label)}</li>" for label in labels)
+        sections.append(f"<p>{note}</p><ul>{items}</ul>")
+    return "".join(sections)
 
 
 def build_success_email(
@@ -68,22 +127,30 @@ def build_success_email(
     requested_at: datetime,
     expires_at: datetime,
     ttl_seconds: int,
-    skipped_charts: list[str],
+    errored: dict[str, list[str]],
 ) -> str:
     """Render the success email body (HTML)."""
     title = escape(dashboard_title)
     url = escape(download_url)
-    hours = ttl_seconds // 3600
+    ready = __('Your export of "%(title)s" is ready.', title=title)
+    button = __("Download Excel file")
+    expiry = __(
+        "This link expires in %(duration)s (%(when)s UTC).",
+        duration=_humanize_ttl(ttl_seconds),
+        when=_fmt(expires_at),
+    )
+    requested = __(
+        "This export was requested on %(when)s UTC.", when=_fmt(requested_at)
+    )
+    disclaimer = __("If you did not request this, you can ignore this email.")
     return (
         '<html><body style="font-family:Arial,sans-serif;color:#333;">'
-        f'<p>Your export of "{title}" is ready.</p>'
-        f'<p><a href="{url}" style="{_BUTTON_STYLE}">Download Excel file</a></p>'
-        f"<p>This link expires in {hours} hours ({_fmt(expires_at)} UTC).</p>"
-        f"{_skipped_section(skipped_charts)}"
+        f"<p>{ready}</p>"
+        f'<p><a href="{url}" style="{_BUTTON_STYLE}">{button}</a></p>'
+        f"<p>{expiry}</p>"
+        f"{_errored_section(errored)}"
         "<hr/>"
-        f'<p style="{_FOOTER_STYLE}">This export was requested on '
-        f"{_fmt(requested_at)} UTC.<br/>"
-        "If you did not request this, you can ignore this email.</p>"
+        f'<p style="{_FOOTER_STYLE}">{requested}<br/>{disclaimer}</p>'
         "</body></html>"
     )
 
@@ -91,14 +158,20 @@ def build_success_email(
 def build_failure_email(dashboard_title: str, requested_at: datetime) -> str:
     """Render the failure email body (HTML)."""
     title = escape(dashboard_title)
+    failed = __('Your export of "%(title)s" could not be completed.', title=title)
+    advice = __(
+        "An error occurred while generating the file. Please try again, or "
+        "contact your administrator if the problem persists."
+    )
+    requested = __(
+        "This export was requested on %(when)s UTC.", when=_fmt(requested_at)
+    )
     return (
         '<html><body style="font-family:Arial,sans-serif;color:#333;">'
-        f'<p>Your export of "{title}" could not be completed.</p>'
-        "<p>An error occurred while generating the file. Please try again, or "
-        "contact your administrator if the problem persists.</p>"
+        f"<p>{failed}</p>"
+        f"<p>{advice}</p>"
         "<hr/>"
-        f'<p style="{_FOOTER_STYLE}">This export was requested on '
-        f"{_fmt(requested_at)} UTC.</p>"
+        f'<p style="{_FOOTER_STYLE}">{requested}</p>'
         "</body></html>"
     )
 

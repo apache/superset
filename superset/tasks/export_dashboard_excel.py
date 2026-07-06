@@ -32,7 +32,7 @@ from __future__ import annotations
 import logging
 import os
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from celery.exceptions import SoftTimeLimitExceeded
@@ -49,7 +49,7 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.dashboards.excel_export import email
 from superset.dashboards.excel_export.layout import get_charts_in_layout_order
 from superset.dashboards.excel_export.screenshot import render_chart_image
-from superset.extensions import celery_app
+from superset.extensions import cache_manager, celery_app
 from superset.utils import json, s3
 from superset.utils.core import override_user
 from superset.utils.excel_streaming import StreamingXlsxWriter
@@ -65,6 +65,14 @@ EXPORT_MODE_IMAGES = "images"
 # Viz types kept as tabular data in image mode; everything else is rendered as an
 # image. Operators can override the set via ``EXCEL_EXPORT_TABLE_VIZ_TYPES``.
 TABLE_VIZ_TYPES = {"table", "pivot_table_v2", "pivot_table"}
+
+EXPORT_SOFT_TIME_LIMIT = 600
+EXPORT_HARD_TIME_LIMIT = 660
+# TTL for the per-user+dashboard in-flight lock set by the API before enqueue.
+# It outlives the hard time limit so a worker killed at that limit (which skips
+# the ``finally`` cleanup) cannot hold the lock forever; the delete in
+# ``finally`` is the fast path that frees it as soon as the task settles.
+EXPORT_INFLIGHT_CACHE_TTL = EXPORT_HARD_TIME_LIMIT + 60
 
 
 class _ChartSkippedError(Exception):
@@ -164,17 +172,23 @@ def _build_workbook(
     job_id: str,
     mode: str,
     user: Any,
-) -> list[str]:
-    """Build the workbook on disk; return the list of skipped chart labels."""
-    skipped: list[str] = []
+) -> dict[str, list[str]]:
+    """Build the workbook on disk.
+
+    Return the charts that could not be exported, grouped by the reason they
+    were omitted (see the ``email.ERROR_*`` reason keys), so the notification
+    can explain each group separately.
+    """
+    errored: dict[str, list[str]] = {}
     writer = StreamingXlsxWriter(path)
     try:
         for chart in get_charts_in_layout_order(dashboard):
+            label = _chart_label(chart)
             as_image = _renders_as_image(chart, mode)
             # Image charts render from their saved params and don't need a query
             # context; data (and table) charts still do.
             if not as_image and not chart.query_context:
-                skipped.append(_chart_label(chart))
+                errored.setdefault(email.ERROR_NO_QUERY_CONTEXT, []).append(label)
                 continue
             try:
                 if as_image:
@@ -183,22 +197,33 @@ def _build_workbook(
                     )
                 else:
                     _write_chart_sheets(writer, chart, dashboard.id, active_data_mask)
+            except SoftTimeLimitExceeded:
+                logger.warning(
+                    "Chart %s timed out in dashboard export %s", chart.id, job_id
+                )
+                errored.setdefault(email.ERROR_TIMEOUT, []).append(label)
             except _ChartSkippedError:
-                skipped.append(_chart_label(chart))
+                logger.warning(
+                    "Skipping chart %s in dashboard export %s (could not render)",
+                    chart.id,
+                    job_id,
+                )
+                errored.setdefault(email.ERROR_GENERAL, []).append(label)
             except Exception:  # pylint: disable=broad-except
                 logger.exception(
                     "Skipping chart %s in dashboard export %s", chart.id, job_id
                 )
-                skipped.append(_chart_label(chart))
+                errored.setdefault(email.ERROR_GENERAL, []).append(label)
 
         if writer.sheet_count == 0:
+            flat = [label for labels in errored.values() for label in labels]
             writer.add_summary_sheet(
                 "Export Summary",
-                ["No chart data could be exported.", *skipped],
+                ["No chart data could be exported.", *flat],
             )
     finally:
         writer.close()
-    return skipped
+    return errored
 
 
 def _send_failure_email(
@@ -219,8 +244,8 @@ def _send_failure_email(
 @celery_app.task(
     name="export_dashboard_excel",
     bind=True,
-    soft_time_limit=600,
-    time_limit=660,
+    soft_time_limit=EXPORT_SOFT_TIME_LIMIT,
+    time_limit=EXPORT_HARD_TIME_LIMIT,
     max_retries=0,
 )
 def export_dashboard_excel(
@@ -230,6 +255,7 @@ def export_dashboard_excel(
     active_data_mask: dict[str, Any],
     job_id: str,
     mode: str = EXPORT_MODE_DATA,
+    inflight_key: str | None = None,
 ) -> None:
     """
     Export a dashboard's charts to an ``.xlsx`` and email a download link.
@@ -240,11 +266,13 @@ def export_dashboard_excel(
     :param job_id: Correlation id, also the Celery task id and S3 object name
     :param mode: ``"data"`` streams every chart's tabular result; ``"images"``
         embeds non-table charts as rendered images and keeps tables tabular
+    :param inflight_key: Cache key of the per-user+dashboard throttle lock, freed
+        when the task settles (the lock's TTL is the backstop)
     """
     # pylint: disable=import-outside-toplevel
     from superset.models.dashboard import Dashboard
 
-    requested_at = datetime.utcnow()
+    requested_at = datetime.now(tz=timezone.utc)
     user = security_manager.get_user_by_id(user_id)
     dashboard_title = ""
     tmp_path: str | None = None
@@ -263,7 +291,7 @@ def export_dashboard_excel(
             )
             os.close(file_descriptor)
 
-            skipped = _build_workbook(
+            errored = _build_workbook(
                 tmp_path, dashboard, active_data_mask, job_id, mode, user
             )
 
@@ -276,7 +304,7 @@ def export_dashboard_excel(
 
             s3.upload_file_to_s3(tmp_path, bucket, key)
             download_url = s3.generate_presigned_url(bucket, key, ttl)
-            expires_at = datetime.utcnow() + timedelta(seconds=ttl)
+            expires_at = datetime.now(tz=timezone.utc) + timedelta(seconds=ttl)
 
             if user and getattr(user, "email", None):
                 try:
@@ -289,7 +317,7 @@ def export_dashboard_excel(
                             requested_at=requested_at,
                             expires_at=expires_at,
                             ttl_seconds=ttl,
-                            skipped_charts=skipped,
+                            errored=errored,
                         ),
                     )
                 except Exception:  # pylint: disable=broad-except
@@ -305,5 +333,13 @@ def export_dashboard_excel(
         _send_failure_email(user, dashboard_title, requested_at)
         raise
     finally:
+        if inflight_key:
+            try:
+                cache_manager.cache.delete(inflight_key)
+            except Exception:  # pylint: disable=broad-except
+                # Best-effort: the lock's TTL is the backstop if this fails.
+                logger.exception(
+                    "Failed to clear in-flight export lock %s", inflight_key
+                )
         if tmp_path and os.path.exists(tmp_path):
             os.remove(tmp_path)

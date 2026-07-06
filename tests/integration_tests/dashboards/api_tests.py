@@ -40,6 +40,7 @@ from superset.utils.core import backend, override_user
 from superset.utils.screenshots import ScreenshotCachePayload
 from superset.utils import json
 
+from tests.conftest import with_config
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
@@ -3292,18 +3293,16 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             db.session.delete(dashboard)
             db.session.commit()
 
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
     @patch("superset.dashboards.api.export_dashboard_excel")
     def test_export_xlsx_404_for_missing_dashboard(self, mock_task):
         """Dashboard API: export_xlsx returns 404 for an unknown dashboard."""
         self.login(ADMIN_USERNAME)
-        with patch.dict(
-            "flask.current_app.config",
-            {"EXCEL_EXPORT_S3_BUCKET": "exports"},
-        ):
-            rv = self.client.post("api/v1/dashboard/99999999/export_xlsx/")
-            assert rv.status_code == 404
+        rv = self.client.post("api/v1/dashboard/99999999/export_xlsx/")
+        assert rv.status_code == 404
         mock_task.apply_async.assert_not_called()
 
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
     @patch("superset.dashboards.api.export_dashboard_excel")
     def test_export_xlsx_400_for_empty_dashboard(self, mock_task):
         """Dashboard API: export_xlsx returns 400 for a dashboard with no charts."""
@@ -3311,31 +3310,24 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         dashboard = self.insert_dashboard("xlsx-empty", None, [admin.id])
         self.login(ADMIN_USERNAME)
         try:
-            with patch.dict(
-                "flask.current_app.config",
-                {"EXCEL_EXPORT_S3_BUCKET": "exports"},
-            ):
-                rv = self.client.post(f"api/v1/dashboard/{dashboard.id}/export_xlsx/")
-                assert rv.status_code == 400
+            rv = self.client.post(f"api/v1/dashboard/{dashboard.id}/export_xlsx/")
+            assert rv.status_code == 400
             mock_task.apply_async.assert_not_called()
         finally:
             db.session.delete(dashboard)
             db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
     @patch("superset.dashboards.api.export_dashboard_excel")
     def test_export_xlsx_202_enqueues_task(self, mock_task):
         """Dashboard API: export_xlsx enqueues the task and returns 202 + job_id."""
         self.login(ADMIN_USERNAME)
         dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
-        with patch.dict(
-            "flask.current_app.config",
-            {"EXCEL_EXPORT_S3_BUCKET": "exports"},
-        ):
-            rv = self.client.post(
-                f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
-                json={"active_data_mask": {}},
-            )
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+        )
         assert rv.status_code == 202
         body = json.loads(rv.data.decode("utf-8"))
         job_id = body["job_id"]
@@ -3345,6 +3337,28 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert kwargs["task_id"] == job_id
         assert kwargs["kwargs"]["dashboard_id"] == dashboard.id
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @patch("superset.dashboards.api.cache_manager")
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    def test_export_xlsx_202_when_export_already_in_progress(
+        self, mock_task, mock_cache_manager
+    ):
+        """Dashboard API: export_xlsx does not enqueue a second concurrent export."""
+        # An in-flight lock is already present for this user+dashboard.
+        mock_cache_manager.cache.get.return_value = "existing-job-id"
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+        )
+        assert rv.status_code == 202
+        assert "already in progress" in rv.data.decode("utf-8")
+        mock_task.apply_async.assert_not_called()
+        mock_cache_manager.cache.set.assert_not_called()
+
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
     @patch("superset.dashboards.api.export_dashboard_excel")
     def test_export_xlsx_404_for_inaccessible_dashboard(self, mock_task):
         """Dashboard API: export_xlsx returns 404 for a dashboard the user can't see."""
@@ -3354,11 +3368,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         )
         self.login(GAMMA_USERNAME)
         try:
-            with patch.dict(
-                "flask.current_app.config",
-                {"EXCEL_EXPORT_S3_BUCKET": "exports"},
-            ):
-                rv = self.client.post(f"api/v1/dashboard/{dashboard.id}/export_xlsx/")
+            rv = self.client.post(f"api/v1/dashboard/{dashboard.id}/export_xlsx/")
             assert rv.status_code == 404
             mock_task.apply_async.assert_not_called()
         finally:

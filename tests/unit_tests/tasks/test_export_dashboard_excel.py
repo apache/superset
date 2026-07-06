@@ -83,6 +83,7 @@ def mocks() -> Iterator[dict[str, Any]]:
                 "render_chart_image",
                 "s3",
                 "email",
+                "cache_manager",
             )
         }
         user = mock.MagicMock()
@@ -106,11 +107,20 @@ def mocks() -> Iterator[dict[str, Any]]:
         yield patched
 
 
-def _run(job_id: str = "job-1", mode: str = "data") -> None:
+def _run(
+    job_id: str = "job-1",
+    mode: str = "data",
+    inflight_key: str | None = None,
+) -> None:
     from superset.tasks.export_dashboard_excel import export_dashboard_excel
 
     export_dashboard_excel(
-        dashboard_id=1, user_id=2, active_data_mask={}, job_id=job_id, mode=mode
+        dashboard_id=1,
+        user_id=2,
+        active_data_mask={},
+        job_id=job_id,
+        mode=mode,
+        inflight_key=inflight_key,
     )
 
 
@@ -169,10 +179,12 @@ def test_chart_without_query_context_is_skipped(mocks: dict[str, Any]) -> None:
     _run()
 
     _, kwargs = mocks["email"].build_success_email.call_args
-    assert kwargs["skipped_charts"] == ["20 - NoContext"]
+    assert kwargs["errored"] == {
+        mocks["email"].ERROR_NO_QUERY_CONTEXT: ["20 - NoContext"]
+    }
 
 
-def test_chart_query_error_is_skipped_export_continues(
+def test_chart_query_error_grouped_as_general_export_continues(
     mocks: dict[str, Any],
 ) -> None:
     mocks["get_charts_in_layout_order"].return_value = [
@@ -188,7 +200,28 @@ def test_chart_query_error_is_skipped_export_continues(
 
     mocks["s3"].upload_file_to_s3.assert_called_once()
     _, kwargs = mocks["email"].build_success_email.call_args
-    assert kwargs["skipped_charts"] == ["10 - Boom"]
+    assert kwargs["errored"] == {mocks["email"].ERROR_GENERAL: ["10 - Boom"]}
+
+
+def test_chart_timeout_grouped_as_timeout_export_continues(
+    mocks: dict[str, Any],
+) -> None:
+    # A soft-timeout raised while a single chart runs is caught distinctly,
+    # grouped under the timeout reason, and does not abort the whole export.
+    mocks["get_charts_in_layout_order"].return_value = [
+        _chart(10, "Slow"),
+        _chart(20, "Ok"),
+    ]
+    mocks["ChartDataCommand"].return_value.run.side_effect = [
+        SoftTimeLimitExceeded(),
+        {"queries": [{"colnames": ["a"], "data": [{"a": 1}]}]},
+    ]
+
+    _run()
+
+    mocks["s3"].upload_file_to_s3.assert_called_once()
+    _, kwargs = mocks["email"].build_success_email.call_args
+    assert kwargs["errored"] == {mocks["email"].ERROR_TIMEOUT: ["10 - Slow"]}
 
 
 def test_all_charts_skipped_writes_summary(mocks: dict[str, Any]) -> None:
@@ -310,7 +343,37 @@ def test_images_mode_none_render_is_skipped(mocks: dict[str, Any]) -> None:
 
     _run(mode="images")
 
+    # A chart that cannot render is grouped under the general-error reason.
     _, kwargs = mocks["email"].build_success_email.call_args
-    assert kwargs["skipped_charts"] == ["10 - Line"]
+    assert kwargs["errored"] == {mocks["email"].ERROR_GENERAL: ["10 - Line"]}
     # Nothing rendered → the summary sheet stands in for an empty workbook.
     assert "Export Summary" in uploaded["sheets"]
+
+
+def test_inflight_lock_cleared_on_success(mocks: dict[str, Any]) -> None:
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    _run(inflight_key="excel-export-inflight:2:1")
+
+    mocks["cache_manager"].cache.delete.assert_called_once_with(
+        "excel-export-inflight:2:1"
+    )
+
+
+def test_inflight_lock_cleared_on_failure(mocks: dict[str, Any]) -> None:
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+    mocks["s3"].upload_file_to_s3.side_effect = RuntimeError("s3 down")
+
+    with pytest.raises(RuntimeError):
+        _run("job-fail", inflight_key="excel-export-inflight:2:1")
+
+    # The lock is freed in ``finally`` even when the export fails.
+    mocks["cache_manager"].cache.delete.assert_called_once_with(
+        "excel-export-inflight:2:1"
+    )
