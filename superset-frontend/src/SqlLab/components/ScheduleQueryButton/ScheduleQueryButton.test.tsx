@@ -127,11 +127,11 @@ test('array fields render add/reorder/remove buttons with the rjsf 6 classes', a
     expect(
       document.querySelectorAll('button.rjsf-array-item-remove'),
     ).toHaveLength(2);
+    expect(
+      document.querySelector('button.rjsf-array-item-move-up'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('button.rjsf-array-item-move-down'),
+    ).toBeInTheDocument();
   });
-  expect(
-    document.querySelector('button.rjsf-array-item-move-up'),
-  ).toBeInTheDocument();
-  expect(
-    document.querySelector('button.rjsf-array-item-move-down'),
-  ).toBeInTheDocument();
 });
