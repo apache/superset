@@ -18,7 +18,8 @@
     },
     "version": {
       "message": "chore(superset-ui): publish %s",
-      "exact": true
+      "exact": true,
+      "syncWorkspaceLock": true
     }
   },
   "$schema": "node_modules/@lerna-lite/cli/schemas/lerna-schema.json"
