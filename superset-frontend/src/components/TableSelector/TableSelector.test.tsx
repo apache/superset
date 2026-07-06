@@ -53,6 +53,17 @@ const getTableMockFunction = () =>
     ],
   }) as any;
 
+const getTableMockHasMoreFunction = () =>
+  ({
+    count: 100,
+    result: [
+      { label: 'table_a', value: 'table_a' },
+      { label: 'table_b', value: 'table_b' },
+      { label: 'table_c', value: 'table_c' },
+      { label: 'table_d', value: 'table_d' },
+    ],
+  }) as any;
+
 const databaseApiRoute = 'glob:*/api/v1/database/?*';
 const catalogApiRoute = 'glob:*/api/v1/database/*/catalogs/?*';
 const schemaApiRoute = 'glob:*/api/v1/database/*/schemas/?*';
@@ -335,4 +346,40 @@ test('TableOption renders correct icons for different table types', () => {
     <TableOption table={materializedViewTable} />,
   );
   expect(mvContainer.querySelector('.anticon')).toBeInTheDocument();
+});
+
+test('shows truncated list warning when hasMore is true', async () => {
+  fetchMock.get(catalogApiRoute, { result: [] });
+  fetchMock.get(schemaApiRoute, { result: ['test_schema'] });
+  fetchMock.get(tablesApiRoute, getTableMockHasMoreFunction());
+
+  const props = createProps();
+  render(<TableSelector {...props} />, { useRedux: true, store });
+
+  await waitFor(
+    () => {
+      expect(
+        screen.getByTestId('table-list-truncated-warning'),
+      ).toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
+});
+
+test('does not show truncated list warning when hasMore is false', async () => {
+  fetchMock.get(catalogApiRoute, { result: [] });
+  fetchMock.get(schemaApiRoute, { result: ['test_schema'] });
+  fetchMock.get(tablesApiRoute, getTableMockFunction());
+
+  const props = createProps();
+  render(<TableSelector {...props} />, { useRedux: true, store });
+
+  await waitFor(
+    () => {
+      expect(
+        screen.queryByTestId('table-list-truncated-warning'),
+      ).not.toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
 });
