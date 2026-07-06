@@ -49,6 +49,10 @@
 
 const VS16 = 0xfe0f;
 
+// Tokens ace renders as bare text nodes with no token-class span; mirrors
+// ace/layer/text_util's textTokens set.
+const TEXT_TOKENS = new Set(['text', 'rparen', 'lparen']);
+
 // Emoji_Presentation covers exactly the codepoints browsers render as color
 // emoji without a variation selector. Lone surrogates never match it (the
 // astral path is already consistent), so only BMP emoji change behavior.
@@ -243,6 +247,14 @@ export function patchAceEmojiWidths(
     if (!EMOJI_RUN_TEST_RE.test(value)) {
       return origRenderToken.call(this, parent, screenColumn, token, value);
     }
+    // Non-text tokens normally have their whole fragment wrapped in a
+    // token-class span ("ace_" + dotted type); carry those classes on the
+    // emoji box itself so syntax styling that isn't glyph color (comment
+    // italics, invalid-token backgrounds, …) still applies to emoji.
+    // Mirrors ace's text_util.isTextToken and $renderToken class handling.
+    const tokenClasses = TEXT_TOKENS.has(token.type)
+      ? ''
+      : ` ace_${token.type.replace(/\./g, ' ace_')}`;
     let column = screenColumn;
     value.split(EMOJI_RUN_SPLIT_RE).forEach((part, index) => {
       if (!part) {
@@ -256,7 +268,7 @@ export function patchAceEmojiWidths(
           cluster => {
             const span = this.dom.createElement('span');
             span.style.width = `${this.config.characterWidth * 2}px`;
-            span.className = 'ace_cjk';
+            span.className = `ace_cjk${tokenClasses}`;
             span.textContent = cluster;
             parent.appendChild(span);
             column += 2;
