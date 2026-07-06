@@ -602,6 +602,46 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         assert association_row is None
 
     @pytest.mark.usefixtures("create_tags")
+    def test_get_list_tag_filtered_by_favorite(self):
+        """
+        Tag API: Test get list filtered by the ``tag_is_favorite`` filter
+        returns only the tags the current user has (or has not) favorited.
+        """
+        self.login(ADMIN_USERNAME)
+        # favorite a single tag for the current (admin) user
+        favorited_tag = db.session.query(Tag).first()
+        rv = self.client.post(
+            f"api/v1/tag/{favorited_tag.id}/favorites/", follow_redirects=True
+        )
+        assert rv.status_code == 200
+
+        # value=True returns only the favorited tag
+        query = {
+            "filters": [{"col": "id", "opr": "tag_is_favorite", "value": True}],
+        }
+        uri = f"api/v1/tag/?{parse.urlencode({'q': prison.dumps(query)})}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["count"] == 1
+        assert data["result"][0]["id"] == favorited_tag.id
+
+        # value=False returns every other tag
+        query["filters"][0]["value"] = False
+        uri = f"api/v1/tag/?{parse.urlencode({'q': prison.dumps(query)})}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["count"] == TAGS_FIXTURE_COUNT - 1
+        assert favorited_tag.id not in {tag["id"] for tag in data["result"]}
+
+        # cleanup the favorite association
+        rv = self.client.delete(
+            f"api/v1/tag/{favorited_tag.id}/favorites/", follow_redirects=True
+        )
+        assert rv.status_code == 200
+
+    @pytest.mark.usefixtures("create_tags")
     def test_add_tag_not_found(self):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/tag/123/favorites/"  # noqa: F541
