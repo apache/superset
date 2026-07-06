@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { forwardRef, useEffect, useCallback, ComponentType } from 'react';
+import {
+  forwardRef,
+  useEffect,
+  useCallback,
+  useRef,
+  ComponentType,
+} from 'react';
 
 import type {
   Editor as OrigEditor,
@@ -287,23 +293,55 @@ export function AsyncAceEditor(
         // the editor font finishes loading after construction, the cached width
         // can stop matching the rendered glyphs and the caret drifts further
         // from the text the longer the line, the residual misalignment in issue
-        // #41664 that the font-family CSS from #38928 does not address. Force a
-        // re-measure once the document's fonts have settled (and immediately,
-        // for the already-loaded case) so the caret stays aligned.
+        // #41664 that the font-family CSS from #38928 does not address.
         // `updateFontSize` runs Ace's `checkForSizeChanges`, which on a metrics
         // change emits `changeCharacterSize`; Ace's renderer reacts with a
-        // forced resize and full re-render, so no explicit resize call is
-        // needed here.
+        // forced resize and full re-render.
+        //
+        // Re-measure on every signal that glyph geometry may have changed:
+        // - immediately, for the already-loaded case;
+        // - after explicitly loading the editor font via `fonts.load()` —
+        //   `fonts.ready` alone is NOT enough, because it can settle before a
+        //   lazily-referenced editor font even starts loading, in which case
+        //   waiting on it misses the swap entirely;
+        // - after `fonts.ready`, for everything in flight at mount;
+        // - on every subsequent `loadingdone` event while mounted, for fonts
+        //   that load even later (removed on unmount via fontCleanupsRef).
+        const fontCleanupsRef = useRef<(() => void)[]>([]);
+        useEffect(
+          () => () => {
+            fontCleanupsRef.current.forEach(cleanup => cleanup());
+            fontCleanupsRef.current = [];
+          },
+          [],
+        );
         const handleLoad = useCallback(
           (editor: Ace.Editor) => {
             const remeasure = () => {
-              editor.renderer.updateFontSize();
+              try {
+                editor.renderer.updateFontSize();
+              } catch {
+                // The editor was destroyed before a pending font event fired.
+              }
             };
             remeasure();
-            document.fonts?.ready?.then(remeasure).catch(() => {});
+            const { fonts } = document;
+            if (fonts) {
+              // The size in the shorthand is irrelevant; any value triggers
+              // the load of the family's faces.
+              fonts
+                .load?.(`12px ${editorFontFamily}`)
+                ?.then(remeasure)
+                ?.catch(() => {});
+              fonts.ready?.then(remeasure)?.catch(() => {});
+              fonts.addEventListener?.('loadingdone', remeasure);
+              fontCleanupsRef.current.push(() =>
+                fonts.removeEventListener?.('loadingdone', remeasure),
+              );
+            }
             onLoad?.(editor);
           },
-          [onLoad],
+          [onLoad, editorFontFamily],
         );
 
         return (
