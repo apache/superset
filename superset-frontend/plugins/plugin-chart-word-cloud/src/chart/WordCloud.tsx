@@ -196,7 +196,7 @@ function WordCloud({
   theme,
 }: FullWordCloudProps) {
   const [words, setWords] = useState<Word[]>([]);
-  const [scaleFactor] = useState(1);
+  const [scaleFactor, setScaleFactor] = useState(1);
   const isMountedRef = useRef(true);
 
   // Store previous props for comparison
@@ -220,11 +220,17 @@ function WordCloud({
     [theme.colorTextLabel, theme.fontFamily],
   );
 
-  const setWordsIfMounted = useCallback((newWords: Word[]) => {
-    if (isMountedRef.current) {
-      setWords(newWords);
-    }
-  }, []);
+  const commitLayoutIfMounted = useCallback(
+    (newWords: Word[], newScaleFactor: number) => {
+      if (isMountedRef.current) {
+        setWords(newWords);
+        // Persist the accepted scale factor so the SVG viewBox matches the
+        // canvas the layout was computed for (otherwise enlarged layouts clip)
+        setScaleFactor(newScaleFactor);
+      }
+    },
+    [],
+  );
 
   const generateCloud = useCallback(
     (
@@ -243,7 +249,7 @@ function WordCloud({
         .fontSize((d: PlainObject) => encoder.getFontSize(d))
         .on('end', (cloudWords: Word[]) => {
           if (isValid(cloudWords) || currentScaleFactor > MAX_SCALE_FACTOR) {
-            setWordsIfMounted(cloudWords);
+            commitLayoutIfMounted(cloudWords, currentScaleFactor);
           } else {
             generateCloud(
               encoder,
@@ -254,7 +260,7 @@ function WordCloud({
         })
         .start();
     },
-    [data, width, height, rotation, setWordsIfMounted],
+    [data, width, height, rotation, commitLayoutIfMounted],
   );
 
   const update = useCallback(() => {

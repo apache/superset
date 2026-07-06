@@ -18,7 +18,7 @@
  */
 /* eslint-disable react/no-array-index-key, react/jsx-no-bind */
 import dist from 'distributions';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Table, Tr, Td, Thead, Th } from 'reactable';
 
 interface DataPointValue {
@@ -49,6 +49,9 @@ function TTestTable({
   pValPrec = 6,
 }: TTestTableProps) {
   const [control, setControl] = useState(0);
+  // Mirrors `control` so the data-change effect can read the latest value
+  // without re-running (and recomputing) after every row click
+  const controlRef = useRef(0);
   const [liftValues, setLiftValues] = useState<(string | number)[]>([]);
   const [pValues, setPValues] = useState<(string | number)[]>([]);
 
@@ -129,29 +132,27 @@ function TTestTable({
         }
       }
       setControl(controlIndex);
+      controlRef.current = controlIndex;
       setLiftValues(newLiftValues);
       setPValues(newPValues);
     },
     [data, computeLift, computePValue],
   );
 
-  // Recompute table when data or control row changes, keeping control index in range
+  // Recompute table when data changes, keeping control index in range.
+  // Row clicks call computeTTest directly, so `control` is read via a ref
+  // here to avoid a duplicate recompute after each click.
   useEffect(() => {
     if (!data || data.length === 0) {
       setControl(0);
+      controlRef.current = 0;
       setLiftValues([]);
       setPValues([]);
       return;
     }
 
-    const safeControlIndex = Math.min(control, data.length - 1);
-    if (safeControlIndex !== control) {
-      setControl(safeControlIndex);
-      computeTTest(safeControlIndex);
-    } else {
-      computeTTest(control);
-    }
-  }, [computeTTest, control, data]);
+    computeTTest(Math.min(controlRef.current, data.length - 1));
+  }, [computeTTest, data]);
 
   const getLiftStatus = useCallback(
     (row: number): string => {
@@ -234,7 +235,7 @@ function TTestTable({
     </Th>,
   );
 
-  const rows = data.map((entry, i) => {
+  const rows = (data ?? []).map((entry, i) => {
     const values = groups.map(
       (
         group,
@@ -294,6 +295,10 @@ function TTestTable({
               return 1;
             }
 
+            if (a === b) {
+              return 0;
+            }
+
             return a > b ? 1 : -1; // p-values ascending
           },
         },
@@ -307,7 +312,13 @@ function TTestTable({
               return 1;
             }
 
-            return parseFloat(a) > parseFloat(b) ? -1 : 1; // lift values descending
+            const liftA = parseFloat(a);
+            const liftB = parseFloat(b);
+            if (liftA === liftB) {
+              return 0;
+            }
+
+            return liftA > liftB ? -1 : 1; // lift values descending
           },
         },
         {
@@ -318,6 +329,10 @@ function TTestTable({
             }
             if (b === 'control') {
               return 1;
+            }
+
+            if (a === b) {
+              return 0;
             }
 
             return a > b ? -1 : 1; // significant values first
