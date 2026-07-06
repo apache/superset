@@ -15055,7 +15055,7 @@ msgstr "该表已经有了数据集"
 msgid ""
 "This table already has a dataset associated with it. You can only "
 "associate one dataset with a table.\n"
-msgstr "此表已经关联了一个数据集。一个表只能关联一个数据集。"
+msgstr "此表已经关联了一个数据集。一个表只能关联一个数据集。\n"
 
 msgid "This theme is set locally"
 msgstr ""
