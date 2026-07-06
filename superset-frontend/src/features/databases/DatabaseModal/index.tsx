@@ -343,7 +343,10 @@ export function dbReducer(
         action.payload.name === 'schema_cache_timeout' ||
         action.payload.name === 'table_cache_timeout'
       ) {
-        const timeoutValue = Math.max(0, Number(action.payload.value) || 0);
+        const timeoutValue =
+          action.payload.value === ''
+            ? undefined
+            : Math.max(0, Number(action.payload.value) || 0);
         return {
           ...trimmedState,
           extra: JSON.stringify({
@@ -417,7 +420,8 @@ export function dbReducer(
         };
       }
       if (action.payload.name === 'cache_timeout') {
-        const val = Number(action.payload.value);
+        const val =
+          action.payload.value === '' ? NaN : Number(action.payload.value);
         return {
           ...trimmedState,
           cache_timeout: Number.isNaN(val)
