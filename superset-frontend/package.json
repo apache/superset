@@ -393,7 +393,6 @@
     "http-proxy-middleware": "^2.0.10",
     "tar": "^7.5.16",
     "puppeteer": "^22.4.1",
-    "remark-gfm": "^3.0.1",
     "underscore": "^1.13.7",
     "jspdf": "^4.2.0",
     "nwsapi": "^2.2.13",
@@ -428,6 +427,9 @@
     },
     "eslint-plugin-jest-dom": {
       "eslint": "$eslint"
+    },
+    "lerna": {
+      "js-yaml": "^4.3.0"
     }
   },
   "readme": "ERROR: No README data found!",
