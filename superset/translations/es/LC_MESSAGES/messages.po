@@ -256,8 +256,8 @@ msgid ""
 "%(prefix)sResults truncated to %(row_count)s rows due to memory "
 "constraints."
 msgstr ""
-"%(prefix)sResultados truncados a %(row_count)s filas por limitaciones "
-"en la memoria"
+"%(prefix)sResultados truncados a %(row_count)s filas por limitaciones en "
+"la memoria"
 
 #, python-format
 msgid ""
@@ -269,9 +269,11 @@ msgstr ""
 " una programación con un intervalo mínimo de %(minimum_interval)d minutos"
 " por ejecución."
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid "%(rows)d rows returned"
-msgstr "líneas obtenidas"
+msgstr "%(rows)d filas devueltas"
 
 #, fuzzy, python-format
 msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
@@ -489,9 +491,11 @@ msgstr "%s vista(s) semántica(s) agregada(s)"
 msgid "%s semantic view(s) failed to add"
 msgstr "No se pudo agregar la(s) %s vista(s) semántica(s)"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "%s semantic view(s) failed to add: %s"
-msgstr ""
+msgstr "Error al agregar %s vista(s) semántica(s): %s"
 
 #, fuzzy, python-format
 msgid "%s tab selected"
@@ -834,13 +838,19 @@ msgstr "Una función JavaScript que genera un objeto de configuración de etique
 msgid "A JavaScript function that generates an icon configuration object"
 msgstr "Una función JavaScript que genera un objeto de configuración de iconos"
 
-#, python-brace-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-brace-format
 msgid ""
 "A JavaScript object that adheres to the ECharts options specification, "
 "overriding other control options with higher precedence. (i.e. { title: {"
 " text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). Details: "
 "https://echarts.apache.org/en/option.html. "
 msgstr ""
+"Un objeto JavaScript que se adhiere a la especificación de opciones de "
+"ECharts, anulando otras opciones de control con mayor precedencia. (p. "
+"ej. { title: { text: \"Mi gráfico\" }, tooltip: { trigger: \"item\" } })."
+" Detalles: https://echarts.apache.org/en/option.html. "
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -1010,14 +1020,18 @@ msgstr "El informe se ha creado"
 
 #, fuzzy
 msgid "API key name is required"
-msgstr "El nombre del rol es obligatorio"
+msgstr "El nombre de la clave API es obligatorio"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
+# sr_Latn]
+#, fuzzy
 msgid "API key revoked successfully"
-msgstr ""
+msgstr "Clave API revocada correctamente"
 
 msgid "API keys allow scoped programmatic access to Superset."
-msgstr "Las claves API permiten el acceso programático con "
-"ámbito restringido a Superset."
+msgstr ""
+"Las claves API permiten el acceso programático con ámbito restringido a "
+"Superset."
 
 msgid "APPLY"
 msgstr "APLICAR"
@@ -2164,11 +2178,17 @@ msgstr ""
 "consulta de origen cumpla con los periodos mínimos definidos en la "
 "ventana móvil."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Applies only when \"Cell bars\" formatting is selected: the background of"
 " the histogram columns is displayed if the \"Show cell bars\" flag is "
 "enabled."
 msgstr ""
+"Se aplica solo cuando se selecciona el formato \"Barras de celda\": el "
+"fondo de las columnas del histograma se muestra si la opción \"Mostrar "
+"barras de celda\" está habilitada."
 
 msgid "Apply"
 msgstr "Aplicar"
@@ -2365,13 +2385,19 @@ msgstr "Automático"
 msgid "Auto Zoom"
 msgstr "«Zoom» automático"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "Auto refresh paused (set to %s seconds)"
-msgstr ""
+msgstr "Actualización automática en pausa (establecida en %s segundos)"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "Auto refresh paused - tab inactive (set to %s seconds)"
 msgstr ""
+"Actualización automática en pausa - pestaña inactiva (establecida en %s "
+"segundos)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy, python-format
@@ -2513,8 +2539,13 @@ msgstr "Altura de la base"
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "Estilo del mapa de la capa base. Consulta la documentación de Mapbox: %s"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Base layer map style. Accepts a Mapbox style URL (mapbox://styles/...)."
 msgstr ""
+"Estilo del mapa de capa base. Acepta una URL de estilo Mapbox "
+"(mapbox://styles/...)."
 
 #, fuzzy, python-format
 msgid "Base layer map style. See MapLibre documentation: %s"
@@ -2765,6 +2796,11 @@ msgstr "Destinatarios CC"
 msgid "COPY QUERY"
 msgstr "Copiar URL de la consulta"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
+#, fuzzy
+msgid "Copy query"
+msgstr "Copiar consulta"
+
 msgid "CREATE TABLE AS"
 msgstr "CREAR TABLA COMO"
 
@@ -2792,11 +2828,17 @@ msgstr "Plantillas CSS"
 msgid "CSS applied to the chart"
 msgstr "CSS aplicado al gráfico"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "CSS styles may be removed by server-side HTML sanitization. If styles are"
 " not applying, ask your Superset administrator to adjust the HTML "
 "sanitization configuration."
 msgstr ""
+"Los estilos CSS pueden ser eliminados por la sanitización HTML del lado "
+"del servidor. Si los estilos no se aplican, solicite al administrador de "
+"Superset que ajuste la configuración de sanitización HTML."
 
 msgid "CSS template"
 msgstr "Plantilla CSS"
@@ -3150,9 +3192,11 @@ msgstr "Carácter para interpretar como punto decimal"
 msgid "Chart"
 msgstr "Gráfico"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "Chart %(chart_id)s is not on dashboard %(dashboard_id)s"
-msgstr ""
+msgstr "El gráfico %(chart_id)s no está en el panel %(dashboard_id)s"
 
 #, python-format
 msgid "Chart %(id)s not found"
@@ -3207,6 +3251,9 @@ msgstr "Cambios en el gráfico"
 
 msgid "Chart could not be created."
 msgstr "No se ha podido crear el gráfico."
+
+msgid "Chart could not be restored."
+msgstr ""
 
 msgid "Chart could not be updated."
 msgstr "No se ha podido actualizar el gráfico."
@@ -3670,11 +3717,17 @@ msgstr "Esquema de color"
 msgid "Color Steps"
 msgstr "Pasos de color"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Color bars by x-axis"
-msgstr ""
+msgstr "Colorear barras por eje X"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Color bars by y-axis"
-msgstr ""
+msgstr "Colorear barras por eje Y"
 
 msgid "Color bounds"
 msgstr "Límites de color"
@@ -3686,8 +3739,11 @@ msgstr "Puntos de ruptura del «bucket»"
 msgid "Color by"
 msgstr "Color por"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
-msgstr ""
+msgstr "El campo de color debe ser un color hexadecimal (#rrggbb) o 'rgb(r, g, b)'"
 
 #, fuzzy
 msgid "Color for breakpoint"
@@ -4055,9 +4111,11 @@ msgstr "La conexión ha fallado; revisa la configuración de tu conexión"
 msgid "Contains"
 msgstr "Continuo"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "Contains text (ILIKE %x%)"
-msgstr ""
+msgstr "Contiene texto (ILIKE %x%)"
 
 msgid "Content format"
 msgstr "Formato del contenido"
@@ -4380,8 +4438,13 @@ msgstr ""
 "Las métricas «ad hoc» SQL personalizadas no están habilitadas para este "
 "conjunto de datos"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr ""
+"Los campos SQL personalizados no se pueden analizar como una única "
+"sentencia SQL."
 
 #, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
@@ -4588,6 +4651,9 @@ msgstr "No se ha podido actualizar la configuración de color del panel de contr
 
 msgid "Dashboard could not be deleted."
 msgstr "No se ha podido eliminar el panel de control."
+
+msgid "Dashboard could not be restored."
+msgstr ""
 
 msgid "Dashboard could not be updated."
 msgstr "No se ha podido actualizar el panel de control."
@@ -4811,8 +4877,10 @@ msgstr "Configuración de la base de datos actualizada"
 msgid "Database type does not support file uploads."
 msgstr "El tipo de base de datos no admite subidas de archivos."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
+#, fuzzy
 msgid "Database upload file exceeds the maximum allowed size."
-msgstr ""
+msgstr "El archivo de carga a la base de datos supera el tamaño máximo permitido."
 
 msgid "Database upload file failed"
 msgstr "La subida de la base de datos ha fallado"
@@ -5180,7 +5248,6 @@ msgid ""
 "Defines the value that determines the boundary between different regions "
 "or levels in the data "
 msgstr ""
-"\n"
 "Define el valor que determina el límite entre diferentes regiones o "
 "niveles en los datos "
 
@@ -5195,11 +5262,13 @@ msgstr ""
 msgid "Definition"
 msgstr "desviación"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "Delayed (missed %s refresh)"
 msgid_plural "Delayed (missed %s refreshes)"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Retrasado (se omitió %s actualización)"
+msgstr[1] "Retrasado (se omitieron %s actualizaciones)"
 
 msgid "Delete"
 msgstr "Eliminar"
@@ -5450,12 +5519,20 @@ msgstr "Detalles"
 msgid "Details of the certification"
 msgstr "Detalles de la certificación"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Determines how the filter matches values. \"Exact match\" uses the IN "
 "operator (default). ILIKE options enable partial text matching with a "
 "free-text input. Warning: ILIKE queries may be slow on large datasets as "
 "they cannot use indexes effectively."
 msgstr ""
+"Determina cómo el filtro hace coincidir los valores. \"Coincidencia "
+"exacta\" usa el operador IN (predeterminado). Las opciones ILIKE permiten"
+" la coincidencia parcial de texto con una entrada de texto libre. "
+"Advertencia: las consultas ILIKE pueden ser lentas en conjuntos de datos "
+"grandes, ya que no pueden utilizar índices de manera efectiva."
 
 msgid "Determines how whiskers and outliers are calculated."
 msgstr "Determina cómo se calculan los bigotes y los valores atípicos."
@@ -5482,11 +5559,18 @@ msgstr "Gris tenue"
 msgid "Dimension"
 msgstr "Dimensión"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Dimension column emitted as a cross-filter when a feature is clicked. "
 "Other charts on the dashboard match against this column. If unset, falls "
 "back to the geometry column (legacy behavior, often unmatchable)."
 msgstr ""
+"Columna de dimensión emitida como filtro cruzado al hacer clic en un "
+"elemento. Otros gráficos del panel coinciden con esta columna. Si no se "
+"establece, se recurre a la columna de geometría (comportamiento heredado,"
+" a menudo sin coincidencia)."
 
 #, fuzzy
 msgid "Dimension is required"
@@ -5967,8 +6051,11 @@ msgstr "Seleccionar dinámicamente columnas de agrupación de un conjunto de dat
 msgid "ECharts"
 msgstr "ECharts"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "ECharts Options (JS object literals)"
-msgstr ""
+msgstr "Opciones de ECharts (literales de objeto JS)"
 
 msgid "EMAIL_REPORTS_CTA"
 msgstr "EMAIL_REPORTS_CTA"
@@ -6571,8 +6658,11 @@ msgstr "Evolución"
 msgid "Exact"
 msgstr "Exacto"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Exact match (IN)"
-msgstr ""
+msgstr "Coincidencia exacta (IN)"
 
 msgid "Example"
 msgstr "Ejemplo"
@@ -6769,8 +6859,11 @@ msgstr "Dimensiones"
 msgid "Extent"
 msgstr "Extensión"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "External link warning"
-msgstr ""
+msgstr "Advertencia de enlace externo"
 
 msgid "Extra"
 msgstr "Adicional"
@@ -6819,6 +6912,11 @@ msgstr "FEB"
 
 msgid "FIT DATA"
 msgstr "ENCAJAR DATOS"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
+#, fuzzy
+msgid "Fit data"
+msgstr "Ajustar datos"
 
 msgid "FRI"
 msgstr "VIE"
@@ -7272,8 +7370,11 @@ msgstr "Forzar"
 msgid "Force Time Grain as Max Interval"
 msgstr "Forzar grano de tiempo como intervalo máximo"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Force abort (stops task for all subscribers)"
-msgstr ""
+msgstr "Forzar cancelación (detiene la tarea para todos los suscriptores)"
 
 msgid ""
 "Force all tables and views to be created in this schema when clicking "
@@ -8314,8 +8415,13 @@ msgstr "Prefijo"
 msgid "Keyboard shortcuts"
 msgstr "Accesos rápidos de teclado"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Keys are shown only once at creation. Store them securely."
 msgstr ""
+"Las claves se muestran solo una vez al crearlas. Guárdelas de forma "
+"segura."
 
 msgid "Keys for table"
 msgstr "Claves para la tabla"
@@ -8563,8 +8669,11 @@ msgstr "Menor o igual (<=)"
 msgid "Less than (<)"
 msgstr "Menor que (<)"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Liberty (OpenFreeMap)"
-msgstr ""
+msgstr "Liberty (OpenFreeMap)"
 
 msgid "Lift percent precision"
 msgstr "Precisión del porcentaje de elevación"
@@ -8865,10 +8974,16 @@ msgstr "Gestionar propietarios del panel y permisos de acceso"
 msgid "Manage email report"
 msgstr "Gestionar informe de correo electrónico"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Manage filters and customizations to set scoping, descriptions, and "
 "limitations. Create new elements for better dashboard insights."
 msgstr ""
+"Gestione los filtros y personalizaciones para establecer el alcance, las "
+"descripciones y las limitaciones. Cree nuevos elementos para obtener "
+"mejores perspectivas del panel."
 
 msgid "Manage your databases"
 msgstr "Gestionar tus bases de datos"
@@ -8893,13 +9008,21 @@ msgstr "Renderizado en tiempo real"
 msgid "Map Style"
 msgstr "Estilo de mapa"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "MapLibre (open-source)"
-msgstr ""
+msgstr "MapLibre (código abierto)"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "MapLibre is open-source and requires no API key. Mapbox requires "
 "MAPBOX_API_KEY to be configured on the server."
 msgstr ""
+"MapLibre es de código abierto y no requiere clave API. Mapbox requiere "
+"que se configure MAPBOX_API_KEY en el servidor."
 
 msgid "Mapbox"
 msgstr "Mapbox"
@@ -8908,8 +9031,11 @@ msgstr "Mapbox"
 msgid "Mapbox (API key required)"
 msgstr "El correo electrónico es obligatorio"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
-msgstr ""
+msgstr "Mapbox requiere que se configure una MAPBOX_API_KEY en el servidor."
 
 msgid "March"
 msgstr "Marzo"
@@ -9191,16 +9317,22 @@ msgstr "Métricas"
 msgid "Metrics (%s)"
 msgstr "Métricas"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Metrics can't be used for both rows and columns at the same time"
-msgstr ""
+msgstr "Las métricas no se pueden usar para filas y columnas al mismo tiempo"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "Metrics folder can only contain metric items"
 msgstr "La carpeta de métricas solo puede contener elementos de métricas"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Metrics should be inside folders"
-msgstr ""
+msgstr "Las métricas deben estar dentro de carpetas"
 
 #, fuzzy
 msgid "Metrics to show in the tooltip."
@@ -9396,10 +9528,15 @@ msgstr ""
 msgid "Multiplier"
 msgstr "Multiplicador"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Must be a chart owner to overwrite this chart. Save as a new chart "
 "instead."
 msgstr ""
+"Debe ser propietario del gráfico para sobrescribirlo. Guárdelo como un "
+"nuevo gráfico."
 
 msgid "Must be unique"
 msgstr "Debe ser único"
@@ -9643,8 +9780,11 @@ msgstr "No hay filtros"
 msgid "No filters are currently added to this dashboard."
 msgstr "Actualmente no se han añadido filtros a este panel de control."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "No filters or customizations created yet"
-msgstr ""
+msgstr "Aún no se han creado filtros ni personalizaciones"
 
 msgid "No form settings were maintained"
 msgstr "No se han conservado los ajustes del formulario"
@@ -10060,11 +10200,19 @@ msgstr ""
 "Solo se aplica cuando «Tipo de etiqueta» está configurado para mostrar "
 "valores."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Only exact match is available for non-string columns."
 msgstr ""
+"Solo la coincidencia exacta está disponible para columnas que no son de "
+"texto."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Only proceed if you trust the destination or its source."
-msgstr ""
+msgstr "Continúe solo si confía en el destino o en su fuente."
 
 msgid ""
 "Only show the total value on the stacked chart, and not show on the "
@@ -10420,8 +10568,11 @@ msgstr "Tamaño del punto"
 msgid "Pattern"
 msgstr "Patrón"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Pause auto refresh if tab is inactive"
-msgstr ""
+msgstr "Pausar la actualización automática si la pestaña está inactiva"
 
 #, fuzzy
 msgid "Pause auto-refresh"
@@ -10918,11 +11069,17 @@ msgstr "ID del proyecto"
 msgid "Proportional"
 msgstr "Proporcional"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Public and privately shared sheets"
-msgstr ""
+msgstr "Hojas compartidas pública y privadamente"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Publicly shared sheets only"
-msgstr ""
+msgstr "Solo hojas compartidas públicamente"
 
 msgid "Published"
 msgstr "Publicado"
@@ -11456,8 +11613,11 @@ msgstr "El recurso ya tiene un informe adjunto."
 msgid "Resource was not found."
 msgstr "No se ha encontrado el recurso."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Resource was removed before ownership could be verified"
-msgstr ""
+msgstr "El recurso fue eliminado antes de que se pudiera verificar la propiedad"
 
 msgid "Restore filter"
 msgstr "Restablecer filtro"
@@ -11509,8 +11669,11 @@ msgstr "Eliminar"
 msgid "Revoke API Key"
 msgstr "Clave de grupo"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Revoke this API key"
-msgstr ""
+msgstr "Revocar esta clave API"
 
 #, fuzzy
 msgid "Revoked"
@@ -11718,11 +11881,18 @@ msgstr "SQL"
 msgid "SQL Lab"
 msgstr "SQL Lab"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "SQL Lab cannot authorise a statement that could not be fully parsed. "
 "Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
 "or vendor-specific calls."
 msgstr ""
+"SQL Lab no puede autorizar una sentencia que no pudo analizarse "
+"completamente. Califique las tablas explícitamente y evite el SQL "
+"dinámico dentro de procedimientos almacenados o llamadas específicas del "
+"proveedor."
 
 msgid "SQL Lab queries"
 msgstr "Consultas de SQL Lab"
@@ -11902,8 +12072,11 @@ msgstr "Guardar o sobrescribir conjunto de datos"
 msgid "Save query"
 msgstr "Guardar consulta"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Save this API key securely"
-msgstr ""
+msgstr "Guardar esta clave API de forma segura"
 
 msgid "Save this query as a virtual dataset to continue exploring"
 msgstr ""
@@ -11940,8 +12113,11 @@ msgstr "Guardando..."
 msgid "Scale and Move"
 msgstr "Escalar y mover"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Scale factor applied to metric-driven line widths"
-msgstr ""
+msgstr "Factor de escala aplicado a los anchos de línea basados en métricas"
 
 msgid "Scale only"
 msgstr "Solo escalar"
@@ -12562,15 +12738,26 @@ msgstr "Selecciona la columna geojson"
 msgid "Select the geojson column"
 msgstr "Selecciona la columna geojson"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Select the map tile provider. MapLibre is open-source and requires no API"
 " key. Mapbox requires MAPBOX_API_KEY to be configured in Superset."
 msgstr ""
+"Seleccione el proveedor de teselas de mapa. MapLibre es de código abierto"
+" y no requiere clave API. Mapbox requiere que se configure MAPBOX_API_KEY"
+" en Superset."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Select the metric used to determine which color breakpoint range each "
 "path falls into."
 msgstr ""
+"Seleccione la métrica utilizada para determinar en qué rango de punto de "
+"quiebre de color cae cada ruta."
 
 #, fuzzy
 msgid "Select the type of color scheme to use."
@@ -12592,11 +12779,17 @@ msgstr ""
 "Selecciona los valores en los campos resaltados en el panel de control. A"
 " continuación, ejecuta la consulta haciendo clic en el botón %s."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Select which time grains are available in the filter control. This is a "
 "UI allow list only and does not add extra conditions to the underlying "
 "queries."
 msgstr ""
+"Seleccione qué granularidades de tiempo están disponibles en el control "
+"de filtro. Esto es solo una lista de permitidos de la interfaz de usuario"
+" y no agrega condiciones adicionales a las consultas subyacentes."
 
 #, fuzzy
 msgid "Selected"
@@ -12617,11 +12810,17 @@ msgstr "Correo electrónico"
 msgid "Semantic Layer"
 msgstr "Capa de anotación"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Semantic View"
-msgstr ""
+msgstr "Vista semántica"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Semantic Views"
-msgstr ""
+msgstr "Vistas semánticas"
 
 #, fuzzy
 msgid "Semantic layer"
@@ -12679,11 +12878,17 @@ msgstr "El conjunto de datos no existe"
 msgid "Semantic view parameters are invalid."
 msgstr "Los parámetros del conjunto de datos no son válidos."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Semantic view updated"
-msgstr ""
+msgstr "Vista semántica actualizada"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Semantic views"
-msgstr ""
+msgstr "Vistas semánticas"
 
 msgid "Send as CSV"
 msgstr "Enviar como CSV"
@@ -13248,14 +13453,25 @@ msgstr ""
 msgid "Solid"
 msgstr "Sólido"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Some groups could not be resolved and are shown as IDs."
-msgstr ""
+msgstr "Algunos grupos no pudieron resolverse y se muestran como IDs."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Some permissions could not be resolved and are shown as IDs."
-msgstr ""
+msgstr "Algunos permisos no pudieron resolverse y se muestran como IDs."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr ""
+"Algunos filtros obligatorios en otras pestañas tienen valores y no se "
+"borrarán"
 
 msgid "Some roles do not exist"
 msgstr "Algunos roles no existen"
@@ -13398,11 +13614,18 @@ msgstr "Ordenar métrica"
 msgid "Sort query by"
 msgstr "Ordenar consulta por"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Sort results by series name in ascending order. When combined with \"Sort"
 " by metric\", this acts as a tiebreaker for equal metric values. Adding "
 "this sort may reduce query performance on some databases."
 msgstr ""
+"Ordenar resultados por nombre de serie en orden ascendente. Cuando se "
+"combina con \"Ordenar por métrica\", esto actúa como criterio de "
+"desempate para valores de métrica iguales. Agregar esta clasificación "
+"puede reducir el rendimiento de las consultas en algunas bases de datos."
 
 msgid "Sort rows by"
 msgstr "Ordenar filas por"
@@ -13622,8 +13845,13 @@ msgstr "Trazado"
 msgid "Structural"
 msgstr "Estructural"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Structure is managed by the upstream semantic layer and is read-only."
 msgstr ""
+"La estructura está gestionada por la capa semántica de origen y es de "
+"solo lectura."
 
 msgid "Style"
 msgstr "Estilo"
@@ -13950,10 +14178,15 @@ msgstr "No se ha podido crear la etiqueta."
 msgid "Task could not be updated."
 msgstr "No se ha podido actualizar la etiqueta."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Task is not abortable. The task is in progress but has not registered an "
 "abort handler."
 msgstr ""
+"La tarea no se puede abortar. La tarea está en curso pero no ha "
+"registrado un manejador de cancelación."
 
 #, fuzzy
 msgid "Task parameters are invalid."
@@ -13963,8 +14196,13 @@ msgstr "Los parámetros de la etiqueta no son válidos."
 msgid "Tasks"
 msgstr "etiquetas"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Tasks will appear here as background operations are executed."
 msgstr ""
+"Las tareas aparecerán aquí a medida que se ejecuten las operaciones en "
+"segundo plano."
 
 msgid "Template"
 msgstr "Plantilla"
@@ -14065,17 +14303,29 @@ msgstr ""
 "La capa GeoJson toma datos con formato GeoJSON y los renderiza como "
 "polígonos, líneas y puntos interactivos (círculos, iconos o textos)."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "The Global Task Framework is not enabled. Please contact your "
 "administrator to enable the GLOBAL_TASK_FRAMEWORK feature flag."
 msgstr ""
+"El Global Task Framework no está habilitado. Por favor, contacte a su "
+"administrador para habilitar la opción GLOBAL_TASK_FRAMEWORK."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "The Global Task Framework is not enabled. Set GLOBAL_TASK_FRAMEWORK=True "
 "in your feature flags to use @task. See "
 "https://superset.apache.org/docs/configuration/async-queries-celery for "
 "configuration details."
 msgstr ""
+"El Global Task Framework no está habilitado. Establezca "
+"GLOBAL_TASK_FRAMEWORK=True en las opciones de funciones para usar @task. "
+"Consulte https://superset.apache.org/docs/configuration/async-queries-"
+"celery para detalles de configuración."
 
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
@@ -14128,8 +14378,18 @@ msgstr ""
 "nodo está asociado con más de una categoría, solo se utilizará la "
 "primera."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+
 msgid "The chart is still loading. Please wait a moment and try again."
 msgstr ""
+"El gráfico todavía se está cargando. Por favor, espere un momento e "
+"intente de nuevo."
 
 msgid ""
 "The classic. Great for showing how much of a company each investor gets, "
@@ -14219,6 +14479,11 @@ msgstr ""
 
 msgid "The dashboard has been saved"
 msgstr "El panel de control se ha guardado"
+
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
+msgstr ""
 
 msgid "The data source seems to have been deleted"
 msgstr "Parece que se ha eliminado la fuente de datos"
@@ -14374,10 +14639,16 @@ msgstr ""
 "Faltan las siguientes entradas en «series_columns» en «columns»: "
 "%(columns)s. "
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "The following fields contain sensitive information that was masked during"
 " export. Please provide the values to import this database."
 msgstr ""
+"Los siguientes campos contienen información sensible que fue enmascarada "
+"durante la exportación. Por favor, proporcione los valores para importar "
+"esta base de datos."
 
 #, python-format
 msgid ""
@@ -14670,8 +14941,13 @@ msgstr ""
 "exportación y deben añadirse manualmente después de la importación, si "
 "son necesarias."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr ""
+"Se necesitan las contraseñas de las bases de datos a continuación para "
+"poder importarlas."
 
 msgid "The pattern of timestamp format. For strings use "
 msgstr "El patrón del formato de marca de tiempo. Para cadenas, usa "
@@ -15055,10 +15331,15 @@ msgstr "La anchura del borde de los elementos"
 msgid "The width of the lines"
 msgstr "La anchura de las líneas"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "The width of the lines as either a fixed value or variable width based on"
 " a metric."
 msgstr ""
+"El ancho de las líneas como valor fijo o ancho variable basado en una "
+"métrica."
 
 #, fuzzy
 msgid "Theme"
@@ -15123,11 +15404,15 @@ msgstr ""
 "No hay suficiente espacio para este componente. Intenta disminuir su "
 "anchura o aumentar la anchura del destino."
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid ""
 "There was a problem refreshing your dashboard. We'll try again in %s, as "
 "scheduled."
 msgstr ""
+"Hubo un problema al actualizar su panel. Lo intentaremos de nuevo en %s, "
+"según lo programado."
 
 #, fuzzy
 msgid "There was an error creating the group. Please, try again."
@@ -15530,12 +15815,19 @@ msgstr ""
 "Esta tabla de base de datos no contiene ningún dato. Selecciona una tabla"
 " diferente."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "This database uses OAuth2 for authentication. Please click the link above"
 " to grant Apache Superset permission to access the data. Your personal "
 "access token will be stored encrypted and used only for queries run by "
 "you."
 msgstr ""
+"Esta base de datos utiliza OAuth2 para la autenticación. Por favor, haga "
+"clic en el enlace anterior para otorgar a Apache Superset permiso para "
+"acceder a los datos. Su token de acceso personal se almacenará cifrado y "
+"se utilizará únicamente para las consultas que usted ejecute."
 
 msgid "This dataset is managed externally, and can't be edited in Superset"
 msgstr ""
@@ -15655,8 +15947,11 @@ msgstr "Actualizar los valores predeterminados"
 msgid "This is the default light theme"
 msgstr "Este es el tema claro predeterminado"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "This is the only time you will see this key. Store it securely."
-msgstr ""
+msgstr "Esta es la única vez que verá esta clave. Guárdela de forma segura."
 
 msgid ""
 "This json object describes the positioning of the widgets in the "
@@ -15668,10 +15963,20 @@ msgstr ""
 "posiciones de los «widgets» arrastrando y soltando en la vista del panel "
 "de control."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
+#, fuzzy
+msgid "This link cannot be followed because its address is unsafe."
+msgstr "Este enlace no puede seguirse porque su dirección no es segura."
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
 msgstr ""
+"Este enlace le llevará a un sitio web externo. No podemos garantizar la "
+"seguridad de los destinos externos."
 
 msgid "This markdown component has an error."
 msgstr "Este componente de nota tiene un error."
@@ -15776,9 +16081,11 @@ msgid_plural "This may be triggered by:"
 msgstr[0] "La causa de esto ha sido:"
 msgstr[1] "La causa de esto puede haber sido:"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "This will abort (stop) the task for all %s subscriber(s)."
-msgstr ""
+msgstr "Esto cancelará (detendrá) la tarea para todos los %s suscriptor(es)."
 
 msgid ""
 "This will be applied to the whole table. Arrows (↑ and ↓) will be added "
@@ -15790,8 +16097,11 @@ msgstr ""
 "básico se puede sobrescribir con el formato condicional que se muestra a "
 "continuación."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "This will cancel the task."
-msgstr ""
+msgstr "Esto cancelará la tarea."
 
 msgid "This will remove your current embed configuration."
 msgstr "Esto eliminará tu configuración de incrustación actual."
@@ -15996,11 +16306,16 @@ msgstr "Formato de hora/fecha"
 msgid "Timeline"
 msgstr "Zona horaria"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid ""
 "Timeout configured (%s seconds) but no abort handler defined. Task will "
 "continue running past the timeout."
 msgstr ""
+"Tiempo de espera configurado (%s segundos) pero no se ha definido un "
+"manejador de cancelación. La tarea continuará ejecutándose después del "
+"tiempo de espera."
 
 msgid "Timeout error"
 msgstr "Error de tiempo de espera"
@@ -16200,8 +16515,11 @@ msgstr ""
 "Trunca la fecha especificada a la precisión especificada por la unidad de"
 " fecha."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Trust this URL and don't ask again"
-msgstr ""
+msgstr "Confiar en esta URL y no volver a preguntar"
 
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
@@ -16237,8 +16555,11 @@ msgstr "Introduce un valor"
 msgid "Type is required"
 msgstr "El tipo es obligatorio"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Type of Google Sheets allowed"
-msgstr ""
+msgstr "Tipo de hojas de Google permitido"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
@@ -16252,11 +16573,17 @@ msgstr "Tipo de comparación, diferencia de valor o porcentaje"
 msgid "Type to search (contains)..."
 msgstr "Buscar columnas"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Type to search (ends with)..."
-msgstr ""
+msgstr "Escriba para buscar (termina con)..."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Type to search (starts with)..."
-msgstr ""
+msgstr "Escriba para buscar (comienza con)..."
 
 msgid "UI Configuration"
 msgstr "Configuración de la IU"
@@ -16337,8 +16664,13 @@ msgstr "No se ha podido decodificar el valor"
 msgid "Unable to encode value"
 msgstr "No se ha podido codificar el valor"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr ""
+"No se pueden obtener las vistas semánticas. Verifique la configuración de"
+" la capa."
 
 #, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
@@ -16486,8 +16818,11 @@ msgstr "Error desconocido"
 msgid "Unknown input format"
 msgstr "Formato de entrada desconocido"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Unknown tokens will be highlighted as warnings."
-msgstr ""
+msgstr "Los tokens desconocidos se resaltarán como advertencias."
 
 msgid "Unknown type"
 msgstr "Tipo desconocido"
@@ -16501,10 +16836,18 @@ msgstr "Desanclar"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "Unpin from the result panel"
-msgstr "Fijar en el panel de resultados"
+msgstr "Desanclar en el panel de resultados"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Unpin from top"
-msgstr ""
+msgstr "Desanclar de la parte superior"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
+#, fuzzy
+msgid "Unsafe link blocked"
+msgstr "Enlace no seguro bloqueado"
 
 #, python-format
 msgid "Unsafe return type for function %(func)s: %(value_type)s"
@@ -16794,8 +17137,11 @@ msgstr ""
 " valor. Resulta útil para embudos y canalizaciones de visualización de "
 "múltiples etapas y múltiples grupos."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Uses the first 25 values if the dimension has more."
-msgstr ""
+msgstr "Usa los primeros 25 valores si la dimensión tiene más."
 
 #, fuzzy
 msgid "Valid SQL expression"
@@ -17079,8 +17425,11 @@ msgstr "WFS"
 msgid "WMS"
 msgstr "WMS"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Waiting for first refresh"
-msgstr ""
+msgstr "Esperando la primera actualización"
 
 #, python-format
 msgid "Waiting on %s"
@@ -17110,10 +17459,15 @@ msgstr ""
 "¡Cuidado! Cambiar el conjunto de datos puede descomponer el gráfico si "
 "los metadatos no existen."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Warning: ILIKE queries may be slow on large datasets as they cannot use "
 "indexes effectively."
 msgstr ""
+"Advertencia: Las consultas ILIKE pueden ser lentas en conjuntos de datos "
+"grandes ya que no pueden usar índices de manera efectiva."
 
 msgid "Was unable to check your query"
 msgstr "No se ha podido comprobar su consulta"
@@ -17966,8 +18320,11 @@ msgstr "Debes elegir un nombre para el nuevo panel de control"
 msgid "You must run the query successfully first"
 msgstr "Primero debes ejecutar la consulta correctamente"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "You need to"
-msgstr ""
+msgstr "Necesita"
 
 msgid ""
 "You updated the values in the control panel, but the chart was not "
@@ -17978,11 +18335,15 @@ msgstr ""
 " actualizó automáticamente. Ejecuta la consulta haciendo clic en el botón"
 " «Actualizar gráfico» o"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid ""
 "You'll be removed from this task. It will continue running for %s other "
 "subscriber(s)."
 msgstr ""
+"Será eliminado de esta tarea. Continuará ejecutándose para %s otro(s) "
+"suscriptor(es)."
 
 msgid ""
 "You've changed datasets. Any controls with data (columns, metrics) that "
@@ -18127,9 +18488,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "Propiedad «operation» del objeto de posprocesamiento no definida"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
+#, fuzzy, python-format
 msgid "`periods` must be between 1 and %(max)s"
-msgstr ""
+msgstr "`periods` debe estar entre 1 y %(max)s"
 
 msgid "`prophet` package not installed"
 msgstr "El paquete «prophet» no está instalado"
@@ -18471,8 +18833,11 @@ msgstr "p. ej., world_population"
 msgid "e.g. xy12345.us-east-2.aws"
 msgstr "p. ej., xy12345.us-east-2.aws"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "e.g., CI/CD Pipeline, Analytics Script"
-msgstr ""
+msgstr "p.ej., CI/CD Pipeline, Script de análisis"
 
 msgid "edit mode"
 msgstr "modo de edición"
@@ -18522,14 +18887,20 @@ msgstr "cada mes"
 msgid "expand"
 msgstr "expandir"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "extra.dashboard must be an object"
-msgstr ""
+msgstr "extra.dashboard debe ser un objeto"
 
 msgid "failed"
 msgstr "ha fallado"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "farewell"
-msgstr ""
+msgstr "adiós"
 
 msgid "fetching"
 msgstr "obteniendo"
@@ -18567,8 +18938,11 @@ msgstr "mapa de calor"
 msgid "heatmap: values are normalized across the entire heatmap"
 msgstr "mapa de calor: los valores se normalizan en todo el mapa de calor"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "hello"
-msgstr ""
+msgstr "hola"
 
 msgid "here"
 msgstr "aquí"
@@ -18579,8 +18953,11 @@ msgstr "hora"
 msgid "in"
 msgstr "en"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "in order to run this operation."
-msgstr ""
+msgstr "para ejecutar esta operación."
 
 msgid "invalid email"
 msgstr "correo electrónico no válido"
@@ -18720,30 +19097,45 @@ msgstr "debe tener un valor"
 msgid "name"
 msgstr "nombre"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "nativeFilters must be a list"
-msgstr ""
+msgstr "nativeFilters debe ser una lista"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "nativeFilters[%(idx)s] missing required keys: %(keys)s"
-msgstr ""
+msgstr "nativeFilters[%(idx)s] faltan claves requeridas: %(keys)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "nativeFilters[%(idx)s] must be an object"
-msgstr ""
+msgstr "nativeFilters[%(idx)s] debe ser un objeto"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "nativeFilters[%(idx)s].filterValues must be a list"
-msgstr ""
+msgstr "nativeFilters[%(idx)s].filterValues debe ser una lista"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid ""
 "nativeFilters[%(idx)s].nativeFilterId '%(filter_id)s' does not exist on "
 "the dashboard"
 msgstr ""
+"nativeFilters[%(idx)s].nativeFilterId '%(filter_id)s' no existe en el "
+"panel"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "nativeFilters[%(idx)s].nativeFilterId must be a non-empty string"
-msgstr ""
+msgstr "nativeFilters[%(idx)s].nativeFilterId debe ser una cadena no vacía"
 
 msgid "no SQL validator is configured"
 msgstr "no se ha configurado ningún validador SQL"
@@ -18886,10 +19278,8 @@ msgstr "en ejecución"
 msgid "save"
 msgstr "guardar"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "schema1,schema2"
-msgstr "schema1,schema2"
+msgstr ""
 
 msgid "seconds"
 msgstr "segundos"
@@ -18946,10 +19336,8 @@ msgstr "correcto"
 msgid "sum"
 msgstr "suma"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "superset.example.com"
-msgstr "superset.example.com"
+msgstr ""
 
 msgid "syntax."
 msgstr "sintaxis"
@@ -18971,8 +19359,11 @@ msgstr "Color de destino"
 msgid "textarea"
 msgstr "textarea"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "the Handlebars chart documentation"
-msgstr ""
+msgstr "la documentación del gráfico Handlebars"
 
 #, fuzzy
 msgid "theme"
@@ -19063,10 +19454,8 @@ msgstr "y: los valores se normalizan dentro de cada fila"
 msgid "year"
 msgstr "año"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "your-project-1234-a1"
-msgstr "your-project-1234-a1"
+msgstr ""
 
 msgid "zoom area"
 msgstr "área del «zoom»"
@@ -19074,5 +19463,8 @@ msgstr "área del «zoom»"
 msgid "© Layer attribution"
 msgstr "© Atribución de la capa"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "№"
-msgstr ""
+msgstr "№"

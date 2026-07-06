@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { forwardRef, useEffect, useCallback, ComponentType } from 'react';
+import {
+  forwardRef,
+  useEffect,
+  useCallback,
+  useRef,
+  ComponentType,
+} from 'react';
 
 import type {
   Editor as OrigEditor,
@@ -34,6 +40,8 @@ import {
 } from '@superset-ui/core/components/AsyncEsmComponent';
 import { useTheme, css, type SupersetTheme } from '@apache-superset/core/theme';
 import { Global } from '@emotion/react';
+
+import { patchAceEmojiWidths } from './emojiWidthPatch';
 
 export { getTooltipHTML } from './Tooltip';
 export { useJsonValidation } from './useJsonValidation';
@@ -162,6 +170,14 @@ export function AsyncAceEditor(
     config.setModuleUrl('ace/mode/javascript_worker', javascriptWorkerUrl);
     config.setModuleUrl('ace/mode/html_worker', htmlWorkerUrl);
 
+    // Align caret math and rendered glyph geometry for emoji (issue #41664);
+    // see emojiWidthPatch for the full story. Applied once, globally, since
+    // the prototypes are shared by every Ace editor instance.
+    patchAceEmojiWidths(
+      acequire('ace/edit_session').EditSession,
+      acequire('ace/layer/text').Text,
+    );
+
     await Promise.all(aceModules.map(x => aceModuleLoaders[x]()));
 
     const inferredMode =
@@ -179,6 +195,7 @@ export function AsyncAceEditor(
           theme = inferredTheme,
           tabSize = defaultTabSize,
           defaultValue = '',
+          onLoad,
           ...props
         },
         ref,
@@ -281,6 +298,62 @@ export function AsyncAceEditor(
           };
         }, [ref]);
 
+        // Ace caches the measured glyph width in its internal FontMetrics and
+        // only re-measures when its hidden measure node's own size changes. If
+        // the editor font finishes loading after construction, the cached width
+        // can stop matching the rendered glyphs and the caret drifts further
+        // from the text the longer the line, the residual misalignment in issue
+        // #41664 that the font-family CSS from #38928 does not address.
+        // `updateFontSize` runs Ace's `checkForSizeChanges`, which on a metrics
+        // change emits `changeCharacterSize`; Ace's renderer reacts with a
+        // forced resize and full re-render.
+        //
+        // Re-measure on every signal that glyph geometry may have changed:
+        // - immediately, for the already-loaded case;
+        // - after explicitly loading the editor font via `fonts.load()` —
+        //   `fonts.ready` alone is NOT enough, because it can settle before a
+        //   lazily-referenced editor font even starts loading, in which case
+        //   waiting on it misses the swap entirely;
+        // - after `fonts.ready`, for everything in flight at mount;
+        // - on every subsequent `loadingdone` event while mounted, for fonts
+        //   that load even later (removed on unmount via fontCleanupsRef).
+        const fontCleanupsRef = useRef<(() => void)[]>([]);
+        useEffect(
+          () => () => {
+            fontCleanupsRef.current.forEach(cleanup => cleanup());
+            fontCleanupsRef.current = [];
+          },
+          [],
+        );
+        const handleLoad = useCallback(
+          (editor: Ace.Editor) => {
+            const remeasure = () => {
+              try {
+                editor.renderer.updateFontSize();
+              } catch {
+                // The editor was destroyed before a pending font event fired.
+              }
+            };
+            remeasure();
+            const { fonts } = document;
+            if (fonts) {
+              // The size in the shorthand is irrelevant; any value triggers
+              // the load of the family's faces.
+              fonts
+                .load?.(`12px ${editorFontFamily}`)
+                ?.then(remeasure)
+                ?.catch(() => {});
+              fonts.ready?.then(remeasure)?.catch(() => {});
+              fonts.addEventListener?.('loadingdone', remeasure);
+              fontCleanupsRef.current.push(() =>
+                fonts.removeEventListener?.('loadingdone', remeasure),
+              );
+            }
+            onLoad?.(editor);
+          },
+          [onLoad, editorFontFamily],
+        );
+
         return (
           <>
             <Global
@@ -316,8 +389,9 @@ export function AsyncAceEditor(
                 }
                 /* Adjust selection color */
                 .ace_editor .ace_selection {
-                  background-color: ${token.colorEditorSelection ??
-                  token.colorPrimaryBgHover} !important;
+                  background-color: ${
+                    token.colorEditorSelection ?? token.colorPrimaryBgHover
+                  } !important;
                 }
 
                 /* Improve active line highlighting */
@@ -468,6 +542,7 @@ export function AsyncAceEditor(
               tabSize={tabSize}
               defaultValue={defaultValue}
               setOptions={{ fontFamily: editorFontFamily }}
+              onLoad={handleLoad}
               {...props}
             />
           </>

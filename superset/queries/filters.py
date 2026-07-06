@@ -16,7 +16,12 @@
 # under the License.
 from typing import Any
 
-from flask_sqlalchemy import BaseQuery
+try:
+    # Flask-SQLAlchemy 3.x (required by SQLAlchemy 2.0)
+    from flask_sqlalchemy.query import Query as BaseQuery
+except ImportError:  # pragma: no cover
+    # Flask-SQLAlchemy 2.x
+    from flask_sqlalchemy import BaseQuery
 
 from superset import security_manager
 from superset.models.sql_lab import Query

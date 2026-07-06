@@ -100,6 +100,7 @@ export interface BrandProps {
   alt: string;
   tooltip: string;
   text: string;
+  hide_logo?: boolean;
 }
 
 export interface NavBarProps {

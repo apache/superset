@@ -16855,6 +16855,11 @@ msgstr ""
 "Kategorija izvornih čvorova koja se koristi za dodeljivanje boja. Ako je "
 "čvor povezan sa više od jedne kategorije, koristiće se samo prva."
 
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+
 msgid "The chart is still loading. Please wait a moment and try again."
 msgstr "Grafikon se još učitava. Sačekajte trenutak i pokušajte ponovo."
 
@@ -16948,6 +16953,11 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The dashboard has been saved"
 msgstr "Kontrolna tabla je sačuvana"
+
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The data source seems to have been deleted"

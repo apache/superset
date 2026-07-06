@@ -2791,6 +2791,9 @@ msgstr ""
 msgid "Chart could not be created."
 msgstr ""
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr ""
 
@@ -4003,6 +4006,9 @@ msgid "Dashboard color configuration could not be updated."
 msgstr ""
 
 msgid "Dashboard could not be deleted."
+msgstr ""
+
+msgid "Dashboard could not be restored."
 msgstr ""
 
 msgid "Dashboard could not be updated."
@@ -12363,6 +12369,11 @@ msgid ""
 "associated with more than one category, only the first will be used."
 msgstr ""
 
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+
 msgid "The chart is still loading. Please wait a moment and try again."
 msgstr ""
 
@@ -12432,6 +12443,11 @@ msgid ""
 msgstr ""
 
 msgid "The dashboard has been saved"
+msgstr ""
+
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
 msgstr ""
 
 msgid "The data source seems to have been deleted"
@@ -13537,6 +13553,9 @@ msgid ""
 "and positions by using drag & drop in the dashboard view"
 msgstr ""
 
+msgid "This link cannot be followed because its address is unsafe."
+msgstr ""
+
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
@@ -14254,6 +14273,9 @@ msgid "Unpin from the result panel"
 msgstr ""
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid "Unsafe link blocked"
 msgstr ""
 
 #, python-format
