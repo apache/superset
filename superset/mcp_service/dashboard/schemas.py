@@ -706,8 +706,8 @@ class GenerateDashboardRequest(BaseModel):
         max_length=255,
         description=(
             "Optional URL slug for the dashboard. When set, the dashboard "
-            "is reachable at /superset/dashboard/<slug>/ instead of "
-            "/superset/dashboard/<id>/. Must be unique across the instance."
+            "is reachable at /dashboard/<slug>/ instead of "
+            "/dashboard/<id>/. Must be unique across the instance."
         ),
     )
     position_json: Dict[str, Any] | None = Field(
