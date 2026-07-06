@@ -238,7 +238,9 @@ def _log_scope_denial(
 
 # Guest deny-list default (when MCP_GUEST_DENIED_TOOLS is unset); blocks tools
 # with no RBAC class that would otherwise fall open. Sync with mcp_config.py.
-_DEFAULT_GUEST_DENIED_TOOLS = frozenset({"find_users", "get_instance_info"})
+_DEFAULT_GUEST_DENIED_TOOLS: frozenset[str] = frozenset(
+    {"find_users", "get_instance_info"}
+)
 
 
 def _tool_denied_for_guest(func: Callable[..., Any]) -> bool:
@@ -512,7 +514,9 @@ def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
             return None
         logger.debug("Resolving MCP request as embedded guest user")
         # Drop the internal marker so it does not leak into GuestUser.guest_token.
-        guest_claims = {k: v for k, v in claims.items() if k != GUEST_TOKEN_CLAIM}
+        guest_claims: dict[str, Any] = {
+            k: v for k, v in claims.items() if k != GUEST_TOKEN_CLAIM
+        }
         return security_manager.get_guest_user_from_token(
             cast("GuestToken", guest_claims)
         )

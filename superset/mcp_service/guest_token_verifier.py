@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 
 # Namespaced claim flagging an AccessToken as a verified guest token. The paired
 # ``client_id == "guest"`` check keeps an external IdP JWT from posing as a guest.
-GUEST_TOKEN_CLAIM = "_superset_mcp_guest_token"  # noqa: S105
+GUEST_TOKEN_CLAIM: str = "_superset_mcp_guest_token"  # noqa: S105
 
 
 class GuestTokenVerifier(TokenVerifier):

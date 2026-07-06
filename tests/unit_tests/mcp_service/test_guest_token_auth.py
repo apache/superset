@@ -36,6 +36,7 @@ import pytest
 from fastmcp.server.auth import AccessToken
 from flask import g
 
+from superset.app import SupersetApp
 from superset.constants import CHANGE_ME_GUEST_TOKEN_JWT_SECRET
 from superset.mcp_service.auth import (
     _resolve_user_from_jwt_context,
@@ -250,7 +251,7 @@ async def test_composite_falls_through_to_jwt_for_non_guest() -> None:
 # -- _resolve_user_from_jwt_context --
 
 
-def test_resolve_builds_guest_user_from_token(app) -> None:
+def test_resolve_builds_guest_user_from_token(app: SupersetApp) -> None:
     token = MagicMock()
     token.claims = {GUEST_TOKEN_CLAIM: True, **_parsed_guest_claims()}
     token.client_id = "guest"
@@ -273,7 +274,7 @@ def test_resolve_builds_guest_user_from_token(app) -> None:
     assert GUEST_TOKEN_CLAIM not in passed_token
 
 
-def test_resolve_ignores_guest_type_without_marker(app) -> None:
+def test_resolve_ignores_guest_type_without_marker(app: SupersetApp) -> None:
     """An external IdP JWT that merely carries ``type==guest`` must NOT be
     treated as an embedded guest — it lacks the namespaced marker and the
     ``client_id == "guest"`` signal, so normal resolution applies."""
@@ -315,7 +316,7 @@ def _make_guest_user() -> GuestUser:
     )
 
 
-def test_tool_denied_for_guest_helper(app) -> None:
+def test_tool_denied_for_guest_helper(app: SupersetApp) -> None:
     denied = MagicMock()
     denied.__name__ = "find_users"
     allowed = MagicMock()
@@ -332,7 +333,7 @@ def test_tool_denied_for_guest_helper(app) -> None:
         assert _tool_denied_for_guest(allowed) is False
 
 
-def test_guest_denied_tool_blocked_at_call_time(app) -> None:
+def test_guest_denied_tool_blocked_at_call_time(app: SupersetApp) -> None:
     func = MagicMock()
     func.__name__ = "find_users"
 
@@ -342,7 +343,7 @@ def test_guest_denied_tool_blocked_at_call_time(app) -> None:
         assert check_tool_permission(func) is False
 
 
-def test_guest_denied_tool_hidden_from_listing(app) -> None:
+def test_guest_denied_tool_hidden_from_listing(app: SupersetApp) -> None:
     tool = MagicMock()
     tool.fn = MagicMock()
     tool.fn.__name__ = "get_instance_info"
@@ -352,7 +353,7 @@ def test_guest_denied_tool_hidden_from_listing(app) -> None:
         assert is_tool_visible_to_current_user(tool) is False
 
 
-def test_guest_allowed_tool_permitted_with_rbac(app) -> None:
+def test_guest_allowed_tool_permitted_with_rbac(app: SupersetApp) -> None:
     """A guest passes the deny-list and is granted a non-denied tool through the
     full RBAC chain (deny-list runs, RBAC grants, scopes allow)."""
     func = MagicMock()
@@ -371,7 +372,7 @@ def test_guest_allowed_tool_permitted_with_rbac(app) -> None:
             assert check_tool_permission(func) is True
 
 
-def test_denylist_string_misconfig_falls_back_to_default(app) -> None:
+def test_denylist_string_misconfig_falls_back_to_default(app: SupersetApp) -> None:
     """A misconfigured string deny-list must not cause substring matching; the
     type guard falls back to the safe default set."""
     func = MagicMock()
@@ -390,7 +391,7 @@ def test_denylist_string_misconfig_falls_back_to_default(app) -> None:
             assert _tool_denied_for_guest(func) is True
 
 
-def test_guest_denied_tools_operator_override(app) -> None:
+def test_guest_denied_tools_operator_override(app: SupersetApp) -> None:
     func = MagicMock()
     func.__name__ = "execute_sql"
 
@@ -445,7 +446,9 @@ async def test_composite_strips_guest_marker_from_jwt_token() -> None:
     assert forged.claims[GUEST_TOKEN_CLAIM] is True
 
 
-def test_resolve_rejects_guest_marker_when_guest_auth_disabled(app) -> None:
+def test_resolve_rejects_guest_marker_when_guest_auth_disabled(
+    app: SupersetApp,
+) -> None:
     """Even with the marker + client_id, a token is not treated as a guest when
     embedded guest auth is disabled (defense against marker forgery)."""
     token = MagicMock()
@@ -463,7 +466,7 @@ def test_resolve_rejects_guest_marker_when_guest_auth_disabled(app) -> None:
     assert result is None
 
 
-def test_resolve_rejects_guest_marker_when_embedded_flag_off(app) -> None:
+def test_resolve_rejects_guest_marker_when_embedded_flag_off(app: SupersetApp) -> None:
     """The other half of the gate: with the marker + client_id + the MCP guest
     flag on, a token is still not treated as a guest when the EMBEDDED_SUPERSET
     feature flag is off (both gates are required)."""
@@ -482,7 +485,7 @@ def test_resolve_rejects_guest_marker_when_embedded_flag_off(app) -> None:
     assert result is None
 
 
-def test_resolve_ignores_guest_marker_without_guest_client_id(app) -> None:
+def test_resolve_ignores_guest_marker_without_guest_client_id(app: SupersetApp) -> None:
     """The marker alone is not enough — ``client_id == "guest"`` is also required,
     so a normal JWT that carries the marker resolves as its own user."""
     mock_user = MagicMock()
