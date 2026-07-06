@@ -46,6 +46,7 @@ def _get_file_handler_class() -> Any:  # noqa: C901
 
         from watchdog.events import (
             FileCreatedEvent,
+            FileDeletedEvent,
             FileModifiedEvent,
             FileMovedEvent,
             FileSystemEventHandler,
@@ -155,11 +156,46 @@ def _get_file_handler_class() -> Any:  # noqa: C901
                     self._pending_timer = timer
                     timer.start()
 
+            def _handle_moved(self, event: Any) -> None:
+                """Moves into/out of `dist` are explicit signals — trigger
+                regardless of content match (the source may already be gone
+                or the destination may not have a meaningful hash yet).
+                Atomic-build workflows rename tmp -> dist (dest in dist),
+                while removing an artifact renames dist -> elsewhere (src in
+                dist); either side touching `dist` is a real signal."""
+                dest = getattr(event, "dest_path", None)
+                src = getattr(event, "src_path", None)
+                # The file no longer lives at the source path; evict its
+                # hash entry so the index only tracks paths that exist.
+                if isinstance(src, str):
+                    self._file_hashes.pop(src, None)
+                dist_side = next(
+                    (
+                        p
+                        for p in (dest, src)
+                        if isinstance(p, str) and "dist" in Path(p).parts
+                    ),
+                    None,
+                )
+                if dist_side is not None:
+                    self._schedule_reload(dist_side)
+
             # ── event handler ─────────────────────────────────────────────────
 
             def on_any_event(self, event: Any) -> None:
                 """Handle file system events in the watched directories."""
                 if event.is_directory:
+                    return
+
+                # Deletions don't trigger a reload (webpack clean steps delete
+                # old chunks right before writing new ones, which trigger via
+                # the subsequent create/modify), but the stale hash entry must
+                # be evicted so `_file_hashes` doesn't grow without bound as
+                # hashed chunk filenames churn across rebuilds.
+                if isinstance(event, FileDeletedEvent):
+                    src = getattr(event, "src_path", None)
+                    if isinstance(src, str):
+                        self._file_hashes.pop(src, None)
                     return
 
                 # Only react to true write events; skip access / close / open etc.
@@ -168,26 +204,8 @@ def _get_file_handler_class() -> Any:  # noqa: C901
                 ):
                     return
 
-                # Moves into/out of `dist` are explicit signals — trigger
-                # regardless of content match (the source may already be gone
-                # or the destination may not have a meaningful hash yet).
-                # Atomic-build workflows rename tmp -> dist (dest in dist),
-                # while removing an artifact renames dist -> elsewhere (src in
-                # dist); either side touching `dist` is a real signal.
                 if isinstance(event, FileMovedEvent):
-                    dest = getattr(event, "dest_path", None)
-                    src = getattr(event, "src_path", None)
-                    dist_side = next(
-                        (
-                            p
-                            for p in (dest, src)
-                            if isinstance(p, str) and "dist" in Path(p).parts
-                        ),
-                        None,
-                    )
-                    if dist_side is None:
-                        return
-                    self._schedule_reload(dist_side)
+                    self._handle_moved(event)
                     return
 
                 # For Create/Modify events watchdog only sets src_path.

@@ -23,9 +23,11 @@ from typing import Callable, Iterable, TYPE_CHECKING
 if TYPE_CHECKING:
     from _typeshed.wsgi import StartResponse, WSGIApplication, WSGIEnvironment
 
-# Matches only the static asset endpoint: /api/v1/extensions/<publisher>/<name>/<file>
+# Matches only the static asset endpoint:
+# /api/v1/extensions/<publisher>/<name>/<path:file>, where the file portion may
+# contain nested segments (worker / WASM / chunk subfolders).
 # Does not match the list (/), get (/<publisher>/<name>), or info (/_info) endpoints.
-_ASSET_PATH_RE = re.compile(r"^/api/v1/extensions/[^/]+/[^/]+/[^/]+$")
+_ASSET_PATH_RE = re.compile(r"^/api/v1/extensions/[^/]+/[^/]+/.+$")
 
 
 class ExtensionCacheMiddleware:
