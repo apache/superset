@@ -26,8 +26,7 @@ const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
-const TerserPlugin = require('terser-webpack-plugin');
+const MinimizerPlugin = require('minimizer-webpack-plugin');
 const LightningCSS = require('lightningcss');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 const {
@@ -426,20 +425,18 @@ const config = {
     },
     usedExports: 'global',
     minimizer: [
-      new CssMinimizerPlugin({
-        minify: CssMinimizerPlugin.lightningCssMinify,
+      new MinimizerPlugin({
+        test: /\.css(\?.*)?$/i,
+        minify: MinimizerPlugin.lightningCssMinify,
         minimizerOptions: {
-          targets: LightningCSS.browserslistToTargets([
-            'last 3 chrome versions',
-            'last 3 firefox versions',
-            'last 3 safari versions',
-            'last 3 edge versions',
-          ]),
+          targets: LightningCSS.browserslistToTargets(
+            packageConfig.browserslist,
+          ),
         },
       }),
-      new TerserPlugin({
-        minify: TerserPlugin.swcMinify,
-        terserOptions: {
+      new MinimizerPlugin({
+        minify: MinimizerPlugin.swcMinify,
+        minimizerOptions: {
           compress: {
             drop_console: false,
           },
