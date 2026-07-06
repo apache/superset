@@ -480,7 +480,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           isUsingTimeComparison ? renderTimeComparisonVisibility : () => null
         }
         cleanedTotals={totals || {}}
-        showTotals={showTotals && totals !== undefined}
+        showTotals={
+          showTotals && totals !== undefined && Object.keys(totals).length > 0
+        }
         width={width}
         onColumnStateChange={handleColumnStateChange}
         chartState={chartState}

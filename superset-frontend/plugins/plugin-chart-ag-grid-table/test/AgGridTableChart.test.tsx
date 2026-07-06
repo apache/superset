@@ -664,6 +664,39 @@ test('AgGridTableChart re-requests raw totals when toggled back on with a matchi
   });
 });
 
+test('AgGridTableChart pins no summary row when totals come back empty', async () => {
+  const props = transformProps({
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      show_totals: true,
+    },
+  });
+  props.showTotals = true;
+  // An empty totals object (e.g. a time-comparison totals result with no
+  // rows) carries nothing to display and must not pin a blank row.
+  props.totals = {};
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(document.querySelector('.ag-container')).toBeInTheDocument();
+  });
+
+  const pinnedRows = document.querySelectorAll('.ag-floating-bottom .ag-row');
+  expect(pinnedRows.length).toBe(0);
+});
+
 test('AgGridTableChart pins no summary row when totals are absent', async () => {
   const props = transformProps({
     ...rawSummaryProps,
