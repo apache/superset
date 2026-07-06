@@ -2115,3 +2115,70 @@ test('fetchSystemDefaultTheme: second named-theme fallback fetch succeeds when f
     mockGet.mockRestore();
   }
 });
+
+// bootstrapDefaultMode tests
+
+test('bootstrapDefaultMode: reads "dark" from bootstrap config and starts in DARK mode', () => {
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({ default: DEFAULT_THEME, dark: DARK_THEME, defaultMode: 'dark' }),
+  );
+  const controller = createController();
+  expect(controller.getCurrentMode()).toBe(ThemeMode.DARK);
+});
+
+test('bootstrapDefaultMode: reads "default" from bootstrap config and starts in DEFAULT mode', () => {
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({ default: DEFAULT_THEME, dark: DARK_THEME, defaultMode: 'default' }),
+  );
+  const controller = createController();
+  expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
+});
+
+test('bootstrapDefaultMode: reads "system" from bootstrap config and starts in SYSTEM mode', () => {
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({ default: DEFAULT_THEME, dark: DARK_THEME, defaultMode: 'system' }),
+  );
+  const controller = createController();
+  expect(controller.getCurrentMode()).toBe(ThemeMode.SYSTEM);
+});
+
+test('bootstrapDefaultMode: falls back to DEFAULT when defaultMode is missing from bootstrap', () => {
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({ default: DEFAULT_THEME, dark: DARK_THEME }),
+  );
+  const controller = createController();
+  expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
+});
+
+test('bootstrapDefaultMode: falls back to DEFAULT when defaultMode is an invalid value', () => {
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({ default: DEFAULT_THEME, dark: DARK_THEME, defaultMode: 'invalid' as any }),
+  );
+  const controller = createController();
+  expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
+});
+
+test('bootstrapDefaultMode: prototype-poison key does not override mode', () => {
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({ default: DEFAULT_THEME, dark: DARK_THEME, defaultMode: 'constructor' as any }),
+  );
+  const controller = createController();
+  expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
+});
+
+test('bootstrapDefaultMode: saved mode takes precedence over bootstrapDefaultMode', () => {
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({ default: DEFAULT_THEME, dark: DARK_THEME, defaultMode: 'dark' }),
+  );
+  mockLocalStorage.getItem.mockReturnValue(ThemeMode.DEFAULT);
+  const controller = createController();
+  expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
+});
+
+test('bootstrapDefaultMode: explicit initialMode takes precedence over bootstrapDefaultMode', () => {
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({ default: DEFAULT_THEME, dark: DARK_THEME, defaultMode: 'dark' }),
+  );
+  const controller = createController({ initialMode: ThemeMode.DEFAULT });
+  expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
+});
