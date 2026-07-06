@@ -124,12 +124,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     const nextOwnState = { ...serverPaginationData };
     let changed = false;
 
-    if (serverPagination && serverPaginationData && rowCount) {
+    if (serverPagination && serverPaginationData && rowCount !== undefined) {
       const currentPage = serverPaginationData.currentPage ?? 0;
       const currentPageSize = serverPaginationData.pageSize ?? serverPageLength;
       const totalPages = Math.ceil(rowCount / currentPageSize);
-      if (currentPage >= totalPages && totalPages > 0) {
-        nextOwnState.currentPage = Math.max(0, totalPages - 1);
+      // An empty result set clamps to page zero; a shrunken one clamps to its
+      // last remaining page.
+      const clampedPage = Math.max(0, Math.min(currentPage, totalPages - 1));
+      if (clampedPage !== currentPage) {
+        nextOwnState.currentPage = clampedPage;
         changed = true;
       }
     }

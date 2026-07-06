@@ -558,6 +558,44 @@ test('AgGridTableChart clears the aggregate totals request when the summary is o
   });
 });
 
+test('AgGridTableChart clamps the page to zero when the result set is empty', async () => {
+  const props = transformProps({
+    ...rawSummaryProps,
+    queriesData: [rawSummaryProps.queriesData[0]],
+  });
+  props.serverPagination = true;
+  props.rowCount = 0;
+  props.serverPaginationData = { currentPage: 5, pageSize: 20 };
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  // Zero rows means zero pages; a stale page index must reset so row_offset
+  // does not keep pointing past the (now empty) result set. Asserting the
+  // totals keys alongside pins the write to the unified effect rather than
+  // the pagination footer's own page reset.
+  await waitFor(() => {
+    expect(mockSetDataMask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownState: expect.objectContaining({
+          currentPage: 0,
+          rawSummaryColumns: ['sum__num'],
+          totalsRequested: true,
+        }),
+      }),
+    );
+  });
+});
+
 test('AgGridTableChart merges the page clamp and totals request into one own-state write', async () => {
   const props = transformProps({
     ...rawSummaryProps,
