@@ -35,10 +35,29 @@ export const DOCUMENTATION_LINK = supersetTextDocs
   ? supersetTextDocs.support
   : 'https://superset.apache.org/docs/configuration/databases#installing-database-drivers';
 
+// Engine identifiers (SQLAlchemy backend names) whose value differs from the
+// human-readable slug under /user-docs/databases/supported/. Engines whose slug
+// equals the engine name are handled by the generic link below.
 const irregularDocumentationLinks = {
-  postgresql: 'https://superset.apache.org',
-  mssql: 'https://superset.apache.org/docs/databases/sql-server',
-  gsheets: 'https://superset.apache.org/docs/databases/google-sheets',
+  mssql:
+    'https://superset.apache.org/user-docs/databases/supported/microsoft-sql-server',
+  gsheets:
+    'https://superset.apache.org/user-docs/databases/supported/google-sheets',
+  bigquery:
+    'https://superset.apache.org/user-docs/databases/supported/google-bigquery',
+  awsathena:
+    'https://superset.apache.org/user-docs/databases/supported/amazon-athena',
+  redshift:
+    'https://superset.apache.org/user-docs/databases/supported/amazon-redshift',
+  druid:
+    'https://superset.apache.org/user-docs/databases/supported/apache-druid',
+  hive: 'https://superset.apache.org/user-docs/databases/supported/apache-hive',
+  spark:
+    'https://superset.apache.org/user-docs/databases/supported/apache-spark-sql',
+  db2: 'https://superset.apache.org/user-docs/databases/supported/ibm-db2',
+  hana: 'https://superset.apache.org/user-docs/databases/supported/sap-hana',
+  clickhousedb:
+    'https://superset.apache.org/user-docs/databases/supported/clickhouse',
 };
 
 const documentationLink = (engine: string | undefined) => {
@@ -54,7 +73,7 @@ const documentationLink = (engine: string | undefined) => {
       engine as keyof typeof irregularDocumentationLinks
     ]
   ) {
-    return `https://superset.apache.org/docs/databases/${engine}`;
+    return `https://superset.apache.org/user-docs/databases/supported/${engine}`;
   }
   return irregularDocumentationLinks[
     engine as keyof typeof irregularDocumentationLinks
