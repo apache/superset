@@ -1308,6 +1308,33 @@ def test_with_clause_containing_union_all_is_not_mutating_oracle() -> None:
     assert not SQLScript(sql, "oracle").has_mutation()
 
 
+@pytest.mark.parametrize("engine", ["clickhouse", "clickhousedb"])
+def test_clickhouse_parametric_aggregate_parses_and_is_read_only(engine: str) -> None:
+    """
+    Regression for #37285: ClickHouse parametric aggregate functions use a
+    double pair of parentheses — ``groupConcat(', ')(part_name)`` — where the
+    first list holds the aggregate's parameters and the second its arguments.
+
+    Older sqlglot versions choked on the second parenthesized list, so SQL
+    Lab either mangled the query sent to the database or, with DDL/DML
+    disallowed, refused to run it because it "could not be parsed to confirm
+    it is a read-only query". The sqlglot bump to >=30 fixed the parsing;
+    pinning the reporter's verbatim query guards against a future
+    dialect-specific regression. Both ClickHouse engine specs are exercised
+    since each resolves the sqlglot dialect independently.
+    """
+    sql = """
+    select
+      groupConcat(', ')(part_name) as concatenated
+    from system.parts
+    """
+    script = SQLScript(sql, engine)  # Must not raise.
+    assert not script.has_mutation(), (
+        f"Parametric aggregate misclassified as mutating on {engine!r}; "
+        "this would block the query on connections without DDL/DML allowed."
+    )
+
+
 def test_get_settings() -> None:
     """
     Test `get_settings` in some edge cases.
