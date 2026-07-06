@@ -619,7 +619,7 @@ categories:
     - name: Symmetrics
       url: https://www.symmetrics.fyi
 
-  Government:
+  Government / Public authority:
     - name: City of Ann Arbor, MI
       url: https://www.a2gov.org/
       contributors: ["@sfirke"]
@@ -630,6 +630,21 @@ categories:
     - name: RIS3 Strategy of CZ, MIT CR
       url: https://www.ris3.cz/
       contributors: ["@RIS3CZ"]
+
+    - name: Région Hauts-de-France (France)
+      url: https://www.geo2france.fr/
+
+    - name: Rennes Métropole (France)
+      url: https://metropole.rennes.fr/
+
+    - name: Métropole Européenne de Lille (France)
+      url: https://data.lillemetropole.fr/accueil/
+
+    - name: Région Bretagne (France)
+      url: https://geobretagne.fr/
+
+    - name: Centre Régional Auvergnat de l'Information Géographique (France)
+      url: https://www.craig.fr/
 
   Mobile Software:
     - name: VLMedia
@@ -721,3 +736,16 @@ categories:
 
     - name: Yahoo!
       url: https://yahoo.com/
+
+    - name: geOrchestra
+      url: https://www.georchestra.org
+
+    - name: pi-Geosolutions
+      url: https://www.pi-geosolutions.fr/
+      contributors: ["@jeanpommier"]
+
+    - name: JDev
+      url: https://jdev.fr/
+
+    - name: CamptoCamp
+      url: https://camptocamp.com/
