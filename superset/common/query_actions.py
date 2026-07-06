@@ -230,6 +230,15 @@ def _get_drill_detail(
     # todo(yongjie): Remove this function,
     #  when determining whether samples should be applied to the time filter.
     datasource = _get_datasource(query_context, query_obj)
+    # Refuse for datasource types that don't model raw rows (e.g. semantic
+    # views). Mirrors the ``supports_samples`` gate on the ``/samples``
+    # endpoint so drill-detail is hard-blocked on the backend, not just
+    # hidden in the frontend menu. Defaults to ``True`` for any datasource
+    # class that doesn't explicitly opt out.
+    if not getattr(datasource, "supports_drill_to_detail", True):
+        raise QueryObjectValidationError(
+            _("Drill to detail is not available for this datasource type.")
+        )
     query_obj = copy.copy(query_obj)
     query_obj.is_timeseries = False
     query_obj.metrics = None
