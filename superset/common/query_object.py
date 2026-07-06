@@ -442,11 +442,6 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         #  cached results will be invalidated.
         if not self.apply_fetch_values_predicate:
             del cache_dict["apply_fetch_values_predicate"]
-        # ``force_query`` is an execution-control flag (bypass the cache for
-        # THIS request), not part of the query's identity: hashing it would
-        # send a forced refresh to a different cache key, so the fresh result
-        # never replaces the stale entry that ordinary requests keep reading.
-        del cache_dict["force_query"]
         if self.datasource:
             cache_dict["datasource"] = self.datasource.uid
         if self.result_type:
@@ -469,7 +464,12 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         if self.time_offsets:
             cache_dict["time_offsets"] = self.time_offsets
 
-        for k in ["from_dttm", "to_dttm"]:
+        # PERMANENT exclusions — not part of the TODO migration above. These
+        # are execution-control values, never query identity. ``force_query``
+        # (bypass the cache for THIS request) in the hash would send a forced
+        # refresh to a different cache key, so the fresh result never replaces
+        # the stale entry that ordinary requests keep reading.
+        for k in ["from_dttm", "to_dttm", "force_query"]:
             del cache_dict[k]
 
         annotation_fields = [
