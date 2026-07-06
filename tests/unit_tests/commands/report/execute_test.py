@@ -1324,73 +1324,109 @@ def test_update_recipient_to_slack_v2_missing_channels(mocker: MockerFixture):
         mock_cmmd.update_report_schedule_slack_v2()
 
 
-def test_update_recipient_to_slack_v2_reverts_all_on_partial_failure(
+def test_update_recipient_to_slack_v2_multiple_recipients(
     mocker: MockerFixture,
 ) -> None:
-    """
-    When the second of two Slack recipients fails channel resolution, BOTH
-    recipients are fully reverted — type AND exact original
-    ``recipient_config_json`` string — not just the loop variable's type. This
-    prevents the intervening ``create_log`` commit from flushing a half-migrated,
-    inconsistent state.
-    """
+    """All Slack recipients are upgraded atomically when every channel resolves."""
 
-    def channels_side_effect(search_string, types, exact_match):
-        if search_string == "Channel-1":
-            return [
-                {
-                    "id": "id_channel_1",
-                    "name": "Channel-1",
-                    "is_member": True,
-                    "is_private": False,
-                }
-            ]
-        # Second recipient: no channel found → length mismatch → UpdateFailedError
-        return []
+    def fake_get_channels(search_string, types, exact_match):
+        return {
+            "channel-1": [{"id": "C1", "name": "channel-1", "is_private": False}],
+            "channel-2": [{"id": "C2", "name": "channel-2", "is_private": False}],
+        }[search_string]
 
     mocker.patch(
         "superset.commands.report.execute.get_channels_with_search",
-        side_effect=channels_side_effect,
+        side_effect=fake_get_channels,
     )
-    original_config_1 = json.dumps({"target": "Channel-1"})
-    original_config_2 = json.dumps({"target": "Channel-2"})
     mock_report_schedule = ReportSchedule(
-        name="Test Report",
         recipients=[
             ReportRecipients(
                 type=ReportRecipientType.SLACK,
-                recipient_config_json=original_config_1,
+                recipient_config_json=json.dumps({"target": "channel-1"}),
             ),
             ReportRecipients(
                 type=ReportRecipientType.SLACK,
-                recipient_config_json=original_config_2,
+                recipient_config_json=json.dumps({"target": "channel-2"}),
             ),
         ],
     )
 
-    mock_cmmd = BaseReportState(
+    mock_cmmd: BaseReportState = BaseReportState(
         mock_report_schedule, "January 1, 2021", "execution_id_example"
     )
+    mock_cmmd.update_report_schedule_slack_v2()
 
+    recipients = mock_cmmd._report_schedule.recipients
+    assert [r.type for r in recipients] == [
+        ReportRecipientType.SLACKV2,
+        ReportRecipientType.SLACKV2,
+    ]
+    assert recipients[0].recipient_config_json == '{"target": "C1"}'
+    assert recipients[1].recipient_config_json == '{"target": "C2"}'
+
+
+def test_update_recipient_to_slack_v2_partial_failure_is_atomic(
+    mocker: MockerFixture,
+) -> None:
+    """Regression: when one of several Slack recipients fails to resolve, no
+    recipient may be left partially upgraded.
+
+    The first recipient resolves cleanly and the second references a missing
+    channel. The upgrade must raise and leave *both* recipients untouched:
+    previously the already-resolved first recipient kept its mutated
+    ``type``/``recipient_config_json``, which a later error-log commit could
+    persist as a half-upgraded schedule.
+    """
+
+    def fake_get_channels(search_string, types, exact_match):
+        if search_string == "channel-1":
+            return [{"id": "C1", "name": "channel-1", "is_private": False}]
+        # "missing-channel" resolves to nothing -> triggers UpdateFailedError
+        return []
+
+    mocker.patch(
+        "superset.commands.report.execute.get_channels_with_search",
+        side_effect=fake_get_channels,
+    )
+    first_config = json.dumps({"target": "channel-1"})
+    second_config = json.dumps({"target": "missing-channel"})
+    mock_report_schedule = ReportSchedule(
+        recipients=[
+            ReportRecipients(
+                type=ReportRecipientType.SLACK,
+                recipient_config_json=first_config,
+            ),
+            ReportRecipients(
+                type=ReportRecipientType.SLACK,
+                recipient_config_json=second_config,
+            ),
+        ],
+    )
+
+    mock_cmmd: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
     with pytest.raises(UpdateFailedError):
         mock_cmmd.update_report_schedule_slack_v2()
 
-    first, second = mock_report_schedule.recipients
-    # The first recipient was mutated to v2 before the second failed; it must be
-    # reverted to its exact original type AND config string.
-    assert first.type == ReportRecipientType.SLACK
-    assert first.recipient_config_json == original_config_1
-    assert second.type == ReportRecipientType.SLACK
-    assert second.recipient_config_json == original_config_2
+    recipients = mock_cmmd._report_schedule.recipients
+    # Neither recipient may be mutated: types stay SLACK and configs stay as the
+    # original channel-name targets (not resolved ids).
+    assert [r.type for r in recipients] == [
+        ReportRecipientType.SLACK,
+        ReportRecipientType.SLACK,
+    ]
+    assert recipients[0].recipient_config_json == first_config
+    assert recipients[1].recipient_config_json == second_config
 
 
 def test_update_recipient_to_slack_v2_pre_iteration_failure(
     mocker: MockerFixture,
 ) -> None:
     """
-    A failure raised while accessing/iterating the recipients (before the loop
-    variable is bound) surfaces as ``UpdateFailedError``, not a ``NameError``
-    that would mask the real error.
+    A failure raised while accessing/iterating the recipients surfaces as
+    ``UpdateFailedError``, not a ``NameError`` that masks the real error.
     """
 
     class _ExplodingRecipients:

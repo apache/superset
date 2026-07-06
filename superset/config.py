@@ -706,9 +706,15 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: testing
     # @docs: https://superset.apache.org/docs/configuration/alerts-reports
     "ALERT_REPORTS": False,
-    # Enables Slack V2 integration for Alerts and Reports
+    # Enables Slack V2 integration for Alerts and Reports.
+    # Defaults to True; the legacy Slack v1 path is deprecated and will be removed
+    # in the next major release. Operators must grant the Slack bot both the
+    # `channels:read` and `groups:read` scopes so existing v1 recipients can be
+    # auto-upgraded on their next send. Without those scopes, file uploads fail
+    # (Slack retired the `files.upload` endpoint in 2025) and only text-only
+    # `chat_postMessage` sends will continue to work via the legacy path.
     # @lifecycle: testing
-    "ALERT_REPORT_SLACK_V2": False,
+    "ALERT_REPORT_SLACK_V2": True,
     # Enables webhook integration for Alerts and Reports
     # @lifecycle: testing
     "ALERT_REPORT_WEBHOOK": False,

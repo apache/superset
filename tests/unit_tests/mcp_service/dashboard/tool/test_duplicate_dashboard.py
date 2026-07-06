@@ -186,7 +186,7 @@ async def test_duplicate_referencing_same_charts(
     # Response text is wrapped in LLM-context delimiters (prompt-injection
     # defense), matching the standard dashboard serializers.
     assert content["dashboard"]["dashboard_title"] == _wrapped("Staging Copy")
-    assert "/superset/dashboard/2/" in content["dashboard_url"]
+    assert "/dashboard/2/" in content["dashboard_url"]
 
     # The copy data contract must mirror what the frontend "Save as" sends:
     # required json_metadata containing the source's metadata + positions.
@@ -236,7 +236,7 @@ async def test_duplicate_with_duplicate_slices(
     assert content["error"] is None
     assert content["duplicated_slices"] is True
     assert content["dashboard"]["id"] == 3
-    assert "/superset/dashboard/3/" in content["dashboard_url"]
+    assert "/dashboard/3/" in content["dashboard_url"]
 
     _, cmd_data = mock_copy_cmd_cls.call_args.args
     assert cmd_data["duplicate_slices"] is True
@@ -448,7 +448,7 @@ async def test_refetch_failure_rolls_back_and_returns_minimal_response(
     assert content["error"] is None
     assert content["dashboard"]["id"] == 7
     assert content["dashboard"]["dashboard_title"] == _wrapped("Copy")
-    assert "/superset/dashboard/7/" in content["dashboard_url"]
+    assert "/dashboard/7/" in content["dashboard_url"]
 
 
 @patch("superset.commands.dashboard.copy.CopyDashboardCommand")

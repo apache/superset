@@ -130,6 +130,7 @@ export interface AgGridTableChartTransformedProps<
   basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
   formData: TableChartFormData;
   metricSqlExpressions: Record<string, string>;
+  rawSummaryColumns: string[];
   onChartStateChange?: (chartState: JsonObject) => void;
   chartState?: AgGridChartState;
   showNumberedColumn: boolean;

@@ -99,6 +99,7 @@ msgstr ""
 "seguinte erro: %(text)s</p>\n"
 "            <p>Por favor, verifique seu painel/gráfico para erros.</p>\n"
 "            <p><b><a href=\"%(url)s\">%(call_to_action)s</a></b></p>\n"
+"            "
 
 #, fuzzy
 msgid " (excluded)"
@@ -5073,9 +5074,11 @@ msgstr "Esquemas permitidos para upload de arquivos"
 msgid "Database settings updated"
 msgstr "Configurações do banco de dados atualizadas"
 
+# Machine-corrected via backfill_po.py (claude-sonnet-4-6) [replaced a
+# mistranslation]
 #, fuzzy
 msgid "Database type does not support file uploads."
-msgstr "O banco de dados não é compatível com subconsultas"
+msgstr "O tipo de banco de dados não suporta upload de arquivos."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
@@ -15233,9 +15236,11 @@ msgstr ""
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "O expoente a partir do qual calcular todos os tamanhos. Somente \"EXP\""
 
+# Machine-corrected via backfill_po.py (claude-sonnet-4-6) [replaced a
+# mistranslation]
 #, fuzzy, python-format
 msgid "The extension %(id)s could not be loaded."
-msgstr "URI de dados não são permitidos."
+msgstr "A extensão %(id)s não pôde ser carregada."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -17513,9 +17518,11 @@ msgstr "ícone de tipo desconhecido"
 msgid "Unknown value"
 msgstr "Valor desconhecido"
 
+# Machine-corrected via backfill_po.py (claude-sonnet-4-6) [replaced a
+# mistranslation]
 #, fuzzy
 msgid "Unpin"
-msgstr "em execução"
+msgstr "Desafixar"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

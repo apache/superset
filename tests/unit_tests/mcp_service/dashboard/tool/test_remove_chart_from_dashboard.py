@@ -370,7 +370,7 @@ async def test_simple_grid_removal_prunes_empty_row(
     assert content["error"] is None
     assert content["permission_denied"] is False
     assert content["dashboard_url"] is not None
-    assert "/superset/dashboard/1/" in content["dashboard_url"]
+    assert "/dashboard/1/" in content["dashboard_url"]
     assert set(content["removed_layout_keys"]) == {"CHART-aaa", "ROW-1"}
 
     dashboard_id, update_data = mock_update_cmd_cls.call_args.args

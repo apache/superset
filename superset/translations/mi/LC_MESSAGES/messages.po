@@ -279,12 +279,17 @@ msgstr[1] ""
 "%(firstSuggestions)s, %(lastSuggestion)s rānei hei utu mō "
 "\"%(undefinedParameter)s\"?"
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid ""
 "%(validator)s was unable to check your query.\n"
 "Please recheck your query.\n"
 "Exception: %(ex)s"
-msgstr "Kāore i taea e %(validator)s te tirotiro i tō pātai."
+msgstr ""
+"%(validator)s i kore e āhei ki te taki i tō tūpātanga.\n"
+"Tikiake anō tō tūpātanga.\n"
+"Whakaaro ōrite: %(ex)s"
 
 #, fuzzy, python-format
 msgid "%s %s"
@@ -518,6 +523,8 @@ msgstr "(karekau he whakamārama, pāwhiritia kia kite i te aromahue)"
 msgid "), and they become available in your SQL (example:"
 msgstr "), ā, ka wātea i roto i tō SQL (tauira:"
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid ""
 "*%(name)s*\n"
@@ -526,8 +533,15 @@ msgid ""
 "\n"
 "    Error: %(text)s\n"
 "    "
-msgstr "*%(name)s*"
+msgstr ""
+"*%(name)s*\n"
+"\n"
+"    %(description)s\n"
+"\n"
+"    Hapa: %(text)s"
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid ""
 "*%(name)s*\n"
@@ -537,7 +551,14 @@ msgid ""
 "<%(url)s|Explore in Superset>\n"
 "\n"
 "%(table)s\n"
-msgstr "*%(name)s*\n"
+msgstr ""
+"*%(name)s*\n"
+"\n"
+"%(description)s\n"
+"\n"
+"<%(url)s|Tūhura i roto i Superset>\n"
+"\n"
+"%(table)s\n"
 
 #, python-format
 msgid "+ %s more"
@@ -10392,9 +10413,11 @@ msgstr "Tuhirua kei te tīari"
 msgid "Overwrite & Explore"
 msgstr "Tuhirua kupu i te etita ki tētahi pātai i runga i tēnei ripanga"
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid "Overwrite Dashboard [%s]"
-msgstr "Nōna Kua Hangaia, Kua Makauhia rānei"
+msgstr "Takahi i runga i te Papatohu [%s]"
 
 msgid "Overwrite existing"
 msgstr "Rangatira"
@@ -10450,9 +10473,11 @@ msgstr "Wāhanga o te Katoa"
 msgid "Parent"
 msgstr "Kauwhata Wāhanga"
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid "Parsing error: %(error)s"
-msgstr "Hoahoa Wāhanga"
+msgstr "Hapa tātari: %(error)s"
 
 msgid "Part of a Whole"
 msgstr "Tepe Wāhanga"
@@ -10584,9 +10609,11 @@ msgstr "Tangata, rōpū rānei nāna i tautuhi tēnei kauwhata."
 msgid "Permissions"
 msgstr "Tangata, rōpū rānei nāna i tautuhi tēnei papatohu."
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid "Permissions successfully synced for %s"
-msgstr "Tangata, rōpū rānei nāna i tautuhi tēnei ine"
+msgstr "Ngā tūnga whakaae i tūhonohia me te angitu mō %s"
 
 msgid "Person or group that has certified this chart."
 msgstr "Kikokiko"
@@ -10722,17 +10749,25 @@ msgstr ""
 "ana puta noa i tō pātai SQL me ngā Tawhā Tautuhi. Kātahi, whakamātauhia "
 "anō tō pātai."
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid ""
 "Please check your query for syntax errors at or near "
 "\"%(syntax_error)s\". Then, try running your query again."
-msgstr "Tēnā kōwhiria tētahi uara whaimana"
+msgstr ""
+"Tūhura tōu pātai mō ngā hapa hōhonu tata ki \"%(syntax_error)s\". Nō "
+"reira, whakamātauria anō tōu pātai."
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid ""
 "Please check your query for syntax errors near \"%(server_error)s\". "
 "Then, try running your query again."
-msgstr "Tēnā kōwhiria kotahi rōpūmā nui rawa"
+msgstr ""
+"Tirohia tō pātai mō ngā hapa hāngū tata ki \"%(server_error)s\". Nā, "
+"whakamātauria anō tō pātai."
 
 msgid ""
 "Please check your template parameters for syntax errors and make sure "
@@ -11836,6 +11871,8 @@ msgstr ""
 msgid "SQL Lab queries"
 msgstr "Pātai SQL Lab"
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid ""
 "SQL Lab uses your browser's local storage to store queries and results.\n"
@@ -11846,8 +11883,14 @@ msgid ""
 "delete the tab.\n"
 "Note that you will need to close other SQL Lab windows before you do this."
 msgstr ""
-"Ka whakamahi SQL Lab i te rokiroki ā-rohe o tō pūtirotiro hei penapena i "
-"ngā pātai me ngā hua."
+"Ko SQL Lab e whakamahi ana i te rokiroki ā-tūmau o tō tūrauwhanui ki te "
+"tiaki i ngā uiui me ngā hua.\n"
+"Ināianei, kei te whakamahi koe i %(currentUsage)s KB o %(maxStorage)d KB "
+"o te wāhi rokiroki.\n"
+"Hei aukati i a SQL Lab kia kore e whati, tōhia ētahi papa uiui.\n"
+"Ka taea e koe te uru anō ki ēnei uiui mā te whakamahi i te āhuatanga "
+"Tiaki i mua i tō tōhitanga o te papa.\n"
+"Kia mōhio hoki, me kati ō mātāpunga SQL Lab kē atu i mua i tēnei mahi."
 
 msgid "SQL Query"
 msgstr "Pātai SQL"
@@ -14571,6 +14614,8 @@ msgstr ""
 "Ko ngā māra e whai ake nei he kōrero māmate i ārahina i te wā o te "
 "kaweake. Tukua mai ngā uara ki te kawemai i tēnei pātengi raraunga."
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid ""
 "The following filters have the 'Select first filter value by default'\n"
@@ -14578,8 +14623,9 @@ msgid ""
 "preventing the dashboard\n"
 "                    from rendering: %s"
 msgstr ""
-"Kei te pātia ngā tātari e whai ake nei i te kōwhiringa 'Tīpakohia te uara"
-" tātari tuatahi mā te taunoa'"
+"Ko ngā kīwaha e whai ake nei kua tohua te kōwhiringa 'Tīpakohia te uara "
+"kīwaha tuatahi hei taunoa' ā, kāore i taea te uta, e aukati ana i te "
+"whakaatu o te papatohu: %s"
 
 #, fuzzy
 msgid "The font size of the point labels"
@@ -16896,13 +16942,15 @@ msgstr "Whakamahia hononga whakamunatia ki te pātengi raraunga"
 msgid "Use an ssh tunnel connection to the database"
 msgstr "Whakamahia hononga pūaha ssh ki te pātengi raraunga"
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid ""
 "Use another existing chart as a source for annotations and overlays.\n"
 "          Your chart must be one of these visualization types: [%s]"
 msgstr ""
-"Whakamahia tētahi kauwhata kei te tīari hei puna mō ngā tohu me ngā "
-"kōpaki."
+"Whakamahia tētahi atu kāta e tū ana hei puna mō ngā tūtohu me ngā uhi.\n"
+"Me mātua ko tō kāta tētahi o ēnei momo whakaaturanga: [%s]"
 
 #, fuzzy
 msgid "Use automatic color"

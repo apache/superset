@@ -22,16 +22,15 @@ import { css } from '@apache-superset/core/theme';
 import { Link, useHistory } from 'react-router-dom';
 import {
   ConfirmStatusChange,
-  Button,
-  Dropdown,
   FaveStar,
+  Icons,
   Label,
   ListViewCard,
-  Icons,
   MenuItem,
 } from '@superset-ui/core/components';
 import Chart from 'src/types/Chart';
 import { SubjectPile } from 'src/features/subjects/SubjectPile';
+import { KebabMenuButton } from 'src/components';
 import { handleChartDelete, CardStyles } from 'src/views/CRUD/utils';
 import { assetUrl } from 'src/utils/assetUrl';
 import type { ListViewFetchDataConfig as FetchDataConfig } from 'src/components';
@@ -207,11 +206,7 @@ export default function ChartCard({
                 isStarred={favoriteStatus}
               />
             )}
-            <Dropdown menu={{ items: menuItems }} trigger={['click', 'hover']}>
-              <Button buttonSize="xsmall" type="link" buttonStyle="link">
-                <Icons.MoreOutlined iconSize="xl" />
-              </Button>
-            </Dropdown>
+            <KebabMenuButton menuItems={menuItems} dataTest="chart-card-menu" />
           </ListViewCard.Actions>
         }
       />

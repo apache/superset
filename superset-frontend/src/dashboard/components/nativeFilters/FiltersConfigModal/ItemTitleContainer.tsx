@@ -179,7 +179,7 @@ const ItemTitleContainer = forwardRef<HTMLDivElement, Props>(
                   event.stopPropagation();
                   onRemove(id);
                 }}
-                alt={deleteAltText}
+                aria-label={deleteAltText}
               />
             )}
           </div>

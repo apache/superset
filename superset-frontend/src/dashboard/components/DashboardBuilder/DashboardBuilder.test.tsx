@@ -23,7 +23,7 @@ import {
   within,
   screen,
 } from 'spec/helpers/testing-library';
-import { FeatureFlag } from '@superset-ui/core';
+import { addAlpha, FeatureFlag } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
 import {
   OPEN_FILTER_BAR_WIDTH,
@@ -585,6 +585,50 @@ test('should apply min-height to the top-level tab drop target so tabs can be dr
     {
       target: '.empty-droptarget',
     },
+  );
+});
+
+test('should render chart tiles with a theme-driven border at rest, see https://github.com/apache/superset/issues/41618', () => {
+  (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
+    100,
+    jest.fn(),
+  ]);
+  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
+  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
+
+  const { container } = render(<DashboardBuilder />, {
+    useRedux: true,
+    store: storeWithState({
+      ...mockState,
+      dashboardLayout: undoableDashboardLayout,
+    }),
+    useDnd: true,
+    useTheme: true,
+    useRouter: true,
+  });
+
+  // StyledDashboardContent (className "dashboard-content") owns the nested
+  // `.dashboard-component-chart-holder` CSS, so it's the element to assert
+  // style rules against, not the individual chart holder nodes it renders.
+  const dashboardContent = container.querySelector('.dashboard-content');
+
+  expect(dashboardContent).toHaveStyleRule(
+    'border',
+    `1px solid ${supersetTheme.colorBorder}`,
+    { target: '.dashboard-component-chart-holder' },
+  );
+  expect(dashboardContent).toHaveStyleRule(
+    'border-radius',
+    `${supersetTheme.borderRadius}px`,
+    { target: '.dashboard-component-chart-holder' },
+  );
+
+  // .fade-out no longer re-declares border/border-radius (it inherits the
+  // base rule above); it should still layer its own hairline box-shadow.
+  expect(dashboardContent).toHaveStyleRule(
+    'box-shadow',
+    `0 0 0 1px ${addAlpha(supersetTheme.colorBorder, 0.5)}`,
+    { target: '.dashboard-component-chart-holder.fade-out' },
   );
 });
 
