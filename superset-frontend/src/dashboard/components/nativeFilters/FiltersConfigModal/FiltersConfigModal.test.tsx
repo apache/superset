@@ -974,7 +974,7 @@ test('restores a deleted filter via the "Restore filter" button', async () => {
 
   const filterContainer = screen.getByTestId('filter-title-container');
   const firstTab = within(filterContainer).getAllByRole('tab')[0];
-  fireEvent.click(within(firstTab).getByRole('button', { name: /delete/i }));
+  fireEvent.click(within(firstTab).getByRole('button', { name: /remove filter/i }));
 
   expect(
     await screen.findByText(/you have removed this filter/i),
@@ -1009,7 +1009,7 @@ test('undoes a filter deletion via the sidebar "Undo?" link', async () => {
 
   const filterContainer = screen.getByTestId('filter-title-container');
   const firstTab = within(filterContainer).getAllByRole('tab')[0];
-  fireEvent.click(within(firstTab).getByRole('button', { name: /delete/i }));
+  fireEvent.click(within(firstTab).getByRole('button', { name: /remove filter/i }));
 
   const undoButton = await screen.findByTestId('undo-button');
   expect(undoButton).toHaveTextContent(/undo\?/i);
