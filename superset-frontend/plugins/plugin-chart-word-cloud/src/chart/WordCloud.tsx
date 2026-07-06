@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import cloudLayout from 'd3-cloud';
 import { scaleLinear } from 'd3-scale';
 import { seed, CategoricalColorNamespace } from '@superset-ui/core';
@@ -343,4 +343,5 @@ function WordCloud({
   );
 }
 
-export default withTheme(WordCloud);
+// memo preserves the shallow-prop render bailout of the PureComponent original
+export default withTheme(memo(WordCloud));

@@ -65,7 +65,8 @@ function TTestTable({
         sumControl += controlValues[i].y;
       });
 
-      if (sumControl === 0) return 'NaN';
+      // A zero control sum yields "Infinity" (or "NaN" for 0/0) via toFixed,
+      // matching the original class component's output
       return (((sumValues - sumControl) / sumControl) * 100).toFixed(
         liftValPrec,
       );
@@ -207,6 +208,69 @@ function TTestTable({
     [computeTTest],
   );
 
+  // When sorted ascending, 'control' will always be at top
+  type SortConfigItem =
+    | string
+    | { column: string; sortFunction: (a: string, b: string) => number };
+
+  const sortConfig: SortConfigItem[] = useMemo(
+    () =>
+      (groups as SortConfigItem[]).concat([
+        {
+          column: 'pValue',
+          sortFunction: (a: string, b: string) => {
+            if (a === 'control') {
+              return -1;
+            }
+            if (b === 'control') {
+              return 1;
+            }
+            if (a === b) {
+              return 0;
+            }
+
+            return a > b ? 1 : -1; // p-values ascending
+          },
+        },
+        {
+          column: 'liftValue',
+          sortFunction: (a: string, b: string) => {
+            if (a === 'control') {
+              return -1;
+            }
+            if (b === 'control') {
+              return 1;
+            }
+
+            const liftA = parseFloat(a);
+            const liftB = parseFloat(b);
+            if (liftA === liftB) {
+              return 0;
+            }
+
+            return liftA > liftB ? -1 : 1; // lift values descending
+          },
+        },
+        {
+          column: 'significant',
+          sortFunction: (a: string, b: string) => {
+            if (a === 'control') {
+              return -1;
+            }
+            if (b === 'control') {
+              return 1;
+            }
+            if (a === b) {
+              return 0;
+            }
+
+            return a > b ? -1 : 1; // significant values first
+          },
+        },
+      ]),
+    [groups],
+  );
+
   if (!Array.isArray(groups) || groups.length === 0) {
     throw new Error('Group by param is required');
   }
@@ -277,70 +341,6 @@ function TTestTable({
       </Tr>
     );
   });
-
-  // When sorted ascending, 'control' will always be at top
-  type SortConfigItem =
-    string | { column: string; sortFunction: (a: string, b: string) => number };
-
-  const sortConfig: SortConfigItem[] = useMemo(
-    () =>
-      (groups as SortConfigItem[]).concat([
-        {
-          column: 'pValue',
-          sortFunction: (a: string, b: string) => {
-            if (a === 'control') {
-              return -1;
-            }
-            if (b === 'control') {
-              return 1;
-            }
-
-            if (a === b) {
-              return 0;
-            }
-
-            return a > b ? 1 : -1; // p-values ascending
-          },
-        },
-        {
-          column: 'liftValue',
-          sortFunction: (a: string, b: string) => {
-            if (a === 'control') {
-              return -1;
-            }
-            if (b === 'control') {
-              return 1;
-            }
-
-            const liftA = parseFloat(a);
-            const liftB = parseFloat(b);
-            if (liftA === liftB) {
-              return 0;
-            }
-
-            return liftA > liftB ? -1 : 1; // lift values descending
-          },
-        },
-        {
-          column: 'significant',
-          sortFunction: (a: string, b: string) => {
-            if (a === 'control') {
-              return -1;
-            }
-            if (b === 'control') {
-              return 1;
-            }
-
-            if (a === b) {
-              return 0;
-            }
-
-            return a > b ? -1 : 1; // significant values first
-          },
-        },
-      ]),
-    [groups],
-  );
 
   return (
     <div>

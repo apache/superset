@@ -164,7 +164,7 @@ test('marks non-control row as not significant when p-value is above alpha', asy
   });
 });
 
-test('returns NaN lift when control values sum to zero (division by zero guard)', async () => {
+test('renders Infinity lift when control values sum to zero', async () => {
   const zeroControlData: DataEntry[] = [
     {
       group: ['zero-group'],
@@ -186,11 +186,54 @@ test('returns NaN lift when control values sum to zero (division by zero guard)'
 
   // The lift computation: ((sumValues - sumControl) / sumControl) * 100
   // = ((30 - 0) / 0) * 100 = Infinity
-  // Infinity.toFixed(4) in jsdom returns "NaN", and the component renders it.
-  // The getLiftStatus method classifies this as "invalid" (NaN or non-finite).
+  // Infinity.toFixed(4) returns "Infinity", and the component renders it.
+  // getLiftStatus classifies this as "invalid" (non-finite).
   await waitFor(() => {
-    expect(screen.getByText('NaN')).toBeInTheDocument();
+    expect(screen.getByText('Infinity')).toBeInTheDocument();
   });
+  expect(screen.getByText('Infinity')).toHaveClass('invalid');
+});
+
+test('colors finite lift cells with true/false status classes', async () => {
+  render(<TTestTable {...defaultProps} />);
+
+  // group-B lift vs control group-A: ((40 - 30) / 30) * 100 = 33.3333 (>= 0)
+  await waitFor(() => {
+    expect(screen.getByText('33.3333')).toBeInTheDocument();
+  });
+  expect(screen.getByText('33.3333')).toHaveClass('true');
+});
+
+test('recomputes and clamps the control index when data shrinks', async () => {
+  const threeRowData: DataEntry[] = [
+    { group: ['row-0'], values: [{ x: 1, y: 10 }] },
+    { group: ['row-1'], values: [{ x: 1, y: 20 }] },
+    { group: ['row-2'], values: [{ x: 1, y: 40 }] },
+  ];
+  const { rerender } = render(
+    <TTestTable {...defaultProps} data={threeRowData} />,
+  );
+
+  // Make the last row (index 2) the control
+  await waitFor(() => {
+    expect(screen.getByText('row-2')).toBeInTheDocument();
+  });
+  fireEvent.click(screen.getByText('row-2').closest('tr')!);
+
+  // row-0 lift vs row-2 control: ((10 - 40) / 40) * 100 = -75.0000
+  await waitFor(() => {
+    expect(screen.getByText('-75.0000')).toBeInTheDocument();
+  });
+
+  // Shrink the data so the control index (2) is out of range
+  rerender(<TTestTable {...defaultProps} data={threeRowData.slice(0, 2)} />);
+
+  // Control clamps to the last remaining row (index 1) and values recompute:
+  // row-0 lift vs row-1 control: ((10 - 20) / 20) * 100 = -50.0000
+  await waitFor(() => {
+    expect(screen.getByText('-50.0000')).toBeInTheDocument();
+  });
+  expect(screen.queryByText('row-2')).not.toBeInTheDocument();
 });
 
 test('throws an error when groups array is empty', () => {

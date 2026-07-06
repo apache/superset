@@ -17,6 +17,7 @@
  * under the License.
  */
 /* eslint-disable react/no-array-index-key */
+import { memo } from 'react';
 import { styled } from '@apache-superset/core/theme';
 import TTestTable, { DataEntry } from './TTestTable';
 
@@ -138,4 +139,5 @@ function PairedTTest({
   );
 }
 
-export default PairedTTest;
+// memo preserves the shallow-prop render bailout of the PureComponent original
+export default memo(PairedTTest);
