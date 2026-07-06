@@ -840,3 +840,149 @@ def test_project_rejected_when_order_references_dropped_metric() -> None:
     new_q = SemanticQuery(metrics=[M_X], dimensions=[COL_A], limit=10)
     ok, _, _ = can_satisfy(entry_from(cached_q), new_q)
     assert ok is False
+
+
+class _RacingCache:
+    """In-memory cache that parks a designated thread inside its index read.
+
+    Coordination harness for the concurrent-store regression test below:
+    ``parked`` is set (and the caller blocked on ``release``) the first time
+    the designated ``park_thread`` reads an index-bucket key; a failed
+    ``add`` — meaning another thread holds the index lock, i.e. the fix is
+    engaged — sets ``release``.
+    """
+
+    def __init__(self, parked: Any, release: Any) -> None:
+        import threading
+
+        self._store: dict[str, Any] = {}
+        self._mutex = threading.Lock()
+        self._parked_once = False
+        self._parked = parked
+        self._release = release
+        self.park_thread: Any = None
+
+    def _should_park(self, key: str) -> bool:
+        import threading
+
+        from superset.semantic_layers import cache as cache_module
+
+        return (
+            key.startswith(cache_module.INDEX_KEY_PREFIX)
+            and not key.endswith(":lock")
+            and not self._parked_once
+            and threading.current_thread() is self.park_thread
+        )
+
+    def get(self, key: str) -> Any:
+        with self._mutex:
+            should_park = self._should_park(key)
+            if should_park:
+                self._parked_once = True
+            value = self._store.get(key)
+        if should_park:
+            self._parked.set()
+            assert self._release.wait(timeout=10), "thread B never signalled"
+        return value
+
+    def set(self, key: str, value: Any, timeout: int | None = None) -> bool:
+        with self._mutex:
+            self._store[key] = value
+        return True
+
+    def add(self, key: str, value: Any, timeout: int | None = None) -> bool:
+        with self._mutex:
+            if key in self._store:
+                taken = True
+            else:
+                self._store[key] = value
+                taken = False
+        if taken:
+            # The caller is blocked on the index lock: the fix is engaged,
+            # so it is safe to let the parked thread finish and release.
+            self._release.set()
+        return not taken
+
+    def delete(self, key: str) -> bool:
+        with self._mutex:
+            return self._store.pop(key, None) is not None
+
+
+def test_concurrent_store_results_do_not_clobber_index(
+    app: Any,
+    app_context: None,
+    mocker: Any,
+) -> None:
+    """Deterministic regression for the index read-modify-write race.
+
+    ``store_result`` reads the index bucket, appends its entry, and writes the
+    bucket back. Unprotected, two concurrent writers for one view interleave
+    as: A reads, B reads+writes, A writes A's STALE list — silently dropping
+    B's entry (lost cache benefit on every subsequent narrower query).
+
+    This test choreographs that exact interleaving with events (no timing
+    dependence): thread A is parked inside its index read while thread B runs
+    a full ``store_result`` for the same view, then A resumes. With the index
+    lock, B blocks on the lock instead (the instrumented ``add`` releases A on
+    B's first failed acquisition), A completes and releases, B appends — and
+    BOTH entries survive. Without the lock this fails with only A's entry
+    present.
+    """
+    import threading
+    from unittest.mock import MagicMock
+
+    from superset.semantic_layers import cache as cache_module
+    from superset.semantic_layers.cache import store_result, value_key
+
+    a_parked = threading.Event()
+    release_a = threading.Event()
+    fake = _RacingCache(a_parked, release_a)
+    mocker.patch.object(
+        type(cache_module.cache_manager),
+        "data_cache",
+        property(lambda self: fake),
+    )
+
+    q_a = query(filters={where(COL_A, Operator.GREATER_THAN, 1)})
+    q_b = query(filters={where(COL_A, Operator.GREATER_THAN, 2)})
+    errors: list[Exception] = []
+
+    def worker_a() -> None:
+        try:
+            with app.app_context():
+                store_result(VIEW, q_a, MagicMock())
+        except Exception as ex:  # pragma: no cover - defensive
+            errors.append(ex)
+        finally:
+            a_parked.set()  # never leave B waiting if A failed pre-park
+
+    def worker_b() -> None:
+        try:
+            assert a_parked.wait(timeout=10), "thread A never parked"
+            with app.app_context():
+                store_result(VIEW, q_b, MagicMock())
+        except Exception as ex:  # pragma: no cover - defensive
+            errors.append(ex)
+        finally:
+            # Pre-fix path: B completes without ever touching the lock, so
+            # release A here; post-fix this is a no-op (already released).
+            release_a.set()
+
+    t_a = threading.Thread(target=worker_a)
+    t_b = threading.Thread(target=worker_b)
+    fake.park_thread = t_a
+    t_a.start()
+    t_b.start()
+    t_a.join(timeout=30)
+    t_b.join(timeout=30)
+    assert not t_a.is_alive(), "thread A deadlocked"
+    assert not t_b.is_alive(), "thread B deadlocked"
+    assert not errors, f"workers raised: {errors!r}"
+
+    idx_key = shape_key(VIEW, q_a)
+    final_entries = fake._store.get(idx_key) or []
+    stored_value_keys = {e.value_key for e in final_entries}
+    assert value_key(VIEW, q_a) in stored_value_keys, "A's entry lost"
+    assert value_key(VIEW, q_b) in stored_value_keys, (
+        "B's entry was clobbered by A's stale index write"
+    )

@@ -44,7 +44,7 @@ import time as _time
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 from enum import Enum
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 import pandas as pd
 import pyarrow as pa
@@ -128,6 +128,62 @@ class CachedEntry:
 # ---------------------------------------------------------------------------
 
 
+_INDEX_LOCK_TIMEOUT = 2  # seconds; bounds a dead holder's exclusion window
+_INDEX_LOCK_ATTEMPTS = 50
+_INDEX_LOCK_WAIT = 0.01  # seconds between attempts (max ~500 ms total)
+
+
+def _update_index(
+    cache: Any,
+    idx_key: str,
+    timeout: int | None,
+    mutate: Callable[[list[CachedEntry]], list[CachedEntry] | None],
+) -> None:
+    """Read-modify-write the index bucket under a short cache-level lock.
+
+    A bare ``get``/``set`` on the index is not atomic: two concurrent writers
+    for one view can clobber each other's entries, and the eviction prune can
+    drop an entry added between its read and write. The losses are benign by
+    design (a dropped index entry is a future cache miss, never wrong data),
+    but under concurrent dashboard load they silently discard cache benefit.
+
+    A Redis ``WATCH``/Lua transaction can't be used here: the index value is
+    a pickled Python list managed through the Flask-Caching abstraction, and
+    the data cache is not guaranteed to be Redis-backed. ``cache.add`` is the
+    portable set-if-absent primitive (``SET NX`` on Redis, ``add`` on
+    memcached), so a short-lived lock key serialises index writers per bucket.
+
+    Invariant: when the backend supports ``add``, the index is only ever
+    written while holding the lock. On lock-acquisition timeout the update is
+    SKIPPED (losing at most this write's cache benefit) rather than performed
+    unlocked, which could clobber a concurrent writer's entry. Backends
+    without ``add`` degrade to the unlocked read-modify-write.
+
+    ``mutate`` receives the freshly read entry list and returns the new list,
+    or ``None`` to skip the write.
+    """
+    lock_key = f"{idx_key}:lock"
+    add = getattr(cache, "add", None)
+    acquired = add is None  # no lock support: proceed unlocked (degraded)
+    if add is not None:
+        for _ in range(_INDEX_LOCK_ATTEMPTS):
+            if add(lock_key, "1", timeout=_INDEX_LOCK_TIMEOUT):
+                acquired = True
+                break
+            _time.sleep(_INDEX_LOCK_WAIT)
+        if not acquired:
+            logger.debug("Semantic view cache index lock busy; skipping index update")
+            return
+    try:
+        entries: list[CachedEntry] = list(cache.get(idx_key) or [])
+        new_entries = mutate(entries)
+        if new_entries is not None:
+            cache.set(idx_key, new_entries, timeout=timeout)
+    finally:
+        if add is not None and acquired:
+            cache.delete(lock_key)
+
+
 def try_serve_from_cache(
     view_meta: ViewMeta,
     query: SemanticQuery,
@@ -162,10 +218,14 @@ def try_serve_from_cache(
             served = _apply_post_processing(payload, query, leftovers, mode)
             break
 
-        # Drop index entries whose values have been evicted.
-        pruned = [e for e in entries if cache.get(e.value_key) is not None]
-        if len(pruned) != len(entries):
-            cache.set(idx_key, pruned, timeout=_timeout(view_meta))
+        # Drop index entries whose values have been evicted. Re-read under
+        # the index lock so the prune cannot clobber an entry added by a
+        # concurrent ``store_result`` between our read above and this write.
+        def prune(current: list[CachedEntry]) -> list[CachedEntry] | None:
+            pruned = [e for e in current if cache.get(e.value_key) is not None]
+            return pruned if len(pruned) != len(current) else None
+
+        _update_index(cache, idx_key, _timeout(view_meta), prune)
         return served
     except Exception:  # pragma: no cover - defensive
         logger.warning("Semantic view cache lookup failed", exc_info=True)
@@ -185,7 +245,6 @@ def store_result(
         cache.set(vkey, result, timeout=timeout)
 
         idx_key = shape_key(view_meta, query)
-        entries: list[CachedEntry] = list(cache.get(idx_key) or [])
         entry = CachedEntry(
             filters=frozenset(query.filters or set()),
             dimension_keys=frozenset(_dimension_key(d) for d in query.dimensions),
@@ -196,11 +255,17 @@ def store_result(
             group_limit_key=_group_limit_key(query.group_limit),
             value_key=vkey,
         )
-        entries = [e for e in entries if e.value_key != vkey]
-        entries.append(entry)
-        if len(entries) > MAX_ENTRIES_PER_VIEW:
-            entries = sorted(entries, key=lambda e: e.timestamp)[-MAX_ENTRIES_PER_VIEW:]
-        cache.set(idx_key, entries, timeout=timeout)
+
+        def register(entries: list[CachedEntry]) -> list[CachedEntry]:
+            entries = [e for e in entries if e.value_key != vkey]
+            entries.append(entry)
+            if len(entries) > MAX_ENTRIES_PER_VIEW:
+                entries = sorted(entries, key=lambda e: e.timestamp)[
+                    -MAX_ENTRIES_PER_VIEW:
+                ]
+            return entries
+
+        _update_index(cache, idx_key, timeout, register)
     except Exception:  # pragma: no cover - defensive
         logger.warning("Semantic view cache store failed", exc_info=True)
 
