@@ -38,7 +38,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-lodash": "^8.0.0",
     "globals": "^17.6.0",
-    "prettier": "^3.8.4",
+    "prettier": "^3.9.3",
     "ts-node": "^10.9.2",
     "tscw-config": "^1.1.2",
     "typescript": "^6.0.3",
