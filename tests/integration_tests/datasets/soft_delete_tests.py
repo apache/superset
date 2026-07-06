@@ -422,7 +422,9 @@ class TestDatasetRestore(SupersetTestCase):
             # This test soft-deletes the SHARED example dataset; a failed
             # assertion must not strand it and cascade failures through
             # every later suite that queries it.
-            self._restore_dataset(dataset_id)
+            # TestDatasetRestore has no _restore_dataset method (that lives on
+            # TestDatasetSoftDelete); call the module-level helper directly.
+            _restore_dataset(dataset_id)
 
     @with_feature_flags(SOFT_DELETE=True)
     def test_restore_failure_returns_422(self) -> None:
