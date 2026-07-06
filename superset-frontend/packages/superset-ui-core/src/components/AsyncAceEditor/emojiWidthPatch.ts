@@ -250,14 +250,18 @@ export function patchAceEmojiWidths(
       }
       const isEmojiRun = index % 2 === 1;
       if (isEmojiRun) {
-        (part.match(EMOJI_CLUSTER_RE) ?? [part]).forEach(cluster => {
-          const span = this.dom.createElement('span');
-          span.style.width = `${this.config.characterWidth * 2}px`;
-          span.className = 'ace_cjk';
-          span.textContent = cluster;
-          parent.appendChild(span);
-          column += 2;
-        });
+        // Parts at odd indices are the split's capture group, so every one
+        // is a non-empty sequence of clusters; matchAll never comes up empty.
+        Array.from(part.matchAll(EMOJI_CLUSTER_RE), m => m[0]).forEach(
+          cluster => {
+            const span = this.dom.createElement('span');
+            span.style.width = `${this.config.characterWidth * 2}px`;
+            span.className = 'ace_cjk';
+            span.textContent = cluster;
+            parent.appendChild(span);
+            column += 2;
+          },
+        );
       } else {
         column = origRenderToken.call(this, parent, column, token, part);
       }

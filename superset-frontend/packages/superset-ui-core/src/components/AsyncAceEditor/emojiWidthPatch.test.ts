@@ -96,6 +96,24 @@ test('renderer draws emoji in a forced 2×charWidth box like CJK', () => {
   expect(parent.textContent).toBe('# ✨Header');
 });
 
+test('renderer handles a leading emoji (empty split part) cleanly', () => {
+  const container = document.createElement('div');
+  const layer = new TextLayer(container);
+  layer.config = { characterWidth: 10 };
+
+  const parent = document.createElement('div');
+  const screenColumn = layer.$renderToken(
+    parent,
+    0,
+    { type: 'text', value: '✨x' },
+    '✨x',
+  );
+
+  expect(parent.querySelector('.ace_cjk')?.textContent).toBe('✨');
+  expect(parent.textContent).toBe('✨x');
+  expect(screenColumn).toBe(3);
+});
+
 test('renderer leaves emoji-free tokens entirely to the original path', () => {
   const container = document.createElement('div');
   const layer = new TextLayer(container);
@@ -166,8 +184,7 @@ test('$getDisplayTokens keeps tab, space, punctuation, and CJK tokens', () => {
     CHAR_EXT,
     CHAR_EXT,
   ]);
-  expect(session.$getDisplayTokens('❤️', 0)).toEqual([
-    CHAR,
-    CHAR_EXT,
-  ]);
+  expect(session.$getDisplayTokens('❤️', 0)).toEqual([CHAR, CHAR_EXT]);
+  // Second pass hits the memoized emoji-base classification.
+  expect(session.$getDisplayTokens('❤️', 0)).toEqual([CHAR, CHAR_EXT]);
 });
