@@ -20,7 +20,7 @@ import { flatMapDeep } from 'lodash-es';
 import type { FormInstance } from '@superset-ui/core/components';
 import { useState, useCallback } from 'react';
 import { CustomControlItem, Dataset } from '@superset-ui/chart-controls';
-import { Column, ensureIsArray } from '@superset-ui/core';
+import { Column, DatasourceType, ensureIsArray } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { DatasourcesState, ChartsState } from 'src/dashboard/types';
 import { FILTER_SUPPORTED_TYPES } from './constants';
@@ -189,8 +189,8 @@ export const mostUsedDataset = (
   return datasets[mostUsedDataset]?.id;
 };
 
-const normalizeDatasourceType = (datasourceType?: string) =>
-  datasourceType || 'table';
+const normalizeDatasourceType = (datasourceType?: string): string =>
+  datasourceType || DatasourceType.Table;
 
 const parseDatasourceUid = (
   datasourceUid?: string,
@@ -212,7 +212,7 @@ export const doesChartMatchFilterDatasource = (
   chartDatasourceUid: string | undefined,
   loadedDatasets: DatasourcesState,
   filterDatasetId: number,
-  filterDatasourceType?: string,
+  filterDatasourceType?: DatasourceType,
 ): boolean => {
   const expectedType = normalizeDatasourceType(filterDatasourceType);
   const loadedDataset = chartDatasourceUid
@@ -221,8 +221,7 @@ export const doesChartMatchFilterDatasource = (
 
   if (loadedDataset) {
     const loadedType = normalizeDatasourceType(
-      (loadedDataset as unknown as { datasource_type?: string })
-        .datasource_type || loadedDataset.type,
+      loadedDataset.datasource_type || loadedDataset.type,
     );
 
     return loadedDataset.id === filterDatasetId && loadedType === expectedType;

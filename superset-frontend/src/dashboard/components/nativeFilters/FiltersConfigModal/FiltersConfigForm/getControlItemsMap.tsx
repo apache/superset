@@ -29,6 +29,7 @@ import { t } from '@apache-superset/core/translation';
 import {
   Filter,
   ChartCustomization,
+  DatasourceType,
   getChartControlPanelRegistry,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
@@ -48,7 +49,7 @@ import { ColumnSelect } from './ColumnSelect';
 export interface ControlItemsProps {
   expanded: boolean;
   datasetId: number;
-  datasourceType?: string;
+  datasourceType?: DatasourceType;
   disabled: boolean;
   forceUpdate: Function;
   formChanged: Function;

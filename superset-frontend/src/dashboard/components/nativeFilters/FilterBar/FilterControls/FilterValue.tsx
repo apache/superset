@@ -31,6 +31,7 @@ import {
   ChartDataResponseResult,
   Behavior,
   DataMask,
+  DatasourceType,
   isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
@@ -151,7 +152,7 @@ const FilterValue: FC<FilterValueProps> = ({
     column = {},
   }: Partial<{
     datasetId: number;
-    datasourceType: string;
+    datasourceType: DatasourceType;
     column: { name?: string };
   }> = target || {};
   const groupby = column?.name;

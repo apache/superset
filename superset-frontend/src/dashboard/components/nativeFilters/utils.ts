@@ -22,6 +22,7 @@ import {
   Behavior,
   ChartCustomization,
   DataMaskStateWithId,
+  DatasourceType,
   EXTRA_FORM_DATA_APPEND_KEYS,
   EXTRA_FORM_DATA_OVERRIDE_KEYS,
   ExtraFormData,
@@ -63,7 +64,7 @@ export const getFormData = ({
 }: (Partial<Filter> | Partial<ChartCustomization>) & {
   dashboardId: number;
   datasetId?: number;
-  datasourceType?: string;
+  datasourceType?: DatasourceType;
   dependencies?: object;
   groupby?: string;
   adhoc_filters?: AdhocFilter[];
@@ -78,7 +79,7 @@ export const getFormData = ({
     sortMetric?: string;
   } = {};
   if (datasetId) {
-    const dsType = datasourceType || 'table';
+    const dsType = datasourceType || DatasourceType.Table;
     otherProps.datasource = `${datasetId}__${dsType}`;
   }
   if (groupby) {

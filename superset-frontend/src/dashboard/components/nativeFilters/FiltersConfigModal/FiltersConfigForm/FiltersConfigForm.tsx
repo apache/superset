@@ -23,6 +23,7 @@ import {
   Behavior,
   ChartDataResponseResult,
   Column,
+  DatasourceType,
   isFeatureEnabled,
   FeatureFlag,
   Filter,
@@ -408,14 +409,17 @@ const FiltersConfigForm = (
 
   const datasetId = getDatasetId();
 
-  const getDatasourceType = (): string => {
+  const getDatasourceType = (): DatasourceType => {
     if (formFilter?.datasourceType) {
       return formFilter.datasourceType;
     }
     if (isChartCustomization) {
-      return customizationToEdit?.targets?.[0]?.datasourceType || 'table';
+      return (
+        customizationToEdit?.targets?.[0]?.datasourceType ||
+        DatasourceType.Table
+      );
     }
-    return filterToEdit?.targets?.[0]?.datasourceType || 'table';
+    return filterToEdit?.targets?.[0]?.datasourceType || DatasourceType.Table;
   };
 
   const datasourceType = getDatasourceType();
@@ -758,7 +762,7 @@ const FiltersConfigForm = (
 
   useEffect(() => {
     if (datasetId) {
-      if (datasourceType === 'semantic_view') {
+      if (datasourceType === DatasourceType.SemanticView) {
         cachedSupersetGet({
           endpoint: `/api/v1/semantic_view/${datasetId}/structure`,
         })
@@ -791,8 +795,8 @@ const FiltersConfigForm = (
             setDatasetDetails({
               columns,
               metrics: mappedMetrics,
-              datasource_type: 'semantic_view',
-              type: 'semantic_view',
+              datasource_type: DatasourceType.SemanticView,
+              type: DatasourceType.SemanticView,
               filter_select: true,
               filter_select_enabled: true,
               time_grain_sqla: [],
@@ -1151,7 +1155,7 @@ const FiltersConfigForm = (
                                     datasetDetails.id),
                                 value: datasetDetails.id,
                                 kind:
-                                  datasourceType === 'semantic_view'
+                                  datasourceType === DatasourceType.SemanticView
                                     ? 'semantic_view'
                                     : undefined,
                               }
@@ -1176,8 +1180,8 @@ const FiltersConfigForm = (
                           }) => {
                             const newDatasourceType =
                               value.kind === 'semantic_view'
-                                ? 'semantic_view'
-                                : 'table';
+                                ? DatasourceType.SemanticView
+                                : DatasourceType.Table;
                             if (
                               value.value !== datasetId ||
                               newDatasourceType !== datasourceType

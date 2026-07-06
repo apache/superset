@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Column } from '@superset-ui/core';
+import { Column, DatasourceType } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
   ChartsState,
@@ -340,8 +340,8 @@ test('mapSemanticTypeToGenericDataType returns undefined for unknown types', () 
 
 test('doesChartMatchFilterDatasource requires matching datasource type for equal IDs', () => {
   const loadedDatasets = {
-    '7__table': { id: 7, datasource_type: 'table' },
-    '7__semantic_view': { id: 7, datasource_type: 'semantic_view' },
+    '7__table': { id: 7, datasource_type: DatasourceType.Table },
+    '7__semantic_view': { id: 7, datasource_type: DatasourceType.SemanticView },
   } as unknown as DatasourcesState;
 
   expect(
@@ -349,7 +349,7 @@ test('doesChartMatchFilterDatasource requires matching datasource type for equal
       '7__table',
       loadedDatasets,
       7,
-      'semantic_view',
+      DatasourceType.SemanticView,
     ),
   ).toBe(false);
   expect(
@@ -357,7 +357,7 @@ test('doesChartMatchFilterDatasource requires matching datasource type for equal
       '7__semantic_view',
       loadedDatasets,
       7,
-      'semantic_view',
+      DatasourceType.SemanticView,
     ),
   ).toBe(true);
 });
@@ -373,7 +373,7 @@ test('doesChartMatchFilterDatasource falls back to datasource UID parsing', () =
       '7__semantic_view',
       loadedDatasets,
       7,
-      'semantic_view',
+      DatasourceType.SemanticView,
     ),
   ).toBe(true);
 });

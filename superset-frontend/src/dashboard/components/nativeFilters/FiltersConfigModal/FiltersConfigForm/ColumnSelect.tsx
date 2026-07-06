@@ -22,6 +22,7 @@ import { t } from '@apache-superset/core/translation';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
   Column,
+  DatasourceType,
   ensureIsArray,
   JsonResponse,
   useChangeEffect,
@@ -40,7 +41,7 @@ interface ColumnSelectProps {
   formField?: keyof NativeFiltersFormItem;
   filterId: string;
   datasetId?: number;
-  datasourceType?: string;
+  datasourceType?: DatasourceType;
   value?: string | string[];
   onChange?: (value: string) => void;
   mode?: 'multiple';
@@ -95,7 +96,7 @@ export function ColumnSelect({
   // the datasource type changes.  Datasets and semantic views have independent
   // ID sequences, so switching between them with the same numeric ID must still
   // trigger a column re-fetch.
-  const datasourceKey = `${datasetId}__${datasourceType || 'table'}`;
+  const datasourceKey = `${datasetId}__${datasourceType || DatasourceType.Table}`;
   useChangeEffect(datasourceKey, previous => {
     if (previous != null) {
       setColumns([]);
@@ -114,7 +115,7 @@ export function ColumnSelect({
         addDangerToast(errorText);
       };
 
-      if (datasourceType === 'semantic_view') {
+      if (datasourceType === DatasourceType.SemanticView) {
         cachedSupersetGet({
           endpoint: `/api/v1/semantic_view/${datasetId}/structure`,
         })
