@@ -504,6 +504,27 @@ def test_extra_validator_rejects_null_nested_cache_timeout(key: str) -> None:
     assert "non-negative integer" in str(exc_info.value)
 
 
+@pytest.mark.parametrize("value", [True, False])
+def test_extra_validator_rejects_boolean_nested_cache_timeout(value: bool) -> None:
+    """
+    Test that extra_validator rejects boolean nested cache timeouts. Python's
+    bool is a subclass of int, so true/false would otherwise pass as 1/0;
+    the import schema's fields.Integer rejects booleans, so the API must too.
+    """
+    from superset.databases.schemas import DatabasePostSchema
+
+    schema = DatabasePostSchema()
+    payload = {
+        "database_name": "test_db",
+        "extra": json.dumps(
+            {"metadata_cache_timeout": {"schema_cache_timeout": value}}
+        ),
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(payload)
+    assert "non-negative integer" in str(exc_info.value)
+
+
 def test_extra_validator_rejects_negative_catalog_cache_timeout() -> None:
     """
     Test that extra_validator rejects negative catalog_cache_timeout values.

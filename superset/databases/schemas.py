@@ -302,14 +302,19 @@ def extra_validator(value: str) -> str:
                 "catalog_cache_timeout",
             ):
                 # An absent key is unset (valid). When the key is present the
-                # value must be a non-negative integer — a present ``null`` is
-                # rejected here too, matching the import schema (its
-                # ``fields.Integer`` has no ``allow_none``) and preventing an
-                # enabled-but-None state in the model accessors.
+                # value must be a non-negative integer. A present ``null`` and
+                # booleans (``bool`` is a subclass of ``int`` in Python) are
+                # rejected too, matching the import schema's ``fields.Integer``
+                # (no ``allow_none``, rejects booleans) and preventing an
+                # enabled-but-invalid state in the model accessors.
                 if key not in metadata_cache_timeout:
                     continue
                 timeout = metadata_cache_timeout[key]
-                if not isinstance(timeout, int) or timeout < 0:
+                if (
+                    isinstance(timeout, bool)
+                    or not isinstance(timeout, int)
+                    or timeout < 0
+                ):
                     raise ValidationError(
                         [
                             _(
