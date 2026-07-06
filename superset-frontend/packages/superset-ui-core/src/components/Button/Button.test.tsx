@@ -186,6 +186,68 @@ test('getSecondaryButtonHoverStyles supports partial token overrides', () => {
   expect(hoverStyles['&:active'].backgroundColor).toBe('#99d3df !important');
 });
 
+test('styleConfig overrides theme defaults', () => {
+  const { getByRole } = render(
+    <Button
+      buttonStyle="primary"
+      styleConfig={{
+        controlHeight: 50,
+        fontSize: 20,
+        fontWeight: 900,
+        paddingInline: 30,
+        borderRadius: 12,
+      }}
+    >
+      Custom
+    </Button>,
+  );
+  expect(getByRole('button')).toBeInTheDocument();
+});
+
+test('styleConfig partial override merges with defaults', () => {
+  const { getByRole } = render(
+    <Button buttonStyle="primary" styleConfig={{ controlHeight: 44 }}>
+      Partial
+    </Button>,
+  );
+  expect(getByRole('button')).toBeInTheDocument();
+});
+
+test('xsmall size resolves with theme tokens', () => {
+  const { getByRole } = render(
+    <Button buttonSize="xsmall" buttonStyle="primary">
+      XSmall
+    </Button>,
+  );
+  expect(getByRole('button')).toBeInTheDocument();
+  expect(getByRole('button')).toHaveClass('superset-button');
+});
+
+test('small size resolves with theme tokens', () => {
+  const { getByRole } = render(
+    <Button buttonSize="small" buttonStyle="primary">
+      Small
+    </Button>,
+  );
+  expect(getByRole('button')).toBeInTheDocument();
+  expect(getByRole('button')).toHaveClass('superset-button');
+});
+
+test('primary buttonStyle applies ant-btn-primary class', () => {
+  const { getByRole } = render(<Button buttonStyle="primary">Primary</Button>);
+  expect(getByRole('button')).toHaveClass('ant-btn-primary');
+});
+
+test('danger buttonStyle applies ant-btn-dangerous class', () => {
+  const { getByRole } = render(<Button buttonStyle="danger">Danger</Button>);
+  expect(getByRole('button')).toHaveClass('ant-btn-dangerous');
+});
+
+test('link buttonStyle applies ant-btn-link class', () => {
+  const { getByRole } = render(<Button buttonStyle="link">Link</Button>);
+  expect(getByRole('button')).toHaveClass('ant-btn-link');
+});
+
 test('getSecondaryButtonStyle falls back when tokens are empty strings', () => {
   const mockTheme = {
     colorPrimary: '#2893B3',

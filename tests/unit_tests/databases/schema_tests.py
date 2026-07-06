@@ -424,3 +424,30 @@ def test_ssh_tunnel_credentials_load_only() -> None:
     assert "private_key" not in dumped
     assert "private_key_password" not in dumped
     assert dumped["server_address"] == "localhost"
+
+
+def test_validate_parameters_schema_accepts_server_host_key() -> None:
+    """
+    ``ssh_tunnel`` payloads for databases with host-key verification
+    configured include ``server_host_key``; the validate schema must not
+    reject it as an unknown nested field.
+    """
+    from superset.databases.schemas import DatabaseValidateParametersSchema
+
+    schema = DatabaseValidateParametersSchema()
+    loaded = schema.load(
+        {
+            "engine": "postgresql",
+            "configuration_method": "dynamic_form",
+            "ssh_tunnel": {
+                "server_address": "ssh.example.com",
+                "server_port": 22,
+                "username": "user",
+                "server_host_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA",
+            },
+        }
+    )
+    assert (
+        loaded["ssh_tunnel"]["server_host_key"]
+        == "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA"
+    )

@@ -391,7 +391,7 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
                     exc_info=True,
                 )
             dashboard_url = (
-                f"{get_superset_base_url()}/superset/dashboard/{updated_dashboard.id}/"
+                f"{get_superset_base_url()}/dashboard/{updated_dashboard.id}/"
             )
             return RemoveChartFromDashboardResponse(
                 dashboard=DashboardInfo(
@@ -466,7 +466,7 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
             created_on=updated_dashboard.created_on,
             changed_on=updated_dashboard.changed_on,
             uuid=str(updated_dashboard.uuid) if updated_dashboard.uuid else None,
-            url=f"{get_superset_base_url()}/superset/dashboard/{updated_dashboard.id}/",
+            url=f"{get_superset_base_url()}/dashboard/{updated_dashboard.id}/",
             chart_count=len(updated_dashboard.slices),
             tags=[
                 serialize_tag_object(tag)
@@ -486,9 +486,7 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
             ],
         )
 
-        dashboard_url = (
-            f"{get_superset_base_url()}/superset/dashboard/{updated_dashboard.id}/"
-        )
+        dashboard_url = f"{get_superset_base_url()}/dashboard/{updated_dashboard.id}/"
 
         logger.info(
             "Removed chart %s from dashboard %s",
