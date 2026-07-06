@@ -44,6 +44,95 @@ def filter_chart_annotations(chart_config: dict[str, Any]) -> None:
     ]
 
 
+def _ensure_can_edit_existing_chart(
+    existing: Slice,
+    user: Any,
+    error_message: str,
+) -> None:
+    if user and (
+        not security_manager.can_access_chart(existing)
+        or not security_manager.is_editor(existing)
+    ):
+        raise ImportFailedError(error_message)
+
+
+def _restore_existing_chart_for_import(
+    existing: Slice,
+    config: dict[str, Any],
+    can_write: bool,
+    user: Any,
+) -> None:
+    # RESTORE path — re-importing a soft-deleted UUID is an implicit
+    # restore-with-update, a distinct operation from overwriting an
+    # alive row, so it is handled in its own branch.
+    if not can_write:
+        # Case B: don't silently return a soft-deleted row to a caller
+        # without write permission — that would let the dashboard
+        # importer reattach to a deleted chart and produce a broken
+        # dashboard.
+        # Name the chart: a dashboard bundle imports many charts, and
+        # without the identity the operator can't tell which of N
+        # charts in the bundle hit the soft-deleted match.
+        raise ImportFailedError(
+            f"Chart {existing.slice_name!r} (uuid {config['uuid']}) "
+            f"was deleted and re-import requires can_write "
+            f"permission to restore it"
+        )
+    # ``user`` is None on background / example-loader paths; combined
+    # with ``can_write`` (typically from ``ignore_permissions=True``)
+    # the editorship check is intentionally skipped because the caller
+    # already established trust.
+    _ensure_can_edit_existing_chart(
+        existing,
+        user,
+        f"Chart {existing.slice_name!r} (uuid {config['uuid']}) "
+        f"already exists and user doesn't have permissions to restore it",
+    )
+    # Restore in place (clear ``deleted_at``) rather than
+    # hard-delete-and-replace: a hard delete would cascade to
+    # dashboard_slices and other FK references, breaking the dashboards
+    # that previously embedded this chart.
+    #
+    # How the restore lands as an UPDATE: clearing
+    # ``existing.deleted_at`` marks the in-session row dirty and the
+    # explicit flush emits the ``deleted_at = NULL`` UPDATE before
+    # ``Slice.import_from_dict`` (below) does its own query-by-uuid
+    # lookup. Without the flush we would rely on autoflush ahead of that
+    # internal query — correct under default session config but a hidden
+    # contract; the explicit flush makes it robust. The lookup then
+    # finds the now-live row (the listener filters ``deleted_at IS
+    # NULL``) and ``import_from_dict`` applies the config as field
+    # updates on the existing object, preserving the PK.
+    existing.restore()
+    db.session.flush()
+    config["id"] = existing.id
+
+
+def _prepare_existing_chart_for_import(
+    existing: Slice,
+    config: dict[str, Any],
+    overwrite: bool,
+    can_write: bool,
+    user: Any,
+) -> Slice | None:
+    if existing.deleted_at is not None:
+        _restore_existing_chart_for_import(existing, config, can_write, user)
+        return None
+
+    # OVERWRITE path — existing alive row. Without ``overwrite`` or
+    # write permission, return it unchanged (the pre-soft-delete
+    # overwrite-without-permission behaviour).
+    if not overwrite or not can_write:
+        return existing
+    _ensure_can_edit_existing_chart(
+        existing,
+        user,
+        "A chart already exists and user doesn't have permissions to overwrite it",
+    )
+    config["id"] = existing.id
+    return None
+
+
 def import_chart(
     config: dict[str, Any],
     overwrite: bool = False,
@@ -87,69 +176,14 @@ def import_chart(
     user = get_user()
 
     if existing := find_existing_for_import(Slice, config["uuid"]):
-        if existing.deleted_at is not None:
-            # RESTORE path — re-importing a soft-deleted UUID is an implicit
-            # restore-with-update, a distinct operation from overwriting an
-            # alive row, so it is handled in its own branch.
-            if not can_write:
-                # Case B: don't silently return a soft-deleted row to a caller
-                # without write permission — that would let the dashboard
-                # importer reattach to a deleted chart and produce a broken
-                # dashboard.
-                # Name the chart: a dashboard bundle imports many charts, and
-                # without the identity the operator can't tell which of N
-                # charts in the bundle hit the soft-deleted match.
-                raise ImportFailedError(
-                    f"Chart {existing.slice_name!r} (uuid {config['uuid']}) "
-                    f"was deleted and re-import requires can_write "
-                    f"permission to restore it"
-                )
-            # ``user`` is None on background / example-loader paths; combined
-            # with ``can_write`` (typically from ``ignore_permissions=True``)
-            # the editorship check is intentionally skipped because the caller
-            # already established trust.
-            if user and (
-                not security_manager.can_access_chart(existing)
-                or not security_manager.is_editor(existing)
-            ):
-                raise ImportFailedError(
-                    f"Chart {existing.slice_name!r} (uuid {config['uuid']}) "
-                    f"already exists and user doesn't have permissions to "
-                    f"restore it"
-                )
-            # Restore in place (clear ``deleted_at``) rather than
-            # hard-delete-and-replace: a hard delete would cascade to
-            # dashboard_slices and other FK references, breaking the dashboards
-            # that previously embedded this chart.
-            #
-            # How the restore lands as an UPDATE: clearing
-            # ``existing.deleted_at`` marks the in-session row dirty and the
-            # explicit flush emits the ``deleted_at = NULL`` UPDATE before
-            # ``Slice.import_from_dict`` (below) does its own query-by-uuid
-            # lookup. Without the flush we would rely on autoflush ahead of that
-            # internal query — correct under default session config but a hidden
-            # contract; the explicit flush makes it robust. The lookup then
-            # finds the now-live row (the listener filters ``deleted_at IS
-            # NULL``) and ``import_from_dict`` applies the config as field
-            # updates on the existing object, preserving the PK.
-            existing.restore()
-            db.session.flush()
-            config["id"] = existing.id
-        else:
-            # OVERWRITE path — existing alive row. Without ``overwrite`` or
-            # write permission, return it unchanged (the pre-soft-delete
-            # overwrite-without-permission behaviour).
-            if not overwrite or not can_write:
-                return existing
-            if user and (
-                not security_manager.can_access_chart(existing)
-                or not security_manager.is_editor(existing)
-            ):
-                raise ImportFailedError(
-                    "A chart already exists and user doesn't have "
-                    "permissions to overwrite it"
-                )
-            config["id"] = existing.id
+        if existing_chart := _prepare_existing_chart_for_import(
+            existing,
+            config,
+            overwrite,
+            can_write,
+            user,
+        ):
+            return existing_chart
     elif not can_write:
         raise ImportFailedError(
             "Chart doesn't exist and user doesn't have permission to create charts"
