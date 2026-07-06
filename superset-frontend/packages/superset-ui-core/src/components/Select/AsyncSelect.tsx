@@ -406,6 +406,14 @@ const AsyncSelect = forwardRef(
               initialOptionsRef.current = accumulated;
               if (!fetchOnlyOnSearch && accumulated.length >= totalCount) {
                 setAllValuesLoaded(true);
+                // Once every base value is loaded, searches are served by
+                // client-side filtering (fetchPage short-circuits), so the
+                // full set must reach the live options even when this
+                // response lands mid-search — otherwise the dropdown stays
+                // empty for the active search.
+                if (!matchesCurrentSearch) {
+                  mergeData(accumulated);
+                }
               }
               fetchedQueries.current.set(key, totalCount);
               if (matchesCurrentSearch) {
