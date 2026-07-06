@@ -19,7 +19,7 @@
 
 import * as reduxHooks from 'react-redux';
 import { Provider } from 'react-redux';
-import { createStore } from 'redux';
+import { createStore, Store } from 'redux';
 import { render, waitFor } from 'spec/helpers/testing-library';
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
 import { reRunQuery } from 'src/SqlLab/actions/sqlLab';
@@ -133,7 +133,7 @@ const defaultProps = {
   source: 'sqllab' as ErrorSource,
 };
 
-const setup = (overrides = {}, store: any = mockStore) => (
+const setup = (overrides = {}, store: Store = mockStore) => (
   <Provider store={store}>
     <OAuth2RedirectMessage {...defaultProps} {...overrides} />;
   </Provider>
