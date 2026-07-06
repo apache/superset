@@ -55,6 +55,7 @@ from superset.sql.dialects import (
     Hana,
     OpenSearch,
     Pinot,
+    Trino,
     Vertica,
 )
 
@@ -161,7 +162,7 @@ SQLGLOT_DIALECTS = {
     "superset": Dialects.SQLITE,
     # "taosws": ???
     "teradatasql": Dialects.TERADATA,
-    "trino": Dialects.TRINO,
+    "trino": Trino,
     "vertica": Vertica,
     # "ydb" is a plugin dialect (ydb-sqlglot-plugin) auto-discovered via entry_points,
     # hence a string name rather than a class reference like the built-in dialects.
