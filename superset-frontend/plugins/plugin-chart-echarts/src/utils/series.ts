@@ -73,11 +73,7 @@ const ESTIMATED_LEGEND_SELECTOR_WIDTH = 112;
 const LEGEND_TEXT_WIDTH_CACHE = new Map<string, number>();
 
 type LegendDataItem =
-  | string
-  | number
-  | null
-  | undefined
-  | { name?: string | number | null };
+  string | number | null | undefined | { name?: string | number | null };
 
 export type LegendLayoutResult = {
   effectiveMargin?: number;

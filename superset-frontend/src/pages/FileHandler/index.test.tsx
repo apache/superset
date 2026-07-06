@@ -124,8 +124,8 @@ const consumerPromises: Promise<void>[] = [];
 // MessageChannel mock in jsDomWithFetchAPI forces React to schedule via setTimeout.
 const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
   let savedConsumer:
-    | ((params: { files?: MockFileHandle[] }) => void | Promise<void>)
-    | null = null;
+    ((params: { files?: MockFileHandle[] }) => void | Promise<void>) | null =
+    null;
   (window as unknown as Window & { launchQueue: LaunchQueue }).launchQueue = {
     setConsumer: (consumer: (params: { files?: MockFileHandle[] }) => void) => {
       savedConsumer = consumer;

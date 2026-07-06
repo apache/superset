@@ -1898,10 +1898,12 @@ const FiltersConfigForm = (
                                             iconSize="xl"
                                             iconColor={theme.colorPrimary}
                                             css={css`
-                                              margin-left: ${theme.sizeUnit *
-                                              2}px;
-                                              margin-top: ${theme.sizeUnit *
-                                              1.5}px;
+                                              margin-left: ${
+                                                theme.sizeUnit * 2
+                                              }px;
+                                              margin-top: ${
+                                                theme.sizeUnit * 1.5
+                                              }px;
                                             `}
                                             onClick={() => refreshHandler(true)}
                                           />
