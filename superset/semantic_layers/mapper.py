@@ -390,15 +390,23 @@ def _get_filters_from_query_object(
     extras_filters = _get_filters_from_extras(query_object.extras)
     filters.update(extras_filters)
 
-    # 4. Add all other filters from query_object.filter
-    # ``TEMPORAL_RANGE`` filters are skipped when a time axis can be inferred —
-    # ``_get_time_filter`` is responsible for emitting the bounds and (when a
-    # ``time_offset`` is set) shifting them. Without this skip, the offset
-    # query would carry the original literal bounds via the TEMPORAL_RANGE
-    # pass-through and end up identical to the main query.
-    has_time_axis = _get_time_axis_column(query_object, all_dimensions) is not None
+    # 4. Add all other filters from query_object.filter.
+    # ``TEMPORAL_RANGE`` filters are skipped only when ``_get_time_filter``
+    # actually emitted bounds — that path takes over both the base range and
+    # the ``time_offset`` shift, so pass-through would duplicate the bounds
+    # (or, worse, ship the un-shifted literal bounds into the offset query).
+    # When it did not emit anything (e.g. an open-ended range like
+    # ``"2020-01-01 : "``, where ``_get_time_filter`` requires both
+    # ``from_dttm`` and ``to_dttm``), we fall through to
+    # ``_convert_query_object_filter``'s TEMPORAL_RANGE handler so the one-
+    # sided predicate still lands on the query instead of silently widening
+    # the scan.
+    time_bounds_emitted = bool(time_filters)
     for filter_ in query_object.filter:
-        if filter_.get("op") == FilterOperator.TEMPORAL_RANGE.value and has_time_axis:
+        if (
+            filter_.get("op") == FilterOperator.TEMPORAL_RANGE.value
+            and time_bounds_emitted
+        ):
             continue
 
         if converted_filters := _convert_query_object_filter(filter_, all_dimensions):
@@ -901,31 +909,32 @@ def _get_group_limit_filters(
 
     # Create separate filters for the group limit subquery
     filters: set[Filter] = set()
+    time_bounds_emitted = False
 
-    # Add time range filter using inner bounds
-    if query_object.granularity:
-        time_dimension = all_dimensions.get(query_object.granularity)
-        if (
-            time_dimension
-            and query_object.inner_from_dttm
-            and query_object.inner_to_dttm
-        ):
-            filters.update(
-                {
-                    Filter(
-                        type=PredicateType.WHERE,
-                        column=time_dimension,
-                        operator=Operator.GREATER_THAN_OR_EQUAL,
-                        value=query_object.inner_from_dttm,
-                    ),
-                    Filter(
-                        type=PredicateType.WHERE,
-                        column=time_dimension,
-                        operator=Operator.LESS_THAN,
-                        value=query_object.inner_to_dttm,
-                    ),
-                }
-            )
+    # Add time range filter using inner bounds. The temporal column is resolved
+    # via ``_get_time_axis_column`` so aggregate-only charts that carry the
+    # time column only in a ``TEMPORAL_RANGE`` adhoc filter still get the
+    # group-limit subquery scoped to the inner bounds instead of falling
+    # through to the outer bounds.
+    time_axis_column = _get_time_axis_column(query_object, all_dimensions)
+    if time_axis_column and (time_dimension := all_dimensions.get(time_axis_column)):
+        filters.update(
+            {
+                Filter(
+                    type=PredicateType.WHERE,
+                    column=time_dimension,
+                    operator=Operator.GREATER_THAN_OR_EQUAL,
+                    value=query_object.inner_from_dttm,
+                ),
+                Filter(
+                    type=PredicateType.WHERE,
+                    column=time_dimension,
+                    operator=Operator.LESS_THAN,
+                    value=query_object.inner_to_dttm,
+                ),
+            }
+        )
+        time_bounds_emitted = True
 
     # Add fetch values predicate if present
     if (
@@ -945,12 +954,14 @@ def _get_group_limit_filters(
     extras_filters = _get_filters_from_extras(query_object.extras)
     filters.update(extras_filters)
 
-    # Add all other non-temporal filters from query_object.filter
+    # Add all other non-temporal filters from query_object.filter. Skip
+    # ``TEMPORAL_RANGE`` only when the inner-bound filters were actually
+    # emitted — otherwise dropping the pass-through would silently widen the
+    # group-limit subquery to the full history.
     for filter_ in query_object.filter:
-        # Skip temporal range filters - we're using inner bounds instead
         if (
             filter_.get("op") == FilterOperator.TEMPORAL_RANGE.value
-            and query_object.granularity
+            and time_bounds_emitted
         ):
             continue
 

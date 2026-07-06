@@ -2995,20 +2995,22 @@ def test_get_group_limit_filters_granularity_missing_inner_to(
     assert result is None
 
 
-def test_get_group_limit_filters_no_granularity(
+def test_get_group_limit_filters_no_time_axis(
     mocker: MockerFixture,
 ) -> None:
     """
-    Test _get_group_limit_filters when granularity is None/empty.
-    This explicitly covers the branch 704->729 where granularity is Falsy.
+    Test _get_group_limit_filters when no time axis can be identified.
+
+    Without a granularity, temporal column in ``columns``, or a TEMPORAL_RANGE
+    filter, ``_get_time_axis_column`` returns ``None`` and the inner-bound
+    filters are not emitted.
     """
-    # Create dimensions
     category_dim = Dimension("category", "category", pa.utf8(), "category", "Category")
     all_dimensions = {"category": category_dim}
 
-    # Create mock query object with no granularity
     query_object = mocker.Mock()
-    query_object.granularity = None  # No granularity
+    query_object.granularity = None
+    query_object.columns = []
     query_object.inner_from_dttm = datetime(2025, 9, 22)
     query_object.inner_to_dttm = datetime(2025, 10, 22)
     query_object.extras = {}
@@ -3019,7 +3021,6 @@ def test_get_group_limit_filters_no_granularity(
 
     result = _get_group_limit_filters(query_object, all_dimensions)
 
-    # Should return None - no granularity means no time filters added
     assert result is None
 
 
@@ -3469,3 +3470,119 @@ def test_map_query_object_shifts_time_offset_via_temporal_range_filter(
     assert offset_lt == get_past_or_future("1 month ago", datetime(2020, 12, 31))
     assert offset_gte != main_gte
     assert offset_lt != main_lt
+
+
+def test_get_group_limit_filters_uses_time_axis_from_temporal_range(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Regression: the group-limit subquery used to gate its inner-bound time
+    filter and its ``TEMPORAL_RANGE`` skip on ``query_object.granularity``.
+    A modern aggregate-only chart carries the temporal column only inside a
+    ``TEMPORAL_RANGE`` adhoc filter, so under time comparison the group-limit
+    subquery either got no time bounds at all or picked up the *outer* bounds
+    via the pass-through — never the inner bounds. Now both paths resolve the
+    temporal column via ``_get_time_axis_column``.
+    """
+    order_date = Dimension(
+        id="orders.order_date",
+        name="order_date",
+        type=pa.timestamp("us"),
+        description="Order date",
+        definition="order_date",
+    )
+    status = Dimension(
+        id="orders.status",
+        name="status",
+        type=pa.utf8(),
+        description="Order status",
+        definition="status",
+    )
+    all_dimensions = {"order_date": order_date, "status": status}
+
+    datasource = mocker.Mock()
+    datasource.fetch_values_predicate = None
+
+    query_object = ValidatedQueryObject(
+        datasource=datasource,
+        from_dttm=datetime(2020, 1, 1),
+        to_dttm=datetime(2020, 12, 31),
+        inner_from_dttm=datetime(2019, 12, 1),
+        inner_to_dttm=datetime(2020, 11, 30),
+        metrics=["count"],
+        columns=["status"],
+        # granularity intentionally NOT set — the modern x_axis SV shape.
+        filters=[
+            {
+                "col": "order_date",
+                "op": FilterOperator.TEMPORAL_RANGE.value,
+                "val": "2020-01-01 : 2020-12-31",
+            }
+        ],
+    )
+
+    result = _get_group_limit_filters(query_object, all_dimensions)
+
+    assert result is not None
+    order_date_bounds = {
+        (f.operator, f.value)
+        for f in result
+        if f.column is not None and f.column.name == "order_date"
+    }
+    # Inner bounds — not the outer 2020-01-01 / 2020-12-31 — must be present,
+    # and the outer TEMPORAL_RANGE pass-through must be skipped.
+    assert order_date_bounds == {
+        (Operator.GREATER_THAN_OR_EQUAL, datetime(2019, 12, 1)),
+        (Operator.LESS_THAN, datetime(2020, 11, 30)),
+    }
+
+
+def test_get_filters_from_query_object_preserves_open_ended_temporal_range(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Regression: the ``TEMPORAL_RANGE`` skip in ``_get_filters_from_query_object``
+    must not drop one-sided ranges. ``_get_time_filter`` only emits bounds when
+    both ``from_dttm`` and ``to_dttm`` resolve, so an open-ended range like
+    ``"2020-01-01 : "`` needs to fall through to ``_convert_query_object_filter``
+    (which emits the single bounded predicate). Otherwise the query silently
+    widens the scan.
+    """
+    order_date = Dimension(
+        id="orders.order_date",
+        name="order_date",
+        type=pa.timestamp("us"),
+        description="Order date",
+        definition="order_date",
+    )
+    all_dimensions = {"order_date": order_date}
+
+    datasource = mocker.Mock()
+    datasource.fetch_values_predicate = None
+
+    query_object = ValidatedQueryObject(
+        datasource=datasource,
+        from_dttm=datetime(2020, 1, 1),
+        to_dttm=None,  # open-ended → ``_get_time_filter`` returns nothing
+        metrics=["count"],
+        columns=[],
+        filters=[
+            {
+                "col": "order_date",
+                "op": FilterOperator.TEMPORAL_RANGE.value,
+                "val": "2020-01-01 : ",
+            }
+        ],
+        extras={},
+    )
+
+    result = _get_filters_from_query_object(query_object, None, all_dimensions)
+
+    assert result == {
+        Filter(
+            type=PredicateType.WHERE,
+            column=order_date,
+            operator=Operator.GREATER_THAN_OR_EQUAL,
+            value=datetime(2020, 1, 1),
+        ),
+    }
