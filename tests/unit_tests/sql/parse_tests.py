@@ -439,6 +439,40 @@ WHERE
     )
 
 
+def test_format_oracle_group_by_keeps_explicit_expressions() -> None:
+    """
+    Test that formatting Oracle SQL doesn't rewrite ``GROUP BY`` to ordinals.
+
+    Oracle doesn't support positional grouping (``GROUP BY 1, 2``) and fails
+    with ``ORA-00979: not a GROUP BY expression``. sqlglot < 27.21.0 rewrote
+    ``GROUP BY`` expressions that matched aliased projections into ordinals
+    when generating Oracle SQL, breaking chart queries.
+
+    Regression test for https://github.com/apache/superset/issues/35414,
+    fixed by upgrading sqlglot.
+    """
+    sql = (
+        "SELECT TRUNC(CAST(order_date AS DATE), 'MONTH') AS __timestamp, "
+        'region AS region, SUM(sales) AS "SUM(sales)" '
+        "FROM orders "
+        "GROUP BY TRUNC(CAST(order_date AS DATE), 'MONTH'), region "
+        'ORDER BY "SUM(sales)" DESC'
+    )
+    formatted = SQLStatement(sql, engine="oracle").format()
+
+    # pretty-formatting puts each `GROUP BY` item on its own line
+    group_by_clause = formatted.split("GROUP BY")[1].split("ORDER BY")[0]
+    group_by_items = [
+        line.strip().rstrip(",") for line in group_by_clause.strip().splitlines()
+    ]
+    assert group_by_items == [
+        "TRUNC(CAST(order_date AS DATE), 'MONTH')",
+        "region",
+    ]
+    # no item should have been replaced by a positional reference
+    assert not any(item.isdigit() for item in group_by_items)
+
+
 def test_split_no_dialect() -> None:
     """
     Test the statement split when the engine has no corresponding dialect.
