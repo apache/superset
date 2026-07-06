@@ -370,3 +370,15 @@ def test_cache_key_cache_impersonation_on_with_different_user_and_db_impersonati
         ],
         any_order=True,
     )
+
+
+def test_cache_key_ignores_force_query():
+    """Forced and unforced requests must share a cache key, so a forced
+    refresh overwrites the stale entry ordinary requests read (rationale in
+    ``cache_key``'s permanent-exclusions comment)."""
+    normal = QueryObject(row_limit=1, force_query=False)
+    forced = QueryObject(row_limit=1, force_query=True)
+    assert normal.cache_key() == forced.cache_key()
+    # Guard against an over-broad exclusion: real identity fields must still
+    # discriminate.
+    assert normal.cache_key() != QueryObject(row_limit=2).cache_key()
