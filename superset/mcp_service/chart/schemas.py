@@ -1698,7 +1698,9 @@ class XYChartConfig(UnknownFieldCheckMixin):
         validation_alias=AliasChoices("time_grain", "time_grain_sqla"),
     )
     orientation: Literal["vertical", "horizontal"] | None = Field(
-        None, description="Bar orientation (only for kind='bar')"
+        None,
+        description="Bar orientation (only for kind='bar')",
+        validation_alias=AliasChoices("orientation", "chart_orientation"),
     )
     stacked: bool = Field(
         False,
@@ -1713,7 +1715,10 @@ class XYChartConfig(UnknownFieldCheckMixin):
     )
     x_axis: AxisConfig | None = None
     y_axis: AxisConfig | None = None
-    legend: LegendConfig | None = None
+    legend: LegendConfig | None = Field(
+        None,
+        validation_alias=AliasChoices("legend", "show_legend"),
+    )
     x_axis_time_format: str | None = Field(
         None,
         description=(
@@ -1757,6 +1762,24 @@ class XYChartConfig(UnknownFieldCheckMixin):
     @classmethod
     def wrap_single_group_by(cls, v: Any) -> Any:
         return _normalize_group_by_input(v)
+
+    @field_validator("x", mode="before")
+    @classmethod
+    def coerce_x_column_name(cls, v: Any) -> Any:
+        """Accept a bare column name string for the x-axis."""
+        return {"name": v} if isinstance(v, str) else v
+
+    @field_validator("y", mode="before")
+    @classmethod
+    def coerce_y_column_names(cls, v: Any) -> Any:
+        """Accept bare strings or a single entry for the y-axis metrics."""
+        return _normalize_group_by_input(v)
+
+    @field_validator("legend", mode="before")
+    @classmethod
+    def coerce_legend_flag(cls, v: Any) -> Any:
+        """Accept the form_data-style show_legend boolean."""
+        return {"show": v} if isinstance(v, bool) else v
 
     @model_validator(mode="after")
     def reject_sql_expression_on_dimensions(self) -> "XYChartConfig":
@@ -1843,6 +1866,70 @@ ChartConfig = Annotated[
 
 # Compact description for JSON Schema — keeps tool inputSchema small while
 # giving LLMs enough context to construct valid configs.
+
+
+# Superset viz_type values that LLM clients routinely send where this API
+# expects its chart_type discriminator. Extend this observed-pattern map when
+# recurring session traces show additional unambiguous aliases. Each maps to
+# (chart_type, kind); kind is only meaningful for the xy family.
+_VIZ_TYPE_TO_CHART_TYPE: dict[str, tuple[str, str | None]] = {
+    "bar": ("xy", "bar"),
+    "dist_bar": ("xy", "bar"),
+    "echarts_timeseries_bar": ("xy", "bar"),
+    "line": ("xy", "line"),
+    "echarts_timeseries_line": ("xy", "line"),
+    "echarts_timeseries_smooth": ("xy", "line"),
+    "area": ("xy", "area"),
+    "echarts_area": ("xy", "area"),
+    "scatter": ("xy", "scatter"),
+    "echarts_timeseries_scatter": ("xy", "scatter"),
+    "ag-grid-table": ("table", None),
+    "big_number_total": ("big_number", None),
+    "pivot_table_v2": ("pivot_table", None),
+}
+
+
+def _normalize_chart_request_input(data: Any) -> Any:
+    """Accept common Superset REST/form_data vocabulary in chart requests.
+
+    LLM clients reliably reach for Superset's public field names —
+    ``datasource_id``, ``viz_type``, and concrete viz plugin names such as
+    ``echarts_timeseries_bar`` — before consulting this API's schema. Each
+    rejection costs the client a model round trip, so the unambiguous
+    synonyms are translated instead of refused.
+    """
+    if not isinstance(data, dict):
+        return data
+    if "dataset_id" not in data and "datasource_id" in data:
+        data["dataset_id"] = data.pop("datasource_id")
+    config = data.get("config")
+    if isinstance(config, dict):
+        viz_type = config.get("viz_type")
+        if isinstance(viz_type, str) and "chart_type" not in config:
+            config["chart_type"] = viz_type
+        chart_type = config.get("chart_type")
+        if isinstance(chart_type, str) and chart_type in _VIZ_TYPE_TO_CHART_TYPE:
+            mapped_type, kind = _VIZ_TYPE_TO_CHART_TYPE[chart_type]
+            config["chart_type"] = mapped_type
+            if kind is not None:
+                config.setdefault("kind", kind)
+            if mapped_type == "table":
+                config.setdefault("viz_type", chart_type)
+            else:
+                config.pop("viz_type", None)
+        elif config.get("chart_type") != "table":
+            config.pop("viz_type", None)
+    return data
+
+
+class ChartRequestNormalizerMixin(BaseModel):
+    """Mixin translating Superset-vocabulary synonyms before validation."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_request_vocabulary(cls, data: Any) -> Any:
+        """Normalize Superset-style request keys before Pydantic validation."""
+        return _normalize_chart_request_input(data)
 
 
 class ListChartsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
@@ -1939,7 +2026,7 @@ class ListChartsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheControl)
 
 
 # The tool input models
-class GenerateChartRequest(QueryCacheControl):
+class GenerateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
     model_config = ConfigDict(populate_by_name=True)
 
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
@@ -2039,7 +2126,7 @@ class GenerateChartRequest(QueryCacheControl):
         return self
 
 
-class GenerateExploreLinkRequest(FormDataCacheControl):
+class GenerateExploreLinkRequest(ChartRequestNormalizerMixin, FormDataCacheControl):
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
     config: ChartConfig | None = Field(
         None,
@@ -2051,7 +2138,7 @@ class GenerateExploreLinkRequest(FormDataCacheControl):
     )
 
 
-class UpdateChartRequest(QueryCacheControl):
+class UpdateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
     model_config = ConfigDict(populate_by_name=True)
 
     identifier: int | str = Field(..., description="Chart ID or UUID")
@@ -2098,7 +2185,7 @@ class UpdateChartRequest(QueryCacheControl):
         return sanitize_user_input(v, "Chart name", max_length=255, allow_empty=True)
 
 
-class UpdateChartPreviewRequest(FormDataCacheControl):
+class UpdateChartPreviewRequest(ChartRequestNormalizerMixin, FormDataCacheControl):
     form_data_key: str | None = Field(
         None,
         description=(
