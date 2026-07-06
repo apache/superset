@@ -66,7 +66,7 @@
     "caniuse-lite": "^1.0.30001799",
     "docusaurus-plugin-openapi-docs": "^5.1.0",
     "docusaurus-theme-openapi-docs": "^5.1.0",
-    "js-yaml": "^5.1.0",
+    "js-yaml": "^5.2.0",
     "json-bigint": "^1.0.0",
     "prism-react-renderer": "^2.4.1",
     "react": "^18.3.1",
@@ -99,7 +99,7 @@
     "prettier": "^3.9.1",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.62.0",
-    "webpack": "^5.108.0"
+    "webpack": "^5.108.2"
   },
   "browserslist": {
     "production": [

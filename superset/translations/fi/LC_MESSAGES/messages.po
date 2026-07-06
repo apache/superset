@@ -5396,6 +5396,9 @@ msgstr "Kaaviota ei voitu luoda."
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
 #, fuzzy
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "Kaaviota ei voitu päivittää."
 
@@ -24396,6 +24399,11 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+
 msgid "The chart is still loading. Please wait a moment and try again."
 msgstr "Kaavio latautuu vielä. Odota hetki ja yritä uudelleen."
 
@@ -24534,6 +24542,11 @@ msgstr "Maakodistandardi, jonka Superset odottaa löytävänsä [country]-sarakk
 #, fuzzy
 msgid "The dashboard has been saved"
 msgstr "Koontinäyttö on tallennettu"
+
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
