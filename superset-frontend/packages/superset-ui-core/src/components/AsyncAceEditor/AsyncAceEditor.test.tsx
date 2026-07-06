@@ -160,7 +160,7 @@ test('explicitly loads the editor font and re-measures when it resolves (#41664)
   const fontLoad = new Promise<void>(resolve => {
     resolveFontLoad = resolve;
   });
-  const load = jest.fn(() => fontLoad);
+  const load = jest.fn((_font: string) => fontLoad);
   Object.defineProperty(document, 'fonts', {
     configurable: true,
     // `ready` already settled: the pre-fix code would never re-measure.
