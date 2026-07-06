@@ -216,18 +216,32 @@ def test_changed_on_invalidates_cache(
     assert view_implementation.get_table.call_count == 2
 
 
-def test_force_query_bypasses_semantic_cache(
+def test_force_query_bypasses_semantic_cache_read_but_stores_fresh_result(
     fake_cache: _InMemoryCache,
     view_implementation: Any,
     datasource: MagicMock,
 ) -> None:
+    """A forced query must skip the cache READ (fresh execution) but still
+    STORE its result — otherwise the same query's stale entry survives the
+    refresh and keeps being served until TTL. (Broader stale entries are
+    out of a forced store's reach by design; see _make_cached_dispatch.)"""
     view_implementation.get_table = MagicMock(return_value=_result([(2, 1.0)]))
 
     get_results(_qo(datasource, ">", 1))
     assert view_implementation.get_table.call_count == 1
 
+    # Fresh mock: the counter resets with the swap, and 99.0 doubles as the
+    # freshness sentinel for the final assertion.
+    view_implementation.get_table = MagicMock(return_value=_result([(2, 99.0)]))
     get_results(_qo(datasource, ">", 1, force_query=True))
-    assert view_implementation.get_table.call_count == 2
+    assert view_implementation.get_table.call_count == 1  # forced: re-executed
+
+    # The forced refresh must have REPLACED the cached entry: a subsequent
+    # ordinary request is served from cache (no new execution) and sees the
+    # refreshed value, not the stale one.
+    result = get_results(_qo(datasource, ">", 1))
+    assert view_implementation.get_table.call_count == 1
+    assert result.df["x"].tolist() == [99.0]
 
 
 # ---------------------------------------------------------------------------
