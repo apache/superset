@@ -262,10 +262,13 @@ def _update_index(
     SKIPPED (losing at most this write's cache benefit) rather than performed
     unlocked, which could clobber a concurrent writer. The release is fenced
     by an owner token, and locks abandoned without a TTL are broken after
-    ``_INDEX_LOCK_STALE_FACTOR`` x the TTL. Two best-effort windows remain,
-    both bounded to the benign lost-entry: the non-atomic get-compare-delete
-    in the release and break fences, and cross-worker clock skew beyond the
-    stale threshold. Backends whose ``add`` is not
+    ``_INDEX_LOCK_STALE_FACTOR`` x the TTL. Three best-effort windows
+    remain, all bounded to the benign lost-entry: the non-atomic
+    get-compare-delete in the release and break fences; cross-worker clock
+    skew beyond the stale threshold; and plain TTL expiry if the locked
+    get + set itself stalls past the TTL (the critical section makes no
+    per-entry backend calls, so its normal duration is milliseconds
+    against a 2 s budget). Backends whose ``add`` is not
     atomic (``SimpleCache``'s check-then-act, ``NullCache``'s always-True
     no-op) degrade to best-effort locking — at worst the pre-fix benign
     clobber. Duck-typed caches without ``add`` at all (test doubles; every
@@ -320,11 +323,11 @@ def try_serve_from_cache(
         candidates.sort(key=lambda c: c[0])
 
         served: SemanticResult | None = None
-        dead_value_keys: set[str] = set()
+        dead_entries: set[CachedEntry] = set()
         for _, entry, leftovers, mode in candidates:
             payload = cache.get(entry.value_key)
             if payload is None:
-                dead_value_keys.add(entry.value_key)
+                dead_entries.add(entry)
                 continue
             if mode == ReuseMode.ROLLUP and not _projection_input_complete(
                 entry, payload
@@ -335,8 +338,8 @@ def try_serve_from_cache(
 
         # Gated on having actually observed an evicted value above, so the
         # common clean-hit read stays lock-free.
-        if dead_value_keys:
-            _prune_evicted(cache, view_meta, idx_key, dead_value_keys)
+        if dead_entries:
+            _prune_evicted(cache, view_meta, idx_key, dead_entries)
         return served
     except Exception:  # pragma: no cover - defensive
         logger.warning("Semantic view cache lookup failed", exc_info=True)
@@ -347,16 +350,20 @@ def _prune_evicted(
     cache: Cache,
     view_meta: ViewMeta,
     idx_key: str,
-    dead_value_keys: set[str],
+    dead_entries: set[CachedEntry],
 ) -> None:
-    """Drop index entries whose values the caller observed evicted.
+    """Drop the exact index entries whose values the caller observed evicted.
 
-    Only the value keys the candidate loop actually saw missing are pruned —
-    the evidence was gathered OUTSIDE the lock, so the critical section is a
-    constant get + membership filter + set with zero per-entry backend
-    calls, keeping it far under the lock TTL regardless of bucket size.
-    Dead entries that never matched a query linger until the bucket's TTL
-    or the MAX_ENTRIES trim — an accepted trade for lock-free clean hits.
+    Pruning is by ENTRY IDENTITY (the frozen dataclass, timestamp included),
+    not by value key: a concurrent ``store_result`` re-executing the same
+    query re-registers the SAME canonical value key with a fresh timestamp —
+    a key-based prune would drop that fresh registration even though its
+    value now exists. The evidence was gathered OUTSIDE the lock, so the
+    critical section is a constant get + membership filter + set with zero
+    per-entry backend calls, keeping it far under the lock TTL regardless
+    of bucket size. Dead entries that never matched a query linger until
+    the bucket's TTL or the MAX_ENTRIES trim — an accepted trade for
+    lock-free clean hits.
 
     A single non-blocking lock attempt: the prune is purely opportunistic
     (a missed prune is retried by a future read that observes the same
@@ -368,7 +375,7 @@ def _prune_evicted(
     try:
 
         def prune(current: list[CachedEntry]) -> list[CachedEntry] | None:
-            pruned = [e for e in current if e.value_key not in dead_value_keys]
+            pruned = [e for e in current if e not in dead_entries]
             return pruned if len(pruned) != len(current) else None
 
         _update_index(cache, idx_key, _timeout(view_meta), prune, attempts=1)

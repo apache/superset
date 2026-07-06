@@ -870,20 +870,27 @@ class _RacingCache:
         self.park_thread: threading.Thread | None = None
         self.harness_errors: list[str] = []
 
-    def _should_park(self, key: str) -> bool:
-        return (
-            key.startswith(cache_module.INDEX_KEY_PREFIX)
-            and not key.endswith(":lock")
-            and not self._parked_once
-            and threading.current_thread() is self.park_thread
+    park_on_value_miss = False  # park on first MISSING value read instead
+
+    def _should_park(self, key: str, value: Any) -> bool:
+        if self._parked_once or threading.current_thread() is not self.park_thread:
+            return False
+        if self.park_on_value_miss:
+            return (
+                not key.startswith(cache_module.INDEX_KEY_PREFIX)
+                and not key.endswith(":lock")
+                and value is None
+            )
+        return key.startswith(cache_module.INDEX_KEY_PREFIX) and not key.endswith(
+            ":lock"
         )
 
     def get(self, key: str) -> Any:
         with self._mutex:
-            should_park = self._should_park(key)
+            value = self._store.get(key)
+            should_park = self._should_park(key, value)
             if should_park:
                 self._parked_once = True
-            value = self._store.get(key)
         if should_park:
             self._parked.set()
             if not self._release.wait(timeout=10):
@@ -1287,11 +1294,126 @@ def test_lock_is_stale_edges(raw: Any, stale: bool) -> None:
     assert cache_module._lock_is_stale(raw) is stale
 
 
-def test_lock_is_stale_boundary() -> None:
-    """Fresh and exactly-at-threshold locks are NOT stale (strict >); one
-    second past the threshold is."""
-    now = cache_module._time.time()
+def test_lock_is_stale_boundary(mocker: Any) -> None:
+    """Exactly-at-threshold locks are NOT stale (strict >); just past is."""
+    frozen_now = 1_000_000.0
+    mocker.patch.object(cache_module._time, "time", return_value=frozen_now)
     threshold = cache_module._INDEX_LOCK_TIMEOUT * cache_module._INDEX_LOCK_STALE_FACTOR
-    assert cache_module._lock_is_stale(f"tok:{now}") is False
-    assert cache_module._lock_is_stale(f"tok:{now - threshold + 1}") is False
-    assert cache_module._lock_is_stale(f"tok:{now - threshold - 1}") is True
+    assert cache_module._lock_is_stale(f"tok:{frozen_now}") is False
+    assert cache_module._lock_is_stale(f"tok:{frozen_now - threshold}") is False
+    assert cache_module._lock_is_stale(f"tok:{frozen_now - threshold - 0.001}") is True
+
+
+def test_prune_spares_fresh_same_key_registration(
+    app: Any,
+    app_context: None,
+    mocker: Any,
+) -> None:
+    """The prune must drop only the exact entries observed dead, not every
+    entry sharing the value key.
+
+    A concurrent ``store_result`` re-executing the SAME query re-registers
+    the SAME canonical value key with a fresh entry (new timestamp) and a
+    live value. Choreography: reader R parks at the moment it observes the
+    value missing; writer W then re-stores the same query (same value key);
+    R resumes and prunes. A key-based prune would drop W's fresh, live
+    registration; the identity-based prune spares it.
+    """
+    mocker.patch.object(cache_module, "_INDEX_LOCK_ATTEMPTS", 1000)
+
+    r_parked = threading.Event()
+    release_r = threading.Event()
+    fake = _RacingCache(r_parked, release_r)
+    fake.park_on_value_miss = True
+    mocker.patch.object(
+        type(cache_module.cache_manager),
+        "data_cache",
+        property(lambda self: fake),
+    )
+
+    q = query(filters={where(COL_A, Operator.GREATER_THAN, 1)})
+    vkey = value_key(VIEW, q)
+    idx_key = shape_key(VIEW, q)
+    stale_entry = entry_from(q, value_key_=vkey)  # value never stored: dead
+    fake._store[idx_key] = [stale_entry]
+
+    errors: list[Exception] = []
+
+    def reader() -> None:
+        try:
+            with app.app_context():
+                try_serve_from_cache(VIEW, q)
+        except Exception as ex:  # pragma: no cover - defensive
+            errors.append(ex)
+        finally:
+            r_parked.set()
+
+    def writer() -> None:
+        try:
+            assert r_parked.wait(timeout=10), "reader never parked"
+            with app.app_context():
+                store_result(VIEW, q, MagicMock())
+        except Exception as ex:  # pragma: no cover - defensive
+            errors.append(ex)
+        finally:
+            release_r.set()
+
+    t_r = threading.Thread(target=reader)
+    t_w = threading.Thread(target=writer)
+    fake.park_thread = t_r
+    t_r.start()
+    t_w.start()
+    t_r.join(timeout=30)
+    t_w.join(timeout=30)
+    assert not t_r.is_alive(), "reader deadlocked"
+    assert not t_w.is_alive(), "writer deadlocked"
+    assert not errors, f"workers raised: {errors!r}"
+    assert not fake.harness_errors, f"harness: {fake.harness_errors!r}"
+
+    final = fake._store.get(idx_key) or []
+    assert stale_entry not in final, "the observed-dead entry was not pruned"
+    assert any(e.value_key == vkey for e in final), (
+        "prune dropped the writer's fresh same-key registration"
+    )
+
+
+def test_single_attempt_caller_acquires_after_breaking_orphan(
+    mocker: Any,
+) -> None:
+    """A one-attempt caller (the prune path) that breaks a TTL-less orphaned
+    lock must complete its own update in the same attempt — not donate the
+    break and skip."""
+
+    class OrphanedLockCache:
+        def __init__(self, orphan_key: str) -> None:
+            stale_age = (
+                cache_module._INDEX_LOCK_TIMEOUT * cache_module._INDEX_LOCK_STALE_FACTOR
+                + 1
+            )
+            self._store: dict[str, Any] = {
+                orphan_key: f"deadowner:{cache_module._time.time() - stale_age}"
+            }
+
+        def get(self, key: str) -> Any:
+            return self._store.get(key)
+
+        def set(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            self._store[key] = value
+            return True
+
+        def add(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            if key in self._store:
+                return False
+            self._store[key] = value
+            return True
+
+        def delete(self, key: str) -> bool:
+            return self._store.pop(key, None) is not None
+
+    fake = OrphanedLockCache("bucket:lock")
+    marker = entry_from(query(), value_key_="single-attempt-marker")
+    updated = cache_module._update_index(
+        fake, "bucket", 60, lambda entries: entries + [marker], attempts=1
+    )
+    assert updated is True, "single-attempt caller donated the break and skipped"
+    assert fake._store.get("bucket") == [marker]
