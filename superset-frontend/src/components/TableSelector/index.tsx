@@ -28,7 +28,8 @@ import type { SelectValue } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core/translation';
 import { SupersetError } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
-import { CertifiedBadge, Select, Alert } from '@superset-ui/core/components';
+import { CertifiedBadge, Select } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/components';
 import { DatabaseSelector, ErrorMessageWithStackTrace } from 'src/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { DatabaseObject } from 'src/components/DatabaseSelector/types';
@@ -61,12 +62,7 @@ const TableSelectorWrapper = styled.div`
     }
 
     .table-length {
-      color: ${theme.colorWarning} !important;
-      margin-top: ${theme.sizeUnit}px;
-      display: flex;
-      align-items: center;
-      font-size: ${theme.typography?.sizes?.s ?? 12}px;
-      line-height: ${theme.typography?.sizes?.m ?? 14}px;
+      color: ${theme.colorTextSecondary};
     }
 
     .select {
@@ -341,20 +337,14 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     );
 
     const hasMoreWarning = data?.hasMore && (
-      <div
-        aria-live="polite"
-        role="status"
+      <Alert
+        type="warning"
+        showIcon
         className="table-length"
-        data-test="table-list-truncated-warning"
-      >
-        <Alert
-          type="warning"
-          showIcon
-          message={t(
-            'Some tables are not shown. Refine your search or try increasing the API page limit.',
-          )}
-        />
-      </div>
+        message={t(
+          'Some tables are not shown. Refine your search or try increasing the API page limit.',
+        )}
+      />
     );
 
     return (
