@@ -17,6 +17,7 @@
  * under the License.
  */
 import memoizeOne from 'memoize-one';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { UserRoles } from 'src/types/bootstrapTypes';
 
 export const findPermission = memoizeOne(
@@ -26,3 +27,15 @@ export const findPermission = memoizeOne(
       permissions.some(([perm_, view_]) => perm_ === perm && view_ === view),
     ),
 );
+
+/**
+ * Whether the user may download chart data (CSV, Excel). With
+ * GranularExportControls enabled this checks the granular can_export_data
+ * permission but keeps can_csv as a fallback, so turning the flag on never
+ * silently removes access a user already had.
+ */
+export const canDownloadData = (roles?: UserRoles | null) =>
+  isFeatureEnabled(FeatureFlag.GranularExportControls)
+    ? findPermission('can_export_data', 'Superset', roles) ||
+      findPermission('can_csv', 'Superset', roles)
+    : findPermission('can_csv', 'Superset', roles);

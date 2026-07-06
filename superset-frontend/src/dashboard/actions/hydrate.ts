@@ -27,7 +27,7 @@ import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
 import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
 import { applyDefaultFormData } from 'src/explore/store';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
-import { findPermission } from 'src/utils/findPermission';
+import { canDownloadData, findPermission } from 'src/utils/findPermission';
 import {
   canUserEditDashboard,
   canUserSaveAsDashboard,
@@ -355,7 +355,7 @@ export const hydrateDashboard =
             'Superset',
             roles,
           ),
-          superset_can_download: findPermission('can_csv', 'Superset', roles),
+          superset_can_download: canDownloadData(roles),
           common: {
             // legacy, please use state.common instead
             conf: common?.conf,
