@@ -278,34 +278,47 @@ def extra_validator(value: str) -> str:
                     ]
                 )
 
-        metadata_cache_timeout = extra_.get("metadata_cache_timeout")
-        if metadata_cache_timeout is None:
-            metadata_cache_timeout = {}
-        if not isinstance(metadata_cache_timeout, dict):
-            raise ValidationError(
-                [
-                    _(
-                        "The metadata_cache_timeout must be a mapping from "
-                        "string keys to non-negative integer values."
-                    )
-                ]
-            )
-        for key in (
-            "schema_cache_timeout",
-            "table_cache_timeout",
-            "catalog_cache_timeout",
-        ):
-            timeout = metadata_cache_timeout.get(key)
-            if timeout is not None and (not isinstance(timeout, int) or timeout < 0):
+        # Only validate when the key is present. An absent key means "unset"
+        # (the cache is simply not configured), which is valid. When the key
+        # is present it must be a mapping — this rejects an explicit ``null``
+        # as well as other non-dict values (0, "", []), keeping the API in
+        # sync with ``ImportV1DatabaseExtraSchema`` (whose ``fields.Dict`` also
+        # rejects null) and avoiding a stored ``null`` that would break the
+        # ``Database.metadata_cache_timeout`` accessors.
+        if "metadata_cache_timeout" in extra_:
+            metadata_cache_timeout = extra_["metadata_cache_timeout"]
+            if not isinstance(metadata_cache_timeout, dict):
                 raise ValidationError(
                     [
                         _(
-                            "The %(key)s in metadata_cache_timeout must be a "
-                            "non-negative integer.",
-                            key=key,
+                            "The metadata_cache_timeout must be a mapping from "
+                            "string keys to non-negative integer values."
                         )
                     ]
                 )
+            for key in (
+                "schema_cache_timeout",
+                "table_cache_timeout",
+                "catalog_cache_timeout",
+            ):
+                # An absent key is unset (valid). When the key is present the
+                # value must be a non-negative integer — a present ``null`` is
+                # rejected here too, matching the import schema (its
+                # ``fields.Integer`` has no ``allow_none``) and preventing an
+                # enabled-but-None state in the model accessors.
+                if key not in metadata_cache_timeout:
+                    continue
+                timeout = metadata_cache_timeout[key]
+                if not isinstance(timeout, int) or timeout < 0:
+                    raise ValidationError(
+                        [
+                            _(
+                                "The %(key)s in metadata_cache_timeout must be a "
+                                "non-negative integer.",
+                                key=key,
+                            )
+                        ]
+                    )
     return value
 
 

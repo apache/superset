@@ -443,13 +443,15 @@ def test_extra_validator_rejects_non_dict_metadata_cache_timeout() -> None:
     assert "metadata_cache_timeout must be a mapping" in str(exc_info.value)
 
 
-@pytest.mark.parametrize("value", [0, "", [], False])
-def test_extra_validator_rejects_falsy_non_dict_metadata_cache_timeout(
+@pytest.mark.parametrize("value", [0, "", [], False, None])
+def test_extra_validator_rejects_non_dict_metadata_cache_timeout_values(
     value: Any,
 ) -> None:
     """
-    Test that extra_validator rejects falsy non-dict metadata_cache_timeout
-    values (e.g. 0, "", []) instead of silently treating them as empty.
+    Test that extra_validator rejects a present but non-dict
+    metadata_cache_timeout, including an explicit null (None) and other falsy
+    non-dict values (0, "", [], False), instead of silently treating them as
+    empty. Rejecting null keeps the API in sync with the import schema.
     """
     from superset.databases.schemas import DatabasePostSchema
 
@@ -461,6 +463,45 @@ def test_extra_validator_rejects_falsy_non_dict_metadata_cache_timeout(
     with pytest.raises(ValidationError) as exc_info:
         schema.load(payload)
     assert "metadata_cache_timeout must be a mapping" in str(exc_info.value)
+
+
+def test_extra_validator_accepts_absent_metadata_cache_timeout() -> None:
+    """
+    Test that extra_validator treats an absent metadata_cache_timeout key as
+    unset (valid). Only a present-but-non-dict value is rejected.
+    """
+    from superset.databases.schemas import DatabasePostSchema
+
+    schema = DatabasePostSchema()
+    payload = {
+        "database_name": "test_db",
+        "extra": json.dumps({"metadata_params": {}}),
+    }
+    result = schema.load(payload)
+    assert "metadata_cache_timeout" not in json.loads(result["extra"])
+
+
+@pytest.mark.parametrize(
+    "key",
+    ["schema_cache_timeout", "table_cache_timeout", "catalog_cache_timeout"],
+)
+def test_extra_validator_rejects_null_nested_cache_timeout(key: str) -> None:
+    """
+    Test that extra_validator rejects an explicit null nested cache timeout
+    (e.g. {"metadata_cache_timeout": {"schema_cache_timeout": null}}). Import
+    (fields.Integer, no allow_none) rejects it, so the API must too, keeping
+    the two paths in sync and avoiding an enabled-but-None model state.
+    """
+    from superset.databases.schemas import DatabasePostSchema
+
+    schema = DatabasePostSchema()
+    payload = {
+        "database_name": "test_db",
+        "extra": json.dumps({"metadata_cache_timeout": {key: None}}),
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(payload)
+    assert "non-negative integer" in str(exc_info.value)
 
 
 def test_extra_validator_rejects_negative_catalog_cache_timeout() -> None:
