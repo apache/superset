@@ -63,7 +63,18 @@ const EMOJI_RUN_SPLIT_RE = new RegExp(`(${EMOJI_CLUSTER_SOURCE}+)`, 'gu');
 const EMOJI_CLUSTER_RE = new RegExp(EMOJI_CLUSTER_SOURCE, 'gu');
 
 // Memoized per-code-unit classification; $getStringScreenWidth runs per
-// character per rendered line, so the regex must not run every time.
+// character per rendered line, so the regexes must not run every time.
+const EMOJI_BASE_RE = /\p{Emoji}/u;
+const emojiBaseCache = new Map<number, boolean>();
+function isEmojiBase(code: number): boolean {
+  let result = emojiBaseCache.get(code);
+  if (result === undefined) {
+    result = EMOJI_BASE_RE.test(String.fromCharCode(code));
+    emojiBaseCache.set(code, result);
+  }
+  return result;
+}
+
 const bmpEmojiCache = new Map<number, boolean>();
 export function isBmpEmojiPresentation(code: number): boolean {
   if (code < 0x2000 || code > 0xffff || (code >= 0xd800 && code <= 0xdfff)) {
@@ -200,6 +211,10 @@ export function patchAceEmojiWidths(
       } else if (emoji === 2) {
         arr.push(CHAR, CHAR_EXT);
       } else if (emoji === 0) {
+        arr.push(CHAR_EXT);
+      } else if (c === VS16 && i > 0 && isEmojiBase(str.charCodeAt(i - 1))) {
+        // VS16 after a text-presentation emoji base (❤️): keep the pair
+        // atomic for wrap splitting; its width contribution stays 1.
         arr.push(CHAR_EXT);
       } else if (c === 32) {
         arr.push(SPACE);

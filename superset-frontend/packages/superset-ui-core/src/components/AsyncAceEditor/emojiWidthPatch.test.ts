@@ -119,3 +119,55 @@ test('patch is idempotent', () => {
   patchAceEmojiWidths(EditSession, TextLayer);
   expect(EditSession.prototype.$getStringScreenWidth).toBe(before);
 });
+
+// --- copied-internals parity ------------------------------------------------
+// The two overridden EditSession methods are verbatim copies of the
+// ace-builds internals plus the emoji branch; these pin the non-emoji
+// behavior so a future ace upgrade that drifts is caught here.
+
+test('$getStringScreenWidth keeps tab, early-return, and break semantics', () => {
+  const session = new EditSession('');
+  // Tab expands to the next tab stop (default tab size 4).
+  expect(session.$getStringScreenWidth('\ta')[0]).toBe(5);
+  // maxScreenColumn === 0 short-circuits.
+  expect(session.$getStringScreenWidth('abc', 0)).toEqual([0, 0]);
+  // Stops consuming once past maxScreenColumn.
+  const [screen, column] = session.$getStringScreenWidth('abcdef', 3);
+  expect(screen).toBe(4);
+  expect(column).toBe(3);
+});
+
+test('$getDisplayTokens keeps tab, space, punctuation, and CJK tokens', () => {
+  const session = new EditSession('');
+  const CHAR = 1;
+  const CHAR_EXT = 2;
+  const PUNCTUATION = 9;
+  const SPACE = 10;
+  const TAB = 11;
+  const TAB_SPACE = 12;
+
+  // Tab at offset 0 with default tab size 4: TAB + 3 TAB_SPACEs.
+  expect(session.$getDisplayTokens('\t', 0)).toEqual([
+    TAB,
+    TAB_SPACE,
+    TAB_SPACE,
+    TAB_SPACE,
+  ]);
+  expect(session.$getDisplayTokens(' a', 0)).toEqual([SPACE, CHAR]);
+  expect(session.$getDisplayTokens('*:', 0)).toEqual([
+    PUNCTUATION,
+    PUNCTUATION,
+  ]);
+  expect(session.$getDisplayTokens('中', 0)).toEqual([CHAR, CHAR_EXT]);
+  expect(session.$getDisplayTokens('✨', 0)).toEqual([CHAR, CHAR_EXT]);
+  // VS16 keeps one entry per code unit so wrap offsets stay aligned.
+  expect(session.$getDisplayTokens('✨️', 0)).toEqual([
+    CHAR,
+    CHAR_EXT,
+    CHAR_EXT,
+  ]);
+  expect(session.$getDisplayTokens('❤️', 0)).toEqual([
+    CHAR,
+    CHAR_EXT,
+  ]);
+});
