@@ -3247,6 +3247,9 @@ msgstr "Huringa kauwhata"
 msgid "Chart could not be created."
 msgstr "Kāore i taea te hanga i te kauwhata."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "Kāore i taea te whakahou i te kauwhata."
 
@@ -14356,6 +14359,11 @@ msgstr ""
 "hāngai ana tētahi pona ki te nui atu i te kotahi kāwai, ko te tuatahi "
 "anake ka whakamahia."
 
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -14443,6 +14451,11 @@ msgstr ""
 
 msgid "The dashboard has been saved"
 msgstr "Kua tiakina te papatohu"
+
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
+msgstr ""
 
 msgid "The data source seems to have been deleted"
 msgstr "Kua mukua pea te puna raraunga"
