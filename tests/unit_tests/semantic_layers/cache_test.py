@@ -40,6 +40,7 @@ from superset_core.semantic_layers.types import (
     SemanticResult,
 )
 
+from superset.semantic_layers import cache as cache_module
 from superset.semantic_layers.cache import (
     _apply_post_processing,
     _implies,
@@ -48,6 +49,8 @@ from superset.semantic_layers.cache import (
     can_satisfy,
     ReuseMode,
     shape_key,
+    store_result,
+    try_serve_from_cache,
     value_key,
     ViewMeta,
 )
@@ -868,8 +871,6 @@ class _RacingCache:
         self.harness_errors: list[str] = []
 
     def _should_park(self, key: str) -> bool:
-        from superset.semantic_layers import cache as cache_module
-
         return (
             key.startswith(cache_module.INDEX_KEY_PREFIX)
             and not key.endswith(":lock")
@@ -932,9 +933,6 @@ def test_concurrent_store_results_do_not_clobber_index(
     BOTH entries survive. Without the lock this fails with only A's entry
     present.
     """
-    from superset.semantic_layers import cache as cache_module
-    from superset.semantic_layers.cache import store_result, value_key
-
     # Generous retry budget so a starved CI runner can't push thread B past
     # its lock wait while A wakes up (attempts are resolved at call time).
     mocker.patch.object(cache_module, "_INDEX_LOCK_ATTEMPTS", 1000)
@@ -1006,9 +1004,6 @@ def test_store_result_skips_index_write_when_lock_stays_busy(
     the timeout. The lock here is held by "someone else" with a fresh
     (non-stale) token, so the stale-lock breaker must not fire either.
     """
-    from superset.semantic_layers import cache as cache_module
-    from superset.semantic_layers.cache import store_result, value_key
-
     mocker.patch.object(cache_module, "_INDEX_LOCK_ATTEMPTS", 1)
 
     class BusyLockCache:
@@ -1017,6 +1012,8 @@ def test_store_result_skips_index_write_when_lock_stays_busy(
         def __init__(self) -> None:
             self._store: dict[str, Any] = {}
             self.foreign_token = f"someoneelse:{cache_module._time.time()}"
+            self.deleted_keys: list[str] = []
+            self.lock_add_timeouts: list[int | None] = []
 
         def get(self, key: str) -> Any:
             if key.endswith(":lock"):
@@ -1028,9 +1025,12 @@ def test_store_result_skips_index_write_when_lock_stays_busy(
             return True
 
         def add(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            if key.endswith(":lock"):
+                self.lock_add_timeouts.append(timeout)
             return False  # lock always busy
 
         def delete(self, key: str) -> bool:
+            self.deleted_keys.append(key)
             return self._store.pop(key, None) is not None
 
     fake = BusyLockCache()
@@ -1050,6 +1050,18 @@ def test_store_result_skips_index_write_when_lock_stays_busy(
     # The value blob itself IS written (before the index registration) —
     # the documented orphan-until-TTL trade-off.
     assert value_key(VIEW, q) in fake._store
+    # The foreign lock is FRESH, so the stale-lock breaker must not fire:
+    # a breaker regression here would turn contention into a clobber vector.
+    assert f"{idx_key}:lock" not in fake.deleted_keys, (
+        "stale-lock breaker fired against a fresh foreign lock"
+    )
+    # Every lock acquisition attempt must carry the TTL — an add without
+    # a timeout would make ordinary abandonment depend entirely on the
+    # stale-breaker.
+    assert fake.lock_add_timeouts, "no lock acquisition was attempted"
+    assert all(t == cache_module._INDEX_LOCK_TIMEOUT for t in fake.lock_add_timeouts), (
+        f"lock add() missing/wrong TTL: {fake.lock_add_timeouts!r}"
+    )
 
 
 def test_abandoned_ttlless_lock_is_broken(
@@ -1060,8 +1072,6 @@ def test_abandoned_ttlless_lock_is_broken(
     (cachelib RedisCache.add is SETNX + separate EXPIRE) must be broken by
     the next writer instead of freezing the bucket's index updates forever.
     """
-    from superset.semantic_layers import cache as cache_module
-    from superset.semantic_layers.cache import store_result
 
     class OrphanedLockCache:
         """The bucket's lock key pre-exists with a stale, TTL-less token."""
@@ -1123,13 +1133,6 @@ def test_concurrent_prune_does_not_clobber_store(
     entry, and prunes. The prune must re-read under the lock and keep W's
     entry while dropping only the dead one.
     """
-    from superset.semantic_layers import cache as cache_module
-    from superset.semantic_layers.cache import (
-        store_result,
-        try_serve_from_cache,
-        value_key,
-    )
-
     mocker.patch.object(cache_module, "_INDEX_LOCK_ATTEMPTS", 1000)
 
     r_parked = threading.Event()
@@ -1187,3 +1190,108 @@ def test_concurrent_prune_does_not_clobber_store(
     assert value_key(VIEW, q_new) in final_keys, (
         "prune clobbered the concurrently stored entry"
     )
+
+
+def test_release_lock_declines_foreign_token() -> None:
+    """Pin the release fence: a holder whose lock was broken and re-acquired
+    by a successor must NOT delete the successor's fresh lock — the fencing
+    is what stops a TTL-outliving holder from cascading the race."""
+
+    class RecordingCache:
+        def __init__(self) -> None:
+            self._store: dict[str, Any] = {"bucket:lock": "successor:123.0"}
+            self.deleted_keys: list[str] = []
+
+        def get(self, key: str) -> Any:
+            return self._store.get(key)
+
+        def delete(self, key: str) -> bool:
+            self.deleted_keys.append(key)
+            return self._store.pop(key, None) is not None
+
+    fake = RecordingCache()
+    cache_module._release_index_lock(fake, "bucket:lock", "mine:456.0")
+    assert fake.deleted_keys == [], "release deleted a lock it does not own"
+    assert fake._store["bucket:lock"] == "successor:123.0"
+
+    # Control: the owner's own release does delete.
+    cache_module._release_index_lock(fake, "bucket:lock", "successor:123.0")
+    assert fake.deleted_keys == ["bucket:lock"]
+
+
+def test_clean_hit_reads_take_no_lock(
+    app_context: None,
+    mocker: Any,
+) -> None:
+    """Pin the lock-free clean-hit property: serving a cached result whose
+    value is present must perform ZERO lock operations — the eviction gate
+    exists precisely so the hottest path pays no synchronization tax."""
+
+    class CountingCache:
+        def __init__(self) -> None:
+            self._store: dict[str, Any] = {}
+            self.lock_ops = 0
+
+        def get(self, key: str) -> Any:
+            return self._store.get(key)
+
+        def set(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            self._store[key] = value
+            return True
+
+        def add(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            self.lock_ops += 1
+            self._store.setdefault(key, value)
+            return True
+
+        def delete(self, key: str) -> bool:
+            self.lock_ops += 1
+            return self._store.pop(key, None) is not None
+
+    fake = CountingCache()
+    mocker.patch.object(
+        type(cache_module.cache_manager),
+        "data_cache",
+        property(lambda self: fake),
+    )
+
+    q = query(filters={where(COL_A, Operator.GREATER_THAN, 1)})
+    entry = entry_from(q, value_key_=value_key(VIEW, q))
+    fake._store[shape_key(VIEW, q)] = [entry]
+    fake._store[value_key(VIEW, q)] = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="select 1")],
+        results=pa.table({"a": [1]}),
+    )
+
+    result = try_serve_from_cache(VIEW, q)
+    assert result is not None, "expected a clean cache hit"
+    assert fake.lock_ops == 0, (
+        f"clean hit performed {fake.lock_ops} lock operations; must be 0"
+    )
+
+
+@pytest.mark.parametrize(
+    "raw,stale",
+    [
+        (f"abc123:{0.0}", True),  # ancient epoch
+        ("abc123:nan", True),  # nan compares False vs any threshold: wedge
+        ("abc123:inf", True),  # age = -inf would never exceed the threshold
+        ("abc123:-inf", True),
+        ("not-a-token", True),  # no parsable timestamp
+        (b"bytes-value", True),  # non-string round-trip
+        (None, True),
+        ("abc123:not-a-float", True),
+    ],
+)
+def test_lock_is_stale_edges(raw: Any, stale: bool) -> None:
+    assert cache_module._lock_is_stale(raw) is stale
+
+
+def test_lock_is_stale_boundary() -> None:
+    """Fresh and exactly-at-threshold locks are NOT stale (strict >); one
+    second past the threshold is."""
+    now = cache_module._time.time()
+    threshold = cache_module._INDEX_LOCK_TIMEOUT * cache_module._INDEX_LOCK_STALE_FACTOR
+    assert cache_module._lock_is_stale(f"tok:{now}") is False
+    assert cache_module._lock_is_stale(f"tok:{now - threshold + 1}") is False
+    assert cache_module._lock_is_stale(f"tok:{now - threshold - 1}") is True
