@@ -1417,3 +1417,69 @@ def test_single_attempt_caller_acquires_after_breaking_orphan(
     )
     assert updated is True, "single-attempt caller donated the break and skipped"
     assert fake._store.get("bucket") == [marker]
+
+
+def test_same_rank_candidates_served_freshest_first(
+    app_context: None,
+    mocker: Any,
+) -> None:
+    """When two cached entries both satisfy a query at the same reuse rank,
+    the FRESHEST must be served. Insertion-order (stable-sort) selection
+    would let an older stale broader entry shadow a just-forced refresh of
+    the identical query — the refresh would never stick for readers.
+    """
+
+    class PlainCache:
+        def __init__(self) -> None:
+            self._store: dict[str, Any] = {}
+
+        def get(self, key: str) -> Any:
+            return self._store.get(key)
+
+        def set(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            self._store[key] = value
+            return True
+
+        def add(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            if key in self._store:
+                return False
+            self._store[key] = value
+            return True
+
+        def delete(self, key: str) -> bool:
+            return self._store.pop(key, None) is not None
+
+    fake = PlainCache()
+    mocker.patch.object(
+        type(cache_module.cache_manager),
+        "data_cache",
+        property(lambda self: fake),
+    )
+
+    q = query(filters={where(COL_A, Operator.GREATER_THAN, 1)})
+    # Older, broader entry (no filters — satisfies q EXACT-with-leftovers)
+    # whose payload is STALE.
+    import dataclasses
+
+    broad_q = query(filters=None)
+    stale_entry = dataclasses.replace(
+        entry_from(broad_q, value_key_="sv:val:stale-broad"),
+        timestamp=cache_module._time.time() - 60,  # deterministically older
+    )
+    # Newer exact entry for q — the "just forced" fresh result.
+    fresh_entry = entry_from(q, value_key_="sv:val:fresh-exact")
+    assert fresh_entry.timestamp > stale_entry.timestamp
+
+    idx_key = shape_key(VIEW, q)
+    fake._store[idx_key] = [stale_entry, fresh_entry]  # older first
+    stale_result = MagicMock(name="stale")
+    fresh_result = MagicMock(name="fresh")
+    fake._store["sv:val:stale-broad"] = stale_result
+    fake._store["sv:val:fresh-exact"] = fresh_result
+
+    post = mocker.patch.object(
+        cache_module, "_apply_post_processing", side_effect=lambda p, *a: p
+    )
+    served = cache_module.try_serve_from_cache(VIEW, q)
+    assert served is fresh_result, "older same-rank entry shadowed the freshest one"
+    assert post.call_args[0][0] is fresh_result

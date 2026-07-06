@@ -320,7 +320,12 @@ def try_serve_from_cache(
             ok, leftovers, mode = can_satisfy(entry, query)
             if ok:
                 candidates.append((_MODE_RANK[mode], entry, leftovers, mode))
-        candidates.sort(key=lambda c: c[0])
+        # Tie-break same-rank candidates FRESHEST FIRST: a just-forced (or
+        # just-stored) entry must win over an older stale entry that also
+        # satisfies the query — Python's stable sort would otherwise keep
+        # insertion order and serve the older one, so a forced refresh could
+        # be shadowed by the very entry it was meant to supersede.
+        candidates.sort(key=lambda c: (c[0], -c[1].timestamp))
 
         served: SemanticResult | None = None
         dead_entries: set[CachedEntry] = set()
