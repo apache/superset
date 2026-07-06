@@ -250,6 +250,18 @@ def json_to_dict(json_str: str) -> dict[Any, Any]:
     return {}
 
 
+def is_uuid_native_type(native_type: Optional[str]) -> bool:
+    """
+    Return True if a native column type represents a UUID.
+
+    Engines such as PostgreSQL and ClickHouse expose native UUID column types
+    (e.g. ``UUID``, ``Nullable(UUID)``) that map to ``GenericDataType.STRING``
+    yet reject LIKE/ILIKE against the raw column, so these columns need an
+    explicit cast to string before pattern matching.
+    """
+    return native_type is not None and "uuid" in native_type.lower()
+
+
 def convert_uuids(obj: Any) -> Any:
     """
     Convert UUID objects to str so we can use yaml.safe_dump
@@ -3863,7 +3875,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         utils.FilterOperator.ILIKE,
                         utils.FilterOperator.LIKE,
                     }:
-                        if target_generic_type != GenericDataType.STRING:
+                        # Native UUID columns report GenericDataType.STRING but
+                        # reject LIKE/ILIKE without a cast (see issue #41795)
+                        if target_generic_type != GenericDataType.STRING or (
+                            is_uuid_native_type(col_type)
+                        ):
                             sqla_col = sa.cast(sqla_col, sa.String)
 
                         if op == utils.FilterOperator.LIKE:
@@ -3874,7 +3890,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         utils.FilterOperator.NOT_LIKE,
                         utils.FilterOperator.NOT_ILIKE,
                     }:
-                        if target_generic_type != GenericDataType.STRING:
+                        # Native UUID columns report GenericDataType.STRING but
+                        # reject LIKE/ILIKE without a cast (see issue #41795)
+                        if target_generic_type != GenericDataType.STRING or (
+                            is_uuid_native_type(col_type)
+                        ):
                             sqla_col = sa.cast(sqla_col, sa.String)
 
                         if op == utils.FilterOperator.NOT_LIKE:
