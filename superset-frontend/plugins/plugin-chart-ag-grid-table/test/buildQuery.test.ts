@@ -1442,6 +1442,32 @@ describe('plugin-chart-ag-grid-table', () => {
       show_totals: true,
     };
 
+    test('drops summary columns missing from the raw selection', () => {
+      // Own state can outlive a datasource or column-selection change; a
+      // persisted name absent from all_columns must never reach a SUM metric.
+      const { queries } = buildQuery(rawFormData, {
+        ownState: { rawSummaryColumns: ['num', 'ghost_col'] },
+      });
+
+      expect(queries).toHaveLength(2);
+      expect(queries[1].metrics).toEqual([
+        {
+          expressionType: 'SIMPLE',
+          aggregate: 'SUM',
+          column: { column_name: 'num' },
+          label: 'num',
+        },
+      ]);
+    });
+
+    test('adds no totals query when every primed column left the selection', () => {
+      const { queries } = buildQuery(rawFormData, {
+        ownState: { rawSummaryColumns: ['ghost_col'] },
+      });
+
+      expect(queries).toHaveLength(1);
+    });
+
     test('adds a SUM totals query when summary columns are primed', () => {
       const { queries } = buildQuery(rawFormData, {
         ownState: { rawSummaryColumns: ['num'] },

@@ -626,9 +626,18 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     // This ensures we can properly exclude AG Grid WHERE filters from the totals
     // In raw records mode the summary is a SUM over the numeric columns primed
     // into ownState by the chart (see rawSummaryColumns in transformProps).
+    // Own state can outlive a datasource or column-selection change, so bound
+    // the primed summary columns to the current raw selection: a stale name
+    // must never reach a SUM metric or the whole chart query fails before the
+    // chart can re-prime its own state.
+    const selectedRawColumns = new Set(
+      ensureIsArray(formData.all_columns).map(getColumnLabel),
+    );
     const rawSummaryColumns =
       queryMode === QueryMode.Raw && formData.show_totals
-        ? ensureIsArray(ownState.rawSummaryColumns as string[] | undefined)
+        ? ensureIsArray(
+            ownState.rawSummaryColumns as string[] | undefined,
+          ).filter(columnName => selectedRawColumns.has(columnName))
         : [];
     const showAggregateTotals = Boolean(
       metrics?.length &&
