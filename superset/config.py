@@ -1130,7 +1130,7 @@ ENABLE_UI_THEME_ADMINISTRATION = True  # Allows admins to set system themes via 
 
 # Default theme mode for sessions without a saved user preference.
 # Valid values: "default" (light), "dark", "system" (follows OS preference)
-THEME_DEFAULT_MODE: str = "default"
+THEME_DEFAULT_MODE: str = "system"
 
 # Maximum number of font URLs allowed per theme.
 THEME_FONTS_MAX_URLS: int = 15
