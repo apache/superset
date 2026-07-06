@@ -1460,6 +1460,32 @@ describe('plugin-chart-ag-grid-table', () => {
       ]);
     });
 
+    test('keeps calculated dataset columns in the totals metrics', () => {
+      // Calculated columns are dataset-backed and resolve server-side from
+      // the column name alone (standard SIMPLE adhoc-metric resolution); the
+      // selection intersection must not assume physical columns only.
+      const { queries } = buildQuery(
+        { ...rawFormData, all_columns: ['name', 'num', 'boys_ratio_calc'] },
+        { ownState: { rawSummaryColumns: ['num', 'boys_ratio_calc'] } },
+      );
+
+      expect(queries).toHaveLength(2);
+      expect(queries[1].metrics).toEqual([
+        {
+          expressionType: 'SIMPLE',
+          aggregate: 'SUM',
+          column: { column_name: 'num' },
+          label: 'num',
+        },
+        {
+          expressionType: 'SIMPLE',
+          aggregate: 'SUM',
+          column: { column_name: 'boys_ratio_calc' },
+          label: 'boys_ratio_calc',
+        },
+      ]);
+    });
+
     test('adds no totals query when every primed column left the selection', () => {
       const { queries } = buildQuery(rawFormData, {
         ownState: { rawSummaryColumns: ['ghost_col'] },
