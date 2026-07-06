@@ -317,6 +317,8 @@ const StyledDashboardContent = styled.div<{
       width: 100%;
       height: 100%;
       background-color: ${theme.dashboardTileBg ?? theme.colorBgContainer};
+      border: ${theme.dashboardTileBorder ?? `1px solid ${theme.colorBorder}`};
+      border-radius: ${theme.dashboardTileBorderRadius ?? theme.borderRadius}px;
       position: relative;
       padding: ${theme.sizeUnit * 4}px;
       box-sizing: border-box;
@@ -329,16 +331,12 @@ const StyledDashboardContent = styled.div<{
         box-shadow ${theme.motionDurationMid} ease-in-out;
 
       &.fade-in {
-        border-radius: ${theme.borderRadius}px;
         box-shadow:
           inset 0 0 0 2px ${theme.colorPrimary},
           0 0 0 3px ${addAlpha(theme.colorPrimary, 0.1)};
       }
 
       &.fade-out {
-        border: ${theme.dashboardTileBorder ?? 'none'};
-        border-radius: ${theme.dashboardTileBorderRadius ??
-        theme.borderRadius}px;
         box-shadow: ${theme.dashboardTileBoxShadow ??
         `0 0 0 1px ${addAlpha(theme.colorBorder, 0.5)}`};
       }
