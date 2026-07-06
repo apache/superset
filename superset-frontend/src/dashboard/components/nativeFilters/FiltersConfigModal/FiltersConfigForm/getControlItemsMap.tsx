@@ -141,7 +141,13 @@ function DatasetColumnSelect({
   const options = loadedForId === datasetId ? fetchedColumns : [];
 
   useEffect(() => {
-    if (!datasetId) return;
+    if (!datasetId) {
+      // dataset cleared — drop any stale selection immediately
+      if (value) {
+        onChange?.(null);
+      }
+      return undefined;
+    }
     let cancelled = false;
     cachedSupersetGet({
       endpoint: `/api/v1/dataset/${datasetId}?q=${rison.encode({
@@ -149,23 +155,26 @@ function DatasetColumnSelect({
       })}`,
     })
       .then(({ json: { result } }) => {
-        if (!cancelled) {
-          setFetchState({
-            loadedForId: datasetId,
-            fetchedColumns: result.columns
-              .map((col: { column_name: string }) => col.column_name)
-              .filter(Boolean),
-          });
+        if (cancelled) return;
+        const columnNames: string[] = result.columns
+          .map((col: { column_name: string }) => col.column_name)
+          .filter(Boolean);
+        setFetchState({ loadedForId: datasetId, fetchedColumns: columnNames });
+        if (value && !columnNames.includes(value)) {
+          onChange?.(null);
         }
       })
       .catch(() => {
-        if (!cancelled) {
-          setFetchState({ loadedForId: datasetId, fetchedColumns: [] });
+        if (cancelled) return;
+        setFetchState({ loadedForId: datasetId, fetchedColumns: [] });
+        if (value) {
+          onChange?.(null);
         }
       });
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [datasetId]);
 
   return (

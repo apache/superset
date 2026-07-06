@@ -24,7 +24,7 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import type { FormInstance } from '@superset-ui/core/components';
+import { Form, type FormInstance } from '@superset-ui/core/components';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import getControlItemsMap, { ControlItemsProps } from './getControlItemsMap';
 import {
@@ -160,7 +160,16 @@ function renderColumnPicker(
   ]);
   const props = { ...createProps(), datasetId: 1, ...propsOverrides };
   const map = getControlItemsMap(props);
-  render(map.mainControlItems.myPluginColumn.element as React.ReactElement);
+  const element = map.mainControlItems.myPluginColumn
+    .element as React.ReactElement;
+  // Field/Form.Item only applies `initialValue` when registered under a real
+  // antd Form — without it, the value/onChange the control receives always
+  // resolve to undefined regardless of `initialValue`.
+  function Wrapper() {
+    const [form] = Form.useForm();
+    return <Form form={form}>{element}</Form>;
+  }
+  render(<Wrapper />);
   return props;
 }
 
@@ -317,6 +326,84 @@ test('groupby ColumnSelect onChange resets defaultDataMask and notifies change',
   expect(props.formChanged).toHaveBeenCalled();
 });
 
+test('plugin column-picker control (isColumnSelect) resets stale value not present in fetched columns', async () => {
+  const fetchPromise = Promise.resolve({
+    response: {} as Response,
+    json: { result: { columns: [{ column_name: 'col_a' }] } },
+  });
+  mockCachedSupersetGet.mockReturnValue(fetchPromise);
+  const props = renderColumnPicker(
+    {},
+    {
+      filterToEdit: {
+        ...filterMock,
+        controlValues: { myPluginColumn: 'stale_col' },
+      },
+    },
+  );
+  expect(setNativeFilterFieldValues).not.toHaveBeenCalled();
+  await act(async () => {
+    await fetchPromise;
+  });
+  expect(setNativeFilterFieldValues).toHaveBeenCalledWith(
+    props.form,
+    props.filterId,
+    { defaultDataMask: null },
+  );
+  expect(props.forceUpdate).toHaveBeenCalled();
+  expect(props.formChanged).toHaveBeenCalled();
+});
+
+test('plugin column-picker control (isColumnSelect) does not reset value that still exists after fetch', async () => {
+  const fetchPromise = Promise.resolve({
+    response: {} as Response,
+    json: {
+      result: {
+        columns: [{ column_name: 'col_a' }, { column_name: 'col_b' }],
+      },
+    },
+  });
+  mockCachedSupersetGet.mockReturnValue(fetchPromise);
+  const props = renderColumnPicker(
+    {},
+    {
+      filterToEdit: {
+        ...filterMock,
+        controlValues: { myPluginColumn: 'col_a' },
+      },
+    },
+  );
+  await act(async () => {
+    await fetchPromise;
+  });
+  expect(setNativeFilterFieldValues).not.toHaveBeenCalled();
+  expect(props.forceUpdate).not.toHaveBeenCalled();
+  expect(props.formChanged).not.toHaveBeenCalled();
+});
+
+test('plugin column-picker control (isColumnSelect) resets value immediately when datasetId is cleared', async () => {
+  const props = renderColumnPicker(
+    {},
+    {
+      datasetId: undefined,
+      filterToEdit: {
+        ...filterMock,
+        controlValues: { myPluginColumn: 'stale_col' },
+      },
+    },
+  );
+  expect(mockCachedSupersetGet).not.toHaveBeenCalled();
+  await waitFor(() =>
+    expect(setNativeFilterFieldValues).toHaveBeenCalledWith(
+      props.form,
+      props.filterId,
+      { defaultDataMask: null },
+    ),
+  );
+  expect(props.forceUpdate).toHaveBeenCalled();
+  expect(props.formChanged).toHaveBeenCalled();
+});
+
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ColumnSelect filterValues behavior', () => {
   beforeEach(() => {
@@ -407,10 +494,12 @@ test('plugin column-picker control (isColumnSelect) onChange resets defaultDataM
   });
   userEvent.click(screen.getByRole('combobox'));
   userEvent.click(await screen.findByRole('option', { name: 'col_a' }));
-  expect(setNativeFilterFieldValues).toHaveBeenCalledWith(
-    props.form,
-    props.filterId,
-    { defaultDataMask: null },
+  await waitFor(() =>
+    expect(setNativeFilterFieldValues).toHaveBeenCalledWith(
+      props.form,
+      props.filterId,
+      { defaultDataMask: null },
+    ),
   );
   expect(props.forceUpdate).toHaveBeenCalled();
   expect(props.formChanged).toHaveBeenCalled();
