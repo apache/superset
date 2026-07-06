@@ -18,7 +18,7 @@
 """Stamp do-not-translate msgids in a .pot with an extracted-comment marker.
 
 For every msgid listed in ``superset/translations/do-not-translate.txt`` that is
-present in the target .pot, add a ``#. MACHINE_READ-DO_NOT_TRANSLATE`` extracted
+present in the target .pot, add a ``#. do-not-translate`` extracted
 comment. gettext extracted comments (``#.``) propagate from the .pot into every
 language .po on ``pybabel update``, so the do-not-translate status stays
 consistent across all catalogs from a single registry.
@@ -37,7 +37,7 @@ import sys
 from pathlib import Path
 
 # The standardized extracted-comment marker. Kept in sync with backfill_po.py.
-MARKER: str = "MACHINE_READ-DO_NOT_TRANSLATE"
+MARKER: str = "do-not-translate"
 _MARKER_LINE: str = f"#. {MARKER}"
 
 TRANSLATIONS_DIR: Path = (

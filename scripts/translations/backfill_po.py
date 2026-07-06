@@ -158,7 +158,7 @@ def _is_missing(entry: polib.POEntry) -> bool:
 # icon), API field names, code constants, and example placeholders. Translating
 # them can break icon lookups, enum matching, or API contracts, or is simply
 # meaningless (proper nouns, example values). apply_do_not_translate.py stamps
-# these msgids in messages.pot with a `#. MACHINE_READ-DO_NOT_TRANSLATE`
+# these msgids in messages.pot with a `#. do-not-translate`
 # extracted comment that propagates to every catalog on `pybabel update`.
 DO_NOT_TRANSLATE_REGISTRY: Path = TRANSLATIONS_DIR / "do-not-translate.txt"
 
@@ -182,13 +182,12 @@ def _load_do_not_translate(path: Path = DO_NOT_TRANSLATE_REGISTRY) -> frozenset[
 DO_NOT_TRANSLATE: frozenset[str] = _load_do_not_translate()
 
 # An explicit do-not-translate marker on an entry, matched in either the
-# extracted comment (`#. MACHINE_READ-DO_NOT_TRANSLATE`, the standard propagated
+# extracted comment (`#. do-not-translate`, the standard propagated
 # from the .pot) or a translator comment (e.g. the ru catalog's legacy
 # "# Не переводить"). Honored so a human's deliberate decision is never
 # overridden even if a msgid is missing from the registry.
 _DO_NOT_TRANSLATE_COMMENT: re.Pattern[str] = re.compile(
-    r"machine_read-do_not_translate|не\s+переводить"
-    r"|do[\s-]?not[\s-]?translate|don'?t\s+translate",
+    r"не\s+переводить|do[\s-]?not[\s-]?translate|don'?t\s+translate",
     re.IGNORECASE,
 )
 

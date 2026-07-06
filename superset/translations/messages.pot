@@ -564,7 +564,7 @@ msgstr ""
 msgid "10/90 percentiles"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "10000"
 msgstr ""
 
@@ -3955,7 +3955,7 @@ msgstr ""
 msgid "DEC"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "DELETE"
 msgstr ""
 
@@ -5191,14 +5191,14 @@ msgstr ""
 msgid "Dynamically select grouping columns from a dataset"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "ECharts"
 msgstr ""
 
 msgid "ECharts Options (JS object literals)"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "EMAIL_REPORTS_CTA"
 msgstr ""
 
@@ -6470,7 +6470,7 @@ msgstr ""
 msgid "Further customize how to display each metric"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "GROUP BY"
 msgstr ""
 
@@ -8246,7 +8246,7 @@ msgstr ""
 msgid "N/A"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "NOT GROUPED BY"
 msgstr ""
 
@@ -8738,7 +8738,7 @@ msgstr ""
 msgid "OR"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "OVERWRITE"
 msgstr ""
 
@@ -12072,7 +12072,7 @@ msgstr ""
 msgid "TABLES"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "TEMPORAL_RANGE"
 msgstr ""
 
@@ -14729,11 +14729,11 @@ msgstr ""
 msgid "WED"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "WFS"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "WMS"
 msgstr ""
 
@@ -15202,7 +15202,7 @@ msgstr ""
 msgid "X-scale interval"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "XYZ"
 msgstr ""
 
@@ -15708,7 +15708,7 @@ msgstr ""
 msgid "bfill"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "bolt"
 msgstr ""
 
@@ -15794,7 +15794,7 @@ msgstr ""
 msgid "create dataset from SQL query"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "crontab"
 msgstr ""
 
@@ -15861,7 +15861,7 @@ msgstr ""
 msgid "deck.gl Contour"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "deck.gl Geojson"
 msgstr ""
 
@@ -15910,7 +15910,7 @@ msgstr ""
 msgid "documentation"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "dttm"
 msgstr ""
 
@@ -15974,7 +15974,7 @@ msgstr ""
 msgid "error"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "error_message"
 msgstr ""
 
@@ -16251,19 +16251,19 @@ msgstr ""
 msgid "p-value precision"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "p1"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "p5"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "p95"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "p99"
 msgstr ""
 
@@ -16278,7 +16278,7 @@ msgstr ""
 msgid "permalink state not found"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "pivoted_xlsx"
 msgstr ""
 
@@ -16339,7 +16339,7 @@ msgstr ""
 msgid "save"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "schema1,schema2"
 msgstr ""
 
@@ -16355,7 +16355,7 @@ msgid ""
 "series"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "sql"
 msgstr ""
 
@@ -16371,11 +16371,11 @@ msgstr ""
 msgid "std"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "step-after"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "step-before"
 msgstr ""
 
@@ -16397,7 +16397,7 @@ msgstr ""
 msgid "sum"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "superset.example.com"
 msgstr ""
 
@@ -16505,7 +16505,7 @@ msgstr ""
 msgid "year"
 msgstr ""
 
-#. MACHINE_READ-DO_NOT_TRANSLATE
+#. do-not-translate
 msgid "your-project-1234-a1"
 msgstr ""
 

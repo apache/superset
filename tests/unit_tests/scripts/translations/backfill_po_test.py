@@ -462,10 +462,10 @@ def test_load_do_not_translate_strips_whitespace(tmp_path: Path) -> None:
 
 
 def test_is_do_not_translate_honors_extracted_marker() -> None:
-    """The standardized `#. MACHINE_READ-DO_NOT_TRANSLATE` extracted comment
+    """The standardized `#. do-not-translate` extracted comment
     (propagated from the .pot) is honored even for a msgid not in the registry."""
     entry = polib.POEntry(msgid="not-in-registry-token", msgstr="")
-    entry.comment = "MACHINE_READ-DO_NOT_TRANSLATE"  # polib .comment == `#.`
+    entry.comment = "do-not-translate"  # polib .comment == `#.`
     assert backfill_po._is_do_not_translate(entry)
 
 

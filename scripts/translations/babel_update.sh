@@ -56,7 +56,7 @@ cat $LICENSE_TMP superset/translations/messages.pot > messages.pot.tmp \
   && mv messages.pot.tmp superset/translations/messages.pot
 
 # Stamp do-not-translate msgids (superset/translations/do-not-translate.txt) with
-# a `#. MACHINE_READ-DO_NOT_TRANSLATE` extracted comment. Extracted comments
+# a `#. do-not-translate` extracted comment. Extracted comments
 # propagate from the .pot into every catalog on the `pybabel update` below, so
 # the do-not-translate status stays consistent across all languages.
 # Fail fast: without this guard the script would continue past a marker-stamping

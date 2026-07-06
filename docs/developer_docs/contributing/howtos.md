@@ -346,7 +346,7 @@ The script never touches entries that must stay literal — icon names, enum
 values, SQL keywords, API field names, and example placeholders. These are
 registered in `superset/translations/do-not-translate.txt`;
 `scripts/translations/apply_do_not_translate.py` stamps them in `messages.pot`
-with a `#. MACHINE_READ-DO_NOT_TRANSLATE` extracted comment (run automatically
+with a `#. do-not-translate` extracted comment (run automatically
 from `babel_update.sh`), which `pybabel update` then propagates to every
 catalog. To mark a new string do-not-translate, add its msgid to the registry.
 The backfill also honors that marker and any legacy do-not-translate translator
