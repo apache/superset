@@ -133,6 +133,19 @@ class FolderPermissionDAO:
         on the child.
         """
 
+        # Clear child's existing permissions
+        db.session.execute(
+            folder_editors.delete().where(
+                folder_editors.c.folder_id == child_folder_id
+            )
+        )
+        db.session.execute(
+            folder_viewers.delete().where(
+                folder_viewers.c.folder_id == child_folder_id
+            )
+        )
+
+        # Copy from parent
         parent_editors = db.session.execute(
             folder_editors.select().where(
                 folder_editors.c.folder_id == parent_folder_id

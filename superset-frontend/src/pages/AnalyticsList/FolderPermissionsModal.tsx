@@ -30,6 +30,7 @@ import {
   type SelectOptionsTypePage,
   type SelectValue,
 } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/components';
 import { StandardModal } from 'src/components/Modal';
 import { Icons } from '@superset-ui/core/components/Icons';
 
@@ -38,9 +39,7 @@ type Permission = 'editor' | 'viewer';
 interface Subject {
   user_id: number;
   permission: Permission;
-  username?: string;
-  first_name?: string;
-  last_name?: string;
+  email?: string;
 }
 
 interface LocalSubject {
@@ -55,6 +54,7 @@ interface FolderPermissionsModalProps {
   folderUuid: string;
   folderName: string;
   currentUserId: number;
+  isSubfolder?: boolean;
   show: boolean;
   onHide: () => void;
   addDangerToast: (msg: string) => void;
@@ -86,19 +86,15 @@ const SectionLabel = styled.div`
   `}
 `;
 
-function getUserLabel(u: {
-  first_name?: string | null;
-  last_name?: string | null;
-  username?: string | null;
-}): string {
-  const name = [u.first_name, u.last_name].filter(Boolean).join(' ');
-  return name ? `${name} (${u.username})` : u.username || t('N/A');
+function getUserLabel(u: { email?: string | null }): string {
+  return u.email || t('N/A');
 }
 
 export default function FolderPermissionsModal({
   folderUuid,
   folderName,
   currentUserId,
+  isSubfolder,
   show,
   onHide,
   addDangerToast,
@@ -273,17 +269,10 @@ export default function FolderPermissionsModal({
       });
       const results = json?.result || [];
       return {
-        data: results.map(
-          (u: {
-            id: number;
-            first_name: string;
-            last_name: string;
-            username: string;
-          }) => ({
-            value: u.id,
-            label: getUserLabel(u),
-          }),
-        ),
+        data: results.map((u: { id: number; email: string }) => ({
+          value: u.id,
+          label: getUserLabel(u),
+        })),
         totalCount: json?.count ?? 0,
       };
     },
@@ -370,6 +359,15 @@ export default function FolderPermissionsModal({
       contentLoading={loading}
     >
       <ModalContent>
+        {isSubfolder && (
+          <Alert
+            type="warning"
+            showIcon
+            message={t(
+              'Changing permissions here will stop this folder from automatically inheriting updates from its parent. You can re-sync later from the actions menu.',
+            )}
+          />
+        )}
         <div>
           <SectionLabel>{t('Add user')}</SectionLabel>
           <AsyncSelect

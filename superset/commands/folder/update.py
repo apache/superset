@@ -73,9 +73,15 @@ class UpdateFolderCommand(BaseCommand):
             from superset.folders.models import FolderPin
 
             db.session.query(FolderPin).filter(
-                FolderPin.object_id == folder.id,
-                FolderPin.object_type == "folder",
+                FolderPin.folder_id == folder.id,
             ).delete()
+
+        # Sync permissions from parent when requested
+        if self._properties.get("sync_permissions") and folder.parent_id:
+            FolderPermissionDAO.copy_permissions_to_subfolder(
+                folder.parent_id, folder.id
+            )
+            FolderPermissionDAO.push_down_permissions(folder.id)
 
         return folder
 
@@ -97,7 +103,7 @@ class UpdateFolderCommand(BaseCommand):
                 exceptions.append(FolderCycleValidationError())
             elif not security_manager.is_admin():
                 user_id = get_user_id()
-                if not FolderPermissionDAO.user_is_folder_editor(user_id, parent.id):
+                if not user_id or not FolderPermissionDAO.user_is_folder_editor(user_id, parent.id):
                     raise FolderForbiddenError()
         new_parent_id = parent.id if parent else None
         self._new_parent_id = new_parent_id

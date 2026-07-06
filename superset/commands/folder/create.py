@@ -37,6 +37,7 @@ from superset.commands.folder.exceptions import (
 from superset.folders.constants import FOLDER_TYPE_ASSETS
 from superset.daos.folder import FolderDAO
 from superset.folders.models import Folder
+from superset.daos.folder_permissions import FolderPermissionDAO
 
 
 class CreateFolderCommand(BaseCommand):
@@ -63,6 +64,10 @@ class CreateFolderCommand(BaseCommand):
             and not security_manager.is_admin()
         ):
             FolderDAO.add_subject(folder.id, g.user.id, "editor")
+        if self._parent:
+            FolderPermissionDAO.copy_permissions_to_subfolder(
+                self._parent.id, folder.id
+            )
         return folder
 
     def validate(self) -> None:

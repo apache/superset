@@ -33,7 +33,7 @@ from superset.commands.folder.exceptions import (
     FolderNotFoundError,
     FolderUpdateFailedError,
 )
-from superset.folders.constants import asset_types_for_folder_type
+from superset.folders.constants import ASSET_TYPE_CONFIGS, asset_types_for_folder_type
 from superset.daos.folder import FolderDAO
 from superset.folders.models import Folder
 from superset.daos.folder_permissions import FolderPermissionDAO
@@ -56,6 +56,7 @@ def _validate_folder_assets(
 
     exceptions: list[ValidationError] = []
     allowed = set(asset_types_for_folder_type(model.folder_type))
+    is_admin = security_manager.is_admin()
     for asset in assets:
         asset_type = asset["type"]
         if asset_type not in allowed:
@@ -66,6 +67,19 @@ def _validate_folder_assets(
             exceptions.append(
                 FolderAssetNotFoundValidationError(asset_type, asset["id"])
             )
+        elif not is_admin:
+            from superset.extensions import db
+
+            config = ASSET_TYPE_CONFIGS[asset_type]
+            asset_obj = db.session.get(config.model, asset["id"])
+            if asset_obj:
+                try:
+                    if asset_type == "dashboard":
+                        security_manager.raise_for_access(dashboard=asset_obj)
+                    elif asset_type == "chart":
+                        security_manager.raise_for_access(chart=asset_obj)
+                except Exception as ex:
+                    raise FolderForbiddenError() from ex
 
     if exceptions:
         raise FolderInvalidError(exceptions=exceptions)

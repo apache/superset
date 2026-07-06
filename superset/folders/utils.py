@@ -10,7 +10,7 @@ FOLDER_MANAGEMENT_ROLES = {"Admin", "Alpha", "Gamma"}
 def can_manage_folders(user: Any) -> bool:
     """Check if user can create, delete, and manage folders.
 
-    Only Admin and Alpha roles are allowed.
+    Allowed for Admin, Alpha, and Gamma roles.
     """
     if not user or not getattr(user, "roles", None):
         return False

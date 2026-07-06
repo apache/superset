@@ -24,6 +24,7 @@ import { styled, css, useTheme } from '@apache-superset/core/theme';
 import {
   Button,
   Checkbox,
+  Constants,
   Flex,
   Input,
   List,
@@ -75,19 +76,43 @@ const PanelContainer = styled.div`
 const Panel = styled.div`
   ${({ theme }) => css`
     display: grid;
-    grid-template-rows: 32px auto 32px 1fr;
+    grid-template-rows: auto auto 1fr;
+    gap: ${theme.sizeUnit * 4}px;
+    min-width: 0;
+  `}
+`;
+
+const Field = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    flex-direction: column;
     gap: ${theme.sizeUnit}px;
     min-width: 0;
   `}
 `;
 
-const PanelHeader = styled.div`
+const BulkActionsBar = styled(Flex)`
+  ${({ theme }) => css`
+    padding: ${theme.sizeUnit}px 0;
+    border-bottom: 1px solid ${theme.colorSplit};
+    .superset-button {
+      font-family: inherit;
+      margin-left: 0 !important;
+    }
+    .superset-button:first-of-type {
+      padding-right: 0 !important;
+    }
+    .superset-button:last-of-type {
+      padding-left: 0 !important;
+    }
+  `}
+`;
+
+const FieldLabel = styled.div`
   ${({ theme }) => css`
     font-weight: ${theme.fontWeightStrong};
     font-size: ${theme.fontSizeSM}px;
     color: ${theme.colorTextLabel};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
   `}
 `;
 
@@ -160,16 +185,21 @@ function ItemIcon({ type }: { type: ItemType }) {
 async function fetchPage(
   folderUuid: string | null,
   page: number,
+  search?: string,
 ): Promise<{ items: TransferItem[]; total: number }> {
   const base = folderUuid
     ? `/api/v1/folders/${folderUuid}/assets`
     : '/api/v1/folders/assets';
-  const q = rison.encode_uri({
+  const risonParams: Record<string, unknown> = {
     page,
     page_size: PAGE_SIZE,
     order_column: 'changed_on',
     order_direction: 'desc',
-  });
+  };
+  if (search) {
+    risonParams.filters = [{ col: 'name', opr: 'ct', value: search }];
+  }
+  const q = rison.encode_uri(risonParams);
   const folderParam = folderUuid ? '' : 'folder_type=analytics&';
   const response = await SupersetClient.get({
     endpoint: `${base}?${folderParam}q=${q}`,
@@ -278,6 +308,41 @@ export default function TransferModal({
       .finally(() => setRightLoading(false));
   }, [show, targetFolderUuid, addDangerToast]);
 
+  // Debounced server-side search for left panel
+  useEffect(() => {
+    if (!show) return;
+    const timer = setTimeout(() => {
+      setLeftLoading(true);
+      fetchPage(currentFolderUuid, 0, leftSearch || undefined)
+        .then(({ items, total }) => {
+          setLeftItems(items);
+          setLeftTotal(total);
+          setLeftPage(0);
+        })
+        .catch(() => addDangerToast(t('Error searching items')))
+        .finally(() => setLeftLoading(false));
+    }, Constants.SLOW_DEBOUNCE);
+    return () => clearTimeout(timer);
+  }, [leftSearch, show, currentFolderUuid, addDangerToast]);
+
+  // Debounced server-side search for right panel
+  useEffect(() => {
+    if (!show || !targetFolderUuid) return;
+    const timer = setTimeout(() => {
+      const apiUuid = targetFolderUuid === '__root__' ? null : targetFolderUuid;
+      setRightLoading(true);
+      fetchPage(apiUuid, 0, rightSearch || undefined)
+        .then(({ items, total }) => {
+          setRightItems(items);
+          setRightTotal(total);
+          setRightPage(0);
+        })
+        .catch(() => addDangerToast(t('Error searching items')))
+        .finally(() => setRightLoading(false));
+    }, Constants.SLOW_DEBOUNCE);
+    return () => clearTimeout(timer);
+  }, [rightSearch, show, targetFolderUuid, addDangerToast]);
+
   // Scroll handler — fetch next page when near bottom (AsyncSelect pattern)
   const handleLeftScroll = useCallback(
     (e: UIEvent<HTMLDivElement>) => {
@@ -288,7 +353,7 @@ export default function TransferModal({
       if (!leftLoading && hasMore && nearBottom) {
         const nextPage = leftPage + 1;
         setLeftLoading(true);
-        fetchPage(currentFolderUuid, nextPage)
+        fetchPage(currentFolderUuid, nextPage, leftSearch || undefined)
           .then(({ items }) => {
             setLeftItems(prev => {
               const existing = new Set(prev.map(i => i.key));
@@ -300,7 +365,14 @@ export default function TransferModal({
           .finally(() => setLeftLoading(false));
       }
     },
-    [leftPage, leftTotal, leftLoading, currentFolderUuid, addDangerToast],
+    [
+      leftPage,
+      leftTotal,
+      leftLoading,
+      leftSearch,
+      currentFolderUuid,
+      addDangerToast,
+    ],
   );
 
   const handleRightScroll = useCallback(
@@ -314,7 +386,7 @@ export default function TransferModal({
         const apiUuid =
           targetFolderUuid === '__root__' ? null : targetFolderUuid;
         setRightLoading(true);
-        fetchPage(apiUuid, nextPage)
+        fetchPage(apiUuid, nextPage, rightSearch || undefined)
           .then(({ items }) => {
             setRightItems(prev => {
               const existing = new Set(prev.map(i => i.key));
@@ -326,7 +398,14 @@ export default function TransferModal({
           .finally(() => setRightLoading(false));
       }
     },
-    [rightPage, rightTotal, rightLoading, targetFolderUuid, addDangerToast],
+    [
+      rightPage,
+      rightTotal,
+      rightLoading,
+      rightSearch,
+      targetFolderUuid,
+      addDangerToast,
+    ],
   );
 
   const toggleLeftSelect = useCallback((key: string) => {
@@ -469,41 +548,66 @@ export default function TransferModal({
   ]);
 
   const filteredLeft = useMemo(() => {
-    let items = leftItems;
-    if (targetFolderUuid) {
-      const rightKeys = new Set(rightItems.map(i => i.key));
-      items = items.filter(
-        i =>
-          !(i.type === 'folder' && i.uuid === targetFolderUuid) &&
-          !rightKeys.has(i.key),
-      );
-    }
-    if (!leftSearch) return items;
-    const q = leftSearch.toLowerCase();
-    return items.filter(i => i.name.toLowerCase().includes(q));
-  }, [leftItems, leftSearch, targetFolderUuid, rightItems]);
-
-  const filteredRight = useMemo(() => {
-    // Filter out the current folder — can't move it into itself
-    let items = rightItems.filter(
-      i => !(i.type === 'folder' && i.uuid === currentFolderUuid),
+    if (!targetFolderUuid) return leftItems;
+    const rightKeys = new Set(rightItems.map(i => i.key));
+    return leftItems.filter(
+      i =>
+        !(i.type === 'folder' && i.uuid === targetFolderUuid) &&
+        !rightKeys.has(i.key),
     );
-    if (rightSearch) {
-      const q = rightSearch.toLowerCase();
-      items = items.filter(i => i.name.toLowerCase().includes(q));
-    }
-    return items;
-  }, [rightItems, rightSearch, currentFolderUuid]);
+  }, [leftItems, targetFolderUuid, rightItems]);
+
+  const filteredRight = useMemo(
+    () =>
+      rightItems.filter(
+        i => !(i.type === 'folder' && i.uuid === currentFolderUuid),
+      ),
+    [rightItems, currentFolderUuid],
+  );
+
+  const leftSelectableCount = filteredLeft.filter(
+    (i: TransferItem) => !leftSelected.has(i.key),
+  ).length;
+  const leftDeselectableCount = filteredLeft.filter((i: TransferItem) =>
+    leftSelected.has(i.key),
+  ).length;
+  const rightSelectableCount = filteredRight.filter(
+    (i: TransferItem) => !rightSelected.has(i.key),
+  ).length;
+  const rightDeselectableCount = filteredRight.filter((i: TransferItem) =>
+    rightSelected.has(i.key),
+  ).length;
 
   const folderTreeData = useMemo(() => {
-    // Exclude the folder being moved (if any) — can't move a folder into itself
+    // Collect UUIDs of selected folders — they can't be their own target.
     const selectedFolderUuids = new Set(
       leftItems
         .filter(i => i.type === 'folder' && i.uuid && leftSelected.has(i.key))
         .map(i => i.uuid as string),
     );
 
-    const eligible = allFolders.filter(f => !selectedFolderUuids.has(f.uuid));
+    // BFS: also exclude all descendants so a parent can't be moved into a child.
+    const childrenMap = new Map<string, string[]>();
+    for (const f of allFolders) {
+      if (f.parent_uuid) {
+        const siblings = childrenMap.get(f.parent_uuid) ?? [];
+        siblings.push(f.uuid);
+        childrenMap.set(f.parent_uuid, siblings);
+      }
+    }
+    const excluded = new Set(selectedFolderUuids);
+    const queue = [...selectedFolderUuids];
+    while (queue.length) {
+      const uuid = queue.shift()!;
+      for (const childUuid of childrenMap.get(uuid) ?? []) {
+        if (!excluded.has(childUuid)) {
+          excluded.add(childUuid);
+          queue.push(childUuid);
+        }
+      }
+    }
+
+    const eligible = allFolders.filter(f => !excluded.has(f.uuid));
 
     // Build tree from flat list
     type TreeNode = {
@@ -552,44 +656,88 @@ export default function TransferModal({
       <ModalContent>
         <PanelContainer>
           <Panel>
-            <PanelHeader>
-              {currentFolderName || t('Root (Analytics)')}
-            </PanelHeader>
-            <PanelCount>
-              {t('%s/%s items', leftSelected.size, leftTotal)}
-            </PanelCount>
-            <Input
-              placeholder={t('Search here')}
-              value={leftSearch}
-              onChange={e => setLeftSearch(e.target.value)}
-              allowClear
-            />
-            {leftLoading && !leftItems.length ? (
-              <Loading />
-            ) : (
-              <ScrollableList onScroll={handleLeftScroll}>
-                <List
-                  dataSource={filteredLeft}
-                  locale={{ emptyText: t('No items') }}
-                  renderItem={(item: TransferItem) => (
-                    <List.Item
-                      key={item.key}
-                      onClick={() => toggleLeftSelect(item.key)}
-                      css={{ cursor: 'pointer' }}
-                    >
-                      <Flex align="center" gap={theme.sizeUnit * 2}>
-                        <Checkbox
-                          css={{ paddingLeft: theme.sizeUnit * 2 }}
-                          checked={leftSelected.has(item.key)}
-                        />
-                        <ItemIcon type={item.type} />
-                        {item.name}
-                      </Flex>
-                    </List.Item>
-                  )}
-                />
-              </ScrollableList>
-            )}
+            <Field>
+              <FieldLabel>{t('Source folder')}</FieldLabel>
+              <Input
+                value={currentFolderName || t('Root (Analytics)')}
+                disabled
+              />
+            </Field>
+            <Field>
+              <PanelCount>
+                {leftSelected.size > 0
+                  ? t('%s/%s items selected', leftSelected.size, leftTotal)
+                  : t('0 items selected')}
+              </PanelCount>
+              <Input
+                placeholder={t('Search here')}
+                value={leftSearch}
+                onChange={e => setLeftSearch(e.target.value)}
+                allowClear
+              />
+            </Field>
+            <Field>
+              <BulkActionsBar gap={theme.sizeUnit}>
+                <Button
+                  buttonStyle="link"
+                  buttonSize="xsmall"
+                  disabled={leftSelectableCount === 0}
+                  onClick={() =>
+                    setLeftSelected(
+                      (prev: Set<string>) =>
+                        new Set([
+                          ...prev,
+                          ...filteredLeft.map((i: TransferItem) => i.key),
+                        ]),
+                    )
+                  }
+                >
+                  {t('Select all (%s)', leftSelectableCount)}
+                </Button>
+                <Button
+                  buttonStyle="link"
+                  buttonSize="xsmall"
+                  disabled={leftDeselectableCount === 0}
+                  onClick={() =>
+                    setLeftSelected((prev: Set<string>) => {
+                      const next = new Set(prev);
+                      filteredLeft.forEach((i: TransferItem) =>
+                        next.delete(i.key),
+                      );
+                      return next;
+                    })
+                  }
+                >
+                  {t('Clear (%s)', leftDeselectableCount)}
+                </Button>
+              </BulkActionsBar>
+              {leftLoading && !leftItems.length ? (
+                <Loading />
+              ) : (
+                <ScrollableList onScroll={handleLeftScroll}>
+                  <List
+                    dataSource={filteredLeft}
+                    locale={{ emptyText: t('No items') }}
+                    renderItem={(item: TransferItem) => (
+                      <List.Item
+                        key={item.key}
+                        onClick={() => toggleLeftSelect(item.key)}
+                        css={{ cursor: 'pointer' }}
+                      >
+                        <Flex align="center" gap={theme.sizeUnit * 2}>
+                          <Checkbox
+                            css={{ paddingLeft: theme.sizeUnit * 2 }}
+                            checked={leftSelected.has(item.key)}
+                          />
+                          <ItemIcon type={item.type} />
+                          {item.name}
+                        </Flex>
+                      </List.Item>
+                    )}
+                  />
+                </ScrollableList>
+              )}
+            </Field>
           </Panel>
 
           <ArrowColumn>
@@ -615,61 +763,106 @@ export default function TransferModal({
           </ArrowColumn>
 
           <Panel>
-            <TreeSelect
-              aria-label={t('Target folder')}
-              placeholder={t('Select a location…')}
-              treeData={folderTreeData}
-              value={targetFolderUuid}
-              onChange={(val: string) => setTargetFolderUuid(val)}
-              treeDefaultExpandAll
-              showSearch
-              filterTreeNode={(input, node) =>
-                (node?.title as string)
-                  ?.toLowerCase()
-                  .includes(input.toLowerCase()) ?? false
-              }
-              getPopupContainer={trigger =>
-                trigger.closest('.ant-modal-content') || document.body
-              }
-              css={{ width: '100%' }}
-            />
-            <PanelCount>{t('%s items', rightTotal)}</PanelCount>
-            <Input
-              placeholder={t('Search here')}
-              value={rightSearch}
-              onChange={e => setRightSearch(e.target.value)}
-              allowClear
-            />
-            {!targetFolderUuid ? (
-              <EmptyState>
-                {t('Select a location to see its contents')}
-              </EmptyState>
-            ) : rightLoading && !rightItems.length ? (
-              <Loading />
-            ) : (
-              <ScrollableList onScroll={handleRightScroll}>
-                <List
-                  dataSource={filteredRight}
-                  locale={{ emptyText: t('No items') }}
-                  renderItem={(item: TransferItem) => (
-                    <List.Item
-                      key={item.key}
-                      onClick={() => toggleRightSelect(item.key)}
-                      css={{ cursor: 'pointer' }}
-                    >
-                      <Flex align="center" gap={theme.sizeUnit * 2}>
-                        <Checkbox
-                          css={{ paddingLeft: theme.sizeUnit * 2 }}
-                          checked={rightSelected.has(item.key)}
-                        />
-                        <ItemIcon type={item.type} />
-                        {item.name}
-                      </Flex>
-                    </List.Item>
-                  )}
-                />
-              </ScrollableList>
-            )}
+            <Field>
+              <FieldLabel>{t('Destination folder')}</FieldLabel>
+              <TreeSelect
+                aria-label={t('Target folder')}
+                placeholder={t('Select a location…')}
+                treeData={folderTreeData}
+                value={targetFolderUuid}
+                onChange={(val: string) => setTargetFolderUuid(val)}
+                treeDefaultExpandAll
+                showSearch
+                filterTreeNode={(input, node) =>
+                  (node?.title as string)
+                    ?.toLowerCase()
+                    .includes(input.toLowerCase()) ?? false
+                }
+                getPopupContainer={trigger =>
+                  trigger.closest('.ant-modal-content') || document.body
+                }
+                css={{ width: '100%' }}
+              />
+            </Field>
+            <Field>
+              <PanelCount>
+                {rightSelected.size > 0
+                  ? t('%s/%s items selected', rightSelected.size, rightTotal)
+                  : t('0 items selected')}
+              </PanelCount>
+              <Input
+                placeholder={t('Search here')}
+                value={rightSearch}
+                onChange={e => setRightSearch(e.target.value)}
+                allowClear
+              />
+            </Field>
+            <Field>
+              <BulkActionsBar gap={theme.sizeUnit}>
+                <Button
+                  buttonStyle="link"
+                  buttonSize="xsmall"
+                  disabled={rightSelectableCount === 0}
+                  onClick={() =>
+                    setRightSelected(
+                      (prev: Set<string>) =>
+                        new Set([
+                          ...prev,
+                          ...filteredRight.map((i: TransferItem) => i.key),
+                        ]),
+                    )
+                  }
+                >
+                  {t('Select all (%s)', rightSelectableCount)}
+                </Button>
+                <Button
+                  buttonStyle="link"
+                  buttonSize="xsmall"
+                  disabled={rightDeselectableCount === 0}
+                  onClick={() =>
+                    setRightSelected((prev: Set<string>) => {
+                      const next = new Set(prev);
+                      filteredRight.forEach((i: TransferItem) =>
+                        next.delete(i.key),
+                      );
+                      return next;
+                    })
+                  }
+                >
+                  {t('Clear (%s)', rightDeselectableCount)}
+                </Button>
+              </BulkActionsBar>
+              {!targetFolderUuid ? (
+                <EmptyState>
+                  {t('Select a location to see its contents')}
+                </EmptyState>
+              ) : rightLoading && !rightItems.length ? (
+                <Loading />
+              ) : (
+                <ScrollableList onScroll={handleRightScroll}>
+                  <List
+                    dataSource={filteredRight}
+                    locale={{ emptyText: t('No items') }}
+                    renderItem={(item: TransferItem) => (
+                      <List.Item
+                        key={item.key}
+                        onClick={() => toggleRightSelect(item.key)}
+                        css={{ cursor: 'pointer' }}
+                      >
+                        <Flex align="center" gap={theme.sizeUnit * 2}>
+                          <Checkbox
+                            css={{ paddingLeft: theme.sizeUnit * 2 }}
+                            checked={rightSelected.has(item.key)}
+                          />
+                          <ItemIcon type={item.type} />
+                          {item.name}
+                        </Flex>
+                      </List.Item>
+                    )}
+                  />
+                </ScrollableList>
+              )}
+            </Field>
           </Panel>
         </PanelContainer>
       </ModalContent>

@@ -27,7 +27,7 @@ from datetime import datetime
 from typing import Any
 
 from flask_appbuilder.security.sqla.models import User
-from sqlalchemy import and_, func, literal, or_, select, union_all
+from sqlalchemy import and_, case, func, literal, or_, select, union_all
 from sqlalchemy.orm import joinedload
 
 from superset.daos.base import BaseDAO
@@ -108,6 +108,7 @@ class FolderDAO(BaseDAO[Folder]):
         types: list[str] | None = None,
         viz_types: list[str] | None = None,
         datasets: list[int] | None = None,
+        tags: list[int] | None = None,
         owners: list[int] | None = None,
         modified_start: datetime | None = None,
         modified_end: datetime | None = None,
@@ -148,8 +149,7 @@ class FolderDAO(BaseDAO[Folder]):
                 Folder.id.label("item_id"),
                 Folder.changed_on.label("changed_on"),
                 Folder.name.label("sort_name"),
-                literal("").label("sort_database"),
-                literal("").label("sort_schema"),
+                literal("").label("sort_datasource"),
             ).where(Folder.folder_type == folder_type)
             fq = fq.where(
                 Folder.parent_id.is_(None)
@@ -197,13 +197,19 @@ class FolderDAO(BaseDAO[Folder]):
                         model.id.label("item_id"),
                         model.changed_on.label("changed_on"),
                         title_attrs[name].label("sort_name"),
-                        func.coalesce(ConnDatabase.database_name, "").label(
-                            "sort_database"
-                        ),
-                        func.coalesce(SqlaTable.schema, "").label("sort_schema"),
+                        func.coalesce(
+                            func.concat(
+                                func.coalesce(SqlaTable.schema, ""),
+                                case(
+                                    (SqlaTable.schema.isnot(None), "."),
+                                    else_="",
+                                ),
+                                func.coalesce(SqlaTable.table_name, ""),
+                            ),
+                            "",
+                        ).label("sort_datasource"),
                     )
                     .outerjoin(SqlaTable, Slice.datasource_id == SqlaTable.id)
-                    .outerjoin(ConnDatabase, SqlaTable.database_id == ConnDatabase.id)
                 )
             else:
                 aq = select(
@@ -212,8 +218,7 @@ class FolderDAO(BaseDAO[Folder]):
                     model.id.label("item_id"),
                     model.changed_on.label("changed_on"),
                     title_attrs[name].label("sort_name"),
-                    literal("").label("sort_database"),
-                    literal("").label("sort_schema"),
+                    literal("").label("sort_datasource"),
                 )
             if folder_id is None:
                 used = select(fk_col).where(fk_col.isnot(None))
@@ -236,6 +241,17 @@ class FolderDAO(BaseDAO[Folder]):
                     aq = aq.where(Slice.viz_type.in_(viz_types))
                 if datasets:
                     aq = aq.where(Slice.datasource_id.in_(datasets))
+            if tags:
+                from superset.tags.models import ObjectType, TaggedObject
+
+                object_type = (
+                    ObjectType.chart if name == "chart" else ObjectType.dashboard
+                )
+                tagged = select(TaggedObject.object_id).where(
+                    TaggedObject.object_type == object_type,
+                    TaggedObject.tag_id.in_(tags),
+                )
+                aq = aq.where(model.id.in_(tagged))
 
             # Access filter: non-admins only see assets they can access
             if not is_admin and user_id:
@@ -322,32 +338,37 @@ class FolderDAO(BaseDAO[Folder]):
             "name": unioned.c.sort_name,
             "type": unioned.c.item_type,
             "changed_on": unioned.c.changed_on,
-            "database": unioned.c.sort_database,
-            "schema": unioned.c.sort_schema,
+            "datasource": unioned.c.sort_datasource,
         }
         sort_col = sort_map.get(sort_column, unioned.c.changed_on)
         order = sort_col.asc() if sort_order == "asc" else sort_col.desc()
 
         # Pinned items always on top (root level only, per-user)
-        pin_order = literal(1).label("pin_order")
+        pin_order = (literal(4) + literal(0)).label("pin_order")
         if folder_id is None and user_id:
-            pin_sub = (
-                select(FolderPin.object_type, FolderPin.object_id)
-                .where(FolderPin.user_id == user_id)
-                .subquery()
-            )
-            pin_order = (
-                func.coalesce(
-                    select(literal(0))
-                    .where(
-                        pin_sub.c.object_type == unioned.c.item_type,
-                        pin_sub.c.object_id == unioned.c.item_id,
-                    )
-                    .correlate(unioned)
-                    .scalar_subquery(),
-                    1,
+            pin_position = (
+                select(FolderPin.position)
+                .where(
+                    FolderPin.user_id == user_id,
+                    or_(
+                        and_(
+                            unioned.c.item_type == "folder",
+                            FolderPin.folder_id == unioned.c.item_id,
+                        ),
+                        and_(
+                            unioned.c.item_type == "dashboard",
+                            FolderPin.dashboard_id == unioned.c.item_id,
+                        ),
+                        and_(
+                            unioned.c.item_type == "chart",
+                            FolderPin.chart_id == unioned.c.item_id,
+                        ),
+                    ),
                 )
-            ).label("pin_order")
+                .correlate(unioned)
+                .scalar_subquery()
+            )
+            pin_order = func.coalesce(pin_position, literal(4) + literal(0)).label("pin_order")
 
         page_rows = db.session.execute(
             select(unioned.c.item_type, unioned.c.item_id)
@@ -453,14 +474,18 @@ class FolderDAO(BaseDAO[Folder]):
             if link:
                 link.folder_id = folder.id
             else:
-                link = FolderObject(folder_id=folder.id, created_on=datetime.now())  # type: ignore[call-arg]
+                link = FolderObject(folder_id=folder.id, created_on=datetime.utcnow())
                 setattr(link, config.fk_column, asset["id"])
                 db.session.add(link)
 
             # Remove any pins for this asset since it's no longer at root
+            pin_col = {
+                "folder": FolderPin.folder_id,
+                "dashboard": FolderPin.dashboard_id,
+                "chart": FolderPin.chart_id,
+            }[asset["type"]]
             db.session.query(FolderPin).filter(
-                FolderPin.object_id == asset["id"],
-                FolderPin.object_type == asset["type"],
+                pin_col == asset["id"],
             ).delete()
 
     @classmethod
@@ -532,14 +557,13 @@ class FolderDAO(BaseDAO[Folder]):
         """Return a unique name by appending a numeric suffix if needed."""
         if cls.validate_name_uniqueness(name, parent_id, folder_type, exclude_id):
             return name
-        counter = 1
-        while True:
+        for counter in range(1, 1001):
             candidate = f"{name} ({counter})"
             if cls.validate_name_uniqueness(
                 candidate, parent_id, folder_type, exclude_id
             ):
                 return candidate
-            counter += 1
+        raise ValueError(f"Cannot resolve name conflict for '{name}'")
 
     @classmethod
     def is_descendant(cls, candidate: Folder, ancestor: Folder) -> bool:
@@ -579,12 +603,13 @@ class FolderDAO(BaseDAO[Folder]):
         object_type: str,
         position: int,
     ) -> FolderPin:
-        pin = FolderPin(  # type: ignore[call-arg]
+        pin = FolderPin(
             user_id=user_id,
-            object_id=object_id,
-            object_type=object_type,
+            folder_id=object_id if object_type == "folder" else None,
+            dashboard_id=object_id if object_type == "dashboard" else None,
+            chart_id=object_id if object_type == "chart" else None,
             position=position,
-            created_on=datetime.now(),
+            created_on=datetime.utcnow(),
         )
         db.session.add(pin)
         db.session.flush()
@@ -633,9 +658,7 @@ class FolderDAO(BaseDAO[Folder]):
                 {
                     "user_id": row.user_id,
                     "permission": "editor",
-                    "username": user.username if user else None,
-                    "first_name": user.first_name if user else None,
-                    "last_name": user.last_name if user else None,
+                    "email": user.email if user else None,
                 }
             )
 
@@ -645,9 +668,7 @@ class FolderDAO(BaseDAO[Folder]):
                 {
                     "user_id": row.user_id,
                     "permission": "viewer",
-                    "username": user.username if user else None,
-                    "first_name": user.first_name if user else None,
-                    "last_name": user.last_name if user else None,
+                    "email": user.email if user else None,
                 }
             )
 
@@ -655,6 +676,23 @@ class FolderDAO(BaseDAO[Folder]):
 
     @classmethod
     def add_subject(cls, folder_id: int, user_id: int, permission: str) -> None:
+        from flask_appbuilder.security.sqla.models import User
+
+        if not db.session.get(User, user_id):
+            raise ValueError(f"User {user_id} does not exist")
+
+        existing = db.session.execute(
+            folder_editors.select().where(
+                and_(folder_editors.c.folder_id == folder_id, folder_editors.c.user_id == user_id)
+            )
+        ).first() or db.session.execute(
+            folder_viewers.select().where(
+                and_(folder_viewers.c.folder_id == folder_id, folder_viewers.c.user_id == user_id)
+            )
+        ).first()
+        if existing:
+            raise ValueError(f"User {user_id} is already a member of this folder")
+
         if permission == "editor":
             db.session.execute(
                 folder_editors.insert().values(folder_id=folder_id, user_id=user_id)

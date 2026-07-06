@@ -19,9 +19,14 @@
 import { useCallback, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
-import { styled, css, useTheme } from '@apache-superset/core/theme';
-import { Checkbox, Input } from '@superset-ui/core/components';
-import { StandardModal } from 'src/components/Modal';
+import { useTheme } from '@apache-superset/core/theme';
+import {
+  Checkbox,
+  DeleteModal,
+  Flex,
+  Typography,
+  type CheckboxChangeEvent,
+} from '@superset-ui/core/components';
 
 interface DeleteFolderModalProps {
   folder: {
@@ -31,93 +36,87 @@ interface DeleteFolderModalProps {
     children_count: number;
   };
   show: boolean;
+  /** When true, suppresses the per-folder success toast (used in bulk-delete flows). */
+  silent?: boolean;
   onHide: () => void;
   onSuccess: () => void;
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
 }
 
-const ModalContent = styled.div`
-  ${({ theme }) => css`
-    padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 4}px;
-    display: flex;
-    flex-direction: column;
-    gap: ${theme.sizeUnit * 3}px;
-  `}
-`;
-
 export default function DeleteFolderModal({
   folder,
   show,
+  silent = false,
   onHide,
   onSuccess,
   addDangerToast,
   addSuccessToast,
 }: DeleteFolderModalProps) {
   const theme = useTheme();
-  const [confirmName, setConfirmName] = useState('');
   const [deleteItems, setDeleteItems] = useState(false);
-  const [saving, setSaving] = useState(false);
 
   const isEmpty = folder.asset_count === 0 && folder.children_count === 0;
-  const nameMatches = confirmName === folder.name;
 
-  const handleDelete = useCallback(async () => {
-    setSaving(true);
+  const handleConfirm = useCallback(async () => {
     try {
       await SupersetClient.delete({
         endpoint: `/api/v1/folders/${folder.uuid}${deleteItems ? '?archive_items=true' : ''}`,
       });
-      addSuccessToast(t('Folder "%s" deleted', folder.name));
+      if (!silent) {
+        addSuccessToast(t('Folder "%s" deleted', folder.name));
+      }
       onSuccess();
       onHide();
     } catch {
       addDangerToast(t('Error deleting folder'));
-    } finally {
-      setSaving(false);
     }
-  }, [folder, deleteItems, addSuccessToast, addDangerToast, onSuccess, onHide]);
+  }, [
+    folder,
+    deleteItems,
+    silent,
+    addSuccessToast,
+    addDangerToast,
+    onSuccess,
+    onHide,
+  ]);
 
   const handleHide = useCallback(() => {
-    setConfirmName('');
     setDeleteItems(false);
     onHide();
   }, [onHide]);
 
   return (
-    <StandardModal
-      title={t('Delete folder')}
-      show={show}
+    <DeleteModal
+      open={show}
+      title={t('Delete folder "%s"', folder.name)}
       onHide={handleHide}
-      onSave={handleDelete}
-      saveText={t('Delete')}
-      saveLoading={saving}
-      saveDisabled={!nameMatches}
-    >
-      <ModalContent>
-        <p css={{ color: theme.colorText, margin: 0 }}>
-          {isEmpty
-            ? t("Delete this folder? It doesn't contain any items.")
-            : t(
-                'This folder contains items. Items will be moved to the parent folder or Analytics page (depending on the level) unless you choose to delete everything together.',
-              )}
-        </p>
-        <div>
-          <Input
-            placeholder={t('Type folder name to confirm')}
-            value={confirmName}
-            onChange={e => setConfirmName(e.target.value)}
-          />
-        </div>
-        {!isEmpty && (
-          <Checkbox
-            checked={deleteItems}
-            onChange={e => setDeleteItems(e.target.checked)}
-          >
-            {t('Delete all items in this folder')}
-          </Checkbox>
-        )}
-      </ModalContent>
-    </StandardModal>
+      onConfirm={handleConfirm}
+      description={
+        <Flex
+          vertical
+          gap={theme.sizeUnit * 3}
+          style={{ marginTop: -theme.sizeUnit * 2 }}
+        >
+          <Typography.Paragraph style={{ margin: 0 }}>
+            {isEmpty
+              ? t("This folder doesn't contain any items.")
+              : t(
+                  'This folder contains items. Items will be moved to the parent folder or Analytics page unless you choose to delete everything together.',
+                )}
+          </Typography.Paragraph>
+          {!isEmpty && (
+            <Checkbox
+              checked={deleteItems}
+              onChange={(e: CheckboxChangeEvent) =>
+                setDeleteItems(e.target.checked)
+              }
+            >
+              {t('Delete all items in this folder')}
+            </Checkbox>
+          )}
+        </Flex>
+      }
+    />
   );
 }

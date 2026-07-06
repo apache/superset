@@ -19,7 +19,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
-import { SupersetClient } from '@superset-ui/core';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  getChartMetadataRegistry,
+  SupersetClient,
+} from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import rison from 'rison';
 import { useHistory, useParams } from 'react-router-dom';
@@ -29,12 +34,17 @@ import {
   ListView,
   ListViewFilterOperator as FilterOperator,
   ModifiedInfo,
+  TagType,
+  TagsList,
   type ListViewFilters,
 } from 'src/components';
+import { TagTypeEnum } from 'src/components/Tag/TagType';
+import { loadTags } from 'src/components/Tag/utils';
 import {
   Button,
   ConfirmStatusChange,
   Dropdown,
+  Flex,
   Tooltip,
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -50,6 +60,7 @@ import {
   handleChartDelete,
   handleDashboardDelete,
 } from 'src/views/CRUD/utils';
+import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import handleResourceExport from 'src/utils/export';
 import ChartPropertiesModal from 'src/explore/components/PropertiesModal';
 import DashboardPropertiesModal from 'src/dashboard/components/PropertiesModal';
@@ -57,8 +68,9 @@ import { type Slice } from 'src/types/Chart';
 import CreateFolderModal from './CreateFolderModal';
 import TransferModal from './TransferModal';
 import FolderPermissionsModal from './FolderPermissionsModal';
+import RenameFolderModal from './RenameFolderModal';
 import DeleteFolderModal from './DeleteFolderModal';
-import DashboardCharts, { type ChartEntity } from './DashboardCharts';
+import DashboardCharts from './DashboardCharts';
 
 type ItemType = 'folder' | 'chart' | 'dashboard' | 'dataset';
 
@@ -75,14 +87,19 @@ interface ContentItem {
   uuid: string | null;
   name: string;
   url?: string | null;
-  database?: string | null;
-  schema?: string | null;
+  viz_type?: string | null;
+  datasource_name?: string | null;
+  datasource_url?: string | null;
   owners?: Owner[];
   changed_on?: string;
+  changed_on_humanized?: string | null;
   changed_by?: Owner | null;
+  tags?: TagType[];
   asset_count?: number;
   children_count?: number;
   user_permission?: 'editor' | 'viewer' | null;
+  parent_uuid?: string | null;
+  inherits_permissions?: boolean;
 }
 
 /** A location in the drill path; the root has a null uuid. */
@@ -157,10 +174,41 @@ const CaretButton = styled.button`
 `;
 
 const BreadcrumbWrap = styled.div`
-  ${({ theme }) => `
-    padding: 0 ${theme.sizeUnit * 4}px;
-  `}
+  padding: 0;
 `;
+
+const chartRegistry = getChartMetadataRegistry();
+
+const createFetchDatasets = async (
+  filterValue = '',
+  page: number,
+  pageSize: number,
+) => {
+  const filters = filterValue
+    ? { filters: [{ col: 'table_name', opr: 'sw', value: filterValue }] }
+    : {};
+  const queryParams = rison.encode({
+    columns: ['table_name', 'id'],
+    keys: ['none'],
+    order_column: 'table_name',
+    order_direction: 'asc',
+    page,
+    page_size: pageSize,
+    ...filters,
+  });
+  const { json = {} } = await SupersetClient.get({
+    endpoint: `/api/v1/dataset/?q=${queryParams}`,
+  });
+  return {
+    data: (json?.result ?? []).map(
+      ({ table_name: tableName, id }: { table_name: string; id: number }) => ({
+        label: tableName,
+        value: id,
+      }),
+    ),
+    totalCount: json?.count ?? 0,
+  };
+};
 
 function AnalyticsList({
   addDangerToast,
@@ -184,7 +232,7 @@ function AnalyticsList({
   // Charts per expanded dashboard, owned here so they survive antd remounting
   // the expanded-row subtree (which would otherwise re-flash the loader).
   const [chartsByDashboard, setChartsByDashboard] = useState<
-    Record<number, { loading: boolean; charts: ChartEntity[] }>
+    Record<number, { loading: boolean; charts: ContentItem[] }>
   >({});
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [folderToManagePerms, setFolderToManagePerms] =
@@ -196,9 +244,17 @@ function AnalyticsList({
   } | null>(null);
   const [bulkSelectEnabled, setBulkSelectEnabled] = useState(false);
   const [moveTarget, setMoveTarget] = useState<ContentItem | null>(null);
-  const [folderToArchive, setFolderToArchive] = useState<ContentItem | null>(
+  const [folderToRename, setFolderToRename] = useState<ContentItem | null>(
     null,
   );
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [folderDeleteQueue, setFolderDeleteQueue] = useState<ContentItem[]>([]);
+  // Batch-delete result deferred until the folder modal queue is empty, so
+  // toasts appear only after the user has finished handling all folder prompts.
+  const [pendingBatchResult, setPendingBatchResult] = useState<{
+    succeeded: number;
+    failed: number;
+  } | null>(null);
 
   // --- Pinning state ---
   const [pins, setPins] = useState<
@@ -228,10 +284,12 @@ function AnalyticsList({
     }
   }, []);
 
-  // Fetch pins on mount and after refresh
+  // Fetch pins only at root level (pins are root-only)
   useEffect(() => {
-    fetchPins();
-  }, [fetchPins, refreshKey]);
+    if (!folderUuid) fetchPins();
+  }, [fetchPins, refreshKey, folderUuid]);
+
+  const refreshData = useCallback(() => setRefreshKey(key => key + 1), []);
 
   const pinItem = useCallback(
     async (item: ContentItem) => {
@@ -257,7 +315,14 @@ function AnalyticsList({
         addDangerToast(t('Error pinning item'));
       }
     },
-    [pinnedKeys.size, pins, addSuccessToast, addDangerToast, fetchPins],
+    [
+      pinnedKeys.size,
+      pins,
+      addSuccessToast,
+      addDangerToast,
+      fetchPins,
+      refreshData,
+    ],
   );
 
   const unpinItem = useCallback(
@@ -277,7 +342,7 @@ function AnalyticsList({
         addDangerToast(t('Error unpinning item'));
       }
     },
-    [pins, addSuccessToast, addDangerToast, fetchPins],
+    [pins, addSuccessToast, addDangerToast, fetchPins, refreshData],
   );
 
   const currentFolder = breadcrumb[breadcrumb.length - 1];
@@ -323,6 +388,15 @@ function AnalyticsList({
             else if (operator === 'lt')
               filterExps.push({ col: 'changed_on', opr: 'lt', value: scalar });
             break;
+          case 'viz_type':
+            filterExps.push({ col: 'viz_type', opr: 'in', value: scalar });
+            break;
+          case 'datasource':
+            filterExps.push({ col: 'dataset', opr: 'in', value: scalar });
+            break;
+          case 'tags':
+            filterExps.push({ col: 'tags', opr: 'rel_m_m', value: scalar });
+            break;
           default:
             break;
         }
@@ -354,8 +428,6 @@ function AnalyticsList({
     },
     [currentFolder.uuid, addDangerToast],
   );
-
-  const refreshData = useCallback(() => setRefreshKey(key => key + 1), []);
 
   // Sync URL → breadcrumb on mount, back/forward, or direct link
   useEffect(() => {
@@ -451,9 +523,9 @@ function AnalyticsList({
         (async () => {
           try {
             const { json } = await SupersetClient.get({
-              endpoint: `/api/v1/dashboard/${dashboardId}/charts`,
+              endpoint: `/api/v1/folders/dashboard-charts/${dashboardId}`,
             });
-            const charts = (json.result as ChartEntity[]) || [];
+            const charts = (json.result as ContentItem[]) || [];
             setChartsByDashboard(curr => ({
               ...curr,
               [dashboardId]: { loading: false, charts },
@@ -513,13 +585,39 @@ function AnalyticsList({
     [addSuccessToast, addDangerToast, refreshData],
   );
 
+  // Show deferred batch-delete toasts once the folder modal queue drains.
+  useEffect(() => {
+    if (!pendingBatchResult || folderDeleteQueue.length > 0) return;
+    const { succeeded, failed } = pendingBatchResult;
+    if (failed === 0) {
+      addSuccessToast(t('Successfully deleted selected items'));
+    } else if (succeeded > 0) {
+      addSuccessToast(t('Some items were deleted successfully'));
+      addDangerToast(t('Some items could not be deleted'));
+    } else {
+      addDangerToast(t('There was an issue deleting the selected items'));
+    }
+    setPendingBatchResult(null);
+  }, [folderDeleteQueue.length, pendingBatchResult]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleBulkDelete = useCallback(
-    (rows: ContentItem[]) => {
+    async (rows: ContentItem[]) => {
       const charts = rows.filter(r => r.type === 'chart').map(r => r.id);
       const dashboards = rows
         .filter(r => r.type === 'dashboard')
         .map(r => r.id);
-      const folders = rows.filter(r => r.type === 'folder');
+      const emptyFolders = rows.filter(
+        r =>
+          r.type === 'folder' &&
+          (r.asset_count ?? 0) === 0 &&
+          (r.children_count ?? 0) === 0,
+      );
+      const nonEmptyFolders = rows.filter(
+        r =>
+          r.type === 'folder' &&
+          ((r.asset_count ?? 0) > 0 || (r.children_count ?? 0) > 0),
+      );
+
       const calls: Promise<unknown>[] = [];
       if (charts.length) {
         calls.push(
@@ -535,19 +633,33 @@ function AnalyticsList({
           }),
         );
       }
-      folders.forEach(f =>
+      emptyFolders.forEach(f =>
         calls.push(
           SupersetClient.delete({ endpoint: `/api/v1/folders/${f.uuid}` }),
         ),
       );
-      Promise.all(calls)
-        .then(() => {
-          addSuccessToast(t('Deleted %s items', rows.length));
-          refreshData();
-        })
-        .catch(() =>
-          addDangerToast(t('There was an issue deleting the selected items')),
-        );
+
+      if (calls.length) {
+        const results = await Promise.allSettled(calls);
+        const succeeded = results.filter(r => r.status === 'fulfilled').length;
+        const failed = results.filter(r => r.status === 'rejected').length;
+        if (succeeded > 0) refreshData();
+        if (nonEmptyFolders.length > 0) {
+          // Defer toasts until after all folder modals have been handled.
+          setPendingBatchResult({ succeeded, failed });
+        } else if (failed === 0) {
+          addSuccessToast(t('Successfully deleted selected items'));
+        } else if (succeeded > 0) {
+          addSuccessToast(t('Some items were deleted successfully'));
+          addDangerToast(t('Some items could not be deleted'));
+        } else {
+          addDangerToast(t('There was an issue deleting the selected items'));
+        }
+      }
+
+      if (nonEmptyFolders.length > 0) {
+        setFolderDeleteQueue(nonEmptyFolders);
+      }
     },
     [addSuccessToast, addDangerToast, refreshData],
   );
@@ -621,7 +733,14 @@ function AnalyticsList({
                     if (e.key === 'Enter') drillInto(original);
                   }}
                 >
-                  <Icons.FolderOutlined iconSize="m" />
+                  <Icons.FolderOutlined
+                    iconSize="m"
+                    css={{
+                      color: original.parent_uuid
+                        ? theme.colorWarning
+                        : theme.colorSuccess,
+                    }}
+                  />
                   {original.name}
                   {pinIcon}
                 </NameLink>
@@ -633,7 +752,7 @@ function AnalyticsList({
                 <NameRow>
                   <Icons.AppstoreOutlined
                     iconSize="m"
-                    css={{ color: theme.colorPrimary }}
+                    css={{ color: theme.colorError }}
                   />
                   {original.url ? (
                     <NameLink href={original.url}>{original.name}</NameLink>
@@ -659,7 +778,7 @@ function AnalyticsList({
               <NameLink href={original.url}>
                 <Icons.AreaChartOutlined
                   iconSize="m"
-                  css={{ color: theme.colorPrimary }}
+                  css={{ color: theme.colorInfo }}
                 />
                 {original.name}
                 {pinIcon}
@@ -668,7 +787,7 @@ function AnalyticsList({
               <NameRow>
                 <Icons.AreaChartOutlined
                   iconSize="m"
-                  css={{ color: theme.colorPrimary }}
+                  css={{ color: theme.colorInfo }}
                 />
                 {original.name}
                 {pinIcon}
@@ -697,18 +816,49 @@ function AnalyticsList({
             : '',
       },
       {
-        accessor: 'database',
-        Header: t('Database'),
-        id: 'database',
+        accessor: 'viz_type',
+        Header: t('Visualization type'),
+        id: 'viz_type',
+        disableSortBy: true,
         Cell: ({ row: { original } }: CellProps<ContentItem>) =>
-          original.database || '-',
+          original.viz_type
+            ? (chartRegistry.get(original.viz_type)?.name ?? original.viz_type)
+            : null,
       },
       {
-        accessor: 'schema',
-        Header: t('Schema'),
-        id: 'schema',
-        Cell: ({ row: { original } }: CellProps<ContentItem>) =>
-          original.schema || '-',
+        accessor: 'datasource_name',
+        Header: t('Dataset'),
+        id: 'datasource',
+        disableSortBy: false,
+        Cell: ({ row: { original } }: CellProps<ContentItem>) => {
+          if (!original.datasource_name) return null;
+          if (original.datasource_url) {
+            return (
+              <a href={original.datasource_url}>{original.datasource_name}</a>
+            );
+          }
+          return original.datasource_name;
+        },
+      },
+      {
+        accessor: 'tags',
+        Header: t('Tags'),
+        id: 'tags',
+        disableSortBy: true,
+        hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
+        Cell: ({ row: { original } }: CellProps<ContentItem>) => {
+          if (!original.tags?.length) return null;
+          return (
+            <TagsList
+              tags={original.tags.filter(
+                (tag: TagType) =>
+                  tag.type === 'TagTypes.custom' ||
+                  tag.type === TagTypeEnum.Custom,
+              )}
+              maxTags={3}
+            />
+          );
+        },
       },
       {
         accessor: 'owners',
@@ -724,9 +874,9 @@ function AnalyticsList({
         Header: t('Last modified'),
         id: 'changed_on',
         Cell: ({ row: { original } }: CellProps<ContentItem>) =>
-          original.changed_on ? (
+          original.changed_on_humanized ? (
             <ModifiedInfo
-              date={original.changed_on}
+              date={original.changed_on_humanized}
               user={original.changed_by ?? undefined}
             />
           ) : (
@@ -758,12 +908,51 @@ function AnalyticsList({
                   </Tooltip>
                 )}
                 {canEdit && (
+                  <Tooltip title={t('Rename folder')} placement="bottom">
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="action-button"
+                      onClick={() => setFolderToRename(original)}
+                    >
+                      <Icons.EditOutlined iconSize="l" />
+                    </span>
+                  </Tooltip>
+                )}
+                {canEdit &&
+                  original.parent_uuid &&
+                  original.inherits_permissions === false && (
+                    <Tooltip
+                      title={t('Sync permissions with parent')}
+                      placement="bottom"
+                    >
+                      <Icons.SyncOutlined
+                        iconSize="l"
+                        className="action-button"
+                        onClick={async () => {
+                          try {
+                            await SupersetClient.put({
+                              endpoint: `/api/v1/folders/${original.uuid}`,
+                              jsonPayload: { sync_permissions: true },
+                            });
+                            addSuccessToast(
+                              t('Permissions synced with parent'),
+                            );
+                            refreshData();
+                          } catch {
+                            addDangerToast(t('Error syncing permissions'));
+                          }
+                        }}
+                      />
+                    </Tooltip>
+                  )}
+                {canEdit && (
                   <Tooltip title={t('Delete folder')} placement="bottom">
                     <span
                       role="button"
                       tabIndex={0}
                       className="action-button"
-                      onClick={() => setFolderToArchive(original)}
+                      onClick={() => setFolderDeleteQueue([original])}
                     >
                       <Icons.DeleteOutlined iconSize="l" />
                     </span>
@@ -896,6 +1085,42 @@ function AnalyticsList({
         operator: FilterOperator.Between,
         dateFilterValueType: 'iso',
       },
+      {
+        Header: t('Visualization type'),
+        key: 'viz_type',
+        id: 'viz_type',
+        input: 'select',
+        operator: FilterOperator.Equals,
+        unfilteredLabel: t('All'),
+        selects: chartRegistry
+          .keys()
+          .filter(k => nativeFilterGate(chartRegistry.get(k)?.behaviors ?? []))
+          .map(k => ({ label: chartRegistry.get(k)?.name ?? k, value: k }))
+          .sort((a, b) => a.label.localeCompare(b.label)),
+      },
+      {
+        Header: t('Dataset'),
+        key: 'datasource',
+        id: 'datasource',
+        input: 'select',
+        operator: FilterOperator.Equals,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchDatasets,
+        paginate: true,
+      },
+      ...(isFeatureEnabled(FeatureFlag.TaggingSystem)
+        ? [
+            {
+              Header: t('Tag'),
+              key: 'tags',
+              id: 'tags',
+              input: 'select' as const,
+              operator: FilterOperator.RelationManyMany,
+              unfilteredLabel: t('All'),
+              fetchSelects: loadTags,
+            },
+          ]
+        : []),
     ],
     [addDangerToast],
   );
@@ -931,22 +1156,20 @@ function AnalyticsList({
 
   const breadcrumbItems: FolderBreadcrumbItem[] = useMemo(
     () =>
-      breadcrumb.map((crumb, index) => {
-        const isRoot = index === 0 && !crumb.uuid;
-        return {
-          key: crumb.uuid ?? 'root',
-          title: isRoot ? (
-            <>
-              <Icons.HomeOutlined iconSize="m" aria-hidden />
+      breadcrumb.map((crumb, index) => ({
+        key: crumb.uuid ?? 'root',
+        title:
+          index === 0 ? (
+            <Flex align="center" gap={4}>
+              <Icons.HomeOutlined iconSize="m" />
               {crumb.name}
-            </>
+            </Flex>
           ) : (
             crumb.name
           ),
-          hideIcon: isRoot,
-          onClick: () => navigateToCrumb(index),
-        };
-      }),
+        hideIcon: index === 0,
+        onClick: () => navigateToCrumb(index),
+      })),
     [breadcrumb, navigateToCrumb],
   );
 
@@ -957,6 +1180,11 @@ function AnalyticsList({
         name: bulkSelectEnabled ? t('Cancel') : t('Bulk select'),
         buttonStyle: 'secondary',
         onClick: () => setBulkSelectEnabled(prev => !prev),
+      },
+      {
+        name: t('Move assets'),
+        buttonStyle: 'secondary',
+        onClick: () => setShowTransferModal(true),
       },
       {
         name: t('New'),
@@ -992,7 +1220,7 @@ function AnalyticsList({
               css={{ marginLeft: theme.sizeUnit * 2 }}
             >
               <Icons.PlusOutlined iconSize="m" /> {t('New')}{' '}
-              <Icons.CaretDownOutlined iconSize="m" />
+              <Icons.DownOutlined iconSize="m" />
             </Button>
           </Dropdown>
         ),
@@ -1012,24 +1240,44 @@ function AnalyticsList({
           addSuccessToast={addSuccessToast}
         />
       )}
+      {folderToRename && (
+        <RenameFolderModal
+          folderUuid={folderToRename.uuid ?? ''}
+          currentName={folderToRename.name}
+          show
+          onHide={() => setFolderToRename(null)}
+          onSuccess={refreshData}
+          addDangerToast={addDangerToast}
+          addSuccessToast={addSuccessToast}
+        />
+      )}
       {folderToManagePerms && (
         <FolderPermissionsModal
           folderUuid={folderToManagePerms.uuid ?? ''}
           folderName={folderToManagePerms.name}
           currentUserId={currentUserId}
+          isSubfolder={!!folderToManagePerms.parent_uuid}
           show
-          onHide={() => setFolderToManagePerms(null)}
+          onHide={() => {
+            setFolderToManagePerms(null);
+            refreshData();
+          }}
           addDangerToast={addDangerToast}
           addSuccessToast={addSuccessToast}
         />
       )}
-      {moveTarget && (
+      {(moveTarget || showTransferModal) && (
         <TransferModal
           currentFolderUuid={currentFolder.uuid}
           currentFolderName={currentFolder.name}
-          preSelectedKeys={[`${moveTarget.type}-${moveTarget.id}`]}
+          preSelectedKeys={
+            moveTarget ? [`${moveTarget.type}-${moveTarget.id}`] : []
+          }
           show
-          onHide={() => setMoveTarget(null)}
+          onHide={() => {
+            setMoveTarget(null);
+            setShowTransferModal(false);
+          }}
           onSuccess={refreshData}
         />
       )}
@@ -1044,17 +1292,23 @@ function AnalyticsList({
           }}
         />
       )}
-      {folderToArchive && (
+      {folderDeleteQueue.length > 0 && (
         <DeleteFolderModal
           folder={{
-            uuid: folderToArchive.uuid ?? '',
-            name: folderToArchive.name,
-            asset_count: folderToArchive.asset_count ?? 0,
-            children_count: folderToArchive.children_count ?? 0,
+            uuid: folderDeleteQueue[0].uuid ?? '',
+            name: folderDeleteQueue[0].name,
+            asset_count: folderDeleteQueue[0].asset_count ?? 0,
+            children_count: folderDeleteQueue[0].children_count ?? 0,
           }}
           show
-          onHide={() => setFolderToArchive(null)}
-          onSuccess={refreshData}
+          silent={pendingBatchResult !== null || folderDeleteQueue.length > 1}
+          onHide={() =>
+            setFolderDeleteQueue((prev: ContentItem[]) => prev.slice(1))
+          }
+          onSuccess={() => {
+            setFolderDeleteQueue((prev: ContentItem[]) => prev.slice(1));
+            refreshData();
+          }}
           addDangerToast={addDangerToast}
           addSuccessToast={addSuccessToast}
         />
@@ -1093,13 +1347,13 @@ function AnalyticsList({
               filters={filters}
               expandable={expandable}
               defaultViewMode="table"
+              bulkSelectEnabled={bulkSelectEnabled}
+              disableBulkSelect={() => setBulkSelectEnabled(false)}
               headerContent={
                 <BreadcrumbWrap>
                   <FolderBreadcrumb items={breadcrumbItems} />
                 </BreadcrumbWrap>
               }
-              bulkSelectEnabled={bulkSelectEnabled}
-              disableBulkSelect={() => setBulkSelectEnabled(false)}
               bulkActions={[
                 ...(canEditCurrentFolder
                   ? [
@@ -1119,11 +1373,10 @@ function AnalyticsList({
                         'Export is only available for dashboards and charts',
                       )}
                     >
-                      <Icons.WarningOutlined
-                        iconSize="s"
-                        css={{ marginRight: theme.sizeUnit }}
-                      />
-                      {t('Export')}
+                      <Flex gap={theme.sizeUnit}>
+                        <Icons.WarningOutlined iconSize="s" />
+                        {t('Export')}
+                      </Flex>
                     </Tooltip>
                   ),
                   type: 'primary',

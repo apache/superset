@@ -16,57 +16,105 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { styled, css } from '@apache-superset/core/theme';
+import { styled, css, useTheme } from '@apache-superset/core/theme';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  getChartMetadataRegistry,
+} from '@superset-ui/core';
 import { Empty, Loading } from '@superset-ui/core/components';
+import { FacePile, ModifiedInfo, TagsList, TagType } from 'src/components';
+import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { Icons } from '@superset-ui/core/components/Icons';
 
-export interface ChartEntity {
+const chartRegistry = getChartMetadataRegistry();
+
+interface Owner {
   id: number;
-  slice_name: string;
-  form_data?: { viz_type?: string };
+  first_name?: string;
+  last_name?: string;
+}
+
+interface ContentItem {
+  type: string;
+  id: number;
+  name: string;
+  url?: string | null;
+  viz_type?: string | null;
+  datasource_name?: string | null;
+  datasource_url?: string | null;
+  owners?: Owner[];
+  changed_on_humanized?: string | null;
+  changed_by?: Owner | null;
+  tags?: TagType[];
 }
 
 interface DashboardChartsProps {
   dashboardId: number;
-  charts: ChartEntity[];
+  charts: ContentItem[];
   loading: boolean;
-  /** Ask the parent to lazily load this dashboard's charts. */
   onRequest: (dashboardId: number) => void;
 }
 
-/**
- * Read-only preview of the charts that make up a dashboard. This is purely
- * informational — the charts are not navigable from here (by design).
- */
-const ChartList = styled.ul`
+const Wrapper = styled.div`
+  max-height: 240px;
+  overflow-y: auto;
+  /* Pull grid to the td edges so columns align with table headers */
+  margin: 0 -16px;
+`;
+
+const SubHeader = styled.div`
   ${({ theme }) => css`
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    max-height: 240px;
-    overflow-y: auto;
+    display: flex;
+    align-items: center;
+    gap: ${theme.sizeUnit}px;
+    padding: ${theme.sizeUnit * 3}px 16px;
+    font-size: ${theme.fontSizeSM}px;
+    color: ${theme.colorTextSecondary};
+  `}
+`;
 
-    li {
-      display: flex;
-      align-items: center;
-      gap: ${theme.sizeUnit * 2}px;
-      padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit}px;
-      color: ${theme.colorText};
-      font-size: ${theme.fontSize}px;
-    }
+const Row = styled.div`
+  ${({ theme }) => css`
+    display: grid;
+    grid-template-columns: 2fr 0.8fr 1fr 1fr 1fr 1fr 1fr;
+    align-items: center;
+    padding: ${theme.sizeUnit * 3}px 0;
+    font-size: ${theme.fontSize}px;
+    color: ${theme.colorText};
 
-    li + li {
+    & + & {
       border-top: 1px solid ${theme.colorBorderSecondary};
     }
 
-    .viz-type {
-      margin-left: auto;
-      color: ${theme.colorTextTertiary};
-      font-size: ${theme.fontSizeSM}px;
+    /* Match antd table cell padding so content aligns with headers */
+    > * {
+      padding: 0 16px;
     }
   `}
+`;
+
+const NameCell = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding-left: 16px !important;
+
+  a {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+`;
+
+const Cell = styled.span`
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 `;
 
 export default function DashboardCharts({
@@ -75,9 +123,27 @@ export default function DashboardCharts({
   loading,
   onRequest,
 }: DashboardChartsProps) {
+  const theme = useTheme();
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [colWidths, setColWidths] = useState<string | undefined>();
+
   useEffect(() => {
     onRequest(dashboardId);
   }, [dashboardId, onRequest]);
+
+  // Read parent table header widths to align expanded rows with table columns
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const table = el.closest('.ant-table-wrapper')?.querySelector('thead tr');
+    if (!table) return;
+    const ths = Array.from(table.querySelectorAll<HTMLTableCellElement>('th'));
+    // Skip the first th if it's the expand/checkbox column (narrow, no data-col)
+    const dataHeaders = ths.filter(th => th.offsetWidth > 40);
+    if (dataHeaders.length > 0) {
+      setColWidths(dataHeaders.map(th => `${th.offsetWidth}px`).join(' '));
+    }
+  }, [charts.length]);
 
   if (loading) {
     return <Loading />;
@@ -87,17 +153,66 @@ export default function DashboardCharts({
     return <Empty description={t('This dashboard has no charts')} />;
   }
 
+  const showTags = isFeatureEnabled(FeatureFlag.TaggingSystem);
+
   return (
-    <ChartList>
+    <Wrapper ref={wrapperRef}>
+      <SubHeader>
+        <Icons.AreaChartOutlined iconSize="m" />
+        {t('Charts in the dashboard (%s)', charts.length)}
+      </SubHeader>
       {charts.map(chart => (
-        <li key={chart.id}>
-          <Icons.AreaChartOutlined iconSize="m" aria-hidden />
-          <span>{chart.slice_name}</span>
-          {chart.form_data?.viz_type && (
-            <span className="viz-type">{chart.form_data.viz_type}</span>
-          )}
-        </li>
+        <Row
+          key={chart.id}
+          style={colWidths ? { gridTemplateColumns: colWidths } : undefined}
+        >
+          <NameCell>
+            <Icons.AreaChartOutlined
+              iconSize="m"
+              css={{ color: theme.colorInfo, flexShrink: 0 }}
+            />
+            {chart.url ? <a href={chart.url}>{chart.name}</a> : chart.name}
+          </NameCell>
+          <Cell />
+          <Cell>
+            {chart.viz_type
+              ? (chartRegistry.get(chart.viz_type)?.name ?? chart.viz_type)
+              : null}
+          </Cell>
+          <Cell>
+            {chart.datasource_name && chart.datasource_url ? (
+              <a href={chart.datasource_url}>{chart.datasource_name}</a>
+            ) : (
+              (chart.datasource_name ?? null)
+            )}
+          </Cell>
+          <Cell>
+            {showTags && chart.tags?.length ? (
+              <TagsList
+                tags={chart.tags.filter(
+                  (tag: TagType) =>
+                    tag.type === 'TagTypes.custom' ||
+                    tag.type === TagTypeEnum.Custom,
+                )}
+                maxTags={3}
+              />
+            ) : null}
+          </Cell>
+          <Cell>
+            <FacePile users={chart.owners || []} />
+          </Cell>
+          <Cell>
+            {chart.changed_on_humanized ? (
+              <ModifiedInfo
+                date={chart.changed_on_humanized}
+                user={chart.changed_by ?? undefined}
+              />
+            ) : (
+              '-'
+            )}
+          </Cell>
+        </Row>
       ))}
-    </ChartList>
+    </Wrapper>
   );
 }

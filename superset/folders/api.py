@@ -71,6 +71,7 @@ from superset.folders.schemas import (
 )
 from superset.folders.utils import can_manage_folders
 from superset.utils.core import get_user_id
+from superset.utils import json as json_utils
 from superset.utils.decorators import transaction
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
@@ -101,6 +102,14 @@ def _get_user_permission(folder: Folder) -> str | None:
     return None
 
 
+def _get_inherits_permissions(folder: Folder) -> bool:
+    """Return whether this folder inherits permissions from its parent."""
+    if not folder.extra:
+        return True
+    extra = json_utils.loads(folder.extra)
+    return extra.get("inherits_permissions", True)
+
+
 def serialize_folder(
     folder: Folder,
     children_count: int | None = None,
@@ -129,9 +138,11 @@ def serialize_folder(
         ),
         "created_on": folder.created_on,
         "changed_on": folder.changed_on,
+        "changed_on_humanized": folder.changed_on_humanized,
         "created_by": _serialize_user(folder.created_by),
         "changed_by": _serialize_user(folder.changed_by),
         "user_permission": _get_user_permission(folder),
+        "inherits_permissions": _get_inherits_permissions(folder),
         "owners": [],
     }
 
@@ -149,8 +160,6 @@ def serialize_asset(asset_type: str, asset: Any) -> dict[str, Any]:
         for owner in (_serialize_user(o) for o in getattr(asset, "owners", []) or [])
         if owner
     ]
-    # Chart-only: resolve the backing dataset's database/schema for the columns.
-    datasource = getattr(asset, "datasource", None)
     return {
         "type": asset_type,
         "id": asset.id,
@@ -158,12 +167,27 @@ def serialize_asset(asset_type: str, asset: Any) -> dict[str, Any]:
         "name": getattr(asset, config.title_attr, None),
         "url": getattr(asset, "url", None),
         "changed_on": getattr(asset, "changed_on", None),
+        "changed_on_humanized": getattr(asset, "changed_on_humanized", None),
         "changed_by": _serialize_user(getattr(asset, "changed_by", None)),
         "owners": owners,
         # Chart-only columns; ``None`` for other asset kinds.
         "viz_type": getattr(asset, "viz_type", None),
-        "database": getattr(datasource, "database_name", None) if datasource else None,
-        "schema": getattr(datasource, "schema", None) if datasource else None,
+        "datasource_name": (
+            asset.datasource_name_text()
+            if asset_type == "chart" and callable(
+                getattr(asset, "datasource_name_text", None)
+            )
+            else None
+        ),
+        "datasource_url": (
+            asset.datasource_url()
+            if asset_type == "chart" and callable(getattr(asset, "datasource_url", None))
+            else None
+        ),
+        "tags": [
+            {"id": t.id, "name": t.name, "type": t.type.value if hasattr(t.type, "value") else t.type}
+            for t in getattr(asset, "tags", []) or []
+        ],
     }
 
 
@@ -208,6 +232,7 @@ def _parse_rison_args(rison_args: dict[str, Any]) -> dict[str, Any]:
         "types": None,
         "viz_types": None,
         "datasets": None,
+        "tags": None,
         "owners": None,
         "modified_start": None,
         "modified_end": None,
@@ -243,6 +268,10 @@ def _parse_rison_args(rison_args: dict[str, Any]) -> dict[str, Any]:
             result["viz_types"] = val if isinstance(val, list) else [val]
         elif col == "dataset" and opr == "in":
             result["datasets"] = [
+                int(v) for v in (val if isinstance(val, list) else [val])
+            ]
+        elif col == "tags" and opr == "rel_m_m":
+            result["tags"] = [
                 int(v) for v in (val if isinstance(val, list) else [val])
             ]
     return result
@@ -330,7 +359,51 @@ class FolderRestApi(BaseSupersetApi):
         """
         folder_type = request.args.get("folder_type")
         folders = FolderDAO.get_folders(folder_type=folder_type)
-        result = [serialize_folder(folder) for folder in folders]
+
+        # Non-admins only see folders they have access to
+        if not security_manager.is_admin():
+            user_id = get_user_id()
+            if user_id:
+                folders = [
+                    f
+                    for f in folders
+                    if FolderPermissionDAO.user_has_folder_access(user_id, f.id)
+                ]
+            else:
+                folders = []
+
+        # Precompute counts to avoid N+1 queries
+        folder_ids = [f.id for f in folders]
+        children_counts: dict[int, int] = {}
+        asset_counts: dict[int, int] = {}
+        if folder_ids:
+            from sqlalchemy import func
+
+            for fid, cnt in (
+                db.session.query(Folder.parent_id, func.count())
+                .filter(Folder.parent_id.in_(folder_ids))
+                .group_by(Folder.parent_id)
+                .all()
+            ):
+                children_counts[fid] = cnt
+            from superset.folders.models import FolderObject
+
+            for fid, cnt in (
+                db.session.query(FolderObject.folder_id, func.count())
+                .filter(FolderObject.folder_id.in_(folder_ids))
+                .group_by(FolderObject.folder_id)
+                .all()
+            ):
+                asset_counts[fid] = cnt
+
+        result = [
+            serialize_folder(
+                folder,
+                children_count=children_counts.get(folder.id, 0),
+                asset_count=asset_counts.get(folder.id, 0),
+            )
+            for folder in folders
+        ]
         return self.response(200, count=len(result), result=result)
 
     @expose("/assets", methods=("GET",))
@@ -841,6 +914,45 @@ class FolderRestApi(BaseSupersetApi):
         return self.response(200, message="OK")
 
     # ------------------------------------------------------------------ #
+    # Dashboard charts (rich serialization for expanded rows)
+    # ------------------------------------------------------------------ #
+    @expose("/dashboard-charts/<int:dashboard_id>", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("read")
+    @statsd_metrics
+    def dashboard_charts(self, dashboard_id: int) -> Response:
+        """Return a dashboard's charts serialized like folder contents.
+        ---
+        get:
+          summary: Get charts for a dashboard with full metadata
+          parameters:
+          - in: path
+            name: dashboard_id
+            required: true
+            schema:
+              type: integer
+          responses:
+            200:
+              description: Charts with full column data
+            404:
+              $ref: '#/components/responses/404'
+        """
+        from superset.commands.dashboard.exceptions import (
+            DashboardNotFoundError,
+        )
+        from superset.daos.dashboard import DashboardDAO
+
+        try:
+            slices = DashboardDAO.get_charts_for_dashboard(str(dashboard_id))
+        except DashboardNotFoundError:
+            return self.response_404()
+        return self.response(
+            200,
+            result=[serialize_asset("chart", s) for s in slices],
+        )
+
+    # ------------------------------------------------------------------ #
     # Pins
     # ------------------------------------------------------------------ #
     @expose("/pins", methods=("GET",))
@@ -1022,7 +1134,11 @@ class FolderRestApi(BaseSupersetApi):
             data = FolderSubjectPostSchema().load(request.json)
         except ValidationError as ex:
             return self.response(400, message=ex.messages)
-        FolderDAO.add_subject(folder.id, data["user_id"], data["permission"])
+        try:
+            FolderDAO.add_subject(folder.id, data["user_id"], data["permission"])
+        except ValueError as ex:
+            return self.response(422, message=str(ex))
+        FolderPermissionDAO.mark_permissions_explicit(folder.id)
         FolderPermissionDAO.push_down_permissions(folder.id)
         return self.response(201, message="OK")
 
@@ -1075,6 +1191,7 @@ class FolderRestApi(BaseSupersetApi):
         except ValidationError as ex:
             return self.response(400, message=ex.messages)
         FolderDAO.update_subject(folder.id, user_id, data["permission"])
+        FolderPermissionDAO.mark_permissions_explicit(folder.id)
         FolderPermissionDAO.push_down_permissions(folder.id)
         return self.response(200, message="OK")
 
@@ -1114,6 +1231,7 @@ class FolderRestApi(BaseSupersetApi):
         except FolderForbiddenError:
             return self.response_403()
         FolderDAO.remove_subject(folder.id, user_id)
+        FolderPermissionDAO.mark_permissions_explicit(folder.id)
         FolderPermissionDAO.push_down_permissions(folder.id)
         return self.response(200, message="OK")
 
@@ -1140,7 +1258,7 @@ class FolderRestApi(BaseSupersetApi):
             name: q
             schema:
               type: string
-            description: Search by name or username
+            description: Search by email
           - in: query
             name: page
             schema:
@@ -1182,13 +1300,7 @@ class FolderRestApi(BaseSupersetApi):
 
         if search := request.args.get("q", "").strip()[:255]:
             like = f"%{search}%"
-            query = query.filter(
-                db.or_(
-                    User.username.ilike(like),
-                    User.first_name.ilike(like),
-                    User.last_name.ilike(like),
-                )
-            )
+            query = query.filter(User.email.ilike(like))
 
         total = query.count()
         users = (
@@ -1203,9 +1315,7 @@ class FolderRestApi(BaseSupersetApi):
             result=[
                 {
                     "id": u.id,
-                    "username": u.username,
-                    "first_name": u.first_name,
-                    "last_name": u.last_name,
+                    "email": u.email,
                 }
                 for u in users
             ],

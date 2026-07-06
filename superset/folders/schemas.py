@@ -69,6 +69,7 @@ class FolderPutSchema(Schema):
         allow_none=True, metadata={"description": parent_uuid_description}
     )
     is_private = fields.Boolean()
+    sync_permissions = fields.Boolean(load_default=False)
 
 
 class FolderAssetsPutSchema(Schema):

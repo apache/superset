@@ -217,17 +217,21 @@ def upgrade():
         FOLDER_PINS_TABLE,
         Column("id", Integer, primary_key=True),
         Column("user_id", Integer, nullable=False),
-        Column("object_id", Integer, nullable=False),
-        Column("object_type", String(50), nullable=False),
+        Column("folder_id", Integer, nullable=True),
+        Column("dashboard_id", Integer, nullable=True),
+        Column("chart_id", Integer, nullable=True),
         Column("position", Integer, nullable=False),
         Column("created_on", DateTime, nullable=True),
-        UniqueConstraint(
-            "user_id", "object_id", "object_type", name="uq_folder_pins_user_object"
-        ),
         UniqueConstraint("user_id", "position", name="uq_folder_pins_user_position"),
         CheckConstraint(
             "position >= 1 AND position <= 3",
             name="ck_folder_pins_position_range",
+        ),
+        CheckConstraint(
+            "(CASE WHEN folder_id IS NOT NULL THEN 1 ELSE 0 END"
+            " + CASE WHEN dashboard_id IS NOT NULL THEN 1 ELSE 0 END"
+            " + CASE WHEN chart_id IS NOT NULL THEN 1 ELSE 0 END) = 1",
+            name="ck_folder_pins_exactly_one_fk",
         ),
     )
     create_fks_for_table(
@@ -238,12 +242,50 @@ def upgrade():
         remote_cols=["id"],
         ondelete="CASCADE",
     )
+    create_fks_for_table(
+        foreign_key_name="fk_folder_pins_folder_id_folders",
+        table_name=FOLDER_PINS_TABLE,
+        referenced_table=FOLDERS_TABLE,
+        local_cols=["folder_id"],
+        remote_cols=["id"],
+        ondelete="CASCADE",
+    )
+    create_fks_for_table(
+        foreign_key_name="fk_folder_pins_dashboard_id_dashboards",
+        table_name=FOLDER_PINS_TABLE,
+        referenced_table="dashboards",
+        local_cols=["dashboard_id"],
+        remote_cols=["id"],
+        ondelete="CASCADE",
+    )
+    create_fks_for_table(
+        foreign_key_name="fk_folder_pins_chart_id_slices",
+        table_name=FOLDER_PINS_TABLE,
+        referenced_table="slices",
+        local_cols=["chart_id"],
+        remote_cols=["id"],
+        ondelete="CASCADE",
+    )
     create_index(FOLDER_PINS_TABLE, "idx_folder_pins_user_id", ["user_id"])
+    create_index(FOLDER_PINS_TABLE, "ix_folder_pins_folder_id", ["folder_id"])
+    create_index(FOLDER_PINS_TABLE, "ix_folder_pins_dashboard_id", ["dashboard_id"])
+    create_index(FOLDER_PINS_TABLE, "ix_folder_pins_chart_id", ["chart_id"])
 
 
 def downgrade():
+    drop_index(FOLDER_PINS_TABLE, "ix_folder_pins_chart_id")
+    drop_index(FOLDER_PINS_TABLE, "ix_folder_pins_dashboard_id")
+    drop_index(FOLDER_PINS_TABLE, "ix_folder_pins_folder_id")
     drop_index(FOLDER_PINS_TABLE, "idx_folder_pins_user_id")
-    drop_fks_for_table(FOLDER_PINS_TABLE, ["fk_folder_pins_user_id_ab_user"])
+    drop_fks_for_table(
+        FOLDER_PINS_TABLE,
+        [
+            "fk_folder_pins_user_id_ab_user",
+            "fk_folder_pins_folder_id_folders",
+            "fk_folder_pins_dashboard_id_dashboards",
+            "fk_folder_pins_chart_id_slices",
+        ],
+    )
     drop_table(FOLDER_PINS_TABLE)
 
     drop_fks_for_table(

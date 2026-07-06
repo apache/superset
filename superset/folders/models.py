@@ -200,23 +200,56 @@ class FolderPin(Model):
     Max 3 pins per user (enforced by UNIQUE on user_id + position).
     Pins are user-specific and only shown on the main Analytics view.
 
-    ``user_id`` references ``ab_user`` (Superset-owned); the FK constraint is
-    created by the Preset migration (no declarative ``ForeignKey`` here).
+    Uses separate FK columns instead of polymorphic object_id/object_type
+    so that ON DELETE CASCADE works at the DB level.
+    Only one of folder_id, dashboard_id, chart_id is set per row.
+
+    ``user_id``/``dashboard_id``/``chart_id`` reference Superset-owned tables;
+    their FK constraints are created by the migration.
     """
 
     __tablename__ = "folder_pins"
     __table_args__ = (
-        UniqueConstraint("user_id", "object_id", "object_type"),
         UniqueConstraint("user_id", "position"),
         CheckConstraint(
             "position >= 1 AND position <= 3",
             name="ck_folder_pins_position_range",
         ),
+        CheckConstraint(
+            "(CASE WHEN folder_id IS NOT NULL THEN 1 ELSE 0 END"
+            " + CASE WHEN dashboard_id IS NOT NULL THEN 1 ELSE 0 END"
+            " + CASE WHEN chart_id IS NOT NULL THEN 1 ELSE 0 END) = 1",
+            name="ck_folder_pins_exactly_one_fk",
+        ),
+        Index("ix_folder_pins_folder_id", "folder_id"),
+        Index("ix_folder_pins_dashboard_id", "dashboard_id"),
+        Index("ix_folder_pins_chart_id", "chart_id"),
     )
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, nullable=False)
-    object_id = Column(Integer, nullable=False)
-    object_type = Column(String(50), nullable=False)
+    folder_id = Column(
+        Integer,
+        ForeignKey("folders.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    dashboard_id = Column(Integer, nullable=True)
+    chart_id = Column(Integer, nullable=True)
     position = Column(Integer, nullable=False)
     created_on = Column(DateTime, nullable=True)
+
+    @property
+    def object_type(self) -> str:
+        if self.folder_id is not None:
+            return "folder"
+        if self.dashboard_id is not None:
+            return "dashboard"
+        return "chart"
+
+    @property
+    def object_id(self) -> int:
+        if self.folder_id is not None:
+            return self.folder_id
+        if self.dashboard_id is not None:
+            return self.dashboard_id
+        return self.chart_id
