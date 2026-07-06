@@ -711,7 +711,7 @@ export class ThemeController {
       (defaultMode &&
         Object.hasOwn(modeMap, defaultMode) &&
         modeMap[defaultMode]) ||
-      ThemeMode.DEFAULT;
+      ThemeMode.SYSTEM;
 
     return {
       bootstrapDefaultTheme: hasCustomDefault ? defaultTheme : null,

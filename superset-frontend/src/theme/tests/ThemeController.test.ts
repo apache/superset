@@ -2154,15 +2154,15 @@ test('bootstrapDefaultMode: reads "system" from bootstrap config and starts in S
   expect(controller.getCurrentMode()).toBe(ThemeMode.SYSTEM);
 });
 
-test('bootstrapDefaultMode: falls back to DEFAULT when defaultMode is missing from bootstrap', () => {
+test('bootstrapDefaultMode: falls back to SYSTEM when defaultMode is missing from bootstrap', () => {
   mockGetBootstrapData.mockReturnValue(
     createMockBootstrapData({ default: DEFAULT_THEME, dark: DARK_THEME }),
   );
   const controller = createController();
-  expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
+  expect(controller.getCurrentMode()).toBe(ThemeMode.SYSTEM);
 });
 
-test('bootstrapDefaultMode: falls back to DEFAULT when defaultMode is an invalid value', () => {
+test('bootstrapDefaultMode: falls back to SYSTEM when defaultMode is an invalid value', () => {
   mockGetBootstrapData.mockReturnValue(
     createMockBootstrapData({
       default: DEFAULT_THEME,
@@ -2171,7 +2171,7 @@ test('bootstrapDefaultMode: falls back to DEFAULT when defaultMode is an invalid
     }),
   );
   const controller = createController();
-  expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
+  expect(controller.getCurrentMode()).toBe(ThemeMode.SYSTEM);
 });
 
 test('bootstrapDefaultMode: prototype-poison key does not override mode', () => {
@@ -2183,7 +2183,7 @@ test('bootstrapDefaultMode: prototype-poison key does not override mode', () => 
     }),
   );
   const controller = createController();
-  expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
+  expect(controller.getCurrentMode()).toBe(ThemeMode.SYSTEM);
 });
 
 test('bootstrapDefaultMode: saved mode takes precedence over bootstrapDefaultMode', () => {
