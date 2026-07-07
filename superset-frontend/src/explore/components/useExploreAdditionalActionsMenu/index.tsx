@@ -118,13 +118,17 @@ const VIZ_TYPES_PIVOTABLE = [VizType.PivotTable];
 
 const CHART_EXPORT_SELECTOR = '.panel-body .chart-container';
 
-function getExportScreenshotMenuItems({
+export function getExportScreenshotMenuItems({
   chartSelector,
   sliceName,
   chartId,
   theme,
   setIsDropdownVisible,
   dispatch,
+  submenuKey,
+  transparentKey,
+  solidKey,
+  pdfKey,
 }: {
   chartSelector: string;
   sliceName: string;
@@ -132,16 +136,20 @@ function getExportScreenshotMenuItems({
   theme: ReturnType<typeof useTheme>;
   setIsDropdownVisible: (visible: boolean) => void;
   dispatch: Dispatch<any>;
+  submenuKey: string;
+  transparentKey: string;
+  solidKey: string;
+  pdfKey: string;
 }) {
   return [
     {
       type: 'submenu' as const,
-      key: 'export_all_png_submenu',
+      key: submenuKey,
       label: t('Export screenshot (PNG)'),
       icon: <Icons.FileImageOutlined />,
       children: [
         {
-          key: MENU_KEYS.EXPORT_ALL_PNG_TRANSPARENT,
+          key: transparentKey,
           label: t('Transparent background'),
           onClick: (e: {
             domEvent: React.MouseEvent | React.KeyboardEvent;
@@ -161,7 +169,7 @@ function getExportScreenshotMenuItems({
           },
         },
         {
-          key: MENU_KEYS.EXPORT_ALL_PNG_SOLID,
+          key: solidKey,
           label: t('Solid background'),
           onClick: (e: {
             domEvent: React.MouseEvent | React.KeyboardEvent;
@@ -183,7 +191,7 @@ function getExportScreenshotMenuItems({
       ],
     },
     {
-      key: MENU_KEYS.EXPORT_ALL_PDF,
+      key: pdfKey,
       label: t('Export as PDF'),
       icon: <Icons.FileOutlined />,
       onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
@@ -904,7 +912,7 @@ export const useExploreAdditionalActionsMenu = (
         disabled: imageExportDisabled,
         onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
           downloadAsImage(
-            '.panel-body .chart-container',
+            CHART_EXPORT_SELECTOR,
             slice?.slice_name ?? t('New chart'),
             true,
             theme,
@@ -925,6 +933,10 @@ export const useExploreAdditionalActionsMenu = (
         theme,
         setIsDropdownVisible,
         dispatch,
+        submenuKey: 'export_all_png_submenu',
+        transparentKey: MENU_KEYS.EXPORT_ALL_PNG_TRANSPARENT,
+        solidKey: MENU_KEYS.EXPORT_ALL_PNG_SOLID,
+        pdfKey: MENU_KEYS.EXPORT_ALL_PDF,
       }),
       {
         key: MENU_KEYS.EXPORT_TO_XLSX,
@@ -1021,7 +1033,7 @@ export const useExploreAdditionalActionsMenu = (
         disabled: imageExportDisabled,
         onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
           downloadAsImage(
-            '.panel-body .chart-container',
+            CHART_EXPORT_SELECTOR,
             slice?.slice_name ?? t('New chart'),
             true,
             theme,
@@ -1035,79 +1047,18 @@ export const useExploreAdditionalActionsMenu = (
           );
         },
       },
-      {
-        type: 'submenu' as const,
-        key: 'export_current_png_submenu',
-        label: t('Export screenshot (PNG)'),
-        icon: <Icons.FileImageOutlined />,
-        children: [
-          {
-            key: MENU_KEYS.EXPORT_CURRENT_PNG_TRANSPARENT,
-            label: t('Transparent background'),
-            onClick: (e: {
-              domEvent: React.MouseEvent | React.KeyboardEvent;
-            }) => {
-              downloadAsImage(
-                '.panel-body .chart-container',
-                slice?.slice_name ?? t('New chart'),
-                true,
-                theme,
-                { format: 'png', backgroundType: 'transparent' },
-              )(e.domEvent);
-              setIsDropdownVisible(false);
-              dispatch(
-                logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG, {
-                  chartId: slice?.slice_id,
-                  chartName: slice?.slice_name,
-                  backgroundType: 'transparent',
-                }),
-              );
-            },
-          },
-          {
-            key: MENU_KEYS.EXPORT_CURRENT_PNG_SOLID,
-            label: t('Solid background'),
-            onClick: (e: {
-              domEvent: React.MouseEvent | React.KeyboardEvent;
-            }) => {
-              downloadAsImage(
-                '.panel-body .chart-container',
-                slice?.slice_name ?? t('New chart'),
-                true,
-                theme,
-                { format: 'png', backgroundType: 'solid' },
-              )(e.domEvent);
-              setIsDropdownVisible(false);
-              dispatch(
-                logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG, {
-                  chartId: slice?.slice_id,
-                  chartName: slice?.slice_name,
-                  backgroundType: 'solid',
-                }),
-              );
-            },
-          },
-        ],
-      },
-      {
-        key: MENU_KEYS.EXPORT_CURRENT_PDF,
-        label: t('Export as PDF'),
-        icon: <Icons.FileOutlined />,
-        onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
-          downloadAsPdf(
-            '.panel-body .chart-container',
-            slice?.slice_name ?? t('New chart'),
-            true,
-          )(e.domEvent);
-          setIsDropdownVisible(false);
-          dispatch(
-            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF, {
-              chartId: slice?.slice_id,
-              chartName: slice?.slice_name,
-            }),
-          );
-        },
-      },
+      ...getExportScreenshotMenuItems({
+        chartSelector: CHART_EXPORT_SELECTOR,
+        sliceName: slice?.slice_name ?? t('New chart'),
+        chartId: slice?.slice_id,
+        theme,
+        setIsDropdownVisible,
+        dispatch,
+        submenuKey: 'export_current_png_submenu',
+        transparentKey: MENU_KEYS.EXPORT_CURRENT_PNG_TRANSPARENT,
+        solidKey: MENU_KEYS.EXPORT_CURRENT_PNG_SOLID,
+        pdfKey: MENU_KEYS.EXPORT_CURRENT_PDF,
+      }),
       {
         key: MENU_KEYS.EXPORT_CURRENT_XLSX,
         label: dataExportLabel(t('Export to Excel')),

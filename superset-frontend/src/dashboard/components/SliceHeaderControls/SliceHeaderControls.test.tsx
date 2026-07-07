@@ -754,6 +754,29 @@ test('Clicking "Transparent background" calls downloadAsImage with transparent o
   );
 });
 
+test('Clicking "Solid background" calls downloadAsImage with solid option and logEvent', async () => {
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.hover(await screen.findByText('Export screenshot (PNG)'));
+  userEvent.click(await screen.findByText('Solid background'));
+  expect(downloadAsImage).toHaveBeenCalledWith(
+    `.dashboard-chart-id-${SLICE_ID}`,
+    props.slice.slice_name,
+    true,
+    expect.anything(),
+    { format: 'png', backgroundType: 'solid' },
+  );
+  expect(props.logEvent).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({
+      chartId: SLICE_ID,
+      backgroundType: 'solid',
+    }),
+  );
+});
+
 test('Clicking "Export as PDF" calls downloadAsPdf and logEvent', async () => {
   const props = createProps();
   renderWrapper(props);
