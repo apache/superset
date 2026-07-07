@@ -1392,25 +1392,6 @@ test('getAxisType with forced categorical', () => {
   );
 });
 
-test('getAxisType treats numeric as category for bar charts', () => {
-  expect(
-    (getAxisType as (...args: unknown[]) => AxisType)(
-      false,
-      false,
-      GenericDataType.Numeric,
-      EchartsTimeseriesSeriesType.Bar,
-    ),
-  ).toEqual(AxisType.Category);
-  expect(
-    (getAxisType as (...args: unknown[]) => AxisType)(
-      false,
-      false,
-      GenericDataType.Numeric,
-      EchartsTimeseriesSeriesType.Line,
-    ),
-  ).toEqual(AxisType.Value);
-});
-
 test('getAxisType does not coerce Numeric x-axis to Time regardless of values', () => {
   // Regression guard for echarts-timeseries-epoch-x-axis-labels investigation:
   // getAxisType only considers the coltype reported by the query, never the

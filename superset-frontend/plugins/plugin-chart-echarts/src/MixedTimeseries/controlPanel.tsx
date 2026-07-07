@@ -17,13 +17,17 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { ensureIsArray } from '@superset-ui/core';
+import { ensureIsArray, getColumnLabel, QueryFormColumn } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { cloneDeep } from 'lodash-es';
 import {
-  ControlPanelsContainerProps,
+  checkColumnType,
   ControlPanelConfig,
   ControlPanelSectionConfig,
+  ControlPanelState,
+  ControlPanelsContainerProps,
   ControlSetRow,
+  ControlState,
   ControlSubSectionHeader,
   CustomControlItem,
   getStandardizedControls,
@@ -31,6 +35,9 @@ import {
   sharedControls,
   DEFAULT_SORT_SERIES_DATA,
   SORT_SERIES_CHOICES,
+  xAxisForceCategoricalControl,
+  xAxisSortAscControl,
+  xAxisSortControl,
 } from '@superset-ui/chart-controls';
 
 import { DEFAULT_FORM_DATA } from './types';
@@ -62,6 +69,60 @@ const {
   yAxisBounds,
   yAxisIndex,
 } = DEFAULT_FORM_DATA;
+
+function hasBarSeriesInState(state: ControlPanelState | null): boolean {
+  const formData = state?.form_data;
+  const seriesA =
+    state?.controls?.seriesType?.value ?? formData?.seriesType ?? seriesType;
+  const seriesB =
+    state?.controls?.seriesTypeB?.value ?? formData?.seriesTypeB ?? seriesType;
+  return (
+    seriesA === EchartsTimeseriesSeriesType.Bar ||
+    seriesB === EchartsTimeseriesSeriesType.Bar
+  );
+}
+
+function isNumericXAxisState(state: ControlPanelState | null): boolean {
+  return checkColumnType(
+    getColumnLabel(state?.controls?.x_axis?.value as QueryFormColumn),
+    state?.controls?.datasource?.datasource,
+    [GenericDataType.Numeric],
+  );
+}
+
+const mixedXAxisForceCategoricalControl = {
+  ...xAxisForceCategoricalControl,
+  config: {
+    ...xAxisForceCategoricalControl.config,
+    description: t(
+      'Treat values as categorical. Enabled by default when any query uses bar series to prevent bar overflow and intermediate tick labels. Disable to use a continuous numeric x-axis that preserves spacing for missing values.',
+    ),
+    initialValue: (control: ControlState, state: ControlPanelState | null) => {
+      if (!isNumericXAxisState(state)) {
+        return control.value;
+      }
+      if (state?.form_data?.x_axis_sort !== undefined) {
+        return true;
+      }
+      if (control?.value !== undefined) {
+        return control.value;
+      }
+      return hasBarSeriesInState(state);
+    },
+  },
+};
+
+const mixedSharedQuerySection: ControlPanelSectionConfig = {
+  label: t('Shared query fields'),
+  expanded: true,
+  controlSetRows: [
+    ['x_axis'],
+    ['time_grain_sqla'],
+    [mixedXAxisForceCategoricalControl],
+    [xAxisSortControl],
+    [xAxisSortAscControl],
+  ],
+};
 
 function createQuerySection(
   label: string,
@@ -345,11 +406,7 @@ function createAdvancedAnalyticsSection(
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    {
-      label: t('Shared query fields'),
-      expanded: true,
-      controlSetRows: [['x_axis'], ['time_grain_sqla']],
-    },
+    mixedSharedQuerySection,
     createQuerySection(t('Query A'), ''),
     createAdvancedAnalyticsSection(t('Advanced analytics Query A'), ''),
     createQuerySection(t('Query B'), '_b'),
@@ -372,6 +429,8 @@ const config: ControlPanelConfig = {
         [xAxisLabelRotation],
         [xAxisLabelInterval],
         [forceMaxInterval],
+        [truncateXAxis],
+        [xAxisBounds],
         [<ControlSubSectionHeader>{t('Tooltip')}</ControlSubSectionHeader>],
         [
           {
@@ -402,8 +461,6 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [truncateXAxis],
-        [xAxisBounds],
         [
           {
             name: 'truncateYAxis',

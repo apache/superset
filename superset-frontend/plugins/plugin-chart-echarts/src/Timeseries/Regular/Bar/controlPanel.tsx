@@ -27,6 +27,7 @@ import { GenericDataType } from '@apache-superset/core/common';
 import {
   checkColumnType,
   ControlPanelConfig,
+  ControlPanelSectionConfig,
   ControlPanelsContainerProps,
   ControlSetRow,
   ControlStateMapping,
@@ -36,6 +37,9 @@ import {
   getStandardizedControls,
   sections,
   sharedControls,
+  xAxisForceCategoricalControl,
+  xAxisSortAscControl,
+  xAxisSortControl,
 } from '@superset-ui/chart-controls';
 import {
   legendSection,
@@ -60,6 +64,29 @@ import { StackControlsValue } from '../../../constants';
 
 const { logAxis, minorSplitLine, truncateYAxis, yAxisBounds, orientation } =
   DEFAULT_FORM_DATA;
+
+const barXAxisForceCategoricalControl = {
+  ...xAxisForceCategoricalControl,
+  config: {
+    ...xAxisForceCategoricalControl.config,
+    default: true,
+    description: t(
+      'Treat values as categorical. Enabled by default for bar charts to prevent bar overflow and intermediate tick labels. Disable to use a continuous numeric x-axis that preserves spacing for missing values.',
+    ),
+  },
+};
+
+const barChartQuerySection: ControlPanelSectionConfig = {
+  ...sections.echartsTimeSeriesQueryWithXAxisSort,
+  controlSetRows: [
+    ['x_axis'],
+    ['time_grain_sqla'],
+    [barXAxisForceCategoricalControl],
+    [xAxisSortControl],
+    [xAxisSortAscControl],
+    ...sections.echartsTimeSeriesQueryWithXAxisSort.controlSetRows!.slice(5),
+  ],
+};
 
 function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
   const isXAxis = axis === 'x';
@@ -313,7 +340,7 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.echartsTimeSeriesQueryWithXAxisSort,
+    barChartQuerySection,
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
     sections.forecastIntervalControls,
