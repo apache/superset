@@ -34,10 +34,11 @@ def get_user_subject_ids_subquery(user_id: int) -> CompoundSelect:
 
     Includes:
     1. The user's own USER-type subject
-    2. ROLE-type subjects for all roles the user has
+    2. ROLE-type subjects for all direct and group-derived roles the user has
     3. GROUP-type subjects for all groups the user belongs to
     """
     from flask_appbuilder.security.sqla.models import (
+        assoc_group_role,
         assoc_user_group,
         assoc_user_role,
     )
@@ -62,7 +63,20 @@ def get_user_subject_ids_subquery(user_id: int) -> CompoundSelect:
         .where(assoc_user_group.c.user_id == user_id)
     )
 
-    return union_all(user_subj, role_subj, group_subj)
+    group_role_subj = (
+        select(Subject.id)
+        .join(
+            assoc_group_role,
+            Subject.role_id == assoc_group_role.c.role_id,
+        )
+        .join(
+            assoc_user_group,
+            assoc_group_role.c.group_id == assoc_user_group.c.group_id,
+        )
+        .where(assoc_user_group.c.user_id == user_id)
+    )
+
+    return union_all(user_subj, role_subj, group_subj, group_role_subj)
 
 
 def get_user_subject_ids(user_id: int) -> list[int]:
@@ -70,11 +84,27 @@ def get_user_subject_ids(user_id: int) -> list[int]:
 
     Includes:
     1. The user's own USER-type subject
-    2. ROLE-type subjects for all roles the user has
+    2. ROLE-type subjects for all direct and group-derived roles the user has
     3. GROUP-type subjects for all groups the user belongs to
     """
     result = db.session.execute(get_user_subject_ids_subquery(user_id))
     return [row[0] for row in result]
+
+
+def get_current_user_subject_ids() -> list[int]:
+    """Return Subject IDs represented by the current request principal."""
+    from flask import g
+
+    from superset.utils.core import get_user_id
+
+    user = getattr(g, "user", None)
+    if getattr(user, "is_guest_user", False):
+        return [
+            subject.id for subject in subjects_from_roles(getattr(user, "roles", []))
+        ]
+
+    user_id = get_user_id()
+    return get_user_subject_ids(user_id) if user_id else []
 
 
 def get_user_subject(user_id: int) -> Subject | None:
@@ -87,6 +117,23 @@ def get_user_subject(user_id: int) -> Subject | None:
         )
         .first()
     )
+
+
+def get_or_create_user_subject(user_id: int) -> Subject | None:
+    """Get or create the USER-type Subject for a given user ID."""
+    if subject := get_user_subject(user_id):
+        return subject
+
+    from superset import security_manager
+    from superset.subjects.sync import sync_user_subject
+
+    user = db.session.get(security_manager.user_model, user_id)
+    if not user:
+        return None
+
+    sync_user_subject(user)
+    db.session.flush()
+    return get_user_subject(user_id)
 
 
 def get_subject(id_: int) -> Subject | None:

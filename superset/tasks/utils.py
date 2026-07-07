@@ -93,7 +93,12 @@ def _get_indirect_editor_user(editors: list[Any]) -> User | None:
     if not conditions:
         return None
 
-    return db.session.query(User).filter(or_(*conditions)).order_by(User.id).first()
+    return (
+        db.session.query(User)
+        .filter(User.active.is_(True), or_(*conditions))
+        .order_by(User.id)
+        .first()
+    )
 
 
 # pylint: disable=too-many-branches

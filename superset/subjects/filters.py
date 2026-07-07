@@ -26,10 +26,35 @@ from sqlalchemy import or_, Table
 from sqlalchemy.orm import DeclarativeMeta
 from sqlalchemy.orm.query import Query
 
-from superset import db, is_feature_enabled, security_manager
+from superset import db, security_manager
 from superset.subjects.models import Subject
+from superset.subjects.types import SubjectType
 from superset.utils.core import get_user_id
 from superset.views.base import BaseFilter
+
+
+def _apply_excluded_users(query: Query) -> Query:
+    missing = object()
+    configured_excluded_users = current_app.config.get(
+        "EXCLUDE_USERS_FROM_LISTS", missing
+    )
+    if configured_excluded_users is missing:
+        return query
+    excluded_users = (
+        security_manager.get_exclude_users_from_lists()
+        if configured_excluded_users is None
+        else configured_excluded_users
+    )
+    if not excluded_users:
+        return query
+    user_model = security_manager.user_model
+    return query.filter(
+        or_(
+            Subject.type != SubjectType.USER,
+            Subject.user_id.is_(None),
+            Subject.user.has(user_model.username.not_in(excluded_users)),
+        )
+    )
 
 
 def subject_type_filter(entity_config_key: str | None = None) -> type[BaseFilter]:
@@ -53,9 +78,9 @@ def subject_type_filter(entity_config_key: str | None = None) -> type[BaseFilter
 
             allowed = entity_types if entity_types is not None else global_types
             if allowed is None:
-                return query
+                return _apply_excluded_users(query)
 
-            return query.filter(Subject.type.in_(allowed))
+            return _apply_excluded_users(query.filter(Subject.type.in_(allowed)))
 
     return _Filter
 
@@ -78,8 +103,8 @@ class BaseFilterRelatedSubjects(BaseFilter):
             "SUBJECTS_RELATED_TYPES"
         )
         if allowed_types is not None:
-            return query.filter(Subject.type.in_(allowed_types))
-        return query
+            return _apply_excluded_users(query.filter(Subject.type.in_(allowed_types)))
+        return _apply_excluded_users(query)
 
 
 class FilterRelatedSubjects(BaseFilter):
@@ -94,20 +119,58 @@ class FilterRelatedSubjects(BaseFilter):
     def apply(self, query: Query, value: Optional[Any]) -> Query:
         if value:
             ilike_value = f"%{value}%"
-            return query.filter(
-                or_(
-                    Subject.label.ilike(ilike_value),
-                    Subject.extra_search.ilike(ilike_value),
+            return _apply_excluded_users(
+                query.filter(
+                    or_(
+                        Subject.label.ilike(ilike_value),
+                        Subject.extra_search.ilike(ilike_value),
+                    )
                 )
             )
-        return query
+        return _apply_excluded_users(query)
+
+
+def filter_subject_relation_by_current_user(
+    query: Query,
+    *,
+    model: type[DeclarativeMeta],
+    relation_table: Table,
+    fk_column: str,
+) -> Query:
+    """Filter resources whose subject relation includes the current user."""
+    from superset.subjects.utils import get_user_subject_ids_subquery
+
+    user_id = get_user_id()
+    if not user_id:
+        return query.filter(model.id < 0)
+
+    fk_col = relation_table.c[fk_column]
+    subject_subquery = get_user_subject_ids_subquery(user_id)
+    related_query = db.session.query(fk_col).filter(
+        relation_table.c.subject_id.in_(subject_subquery)
+    )
+    return query.filter(model.id.in_(related_query))
+
+
+def subject_relation_exists_for_current_user(
+    relation_table: Table,
+    *,
+    subject_column: str = "subject_id",
+) -> Any:
+    """Return an ``IN`` predicate for a relation table and current user subjects."""
+    from superset.subjects.utils import get_user_subject_ids_subquery
+
+    user_id = get_user_id()
+    if not user_id:
+        return relation_table.c[subject_column].in_([])
+    return relation_table.c[subject_column].in_(get_user_subject_ids_subquery(user_id))
 
 
 class EditableFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     """Filter resources the current user can edit (subject-based).
 
-    When ``ENABLE_VIEWERS`` is on: checks all user subjects (user + roles + groups).
-    When off: checks only the user's own USER-type subject.
+    Checks all user subjects (user + roles + groups) so list filters match the
+    actual editorship check.
     Admin: no filter (sees everything).
 
     Subclasses must set ``model`` and ``editors_table``.
@@ -124,31 +187,9 @@ class EditableFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         if security_manager.is_admin():
             return query
 
-        editors_table = self.editors_table
-        fk_col = editors_table.c[self.editors_fk_column]
-
-        if is_feature_enabled("ENABLE_VIEWERS"):
-            from superset.subjects.utils import get_user_subject_ids_subquery
-
-            user_id = get_user_id()
-            if not user_id:
-                return query.filter(self.model.id < 0)
-
-            subject_subquery = get_user_subject_ids_subquery(user_id)
-            editor_query = db.session.query(fk_col).filter(
-                editors_table.c.subject_id.in_(subject_subquery)
-            )
-            return query.filter(self.model.id.in_(editor_query))
-
-        editor_ids_query = (
-            db.session.query(fk_col)
-            .join(
-                Subject.__table__,
-                Subject.__table__.c.id == editors_table.c.subject_id,
-            )
-            .filter(
-                Subject.__table__.c.type == 1,
-                Subject.__table__.c.user_id == get_user_id(),
-            )
+        return filter_subject_relation_by_current_user(
+            query,
+            model=self.model,
+            relation_table=self.editors_table,
+            fk_column=self.editors_fk_column,
         )
-        return query.filter(self.model.id.in_(editor_ids_query))

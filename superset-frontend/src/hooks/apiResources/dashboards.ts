@@ -42,7 +42,6 @@ const DASHBOARD_GET_COLUMNS = [
   'charts',
   'editors',
   'viewers',
-  'roles',
   'tags',
   'changed_on_delta_humanized',
   'created_on_delta_humanized',

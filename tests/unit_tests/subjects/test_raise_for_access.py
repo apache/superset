@@ -65,7 +65,7 @@ def test_raise_for_access_editor_allows(app_context):
 
 
 def test_raise_for_access_viewer_published_allows(app_context):
-    """Viewer can access a published dashboard with viewers when ENABLE_VIEWERS on."""
+    """Viewer can access a published dashboard with explicit viewers."""
     sm = _make_sm()
     dashboard = _make_dashboard(published=True, has_viewers=True)
 
@@ -83,7 +83,7 @@ def test_raise_for_access_viewer_published_allows(app_context):
 
 
 def test_raise_for_access_viewer_unpublished_denies(app_context):
-    """Viewer cannot access an unpublished dashboard even when ENABLE_VIEWERS on."""
+    """Viewer cannot access an unpublished dashboard."""
     sm = _make_sm()
     dashboard = _make_dashboard(published=False, has_viewers=True)
 
@@ -103,7 +103,7 @@ def test_raise_for_access_viewer_unpublished_denies(app_context):
 
 
 def test_raise_for_access_no_viewers_dataset_fallback(app_context):
-    """When no viewers, falls back to dataset-based access (ENABLE_VIEWERS on)."""
+    """When no viewers exist, dashboard access falls back to dataset access."""
     sm = _make_sm()
     dashboard = _make_dashboard(published=True, has_viewers=False, has_datasources=True)
 
@@ -121,7 +121,7 @@ def test_raise_for_access_no_viewers_dataset_fallback(app_context):
 
 
 def test_raise_for_access_no_viewers_no_datasources_allows(app_context):
-    """Dashboard with no viewers and no datasources allowed (ENABLE_VIEWERS on)."""
+    """Dashboard with no viewers and no datasources is allowed."""
     sm = _make_sm()
     dashboard = _make_dashboard(
         published=True, has_viewers=False, has_datasources=False
@@ -140,7 +140,7 @@ def test_raise_for_access_no_viewers_no_datasources_allows(app_context):
 
 
 def test_raise_for_access_legacy_when_viewers_off(app_context):
-    """When ENABLE_VIEWERS is off, legacy dataset-based access applies."""
+    """When no viewers exist, implicit dataset-based access still applies."""
     sm = _make_sm()
     dashboard = _make_dashboard(published=True)
 
@@ -155,6 +155,24 @@ def test_raise_for_access_legacy_when_viewers_off(app_context):
         ),
     ):
         sm.raise_for_access(dashboard=dashboard)
+
+
+def test_raise_for_access_dashboard_viewers_override_implicit_access(app_context):
+    """Explicit dashboard viewers disable implicit dataset-based view access."""
+    sm = _make_sm()
+    dashboard = _make_dashboard(published=True, has_viewers=True)
+
+    with (
+        patch.object(sm, "is_admin", return_value=False),
+        patch.object(sm, "is_editor", return_value=False),
+        patch.object(sm, "is_viewer", return_value=False),
+        patch.object(sm, "is_guest_user", return_value=False),
+        patch.object(sm, "can_access_datasource", return_value=True),
+        patch("superset.is_feature_enabled", return_value=False),
+        patch.object(sm, "get_dashboard_access_error_object", return_value=MagicMock()),
+    ):
+        with pytest.raises(SupersetSecurityException):
+            sm.raise_for_access(dashboard=dashboard)
 
 
 # -- Chart access path tests --
@@ -172,7 +190,7 @@ def _make_chart(*, has_datasource: bool = True):
 
 
 def test_raise_for_access_chart_viewer_allows(app_context):
-    """Chart viewer gets access when ENABLE_VIEWERS is on."""
+    """Chart viewer gets access when explicit viewers are present."""
     sm = _make_sm()
     chart = _make_chart()
 
@@ -188,8 +206,8 @@ def test_raise_for_access_chart_viewer_allows(app_context):
         sm.raise_for_access(chart=chart)
 
 
-def test_raise_for_access_chart_viewer_denied_when_flag_off(app_context):
-    """Chart viewer denied when ENABLE_VIEWERS is off and no datasource access."""
+def test_raise_for_access_chart_viewer_denied_without_match(app_context):
+    """Explicit chart viewers deny non-viewers without datasource fallback."""
     sm = _make_sm()
     chart = _make_chart()
 
@@ -197,6 +215,23 @@ def test_raise_for_access_chart_viewer_denied_when_flag_off(app_context):
         patch.object(sm, "is_admin", return_value=False),
         patch.object(sm, "is_editor", return_value=False),
         patch.object(sm, "can_access_datasource", return_value=False),
+        patch.object(sm, "get_chart_access_error_object", return_value=MagicMock()),
+        patch("superset.is_feature_enabled", return_value=False),
+    ):
+        with pytest.raises(SupersetSecurityException):
+            sm.raise_for_access(chart=chart)
+
+
+def test_raise_for_access_chart_viewers_override_datasource_access(app_context):
+    """Explicit chart viewers disable implicit datasource-based view access."""
+    sm = _make_sm()
+    chart = _make_chart()
+
+    with (
+        patch.object(sm, "is_admin", return_value=False),
+        patch.object(sm, "is_editor", return_value=False),
+        patch.object(sm, "is_viewer", return_value=False),
+        patch.object(sm, "can_access_datasource", return_value=True),
         patch.object(sm, "get_chart_access_error_object", return_value=MagicMock()),
         patch("superset.is_feature_enabled", return_value=False),
     ):

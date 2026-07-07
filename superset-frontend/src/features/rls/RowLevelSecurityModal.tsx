@@ -190,12 +190,19 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
     });
 
     const subjects = mapSubjectsToPickerValues(
-      (resource.subjects || []).map(s => ({
-        id: s.value,
-        label: (s.label as string) || '',
-        type: (s.type as number) ?? 0,
-        secondary_label: s.secondary_label as string | undefined,
-      })),
+      (resource.subjects || []).flatMap(s => {
+        const subject = s as typeof s & { id?: number };
+        const id = subject.id ?? subject.value;
+        if (id === undefined) {
+          return [];
+        }
+        return {
+          id,
+          label: (subject.label as string) || '',
+          type: (subject.type as number) ?? 0,
+          secondary_label: subject.secondary_label as string | undefined,
+        };
+      }),
     );
 
     return { tables, subjects };

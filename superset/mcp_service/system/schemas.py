@@ -30,6 +30,7 @@ from typing import Annotated, Any, List
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from superset.subjects.types import SubjectType
 
 
 class HealthCheckResponse(BaseModel):
@@ -272,7 +273,7 @@ def serialize_subject_object(subject: Any) -> SubjectInfo | None:
         return None
 
     type_val = getattr(subject, "type", None)
-    type_name = type_val.name if type_val is not None else None
+    type_name = SubjectType(type_val).name if type_val is not None else None
 
     return SubjectInfo(
         id=getattr(subject, "id", None),

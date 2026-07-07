@@ -67,15 +67,16 @@ def sync_subjects() -> None:
 
     # Sync groups (table may not exist)
     group_count = 0
+    group_model = None
     try:
-        from flask_appbuilder.models.sqla.interface import Group
+        group_model = security_manager.group_model
 
-        groups = db.session.query(Group).all()
+        groups = db.session.query(group_model).all()
         for group in groups:
             sync_group_subject(group)
             group_count += 1
         click.echo(f"Synced {group_count} group subjects.")
-    except Exception:
+    except Exception:  # noqa: BLE001
         click.echo("Group table not found, skipping group sync.")
 
     # Remove orphaned subjects
@@ -91,7 +92,15 @@ def sync_subjects() -> None:
         .filter(~Subject.role_id.in_(db.session.query(role_model.id)))
         .all()
     )
-    if orphaned := orphaned_users + orphaned_roles:
+    orphaned_groups = []
+    if group_model is not None:
+        orphaned_groups = (
+            db.session.query(Subject)
+            .filter(Subject.type == SubjectType.GROUP)
+            .filter(~Subject.group_id.in_(db.session.query(group_model.id)))
+            .all()
+        )
+    if orphaned := orphaned_users + orphaned_roles + orphaned_groups:
         for subject in orphaned:
             db.session.delete(subject)
         click.echo(f"Removed {len(orphaned)} orphaned subjects.")

@@ -22,13 +22,16 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.query import Query
 
-from superset import db, is_feature_enabled, security_manager
+from superset import db, security_manager
 from superset.connectors.sqla import models
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import FavStar
 from superset.models.slice import Slice
-from superset.subjects.filters import EditableFilter
-from superset.subjects.models import chart_editors, Subject
+from superset.subjects.filters import (
+    EditableFilter,
+    subject_relation_exists_for_current_user,
+)
+from superset.subjects.models import chart_editors
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
 from superset.utils.core import get_user_id
 from superset.utils.filters import get_dataset_access_filters
@@ -108,9 +111,7 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         if security_manager.can_access_all_datasources():
             return query
 
-        if is_feature_enabled("ENABLE_VIEWERS"):
-            return self._apply_viewers(query)
-        return self._apply_legacy(query)
+        return self._apply_viewers(query)
 
     def _apply_viewers(self, query: Query) -> Query:
         from superset.subjects.models import chart_editors, chart_viewers
@@ -154,6 +155,12 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             )
         )
         filters.append(Slice.id.in_(no_viewer_query))
+
+        extra_filters = current_app.config.get("EXTRA_ACCESS_QUERY_FILTERS", {})
+        if extra_charts_filter := extra_filters.get("charts"):
+            user_id = get_user_id()
+            if user_id:
+                filters.append(Slice.id.in_(extra_charts_filter(user_id)))
 
         return query.filter(or_(*filters)) if filters else query
 
@@ -234,18 +241,10 @@ class ChartOwnedCreatedFavoredByMeFilter(BaseFilter):  # pylint: disable=too-few
         if security_manager.current_user is None:
             return query
 
-        from superset.subjects.models import chart_editors, Subject
+        from superset.subjects.models import chart_editors
 
-        editor_ids_query = (
-            db.session.query(chart_editors.c.chart_id)
-            .join(
-                Subject.__table__,
-                Subject.__table__.c.id == chart_editors.c.subject_id,
-            )
-            .filter(
-                Subject.__table__.c.type == 1,
-                Subject.__table__.c.user_id == get_user_id(),
-            )
+        editor_ids_query = db.session.query(chart_editors.c.chart_id).filter(
+            subject_relation_exists_for_current_user(chart_editors)
         )
 
         return query.join(
@@ -293,12 +292,7 @@ class ChartDeletedStateFilter(  # pylint: disable=too-few-public-methods
         # emits an EXISTS subquery so it composes with the base access filter
         # without producing duplicate rows from a join.
         editable = Slice.editors.any(
-            chart_editors.c.subject_id.in_(
-                db.session.query(Subject.id).filter(
-                    Subject.type == 1,
-                    Subject.user_id == get_user_id(),
-                )
-            )
+            subject_relation_exists_for_current_user(chart_editors)
         )
         if normalized == "only":
             # ``super().apply`` already restricted to ``deleted_at IS NOT NULL``.

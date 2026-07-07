@@ -34,8 +34,8 @@ interface AccessSectionProps {
   tags: TagType[];
   editors?: Subject[];
   viewers?: Subject[];
-  onChangeEditors?: (editors: SubjectPickerValue[]) => void;
-  onChangeViewers?: (viewers: SubjectPickerValue[]) => void;
+  onChangeEditors: (editors: SubjectPickerValue[]) => void;
+  onChangeViewers: (viewers: SubjectPickerValue[]) => void;
   onChangeTags: (tags: { label: string; value: number }[]) => void;
   onClearTags: () => void;
 }
@@ -86,7 +86,7 @@ const AccessSection = ({
           allowClear
           ariaLabel={t('Editors')}
           disabled={isLoading}
-          onChange={onChangeEditors!}
+          onChange={onChangeEditors}
           value={editorsSelectValue}
           placeholder={t('Search editors')}
         />
@@ -105,7 +105,7 @@ const AccessSection = ({
             allowClear
             ariaLabel={t('Viewers')}
             disabled={isLoading}
-            onChange={onChangeViewers!}
+            onChange={onChangeViewers}
             value={viewersSelectValue}
             placeholder={t('Search viewers')}
           />

@@ -16,7 +16,7 @@
 # under the License.
 
 
-from marshmallow import fields, Schema, ValidationError
+from marshmallow import fields, Schema, validates_schema, ValidationError
 from marshmallow.validate import Length, OneOf
 
 from superset.connectors.sqla.models import RowLevelSecurityFilter
@@ -34,6 +34,15 @@ def validate_non_blank_clause(value: str) -> None:
     """
     if not value or not value.strip():
         raise ValidationError("clause cannot be empty or whitespace-only.")
+
+
+def validate_regular_filter_subjects(data: dict[str, object]) -> None:
+    if data.get(
+        "filter_type"
+    ) == RowLevelSecurityFilterType.REGULAR.value and not data.get("subjects"):
+        raise ValidationError(
+            {"subjects": ["Regular RLS filters require at least one subject."]}
+        )
 
 
 id_description = "Unique if of rls filter"
@@ -153,6 +162,10 @@ class RLSPostSchema(Schema):
         allow_none=False,
         validate=validate_non_blank_clause,
     )
+
+    @validates_schema
+    def validate_subjects(self, data: dict[str, object], **kwargs: object) -> None:
+        validate_regular_filter_subjects(data)
 
 
 class RLSPutSchema(Schema):

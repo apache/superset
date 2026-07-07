@@ -137,16 +137,21 @@ class TestCreateDataset:
         assert call_kwargs["table_name"] == "orders"
         assert "editors" not in call_kwargs
 
+    @patch.object(create_dataset_module, "get_or_create_user_subject")
     @patch.object(create_dataset_module, "CreateDatasetCommand")
     @pytest.mark.asyncio
     async def test_create_dataset_with_editors(
-        self, mock_command_class, mcp_server
+        self, mock_command_class, mock_get_subject, mcp_server
     ) -> None:
-        """Editors list is forwarded to the command when supplied."""
+        """Editor user IDs are converted to subject IDs before creation."""
         mock_dataset = _make_mock_dataset()
         mock_command = MagicMock()
         mock_command.run.return_value = mock_dataset
         mock_command_class.return_value = mock_command
+        mock_get_subject.side_effect = [
+            MagicMock(id=50),
+            MagicMock(id=100),
+        ]
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
@@ -165,7 +170,7 @@ class TestCreateDataset:
         assert data["id"] == 42
 
         call_kwargs = mock_command_class.call_args[0][0]
-        assert call_kwargs["editors"] == [5, 10]
+        assert call_kwargs["editors"] == [50, 100]
 
     @pytest.mark.asyncio
     async def test_create_dataset_rejects_owners(self, mcp_server) -> None:

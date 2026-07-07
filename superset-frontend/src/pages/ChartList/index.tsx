@@ -748,7 +748,7 @@ function ChartList(props: ChartListProps) {
               ),
               optionFilterProps: SUBJECT_OPTION_FILTER_PROPS,
               paginate: true,
-              dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+              popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
             },
           ]
         : []),

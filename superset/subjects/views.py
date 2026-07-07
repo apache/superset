@@ -30,11 +30,10 @@ class SubjectModelView(ModelView):
     list_title = _("Subjects")
     show_title = _("Subject")
 
-    list_columns = ["id", "name", "label", "type", "active"]
+    list_columns = ["id", "label", "type", "active"]
     show_columns = [
         "id",
         "uuid",
-        "name",
         "label",
         "type",
         "active",

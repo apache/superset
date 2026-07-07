@@ -28,8 +28,11 @@ from superset.models.dashboard import Dashboard, is_uuid
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
 from superset.security.guest_token import GuestTokenResourceType, GuestUser
-from superset.subjects.filters import EditableFilter
-from superset.subjects.models import dashboard_editors, dashboard_viewers, Subject
+from superset.subjects.filters import (
+    EditableFilter,
+    subject_relation_exists_for_current_user,
+)
+from superset.subjects.models import dashboard_editors, dashboard_viewers
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
 from superset.utils.core import get_user_id
 from superset.utils.filters import get_dataset_access_filters
@@ -124,9 +127,7 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
         if security_manager.is_admin():
             return query
 
-        if is_feature_enabled("ENABLE_VIEWERS"):
-            return self._apply_viewers(query)
-        return self._apply_legacy(query)
+        return self._apply_viewers(query)
 
     def _apply_viewers(self, query: Query) -> Query:
         from superset.subjects.utils import get_user_subject_ids_subquery
@@ -185,6 +186,12 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
         )
         filters.append(Dashboard.id.in_(no_viewer_query))
 
+        extra_filters = current_app.config.get("EXTRA_ACCESS_QUERY_FILTERS", {})
+        if extra_dashboards_filter := extra_filters.get("dashboards"):
+            user_id = get_user_id()
+            if user_id:
+                filters.append(Dashboard.id.in_(extra_dashboards_filter(user_id)))
+
         # (D) Embedded: preserved as-is
         if is_feature_enabled("EMBEDDED_SUPERSET") and security_manager.is_guest_user(
             g.user
@@ -224,16 +231,8 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
         )
 
         # Editors query
-        editor_ids_query = (
-            db.session.query(dashboard_editors.c.dashboard_id)
-            .join(
-                Subject.__table__,
-                Subject.__table__.c.id == dashboard_editors.c.subject_id,
-            )
-            .filter(
-                Subject.__table__.c.type == 1,
-                Subject.__table__.c.user_id == get_user_id(),
-            )
+        editor_ids_query = db.session.query(dashboard_editors.c.dashboard_id).filter(
+            subject_relation_exists_for_current_user(dashboard_editors)
         )
 
         feature_flagged_filters = []
@@ -356,12 +355,7 @@ class DashboardDeletedStateFilter(  # pylint: disable=too-few-public-methods
         # emits an EXISTS subquery so it composes with the base access filter
         # without producing duplicate rows from a join.
         editable = Dashboard.editors.any(
-            dashboard_editors.c.subject_id.in_(
-                db.session.query(Subject.id).filter(
-                    Subject.type == 1,
-                    Subject.user_id == get_user_id(),
-                )
-            )
+            subject_relation_exists_for_current_user(dashboard_editors)
         )
         if normalized == "only":
             # ``super().apply`` already restricted to ``deleted_at IS NOT NULL``.

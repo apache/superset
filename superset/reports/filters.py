@@ -23,6 +23,7 @@ from sqlalchemy.orm.query import Query
 from superset import db, is_feature_enabled, security_manager
 from superset.daos.base import _escape_like
 from superset.reports.models import ReportSchedule
+from superset.subjects.filters import subject_relation_exists_for_current_user
 from superset.views.base import BaseFilter
 
 
@@ -56,20 +57,11 @@ class ReportScheduleFilter(BaseFilter):  # pylint: disable=too-few-public-method
         return query.filter(ReportSchedule.id.in_(editor_query))
 
     def _apply_legacy(self, query: Query) -> Query:
-        from superset.subjects.models import report_schedule_editors, Subject
-        from superset.utils.core import get_user_id
+        from superset.subjects.models import report_schedule_editors
 
-        editor_ids_query = (
-            db.session.query(report_schedule_editors.c.report_schedule_id)
-            .join(
-                Subject.__table__,
-                Subject.__table__.c.id == report_schedule_editors.c.subject_id,
-            )
-            .filter(
-                Subject.__table__.c.type == 1,
-                Subject.__table__.c.user_id == get_user_id(),
-            )
-        )
+        editor_ids_query = db.session.query(
+            report_schedule_editors.c.report_schedule_id
+        ).filter(subject_relation_exists_for_current_user(report_schedule_editors))
         return query.filter(ReportSchedule.id.in_(editor_ids_query))
 
 

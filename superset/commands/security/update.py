@@ -19,6 +19,8 @@
 import logging
 from typing import Any, Optional
 
+from marshmallow import ValidationError
+
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DatasourceNotFoundValidationError
 from superset.commands.security.exceptions import RLSRuleNotFoundError
@@ -27,6 +29,7 @@ from superset.commands.utils import populate_subject_list
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
 from superset.daos.security import RLSDAO
 from superset.extensions import db
+from superset.utils.core import RowLevelSecurityFilterType
 from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
@@ -61,6 +64,18 @@ class UpdateRLSRuleCommand(BaseCommand):
                 default_to_user=False,
             )
             self._properties["subjects"] = subjects
+        else:
+            subjects = list(self._model.subjects)
+
+        filter_type = self._properties.get("filter_type", self._model.filter_type)
+        filter_type_value = getattr(filter_type, "value", filter_type)
+        if (
+            filter_type_value == RowLevelSecurityFilterType.REGULAR.value
+            and not subjects
+        ):
+            raise ValidationError(
+                {"subjects": ["Regular RLS filters require at least one subject."]}
+            )
 
         if "tables" in self._properties:
             tables = (

@@ -34,7 +34,11 @@ from superset.daos.exceptions import DatasourceNotFound
 from superset.daos.tag import TagDAO
 from superset.subjects.exceptions import SubjectsNotFoundValidationError
 from superset.subjects.models import Subject
-from superset.subjects.utils import get_subject, get_user_subject, get_user_subject_ids
+from superset.subjects.utils import (
+    get_or_create_user_subject as get_user_subject,
+    get_subject,
+    get_user_subject_ids,
+)
 from superset.tags.models import ObjectType, Tag, TagType
 from superset.utils import json
 from superset.utils.core import DatasourceType, get_user_id

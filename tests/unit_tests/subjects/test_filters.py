@@ -17,8 +17,7 @@
 
 """Tests for subject-based access filters (Phase 4).
 
-These tests verify that DashboardAccessFilter, DashboardEditableFilter,
-ChartFilter, and ReportScheduleFilter properly branch on ENABLE_VIEWERS.
+These tests verify subject-based dashboard, chart, and report access filters.
 """
 
 from typing import Any
@@ -57,35 +56,16 @@ def test_dashboard_access_filter_admin_bypass():
         query.filter.assert_not_called()
 
 
-def test_dashboard_access_filter_viewers_branch():
-    """When ENABLE_VIEWERS is on, _apply_viewers is called."""
+def test_dashboard_access_filter_uses_viewers_path():
+    """Dashboard filters always respect explicit viewers when present."""
     from superset.dashboards.filters import DashboardAccessFilter
 
     sm = _make_sm()
-    with (
-        patch("superset.dashboards.filters.security_manager", sm),
-        patch("superset.dashboards.filters.is_feature_enabled", return_value=True),
-    ):
+    with patch("superset.dashboards.filters.security_manager", sm):
         f = DashboardAccessFilter.__new__(DashboardAccessFilter)
         with patch.object(f, "_apply_viewers", return_value="viewers_result") as m:
             result = f.apply(MagicMock(), None)
         assert result == "viewers_result"
-        m.assert_called_once()
-
-
-def test_dashboard_access_filter_legacy_branch():
-    """When ENABLE_VIEWERS is off, _apply_legacy is called."""
-    from superset.dashboards.filters import DashboardAccessFilter
-
-    sm = _make_sm()
-    with (
-        patch("superset.dashboards.filters.security_manager", sm),
-        patch("superset.dashboards.filters.is_feature_enabled", return_value=False),
-    ):
-        f = DashboardAccessFilter.__new__(DashboardAccessFilter)
-        with patch.object(f, "_apply_legacy", return_value="legacy_result") as m:
-            result = f.apply(MagicMock(), None)
-        assert result == "legacy_result"
         m.assert_called_once()
 
 
@@ -113,7 +93,6 @@ def test_dashboard_editable_filter_anonymous():
     sm = _make_sm()
     with (
         patch("superset.subjects.filters.security_manager", sm),
-        patch("superset.subjects.filters.is_feature_enabled", return_value=True),
         patch("superset.subjects.filters.get_user_id", return_value=None),
     ):
         f = DashboardEditableFilter.__new__(DashboardEditableFilter)
@@ -139,35 +118,16 @@ def test_chart_filter_admin_bypass():
         assert result is query
 
 
-def test_chart_filter_viewers_branch():
-    """When ENABLE_VIEWERS is on, _apply_viewers is called."""
+def test_chart_filter_uses_viewers_path():
+    """Chart filters always respect explicit viewers when present."""
     from superset.charts.filters import ChartFilter
 
     sm = _make_sm()
-    with (
-        patch("superset.charts.filters.security_manager", sm),
-        patch("superset.charts.filters.is_feature_enabled", return_value=True),
-    ):
+    with patch("superset.charts.filters.security_manager", sm):
         f = ChartFilter.__new__(ChartFilter)
         with patch.object(f, "_apply_viewers", return_value="viewers_result") as m:
             result = f.apply(MagicMock(), None)
         assert result == "viewers_result"
-        m.assert_called_once()
-
-
-def test_chart_filter_legacy_branch():
-    """When ENABLE_VIEWERS is off, _apply_legacy is called."""
-    from superset.charts.filters import ChartFilter
-
-    sm = _make_sm()
-    with (
-        patch("superset.charts.filters.security_manager", sm),
-        patch("superset.charts.filters.is_feature_enabled", return_value=False),
-    ):
-        f = ChartFilter.__new__(ChartFilter)
-        with patch.object(f, "_apply_legacy", return_value="legacy_result") as m:
-            result = f.apply(MagicMock(), None)
-        assert result == "legacy_result"
         m.assert_called_once()
 
 

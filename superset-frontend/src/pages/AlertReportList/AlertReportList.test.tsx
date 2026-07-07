@@ -31,6 +31,31 @@ import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import AlertListComponent from 'src/pages/AlertReportList';
 import { SubjectType } from 'src/types/Subject';
+import getBootstrapData from 'src/utils/getBootstrapData';
+
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    common: {
+      conf: {},
+      feature_flags: {},
+      user_subjects: [1],
+    },
+  })),
+}));
+
+const mockGetBootstrapData = getBootstrapData as jest.MockedFunction<
+  typeof getBootstrapData
+>;
+
+const mockBootstrapData = (userSubjects: number[]) =>
+  ({
+    common: {
+      conf: {},
+      feature_flags: {},
+      user_subjects: userSubjects,
+    },
+  }) as ReturnType<typeof getBootstrapData>;
 
 jest.setTimeout(30000);
 
@@ -231,6 +256,7 @@ const setupMocks = (
 // -- Setup / teardown --
 
 beforeEach(() => {
+  mockGetBootstrapData.mockReturnValue(mockBootstrapData([1]));
   fetchMock.removeRoutes().clearHistory();
   setupMocks();
 });
@@ -253,7 +279,7 @@ test('loads rows from API and renders alert names, status, and actions', async (
   const switches = screen.getAllByRole('switch');
   expect(switches).toHaveLength(3);
 
-  // Delete actions present for alerts where userId=1 is an editor.
+  // Delete actions present for alerts where subject id 1 is an editor.
   const deleteButtons = screen.getAllByTestId('delete-action');
   expect(deleteButtons.length).toBeGreaterThanOrEqual(2);
 
@@ -455,6 +481,7 @@ test('bulk select shows selected count and enables bulk actions after row select
 });
 
 test('read-only users do not see delete and bulk select controls', async () => {
+  mockGetBootstrapData.mockReturnValue(mockBootstrapData([]));
   fetchMock.removeRoutes().clearHistory();
   setupMocks(['can_read']); // no can_write
 
@@ -513,7 +540,7 @@ test('trigger-now action calls execute API for owned alert', async () => {
   renderAlertList();
   await screen.findByText('Weekly Sales Alert');
 
-  // mockUser is an editor of alert 1, so allowEdit is true,
+  // mockUser's subject is an editor of alert 1, so allowEdit is true,
   // meaning the trigger-now button is rendered.
   const triggerButtons = screen.getAllByTestId('trigger-now-action');
   expect(triggerButtons.length).toBeGreaterThanOrEqual(1);

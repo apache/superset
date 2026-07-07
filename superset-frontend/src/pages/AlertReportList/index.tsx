@@ -66,6 +66,7 @@ import { useExecuteReportSchedule } from 'src/features/alerts/hooks/useExecuteRe
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -123,6 +124,10 @@ function AlertList({
   const title = isReportEnabled ? t('Report') : t('Alert');
   const titlePlural = isReportEnabled ? t('reports') : t('alerts');
   const pathName = isReportEnabled ? 'Reports' : 'Alerts';
+  const userSubjects = useMemo(
+    () => new Set(getBootstrapData()?.common?.user_subjects ?? []),
+    [],
+  );
   const initialFilters = useMemo(
     () => [
       {
@@ -405,7 +410,7 @@ function AlertList({
           const allowEdit =
             original.editors
               ?.map((e: any) => e.value || e.id)
-              .includes(user.userId) || isUserAdmin(user);
+              .some((id: number) => userSubjects.has(id)) || isUserAdmin(user);
 
           return (
             <Switch
@@ -433,7 +438,7 @@ function AlertList({
           const allowEdit =
             original.editors
               ?.map((e: any) => e.value || e.id)
-              .includes(user.userId) || isUserAdmin(user);
+              .some((id: number) => userSubjects.has(id)) || isUserAdmin(user);
 
           const actions = [
             canEdit
@@ -490,7 +495,14 @@ function AlertList({
         id: QueryObjectColumns.ChangedBy,
       },
     ],
-    [canDelete, canEdit, isReportEnabled, toggleActive, handleExecuteReport],
+    [
+      canDelete,
+      canEdit,
+      isReportEnabled,
+      toggleActive,
+      handleExecuteReport,
+      userSubjects,
+    ],
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];

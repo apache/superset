@@ -101,6 +101,7 @@ import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import type { BootstrapData } from 'src/types/bootstrapTypes';
 import type User from 'src/types/User';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 const SEMANTIC_LAYERS_FLAG = 'SEMANTIC_LAYERS' as FeatureFlag;
 type DatasetExtra = {
@@ -224,6 +225,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   // can inspect them when a different filter changes.
   const currentTypeFilter = useRef<unknown>(undefined);
   const currentConnectionFilter = useRef<unknown>(undefined);
+  const userSubjects = useMemo(
+    () => new Set(getBootstrapData()?.common?.user_subjects ?? []),
+    [],
+  );
 
   // Ref wired to ListView's filter controls for programmatic per-filter clearing.
   const filtersRef = useRef<{
@@ -894,7 +899,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           const allowEdit =
             original.editors
               ?.map((o: Subject) => o.id)
-              .includes(Number(user.userId)) || isUserAdmin(user);
+              .some((id: number) => userSubjects.has(id)) || isUserAdmin(user);
 
           const handleEdit = () => openDatasetEditModal(original);
           const handleDelete = () => openDatasetDeleteModal(original);
@@ -1008,6 +1013,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       handleBulkDatasetExport,
       PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET,
       user,
+      userSubjects,
     ],
   );
 

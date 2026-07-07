@@ -17,11 +17,13 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from marshmallow import ValidationError
 
 from superset.commands.security.create import CreateRLSRuleCommand
 from superset.commands.security.delete import DeleteRLSRuleCommand
 from superset.commands.security.exceptions import RLSDatasourceForbiddenError
 from superset.commands.security.update import UpdateRLSRuleCommand
+from superset.utils.core import RowLevelSecurityFilterType
 
 
 def _mock_tables(*table_ids: int) -> list[MagicMock]:
@@ -90,6 +92,21 @@ def test_create_rls_rule_forbidden_if_any_datasource_denied() -> None:
             command.validate()
 
 
+def test_create_regular_rls_rule_requires_subjects() -> None:
+    command = CreateRLSRuleCommand(
+        {
+            "filter_type": RowLevelSecurityFilterType.REGULAR.value,
+            "tables": [1],
+            "subjects": [],
+        }
+    )
+
+    with pytest.raises(ValidationError) as exc:
+        command.validate()
+
+    assert "subjects" in exc.value.messages
+
+
 def test_update_rls_rule_forbidden_when_no_datasource_access() -> None:
     tables = _mock_tables(1)
 
@@ -130,6 +147,22 @@ def test_update_rls_rule_allowed_when_datasource_access() -> None:
 
     can_access.assert_called_once_with(datasource=tables[0])
     assert command._properties["tables"] == tables
+
+
+def test_update_regular_rls_rule_requires_subjects() -> None:
+    rule = MagicMock()
+    rule.filter_type = RowLevelSecurityFilterType.REGULAR.value
+    rule.subjects = []
+
+    with patch(
+        "superset.commands.security.update.RLSDAO.find_by_id",
+        return_value=rule,
+    ):
+        command = UpdateRLSRuleCommand(1, {"subjects": []})
+        with pytest.raises(ValidationError) as exc:
+            command.validate()
+
+    assert "subjects" in exc.value.messages
 
 
 def test_update_rls_rule_partial_update_preserves_tables_and_subjects() -> None:

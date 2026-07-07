@@ -51,6 +51,7 @@ import { Dispatch } from 'redux';
 import { Slice } from 'src/dashboard/types';
 import { navigateTo } from 'src/utils/navigationUtils';
 import type { ConnectDragSource } from 'react-dnd';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import AddSliceCard from './AddSliceCard';
 import AddSliceDragPreview from './dnd/AddSliceDragPreview';
 import { DragDroppable } from './dnd/DragDroppable';
@@ -153,11 +154,12 @@ function getFilteredSortedSlices(
   sortBy: keyof Slice,
   showOnlyMyCharts: boolean,
   userId: number,
+  userSubjects: Set<number>,
 ) {
   return Object.values(slices)
     .filter(slice =>
       showOnlyMyCharts
-        ? slice?.editors?.find(editor => editor.id === userId) ||
+        ? slice?.editors?.find(editor => userSubjects.has(editor.id)) ||
           slice?.created_by?.id === userId
         : true,
     )
@@ -191,6 +193,10 @@ function SliceAdder({
   const [showOnlyMyCharts, setShowOnlyMyCharts] = useState(() =>
     getItem(LocalStorageKeys.DashboardEditorShowOnlyMyCharts, true),
   );
+  const userSubjects = useMemo(
+    () => new Set(getBootstrapData()?.common?.user_subjects ?? []),
+    [],
+  );
 
   // Keep refs updated with latest values
   useEffect(() => {
@@ -209,8 +215,9 @@ function SliceAdder({
         sortBy,
         showOnlyMyCharts,
         userId,
+        userSubjects,
       ),
-    [slices, searchTerm, sortBy, showOnlyMyCharts, userId],
+    [slices, searchTerm, sortBy, showOnlyMyCharts, userId, userSubjects],
   );
 
   const userIdForFetch = useCallback(

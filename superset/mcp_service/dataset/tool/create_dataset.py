@@ -41,6 +41,7 @@ from superset.mcp_service.dataset.schemas import (
     DatasetInfo,
     serialize_dataset_object,
 )
+from superset.subjects.utils import get_or_create_user_subject
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +96,7 @@ async def create_dataset(
       databases without schema namespaces (e.g. SQLite).
     - catalog: Catalog where the table lives. Omit for databases without catalog
       support.
-    - editors: List of subject IDs to set as editors (defaults to calling user)
+    - editors: List of user IDs to set as editors (defaults to calling user)
 
     Example:
     ```json
@@ -128,7 +129,16 @@ async def create_dataset(
         if catalog is not None:
             dataset_properties["catalog"] = catalog
         if request.editors is not None:
-            dataset_properties["editors"] = request.editors
+            editor_subject_ids = []
+            for user_id in request.editors:
+                subject = get_or_create_user_subject(user_id)
+                if subject is None:
+                    return DatasetError.create(
+                        error=f"User not found: {user_id}",
+                        error_type="ValidationError",
+                    )
+                editor_subject_ids.append(subject.id)
+            dataset_properties["editors"] = editor_subject_ids
 
         with event_logger.log_context(action="mcp.create_dataset.create"):
             dataset = CreateDatasetCommand(dataset_properties).run()

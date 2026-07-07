@@ -1595,7 +1595,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 and self.has_guest_access(dashboard)
             )
             or (
-                current_app.config.get("VIEWER_PROMISCUOUS_MODE")
+                is_feature_enabled("ENABLE_VIEWERS")
+                and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
                 and self.is_viewer(dashboard)
                 and dashboard.published
             )
@@ -3883,6 +3884,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             def has_promiscuous_chart_access() -> bool:
                 if not (
                     form_data
+                    and is_feature_enabled("ENABLE_VIEWERS")
                     and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
                     and (viewer_slice_id := form_data.get("slice_id"))
                     and (
@@ -3930,7 +3932,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             and self.is_guest_user()
                         )
                         or (
-                            current_app.config.get("VIEWER_PROMISCUOUS_MODE")
+                            is_feature_enabled("ENABLE_VIEWERS")
+                            and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
                             and self.is_viewer(dashboard_)
                         )
                     )
@@ -4039,25 +4042,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if self.is_admin() or self.is_editor(dashboard):
                 return
 
-            # Viewer access path (when ENABLE_VIEWERS is on)
-            if is_feature_enabled("ENABLE_VIEWERS"):
-                if dashboard.viewers:
-                    # Dashboard has viewers — check if published + user is a viewer
-                    if dashboard.published and self.is_viewer(dashboard):
-                        return
-                elif not dashboard.datasources or any(
-                    self.can_access_datasource(datasource)
-                    for datasource in dashboard.datasources
-                ):
-                    # No viewers assigned → fall back to dataset-based check
+            if dashboard.viewers:
+                if dashboard.published and self.is_viewer(dashboard):
                     return
-            else:
-                # Regular RBAC logic
-                if not dashboard.datasources or any(
-                    self.can_access_datasource(datasource)
-                    for datasource in dashboard.datasources
-                ):
-                    return
+            elif not dashboard.datasources or any(
+                self.can_access_datasource(datasource)
+                for datasource in dashboard.datasources
+            ):
+                return
 
             raise SupersetSecurityException(
                 self.get_dashboard_access_error_object(dashboard)
@@ -4067,10 +4059,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if self.is_admin() or self.is_editor(chart):
                 return
 
-            if is_feature_enabled("ENABLE_VIEWERS") and self.is_viewer(chart):
-                return
-
-            if chart.datasource and self.can_access_datasource(chart.datasource):
+            if chart.viewers:
+                if self.is_viewer(chart):
+                    return
+            elif chart.datasource and self.can_access_datasource(chart.datasource):
                 return
 
             raise SupersetSecurityException(self.get_chart_access_error_object(chart))
@@ -4188,11 +4180,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if not (hasattr(g, "user") and g.user is not None):
             return []
 
-        # Guest users don't have a database-backed user ID; their RLS rules
-        # come from the token via get_guest_rls_filters() instead.
-        if self.is_guest_user():
-            return []
-
         # Check request-scoped cache. Username is included in the key to stay
         # safe if override_user() is called with different users in one request.
         cache: _RLSCache = getattr(g, "_rls_filter_cache", {})
@@ -4208,9 +4195,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             RLSFilterTables,
             RowLevelSecurityFilter,
         )
-        from superset.subjects.utils import get_user_subject_ids
+        from superset.subjects.utils import get_current_user_subject_ids
 
-        user_subject_ids = get_user_subject_ids(g.user.id)
+        user_subject_ids = get_current_user_subject_ids()
         regular_filter_subjects = (
             self.session.query(RLSFilterSubjects.c.rls_filter_id)
             .join(RowLevelSecurityFilter)
@@ -4273,9 +4260,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if not (hasattr(g, "user") and g.user is not None):
             return
 
-        if self.is_guest_user():
-            return
-
         username = get_username()
         if username is None:
             return
@@ -4296,9 +4280,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             RLSFilterTables,
             RowLevelSecurityFilter,
         )
-        from superset.subjects.utils import get_user_subject_ids
+        from superset.subjects.utils import get_current_user_subject_ids
 
-        user_subject_ids = get_user_subject_ids(g.user.id)
+        user_subject_ids = get_current_user_subject_ids()
         regular_filter_subjects = (
             self.session.query(RLSFilterSubjects.c.rls_filter_id)
             .join(RowLevelSecurityFilter)
@@ -4732,16 +4716,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param resource: The dashboard, dataset, chart, etc. resource
         :returns: Whether the current user is an editor of the resource
         """
-        from superset.subjects.utils import get_user_subject_ids
+        from superset.subjects.utils import get_user_subject_ids, subjects_from_roles
 
         if self.is_admin():
             return True
 
-        user_id = get_user_id()
-        if not user_id:
+        if user_id := get_user_id():
+            subject_ids = set(get_user_subject_ids(user_id))
+        elif self.is_guest_user():
+            subject_ids = {
+                s.id for s in subjects_from_roles(getattr(g.user, "roles", []))
+            }
+        else:
+            subject_ids = set()
+        if not subject_ids:
             return False
-
-        subject_ids = set(get_user_subject_ids(user_id))
         editor_subject_ids = set(get_extra_editor_subject_ids(resource))
         if hasattr(resource, "editors"):
             editor_subject_ids.update(s.id for s in resource.editors)
@@ -4757,16 +4746,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param resource: The dashboard, chart, etc. resource
         :returns: Whether the current user can view the resource
         """
-        from superset.subjects.utils import get_user_subject_ids
+        from superset.subjects.utils import get_user_subject_ids, subjects_from_roles
 
         if self.is_admin():
             return True
 
-        user_id = get_user_id()
-        if not user_id:
+        if user_id := get_user_id():
+            subject_ids = set(get_user_subject_ids(user_id))
+        elif self.is_guest_user():
+            subject_ids = {
+                s.id for s in subjects_from_roles(getattr(g.user, "roles", []))
+            }
+        else:
+            subject_ids = set()
+        if not subject_ids:
             return False
-
-        subject_ids = set(get_user_subject_ids(user_id))
 
         editor_subject_ids = set(get_extra_editor_subject_ids(resource))
         if hasattr(resource, "editors"):

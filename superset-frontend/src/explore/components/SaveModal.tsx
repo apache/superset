@@ -649,7 +649,7 @@ const SaveModal = ({
           },
           {
             col: 'id',
-            opr: 'dashboard_is_editable',
+            opr: 'is_editable',
             value: true,
           },
         ],

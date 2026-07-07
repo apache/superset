@@ -103,6 +103,7 @@ import {
 import { StatusMessage } from 'src/filters/components/common';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -528,6 +529,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const currentUser = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
+  const currentUserSubjectId = getBootstrapData()?.common?.user_subjects?.[0];
   // Check config for alternate notification methods setting
   const conf = useCommonConf();
   const allowedNotificationMethods: NotificationMethodOption[] =
@@ -1892,10 +1894,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       setCurrentAlert({
         ...defaultAlert,
         editors:
-          currentUser?.userId !== undefined
+          currentUserSubjectId !== undefined && currentUser
             ? [
                 {
-                  value: currentUser.userId,
+                  value: currentUserSubjectId,
                   label: SubjectSelectLabel({
                     label: `${currentUser.firstName} ${currentUser.lastName}`,
                     type: 1,

@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import uuid
+
 from flask_appbuilder import Model
 from sqlalchemy import (
     Boolean,
@@ -44,7 +46,7 @@ class Subject(AuditMixinNullable, Model):
     )
 
     id = Column(Integer, primary_key=True)
-    uuid = Column(UUIDType(binary=True), nullable=True)
+    uuid = Column(UUIDType(binary=True), default=uuid.uuid4, nullable=True)
     label = Column(String(255), nullable=False)
     secondary_label = Column(String(255), nullable=True)
     active = Column(Boolean, nullable=True)

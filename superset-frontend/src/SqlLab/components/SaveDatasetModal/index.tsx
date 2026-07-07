@@ -243,7 +243,6 @@ export const SaveDatasetModal = ({
   >(undefined);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const user = useAppSelector(state => state.user);
   const dispatch = useAppDispatch();
   const [includeTemplateParameters, setIncludeTemplateParameters] =
     useState(false);
@@ -320,42 +319,38 @@ export const SaveDatasetModal = ({
     }
   };
 
-  const loadDatasetOverwriteOptions = useCallback(
-    async (input = '') => {
-      const { userId } = user;
-      const queryParams = rison.encode({
-        filters: [
-          {
-            col: 'table_name',
-            opr: 'ct',
-            value: input,
-          },
-          {
-            col: 'editors',
-            opr: 'rel_m_m',
-            value: userId,
-          },
-        ],
-        order_column: 'changed_on_delta_humanized',
-        order_direction: 'desc',
-      });
+  const loadDatasetOverwriteOptions = useCallback(async (input = '') => {
+    const queryParams = rison.encode({
+      filters: [
+        {
+          col: 'table_name',
+          opr: 'ct',
+          value: input,
+        },
+        {
+          col: 'id',
+          opr: 'is_editable',
+          value: true,
+        },
+      ],
+      order_column: 'changed_on_delta_humanized',
+      order_direction: 'desc',
+    });
 
-      return SupersetClient.get({
-        endpoint: `/api/v1/dataset/?q=${queryParams}`,
-      }).then(response => ({
-        data: response.json.result.map(
-          (r: { table_name: string; id: number; editors: Subject[] }) => ({
-            value: r.table_name,
-            label: r.table_name,
-            datasetId: r.id,
-            editors: r.editors,
-          }),
-        ),
-        totalCount: response.json.count,
-      }));
-    },
-    [user],
-  );
+    return SupersetClient.get({
+      endpoint: `/api/v1/dataset/?q=${queryParams}`,
+    }).then(response => ({
+      data: response.json.result.map(
+        (r: { table_name: string; id: number; editors: Subject[] }) => ({
+          value: r.table_name,
+          label: r.table_name,
+          datasetId: r.id,
+          editors: r.editors,
+        }),
+      ),
+      totalCount: response.json.count,
+    }));
+  }, []);
 
   const handleSaveInDataset = () => {
     setLoading(true);

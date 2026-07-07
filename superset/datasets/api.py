@@ -59,7 +59,11 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.dataset import DatasetDAO
 from superset.databases.filters import DatabaseFilter
-from superset.datasets.filters import DatasetCertifiedFilter, DatasetIsNullOrEmptyFilter
+from superset.datasets.filters import (
+    DatasetCertifiedFilter,
+    DatasetEditableFilter,
+    DatasetIsNullOrEmptyFilter,
+)
 from superset.datasets.schemas import (
     DatasetCacheWarmUpRequestSchema,
     DatasetCacheWarmUpResponseSchema,
@@ -293,7 +297,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     }
     search_filters = {
         "sql": [DatasetIsNullOrEmptyFilter],
-        "id": [DatasetCertifiedFilter],
+        "id": [DatasetCertifiedFilter, DatasetEditableFilter],
     }
     search_columns = [
         "id",

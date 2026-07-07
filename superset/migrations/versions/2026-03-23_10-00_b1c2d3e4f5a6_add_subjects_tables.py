@@ -23,6 +23,7 @@ Create Date: 2026-03-23 10:00:00.000000
 """
 
 import logging
+import uuid
 
 from alembic import op
 from sqlalchemy import (
@@ -191,6 +192,7 @@ def _seed_subjects() -> None:
     subjects = sa_table(
         "subjects",
         sa_column("id", Integer),
+        sa_column("uuid", UUIDType(binary=True)),
         sa_column("label", String),
         sa_column("secondary_label", String),
         sa_column("active", Boolean),
@@ -392,9 +394,9 @@ def _seed_subjects() -> None:
     conn.execute(
         dashboard_editors.insert().from_select(
             ["subject_id", "dashboard_id"],
-            select(subjects.c.id, dashboard_user.c.dashboard_id).join(
-                subjects, subjects.c.user_id == dashboard_user.c.user_id
-            ),
+            select(subjects.c.id, dashboard_user.c.dashboard_id)
+            .join(subjects, subjects.c.user_id == dashboard_user.c.user_id)
+            .distinct(),
         )
     )
 
@@ -402,9 +404,9 @@ def _seed_subjects() -> None:
     conn.execute(
         chart_editors.insert().from_select(
             ["subject_id", "chart_id"],
-            select(subjects.c.id, slice_user.c.slice_id).join(
-                subjects, subjects.c.user_id == slice_user.c.user_id
-            ),
+            select(subjects.c.id, slice_user.c.slice_id)
+            .join(subjects, subjects.c.user_id == slice_user.c.user_id)
+            .distinct(),
         )
     )
 
@@ -412,9 +414,9 @@ def _seed_subjects() -> None:
     conn.execute(
         sqlatable_editors.insert().from_select(
             ["subject_id", "table_id"],
-            select(subjects.c.id, sqlatable_user.c.table_id).join(
-                subjects, subjects.c.user_id == sqlatable_user.c.user_id
-            ),
+            select(subjects.c.id, sqlatable_user.c.table_id)
+            .join(subjects, subjects.c.user_id == sqlatable_user.c.user_id)
+            .distinct(),
         )
     )
 
@@ -422,9 +424,9 @@ def _seed_subjects() -> None:
     conn.execute(
         report_schedule_editors.insert().from_select(
             ["subject_id", "report_schedule_id"],
-            select(subjects.c.id, report_schedule_user.c.report_schedule_id).join(
-                subjects, subjects.c.user_id == report_schedule_user.c.user_id
-            ),
+            select(subjects.c.id, report_schedule_user.c.report_schedule_id)
+            .join(subjects, subjects.c.user_id == report_schedule_user.c.user_id)
+            .distinct(),
         )
     )
 
@@ -432,9 +434,9 @@ def _seed_subjects() -> None:
     conn.execute(
         dashboard_viewers.insert().from_select(
             ["subject_id", "dashboard_id"],
-            select(subjects.c.id, dashboard_roles.c.dashboard_id).join(
-                subjects, subjects.c.role_id == dashboard_roles.c.role_id
-            ),
+            select(subjects.c.id, dashboard_roles.c.dashboard_id)
+            .join(subjects, subjects.c.role_id == dashboard_roles.c.role_id)
+            .distinct(),
         )
     )
 
@@ -442,11 +444,22 @@ def _seed_subjects() -> None:
     conn.execute(
         rls_filter_subjects.insert().from_select(
             ["subject_id", "rls_filter_id"],
-            select(subjects.c.id, rls_filter_roles.c.rls_filter_id).join(
-                subjects, subjects.c.role_id == rls_filter_roles.c.role_id
-            ),
+            select(subjects.c.id, rls_filter_roles.c.rls_filter_id)
+            .join(subjects, subjects.c.role_id == rls_filter_roles.c.role_id)
+            .distinct(),
         )
     )
+
+    subject_ids = [
+        row[0]
+        for row in conn.execute(select(subjects.c.id).where(subjects.c.uuid.is_(None)))
+    ]
+    for subject_id in subject_ids:
+        conn.execute(
+            subjects.update()
+            .where(subjects.c.id == subject_id)
+            .values(uuid=uuid.uuid4())
+        )
 
 
 def _drop_legacy_tables() -> None:
@@ -849,11 +862,19 @@ def upgrade() -> None:
         sa_column("name", String(250)),
         sa_column("type", String(50)),
     )
-    op.execute(
-        tag.update()
+    conn = op.get_bind()
+    existing_tag_names = {row[0] for row in conn.execute(select(tag.c.name))}
+    owner_tags = conn.execute(
+        select(tag.c.id, tag.c.name)
         .where(tag.c.name.like("owner:%"))
-        .values(name=literal("editor:") + func.substr(tag.c.name, 7))
+        .where(tag.c.type == "owner")
     )
+    for tag_id, name in owner_tags:
+        new_name = f"editor:{name.removeprefix('owner:')}"
+        if new_name in existing_tag_names:
+            continue
+        conn.execute(tag.update().where(tag.c.id == tag_id).values(name=new_name))
+        existing_tag_names.add(new_name)
     _rename_tag_type("owner", "editor", TAG_TYPES_WITH_EDITOR)
 
 
@@ -865,11 +886,19 @@ def downgrade() -> None:
         sa_column("name", String(250)),
         sa_column("type", String(50)),
     )
-    op.execute(
-        tag.update()
+    conn = op.get_bind()
+    existing_tag_names = {row[0] for row in conn.execute(select(tag.c.name))}
+    editor_tags = conn.execute(
+        select(tag.c.id, tag.c.name)
         .where(tag.c.name.like("editor:%"))
-        .values(name=literal("owner:") + func.substr(tag.c.name, 8))
+        .where(tag.c.type == "editor")
     )
+    for tag_id, name in editor_tags:
+        new_name = f"owner:{name.removeprefix('editor:')}"
+        if new_name in existing_tag_names:
+            continue
+        conn.execute(tag.update().where(tag.c.id == tag_id).values(name=new_name))
+        existing_tag_names.add(new_name)
     _rename_tag_type("editor", "owner", TAG_TYPES_WITH_OWNER)
 
     # 1. Recreate legacy owner/role tables and repopulate from editors/viewers

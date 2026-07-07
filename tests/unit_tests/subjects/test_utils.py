@@ -28,6 +28,7 @@ from superset.commands.utils import (
 from superset.subjects.exceptions import SubjectsNotFoundValidationError
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
+from superset.subjects.utils import get_user_subject_ids_subquery
 
 
 def _make_subject(
@@ -46,6 +47,15 @@ def _mock_sm(*, is_admin: bool = False) -> MagicMock:
     sm = MagicMock()
     sm.is_admin = MagicMock(return_value=is_admin)
     return sm
+
+
+def test_get_user_subject_ids_subquery_includes_group_roles(app_context):
+    """User subjects include roles inherited through group membership."""
+    query = get_user_subject_ids_subquery(7)
+    sql = str(query.compile(compile_kwargs={"literal_binds": True}))
+
+    assert "ab_group_role" in sql
+    assert "ab_user_group" in sql
 
 
 # --------------------------------------------------------------------------

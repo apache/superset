@@ -494,7 +494,7 @@ class CreateDatasetRequest(BaseModel):
         List[int] | None,
         Field(
             default=None,
-            description="Optional list of editor subject IDs. "
+            description="Optional list of editor user IDs. "
             "Defaults to the calling user.",
         ),
     ]
