@@ -87,8 +87,8 @@ test('maps all tokens together when all are set', () => {
 
 test('ignores non-number values for numeric tokens', () => {
   const theme = {
-    resultsGridRowHeight: '40' as any,
+    resultsGridRowHeight: '40',
     resultsGridHeaderFontSize: undefined,
-  } as SupersetTheme;
+  } as unknown as SupersetTheme;
   expect(buildResultsGridThemeOverrides(theme)).toBeUndefined();
 });
