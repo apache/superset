@@ -23,6 +23,26 @@ import getBootstrapData from 'src/utils/getBootstrapData';
 
 const bootstrapData = getBootstrapData();
 
+function getGuestTokenConfig(): Partial<ClientConfig> {
+  // Guest-rendered standalone pages (e.g. the chart viewer URL minted by
+  // the MCP `show_chart` tool) carry a short-lived, resource-scoped guest
+  // token in the URL. Configure the client with it so every API request
+  // sends the guest token header, mirroring the embedded SDK behavior.
+  const guestToken = new URLSearchParams(window.location.search).get(
+    'guest_token',
+  );
+  if (!guestToken) {
+    return {};
+  }
+  return {
+    guestToken,
+    guestTokenHeaderName:
+      (bootstrapData.common.conf.GUEST_TOKEN_HEADER_NAME as
+        | string
+        | undefined) || 'X-GuestToken',
+  };
+}
+
 function getDefaultConfiguration(): ClientConfig {
   const csrfNode = document.querySelector<HTMLInputElement>('#csrf_token');
   const csrfToken = csrfNode?.value;
@@ -70,6 +90,7 @@ function getDefaultConfiguration(): ClientConfig {
     host: window.location?.host || '',
     csrfToken: csrfToken || cookieCSRFToken,
     fetchRetryOptions,
+    ...getGuestTokenConfig(),
   };
 }
 
