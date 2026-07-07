@@ -2886,6 +2886,9 @@ msgstr "チャートの変更"
 msgid "Chart could not be created."
 msgstr "チャートを作成できませんでした。"
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "チャートを更新できませんでした。"
 
@@ -12807,6 +12810,11 @@ msgstr "色の割り当てに使用されるソースノードのカテゴリ。
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+
 msgid "The chart is still loading. Please wait a moment and try again."
 msgstr "チャートはまだ読み込み中です。しばらく待ってから再試行してください。"
 
@@ -12879,6 +12887,11 @@ msgstr "Supersetが「国」列で想定する国コード規格。"
 
 msgid "The dashboard has been saved"
 msgstr "ダッシュボードを保存しました"
+
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
+msgstr ""
 
 msgid "The data source seems to have been deleted"
 msgstr "データソースが削除されたようです"

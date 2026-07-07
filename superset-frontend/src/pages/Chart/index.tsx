@@ -303,8 +303,7 @@ export default function ExplorePage() {
   useEffect(() => {
     const unlisten = history.listen((loc: Location, action: Action) => {
       const saveAction = (loc.state as Record<string, unknown>)?.saveAction as
-        | SaveActionType
-        | undefined;
+        SaveActionType | undefined;
       if (action === 'PUSH' || action === 'POP') {
         setIsLoaded(false);
         loadExploreData(loc, saveAction);

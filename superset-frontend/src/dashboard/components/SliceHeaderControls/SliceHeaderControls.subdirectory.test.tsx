@@ -98,7 +98,7 @@ const buildProps = (): SliceHeaderControlsProps =>
     cachedDttm: [''],
     updatedDttm: 0,
     supersetCanExplore: true,
-    supersetCanCSV: true,
+    supersetCanDownload: true,
     componentId: 'CHART-subdir',
     dashboardId: 26,
     isFullSize: false,
