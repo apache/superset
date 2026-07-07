@@ -51,7 +51,7 @@ dependencies = [
     "flask-cors>=6.0.5, <7.0",
     "croniter>=6.2.2",
     "cron-descriptor",
-    "cryptography>=48.0.0, <49.0.0",
+    "cryptography>=49.0.0, <50.0.0",
     "deprecation>=2.1.0, <2.2.0",
     "flask>=2.2.5, <4.0.0",
     "flask-appbuilder>=5.2.2, <6.0.0",
@@ -180,7 +180,7 @@ mssql = ["pymssql>=2.3.13, <3"]
 motherduck = ["apache-superset[duckdb]"]
 mysql = ["mysqlclient>=2.2.8, <3"]
 ocient = [
-    "sqlalchemy-ocient>=1.0.0",
+    "sqlalchemy-ocient>=1.0.0, <4",
     "pyocient>=1.0.15, <4",
     "shapely",
     "geojson",

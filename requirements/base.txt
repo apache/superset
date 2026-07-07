@@ -86,7 +86,7 @@ cron-descriptor==1.4.5
     # via apache-superset (pyproject.toml)
 croniter==6.2.2
     # via apache-superset (pyproject.toml)
-cryptography==48.0.1
+cryptography==49.0.0
     # via
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
@@ -323,7 +323,7 @@ pyjwt==2.13.0
     #   redis
 pynacl==1.6.2
     # via paramiko
-pyopenssl==26.2.0
+pyopenssl==26.3.0
     # via
     #   -r requirements/base.in
     #   shillelagh

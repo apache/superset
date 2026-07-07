@@ -48,6 +48,8 @@ import getInitialState from '../reducers/getInitialState';
 import { rehydratePersistedState } from '../utils/reduxStateToLocalStorageHelper';
 import { PREVIEW_QUERY_LIMIT } from '../constants';
 import { EMPTY_STATE_QE_ID } from '../hooks/useQueryEditor';
+import { queryHistoryApi } from '../../hooks/apiResources/queries';
+import type { AppDispatch as RootDispatch } from '../../views/store';
 
 // Type definitions for SqlLab actions
 export interface Query {
@@ -985,7 +987,7 @@ export function removeAllOtherQueryEditors(
 }
 
 export function removeQuery(query: Query): SqlLabThunkAction<Promise<unknown>> {
-  return function (dispatch: AppDispatch) {
+  return function (dispatch: RootDispatch) {
     const queryEditorId = query.sqlEditorId ?? query.id;
     const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? SupersetClient.delete({
@@ -996,7 +998,26 @@ export function removeQuery(query: Query): SqlLabThunkAction<Promise<unknown>> {
       : Promise.resolve();
 
     return sync
-      .then(() => dispatch({ type: REMOVE_QUERY, query }))
+      .then(() => {
+        dispatch({ type: REMOVE_QUERY, query });
+        dispatch(
+          queryHistoryApi.util.updateQueryData(
+            'editorQueries',
+            { editorId: queryEditorId },
+            draft => {
+              // The infinite-scroll merge can leave duplicate entries for the
+              // same id (offset shifts between page fetches), so drop them all.
+              const remaining = draft.result.filter(
+                ({ id }) => id !== query.id,
+              );
+              if (remaining.length !== draft.result.length) {
+                draft.result = remaining;
+                draft.count = Math.max(0, draft.count - 1);
+              }
+            },
+          ),
+        );
+      })
       .catch(() =>
         dispatch(
           addDangerToast(

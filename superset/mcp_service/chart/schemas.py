@@ -2266,10 +2266,20 @@ class DataColumn(BaseModel):
     display_name: str = Field(..., description="Human-readable column name")
     data_type: str = Field(..., description="Inferred data type")
     sample_values: List[Any] = Field(description="Representative sample values")
-    null_count: int = Field(description="Number of null values")
-    unique_count: int = Field(description="Number of unique values")
+    null_count: int = Field(
+        description="Number of null values. Approximate — see 'statistics.sampled_rows'"
+        " if the source result set was larger than the row cap used to compute it."
+    )
+    unique_count: int = Field(
+        description="Number of unique values. Approximate — see "
+        "'statistics.sampled_rows' if the source result set was larger than the "
+        "row cap used to compute it."
+    )
     statistics: Dict[str, Any] | None = Field(
-        None, description="Column statistics if numeric"
+        None,
+        description="Additional column statistics, when available. May include "
+        "'sampled_rows' (any column type) when null_count/unique_count were "
+        "computed on a row-capped sample rather than the full result set.",
     )
     semantic_type: str | None = Field(
         None, description="Semantic type (currency, percentage, etc)"

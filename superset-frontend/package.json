@@ -324,7 +324,7 @@
     "eslint-plugin-prettier": "^5.5.6",
     "eslint-plugin-react-prefer-function-component": "^5.0.0",
     "eslint-plugin-react-you-might-not-need-an-effect": "^1.0.1",
-    "eslint-plugin-storybook": "10.4.5",
+    "eslint-plugin-storybook": "10.4.6",
     "eslint-plugin-testing-library": "^7.16.2",
     "eslint-plugin-theme-colors": "file:eslint-rules/eslint-plugin-theme-colors",
     "fetch-mock": "^12.6.0",
