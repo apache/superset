@@ -39,16 +39,19 @@ See ``docs/`` and the plan file for the design rationale; the rules summary:
 from __future__ import annotations
 
 import logging
+import math
 import re
 import time as _time
+import uuid
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 from enum import Enum
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 import pandas as pd
 import pyarrow as pa
 from flask import current_app
+from flask_caching import Cache
 from superset_core.semantic_layers.types import (
     AdhocExpression,
     AggregationType,
@@ -128,6 +131,175 @@ class CachedEntry:
 # ---------------------------------------------------------------------------
 
 
+_INDEX_LOCK_TIMEOUT = 2  # seconds; bounds a live holder's exclusion window
+_INDEX_LOCK_ATTEMPTS = 50
+# Sleep between acquisition attempts. The worst-case wait is the sleeps plus
+# up to ``_INDEX_LOCK_ATTEMPTS`` ``add``/``get`` round-trips to the backend.
+_INDEX_LOCK_WAIT = 0.01
+# A lock whose embedded timestamp is older than this multiple of the TTL is
+# considered abandoned and broken. Covers backends where ``add`` is
+# SETNX-then-EXPIRE (cachelib RedisCache): a holder killed between the two
+# calls leaves a lock with no TTL, which would otherwise freeze the bucket's
+# index updates until the view's ``changed_on`` rotates the key.
+# The threshold doubles as the tolerated wall-clock skew BETWEEN WORKERS
+# (the timestamp is written with the holder's clock and aged with the
+# waiter's): a waiter whose clock runs ahead by more than TTL x FACTOR
+# would break live locks. 30 s tolerates realistic NTP drift while only
+# modestly delaying recovery of a genuinely orphaned lock — the rarer event.
+_INDEX_LOCK_STALE_FACTOR = 15
+
+
+def _lock_is_stale(raw: Any) -> bool:
+    """True when a lock value's embedded timestamp is past breakable age.
+
+    Unparseable values (including non-strings) are treated as stale: lock
+    values are always written by ``_acquire_index_lock`` in
+    ``"<token>:<epoch>"`` form, so anything else is a leftover from a
+    different format and should not wedge the bucket forever.
+    """
+    if not isinstance(raw, str):
+        return True
+    _, _, timestamp = raw.rpartition(":")
+    try:
+        parsed = float(timestamp)
+    except ValueError:
+        return True
+    if not math.isfinite(parsed):
+        # float() accepts "nan"/"inf"; nan compares False against any
+        # threshold, which would make the lock fresh forever — an
+        # unbreakable wedge, the exact outcome this rule exists to prevent.
+        return True
+    return _time.time() - parsed > _INDEX_LOCK_TIMEOUT * _INDEX_LOCK_STALE_FACTOR
+
+
+def _mint_token() -> str:
+    """A fresh lock value: random owner component plus the current time."""
+    return f"{uuid.uuid4().hex}:{_time.time()}"
+
+
+def _acquire_index_lock(cache: Cache, lock_key: str, attempts: int) -> str | None:
+    """Try to acquire the per-bucket index lock; return the owner token.
+
+    The token embeds a random component (fencing the release: only the owner
+    deletes) and a timestamp (letting waiters break a lock abandoned by a
+    holder that died before its TTL was applied). The token is minted fresh
+    on every attempt so the timestamp reflects acquisition time — a token
+    minted once before a slow retry loop could be stale at birth, making the
+    just-acquired lock immediately breakable.
+
+    The break path is best-effort fenced: the lock value is re-read and
+    compared immediately before the delete, so a waiter that lost the break
+    race does not delete the winner's fresh lock. Like the release fence,
+    get-compare-delete is not atomic through the cache abstraction, so a
+    narrow double-acquire window remains when several waiters break one
+    abandoned lock together; the consequence degrades to the benign
+    lost-index-entry, never wrong data.
+    """
+    for attempt in range(attempts):
+        token = _mint_token()
+        if cache.add(lock_key, token, timeout=_INDEX_LOCK_TIMEOUT):
+            return token
+        current = cache.get(lock_key)
+        if current is not None and _lock_is_stale(current):
+            logger.info(
+                "Semantic view cache index lock %s appears abandoned; breaking it",
+                lock_key,
+            )
+            if cache.get(lock_key) == current:
+                cache.delete(lock_key)
+            # Retry immediately (also on the final/only attempt, so a
+            # single-attempt caller that breaks an orphan still gets its
+            # own acquisition rather than donating the break).
+            token = _mint_token()
+            if cache.add(lock_key, token, timeout=_INDEX_LOCK_TIMEOUT):
+                return token
+        if attempt + 1 < attempts:
+            _time.sleep(_INDEX_LOCK_WAIT)
+    return None
+
+
+def _release_index_lock(cache: Cache, lock_key: str, token: str) -> None:
+    """Best-effort fenced release: delete the lock only if we still own it.
+
+    If the critical section outlived the lock TTL, a successor may hold the
+    lock; an unconditional delete would release the successor's lock and
+    cascade the race. ``get``-compare-``delete`` is not atomic, so a narrow
+    window remains, but the critical section is a constant get + filter +
+    set (no per-entry backend calls), keeping it far under the TTL — and the
+    consequence degrades to the pre-fix benign lost-entry, never wrong data.
+    """
+    try:
+        if cache.get(lock_key) == token:
+            cache.delete(lock_key)
+    except Exception:  # pragma: no cover - defensive
+        logger.debug("Semantic view cache lock release failed", exc_info=True)
+
+
+def _update_index(
+    cache: Cache,
+    idx_key: str,
+    timeout: int | None,
+    mutate: Callable[[list[CachedEntry]], list[CachedEntry] | None],
+    attempts: int | None = None,
+) -> bool:
+    """Read-modify-write the index bucket under a short cache-level lock.
+
+    A bare ``get``/``set`` on the index is not atomic: two concurrent writers
+    for one view can clobber each other's entries, and the eviction prune can
+    drop an entry added between its read and write. The losses are benign by
+    design (a dropped index entry is a future cache miss, never wrong data),
+    but under concurrent dashboard load they silently discard cache benefit.
+
+    A Redis ``WATCH``/Lua transaction can't be used here: the index value is
+    a pickled Python list managed through the Flask-Caching abstraction, and
+    the data cache is not guaranteed to be Redis-backed. ``cache.add`` is the
+    portable set-if-absent primitive, so a short-lived lock key serialises
+    index writers per bucket.
+
+    Invariant, honestly scoped: on backends where ``add`` is atomic (Redis,
+    memcached, the metastore cache's unique-key insert), the index is only
+    written while holding the lock; on acquisition failure the update is
+    SKIPPED (losing at most this write's cache benefit) rather than performed
+    unlocked, which could clobber a concurrent writer. The release is fenced
+    by an owner token, and locks abandoned without a TTL are broken after
+    ``_INDEX_LOCK_STALE_FACTOR`` x the TTL. Three best-effort windows
+    remain, all bounded to the benign lost-entry: the non-atomic
+    get-compare-delete in the release and break fences; cross-worker clock
+    skew beyond the stale threshold; and plain TTL expiry if the locked
+    get + set itself stalls past the TTL (the critical section makes no
+    per-entry backend calls, so its normal duration is milliseconds
+    against a 2 s budget). Backends whose ``add`` is not
+    atomic (``SimpleCache``'s check-then-act, ``NullCache``'s always-True
+    no-op) degrade to best-effort locking — at worst the pre-fix benign
+    clobber. Duck-typed caches without ``add`` at all (test doubles; every
+    Flask-Caching backend has it) use the unlocked read-modify-write.
+
+    ``mutate`` receives the freshly read entry list and returns the new list,
+    or ``None`` to skip the write. Returns True when the update ran (locked
+    or degraded), False when it was skipped because the lock stayed busy.
+    """
+    if attempts is None:
+        attempts = _INDEX_LOCK_ATTEMPTS
+    lock_key = f"{idx_key}:lock"
+    if getattr(cache, "add", None) is None:
+        entries: list[CachedEntry] = list(cache.get(idx_key) or [])
+        new_entries = mutate(entries)
+        if new_entries is not None:
+            cache.set(idx_key, new_entries, timeout=timeout)
+        return True
+    token = _acquire_index_lock(cache, lock_key, attempts)
+    if token is None:
+        return False
+    try:
+        locked_entries: list[CachedEntry] = list(cache.get(idx_key) or [])
+        new_locked = mutate(locked_entries)
+        if new_locked is not None:
+            cache.set(idx_key, new_locked, timeout=timeout)
+        return True
+    finally:
+        _release_index_lock(cache, lock_key, token)
+
+
 def try_serve_from_cache(
     view_meta: ViewMeta,
     query: SemanticQuery,
@@ -148,12 +320,19 @@ def try_serve_from_cache(
             ok, leftovers, mode = can_satisfy(entry, query)
             if ok:
                 candidates.append((_MODE_RANK[mode], entry, leftovers, mode))
-        candidates.sort(key=lambda c: c[0])
+        # Tie-break same-rank candidates FRESHEST FIRST: a just-forced (or
+        # just-stored) entry must win over an older stale entry that also
+        # satisfies the query — Python's stable sort would otherwise keep
+        # insertion order and serve the older one, so a forced refresh could
+        # be shadowed by the very entry it was meant to supersede.
+        candidates.sort(key=lambda c: (c[0], -c[1].timestamp))
 
         served: SemanticResult | None = None
+        dead_entries: set[CachedEntry] = set()
         for _, entry, leftovers, mode in candidates:
             payload = cache.get(entry.value_key)
             if payload is None:
+                dead_entries.add(entry)
                 continue
             if mode == ReuseMode.ROLLUP and not _projection_input_complete(
                 entry, payload
@@ -162,14 +341,54 @@ def try_serve_from_cache(
             served = _apply_post_processing(payload, query, leftovers, mode)
             break
 
-        # Drop index entries whose values have been evicted.
-        pruned = [e for e in entries if cache.get(e.value_key) is not None]
-        if len(pruned) != len(entries):
-            cache.set(idx_key, pruned, timeout=_timeout(view_meta))
+        # Gated on having actually observed an evicted value above, so the
+        # common clean-hit read stays lock-free.
+        if dead_entries:
+            _prune_evicted(cache, view_meta, idx_key, dead_entries)
         return served
     except Exception:  # pragma: no cover - defensive
         logger.warning("Semantic view cache lookup failed", exc_info=True)
         return None
+
+
+def _prune_evicted(
+    cache: Cache,
+    view_meta: ViewMeta,
+    idx_key: str,
+    dead_entries: set[CachedEntry],
+) -> None:
+    """Drop the exact index entries whose values the caller observed evicted.
+
+    Pruning is by ENTRY IDENTITY (the frozen dataclass, timestamp included),
+    not by value key: a concurrent ``store_result`` re-executing the same
+    query re-registers the SAME canonical value key with a fresh timestamp —
+    a key-based prune would drop that fresh registration even though its
+    value now exists. The evidence was gathered OUTSIDE the lock, so the
+    critical section is a constant get + membership filter + set with zero
+    per-entry backend calls, keeping it far under the lock TTL regardless
+    of bucket size. Dead entries that never matched a query linger until
+    the bucket's TTL or the MAX_ENTRIES trim — an accepted trade for
+    lock-free clean hits.
+
+    A single non-blocking lock attempt: the prune is purely opportunistic
+    (a missed prune is retried by a future read that observes the same
+    eviction). The entry list is re-read under the index lock so the prune
+    cannot clobber an entry added by a concurrent ``store_result`` between
+    the caller's read and this write. Isolated in its own try/except so
+    housekeeping can never turn an already-computed cache hit into a miss.
+    """
+    try:
+
+        def prune(current: list[CachedEntry]) -> list[CachedEntry] | None:
+            pruned = [e for e in current if e not in dead_entries]
+            return pruned if len(pruned) != len(current) else None
+
+        _update_index(cache, idx_key, _timeout(view_meta), prune, attempts=1)
+    except Exception:  # pragma: no cover - defensive
+        logger.debug(
+            "Semantic view cache prune failed; serving result anyway",
+            exc_info=True,
+        )
 
 
 def store_result(
@@ -185,7 +404,6 @@ def store_result(
         cache.set(vkey, result, timeout=timeout)
 
         idx_key = shape_key(view_meta, query)
-        entries: list[CachedEntry] = list(cache.get(idx_key) or [])
         entry = CachedEntry(
             filters=frozenset(query.filters or set()),
             dimension_keys=frozenset(_dimension_key(d) for d in query.dimensions),
@@ -196,11 +414,26 @@ def store_result(
             group_limit_key=_group_limit_key(query.group_limit),
             value_key=vkey,
         )
-        entries = [e for e in entries if e.value_key != vkey]
-        entries.append(entry)
-        if len(entries) > MAX_ENTRIES_PER_VIEW:
-            entries = sorted(entries, key=lambda e: e.timestamp)[-MAX_ENTRIES_PER_VIEW:]
-        cache.set(idx_key, entries, timeout=timeout)
+
+        def register(entries: list[CachedEntry]) -> list[CachedEntry]:
+            entries = [e for e in entries if e.value_key != vkey]
+            entries.append(entry)
+            if len(entries) > MAX_ENTRIES_PER_VIEW:
+                entries = sorted(entries, key=lambda e: e.timestamp)[
+                    -MAX_ENTRIES_PER_VIEW:
+                ]
+            return entries
+
+        if not _update_index(cache, idx_key, timeout, register):
+            # The value blob at ``vkey`` stays unindexed until its TTL
+            # expires — deliberately NOT deleted here: an earlier index
+            # entry may reference the same canonical value key, and the
+            # documented trade-off is losing cache benefit, never data.
+            logger.warning(
+                "Semantic view cache index lock busy; skipping registration "
+                "of %s (result cached; may be unreachable until re-stored)",
+                idx_key,
+            )
     except Exception:  # pragma: no cover - defensive
         logger.warning("Semantic view cache store failed", exc_info=True)
 

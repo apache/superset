@@ -17,8 +17,10 @@
 
 from __future__ import annotations
 
+import threading
 from datetime import datetime
 from typing import Any
+from unittest.mock import MagicMock
 
 import pandas as pd
 import pyarrow as pa
@@ -38,6 +40,7 @@ from superset_core.semantic_layers.types import (
     SemanticResult,
 )
 
+from superset.semantic_layers import cache as cache_module
 from superset.semantic_layers.cache import (
     _apply_post_processing,
     _implies,
@@ -46,6 +49,8 @@ from superset.semantic_layers.cache import (
     can_satisfy,
     ReuseMode,
     shape_key,
+    store_result,
+    try_serve_from_cache,
     value_key,
     ViewMeta,
 )
@@ -840,3 +845,731 @@ def test_project_rejected_when_order_references_dropped_metric() -> None:
     new_q = SemanticQuery(metrics=[M_X], dimensions=[COL_A], limit=10)
     ok, _, _ = can_satisfy(entry_from(cached_q), new_q)
     assert ok is False
+
+
+class _RacingCache:
+    """In-memory cache that parks a designated thread inside its index read.
+
+    Coordination harness for the concurrency regression tests below:
+    ``parked`` is set (and the caller blocked on ``release``) the first time
+    the designated ``park_thread`` reads an index-bucket key. In the
+    store-vs-store test the parked thread is ALREADY HOLDING the index lock
+    when it parks — which is why the other thread's failed ``add`` (see that
+    method) is proof the fix is engaged rather than an inference from
+    timing. Harness-level failures are recorded in ``harness_errors``
+    (raising here would be swallowed by production code's defensive
+    ``except Exception``).
+    """
+
+    def __init__(self, parked: threading.Event, release: threading.Event) -> None:
+        self._store: dict[str, Any] = {}
+        self._mutex = threading.Lock()
+        self._parked_once = False
+        self._parked = parked
+        self._release = release
+        self.park_thread: threading.Thread | None = None
+        self.harness_errors: list[str] = []
+
+    park_on_value_miss = False  # park on first MISSING value read instead
+
+    def _should_park(self, key: str, value: Any) -> bool:
+        if self._parked_once or threading.current_thread() is not self.park_thread:
+            return False
+        if self.park_on_value_miss:
+            return (
+                not key.startswith(cache_module.INDEX_KEY_PREFIX)
+                and not key.endswith(":lock")
+                and value is None
+            )
+        return key.startswith(cache_module.INDEX_KEY_PREFIX) and not key.endswith(
+            ":lock"
+        )
+
+    def get(self, key: str) -> Any:
+        with self._mutex:
+            value = self._store.get(key)
+            should_park = self._should_park(key, value)
+            if should_park:
+                self._parked_once = True
+        if should_park:
+            self._parked.set()
+            if not self._release.wait(timeout=10):
+                self.harness_errors.append("parked thread was never released")
+        return value
+
+    def set(self, key: str, value: Any, timeout: int | None = None) -> bool:
+        with self._mutex:
+            self._store[key] = value
+        return True
+
+    def add(self, key: str, value: Any, timeout: int | None = None) -> bool:
+        with self._mutex:
+            if key in self._store:
+                taken = True
+            else:
+                self._store[key] = value
+                taken = False
+        if taken:
+            # The caller is blocked on the index lock: the fix is engaged,
+            # so it is safe to let the parked thread finish and release.
+            self._release.set()
+        return not taken
+
+    def delete(self, key: str) -> bool:
+        with self._mutex:
+            return self._store.pop(key, None) is not None
+
+
+def test_concurrent_store_results_do_not_clobber_index(
+    app: Any,
+    app_context: None,
+    mocker: Any,
+) -> None:
+    """Deterministic regression for the index read-modify-write race.
+
+    ``store_result`` reads the index bucket, appends its entry, and writes the
+    bucket back. Unprotected, two concurrent writers for one view interleave
+    as: A reads, B reads+writes, A writes A's STALE list — silently dropping
+    B's entry (lost cache benefit on every subsequent narrower query).
+
+    This test choreographs that exact interleaving with events (no timing
+    dependence): thread A is parked inside its index read while thread B runs
+    a full ``store_result`` for the same view, then A resumes. With the index
+    lock, B blocks on the lock instead (the instrumented ``add`` releases A on
+    B's first failed acquisition), A completes and releases, B appends — and
+    BOTH entries survive. Without the lock this fails with only A's entry
+    present.
+    """
+    # Generous retry budget so a starved CI runner can't push thread B past
+    # its lock wait while A wakes up (attempts are resolved at call time).
+    mocker.patch.object(cache_module, "_INDEX_LOCK_ATTEMPTS", 1000)
+
+    a_parked = threading.Event()
+    release_a = threading.Event()
+    fake = _RacingCache(a_parked, release_a)
+    mocker.patch.object(
+        type(cache_module.cache_manager),
+        "data_cache",
+        property(lambda self: fake),
+    )
+
+    q_a = query(filters={where(COL_A, Operator.GREATER_THAN, 1)})
+    q_b = query(filters={where(COL_A, Operator.GREATER_THAN, 2)})
+    errors: list[Exception] = []
+
+    def worker_a() -> None:
+        try:
+            with app.app_context():
+                store_result(VIEW, q_a, MagicMock())
+        except Exception as ex:  # pragma: no cover - defensive
+            errors.append(ex)
+        finally:
+            a_parked.set()  # never leave B waiting if A failed pre-park
+
+    def worker_b() -> None:
+        try:
+            assert a_parked.wait(timeout=10), "thread A never parked"
+            with app.app_context():
+                store_result(VIEW, q_b, MagicMock())
+        except Exception as ex:  # pragma: no cover - defensive
+            errors.append(ex)
+        finally:
+            # Pre-fix path: B completes without ever touching the lock, so
+            # release A here; post-fix this is a no-op (already released).
+            release_a.set()
+
+    t_a = threading.Thread(target=worker_a)
+    t_b = threading.Thread(target=worker_b)
+    fake.park_thread = t_a
+    t_a.start()
+    t_b.start()
+    t_a.join(timeout=30)
+    t_b.join(timeout=30)
+    assert not t_a.is_alive(), "thread A deadlocked"
+    assert not t_b.is_alive(), "thread B deadlocked"
+    assert not errors, f"workers raised: {errors!r}"
+    assert not fake.harness_errors, f"harness: {fake.harness_errors!r}"
+
+    idx_key = shape_key(VIEW, q_a)
+    final_entries = fake._store.get(idx_key) or []
+    stored_value_keys = {e.value_key for e in final_entries}
+    assert value_key(VIEW, q_a) in stored_value_keys, "A's entry lost"
+    assert value_key(VIEW, q_b) in stored_value_keys, (
+        "B's entry was clobbered by A's stale index write"
+    )
+
+
+def test_store_result_skips_index_write_when_lock_stays_busy(
+    app_context: None,
+    mocker: Any,
+) -> None:
+    """Pin the timeout-skip half of the locking invariant.
+
+    When the lock cannot be acquired within the attempts budget, the index
+    write must be SKIPPED — falling through to an unlocked write would
+    reintroduce the clobber precisely under the contention that triggers
+    the timeout. The lock here is held by "someone else" with a fresh
+    (non-stale) token, so the stale-lock breaker must not fire either.
+    """
+    mocker.patch.object(cache_module, "_INDEX_LOCK_ATTEMPTS", 1)
+
+    class BusyLockCache:
+        """Cache whose index lock is permanently held by another owner."""
+
+        def __init__(self) -> None:
+            self._store: dict[str, Any] = {}
+            self.foreign_token = f"someoneelse:{cache_module._time.time()}"
+            self.deleted_keys: list[str] = []
+            self.lock_add_timeouts: list[int | None] = []
+
+        def get(self, key: str) -> Any:
+            if key.endswith(":lock"):
+                return self.foreign_token  # fresh: must not be broken as stale
+            return self._store.get(key)
+
+        def set(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            self._store[key] = value
+            return True
+
+        def add(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            if key.endswith(":lock"):
+                self.lock_add_timeouts.append(timeout)
+            return False  # lock always busy
+
+        def delete(self, key: str) -> bool:
+            self.deleted_keys.append(key)
+            return self._store.pop(key, None) is not None
+
+    fake = BusyLockCache()
+    mocker.patch.object(
+        type(cache_module.cache_manager),
+        "data_cache",
+        property(lambda self: fake),
+    )
+
+    q = query(filters={where(COL_A, Operator.GREATER_THAN, 1)})
+    store_result(VIEW, q, MagicMock())
+
+    idx_key = shape_key(VIEW, q)
+    assert idx_key not in fake._store, (
+        "index was written without holding the lock (timeout must skip)"
+    )
+    # The value blob itself IS written (before the index registration) —
+    # the documented orphan-until-TTL trade-off.
+    assert value_key(VIEW, q) in fake._store
+    # The foreign lock is FRESH, so the stale-lock breaker must not fire:
+    # a breaker regression here would turn contention into a clobber vector.
+    assert f"{idx_key}:lock" not in fake.deleted_keys, (
+        "stale-lock breaker fired against a fresh foreign lock"
+    )
+    # Every lock acquisition attempt must carry the TTL — an add without
+    # a timeout would make ordinary abandonment depend entirely on the
+    # stale-breaker.
+    assert fake.lock_add_timeouts, "no lock acquisition was attempted"
+    assert all(t == cache_module._INDEX_LOCK_TIMEOUT for t in fake.lock_add_timeouts), (
+        f"lock add() missing/wrong TTL: {fake.lock_add_timeouts!r}"
+    )
+
+
+def test_abandoned_ttlless_lock_is_broken(
+    app_context: None,
+    mocker: Any,
+) -> None:
+    """A lock left behind by a holder that died before its TTL applied
+    (cachelib RedisCache.add is SETNX + separate EXPIRE) must be broken by
+    the next writer instead of freezing the bucket's index updates forever.
+    """
+
+    class OrphanedLockCache:
+        """The bucket's lock key pre-exists with a stale, TTL-less token."""
+
+        def __init__(self, orphan_key: str) -> None:
+            stale_age = (
+                cache_module._INDEX_LOCK_TIMEOUT * cache_module._INDEX_LOCK_STALE_FACTOR
+                + 1
+            )
+            self._store: dict[str, Any] = {
+                orphan_key: f"deadowner:{cache_module._time.time() - stale_age}"
+            }
+
+        def get(self, key: str) -> Any:
+            return self._store.get(key)
+
+        def set(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            self._store[key] = value
+            return True
+
+        def add(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            if key in self._store:
+                return False
+            self._store[key] = value
+            return True
+
+        def delete(self, key: str) -> bool:
+            return self._store.pop(key, None) is not None
+
+    q = query(filters={where(COL_A, Operator.GREATER_THAN, 1)})
+    idx_key = shape_key(VIEW, q)
+    fake = OrphanedLockCache(f"{idx_key}:lock")
+    mocker.patch.object(
+        type(cache_module.cache_manager),
+        "data_cache",
+        property(lambda self: fake),
+    )
+
+    store_result(VIEW, q, MagicMock())
+
+    assert idx_key in fake._store, (
+        "abandoned TTL-less lock was not broken; bucket index frozen"
+    )
+
+
+def test_concurrent_prune_does_not_clobber_store(
+    app: Any,
+    app_context: None,
+    mocker: Any,
+) -> None:
+    """Deterministic regression for the prune half of the race.
+
+    A reader that observed an evicted value prunes the index; unprotected
+    (or if the prune filtered its PRE-LOCK snapshot instead of re-reading),
+    a ``store_result`` landing between the reader's first index read and
+    its prune write would be silently dropped. Choreography: reader R parks
+    inside its FIRST (unlocked) index read; writer W then runs a full
+    ``store_result`` for the same bucket; R resumes, observes the evicted
+    entry, and prunes. The prune must re-read under the lock and keep W's
+    entry while dropping only the dead one.
+    """
+    mocker.patch.object(cache_module, "_INDEX_LOCK_ATTEMPTS", 1000)
+
+    r_parked = threading.Event()
+    release_r = threading.Event()
+    fake = _RacingCache(r_parked, release_r)
+    mocker.patch.object(
+        type(cache_module.cache_manager),
+        "data_cache",
+        property(lambda self: fake),
+    )
+
+    # Seed the bucket with one entry whose value is already evicted (its
+    # value key is never stored), satisfiable by the reader's query.
+    q_dead = query(filters={where(COL_A, Operator.GREATER_THAN, 1)})
+    dead_entry = entry_from(q_dead, value_key_="sv:val:evicted")
+    idx_key = shape_key(VIEW, q_dead)
+    fake._store[idx_key] = [dead_entry]
+
+    q_new = query(filters={where(COL_A, Operator.GREATER_THAN, 2)})
+    errors: list[Exception] = []
+
+    def reader() -> None:
+        try:
+            with app.app_context():
+                try_serve_from_cache(VIEW, q_dead)
+        except Exception as ex:  # pragma: no cover - defensive
+            errors.append(ex)
+        finally:
+            r_parked.set()
+
+    def writer() -> None:
+        try:
+            assert r_parked.wait(timeout=10), "reader never parked"
+            with app.app_context():
+                store_result(VIEW, q_new, MagicMock())
+        except Exception as ex:  # pragma: no cover - defensive
+            errors.append(ex)
+        finally:
+            release_r.set()
+
+    t_r = threading.Thread(target=reader)
+    t_w = threading.Thread(target=writer)
+    fake.park_thread = t_r
+    t_r.start()
+    t_w.start()
+    t_r.join(timeout=30)
+    t_w.join(timeout=30)
+    assert not t_r.is_alive(), "reader deadlocked"
+    assert not t_w.is_alive(), "writer deadlocked"
+    assert not errors, f"workers raised: {errors!r}"
+    assert not fake.harness_errors, f"harness: {fake.harness_errors!r}"
+
+    final_keys = {e.value_key for e in fake._store.get(idx_key) or []}
+    assert "sv:val:evicted" not in final_keys, "dead entry was not pruned"
+    assert value_key(VIEW, q_new) in final_keys, (
+        "prune clobbered the concurrently stored entry"
+    )
+
+
+def test_release_lock_declines_foreign_token() -> None:
+    """Pin the release fence: a holder whose lock was broken and re-acquired
+    by a successor must NOT delete the successor's fresh lock — the fencing
+    is what stops a TTL-outliving holder from cascading the race."""
+
+    class RecordingCache:
+        def __init__(self) -> None:
+            self._store: dict[str, Any] = {"bucket:lock": "successor:123.0"}
+            self.deleted_keys: list[str] = []
+
+        def get(self, key: str) -> Any:
+            return self._store.get(key)
+
+        def delete(self, key: str) -> bool:
+            self.deleted_keys.append(key)
+            return self._store.pop(key, None) is not None
+
+    fake = RecordingCache()
+    cache_module._release_index_lock(fake, "bucket:lock", "mine:456.0")
+    assert fake.deleted_keys == [], "release deleted a lock it does not own"
+    assert fake._store["bucket:lock"] == "successor:123.0"
+
+    # Control: the owner's own release does delete.
+    cache_module._release_index_lock(fake, "bucket:lock", "successor:123.0")
+    assert fake.deleted_keys == ["bucket:lock"]
+
+
+def test_clean_hit_reads_take_no_lock(
+    app_context: None,
+    mocker: Any,
+) -> None:
+    """Pin the lock-free clean-hit property: serving a cached result whose
+    value is present must perform ZERO lock operations — the eviction gate
+    exists precisely so the hottest path pays no synchronization tax."""
+
+    class CountingCache:
+        def __init__(self) -> None:
+            self._store: dict[str, Any] = {}
+            self.lock_ops = 0
+
+        def get(self, key: str) -> Any:
+            return self._store.get(key)
+
+        def set(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            self._store[key] = value
+            return True
+
+        def add(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            self.lock_ops += 1
+            self._store.setdefault(key, value)
+            return True
+
+        def delete(self, key: str) -> bool:
+            self.lock_ops += 1
+            return self._store.pop(key, None) is not None
+
+    fake = CountingCache()
+    mocker.patch.object(
+        type(cache_module.cache_manager),
+        "data_cache",
+        property(lambda self: fake),
+    )
+
+    q = query(filters={where(COL_A, Operator.GREATER_THAN, 1)})
+    entry = entry_from(q, value_key_=value_key(VIEW, q))
+    fake._store[shape_key(VIEW, q)] = [entry]
+    fake._store[value_key(VIEW, q)] = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="select 1")],
+        results=pa.table({"a": [1]}),
+    )
+
+    result = try_serve_from_cache(VIEW, q)
+    assert result is not None, "expected a clean cache hit"
+    assert fake.lock_ops == 0, (
+        f"clean hit performed {fake.lock_ops} lock operations; must be 0"
+    )
+
+
+@pytest.mark.parametrize(
+    "raw,stale",
+    [
+        (f"abc123:{0.0}", True),  # ancient epoch
+        ("abc123:nan", True),  # nan compares False vs any threshold: wedge
+        ("abc123:inf", True),  # age = -inf would never exceed the threshold
+        ("abc123:-inf", True),
+        ("not-a-token", True),  # no parsable timestamp
+        (b"bytes-value", True),  # non-string round-trip
+        (None, True),
+        ("abc123:not-a-float", True),
+    ],
+)
+def test_lock_is_stale_edges(raw: Any, stale: bool) -> None:
+    assert cache_module._lock_is_stale(raw) is stale
+
+
+def test_lock_is_stale_boundary(mocker: Any) -> None:
+    """Exactly-at-threshold locks are NOT stale (strict >); just past is."""
+    frozen_now = 1_000_000.0
+    mocker.patch.object(cache_module._time, "time", return_value=frozen_now)
+    threshold = cache_module._INDEX_LOCK_TIMEOUT * cache_module._INDEX_LOCK_STALE_FACTOR
+    assert cache_module._lock_is_stale(f"tok:{frozen_now}") is False
+    assert cache_module._lock_is_stale(f"tok:{frozen_now - threshold}") is False
+    assert cache_module._lock_is_stale(f"tok:{frozen_now - threshold - 0.001}") is True
+
+
+def test_prune_spares_fresh_same_key_registration(
+    app: Any,
+    app_context: None,
+    mocker: Any,
+) -> None:
+    """The prune must drop only the exact entries observed dead, not every
+    entry sharing the value key.
+
+    A concurrent ``store_result`` re-executing the SAME query re-registers
+    the SAME canonical value key with a fresh entry (new timestamp) and a
+    live value. Choreography: reader R parks at the moment it observes the
+    value missing; writer W then re-stores the same query (same value key);
+    R resumes and prunes. A key-based prune would drop W's fresh, live
+    registration; the identity-based prune spares it.
+    """
+    mocker.patch.object(cache_module, "_INDEX_LOCK_ATTEMPTS", 1000)
+
+    r_parked = threading.Event()
+    release_r = threading.Event()
+    fake = _RacingCache(r_parked, release_r)
+    fake.park_on_value_miss = True
+    mocker.patch.object(
+        type(cache_module.cache_manager),
+        "data_cache",
+        property(lambda self: fake),
+    )
+
+    q = query(filters={where(COL_A, Operator.GREATER_THAN, 1)})
+    vkey = value_key(VIEW, q)
+    idx_key = shape_key(VIEW, q)
+    stale_entry = entry_from(q, value_key_=vkey)  # value never stored: dead
+    fake._store[idx_key] = [stale_entry]
+
+    errors: list[Exception] = []
+
+    def reader() -> None:
+        try:
+            with app.app_context():
+                try_serve_from_cache(VIEW, q)
+        except Exception as ex:  # pragma: no cover - defensive
+            errors.append(ex)
+        finally:
+            r_parked.set()
+
+    def writer() -> None:
+        try:
+            assert r_parked.wait(timeout=10), "reader never parked"
+            with app.app_context():
+                store_result(VIEW, q, MagicMock())
+        except Exception as ex:  # pragma: no cover - defensive
+            errors.append(ex)
+        finally:
+            release_r.set()
+
+    t_r = threading.Thread(target=reader)
+    t_w = threading.Thread(target=writer)
+    fake.park_thread = t_r
+    t_r.start()
+    t_w.start()
+    t_r.join(timeout=30)
+    t_w.join(timeout=30)
+    assert not t_r.is_alive(), "reader deadlocked"
+    assert not t_w.is_alive(), "writer deadlocked"
+    assert not errors, f"workers raised: {errors!r}"
+    assert not fake.harness_errors, f"harness: {fake.harness_errors!r}"
+
+    final = fake._store.get(idx_key) or []
+    assert stale_entry not in final, "the observed-dead entry was not pruned"
+    assert any(e.value_key == vkey for e in final), (
+        "prune dropped the writer's fresh same-key registration"
+    )
+
+
+def test_single_attempt_caller_acquires_after_breaking_orphan(
+    mocker: Any,
+) -> None:
+    """A one-attempt caller (the prune path) that breaks a TTL-less orphaned
+    lock must complete its own update in the same attempt — not donate the
+    break and skip."""
+
+    class OrphanedLockCache:
+        def __init__(self, orphan_key: str) -> None:
+            stale_age = (
+                cache_module._INDEX_LOCK_TIMEOUT * cache_module._INDEX_LOCK_STALE_FACTOR
+                + 1
+            )
+            self._store: dict[str, Any] = {
+                orphan_key: f"deadowner:{cache_module._time.time() - stale_age}"
+            }
+
+        def get(self, key: str) -> Any:
+            return self._store.get(key)
+
+        def set(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            self._store[key] = value
+            return True
+
+        def add(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            if key in self._store:
+                return False
+            self._store[key] = value
+            return True
+
+        def delete(self, key: str) -> bool:
+            return self._store.pop(key, None) is not None
+
+    fake = OrphanedLockCache("bucket:lock")
+    marker = entry_from(query(), value_key_="single-attempt-marker")
+    updated = cache_module._update_index(
+        fake, "bucket", 60, lambda entries: entries + [marker], attempts=1
+    )
+    assert updated is True, "single-attempt caller donated the break and skipped"
+    assert fake._store.get("bucket") == [marker]
+
+
+def test_same_rank_candidates_served_freshest_first(
+    app_context: None,
+    mocker: Any,
+) -> None:
+    """When two cached entries both satisfy a query at the same reuse rank,
+    the FRESHEST must be served. Insertion-order (stable-sort) selection
+    would let an older stale broader entry shadow a just-forced refresh of
+    the identical query — the refresh would never stick for readers.
+    """
+
+    class PlainCache:
+        def __init__(self) -> None:
+            self._store: dict[str, Any] = {}
+
+        def get(self, key: str) -> Any:
+            return self._store.get(key)
+
+        def set(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            self._store[key] = value
+            return True
+
+        def add(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            if key in self._store:
+                return False
+            self._store[key] = value
+            return True
+
+        def delete(self, key: str) -> bool:
+            return self._store.pop(key, None) is not None
+
+    fake = PlainCache()
+    mocker.patch.object(
+        type(cache_module.cache_manager),
+        "data_cache",
+        property(lambda self: fake),
+    )
+
+    q = query(filters={where(COL_A, Operator.GREATER_THAN, 1)})
+    # Older, broader entry (no filters — satisfies q EXACT-with-leftovers)
+    # whose payload is STALE.
+    import dataclasses
+
+    broad_q = query(filters=None)
+    stale_entry = dataclasses.replace(
+        entry_from(broad_q, value_key_="sv:val:stale-broad"),
+        timestamp=cache_module._time.time() - 60,  # deterministically older
+    )
+    # Newer exact entry for q — the "just forced" fresh result.
+    fresh_entry = entry_from(q, value_key_="sv:val:fresh-exact")
+    assert fresh_entry.timestamp > stale_entry.timestamp
+
+    idx_key = shape_key(VIEW, q)
+    fake._store[idx_key] = [stale_entry, fresh_entry]  # older first
+    stale_result = MagicMock(name="stale")
+    fresh_result = MagicMock(name="fresh")
+    fake._store["sv:val:stale-broad"] = stale_result
+    fake._store["sv:val:fresh-exact"] = fresh_result
+
+    post = mocker.patch.object(
+        cache_module, "_apply_post_processing", side_effect=lambda p, *a: p
+    )
+    served = cache_module.try_serve_from_cache(VIEW, q)
+    assert served is fresh_result, "older same-rank entry shadowed the freshest one"
+    assert post.call_args[0][0] is fresh_result
+
+
+def test_acquire_lock_retries_when_lock_vanishes_between_add_and_get() -> None:
+    """A failed ``add`` followed by a ``get`` that finds no lock (the holder
+    released in between) must simply retry — not treat the gap as stale."""
+
+    class VanishingLockCache:
+        def __init__(self) -> None:
+            self._store: dict[str, Any] = {}
+            self.add_calls = 0
+
+        def get(self, key: str) -> Any:
+            return None  # the lock is gone by the time we look
+
+        def set(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            self._store[key] = value
+            return True
+
+        def add(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            self.add_calls += 1
+            return self.add_calls > 1  # first attempt loses, second wins
+
+        def delete(self, key: str) -> bool:
+            return self._store.pop(key, None) is not None
+
+    fake = VanishingLockCache()
+    token = cache_module._acquire_index_lock(fake, "b:lock", attempts=3)
+    assert token is not None
+    assert fake.add_calls == 2
+
+
+def test_stale_break_declines_when_lock_changed_hands() -> None:
+    """The fenced break re-reads the lock before deleting; if the value
+    changed (another waiter already broke and re-acquired), the delete is
+    skipped so the new owner's fresh lock survives."""
+    stale = f"deadowner:{cache_module._time.time() - 10_000}"
+    fresh = f"newowner:{cache_module._time.time()}"
+
+    class HandoffCache:
+        def __init__(self) -> None:
+            self.get_calls = 0
+            self.deleted: list[str] = []
+
+        def get(self, key: str) -> Any:
+            self.get_calls += 1
+            # Staleness read sees the orphan; the fenced re-read sees the
+            # new owner's token.
+            return stale if self.get_calls == 1 else fresh
+
+        def add(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            return False  # fresh owner holds it throughout
+
+        def set(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            return True
+
+        def delete(self, key: str) -> bool:
+            self.deleted.append(key)
+            return True
+
+    fake = HandoffCache()
+    token = cache_module._acquire_index_lock(fake, "b:lock", attempts=1)
+    assert token is None
+    assert fake.deleted == [], "fenced break deleted a lock that changed hands"
+
+
+def test_degraded_no_add_cache_skips_write_when_mutate_returns_none() -> None:
+    """Duck-typed caches without ``add`` take the unlocked path; a ``None``
+    from ``mutate`` must still skip the write there."""
+
+    class NoAddCache:
+        def __init__(self) -> None:
+            self._store: dict[str, Any] = {"b": ["existing"]}
+            self.set_calls = 0
+
+        def get(self, key: str) -> Any:
+            return self._store.get(key)
+
+        def set(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            self.set_calls += 1
+            self._store[key] = value
+            return True
+
+        def delete(self, key: str) -> bool:
+            return self._store.pop(key, None) is not None
+
+    fake = NoAddCache()
+    updated = cache_module._update_index(fake, "b", 60, lambda entries: None)
+    assert updated is True  # degraded path reports the update ran
+    assert fake.set_calls == 0, "mutate returning None must skip the write"
+    assert fake._store["b"] == ["existing"]
