@@ -10,11 +10,7 @@ updates:
 
   - package-ecosystem: "npm"
     ignore:
-      - dependency-name: "react-error-boundary"
       - dependency-name: "@rjsf/*"
-      # remark-gfm v4+ requires react-markdown v9+, which needs React 18
-      - dependency-name: "remark-gfm"
-      - dependency-name: "react-markdown"
       # TODO: remove below entries until React >= 19.0.0
       - dependency-name: "react-icons"
       # JSDOM v30 doesn't play well with Jest v30
@@ -31,6 +27,13 @@ updates:
       # TODO: remove below clause once https://github.com/pmmmwh/react-refresh-webpack-plugin/pull/940 lands onto a future release
       # and confirm the issue https://github.com/apache/superset/issues/39600 is fixed
       - dependency-name: "react-checkbox-tree"
+        update-types: ["version-update:semver-major"]
+      # Babel 8 (7.x -> 8.x) is blocked on the surrounding ecosystem: @emotion/babel-plugin
+      # (NodePath#hoist), babel-plugin-jsx-remove-data-test-id (t.jSXOpeningElement), and
+      # ts-jest all rely on Babel APIs removed in v8 and have not shipped Babel 8 support.
+      # Ignore the coordinated major bump until the ecosystem catches up; it must be done
+      # as a single manual upgrade anyway. TODO: remove when Babel 8 support is viable.
+      - dependency-name: "@babel/*"
         update-types: ["version-update:semver-major"]
     directory: "/superset-frontend/"
     schedule:
@@ -71,8 +74,6 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/docs/"
-    ignore:
-      - dependency-name: "react-error-boundary"
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
@@ -369,11 +370,6 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/packages/superset-ui-core/"
-    ignore:
-      # not until React >= 18.0.0
-      - dependency-name: "react-markdown"
-      - dependency-name: "remark-gfm"
-      - dependency-name: "react-error-boundary"
     schedule:
       interval: "daily"
     labels:

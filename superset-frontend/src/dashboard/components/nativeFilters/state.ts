@@ -54,10 +54,7 @@ export const selectFilterConfiguration: (
     return nativeFilterConfig.filter(
       (
         filter:
-          | Filter
-          | Divider
-          | ChartCustomization
-          | ChartCustomizationDivider,
+          Filter | Divider | ChartCustomization | ChartCustomizationDivider,
       ) =>
         filter.type !== 'CHART_CUSTOMIZATION' &&
         filter.type !== 'CHART_CUSTOMIZATION_DIVIDER',
@@ -387,12 +384,10 @@ export function useSelectCustomizationsInScope(
 
   return useMemo(() => {
     let customizationsInScope: (
-      | ChartCustomization
-      | ChartCustomizationDivider
+      ChartCustomization | ChartCustomizationDivider
     )[] = [];
     const customizationsOutOfScope: (
-      | ChartCustomization
-      | ChartCustomizationDivider
+      ChartCustomization | ChartCustomizationDivider
     )[] = [];
 
     // we check customization scopes only on dashboards with tabs

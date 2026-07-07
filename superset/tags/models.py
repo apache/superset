@@ -111,12 +111,14 @@ class TaggedObject(Model, AuditMixinNullable):
     __tablename__ = "tagged_object"
     id = Column(Integer, primary_key=True)
     tag_id = Column(Integer, ForeignKey("tag.id"))
-    object_id = Column(
-        Integer,
-        ForeignKey("dashboards.id"),
-        ForeignKey("slices.id"),
-        ForeignKey("saved_query.id"),
-    )
+    # ``object_id`` is a polymorphic reference disambiguated by ``object_type``;
+    # the same value can point at a dashboard, chart or saved query. It must not
+    # carry a foreign key to any single table: declaring FKs to dashboards,
+    # slices and saved_query at once is unsatisfiable (a row would have to exist
+    # in all three) and breaks tagging, e.g. tagging a dashboard fails the
+    # slices FK. The original migration (c82ee8a39623) defined no FK here. See
+    # issue #35941.
+    object_id = Column(Integer)
     object_type = Column(Enum(ObjectType))
 
     tag = relationship("Tag", back_populates="objects", overlaps="tags")

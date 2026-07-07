@@ -119,7 +119,7 @@ class TestDashboard(SupersetTestCase):
         dash_count_after = db.session.query(func.count(Dashboard.id)).first()[0]
         assert dash_count_before + 1 == dash_count_after
         group = re.match(
-            r"\/superset\/dashboard\/([0-9]*)\/\?edit=true",
+            r"\/dashboard\/([0-9]*)\/\?edit=true",
             response.headers["Location"],
         )
         assert group is not None
@@ -148,7 +148,7 @@ class TestDashboard(SupersetTestCase):
         assert "birth_names" not in resp
 
         resp = self.get_resp("/api/v1/dashboard/")
-        assert "/superset/dashboard/births/" not in resp
+        assert "/dashboard/births/" not in resp
 
         self.grant_public_access_to_table(table)
 
@@ -156,14 +156,14 @@ class TestDashboard(SupersetTestCase):
         assert "birth_names" in self.get_resp("/api/v1/chart/")
 
         resp = self.get_resp("/api/v1/dashboard/")
-        assert "/superset/dashboard/births/" in resp
+        assert "/dashboard/births/" in resp
 
         # Confirm that public doesn't have access to other datasets.
         resp = self.get_resp("/api/v1/chart/")
         assert "wb_health_population" not in resp
 
         resp = self.get_resp("/api/v1/dashboard/")
-        assert "/superset/dashboard/world_health/" not in resp
+        assert "/dashboard/world_health/" not in resp
 
         # Cleanup
         self.revoke_public_access_to_table(table)
@@ -180,7 +180,7 @@ class TestDashboard(SupersetTestCase):
         dash.created_by = security_manager.find_user("admin")
         db.session.commit()
 
-        res: Response = self.client.get("/superset/dashboard/births/")
+        res: Response = self.client.get("/dashboard/births/")
         assert res.status_code == 200
 
         # Cleanup
@@ -192,7 +192,7 @@ class TestDashboard(SupersetTestCase):
     )
     def test_anonymous_user_redirects_to_login_with_next(self):
         self.logout()
-        target_path = f"/superset/dashboard/{pytest.hidden_dash_slug}/"
+        target_path = f"/dashboard/{pytest.hidden_dash_slug}/"
 
         response = self.client.get(target_path, follow_redirects=False)
 
@@ -225,7 +225,7 @@ class TestDashboard(SupersetTestCase):
 
     def test_anonymous_user_redirects_to_login_for_missing_dashboard(self):
         self.logout()
-        target_path = "/superset/dashboard/nonexistent-dashboard/"
+        target_path = "/dashboard/nonexistent-dashboard/"
 
         response = self.client.get(target_path, follow_redirects=False)
 
@@ -243,7 +243,7 @@ class TestDashboard(SupersetTestCase):
     )
     def test_authenticated_user_without_access_gets_404(self):
         self.login(GAMMA_USERNAME)
-        target_path = f"/superset/dashboard/{pytest.hidden_dash_slug}/"
+        target_path = f"/dashboard/{pytest.hidden_dash_slug}/"
 
         response = self.client.get(
             target_path,
@@ -260,8 +260,8 @@ class TestDashboard(SupersetTestCase):
     def test_users_can_list_published_dashboard(self):
         self.login(ALPHA_USERNAME)
         resp = self.get_resp("/api/v1/dashboard/")
-        assert f"/superset/dashboard/{pytest.hidden_dash_slug}/" not in resp
-        assert f"/superset/dashboard/{pytest.published_dash_slug}/" in resp
+        assert f"/dashboard/{pytest.hidden_dash_slug}/" not in resp
+        assert f"/dashboard/{pytest.published_dash_slug}/" in resp
 
     def test_users_can_view_own_dashboard(self):
         user = security_manager.find_user("gamma")
@@ -290,8 +290,8 @@ class TestDashboard(SupersetTestCase):
         db.session.delete(hidden_dash)
         db.session.commit()
 
-        assert f"/superset/dashboard/{my_dash_slug}/" in resp
-        assert f"/superset/dashboard/{not_my_dash_slug}/" not in resp
+        assert f"/dashboard/{my_dash_slug}/" in resp
+        assert f"/dashboard/{not_my_dash_slug}/" not in resp
 
     def test_user_can_not_view_unpublished_dash(self):
         admin_user = security_manager.find_user("admin")
@@ -313,4 +313,4 @@ class TestDashboard(SupersetTestCase):
         db.session.delete(dash)
         db.session.commit()
 
-        assert f"/superset/dashboard/{slug}/" not in resp
+        assert f"/dashboard/{slug}/" not in resp
