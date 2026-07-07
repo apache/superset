@@ -465,12 +465,12 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               loading={methodOptionsLoading}
             />
             {index !== 0 && !!onRemove ? (
-              // eslint-disable-next-line jsx-a11y/control-has-associated-label
               <span
                 role="button"
                 tabIndex={0}
                 className="delete-button"
                 onClick={() => onRemove(index)}
+                aria-label={t('Remove notification method')}
               >
                 <Icons.DeleteOutlined iconSize="l" />
               </span>
