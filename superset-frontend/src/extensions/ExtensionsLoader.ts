@@ -20,6 +20,7 @@ import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import type { common as core } from '@apache-superset/core';
 import { makeUrl } from 'src/utils/navigationUtils';
+import 'src/extensions/Namespaces';
 import { createExtensionContext } from './ExtensionContext';
 
 type Extension = core.Extension;

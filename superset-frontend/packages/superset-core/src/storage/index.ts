@@ -29,12 +29,7 @@
  * These are the only values that can be safely serialized/deserialized via JSON.
  */
 export type JsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | JsonValue[]
-  | { [key: string]: JsonValue };
+  string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
 /**
  * Base interface for a storage accessor.
