@@ -2693,5 +2693,34 @@ class ChartFiltersInfo(BaseModel):
     )
 
 
+class RestoreChartRequest(BaseModel):
+    """Request schema for restore_chart."""
+
+    identifier: int | str = Field(
+        ...,
+        description=(
+            "Chart identifier - numeric ID or UUID string (charts have no slug)."
+        ),
+    )
+
+
+class RestoreChartResponse(BaseModel):
+    """Result of a restore_chart operation."""
+
+    success: bool = Field(description="Whether the chart was restored from trash")
+    restored_id: int | None = Field(None, description="ID of the restored chart")
+    restored_name: str | None = Field(None, description="Name of the restored chart")
+    message: str | None = Field(None, description="Human-readable outcome message")
+    error: str | None = Field(None, description="Error message if the restore failed")
+    error_type: str | None = Field(None, description="Type of error if failed")
+    permission_denied: bool = Field(
+        False,
+        description=(
+            "True when the caller lacks permission to restore the chart (do not "
+            "retry; ask the user)."
+        ),
+    )
+
+
 # Rebuild ChartInfo so Pydantic can resolve the ChartFiltersInfo forward reference.
 ChartInfo.model_rebuild()
