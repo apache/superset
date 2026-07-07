@@ -15,9 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 import pytest
+from flask import Flask
 from marshmallow import Schema
 
-from superset.openapi.manager import normalize_app_root, resolver
+from superset.openapi.manager import (
+    normalize_app_root,
+    resolve_url_prefix,
+    resolver,
+)
 
 
 @pytest.mark.parametrize(
@@ -33,6 +38,29 @@ from superset.openapi.manager import normalize_app_root, resolver
 )
 def test_normalize_app_root(app_root: str | None, expected: str) -> None:
     assert normalize_app_root(app_root) == expected
+
+
+def test_resolve_url_prefix_prefers_script_root() -> None:
+    # A reverse-proxy prefix (X-Forwarded-Prefix / SCRIPT_NAME) must win over
+    # APPLICATION_ROOT so FAB's script_root behavior isn't dropped.
+    app = Flask(__name__)
+    app.config["APPLICATION_ROOT"] = "/config-root"
+    with app.test_request_context(environ_overrides={"SCRIPT_NAME": "/proxy-root"}):
+        assert resolve_url_prefix() == "/proxy-root"
+
+
+def test_resolve_url_prefix_falls_back_to_app_root() -> None:
+    app = Flask(__name__)
+    app.config["APPLICATION_ROOT"] = "/config-root"
+    with app.test_request_context():
+        assert resolve_url_prefix() == "/config-root"
+
+
+def test_resolve_url_prefix_empty_when_neither_set() -> None:
+    app = Flask(__name__)
+    app.config["APPLICATION_ROOT"] = "/"
+    with app.test_request_context():
+        assert resolve_url_prefix() == ""
 
 
 def test_resolver_strips_schema_suffix() -> None:

@@ -48,6 +48,19 @@ def normalize_app_root(app_root: str | None) -> str:
     return app_root.rstrip("/")
 
 
+def resolve_url_prefix() -> str:
+    """Resolve the URL prefix used to build OpenAPI/Swagger links.
+
+    Prefer the request's script root so reverse-proxy prefixes exposed via
+    ``X-Forwarded-Prefix`` / ``SCRIPT_NAME`` keep working (this is what FAB's
+    stock Swagger view does), and fall back to a normalized ``APPLICATION_ROOT``
+    when no script root is present.
+    """
+    return request.script_root or normalize_app_root(
+        current_app.config.get("APPLICATION_ROOT")
+    )
+
+
 def resolver(schema: Any) -> str:
     schema_cls = resolve_schema_cls(schema)
     name = schema_cls.__name__
@@ -100,8 +113,8 @@ class SupersetOpenApi(BaseApi):
 
     @staticmethod
     def _create_api_spec(version: str) -> APISpec:
-        app_root = normalize_app_root(current_app.config.get("APPLICATION_ROOT", "/"))
-        default_server = {"url": request.host_url.rstrip("/") + (app_root or "/")}
+        prefix = resolve_url_prefix()
+        default_server = {"url": request.host_url.rstrip("/") + (prefix or "/")}
         servers = current_app.config.get("FAB_OPENAPI_SERVERS", [default_server])
         return APISpec(
             title=current_app.appbuilder.app_name,
@@ -121,8 +134,7 @@ class SupersetSwaggerView(BaseView):
     @expose("/<version>")
     @has_access
     def show(self, version: str) -> FlaskResponse:
-        app_root = normalize_app_root(current_app.config.get("APPLICATION_ROOT"))
-        openapi_uri = (app_root + self.openapi_uri).format(version)
+        openapi_uri = (resolve_url_prefix() + self.openapi_uri).format(version)
         return self.render_template(
             current_app.config.get(
                 "FAB_API_SWAGGER_TEMPLATE", "appbuilder/swagger/swagger.html"
