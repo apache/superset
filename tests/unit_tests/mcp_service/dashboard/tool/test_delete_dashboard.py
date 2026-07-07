@@ -23,8 +23,10 @@ Covers:
 - confirm=false refusal (safety gate)
 - Dashboard not found
 - Permission denied (user does not own the dashboard)
+- Delete failure (e.g. associated alerts or reports)
 """
 
+from collections.abc import Iterator
 from unittest.mock import Mock, patch
 
 import pytest
@@ -40,7 +42,7 @@ def mcp_server() -> object:
 
 
 @pytest.fixture(autouse=True)
-def mock_auth():
+def mock_auth() -> Iterator[Mock]:
     """Mock authentication for all tests."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
         mock_user = Mock()
@@ -161,4 +163,35 @@ async def test_permission_denied(
     content = result.structured_content
     assert content["deleted"] is False
     assert "permission" in (content["error"] or "").lower()
+    assert content["dashboard"]["id"] == 1
+
+
+@patch("superset.commands.dashboard.delete.DeleteDashboardCommand")
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_delete_failed_reports_exist(
+    mock_find_by_id: Mock, mock_delete_cmd_cls: Mock, mcp_server: object
+) -> None:
+    """Returns a structured error when the delete command fails, e.g. because
+    the dashboard has associated alerts or reports."""
+    from superset.commands.dashboard.exceptions import (
+        DashboardDeleteFailedReportsExistError,
+    )
+
+    mock_find_by_id.return_value = _mock_dashboard(id=1, title="Sales Dashboard")
+    mock_delete_cmd = Mock()
+    mock_delete_cmd.run.side_effect = DashboardDeleteFailedReportsExistError()
+    mock_delete_cmd_cls.return_value = mock_delete_cmd
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "delete_dashboard",
+            {"request": {"dashboard_id": 1, "confirm": True}},
+        )
+
+    content = result.structured_content
+    assert content["deleted"] is False
+    assert content["permanent"] is False
+    assert "failed to delete" in (content["error"] or "").lower()
+    assert "alerts or reports" in (content["error"] or "").lower()
     assert content["dashboard"]["id"] == 1

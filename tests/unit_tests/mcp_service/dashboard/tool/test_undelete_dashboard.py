@@ -26,6 +26,7 @@ Covers:
 - Slug conflict with an active dashboard
 """
 
+from collections.abc import Iterator
 from datetime import datetime
 from unittest.mock import Mock, patch
 
@@ -42,7 +43,7 @@ def mcp_server() -> object:
 
 
 @pytest.fixture(autouse=True)
-def mock_auth():
+def mock_auth() -> Iterator[Mock]:
     """Mock authentication for all tests."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
         mock_user = Mock()

@@ -32,11 +32,14 @@ from superset.mcp_service.dashboard.schemas import (
     _extract_native_filters,
     _safe_user_label,
     dashboard_serializer,
+    DeleteDashboardResponse,
+    DeletedDashboardSummary,
     DuplicateDashboardRequest,
     DuplicateDashboardResponse,
     GenerateDashboardRequest,
     serialize_chart_summary,
     serialize_dashboard_object,
+    UndeleteDashboardResponse,
     UpdateDashboardRequest,
 )
 from superset.mcp_service.utils.sanitization import (
@@ -903,4 +906,70 @@ class TestDuplicateDashboardResponse:
     def test_none_error_is_not_wrapped(self) -> None:
         """A null error stays null rather than being wrapped."""
         resp = DuplicateDashboardResponse(dashboard_url="http://host/d/1/")
+        assert resp.error is None
+
+
+class TestDeletedDashboardSummary:
+    """LLM-context sanitization for the delete/undelete dashboard summary."""
+
+    def test_title_and_slug_are_wrapped_for_llm_context(self) -> None:
+        """Dashboard-controlled title and slug are wrapped before exposure."""
+        summary = DeletedDashboardSummary(
+            id=1,
+            dashboard_title="Injected title",
+            slug="injected-slug",
+            uuid="dashboard-uuid-1",
+        )
+        assert summary.dashboard_title == _wrapped("Injected title")
+        assert summary.slug == _wrapped("injected-slug")
+        assert summary.uuid == "dashboard-uuid-1"
+
+    def test_none_fields_are_not_wrapped(self) -> None:
+        """Null title/slug stay null rather than being wrapped."""
+        summary = DeletedDashboardSummary(id=1)
+        assert summary.dashboard_title is None
+        assert summary.slug is None
+        assert summary.uuid is None
+
+
+class TestDeleteDashboardResponse:
+    """Serialization and error sanitization for DeleteDashboardResponse."""
+
+    def test_defaults(self) -> None:
+        """An empty response has no deletion flags set and null fields."""
+        resp = DeleteDashboardResponse()
+        assert resp.deleted is False
+        assert resp.permanent is False
+        assert resp.dashboard is None
+        assert resp.error is None
+
+    def test_error_is_wrapped_for_llm_context(self) -> None:
+        """Error text is wrapped in LLM-context delimiters before exposure."""
+        resp = DeleteDashboardResponse(error="Dashboard 'x' not found.")
+        assert resp.error == _wrapped("Dashboard 'x' not found.")
+
+    def test_none_error_is_not_wrapped(self) -> None:
+        """A null error stays null rather than being wrapped."""
+        resp = DeleteDashboardResponse(deleted=True)
+        assert resp.error is None
+
+
+class TestUndeleteDashboardResponse:
+    """Serialization and error sanitization for UndeleteDashboardResponse."""
+
+    def test_defaults(self) -> None:
+        """An empty response has restored=False and null fields."""
+        resp = UndeleteDashboardResponse()
+        assert resp.restored is False
+        assert resp.dashboard is None
+        assert resp.error is None
+
+    def test_error_is_wrapped_for_llm_context(self) -> None:
+        """Error text is wrapped in LLM-context delimiters before exposure."""
+        resp = UndeleteDashboardResponse(error="Slug 'x' already in use.")
+        assert resp.error == _wrapped("Slug 'x' already in use.")
+
+    def test_none_error_is_not_wrapped(self) -> None:
+        """A null error stays null rather than being wrapped."""
+        resp = UndeleteDashboardResponse(restored=True)
         assert resp.error is None
