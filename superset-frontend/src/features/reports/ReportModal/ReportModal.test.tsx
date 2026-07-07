@@ -27,7 +27,18 @@ import {
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { FeatureFlag, VizType, isFeatureEnabled } from '@superset-ui/core';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { DEFAULT_COMMON_BOOTSTRAP_DATA } from 'src/constants';
+import type { BootstrapData } from 'src/types/bootstrapTypes';
 import ReportModal from '.';
+
+const bootstrapData = (
+  common: Partial<BootstrapData['common']> = {},
+): BootstrapData => ({
+  common: {
+    ...DEFAULT_COMMON_BOOTSTRAP_DATA,
+    ...common,
+  },
+});
 
 jest.mock('src/utils/getBootstrapData', () => ({
   __esModule: true,
@@ -76,14 +87,12 @@ jest.mock('@superset-ui/core', () => ({
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 beforeEach(() => {
-  mockedGetBootstrapData.mockReturnValue({
-    common: {
-      conf: {},
-      feature_flags: {},
+  mockedGetBootstrapData.mockReturnValue(
+    bootstrapData({
       user_subject_id: 99,
       user_subjects: [99],
-    },
-  } as ReturnType<typeof getBootstrapData>);
+    }),
+  );
   mockedIsFeatureEnabled.mockImplementation(
     featureFlag => featureFlag === FeatureFlag.AlertReports,
   );
@@ -338,13 +347,12 @@ test('edit mode dispatches editReport via PUT on save', async () => {
 });
 
 test('edit mode does not fall back to user id when subject id is unavailable', async () => {
-  mockedGetBootstrapData.mockReturnValue({
-    common: {
-      conf: {},
-      feature_flags: {},
+  mockedGetBootstrapData.mockReturnValue(
+    bootstrapData({
+      user_subject_id: undefined,
       user_subjects: [],
-    },
-  } as ReturnType<typeof getBootstrapData>);
+    }),
+  );
 
   const existingReport = {
     id: 43,
@@ -382,7 +390,10 @@ test('edit mode does not fall back to user id when subject id is unavailable', a
     },
   );
 
-  render(<ReportModal {...defaultProps} userId={1} />, { useRedux: true, store });
+  render(<ReportModal {...defaultProps} userId={1} />, {
+    useRedux: true,
+    store,
+  });
 
   const saveButton = screen.getByRole('button', { name: /save/i });
   await waitFor(() => userEvent.click(saveButton));

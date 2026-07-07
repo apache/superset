@@ -344,8 +344,10 @@ export default function DatasourceControl({
 
   const userSubjects = getBootstrapData()?.common?.user_subjects ?? [];
   const allowEdit =
-    datasource.editors?.some(o => userSubjects.includes(o.id || o.value)) ||
-    isUserAdmin(user);
+    datasource.editors?.some(o => {
+      const subjectId = o.id ?? o.value;
+      return subjectId !== undefined && userSubjects.includes(subjectId);
+    }) || isUserAdmin(user);
 
   const canAccessSqlLab = userHasPermission(user, 'SQL Lab', 'menu_access');
 
