@@ -395,7 +395,7 @@ sniffio==1.3.1
     # via trio
 sortedcontainers==2.4.0
     # via trio
-sqlalchemy==1.4.54
+sqlalchemy==2.0.51
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
@@ -437,6 +437,7 @@ typing-extensions==4.15.0
     #   referencing
     #   selenium
     #   shillelagh
+    #   sqlalchemy
     #   typing-inspection
 typing-inspection==0.4.1
     # via pydantic

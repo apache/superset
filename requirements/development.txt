@@ -970,7 +970,7 @@ sortedcontainers==2.4.0
     # via
     #   -c requirements/base-constraint.txt
     #   trio
-sqlalchemy==1.4.54
+sqlalchemy==2.0.51
     # via
     #   -c requirements/base-constraint.txt
     #   alembic
@@ -1058,6 +1058,7 @@ typing-extensions==4.15.0
     #   referencing
     #   selenium
     #   shillelagh
+    #   sqlalchemy
     #   starlette
     #   typing-inspection
 typing-inspection==0.4.1
