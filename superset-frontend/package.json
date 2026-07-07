@@ -344,7 +344,7 @@
     "mini-css-extract-plugin": "^2.10.2",
     "minimizer-webpack-plugin": "^5.6.1",
     "open-cli": "^9.0.0",
-    "oxlint": "^1.71.0",
+    "oxlint": "^1.72.0",
     "po2json": "^0.4.5",
     "prettier": "3.9.3",
     "prettier-plugin-packagejson": "^3.0.2",
