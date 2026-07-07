@@ -235,6 +235,16 @@ A few save- and import-path internals change **unconditionally** (independent of
 
 These are behavior changes that take effect on upgrade regardless of `ENABLE_VERSIONING_CAPTURE`; no operator action is required.
 
+### Version-history retention (pruning)
+
+Entity version history (the `version_transaction` / `*_version` shadow tables that back version capture) is aged out by a nightly Celery beat task, `version_history.prune_old_versions` (`superset.tasks.version_history_retention`).
+
+| Key | Default | Purpose |
+|---|---|---|
+| `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` | `30` | Version rows whose owning `version_transaction.issued_at` is older than this many days are pruned. Each entity's live row (`end_transaction_id IS NULL`) is always preserved, as are the live rows of its children and associations; closed historical rows (including the baseline) age out. Set to `0` to disable pruning. |
+
+The task ships in the default `CELERYBEAT_SCHEDULE`; a deployment that overrides `CELERY_CONFIG` without inheriting the default will log a startup warning that the prune task is absent (so it never silently stops running). Retention only prunes whatever history exists — capture itself is gated separately by `ENABLE_VERSIONING_CAPTURE` (ships off).
+
 ### Webhook alerts/reports block private/internal hosts by default
 
 Webhook alert/report dispatch (`WebhookNotification.send`) now validates the target URL's host against the same private/internal-IP block applied to dataset import URLs. If the resolved host is in a loopback, link-local, private (RFC-1918), shared-CGNAT, or multicast range, the webhook is rejected with `NotificationParamException`.
