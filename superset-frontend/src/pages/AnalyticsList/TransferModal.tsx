@@ -16,9 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { type UIEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  type ReactNode,
+  type UIEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { t } from '@apache-superset/core/translation';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, getNumberFormatter } from '@superset-ui/core';
 import rison from 'rison';
 import { styled, css, useTheme } from '@apache-superset/core/theme';
 import {
@@ -26,9 +33,10 @@ import {
   Checkbox,
   Constants,
   Flex,
+  FormLabel,
   Input,
   List,
-  Loading,
+  Skeleton,
 } from '@superset-ui/core/components';
 import { TreeSelect } from '@superset-ui/core/components/TreeSelect';
 import { StandardModal, MODAL_LARGE_WIDTH } from 'src/components/Modal';
@@ -94,9 +102,9 @@ const Field = styled.div`
 const BulkActionsBar = styled(Flex)`
   ${({ theme }) => css`
     padding: ${theme.sizeUnit}px 0;
-    border-bottom: 1px solid ${theme.colorSplit};
     .superset-button {
       font-family: inherit;
+      font-weight: normal;
       margin-left: 0 !important;
     }
     .superset-button:first-of-type {
@@ -108,11 +116,10 @@ const BulkActionsBar = styled(Flex)`
   `}
 `;
 
-const FieldLabel = styled.div`
+const StyledFormLabel = styled(FormLabel)`
   ${({ theme }) => css`
-    font-weight: ${theme.fontWeightStrong};
+    margin-bottom: ${theme.sizeUnit * 0.5}px;
     font-size: ${theme.fontSizeSM}px;
-    color: ${theme.colorTextLabel};
   `}
 `;
 
@@ -176,9 +183,12 @@ function toTransferItem(item: {
   };
 }
 
+const smartFormatter = getNumberFormatter('SMART_NUMBER');
+const formatCount = (n: number) => smartFormatter(n);
+
 function ItemIcon({ type }: { type: ItemType }) {
-  if (type === 'chart') return <Icons.AreaChartOutlined iconSize="m" />;
-  if (type === 'dashboard') return <Icons.AppstoreOutlined iconSize="m" />;
+  if (type === 'chart') return <Icons.LineChartOutlined iconSize="m" />;
+  if (type === 'dashboard') return <Icons.LayoutOutlined iconSize="m" />;
   return <Icons.FolderOutlined iconSize="m" />;
 }
 
@@ -235,6 +245,8 @@ export default function TransferModal({
   const [rightPage, setRightPage] = useState(0);
   const [leftSelected, setLeftSelected] = useState<Set<string>>(new Set());
   const [rightSelected, setRightSelected] = useState<Set<string>>(new Set());
+  const [movedToRight, setMovedToRight] = useState<TransferItem[]>([]);
+  const [movedToLeft, setMovedToLeft] = useState<TransferItem[]>([]);
   const [leftSearch, setLeftSearch] = useState('');
   const [rightSearch, setRightSearch] = useState('');
   const [targetFolderUuid, setTargetFolderUuid] = useState<string | null>(null);
@@ -243,10 +255,6 @@ export default function TransferModal({
   const [rightLoading, setRightLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [originalRightItems, setOriginalRightItems] = useState<
-    Map<string, TransferItem>
-  >(() => new Map());
-
   // Fetch left (source) first page + folder list on open
   useEffect(() => {
     if (!show) return;
@@ -254,11 +262,12 @@ export default function TransferModal({
     setRightSearch('');
     setLeftSelected(new Set());
     setRightSelected(new Set());
+    setMovedToRight([]);
+    setMovedToLeft([]);
     setRightItems([]);
     setRightTotal(0);
     setRightPage(0);
     setTargetFolderUuid(null);
-    setOriginalRightItems(new Map());
     setLeftLoading(true);
 
     Promise.all([
@@ -290,7 +299,6 @@ export default function TransferModal({
       setRightItems([]);
       setRightTotal(0);
       setRightPage(0);
-      setOriginalRightItems(new Map());
       return;
     }
     setRightSearch('');
@@ -302,13 +310,13 @@ export default function TransferModal({
         setRightItems(items);
         setRightTotal(total);
         setRightPage(0);
-        setOriginalRightItems(new Map(items.map(i => [i.key, i])));
       })
       .catch(() => addDangerToast(t('Error loading folder contents')))
       .finally(() => setRightLoading(false));
   }, [show, targetFolderUuid, addDangerToast]);
 
-  // Debounced server-side search for left panel
+  // Debounced server-side search — server data only, no merging.
+  // Moved items are handled in the filtered memos below.
   useEffect(() => {
     if (!show) return;
     const timer = setTimeout(() => {
@@ -325,7 +333,6 @@ export default function TransferModal({
     return () => clearTimeout(timer);
   }, [leftSearch, show, currentFolderUuid, addDangerToast]);
 
-  // Debounced server-side search for right panel
   useEffect(() => {
     if (!show || !targetFolderUuid) return;
     const timer = setTimeout(() => {
@@ -429,29 +436,31 @@ export default function TransferModal({
   const moveRight = useCallback(() => {
     if (!leftSelected.size) return;
     const moving = leftItems.filter(i => leftSelected.has(i.key));
-    setLeftItems(prev => prev.filter(i => !leftSelected.has(i.key)));
-    setRightItems(prev => [...prev, ...moving]);
+    const movingKeys = new Set(moving.map(i => i.key));
+    setMovedToRight(prev => [
+      ...prev.filter(i => !movingKeys.has(i.key)),
+      ...moving,
+    ]);
+    setMovedToLeft(prev => prev.filter(i => !movingKeys.has(i.key)));
     setLeftSelected(new Set());
   }, [leftSelected, leftItems]);
 
   const moveLeft = useCallback(() => {
     if (!rightSelected.size) return;
     const moving = rightItems.filter(i => rightSelected.has(i.key));
-    setRightItems(prev => prev.filter(i => !rightSelected.has(i.key)));
-    setLeftItems(prev => [...prev, ...moving]);
+    const movingKeys = new Set(moving.map(i => i.key));
+    setMovedToLeft(prev => [
+      ...prev.filter(i => !movingKeys.has(i.key)),
+      ...moving,
+    ]);
+    setMovedToRight(prev => prev.filter(i => !movingKeys.has(i.key)));
     setRightSelected(new Set());
   }, [rightSelected, rightItems]);
 
-  const hasChanges = useMemo(() => {
-    // Check if any items were moved TO the target (exist in right but not originally)
-    const addedToRight = rightItems.some(i => !originalRightItems.has(i.key));
-    // Check if any items were moved FROM the target (originally in right but no longer)
-    const rightKeysNow = new Set(rightItems.map(i => i.key));
-    const removedFromRight = Array.from(originalRightItems.keys()).some(
-      key => !rightKeysNow.has(key),
-    );
-    return addedToRight || removedFromRight;
-  }, [rightItems, originalRightItems]);
+  const hasChanges = useMemo(
+    () => movedToRight.length > 0 || movedToLeft.length > 0,
+    [movedToRight, movedToLeft],
+  );
 
   const handleDone = useCallback(async () => {
     if (!targetFolderUuid) return;
@@ -459,17 +468,13 @@ export default function TransferModal({
       targetFolderUuid === '__root__' ? null : targetFolderUuid;
     setSaving(true);
     try {
-      const rightKeysNow = new Set(rightItems.map(i => i.key));
       const calls: Promise<unknown>[] = [];
 
-      const addedToTarget = rightItems.filter(
-        i => !originalRightItems.has(i.key),
-      );
-      const assetsToAdd = addedToTarget.filter(i => i.type !== 'folder');
-      const foldersToAdd = addedToTarget.filter(i => i.type === 'folder');
+      // Items moved from left → right (add to target)
+      const assetsToAdd = movedToRight.filter(i => i.type !== 'folder');
+      const foldersToAdd = movedToRight.filter(i => i.type === 'folder');
 
       if (assetsToAdd.length && targetApiUuid) {
-        // Move assets into target folder
         calls.push(
           SupersetClient.post({
             endpoint: `/api/v1/folders/${targetApiUuid}/assets`,
@@ -479,7 +484,6 @@ export default function TransferModal({
           }),
         );
       } else if (assetsToAdd.length && !targetApiUuid && currentFolderUuid) {
-        // Move assets to root — remove them from source folder
         const q = rison.encode(
           assetsToAdd.map(i => ({ type: i.type, id: i.id })),
         );
@@ -500,25 +504,24 @@ export default function TransferModal({
         }
       }
 
-      for (const [key, item] of originalRightItems) {
-        if (!rightKeysNow.has(key)) {
-          if (item.type === 'folder' && item.uuid) {
-            calls.push(
-              SupersetClient.put({
-                endpoint: `/api/v1/folders/${item.uuid}`,
-                jsonPayload: { parent_uuid: currentFolderUuid },
-              }),
-            );
-          } else if (currentFolderUuid) {
-            calls.push(
-              SupersetClient.post({
-                endpoint: `/api/v1/folders/${currentFolderUuid}/assets`,
-                jsonPayload: {
-                  assets: [{ type: item.type, id: item.id }],
-                },
-              }),
-            );
-          }
+      // Items moved from right → left (return to source)
+      for (const item of movedToLeft) {
+        if (item.type === 'folder' && item.uuid) {
+          calls.push(
+            SupersetClient.put({
+              endpoint: `/api/v1/folders/${item.uuid}`,
+              jsonPayload: { parent_uuid: currentFolderUuid },
+            }),
+          );
+        } else if (currentFolderUuid) {
+          calls.push(
+            SupersetClient.post({
+              endpoint: `/api/v1/folders/${currentFolderUuid}/assets`,
+              jsonPayload: {
+                assets: [{ type: item.type, id: item.id }],
+              },
+            }),
+          );
         }
       }
 
@@ -539,8 +542,8 @@ export default function TransferModal({
   }, [
     targetFolderUuid,
     currentFolderUuid,
-    rightItems,
-    originalRightItems,
+    movedToRight,
+    movedToLeft,
     addSuccessToast,
     addDangerToast,
     onSuccess,
@@ -548,22 +551,49 @@ export default function TransferModal({
   ]);
 
   const filteredLeft = useMemo(() => {
-    if (!targetFolderUuid) return leftItems;
-    const rightKeys = new Set(rightItems.map(i => i.key));
-    return leftItems.filter(
-      i =>
-        !(i.type === 'folder' && i.uuid === targetFolderUuid) &&
-        !rightKeys.has(i.key),
+    const movedRightKeys = new Set(movedToRight.map(i => i.key));
+    // Server items minus anything moved to the right
+    let items = leftItems.filter(i => !movedRightKeys.has(i.key));
+    if (targetFolderUuid) {
+      const rightKeys = new Set(rightItems.map(i => i.key));
+      items = items.filter(
+        i =>
+          !(i.type === 'folder' && i.uuid === targetFolderUuid) &&
+          !rightKeys.has(i.key),
+      );
+    }
+    // Append moved-to-left items that match the search
+    const serverKeys = new Set(items.map(i => i.key));
+    const q = leftSearch?.toLowerCase();
+    const localMatches = movedToLeft.filter(
+      i => !serverKeys.has(i.key) && (!q || i.name.toLowerCase().includes(q)),
     );
-  }, [leftItems, targetFolderUuid, rightItems]);
+    return [...items, ...localMatches];
+  }, [
+    leftItems,
+    leftSearch,
+    movedToRight,
+    movedToLeft,
+    targetFolderUuid,
+    rightItems,
+  ]);
 
-  const filteredRight = useMemo(
-    () =>
-      rightItems.filter(
-        i => !(i.type === 'folder' && i.uuid === currentFolderUuid),
-      ),
-    [rightItems, currentFolderUuid],
-  );
+  const filteredRight = useMemo(() => {
+    const movedLeftKeys = new Set(movedToLeft.map(i => i.key));
+    // Server items minus anything moved to the left
+    const items = rightItems.filter(
+      i =>
+        !movedLeftKeys.has(i.key) &&
+        !(i.type === 'folder' && i.uuid === currentFolderUuid),
+    );
+    // Append moved-to-right items that match the search
+    const serverKeys = new Set(items.map(i => i.key));
+    const q = rightSearch?.toLowerCase();
+    const localMatches = movedToRight.filter(
+      i => !serverKeys.has(i.key) && (!q || i.name.toLowerCase().includes(q)),
+    );
+    return [...items, ...localMatches];
+  }, [rightItems, rightSearch, movedToLeft, movedToRight, currentFolderUuid]);
 
   const leftSelectableCount = filteredLeft.filter(
     (i: TransferItem) => !leftSelected.has(i.key),
@@ -612,12 +642,21 @@ export default function TransferModal({
     // Build tree from flat list
     type TreeNode = {
       value: string;
-      title: string;
+      title: ReactNode;
       children: TreeNode[];
     };
     const nodeMap = new Map<string, TreeNode>();
     for (const f of eligible) {
-      nodeMap.set(f.uuid, { value: f.uuid, title: f.name, children: [] });
+      nodeMap.set(f.uuid, {
+        value: f.uuid,
+        title: (
+          <Flex align="center" gap={4}>
+            <Icons.FolderOutlined iconSize="m" />
+            {f.name}
+          </Flex>
+        ),
+        children: [],
+      });
     }
     const roots: TreeNode[] = [];
     for (const f of eligible) {
@@ -634,7 +673,12 @@ export default function TransferModal({
     if (currentFolderUuid) {
       roots.unshift({
         value: '__root__',
-        title: t('Root (Analytics)'),
+        title: (
+          <Flex align="center" gap={4}>
+            <Icons.HomeOutlined iconSize="m" />
+            {t('Root (Analytics)')}
+          </Flex>
+        ),
         children: [],
       });
     }
@@ -657,25 +701,19 @@ export default function TransferModal({
         <PanelContainer>
           <Panel>
             <Field>
-              <FieldLabel>{t('Source folder')}</FieldLabel>
+              <StyledFormLabel>{t('Source folder')}</StyledFormLabel>
               <Input
                 value={currentFolderName || t('Root (Analytics)')}
                 disabled
               />
             </Field>
-            <Field>
-              <PanelCount>
-                {leftSelected.size > 0
-                  ? t('%s/%s items selected', leftSelected.size, leftTotal)
-                  : t('0 items selected')}
-              </PanelCount>
-              <Input
-                placeholder={t('Search here')}
-                value={leftSearch}
-                onChange={e => setLeftSearch(e.target.value)}
-                allowClear
-              />
-            </Field>
+            <Input
+              placeholder={t('Search the folder')}
+              value={leftSearch}
+              onChange={e => setLeftSearch(e.target.value)}
+              allowClear
+              prefix={<Icons.SearchOutlined iconSize="l" />}
+            />
             <Field>
               <BulkActionsBar gap={theme.sizeUnit}>
                 <Button
@@ -692,7 +730,7 @@ export default function TransferModal({
                     )
                   }
                 >
-                  {t('Select all (%s)', leftSelectableCount)}
+                  {t('Select all (%s)', formatCount(leftSelectableCount))}
                 </Button>
                 <Button
                   buttonStyle="link"
@@ -708,11 +746,20 @@ export default function TransferModal({
                     })
                   }
                 >
-                  {t('Clear (%s)', leftDeselectableCount)}
+                  {t('Deselect all (%s)', formatCount(leftDeselectableCount))}
                 </Button>
+                <PanelCount css={{ marginLeft: 'auto' }}>
+                  {leftSelected.size > 0
+                    ? t(
+                        '%s/%s items selected',
+                        formatCount(leftSelected.size),
+                        formatCount(leftTotal),
+                      )
+                    : t('0 items selected')}
+                </PanelCount>
               </BulkActionsBar>
               {leftLoading && !leftItems.length ? (
-                <Loading />
+                <Skeleton active />
               ) : (
                 <ScrollableList onScroll={handleLeftScroll}>
                   <List
@@ -764,13 +811,16 @@ export default function TransferModal({
 
           <Panel>
             <Field>
-              <FieldLabel>{t('Destination folder')}</FieldLabel>
+              <StyledFormLabel>{t('Destination folder')}</StyledFormLabel>
               <TreeSelect
                 aria-label={t('Target folder')}
                 placeholder={t('Select a location…')}
+                suffixIcon={<Icons.DownOutlined iconSize="m" />}
+                treeIcon
                 treeData={folderTreeData}
                 value={targetFolderUuid}
                 onChange={(val: string) => setTargetFolderUuid(val)}
+                allowClear
                 treeDefaultExpandAll
                 showSearch
                 filterTreeNode={(input, node) =>
@@ -784,19 +834,13 @@ export default function TransferModal({
                 css={{ width: '100%' }}
               />
             </Field>
-            <Field>
-              <PanelCount>
-                {rightSelected.size > 0
-                  ? t('%s/%s items selected', rightSelected.size, rightTotal)
-                  : t('0 items selected')}
-              </PanelCount>
-              <Input
-                placeholder={t('Search here')}
-                value={rightSearch}
-                onChange={e => setRightSearch(e.target.value)}
-                allowClear
-              />
-            </Field>
+            <Input
+              placeholder={t('Search the folder')}
+              value={rightSearch}
+              onChange={e => setRightSearch(e.target.value)}
+              allowClear
+              prefix={<Icons.SearchOutlined iconSize="l" />}
+            />
             <Field>
               <BulkActionsBar gap={theme.sizeUnit}>
                 <Button
@@ -813,7 +857,7 @@ export default function TransferModal({
                     )
                   }
                 >
-                  {t('Select all (%s)', rightSelectableCount)}
+                  {t('Select all (%s)', formatCount(rightSelectableCount))}
                 </Button>
                 <Button
                   buttonStyle="link"
@@ -829,15 +873,24 @@ export default function TransferModal({
                     })
                   }
                 >
-                  {t('Clear (%s)', rightDeselectableCount)}
+                  {t('Deselect all (%s)', formatCount(rightDeselectableCount))}
                 </Button>
+                <PanelCount css={{ marginLeft: 'auto' }}>
+                  {rightSelected.size > 0
+                    ? t(
+                        '%s/%s items selected',
+                        formatCount(rightSelected.size),
+                        formatCount(rightTotal),
+                      )
+                    : t('0 items selected')}
+                </PanelCount>
               </BulkActionsBar>
               {!targetFolderUuid ? (
                 <EmptyState>
                   {t('Select a location to see its contents')}
                 </EmptyState>
               ) : rightLoading && !rightItems.length ? (
-                <Loading />
+                <Skeleton active />
               ) : (
                 <ScrollableList onScroll={handleRightScroll}>
                   <List

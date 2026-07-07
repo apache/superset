@@ -45,7 +45,7 @@ from superset.migrations.shared.utils import (
 
 # revision identifiers, used by Alembic.
 revision = "4567cf3d03cc"
-down_revision = "33d7e0e21daa"
+down_revision = "7c4a8d09ca37"
 
 FOLDERS_TABLE = "folders"
 FOLDER_OBJECTS_TABLE = "folder_objects"

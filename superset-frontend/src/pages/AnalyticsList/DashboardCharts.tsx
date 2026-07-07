@@ -24,7 +24,7 @@ import {
   FeatureFlag,
   getChartMetadataRegistry,
 } from '@superset-ui/core';
-import { Empty, Loading } from '@superset-ui/core/components';
+import { EmptyState, Skeleton } from '@superset-ui/core/components';
 import { FacePile, ModifiedInfo, TagsList, TagType } from 'src/components';
 import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -131,26 +131,38 @@ export default function DashboardCharts({
     onRequest(dashboardId);
   }, [dashboardId, onRequest]);
 
-  // Read parent table header widths to align expanded rows with table columns
+  // Read parent table header widths to align expanded rows with table columns.
+  // Re-read on resize so the grid stays aligned when the window changes size.
   useEffect(() => {
-    const el = wrapperRef.current;
-    if (!el) return;
-    const table = el.closest('.ant-table-wrapper')?.querySelector('thead tr');
-    if (!table) return;
-    const ths = Array.from(table.querySelectorAll<HTMLTableCellElement>('th'));
-    // Skip the first th if it's the expand/checkbox column (narrow, no data-col)
-    const dataHeaders = ths.filter(th => th.offsetWidth > 40);
-    if (dataHeaders.length > 0) {
-      setColWidths(dataHeaders.map(th => `${th.offsetWidth}px`).join(' '));
-    }
+    const readWidths = () => {
+      const el = wrapperRef.current;
+      if (!el) return;
+      const table = el.closest('.ant-table-wrapper')?.querySelector('thead tr');
+      if (!table) return;
+      const ths = Array.from(
+        table.querySelectorAll<HTMLTableCellElement>('th'),
+      );
+      const dataHeaders = ths.filter(th => th.offsetWidth > 40);
+      if (dataHeaders.length > 0) {
+        setColWidths(dataHeaders.map(th => `${th.offsetWidth}px`).join(' '));
+      }
+    };
+    readWidths();
+    window.addEventListener('resize', readWidths);
+    return () => window.removeEventListener('resize', readWidths);
   }, [charts.length]);
 
   if (loading) {
-    return <Loading />;
+    return <Skeleton active />;
   }
 
   if (charts.length === 0) {
-    return <Empty description={t('This dashboard has no charts')} />;
+    return (
+      <EmptyState
+        size="small"
+        description={t('This dashboard has no charts')}
+      />
+    );
   }
 
   const showTags = isFeatureEnabled(FeatureFlag.TaggingSystem);
@@ -158,7 +170,7 @@ export default function DashboardCharts({
   return (
     <Wrapper ref={wrapperRef}>
       <SubHeader>
-        <Icons.AreaChartOutlined iconSize="m" />
+        <Icons.LineChartOutlined iconSize="m" />
         {t('Charts in the dashboard (%s)', charts.length)}
       </SubHeader>
       {charts.map(chart => (
@@ -167,9 +179,9 @@ export default function DashboardCharts({
           style={colWidths ? { gridTemplateColumns: colWidths } : undefined}
         >
           <NameCell>
-            <Icons.AreaChartOutlined
+            <Icons.LineChartOutlined
               iconSize="m"
-              css={{ color: theme.colorInfo, flexShrink: 0 }}
+              css={{ color: theme.colorErrorTextHover, flexShrink: 0 }}
             />
             {chart.url ? <a href={chart.url}>{chart.name}</a> : chart.name}
           </NameCell>

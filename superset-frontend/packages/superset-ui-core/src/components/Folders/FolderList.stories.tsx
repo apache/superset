@@ -220,28 +220,22 @@ export const DrillIntoExpandableDashboards = () => {
   // breadcrumb. Inside a folder we list its dashboards — the only type in
   // `expandableTypes` — so each expands in place to reveal its charts.
   const folders: Folder[] = folder
-    ? folder.dashboards.map(
-        (dashboard): Folder => ({
+    ? folder.dashboards.map((dashboard): Folder => ({
+        key: dashboard.key,
+        title: dashboard.title,
+        type: 'dashboard',
+        assets: dashboard.charts,
+      }))
+    : dashboardsByFolder.map((entry): Folder => ({
+        key: entry.key,
+        title: entry.title,
+        type: 'folder',
+        assets: entry.dashboards.map((dashboard): FolderAsset => ({
           key: dashboard.key,
-          title: dashboard.title,
+          name: dashboard.title,
           type: 'dashboard',
-          assets: dashboard.charts,
-        }),
-      )
-    : dashboardsByFolder.map(
-        (entry): Folder => ({
-          key: entry.key,
-          title: entry.title,
-          type: 'folder',
-          assets: entry.dashboards.map(
-            (dashboard): FolderAsset => ({
-              key: dashboard.key,
-              name: dashboard.title,
-              type: 'dashboard',
-            }),
-          ),
-        }),
-      );
+        })),
+      }));
 
   return (
     <div>

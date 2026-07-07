@@ -736,9 +736,7 @@ function AnalyticsList({
                   <Icons.FolderOutlined
                     iconSize="m"
                     css={{
-                      color: original.parent_uuid
-                        ? theme.colorWarning
-                        : theme.colorSuccess,
+                      color: theme.colorSuccessTextHover,
                     }}
                   />
                   {original.name}
@@ -750,9 +748,9 @@ function AnalyticsList({
               const expanded = expandedKeys.includes(id);
               return (
                 <NameRow>
-                  <Icons.AppstoreOutlined
+                  <Icons.LayoutOutlined
                     iconSize="m"
-                    css={{ color: theme.colorError }}
+                    css={{ color: theme.colorWarningBgHover }}
                   />
                   {original.url ? (
                     <NameLink href={original.url}>{original.name}</NameLink>
@@ -766,9 +764,9 @@ function AnalyticsList({
                     onClick={() => toggleExpand(id)}
                   >
                     {expanded ? (
-                      <Icons.DownOutlined iconSize="s" />
+                      <Icons.MinusSquareOutlined iconSize="s" />
                     ) : (
-                      <Icons.RightOutlined iconSize="s" />
+                      <Icons.PlusSquareOutlined iconSize="s" />
                     )}
                   </CaretButton>
                 </NameRow>
@@ -776,18 +774,18 @@ function AnalyticsList({
             }
             return original.url ? (
               <NameLink href={original.url}>
-                <Icons.AreaChartOutlined
+                <Icons.LineChartOutlined
                   iconSize="m"
-                  css={{ color: theme.colorInfo }}
+                  css={{ color: theme.colorErrorTextHover }}
                 />
                 {original.name}
                 {pinIcon}
               </NameLink>
             ) : (
               <NameRow>
-                <Icons.AreaChartOutlined
+                <Icons.LineChartOutlined
                   iconSize="m"
-                  css={{ color: theme.colorInfo }}
+                  css={{ color: theme.colorErrorTextHover }}
                 />
                 {original.name}
                 {pinIcon}
@@ -1196,13 +1194,13 @@ function AnalyticsList({
               items: [
                 {
                   key: 'chart',
-                  icon: <Icons.AreaChartOutlined />,
+                  icon: <Icons.LineChartOutlined />,
                   label: t('Chart'),
                   onClick: () => history.push('/chart/add'),
                 },
                 {
                   key: 'dashboard',
-                  icon: <Icons.AppstoreOutlined />,
+                  icon: <Icons.LayoutOutlined />,
                   label: t('Dashboard'),
                   onClick: () => window.location.assign('/dashboard/new'),
                 },
@@ -1350,9 +1348,11 @@ function AnalyticsList({
               bulkSelectEnabled={bulkSelectEnabled}
               disableBulkSelect={() => setBulkSelectEnabled(false)}
               headerContent={
-                <BreadcrumbWrap>
-                  <FolderBreadcrumb items={breadcrumbItems} />
-                </BreadcrumbWrap>
+                isAtRoot ? null : (
+                  <BreadcrumbWrap>
+                    <FolderBreadcrumb items={breadcrumbItems} />
+                  </BreadcrumbWrap>
+                )
               }
               bulkActions={[
                 ...(canEditCurrentFolder

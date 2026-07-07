@@ -22,6 +22,7 @@ import { SupersetClient } from '@superset-ui/core';
 import { styled, css, useTheme } from '@apache-superset/core/theme';
 import {
   AsyncSelect,
+  FormLabel,
   Input,
   Select,
   Table,
@@ -66,23 +67,19 @@ const PERMISSION_OPTIONS = [
   { value: 'editor', label: t('Editor') },
 ];
 
+const StyledFormLabel = styled(FormLabel)`
+  ${({ theme }) => css`
+    margin-bottom: ${theme.sizeUnit * 0.5}px;
+    font-size: ${theme.fontSizeSM}px;
+  `}
+`;
+
 const ModalContent = styled.div`
   ${({ theme }) => css`
     padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 4}px;
     display: flex;
     flex-direction: column;
     gap: ${theme.sizeUnit * 3}px;
-  `}
-`;
-
-const SectionLabel = styled.div`
-  ${({ theme }) => css`
-    font-weight: ${theme.fontWeightStrong};
-    color: ${theme.colorTextLabel};
-    font-size: ${theme.fontSizeSM}px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: ${theme.sizeUnit}px;
   `}
 `;
 
@@ -369,7 +366,7 @@ export default function FolderPermissionsModal({
           />
         )}
         <div>
-          <SectionLabel>{t('Add user')}</SectionLabel>
+          <StyledFormLabel>{t('Add user')}</StyledFormLabel>
           <AsyncSelect
             ariaLabel={t('Search users')}
             placeholder={t('Search for a user…')}
@@ -383,9 +380,9 @@ export default function FolderPermissionsModal({
         </div>
 
         <div>
-          <SectionLabel>
+          <StyledFormLabel>
             {t('Members')} ({localSubjects.length})
-          </SectionLabel>
+          </StyledFormLabel>
           <Input
             placeholder={t('Search members…')}
             value={memberSearch}
