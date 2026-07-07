@@ -100,20 +100,10 @@ def _cache_user_session_stamp(user_id: int, stamp: str) -> None:
 
 
 def register_session_auth_stamp_hook(app: Flask) -> None:
-    """Register login and request hooks that manage the per-user session stamp."""
+    """Register request hooks that manage the per-user session stamp."""
     if getattr(app, "superset_session_auth_stamp_hook_registered", False):
         return
     app.superset_session_auth_stamp_hook_registered = True
-
-    from flask_login import user_logged_in
-
-    if not getattr(app, "superset_session_auth_stamp_login_connected", False):
-        app.superset_session_auth_stamp_login_connected = True
-
-        @user_logged_in.connect
-        def _sync_stamp_after_login(sender: Flask, user: Any, **extra: Any) -> None:  # noqa: ARG001
-            """Copy the DB stamp into the session after Flask-Login finalizes it."""
-            sync_session_auth_stamp_on_login(user)
 
     @app.before_request
     def _validate_user_session_auth_stamp() -> None:  # noqa: WPS430
@@ -366,10 +356,10 @@ def validate_session_auth_stamp_for_request() -> None:
         db_stamp,
     )
     if sess_stamp is None or sess_stamp != db_stamp:
-        # Sessions authenticated before stamp tracking, or a login that did not
-        # persist the stamp into the signed cookie, carry no sess stamp. Adopt
-        # the current DB value so the request can proceed; password rotation
-        # still invalidates sessions that carry an outdated non-null stamp.
+        # Sessions authenticated before stamp tracking carry no session stamp.
+        # Adopt the current DB value so the request can proceed. This is bounded
+        # to the rollout window: the cookie is signed, so an attacker cannot
+        # strip the stamp to bypass invalidation after password rotation.
         if sess_stamp is None and db_stamp is not None:
             session[SESSION_AUTH_STAMP_SESSION_KEY] = db_stamp
             _mark_session_stamp_validated(db_stamp)

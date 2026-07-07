@@ -35,6 +35,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from superset import is_feature_enabled
 from superset.daos.user import UserDAO
 from superset.extensions import db, event_logger, security_manager
+from superset.security.manager import _log_audit_event
 from superset.utils.auth_db_password import (
     get_auth_db_login_rate_limit_string,
     get_public_auth_db_password_policy,
@@ -315,10 +316,6 @@ class CurrentUserRestApi(BaseSupersetApi):
     @permission_name("write")
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put_password",
-        log_to_statsd=False,
-    )
     @requires_json
     @_rate_limit_me_password_change
     def update_my_password(self) -> Response:
@@ -402,6 +399,7 @@ class CurrentUserRestApi(BaseSupersetApi):
 
         cache_user_session_auth_stamp(g.user.id, new_stamp)
         _reestablish_login_session(user_after)
+        _log_audit_event("UserPasswordChanged", {"user_id": g.user.id})
         return self.response(200, result=user_response_schema.dump(user_after))
 
     @expose("/password/policy", methods=["GET"])

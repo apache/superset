@@ -24,6 +24,7 @@ from flask_appbuilder.const import AUTH_OAUTH
 
 from superset import security_manager
 from superset.extensions import db
+from superset.models.core import Log
 from superset.utils import json, slack  # noqa: F401
 from superset.utils.auth_db_password import get_public_auth_db_password_policy
 from superset.utils.auth_db_password_hash import hash_auth_db_password
@@ -189,6 +190,72 @@ class TestCurrentUserApi(SupersetTestCase):
             assert rv2.status_code == 200
         finally:
             self._restore_admin_default_password()
+
+    def test_put_my_password_does_not_log_passwords(self) -> None:
+        """Password values must not be stored in action logs after PUT /me/password."""
+        self.login(ADMIN_USERNAME)
+        current_password = DEFAULT_PASSWORD
+        new_password = "AnotherStr0ng!Pass"  # noqa: S105
+        max_log_id_before = db.session.query(db.func.max(Log.id)).scalar() or 0
+
+        try:
+            rv = self.client.put(
+                mePasswordUri,
+                json={
+                    "current_password": current_password,
+                    "new_password": new_password,
+                    "confirm_password": new_password,
+                },
+            )
+            assert rv.status_code == 200
+
+            new_logs = (
+                db.session.query(Log).filter(Log.id > max_log_id_before).all()
+            )
+            assert new_logs, "Expected at least one audit log row for password change"
+            for log in new_logs:
+                log_json = log.json or ""
+                assert current_password not in log_json
+                assert new_password not in log_json
+                assert "current_password" not in log_json
+                assert "new_password" not in log_json
+                assert "confirm_password" not in log_json
+
+            password_change_logs = [
+                log for log in new_logs if log.action == "UserPasswordChanged"
+            ]
+            assert len(password_change_logs) == 1
+            assert password_change_logs[0].user_id == security_manager.find_user(
+                username=ADMIN_USERNAME
+            ).id
+        finally:
+            self._restore_admin_default_password()
+
+    def test_put_my_password_failure_does_not_log_passwords(self) -> None:
+        """Failed password changes must not persist submitted passwords in logs."""
+        self.login(ADMIN_USERNAME)
+        wrong_current = "not-the-admin-password"
+        new_password = "AnotherStr0ng!Pass"  # noqa: S105
+        max_log_id_before = db.session.query(db.func.max(Log.id)).scalar() or 0
+
+        rv = self.client.put(
+            mePasswordUri,
+            json={
+                "current_password": wrong_current,
+                "new_password": new_password,
+                "confirm_password": new_password,
+            },
+        )
+        assert rv.status_code == 400
+
+        new_logs = db.session.query(Log).filter(Log.id > max_log_id_before).all()
+        for log in new_logs:
+            log_json = log.json or ""
+            assert wrong_current not in log_json
+            assert new_password not in log_json
+            assert "current_password" not in log_json
+            assert "new_password" not in log_json
+            assert "confirm_password" not in log_json
 
     def test_put_my_password_invalidates_cloned_session_client(self) -> None:
         """

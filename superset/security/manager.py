@@ -1171,22 +1171,47 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         bypassed. We distinguish the two by comparing the acting user
         (``g.user``) against the target ``userid``: they match for a
         self-service reset and differ for an admin reset.
+
+        On ``AUTH_DB``, the per-user session auth stamp is rotated so every
+        other session for the target account is invalidated — including when an
+        administrator resets a compromised password.
         """
+        # pylint: disable=import-outside-toplevel
+        from flask_appbuilder.const import AUTH_DB
+
         super().reset_password(userid, password)
+
+        try:
+            target_user_id = int(userid)
+        except (TypeError, ValueError):
+            target_user_id = None
 
         acting_user = getattr(g, "user", None)
         acting_user_id = getattr(acting_user, "id", None)
         # ``userid`` arrives as a string (the ``pk`` request arg) on the admin
         # path, so coerce both sides before comparing.
-        is_self_service = acting_user_id is not None and self._same_user(
-            acting_user_id, userid
+        is_self_service = (
+            acting_user_id is not None
+            and target_user_id is not None
+            and self._same_user(acting_user_id, userid)
         )
-        if is_self_service:
+
+        if current_app.config.get("AUTH_TYPE") == AUTH_DB and target_user_id is not None:
+            from superset.utils.auth_session_stamp import (
+                bump_user_session_auth_stamp,
+                sync_session_auth_stamp_on_login,
+            )
+
+            bump_user_session_auth_stamp(target_user_id)
+            if is_self_service and acting_user is not None:
+                sync_session_auth_stamp_on_login(acting_user)
+
+        if is_self_service and target_user_id is not None:
             from superset.security.password_change import (
                 clear_password_must_change,
             )
 
-            clear_password_must_change(int(userid))
+            clear_password_must_change(target_user_id)
 
     @staticmethod
     def _same_user(left: Any, right: Any) -> bool:
