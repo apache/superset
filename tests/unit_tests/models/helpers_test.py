@@ -29,7 +29,8 @@ from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
 from sqlalchemy.orm.session import Session
 from sqlalchemy.pool import StaticPool
-from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy.sql.elements import Cast, ColumnElement
+from sqlalchemy.sql.visitors import iterate
 
 from superset.superset_typing import AdhocColumn, AdhocMetric, OrderBy
 from superset.utils.core import FilterOperator, GenericDataType
@@ -3760,8 +3761,10 @@ def test_like_filter_on_uuid_column_casts_to_string(
         is_timeseries=False,
         orderby=[],
     )
-    sql = str(result.sqla_query)
-    assert "CAST" in sql.upper(), f"Expected string cast in SQL: {sql}"
+    whereclause = result.sqla_query.whereclause
+    assert any(isinstance(node, Cast) for node in iterate(whereclause)), (
+        f"Expected a Cast node in the filter expression: {whereclause}"
+    )
 
 
 def test_like_filter_on_string_column_does_not_cast(database: Database) -> None:
@@ -3786,5 +3789,7 @@ def test_like_filter_on_string_column_does_not_cast(database: Database) -> None:
         is_timeseries=False,
         orderby=[],
     )
-    sql = str(result.sqla_query)
-    assert "CAST" not in sql.upper(), f"Unexpected cast in SQL: {sql}"
+    whereclause = result.sqla_query.whereclause
+    assert not any(isinstance(node, Cast) for node in iterate(whereclause)), (
+        f"Unexpected Cast node in the filter expression: {whereclause}"
+    )

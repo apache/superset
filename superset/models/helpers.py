@@ -250,6 +250,9 @@ def json_to_dict(json_str: str) -> dict[Any, Any]:
     return {}
 
 
+UUID_NATIVE_TYPE_RE = re.compile(r"\buuid\b", re.IGNORECASE)
+
+
 def is_uuid_native_type(native_type: Optional[str]) -> bool:
     """
     Return True if a native column type represents a UUID.
@@ -257,9 +260,13 @@ def is_uuid_native_type(native_type: Optional[str]) -> bool:
     Engines such as PostgreSQL and ClickHouse expose native UUID column types
     (e.g. ``UUID``, ``Nullable(UUID)``) that map to ``GenericDataType.STRING``
     yet reject LIKE/ILIKE against the raw column, so these columns need an
-    explicit cast to string before pattern matching.
+    explicit cast to string before pattern matching. The match is on the
+    whole word ``uuid`` so unrelated types that merely contain the substring
+    (e.g. a hypothetical ``uuidish`` type) aren't misclassified.
     """
-    return native_type is not None and "uuid" in native_type.lower()
+    return native_type is not None and bool(
+        UUID_NATIVE_TYPE_RE.search(native_type.strip())
+    )
 
 
 def convert_uuids(obj: Any) -> Any:
@@ -3874,30 +3881,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     elif op in {
                         utils.FilterOperator.ILIKE,
                         utils.FilterOperator.LIKE,
-                    }:
-                        # Native UUID columns report GenericDataType.STRING but
-                        # reject LIKE/ILIKE without a cast (see issue #41795)
-                        if target_generic_type != GenericDataType.STRING or (
-                            is_uuid_native_type(col_type)
-                        ):
-                            sqla_col = sa.cast(sqla_col, sa.String)
-
-                        if op == utils.FilterOperator.LIKE:
-                            target_clause_list.append(sqla_col.like(eq))
-                        else:
-                            target_clause_list.append(sqla_col.ilike(eq))
-                    elif op in {
                         utils.FilterOperator.NOT_LIKE,
                         utils.FilterOperator.NOT_ILIKE,
                     }:
                         # Native UUID columns report GenericDataType.STRING but
                         # reject LIKE/ILIKE without a cast (see issue #41795)
-                        if target_generic_type != GenericDataType.STRING or (
-                            is_uuid_native_type(col_type)
-                        ):
+                        needs_string_cast_for_like = (
+                            target_generic_type != GenericDataType.STRING
+                            or is_uuid_native_type(col_type)
+                        )
+                        if needs_string_cast_for_like:
                             sqla_col = sa.cast(sqla_col, sa.String)
 
-                        if op == utils.FilterOperator.NOT_LIKE:
+                        if op == utils.FilterOperator.LIKE:
+                            target_clause_list.append(sqla_col.like(eq))
+                        elif op == utils.FilterOperator.ILIKE:
+                            target_clause_list.append(sqla_col.ilike(eq))
+                        elif op == utils.FilterOperator.NOT_LIKE:
                             target_clause_list.append(sqla_col.not_like(eq))
                         else:
                             target_clause_list.append(sqla_col.not_ilike(eq))
