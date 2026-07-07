@@ -397,13 +397,16 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
     };
 
     if (
+      !isDownloadQuery &&
       formData.server_pagination &&
       options?.extras?.cachedChanges?.[formData.slice_id] &&
       JSON.stringify(options?.extras?.cachedChanges?.[formData.slice_id]) !==
         JSON.stringify(queryObject.filters)
     ) {
       // Reset to the first page: restore the full first-page row_limit rather
-      // than carrying over the last page's capped value.
+      // than carrying over the last page's capped value. Skipped for download
+      // queries so CSV/JSON exports keep the full configured row_limit instead
+      // of being capped to the page size.
       queryObject = {
         ...queryObject,
         row_offset: 0,

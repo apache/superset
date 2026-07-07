@@ -1672,6 +1672,36 @@ describe('plugin-chart-ag-grid-table', () => {
       });
     });
 
+    test('keeps the full export row limit on a download after a filter change', () => {
+      // A CSV/JSON export uses the same buildQuery, so a filter-reset caused
+      // by stale cachedChanges must not shrink the export to the page size.
+      const { queries } = buildQueryUncached(
+        {
+          ...serverPaginationFormData,
+          row_limit: 120,
+          server_page_length: 50,
+          result_format: 'csv',
+          slice_id: 107,
+        },
+        {
+          ownState: {
+            currentPage: 2,
+            pageSize: 50,
+          },
+          extras: {
+            cachedChanges: {
+              107: [{ col: 'state', op: '==', val: 'previous' }],
+            },
+          },
+        },
+      );
+
+      expect(queries[0]).toMatchObject({
+        row_limit: 120,
+        row_offset: 0,
+      });
+    });
+
     test('persists the user page size, not the capped limit, on filter reset', () => {
       const setDataMask = jest.fn();
       buildQueryUncached(
