@@ -564,6 +564,7 @@ msgstr ""
 msgid "10/90 percentiles"
 msgstr ""
 
+#. do-not-translate
 msgid "10000"
 msgstr ""
 
@@ -3976,6 +3977,7 @@ msgstr ""
 msgid "DEC"
 msgstr ""
 
+#. do-not-translate
 msgid "DELETE"
 msgstr ""
 
@@ -5214,12 +5216,14 @@ msgstr ""
 msgid "Dynamically select grouping columns from a dataset"
 msgstr ""
 
+#. do-not-translate
 msgid "ECharts"
 msgstr ""
 
 msgid "ECharts Options (JS object literals)"
 msgstr ""
 
+#. do-not-translate
 msgid "EMAIL_REPORTS_CTA"
 msgstr ""
 
@@ -6505,6 +6509,7 @@ msgstr ""
 msgid "Further customize how to display each metric"
 msgstr ""
 
+#. do-not-translate
 msgid "GROUP BY"
 msgstr ""
 
@@ -8277,6 +8282,7 @@ msgstr ""
 msgid "N/A"
 msgstr ""
 
+#. do-not-translate
 msgid "NOT GROUPED BY"
 msgstr ""
 
@@ -8768,6 +8774,7 @@ msgstr ""
 msgid "OR"
 msgstr ""
 
+#. do-not-translate
 msgid "OVERWRITE"
 msgstr ""
 
@@ -12104,6 +12111,7 @@ msgstr ""
 msgid "TABLES"
 msgstr ""
 
+#. do-not-translate
 msgid "TEMPORAL_RANGE"
 msgstr ""
 
@@ -14806,9 +14814,11 @@ msgstr ""
 msgid "WED"
 msgstr ""
 
+#. do-not-translate
 msgid "WFS"
 msgstr ""
 
+#. do-not-translate
 msgid "WMS"
 msgstr ""
 
@@ -15277,6 +15287,7 @@ msgstr ""
 msgid "X-scale interval"
 msgstr ""
 
+#. do-not-translate
 msgid "XYZ"
 msgstr ""
 
@@ -15806,6 +15817,7 @@ msgstr ""
 msgid "bfill"
 msgstr ""
 
+#. do-not-translate
 msgid "bolt"
 msgstr ""
 
@@ -15891,6 +15903,7 @@ msgstr ""
 msgid "create dataset from SQL query"
 msgstr ""
 
+#. do-not-translate
 msgid "crontab"
 msgstr ""
 
@@ -15957,6 +15970,7 @@ msgstr ""
 msgid "deck.gl Contour"
 msgstr ""
 
+#. do-not-translate
 msgid "deck.gl Geojson"
 msgstr ""
 
@@ -16005,6 +16019,7 @@ msgstr ""
 msgid "documentation"
 msgstr ""
 
+#. do-not-translate
 msgid "dttm"
 msgstr ""
 
@@ -16071,6 +16086,7 @@ msgstr ""
 msgid "error"
 msgstr ""
 
+#. do-not-translate
 msgid "error_message"
 msgstr ""
 
@@ -16344,15 +16360,19 @@ msgstr ""
 msgid "p-value precision"
 msgstr ""
 
+#. do-not-translate
 msgid "p1"
 msgstr ""
 
+#. do-not-translate
 msgid "p5"
 msgstr ""
 
+#. do-not-translate
 msgid "p95"
 msgstr ""
 
+#. do-not-translate
 msgid "p99"
 msgstr ""
 
@@ -16367,6 +16387,7 @@ msgstr ""
 msgid "permalink state not found"
 msgstr ""
 
+#. do-not-translate
 msgid "pivoted_xlsx"
 msgstr ""
 
@@ -16427,6 +16448,7 @@ msgstr ""
 msgid "save"
 msgstr ""
 
+#. do-not-translate
 msgid "schema1,schema2"
 msgstr ""
 
@@ -16442,6 +16464,7 @@ msgid ""
 "series"
 msgstr ""
 
+#. do-not-translate
 msgid "sql"
 msgstr ""
 
@@ -16457,9 +16480,11 @@ msgstr ""
 msgid "std"
 msgstr ""
 
+#. do-not-translate
 msgid "step-after"
 msgstr ""
 
+#. do-not-translate
 msgid "step-before"
 msgstr ""
 
@@ -16481,6 +16506,7 @@ msgstr ""
 msgid "sum"
 msgstr ""
 
+#. do-not-translate
 msgid "superset.example.com"
 msgstr ""
 
@@ -16588,6 +16614,7 @@ msgstr ""
 msgid "year"
 msgstr ""
 
+#. do-not-translate
 msgid "your-project-1234-a1"
 msgstr ""
 

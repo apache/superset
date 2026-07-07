@@ -44,6 +44,8 @@ import {
   FilterableTable,
   ErrorMessageWithStackTrace,
 } from 'src/components';
+import type { GridThemeOverrides } from 'src/components/GridTable/types';
+import { buildResultsGridThemeOverrides } from './buildResultsGridThemeOverrides';
 import { nanoid } from 'nanoid';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -214,6 +216,12 @@ const ResultSet = ({
     extensionsRegistry.get('sqleditor.extension.resultTable') ??
     FilterableTable;
   const theme = useTheme();
+
+  const resultsGridThemeOverrides = useMemo<GridThemeOverrides | undefined>(
+    () => buildResultsGridThemeOverrides(theme),
+    [theme],
+  );
+
   const [searchText, setSearchText] = useState('');
   const [cachedData, setCachedData] = useState<Record<string, unknown>[]>([]);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
@@ -708,6 +716,7 @@ const ResultSet = ({
         filterText: searchText,
         expandedColumns,
         allowHTML,
+        themeOverrides: resultsGridThemeOverrides,
       };
 
       return (

@@ -260,7 +260,6 @@ const createEnhancedClone = (
   processCloneForVisibility(clone);
 
   const cleanup = () => {
-    styleCache.delete?.(originalElement);
     if (tempContainer.parentElement) {
       tempContainer.parentElement.removeChild(tempContainer);
     }
