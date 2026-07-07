@@ -246,12 +246,7 @@ const VisuallyHidden = styled.label`
   border: 0;
 `;
 
-function SearchInput({
-  value,
-  onChange,
-  onBlur,
-  inputRef,
-}: SearchInputProps) {
+function SearchInput({ value, onChange, onBlur, inputRef }: SearchInputProps) {
   return (
     <Space direction="vertical" size={4} className="dt-global-filter">
       <span aria-hidden="true">{t('Search')}</span>
