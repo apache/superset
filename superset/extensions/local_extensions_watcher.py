@@ -68,7 +68,7 @@ def _get_file_handler_class() -> Any:  # noqa: C901
                 # `prime_baseline`) so that startup-noise inotify events from
                 # Docker VirtioFS reads don't get treated as the first real edit.
                 self._file_hashes: dict[str, str] = {}
-                self._lock = threading.Lock()
+                self._lock: threading.Lock = threading.Lock()
                 # Trailing debounce: schedule a single reload after a quiet
                 # window so simultaneous webpack writes coalesce into one
                 # restart that fires *after* the build settles.
@@ -126,18 +126,24 @@ def _get_file_handler_class() -> Any:  # noqa: C901
                 watcher reloads on its mtime change."""
                 # A newer event may have superseded this timer after it began
                 # running (`cancel()` can't stop an in-flight callback), so only
-                # the most recently scheduled generation is allowed to fire.
+                # the most recently scheduled generation is allowed to fire. The
+                # check and the sentinel touch happen inside the same critical
+                # section so a `_schedule_reload` call racing in from another
+                # thread can't bump the generation between the check and the
+                # write and let this stale callback still fire.
                 with self._lock:
                     if generation != self._reload_generation:
                         return
-                logger.info("File change settled in LOCAL_EXTENSIONS: %s", source_path)
-                logger.info("Triggering restart by touching %s", RELOAD_TRIGGER)
-                try:
-                    os.utime(RELOAD_TRIGGER, (time.time(), time.time()))
-                except OSError as e:
-                    logger.warning(
-                        "Failed to touch reload trigger %s: %s", RELOAD_TRIGGER, e
+                    logger.info(
+                        "File change settled in LOCAL_EXTENSIONS: %s", source_path
                     )
+                    logger.info("Triggering restart by touching %s", RELOAD_TRIGGER)
+                    try:
+                        os.utime(RELOAD_TRIGGER, (time.time(), time.time()))
+                    except OSError as e:
+                        logger.warning(
+                            "Failed to touch reload trigger %s: %s", RELOAD_TRIGGER, e
+                        )
 
             def _schedule_reload(self, source_path: str) -> None:
                 """Trailing-debounce: cancel any pending reload and schedule a

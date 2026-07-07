@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 # /api/v1/extensions/<publisher>/<name>/<path:file>, where the file portion may
 # contain nested segments (worker / WASM / chunk subfolders).
 # Does not match the list (/), get (/<publisher>/<name>), or info (/_info) endpoints.
-_ASSET_PATH_RE = re.compile(r"^/api/v1/extensions/[^/]+/[^/]+/.+$")
+_ASSET_PATH_RE: re.Pattern[str] = re.compile(r"^/api/v1/extensions/[^/]+/[^/]+/.+$")
 
 
 class ExtensionCacheMiddleware:
