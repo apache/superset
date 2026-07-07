@@ -63,3 +63,34 @@ class TestValidateNames:
         """Should label errors with the caller-provided 'kind' string."""
         errors = validate_names(["missing"], set(), "filter column")
         assert errors == ["Unknown filter column: 'missing'"]
+
+    def test_list_valid_on_miss_lists_valid_names(self) -> None:
+        """Should list valid names when no close match exists."""
+        errors = validate_names(
+            ["zzz_unknown"], {"count", "revenue"}, "metric", list_valid_on_miss=True
+        )
+        assert errors == [
+            "Unknown metric: 'zzz_unknown'. Valid metrics: count, revenue"
+        ]
+
+    def test_list_valid_on_miss_truncates_with_default_hint(self) -> None:
+        """Should truncate long valid lists and point at get_dataset_info."""
+        valid = {f"metric_{i:02d}" for i in range(12)}
+        errors = validate_names(
+            ["zzz_unknown"], valid, "metric", list_valid_on_miss=True
+        )
+        assert len(errors) == 1
+        assert "and 2 more; call get_dataset_info for the full list" in errors[0]
+
+    def test_list_valid_on_miss_uses_custom_full_list_hint(self) -> None:
+        """Should use the caller-provided full_list_hint when truncating."""
+        valid = {f"metric_{i:02d}" for i in range(12)}
+        errors = validate_names(
+            ["zzz_unknown"],
+            valid,
+            "metric",
+            list_valid_on_miss=True,
+            full_list_hint="call list_metrics for the full list",
+        )
+        assert len(errors) == 1
+        assert "and 2 more; call list_metrics for the full list" in errors[0]

@@ -181,6 +181,12 @@ def _resolve_external_view(
     )
 
 
+_NO_METRICS_HINT = (
+    "This data source has no metrics defined. Use list_metrics to "
+    "discover data sources that expose metrics."
+)
+
+
 def _validate_request_names(
     request: GetTableRequest, valid_columns: set[str], valid_metrics: set[str]
 ) -> list[str]:
@@ -189,7 +195,16 @@ def _validate_request_names(
     validation_errors.extend(
         validate_names(request.dimensions, valid_columns, "dimension")
     )
-    validation_errors.extend(validate_names(request.metrics, valid_metrics, "metric"))
+    validation_errors.extend(
+        validate_names(
+            request.metrics,
+            valid_metrics,
+            "metric",
+            empty_hint=_NO_METRICS_HINT,
+            list_valid_on_miss=True,
+            full_list_hint="call list_metrics for the full list",
+        )
+    )
     filter_cols = [f.col for f in request.filters]
     validation_errors.extend(
         validate_names(filter_cols, valid_columns, "filter column")

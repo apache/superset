@@ -71,11 +71,17 @@ def _make_column(name: str, groupby: bool = True) -> MagicMock:
     return col
 
 
+def _make_metric(name: str) -> MagicMock:
+    m = MagicMock()
+    m.metric_name = name
+    return m
+
+
 def _make_dataset(dataset_id: int = 42) -> MagicMock:
     ds: MagicMock = MagicMock()
     ds.id = dataset_id
     ds.table_name = f"table_{dataset_id}"
-    ds.metrics = []
+    ds.metrics = [_make_metric("revenue")]
     ds.columns = [
         _make_column("region"),
         _make_column("category"),
@@ -108,7 +114,7 @@ def _access_denied_exc(message: str = "Access denied") -> SupersetSecurityExcept
 async def test_get_compatible_dimensions_builtin_happy_path(
     mcp_server: FastMCP,
 ) -> None:
-    """Builtin datasets return all groupby-enabled columns, ignoring selection."""
+    """Builtin datasets return all groupby-enabled columns for a valid selection."""
     mock_ds = _make_dataset(42)
 
     with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds):
@@ -123,6 +129,33 @@ async def test_get_compatible_dimensions_builtin_happy_path(
     assert data["source"] == "builtin"
     names = {d["name"] for d in data["compatible_dimensions"]}
     assert names == {"region", "category"}
+
+
+@pytest.mark.asyncio
+async def test_get_compatible_dimensions_builtin_unknown_selection(
+    mcp_server: FastMCP,
+) -> None:
+    """Builtin datasets reject unknown selected metric/dimension names."""
+    mock_ds = _make_dataset(42)
+
+    with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_compatible_dimensions",
+                {
+                    "request": {
+                        "dataset_id": 42,
+                        "selected_metrics": ["bogus_metric"],
+                        "selected_dimensions": ["bogus_dim"],
+                    }
+                },
+            )
+        data = json.loads(result.content[0].text)
+
+    assert data["success"] is False
+    assert data["error_type"] == "ValidationError"
+    assert "Unknown metric: 'bogus_metric'" in data["error"]
+    assert "Unknown dimension: 'bogus_dim'" in data["error"]
 
 
 @pytest.mark.asyncio

@@ -215,6 +215,7 @@ async def test_get_table_unknown_metric_validation_error(mcp_server: FastMCP) ->
 
     assert data["success"] is False
     assert data["error_type"] == "ValidationError"
+    assert "Valid metrics: revenue" in data["error"]
 
 
 @pytest.mark.asyncio

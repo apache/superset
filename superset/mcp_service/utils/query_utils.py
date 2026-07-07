@@ -27,13 +27,15 @@ def validate_names(
     *,
     empty_hint: str | None = None,
     list_valid_on_miss: bool = False,
+    full_list_hint: str = "call get_dataset_info for the full list",
 ) -> list[str]:
     """Return list of error messages for names not found in *valid*.
 
     Includes close-match suggestions when available. When *valid* is empty,
     appends *empty_hint* instead of a useless fuzzy match. When no close
     match exists and *list_valid_on_miss* is set, lists the valid names so
-    the caller does not have to guess again.
+    the caller does not have to guess again; *full_list_hint* names the tool
+    to call when the valid list is truncated.
     """
     errors: list[str] = []
     for name in requested:
@@ -49,11 +51,7 @@ def validate_names(
                 elif list_valid_on_miss:
                     shown = sorted(valid)[:10]
                     more = len(valid) - len(shown)
-                    suffix = (
-                        f" (and {more} more; call get_dataset_info for the full list)"
-                        if more > 0
-                        else ""
-                    )
+                    suffix = f" (and {more} more; {full_list_hint})" if more > 0 else ""
                     msg += f". Valid {kind}s: {', '.join(shown)}{suffix}"
             errors.append(msg)
     return errors

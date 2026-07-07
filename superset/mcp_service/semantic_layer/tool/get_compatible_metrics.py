@@ -37,6 +37,7 @@ from superset.mcp_service.semantic_layer.schemas import (
     MetricInfo,
     SemanticLayerError,
 )
+from superset.mcp_service.utils.query_utils import validate_names
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +65,9 @@ async def get_compatible_metrics(
     Provide exactly one of ``dataset_id`` (built-in) or ``view_id`` (external).
 
     For built-in datasets, all metrics from the dataset are considered
-    compatible (SQL GROUP BY imposes no metric-level constraints).
+    compatible (SQL GROUP BY imposes no metric-level constraints). Unknown
+    names in ``selected_metrics`` or ``selected_dimensions`` are rejected
+    with a ValidationError.
 
     For external semantic views, delegates to the view's
     ``get_compatible_metrics`` implementation.
@@ -129,6 +132,24 @@ async def get_compatible_metrics(
                 return SemanticLayerError.create(
                     error=f"No dataset found with id: {request.dataset_id}.",
                     error_type="NotFound",
+                )
+
+            valid_metrics = {m.metric_name for m in dataset.metrics}
+            valid_columns = {c.column_name for c in dataset.columns}
+            validation_errors = validate_names(
+                request.selected_metrics,
+                valid_metrics,
+                "metric",
+                list_valid_on_miss=True,
+                full_list_hint="call list_metrics for the full list",
+            )
+            validation_errors.extend(
+                validate_names(request.selected_dimensions, valid_columns, "dimension")
+            )
+            if validation_errors:
+                return SemanticLayerError.create(
+                    error="; ".join(validation_errors),
+                    error_type="ValidationError",
                 )
 
             # All metrics on a SQL dataset are always mutually compatible;
