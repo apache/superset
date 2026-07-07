@@ -287,10 +287,10 @@ ExtensionStorageDAO.delete(orphaned)
 
 All storage keys are automatically namespaced:
 
-| Scope       | Key Pattern                                        |
-| ----------- | -------------------------------------------------- |
-| User-scoped | `superset-ext:{extension_id}:user:{user_id}:{key}` |
-| Shared      | `superset-ext:{extension_id}:shared:{key}`         |
+| Scope                  | Key Pattern                                        |
+| ---------------------- | --------------------------------------------------- |
+| User-scoped            | `superset-ext:{extension_id}:user:{user_id}:{key}` |
+| Shared (Tiers 2 and 3) | `superset-ext:{extension_id}:shared:{key}`         |
 
 This ensures:
 
