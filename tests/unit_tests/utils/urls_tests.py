@@ -38,3 +38,24 @@ def test_convert_dashboard_link() -> None:
 def test_convert_dashboard_link_with_integer() -> None:
     test_url = modify_url_query(EXPLORE_DASHBOARD_LINK, standalone=0)
     assert test_url == "http://localhost:9000/superset/dashboard/3/?standalone=0"
+
+
+def test_modify_url_query_preserves_repeated_existing_parameters() -> None:
+    test_url = modify_url_query(
+        "http://localhost:9000/explore/?filter=a&filter=b",
+        standalone="1",
+    )
+
+    assert test_url == "http://localhost:9000/explore/?filter=a&filter=b&standalone=1"
+
+
+def test_modify_url_query_adds_list_values_as_repeated_parameters() -> None:
+    test_url = modify_url_query(
+        "http://localhost:9000/explore/?existing=ok",
+        tag=["alpha value", "beta/value"],
+    )
+
+    assert (
+        test_url == "http://localhost:9000/explore/?existing=ok"
+        "&tag=alpha%20value&tag=beta/value"
+    )
