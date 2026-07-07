@@ -1804,8 +1804,14 @@ describe('DatabaseModal', () => {
 
     userEvent.click(screen.getByTestId('sqla-connect-btn'));
 
-    expect(await screen.findByTestId('database-name-input')).toBeVisible();
-    expect(screen.getByTestId('sqlalchemy-uri-input')).toBeVisible();
+    // assert on presence rather than visibility: the SQLAlchemy form mounts
+    // inside an animated tab pane, and rc-motion's animation state in jsdom
+    // is nondeterministic, so toBeVisible flakes while the form is in fact
+    // rendered (see the animated={{ tabPane: true }} Tabs in DatabaseModal)
+    expect(
+      await screen.findByTestId('database-name-input'),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('sqlalchemy-uri-input')).toBeInTheDocument();
   });
 
   test.each([
