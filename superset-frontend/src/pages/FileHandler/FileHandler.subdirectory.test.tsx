@@ -145,8 +145,8 @@ const MAX_CONSUMER_POLL_ATTEMPTS = 50;
 // setTimeout, and inline consumer calls deadlock Jest).
 const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
   let savedConsumer:
-    | ((params: { files?: MockFileHandle[] }) => void | Promise<void>)
-    | null = null;
+    ((params: { files?: MockFileHandle[] }) => void | Promise<void>) | null =
+    null;
   (window as unknown as Window & { launchQueue: LaunchQueue }).launchQueue = {
     setConsumer: (consumer: (params: { files?: MockFileHandle[] }) => void) => {
       savedConsumer = consumer;
