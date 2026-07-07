@@ -39,8 +39,7 @@ export default function getRowBasicColorFormatter(
   basicColorFormatters: RowFormatters[] | undefined,
 ): RowFormatters | undefined {
   const attached = node?.data?.[BASIC_COLOR_FORMATTERS_ROW_KEY] as
-    | RowFormatters
-    | undefined;
+    RowFormatters | undefined;
   if (attached) {
     return attached;
   }
