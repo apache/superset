@@ -1192,7 +1192,7 @@ class ResponseSizeGuardMiddleware(Middleware):
         if isinstance(excluded_tools, str):
             excluded_tools = [excluded_tools]
         self.excluded_tools = set(excluded_tools or [])
-        self.max_list_items = max_list_items
+        self.max_list_items = max(1, max_list_items)
 
     @staticmethod
     def _extract_payload_from_tool_result(

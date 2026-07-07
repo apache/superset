@@ -701,17 +701,19 @@ class TestTruncateOversizedResponse:
         assert not any("native_filters" in n for n in notes)
 
     def test_large_dashboard_respects_custom_max_list_items(self) -> None:
-        """A custom max_list_items should truncate list fields that exceed the cap."""
+        """A custom max_list_items below both list sizes should truncate both fields."""
+        response = {
             "id": 1,
             "dashboard_title": "x" * 2000,
             "charts": [{"id": i, "slice_name": f"chart_{i}"} for i in range(463)],
             "native_filters": [{"id": i, "name": f"filter_{i}"} for i in range(48)],
         }
         result, was_truncated, notes = truncate_oversized_response(
-            response, 3000, max_list_items=50
+            response, 3000, max_list_items=30
         )
         assert was_truncated is True
         assert isinstance(result, dict)
-        assert len(result["charts"]) == 50
-        assert len(result["native_filters"]) == 48  # Under custom cap, untouched
-        assert any("charts" in n and "50" in n for n in notes)
+        assert len(result["charts"]) == 30
+        assert len(result["native_filters"]) == 30
+        assert any("charts" in n and "30" in n for n in notes)
+        assert any("native_filters" in n and "30" in n for n in notes)

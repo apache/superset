@@ -78,6 +78,14 @@ class TestResponseSizeGuardMiddleware:
         )
         assert middleware.excluded_tools == {"health_check"}
 
+    @pytest.mark.parametrize("configured_value", [0, -1, -100])
+    def test_init_clamps_non_positive_max_list_items(
+        self, configured_value: int
+    ) -> None:
+        """A misconfigured max_list_items of 0 or negative should clamp to 1."""
+        middleware = ResponseSizeGuardMiddleware(max_list_items=configured_value)
+        assert middleware.max_list_items == 1
+
     @pytest.mark.asyncio
     async def test_allows_small_response(self) -> None:
         """Should allow responses under token limit."""
