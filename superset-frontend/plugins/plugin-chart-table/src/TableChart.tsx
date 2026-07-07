@@ -247,7 +247,6 @@ const VisuallyHidden = styled.label`
 `;
 
 function SearchInput({
-  count,
   value,
   onChange,
   onBlur,
