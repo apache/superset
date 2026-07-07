@@ -169,6 +169,29 @@ def build_action_headline(
 # is correctly deduped.
 _REGISTERED_SENTINEL = "_versioning_change_listener_registered"
 
+#: Metric namespace for swallowed capture-path failures. The capture
+#: listeners fail open (a versioning bug must never break a user's save),
+#: so the read path (``activity/orchestrator``) is richly instrumented but
+#: the write path historically logged-and-swallowed with no counter. Each
+#: ``_incr_capture_error(stage)`` emits ``<prefix>.<stage>.error`` so a
+#: systematic capture regression is alertable rather than log-grep-only.
+_CAPTURE_METRIC_PREFIX = "superset.versioning.capture"
+
+
+def _incr_capture_error(stage: str) -> None:
+    """Emit a counter for a swallowed capture-path failure at *stage*.
+
+    Best-effort: metrics emission must never itself break a user's save,
+    so it is wrapped in the same fail-open posture as the call site.
+    """
+    # pylint: disable=import-outside-toplevel
+    try:
+        from superset.extensions import stats_logger_manager
+
+        stats_logger_manager.instance.incr(f"{_CAPTURE_METRIC_PREFIX}.{stage}.error")
+    except Exception:  # pylint: disable=broad-except
+        logger.exception("version_changes: failed to emit capture-error metric")
+
 
 def _capture_dirty_entity_initial_state(
     session: Session,
@@ -203,6 +226,7 @@ def _build_scalar_buffer(
                 type(obj).__name__,
                 key[1],
             )
+            _incr_capture_error("scalar_diff")
             continue
         if records:
             buffer[key] = records
@@ -258,6 +282,7 @@ def _append_child_records_to_buffer(
                     del buffer[key]
     except Exception:  # pylint: disable=broad-except
         logger.exception("version_changes: child-diff failed for tx %s", tx_id)
+        _incr_capture_error("child_diff")
 
 
 def _current_transaction_id(session: Session) -> int | None:
@@ -336,6 +361,7 @@ def _stamp_action_kind_on_transaction(session: Session, tx_id: int) -> None:
             action_kind,
             tx_id,
         )
+        _incr_capture_error("action_kind_stamp")
 
 
 def _persist_buffered_records(
@@ -370,6 +396,7 @@ def _persist_buffered_records(
             tx_id,
             len(buffer),
         )
+        _incr_capture_error("bulk_insert")
 
 
 def register_change_record_listener() -> None:  # noqa: C901

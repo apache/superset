@@ -14,18 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Shared handlers for the ``/versions/`` REST endpoints.
+"""Shared handlers for the ``/versions/`` and ``/activity/`` REST endpoints.
 
 Each ``ChartRestApi`` / ``DashboardRestApi`` / ``DatasetRestApi`` carries
 the same read endpoint methods — ``list_versions`` and ``get_version`` —
-whose bodies are byte-for-byte identical apart from the model class and
-the ``security_manager.raise_for_access`` kwarg. Extracting the bodies
-here lets each per-resource method collapse to a single delegation call,
-while the OpenAPI docstring + FAB decorators stay at the method site
-where they belong.
+plus the ``activity`` endpoint on each resource. The bodies are
+byte-for-byte identical apart from the model class and the
+``security_manager.raise_for_access`` kwarg. Extracting the bodies here
+lets each per-resource method collapse to a single delegation call, while
+the OpenAPI docstring + FAB decorators stay at the method site where they
+belong.
 
-(The restore endpoint ships in a later PR; only the read endpoints are
-wired here.)
+(The restore endpoint ships in a later PR; only the read + activity
+endpoints are wired here.)
 """
 
 from __future__ import annotations
@@ -127,34 +128,82 @@ def current_entity_etag_uuid(
     return str(version_uuid) if version_uuid else None
 
 
-def _resolve_entity(
-    api: Any,
-    model_cls: type[Model],
-    uuid_str: str,
-    access_kwarg: str,
-) -> tuple[Any, UUID] | Response:
-    """Parse the path UUID, look up the live entity, run the read-access
-    gate.
+# Maps the versioned model class name to the keyword argument
+# ``security_manager.raise_for_access`` expects for the per-resource
+# gate. Slice → ``chart=``, Dashboard → ``dashboard=``, SqlaTable →
+# ``datasource=``. Centralised here so /versions/ and /activity/
+# endpoints share one source of truth for the dispatch.
+_RAISE_FOR_ACCESS_KWARG: dict[str, str] = {
+    "Slice": "chart",
+    "Dashboard": "dashboard",
+    "SqlaTable": "datasource",
+}
 
-    Returns ``(entity, entity_uuid)`` on success or a pre-built
-    ``Response`` (400 / 403 / 404) that the caller should return
-    directly. The split shape keeps the call site terse and lets the
-    three handler functions share the preflight without each repeating
-    the try / except dance.
+
+class PathEntityResponseError(Exception):
+    """Carries a pre-built error ``Response`` from
+    :func:`resolve_endpoint_path_entity`. Endpoints catch it and return
+    the carried response directly. The shape exists so the
+    UUID-parse + find-by-uuid + read-access check can live in one
+    place across the ``/versions/`` and ``/activity/`` endpoint
+    families."""
+
+    def __init__(self, response: Any) -> None:
+        super().__init__("PathEntityResponseError")
+        self.response = response
+
+
+def resolve_endpoint_path_entity(
+    api: Any, model_cls: type[Model], uuid_str: str
+) -> tuple[Any, UUID]:
+    """Run the standard path-entity preflight for a /versions/ or
+    /activity/ endpoint:
+
+    1. Parse *uuid_str* into a UUID (or raise → 400).
+    2. Look up the live entity via ``VersionDAO.find_active_by_uuid``
+       (or raise → 404).
+    3. Run ``security_manager.raise_for_access`` with the resource-typed
+       kwarg (or raise → 403).
+
+    Returns ``(entity, entity_uuid)`` on success — the parsed UUID is
+    threaded out so callers don't re-parse the path-string. Raises
+    :class:`PathEntityResponseError` carrying the appropriate error
+    Response on any failure; the endpoint method should::
+
+        try:
+            entity, entity_uuid = resolve_endpoint_path_entity(
+                self, Dashboard, uuid_str
+            )
+        except PathEntityResponseError as exc:
+            return exc.response
+
+    *api* is the FAB ``ModelRestApi`` instance — we call
+    ``api.response_400`` / ``api.response_403`` / ``api.response_404``
+    on it. Pass ``self`` from the endpoint method.
     """
     try:
         entity_uuid = UUID(uuid_str)
-    except ValueError:
-        return api.response_400(message="Invalid UUID")
+    except ValueError as exc:
+        raise PathEntityResponseError(api.response_400(message="Invalid UUID")) from exc
 
     entity = VersionDAO.find_active_by_uuid(model_cls, entity_uuid)
     if entity is None:
-        return api.response_404()
+        raise PathEntityResponseError(api.response_404())
 
+    # Direct ``[…]`` would leak the unknown model name into a generic 500
+    # via the unhandled ``KeyError`` exception text. The three resource
+    # families wired today cover every key; a future entity added to the
+    # versioning surface without updating this dispatch table should fail
+    # closed (the test suite picks it up) rather than silently disclose.
+    kwarg = _RAISE_FOR_ACCESS_KWARG.get(model_cls.__name__)
+    if kwarg is None:
+        raise LookupError(
+            f"No raise_for_access kwarg registered for {model_cls.__name__!r}"
+        )
     try:
-        security_manager.raise_for_access(**{access_kwarg: entity})
-    except SupersetSecurityException:
-        return api.response_403()
+        security_manager.raise_for_access(**{kwarg: entity})
+    except SupersetSecurityException as exc:
+        raise PathEntityResponseError(api.response_403()) from exc
 
     return entity, entity_uuid
 
@@ -163,13 +212,12 @@ def list_versions_endpoint(
     api: Any,
     model_cls: type[Model],
     uuid_str: str,
-    access_kwarg: str,
 ) -> Response:
     """Body of ``GET /api/v1/{resource}/<uuid>/versions/``."""
-    resolved = _resolve_entity(api, model_cls, uuid_str, access_kwarg)
-    if isinstance(resolved, Response):
-        return resolved
-    entity, entity_uuid = resolved
+    try:
+        entity, entity_uuid = resolve_endpoint_path_entity(api, model_cls, uuid_str)
+    except PathEntityResponseError as exc:
+        return exc.response
 
     versions = VersionDAO.list_versions(model_cls, entity_uuid, entity=entity)
     if versions is None:
@@ -188,13 +236,12 @@ def get_version_endpoint(
     model_cls: type[Model],
     uuid_str: str,
     version_uuid_str: str,
-    access_kwarg: str,
 ) -> Response:
     """Body of ``GET /api/v1/{resource}/<uuid>/versions/<version_uuid>/``."""
-    resolved = _resolve_entity(api, model_cls, uuid_str, access_kwarg)
-    if isinstance(resolved, Response):
-        return resolved
-    entity, entity_uuid = resolved
+    try:
+        entity, entity_uuid = resolve_endpoint_path_entity(api, model_cls, uuid_str)
+    except PathEntityResponseError as exc:
+        return exc.response
 
     try:
         version_uuid = UUID(version_uuid_str)
