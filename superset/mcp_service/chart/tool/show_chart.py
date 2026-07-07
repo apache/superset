@@ -30,7 +30,7 @@ from urllib.parse import urlencode
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset import security_manager
+from superset import is_feature_enabled, security_manager
 from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_helpers import (
     extract_form_data_key_from_url,
@@ -101,6 +101,28 @@ async def show_chart(request: ShowChartRequest, ctx: Context) -> ShowChartRespon
     and cached under a single-use ``form_data_key``.
     """
     await ctx.info("show_chart: identifier=%s" % (request.identifier,))
+
+    # Guest-token authentication of the standalone Explore page relies on the
+    # EMBEDDED_SUPERSET request loader; without it the returned URL renders a
+    # login redirect instead of the chart. Fail fast with a clear error.
+    if not is_feature_enabled("EMBEDDED_SUPERSET"):
+        return ShowChartResponse(
+            chart_id=0,
+            chart_uuid=None,
+            chart_name=None,
+            viz_type=None,
+            explore_url="",
+            form_data_key=None,
+            guest_token="",
+            expires_at=0.0,
+            superset_domain=get_superset_base_url(),
+            error=(
+                "The EMBEDDED_SUPERSET feature flag must be enabled for "
+                "show_chart to work: guest tokens are only honored when it "
+                "is on. Enable it in your Superset configuration."
+            ),
+        )
+
     chart = find_chart_by_identifier(request.identifier)
     if chart is None:
         return ShowChartResponse(
@@ -173,7 +195,7 @@ async def show_chart(request: ShowChartRequest, ctx: Context) -> ShowChartRespon
     with event_logger.log_context(action="mcp.show_chart.mint_token"):
         # Mint a chart-scoped guest token. Prefer UUID for stability across
         # environments; fall back to numeric id if uuid is unavailable.
-        resource_id: str | int = str(chart.uuid) if chart.uuid is not None else chart.id
+        resource_id = str(chart.uuid) if chart.uuid is not None else str(chart.id)
         raw_token = security_manager.create_guest_access_token(
             user={
                 "username": "mcp_show_chart",

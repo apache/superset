@@ -39,6 +39,16 @@ def mock_auth():
         yield mock_get_user
 
 
+@pytest.fixture(autouse=True)
+def mock_embedded_flag():
+    """Enable EMBEDDED_SUPERSET for all tests; show_chart requires it."""
+    with patch(
+        "superset.mcp_service.chart.tool.show_chart.is_feature_enabled",
+        return_value=True,
+    ) as mock_flag:
+        yield mock_flag
+
+
 @pytest.fixture
 def mcp_server():
     return mcp
@@ -208,3 +218,27 @@ async def test_show_chart_success_with_overrides(mcp_server, mock_chart):
     assert data["error"] is None
     assert data["form_data_key"] == "CACHEKEY"
     assert "form_data_key=CACHEKEY" in data["explore_url"]
+
+
+@pytest.mark.asyncio
+async def test_show_chart_requires_embedded_superset(mcp_server):
+    """Without EMBEDDED_SUPERSET the tool should fail fast with a clear error."""
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.show_chart.is_feature_enabled",
+            return_value=False,
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.show_chart.get_superset_base_url",
+            return_value="http://superset.test",
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "show_chart", {"request": {"identifier": "42"}}
+            )
+    data = json.loads(result.content[0].text)
+    assert data["error"] is not None
+    assert "EMBEDDED_SUPERSET" in data["error"]
+    assert data["explore_url"] == ""
+    assert data["guest_token"] == ""
