@@ -46,6 +46,7 @@ import {
 } from '@superset-ui/chart-controls';
 import isEqualColumns from './utils/isEqualColumns';
 import DateWithFormatter from './utils/DateWithFormatter';
+import { BASIC_COLOR_FORMATTERS_ROW_KEY } from './consts';
 import {
   DataColumnMeta,
   TableChartProps,
@@ -703,6 +704,24 @@ const transformProps = (
 
   const basicColorFormatters =
     comparisonColorEnabled && getBasicColorFormatter(baseQuery?.data, columns);
+
+  // Attach each row's basic (increase/decrease) color formatter to the row data
+  // object so it travels with the row through AG Grid client-side sorting.
+  // basicColorFormatters is built in the original query order and was previously
+  // read positionally by the displayed rowIndex, which applied colors to the
+  // wrong rows once the table was sorted (#105973). The key is a Symbol so it
+  // can never collide with a real dataset column and never leaks into exports,
+  // cross-filters or spreads.
+  if (basicColorFormatters) {
+    passedData.forEach((row, index) => {
+      Object.defineProperty(row, BASIC_COLOR_FORMATTERS_ROW_KEY, {
+        value: basicColorFormatters[index],
+        enumerable: false,
+        configurable: true,
+        writable: true,
+      });
+    });
+  }
   const columnColorFormatters =
     getColorFormatters(conditionalFormatting, passedData, theme) ?? [];
 
@@ -714,12 +733,11 @@ const transformProps = (
 
   const hasPageLength = isPositiveNumber(pageLength);
 
-  const totals =
-    showTotals && queryMode === QueryMode.Aggregate
-      ? isUsingTimeComparison
-        ? processComparisonTotals(comparisonSuffix, totalQuery?.data)
-        : totalQuery?.data[0]
-      : undefined;
+  const totals = showTotals
+    ? isUsingTimeComparison
+      ? processComparisonTotals(comparisonSuffix, totalQuery?.data)
+      : totalQuery?.data[0]
+    : undefined;
 
   // Map saved metric/calculated column labels to their SQL expressions for filter resolution
   const metricSqlExpressions: Record<string, string> = {};
@@ -737,10 +755,24 @@ const transformProps = (
     }
   });
 
+  // Numeric raw-records columns eligible for the summary row. Only columns
+  // backed by a dataset (physical or calculated) column can be summed
+  // server-side; free-form SQL expression columns are excluded.
+  const datasetColumnNames = new Set(
+    chartProps.datasource.columns
+      .map(col => col.column_name)
+      .filter((name): name is string => Boolean(name)),
+  );
+  const rawSummaryColumns =
+    queryMode === QueryMode.Raw && showTotals
+      ? columns
+          .filter(col => col.isNumeric && datasetColumnNames.has(col.key))
+          .map(col => col.key)
+      : [];
+
   // Strip saved filter from chartState after initial application to prevent re-injection
   let chartState = serverPaginationData?.chartState as
-    | AgGridChartState
-    | undefined;
+    AgGridChartState | undefined;
   const chartStateHasFilter = !!(
     chartState?.filterModel && Object.keys(chartState.filterModel).length > 0
   );
@@ -784,6 +816,7 @@ const transformProps = (
     basicColorFormatters,
     formData,
     metricSqlExpressions,
+    rawSummaryColumns,
     chartState,
     onChartStateChange,
     showNumberedColumn,

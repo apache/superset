@@ -694,7 +694,9 @@ test('open chart button opens explore with slice_id', async () => {
   });
   expect(openChartButton).toBeInTheDocument();
 
-  const navSpy = jest.spyOn(navigationUtils, 'navigateTo').mockImplementation(() => null);
+  const navSpy = jest
+    .spyOn(navigationUtils, 'navigateTo')
+    .mockImplementation(() => null);
   try {
     await userEvent.click(openChartButton);
     expect(navSpy).toHaveBeenCalledWith(
@@ -721,7 +723,9 @@ test('open dashboard button opens dashboard url', async () => {
   });
   expect(openDashButton).toBeInTheDocument();
 
-  const navSpy = jest.spyOn(navigationUtils, 'navigateTo').mockImplementation(() => null);
+  const navSpy = jest
+    .spyOn(navigationUtils, 'navigateTo')
+    .mockImplementation(() => null);
   try {
     await userEvent.click(openDashButton);
     expect(navSpy).toHaveBeenCalledWith(

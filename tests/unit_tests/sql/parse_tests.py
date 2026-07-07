@@ -3132,7 +3132,8 @@ def test_is_valid_cvas(sql: str, engine: str, expected: bool) -> None:
     "sql, expected, engine",
     [
         ("col = 1", "col = 1", "base"),
-        ("1=\t\n1", "1 = 1", "base"),
+        # Comment-free clauses are returned verbatim (no semantic round-trip).
+        ("1=\t\n1", "1=\t\n1", "base"),
         ("(col = 1)", "(col = 1)", "base"),  # Compact format without newlines
         (
             "(col1 = 1) AND (col2 = 2)",
@@ -3156,6 +3157,10 @@ def test_is_valid_cvas(sql: str, engine: str, expected: bool) -> None:
         ),  # Block comments preserved
         ("col = 'col1 = 1) AND (col2 = 2'", "col = 'col1 = 1) AND (col2 = 2'", "base"),
         ("col = 'select 1; select 2'", "col = 'select 1; select 2'", "base"),
+        # Trailing statement terminators are stripped so the clause stays valid
+        # once embedded inside a larger fragment (e.g. ``WHERE (...)``).
+        ("col = 1;", "col = 1", "base"),
+        ("col = 1 ; ", "col = 1", "base"),
         ("col = 'abc -- comment'", "col = 'abc -- comment'", "base"),
         ("col1 = 1) AND (col2 = 2)", QueryClauseValidationException, "base"),
         ("(col1 = 1) AND (col2 = 2", QueryClauseValidationException, "base"),
@@ -3215,6 +3220,63 @@ def test_sanitize_clause(sql: str, expected: str | Exception, engine: str) -> No
     else:
         with pytest.raises(expected):
             sanitize_clause(sql, engine)
+
+
+@pytest.mark.parametrize(
+    "engine",
+    ["postgresql", "redshift", "cockroachdb", "netezza", "hana", "base", "mysql"],
+)
+def test_sanitize_clause_preserves_aggregation_semantics(engine: str) -> None:
+    """
+    Regression test for https://github.com/apache/superset/issues/36113.
+
+    `sanitize_clause` must not silently rewrite a user-authored expression. The
+    Postgres SQLGlot dialect (which several engines borrow) rewrites
+    ``ROUND(AVG(x), n)`` to ``ROUND(CAST(AVG(x) AS DECIMAL), n)`` at generation
+    time. On engines whose unqualified ``DECIMAL`` defaults to scale 0 (e.g.
+    Redshift, Netezza) the injected cast rounds the aggregate to an integer
+    *before* the explicit ``ROUND``, producing wrong results.
+
+    The clause must be returned unchanged regardless of the engine dialect.
+    """
+    clause = "ROUND(AVG(col), 4)"
+    sanitized = sanitize_clause(clause, engine)
+    assert "CAST" not in sanitized.upper(), (
+        f"sanitize_clause injected a cast for engine {engine!r}: {sanitized!r}"
+    )
+    assert sanitized == clause
+
+
+@pytest.mark.parametrize(
+    "engine",
+    ["postgresql", "redshift", "cockroachdb", "netezza", "hana", "base", "mysql"],
+)
+def test_sanitize_clause_preserves_aggregation_semantics_with_comment(
+    engine: str,
+) -> None:
+    """
+    Regression test for https://github.com/apache/superset/issues/36113.
+
+    A clause that contains a comment takes the re-rendering branch of
+    ``sanitize_clause``. That branch must normalize comments using the *base*
+    dialect rather than the engine dialect, so it must not re-apply the Postgres
+    ``ROUND(AVG(x), n)`` -> ``ROUND(CAST(AVG(x) AS DECIMAL), n)`` rewrite that
+    truncates results on engines where ``DECIMAL`` defaults to scale 0.
+    """
+    clause = "ROUND(AVG(col), 4) /* precise_count_distinct=true */"
+    sanitized = sanitize_clause(clause, engine)
+    assert "CAST" not in sanitized.upper(), (
+        f"sanitize_clause injected a cast for engine {engine!r}: {sanitized!r}"
+    )
+    # The comment-handling branch must preserve the user-authored expression and
+    # comment payload, not just avoid the cast (otherwise dropping the comment or
+    # rewriting the clause entirely would still pass the assertion above).
+    assert "ROUND(AVG(col), 4)" in sanitized, (
+        f"sanitize_clause rewrote the clause for engine {engine!r}: {sanitized!r}"
+    )
+    assert "precise_count_distinct=true" in sanitized, (
+        f"sanitize_clause dropped the comment for engine {engine!r}: {sanitized!r}"
+    )
 
 
 @pytest.mark.parametrize(

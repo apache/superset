@@ -141,8 +141,9 @@ const DashboardContentWrapper = styled.div`
       & .dashboard-component-tabs {
         box-shadow: 0 ${theme.sizeUnit}px ${theme.sizeUnit}px 0
           ${addAlpha(theme.colorBorderSecondary, 0.1)};
-        padding-left: ${theme.sizeUnit *
-        2}px; /* note this is added to tab-level padding, to match header */
+        padding-left: ${
+          theme.sizeUnit * 2
+        }px; /* note this is added to tab-level padding, to match header */
       }
 
       .dropdown-toggle.btn.btn-primary .caret {
@@ -295,12 +296,14 @@ const StyledDashboardContent = styled.div<{
       margin: ${theme.sizeUnit * 4}px;
       margin-left: ${marginLeft}px;
 
-      ${editMode &&
-      `
+      ${
+        editMode &&
+        `
       max-width: calc(100% - ${
         BUILDER_SIDEPANEL_WIDTH + theme.sizeUnit * 16
       }px);
-    `}
+    `
+      }
 
       /* this is the ParentSize wrapper */
     & > div:first-of-type {
@@ -317,6 +320,8 @@ const StyledDashboardContent = styled.div<{
       width: 100%;
       height: 100%;
       background-color: ${theme.dashboardTileBg ?? theme.colorBgContainer};
+      border: ${theme.dashboardTileBorder ?? `1px solid ${theme.colorBorder}`};
+      border-radius: ${theme.dashboardTileBorderRadius ?? theme.borderRadius}px;
       position: relative;
       padding: ${theme.sizeUnit * 4}px;
       box-sizing: border-box;
@@ -329,18 +334,16 @@ const StyledDashboardContent = styled.div<{
         box-shadow ${theme.motionDurationMid} ease-in-out;
 
       &.fade-in {
-        border-radius: ${theme.borderRadius}px;
         box-shadow:
           inset 0 0 0 2px ${theme.colorPrimary},
           0 0 0 3px ${addAlpha(theme.colorPrimary, 0.1)};
       }
 
       &.fade-out {
-        border: ${theme.dashboardTileBorder ?? 'none'};
-        border-radius: ${theme.dashboardTileBorderRadius ??
-        theme.borderRadius}px;
-        box-shadow: ${theme.dashboardTileBoxShadow ??
-        `0 0 0 1px ${addAlpha(theme.colorBorder, 0.5)}`};
+        box-shadow: ${
+          theme.dashboardTileBoxShadow ??
+          `0 0 0 1px ${addAlpha(theme.colorBorder, 0.5)}`
+        };
       }
 
       & .missing-chart-container {

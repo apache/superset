@@ -49,7 +49,10 @@ def test_common_bootstrap_payload_converts_locale_to_string(
 
     # Verify cached_common_bootstrap_data was called with string locale
     mock_cached.assert_called_once_with(1, "de_DE")
-    assert result == {"test": "data"}
+    # The wrapper copies the cached dict and injects `language_pack` after
+    # the memoized call so the per-locale pack isn't duplicated per user.
+    assert result["test"] == "data"
+    assert "language_pack" in result
 
 
 @patch("superset.views.base.utils.get_user_id", return_value=1)

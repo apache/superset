@@ -40,6 +40,7 @@ import {
   GridReadyEvent,
   GridState,
   CellClickedEvent,
+  CellKeyDownEvent,
   SelectionChangedEvent,
 } from '@superset-ui/core/components/ThemedAgGridReact';
 import { t } from '@apache-superset/core/translation';
@@ -57,8 +58,10 @@ import { SearchOption, SortByItem } from '../types';
 import getInitialSortState, { shouldSort } from '../utils/getInitialSortState';
 import getInitialFilterModel from '../utils/getInitialFilterModel';
 import reconcileColumnState from '../utils/reconcileColumnState';
+import getColumnStateSignature from '../utils/getColumnStateSignature';
 import { PAGE_SIZE_OPTIONS } from '../consts';
 import { getCompleteFilterState } from '../utils/filterStateManager';
+import { copyCellValueOnKeyDown } from '../utils/copyCellValue';
 
 export interface AgGridState extends Partial<GridState> {
   timestamp?: number;
@@ -235,6 +238,13 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       isSearchFocused.set(searchId, false);
     }, [searchId]);
 
+    // Copy the focused cell's value on Ctrl/Cmd+C. Needed because cell text is
+    // no longer natively selectable (see enableCellTextSelection below) and the
+    // Enterprise clipboard module is not registered (#106389).
+    const handleCellKeyDown = useCallback((event: CellKeyDownEvent) => {
+      copyCellValueOnKeyDown(event);
+    }, []);
+
     const onFilterTextBoxChanged = useCallback(
       ({ target: { value } }: ChangeEvent<HTMLInputElement>) => {
         if (serverPagination) {
@@ -337,11 +347,11 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
               timestamp: Date.now(),
             };
 
-            const stateHash = JSON.stringify({
-              columnOrder: columnState.map(c => c.colId),
-              sorts: sortModel,
-              filters: filterModel,
-            });
+            const stateHash = getColumnStateSignature(
+              columnState,
+              sortModel,
+              filterModel,
+            );
 
             if (stateHash !== lastCapturedStateRef.current) {
               lastCapturedStateRef.current = stateHash;
@@ -514,13 +524,22 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           rowSelection="multiple"
           animateRows
           onCellClicked={handleCellClicked}
+          onCellKeyDown={handleCellKeyDown}
           onSelectionChanged={handleSelectionChanged}
           onFilterChanged={handleFilterChanged}
           onStateUpdated={handleGridStateChange}
           initialState={gridInitialState}
           maintainColumnOrder
           suppressAggFuncInHeader
-          enableCellTextSelection
+          // Clicking a cell should select (focus) the cell rather than select
+          // its text content (#106389). enableCellTextSelection forces browser
+          // text selection on click, which suppresses the cell-focus behavior.
+          // Because the Enterprise clipboard module isn't registered, native
+          // text selection was the only way to copy a value, so onCellKeyDown
+          // (above) restores Ctrl/Cmd+C copy for the focused cell. Full
+          // multi-cell range selection still requires AG Grid Enterprise, which
+          // is not available in the Community build used here.
+          enableCellTextSelection={false}
           quickFilterText={serverPagination ? '' : quickFilterText}
           suppressMovableColumns={!allowRearrangeColumns}
           pagination={pagination}
