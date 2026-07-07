@@ -1245,6 +1245,7 @@ export function popSavedQuery(saveQueryId) {
         };
         const tmpAdaptedProps = {
           name: queryEditorProps.name,
+          description: queryEditorProps.description,
           dbId: queryEditorProps.database.id,
           catalog: queryEditorProps.catalog,
           schema: queryEditorProps.schema,
