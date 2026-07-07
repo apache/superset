@@ -75,7 +75,6 @@ interface ReportProps {
   onHide: () => {};
   addDangerToast: (msg: string) => void;
   show: boolean;
-  userId: number;
   userEmail: string;
   ccEmail: string;
   bccEmail: string;

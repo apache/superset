@@ -392,7 +392,6 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
       )}
 
       <ReportModal
-        userId={user.userId}
         show={isReportModalOpen}
         onHide={closeReportModal}
         userEmail={user.email}

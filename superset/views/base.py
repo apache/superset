@@ -469,7 +469,8 @@ def _get_user_subjects(user_id: int | None) -> list[int]:
         from superset.subjects.utils import get_user_subject_ids
 
         return get_user_subject_ids(user_id)
-    except Exception:  # noqa: S110
+    except Exception:
+        logger.warning("Could not load current user subject IDs", exc_info=True)
         return []
 
 
@@ -482,7 +483,8 @@ def _get_user_subject_id(user_id: int | None) -> int | None:
 
         subject = get_user_subject(user_id)
         return subject.id if subject else None
-    except Exception:  # noqa: S110
+    except Exception:
+        logger.warning("Could not load current user subject ID", exc_info=True)
         return None
 
 

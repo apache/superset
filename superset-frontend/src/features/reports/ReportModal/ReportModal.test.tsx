@@ -68,7 +68,6 @@ const defaultProps = {
   onHide: NOOP,
   onReportAdd: NOOP,
   show: true,
-  userId: 1,
   userEmail: 'test@test.com',
   dashboardId: 1,
   creationMethod: 'dashboards',
@@ -390,7 +389,7 @@ test('edit mode does not fall back to user id when subject id is unavailable', a
     },
   );
 
-  render(<ReportModal {...defaultProps} userId={1} />, {
+  render(<ReportModal {...defaultProps} />, {
     useRedux: true,
     store,
   });

@@ -27,6 +27,7 @@ import uuid
 
 from alembic import op
 from sqlalchemy import (
+    bindparam,
     Boolean,
     case,
     Column,
@@ -454,11 +455,15 @@ def _seed_subjects() -> None:
         row[0]
         for row in conn.execute(select(subjects.c.id).where(subjects.c.uuid.is_(None)))
     ]
-    for subject_id in subject_ids:
+    if subject_ids:
         conn.execute(
             subjects.update()
-            .where(subjects.c.id == subject_id)
-            .values(uuid=uuid.uuid4())
+            .where(subjects.c.id == bindparam("subject_id"))
+            .values(uuid=bindparam("subject_uuid")),
+            [
+                {"subject_id": subject_id, "subject_uuid": uuid.uuid4()}
+                for subject_id in subject_ids
+            ],
         )
 
 

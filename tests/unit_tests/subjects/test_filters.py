@@ -150,35 +150,16 @@ def test_report_filter_admin_bypass():
         assert result is query
 
 
-def test_report_filter_viewers_branch():
-    """When ENABLE_VIEWERS is on, _apply_viewers is called."""
+def test_report_filter_uses_editor_subjects():
+    """Reports are filtered by editor Subjects."""
     from superset.reports.filters import ReportScheduleFilter
 
     sm = _make_sm()
-    with (
-        patch("superset.reports.filters.security_manager", sm),
-        patch("superset.reports.filters.is_feature_enabled", return_value=True),
-    ):
+    with patch("superset.reports.filters.security_manager", sm):
         f = ReportScheduleFilter.__new__(ReportScheduleFilter)
-        with patch.object(f, "_apply_viewers", return_value="viewers_result") as m:
+        with patch.object(f, "_apply_editors", return_value="editors_result") as m:
             result = f.apply(MagicMock(), None)
-        assert result == "viewers_result"
-        m.assert_called_once()
-
-
-def test_report_filter_legacy_branch():
-    """When ENABLE_VIEWERS is off, _apply_legacy is called."""
-    from superset.reports.filters import ReportScheduleFilter
-
-    sm = _make_sm()
-    with (
-        patch("superset.reports.filters.security_manager", sm),
-        patch("superset.reports.filters.is_feature_enabled", return_value=False),
-    ):
-        f = ReportScheduleFilter.__new__(ReportScheduleFilter)
-        with patch.object(f, "_apply_legacy", return_value="legacy_result") as m:
-            result = f.apply(MagicMock(), None)
-        assert result == "legacy_result"
+        assert result == "editors_result"
         m.assert_called_once()
 
 

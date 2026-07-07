@@ -28,7 +28,10 @@ from superset.commands.utils import (
 from superset.subjects.exceptions import SubjectsNotFoundValidationError
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
-from superset.subjects.utils import get_user_subject_ids_subquery
+from superset.subjects.utils import (
+    get_current_user_subject_ids,
+    get_user_subject_ids_subquery,
+)
 
 
 def _make_subject(
@@ -56,6 +59,32 @@ def test_get_user_subject_ids_subquery_includes_group_roles(app_context):
 
     assert "ab_group_role" in sql
     assert "ab_user_group" in sql
+
+
+def test_get_current_user_subject_ids_guest_user(app_context):
+    """Guest users resolve subject IDs from their embedded roles."""
+    from flask import g
+
+    role_subjects = [
+        _make_subject(10, SubjectType.ROLE),
+        _make_subject(20, SubjectType.ROLE),
+    ]
+    guest_user = MagicMock()
+    guest_user.is_guest_user = True
+    guest_user.roles = [1, 2]
+    g.user = guest_user
+
+    with (
+        patch(
+            "superset.subjects.utils.subjects_from_roles",
+            return_value=role_subjects,
+        ) as mock_subjects_from_roles,
+        patch("superset.utils.core.get_user_id") as mock_get_user_id,
+    ):
+        assert get_current_user_subject_ids() == [10, 20]
+
+    mock_subjects_from_roles.assert_called_once_with([1, 2])
+    mock_get_user_id.assert_not_called()
 
 
 # --------------------------------------------------------------------------

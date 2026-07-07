@@ -39,6 +39,10 @@ This is a breaking API and metadata change:
   `dashboard_roles`, and `rls_filter_roles` tables are migrated into subject junction tables
   and dropped on upgrade.
 
+For deployments that previously used `DASHBOARD_RBAC` and later disabled it: remove stale rows
+from the legacy `dashboard_roles` table before upgrading, otherwise those role assignments will
+become active dashboard Viewers after migration.
+
 API clients and automation should send and read `editors`, `viewers`, and `subjects` instead
 of the legacy fields.
 

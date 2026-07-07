@@ -869,7 +869,6 @@ const Header = (): JSX.Element => {
       )}
 
       <ReportModal
-        userId={user.userId}
         show={showingReportModal}
         onHide={hideReportModal}
         userEmail={user.email}
