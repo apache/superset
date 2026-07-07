@@ -68,6 +68,7 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
         table = SqlaTable(table_name=table_name, editors=editors)
         table.database = database
         table.schema = self._base_model.schema
+        table.catalog = self._base_model.catalog
         table.template_params = self._base_model.template_params
         table.normalize_columns = self._base_model.normalize_columns
         table.always_filter_main_dttm = self._base_model.always_filter_main_dttm
@@ -121,7 +122,19 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
         if self._base_model and self._base_model.kind != "virtual":
             exceptions.append(DatasourceTypeInvalidError())
 
-        if DatasetDAO.find_one_or_none(table_name=duplicate_name):
+        # Use the shared uniqueness check (same as create/update) rather than a
+        # name-only filtered lookup: it scopes to the base model's
+        # database/schema, is catalog-NULL-aware, and bypasses the soft-delete
+        # visibility filter. A filtered lookup misses a soft-deleted twin, so
+        # the duplicate would proceed and either hit a DB constraint as an
+        # opaque IntegrityError or — where no constraint applies (the
+        # model-level UniqueConstraint is metadata-only and the legacy
+        # _customer_location_uc is NULL-leaky) — create an active twin that
+        # permanently blocks restore of the soft-deleted dataset.
+        if base_model and not DatasetDAO.validate_uniqueness(
+            base_model.database,
+            Table(duplicate_name, base_model.schema, base_model.catalog),
+        ):
             exceptions.append(DatasetExistsValidationError(table=Table(duplicate_name)))
 
         try:

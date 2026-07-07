@@ -27,6 +27,7 @@ from sqlalchemy.orm import Query
 from superset import security_manager
 from superset.extensions import db
 from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES, SoftDeleteMixin
+from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -213,8 +214,41 @@ class BaseDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-meth
             return query
         self._opt_into_deleted_state(query)
         if normalized == "only":
-            return query.filter(self.model.deleted_at.is_not(None))
-        return query
+            query = query.filter(self.model.deleted_at.is_not(None))
+        return self._scope_to_restore_audience(query, normalized)
+
+    def _scope_to_restore_audience(self, query: Query, normalized: str) -> Query:
+        """Cross-entity contract: non-admins may only enumerate soft-deleted
+        rows they can edit — the same audience that can restore them (mirrors
+        ``BaseRestoreCommand``'s ``raise_for_editorship``). Live rows are
+        unaffected: they keep the entity's normal access filtering.
+
+        Lives on the base so the per-entity filters stay pure declarations
+        (``arg_name`` + ``model``) instead of carrying verbatim copies of
+        this body. ``any()`` emits an EXISTS subquery so it composes with
+        the entity's base access filter without duplicate rows from a join.
+        Entities without an ``editors`` relationship opt out automatically.
+        """
+        editors = getattr(self.model, "editors", None)
+        if editors is None or security_manager.is_admin():
+            return query
+        user_id = get_user_id()
+        from superset.subjects.models import Subject  # noqa: PLC0415
+        from superset.subjects.utils import (  # noqa: PLC0415
+            get_user_subject_ids_subquery,
+        )
+
+        editable = editors.any(
+            Subject.id.in_(get_user_subject_ids_subquery(user_id))
+            if user_id
+            else Subject.id.in_([])
+        )
+        if normalized == "only":
+            # ``apply`` already restricted to ``deleted_at IS NOT NULL``.
+            return query.filter(editable)
+        # ``include``: keep all live rows (normal access) and add only the
+        # soft-deleted rows this user can edit.
+        return query.filter(or_(self.model.deleted_at.is_(None), editable))
 
     def _opt_into_deleted_state(self, query: Query) -> None:
         """The two-step opt-in shared by ``include`` and ``only``: install

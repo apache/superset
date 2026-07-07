@@ -43,6 +43,10 @@ from superset_core.semantic_layers.view import (
 )
 
 from superset.common.query_object import QueryObject
+from superset.exceptions import (
+    InvalidPostProcessingError,
+    QueryObjectValidationError,
+)
 from superset.explorables.base import TimeGrainDict
 from superset.extensions import encrypted_field_factory
 from superset.models.helpers import AuditMixinNullable, QueryResult
@@ -281,7 +285,13 @@ class SemanticView(AuditMixinNullable, Model):
     # =========================================================================
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
-        return get_results(query_object)
+        result = get_results(query_object)
+        if query_object.post_processing and not result.df.empty:
+            try:
+                result.df = query_object.exec_post_processing(result.df)
+            except InvalidPostProcessingError as ex:
+                raise QueryObjectValidationError(ex.message) from ex
+        return result
 
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
         return "Not implemented for semantic layers"

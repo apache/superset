@@ -209,6 +209,54 @@ superset fab create-user \
 # (Use Superset UI or FAB CLI to configure role permissions)
 ```
 
+### Embedded Guest Authentication
+
+The MCP service can accept Superset **embedded guest tokens** (the kind minted by
+`SupersetSecurityManager.create_guest_access_token` for embedded dashboards), so an
+embedded guest can drive MCP tools scoped to the dashboards/resources in its token.
+This is **opt-in** and reuses the existing core guest-token configuration — no
+MCP-specific guest secret or audience is introduced.
+
+**Enable it** (both are required):
+
+```python
+# superset_config.py
+FEATURE_FLAGS = {"EMBEDDED_SUPERSET": True}   # prerequisite — guest tokens only exist here
+MCP_EMBEDDED_GUEST_AUTH_ENABLED = True        # opt-in for the MCP transport (default False)
+```
+
+**How it works**
+
+- The guest token is presented as `Authorization: Bearer <guest_token>` (the MCP
+  transport reads only the Bearer slot, not the web `X-GuestToken` header).
+- A dedicated `GuestTokenVerifier` validates it against the shared core config —
+  `GUEST_TOKEN_JWT_SECRET` / `GUEST_TOKEN_JWT_ALGO` / `GUEST_TOKEN_JWT_AUDIENCE` —
+  replays the embedded structural checks, and enforces **revocation**
+  (`GUEST_TOKEN_REVOCATION_ENABLED` version bumps and per-dashboard
+  `guest_token_revoked_before` cutoffs). It runs **before** the MCP JWT verifier
+  (which pins its own algorithm/keys and would otherwise reject the guest token).
+- A verified guest resolves to a `GuestUser` as the **highest-priority** identity
+  source, so a guest is never downgraded to API-key / `MCP_DEV_USERNAME` / `g.user`.
+- Data access is scoped by core's existing `raise_for_access` (dataset allowlist,
+  dashboard access, RLS) — guests only reach their token's resources.
+- Sensitive enumeration tools are denied to guests via `MCP_GUEST_DENIED_TOOLS`
+  (default `{"find_users", "get_instance_info"}`), enforced at both tool listing
+  and call time regardless of `MCP_RBAC_ENABLED`.
+
+**Deployment requirements**
+
+- The MCP and web/minting services must **share `GUEST_TOKEN_JWT_SECRET` and
+  `GUEST_TOKEN_JWT_AUDIENCE`** (set `GUEST_TOKEN_JWT_AUDIENCE` explicitly; if unset,
+  audience validation falls back to the URL host, which may differ between services).
+  A startup warning is logged if guest auth is enabled while the secret is the
+  insecure default or the audience is unset.
+- The `GUEST_ROLE_NAME` role (default `Public`) must exist; a guest token is
+  rejected if it does not.
+- Do **not** set `MCP_DEV_USERNAME` on a guest-serving deployment.
+- Guest auth is wired at MCP startup; toggling `EMBEDDED_SUPERSET` or
+  `MCP_EMBEDDED_GUEST_AUTH_ENABLED` at runtime requires an MCP service restart
+  to take effect.
+
 ## Authorization
 
 ### RBAC Integration

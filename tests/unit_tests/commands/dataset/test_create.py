@@ -171,3 +171,82 @@ def test_create_dataset_physical_table_no_parse_error(
 
                     # Should not raise any parsing errors
                     command.validate()
+
+
+def test_create_dataset_blocked_by_soft_deleted_twin() -> None:
+    """Uniqueness failure caused by a hidden twin raises the targeted,
+    single-sourced 422 (naming the twin's uuid and the restore endpoint)
+    instead of the opaque "already exists" validation error."""
+    from superset.commands.dataset.exceptions import (
+        DatasetSoftDeletedTwinExistsError,
+    )
+
+    mock_database = Mock(spec=Database)
+    mock_database.id = 1
+    mock_database.get_default_catalog.return_value = None
+    twin = Mock()
+    twin.uuid = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+
+    with patch(
+        "superset.commands.dataset.create.DatasetDAO.get_database_by_id",
+        return_value=mock_database,
+    ):
+        with patch(
+            "superset.commands.dataset.create.DatasetDAO.validate_uniqueness",
+            return_value=False,
+        ):
+            with patch(
+                "superset.commands.dataset.create."
+                "DatasetDAO.find_soft_deleted_logical_duplicate",
+                return_value=twin,
+            ):
+                command = CreateDatasetCommand(
+                    {"database": 1, "table_name": "blocked_tbl"}
+                )
+                with pytest.raises(DatasetSoftDeletedTwinExistsError) as exc_info:
+                    command.validate()
+
+    message = str(exc_info.value)
+    assert "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee" in message
+    assert "restore" in message.lower()
+    # Executable recoveries only — no hard-delete/purge claims.
+    assert "hard-delete" not in message.lower()
+    assert "purge" not in message.lower()
+
+
+def test_create_dataset_generic_exists_error_when_no_twin() -> None:
+    """Control: uniqueness failure with no hidden twin keeps the existing
+    generic validation-error path."""
+    mock_database = Mock(spec=Database)
+    mock_database.id = 1
+    mock_database.get_default_catalog.return_value = None
+
+    with patch(
+        "superset.commands.dataset.create.DatasetDAO.get_database_by_id",
+        return_value=mock_database,
+    ):
+        with patch(
+            "superset.commands.dataset.create.DatasetDAO.validate_uniqueness",
+            return_value=False,
+        ):
+            with patch(
+                "superset.commands.dataset.create."
+                "DatasetDAO.find_soft_deleted_logical_duplicate",
+                return_value=None,
+            ):
+                with patch(
+                    "superset.commands.dataset.create.DatasetDAO.validate_table_exists",
+                    return_value=True,
+                ):
+                    with patch(
+                        "superset.commands.dataset.create."
+                        "security_manager.raise_for_access",
+                    ):
+                        with patch(
+                            "superset.commands.dataset.create.populate_subjects",
+                        ):
+                            command = CreateDatasetCommand(
+                                {"database": 1, "table_name": "existing_tbl"}
+                            )
+                            with pytest.raises(DatasetInvalidError):
+                                command.validate()

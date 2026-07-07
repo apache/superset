@@ -48,6 +48,7 @@ from superset.utils.database import get_example_database
 from superset.utils.urls import get_url_host
 
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import GAMMA_USERNAME
 from tests.integration_tests.fixtures.public_role import (
     public_role_builtin,  # noqa: F401
@@ -555,6 +556,79 @@ class TestRolePermission(SupersetTestCase):
         db.session.delete(slice1)
         db.session.delete(table1)
         db.session.delete(table2)
+        db.session.delete(tmp_db1)
+        db.session.commit()
+
+    @with_feature_flags(SOFT_DELETE=True)
+    def test_after_update_database__perm_datasource_access_soft_deleted(self):
+        """A soft-deleted dataset's perm strings must still be rewritten on a
+        database rename. The maintenance query bypasses the soft-delete
+        visibility filter so hidden datasets are updated too; otherwise
+        restoring the dataset later would resurrect stale dataset/schema/catalog
+        permission strings pointing at the old database name.
+
+        The flag must be ON here: with SOFT_DELETE off the visibility filter
+        never engages, so the query this test guards (the
+        ``skip_visibility_filter`` bypass in
+        ``_update_vm_datasources_access``) would be exercised vacuously — the
+        test would pass even with the bypass removed.
+        """
+        from datetime import datetime  # noqa: PLC0415
+
+        from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES  # noqa: PLC0415
+
+        security_manager.on_view_menu_after_update = Mock()
+
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        db.session.add(tmp_db1)
+        db.session.commit()
+
+        table1 = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_table1",
+            database=tmp_db1,
+        )
+        db.session.add(table1)
+        db.session.commit()
+        table1 = db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        table1_id = table1.id
+
+        assert table1.perm == f"[tmp_db1].[tmp_table1](id:{table1_id})"
+
+        # Soft-delete the dataset, then rename its database.
+        table1.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        tmp_db1 = db.session.query(Database).filter_by(database_name="tmp_db1").one()
+        tmp_db1.database_name = "tmp_db2"
+        db.session.commit()
+
+        # The old perm is gone and the new one exists, even though the dataset
+        # is soft-deleted (the maintenance query bypassed the visibility filter).
+        assert (
+            security_manager.find_permission_view_menu(
+                "datasource_access", f"[tmp_db1].[tmp_table1](id:{table1_id})"
+            )
+            is None
+        )
+        assert (
+            security_manager.find_permission_view_menu(
+                "datasource_access", f"[tmp_db2].[tmp_table1](id:{table1_id})"
+            )
+            is not None
+        )
+
+        # The hidden row's own ``perm`` column was rewritten too.
+        reloaded = (
+            db.session.query(SqlaTable)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+            .filter(SqlaTable.id == table1_id)
+            .one()
+        )
+        assert reloaded.perm == f"[tmp_db2].[tmp_table1](id:{table1_id})"
+
+        # Cleanup
+        db.session.delete(reloaded)
         db.session.delete(tmp_db1)
         db.session.commit()
 

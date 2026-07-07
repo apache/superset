@@ -662,6 +662,7 @@ def test_semantic_view_get_query_result(
     view = SemanticView()
 
     mock_query_object = MagicMock()
+    mock_query_object.post_processing = []
     mock_result = MagicMock()
 
     with patch(
@@ -671,7 +672,113 @@ def test_semantic_view_get_query_result(
         result = view.get_query_result(mock_query_object)
 
         mock_get_results.assert_called_once_with(mock_query_object)
+        mock_query_object.exec_post_processing.assert_not_called()
         assert result == mock_result
+
+
+def test_semantic_view_get_query_result_runs_post_processing(
+    mock_implementation: MagicMock,
+) -> None:
+    """
+    ``get_query_result`` must run ``query_object.exec_post_processing`` so that
+    features like ``percent_metrics`` (contribution) are applied to the semantic
+    layer's DataFrame — matching the dataset flow in
+    ``superset/models/helpers.py``.
+    """
+    import pandas as pd
+
+    view = SemanticView()
+
+    input_df = pd.DataFrame({"Orders Count": [40000.0]})
+    processed_df = pd.DataFrame({"Orders Count": [40000.0], "%Orders Count": [1.0]})
+
+    mock_query_object = MagicMock()
+    mock_query_object.post_processing = [
+        {
+            "operation": "contribution",
+            "options": {
+                "columns": ["Orders Count"],
+                "rename_columns": ["%Orders Count"],
+            },
+        }
+    ]
+    mock_query_object.exec_post_processing.return_value = processed_df
+
+    mock_result = MagicMock()
+    mock_result.df = input_df
+
+    with patch(
+        "superset.semantic_layers.models.get_results",
+        return_value=mock_result,
+    ):
+        result = view.get_query_result(mock_query_object)
+
+    mock_query_object.exec_post_processing.assert_called_once_with(input_df)
+    assert result is mock_result
+    assert list(result.df.columns) == ["Orders Count", "%Orders Count"]
+
+
+def test_semantic_view_get_query_result_wraps_post_processing_errors(
+    mock_implementation: MagicMock,
+) -> None:
+    """
+    ``InvalidPostProcessingError`` raised from post-processing must be re-raised
+    as ``QueryObjectValidationError`` so the API surfaces a clean 400 rather
+    than a 500.
+    """
+    import pandas as pd
+
+    from superset.exceptions import (
+        InvalidPostProcessingError,
+        QueryObjectValidationError,
+    )
+
+    view = SemanticView()
+
+    mock_query_object = MagicMock()
+    mock_query_object.post_processing = [{"operation": "bogus"}]
+    mock_query_object.exec_post_processing.side_effect = InvalidPostProcessingError(
+        "boom"
+    )
+
+    mock_result = MagicMock()
+    mock_result.df = pd.DataFrame({"count": [1]})
+
+    with (
+        patch(
+            "superset.semantic_layers.models.get_results",
+            return_value=mock_result,
+        ),
+        pytest.raises(QueryObjectValidationError, match="boom"),
+    ):
+        view.get_query_result(mock_query_object)
+
+
+def test_semantic_view_get_query_result_skips_post_processing_on_empty_df(
+    mock_implementation: MagicMock,
+) -> None:
+    """
+    Match the dataset flow's guard: skip post-processing when the DataFrame is
+    empty. Contribution and other ops assume at least one row.
+    """
+    import pandas as pd
+
+    view = SemanticView()
+
+    mock_query_object = MagicMock()
+    mock_query_object.post_processing = [{"operation": "contribution"}]
+
+    mock_result = MagicMock()
+    mock_result.df = pd.DataFrame()
+
+    with patch(
+        "superset.semantic_layers.models.get_results",
+        return_value=mock_result,
+    ):
+        result = view.get_query_result(mock_query_object)
+
+    mock_query_object.exec_post_processing.assert_not_called()
+    assert result is mock_result
 
 
 def test_semantic_view_data_for_slices(

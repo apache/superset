@@ -17,7 +17,7 @@
 """add subjects and editor/viewer tables
 
 Revision ID: b1c2d3e4f5a6
-Revises: 7c4a8d09ca37
+Revises: 3a8e6f2c1b95
 Create Date: 2026-03-23 10:00:00.000000
 
 """
@@ -55,7 +55,7 @@ from superset.migrations.shared.utils import (
 
 # revision identifiers, used by Alembic.
 revision = "b1c2d3e4f5a6"
-down_revision = "7c4a8d09ca37"
+down_revision = "3a8e6f2c1b95"
 
 SUBJECTS_TABLE = "subjects"
 DASHBOARD_EDITORS = "dashboard_editors"

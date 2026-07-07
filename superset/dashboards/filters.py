@@ -333,33 +333,12 @@ class DashboardDeletedStateFilter(  # pylint: disable=too-few-public-methods
 ):
     """Rison filter for the GET list that exposes soft-deleted dashboards.
 
-    Soft-deleted rows are additionally scoped to the **restore audience**:
-    only the dashboard's editors (or admins) may enumerate them. This mirrors
-    ``RestoreDashboardCommand``'s ``raise_for_editorship`` check, so a
-    read-access non-editor (who can see the dashboard via published-datasource
-    access or dashboard RBAC) cannot list soft-deleted dashboards they could
-    never restore. Live rows are unaffected — they keep their normal
-    ``DashboardAccessFilter`` visibility.
+    Soft-deleted rows are scoped to the **restore audience** (editors or
+    admins) by ``BaseDeletedStateFilter._scope_to_restore_audience`` — the
+    cross-entity contract lives on the base, so this class is a pure
+    declaration. Live rows keep their normal ``DashboardAccessFilter``
+    visibility.
     """
 
     arg_name = "dashboard_deleted_state"
     model = Dashboard
-
-    def apply(self, query: Query, value: Any) -> Query:
-        query = super().apply(query, value)
-        normalized = self._normalize(value)
-        if normalized not in {"include", "only"} or security_manager.is_admin():
-            return query
-
-        # Non-admins may only see soft-deleted dashboards they can edit. ``any()``
-        # emits an EXISTS subquery so it composes with the base access filter
-        # without producing duplicate rows from a join.
-        editable = Dashboard.editors.any(
-            subject_relation_exists_for_current_user(dashboard_editors)
-        )
-        if normalized == "only":
-            # ``super().apply`` already restricted to ``deleted_at IS NOT NULL``.
-            return query.filter(editable)
-        # ``include``: keep all live rows (normal access) and add only the
-        # soft-deleted rows this user can edit.
-        return query.filter(or_(Dashboard.deleted_at.is_(None), editable))
