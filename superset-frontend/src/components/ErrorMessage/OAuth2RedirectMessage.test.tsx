@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { act } from 'react';
 import * as reduxHooks from 'react-redux';
 import { Provider } from 'react-redux';
 import { createStore } from 'redux';
@@ -199,6 +200,55 @@ describe('OAuth2RedirectMessage Component', () => {
 
     render(setup());
 
+    simulateStorageMessage({ tabId: 'tabId' });
+
+    await waitFor(() => {
+      expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
+    });
+  });
+
+  test('re-processes a later signal when the first arrived before state was ready', async () => {
+    const initialState = {
+      sqlLab: {
+        queries: {},
+        queryEditors: [{ id: 'editor-id' }],
+        tabHistory: ['editor-id'],
+      },
+      explore: { slice: { slice_id: 123 } },
+      charts: { '1': {}, '2': {} },
+      dashboardInfo: { id: 'dashboard-id' },
+    };
+    const dynamicStore = createStore(
+      (state: any = initialState, action: any) => {
+        if (action.type === 'SET_READY') {
+          return {
+            ...state,
+            sqlLab: {
+              ...state.sqlLab,
+              queries: { 'query-id': { sql: 'SELECT * FROM table' } },
+              queryEditors: [{ id: 'editor-id', latestQueryId: 'query-id' }],
+            },
+          };
+        }
+        return state;
+      },
+    );
+
+    render(
+      <Provider store={dynamicStore}>
+        <OAuth2RedirectMessage {...defaultProps} />
+      </Provider>,
+    );
+
+    // First signal arrives before the SQL Lab query state is populated;
+    // nothing dispatches and `handled` must NOT be flipped.
+    simulateBroadcastMessage({ tabId: 'tabId' });
+    expect(reRunQuery).not.toHaveBeenCalled();
+
+    // Query state becomes available, then the storage fallback signal fires.
+    act(() => {
+      dynamicStore.dispatch({ type: 'SET_READY' });
+    });
     simulateStorageMessage({ tabId: 'tabId' });
 
     await waitFor(() => {
