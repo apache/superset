@@ -236,6 +236,43 @@ test('recomputes and clamps the control index when data shrinks', async () => {
   expect(screen.queryByText('row-2')).not.toBeInTheDocument();
 });
 
+test('sorts a non-finite lift value deterministically regardless of comparison order', async () => {
+  // Control sum is non-zero (finite denominator), so row-normal gets a
+  // finite lift while row-huge overflows to a non-finite ("Infinity") lift,
+  // exercising a mixed finite/non-finite comparison.
+  const mixedLiftData: DataEntry[] = [
+    { group: ['control'], values: [{ x: 1, y: 100 }] },
+    { group: ['row-normal'], values: [{ x: 1, y: 200 }] },
+    { group: ['row-huge'], values: [{ x: 1, y: 1e309 }] },
+  ];
+
+  render(
+    <TTestTable {...defaultProps} data={mixedLiftData} groups={['group']} />,
+  );
+
+  await waitFor(() => {
+    expect(screen.getByText('Infinity')).toBeInTheDocument();
+    expect(screen.getByText('100.0000')).toBeInTheDocument();
+  });
+
+  fireEvent.click(screen.getByText('Lift %'));
+
+  await waitFor(() => {
+    const rowLabels = screen
+      .getAllByRole('row')
+      .slice(1) // drop the header row
+      .map(row => row.textContent);
+    // Sorting is antisymmetric and stable: the same relative order results
+    // whichever pair of rows is compared first, with the non-finite value
+    // consistently ordered ahead of the finite one.
+    expect(rowLabels).toEqual([
+      expect.stringContaining('control'),
+      expect.stringContaining('row-huge'),
+      expect.stringContaining('row-normal'),
+    ]);
+  });
+});
+
 test('throws an error when groups array is empty', () => {
   // Suppress React error boundary console output for this test
   const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});

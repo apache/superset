@@ -243,6 +243,20 @@ function TTestTable({
 
             const liftA = parseFloat(a);
             const liftB = parseFloat(b);
+            const aFinite = Number.isFinite(liftA);
+            const bFinite = Number.isFinite(liftB);
+            // Non-finite (Infinity/NaN) lift values sort ahead of finite ones,
+            // consistently regardless of comparison order, to avoid an
+            // antisymmetric comparator
+            if (!aFinite && !bFinite) {
+              return 0;
+            }
+            if (!aFinite) {
+              return -1;
+            }
+            if (!bFinite) {
+              return 1;
+            }
             if (liftA === liftB) {
               return 0;
             }
