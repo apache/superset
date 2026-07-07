@@ -23,6 +23,7 @@ from flask_babel import lazy_gettext as _
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    OAuth2RedirectError,
     SupersetErrorException,
     SupersetErrorsException,
 )
