@@ -161,9 +161,10 @@ const mapTablesToSelectValues = (
     }
     return {
       value: table.id,
-      label: table.schema && table.table_name
-        ? `${table.schema}.${table.table_name}`
-        : table.table_name || String(table.id),
+      label:
+        table.schema && table.table_name
+          ? `${table.schema}.${table.table_name}`
+          : table.table_name || String(table.id),
     };
   });
 
