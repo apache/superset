@@ -126,7 +126,7 @@ const copyAllComputedStyles = (
 
     if (origNode.textContent?.trim()) {
       const { color } = computed;
-      if (!color || color === 'transparent') {
+      if (!color || color === 'transparent' || color === TRANSPARENT_RGBA) {
         (cloneNode as HTMLElement).style.color =
           theme?.colorTextBase || 'black';
       }
