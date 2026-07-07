@@ -67,7 +67,7 @@ jest.mock('@superset-ui/switchboard', () => ({
   default: {
     init: jest.fn(),
     start: jest.fn(),
-    defineMethod: (name: string, fn: (...args: any[]) => any) => {
+    defineMethod: (name: string, fn: (arg: { guestToken: string }) => void) => {
       if (name === 'guestToken') {
         mockSwitchboard.handler = fn;
       }
