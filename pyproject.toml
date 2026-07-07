@@ -180,7 +180,7 @@ mssql = ["pymssql>=2.3.13, <3"]
 motherduck = ["apache-superset[duckdb]"]
 mysql = ["mysqlclient>=2.2.8, <3"]
 ocient = [
-    "sqlalchemy-ocient>=3.0.0",
+    "sqlalchemy-ocient>=1.0.0, <4",
     "pyocient>=1.0.15, <4",
     "shapely",
     "geojson",
