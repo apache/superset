@@ -137,7 +137,7 @@ d1 = [
     "sqlalchemy-d1>=0.1.0",
     "dbapi-d1>=0.1.0",
 ]
-databend = ["databend-sqlalchemy>=0.3.2, <1.0"]
+databend = ["databend-sqlalchemy>=0.4.6, <1.0"]
 databricks = [
     "databricks-sql-connector==4.2.6",
     "databricks-sqlalchemy==1.0.5",
