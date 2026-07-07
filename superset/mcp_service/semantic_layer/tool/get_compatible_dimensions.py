@@ -123,7 +123,7 @@ async def get_compatible_dimensions(
             with event_logger.log_context(
                 action="mcp.get_compatible_dimensions.builtin"
             ):
-                dataset = DatasetDAO.find_by_id(
+                dataset: SqlaTable | None = DatasetDAO.find_by_id(
                     dataset_id,
                     query_options=[
                         subqueryload(SqlaTable.columns),
@@ -165,11 +165,11 @@ async def get_compatible_dimensions(
         # ------------------------------------------------------------------
         from superset.daos.semantic_layer import SemanticViewDAO
         from superset.exceptions import SupersetSecurityException
-        from superset.semantic_layers.models import ColumnMetadata
+        from superset.semantic_layers.models import ColumnMetadata, SemanticView
 
         view_id: int = request.view_id  # type: ignore[assignment]
         with event_logger.log_context(action="mcp.get_compatible_dimensions.external"):
-            view = SemanticViewDAO.find_by_id(view_id)
+            view: SemanticView | None = SemanticViewDAO.find_by_id(view_id)
 
         if view is None:
             return SemanticLayerError.create(

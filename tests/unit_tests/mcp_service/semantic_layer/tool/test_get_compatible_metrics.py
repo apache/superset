@@ -52,7 +52,7 @@ def mock_auth() -> Generator[MagicMock, None, None]:
             return_value=True,
         ),
     ):
-        mock_user = Mock()
+        mock_user: Mock = Mock()
         mock_user.id = 1
         mock_user.username = "admin"
         mock_get_user.return_value = mock_user
@@ -60,7 +60,7 @@ def mock_auth() -> Generator[MagicMock, None, None]:
 
 
 def _make_metric(name: str, expression: str = "COUNT(*)") -> MagicMock:
-    m = MagicMock()
+    m: MagicMock = MagicMock()
     m.metric_name = name
     m.verbose_name = None
     m.expression = expression
@@ -71,7 +71,7 @@ def _make_metric(name: str, expression: str = "COUNT(*)") -> MagicMock:
 
 
 def _make_dataset(dataset_id: int = 42) -> MagicMock:
-    ds = MagicMock()
+    ds: MagicMock = MagicMock()
     ds.id = dataset_id
     ds.table_name = f"table_{dataset_id}"
     ds.columns = []
@@ -80,7 +80,7 @@ def _make_dataset(dataset_id: int = 42) -> MagicMock:
 
 
 def _make_view(view_id: int = 5) -> MagicMock:
-    view = MagicMock()
+    view: MagicMock = MagicMock()
     view.id = view_id
     view.name = f"view_{view_id}"
     view.raise_for_access = MagicMock(return_value=None)

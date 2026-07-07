@@ -117,7 +117,7 @@ async def get_compatible_metrics(
             from superset.daos.dataset import DatasetDAO
 
             with event_logger.log_context(action="mcp.get_compatible_metrics.builtin"):
-                dataset = DatasetDAO.find_by_id(
+                dataset: SqlaTable | None = DatasetDAO.find_by_id(
                     request.dataset_id,
                     query_options=[
                         subqueryload(SqlaTable.columns),
@@ -134,7 +134,7 @@ async def get_compatible_metrics(
             # All metrics on a SQL dataset are always mutually compatible;
             # exclude ones already selected so clients don't get duplicate
             # suggestions for metrics they've already added.
-            selected_metrics = set(request.selected_metrics)
+            selected_metrics: set[str] = set(request.selected_metrics)
             compatible = [
                 MetricInfo(
                     name=m.metric_name,
@@ -162,10 +162,11 @@ async def get_compatible_metrics(
         # ------------------------------------------------------------------
         from superset.daos.semantic_layer import SemanticViewDAO
         from superset.exceptions import SupersetSecurityException
+        from superset.semantic_layers.models import MetricMetadata, SemanticView
 
         view_id: int = request.view_id  # type: ignore[assignment]
         with event_logger.log_context(action="mcp.get_compatible_metrics.external"):
-            view = SemanticViewDAO.find_by_id(view_id)
+            view: SemanticView | None = SemanticViewDAO.find_by_id(view_id)
 
         if view is None:
             return SemanticLayerError.create(
@@ -181,13 +182,15 @@ async def get_compatible_metrics(
                 error_type="AccessDenied",
             )
 
-        compatible_names = view.get_compatible_metrics(
+        compatible_names: list[str] = view.get_compatible_metrics(
             request.selected_metrics,
             request.selected_dimensions,
         )
 
         # Enrich with full metric metadata
-        all_metrics_map = {m.metric_name: m for m in view.metrics}
+        all_metrics_map: dict[str, MetricMetadata] = {
+            m.metric_name: m for m in view.metrics
+        }
         compatible = [
             MetricInfo(
                 name=name,

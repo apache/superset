@@ -52,7 +52,7 @@ def mock_auth() -> Generator[MagicMock, None, None]:
             return_value=True,
         ),
     ):
-        mock_user = Mock()
+        mock_user: Mock = Mock()
         mock_user.id = 1
         mock_user.username = "admin"
         mock_get_user.return_value = mock_user
@@ -176,7 +176,7 @@ async def test_list_metrics_privacy_check(mcp_server: FastMCP) -> None:
 @pytest.mark.asyncio
 async def test_list_metrics_search_filter(mcp_server: FastMCP) -> None:
     """list_metrics filters metrics by search term."""
-    mock_ds = _make_dataset(1)
+    mock_ds: MagicMock = _make_dataset(1)
 
     with (
         patch(
@@ -188,7 +188,7 @@ async def test_list_metrics_search_filter(mcp_server: FastMCP) -> None:
         patch("superset.mcp_service.semantic_layer.tool.list_metrics.db") as mock_db,
     ):
         mock_view_dao.find_accessible.return_value = []
-        mock_query = MagicMock()
+        mock_query: MagicMock = MagicMock()
         mock_db.session.query.return_value.options.return_value = mock_query
         mock_dao._apply_base_filter.return_value = mock_query
         mock_query.all.return_value = [mock_ds]
@@ -205,6 +205,30 @@ async def test_list_metrics_search_filter(mcp_server: FastMCP) -> None:
     metrics = data["metrics"]
     assert len(metrics) == 1
     assert metrics[0]["name"] == "revenue"
+
+
+@pytest.mark.asyncio
+async def test_list_metrics_external_includes_verbose_name(
+    mcp_server: FastMCP,
+) -> None:
+    """External metrics include verbose_name, matching the builtin path."""
+    mock_view = _make_view(5)
+    mock_view.metrics[0].verbose_name = "Bookings Count"
+
+    with patch(
+        "superset.mcp_service.semantic_layer.tool.list_metrics.SemanticViewDAO"
+    ) as mock_view_dao:
+        mock_view_dao.find_by_id.return_value = mock_view
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "list_metrics",
+                {"request": {"view_id": 5, "include_compatible_dimensions": False}},
+            )
+        data = json.loads(result.content[0].text)
+
+    metrics = {m["name"]: m for m in data["metrics"]}
+    assert metrics["bookings"]["verbose_name"] == "Bookings Count"
 
 
 @pytest.mark.asyncio

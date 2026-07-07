@@ -233,7 +233,7 @@ class TestQueryDatasetMetricGuidance:
     """Metric validation errors guide callers toward saved metric names."""
 
     def test_no_saved_metrics_hint(self) -> None:
-        errors = validate_names(
+        errors: list[str] = validate_names(
             ["sum__global_sales"],
             set(),
             "metric",
@@ -244,7 +244,7 @@ class TestQueryDatasetMetricGuidance:
         assert "Did you mean" not in errors[0]
 
     def test_valid_metrics_listed_when_no_close_match(self) -> None:
-        errors = validate_names(
+        errors: list[str] = validate_names(
             ["zzz_nonexistent"],
             {"count", "revenue_total"},
             "metric",
@@ -256,7 +256,7 @@ class TestQueryDatasetMetricGuidance:
     def test_truncated_valid_metrics_report_remaining_count(self) -> None:
         valid_metrics = {f"metric_{idx:02d}" for idx in range(12)}
 
-        errors = validate_names(
+        errors: list[str] = validate_names(
             ["zzz_nonexistent"],
             valid_metrics,
             "metric",
@@ -269,7 +269,7 @@ class TestQueryDatasetMetricGuidance:
         assert "and 2 more; call get_dataset_info for the full list" in errors[0]
 
     def test_close_match_suggestion_unchanged(self) -> None:
-        errors = validate_names(
+        errors: list[str] = validate_names(
             ["revenue_totl"],
             {"count", "revenue_total"},
             "metric",

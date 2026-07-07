@@ -166,7 +166,7 @@ class OmittedFieldsBuilder:
         return dict(self._fields)
 
 
-STATS_ROW_CAP = 5000
+STATS_ROW_CAP: int = 5000
 
 
 def format_data_columns(

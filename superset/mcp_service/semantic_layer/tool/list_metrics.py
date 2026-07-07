@@ -42,7 +42,7 @@ from superset.mcp_service.semantic_layer.schemas import (
     MetricList,
     SemanticLayerError,
 )
-from superset.semantic_layers.models import SemanticView
+from superset.semantic_layers.models import ColumnMetadata, SemanticView
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +90,7 @@ def _collect_builtin_metrics(request: ListMetricsRequest) -> list[MetricInfo]:
                     subqueryload(SqlaTable.metrics),
                 ],
             )
-            datasets = [dataset] if dataset else []
+            datasets: list[SqlaTable] = [dataset] if dataset else []
         else:
             from sqlalchemy.orm import subqueryload
 
@@ -144,7 +144,7 @@ async def _collect_external_metrics(
     with event_logger.log_context(action="mcp.list_metrics.external_query"):
         if request.view_id is not None:
             view: SemanticView | None = SemanticViewDAO.find_by_id(request.view_id)
-            views = [view] if view else []
+            views: list[SemanticView] = [view] if view else []
         else:
             # find_accessible filters at SQL level, avoiding a per-row
             # Python permission check and the audit noise of raise_for_access.
@@ -163,7 +163,7 @@ async def _collect_external_metrics(
             view.raise_for_access()
         try:
             raw_metrics = view.metrics
-            all_cols = {
+            all_cols: dict[str, ColumnMetadata] = {
                 col.column_name: col
                 for col in (
                     view.columns if request.include_compatible_dimensions else []
@@ -211,6 +211,7 @@ async def _collect_external_metrics(
                 results.append(
                     MetricInfo(
                         name=name,
+                        verbose_name=metric.verbose_name or None,
                         description=desc or None,
                         expression=metric.expression or None,
                         source="external",

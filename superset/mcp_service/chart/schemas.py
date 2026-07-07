@@ -2257,9 +2257,9 @@ class DataColumn(BaseModel):
     )
     statistics: Dict[str, Any] | None = Field(
         None,
-        description="Column statistics if numeric. May include 'sampled_rows' "
-        "when null_count/unique_count were computed on a row-capped sample "
-        "rather than the full result set.",
+        description="Additional column statistics, when available. May include "
+        "'sampled_rows' (any column type) when null_count/unique_count were "
+        "computed on a row-capped sample rather than the full result set.",
     )
     semantic_type: str | None = Field(
         None, description="Semantic type (currency, percentage, etc)"

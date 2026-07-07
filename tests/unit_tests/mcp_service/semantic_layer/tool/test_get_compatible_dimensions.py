@@ -60,7 +60,7 @@ def mock_auth() -> Generator[MagicMock, None, None]:
 
 
 def _make_column(name: str, groupby: bool = True) -> MagicMock:
-    col = MagicMock()
+    col: MagicMock = MagicMock()
     col.column_name = name
     col.verbose_name = None
     col.description = None
@@ -72,7 +72,7 @@ def _make_column(name: str, groupby: bool = True) -> MagicMock:
 
 
 def _make_dataset(dataset_id: int = 42) -> MagicMock:
-    ds = MagicMock()
+    ds: MagicMock = MagicMock()
     ds.id = dataset_id
     ds.table_name = f"table_{dataset_id}"
     ds.metrics = []
@@ -85,7 +85,7 @@ def _make_dataset(dataset_id: int = 42) -> MagicMock:
 
 
 def _make_view(view_id: int = 5) -> MagicMock:
-    view = MagicMock()
+    view: MagicMock = MagicMock()
     view.id = view_id
     view.name = f"view_{view_id}"
     view.raise_for_access = MagicMock(return_value=None)
@@ -225,6 +225,25 @@ async def test_get_compatible_dimensions_not_found(mcp_server: FastMCP) -> None:
         async with Client(mcp_server) as client:
             result = await client.call_tool(
                 "get_compatible_dimensions", {"request": {"dataset_id": 999}}
+            )
+        data = json.loads(result.content[0].text)
+
+    assert data["success"] is False
+    assert data["error_type"] == "NotFound"
+
+
+@pytest.mark.asyncio
+async def test_get_compatible_dimensions_external_not_found(
+    mcp_server: FastMCP,
+) -> None:
+    """Returns NotFound when the semantic view doesn't exist."""
+    with patch(
+        "superset.daos.semantic_layer.SemanticViewDAO.find_by_id",
+        return_value=None,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_compatible_dimensions", {"request": {"view_id": 999}}
             )
         data = json.loads(result.content[0].text)
 
