@@ -201,7 +201,7 @@
     "mustache": "^4.2.0",
     "nanoid": "^5.1.16",
     "ol": "^10.9.0",
-    "query-string": "9.4.0",
+    "query-string": "9.4.1",
     "re-resizable": "^6.11.2",
     "react": "^18.3.0",
     "react-arborist": "^3.12.0",
@@ -299,7 +299,7 @@
     "@types/tinycolor2": "^1.4.3",
     "@types/unzipper": "^0.10.11",
     "@typescript-eslint/eslint-plugin": "^8.62.0",
-    "@typescript-eslint/parser": "^8.61.0",
+    "@typescript-eslint/parser": "^8.62.1",
     "babel-jest": "^30.4.1",
     "babel-loader": "^10.1.1",
     "babel-plugin-dynamic-import-node": "^2.3.3",
@@ -310,7 +310,7 @@
     "copy-webpack-plugin": "^14.0.0",
     "cross-env": "^10.1.0",
     "css-loader": "^7.1.4",
-    "eslint": "^10.5.0",
+    "eslint": "^10.6.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-import-resolver-alias": "^1.1.2",
     "eslint-import-resolver-typescript": "^4.4.5",
@@ -346,7 +346,7 @@
     "open-cli": "^9.0.0",
     "oxlint": "^1.71.0",
     "po2json": "^0.4.5",
-    "prettier": "3.8.4",
+    "prettier": "3.9.3",
     "prettier-plugin-packagejson": "^3.0.2",
     "process": "^0.11.10",
     "react-dnd-test-backend": "^16.0.1",
@@ -393,7 +393,6 @@
     "http-proxy-middleware": "^2.0.10",
     "tar": "^7.5.16",
     "puppeteer": "^22.4.1",
-    "remark-gfm": "^3.0.1",
     "underscore": "^1.13.7",
     "jspdf": "^4.2.0",
     "nwsapi": "^2.2.13",
@@ -428,6 +427,9 @@
     },
     "eslint-plugin-jest-dom": {
       "eslint": "$eslint"
+    },
+    "lerna": {
+      "js-yaml": "^4.3.0"
     }
   },
   "readme": "ERROR: No README data found!",

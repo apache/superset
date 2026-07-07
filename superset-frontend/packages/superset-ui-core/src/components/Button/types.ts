@@ -31,12 +31,7 @@ export type { AntdButtonProps, ButtonType, ButtonVariantType, ButtonColorType };
 export type OnClickHandler = MouseEventHandler<HTMLElement>;
 
 export type ButtonStyle =
-  | 'primary'
-  | 'secondary'
-  | 'tertiary'
-  | 'danger'
-  | 'link'
-  | 'dashed';
+  'primary' | 'secondary' | 'tertiary' | 'danger' | 'link' | 'dashed';
 
 export type ButtonSize = 'default' | 'small' | 'xsmall';
 
