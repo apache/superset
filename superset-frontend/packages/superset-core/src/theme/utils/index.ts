@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { theme as antdThemeImport } from 'antd';
+import { theme as antdThemeImport, type MappingAlgorithm } from 'antd';
 import {
   type AntdThemeConfig,
   type AnyThemeConfig,
@@ -49,7 +49,7 @@ export function deserializeThemeConfig(
   config: SerializableThemeConfig,
 ): AntdThemeConfig {
   const { algorithm, cssVar, ...rest } = config;
-  const algorithmMap: Record<string, any> = {
+  const algorithmMap: Record<string, MappingAlgorithm> = {
     default: antdThemeImport.defaultAlgorithm,
     dark: antdThemeImport.darkAlgorithm,
     compact: antdThemeImport.compactAlgorithm,
