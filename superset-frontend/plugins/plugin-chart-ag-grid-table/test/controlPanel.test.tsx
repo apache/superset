@@ -47,8 +47,7 @@ const findConditionalFormattingControl = (): ControlConfig | null => {
 };
 
 const findMetricsMapStateToProps = ():
-  | ControlConfig['mapStateToProps']
-  | null => {
+  ControlConfig['mapStateToProps'] | null => {
   for (const section of config.controlPanelSections) {
     if (!section) continue;
     for (const row of section.controlSetRows) {

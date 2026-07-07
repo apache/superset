@@ -36,6 +36,7 @@ import {
   getChartMetadataRegistry,
   VizType,
   BinaryQueryObjectFilterClause,
+  JsonObject,
   QueryFormData,
 } from '@superset-ui/core';
 import { css, useTheme, styled } from '@apache-superset/core/theme';
@@ -57,6 +58,7 @@ import { useDrillDetailMenuItems } from 'src/components/Chart/useDrillDetailMenu
 import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
+import { openInNewTab } from 'src/utils/navigationUtils';
 import { usePermissions } from 'src/hooks/usePermissions';
 import { useDatasetDrillInfo } from 'src/hooks/apiResources/datasets';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
@@ -81,22 +83,18 @@ const RefreshTooltip = styled.div`
 const getScreenshotNodeSelector = (chartId: string | number) =>
   `.dashboard-chart-id-${chartId}`;
 
-const VerticalDotsTrigger = () => {
-  const theme = useTheme();
-  return (
-    <Icons.EllipsisOutlined
-      css={css`
-        transform: rotate(90deg);
-        &:hover {
-          cursor: pointer;
-        }
-      `}
-      iconSize="xl"
-      iconColor={theme.colorTextLabel}
-      className="dot"
-    />
-  );
-};
+const VerticalDotsTrigger = () => (
+  <Icons.EllipsisOutlined
+    css={css`
+      transform: rotate(90deg);
+      &:hover {
+        cursor: pointer;
+      }
+    `}
+    iconSize="xl"
+    className="dot"
+  />
+);
 
 export interface SliceHeaderControlsProps {
   chartHolderRef?: RefObject<HTMLDivElement>;
@@ -140,9 +138,11 @@ export interface SliceHeaderControlsProps {
 
   supersetCanExplore?: boolean;
   supersetCanShare?: boolean;
-  supersetCanCSV?: boolean;
+  supersetCanDownload?: boolean;
 
   crossFiltersEnabled?: boolean;
+
+  ownState?: JsonObject;
 }
 type SliceHeaderControlsPropsWithRouter = SliceHeaderControlsProps &
   RouteComponentProps;
@@ -263,7 +263,7 @@ const SliceHeaderControls = (
         props.logExploreChart?.(props.slice.slice_id);
         if (domEvent.metaKey || domEvent.ctrlKey) {
           domEvent.preventDefault();
-          window.open(props.exploreUrl, '_blank');
+          openInNewTab(props.exploreUrl);
         } else {
           history.push(props.exploreUrl);
         }
@@ -380,17 +380,24 @@ const SliceHeaderControls = (
   const updatedWhen = updatedDttm
     ? (extendedDayjs.utc(updatedDttm) as any).fromNow()
     : '';
-  const getCachedTitle = (itemCached: boolean) => {
+  const getCachedTitle = (itemCached: boolean, index: number) => {
     if (itemCached) {
-      return t('Cached %s', cachedWhen);
+      return t('Cached %s', cachedWhen[index]);
     }
     if (updatedWhen) {
       return t('Fetched %s', updatedWhen);
     }
     return '';
   };
-  const refreshTooltipData = [...new Set(isCached.map(getCachedTitle) || '')];
-  // If all queries have same cache time we can unit them to one
+  const refreshTooltipData = (() => {
+    const titles = isCached.map((itemCached, index) =>
+      getCachedTitle(itemCached, index),
+    );
+    // Collapse to a single entry only when every query shares the same
+    // cache/fetch time; otherwise keep the per-query list so the "Query N"
+    // numbering stays aligned with the original query order.
+    return new Set(titles).size === 1 ? [titles[0]] : titles;
+  })();
   const refreshTooltip = refreshTooltipData.map((item, index) => (
     <div key={`tooltip-${index}`}>
       {refreshTooltipData.length > 1
@@ -482,7 +489,12 @@ const SliceHeaderControls = (
             <div data-test="view-query-menu-item">{t('View query')}</div>
           }
           modalTitle={t('View query')}
-          modalBody={<ViewQueryModal latestQueryFormData={props.formData} />}
+          modalBody={
+            <ViewQueryModal
+              latestQueryFormData={props.formData}
+              ownState={props.ownState}
+            />
+          }
           draggable
           resizable
           responsive
@@ -511,7 +523,7 @@ const SliceHeaderControls = (
               dataSize={20}
               isRequest
               isVisible
-              canDownload={!!props.supersetCanCSV}
+              canDownload={!!props.supersetCanDownload}
               columnDisplayNames={datasetWithVerboseMap?.verbose_map}
             />
           }
@@ -554,7 +566,7 @@ const SliceHeaderControls = (
     newMenuItems.push(shareMenuItems);
   }
 
-  if (props.supersetCanCSV) {
+  if (props.supersetCanDownload) {
     newMenuItems.push({
       type: 'submenu',
       key: MenuKeys.Download,
@@ -585,7 +597,7 @@ const SliceHeaderControls = (
           icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
         },
         ...(isFeatureEnabled(FeatureFlag.AllowFullCsvExport) &&
-        props.supersetCanCSV &&
+        props.supersetCanDownload &&
         isTable
           ? [
               {
@@ -663,8 +675,10 @@ const SliceHeaderControls = (
           aria-label={t('More Options')}
           aria-haspopup="true"
           css={theme => css`
-            padding: ${theme.sizeUnit * 2}px;
-            padding-right: 0px;
+            width: ${theme.sizeUnit * 8}px;
+            height: ${theme.sizeUnit * 8}px;
+            padding: 0;
+            margin-right: -${theme.sizeUnit * 2}px;
           `}
         >
           <VerticalDotsTrigger />

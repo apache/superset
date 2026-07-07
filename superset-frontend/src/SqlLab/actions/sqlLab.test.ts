@@ -749,7 +749,7 @@ describe('async actions', () => {
         database_name: 'examples',
         id: 2,
       },
-      description: '',
+      description: 'A saved query description',
       id: 1,
       label: 'Query 1',
       schema: 'public',
@@ -799,6 +799,7 @@ describe('async actions', () => {
 
       const expectedParams = {
         name: 'Query 1',
+        description: 'A saved query description',
         dbId: 2,
         catalog: null,
         schema: 'public',
@@ -1843,14 +1844,26 @@ describe('async actions', () => {
           {
             ...query,
             id: 'previewOne',
-            sqlEditorId: oldQueryEditor.id,
-            inLocalStorage: true,
+            sqlEditorId: null,
+            isDataPreview: true,
           },
           {
             ...query,
             id: 'previewTwo',
+            sqlEditorId: null,
+            isDataPreview: true,
+          },
+          {
+            ...query,
+            id: 'runningQuery',
             sqlEditorId: oldQueryEditor.id,
-            inLocalStorage: true,
+            state: 'running',
+          },
+          {
+            ...query,
+            id: 'unrelatedQuery',
+            sqlEditorId: 'other-editor',
+            state: 'running',
           },
         ];
         const store = mockStore({
@@ -1885,12 +1898,7 @@ describe('async actions', () => {
           },
           {
             type: actions.MIGRATE_QUERY,
-            queryId: 'previewOne',
-            queryEditorId: '1',
-          },
-          {
-            type: actions.MIGRATE_QUERY,
-            queryId: 'previewTwo',
+            queryId: 'runningQuery',
             queryEditorId: '1',
           },
         ];
@@ -1900,7 +1908,7 @@ describe('async actions', () => {
             expect(store.getActions()).toEqual(expectedActions);
             expect(
               fetchMock.callHistory.calls(updateTabStateEndpoint),
-            ).toHaveLength(3);
+            ).toHaveLength(2);
 
             // query editor has 2 tables loaded in the schema viewer
             expect(

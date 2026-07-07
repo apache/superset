@@ -40,7 +40,7 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.tag import TagDAO
 from superset.exceptions import MissingUserContextException
 from superset.extensions import event_logger
-from superset.tags.filters import UserCreatedTagTypeFilter
+from superset.tags.filters import TagFavoriteFilter, UserCreatedTagTypeFilter
 from superset.tags.models import ObjectType, Tag
 from superset.tags.schemas import (
     delete_tags_schema,
@@ -120,7 +120,19 @@ class TagRestApi(BaseSupersetModelRestApi):
     }
     allowed_rel_fields = {"created_by", "changed_by"}
 
-    search_filters = {"type": [UserCreatedTagTypeFilter]}
+    search_columns = [
+        "id",
+        "name",
+        "type",
+        "description",
+        "created_by",
+        "changed_by",
+    ]
+
+    search_filters = {
+        "type": [UserCreatedTagTypeFilter],
+        "id": [TagFavoriteFilter],
+    }
 
     add_model_schema = TagPostSchema()
     edit_model_schema = TagPutSchema()
@@ -543,11 +555,28 @@ class TagRestApi(BaseSupersetModelRestApi):
         ---
         get:
           summary: Get all objects associated with a tag
+          description: >-
+            Get all objects associated with a tag.
+            If tagIds is set, tags will be ignored.
           parameters:
-          - in: path
+          - in: query
+            name: tagIds
             schema:
-              type: integer
-            name: tag_id
+              type: array
+              items:
+                type: integer
+          - in: query
+            name: tags
+            schema:
+              type: array
+              items:
+                type: string
+          - in: query
+            name: types
+            schema:
+              type: array
+              items:
+                type: string
           responses:
             200:
               description: List of tagged objects associated with a Tag

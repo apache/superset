@@ -29,8 +29,7 @@ export function getQueryMode(controls: ControlStateMapping): QueryMode {
     return mode as QueryMode;
   }
   const rawColumns = controls?.all_columns?.value as
-    | QueryFormColumn[]
-    | undefined;
+    QueryFormColumn[] | undefined;
   const hasRawColumns = rawColumns && rawColumns.length > 0;
   return hasRawColumns ? QueryMode.Raw : QueryMode.Aggregate;
 }

@@ -29,16 +29,12 @@ import {
   LOG_ACTIONS_SPA_NAVIGATION,
 } from '../logger/LogUtils';
 import DebouncedMessageQueue from '../utils/DebouncedMessageQueue';
-import { ensureAppRoot } from '../utils/pathUtils';
+import { ensureAppRoot } from '../utils/navigationUtils';
 import type { DashboardInfo, DashboardLayoutState } from '../dashboard/types';
 import type { QueryEditor } from '../SqlLab/types';
 
 type LogEventSource =
-  | 'dashboard'
-  | 'embedded_dashboard'
-  | 'explore'
-  | 'sqlLab'
-  | 'slice';
+  'dashboard' | 'embedded_dashboard' | 'explore' | 'sqlLab' | 'slice';
 
 interface LogEventData {
   source?: LogEventSource;
@@ -93,7 +89,7 @@ interface LoggerStore {
   dispatch: Dispatch;
 }
 
-const LOG_ENDPOINT = '/superset/log/?explode=events';
+const LOG_ENDPOINT = '/log/?explode=events';
 
 const sendBeacon = (events: LogEventData[]): void => {
   if (events.length <= 0) {

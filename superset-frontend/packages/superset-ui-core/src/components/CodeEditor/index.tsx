@@ -37,13 +37,7 @@ import 'ace-builds/src-noconflict/theme-github';
 import 'ace-builds/src-noconflict/theme-monokai';
 
 export type CodeEditorMode =
-  | 'handlebars'
-  | 'css'
-  | 'json'
-  | 'sql'
-  | 'markdown'
-  | 'javascript'
-  | 'html';
+  'handlebars' | 'css' | 'json' | 'sql' | 'markdown' | 'javascript' | 'html';
 
 export type CodeEditorTheme = 'light' | 'dark';
 

@@ -58,7 +58,7 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { safeStringify } from 'src/utils/safeStringify';
 import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA } from 'src/logger/LogUtils';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import { navigateWithState, navigateTo } from 'src/utils/navigationUtils';
 import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
@@ -177,10 +177,15 @@ export function fetchFaveStar(id: number) {
           );
         }
       })
-      .catch(() => {
-        // Only show error if this is still the current dashboard
-        // This prevents error toasts from appearing for dashboards the user
-        // has already navigated away from (e.g., deleted dashboards)
+      .catch(error => {
+        // A 404 means the favorite status isn't available to this user (a
+        // non-owner viewing a draft dashboard, or a dashboard deleted after
+        // navigation) — swallow it silently instead of alarming them.
+        if (error instanceof Response && error.status === 404) {
+          return;
+        }
+        // Only show the error if this is still the current dashboard (prevents
+        // toasts for dashboards the user already navigated away from).
         const currentId = getState().dashboardInfo?.id;
         if (currentId === id) {
           dispatch(
@@ -579,9 +584,7 @@ export function saveDashboardRequest(
         }),
       );
       dispatch(saveDashboardFinished());
-      navigateTo(
-        `/superset/dashboard/${(response.json as JsonObject).result?.id}/`,
-      );
+      navigateTo(`/dashboard/${(response.json as JsonObject).result?.id}/`);
       dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
       return response;
     };
@@ -634,7 +637,7 @@ export function saveDashboardRequest(
       }
       dispatch(saveDashboardFinished());
       // redirect to the new slug or id
-      navigateWithState(`/superset/dashboard/${slug || id}/`, {
+      navigateWithState(`/dashboard/${slug || id}/`, {
         event: 'dashboard_properties_changed',
       });
 
@@ -722,8 +725,7 @@ export function saveDashboardRequest(
                 updatedBy: dashboard.changed_by_name as string,
                 overwriteConfirmItems:
                   overwriteConfirmItems as DashboardState['overwriteConfirmMetadata'] extends
-                    | { overwriteConfirmItems: infer I }
-                    | undefined
+                    { overwriteConfirmItems: infer I } | undefined
                     ? I
                     : never,
                 dashboardId: id,

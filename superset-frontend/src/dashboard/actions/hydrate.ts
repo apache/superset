@@ -178,7 +178,7 @@ export const hydrateDashboard =
         viz_type: slice.form_data.viz_type,
         datasource: slice.form_data.datasource,
         description: slice.description,
-        description_markeddown: slice.description_markeddown,
+        description_markdown: slice.description_markeddown,
         owners: slice.owners,
         modified: slice.modified,
         changed_on: new Date(slice.changed_on).getTime(),
@@ -355,7 +355,7 @@ export const hydrateDashboard =
             'Superset',
             roles,
           ),
-          superset_can_csv: findPermission('can_csv', 'Superset', roles),
+          superset_can_download: findPermission('can_csv', 'Superset', roles),
           common: {
             // legacy, please use state.common instead
             conf: common?.conf,

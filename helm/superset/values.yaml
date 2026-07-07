@@ -269,7 +269,7 @@ supersetNode:
   command:
     - "/bin/sh"
     - "-c"
-    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; /usr/bin/run-server.sh"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; exec /usr/bin/run-server.sh"
   connections:
     # -- Change in case of bringing your own redis and then also set redis.enabled:false
     redis_host: "{{ .Release.Name }}-redis-headless"
@@ -283,6 +283,7 @@ supersetNode:
     redis_ssl:
       enabled: false
       ssl_cert_reqs: CERT_NONE
+    redis_driver: ""
     # You need to change below configuration incase bringing own PostgresSQL instance and also set postgresql.enabled:false
     # -- Database type for Superset metadata (Supported types: "postgresql", "mysql")
     db_type: "postgresql"
@@ -334,6 +335,8 @@ supersetNode:
   deploymentAnnotations: {}
   # -- Labels to be added to supersetNode deployment
   deploymentLabels: {}
+  # -- Custom pod spec to be added to supersetNode deployment
+  deploymentAdditionalPodSpec: {}
   # -- Affinity to be added to supersetNode deployment
   affinity: {}
   # -- TopologySpreadConstrains to be added to supersetNode deployments
@@ -369,6 +372,12 @@ supersetNode:
     failureThreshold: 3
     periodSeconds: 15
     successThreshold: 1
+  # -- Container lifecycle hooks, e.g. a preStop sleep so the Service/Ingress
+  # stops routing to the pod before gunicorn receives SIGTERM
+  lifecycle: {}
+  # -- Pod termination grace period (seconds). Set greater than GUNICORN_TIMEOUT so
+  # in-flight requests can drain before SIGKILL
+  terminationGracePeriodSeconds: ~
   # -- Resource settings for the supersetNode pods - these settings overwrite might existing values from the global resources object defined above.
   resources: {}
     # limits:
@@ -409,7 +418,7 @@ supersetWorker:
   command:
     - "/bin/sh"
     - "-c"
-    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; celery --app=superset.tasks.celery_app:app worker"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; exec celery --app=superset.tasks.celery_app:app worker"
   # -- If true, forces deployment to reload on each upgrade
   forceReload: false
   # -- Init container
@@ -453,6 +462,8 @@ supersetWorker:
   deploymentAnnotations: {}
   # -- Labels to be added to supersetWorker deployment
   deploymentLabels: {}
+  # -- Custom pod spec to be added to supersetWorker deployment
+  deploymentAdditionalPodSpec: {}
   # -- Affinity to be added to supersetWorker deployment
   affinity: {}
   # -- TopologySpreadConstrains to be added to supersetWorker deployments
@@ -489,6 +500,10 @@ supersetWorker:
     failureThreshold: 3
     periodSeconds: 60
     successThreshold: 1
+  # -- Container lifecycle hooks for the worker pod
+  lifecycle: {}
+  # -- Pod termination grace period (seconds) for the worker pod so in-flight tasks can drain before SIGKILL
+  terminationGracePeriodSeconds: ~
   # -- No startup/readiness probes by default since we don't really care about its startup time (it doesn't serve traffic)
   startupProbe: {}
   # -- No startup/readiness probes by default since we don't really care about its startup time (it doesn't serve traffic)
@@ -513,7 +528,7 @@ supersetCeleryBeat:
   command:
     - "/bin/sh"
     - "-c"
-    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; celery --app=superset.tasks.celery_app:app beat --pidfile /tmp/celerybeat.pid --schedule /tmp/celerybeat-schedule"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; exec celery --app=superset.tasks.celery_app:app beat --pidfile /tmp/celerybeat.pid --schedule /tmp/celerybeat-schedule"
   # -- If true, forces deployment to reload on each upgrade
   forceReload: false
   # -- List of init containers
@@ -555,6 +570,8 @@ supersetCeleryBeat:
   extraContainers: []
   # -- Annotations to be added to supersetCeleryBeat deployment
   deploymentAnnotations: {}
+  # -- Custom pod spec to be added to supersetCeleryBeat deployment
+  deploymentAdditionalPodSpec: {}
   # -- Affinity to be added to supersetCeleryBeat deployment
   affinity: {}
   # -- TopologySpreadConstrains to be added to supersetCeleryBeat deployments
@@ -670,6 +687,8 @@ supersetCeleryFlower:
   extraContainers: []
   # -- Annotations to be added to supersetCeleryFlower deployment
   deploymentAnnotations: {}
+  # -- Custom pod spec to be added to supersetCeleryFlower deployment
+  deploymentAdditionalPodSpec: {}
   # -- Affinity to be added to supersetCeleryFlower deployment
   affinity: {}
   # -- TopologySpreadConstrains to be added to supersetCeleryFlower deployments
@@ -747,6 +766,8 @@ supersetWebsockets:
   # -- Launch additional containers into supersetWebsockets pods
   extraContainers: []
   deploymentAnnotations: {}
+  # -- Custom pod spec to be added to supersetWebsockets deployment
+  deploymentAdditionalPodSpec: {}
   # -- Affinity to be added to supersetWebsockets deployment
   affinity: {}
   # -- TopologySpreadConstrains to be added to supersetWebsockets deployments
@@ -809,6 +830,8 @@ init:
   jobAnnotations:
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-delete-policy": "before-hook-creation"
+  # -- Custom pod spec to be added to init job
+  additionalPodSpec: {}
   loadExamples: false
   createAdmin: true
   adminUser:

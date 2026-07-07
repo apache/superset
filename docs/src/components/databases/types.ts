@@ -176,7 +176,7 @@ export interface DatabaseInfo {
   expressions_in_orderby?: boolean;
 
   // Platform features
-  limit_method?: string;
+  limit_method?: number;
   limit_clause?: boolean;
   max_column_name?: number;
   supports_file_upload?: boolean;

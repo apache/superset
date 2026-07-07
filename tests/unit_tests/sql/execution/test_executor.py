@@ -1374,8 +1374,10 @@ def test_execute_uses_default_catalog_and_schema(
     get_default_catalog_mock = mocker.patch.object(
         database, "get_default_catalog", return_value="main"
     )
+    # Schema is resolved through the query-aware ``get_default_schema_for_query``
+    # (so per-query engine gates run), not the static ``get_default_schema``.
     get_default_schema_mock = mocker.patch.object(
-        database, "get_default_schema", return_value="public"
+        database, "get_default_schema_for_query", return_value="public"
     )
     mocker.patch.dict(
         current_app.config,
@@ -1393,6 +1395,88 @@ def test_execute_uses_default_catalog_and_schema(
     # Verify default catalog/schema were fetched
     get_default_catalog_mock.assert_called()
     get_default_schema_mock.assert_called()
+
+
+def test_resolve_query_schema_uses_query_aware_resolution(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """``_resolve_query_schema`` resolves through the query-aware
+    ``get_default_schema_for_query`` (which runs per-query engine security gates),
+    handing it a transient probe Query that carries the request's SQL, schema,
+    catalog and template params."""
+    from superset.models.sql_lab import Query
+    from superset.sql.execution.executor import SQLExecutor
+
+    resolve_mock = mocker.patch.object(
+        database, "get_default_schema_for_query", return_value="resolved_schema"
+    )
+
+    executor = SQLExecutor(database)
+    options = QueryOptions(schema="explicit", template_params={"p": 1})
+
+    result = executor._resolve_query_schema("SELECT 1", options, "cat")
+
+    assert result == "resolved_schema"
+    probe, template_params = resolve_mock.call_args.args
+    assert isinstance(probe, Query)
+    assert probe.sql == "SELECT 1"
+    assert probe.schema == "explicit"
+    assert probe.catalog == "cat"
+    assert template_params == {"p": 1}
+
+
+def test_resolve_query_schema_omits_blank_schema(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """An unset request schema reaches the probe as ``None`` so the engine spec
+    resolves the runtime default instead of matching on an empty string."""
+    resolve_mock = mocker.patch.object(
+        database, "get_default_schema_for_query", return_value="public"
+    )
+
+    from superset.sql.execution.executor import SQLExecutor
+
+    executor = SQLExecutor(database)
+
+    result = executor._resolve_query_schema("SELECT 1", QueryOptions(), None)
+
+    assert result == "public"
+    probe = resolve_mock.call_args.args[0]
+    assert probe.schema is None
+    assert probe.catalog is None
+
+
+def test_prepare_sql_runs_schema_gate_with_explicit_schema(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """The per-query schema gate must run even when an explicit schema is
+    supplied, so an explicit-schema request cannot smuggle a ``SET search_path``
+    past the gate the resolver enforces (parity with the estimate path, which
+    resolves unconditionally)."""
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+    from superset.sql.execution.executor import SQLExecutor
+
+    gate = mocker.patch.object(
+        database,
+        "get_default_schema_for_query",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                message="blocked",
+                error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+    executor = SQLExecutor(database)
+
+    with pytest.raises(SupersetSecurityException):
+        executor._prepare_sql(
+            "SET search_path = secret; SELECT 1",
+            QueryOptions(schema="explicit"),
+        )
+
+    gate.assert_called_once()
 
 
 # =============================================================================

@@ -44,7 +44,6 @@ module.exports = {
     '@babel/preset-typescript',
   ],
   plugins: [
-    'lodash',
     '@babel/plugin-syntax-dynamic-import',
     '@babel/plugin-transform-export-namespace-from',
     ['@babel/plugin-transform-class-properties', { loose: true }],
