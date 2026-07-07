@@ -701,8 +701,7 @@ class TestTruncateOversizedResponse:
         assert not any("native_filters" in n for n in notes)
 
     def test_large_dashboard_respects_custom_max_list_items(self) -> None:
-        """A custom max_list_items should truncate both fields to that cap."""
-        response = {
+        """A custom max_list_items should truncate list fields that exceed the cap."""
             "id": 1,
             "dashboard_title": "x" * 2000,
             "charts": [{"id": i, "slice_name": f"chart_{i}"} for i in range(463)],
