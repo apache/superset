@@ -23,17 +23,18 @@ from io import BytesIO
 from unittest.mock import ANY, patch
 from zipfile import is_zipfile, ZipFile
 
-import prison
 import pytest
+import rison
 import yaml
 from freezegun import freeze_time
-from sqlalchemy import inspect
+from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
 
 from superset.commands.dataset.exceptions import DatasetCreateFailedError
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.extensions import db, security_manager
 from superset.models.core import Database
 from superset.models.slice import Slice
@@ -154,6 +155,7 @@ class TestDatasetApi(SupersetTestCase):
     def get_fixture_datasets(self) -> list[SqlaTable]:
         return (
             db.session.query(SqlaTable)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
             .options(joinedload(SqlaTable.database))
             .filter(SqlaTable.table_name.in_(self.fixture_tables_names))
             .all()
@@ -191,19 +193,40 @@ class TestDatasetApi(SupersetTestCase):
     @pytest.fixture
     def create_datasets(self):
         with self.create_app().app_context():
+            # Purge any soft-deleted rows that occupy the unique constraint.
+            # Restrict to ``deleted_at IS NOT NULL``: ``get_fixture_datasets``
+            # bypasses the visibility filter and matches by table name only,
+            # so an unrestricted purge would also hard-delete *live* datasets
+            # other suites created over the same AB tables.
+            stale = [
+                ds for ds in self.get_fixture_datasets() if ds.deleted_at is not None
+            ]
+            for ds in stale:
+                db.session.delete(ds)
+            if stale:
+                db.session.commit()
+
             datasets = []
             admin = self.get_user("admin")
             main_db = get_main_database()
             for tables_name in self.fixture_tables_names:
                 datasets.append(self.insert_dataset(tables_name, [admin.id], main_db))
 
+            # Capture IDs eagerly — dataset objects may be detached after yield
+            dataset_ids = [ds.id for ds in datasets]
+
             yield datasets
 
-            # rollback changes
-            for dataset in datasets:
-                state = inspect(dataset)
-                if not state.was_deleted:
-                    db.session.delete(dataset)
+            # rollback changes (including soft-deleted rows)
+            for dataset_id in dataset_ids:
+                row = (
+                    db.session.query(SqlaTable)
+                    .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+                    .filter(SqlaTable.id == dataset_id)
+                    .one_or_none()
+                )
+                if row:
+                    db.session.delete(row)
             db.session.commit()
 
     @staticmethod
@@ -265,7 +288,7 @@ class TestDatasetApi(SupersetTestCase):
                 {"col": "table_name", "opr": "eq", "value": "birth_names"},
             ]
         }
-        uri = f"api/v1/dataset/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dataset/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
@@ -581,7 +604,7 @@ class TestDatasetApi(SupersetTestCase):
         """
 
         def pg_test_query_parameter(query_parameter, expected_response):
-            uri = f"api/v1/dataset/distinct/schema?q={prison.dumps(query_parameter)}"
+            uri = f"api/v1/dataset/distinct/schema?q={rison.dumps(query_parameter)}"
             rv = self.client.get(uri)
             response = json.loads(rv.data.decode("utf-8"))
             assert rv.status_code == 200
@@ -689,7 +712,7 @@ class TestDatasetApi(SupersetTestCase):
 
         self.login(ADMIN_USERNAME)
         params = {"keys": ["permissions"]}
-        uri = f"api/v1/dataset/_info?q={prison.dumps(params)}"
+        uri = f"api/v1/dataset/_info?q={rison.dumps(params)}"
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -725,6 +748,9 @@ class TestDatasetApi(SupersetTestCase):
         assert model.database_id == table_data["database"]
         # normalize_columns should default to False
         assert model.normalize_columns is False
+        # uuid should be returned in the response
+        assert "uuid" in data
+        assert str(model.uuid) == str(data["uuid"])
 
         # Assert that columns were created
         columns = (
@@ -893,7 +919,7 @@ class TestDatasetApi(SupersetTestCase):
         example_db = get_example_database()
         with example_db.get_sqla_engine() as engine:
             engine.execute(
-                f"CREATE TABLE {CTAS_SCHEMA_NAME}.birth_names AS SELECT 2 as two"
+                text(f"CREATE TABLE {CTAS_SCHEMA_NAME}.birth_names AS SELECT 2 as two")
             )
 
         self.login(ADMIN_USERNAME)
@@ -913,7 +939,7 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.client.delete(uri)
         assert rv.status_code == 200
         with example_db.get_sqla_engine() as engine:
-            engine.execute(f"DROP TABLE {CTAS_SCHEMA_NAME}.birth_names")
+            engine.execute(text(f"DROP TABLE {CTAS_SCHEMA_NAME}.birth_names"))
 
     def test_create_dataset_validate_database(self):
         """
@@ -1948,23 +1974,40 @@ class TestDatasetApi(SupersetTestCase):
             db_connection,
         ]
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_delete_dataset_item(self):
         """
         Dataset API: Test delete dataset item
         """
 
         dataset = self.insert_default_dataset()
+        dataset_id = dataset.id
         view_menu = security_manager.find_view_menu(dataset.get_perm())
         assert view_menu is not None
         view_menu_id = view_menu.id
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dataset/{dataset.id}"
-        rv = self.client.delete(uri)
-        assert rv.status_code == 200
-        non_view_menu = db.session.query(security_manager.viewmenu_model).get(
-            view_menu_id
-        )
-        assert non_view_menu is None
+        try:
+            uri = f"api/v1/dataset/{dataset.id}"
+            rv = self.client.delete(uri)
+            assert rv.status_code == 200
+            # With soft delete, the row still exists (with deleted_at set) so
+            # FAB permissions are preserved for potential restore.
+            non_view_menu = db.session.query(security_manager.viewmenu_model).get(
+                view_menu_id
+            )
+            assert non_view_menu is not None
+        finally:
+            # Hard-delete the (possibly soft-deleted) row even on assertion
+            # failure, to avoid unique constraint collisions in later tests.
+            row = (
+                db.session.query(SqlaTable)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+                .filter(SqlaTable.id == dataset_id)
+                .one_or_none()
+            )
+            if row:
+                db.session.delete(row)
+                db.session.commit()
 
     def test_delete_item_dataset_not_owned(self):
         """
@@ -2146,6 +2189,7 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 422
         assert data == {"message": "Dataset metric delete failed."}
 
+    @with_feature_flags(SOFT_DELETE=True)
     @pytest.mark.usefixtures("create_datasets")
     def test_bulk_delete_dataset_items(self):
         """
@@ -2160,7 +2204,7 @@ class TestDatasetApi(SupersetTestCase):
             view_menu_names.append(dataset.get_perm())
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dataset/?q={prison.dumps(dataset_ids)}"
+        uri = f"api/v1/dataset/?q={rison.dumps(dataset_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -2172,9 +2216,9 @@ class TestDatasetApi(SupersetTestCase):
             .all()
         )
         assert datasets == []
-        # Assert permissions get cleaned
+        # With soft delete, FAB permissions are preserved for potential restore
         for view_menu_name in view_menu_names:
-            assert security_manager.find_view_menu(view_menu_name) is None
+            assert security_manager.find_view_menu(view_menu_name) is not None
 
     @pytest.mark.usefixtures("create_datasets")
     def test_bulk_delete_item_dataset_not_owned(self):
@@ -2186,7 +2230,7 @@ class TestDatasetApi(SupersetTestCase):
         dataset_ids = [dataset.id for dataset in datasets]
 
         self.login(ALPHA_USERNAME)
-        uri = f"api/v1/dataset/?q={prison.dumps(dataset_ids)}"
+        uri = f"api/v1/dataset/?q={rison.dumps(dataset_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 403
 
@@ -2201,7 +2245,7 @@ class TestDatasetApi(SupersetTestCase):
         dataset_ids.append(db.session.query(func.max(SqlaTable.id)).scalar())
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dataset/?q={prison.dumps(dataset_ids)}"
+        uri = f"api/v1/dataset/?q={rison.dumps(dataset_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 404
 
@@ -2215,7 +2259,7 @@ class TestDatasetApi(SupersetTestCase):
         dataset_ids = [dataset.id for dataset in datasets]
 
         self.login(GAMMA_USERNAME)
-        uri = f"api/v1/dataset/?q={prison.dumps(dataset_ids)}"
+        uri = f"api/v1/dataset/?q={rison.dumps(dataset_ids)}"
         rv = self.client.delete(uri)
         assert rv.status_code == 403
 
@@ -2230,7 +2274,7 @@ class TestDatasetApi(SupersetTestCase):
         dataset_ids.append("Wrong")
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dataset/?q={prison.dumps(dataset_ids)}"
+        uri = f"api/v1/dataset/?q={rison.dumps(dataset_ids)}"
         rv = self.client.delete(uri)
         assert rv.status_code == 400
 
@@ -2299,7 +2343,7 @@ class TestDatasetApi(SupersetTestCase):
             return
 
         argument = [birth_names_dataset.id]
-        uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dataset/export/?q={rison.dumps(argument)}"
 
         self.login(ADMIN_USERNAME)
         rv = self.get_assert_metric(uri, "export")
@@ -2327,7 +2371,7 @@ class TestDatasetApi(SupersetTestCase):
         max_id = db.session.query(func.max(SqlaTable.id)).scalar()
         # Just one does not exist and we get 404
         argument = [max_id + 1, 1]
-        uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dataset/export/?q={rison.dumps(argument)}"
         self.login(ADMIN_USERNAME)
         rv = self.get_assert_metric(uri, "export")
         assert rv.status_code == 404
@@ -2341,7 +2385,7 @@ class TestDatasetApi(SupersetTestCase):
         dataset = self.get_fixture_datasets()[0]
 
         argument = [dataset.id]
-        uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dataset/export/?q={rison.dumps(argument)}"
 
         self.login(GAMMA_USERNAME)
         rv = self.client.get(uri)
@@ -2374,7 +2418,7 @@ class TestDatasetApi(SupersetTestCase):
             return
 
         argument = [birth_names_dataset.id]
-        uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dataset/export/?q={rison.dumps(argument)}"
 
         self.login(ADMIN_USERNAME)
         rv = self.get_assert_metric(uri, "export")
@@ -2391,7 +2435,7 @@ class TestDatasetApi(SupersetTestCase):
 
         # Just one does not exist and we get 404
         argument = [-1, 1]
-        uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dataset/export/?q={rison.dumps(argument)}"
         self.login(ADMIN_USERNAME)
         rv = self.get_assert_metric(uri, "export")
 
@@ -2406,7 +2450,7 @@ class TestDatasetApi(SupersetTestCase):
         dataset = self.get_fixture_datasets()[0]
 
         argument = [dataset.id]
-        uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dataset/export/?q={rison.dumps(argument)}"
 
         self.login(GAMMA_USERNAME)
         rv = self.client.get(uri)
@@ -2446,7 +2490,7 @@ class TestDatasetApi(SupersetTestCase):
 
         self.login(ADMIN_USERNAME)
         argument = [first_dataset.id, second_dataset.id]
-        uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dataset/export/?q={rison.dumps(argument)}"
         rv = self.get_assert_metric(uri, "export")
 
         assert rv.status_code == 200
@@ -2519,7 +2563,7 @@ class TestDatasetApi(SupersetTestCase):
             ]
         }
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dataset/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dataset/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
 
         assert rv.status_code == 200
@@ -2534,7 +2578,7 @@ class TestDatasetApi(SupersetTestCase):
             ]
         }
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dataset/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dataset/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
 
@@ -2813,7 +2857,7 @@ class TestDatasetApi(SupersetTestCase):
             "filters": [{"col": "id", "opr": "dataset_is_certified", "value": True}]
         }
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dataset/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dataset/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
 
         assert rv.status_code == 200
@@ -2953,8 +2997,10 @@ class TestDatasetApi(SupersetTestCase):
 
         examples_db = get_example_database()
         with examples_db.get_sqla_engine() as engine:
-            engine.execute("DROP TABLE IF EXISTS test_create_sqla_table_api")
-            engine.execute("CREATE TABLE test_create_sqla_table_api AS SELECT 2 as col")
+            engine.execute(text("DROP TABLE IF EXISTS test_create_sqla_table_api"))
+            engine.execute(
+                text("CREATE TABLE test_create_sqla_table_api AS SELECT 2 as col")
+            )
 
         rv = self.client.post(
             "api/v1/dataset/get_or_create/",
@@ -2978,7 +3024,166 @@ class TestDatasetApi(SupersetTestCase):
         self.items_to_delete = [table]
 
         with examples_db.get_sqla_engine() as engine:
-            engine.execute("DROP TABLE test_create_sqla_table_api")
+            engine.execute(text("DROP TABLE test_create_sqla_table_api"))
+
+    def test_get_or_create_dataset_disambiguates_by_schema(self):
+        """
+        Dataset API: Regression test for #30377.
+
+        ``get_or_create`` must filter on ``schema`` as well as ``table_name``.
+        Otherwise:
+
+        - Two pre-existing datasets sharing a ``table_name`` across different
+          schemas make ``one_or_none()`` raise ``MultipleResultsFound`` → 500.
+        - A single existing dataset in schema A is wrongly returned when the
+          caller asks for the same ``table_name`` in schema B (false positive).
+        """
+        # SQLite's test schema carries a legacy single-column unique constraint
+        # on ``tables.table_name`` that contradicts the modern composite
+        # ``(database_id, catalog, schema, table_name)`` key, so inserting two
+        # datasets that share a ``table_name`` fails at INSERT regardless of
+        # schema. Postgres and MySQL behave correctly.
+        if get_main_database().backend == "sqlite":
+            pytest.skip(
+                "SQLite has a legacy single-column unique constraint on "
+                "table_name that prevents seeding two same-name datasets in "
+                "different schemas"
+            )
+
+        self.login(ADMIN_USERNAME)
+        admin_id = self.get_user("admin").id
+        examples_db = get_example_database()
+        table_name = "test_get_or_create_schema_disambiguation"
+
+        # ``fetch_metadata=False`` so the helper doesn't try to introspect
+        # ``schema_a`` / ``schema_b`` against the real example DB — those
+        # schemas only need to exist as metadata rows for this test.
+        ds_schema_a = self.insert_dataset(
+            table_name,
+            [admin_id],
+            examples_db,
+            schema="schema_a",
+            fetch_metadata=False,
+        )
+        ds_schema_b = self.insert_dataset(
+            table_name,
+            [admin_id],
+            examples_db,
+            schema="schema_b",
+            fetch_metadata=False,
+        )
+        # Hand the seed rows to teardown before any assertion can fail, so a
+        # mid-test failure can't leak them into subsequent tests.
+        self.items_to_delete = [ds_schema_a, ds_schema_b]
+
+        # Case 1: ask for an existing schema — must return that exact dataset,
+        # not raise MultipleResultsFound.
+        rv = self.client.post(
+            "api/v1/dataset/get_or_create/",
+            json={
+                "table_name": table_name,
+                "schema": "schema_a",
+                "database_id": examples_db.id,
+            },
+        )
+        assert rv.status_code == 200
+        assert json.loads(rv.data.decode("utf-8"))["result"] == {
+            "table_id": ds_schema_a.id
+        }
+
+        rv = self.client.post(
+            "api/v1/dataset/get_or_create/",
+            json={
+                "table_name": table_name,
+                "schema": "schema_b",
+                "database_id": examples_db.id,
+            },
+        )
+        assert rv.status_code == 200
+        assert json.loads(rv.data.decode("utf-8"))["result"] == {
+            "table_id": ds_schema_b.id
+        }
+
+    def test_get_or_create_dataset_no_schema_finds_existing_with_schema(self):
+        """
+        Dataset API: regression for #30377 review feedback.
+
+        A caller that omits ``schema`` in the request must still find an
+        existing dataset stored with a non-NULL schema (the legacy
+        schema-blind matching behaviour). Without this, schema-unaware
+        callers would silently hit the create path and duplicate the
+        dataset.
+        """
+        if get_main_database().backend == "sqlite":
+            pytest.skip(
+                "SQLite has a legacy single-column unique constraint on "
+                "table_name that prevents seeding a non-NULL-schema row "
+                "with the same name elsewhere"
+            )
+
+        self.login(ADMIN_USERNAME)
+        admin_id = self.get_user("admin").id
+        examples_db = get_example_database()
+        table_name = "test_get_or_create_schema_blind"
+
+        ds = self.insert_dataset(
+            table_name,
+            [admin_id],
+            examples_db,
+            schema="some_schema",
+            fetch_metadata=False,
+        )
+        self.items_to_delete = [ds]
+
+        rv = self.client.post(
+            "api/v1/dataset/get_or_create/",
+            json={"table_name": table_name, "database_id": examples_db.id},
+        )
+        assert rv.status_code == 200
+        assert json.loads(rv.data.decode("utf-8"))["result"] == {"table_id": ds.id}
+
+    def test_get_or_create_dataset_no_schema_returns_400_when_ambiguous(self):
+        """
+        Dataset API: regression for #30377 review feedback.
+
+        When two datasets share a ``table_name`` across different schemas
+        and the caller omits ``schema``, the API must return a 400 with an
+        actionable message rather than 500-ing on ``MultipleResultsFound``.
+        """
+        if get_main_database().backend == "sqlite":
+            pytest.skip(
+                "SQLite has a legacy single-column unique constraint on "
+                "table_name that prevents seeding two same-name datasets in "
+                "different schemas"
+            )
+
+        self.login(ADMIN_USERNAME)
+        admin_id = self.get_user("admin").id
+        examples_db = get_example_database()
+        table_name = "test_get_or_create_ambiguous"
+
+        ds_a = self.insert_dataset(
+            table_name,
+            [admin_id],
+            examples_db,
+            schema="schema_a",
+            fetch_metadata=False,
+        )
+        ds_b = self.insert_dataset(
+            table_name,
+            [admin_id],
+            examples_db,
+            schema="schema_b",
+            fetch_metadata=False,
+        )
+        self.items_to_delete = [ds_a, ds_b]
+
+        rv = self.client.post(
+            "api/v1/dataset/get_or_create/",
+            json={"table_name": table_name, "database_id": examples_db.id},
+        )
+        assert rv.status_code == 400
+        assert "Specify the 'schema' field" in rv.data.decode("utf-8")
 
     @pytest.mark.usefixtures(
         "load_energy_table_with_slice", "load_birth_names_dashboard_with_slices"

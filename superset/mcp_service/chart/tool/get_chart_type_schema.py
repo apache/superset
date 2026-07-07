@@ -75,6 +75,7 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "columns": [
                 {"name": "customer_name"},
                 {"name": "revenue", "aggregate": "SUM"},
+                {"sql_expression": "SUM(revenue) / COUNT(*)", "label": "Avg per Order"},
             ],
         },
     ],
@@ -115,6 +116,14 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "chart_type": "big_number",
             "metric": {"name": "revenue", "aggregate": "SUM"},
         },
+        {
+            "chart_type": "big_number",
+            "metric": {"name": "revenue", "aggregate": "SUM"},
+            "temporal_column": "order_date",
+            "show_trendline": True,
+            "aggregation": "sum",
+            "time_grain": "P1D",
+        },
     ],
 }
 
@@ -126,14 +135,27 @@ def _get_chart_type_schema_impl(
     """Pure logic for chart type schema lookup — no auth, no decorators."""
     adapter = _CHART_TYPE_ADAPTERS.get(chart_type)
     if adapter is None:
+        # Return a structured error matching ChartGenerationError's shape so
+        # MCP clients consuming the response see a populated error_type,
+        # message, details, and suggestions rather than a bare dict.
+        valid_types_str = ", ".join(VALID_CHART_TYPES)
         return {
-            "error": f"Unknown chart_type: {chart_type!r}",
+            "error": {
+                "error_type": "invalid_chart_type",
+                "message": f"Unknown chart_type: {chart_type!r}",
+                "details": (
+                    f"Chart type {chart_type!r} is not supported. "
+                    f"Must be one of: {valid_types_str}."
+                ),
+                "suggestions": [
+                    f"Use one of: {valid_types_str}",
+                    "Check spelling and ensure lowercase",
+                    "Call this tool again with a valid chart_type to see "
+                    "its schema and examples",
+                ],
+                "error_code": "INVALID_CHART_TYPE",
+            },
             "valid_chart_types": VALID_CHART_TYPES,
-            "hint": (
-                "Use one of the valid chart_type values listed above. "
-                "Call this tool again with a valid chart_type to see "
-                "its schema and examples."
-            ),
         }
 
     schema = adapter.json_schema()

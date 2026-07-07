@@ -378,3 +378,76 @@ def test_import_schema_allows_masked_fields_for_existing_db(
     }
     # Should not raise - masked values are allowed for existing DBs
     schema.load(config)
+
+
+def test_ssh_tunnel_server_address_rejects_non_hostnames() -> None:
+    """server_address must look like a hostname/IP, not a URL or arbitrary text."""
+    from superset.databases.schemas import DatabaseSSHTunnel
+
+    schema = DatabaseSSHTunnel()
+    base = {"server_port": 22, "username": "u", "private_key": "k"}
+
+    for address in ("10.0.0.5", "ssh.internal.example.com", "[::1]", "bastion_host"):
+        schema.load({**base, "server_address": address})
+
+    for bad in ("http://evil/", "1.2.3.4/../x", "a b", "file:///etc/passwd"):
+        with pytest.raises(ValidationError):
+            schema.load({**base, "server_address": bad})
+
+
+def test_ssh_tunnel_credentials_load_only() -> None:
+    """
+    Credential fields on DatabaseSSHTunnel are accepted on input (load) but
+    never serialized in output (dump).
+    """
+    from superset.databases.schemas import DatabaseSSHTunnel
+
+    schema = DatabaseSSHTunnel()
+    payload = {
+        "server_address": "localhost",
+        "server_port": 22,
+        "username": "user",
+        "password": "secret",  # noqa: S106
+        "private_key": "PRIVATE",
+        "private_key_password": "keysecret",  # noqa: S106
+    }
+
+    # Load accepts the credential fields
+    loaded = schema.load(payload)
+    assert loaded["password"] == "secret"  # noqa: S105
+    assert loaded["private_key"] == "PRIVATE"
+    assert loaded["private_key_password"] == "keysecret"  # noqa: S105
+
+    # Dump never emits the credential fields
+    dumped = schema.dump(payload)
+    assert "password" not in dumped
+    assert "private_key" not in dumped
+    assert "private_key_password" not in dumped
+    assert dumped["server_address"] == "localhost"
+
+
+def test_validate_parameters_schema_accepts_server_host_key() -> None:
+    """
+    ``ssh_tunnel`` payloads for databases with host-key verification
+    configured include ``server_host_key``; the validate schema must not
+    reject it as an unknown nested field.
+    """
+    from superset.databases.schemas import DatabaseValidateParametersSchema
+
+    schema = DatabaseValidateParametersSchema()
+    loaded = schema.load(
+        {
+            "engine": "postgresql",
+            "configuration_method": "dynamic_form",
+            "ssh_tunnel": {
+                "server_address": "ssh.example.com",
+                "server_port": 22,
+                "username": "user",
+                "server_host_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA",
+            },
+        }
+    )
+    assert (
+        loaded["ssh_tunnel"]["server_host_key"]
+        == "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA"
+    )

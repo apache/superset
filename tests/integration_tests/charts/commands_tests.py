@@ -25,6 +25,7 @@ from flask import g  # noqa: F401
 from superset import db, security_manager
 from superset.commands.chart.create import CreateChartCommand
 from superset.commands.chart.exceptions import (
+    ChartForbiddenError,
     ChartNotFoundError,
     WarmUpCacheChartNotFoundError,
 )
@@ -176,6 +177,33 @@ class TestExportChartsCommand(SupersetTestCase):
             f"charts/Energy_Sankey_{example_chart.id}.yaml",
         ]
         assert expected == list(contents.keys())
+
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_export_chart_command_unicode_chars(self, mock_g):
+        """Test that unicode characters in a chart name are exported to the YAML"""
+        mock_g.user = security_manager.find_user("admin")
+        db.session.query(Slice).filter_by(slice_name="Energy Sankey").update(
+            {"slice_name": "中文"},
+        )
+        try:
+            example_chart = db.session.query(Slice).filter_by(slice_name="中文").one()
+
+            command = ExportChartsCommand([example_chart.id])
+            contents = dict(command.run())
+
+            path = f"charts/{example_chart.id}.yaml"
+            assert path in set(contents.keys())
+            yaml_content = contents[path]()
+            metadata = yaml.safe_load(yaml_content)
+            assert metadata["slice_name"] == "中文"
+            assert "slice_name: 中文" in yaml_content
+        finally:
+            # restore the original name so fixture teardown works even if an
+            # assertion above fails
+            db.session.query(Slice).filter_by(slice_name="中文").update(
+                {"slice_name": "Energy Sankey"},
+            )
 
 
 class TestImportChartsCommand(SupersetTestCase):
@@ -452,6 +480,43 @@ class TestChartsUpdateCommand(SupersetTestCase):
         assert len(chart.owners) == 1
         assert chart.owners[0] == admin
 
+    @patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    @patch("superset.commands.chart.update.g")
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_query_context_update_requires_chart_access(
+        self, mock_sm_g, mock_core_g, mock_update_g, mock_find_by_id
+    ) -> None:
+        """
+        A query_context-only update relaxes the ownership requirement but must
+        still require access to the chart. We bypass the DAO ``ChartFilter``
+        base filter (by patching ``find_by_id`` to return the chart directly)
+        so the request reaches the new explicit ``raise_for_access`` check, and
+        assert that a non-owner with no access to the chart's datasource is
+        rejected with ``ChartForbiddenError``. This deterministically exercises
+        the new branch and would fail on master, where the check is absent.
+        """
+        chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
+        pk = chart.id
+        admin = security_manager.find_user(username="admin")
+        chart.owners = [admin]
+        db.session.commit()
+
+        # Return the chart directly, bypassing ChartFilter, so the command's
+        # own raise_for_access gate is what denies the request.
+        mock_find_by_id.return_value = chart
+
+        # gamma has no access to the energy datasource and does not own the chart
+        gamma = security_manager.find_user(username="gamma")
+        mock_core_g.user = mock_sm_g.user = mock_update_g.user = gamma
+        json_obj = {
+            "query_context_generation": True,
+            "query_context": json.dumps({"foo": "bar"}),
+        }
+        with pytest.raises(ChartForbiddenError):
+            UpdateChartCommand(pk, json_obj).run()
+
     @patch("superset.commands.chart.update.g")
     @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
@@ -656,7 +721,7 @@ class TestFavoriteChartCommand(SupersetTestCase):
     def test_fave_unfave_chart_command_not_found(self):
         """Test that faving / unfaving a non-existing chart raises an exception"""
         with self.client.application.test_request_context():
-            example_chart_id = 1234
+            example_chart_id = 0
 
             with override_user(security_manager.find_user("admin")):
                 with self.assertRaises(ChartNotFoundError):  # noqa: PT027
@@ -676,13 +741,22 @@ class TestFavoriteChartCommand(SupersetTestCase):
             # Assert that the chart exists
             assert example_chart is not None
 
-            with override_user(security_manager.find_user("gamma")):
-                AddFavoriteChartCommand(example_chart.id).run()
-                ids = ChartDAO.favorited_ids([example_chart])
+            # Grant gamma read access to the datasource so the access check passes.
+            # Faving requires datasource access but not ownership.
+            if example_chart.datasource:
+                self.grant_role_access_to_table(example_chart.datasource, "Gamma")
 
-                assert example_chart.id in ids
+            try:
+                with override_user(security_manager.find_user("gamma")):
+                    AddFavoriteChartCommand(example_chart.id).run()
+                    ids = ChartDAO.favorited_ids([example_chart])
 
-                DelFavoriteChartCommand(example_chart.id).run()
-                ids = ChartDAO.favorited_ids([example_chart])
+                    assert example_chart.id in ids
 
-                assert example_chart.id not in ids
+                    DelFavoriteChartCommand(example_chart.id).run()
+                    ids = ChartDAO.favorited_ids([example_chart])
+
+                    assert example_chart.id not in ids
+            finally:
+                if example_chart.datasource:
+                    self.revoke_role_access_to_table("Gamma", example_chart.datasource)

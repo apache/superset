@@ -3,6 +3,7 @@
   "extends": "@docusaurus/tsconfig",
   "compilerOptions": {
     "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
     "skipLibCheck": true,
     "noImplicitAny": false,
     "strict": false,
@@ -29,7 +30,6 @@
   "exclude": [
     "node_modules",
     "../superset-frontend/**/*",
-    "src/webpack.extend.ts",
     "src/shims/**"
   ]
 }

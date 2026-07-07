@@ -25,7 +25,7 @@ import {
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Typography } from '@superset-ui/core/components/Typography';
 import { StyledFooterButton, StyledCatalogTable } from '../styles';
-import { CatalogObject, FieldPropTypes } from '../../types';
+import { CatalogObject, Engines, FieldPropTypes } from '../../types';
 
 export const TableCatalog = ({
   required,
@@ -33,9 +33,12 @@ export const TableCatalog = ({
   getValidation,
   validationErrors,
   db,
+  isValidating,
+  isPublic = true,
 }: FieldPropTypes) => {
   const tableCatalog = db?.catalog || [];
   const catalogError = validationErrors || {};
+  const showCredentialsHelper = db?.engine !== Engines.GSheet || !isPublic;
   return (
     <StyledCatalogTable>
       <Typography.Title level={4} className="gsheet-title">
@@ -51,6 +54,7 @@ export const TableCatalog = ({
               <ValidatedInput
                 className="catalog-name-input"
                 required={required}
+                isValidating={isValidating}
                 validationMethods={{ onBlur: getValidation }}
                 errorMessage={catalogError[idx]?.name}
                 placeholder={t('Enter a name for this sheet')}
@@ -67,6 +71,7 @@ export const TableCatalog = ({
               />
               {tableCatalog?.length > 1 && (
                 <Icons.CloseOutlined
+                  aria-label={t('Remove sheet')}
                   css={(theme: SupersetTheme) => css`
                     align-self: center;
                     background: ${theme.colorFillSecondary};
@@ -84,6 +89,7 @@ export const TableCatalog = ({
             <ValidatedInput
               className="catalog-name-url"
               required={required}
+              isValidating={isValidating}
               validationMethods={{ onBlur: getValidation }}
               errorMessage={catalogError[idx]?.url}
               placeholder={t('Paste the shareable Google Sheet URL here')}
@@ -109,13 +115,15 @@ export const TableCatalog = ({
           + {t('Add sheet')}
         </StyledFooterButton>
       </div>
-      <div className="helper">
-        <div>
-          {t(
-            'In order to connect to non-public sheets you need to either provide a service account or configure an OAuth2 client.',
-          )}
+      {showCredentialsHelper && (
+        <div className="helper">
+          <div>
+            {t(
+              'In order to connect to non-public sheets you need to either provide a service account or configure an OAuth2 client.',
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </StyledCatalogTable>
   );
 };

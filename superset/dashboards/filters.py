@@ -16,7 +16,7 @@
 # under the License.
 from typing import Any, Optional
 
-from flask import g
+from flask import current_app, g
 from flask_appbuilder.security.sqla.models import Role
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
@@ -34,6 +34,7 @@ from superset.utils.core import get_user_id
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
+from superset.views.filters import BaseDeletedStateFilter
 
 
 class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -182,11 +183,21 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
 
             feature_flagged_filters.append(condition)
 
+        extra_access_filters = []
+        extra_filters = current_app.config.get("EXTRA_ACCESS_QUERY_FILTERS", {})
+        if extra_dashboards_filter := extra_filters.get("dashboards"):
+            user_id = get_user_id()
+            if user_id:
+                extra_access_filters.append(
+                    Dashboard.id.in_(extra_dashboards_filter(user_id))
+                )
+
         query = query.filter(
             or_(
                 Dashboard.id.in_(owner_ids_query),
                 Dashboard.id.in_(datasource_perm_query),
                 *feature_flagged_filters,
+                *extra_access_filters,
             )
         )
 
@@ -255,3 +266,19 @@ class DashboardHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public
         if value is False:
             return query.filter(and_(Dashboard.created_by_fk.is_(None)))
         return query
+
+
+class DashboardDeletedStateFilter(  # pylint: disable=too-few-public-methods
+    BaseDeletedStateFilter
+):
+    """Rison filter for the GET list that exposes soft-deleted dashboards.
+
+    Soft-deleted rows are scoped to the **restore audience** (owners or
+    admins) by ``BaseDeletedStateFilter._scope_to_restore_audience`` — the
+    cross-entity contract lives on the base, so this class is a pure
+    declaration. Live rows keep their normal ``DashboardAccessFilter``
+    visibility.
+    """
+
+    arg_name = "dashboard_deleted_state"
+    model = Dashboard

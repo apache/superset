@@ -30,7 +30,8 @@ import {
 } from '@superset-ui/core';
 import { FilterElement } from './FilterBar/FilterControls/types';
 import { ActiveTabs, DashboardLayout, RootState } from '../../types';
-import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
+import { CHART_TYPE, TAB_TYPE, TABS_TYPE } from '../../util/componentTypes';
+import { DASHBOARD_ROOT_ID } from '../../util/constants';
 import { isChartCustomizationId } from './FiltersConfigModal/utils';
 import {
   migrateChartCustomizationArray,
@@ -38,6 +39,7 @@ import {
 } from '../../util/migrateChartCustomization';
 
 const EMPTY_ARRAY: ChartCustomizationConfiguration = [];
+const EMPTY_ACTIVE_TABS: ActiveTabs = [];
 const defaultFilterConfiguration: (Filter | Divider)[] = [];
 
 export const selectFilterConfiguration: (
@@ -52,10 +54,7 @@ export const selectFilterConfiguration: (
     return nativeFilterConfig.filter(
       (
         filter:
-          | Filter
-          | Divider
-          | ChartCustomization
-          | ChartCustomizationDivider,
+          Filter | Divider | ChartCustomization | ChartCustomizationDivider,
       ) =>
         filter.type !== 'CHART_CUSTOMIZATION' &&
         filter.type !== 'CHART_CUSTOMIZATION_DIVIDER',
@@ -101,13 +100,15 @@ const selectChartCustomizationConfiguration = createSelector(
     selectDashboardChartIds,
   ],
   (allCustomizations, dashboardChartIds): ChartCustomizationConfiguration => {
-    const hasLegacyFormat = allCustomizations.some(item =>
+    const truthyCustomizations = allCustomizations.filter(Boolean);
+
+    const hasLegacyFormat = truthyCustomizations.some(item =>
       isLegacyChartCustomizationFormat(item),
     );
 
     const migratedCustomizations = hasLegacyFormat
-      ? migrateChartCustomizationArray(allCustomizations)
-      : (allCustomizations as ChartCustomizationConfiguration);
+      ? migrateChartCustomizationArray(truthyCustomizations)
+      : (truthyCustomizations as ChartCustomizationConfiguration);
 
     return migratedCustomizations.filter(customization => {
       if (
@@ -173,22 +174,83 @@ export function useDashboardHasTabs() {
   const dashboardLayout = useDashboardLayout();
   return useMemo(
     () =>
-      Object.values(dashboardLayout).some(element => element.type === TAB_TYPE),
+      dashboardLayout
+        ? Object.values(dashboardLayout).some(
+            element => element.type === TAB_TYPE,
+          )
+        : false,
     [dashboardLayout],
   );
 }
 
-function useActiveDashboardTabs() {
-  return useSelector<RootState, ActiveTabs>(
+function useActiveDashboardTabs(): ActiveTabs {
+  const reduxTabs = useSelector<RootState, ActiveTabs>(
     state => state.dashboardState?.activeTabs,
   );
+  const dashboardLayout = useDashboardLayout();
+
+  return useMemo(() => {
+    const reduxList = reduxTabs ?? [];
+    const reduxFallback = reduxList.length ? reduxList : EMPTY_ACTIVE_TABS;
+    if (!dashboardLayout) return reduxFallback;
+
+    // Tabbed dashboards always nest the top-level TABS container as the first
+    // child of ROOT. If that invariant doesn't hold (no-tabs layout), no
+    // fallback applies and we use reduxTabs as-is.
+    const root = dashboardLayout[DASHBOARD_ROOT_ID];
+    if (!root?.children?.length) return reduxFallback;
+    const topContainer = dashboardLayout[root.children[0]];
+    if (topContainer?.type !== TABS_TYPE || !topContainer.children?.length) {
+      return reduxFallback;
+    }
+
+    // Walk every TABS container along the active path. For each container,
+    // pick the child Redux marked active; otherwise pick the first child (the
+    // default the live Tabs component would render). This handles:
+    //   - empty reduxTabs (hideTab:true, no permalink) → full default path
+    //   - reduxTabs missing an outer ancestor (hideTab:true skipped the
+    //     top-level Tabs, but a nested Tabs dispatched setActiveTab) → fill
+    //     in the missing ancestor so outer-tab scoping is preserved
+    //   - fully populated reduxTabs (normal hydration) → same result
+    const reduxSet = new Set(reduxList);
+    const result: ActiveTabs = [];
+    const queue: string[] = [
+      topContainer.children.find(c => reduxSet.has(c)) ??
+        topContainer.children[0],
+    ];
+    while (queue.length > 0) {
+      const tabId = queue.shift()!;
+      result.push(tabId);
+      const tab = dashboardLayout[tabId];
+      if (!tab?.children) continue;
+      for (const childId of tab.children) {
+        const child = dashboardLayout[childId];
+        if (child?.type !== TABS_TYPE || !child.children?.length) continue;
+        queue.push(
+          child.children.find(c => reduxSet.has(c)) ?? child.children[0],
+        );
+      }
+    }
+
+    // Preserve any reduxTabs entries that fell outside the traversed path so
+    // we never silently drop a redux-marked active tab id.
+    const resultSet = new Set(result);
+    for (const id of reduxList) {
+      if (!resultSet.has(id)) result.push(id);
+    }
+    return result;
+  }, [reduxTabs, dashboardLayout]);
 }
 
 function useSelectChartTabParents() {
   const dashboardLayout = useDashboardLayout();
   const layoutChartItems = useMemo(
     () =>
-      Object.values(dashboardLayout).filter(item => item.type === CHART_TYPE),
+      dashboardLayout
+        ? Object.values(dashboardLayout).filter(
+            item => item.type === CHART_TYPE,
+          )
+        : [],
     [dashboardLayout],
   );
   return useCallback(
@@ -197,7 +259,7 @@ function useSelectChartTabParents() {
         layoutItem => layoutItem.meta?.chartId === chartId,
       );
       return chartLayoutItem?.parents?.filter(
-        (parent: string) => dashboardLayout[parent]?.type === TAB_TYPE,
+        (parent: string) => dashboardLayout?.[parent]?.type === TAB_TYPE,
       );
     },
     [dashboardLayout, layoutChartItems],
@@ -322,14 +384,13 @@ export function useSelectCustomizationsInScope(
 
   return useMemo(() => {
     let customizationsInScope: (
-      | ChartCustomization
-      | ChartCustomizationDivider
+      ChartCustomization | ChartCustomizationDivider
     )[] = [];
     const customizationsOutOfScope: (
-      | ChartCustomization
-      | ChartCustomizationDivider
+      ChartCustomization | ChartCustomizationDivider
     )[] = [];
 
+    // we check customization scopes only on dashboards with tabs
     if (!dashboardHasTabs) {
       customizationsInScope = customizations;
     } else {

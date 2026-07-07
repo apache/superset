@@ -20,8 +20,8 @@ from datetime import datetime
 from unittest.mock import patch
 from urllib import parse
 
-import prison
 import pytest
+import rison
 from freezegun import freeze_time
 from markupsafe import Markup
 from sqlalchemy import and_
@@ -41,7 +41,11 @@ from superset.tags.models import (
 )
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import ADMIN_USERNAME, ALPHA_USERNAME
+from tests.integration_tests.constants import (
+    ADMIN_USERNAME,
+    ALPHA_USERNAME,
+    GAMMA_USERNAME,
+)
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -246,7 +250,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
                 }
             ],
         }
-        uri = f"api/v1/tag/?{parse.urlencode({'q': prison.dumps(query)})}"
+        uri = f"api/v1/tag/?{parse.urlencode({'q': rison.dumps(query)})}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -254,7 +258,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
 
         # Only system tags
         query["filters"][0]["value"] = False
-        uri = f"api/v1/tag/?{parse.urlencode({'q': prison.dumps(query)})}"
+        uri = f"api/v1/tag/?{parse.urlencode({'q': rison.dumps(query)})}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -542,7 +546,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         tags = db.session.query(Tag).filter(Tag.name.in_(example_tag_names))
         assert tags.count() == 3
         # delete the first tag
-        uri = f"api/v1/tag/?q={prison.dumps(example_tag_names[:1])}"
+        uri = f"api/v1/tag/?q={rison.dumps(example_tag_names[:1])}"
         rv = self.client.delete(uri, follow_redirects=True)
         # successful request
         assert rv.status_code == 200
@@ -552,7 +556,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         tags = db.session.query(Tag).filter(Tag.name.in_(example_tag_names))
         assert tags.count() == 2
         # delete multiple tags
-        uri = f"api/v1/tag/?q={prison.dumps(example_tag_names[1:])}"
+        uri = f"api/v1/tag/?q={rison.dumps(example_tag_names[1:])}"
         rv = self.client.delete(uri, follow_redirects=True)
         # successful request
         assert rv.status_code == 200
@@ -600,6 +604,46 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         )
 
         assert association_row is None
+
+    @pytest.mark.usefixtures("create_tags")
+    def test_get_list_tag_filtered_by_favorite(self):
+        """
+        Tag API: Test get list filtered by the ``tag_is_favorite`` filter
+        returns only the tags the current user has (or has not) favorited.
+        """
+        self.login(ADMIN_USERNAME)
+        # favorite a single tag for the current (admin) user
+        favorited_tag = db.session.query(Tag).first()
+        rv = self.client.post(
+            f"api/v1/tag/{favorited_tag.id}/favorites/", follow_redirects=True
+        )
+        assert rv.status_code == 200
+
+        # value=True returns only the favorited tag
+        query = {
+            "filters": [{"col": "id", "opr": "tag_is_favorite", "value": True}],
+        }
+        uri = f"api/v1/tag/?{parse.urlencode({'q': rison.dumps(query)})}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["count"] == 1
+        assert data["result"][0]["id"] == favorited_tag.id
+
+        # value=False returns every other tag
+        query["filters"][0]["value"] = False
+        uri = f"api/v1/tag/?{parse.urlencode({'q': rison.dumps(query)})}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["count"] == TAGS_FIXTURE_COUNT - 1
+        assert favorited_tag.id not in {tag["id"] for tag in data["result"]}
+
+        # cleanup the favorite association
+        rv = self.client.delete(
+            f"api/v1/tag/{favorited_tag.id}/favorites/", follow_redirects=True
+        )
+        assert rv.status_code == 200
 
     @pytest.mark.usefixtures("create_tags")
     def test_add_tag_not_found(self):
@@ -823,8 +867,11 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
 
         assert rv.status_code == 200
         result = rv.json["result"]
-        assert len(result["objects_tagged"]) == 2
-        assert len(result["objects_skipped"]) == 1
+        # Alpha owns only alpha_dash, so only that is tagged; the World Bank
+        # dashboard and chart it does not own are skipped (objects the caller
+        # cannot modify are not tagged, including via the bulk-create path).
+        assert len(result["objects_tagged"]) == 1
+        assert len(result["objects_skipped"]) == 2
 
     def test_create_tag_mysql_compatibility(self) -> None:
         """
@@ -869,4 +916,71 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
 
         # Cleanup
         db.session.delete(created_tag)
+        db.session.commit()
+
+    def test_bulk_create_and_update_skip_inaccessible_objects(self):
+        """A non-owner with the Tag write permission must not create tag
+        relationships on a dashboard they cannot access, via either bulk_create
+        or PUT /tag/<id>. The single-object path already enforced this; these two
+        paths must too (object is looked up bypassing the access base filter, so
+        an inaccessible object is checked instead of silently passing through)."""
+        admin = self.get_user(ADMIN_USERNAME)
+        victim = Dashboard(
+            dashboard_title="tag_access_victim_dashboard",
+            slug="tag-access-victim",
+            published=False,
+            owners=[admin],
+        )
+        db.session.add(victim)
+        db.session.commit()
+        vid = victim.id
+
+        self.login(GAMMA_USERNAME)
+
+        # bulk_create must skip the inaccessible dashboard.
+        self.client.post(
+            "api/v1/tag/bulk_create",
+            json={
+                "tags": [
+                    {"name": "tag_access_bulk", "objects_to_tag": [["dashboard", vid]]}
+                ]
+            },
+        )
+        bulk_rows = (
+            db.session.query(TaggedObject)
+            .join(Tag)
+            .filter(TaggedObject.object_id == vid, Tag.name == "tag_access_bulk")
+            .count()
+        )
+        assert bulk_rows == 0, "bulk_create tagged a dashboard the user cannot access"
+
+        # PUT /tag/<id> must skip the inaccessible dashboard too. Create the tag
+        # without a (denied) relationship first, then attempt to attach the victim.
+        put_tag = Tag(name="tag_access_put", type=TagType.custom)
+        db.session.add(put_tag)
+        db.session.commit()
+        put_tag_id = put_tag.id
+        self.client.put(
+            f"api/v1/tag/{put_tag_id}",
+            json={"name": "tag_access_put", "objects_to_tag": [["dashboard", vid]]},
+        )
+        put_rows = (
+            db.session.query(TaggedObject)
+            .filter(TaggedObject.object_id == vid, TaggedObject.tag_id == put_tag_id)
+            .count()
+        )
+        assert put_rows == 0, "tag update tagged a dashboard the user cannot access"
+
+        # Cleanup
+        db.session.query(TaggedObject).filter(
+            TaggedObject.tag_id.in_(
+                db.session.query(Tag.id).filter(
+                    Tag.name.in_(["tag_access_bulk", "tag_access_put"])
+                )
+            )
+        ).delete(synchronize_session=False)
+        db.session.query(Tag).filter(
+            Tag.name.in_(["tag_access_bulk", "tag_access_put"])
+        ).delete(synchronize_session=False)
+        db.session.query(Dashboard).filter(Dashboard.id == vid).delete()
         db.session.commit()

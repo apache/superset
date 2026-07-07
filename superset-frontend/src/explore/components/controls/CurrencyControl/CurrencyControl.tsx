@@ -41,7 +41,7 @@ const CurrencyControlContainer = styled.div`
     display: flex;
     align-items: center;
 
-    & > :first-child {
+    & > :first-of-type {
       margin-right: ${theme.sizeUnit * 4}px;
       min-width: 0;
       flex: 1;
@@ -162,7 +162,7 @@ export const CurrencyControl = ({
       <ControlHeader {...props} />
       <CurrencyControlContainer
         css={css`
-          & > :first-child {
+          & > :first-of-type {
             ${symbolSelectAdditionalStyles};
           }
           & > :nth-child(2) {

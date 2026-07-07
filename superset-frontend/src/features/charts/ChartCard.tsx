@@ -22,18 +22,18 @@ import { css } from '@apache-superset/core/theme';
 import { Link, useHistory } from 'react-router-dom';
 import {
   ConfirmStatusChange,
-  Button,
-  Dropdown,
   FaveStar,
+  Icons,
   Label,
   ListViewCard,
-  Icons,
   MenuItem,
 } from '@superset-ui/core/components';
 import Chart from 'src/types/Chart';
-import { FacePile } from 'src/components';
+import { FacePile, KebabMenuButton } from 'src/components';
 import { handleChartDelete, CardStyles } from 'src/views/CRUD/utils';
 import { assetUrl } from 'src/utils/assetUrl';
+import type { ListViewFetchDataConfig as FetchDataConfig } from 'src/components';
+import { TableTab } from 'src/views/CRUD/types';
 
 interface ChartCardProps {
   chart: Chart;
@@ -42,7 +42,7 @@ interface ChartCardProps {
   bulkSelectEnabled: boolean;
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  refreshData: () => void;
+  refreshData: (config?: FetchDataConfig | null) => void;
   loading?: boolean;
   saveFavoriteStatus: (id: number, isStarred: boolean) => void;
   favoriteStatus: boolean;
@@ -50,6 +50,7 @@ interface ChartCardProps {
   userId?: string | number;
   showThumbnails?: boolean;
   handleBulkChartExport: (chartsToExport: Chart[]) => void;
+  getData?: (tab: TableTab) => void;
 }
 
 export default function ChartCard({
@@ -67,6 +68,7 @@ export default function ChartCard({
   chartFilter,
   userId,
   handleBulkChartExport,
+  getData,
 }: ChartCardProps) {
   const history = useHistory();
   const canEdit = hasPerm('can_write');
@@ -136,6 +138,7 @@ export default function ChartCard({
               refreshData,
               chartFilter,
               userId,
+              getData,
             )
           }
         >
@@ -202,11 +205,7 @@ export default function ChartCard({
                 isStarred={favoriteStatus}
               />
             )}
-            <Dropdown menu={{ items: menuItems }} trigger={['click', 'hover']}>
-              <Button buttonSize="xsmall" type="link" buttonStyle="link">
-                <Icons.MoreOutlined iconSize="xl" />
-              </Button>
-            </Dropdown>
+            <KebabMenuButton menuItems={menuItems} dataTest="chart-card-menu" />
           </ListViewCard.Actions>
         }
       />

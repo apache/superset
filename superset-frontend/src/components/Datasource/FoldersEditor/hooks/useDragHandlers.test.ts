@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { renderHook, act } from '@testing-library/react-hooks';
+import { renderHook, act } from '@testing-library/react';
 import type { DragStartEvent } from '@dnd-kit/core';
 import { FlattenedTreeItem } from '../constants';
 import { FoldersEditorItemType } from '../../types';

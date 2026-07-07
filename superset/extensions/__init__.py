@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+import logging
 import os
 from typing import Any, Callable, Optional
 
@@ -45,10 +46,19 @@ from superset.extensions.ssh import SSHManagerFactory
 from superset.extensions.stats_logger import BaseStatsLoggerManager
 from superset.security.manager import SupersetSecurityManager
 from superset.utils.cache_manager import CacheManager
+from superset.utils.database import apply_mariadb_ddl_fix
 from superset.utils.encrypt import EncryptedFieldFactory
 from superset.utils.feature_flag_manager import FeatureFlagManager
 from superset.utils.machine_auth import MachineAuthProviderFactory
 from superset.utils.profiler import SupersetProfiler
+
+# Apply MariaDB DDL fix early in the import chain
+try:
+    apply_mariadb_ddl_fix()
+except Exception as ex:
+    logging.exception(
+        "Applying MariaDB DDL fix failed; continuing without patch: %s", ex
+    )
 
 
 class ResultsBackendManager:
@@ -98,7 +108,16 @@ class UIManifestProcessor:
             "js_manifest": lambda bundle: get_files(bundle, "js"),
             "css_manifest": lambda bundle: get_files(bundle, "css"),
             "assets_prefix": (  # type: ignore
-                self.app.config["STATIC_ASSETS_PREFIX"] if self.app else ""
+                self.app.config.get("STATIC_ASSETS_PREFIX", "") if self.app else ""
+            ),
+            # rstripped APPLICATION_ROOT for templates that build app-rooted
+            # URLs (e.g. spa.html's `<link rel="manifest">`). `/` → ``,
+            # `/superset` → `/superset`, `/superset/` → `/superset` so
+            # `f"{application_root_rstrip}/path"` is single-prefixed.
+            "application_root_rstrip": (  # type: ignore
+                (self.app.config.get("APPLICATION_ROOT") or "").rstrip("/")
+                if self.app
+                else ""
             ),
         }
 

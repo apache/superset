@@ -15,8 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Any, Optional, Union
+from typing import Any, Optional, TYPE_CHECKING, Union
 from uuid import UUID
 
 import pandas as pd
@@ -36,12 +37,15 @@ from superset.commands.report.exceptions import (
     ReportScheduleDataFrameFailedError,
     ReportScheduleDataFrameTimeout,
     ReportScheduleExecuteUnexpectedError,
+    ReportScheduleExecutorNotFoundError,
     ReportScheduleNotFoundError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
     ReportScheduleStateNotFoundError,
     ReportScheduleSystemErrorsException,
+    ReportScheduleTargetChartDeletedError,
+    ReportScheduleTargetDashboardDeletedError,
     ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
 )
@@ -76,12 +80,40 @@ from superset.utils import json
 from superset.utils.core import HeaderDataType, override_user, recipients_string_to_list
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.decorators import logs_context, transaction
+from superset.utils.file import sanitize_title
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.slack import get_channels_with_search, SlackChannelTypes
 from superset.utils.urls import get_url_path
 
+if TYPE_CHECKING:
+    from flask_appbuilder.security.sqla.models import User
+
 logger = logging.getLogger(__name__)
+
+
+def resolve_executor_user(model: ReportSchedule) -> tuple["User", str]:
+    """
+    Resolve the executor user for a report schedule.
+
+    Determines the configured executor username via ``get_executor`` and looks up
+    the corresponding user. A deleted/disabled user or a misconfigured
+    ``ALERT_REPORTS_EXECUTORS`` makes ``security_manager.find_user`` return
+    ``None``; rather than passing ``None`` into the webdriver/auth flow (which
+    fails with an opaque NoneType error), raise a dedicated, actionable error.
+
+    :returns: the ``(user, username)`` pair — the username is returned alongside
+        the user because several call sites log it after resolution.
+    :raises ReportScheduleExecutorNotFoundError: if the executor user is missing.
+    """
+    _, username = get_executor(
+        executors=app.config["ALERT_REPORTS_EXECUTORS"],
+        model=model,
+    )
+    user = security_manager.find_user(username)
+    if user is None:
+        raise ReportScheduleExecutorNotFoundError(username)
+    return user, username
 
 
 class BaseReportState:
@@ -133,46 +165,55 @@ class BaseReportState:
         """
         Update the report schedule type and channels for all slack recipients to v2.
         V2 uses ids instead of names for channels.
+
+        Channel ids for every Slack recipient are resolved first and the
+        recipients are only mutated once all of them resolve. This keeps the
+        upgrade all-or-nothing: a single unresolvable channel can no longer
+        leave the schedule with some recipients already switched to v2 (and
+        persisted by a later error-log commit) while others are untouched.
         """
+        resolved: list[tuple[ReportRecipients, str]] = []
         try:
             for recipient in self._report_schedule.recipients:
-                if recipient.type == ReportRecipientType.SLACK:
-                    recipient.type = ReportRecipientType.SLACKV2
-                    slack_recipients = json.loads(recipient.recipient_config_json)
-                    # V1 method allowed to use leading `#` in the channel name
-                    channel_names = (slack_recipients["target"] or "").replace("#", "")
-                    # we need to ensure that existing reports can also fetch
-                    # ids from private channels
-                    channels = get_channels_with_search(
-                        search_string=channel_names,
-                        types=[
-                            SlackChannelTypes.PRIVATE,
-                            SlackChannelTypes.PUBLIC,
-                        ],
-                        exact_match=True,
+                if recipient.type != ReportRecipientType.SLACK:
+                    continue
+                slack_recipients = json.loads(recipient.recipient_config_json)
+                # V1 method allowed to use leading `#` in the channel name
+                channel_names = (slack_recipients["target"] or "").replace("#", "")
+                # we need to ensure that existing reports can also fetch
+                # ids from private channels
+                channels = get_channels_with_search(
+                    search_string=channel_names,
+                    types=[
+                        SlackChannelTypes.PRIVATE,
+                        SlackChannelTypes.PUBLIC,
+                    ],
+                    exact_match=True,
+                )
+                channels_list = recipients_string_to_list(channel_names)
+                if len(channels_list) != len(channels):
+                    missing_channels = set(channels_list) - {
+                        channel["name"] for channel in channels
+                    }
+                    msg = (
+                        "Could not find the following channels: "
+                        f"{', '.join(missing_channels)}"
                     )
-                    channels_list = recipients_string_to_list(channel_names)
-                    if len(channels_list) != len(channels):
-                        missing_channels = set(channels_list) - {
-                            channel["name"] for channel in channels
-                        }
-                        msg = (
-                            "Could not find the following channels: "
-                            f"{', '.join(missing_channels)}"
-                        )
-                        raise UpdateFailedError(msg)
-                    channel_ids = ",".join(channel["id"] for channel in channels)
-                    recipient.recipient_config_json = json.dumps(
-                        {
-                            "target": channel_ids,
-                        }
-                    )
+                    raise UpdateFailedError(msg)
+                channel_ids = ",".join(channel["id"] for channel in channels)
+                resolved.append((recipient, json.dumps({"target": channel_ids})))
         except Exception as ex:
-            # Revert to v1 to preserve configuration (requires manual fix)
-            recipient.type = ReportRecipientType.SLACK
+            # No recipient has been mutated yet, so there is no partial upgrade
+            # to revert; surface the failure so the configuration can be fixed
+            # manually.
             msg = f"Failed to update slack recipients to v2: {str(ex)}"
             logger.exception(msg)
             raise UpdateFailedError(msg) from ex
+
+        # Every Slack recipient resolved; apply the upgrade atomically.
+        for recipient, recipient_config_json in resolved:
+            recipient.type = ReportRecipientType.SLACKV2
+            recipient.recipient_config_json = recipient_config_json
 
     def create_log(self, error_message: Optional[str] = None) -> None:
         """
@@ -196,7 +237,7 @@ class BaseReportState:
             db.session.commit()  # pylint: disable=consider-using-transaction
         except StaleDataError as ex:
             # Report schedule was modified or deleted by another process
-            db.session.rollback()
+            db.session.rollback()  # pylint: disable=consider-using-transaction
             logger.warning(
                 "Report schedule (execution %s) was modified or deleted "
                 "during execution. This can occur when a report is deleted "
@@ -217,6 +258,32 @@ class BaseReportState:
         """
         Get the url for this report schedule: chart or dashboard
         """
+        # Soft delete removed the FK-level guarantee that a report's target
+        # chart exists: ``chart`` is a visibility-filtered relationship, so a
+        # chart soft-deleted after this report was created (or attached via a
+        # validate/commit race with DeleteChartCommand) loads as ``None``
+        # while ``chart_id`` is still set. Without this guard the branch
+        # below silently falls through to the dashboard path and fails
+        # opaquely; raising here surfaces a clear, actionable error inside
+        # the state-machine envelope (ERROR log row + owner notification).
+        # Every content path (_get_screenshots, _get_csv_data,
+        # _get_embedded_data, _get_notification_content) funnels through this
+        # method, so this is the single choke point.
+        if (
+            self._report_schedule.chart_id is not None
+            and self._report_schedule.chart is None
+        ):
+            raise ReportScheduleTargetChartDeletedError()
+        # Symmetric guard for dashboard targets. Dashboard soft delete lands
+        # in the sibling rollout; until then this cannot fire (a dashboard
+        # with dependent reports cannot be deleted), which makes it inert
+        # rather than wrong — and it keeps the report-target error vocabulary
+        # parallel across entities from day one.
+        if (
+            self._report_schedule.dashboard_id is not None
+            and self._report_schedule.dashboard is None
+        ):
+            raise ReportScheduleTargetDashboardDeletedError()
         force = "true" if self._report_schedule.force_screenshot else "false"
         if self._report_schedule.chart:
             if result_format in {
@@ -261,6 +328,14 @@ class BaseReportState:
         """
         Retrieve the URL for the dashboard tabs, or return the dashboard URL if no tabs are available.
         """  # noqa: E501
+        # Called directly from AsyncExecuteReportScheduleCommand.run (permalink
+        # pre-commit) without passing through _get_url, so it needs the same
+        # deleted-target guard.
+        if (
+            self._report_schedule.dashboard_id is not None
+            and self._report_schedule.dashboard is None
+        ):
+            raise ReportScheduleTargetDashboardDeletedError()
         force = "true" if self._report_schedule.force_screenshot else "false"
 
         if (
@@ -280,6 +355,7 @@ class BaseReportState:
                         )
                     urls = self._get_tabs_urls(
                         anchor_list,
+                        dashboard_state=dashboard_state,
                         native_filter_params=native_filter_params,
                         user_friendly=user_friendly,
                     )
@@ -287,19 +363,46 @@ class BaseReportState:
                 except json.JSONDecodeError:
                     logger.debug("Anchor value is not a list, Fall back to single tab")
 
-            # Merge native_filters into existing urlParams instead of
-            # overwriting — dashboard_state may already have urlParams
-            # (e.g. standalone=true) that must be preserved.
-            state: DashboardPermalinkState = {**dashboard_state}
-            existing_params: list[tuple[str, str]] = state.get("urlParams") or []
-            merged_params: list[list[str]] = [
-                list(p) for p in existing_params if p[0] != "native_filters"
-            ]
-            merged_params.append(["native_filters", native_filter_params or ""])
-            state["urlParams"] = merged_params  # type: ignore[typeddict-item]
+            # Skip the permalink when there is nothing meaningful to encode —
+            # an empty dashboard_state falls through to the plain URL below.
+            # A non-empty anchor means a single tab was selected (it failed
+            # JSON list parsing above) and still needs a permalink. Non-filter
+            # state such as urlParams (e.g. standalone=true) must also be
+            # preserved via a permalink.
+            if (
+                anchor
+                or dashboard_state.get("urlParams")
+                or (native_filter_params and native_filter_params != "()")
+            ):
+                state: DashboardPermalinkState = {**dashboard_state}
+                state["urlParams"] = self._merge_native_filters_into_url_params(
+                    state.get("urlParams"), native_filter_params
+                )
+                return [
+                    self._get_tab_url(
+                        state,
+                        user_friendly=user_friendly,
+                    )
+                ]
+
+        native_filter_params, filter_warnings = (
+            self._report_schedule.get_native_filters_params()
+        )
+        if filter_warnings:
+            self._filter_warnings.extend(filter_warnings)
+        if native_filter_params and native_filter_params != "()":
+            # Preserve any urlParams from extra.dashboard (e.g. standalone=true)
+            # set via API even when ALERT_REPORT_TABS is off — same merge
+            # semantics as the protected branch above.
+            fallback_state = self._report_schedule.extra.get("dashboard") or {}
             return [
                 self._get_tab_url(
-                    state,
+                    {
+                        "urlParams": self._merge_native_filters_into_url_params(
+                            fallback_state.get("urlParams"),
+                            native_filter_params,
+                        )
+                    },
                     user_friendly=user_friendly,
                 )
             ]
@@ -330,30 +433,68 @@ class BaseReportState:
             state=dashboard_state,
         ).run()
 
+        # The report-generation flow runs inside an outer ``@transaction``
+        # block (``ReportScheduleStateMachine.run``). Because of that,
+        # ``CreateDashboardPermalinkCommand``'s inner ``@transaction``
+        # decorator detects the active transaction and skips its own
+        # commit — the new row is flushed to the session but not yet
+        # visible to other database connections. Playwright then opens
+        # the permalink URL on a separate connection to render the
+        # report, which 404s because the row isn't committed. Commit
+        # explicitly here so the permalink is visible before navigation
+        # (#40996).
+        db.session.commit()  # pylint: disable=consider-using-transaction
+
         return get_url_path(
             "Superset.dashboard_permalink",
             key=permalink_key,
             user_friendly=user_friendly,
         )
 
+    @staticmethod
+    def _merge_native_filters_into_url_params(
+        existing: Optional[Sequence[Sequence[str]]],
+        native_filter_params: Optional[str],
+    ) -> list[Sequence[str]]:
+        """
+        Merge the report's ``native_filters`` into a permalink's existing
+        ``urlParams``, deduping any prior ``native_filters`` entry so the
+        report's value wins. All other params (e.g. ``standalone=true``)
+        survive in their original order.
+        """
+        merged: list[Sequence[str]] = [
+            list(p) for p in (existing or []) if p[0] != "native_filters"
+        ]
+        merged.append(["native_filters", native_filter_params or ""])
+        return merged
+
     def _get_tabs_urls(
         self,
         tab_anchors: list[str],
+        dashboard_state: Optional[DashboardPermalinkState] = None,
         native_filter_params: Optional[str] = None,
         user_friendly: bool = False,
     ) -> list[str]:
         """
-        Get multple tabs urls
+        Get multiple tabs urls.
+
+        Each per-tab permalink merges the report's ``native_filters`` into
+        the original ``dashboard_state.urlParams`` (deduping any prior
+        ``native_filters`` entry), so params like ``standalone=true`` are
+        preserved — matching the precedence rules of the single-tab branch
+        in :meth:`get_dashboard_urls`.
         """
+        base_state: DashboardPermalinkState = dashboard_state or {}
+        merged_params = self._merge_native_filters_into_url_params(
+            base_state.get("urlParams"), native_filter_params
+        )
         return [
             self._get_tab_url(
                 {
                     "anchor": tab_anchor,
                     "dataMask": None,
                     "activeTabs": None,
-                    "urlParams": [
-                        ["native_filters", native_filter_params]  # type: ignore
-                    ],
+                    "urlParams": merged_params,
                 },
                 user_friendly=user_friendly,
             )
@@ -367,11 +508,7 @@ class BaseReportState:
         """
         start_time = datetime.utcnow()
 
-        _, username = get_executor(
-            executors=app.config["ALERT_REPORTS_EXECUTORS"],
-            model=self._report_schedule,
-        )
-        user = security_manager.find_user(username)
+        user, _ = resolve_executor_user(self._report_schedule)
 
         max_width = app.config["ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH"]
 
@@ -410,8 +547,12 @@ class BaseReportState:
         try:
             imges = []
             for screenshot in screenshots:
-                if imge := screenshot.get_screenshot(user=user):
-                    imges.append(imge)
+                imge = screenshot.get_screenshot(user=user)
+                if imge is None:
+                    raise ReportScheduleScreenshotFailedError(
+                        "Screenshot failed; aborting to avoid sending a partial report"
+                    )
+                imges.append(imge)
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.info(
                 "Screenshot capture took %.2fs - execution_id: %s",
@@ -453,11 +594,7 @@ class BaseReportState:
     def _get_csv_data(self) -> bytes:
         start_time = datetime.utcnow()
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
-        _, username = get_executor(
-            executors=app.config["ALERT_REPORTS_EXECUTORS"],
-            model=self._report_schedule,
-        )
-        user = security_manager.find_user(username)
+        user, username = resolve_executor_user(self._report_schedule)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
         if self._report_schedule.chart.query_context is None:
@@ -465,7 +602,11 @@ class BaseReportState:
             self._update_query_context()
 
         try:
-            csv_data = get_chart_csv_data(chart_url=url, auth_cookies=auth_cookies)
+            csv_data = get_chart_csv_data(
+                chart_url=url,
+                auth_cookies=auth_cookies,
+                timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+            )
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.info(
                 "CSV data generation from %s as user %s took %.2fs - execution_id: %s",
@@ -503,11 +644,7 @@ class BaseReportState:
         start_time = datetime.utcnow()
 
         url = self._get_url(result_format=ChartDataResultFormat.JSON)
-        _, username = get_executor(
-            executors=app.config["ALERT_REPORTS_EXECUTORS"],
-            model=self._report_schedule,
-        )
-        user = security_manager.find_user(username)
+        user, username = resolve_executor_user(self._report_schedule)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
         if self._report_schedule.chart.query_context is None:
@@ -515,7 +652,11 @@ class BaseReportState:
             self._update_query_context()
 
         try:
-            dataframe = get_chart_dataframe(url, auth_cookies)
+            dataframe = get_chart_dataframe(
+                url,
+                auth_cookies,
+                timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+            )
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.info(
                 "DataFrame generation from %s as user %s took %.2fs - execution_id: %s",
@@ -634,7 +775,7 @@ class BaseReportState:
                     error_text = "Unexpected missing csv file"
             if error_text:
                 return NotificationContent(
-                    name=self._report_schedule.name,
+                    name=sanitize_title(self._report_schedule.name),
                     text=error_text,
                     header_data=header_data,
                     url=url,
@@ -647,15 +788,15 @@ class BaseReportState:
             embedded_data = self._get_embedded_data()
 
         if self._report_schedule.email_subject:
-            name = self._report_schedule.email_subject
+            name = sanitize_title(self._report_schedule.email_subject)
         else:
             if self._report_schedule.chart:
-                name = (
+                name = sanitize_title(
                     f"{self._report_schedule.name}: "
                     f"{self._report_schedule.chart.slice_name}"
                 )
             else:
-                name = (
+                name = sanitize_title(
                     f"{self._report_schedule.name}: "
                     f"{self._report_schedule.dashboard.dashboard_title}"
                 )
@@ -754,7 +895,7 @@ class BaseReportState:
             self._execution_id,
         )
         notification_content = NotificationContent(
-            name=name, text=message, header_data=header_data, url=url
+            name=sanitize_title(name), text=message, header_data=header_data, url=url
         )
 
         # filter recipients to recipients who are also owners
@@ -983,16 +1124,49 @@ class ReportSuccessState(BaseReportState):
                     )
                     return
             except Exception as ex:
-                self.send_error(
-                    f"Error occurred for {self._report_schedule.type}:"
-                    f" {self._report_schedule.name}",
-                    str(ex),
-                )
-                self.update_report_schedule_and_log(
-                    ReportState.ERROR,
-                    error_message=REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
-                )
+                # Ensure the schedule always transitions out of WORKING to
+                # ERROR, even if sending the error notification itself fails —
+                # otherwise the schedule is stuck in WORKING until the working
+                # timeout. Mirrors ReportNotTriggeredErrorState.next().
+                # Only record the marker when the notification was actually
+                # delivered; otherwise record the send failure so the grace-
+                # period check doesn't incorrectly suppress future notifications.
+                error_message = REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
+                try:
+                    self.send_error(
+                        f"Error occurred for {self._report_schedule.type}:"
+                        f" {self._report_schedule.name}",
+                        str(ex),
+                    )
+                except Exception as send_ex:  # noqa: BLE001  # pylint: disable=broad-except
+                    error_message = str(send_ex) or str(ex)
+                    logger.warning(
+                        "Failed to send error notification for report schedule "
+                        "(execution %s)",
+                        self._execution_id,
+                        exc_info=True,
+                    )
+                finally:
+                    try:
+                        self.update_report_schedule_and_log(
+                            ReportState.ERROR,
+                            error_message=error_message,
+                        )
+                    except ReportScheduleUnexpectedError:
+                        logger.warning(
+                            "Failed to log ERROR state for report schedule "
+                            "(execution %s) due to database issue",
+                            self._execution_id,
+                            exc_info=True,
+                        )
                 raise
+
+        # For REPORT types the ALERT branch above is skipped, so WORKING has not
+        # been set yet. Set it before the (potentially slow) send() so a
+        # concurrent scheduler tick is blocked by ReportWorkingState, preventing
+        # duplicate notifications. ALERT types already set WORKING above.
+        if self._report_schedule.type != ReportScheduleType.ALERT:
+            self.update_report_schedule_and_log(ReportState.WORKING)
 
         try:
             self.send()
@@ -1068,13 +1242,23 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
         self._scheduled_dttm = scheduled_dttm
         self._execution_id = UUID(task_id)
 
-    @transaction()
     def run(self) -> None:
         try:
             self.validate()
             if not self._model:
                 raise ReportScheduleExecuteUnexpectedError()
 
+            # Resolve the executor at the run() boundary, tolerating a missing
+            # user (find_user -> None) so the state machine still runs and its
+            # error envelope writes the ERROR execution-log row and sends the
+            # owner notification. The dedicated ReportScheduleExecutorNotFoundError
+            # guard lives at the content sites (_get_screenshots / _get_csv_data /
+            # _get_embedded_data), which raise inside that envelope. Guarding here
+            # instead would surface the executor error above the state machine,
+            # suppressing both the log row and the owner notification. The
+            # alert-query path (AlertCommand) is intentionally left unchanged — a
+            # missing executor there surfaces as a query error, not the dedicated
+            # executor error; tightening it is out of scope here.
             _, username = get_executor(
                 executors=app.config["ALERT_REPORTS_EXECUTORS"],
                 model=self._model,
@@ -1083,6 +1267,19 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
 
             start_time = datetime.utcnow()
             with override_user(user):
+                # Pre-commit any permalink rows before the state machine's
+                # @transaction() opens. When called inside a transaction,
+                # CreateDashboardPermalinkCommand only flushes (not commits),
+                # leaving the row invisible to Playwright's separate DB
+                # connection. Running get_dashboard_urls() here — outside any
+                # transaction — lets the command commit normally. The state
+                # machine's inner call to get_dashboard_urls() hits get_entry()
+                # for the same deterministic UUID and returns the
+                # already-committed row without a second INSERT.
+                if self._model.dashboard_id:
+                    BaseReportState(
+                        self._model, self._scheduled_dttm, self._execution_id
+                    ).get_dashboard_urls()
                 ReportScheduleStateMachine(
                     self._execution_id, self._model, self._scheduled_dttm
                 ).run()

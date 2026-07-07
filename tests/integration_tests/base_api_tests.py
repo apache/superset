@@ -24,7 +24,7 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 
 import pytest
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-import prison
+import rison
 
 import tests.integration_tests.test_app  # noqa: F401
 from superset import db, security_manager
@@ -248,7 +248,7 @@ class ApiOwnersTestCaseMixin:
         self.login(ADMIN_USERNAME)
         page_size = 1
         argument = {"page_size": page_size}
-        uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
+        uri = f"api/v1/{self.resource_name}/related/owners?q={rison.dumps(argument)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
@@ -271,7 +271,7 @@ class ApiOwnersTestCaseMixin:
         """
         self.login(ADMIN_USERNAME)
         argument = {"page": 1, "page_size": 1, "include_ids": [2]}
-        uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
+        uri = f"api/v1/{self.resource_name}/related/owners?q={rison.dumps(argument)}"
         rv = self.client.get(uri)
         assert rv.status_code == 422
 
@@ -281,7 +281,7 @@ class ApiOwnersTestCaseMixin:
         """
         self.login(ADMIN_USERNAME)
         argument = {"filter": "gamma"}
-        uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
+        uri = f"api/v1/{self.resource_name}/related/owners?q={rison.dumps(argument)}"
 
         rv = self.client.get(uri)
         assert rv.status_code == 200
@@ -368,7 +368,7 @@ class ApiOwnersTestCaseMixin:
         """
         self.login(ADMIN_USERNAME)
         argument = {"filter": "gamma_sqllab", "include_ids": [2]}
-        uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
+        uri = f"api/v1/{self.resource_name}/related/owners?q={rison.dumps(argument)}"
 
         rv = self.client.get(uri)
         response = json.loads(rv.data.decode("utf-8"))
@@ -395,7 +395,7 @@ class ApiOwnersTestCaseMixin:
         """
         self.login(ADMIN_USERNAME)
         argument = {"filter": "gamma_sqllab", "include_ids": [2, 4]}
-        uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
+        uri = f"api/v1/{self.resource_name}/related/owners?q={rison.dumps(argument)}"
 
         rv = self.client.get(uri)
         response = json.loads(rv.data.decode("utf-8"))
@@ -423,5 +423,13 @@ class ApiOwnersTestCaseMixin:
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/{self.resource_name}/related/owner"
 
-        rv = self.client.get(uri)
+        with patch("superset.views.base_api.logger") as mock_logger:
+            rv = self.client.get(uri)
         assert rv.status_code == 404
+        # A disallowed related field is recorded as a security log event,
+        # including the rejected column name, in addition to the 404.
+        mock_logger.warning.assert_called_once()
+        assert "column=owner" in (
+            mock_logger.warning.call_args.args[0]
+            % mock_logger.warning.call_args.args[1:]
+        )

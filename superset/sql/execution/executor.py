@@ -69,6 +69,8 @@ from flask import current_app as app, g, has_app_context
 from superset import db
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
     SupersetSecurityException,
     SupersetTimeoutException,
 )
@@ -229,7 +231,7 @@ class SQLExecutor:
             )
 
             # 2. Security checks on transformed script
-            self._check_security(transformed_script)
+            self._check_security(transformed_script, schema)
 
             # 3. Get mutation status and format SQL
             has_mutation = transformed_script.has_mutation()
@@ -318,6 +320,10 @@ class SQLExecutor:
             )
         except SupersetSecurityException as ex:
             return self._create_error_result(QueryStatus.FAILED, str(ex), start_time)
+        except (OAuth2RedirectError, OAuth2Error):
+            # Let OAuth2 exceptions propagate so callers (MCP, API) can
+            # handle them with context-appropriate responses.
+            raise
         except Exception as ex:
             error_msg = self.database.db_engine_spec.extract_error_message(ex)
             return self._create_error_result(QueryStatus.FAILED, error_msg, start_time)
@@ -349,7 +355,7 @@ class SQLExecutor:
         )
 
         # 2. Security checks on transformed script
-        self._check_security(transformed_script)
+        self._check_security(transformed_script, schema)
 
         # 3. Get mutation status and format SQL
         has_mutation = transformed_script.has_mutation()
@@ -430,9 +436,21 @@ class SQLExecutor:
             rendered_sql, self.database.db_engine_spec.engine
         )
 
-        # 4. Get catalog and schema
+        # 4. Get catalog and the effective per-query schema. Resolve the schema
+        # through the query-aware ``get_default_schema_for_query`` rather than the
+        # static ``get_default_schema``, the same way ``execute_sql_statements``
+        # and the estimate path do: it resolves an unqualified reference to the
+        # schema the engine actually uses at runtime (engines without
+        # dynamic-schema support ignore the request's selected schema) and runs
+        # engine-specific per-query security gates (e.g. ``PostgresEngineSpec``
+        # rejects a query that sets ``search_path``), so the denylist check and
+        # RLS injection match execution instead of a schema that may never apply.
         catalog = opts.catalog or self.database.get_default_catalog()
-        schema = opts.schema or self.database.get_default_schema(catalog)
+        # Resolve unconditionally, even when an explicit schema is supplied, so
+        # the engine's per-query security gate always runs (parity with the
+        # estimate path); the explicit schema still wins as the effective target.
+        resolved_schema = self._resolve_query_schema(sql, opts, catalog)
+        schema = opts.schema or resolved_schema
 
         # 5. Apply RLS to transformed script only
         self._apply_rls_to_script(transformed_script, catalog, schema)
@@ -443,11 +461,12 @@ class SQLExecutor:
 
         return original_script, transformed_script, catalog, schema
 
-    def _check_security(self, script: SQLScript) -> None:
+    def _check_security(self, script: SQLScript, schema: str | None = None) -> None:
         """
         Perform security checks on prepared SQL script.
 
         :param script: Prepared SQLScript
+        :param schema: Effective schema unqualified references resolve to
         :raises SupersetSecurityException: If security checks fail
         """
         # Check disallowed functions
@@ -463,7 +482,7 @@ class SQLExecutor:
             )
 
         # Check disallowed tables
-        if disallowed_tables := self._check_disallowed_tables(script):
+        if disallowed_tables := self._check_disallowed_tables(script, schema):
             raise SupersetSecurityException(
                 SupersetError(
                     message=f"Disallowed SQL tables: {', '.join(disallowed_tables)}",
@@ -696,11 +715,32 @@ class SQLExecutor:
 
         return found if found else None
 
-    def _check_disallowed_tables(self, script: SQLScript) -> set[str] | None:
+    def _resolve_query_schema(
+        self, sql: str, opts: QueryOptions, catalog: str | None
+    ) -> str | None:
+        """
+        Resolve the effective per-query default schema through the query-aware
+        ``get_default_schema_for_query`` so the denylist check and RLS injection
+        match the schema the engine uses at runtime, and engine-specific
+        per-query security gates run on this path too.
+
+        :param sql: Original (pre-render) SQL the query will execute
+        :param opts: Query options (supplies schema, template params)
+        :param catalog: Resolved catalog
+        :returns: The runtime-resolved default schema, or None
+        """
+        return self.database.resolve_query_default_schema(
+            sql, opts.schema, catalog, opts.template_params
+        )
+
+    def _check_disallowed_tables(
+        self, script: SQLScript, schema: str | None = None
+    ) -> set[str] | None:
         """
         Check for disallowed SQL tables/views.
 
         :param script: Parsed SQL script
+        :param schema: Effective schema unqualified references resolve to
         :returns: Set of disallowed tables found, or None if none found
         """
         disallowed_config = app.config.get("DISALLOWED_SQL_TABLES", {})
@@ -711,15 +751,11 @@ class SQLExecutor:
         if not engine_disallowed:
             return None
 
-        # Single-pass AST-based table detection
-        found: set[str] = set()
-        for statement in script.statements:
-            present = {table.table.lower() for table in statement.tables}
-            for table in engine_disallowed:
-                if table.lower() in present:
-                    found.add(table)
-
-        return found or None
+        # Honors schema-qualified denylist entries (e.g.
+        # ``information_schema.tables``) as well as bare names. The effective
+        # schema lets an unqualified reference that resolves to it at runtime
+        # (via the connection ``search_path``) match too.
+        return script.get_disallowed_tables(engine_disallowed, schema) or None
 
     def _apply_rls_to_script(
         self, script: SQLScript, catalog: str | None, schema: str | None

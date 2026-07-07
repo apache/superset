@@ -30,16 +30,19 @@ from pydantic import BaseModel, Field
 from sqlalchemy.inspection import inspect
 
 from superset.mcp_service.constants import ModelType
+from superset.mcp_service.privacy import USER_DIRECTORY_FIELDS
 
 
 class ColumnMetadata(BaseModel):
     """Metadata for a selectable column."""
 
     name: str = Field(..., description="Column name to use in select_columns")
-    description: str | None = Field(None, description="Column description")
-    type: str | None = Field(None, description="Data type (str, int, datetime, etc.)")
+    description: str | None = Field(default=None, description="Column description")
+    type: str | None = Field(
+        default=None, description="Data type (str, int, datetime, etc.)"
+    )
     is_default: bool = Field(
-        False, description="Whether this column is included by default"
+        default=False, description="Whether this column is included by default"
     )
 
 
@@ -127,8 +130,6 @@ _COLUMN_DESCRIPTIONS: dict[str, str] = {
     "uuid": "Unique UUID identifier",
     "created_on": "Timestamp when the resource was created",
     "changed_on": "Timestamp when the resource was last modified",
-    "created_by_fk": "User ID of the creator",
-    "changed_by_fk": "User ID of the last modifier",
     "description": "User-provided description text",
     "cache_timeout": "Cache timeout override in seconds",
     "perm": "Permission string for access control",
@@ -146,7 +147,6 @@ _COLUMN_DESCRIPTIONS: dict[str, str] = {
     "params": "JSON string of chart parameters/configuration",
     "query_context": "JSON string of the query context for data fetching",
     "last_saved_at": "Timestamp of the last explicit save",
-    "last_saved_by_fk": "User ID who last saved this chart",
     # Dataset-specific
     "table_name": "Name of the database table or view",
     "schema": "Database schema name",
@@ -169,9 +169,9 @@ _COLUMN_DESCRIPTIONS: dict[str, str] = {
     "dashboard_title": "Dashboard display title",
     "slug": "URL-friendly identifier for the dashboard",
     "published": "Whether the dashboard is published and visible",
-    "position_json": "JSON layout of dashboard components",
-    "json_metadata": "JSON metadata including filters and settings",
     "css": "Custom CSS for the dashboard",
+    "native_filters": "Native filter configuration (name, type, targets)",
+    "cross_filters_enabled": "Whether cross-filtering between charts is enabled",
     "theme_id": "Theme ID for dashboard styling",
 }
 
@@ -221,6 +221,8 @@ def get_columns_from_model(
     # Add extra columns (computed fields, relationships, etc.)
     if extra_columns:
         for name, metadata in extra_columns.items():
+            if exclude_columns and name in exclude_columns:
+                continue
             # Check if already added from model columns
             if not any(c.name == name for c in columns):
                 columns.append(metadata)
@@ -500,6 +502,12 @@ DASHBOARD_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "charts": ColumnMetadata(
         name="charts", description="Charts in dashboard", type="list", is_default=False
     ),
+    "native_filters": ColumnMetadata(
+        name="native_filters",
+        description="Native filter configuration (name, type, targets)",
+        type="list",
+        is_default=False,
+    ),
 }
 
 
@@ -569,7 +577,12 @@ def get_chart_columns() -> list[ColumnMetadata]:
     """Get column metadata for Chart model dynamically."""
     from superset.models.slice import Slice
 
-    return get_columns_from_model(Slice, CHART_DEFAULT_COLUMNS, CHART_EXTRA_COLUMNS)
+    return get_columns_from_model(
+        Slice,
+        CHART_DEFAULT_COLUMNS,
+        CHART_EXTRA_COLUMNS,
+        exclude_columns=set(USER_DIRECTORY_FIELDS),
+    )
 
 
 def get_dataset_columns() -> list[ColumnMetadata]:
@@ -577,7 +590,10 @@ def get_dataset_columns() -> list[ColumnMetadata]:
     from superset.connectors.sqla.models import SqlaTable
 
     return get_columns_from_model(
-        SqlaTable, DATASET_DEFAULT_COLUMNS, DATASET_EXTRA_COLUMNS
+        SqlaTable,
+        DATASET_DEFAULT_COLUMNS,
+        DATASET_EXTRA_COLUMNS,
+        exclude_columns=set(USER_DIRECTORY_FIELDS),
     )
 
 
@@ -586,7 +602,10 @@ def get_dashboard_columns() -> list[ColumnMetadata]:
     from superset.models.dashboard import Dashboard
 
     return get_columns_from_model(
-        Dashboard, DASHBOARD_DEFAULT_COLUMNS, DASHBOARD_EXTRA_COLUMNS
+        Dashboard,
+        DASHBOARD_DEFAULT_COLUMNS,
+        DASHBOARD_EXTRA_COLUMNS,
+        exclude_columns=set(USER_DIRECTORY_FIELDS),
     )
 
 
@@ -607,7 +626,7 @@ def get_database_columns() -> list[ColumnMetadata]:
         Database,
         DATABASE_DEFAULT_COLUMNS,
         DATABASE_EXTRA_COLUMNS,
-        exclude_columns=DATABASE_EXCLUDE_COLUMNS,
+        exclude_columns=DATABASE_EXCLUDE_COLUMNS | set(USER_DIRECTORY_FIELDS),
     )
 
 
@@ -622,3 +641,98 @@ CHART_ALL_COLUMNS: list[str] = []
 DATASET_ALL_COLUMNS: list[str] = []
 DASHBOARD_ALL_COLUMNS: list[str] = []
 DATABASE_ALL_COLUMNS: list[str] = []
+
+
+# Report (alerts & reports) configuration
+REPORT_DEFAULT_COLUMNS = ["id", "name", "type", "active", "crontab"]
+REPORT_SORTABLE_COLUMNS = [
+    "id",
+    "name",
+    "type",
+    "active",
+    "last_eval_dttm",
+    "changed_on",
+    "created_on",
+]
+REPORT_SEARCH_COLUMNS = ["name", "description"]
+# Allowlist of filter columns exposed via get_schema and accepted by ReportFilter.
+# Must stay in sync with the Literal in ReportFilter.col (schemas.py).
+REPORT_FILTER_COLUMNS: frozenset[str] = frozenset(
+    {
+        "name",
+        "type",
+        "active",
+        "dashboard_id",
+        "chart_id",
+        "last_state",
+        "creation_method",
+    }
+)
+
+
+def _annotation_to_type_str(annotation: Any) -> str:
+    """Extract a simple type string from a Python type annotation."""
+    import types as _builtin_types
+    import typing
+
+    if annotation is None:
+        return "str"
+
+    # Python 3.10+ union syntax: X | Y | None → extract first non-None
+    if isinstance(annotation, _builtin_types.UnionType):
+        non_none = [a for a in annotation.__args__ if a is not type(None)]
+        return _annotation_to_type_str(non_none[0]) if non_none else "str"
+
+    # typing.Union (e.g. Optional[X] or Union[X, Y, None])
+    if getattr(annotation, "__origin__", None) is typing.Union:
+        non_none = [a for a in annotation.__args__ if a is not type(None)]
+        return _annotation_to_type_str(non_none[0]) if non_none else "str"
+
+    # Generic list/dict
+    origin = getattr(annotation, "__origin__", None)
+    if origin is list:
+        return "list"
+    if origin is dict:
+        return "dict"
+
+    _simple: dict[type, str] = {
+        int: "int",
+        str: "str",
+        bool: "bool",
+        float: "float",
+    }
+    if annotation in _simple:
+        return _simple[annotation]
+
+    from datetime import datetime
+
+    if annotation is datetime:
+        return "datetime"
+
+    return "str"
+
+
+def get_report_info_columns() -> list[ColumnMetadata]:
+    """Get column metadata derived from the ReportInfo serializer fields.
+
+    Uses ReportInfo.model_fields as the authoritative source so that
+    get_schema(model_type='report') advertises only columns that
+    list_reports can actually serialize.
+    """
+    from superset.mcp_service.privacy import USER_DIRECTORY_FIELDS
+    from superset.mcp_service.report.schemas import ReportInfo
+
+    columns = []
+    for name, field_info in ReportInfo.model_fields.items():
+        if name in USER_DIRECTORY_FIELDS:
+            continue
+        col_type = _annotation_to_type_str(field_info.annotation)
+        columns.append(
+            ColumnMetadata(
+                name=name,
+                description=field_info.description,
+                type=col_type,
+                is_default=name in REPORT_DEFAULT_COLUMNS,
+            )
+        )
+    return columns

@@ -108,6 +108,27 @@ class ColumnInfo(BaseModel):
     type: str = Field(..., description="Column data type")
     is_nullable: bool | None = Field(None, description="Whether column allows NULL")
 
+    @field_validator("is_nullable", mode="before")
+    @classmethod
+    def coerce_is_nullable(cls, v: Any) -> bool | None:
+        """Coerce non-boolean values (e.g. Athena's 'UNKNOWN') to None."""
+        if v is None or isinstance(v, bool):
+            return v
+        if isinstance(v, (int, float)):
+            if v == 1:
+                return True
+            if v == 0:
+                return False
+            return None
+        if isinstance(v, str):
+            lowered = v.strip().lower()
+            if lowered in ("true", "1", "yes"):
+                return True
+            if lowered in ("false", "0", "no"):
+                return False
+            return None
+        return None
+
 
 class StatementData(BaseModel):
     """Row data and column metadata for a single SQL statement."""
@@ -168,6 +189,14 @@ class ExecuteSqlResponse(BaseModel):
             "The top-level rows/columns contain only the last "
             "data-bearing statement's results. "
             "Check each entry in the statements array for per-statement data."
+        ),
+    )
+    template_warning: str | None = Field(
+        None,
+        description=(
+            "Warning when template_params was supplied but Jinja2 rendering "
+            "is disabled on this Superset instance. The query was executed "
+            "with literal '{{ var }}' placeholders unrendered."
         ),
     )
 
@@ -256,7 +285,26 @@ class OpenSqlLabRequest(BaseModel):
         description="SQL to pre-populate in the editor",
         validation_alias=AliasChoices("sql", "query"),
     )
-    title: str | None = Field(None, description="Title for the SQL Lab tab/query")
+    title: str | None = Field(
+        None,
+        description=(
+            "Title for the SQL Lab tab. Generate a succinct, descriptive label "
+            "(roughly 3-6 words) from the conversation context or the query "
+            "intent — e.g. 'Top customers by revenue Q3' — instead of leaving "
+            "the tab untitled. Avoid generic names like 'Untitled Query'."
+        ),
+        max_length=256,
+    )
+
+    @field_validator("title")
+    @classmethod
+    def title_strip_or_none(cls, v: str | None) -> str | None:
+        # Whitespace-only would render as a blank tab label; fall back to
+        # SQL Lab's default "Untitled Query N" naming instead.
+        if v is None:
+            return None
+        stripped = v.strip()
+        return stripped or None
 
 
 class SqlLabResponse(_SchemaFieldNormalizer):

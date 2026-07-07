@@ -21,8 +21,7 @@ export type { FormProps, FormInstance, FormItemProps } from 'antd/es/form';
 export interface LabeledErrorBoundInputProps {
   label?: string;
   validationMethods:
-    | { onBlur: (value: any) => void }
-    | { onChange: (value: any) => void };
+    { onBlur: (value: any) => void } | { onChange: (value: any) => void };
   errorMessage?: string | null;
   helpText?: string;
   required?: boolean;
@@ -31,5 +30,6 @@ export interface LabeledErrorBoundInputProps {
   id?: string;
   classname?: string;
   visibilityToggle?: boolean;
+  isValidating?: boolean;
   [x: string]: any;
 }

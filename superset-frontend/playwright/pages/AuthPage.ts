@@ -50,7 +50,9 @@ export class AuthPage {
    * Navigate to the login page
    */
   async goto(): Promise<void> {
-    await this.page.goto(URL.LOGIN);
+    // Use domcontentloaded — the login form is server-rendered and ready before
+    // all assets load. The default 'load' event may never fire with HMR WebSocket.
+    await this.page.goto(URL.LOGIN, { waitUntil: 'domcontentloaded' });
   }
 
   /**

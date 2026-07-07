@@ -7,6 +7,7 @@ on:
       - "superset/db_engine_specs/**"
       - ".github/workflows/superset-docs-verify.yml"
     types: [synchronize, opened, reopened, ready_for_review]
+  # zizmor: ignore[dangerous-triggers] - runs in base-branch context and only consumes artifacts from the trusted upstream workflow
   workflow_run:
     workflows: ["Python-Integration"]
     types: [completed]
@@ -16,6 +17,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.workflow_run.head_sha || github.run_id }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   linkinator:
     # See docs here: https://github.com/marketplace/actions/linkinator
@@ -24,10 +28,12 @@ jobs:
     name: Link Checking
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
       # Do not bump this linkinator-action version without opening
       # an ASF Infra ticket to allow the new version first!
-      - uses: JustinBeckwith/linkinator-action@af984b9f30f63e796ae2ea5be5e07cb587f1bbd9  # v2.3
+      - uses: JustinBeckwith/linkinator-action@af984b9f30f63e796ae2ea5be5e07cb587f1bbd9 # v2.3
         continue-on-error: true # This will make the job advisory (non-blocking, no red X)
         with:
           paths: "**/*.md, **/*.mdx"
@@ -67,17 +73,24 @@ jobs:
         working-directory: docs
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           submodules: recursive
       - name: Set up Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version-file: './docs/.nvmrc'
+          node-version-file: "./docs/.nvmrc"
       - name: yarn install
         run: |
           yarn install --check-cache
+      - name: Lint docs links
+        # Fast source-level check for bare relative internal links
+        # like `[Foo](../foo)` that Docusaurus's onBrokenLinks
+        # setting can't catch. Runs in seconds; fails fast before
+        # the expensive build step.
+        run: |
+          yarn lint:docs-links
       - name: yarn typecheck
         run: |
           yarn typecheck
@@ -90,7 +103,8 @@ jobs:
     # Only runs if integration tests succeeded
     if: >
       github.event_name == 'workflow_run' &&
-      github.event.workflow_run.conclusion == 'success'
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     name: Build (after integration tests)
     runs-on: ubuntu-24.04
     defaults:
@@ -98,26 +112,26 @@ jobs:
         working-directory: docs
     steps:
       - name: "Checkout PR head: ${{ github.event.workflow_run.head_sha }}"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
           submodules: recursive
       - name: Set up Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version-file: './docs/.nvmrc'
+          node-version-file: "./docs/.nvmrc"
       - name: yarn install
         run: |
           yarn install --check-cache
       - name: Download database diagnostics from integration tests
-        uses: dawidd6/action-download-artifact@8305c0f1062bb0d184d09ef4493ecb9288447732 # v20
+        uses: dawidd6/action-download-artifact@b6e2e70617bc3265edd6dab6c906732b2f1ae151 # v21
         with:
           workflow: superset-python-integrationtest.yml
           run_id: ${{ github.event.workflow_run.id }}
           name: database-diagnostics
           path: docs/src/data/
-          if_no_artifact_found: 'warning'
+          if_no_artifact_found: "warning"
       - name: Use fresh diagnostics
         run: |
           if [ -f "src/data/databases-diagnostics.json" ]; then

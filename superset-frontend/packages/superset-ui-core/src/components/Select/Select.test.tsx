@@ -25,6 +25,7 @@ import {
   waitFor,
   within,
 } from '@superset-ui/core/spec';
+import { formatNumber } from '@superset-ui/core';
 import { Select } from '.';
 
 type Option = {
@@ -85,8 +86,10 @@ const getElementsByClassName = (className: string) =>
 const getSelect = () =>
   screen.getByRole('combobox', { name: new RegExp(ARIA_LABEL, 'i') });
 
-const selectAllButtonText = (length: number) => `Select all (${length})`;
-const deselectAllButtonText = (length: number) => `Clear (${length})`;
+const selectAllButtonText = (length: number) =>
+  `Select all (${formatNumber('SMART_NUMBER', length)})`;
+const deselectAllButtonText = (length: number) =>
+  `Clear (${formatNumber('SMART_NUMBER', length)})`;
 
 const findSelectOption = (text: string) =>
   waitFor(() =>
@@ -364,6 +367,23 @@ test('removes duplicated values', async () => {
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => 'a,b,b,b,c,d,d',
+    },
+  });
+  fireEvent(input, paste);
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(4);
+  expect(values[0]).toHaveTextContent('a');
+  expect(values[1]).toHaveTextContent('b');
+  expect(values[2]).toHaveTextContent('c');
+  expect(values[3]).toHaveTextContent('d');
+});
+
+test('trims whitespace from pasted comma-separated values', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'a, b,  c , d',
     },
   });
   fireEvent(input, paste);
@@ -811,6 +831,62 @@ test('Maintains stable maxTagCount to prevent click target disappearing in oneLi
   expect(withinSelector.getByText('+ 2 ...')).toBeVisible();
 });
 
+test('dropdown width matches input width after tags collapse in oneLine mode', async () => {
+  render(
+    <div style={{ width: '300px' }}>
+      <Select
+        {...defaultProps}
+        value={[OPTIONS[0], OPTIONS[1], OPTIONS[2]]}
+        mode="multiple"
+        oneLine
+      />
+    </div>,
+  );
+
+  await open();
+
+  // Wait for RAF to complete and tags to collapse
+  await waitFor(() => {
+    const withinSelector = within(
+      getElementByClassName('.ant-select-selector'),
+    );
+    expect(
+      withinSelector.queryByText(OPTIONS[0].label),
+    ).not.toBeInTheDocument();
+    expect(withinSelector.getByText('+ 3 ...')).toBeVisible();
+  });
+
+  const selectElement = document.querySelector('.ant-select') as HTMLElement;
+  expect(selectElement).toBeInTheDocument();
+
+  // Mock the select element's width since JSDOM doesn't perform real layout
+  jest.spyOn(selectElement, 'getBoundingClientRect').mockReturnValue({
+    width: 300,
+    height: 32,
+    top: 0,
+    left: 0,
+    right: 300,
+    bottom: 32,
+    x: 0,
+    y: 0,
+    toJSON: () => ({}),
+  } as DOMRect);
+
+  // Close and reopen to trigger width measurement with mocked value
+  await type('{esc}');
+  await open();
+
+  const dropdown = document.querySelector(
+    '.ant-select-dropdown',
+  ) as HTMLElement;
+  expect(dropdown).toBeInTheDocument();
+
+  // Verify the dropdown has inline width matching the mocked select width
+  await waitFor(() => {
+    expect(parseInt(dropdown.style.width, 10)).toBe(300);
+  });
+});
+
 test('does not render "Select all" when there are 0 or 1 options', async () => {
   const { rerender } = render(
     <Select {...defaultProps} options={[]} mode="multiple" allowNewOptions />,
@@ -913,6 +989,17 @@ test('"Select all" does not affect disabled options', async () => {
   await userEvent.click(await screen.findByText(selectAll));
   expect(await findSelectValue()).toHaveTextContent(options[0].label);
   expect(await findSelectValue()).not.toHaveTextContent(options[1].label);
+});
+
+test('abbreviates large numbers in bulk action buttons', async () => {
+  const manyOptions = Array.from({ length: 1500 }, (_, i) => ({
+    label: `Option ${i}`,
+    value: i,
+  }));
+  render(<Select {...defaultProps} mode="multiple" options={manyOptions} />);
+  await open();
+  // SMART_NUMBER format uses lowercase 'k' for thousands (d3-format)
+  expect(await screen.findByText('Select all (1.5k)')).toBeInTheDocument();
 });
 
 test('dropdown takes full width of the select input for multi select', async () => {
@@ -1076,6 +1163,127 @@ test('pasting an non-existent option should not add it if allowNewOptions is fal
   expect(await findAllSelectOptions()).toHaveLength(0);
 });
 
+// Reference for the bug this tests: https://github.com/apache/superset/issues/32645
+// Dashboard filters with "Dynamically search all filter values" only load a
+// page of options client-side, so a pasted value outside that page used to be
+// silently dropped. allowNewOptionsOnPaste keeps such values so the filter can
+// still apply them.
+test('keeps pasted values outside loaded options when allowNewOptionsOnPaste is true', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      {...defaultProps}
+      mode="multiple"
+      allowNewOptions={false}
+      allowNewOptionsOnPaste
+      onChange={onChange}
+    />,
+  );
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      // Liam is a loaded option; OutsideValue is not in the loaded page.
+      getData: () => 'Liam,OutsideValue',
+    },
+  });
+  fireEvent(input, paste);
+  await waitFor(() => {
+    const values = [
+      ...getElementsByClassName('.ant-select-selection-item'),
+    ].map(value => value.textContent);
+    // The paste handler appends, so the loaded option resolves first.
+    expect(values).toEqual(['Liam', 'OutsideValue']);
+  });
+  // Assert the unloaded value actually reaches the change handler (the value
+  // that gets applied to the filter query), not just the rendered label.
+  expect(onChange).toHaveBeenCalledWith(
+    expect.arrayContaining([
+      expect.objectContaining({ value: 'OutsideValue' }),
+    ]),
+    expect.anything(),
+  );
+});
+
+test('trims whitespace around pasted comma-separated values', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      {...defaultProps}
+      mode="multiple"
+      allowNewOptions={false}
+      allowNewOptionsOnPaste
+      onChange={onChange}
+    />,
+  );
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      // Note the space after the comma — it must not leak into the value.
+      getData: () => 'Liam, OutsideValue',
+    },
+  });
+  fireEvent(input, paste);
+  await waitFor(() => {
+    const values = [
+      ...getElementsByClassName('.ant-select-selection-item'),
+    ].map(value => value.textContent);
+    expect(values).toEqual(['Liam', 'OutsideValue']);
+  });
+  expect(onChange).toHaveBeenCalledWith(
+    expect.arrayContaining([
+      expect.objectContaining({ value: 'OutsideValue' }),
+    ]),
+    expect.anything(),
+  );
+});
+
+test('does not create an empty option when pasting blank text', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      {...defaultProps}
+      mode="multiple"
+      allowNewOptions={false}
+      allowNewOptionsOnPaste
+      onChange={onChange}
+    />,
+  );
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => '   ',
+    },
+  });
+  fireEvent(input, paste);
+  await waitFor(() => {
+    const values = [
+      ...getElementsByClassName('.ant-select-selection-item'),
+    ].map(value => value.textContent);
+    expect(values).toEqual([]);
+  });
+  // No empty-string value should ever reach the handler.
+  onChange.mock.calls.forEach(([value]) => {
+    expect(value).not.toContain('');
+  });
+});
+
+test('drops pasted values outside loaded options when allowNewOptionsOnPaste is false', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowNewOptions={false} />);
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'Liam,OutsideValue',
+    },
+  });
+  fireEvent(input, paste);
+  await waitFor(() => {
+    const values = [
+      ...getElementsByClassName('.ant-select-selection-item'),
+    ].map(value => value.textContent);
+    expect(values).toEqual(['Liam']);
+  });
+});
+
 test('does not fire onChange if the same value is selected in single mode', async () => {
   const onChange = jest.fn();
   render(<Select {...defaultProps} onChange={onChange} />);
@@ -1090,7 +1298,7 @@ test('does not fire onChange if the same value is selected in single mode', asyn
 
 // Reference for the bug this tests: https://github.com/apache/superset/pull/33043#issuecomment-2809419640
 test('typing and deleting the last character for a new option displays correctly', async () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
   render(<Select {...defaultProps} allowNewOptions />);
 
   await open();

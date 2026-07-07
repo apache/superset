@@ -40,6 +40,7 @@ import {
   ConfirmStatusChange,
   DeleteModal,
   FaveStar,
+  InfoTooltip,
   Loading,
   PublishedLabel,
   Tooltip,
@@ -106,11 +107,11 @@ export interface Dashboard {
   changed_by_name: string;
   changed_on_delta_humanized: string;
   changed_by: string;
+  changed_on?: string;
   dashboard_title: string;
   id: number;
   published: boolean;
   url: string;
-  thumbnail_url: string;
   owners: Owner[];
   tags: TagType[];
   created_by: object;
@@ -120,12 +121,31 @@ const Actions = styled.div`
   color: ${({ theme }) => theme.colorIcon};
 `;
 
+const FlexRowContainer = styled.div`
+  align-items: center;
+  display: flex;
+  gap: ${({ theme }) => theme.sizeUnit}px;
+
+  a {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.2;
+    min-width: 0;
+  }
+
+  svg {
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
+  }
+`;
+
 const DASHBOARD_COLUMNS_TO_FETCH = [
   'id',
   'dashboard_title',
   'published',
   'url',
   'slug',
+  'description',
   'changed_by',
   'changed_by.id',
   'changed_by.first_name',
@@ -241,6 +261,7 @@ function DashboardList(props: DashboardListProps) {
                 changed_by: changedBy,
                 dashboard_title: dashboardTitle = '',
                 slug = '',
+                description = '',
                 json_metadata: jsonMetadata = '',
                 changed_on_delta_humanized: changedOnDeltaHumanized,
                 url = '',
@@ -255,6 +276,7 @@ function DashboardList(props: DashboardListProps) {
                 changed_by: changedBy,
                 dashboard_title: dashboardTitle,
                 slug,
+                description,
                 json_metadata: jsonMetadata,
                 changed_on_delta_humanized: changedOnDeltaHumanized,
                 url,
@@ -341,20 +363,24 @@ function DashboardList(props: DashboardListProps) {
               dashboard_title: dashboardTitle,
               certified_by: certifiedBy,
               certification_details: certificationDetails,
+              description,
             },
           },
         }: any) => (
-          <Link to={url} title={dashboardTitle}>
-            {certifiedBy && (
-              <>
-                <CertifiedBadge
-                  certifiedBy={certifiedBy}
-                  details={certificationDetails}
-                />{' '}
-              </>
-            )}
-            {dashboardTitle}
-          </Link>
+          <FlexRowContainer>
+            <Link to={url} title={dashboardTitle}>
+              {certifiedBy && (
+                <>
+                  <CertifiedBadge
+                    certifiedBy={certifiedBy}
+                    details={certificationDetails}
+                  />{' '}
+                </>
+              )}
+              {dashboardTitle}
+            </Link>
+            {description && <InfoTooltip tooltip={description} />}
+          </FlexRowContainer>
         ),
         Header: t('Name'),
         accessor: 'dashboard_title',
@@ -447,6 +473,7 @@ function DashboardList(props: DashboardListProps) {
                   placement="bottom"
                 >
                   <span
+                    data-test="dashboard-row-edit"
                     role="button"
                     tabIndex={0}
                     className="action-button"
@@ -463,6 +490,7 @@ function DashboardList(props: DashboardListProps) {
                   placement="bottom"
                 >
                   <span
+                    data-test="dashboard-row-export"
                     role="button"
                     tabIndex={0}
                     className="action-button"
@@ -490,6 +518,7 @@ function DashboardList(props: DashboardListProps) {
                       placement="bottom"
                     >
                       <span
+                        data-test="dashboard-row-delete"
                         role="button"
                         tabIndex={0}
                         className="action-button"
@@ -605,7 +634,7 @@ function DashboardList(props: DashboardListProps) {
         ),
         optionFilterProps: OWNER_OPTION_FILTER_PROPS,
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       ...(user?.userId ? [favoritesFilter] : []),
       {
@@ -640,7 +669,7 @@ function DashboardList(props: DashboardListProps) {
           user,
         ),
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ] as ListViewFilters;
     return filtersList;
@@ -733,7 +762,7 @@ function DashboardList(props: DashboardListProps) {
       name: t('Dashboard'),
       buttonStyle: 'primary',
       onClick: () => {
-        navigateTo('/dashboard/new', { assign: true });
+        navigateTo('/dashboard/new/', { assign: true });
       },
     });
   }

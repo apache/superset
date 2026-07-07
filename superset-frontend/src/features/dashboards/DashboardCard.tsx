@@ -16,27 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
-import {
-  isFeatureEnabled,
-  FeatureFlag,
-  SupersetClient,
-} from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { CardStyles } from 'src/views/CRUD/utils';
 import {
-  Dropdown,
-  Button,
   FaveStar,
+  Icons,
   PublishedLabel,
   ListViewCard,
 } from '@superset-ui/core/components';
 import { MenuItem } from '@superset-ui/core/components/Menu';
-import { Icons } from '@superset-ui/core/components/Icons';
 import { Dashboard } from 'src/views/CRUD/types';
 import { assetUrl } from 'src/utils/assetUrl';
-import { FacePile } from 'src/components';
+import { FacePile, KebabMenuButton } from 'src/components';
 
 interface DashboardCardProps {
   isChart?: boolean;
@@ -69,33 +62,11 @@ function DashboardCard({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
-  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
-  const [fetchingThumbnail, setFetchingThumbnail] = useState<boolean>(false);
-
-  useEffect(() => {
-    // fetch thumbnail only if it's not already fetched
-    if (
-      !fetchingThumbnail &&
-      dashboard.id &&
-      (thumbnailUrl === undefined || thumbnailUrl === null) &&
-      isFeatureEnabled(FeatureFlag.Thumbnails)
-    ) {
-      // fetch thumbnail
-      if (dashboard.thumbnail_url) {
-        // set to empty string if null so that we don't
-        // keep fetching the thumbnail
-        setThumbnailUrl(dashboard.thumbnail_url || '');
-        return;
-      }
-      setFetchingThumbnail(true);
-      SupersetClient.get({
-        endpoint: `/api/v1/dashboard/${dashboard.id}`,
-      }).then(({ json = {} }) => {
-        setThumbnailUrl(json.result?.thumbnail_url || '');
-        setFetchingThumbnail(false);
-      });
-    }
-  }, [dashboard, thumbnailUrl]);
+  const digest = dashboard.changed_on_utc || dashboard.changed_on;
+  const thumbnailUrl =
+    isFeatureEnabled(FeatureFlag.Thumbnails) && dashboard.id && digest
+      ? `/api/v1/dashboard/${dashboard.id}/thumbnail/${encodeURIComponent(digest)}/`
+      : '';
 
   const menuItems: MenuItem[] = [];
 
@@ -191,11 +162,10 @@ function DashboardCard({
                 isStarred={favoriteStatus}
               />
             )}
-            <Dropdown menu={{ items: menuItems }} trigger={['hover', 'click']}>
-              <Button buttonSize="xsmall" buttonStyle="link">
-                <Icons.MoreOutlined iconSize="xl" />
-              </Button>
-            </Dropdown>
+            <KebabMenuButton
+              menuItems={menuItems}
+              dataTest="dashboard-card-menu"
+            />
           </ListViewCard.Actions>
         }
       />

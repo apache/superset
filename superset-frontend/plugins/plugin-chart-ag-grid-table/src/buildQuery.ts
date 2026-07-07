@@ -38,7 +38,7 @@ import {
   isTimeComparison,
   timeCompareOperator,
 } from '@superset-ui/chart-controls';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import { TableChartFormData } from './types';
 import { updateTableOwnState } from './utils/externalAPIs';
 
@@ -90,6 +90,13 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     let { metrics, orderby = [], columns = [] } = baseQueryObject;
     const { extras = {} } = baseQueryObject;
     let postProcessing: PostProcessingRule[] = [];
+    // Capture the percent-metric `contribution` rule so it can be reused for
+    // the totals query below. The totals query must rename percent-metric
+    // columns the same way (`metric` -> `%metric`) so the footer can look them
+    // up; without it the totals row renders 0.000%. We deliberately reuse only
+    // this rule and not the full `postProcessing` array, which may also contain
+    // a time-comparison operator that must not run on the single totals row.
+    let contributionPostProcessing: PostProcessingRule | undefined;
     const nonCustomNorInheritShifts = ensureIsArray(
       formData.time_compare,
     ).filter((shift: string) => shift !== 'custom' && shift !== 'inherit');
@@ -157,15 +164,14 @@ const buildQuery: BuildQuery<TableChartFormData> = (
           metrics.concat(percentMetrics),
           getMetricLabel,
         );
-        postProcessing = [
-          {
-            operation: 'contribution',
-            options: {
-              columns: percentMetricLabels,
-              rename_columns: percentMetricLabels.map(x => `%${x}`),
-            },
+        contributionPostProcessing = {
+          operation: 'contribution',
+          options: {
+            columns: percentMetricLabels,
+            rename_columns: percentMetricLabels.map(x => `%${x}`),
           },
-        ];
+        };
+        postProcessing = [contributionPostProcessing];
       }
       // Add the operator for the time comparison if some is selected
       if (!isEmpty(timeOffsets)) {
@@ -238,12 +244,11 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         });
 
         if (matchingColumn) {
-          if (
-            typeof matchingColumn === 'object' &&
-            'sqlExpression' in matchingColumn
-          ) {
-            return matchingColumn.sqlExpression;
-          }
+          // Return the label, not the raw sqlExpression. The backend
+          // (helpers.py get_sqla_query) resolves orderby strings by
+          // matching adhoc column labels, then uses adhoc_column_to_sqla
+          // to emit the actual SQL expression into ORDER BY — so this
+          // is dialect-safe across all database engines.
           return getColumnLabel(matchingColumn);
         }
 
@@ -619,11 +624,28 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     // Create totals query AFTER all filters (including AG Grid filters) are applied
     // This ensures we can properly exclude AG Grid WHERE filters from the totals
-    if (
+    // In raw records mode the summary is a SUM over the numeric columns primed
+    // into ownState by the chart (see rawSummaryColumns in transformProps).
+    // Own state can outlive a datasource or column-selection change, so bound
+    // the primed summary columns to the current raw selection: a stale name
+    // must never reach a SUM metric or the whole chart query fails before the
+    // chart can re-prime its own state.
+    const selectedRawColumns = new Set(
+      ensureIsArray(formData.all_columns).map(getColumnLabel),
+    );
+    const rawSummaryColumns =
+      queryMode === QueryMode.Raw && formData.show_totals
+        ? ensureIsArray(
+            ownState.rawSummaryColumns as string[] | undefined,
+          ).filter(columnName => selectedRawColumns.has(columnName))
+        : [];
+    const showAggregateTotals = Boolean(
       metrics?.length &&
       formData.show_totals &&
-      queryMode === QueryMode.Aggregate
-    ) {
+      queryMode === QueryMode.Aggregate,
+    );
+
+    if (showAggregateTotals || rawSummaryColumns.length > 0) {
       // Create a copy of extras without the AG Grid WHERE clause
       // AG Grid filters in extras.where can reference calculated columns
       // which aren't available in the totals subquery
@@ -656,10 +678,24 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       extraQueries.push({
         ...queryObject,
         columns: [],
+        ...(rawSummaryColumns.length > 0 && {
+          metrics: rawSummaryColumns.map(columnName => ({
+            expressionType: 'SIMPLE' as const,
+            aggregate: 'SUM' as const,
+            column: { column_name: columnName },
+            label: columnName,
+          })),
+        }),
         extras: totalsExtras, // Use extras with AG Grid WHERE removed
         row_limit: 0,
         row_offset: 0,
-        post_processing: [],
+        // Reapply only the percent-metric contribution rule so the totals row
+        // exposes `%metric` keys (value/value = 100% on the single aggregated
+        // row). The time-comparison operator from the main query is omitted on
+        // purpose; it must not run against the single-row totals query.
+        post_processing: contributionPostProcessing
+          ? [contributionPostProcessing]
+          : [],
         order_desc: undefined, // we don't need orderby stuff here,
         orderby: undefined, // because this query will be used for get total aggregation.
       });
