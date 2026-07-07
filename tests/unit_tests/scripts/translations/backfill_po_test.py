@@ -343,3 +343,96 @@ def test_ensure_license_header_dry_run_does_not_write(tmp_path: Path) -> None:
     po.write_text(original, encoding="utf-8")
     backfill_po._ensure_license_header(po, dry_run=True)
     assert po.read_text(encoding="utf-8") == original
+
+
+# --- _resilient_translate: batch bisection + plain-text fallback ---------------
+#
+# A source string containing a literal double-quote can make the model emit
+# unescaped quotes, so the batch's JSON response fails to parse and the whole
+# batch is lost. _resilient_translate isolates such entries by bisecting the
+# batch and falls back to a plain-text prompt for a lone offender. The stub
+# below simulates that failure mode: any batch containing a quoted msgid raises
+# ValueError (as parse_response would), everything else maps positionally.
+
+
+def _qitem(msgid: str) -> dict[str, str]:
+    return {"msgid": msgid, "index_key": msgid}
+
+
+def _fake_translate_batch(
+    model: str,
+    target_lang: str,
+    batch: list[dict[str, str]],
+    index: dict[str, object],
+) -> dict[int, str]:
+    if any('"' in it["msgid"] for it in batch):
+        raise ValueError("simulated unparseable JSON")
+    return {i: f"T:{it['msgid']}" for i, it in enumerate(batch)}
+
+
+def test_resilient_translate_passthrough_when_batch_parses(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A cleanly-parsing batch is returned as-is, without bisection."""
+    monkeypatch.setattr(backfill_po, "translate_batch", _fake_translate_batch)
+    result = backfill_po._resilient_translate(
+        "m", "fr", [_qitem("Alpha"), _qitem("Beta")], {}
+    )
+    assert result == {0: "T:Alpha", 1: "T:Beta"}
+
+
+def test_resilient_translate_bisects_and_falls_back_on_poison(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The quote-bearing entry is isolated and filled via plain-text fallback,
+    while every other entry keeps its original batch position."""
+    monkeypatch.setattr(backfill_po, "translate_batch", _fake_translate_batch)
+    monkeypatch.setattr(
+        backfill_po,
+        "_translate_single_plaintext",
+        lambda model, lang, item, index: f"PT:{item['msgid']}",
+    )
+    batch = [_qitem("Alpha"), _qitem("Beta"), _qitem('Has "quote"'), _qitem("Delta")]
+    result = backfill_po._resilient_translate("m", "fr", batch, {})
+    assert result == {
+        0: "T:Alpha",
+        1: "T:Beta",
+        2: 'PT:Has "quote"',
+        3: "T:Delta",
+    }
+
+
+def test_resilient_translate_drops_entry_when_fallback_returns_none(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A lone entry that even the plain-text fallback can't render is dropped
+    (absent key) rather than sinking the surviving entries."""
+    monkeypatch.setattr(backfill_po, "translate_batch", _fake_translate_batch)
+    monkeypatch.setattr(
+        backfill_po,
+        "_translate_single_plaintext",
+        lambda model, lang, item, index: None,
+    )
+    result = backfill_po._resilient_translate(
+        "m", "fr", [_qitem("Alpha"), _qitem('Bad "one"')], {}
+    )
+    assert result == {0: "T:Alpha"}
+
+
+def test_resilient_translate_propagates_runtime_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A CLI failure (RuntimeError) is not a content problem, so it propagates
+    to the caller's per-batch handler instead of triggering a bisect."""
+
+    def _boom(
+        model: str,
+        target_lang: str,
+        batch: list[dict[str, str]],
+        index: dict[str, object],
+    ) -> dict[int, str]:
+        raise RuntimeError("claude CLI exploded")
+
+    monkeypatch.setattr(backfill_po, "translate_batch", _boom)
+    with pytest.raises(RuntimeError):
+        backfill_po._resilient_translate("m", "fr", [_qitem("Alpha")], {})

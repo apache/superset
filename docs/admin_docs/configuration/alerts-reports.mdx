@@ -81,6 +81,21 @@ SLACK_CACHE_TIMEOUT = int(timedelta(days=2).total_seconds())
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 5
 ```
 
+#### Slack Enterprise Grid (org-scoped tokens)
+
+On a Slack Enterprise Grid org, an org-scoped token spans multiple workspaces, so
+workspace-scoped methods such as `conversations.list` require a `team_id` to
+indicate which workspace to target. Set `SLACK_TEAM_ID` to your workspace (team)
+ID so Superset can list channels and deliver reports:
+
+```python
+# The workspace (team) ID to target, e.g. "T01234567"
+SLACK_TEAM_ID = "T01234567"
+```
+
+This defaults to `None` and only needs to be set when using an org-scoped token;
+it is accepted but ignored for standard workspace-level tokens.
+
 ### Webhook integration
 
 Superset can send alert and report notifications to any HTTP endpoint — useful for chat platforms, incident management tools, or custom automation.

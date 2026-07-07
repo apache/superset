@@ -29,7 +29,7 @@
     "@deck.gl/extensions": "~9.2.9",
     "@deck.gl/geo-layers": "~9.2.5",
     "@deck.gl/layers": "~9.2.5",
-    "@deck.gl/mapbox": "~9.3.4",
+    "@deck.gl/mapbox": "~9.3.5",
     "@deck.gl/mesh-layers": "~9.2.5",
     "@luma.gl/constants": "~9.2.5",
     "@luma.gl/core": "~9.2.5",
@@ -53,7 +53,8 @@
     "tinycolor2": "^1.6.0",
     "underscore": "^1.13.7",
     "urijs": "^1.19.11",
-    "xss": "^1.0.15"
+    "xss": "^1.0.15",
+    "lodash-es": "^4.18.1"
   },
   "devDependencies": {
     "@types/mapbox__geojson-extent": "^1.0.3",

@@ -50,13 +50,14 @@ import {
   JsonObject,
 } from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
-import { debounce, isEqual } from 'lodash';
+import { debounce, isEqual } from 'lodash-es';
 import Pagination from './components/Pagination';
 import SearchSelectDropdown from './components/SearchSelectDropdown';
 import { SearchOption, SortByItem } from '../types';
 import getInitialSortState, { shouldSort } from '../utils/getInitialSortState';
 import getInitialFilterModel from '../utils/getInitialFilterModel';
 import reconcileColumnState from '../utils/reconcileColumnState';
+import getColumnStateSignature from '../utils/getColumnStateSignature';
 import { PAGE_SIZE_OPTIONS } from '../consts';
 import { getCompleteFilterState } from '../utils/filterStateManager';
 
@@ -337,11 +338,11 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
               timestamp: Date.now(),
             };
 
-            const stateHash = JSON.stringify({
-              columnOrder: columnState.map(c => c.colId),
-              sorts: sortModel,
-              filters: filterModel,
-            });
+            const stateHash = getColumnStateSignature(
+              columnState,
+              sortModel,
+              filterModel,
+            );
 
             if (stateHash !== lastCapturedStateRef.current) {
               lastCapturedStateRef.current = stateHash;

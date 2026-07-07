@@ -83,10 +83,7 @@ export interface MetricColumnType {
 }
 
 export type ColumnType =
-  | ColumnMeta
-  | SimpleExpressionType
-  | SQLExpressionType
-  | MetricColumnType;
+  ColumnMeta | SimpleExpressionType | SQLExpressionType | MetricColumnType;
 
 export interface Props {
   adhocFilter: AdhocFilter;
