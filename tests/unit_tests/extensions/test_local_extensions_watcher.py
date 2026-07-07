@@ -21,11 +21,15 @@ from watchdog.events import FileDeletedEvent, FileMovedEvent
 from superset.extensions.local_extensions_watcher import _get_file_handler_class
 
 
+def _noop_schedule_reload(_path: str) -> None:
+    """Stand in for a real debounce timer in unit tests."""
+
+
 def make_handler() -> Any:
     handler_class = _get_file_handler_class()
     handler = handler_class()
     # Avoid spinning up real debounce timers in unit tests.
-    handler._schedule_reload = lambda _path: None
+    handler._schedule_reload = _noop_schedule_reload
     return handler
 
 
