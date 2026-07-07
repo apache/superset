@@ -19,7 +19,7 @@
 import { BASIC_COLOR_FORMATTERS_ROW_KEY } from '../consts';
 import { BasicColorFormatterType } from '../types';
 
-type RowFormatters = { [key: string]: BasicColorFormatterType };
+export type RowFormatters = { [key: string]: BasicColorFormatterType };
 
 /**
  * Resolves the basic (increase/decrease) color formatters for a given AG Grid

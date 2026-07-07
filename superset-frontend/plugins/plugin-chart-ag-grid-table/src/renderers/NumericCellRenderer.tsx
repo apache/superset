@@ -169,8 +169,8 @@ export const NumericCellRenderer = (
       node?.rowIndex,
       basicColorFormatters,
     )?.[col.metricName];
-    arrow = rowFormatter?.mainArrow;
-    arrowColor = rowFormatter?.arrowColor?.toLowerCase();
+    arrow = rowFormatter?.mainArrow ?? '';
+    arrowColor = rowFormatter?.arrowColor?.toLowerCase() ?? '';
   }
 
   const alignment =

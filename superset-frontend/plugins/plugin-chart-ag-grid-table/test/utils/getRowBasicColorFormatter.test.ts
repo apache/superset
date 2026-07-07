@@ -16,16 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import getRowBasicColorFormatter from '../../src/utils/getRowBasicColorFormatter';
+import getRowBasicColorFormatter, {
+  RowFormatters,
+} from '../../src/utils/getRowBasicColorFormatter';
 import { BASIC_COLOR_FORMATTERS_ROW_KEY } from '../../src/consts';
 
-const red = { sales: { backgroundColor: 'red', mainArrow: '↓', arrowColor: 'red' } };
-const green = {
+const red: RowFormatters = {
+  sales: { backgroundColor: 'red', mainArrow: '↓', arrowColor: 'red' },
+};
+const green: RowFormatters = {
   sales: { backgroundColor: 'green', mainArrow: '↑', arrowColor: 'green' },
 };
 
 // Positional array in the original (unsorted) query order: row 0 -> green, row 1 -> red.
-const positional = [green, red] as any;
+const positional: RowFormatters[] = [green, red];
 
 test('uses the formatter attached to the row, not the displayed rowIndex (#105973)', () => {
   // After sorting, the row whose original formatter is `red` is displayed first
@@ -49,7 +53,9 @@ test('falls back to positional lookup when no formatter is attached', () => {
 });
 
 test('returns undefined when nothing matches', () => {
-  expect(getRowBasicColorFormatter(undefined, null, positional)).toBeUndefined();
+  expect(
+    getRowBasicColorFormatter(undefined, null, positional),
+  ).toBeUndefined();
   expect(
     getRowBasicColorFormatter({ data: {} }, null, positional),
   ).toBeUndefined();
