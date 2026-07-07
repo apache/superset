@@ -1483,3 +1483,93 @@ def test_same_rank_candidates_served_freshest_first(
     served = cache_module.try_serve_from_cache(VIEW, q)
     assert served is fresh_result, "older same-rank entry shadowed the freshest one"
     assert post.call_args[0][0] is fresh_result
+
+
+def test_acquire_lock_retries_when_lock_vanishes_between_add_and_get() -> None:
+    """A failed ``add`` followed by a ``get`` that finds no lock (the holder
+    released in between) must simply retry — not treat the gap as stale."""
+
+    class VanishingLockCache:
+        def __init__(self) -> None:
+            self._store: dict[str, Any] = {}
+            self.add_calls = 0
+
+        def get(self, key: str) -> Any:
+            return None  # the lock is gone by the time we look
+
+        def set(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            self._store[key] = value
+            return True
+
+        def add(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            self.add_calls += 1
+            return self.add_calls > 1  # first attempt loses, second wins
+
+        def delete(self, key: str) -> bool:
+            return self._store.pop(key, None) is not None
+
+    fake = VanishingLockCache()
+    token = cache_module._acquire_index_lock(fake, "b:lock", attempts=3)
+    assert token is not None
+    assert fake.add_calls == 2
+
+
+def test_stale_break_declines_when_lock_changed_hands() -> None:
+    """The fenced break re-reads the lock before deleting; if the value
+    changed (another waiter already broke and re-acquired), the delete is
+    skipped so the new owner's fresh lock survives."""
+    stale = f"deadowner:{cache_module._time.time() - 10_000}"
+    fresh = f"newowner:{cache_module._time.time()}"
+
+    class HandoffCache:
+        def __init__(self) -> None:
+            self.get_calls = 0
+            self.deleted: list[str] = []
+
+        def get(self, key: str) -> Any:
+            self.get_calls += 1
+            # Staleness read sees the orphan; the fenced re-read sees the
+            # new owner's token.
+            return stale if self.get_calls == 1 else fresh
+
+        def add(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            return False  # fresh owner holds it throughout
+
+        def set(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            return True
+
+        def delete(self, key: str) -> bool:
+            self.deleted.append(key)
+            return True
+
+    fake = HandoffCache()
+    token = cache_module._acquire_index_lock(fake, "b:lock", attempts=1)
+    assert token is None
+    assert fake.deleted == [], "fenced break deleted a lock that changed hands"
+
+
+def test_degraded_no_add_cache_skips_write_when_mutate_returns_none() -> None:
+    """Duck-typed caches without ``add`` take the unlocked path; a ``None``
+    from ``mutate`` must still skip the write there."""
+
+    class NoAddCache:
+        def __init__(self) -> None:
+            self._store: dict[str, Any] = {"b": ["existing"]}
+            self.set_calls = 0
+
+        def get(self, key: str) -> Any:
+            return self._store.get(key)
+
+        def set(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            self.set_calls += 1
+            self._store[key] = value
+            return True
+
+        def delete(self, key: str) -> bool:
+            return self._store.pop(key, None) is not None
+
+    fake = NoAddCache()
+    updated = cache_module._update_index(fake, "b", 60, lambda entries: None)
+    assert updated is True  # degraded path reports the update ran
+    assert fake.set_calls == 0, "mutate returning None must skip the write"
+    assert fake._store["b"] == ["existing"]
