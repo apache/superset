@@ -47,9 +47,7 @@ def _build_dataset(offset: int) -> SqlaTable:
     )
 
 
-def _generated_sql(
-    dataset: SqlaTable, mocker: MockerFixture, app: Flask
-) -> str:
+def _generated_sql(dataset: SqlaTable, mocker: MockerFixture, app: Flask) -> str:
     mocker.patch(
         "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
         return_value=[],

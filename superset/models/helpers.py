@@ -2917,8 +2917,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # but the time filter compares the raw stored values. Shifting the filter
         # bounds by -offset keeps the filter consistent with what is displayed;
         # otherwise a date selection lands on the wrong calendar day (#104810).
-        offset_hours = getattr(self, "offset", 0) or 0
-        if offset_hours:
+        if offset_hours := getattr(self, "offset", 0) or 0:
             if start_dttm is not None:
                 start_dttm = start_dttm - timedelta(hours=offset_hours)
             if end_dttm is not None:
