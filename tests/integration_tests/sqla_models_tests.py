@@ -21,7 +21,7 @@ import re
 from datetime import datetime
 from typing import Any, cast, Literal, NamedTuple, Optional, Union
 from re import Pattern
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 import numpy as np
@@ -138,8 +138,8 @@ class TestDatabaseModel(SupersetTestCase):
             assert col.is_temporal
 
     @patch("superset.jinja_context.get_username", return_value="abc")
-    def test_jinja_metrics_and_calc_columns(self, mock_username):
-        base_query_obj = {
+    def test_jinja_metrics_and_calc_columns(self, mock_username: MagicMock) -> None:
+        base_query_obj: dict[str, Any] = {
             "granularity": None,
             "from_dttm": None,
             "to_dttm": None,
@@ -199,8 +199,8 @@ class TestDatabaseModel(SupersetTestCase):
         assert "'foo_P1D'" in query
         # assert dataset saved metric
         assert "count('bar_P1D')" in query
-        # assert adhoc metric
-        assert "SUM(CASE WHEN user = 'user_abc' THEN 1 ELSE 0 END)" in query
+        # assert adhoc metric (sanitize_clause preserves the user's SQL verbatim)
+        assert "SUM(case when user = 'user_abc' then 1 else 0 end)" in query
         # Cleanup
         db.session.delete(table)
         db.session.commit()
