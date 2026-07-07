@@ -223,6 +223,5 @@ const config: ControlPanelConfig = {
     metric: getStandardizedControls().shiftMetric(),
   }),
 };
-1;
 
 export default config;
