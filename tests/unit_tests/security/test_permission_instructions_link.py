@@ -59,9 +59,7 @@ def test_datasource_placeholders_are_filled_and_url_encoded():
         datasource_name="Quarterly Sales",
     )
     # space in the dataset name is URL-encoded; username injected from g.user
-    assert out == (
-        "https://acme.example.com/req?id=12&name=Quarterly%20Sales&u=alice"
-    )
+    assert out == ("https://acme.example.com/req?id=12&name=Quarterly%20Sales&u=alice")
 
 
 def test_table_names_filled_and_encoded():
@@ -69,9 +67,7 @@ def test_table_names_filled_and_encoded():
         "https://acme.example.com/req?tables={table_names}",
         table_names="public.sales,public.users",
     )
-    assert out == (
-        "https://acme.example.com/req?tables=public.sales%2Cpublic.users"
-    )
+    assert out == ("https://acme.example.com/req?tables=public.sales%2Cpublic.users")
 
 
 def test_anonymous_user_renders_empty_username():
