@@ -24,6 +24,7 @@ import logging
 from typing import Any
 
 from fastmcp import Context
+from sqlalchemy.orm import Query
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.daos.dataset import DatasetDAO
@@ -98,7 +99,7 @@ def _collect_builtin_metrics(request: ListMetricsRequest) -> list[MetricInfo]:
 
             # Use _apply_base_filter with explicit eager loading to avoid
             # N+1 queries when iterating dataset.metrics / dataset.columns.
-            query = db.session.query(SqlaTable).options(
+            query: Query = db.session.query(SqlaTable).options(
                 subqueryload(SqlaTable.columns),
                 subqueryload(SqlaTable.metrics),
             )
@@ -291,7 +292,7 @@ async def list_metrics(
             await ctx.debug("Collected %d built-in metrics" % len(all_metrics))
 
         if request.dataset_id is None:
-            external = await _collect_external_metrics(request, ctx)
+            external: list[MetricInfo] = await _collect_external_metrics(request, ctx)
             all_metrics.extend(external)
             await ctx.debug("Collected %d external metrics" % len(external))
 

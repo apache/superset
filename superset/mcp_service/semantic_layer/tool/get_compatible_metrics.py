@@ -156,7 +156,7 @@ async def get_compatible_metrics(
             # exclude ones already selected so clients don't get duplicate
             # suggestions for metrics they've already added.
             selected_metrics: set[str] = set(request.selected_metrics)
-            compatible = [
+            compatible: list[MetricInfo] = [
                 MetricInfo(
                     name=m.metric_name,
                     verbose_name=m.verbose_name or None,

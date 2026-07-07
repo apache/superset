@@ -47,28 +47,28 @@ class TestFormatDataColumns:
 
     def test_infers_boolean_type(self) -> None:
         """Should infer boolean data_type from sample values."""
-        data = [{"is_active": True}, {"is_active": False}]
+        data: list[dict[str, Any]] = [{"is_active": True}, {"is_active": False}]
         columns = format_data_columns(data, ["is_active"])
 
         assert columns[0].data_type == "boolean"
 
     def test_infers_string_type_by_default(self) -> None:
         """Should default to string data_type when values aren't numeric/boolean."""
-        data = [{"region": "west"}, {"region": "east"}]
+        data: list[dict[str, Any]] = [{"region": "west"}, {"region": "east"}]
         columns = format_data_columns(data, ["region"])
 
         assert columns[0].data_type == "string"
 
     def test_string_type_when_no_sample_values(self) -> None:
         """Should default to string data_type when all sampled values are null."""
-        data = [{"region": None}]
+        data: list[dict[str, Any]] = [{"region": None}]
         columns = format_data_columns(data, ["region"])
 
         assert columns[0].data_type == "string"
 
     def test_sample_values_capped_at_three(self) -> None:
         """Should only take the first 3 non-null values as samples."""
-        data = [{"region": f"r{i}"} for i in range(10)]
+        data: list[dict[str, Any]] = [{"region": f"r{i}"} for i in range(10)]
         columns = format_data_columns(data, ["region"])
 
         assert columns[0].sample_values == ["r0", "r1", "r2"]
@@ -94,7 +94,7 @@ class TestFormatDataColumns:
         sample for performance, but were previously returned as if they were
         exact full-dataset totals with no indication of sampling.
         """
-        data = [{"id": i} for i in range(STATS_ROW_CAP + 10)]
+        data: list[dict[str, Any]] = [{"id": i} for i in range(STATS_ROW_CAP + 10)]
         columns = format_data_columns(data, ["id"])
 
         assert columns[0].statistics == {"sampled_rows": STATS_ROW_CAP}

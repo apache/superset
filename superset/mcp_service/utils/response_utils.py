@@ -182,14 +182,14 @@ def format_data_columns(
     # Local import breaks the chart.schemas ↔ response_utils circular dependency.
     from superset.mcp_service.chart.schemas import DataColumn  # noqa: PLC0415
 
-    stats_rows = data[:STATS_ROW_CAP]
-    is_sampled = len(data) > STATS_ROW_CAP
+    stats_rows: list[dict[str, Any]] = data[:STATS_ROW_CAP]
+    is_sampled: bool = len(data) > STATS_ROW_CAP
     columns_meta: list[DataColumn] = []
     for col_name in raw_columns:
         sample_values = [
             row.get(col_name) for row in data[:3] if row.get(col_name) is not None
         ]
-        data_type = "string"
+        data_type: str = "string"
         if sample_values:
             if all(isinstance(v, bool) for v in sample_values):
                 data_type = "boolean"
