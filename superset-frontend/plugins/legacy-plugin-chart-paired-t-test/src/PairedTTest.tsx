@@ -33,7 +33,7 @@ interface PairedTTestProps {
 
 const StyledDiv = styled.div`
   ${({ theme }) => `
-    .superset-legacy-chart-paired_ttest .scrollbar-container {
+    .superset-legacy-chart-paired-t-test .scrollbar-container {
       overflow: auto;
     }
 

@@ -72,7 +72,9 @@ test('flips the canvas to mirror negative bands in offset mode', () => {
     />,
   );
 
+  expect(mockContext.translate).toHaveBeenCalledWith(0, 20);
   expect(mockContext.scale).toHaveBeenCalledWith(1, -1);
+  expect(mockContext.fillRect).toHaveBeenCalled();
 });
 
 test('redraws when the data prop changes', () => {
