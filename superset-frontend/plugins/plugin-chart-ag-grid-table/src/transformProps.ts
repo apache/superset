@@ -709,8 +709,9 @@ const transformProps = (
   // object so it travels with the row through AG Grid client-side sorting.
   // basicColorFormatters is built in the original query order and was previously
   // read positionally by the displayed rowIndex, which applied colors to the
-  // wrong rows once the table was sorted (#105973). The property is
-  // non-enumerable so it never leaks into exports, cross-filters or spreads.
+  // wrong rows once the table was sorted (#105973). The key is a Symbol so it
+  // can never collide with a real dataset column and never leaks into exports,
+  // cross-filters or spreads.
   if (basicColorFormatters) {
     passedData.forEach((row, index) => {
       Object.defineProperty(row, BASIC_COLOR_FORMATTERS_ROW_KEY, {

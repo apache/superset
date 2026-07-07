@@ -34,7 +34,7 @@ export type RowFormatters = { [key: string]: BasicColorFormatterType };
  * present.
  */
 export default function getRowBasicColorFormatter(
-  node: { data?: Record<string, unknown> } | undefined,
+  node: { data?: Record<string | symbol, unknown> } | undefined,
   rowIndex: number | null | undefined,
   basicColorFormatters: RowFormatters[] | undefined,
 ): RowFormatters | undefined {

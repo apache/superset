@@ -34,11 +34,8 @@ const positional: RowFormatters[] = [green, red];
 test('uses the formatter attached to the row, not the displayed rowIndex (#105973)', () => {
   // After sorting, the row whose original formatter is `red` is displayed first
   // (rowIndex 0). The positional lookup would wrongly return `green`.
-  const rowData: Record<string, unknown> = { sales: 5 };
-  Object.defineProperty(rowData, BASIC_COLOR_FORMATTERS_ROW_KEY, {
-    value: red,
-    enumerable: false,
-  });
+  const rowData: Record<string | symbol, unknown> = { sales: 5 };
+  rowData[BASIC_COLOR_FORMATTERS_ROW_KEY] = red;
   const node = { data: rowData };
 
   expect(getRowBasicColorFormatter(node, 0, positional)).toBe(red);
@@ -61,11 +58,24 @@ test('returns undefined when nothing matches', () => {
   ).toBeUndefined();
 });
 
-test('attached formatter is non-enumerable so it does not leak into the row', () => {
-  const rowData: Record<string, unknown> = { sales: 5 };
-  Object.defineProperty(rowData, BASIC_COLOR_FORMATTERS_ROW_KEY, {
-    value: green,
-    enumerable: false,
-  });
+test('attached formatter is a Symbol so it does not leak into the row', () => {
+  const rowData: Record<string | symbol, unknown> = { sales: 5 };
+  rowData[BASIC_COLOR_FORMATTERS_ROW_KEY] = green;
+  // Symbol keys are excluded from Object.keys, JSON serialization and spreads.
   expect(Object.keys(rowData)).toEqual(['sales']);
+  expect(JSON.stringify(rowData)).toBe('{"sales":5}');
+});
+
+test('does not collide with a real column named "__basicColorFormatters__"', () => {
+  // The old string key would have overwritten this user column; the Symbol key
+  // leaves it untouched while still resolving the attached formatter (#105973).
+  const rowData: Record<string | symbol, unknown> = {
+    sales: 5,
+    __basicColorFormatters__: 'user data',
+  };
+  rowData[BASIC_COLOR_FORMATTERS_ROW_KEY] = red;
+  const node = { data: rowData };
+
+  expect(node.data.__basicColorFormatters__).toBe('user data');
+  expect(getRowBasicColorFormatter(node, 0, positional)).toBe(red);
 });
