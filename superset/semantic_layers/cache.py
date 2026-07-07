@@ -599,7 +599,9 @@ def _implies_range(  # noqa: C901
             and nop == Operator.GREATER_THAN_OR_EQUAL
         ):
             return nval >= cval
-        return False
+        # Unreachable: both ops are constrained to the two lower-bound
+        # operators above, whose four combinations are enumerated.
+        return False  # pragma: no cover
     else:
         if cop == Operator.LESS_THAN and nop == Operator.LESS_THAN:
             return nval <= cval
@@ -609,7 +611,8 @@ def _implies_range(  # noqa: C901
             return nval <= cval
         if cop == Operator.LESS_THAN_OR_EQUAL and nop == Operator.LESS_THAN_OR_EQUAL:
             return nval <= cval
-        return False
+        # Unreachable: mirror of the lower-bound enumeration above.
+        return False  # pragma: no cover
 
 
 def _scalar_in_range(value: Any, cop: Operator, cval: Any) -> bool:
@@ -723,7 +726,10 @@ def _mask_for(df: pd.DataFrame, f: Filter) -> pd.Series:  # noqa: C901
     if op == Operator.EQUALS:
         return series == val if val is not None else series.isna()
     if op == Operator.NOT_EQUALS:
-        return series != val if val is not None else series.notna()
+        # SQL three-valued logic: NULL != x is UNKNOWN, so the warehouse
+        # excludes NULL rows from a negative predicate; pandas would keep
+        # them (NaN != x is True). Match the warehouse.
+        return (series != val) & series.notna() if val is not None else series.notna()
     if op == Operator.GREATER_THAN:
         return series > val
     if op == Operator.GREATER_THAN_OR_EQUAL:
@@ -735,7 +741,10 @@ def _mask_for(df: pd.DataFrame, f: Filter) -> pd.Series:  # noqa: C901
     if op == Operator.IN:
         return series.isin(list(val) if isinstance(val, frozenset) else [val])
     if op == Operator.NOT_IN:
-        return ~series.isin(list(val) if isinstance(val, frozenset) else [val])
+        # See NOT_EQUALS: NULLs are excluded from negative predicates in SQL.
+        return (
+            ~series.isin(list(val) if isinstance(val, frozenset) else [val])
+        ) & series.notna()
     if op == Operator.IS_NULL:
         return series.isna()
     if op == Operator.IS_NOT_NULL:
@@ -743,7 +752,11 @@ def _mask_for(df: pd.DataFrame, f: Filter) -> pd.Series:  # noqa: C901
     if op == Operator.LIKE:
         return series.astype(str).str.match(_sql_like_to_regex(str(val)))
     if op == Operator.NOT_LIKE:
-        return ~series.astype(str).str.match(_sql_like_to_regex(str(val)))
+        # See NOT_EQUALS; also astype(str) would turn NaN into the literal
+        # string "nan", silently matching patterns.
+        return (
+            ~series.astype(str).str.match(_sql_like_to_regex(str(val)))
+        ) & series.notna()
     return pd.Series(True, index=df.index)
 
 

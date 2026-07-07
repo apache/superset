@@ -17,8 +17,9 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from typing import Any
+from unittest.mock import MagicMock
 
 import pandas as pd
 import pyarrow as pa
@@ -49,6 +50,7 @@ from superset.semantic_layers.cache import (
     value_key,
     ViewMeta,
 )
+from superset.utils import json
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -839,4 +841,457 @@ def test_project_rejected_when_order_references_dropped_metric() -> None:
     )
     new_q = SemanticQuery(metrics=[M_X], dimensions=[COL_A], limit=10)
     ok, _, _ = can_satisfy(entry_from(cached_q), new_q)
+    assert ok is False
+
+
+# ---------------------------------------------------------------------------
+# Coverage-gap closure: pairwise implication tables (see
+# notes/semantic-cache-coverage-workplan.md in the planning repo)
+# ---------------------------------------------------------------------------
+
+_D = dim("t.c")
+
+
+def _w(op: Operator, value: Any) -> Filter:
+    return where(_D, op, value)
+
+
+@pytest.mark.parametrize(
+    "new,cached,expected",
+    [
+        # cached IS_NULL (values differ so the equality early-return is dodged)
+        (_w(Operator.IS_NULL, 0), _w(Operator.IS_NULL, None), True),
+        (_w(Operator.EQUALS, None), _w(Operator.IS_NULL, None), True),
+        (_w(Operator.EQUALS, 5), _w(Operator.IS_NULL, None), False),
+        (_w(Operator.GREATER_THAN, 5), _w(Operator.IS_NULL, None), False),
+        # cached IS_NOT_NULL
+        (_w(Operator.IS_NOT_NULL, 0), _w(Operator.IS_NOT_NULL, None), True),
+        (_w(Operator.EQUALS, 5), _w(Operator.IS_NOT_NULL, None), True),
+        (_w(Operator.EQUALS, None), _w(Operator.IS_NOT_NULL, None), False),
+        (_w(Operator.GREATER_THAN, 5), _w(Operator.IS_NOT_NULL, None), True),
+        (
+            _w(Operator.IN, frozenset({1, 2})),
+            _w(Operator.IS_NOT_NULL, None),
+            True,
+        ),
+        (
+            _w(Operator.IN, frozenset({1, None})),
+            _w(Operator.IS_NOT_NULL, None),
+            False,
+        ),
+        (_w(Operator.LIKE, "a%"), _w(Operator.IS_NOT_NULL, None), False),
+        # cached EQUALS
+        (_w(Operator.IN, frozenset({5})), _w(Operator.EQUALS, 5), True),
+        (_w(Operator.IN, frozenset({5, 6})), _w(Operator.EQUALS, 5), False),
+        (_w(Operator.LIKE, "a%"), _w(Operator.EQUALS, 5), False),
+        # cached NOT_EQUALS
+        (_w(Operator.NOT_EQUALS, 6), _w(Operator.NOT_EQUALS, 5), False),
+        (_w(Operator.EQUALS, 6), _w(Operator.NOT_EQUALS, 5), True),
+        (_w(Operator.EQUALS, 5), _w(Operator.NOT_EQUALS, 5), False),
+        (_w(Operator.IN, frozenset({6, 7})), _w(Operator.NOT_EQUALS, 5), True),
+        (_w(Operator.IN, frozenset({5, 6})), _w(Operator.NOT_EQUALS, 5), False),
+        (_w(Operator.GREATER_THAN, 1), _w(Operator.NOT_EQUALS, 5), False),
+        # cached IN — non-set new op falls through
+        (_w(Operator.LIKE, "a%"), _w(Operator.IN, frozenset({1, 2})), False),
+        # cached NOT_IN
+        (
+            _w(Operator.NOT_IN, frozenset({1, 2, 3})),
+            _w(Operator.NOT_IN, frozenset({1, 2})),
+            True,
+        ),
+        (
+            _w(Operator.NOT_IN, frozenset({1})),
+            _w(Operator.NOT_IN, frozenset({1, 2})),
+            False,
+        ),
+        (
+            _w(Operator.NOT_EQUALS, 1),
+            _w(Operator.NOT_IN, frozenset({1})),
+            True,
+        ),
+        (
+            _w(Operator.NOT_EQUALS, 1),
+            _w(Operator.NOT_IN, frozenset({1, 2})),
+            False,
+        ),
+        (_w(Operator.EQUALS, 3), _w(Operator.NOT_IN, frozenset({1, 2})), True),
+        (_w(Operator.EQUALS, 1), _w(Operator.NOT_IN, frozenset({1, 2})), False),
+        (
+            _w(Operator.IN, frozenset({3, 4})),
+            _w(Operator.NOT_IN, frozenset({1, 2})),
+            True,
+        ),
+        (
+            _w(Operator.IN, frozenset({2, 3})),
+            _w(Operator.NOT_IN, frozenset({1, 2})),
+            False,
+        ),
+        (
+            _w(Operator.GREATER_THAN, 0),
+            _w(Operator.NOT_IN, frozenset({1, 2})),
+            False,
+        ),
+        # cached range: non-range/non-set/non-equals new ops fall through
+        (_w(Operator.IS_NULL, None), _w(Operator.GREATER_THAN, 1), False),
+        # incomparable values
+        (_w(Operator.GREATER_THAN, "abc"), _w(Operator.GREATER_THAN, 5), False),
+        # upper-bound combinations (cached LESS_THAN_OR_EQUAL)
+        (
+            _w(Operator.LESS_THAN, 5),
+            _w(Operator.LESS_THAN_OR_EQUAL, 5),
+            True,
+        ),
+        (
+            _w(Operator.LESS_THAN_OR_EQUAL, 5),
+            _w(Operator.LESS_THAN_OR_EQUAL, 5),
+            True,
+        ),
+        (
+            _w(Operator.LESS_THAN_OR_EQUAL, 6),
+            _w(Operator.LESS_THAN_OR_EQUAL, 5),
+            False,
+        ),
+        # EQUALS vs range delegates to _scalar_in_range
+        (_w(Operator.EQUALS, 3), _w(Operator.LESS_THAN, 5), True),
+        (_w(Operator.EQUALS, 5), _w(Operator.LESS_THAN, 5), False),
+        (_w(Operator.EQUALS, 5), _w(Operator.LESS_THAN_OR_EQUAL, 5), True),
+        (_w(Operator.EQUALS, "x"), _w(Operator.GREATER_THAN, 1), False),
+    ],
+)
+def test_implies_operator_matrix(new: Filter, cached: Filter, expected: bool) -> None:
+    assert _implies(new, cached) is expected
+
+
+def test_scalar_in_range_non_range_operator_returns_false() -> None:
+    from superset.semantic_layers.cache import _scalar_in_range
+
+    # Callers only pass range operators; the fallthrough guards direct misuse.
+    assert _scalar_in_range(1, Operator.EQUALS, 1) is False
+
+
+@pytest.mark.parametrize(
+    "a,b,expected",
+    [
+        (None, 1, False),
+        (1, None, False),
+        (True, 1, False),
+        (1, True, False),
+        (True, False, True),
+        (1, 2.5, True),
+        ("a", "b", True),
+        ("a", 1, False),
+        (datetime(2026, 1, 1), datetime(2026, 1, 2), True),
+        (date(2026, 1, 1), date(2026, 1, 2), True),
+        (timedelta(days=1), timedelta(days=2), True),
+        ((1, 2), (3, 4), True),  # same-type fallback
+        ((1, 2), [3, 4], False),
+    ],
+)
+def test_comparable_matrix(a: Any, b: Any, expected: bool) -> None:
+    from superset.semantic_layers.cache import _comparable
+
+    assert _comparable(a, b) is expected
+
+
+# ---------------------------------------------------------------------------
+# Coverage-gap closure: can_satisfy edges, keys, store trim, post-processing
+# ---------------------------------------------------------------------------
+
+
+def test_can_satisfy_column_less_where_filter_rejects() -> None:
+    """A new WHERE predicate with no column (not ADHOC-typed) cannot become a
+    leftover — it would be unapplicable to the cached DataFrame."""
+    q_cached = query(filters=None)
+    entry = entry_from(q_cached)
+    columnless = Filter(
+        type=PredicateType.WHERE,
+        column=None,
+        operator=Operator.EQUALS,
+        value=1,
+    )
+    q_new = query(filters={columnless})
+    ok, _, _ = can_satisfy(entry, q_new)
+    assert ok is False
+
+
+def test_can_satisfy_multiple_implied_filters_same_column() -> None:
+    """Two new predicates on one column, both implied by the cached one —
+    exercises the containment loop's continue edge."""
+    cached_f = where(COL_A, Operator.GREATER_THAN, 5)
+    tighter = where(COL_A, Operator.GREATER_THAN, 10)  # implies cached_f
+    redundant = where(COL_A, Operator.GREATER_THAN, 3)  # implied BY cached_f
+    q_cached = query(filters={cached_f})
+    entry = entry_from(q_cached)
+    q_new = query(filters={tighter, redundant})
+    ok, leftovers, mode = can_satisfy(entry, q_new)
+    assert ok is True
+    assert mode == ReuseMode.EXACT
+    # ``redundant`` is already guaranteed by the cached predicate, so only
+    # the tighter filter needs local re-application.
+    assert leftovers == {tighter}
+
+
+def test_can_satisfy_rollup_order_on_dropped_dimension_rejects() -> None:
+    """ROLLUP re-orders after aggregation; ordering by a dimension that does
+    not survive the projection must reject the candidate."""
+    dropped = dim("t.dropped")
+    kept = dim("t.kept")
+    m_sum = met("t.sum", aggregation=AggregationType.SUM)
+    q_cached = query(dimensions=[kept, dropped], metrics=[m_sum])
+    entry = entry_from(q_cached)
+    q_new = query(
+        dimensions=[kept],
+        metrics=[m_sum],
+        order=[(dropped, OrderDirection.ASC)],
+    )
+    ok, _, _ = can_satisfy(entry, q_new)
+    assert ok is False
+
+
+def test_projection_rejected_when_cached_entry_has_group_limit() -> None:
+    import dataclasses
+
+    from superset.semantic_layers.cache import _projection_allowed
+
+    m_sum = met("t.sum", aggregation=AggregationType.SUM)
+    q_cached = query(dimensions=[COL_A, COL_B], metrics=[m_sum])
+    entry = dataclasses.replace(entry_from(q_cached), group_limit_key="gl")
+    q_new = query(dimensions=[COL_A], metrics=[m_sum])
+    assert _projection_allowed(entry, q_new) is False
+
+
+def test_store_result_trims_bucket_to_max_entries(mocker: Any) -> None:
+    """The per-view bucket caps at MAX_ENTRIES_PER_VIEW, dropping the OLDEST
+    entries first."""
+    import dataclasses
+
+    from superset.semantic_layers import cache as cache_module
+    from superset.semantic_layers.cache import store_result
+
+    class PlainCache:
+        def __init__(self) -> None:
+            self._store: dict[str, Any] = {}
+
+        def get(self, key: str) -> Any:
+            return self._store.get(key)
+
+        def set(self, key: str, value: Any, timeout: int | None = None) -> bool:
+            self._store[key] = value
+            return True
+
+        def delete(self, key: str) -> bool:
+            return self._store.pop(key, None) is not None
+
+    fake = PlainCache()
+    mocker.patch.object(
+        type(cache_module.cache_manager),
+        "data_cache",
+        property(lambda self: fake),
+    )
+    view = ViewMeta(uuid="trim", changed_on_iso="2026-01-01", cache_timeout=60)
+    q = query(filters={_w(Operator.GREATER_THAN, -1)})
+    idx_key = shape_key(view, q)
+    now = cache_module._time.time()
+    seeded = [
+        dataclasses.replace(
+            entry_from(query(filters={_w(Operator.GREATER_THAN, i)}), f"vk-{i}"),
+            timestamp=now - 1000 + i,  # vk-0 is the oldest
+        )
+        for i in range(cache_module.MAX_ENTRIES_PER_VIEW)
+    ]
+    fake._store[idx_key] = list(seeded)
+
+    store_result(view, q, MagicMock())
+
+    entries = fake._store[idx_key]
+    assert len(entries) == cache_module.MAX_ENTRIES_PER_VIEW
+    keys = {e.value_key for e in entries}
+    assert "vk-0" not in keys, "oldest entry should be trimmed first"
+    assert value_key(view, q) in keys, "the new entry must survive the trim"
+
+
+def test_value_to_jsonable_edges() -> None:
+    from superset.semantic_layers.cache import _value_to_jsonable
+
+    assert _value_to_jsonable(frozenset({3, 1, 2})) == [1, 2, 3]
+    assert _value_to_jsonable(datetime(2026, 1, 2, 3, 4)) == "2026-01-02T03:04:00"
+    assert _value_to_jsonable(timedelta(minutes=2)) == 120.0
+    assert _value_to_jsonable("plain") == "plain"
+
+
+def test_group_limit_key_serializes_all_fields() -> None:
+    from superset_core.semantic_layers.types import GroupLimit
+
+    from superset.semantic_layers.cache import _group_limit_key
+
+    gl = GroupLimit(
+        dimensions=[COL_B, COL_A],
+        top=5,
+        metric=M_X,
+        direction=OrderDirection.DESC,
+        group_others=True,
+        filters={_w(Operator.GREATER_THAN, 1)},
+    )
+    key = json.loads(_group_limit_key(gl))
+    assert key["top"] == 5
+    assert key["metric"] == M_X.id
+    assert key["dims"] == sorted([COL_A.id, COL_B.id])
+    assert key["group_others"] is True
+    assert len(key["filters"]) == 1
+    # None metric branch
+    gl_none = GroupLimit(dimensions=[COL_A], top=1, metric=None)
+    assert json.loads(_group_limit_key(gl_none))["metric"] is None
+
+
+def test_timeout_falls_back_to_data_cache_config(
+    app_context: None, mocker: Any
+) -> None:
+    from superset.semantic_layers.cache import _timeout
+
+    mocker.patch.dict(
+        "superset.semantic_layers.cache.current_app.config",
+        {"DATA_CACHE_CONFIG": {"CACHE_DEFAULT_TIMEOUT": 1234}},
+    )
+    assert _timeout(ViewMeta(uuid="v", changed_on_iso="", cache_timeout=None)) == 1234
+    assert _timeout(ViewMeta(uuid="v", changed_on_iso="", cache_timeout=7)) == 7
+
+
+# ---------------------------------------------------------------------------
+# Coverage-gap closure: leftover masks, LIKE→regex, ordering, rollup edges
+# ---------------------------------------------------------------------------
+
+
+def _mask_df() -> pd.DataFrame:
+    return pd.DataFrame({"a": [1.0, 2.0, None], "s": ["alpha", "beta", "a.c"]})
+
+
+@pytest.mark.parametrize(
+    "op,val,column,expected_index",
+    [
+        (Operator.EQUALS, 1.0, "a", [0]),
+        (Operator.EQUALS, None, "a", [2]),
+        # SQL three-valued logic: NULLs are excluded from negative predicates
+        (Operator.NOT_EQUALS, 1.0, "a", [1]),
+        (Operator.NOT_EQUALS, None, "a", [0, 1]),
+        (Operator.GREATER_THAN, 1.0, "a", [1]),
+        (Operator.GREATER_THAN_OR_EQUAL, 1.0, "a", [0, 1]),
+        (Operator.LESS_THAN, 2.0, "a", [0]),
+        (Operator.LESS_THAN_OR_EQUAL, 2.0, "a", [0, 1]),
+        (Operator.IN, frozenset({1.0, 2.0}), "a", [0, 1]),
+        (Operator.IN, 1.0, "a", [0]),  # scalar IN
+        (Operator.NOT_IN, frozenset({1.0}), "a", [1]),
+        (Operator.IS_NULL, None, "a", [2]),
+        (Operator.IS_NOT_NULL, None, "a", [0, 1]),
+        (Operator.LIKE, "a%", "s", [0, 2]),
+        (Operator.LIKE, "a_c", "s", [2]),
+        (Operator.NOT_LIKE, "a%", "s", [1]),
+        (Operator.ADHOC, "x", "a", [0, 1, 2]),  # unknown op: no filtering
+    ],
+)
+def test_mask_for_operator_matrix(
+    op: Operator, val: Any, column: str, expected_index: list[int]
+) -> None:
+    from superset.semantic_layers.cache import _mask_for
+
+    col = Dimension(id=f"t.{column}", name=column, type=pa.utf8())
+    f = Filter(type=PredicateType.WHERE, column=col, operator=op, value=val)
+    df = _mask_df()
+    mask = _mask_for(df, f)
+    assert list(df[mask].index) == expected_index
+
+
+def test_mask_for_column_less_filter_is_all_true() -> None:
+    from superset.semantic_layers.cache import _mask_for
+
+    f = Filter(type=PredicateType.WHERE, column=None, operator=Operator.EQUALS, value=1)
+    df = _mask_df()
+    assert _mask_for(df, f).all()
+
+
+@pytest.mark.parametrize(
+    "pattern,matches,rejects",
+    [
+        ("100%", ["100", "100x", "100.55"], ["99", "x100"]),
+        ("a_c", ["abc", "a.c"], ["ac", "abbc"]),
+        ("a.c", ["a.c"], ["abc"]),  # regex metachars are literal
+        ("50%*", ["50x*"], ["50x"]),  # '*' is literal, '%' wildcards
+    ],
+)
+def test_sql_like_to_regex(
+    pattern: str, matches: list[str], rejects: list[str]
+) -> None:
+    """Pins the CURRENT translation: % → .*, _ → ., everything else literal.
+
+    Note: there is NO escape-character support — ``\\%`` is a literal
+    backslash followed by a wildcard, which diverges from warehouses (e.g.
+    PostgreSQL) that treat backslash as the default LIKE escape. Tracked as
+    a finding on the parent PR; if escape support is added, extend this
+    table rather than weakening it.
+    """
+    import re as _re
+
+    from superset.semantic_layers.cache import _sql_like_to_regex
+
+    rx = _re.compile(_sql_like_to_regex(pattern))
+    for good in matches:
+        assert rx.match(good), f"{pattern!r} should match {good!r}"
+    for bad in rejects:
+        assert not rx.match(bad), f"{pattern!r} should not match {bad!r}"
+
+
+def test_apply_order_skips_unknown_columns_and_sorts_known() -> None:
+    from superset.semantic_layers.cache import _apply_order
+
+    df = pd.DataFrame({"a": [2, 1, 3]})
+    missing = dim("t.zz", "zz")
+    present = dim("t.a", "a")
+    # Only unknown columns: returned untouched.
+    same = _apply_order(df, [(missing, OrderDirection.ASC)])
+    assert list(same["a"]) == [2, 1, 3]
+    # Unknown + known: unknown skipped, known sorts.
+    ordered = _apply_order(
+        df, [(missing, OrderDirection.ASC), (present, OrderDirection.ASC)]
+    )
+    assert list(ordered["a"]) == [1, 2, 3]
+
+
+def test_rollup_skips_aggregation_less_metrics() -> None:
+    """Direct post-processing call: a metric without an aggregation cannot be
+    re-aggregated and is skipped rather than crashing the rollup."""
+    table = pa.table({"a": ["x", "x", "y"], "m1": [1.0, 2.0, 3.0]})
+    cached = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="select ...")],
+        results=table,
+    )
+    agg_metric = Metric(
+        id="t.m1",
+        name="m1",
+        type=pa.float64(),
+        definition="m1",
+        aggregation=AggregationType.SUM,
+    )
+    agg_less = Metric(
+        id="t.m2", name="m2", type=pa.float64(), definition="m2", aggregation=None
+    )
+    q = query(dimensions=[dim("t.a", "a")], metrics=[agg_metric, agg_less])
+    result = _apply_post_processing(cached, q, set(), ReuseMode.ROLLUP)
+    df = result.results.to_pandas()
+    assert set(df.columns) >= {"a", "m1"}
+    assert sorted(df["m1"].tolist()) == [3.0, 3.0]
+
+
+def test_can_satisfy_group_limit_mismatch_rejects() -> None:
+    """EXACT/PROJECT reuse requires the cached and new group-limit shapes to
+    agree — a cached plain result cannot serve a group-limited query."""
+    from superset_core.semantic_layers.types import GroupLimit
+
+    q_cached = query(filters=None)
+    entry = entry_from(q_cached)
+    q_new = query(filters=None)
+    q_new = SemanticQuery(
+        metrics=q_new.metrics,
+        dimensions=q_new.dimensions,
+        group_limit=GroupLimit(dimensions=[COL_A], top=3, metric=None),
+    )
+    ok, _, _ = can_satisfy(entry, q_new)
     assert ok is False

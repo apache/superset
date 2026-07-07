@@ -15,7 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from datetime import datetime
+from datetime import date, datetime, time
+from typing import Any
 from unittest.mock import MagicMock
 
 import pandas as pd
@@ -2861,3 +2862,92 @@ def test_get_group_limit_filters_no_granularity(
 
     # Should return None - no granularity means no time filters added
     assert result is None
+
+
+# ---------------------------------------------------------------------------
+# Coverage-gap closure: filter-value coercion per dimension type (see
+# notes/semantic-cache-coverage-workplan.md in the planning repo)
+# ---------------------------------------------------------------------------
+
+
+def _typed_dim(dtype: pa.DataType) -> Dimension:
+    return Dimension(id="t.col", name="col", type=dtype)
+
+
+@pytest.mark.parametrize(
+    "dtype,value,expected",
+    [
+        # None passes through untyped
+        (pa.bool_(), None, None),
+        # boolean parsing
+        (pa.bool_(), True, True),
+        (pa.bool_(), "true", True),
+        (pa.bool_(), " T ", True),
+        (pa.bool_(), "1", True),
+        (pa.bool_(), "yes", True),
+        (pa.bool_(), "on", True),
+        (pa.bool_(), "false", False),
+        (pa.bool_(), "0", False),
+        (pa.bool_(), "off", False),
+        # integer
+        (pa.int64(), 5, 5),
+        (pa.int64(), " 42 ", 42),
+        # float / decimal
+        (pa.float64(), 1.5, 1.5),
+        (pa.float64(), 2, 2.0),
+        (pa.float64(), " 3.25 ", 3.25),
+        (pa.decimal128(10, 2), "1.5", 1.5),
+        # date
+        (pa.date32(), datetime(2026, 1, 2, 3, 4), date(2026, 1, 2)),
+        (pa.date32(), date(2026, 1, 2), date(2026, 1, 2)),
+        (pa.date32(), "2026-01-02", date(2026, 1, 2)),
+        # timestamp
+        (pa.timestamp("us"), datetime(2026, 1, 2, 3, 4), datetime(2026, 1, 2, 3, 4)),
+        (pa.timestamp("us"), date(2026, 1, 2), datetime(2026, 1, 2, 0, 0)),
+        (
+            pa.timestamp("us"),
+            "2026-01-02T03:04:05Z",
+            datetime.fromisoformat("2026-01-02T03:04:05+00:00"),
+        ),
+        # time
+        (pa.time64("us"), time(3, 4, 5), time(3, 4, 5)),
+        (pa.time64("us"), "03:04:05", time(3, 4, 5)),
+        # unhandled dtype passes through
+        (pa.string(), "anything", "anything"),
+        (pa.string(), 42, 42),
+    ],
+)
+def test_coerce_scalar_filter_value_accepts(
+    dtype: pa.DataType, value: Any, expected: Any
+) -> None:
+    from superset.semantic_layers.mapper import _coerce_scalar_filter_value
+
+    assert _coerce_scalar_filter_value(value, _typed_dim(dtype)) == expected
+
+
+@pytest.mark.parametrize(
+    "dtype,value,message_fragment",
+    [
+        (pa.bool_(), "maybe", "Invalid boolean"),
+        (pa.bool_(), 3.5, "Invalid boolean"),
+        (pa.int64(), True, "Invalid integer"),  # bool is not an int here
+        (pa.int64(), "abc", "Invalid integer"),
+        (pa.int64(), 1.5, "Invalid integer"),
+        (pa.float64(), True, "Invalid numeric"),
+        (pa.float64(), "abc", "Invalid numeric"),
+        (pa.float64(), object(), "Invalid numeric"),
+        (pa.date32(), "not-a-date", "Invalid date"),
+        (pa.date32(), 123, "Invalid date"),
+        (pa.timestamp("us"), "not-a-ts", "Invalid timestamp"),
+        (pa.timestamp("us"), 123, "Invalid timestamp"),
+        (pa.time64("us"), "not-a-time", "Invalid time"),
+        (pa.time64("us"), 123, "Invalid time"),
+    ],
+)
+def test_coerce_scalar_filter_value_rejects(
+    dtype: pa.DataType, value: Any, message_fragment: str
+) -> None:
+    from superset.semantic_layers.mapper import _coerce_scalar_filter_value
+
+    with pytest.raises(ValueError, match=message_fragment):
+        _coerce_scalar_filter_value(value, _typed_dim(dtype))
