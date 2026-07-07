@@ -50,6 +50,7 @@ from tests.unit_tests.db_engine_specs.utils import assert_column_spec
         ("char(10)", types.CHAR, None, GenericDataType.STRING, False),
         ("varchar(65533)", types.VARCHAR, None, GenericDataType.STRING, False),
         ("binary", types.String, None, GenericDataType.STRING, False),
+        ("var_string", types.VARCHAR, None, GenericDataType.STRING, False),
         # Complex type
         ("array<varchar(65533)>", ARRAY, None, GenericDataType.STRING, False),
         ("map<string,int>", MAP, None, GenericDataType.STRING, False),
