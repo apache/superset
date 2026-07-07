@@ -18,6 +18,7 @@
 import json  # noqa: TID251
 from datetime import datetime, timedelta
 from unittest.mock import patch
+from urllib.error import URLError
 from uuid import UUID, uuid4
 
 import pytest
@@ -28,6 +29,7 @@ from superset.commands.exceptions import UpdateFailedError
 from superset.commands.report.exceptions import (
     ReportScheduleAlertGracePeriodError,
     ReportScheduleCsvFailedError,
+    ReportScheduleExecuteUnexpectedError,
     ReportScheduleExecutorNotFoundError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
@@ -43,6 +45,7 @@ from superset.commands.report.execute import (
     ReportSuccessState,
     ReportWorkingState,
 )
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.daos.report import REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
 from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.reports.models import (
@@ -1044,6 +1047,265 @@ def create_report_schedule(
     schedule.custom_width = custom_width
     schedule.custom_height = custom_height
     return schedule
+
+
+def test_get_chart_data_request_payload_prepares_server_paginated_export(
+    mocker: MockerFixture,
+) -> None:
+    """Server-paginated exports should use the configured row limit."""
+    report_state = BaseReportState(
+        create_report_schedule(mocker),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    report_state._report_schedule.force_screenshot = True
+    report_state._report_schedule.chart.query_context = json.dumps(
+        {
+            "queries": [
+                {"row_limit": 25, "row_offset": 25},
+                {"is_rowcount": True, "row_limit": 1000, "row_offset": 0},
+                {"row_limit": 0, "row_offset": 0, "metrics": ["count"]},
+            ],
+            "form_data": {
+                "server_pagination": True,
+                "server_page_length": 25,
+                "row_limit": 1000,
+            },
+            "result_format": "json",
+            "result_type": "full",
+        }
+    )
+
+    payload = report_state._get_chart_data_request_payload(ChartDataResultFormat.CSV)
+
+    assert payload["result_format"] == ChartDataResultFormat.CSV.value
+    assert payload["result_type"] == ChartDataResultType.POST_PROCESSED.value
+    assert payload["force"] is True
+    assert payload["queries"][0]["row_limit"] == 1000
+    assert payload["queries"][0]["row_offset"] == 0
+    assert len(payload["queries"]) == 2
+    assert all(not query.get("is_rowcount") for query in payload["queries"])
+    assert payload["queries"][1]["metrics"] == ["count"]
+    assert payload["form_data"]["result_format"] == ChartDataResultFormat.CSV.value
+    assert (
+        payload["form_data"]["result_type"] == ChartDataResultType.POST_PROCESSED.value
+    )
+    assert payload["form_data"]["force"] is True
+
+
+def test_get_chart_data_request_payload_preserves_non_paginated_queries(
+    mocker: MockerFixture,
+) -> None:
+    """Non-server-paginated exports should keep saved query limits intact."""
+    report_state = BaseReportState(
+        create_report_schedule(mocker),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    report_state._report_schedule.force_screenshot = False
+    report_state._report_schedule.chart.query_context = json.dumps(
+        {
+            "queries": [{"row_limit": 500, "row_offset": 50}],
+            "form_data": {
+                "server_pagination": False,
+                "row_limit": 1000,
+            },
+            "result_format": "json",
+            "result_type": "full",
+        }
+    )
+
+    payload = report_state._get_chart_data_request_payload(ChartDataResultFormat.CSV)
+
+    assert payload["queries"] == [{"row_limit": 500, "row_offset": 50}]
+    assert payload["result_format"] == ChartDataResultFormat.CSV.value
+    assert payload["result_type"] == ChartDataResultType.POST_PROCESSED.value
+    assert payload["form_data"]["result_format"] == ChartDataResultFormat.CSV.value
+    assert (
+        payload["form_data"]["result_type"] == ChartDataResultType.POST_PROCESSED.value
+    )
+    assert payload["form_data"]["force"] is False
+
+
+@pytest.mark.parametrize(
+    "query_context",
+    [
+        None,
+        "{invalid-json",
+        json.dumps(["not", "a", "dict"]),
+    ],
+)
+def test_get_chart_data_request_payload_rejects_invalid_query_context(
+    mocker: MockerFixture,
+    query_context: str | None,
+) -> None:
+    """Invalid saved query contexts should fail before sending the request."""
+    report_state = BaseReportState(
+        create_report_schedule(mocker),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    report_state._report_schedule.chart.query_context = query_context
+
+    with pytest.raises(
+        ReportScheduleExecuteUnexpectedError,
+        match="Chart has no valid query context saved.",
+    ):
+        report_state._get_chart_data_request_payload(ChartDataResultFormat.CSV)
+
+
+@pytest.mark.parametrize("auth_cookies", [None, {}])
+def test_post_chart_data_rejects_missing_auth_cookies(
+    auth_cookies: dict[str, str] | None,
+) -> None:
+    """Missing report executor auth should fail with an explicit error."""
+    with pytest.raises(
+        URLError,
+        match="Missing authentication cookies for chart data request",
+    ):
+        BaseReportState._post_chart_data(
+            chart_url="http://superset.example/api/v1/chart/data",
+            auth_cookies=auth_cookies,
+            request_payload={},
+        )
+
+
+def test_get_csv_data_posts_prepared_chart_data_payload(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """CSV report data should POST the prepared export query context."""
+    report_state = BaseReportState(
+        create_report_schedule(mocker),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    report_state._report_schedule.force_screenshot = False
+    report_state._report_schedule.chart.query_context = json.dumps(
+        {
+            "datasource": {"id": 1, "type": "table"},
+            "queries": [
+                {
+                    "row_limit": 25,
+                    "row_offset": 25,
+                },
+                {
+                    "is_rowcount": True,
+                    "row_limit": 1000,
+                    "row_offset": 0,
+                },
+                {
+                    "row_limit": 0,
+                    "row_offset": 0,
+                    "metrics": ["count"],
+                },
+            ],
+            "form_data": {
+                "server_pagination": True,
+                "server_page_length": 25,
+                "row_limit": 1000,
+            },
+            "result_format": "json",
+            "result_type": "full",
+        }
+    )
+    get_url_path = mocker.patch(
+        "superset.commands.report.execute.get_url_path",
+        return_value="/api/v1/chart/data",
+    )
+    mocker.patch(
+        "superset.commands.report.execute.get_executor",
+        return_value=(None, "report_executor"),
+    )
+    user = mocker.MagicMock(username="report_executor")
+    mocker.patch(
+        "superset.commands.report.execute.security_manager.find_user",
+        return_value=user,
+    )
+    auth_cookies = {"session": "cookie"}
+    auth_provider = mocker.patch(
+        "superset.commands.report.execute.machine_auth_provider_factory"
+    )
+    auth_provider.instance.get_auth_cookies.return_value = auth_cookies
+    post_chart_data = mocker.patch.object(
+        report_state,
+        "_post_chart_data",
+        return_value=b"csv-data",
+    )
+
+    assert report_state._get_csv_data() == b"csv-data"
+
+    get_url_path.assert_called_once_with("ChartDataRestApi.data")
+    post_chart_data.assert_called_once()
+    assert post_chart_data.call_args.kwargs["chart_url"] == "/api/v1/chart/data"
+    assert post_chart_data.call_args.kwargs["auth_cookies"] == auth_cookies
+    assert (
+        post_chart_data.call_args.kwargs["timeout"]
+        == app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"]
+    )
+    request_payload = post_chart_data.call_args.kwargs["request_payload"]
+    assert request_payload["result_format"] == ChartDataResultFormat.CSV.value
+    assert request_payload["result_type"] == ChartDataResultType.POST_PROCESSED.value
+    assert request_payload["queries"][0]["row_limit"] == 1000
+    assert request_payload["queries"][0]["row_offset"] == 0
+    assert len(request_payload["queries"]) == 2
+    assert all(not query.get("is_rowcount") for query in request_payload["queries"])
+    assert request_payload["queries"][1]["metrics"] == ["count"]
+    assert (
+        request_payload["form_data"]["result_type"]
+        == ChartDataResultType.POST_PROCESSED.value
+    )
+
+
+def test_get_csv_data_keeps_screenshot_fallback_without_query_context(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """Missing query context should keep the screenshot fallback path."""
+    report_state = BaseReportState(
+        create_report_schedule(mocker),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    report_state._report_schedule.chart.query_context = None
+    mocker.patch(
+        "superset.commands.report.execute.get_executor",
+        return_value=(None, "report_executor"),
+    )
+    user = mocker.MagicMock(username="report_executor")
+    mocker.patch(
+        "superset.commands.report.execute.security_manager.find_user",
+        return_value=user,
+    )
+    auth_cookies = {"session": "cookie"}
+    auth_provider = mocker.patch(
+        "superset.commands.report.execute.machine_auth_provider_factory"
+    )
+    auth_provider.instance.get_auth_cookies.return_value = auth_cookies
+    update_query_context = mocker.patch.object(report_state, "_update_query_context")
+    refresh = mocker.patch("superset.commands.report.execute.db.session.refresh")
+    get_url = mocker.patch.object(
+        report_state,
+        "_get_url",
+        return_value="http://superset.example/api/v1/chart/1/data/",
+    )
+    get_chart_csv_data = mocker.patch(
+        "superset.commands.report.execute.get_chart_csv_data",
+        return_value=b"csv-data",
+    )
+    post_chart_data = mocker.patch.object(report_state, "_post_chart_data")
+
+    assert report_state._get_csv_data() == b"csv-data"
+
+    update_query_context.assert_called_once()
+    refresh.assert_called_once_with(report_state._report_schedule.chart)
+    get_url.assert_called_once_with(result_format=ChartDataResultFormat.CSV)
+    get_chart_csv_data.assert_called_once_with(
+        chart_url="http://superset.example/api/v1/chart/1/data/",
+        auth_cookies=auth_cookies,
+        timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+    )
+    post_chart_data.assert_not_called()
 
 
 @pytest.mark.parametrize(
