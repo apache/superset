@@ -386,12 +386,12 @@ function DashboardGrid({
                   }}
                 />
               ))}
-            {isResizing && rowGuideTop !== null && (
-              <GridRowGuide
-                className="grid-row-guide"
-                style={{ top: rowGuideTop }}
-              />
-            )}
+          {isResizing && rowGuideTop !== null && (
+            <GridRowGuide
+              className="grid-row-guide"
+              style={{ top: rowGuideTop }}
+            />
+          )}
         </GridContent>
       </div>
     </>
