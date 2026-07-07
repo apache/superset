@@ -169,6 +169,35 @@ def test_missing_body_raises() -> None:
         sqlglot.parse(sql, dialect=Trino)
 
 
+def test_missing_return_expression_raises() -> None:
+    """
+    A ``RETURN`` body without a following expression should raise a parse
+    error.
+    """
+    sql = "WITH FUNCTION f() RETURNS int RETURN"
+    with pytest.raises(sqlglot.errors.ParseError):
+        sqlglot.parse(sql, dialect=Trino)
+
+
+def test_semicolon_with_trailing_comment() -> None:
+    """
+    A statement-separating semicolon with a comment attached to it (no
+    whitespace in between) should still split statements correctly.
+    """
+    sql = "SELECT 1;-- trailing\nSELECT 2"
+    statements = sqlglot.parse(sql, dialect=Trino)
+    assert len(statements) == 3  # SELECT 1, the comment-bearing `;`, SELECT 2
+
+
+def test_trailing_semicolon_with_no_following_statement() -> None:
+    """
+    A single statement terminated by a semicolon with nothing after it
+    should parse as one statement.
+    """
+    statements = sqlglot.parse("SELECT 1;", dialect=Trino)
+    assert len(statements) == 1
+
+
 def test_sqlscript_inline_udf() -> None:
     """
     Integration with the Superset parsing API (reproduces #26162).
