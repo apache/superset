@@ -523,9 +523,12 @@ def _implies(new: Filter, cached: Filter) -> bool:  # noqa: C901
         if nop == Operator.NOT_EQUALS:
             return nval == cval
         if nop == Operator.EQUALS:
-            return nval != cval
+            # EQUALS None means IS_NULL; a cached negative predicate's rows
+            # contain no NULLs (SQL three-valued logic), so it can never
+            # contain the NULL-matching query.
+            return nval is not None and nval != cval
         if nop == Operator.IN and isinstance(nval, frozenset):
-            return cval not in nval
+            return all(v is not None for v in nval) and cval not in nval
         return False
 
     if cop == Operator.IN and isinstance(cval, frozenset):
@@ -541,9 +544,11 @@ def _implies(new: Filter, cached: Filter) -> bool:  # noqa: C901
         if nop == Operator.NOT_EQUALS:
             return cval.issubset({nval})
         if nop == Operator.EQUALS:
-            return nval not in cval
+            # See the NOT_EQUALS branch above: NULL-matching queries are
+            # never contained by negative cached predicates.
+            return nval is not None and nval not in cval
         if nop == Operator.IN and isinstance(nval, frozenset):
-            return cval.isdisjoint(nval)
+            return all(v is not None for v in nval) and cval.isdisjoint(nval)
         return False
 
     if cop in _RANGE_OPS:
@@ -599,7 +604,9 @@ def _implies_range(  # noqa: C901
             and nop == Operator.GREATER_THAN_OR_EQUAL
         ):
             return nval >= cval
-        return False
+        # Unreachable: both ops are constrained to the two lower-bound
+        # operators above, whose four combinations are enumerated.
+        return False  # pragma: no cover
     else:
         if cop == Operator.LESS_THAN and nop == Operator.LESS_THAN:
             return nval <= cval
@@ -609,7 +616,8 @@ def _implies_range(  # noqa: C901
             return nval <= cval
         if cop == Operator.LESS_THAN_OR_EQUAL and nop == Operator.LESS_THAN_OR_EQUAL:
             return nval <= cval
-        return False
+        # Unreachable: mirror of the lower-bound enumeration above.
+        return False  # pragma: no cover
 
 
 def _scalar_in_range(value: Any, cop: Operator, cval: Any) -> bool:
@@ -723,7 +731,10 @@ def _mask_for(df: pd.DataFrame, f: Filter) -> pd.Series:  # noqa: C901
     if op == Operator.EQUALS:
         return series == val if val is not None else series.isna()
     if op == Operator.NOT_EQUALS:
-        return series != val if val is not None else series.notna()
+        # SQL three-valued logic: NULL != x is UNKNOWN, so the warehouse
+        # excludes NULL rows from a negative predicate; pandas would keep
+        # them (NaN != x is True). Match the warehouse.
+        return (series != val) & series.notna() if val is not None else series.notna()
     if op == Operator.GREATER_THAN:
         return series > val
     if op == Operator.GREATER_THAN_OR_EQUAL:
@@ -733,17 +744,34 @@ def _mask_for(df: pd.DataFrame, f: Filter) -> pd.Series:  # noqa: C901
     if op == Operator.LESS_THAN_OR_EQUAL:
         return series <= val
     if op == Operator.IN:
-        return series.isin(list(val) if isinstance(val, frozenset) else [val])
+        # SQL: a NULL row never satisfies IN (even when the list contains
+        # NULL); pandas isin(None) would match None in object columns.
+        return (
+            series.isin(list(val) if isinstance(val, frozenset) else [val])
+            & series.notna()
+        )
     if op == Operator.NOT_IN:
-        return ~series.isin(list(val) if isinstance(val, frozenset) else [val])
+        # See NOT_EQUALS: NULLs are excluded from negative predicates in SQL.
+        return (
+            ~series.isin(list(val) if isinstance(val, frozenset) else [val])
+        ) & series.notna()
     if op == Operator.IS_NULL:
         return series.isna()
     if op == Operator.IS_NOT_NULL:
         return series.notna()
     if op == Operator.LIKE:
-        return series.astype(str).str.match(_sql_like_to_regex(str(val)))
+        # SQL: NULL LIKE p is UNKNOWN -> excluded. Without the guard,
+        # astype(str) stringifies NULLs ("nan"/"None"/"NaT") and they can
+        # spuriously match patterns like 'n%'.
+        return series.notna() & series.astype(str).str.match(
+            _sql_like_to_regex(str(val))
+        )
     if op == Operator.NOT_LIKE:
-        return ~series.astype(str).str.match(_sql_like_to_regex(str(val)))
+        # See NOT_EQUALS; also astype(str) would turn NaN into the literal
+        # string "nan", silently matching patterns.
+        return (
+            ~series.astype(str).str.match(_sql_like_to_regex(str(val)))
+        ) & series.notna()
     return pd.Series(True, index=df.index)
 
 
