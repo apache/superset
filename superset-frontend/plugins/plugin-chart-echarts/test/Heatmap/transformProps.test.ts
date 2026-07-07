@@ -462,8 +462,7 @@ describe('Heatmap transformProps', () => {
     };
 
     const tooltipHtmlX = tooltipFormatterX(mockParamsX);
-    expect(tooltipHtmlX).toContain('33');
-    expect(tooltipHtmlX).toContain('%');
+    expect(tooltipHtmlX).toContain('33.33%');
 
     // Test normalizeAcross: 'y'
     const chartPropsY = createChartProps(
@@ -485,8 +484,7 @@ describe('Heatmap transformProps', () => {
     };
 
     const tooltipHtmlY = tooltipFormatterY(mockParamsY);
-    expect(tooltipHtmlY).toContain('25');
-    expect(tooltipHtmlY).toContain('%');
+    expect(tooltipHtmlY).toContain('25.00%');
   });
 
   test('tooltip formatter should handle numeric axes correctly', () => {
@@ -502,6 +500,7 @@ describe('Heatmap transformProps', () => {
         sortYAxis: 'alpha_asc',
         xAxis: 'year',
         groupby: ['quarter'],
+        metric: 'revenue',
       },
       numericData,
     );
@@ -523,7 +522,6 @@ describe('Heatmap transformProps', () => {
 
     const tooltipHtml = tooltipFormatter(mockParams);
 
-    expect(tooltipHtml).toContain('2021');
-    expect(tooltipHtml).toContain('2');
+    expect(tooltipHtml).toContain('2021 (2)');
   });
 });

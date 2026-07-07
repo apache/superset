@@ -385,14 +385,10 @@ export default function transformProps(
         let suffix = 'heatmap';
         if (typeof value === 'number') {
           if (normalizeAcross === 'x') {
-            // Convert xValue to a key type (string or number) for totals lookup
-            const xKey = xValue as string | number;
-            percentage = value / totals.x[xKey];
+            percentage = value / totals.x[String(xValue)];
             suffix = formattedX;
           } else if (normalizeAcross === 'y') {
-            // Convert yValue to a key type (string or number) for totals lookup
-            const yKey = yValue as string | number;
-            percentage = value / totals.y[yKey];
+            percentage = value / totals.y[String(yValue)];
             suffix = formattedY;
           } else {
             percentage = value / totals.total;
