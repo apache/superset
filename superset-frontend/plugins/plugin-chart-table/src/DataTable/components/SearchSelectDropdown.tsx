@@ -21,6 +21,8 @@ import { RawAntdSelect as Select } from '@superset-ui/core/components';
 import { SearchOption } from '../../types';
 import { SupersetTheme, css } from '@apache-superset/core/theme';
 
+import { t } from '@apache-superset/core/translation';
+
 interface SearchSelectDropdownProps {
   /** The currently selected search column value */
   value?: string;
@@ -37,6 +39,7 @@ function SearchSelectDropdown({
 }: SearchSelectDropdownProps) {
   return (
     <Select
+      aria-label={t('Search by')}
       className="search-select"
       css={(theme: SupersetTheme) => css`
         width: ${theme.sizeUnit * 30}px;

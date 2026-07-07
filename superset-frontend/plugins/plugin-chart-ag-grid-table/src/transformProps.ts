@@ -358,6 +358,10 @@ const processColumns = memoizeOne(function processColumns(
   const percentMetricsSet = new Set(percentMetrics);
   const rawPercentMetricsSet = new Set(rawPercentMetrics);
 
+  const columnsByName = new Map(
+    (props.datasource.columns ?? []).map(col => [col.column_name, col]),
+  );
+
   const columns: DataColumnMeta[] = (colnames || [])
     .filter(
       key =>
@@ -430,6 +434,7 @@ const processColumns = memoizeOne(function processColumns(
         isPercentMetric,
         formatter,
         config,
+        type: columnsByName.get(key)?.type,
       };
     })
     .sort((a, b) => {

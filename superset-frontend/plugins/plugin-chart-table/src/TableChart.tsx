@@ -128,6 +128,13 @@ function getSortTypeByDataType(dataType: GenericDataType): DefaultSortTypes {
 }
 
 /**
+ * Helper to determine if a column should be treated as a UUID
+ */
+function isUuidColumn(column?: { type?: string }): boolean {
+  return column?.type?.toLowerCase() === 'uuid';
+}
+
+/**
  * Cell background width calculation for horizontal bar chart
  */
 function cellWidth({
@@ -1460,7 +1467,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           sortType?: string;
         }[]
     )
-      .filter(col => col?.sortType === 'alphanumeric')
+      .filter(
+        (col, index) =>
+          col?.sortType === 'alphanumeric' &&
+          !isUuidColumn(visibleColumnsMeta[index]),
+      )
       .map(column => ({
         value: column.columnKey,
         label: column.columnKey,

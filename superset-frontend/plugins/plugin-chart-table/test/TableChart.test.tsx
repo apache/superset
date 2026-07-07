@@ -2382,6 +2382,54 @@ describe('plugin-chart-table', () => {
       expect(filters[0].col).toBe('name');
       expect(filters[0].val).toEqual(['Michael']);
     });
+
+    test('excludes UUID columns from Search By dropdown', async () => {
+      const props = transformProps({
+        ...testData.basic,
+        formData: {
+          ...testData.basic.formData,
+          server_pagination: true,
+          include_search: true,
+        },
+        datasource: {
+          ...testData.basic.datasource,
+          columns: [
+            { column_name: 'name', type: 'VARCHAR' },
+            { column_name: 'uuid_col', type: 'UUID' },
+          ],
+        },
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['name', 'uuid_col'],
+            coltypes: [GenericDataType.String, GenericDataType.String],
+            data: [
+              {
+                name: 'Michael',
+                uuid_col: '123e4567-e89b-12d3-a456-426614174000',
+              },
+            ],
+          },
+        ],
+      });
+
+      render(
+        <ProviderWrapper>
+          <TableChart {...props} sticky={false} />
+        </ProviderWrapper>,
+      );
+
+      // Open the dropdown
+      const searchBySelect = screen.getByRole('combobox', {
+        name: /search by/i,
+      });
+      fireEvent.mouseDown(searchBySelect);
+
+      // Normal string column is available
+      expect(await screen.findByRole('option', { name: 'name' })).toBeInTheDocument();
+      // UUID column is explicitly excluded
+      expect(screen.queryByRole('option', { name: 'uuid_col' })).not.toBeInTheDocument();
+    });
   });
 });
 

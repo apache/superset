@@ -708,4 +708,5 @@ export interface DataColumnMeta {
   description?: string;
   currencyCodeColumn?: string;
   isFilterable?: boolean;
+  type?: string;
 }
