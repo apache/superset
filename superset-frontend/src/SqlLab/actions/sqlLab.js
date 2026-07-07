@@ -41,6 +41,7 @@ import { logEvent } from 'src/logger/actions';
 import { newQueryTabName } from '../utils/newQueryTabName';
 import getInitialState from '../reducers/getInitialState';
 import { rehydratePersistedState } from '../utils/reduxStateToLocalStorageHelper';
+import { queryHistoryApi } from '../../hooks/apiResources/queries';
 
 export const RESET_STATE = 'RESET_STATE';
 export const ADD_QUERY_EDITOR = 'ADD_QUERY_EDITOR';
@@ -762,7 +763,28 @@ export function removeQuery(query) {
       : Promise.resolve();
 
     return sync
-      .then(() => dispatch({ type: REMOVE_QUERY, query }))
+      .then(() => {
+        dispatch({ type: REMOVE_QUERY, query });
+        dispatch(
+          queryHistoryApi.util.updateQueryData(
+            'editorQueries',
+            { editorId: queryEditorId },
+            draft => {
+              // The infinite-scroll merge can leave duplicate entries for the
+              // same id (offset shifts between page fetches), so drop them all.
+              const remaining = draft.result.filter(
+                ({ id }) => id !== query.id,
+              );
+              if (remaining.length !== draft.result.length) {
+                // eslint-disable-next-line no-param-reassign
+                draft.result = remaining;
+                // eslint-disable-next-line no-param-reassign
+                draft.count = Math.max(0, draft.count - 1);
+              }
+            },
+          ),
+        );
+      })
       .catch(() =>
         dispatch(
           addDangerToast(

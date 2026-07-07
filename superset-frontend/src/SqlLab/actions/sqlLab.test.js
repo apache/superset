@@ -20,7 +20,7 @@ import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { waitFor } from 'spec/helpers/testing-library';
+import { waitFor, defaultStore } from 'spec/helpers/testing-library';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { LOG_EVENT } from 'src/logger/actions';
 import {
@@ -31,6 +31,8 @@ import {
 } from 'src/SqlLab/fixtures';
 import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
 import { ADD_TOAST } from 'src/components/MessageToasts/actions';
+import { api } from 'src/hooks/apiResources/queryApi';
+import { queryHistoryApi } from 'src/hooks/apiResources/queries';
 import { ToastType } from '../../components/MessageToasts/types';
 
 const middlewares = [thunk];
@@ -981,6 +983,84 @@ describe('async actions', () => {
         store.dispatch(actions.removeQueryEditor(queryEditor));
         expect(store.getActions()).toEqual(expectedActions);
       });
+    });
+
+    test('removeQuery removes the deleted query from the editorQueries cache', async () => {
+      isFeatureEnabled.mockReturnValue(false);
+      const editorId = 'editor1';
+      const queryToRemove = {
+        ...query,
+        id: 'queryToRemove',
+        sqlEditorId: editorId,
+      };
+
+      await defaultStore.dispatch(
+        queryHistoryApi.util.upsertQueryData(
+          'editorQueries',
+          { editorId },
+          {
+            count: 2,
+            ids: [],
+            result: [{ id: 'queryToRemove' }, { id: 'keep' }],
+          },
+        ),
+      );
+
+      await defaultStore.dispatch(actions.removeQuery(queryToRemove));
+
+      const { data } = queryHistoryApi.endpoints.editorQueries.select({
+        editorId,
+      })(defaultStore.getState());
+
+      expect(data).toEqual({
+        count: 1,
+        ids: [],
+        result: [{ id: 'keep' }],
+      });
+
+      defaultStore.dispatch(api.util.resetApiState());
+    });
+
+    test('removeQuery removes duplicate cache entries for the deleted query', async () => {
+      isFeatureEnabled.mockReturnValue(false);
+      const editorId = 'editor1';
+      const queryToRemove = {
+        ...query,
+        id: 'queryToRemove',
+        sqlEditorId: editorId,
+      };
+
+      // The infinite-scroll merge can append the same query twice when
+      // offsets shift between page fetches; deletion must drop every copy.
+      await defaultStore.dispatch(
+        queryHistoryApi.util.upsertQueryData(
+          'editorQueries',
+          { editorId },
+          {
+            count: 3,
+            ids: [],
+            result: [
+              { id: 'queryToRemove' },
+              { id: 'keep' },
+              { id: 'queryToRemove' },
+            ],
+          },
+        ),
+      );
+
+      await defaultStore.dispatch(actions.removeQuery(queryToRemove));
+
+      const { data } = queryHistoryApi.endpoints.editorQueries.select({
+        editorId,
+      })(defaultStore.getState());
+
+      expect(data).toEqual({
+        count: 2,
+        ids: [],
+        result: [{ id: 'keep' }],
+      });
+
+      defaultStore.dispatch(api.util.resetApiState());
     });
 
     describe('queryEditorSetDb', () => {

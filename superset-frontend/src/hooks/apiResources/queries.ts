@@ -106,7 +106,7 @@ export const mapQueryResponse = (
   user: query.user,
 });
 
-const queryHistoryApi = api.injectEndpoints({
+export const queryHistoryApi = api.injectEndpoints({
   endpoints: builder => ({
     editorQueries: builder.query<QueryResult, EditorQueriesParams>({
       providesTags: ['EditorQueries'],
