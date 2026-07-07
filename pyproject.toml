@@ -196,7 +196,7 @@ prophet = ["prophet>=1.1.6, <2"]
 redshift = ["sqlalchemy-redshift>=0.8.1, <0.9"]
 risingwave = ["sqlalchemy-risingwave"]
 shillelagh = ["shillelagh[all]>=1.4.4, <2"]
-singlestore = ["sqlalchemy-singlestoredb>=1.1.1, <2"]
+singlestore = ["sqlalchemy-singlestoredb>=1.2.1, <2"]
 snowflake = ["snowflake-sqlalchemy>=1.10.2, <2"]
 sqlite = ["syntaqlite>=0.1.0,<0.5.0"]
 spark = [
