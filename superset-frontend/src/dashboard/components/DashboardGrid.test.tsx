@@ -27,15 +27,20 @@ import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
 jest.mock('src/dashboard/containers/DashboardComponent', () => {
   const MockDashboardComponent = ({
     onResizeStart,
+    onResize,
     onResizeStop,
   }: {
     onResizeStart: () => void;
+    onResize: (...args: unknown[]) => void;
     onResizeStop: (...args: unknown[]) => void;
   }) => (
     <button
       type="button"
       data-test="mock-dashboard-component"
       onClick={() => onResizeStart()}
+      onMouseMove={() =>
+        onResize(new MouseEvent('mousemove'), 'bottom', document.createElement('div'), { width: 0, height: 10 })
+      }
       onBlur={() =>
         onResizeStop(null, null, null, { width: 1, height: 3 }, 'id')
       }
@@ -97,6 +102,29 @@ test('should render grid column guides when resizing', () => {
   expect(container.querySelectorAll('.grid-column-guide')).toHaveLength(
     GRID_COLUMN_COUNT,
   );
+});
+
+test('should render row guide when resizing from the bottom', () => {
+  const { container, getAllByTestId } = setup({ editMode: true });
+  expect(container.querySelector('.grid-row-guide')).not.toBeInTheDocument();
+
+  const component = getAllByTestId('mock-dashboard-component')[0];
+  fireEvent.click(component);
+  fireEvent.mouseMove(component);
+
+  expect(container.querySelector('.grid-row-guide')).toBeInTheDocument();
+});
+
+test('should remove row guide after resize stops', () => {
+  const { container, getAllByTestId } = setup({ editMode: true });
+  const component = getAllByTestId('mock-dashboard-component')[0];
+
+  fireEvent.click(component);
+  fireEvent.mouseMove(component);
+  expect(container.querySelector('.grid-row-guide')).toBeInTheDocument();
+
+  fireEvent.blur(component);
+  expect(container.querySelector('.grid-row-guide')).not.toBeInTheDocument();
 });
 
 test('should call resizeComponent when a child DashboardComponent calls resizeStop', () => {

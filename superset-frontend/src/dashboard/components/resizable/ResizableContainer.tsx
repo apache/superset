@@ -60,6 +60,7 @@ export interface ResizableContainerProps {
 // because columns are not multiples of a single variable (width = n*cols + (n-1) * gutters)
 // we snap to the base unit and then snap to _actual_ column multiples on stop
 const SNAP_TO_GRID: [number, number] = [GRID_BASE_UNIT, GRID_BASE_UNIT];
+const BOTTOM_RESIZE_DIRECTION = 'bottom';
 const HANDLE_CLASSES = {
   right: 'resizable-container-handle--right',
   bottom: 'resizable-container-handle--bottom',
@@ -202,7 +203,7 @@ export default function ResizableContainer({
   const handleResize = useCallback<ResizeCallback>(
     (event, direction, elementRef, delta) => {
       if (onResize) onResize(event, direction, elementRef, delta);
-      if (direction.toLowerCase().includes('bottom')) {
+      if (direction.toLowerCase().includes(BOTTOM_RESIZE_DIRECTION)) {
         const clientX =
           'touches' in event
             ? (event.touches[0]?.clientX ?? 0)
