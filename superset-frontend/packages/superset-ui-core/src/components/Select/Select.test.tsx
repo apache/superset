@@ -392,7 +392,7 @@ test('removes duplicated values', async () => {
 
 test('trims whitespace from pasted comma-separated values', async () => {
   render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => 'a, b,  c , d',
