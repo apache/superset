@@ -55,6 +55,23 @@ def create_app(
 ) -> Flask:
     app = SupersetApp(__name__)
 
+    # Localized compatibility patch for SwaggerView.show() to respect APPLICATION_ROOT.
+    # This workaround can be removed once the upstream Flask-AppBuilder package resolves
+    # the issue by using url_for() natively.
+    from flask import current_app, url_for
+    from flask_appbuilder.api.manager import SwaggerView
+
+    def patched_show(self: SwaggerView, version: str) -> Response:
+        openapi_uri = url_for("OpenApi.get", version=version)
+        return self.render_template(
+            current_app.config.get(
+                "FAB_API_SWAGGER_TEMPLATE", "appbuilder/swagger/swagger.html"
+            ),
+            openapi_uri=openapi_uri,
+        )
+
+    SwaggerView.show = patched_show
+
     try:
         # Allow user to override our config completely
         config_module = superset_config_module or os.environ.get(
