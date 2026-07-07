@@ -130,6 +130,11 @@ type RLSFormState = Omit<RLSObject, 'tables' | 'subjects'> & {
   subjects: SubjectPickerValue[];
 };
 
+type RLSRequestPayload = Omit<RLSObject, 'id' | 'tables' | 'subjects'> & {
+  tables: number[];
+  subjects: number[];
+};
+
 type TextFieldName = 'name' | 'group_key' | 'clause' | 'description';
 
 const TEXT_FIELD_NAMES = new Set<string>([
@@ -182,7 +187,9 @@ const mapRuleToFormState = (
   };
 };
 
-const mapFormStateToPayload = (currentRule: RLSFormState) => {
+const mapFormStateToPayload = (
+  currentRule: RLSFormState,
+): RLSRequestPayload => {
   const {
     id: _id,
     tables: selectedTables,
@@ -213,7 +220,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
     createResource,
     updateResource,
     clearError,
-  } = useSingleViewResource<RLSObject>(
+  } = useSingleViewResource<RLSObject, RLSRequestPayload>(
     `rowlevelsecurity`,
     t('rowlevelsecurity'),
     addDangerToast,

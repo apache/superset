@@ -43,7 +43,8 @@ export type SubjectPickerSource = {
   first_name?: string;
   last_name?: string;
   text?: string;
-  [key: string]: unknown;
+  [SUBJECT_TEXT_LABEL_PROP]?: string;
+  [SUBJECT_DETAIL_PROP]?: string;
 };
 
 const getNumericId = (value: unknown): number | undefined => {
