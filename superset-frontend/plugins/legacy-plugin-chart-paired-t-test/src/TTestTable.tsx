@@ -210,8 +210,7 @@ function TTestTable({
 
   // When sorted ascending, 'control' will always be at top
   type SortConfigItem =
-    | string
-    | { column: string; sortFunction: (a: string, b: string) => number };
+    string | { column: string; sortFunction: (a: string, b: string) => number };
 
   const sortConfig: SortConfigItem[] = useMemo(
     () =>
