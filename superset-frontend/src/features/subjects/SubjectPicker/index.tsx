@@ -28,8 +28,15 @@ import {
 } from 'src/features/subjects/SubjectSelectLabel';
 import { mergeSubjectPickerValues, type SubjectPickerValue } from './utils';
 
-export { mapPickerValuesToSubjects, mapSubjectsToPickerValues } from './utils';
-export type { SubjectPickerValue } from './utils';
+export {
+  mapPickerValuesToSubjects,
+  mapSubjectPickerValuesToIds,
+  mapSubjectValuesToIds,
+  mapSubjectsToPickerValues,
+  normalizeSubjectToPickerValue,
+  normalizeSubjectsToPickerValues,
+} from './utils';
+export type { SubjectPickerSource, SubjectPickerValue } from './utils';
 
 interface SubjectPickerProps {
   /** Related API URL, e.g. '/api/v1/dashboard/related/editors' */

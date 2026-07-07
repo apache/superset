@@ -20,7 +20,7 @@
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
 import { css, styled } from '@apache-superset/core/theme';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import {
   Modal,
@@ -33,7 +33,8 @@ import {
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import SubjectPicker, {
-  mapSubjectsToPickerValues,
+  mapSubjectPickerValuesToIds,
+  normalizeSubjectsToPickerValues,
   type SubjectPickerValue,
 } from 'src/features/subjects/SubjectPicker';
 import { FILTER_OPTIONS } from './constants';
@@ -119,7 +120,29 @@ export interface RowLevelSecurityModalProps {
   show: boolean;
 }
 
-const DEFAULT_RULE = {
+type TableSelectValue = {
+  value: number;
+  label: string;
+};
+
+type RLSFormState = Omit<RLSObject, 'tables' | 'subjects'> & {
+  tables: TableSelectValue[];
+  subjects: SubjectPickerValue[];
+};
+
+type TextFieldName = 'name' | 'group_key' | 'clause' | 'description';
+
+const TEXT_FIELD_NAMES = new Set<string>([
+  'name',
+  'group_key',
+  'clause',
+  'description',
+]);
+
+const isTextFieldName = (name: string): name is TextFieldName =>
+  TEXT_FIELD_NAMES.has(name);
+
+const createDefaultRule = (): RLSFormState => ({
   name: '',
   filter_type: FilterType.Regular,
   tables: [],
@@ -127,14 +150,57 @@ const DEFAULT_RULE = {
   clause: '',
   group_key: '',
   description: '',
+});
+
+const mapTablesToSelectValues = (
+  tables: TableObject[] = [],
+): TableSelectValue[] =>
+  tables.flatMap(table => {
+    if (table.id === undefined) {
+      return [];
+    }
+    return {
+      value: table.id,
+      label: table.schema && table.table_name
+        ? `${table.schema}.${table.table_name}`
+        : table.table_name || String(table.id),
+    };
+  });
+
+const mapRuleToFormState = (
+  resource: RLSObject,
+  id: number | undefined,
+): RLSFormState => {
+  const defaultRule = createDefaultRule();
+  return {
+    ...defaultRule,
+    ...resource,
+    id,
+    tables: mapTablesToSelectValues(resource.tables),
+    subjects: normalizeSubjectsToPickerValues(resource.subjects || []),
+  };
+};
+
+const mapFormStateToPayload = (currentRule: RLSFormState) => {
+  const {
+    id: _id,
+    tables: selectedTables,
+    subjects: selectedSubjects,
+    ...values
+  } = currentRule;
+
+  return {
+    ...values,
+    tables: selectedTables.map(table => table.value),
+    subjects: mapSubjectPickerValuesToIds(selectedSubjects),
+  };
 };
 
 function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
   const { rule, addDangerToast, addSuccessToast, onHide, show } = props;
 
-  const [currentRule, setCurrentRule] = useState<RLSObject>({
-    ...DEFAULT_RULE,
-  });
+  const [currentRule, setCurrentRule] =
+    useState<RLSFormState>(createDefaultRule);
   const [disableSave, setDisableSave] = useState<boolean>(true);
 
   const isEditMode = rule !== null;
@@ -152,7 +218,10 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
     addDangerToast,
   );
 
-  const updateRuleState = (name: string, value: any) => {
+  const updateRuleState = <Key extends keyof RLSFormState>(
+    name: Key,
+    value: RLSFormState[Key],
+  ) => {
     setCurrentRule(currentRuleData => ({
       ...currentRuleData,
       [name]: value,
@@ -172,81 +241,38 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
     }
   };
 
-  // find selected tables and subjects
-  const getSelectedData = useCallback(() => {
-    if (!resource) {
-      return null;
-    }
-    const tables: TableObject[] = [];
-
-    resource.tables?.forEach(selectedTable => {
-      tables.push({
-        key: selectedTable.id,
-        label: selectedTable.schema
-          ? `${selectedTable.schema}.${selectedTable.table_name}`
-          : selectedTable.table_name,
-        value: selectedTable.id,
-      });
-    });
-
-    const subjects = mapSubjectsToPickerValues(
-      (resource.subjects || []).flatMap(s => {
-        const subject = s as typeof s & { id?: number };
-        const id = subject.id ?? subject.value;
-        if (id === undefined) {
-          return [];
-        }
-        return {
-          id,
-          label: (subject.label as string) || '',
-          type: (subject.type as number) ?? 0,
-          secondary_label: subject.secondary_label as string | undefined,
-        };
-      }),
-    );
-
-    return { tables, subjects };
-  }, [resource?.tables, resource?.subjects]);
-
   // initialize
   useEffect(() => {
     if (!isEditMode) {
-      setCurrentRule({ ...DEFAULT_RULE });
-    } else if (rule?.id !== null && !loading && !fetchError) {
-      fetchResource(rule.id as number);
+      setCurrentRule(createDefaultRule());
+    } else if (rule?.id !== undefined && !loading && !fetchError) {
+      fetchResource(rule.id);
     }
   }, [rule]);
 
   useEffect(() => {
     if (resource) {
-      setCurrentRule({ ...resource, id: rule?.id });
-      const selectedData = getSelectedData();
-      updateRuleState('tables', selectedData?.tables || []);
-      updateRuleState('subjects', selectedData?.subjects || []);
+      setCurrentRule(mapRuleToFormState(resource, rule?.id ?? resource.id));
     }
   }, [resource]);
 
   // validate
-  const currentRuleSafe = currentRule || {};
   useEffect(() => {
     validate();
-  }, [currentRuleSafe.name, currentRuleSafe.clause, currentRuleSafe?.tables]);
+  }, [currentRule.name, currentRule.clause, currentRule.tables]);
 
   // * event handlers *
-  type SelectValue = {
-    value: string;
-    label: string;
-  };
-
   const onTextChange = (target: HTMLInputElement | HTMLTextAreaElement) => {
-    updateRuleState(target.name, target.value);
+    if (isTextFieldName(target.name)) {
+      updateRuleState(target.name, target.value);
+    }
   };
 
   const onFilterChange = (type: string) => {
-    updateRuleState('filter_type', type);
+    updateRuleState('filter_type', type as FilterType);
   };
 
-  const onTablesChange = (tables: Array<SelectValue>) => {
+  const onTablesChange = (tables: TableSelectValue[]) => {
     updateRuleState('tables', tables || []);
   };
 
@@ -256,23 +282,15 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
 
   const hide = () => {
     clearError();
-    setCurrentRule({ ...DEFAULT_RULE });
+    setCurrentRule(createDefaultRule());
     onHide();
   };
 
   const onSave = () => {
-    const tables: number[] = [];
-    const subjects: number[] = [];
-
-    currentRule.tables?.forEach(table => tables.push(table.key));
-    currentRule.subjects?.forEach(subject => subjects.push(subject.value));
-
-    const data: any = { ...currentRule, tables, subjects };
+    const data = mapFormStateToPayload(currentRule);
 
     if (isEditMode && currentRule.id) {
-      const updateId = currentRule.id;
-      delete data.id;
-      updateResource(updateId, data).then(response => {
+      updateResource(currentRule.id, data).then(response => {
         if (!response) {
           return;
         }
@@ -386,7 +404,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
                 ariaLabel={t('Tables')}
                 mode="multiple"
                 onChange={onTablesChange}
-                value={(currentRule?.tables as SelectValue[]) || []}
+                value={currentRule.tables}
                 options={loadTableOptions}
               />
             </div>

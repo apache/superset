@@ -177,7 +177,7 @@ describe('Rule modal', () => {
         id: 1,
         name: 'test rule',
         filter_type: FilterType.Base,
-        tables: [{ key: 1, id: 1, value: 'birth_names' }],
+        tables: [{ id: 1, table_name: 'birth_names' }],
         subjects: [],
       },
     });
@@ -301,8 +301,11 @@ describe('Rule modal', () => {
         // Find the PUT request among all calls
         const putCall = allCalls.find(call => call.options?.method === 'put');
         expect(putCall).toBeTruthy();
-        expect(putCall?.options?.body).toContain('"name":"rls 1"');
-        expect(putCall?.options?.body).toContain('"filter_type":"Base"');
+        const body = JSON.parse(putCall?.options?.body as string);
+        expect(body.name).toBe('rls 1');
+        expect(body.filter_type).toBe('Base');
+        expect(body.tables).toEqual([2]);
+        expect(body.subjects).toEqual([1]);
       },
       { timeout: 10000 },
     );

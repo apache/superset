@@ -33,6 +33,36 @@ export interface SubjectPickerValue {
   [key: string]: unknown;
 }
 
+export type SubjectPickerSource = {
+  id?: number | string;
+  value?: number | string;
+  label?: ReactNode;
+  type?: SubjectType | number;
+  secondary_label?: string;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  text?: string;
+  [key: string]: unknown;
+};
+
+const getNumericId = (value: unknown): number | undefined => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim() !== '') {
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue) ? numericValue : undefined;
+  }
+  return undefined;
+};
+
+const getSubjectType = (type: unknown): SubjectType | undefined =>
+  typeof type === 'number' &&
+  Object.values(SubjectType).includes(type as SubjectType)
+    ? (type as SubjectType)
+    : undefined;
+
 const getTextLabel = (value: SubjectPickerValue) => {
   const textLabel = value[SUBJECT_TEXT_LABEL_PROP];
   if (typeof textLabel === 'string') {
@@ -46,6 +76,83 @@ const getDetail = (value: SubjectPickerValue) => {
   return typeof detail === 'string' ? detail : '';
 };
 
+const getSourceTextLabel = (subject: SubjectPickerSource) => {
+  const textLabel = subject[SUBJECT_TEXT_LABEL_PROP];
+  if (typeof textLabel === 'string') {
+    return textLabel;
+  }
+  if (typeof subject.label === 'string') {
+    return subject.label;
+  }
+  if (typeof subject.text === 'string') {
+    return subject.text;
+  }
+
+  return [subject.first_name, subject.last_name]
+    .filter((name): name is string => typeof name === 'string' && Boolean(name))
+    .join(' ');
+};
+
+const getSourceDetail = (subject: SubjectPickerSource) => {
+  const detail =
+    subject[SUBJECT_DETAIL_PROP] ?? subject.secondary_label ?? subject.email;
+  return typeof detail === 'string' ? detail : '';
+};
+
+export function normalizeSubjectToPickerValue(
+  subject: SubjectPickerSource,
+): SubjectPickerValue | undefined {
+  const value = getNumericId(subject.value ?? subject.id);
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const textLabel = getSourceTextLabel(subject);
+  const detail = getSourceDetail(subject);
+  const type = getSubjectType(subject.type);
+  const label =
+    typeof subject.label === 'string' || subject.label === undefined
+      ? SubjectSelectLabel({
+          label: textLabel,
+          type,
+          secondaryLabel: detail || undefined,
+        })
+      : subject.label;
+
+  return {
+    value,
+    label,
+    type,
+    secondary_label: detail || undefined,
+    [SUBJECT_TEXT_LABEL_PROP]: textLabel,
+    [SUBJECT_DETAIL_PROP]: detail,
+  };
+}
+
+export function normalizeSubjectsToPickerValues(
+  subjects: SubjectPickerSource[] = [],
+): SubjectPickerValue[] {
+  return subjects.flatMap(subject => {
+    const value = normalizeSubjectToPickerValue(subject);
+    return value ? [value] : [];
+  });
+}
+
+export function mapSubjectValuesToIds(
+  values: SubjectPickerSource[] = [],
+): number[] {
+  return values.flatMap(value => {
+    const id = getNumericId(value.value ?? value.id);
+    return id === undefined ? [] : [id];
+  });
+}
+
+export function mapSubjectPickerValuesToIds(
+  values: SubjectPickerValue[] = [],
+): number[] {
+  return mapSubjectValuesToIds(values);
+}
+
 /**
  * Converts an array of Subject model objects into SubjectPickerValue[]
  * suitable for use as the `value` prop of SubjectPicker.
@@ -53,18 +160,7 @@ const getDetail = (value: SubjectPickerValue) => {
 export function mapSubjectsToPickerValues(
   subjects: Subject[],
 ): SubjectPickerValue[] {
-  return subjects.map(subject => ({
-    value: subject.id,
-    label: SubjectSelectLabel({
-      label: subject.label ?? '',
-      type: subject.type,
-      secondaryLabel: subject.secondary_label,
-    }),
-    type: subject.type,
-    secondary_label: subject.secondary_label,
-    [SUBJECT_TEXT_LABEL_PROP]: subject.label ?? '',
-    [SUBJECT_DETAIL_PROP]: subject.secondary_label ?? '',
-  }));
+  return normalizeSubjectsToPickerValues(subjects);
 }
 
 export function mergeSubjectPickerValues(

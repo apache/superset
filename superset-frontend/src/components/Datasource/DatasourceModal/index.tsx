@@ -39,6 +39,7 @@ import {
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { ErrorMessageWithStackTrace } from 'src/components';
 import type { DatasetObject } from 'src/features/datasets/types';
+import { mapSubjectValuesToIds } from 'src/features/subjects/SubjectPicker';
 import type { DatasourceModalProps } from '../types';
 
 const DatasourceEditor = AsyncEsmComponent(
@@ -173,9 +174,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           extra: buildExtraJsonObject(column),
         }),
       ),
-      editors: (datasource.editors || []).map(
-        (o: Record<string, number>) => o.value || o.id,
-      ),
+      editors: mapSubjectValuesToIds(datasource.editors || []),
     };
     // Add folders if DATASET_FOLDERS feature is enabled
     if (isFeatureEnabled(FeatureFlag.DatasetFolders) && datasource.folders) {

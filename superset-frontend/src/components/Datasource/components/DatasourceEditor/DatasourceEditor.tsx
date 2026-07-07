@@ -83,13 +83,9 @@ import {
 import Mousetrap from 'mousetrap';
 import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
 import { makeUrl, openInNewTab } from 'src/utils/navigationUtils';
-import {
-  SubjectSelectLabel,
-  SUBJECT_TEXT_LABEL_PROP,
-  SUBJECT_DETAIL_PROP,
-} from 'src/features/subjects/SubjectSelectLabel';
-import Subject, { SubjectType } from 'src/types/Subject';
+import Subject from 'src/types/Subject';
 import SubjectPicker, {
+  normalizeSubjectsToPickerValues,
   type SubjectPickerValue,
 } from 'src/features/subjects/SubjectPicker';
 import { DatabaseSelector } from '../../../DatabaseSelector';
@@ -777,8 +773,8 @@ function EditorsSelector({
     <SubjectPicker
       relatedUrl="/api/v1/dataset/related/editors"
       ariaLabel={t('Select editors')}
-      value={datasource.editors as SubjectPickerValue[]}
-      onChange={value => onChange(value as SubjectPickerValue[])}
+      value={datasource.editors}
+      onChange={value => onChange(value)}
       header={<FormLabel>{t('Editors')}</FormLabel>}
       allowClear
     />
@@ -859,24 +855,7 @@ function DatasourceEditor({
   // Initialize datasource state with transformed editors and metrics
   const [datasource, setDatasource] = useState<DatasourceObject>(() => ({
     ...propsDatasource,
-    editors: (propsDatasource.editors || []).map(editor => {
-      const editorValue = Number(editor.value ?? editor.id);
-      const editorName =
-        editor.label ||
-        (editor.first_name ? `${editor.first_name} ${editor.last_name}` : '');
-      return {
-        value: editorValue,
-        label: SubjectSelectLabel({
-          label: typeof editorName === 'string' ? editorName : '',
-          type: editor.type as SubjectType | undefined,
-          secondaryLabel: (editor.secondary_label || editor.email) as
-            string | undefined,
-        }),
-        [SUBJECT_TEXT_LABEL_PROP]:
-          typeof editorName === 'string' ? editorName : '',
-        [SUBJECT_DETAIL_PROP]: editor.secondary_label || editor.email || '',
-      };
-    }),
+    editors: normalizeSubjectsToPickerValues(propsDatasource.editors || []),
     metrics: propsDatasource.metrics?.map(metric => {
       const {
         certified_by: certifiedByMetric,

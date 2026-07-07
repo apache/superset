@@ -19,9 +19,12 @@
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { SubjectType } from 'src/types/Subject';
 import {
+  mapSubjectPickerValuesToIds,
+  mapSubjectValuesToIds,
   mapPickerValuesToSubjects,
   mapSubjectsToPickerValues,
   mergeSubjectPickerValues,
+  normalizeSubjectsToPickerValues,
 } from './utils';
 
 const mockAsyncSelect = jest.fn((props: any) => (
@@ -148,6 +151,71 @@ test('mapSubjectsToPickerValues handles missing optional fields', () => {
   expect(result[0].value).toBe(1);
   expect(result[0].textLabel).toBe('');
   expect(result[0].subjectDetail).toBe('');
+});
+
+test('normalizeSubjectsToPickerValues supports API and picker-shaped subjects', () => {
+  const result = normalizeSubjectsToPickerValues([
+    {
+      id: 1,
+      label: 'Alice',
+      type: SubjectType.User,
+      secondary_label: 'alice@example.com',
+    },
+    {
+      value: 2,
+      label: 'Admin',
+      type: SubjectType.Role,
+    },
+    {
+      id: 3,
+      first_name: 'Grace',
+      last_name: 'Hopper',
+      email: 'grace@example.com',
+      type: SubjectType.User,
+    },
+    {
+      label: 'Missing ID',
+      type: SubjectType.Group,
+    },
+  ]);
+
+  expect(result).toHaveLength(3);
+  expect(result[0]).toMatchObject({
+    value: 1,
+    textLabel: 'Alice',
+    subjectDetail: 'alice@example.com',
+    type: SubjectType.User,
+  });
+  expect(result[1]).toMatchObject({
+    value: 2,
+    textLabel: 'Admin',
+    type: SubjectType.Role,
+  });
+  expect(result[2]).toMatchObject({
+    value: 3,
+    textLabel: 'Grace Hopper',
+    subjectDetail: 'grace@example.com',
+    type: SubjectType.User,
+  });
+});
+
+test('mapSubjectPickerValuesToIds returns numeric subject IDs', () => {
+  expect(
+    mapSubjectPickerValuesToIds([
+      { value: 1, label: 'Alice' },
+      { value: 2, label: 'Admin' },
+    ]),
+  ).toEqual([1, 2]);
+});
+
+test('mapSubjectValuesToIds supports API and picker-shaped subjects', () => {
+  expect(
+    mapSubjectValuesToIds([
+      { id: 1, label: 'Alice', type: SubjectType.User },
+      { value: 2, label: 'Admin', type: SubjectType.Role },
+      { label: 'Missing ID', type: SubjectType.Group },
+    ]),
+  ).toEqual([1, 2]);
 });
 
 test('SubjectPicker renders with placeholder', async () => {
