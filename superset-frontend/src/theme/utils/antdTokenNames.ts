@@ -100,6 +100,13 @@ const SUPERSET_CUSTOM_TOKENS: Set<string> = new Set([
   'dashboardTileBorder',
   'dashboardTileBorderRadius',
   'dashboardTileBoxShadow',
+
+  // Results grid tokens
+  'resultsGridRowHeight',
+  'resultsGridHeaderFontWeight',
+  'resultsGridHeaderFontSize',
+  'resultsGridBorderRadius',
+  'resultsGridNoStriping',
 ]);
 
 /**
