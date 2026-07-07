@@ -28,9 +28,11 @@ import { apiGetChart, ENDPOINTS } from '../../helpers/api/chart';
 import { createTestChart } from './chart-test-helpers';
 import { waitForGet, waitForPut } from '../../helpers/api/intercepts';
 import {
+  expectDeleted,
   expectStatusOneOf,
   expectValidExportZip,
 } from '../../helpers/api/assertions';
+import { TIMEOUT } from '../../utils/constants';
 
 /**
  * Extend testWithAssets with chartListPage navigation (beforeEach equivalent).
@@ -61,8 +63,11 @@ test('should delete a chart with confirmation', async ({
   await chartListPage.goto();
   await chartListPage.waitForTableLoad();
 
-  // Verify chart is visible in list
-  await expect(chartListPage.getChartRow(chartName)).toBeVisible();
+  // The list query is asynchronous; allow extra time on slow CI before the
+  // freshly-created chart appears.
+  await expect(chartListPage.getChartRow(chartName)).toBeVisible({
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // Click delete action button
   await chartListPage.clickDeleteAction(chartName);
@@ -80,25 +85,19 @@ test('should delete a chart with confirmation', async ({
   // Modal should close
   await deleteModal.waitForHidden();
 
-  // Verify success toast appears
+  // Verify success toast appears.
   const toast = new Toast(page);
   await expect(toast.getSuccess()).toBeVisible();
 
-  // Verify chart is removed from list
-  await expect(chartListPage.getChartRow(chartName)).not.toBeVisible();
+  // Verify chart is removed from list (deleted rows are removed from the DOM, so assert count rather than visibility)
+  await expect(chartListPage.getChartRow(chartName)).toHaveCount(0, {
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // Backend verification: API returns 404
-  await expect
-    .poll(
-      async () => {
-        const response = await apiGetChart(page, chartId, {
-          failOnStatusCode: false,
-        });
-        return response.status();
-      },
-      { timeout: 10000, message: `Chart ${chartId} should return 404` },
-    )
-    .toBe(404);
+  await expectDeleted(page, ENDPOINTS.CHART, chartId, {
+    label: `Chart ${chartId}`,
+  });
 });
 
 test('should edit chart name via properties modal', async ({
@@ -118,8 +117,11 @@ test('should edit chart name via properties modal', async ({
   await chartListPage.goto();
   await chartListPage.waitForTableLoad();
 
-  // Verify chart is visible in list
-  await expect(chartListPage.getChartRow(chartName)).toBeVisible();
+  // The list query is asynchronous; allow extra time on slow CI before the
+  // freshly-created chart appears.
+  await expect(chartListPage.getChartRow(chartName)).toBeVisible({
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // Click edit action to open properties modal
   await chartListPage.clickEditAction(chartName);
@@ -144,7 +146,7 @@ test('should edit chart name via properties modal', async ({
   // Modal should close
   await propertiesModal.waitForHidden();
 
-  // Verify success toast appears
+  // Verify success toast appears.
   const toast = new Toast(page);
   await expect(toast.getSuccess()).toBeVisible();
 
@@ -171,8 +173,11 @@ test('should export a chart as a zip file', async ({
   await chartListPage.goto();
   await chartListPage.waitForTableLoad();
 
-  // Verify chart is visible in list
-  await expect(chartListPage.getChartRow(chartName)).toBeVisible();
+  // The list query is asynchronous; allow extra time on slow CI before the
+  // freshly-created chart appears.
+  await expect(chartListPage.getChartRow(chartName)).toBeVisible({
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // Set up API response intercept for export endpoint
   const exportResponsePromise = waitForGet(page, ENDPOINTS.CHART_EXPORT);
@@ -193,7 +198,7 @@ test('should bulk delete multiple charts', async ({
   chartListPage,
   testAssets,
 }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(TIMEOUT.SLOW_TEST);
 
   // Create 2 throwaway charts for bulk delete
   const [chart1, chart2] = await Promise.all([
@@ -209,9 +214,14 @@ test('should bulk delete multiple charts', async ({
   await chartListPage.goto();
   await chartListPage.waitForTableLoad();
 
-  // Verify both charts are visible in list
-  await expect(chartListPage.getChartRow(chart1.name)).toBeVisible();
-  await expect(chartListPage.getChartRow(chart2.name)).toBeVisible();
+  // The list query is asynchronous; allow extra time on slow CI before the
+  // freshly-created charts appear.
+  await expect(chartListPage.getChartRow(chart1.name)).toBeVisible({
+    timeout: TIMEOUT.API_RESPONSE,
+  });
+  await expect(chartListPage.getChartRow(chart2.name)).toBeVisible({
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // Enable bulk select mode
   await chartListPage.clickBulkSelectButton();
@@ -221,7 +231,7 @@ test('should bulk delete multiple charts', async ({
   await chartListPage.selectChartCheckbox(chart2.name);
 
   // Click bulk delete action
-  await chartListPage.clickBulkAction('Delete');
+  await chartListPage.clickBulkAction('delete');
 
   // Delete confirmation modal should appear
   const deleteModal = new DeleteConfirmationModal(page);
@@ -236,27 +246,23 @@ test('should bulk delete multiple charts', async ({
   // Modal should close
   await deleteModal.waitForHidden();
 
-  // Verify success toast appears
+  // Verify success toast appears.
   const toast = new Toast(page);
   await expect(toast.getSuccess()).toBeVisible();
 
-  // Verify both charts are removed from list
-  await expect(chartListPage.getChartRow(chart1.name)).not.toBeVisible();
-  await expect(chartListPage.getChartRow(chart2.name)).not.toBeVisible();
+  // Verify both charts are removed from list (deleted rows are removed from the DOM, so assert count rather than visibility)
+  await expect(chartListPage.getChartRow(chart1.name)).toHaveCount(0, {
+    timeout: TIMEOUT.API_RESPONSE,
+  });
+  await expect(chartListPage.getChartRow(chart2.name)).toHaveCount(0, {
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // Backend verification: Both return 404
   for (const chart of [chart1, chart2]) {
-    await expect
-      .poll(
-        async () => {
-          const response = await apiGetChart(page, chart.id, {
-            failOnStatusCode: false,
-          });
-          return response.status();
-        },
-        { timeout: 10000, message: `Chart ${chart.id} should return 404` },
-      )
-      .toBe(404);
+    await expectDeleted(page, ENDPOINTS.CHART, chart.id, {
+      label: `Chart ${chart.id}`,
+    });
   }
 });
 
@@ -274,8 +280,11 @@ test('should edit chart name from card view', async ({ page, testAssets }) => {
   await cardListPage.gotoCardView();
   await cardListPage.waitForCardLoad();
 
-  // Verify chart card is visible
-  await expect(cardListPage.getChartCard(chartName)).toBeVisible();
+  // The list query is asynchronous; allow extra time on slow CI before the
+  // freshly-created chart card appears.
+  await expect(cardListPage.getChartCard(chartName)).toBeVisible({
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // Open card dropdown and click edit
   await cardListPage.clickCardEditAction(chartName);
@@ -300,13 +309,18 @@ test('should edit chart name from card view', async ({ page, testAssets }) => {
   // Modal should close
   await propertiesModal.waitForHidden();
 
-  // Verify success toast appears
+  // Verify success toast appears.
   const toast = new Toast(page);
   await expect(toast.getSuccess()).toBeVisible();
 
   // Verify the renamed card appears in card view and old name is gone
-  await expect(cardListPage.getChartCard(newName)).toBeVisible();
-  await expect(cardListPage.getChartCard(chartName)).not.toBeVisible();
+  // (the old card name is removed from the DOM after the rename re-render).
+  await expect(cardListPage.getChartCard(newName)).toBeVisible({
+    timeout: TIMEOUT.API_RESPONSE,
+  });
+  await expect(cardListPage.getChartCard(chartName)).toHaveCount(0, {
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // Backend verification: API returns updated name
   const response = await apiGetChart(page, chartId);
@@ -319,6 +333,11 @@ test('should bulk export multiple charts', async ({
   chartListPage,
   testAssets,
 }) => {
+  // Chains create×2 → refresh → bulk select → export. Matches the
+  // sibling bulk-delete test's budget so the export response wait below
+  // can exceed the 30s default without hitting the test timeout.
+  test.setTimeout(TIMEOUT.SLOW_TEST);
+
   // Create 2 throwaway charts for bulk export
   const [chart1, chart2] = await Promise.all([
     createTestChart(page, testAssets, test.info(), {
@@ -333,9 +352,14 @@ test('should bulk export multiple charts', async ({
   await chartListPage.goto();
   await chartListPage.waitForTableLoad();
 
-  // Verify both charts are visible in list
-  await expect(chartListPage.getChartRow(chart1.name)).toBeVisible();
-  await expect(chartListPage.getChartRow(chart2.name)).toBeVisible();
+  // The list query is asynchronous; allow extra time on slow CI before the
+  // freshly-created charts appear.
+  await expect(chartListPage.getChartRow(chart1.name)).toBeVisible({
+    timeout: TIMEOUT.API_RESPONSE,
+  });
+  await expect(chartListPage.getChartRow(chart2.name)).toBeVisible({
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // Enable bulk select mode
   await chartListPage.clickBulkSelectButton();
@@ -344,11 +368,15 @@ test('should bulk export multiple charts', async ({
   await chartListPage.selectChartCheckbox(chart1.name);
   await chartListPage.selectChartCheckbox(chart2.name);
 
-  // Set up API response intercept for export endpoint
-  const exportResponsePromise = waitForGet(page, ENDPOINTS.CHART_EXPORT);
+  // Set up API response intercept BEFORE the click that triggers it.
+  // Exports of multiple charts can take longer than 30s under load,
+  // so use SLOW_TEST instead of the default test-timeout-bound budget.
+  const exportResponsePromise = waitForGet(page, ENDPOINTS.CHART_EXPORT, {
+    timeout: TIMEOUT.SLOW_TEST,
+  });
 
   // Click bulk export action
-  await chartListPage.clickBulkAction('Export');
+  await chartListPage.clickBulkAction('export');
 
   // Wait for export API response and validate zip contains both charts
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);

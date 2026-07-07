@@ -29,7 +29,7 @@ import {
 import { css, styled } from '@apache-superset/core/theme';
 import { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
-import { uniqBy } from 'lodash';
+import { uniqBy } from 'lodash-es';
 import { useSelector } from 'react-redux';
 import {
   createErrorHandler,
@@ -83,6 +83,7 @@ import { findPermission } from 'src/utils/findPermission';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { Tag } from 'src/components/Tag';
+import { datasetLabel } from 'src/features/semanticLayers/label';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -94,6 +95,7 @@ const FlexRowContainer = styled.div`
     text-overflow: ellipsis;
     white-space: nowrap;
     line-height: 1.2;
+    min-width: 0;
   }
 
   svg {
@@ -430,7 +432,7 @@ function ChartList(props: ChartListProps) {
             </Tooltip>
           );
         },
-        Header: t('Dataset'),
+        Header: datasetLabel(),
         accessor: 'datasource_id',
         disableSortBy: true,
         size: 'xl',
@@ -493,9 +495,9 @@ function ChartList(props: ChartListProps) {
           },
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
-        accessor: 'last_saved_at',
+        accessor: 'changed_on_delta_humanized',
         size: 'xl',
-        id: 'last_saved_at',
+        id: 'changed_on_delta_humanized',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -521,6 +523,7 @@ function ChartList(props: ChartListProps) {
                   placement="bottom"
                 >
                   <span
+                    data-test="chart-row-edit"
                     role="button"
                     tabIndex={0}
                     className="action-button"
@@ -537,6 +540,7 @@ function ChartList(props: ChartListProps) {
                   placement="bottom"
                 >
                   <span
+                    data-test="chart-row-export"
                     role="button"
                     tabIndex={0}
                     className="action-button"
@@ -564,6 +568,7 @@ function ChartList(props: ChartListProps) {
                       placement="bottom"
                     >
                       <span
+                        data-test="chart-row-delete"
                         role="button"
                         tabIndex={0}
                         className="action-button"
@@ -658,7 +663,7 @@ function ChartList(props: ChartListProps) {
           }),
       },
       {
-        Header: t('Dataset'),
+        Header: datasetLabel(),
         key: 'dataset',
         id: 'datasource_id',
         input: 'select',

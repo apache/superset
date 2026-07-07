@@ -15,11 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
+from superset import security_manager
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.query import SavedQueryDAO
+from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
@@ -36,12 +38,36 @@ def to_object_type(object_type: Union[ObjectType, int, str]) -> Optional[ObjectT
 
 
 def to_object_model(
-    object_type: ObjectType, object_id: int
-) -> Optional[Union[Dashboard, SavedQuery, Slice]]:
+    object_type: ObjectType, object_id: int, skip_base_filter: bool = False
+) -> Optional[Union[Dashboard, SavedQuery, Slice, Any]]:
     if ObjectType.dashboard == object_type:
-        return DashboardDAO.find_by_id(object_id)
+        return DashboardDAO.find_by_id(object_id, skip_base_filter=skip_base_filter)
     if ObjectType.query == object_type:
-        return SavedQueryDAO.find_by_id(object_id)
+        return SavedQueryDAO.find_by_id(object_id, skip_base_filter=skip_base_filter)
     if ObjectType.chart == object_type:
-        return ChartDAO.find_by_id(object_id)
+        return ChartDAO.find_by_id(object_id, skip_base_filter=skip_base_filter)
+    if ObjectType.dataset == object_type:
+        # Imported lazily to avoid a circular import via superset.views.base
+        from superset.daos.dataset import DatasetDAO
+
+        return DatasetDAO.find_by_id(object_id, skip_base_filter=skip_base_filter)
     return None
+
+
+def current_user_can_modify_object(model: Any) -> bool:
+    """Whether the current user may create/modify tag relationships on ``model``.
+
+    Mirrors the ownership check the bulk-create path already applies (owner or
+    admin via ``raise_for_ownership``, or the object's creator), so the
+    tag-update path enforces the same boundary. Look the model up with
+    ``skip_base_filter=True`` before calling this, so an object the user cannot
+    access reaches the check instead of resolving to ``None`` and being written
+    without any check.
+    """
+    try:
+        security_manager.raise_for_ownership(model)
+        return True
+    except SupersetSecurityException:
+        return bool(
+            model.created_by and model.created_by == security_manager.current_user
+        )

@@ -30,7 +30,8 @@ import ProgressBar from '@superset-ui/core/components/ProgressBar';
 import { t } from '@apache-superset/core/translation';
 import { QueryResponse, QueryState } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/theme';
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 
 import {
   queryEditorSetSql,
@@ -43,21 +44,30 @@ import {
 import { fDuration, extendedDayjs } from '@superset-ui/core/utils/dates';
 import { SqlLabRootState } from 'src/SqlLab/types';
 import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
-import { makeUrl } from 'src/utils/pathUtils';
+import { openInNewTab } from 'src/utils/navigationUtils';
 import ResultSet from '../ResultSet';
 import HighlightedSql from '../HighlightedSql';
 import { StaticPosition, StyledTooltip, ModalResultSetWrapper } from './styles';
 
 interface QueryTableQuery extends Omit<
   QueryResponse,
-  'state' | 'sql' | 'progress' | 'results' | 'duration' | 'started'
+  | 'state'
+  | 'sql'
+  | 'progress'
+  | 'results'
+  | 'duration'
+  | 'started'
+  | 'user'
+  | 'db'
 > {
-  state?: Record<string, any>;
-  sql?: Record<string, any>;
-  progress?: Record<string, any>;
-  results?: Record<string, any>;
+  state?: ReactNode;
+  sql?: ReactNode;
+  progress?: ReactNode;
+  results?: ReactNode;
   duration?: ReactNode;
   started?: ReactNode;
+  user?: ReactNode;
+  db?: ReactNode;
 }
 
 interface QueryTableProps {
@@ -70,8 +80,7 @@ interface QueryTableProps {
 }
 
 const openQuery = (id: number) => {
-  const url = makeUrl(`/sqllab?queryId=${id}`);
-  window.open(url);
+  openInNewTab(`/sqllab?queryId=${id}`);
 };
 
 const QueryTable = ({
@@ -83,7 +92,7 @@ const QueryTable = ({
   latestQueryId,
 }: QueryTableProps) => {
   const theme = useTheme();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const [selectedQuery, setSelectedQuery] = useState<QueryResponse | null>(
     null,
   );
@@ -249,7 +258,7 @@ const QueryTable = ({
 
     return queries
       .map(query => {
-        const { state, sql, progress, ...rest } = query;
+        const { state, sql, progress, results: _results, ...rest } = query;
         const q = rest as QueryTableQuery;
 
         const status = statusAttributes[state] || statusAttributes.error;
@@ -265,7 +274,7 @@ const QueryTable = ({
             buttonStyle="link"
             onClick={() => onUserClicked(q.userId)}
           >
-            {q.user}
+            {q.user as ReactNode}
           </Button>
         );
         q.db = (
@@ -274,7 +283,7 @@ const QueryTable = ({
             buttonStyle="link"
             onClick={() => onDbClicked(q.dbId)}
           >
-            {q.db}
+            {q.db as ReactNode}
           </Button>
         );
         q.started = (

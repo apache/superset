@@ -16,6 +16,7 @@
 # under the License.
 from typing import Any
 
+from flask import current_app
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import aliased
@@ -31,6 +32,7 @@ from superset.utils.core import get_user_id
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
+from superset.views.filters import BaseDeletedStateFilter
 
 
 class ChartAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -109,7 +111,22 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         query = query.join(
             models.Database, table_alias.database_id == models.Database.id
         )
-        return query.filter(get_dataset_access_filters(self.model))
+
+        extra_access_filters = []
+        extra_filters = current_app.config.get("EXTRA_ACCESS_QUERY_FILTERS", {})
+        if extra_charts_filter := extra_filters.get("charts"):
+            user_id = get_user_id()
+            if user_id:
+                extra_access_filters.append(
+                    self.model.id.in_(extra_charts_filter(user_id))
+                )
+
+        return query.filter(
+            or_(
+                get_dataset_access_filters(self.model),
+                *extra_access_filters,
+            )
+        )
 
 
 class ChartHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -180,3 +197,40 @@ class ChartOwnedCreatedFavoredByMeFilter(BaseFilter):  # pylint: disable=too-few
                 FavStar.user_id == get_user_id(),
             )
         )
+
+
+class ChartDeletedStateFilter(  # pylint: disable=too-few-public-methods
+    BaseDeletedStateFilter
+):
+    """Rison filter for the GET list that exposes soft-deleted charts.
+
+    Soft-deleted rows are additionally scoped to the **restore audience**: only
+    the chart's owners (or admins) may enumerate them. This mirrors
+    ``RestoreChartCommand``'s ``raise_for_ownership`` check, so a read-access
+    non-owner (who can see the chart via datasource access) cannot list
+    soft-deleted charts they could never restore. Live rows are unaffected —
+    they keep their normal ``ChartFilter`` visibility. The ownership scoping is
+    part of the cross-entity deleted-state contract: only the restore audience
+    may enumerate soft-deleted rows — any entity exposing a deleted-state
+    filter is expected to apply the same scoping.
+    """
+
+    arg_name = "chart_deleted_state"
+    model = Slice
+
+    def apply(self, query: Query, value: Any) -> Query:
+        query = super().apply(query, value)
+        normalized = self._normalize(value)
+        if normalized not in {"include", "only"} or security_manager.is_admin():
+            return query
+
+        # Non-admins may only see soft-deleted charts they own. ``any()`` emits
+        # an EXISTS subquery so it composes with the base access filter without
+        # producing duplicate rows from a join.
+        owned = Slice.owners.any(security_manager.user_model.id == get_user_id())
+        if normalized == "only":
+            # ``super().apply`` already restricted to ``deleted_at IS NOT NULL``.
+            return query.filter(owned)
+        # ``include``: keep all live rows (normal access) and add only the
+        # soft-deleted rows this user owns.
+        return query.filter(or_(Slice.deleted_at.is_(None), owned))

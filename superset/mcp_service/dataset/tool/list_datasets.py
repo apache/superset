@@ -96,8 +96,28 @@ async def list_datasets(
     Returns dataset metadata including table name, schema, and last modified
     time.
 
-    Sortable columns for order_column: id, table_name, schema, changed_on,
-    created_on
+    **IMPORTANT**: All parameters must be wrapped in a ``request`` object.
+    Do NOT pass ``search``, ``page``, ``page_size``, etc. as top-level
+    keyword arguments — they will be rejected. Use the ``request`` wrapper::
+
+        # Correct usage
+        list_datasets(request={"search": "sales", "page": 1, "page_size": 10})
+        list_datasets(request={"filters": [{"col": "table_name", "opr": "sw", "value": "orders"}]})
+        list_datasets()  # no arguments returns first page with defaults
+
+        # Wrong — causes pydantic validation errors
+        list_datasets(search="sales", page=1)  # DO NOT DO THIS
+
+    Valid filter columns for ``filters[].col``:
+        ``table_name``, ``schema``, ``database_name``,
+        ``created_by_fk``, ``changed_by_fk``
+
+    Sortable columns for ``order_column``:
+        ``id``, ``table_name``, ``schema``, ``changed_on``, ``created_on``
+
+    To filter by a person, call find_users to resolve the name to a user ID,
+    then pass it as a filter: filters=[{"col": "created_by_fk", "opr": "eq",
+    "value": <id>}] (or "changed_by_fk"). Do not pass the name as search.
     """
     if ctx is None:
         raise RuntimeError("FastMCP context is required for list_datasets")
@@ -179,6 +199,8 @@ async def list_datasets(
                 order_direction=request.order_direction,
                 page=max(request.page - 1, 0),
                 page_size=request.page_size,
+                created_by_me=request.created_by_me,
+                owned_by_me=request.owned_by_me,
             )
 
         await ctx.info(

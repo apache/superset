@@ -24,25 +24,70 @@ about a specific dashboard.
 
 import logging
 from datetime import datetime, timezone
+from typing import Any
 
 from fastmcp import Context
+from flask import g, has_request_context
 from sqlalchemy.orm import subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.dashboards.permalink.types import DashboardPermalinkValue
 from superset.extensions import event_logger
+from superset.mcp_service.auth import load_user_with_relationships
 from superset.mcp_service.dashboard.schemas import (
     dashboard_serializer,
     DashboardError,
     DashboardInfo,
+    DEFAULT_GET_DASHBOARD_INFO_COLUMNS,
     GetDashboardInfoRequest,
     redact_filter_state_data_model_metadata,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
 from superset.mcp_service.privacy import user_can_view_data_model_metadata
+from superset.mcp_service.utils import sanitize_for_llm_context
 
 logger = logging.getLogger(__name__)
+
+
+def _refresh_request_user_for_permalink_access() -> None:
+    """Reload the request user before permalink access checks."""
+    if not has_request_context() or not getattr(g, "user", None):
+        return
+
+    current_user = g.user
+    if getattr(current_user, "is_anonymous", False):
+        return
+
+    username = getattr(current_user, "username", None)
+    email = getattr(current_user, "email", None)
+    if not username and not email:
+        return
+
+    refreshed_user = (
+        load_user_with_relationships(username=username)
+        if username
+        else load_user_with_relationships(email=email)
+    )
+    if refreshed_user is not None:
+        g.user = refreshed_user
+
+
+def _apply_permalink_state(
+    result: DashboardInfo,
+    permalink_key: str,
+    permalink_state: dict[str, object],
+) -> DashboardInfo:
+    """Sanitize only the raw permalink fields added after serialization."""
+    payload = result.model_dump(mode="python")
+    payload["permalink_key"] = permalink_key
+    payload["filter_state"] = sanitize_for_llm_context(
+        permalink_state,
+        field_path=("filter_state",),
+        excluded_field_names=frozenset(),
+    )
+    payload["is_permalink_state"] = True
+    return DashboardInfo.model_validate(payload)
 
 
 def _get_permalink_state(permalink_key: str) -> DashboardPermalinkValue | None:
@@ -71,7 +116,7 @@ def _get_permalink_state(permalink_key: str) -> DashboardPermalinkValue | None:
 )
 async def get_dashboard_info(
     request: GetDashboardInfoRequest, ctx: Context
-) -> DashboardInfo | DashboardError:
+) -> dict[str, Any] | DashboardError:
     """
     Get dashboard metadata by ID, UUID, or slug.
 
@@ -110,10 +155,11 @@ async def get_dashboard_info(
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
 
-        # Eager load slices and tags to avoid N+1 queries during serialization.
+        # Eager load slices, tags, and embedded to avoid N+1 queries.
         eager_options = [
             subqueryload(Dashboard.slices).subqueryload(Slice.tags),
             subqueryload(Dashboard.tags),
+            subqueryload(Dashboard.embedded),
         ]
 
         with event_logger.log_context(action="mcp.get_dashboard_info.lookup"):
@@ -136,6 +182,7 @@ async def get_dashboard_info(
                     "Retrieving filter state from permalink: permalink_key=%s"
                     % (request.permalink_key,)
                 )
+                _refresh_request_user_for_permalink_access()
                 permalink_value = _get_permalink_state(request.permalink_key)
 
                 if permalink_value:
@@ -171,9 +218,11 @@ async def get_dashboard_info(
                             permalink_state = redact_filter_state_data_model_metadata(
                                 permalink_state
                             )
-                        result.permalink_key = request.permalink_key
-                        result.filter_state = permalink_state
-                        result.is_permalink_state = True
+                        result = _apply_permalink_state(
+                            result,
+                            request.permalink_key,
+                            permalink_state,
+                        )
 
                         await ctx.info(
                             "Filter state retrieved from permalink: "
@@ -200,6 +249,19 @@ async def get_dashboard_info(
                     result.published,
                     result.is_permalink_state,
                 )
+            )
+            # When permalink_key is supplied and the caller did not explicitly
+            # override select_columns, ensure filter_state is present so the
+            # caller gets the data they came for.
+            effective_select_columns = list(request.select_columns)
+            if request.permalink_key and effective_select_columns == list(
+                DEFAULT_GET_DASHBOARD_INFO_COLUMNS
+            ):
+                effective_select_columns.append("filter_state")
+
+            return result.model_dump(
+                mode="json",
+                context={"select_columns": effective_select_columns},
             )
         else:
             await ctx.warning(

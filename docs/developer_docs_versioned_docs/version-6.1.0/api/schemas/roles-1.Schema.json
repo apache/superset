@@ -1,0 +1,1 @@
+{"schema":{"properties":{"id":{"type":"integer"},"name":{"type":"string"}},"type":"object","title":"Roles1"},"schemaType":"response"}

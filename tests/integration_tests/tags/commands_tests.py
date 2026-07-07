@@ -39,6 +39,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice  # noqa: F401
 from superset.tags.models import ObjectType, Tag, TaggedObject, TagType
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.importexport import (
     chart_config,  # noqa: F401
     dashboard_config,  # noqa: F401
@@ -62,6 +63,7 @@ class TestCreateCustomTagCommand(SupersetTestCase):
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @pytest.mark.usefixtures("with_tagging_system_feature")
     def test_create_custom_tag_command(self):
+        self.login(ADMIN_USERNAME)
         example_dashboard = (
             db.session.query(Dashboard).filter_by(slug="world_health").one()
         )
@@ -96,6 +98,7 @@ class TestDeleteTagsCommand(SupersetTestCase):
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @pytest.mark.usefixtures("with_tagging_system_feature")
     def test_delete_tags_command(self):
+        self.login(ADMIN_USERNAME)
         example_dashboard = (
             db.session.query(Dashboard)
             .filter_by(dashboard_title="World Bank's Data")
@@ -130,6 +133,7 @@ class TestDeleteTaggedObjectCommand(SupersetTestCase):
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @pytest.mark.usefixtures("with_tagging_system_feature")
     def test_delete_tags_command(self):
+        self.login(ADMIN_USERNAME)
         # create tagged objects
         example_dashboard = (
             db.session.query(Dashboard).filter_by(slug="world_health").one()

@@ -18,7 +18,7 @@
  */
 import { FormatLocaleDefinition } from 'd3-format';
 import { TimeLocaleDefinition } from 'd3-time-format';
-import { isPlainObject } from 'lodash';
+import { isPlainObject } from 'lodash-es';
 import { Languages } from 'src/features/home/LanguagePicker';
 import {
   AnyThemeConfig,
@@ -99,6 +99,7 @@ export interface BrandProps {
   alt: string;
   tooltip: string;
   text: string;
+  hide_logo?: boolean;
 }
 
 export interface NavBarProps {
@@ -178,6 +179,9 @@ export interface BootstrapData {
   config?: any;
   embedded?: {
     dashboard_id: string;
+    // Domains allowed to embed this dashboard. An empty/undefined list means
+    // any domain is allowed (no restriction).
+    allowed_domains?: string[];
   };
   requested_query?: JsonObject;
 }

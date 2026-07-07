@@ -1,0 +1,31 @@
+---
+title: Google Datastore
+sidebar_label: Google Datastore
+description: "Google Cloud Datastore is a highly scalable NoSQL database for your applications."
+hide_title: true
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+import { DatabasePage } from '@site/src/components/databases';
+
+export const databaseInfo = {"engine":"google_datastore","engine_name":"Google Datastore","module":"datastore","documentation":{"description":"Google Cloud Datastore is a highly scalable NoSQL database for your applications.","logo":"datastore.png","homepage_url":"https://cloud.google.com/datastore/","categories":["CLOUD_GCP","SEARCH_NOSQL","PROPRIETARY"],"pypi_packages":["python-datastore-sqlalchemy"],"connection_string":"datastore://{project_id}/?database={database_id}","authentication_methods":[{"name":"Service Account JSON","description":"Upload service account credentials JSON or paste in Secure Extra","secure_extra":{"credentials_info":{"type":"service_account","project_id":"...","private_key_id":"...","private_key":"...","client_email":"...","client_id":"...","auth_uri":"...","token_uri":"..."}}}],"notes":"Create a Service Account via GCP console with access to datastore datasets.","docs_url":"https://github.com/splasky/Python-datastore-sqlalchemy","custom_errors":[{"regex_name":"CONNECTION_DATABASE_PERMISSIONS_REGEX","message_template":"Unable to connect. Verify that the following roles are set on the service account: \"Cloud Datastore Viewer\", \"Cloud Datastore User\", \"Cloud Datastore Creator\"","error_type":"CONNECTION_DATABASE_PERMISSIONS_ERROR","category":"Permissions","description":"Insufficient permissions","issue_codes":[1017]},{"regex_name":"TABLE_DOES_NOT_EXIST_REGEX","message_template":"The table \"%(table)s\" does not exist. A valid table must be used to run this query.","error_type":"TABLE_DOES_NOT_EXIST_ERROR","category":"Query","description":"Table not found","issue_codes":[1003,1005]},{"regex_name":"COLUMN_DOES_NOT_EXIST_REGEX","message_template":"We can't seem to resolve column \"%(column)s\" at line %(location)s.","error_type":"COLUMN_DOES_NOT_EXIST_ERROR","category":"Query","description":"Column not found","issue_codes":[1003,1004]},{"regex_name":"SCHEMA_DOES_NOT_EXIST_REGEX","message_template":"The schema \"%(schema)s\" does not exist. A valid schema must be used to run this query.","error_type":"SCHEMA_DOES_NOT_EXIST_ERROR","category":"Query","description":"Schema not found","issue_codes":[1003,1016]},{"regex_name":"SYNTAX_ERROR_REGEX","message_template":"Please check your query for syntax errors at or near \"%(syntax_error)s\". Then, try running your query again.","error_type":"SYNTAX_ERROR","category":"Query","description":"SQL syntax error","issue_codes":[1030]}]},"time_grains":{"SECOND":true,"FIVE_SECONDS":false,"THIRTY_SECONDS":false,"MINUTE":true,"FIVE_MINUTES":true,"TEN_MINUTES":true,"FIFTEEN_MINUTES":true,"THIRTY_MINUTES":true,"HALF_HOUR":false,"HOUR":true,"SIX_HOURS":false,"DAY":true,"WEEK":true,"WEEK_STARTING_SUNDAY":false,"WEEK_STARTING_MONDAY":true,"WEEK_ENDING_SATURDAY":false,"WEEK_ENDING_SUNDAY":false,"MONTH":true,"QUARTER":true,"QUARTER_YEAR":false,"YEAR":true},"score":73,"max_score":201,"joins":true,"subqueries":true,"supports_dynamic_schema":true,"supports_catalog":true,"supports_dynamic_catalog":true,"ssh_tunneling":false,"supports_file_upload":true,"query_cancelation":false,"query_cost_estimation":false,"sql_validation":false,"user_impersonation":false};
+
+<DatabasePage name="Google Datastore" database={databaseInfo} />

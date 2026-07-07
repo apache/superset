@@ -17,15 +17,17 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { omit } from 'lodash';
+import { omit } from 'lodash-es';
 import {
   SET_REPORT,
   ADD_REPORT,
+  SUBSCRIBE_REPORT,
   EDIT_REPORT,
   DELETE_REPORT,
   ReportAction,
   SetReportAction,
   AddReportAction,
+  SubscribeReportAction,
   EditReportAction,
   DeleteReportAction,
 } from './actions';
@@ -91,6 +93,25 @@ export default function reportsReducer(
         creationMethod === 'alerts_reports'
           ? report.id
           : (report.dashboard ?? report.chart);
+
+      if (key === undefined) {
+        return state;
+      }
+
+      return {
+        ...state,
+        [creationMethod]: {
+          ...state[creationMethod],
+          [key]: report,
+        },
+      };
+    },
+
+    [SUBSCRIBE_REPORT]() {
+      const { result, id } = (action as SubscribeReportAction).json;
+      const report: ReportObject = { ...result, id } as ReportObject;
+      const creationMethod = report.creation_method as ReportCreationMethod;
+      const key = report.dashboard ?? report.chart;
 
       if (key === undefined) {
         return state;

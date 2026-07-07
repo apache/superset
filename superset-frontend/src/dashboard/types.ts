@@ -187,8 +187,7 @@ export type DashboardInfo = {
     map_label_colors: JsonObject;
     cross_filters_enabled: boolean;
     chart_customization_config?: (
-      | ChartCustomization
-      | ChartCustomizationDivider
+      ChartCustomization | ChartCustomizationDivider
     )[];
     timed_refresh_immune_slices?: number[];
     refresh_frequency?: number;
@@ -212,6 +211,7 @@ export type DashboardInfo = {
   } | null;
   css?: string;
   slug?: string;
+  description?: string;
   last_modified_time: number;
   certified_by?: string;
   certification_details?: string;

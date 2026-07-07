@@ -32,9 +32,25 @@ import { Tabs } from './Tabs';
 export class EditableTabs extends Tabs {
   /**
    * Clicks the add-tab button rendered by antd in editable-card mode.
+   *
+   * When the tab strip overflows, antd renders two `Add tab` buttons:
+   * one hidden inside `.ant-tabs-nav-list` (visibility: hidden) and one
+   * visible inside `.ant-tabs-nav-operations`. Scope the click to the
+   * visible operations container so we never match the hidden inline copy.
    */
   async addTab(): Promise<void> {
-    await this.element.getByRole('button', { name: 'Add tab' }).click();
+    const operationsButton = this.element
+      .locator('.ant-tabs-nav-operations')
+      .getByRole('button', { name: 'Add tab' });
+    if ((await operationsButton.count()) > 0) {
+      await operationsButton.click();
+      return;
+    }
+    // No overflow yet — the inline nav-list button is the only one rendered.
+    await this.element
+      .locator('.ant-tabs-nav-list')
+      .getByRole('button', { name: 'Add tab' })
+      .click();
   }
 
   /**

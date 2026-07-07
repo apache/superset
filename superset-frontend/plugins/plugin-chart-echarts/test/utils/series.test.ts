@@ -67,11 +67,7 @@ const {
     chartHeight: number;
     chartWidth: number;
     legendItems?: (
-      | string
-      | number
-      | null
-      | undefined
-      | { name?: string | number | null }
+      string | number | null | undefined | { name?: string | number | null }
     )[];
     legendMargin?: string | number | null;
     orientation: LegendOrientation;
@@ -94,11 +90,7 @@ const {
     chartHeight: number;
     chartWidth: number;
     legendItems?: (
-      | string
-      | number
-      | null
-      | undefined
-      | { name?: string | number | null }
+      string | number | null | undefined | { name?: string | number | null }
     )[];
     legendMargin?: string | number | null;
     orientation: LegendOrientation;
@@ -1396,6 +1388,41 @@ test('getAxisType without forced categorical', () => {
 
 test('getAxisType with forced categorical', () => {
   expect(getAxisType(false, true, GenericDataType.Numeric)).toEqual(
+    AxisType.Category,
+  );
+});
+
+test('getAxisType treats numeric as category for bar charts', () => {
+  expect(
+    (getAxisType as (...args: unknown[]) => AxisType)(
+      false,
+      false,
+      GenericDataType.Numeric,
+      EchartsTimeseriesSeriesType.Bar,
+    ),
+  ).toEqual(AxisType.Category);
+  expect(
+    (getAxisType as (...args: unknown[]) => AxisType)(
+      false,
+      false,
+      GenericDataType.Numeric,
+      EchartsTimeseriesSeriesType.Line,
+    ),
+  ).toEqual(AxisType.Value);
+});
+
+test('getAxisType does not coerce Numeric x-axis to Time regardless of values', () => {
+  // Regression guard for echarts-timeseries-epoch-x-axis-labels investigation:
+  // getAxisType only considers the coltype reported by the query, never the
+  // actual values. Numeric coltype must stay on a Value axis so a future
+  // change that introduces implicit temporal coercion is surfaced here.
+  expect(getAxisType(false, false, GenericDataType.Numeric)).toEqual(
+    AxisType.Value,
+  );
+  expect(getAxisType(false, false, GenericDataType.Temporal)).toEqual(
+    AxisType.Time,
+  );
+  expect(getAxisType(false, false, GenericDataType.String)).toEqual(
     AxisType.Category,
   );
 });

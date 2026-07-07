@@ -31,6 +31,7 @@ DATABASE_KEYS = [
     "allow_cvas",
     "allow_dml",
     "allow_run_async",
+    "allows_cost_estimate",
     "allows_subquery",
     "backend",
     "database_name",

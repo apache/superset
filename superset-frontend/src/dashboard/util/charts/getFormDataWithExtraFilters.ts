@@ -35,7 +35,7 @@ import {
 } from 'src/dashboard/types';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import { isChartCustomization } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import { areObjectsEqual } from 'src/reduxUtils';
 import {
   isSingleColumnDimensionChart,
@@ -141,9 +141,7 @@ function buildExistingColumnsSet(chart: ChartQueryPayload): Set<string> {
   const existingColumns = new Set<string>();
   const chartType = chart.form_data?.viz_type;
 
-  const existingGroupBy = ensureIsArray(chart.form_data?.groupby);
-  extractColumnNames(existingGroupBy).forEach(col => existingColumns.add(col));
-
+  // Base groupby is excluded: Dynamic Group By REPLACES it with the user's selection.
   const xAxisColumn = chart.form_data?.x_axis;
   if (xAxisColumn && chartType !== 'heatmap' && chartType !== 'heatmap_v2') {
     existingColumns.add(xAxisColumn);
@@ -289,7 +287,6 @@ function processGroupByCustomizations(
   >,
 ): {
   groupby?: string[];
-  order_by_cols?: string[];
   x_axis?: string;
   series?: string;
   columns?: string[];
@@ -334,7 +331,6 @@ function processGroupByCustomizations(
   const xAxisColumn = chart.form_data?.x_axis;
 
   const groupByColumns: string[] = [];
-  let orderByConfig: string[] | undefined;
   let heatmapColumnAdded = false;
 
   matchingCustomizations.forEach(item => {
@@ -382,12 +378,6 @@ function processGroupByCustomizations(
         }
       });
     }
-
-    const sortMetric = item.controlValues?.sortMetric;
-    const sortAscending = item.controlValues?.sortAscending;
-    if (sortMetric) {
-      orderByConfig = [JSON.stringify([sortMetric, !sortAscending])];
-    }
   });
 
   const groupByFormData = applyChartSpecificGroupBy(
@@ -396,10 +386,6 @@ function processGroupByCustomizations(
     existingGroupBy,
     xAxisColumn,
   );
-
-  if (orderByConfig) {
-    groupByFormData.order_by_cols = orderByConfig;
-  }
 
   return groupByFormData;
 }
@@ -473,7 +459,7 @@ export default function getFormDataWithExtraFilters({
 
   let extraData: JsonObject = {};
   const filterIdsAppliedOnChart = Object.entries(activeFilters)
-    .filter(([, activeFilter]) => activeFilter.scope.includes(chart.id))
+    .filter(([, activeFilter]) => activeFilter?.scope?.includes(chart.id))
     .map(([filterId]) => filterId);
 
   if (filterIdsAppliedOnChart.length) {
@@ -488,7 +474,7 @@ export default function getFormDataWithExtraFilters({
     const isDeckMultiChart = chart.form_data?.viz_type === 'deck_multi';
     const hasLayerScopeInActiveFilters =
       passedActiveFilters &&
-      Object.values(passedActiveFilters).some(filter => filter.layerScope);
+      Object.values(passedActiveFilters).some(filter => filter?.layerScope);
 
     if (isDeckMultiChart || hasLayerScopeInActiveFilters) {
       const filterDataMapping = createFilterDataMapping(

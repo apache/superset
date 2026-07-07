@@ -51,6 +51,15 @@ const SupersetClient: SupersetClientInterface = {
   reAuthenticate: () => getInstance().reAuthenticate(),
   request: request => getInstance().request(request),
   getCSRFToken: () => getInstance().getCSRFToken(),
+  getUrl: (...args) => getInstance().getUrl(...args),
+  postBlob: (endpoint, payload) => getInstance().postBlob(endpoint, payload),
+  get guestTokenHeaderName() {
+    try {
+      return getInstance().guestTokenHeaderName;
+    } catch {
+      return 'X-GuestToken';
+    }
+  },
 };
 
 export default SupersetClient;

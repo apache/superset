@@ -64,6 +64,8 @@ from superset.commands.dashboard.exceptions import (
     DashboardInvalidError,
     DashboardNativeFiltersUpdateFailedError,
     DashboardNotFoundError,
+    DashboardRestoreFailedError,
+    DashboardSlugConflictError,
     DashboardUpdateFailedError,
 )
 from superset.commands.dashboard.export import ExportDashboardsCommand
@@ -71,6 +73,7 @@ from superset.commands.dashboard.export_example import ExportExampleCommand
 from superset.commands.dashboard.fave import AddFavoriteDashboardCommand
 from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
+from superset.commands.dashboard.restore import RestoreDashboardCommand
 from superset.commands.dashboard.unfave import DelFavoriteDashboardCommand
 from superset.commands.dashboard.update import (
     UpdateDashboardChartCustomizationsCommand,
@@ -88,6 +91,7 @@ from superset.dashboards.filters import (
     DashboardAccessFilter,
     DashboardCertifiedFilter,
     DashboardCreatedByMeFilter,
+    DashboardDeletedStateFilter,
     DashboardFavoriteFilter,
     DashboardHasCreatedByFilter,
     DashboardTagIdFilter,
@@ -130,7 +134,7 @@ from superset.tasks.thumbnails import (
 )
 from superset.tasks.utils import get_current_user
 from superset.utils import json
-from superset.utils.core import parse_boolean_string
+from superset.utils.core import parse_boolean_string, sanitize_cookie_token
 from superset.utils.file import get_filename
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
@@ -153,6 +157,7 @@ from superset.views.filters import (
     BaseFilterRelatedRoles,
     BaseFilterRelatedUsers,
     FilterRelatedOwners,
+    SoftDeleteApiMixin,
 )
 
 logger = logging.getLogger(__name__)
@@ -186,8 +191,8 @@ BASE_LIST_COLUMNS = [
     "published",
     "status",
     "slug",
+    "description",
     "url",
-    "thumbnail_url",
     "certified_by",
     "certification_details",
     "changed_by.first_name",
@@ -227,7 +232,9 @@ CUSTOM_TAG_LIST_COLUMNS = BASE_LIST_COLUMNS + [
 
 
 # pylint: disable=too-many-public-methods
-class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
+class DashboardRestApi(
+    SoftDeleteApiMixin, CustomTagsOptimizationMixin, BaseSupersetModelRestApi
+):
     datamodel = SQLAInterface(Dashboard)
 
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
@@ -235,6 +242,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         RouteMethod.IMPORT,
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
+        "restore",
         "favorite_status",
         "add_favorite",
         "remove_favorite",
@@ -257,7 +265,17 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     allow_browser_login = True
 
     class_permission_name = "Dashboard"
-    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+    # Custom methods (``restore``) need an explicit entry; FAB's @protect()
+    # decorator falls back to ``can_<method>_<class>`` (i.e.
+    # ``can_restore_Dashboard``) when the mapping is missing, which standard
+    # roles don't carry. Mirrors the permission model documented for
+    # ``DELETE`` / ``bulk_delete``: endpoint-level ``can_write`` plus
+    # resource-level ``raise_for_ownership``. See themes/api.py for the
+    # established pattern.
+    method_permission_name = {
+        **MODEL_API_RW_METHOD_PERMISSION_MAP,
+        "restore": "write",
+    }
 
     # Default list_columns (used if config not set)
     list_columns = FULL_TAG_LIST_COLUMNS
@@ -352,6 +370,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "certification_details",
         "dashboard_title",
         "slug",
+        "description",
         "owners",
         "roles",
         "position_json",
@@ -372,12 +391,17 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "published",
         "roles",
         "slug",
+        "description",
         "tags",
         "uuid",
     )
     search_filters = {
         "dashboard_title": [DashboardTitleOrSlugFilter],
-        "id": [DashboardFavoriteFilter, DashboardCertifiedFilter],
+        "id": [
+            DashboardFavoriteFilter,
+            DashboardCertifiedFilter,
+            DashboardDeletedStateFilter,
+        ],
         "created_by": [DashboardCreatedByMeFilter, DashboardHasCreatedByFilter],
         "tags": [DashboardTagIdFilter, DashboardTagNameFilter],
     }
@@ -519,6 +543,8 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             schema = self.dashboard_get_response_schema
 
         result = schema.dump(dash)
+        if resolver := current_app.config.get("EXTRA_OWNERS_RESOLVER"):
+            result["extra_owners"] = resolver(dash)
         add_extra_log_payload(
             dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
         )
@@ -570,11 +596,30 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         try:
             datasets = DashboardDAO.get_datasets_for_dashboard(id_or_slug)
             result = [
-                self.dashboard_dataset_schema.dump(dataset) for dataset in datasets
+                self._serialize_dashboard_dataset(datasource, payload)
+                for datasource, payload in datasets
             ]
             return self.response(200, result=result)
         except (TypeError, ValueError) as err:
             raise DatasetValidationError(err) from err
+
+    def _serialize_dashboard_dataset(
+        self, datasource: Any, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        serialized = self.dashboard_dataset_schema.dump(payload)
+        if not security_manager.can_access_datasource(datasource):
+            for key in (
+                "sql",
+                "select_star",
+                "fetch_values_predicate",
+                "template_params",
+                "params",
+            ):
+                serialized.pop(key, None)
+            for collection_key in ("columns", "metrics"):
+                for item in serialized.get(collection_key) or ():
+                    item.pop("expression", None)
+        return serialized
 
     @expose("/<id_or_slug>/tabs", methods=("GET",))
     @protect()
@@ -735,7 +780,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             new_model = CreateDashboardCommand(item).run()
-            return self.response(201, id=new_model.id, result=item)
+            return self.response(201, id=new_model.id, result=item, uuid=new_model.uuid)
         except DashboardInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DashboardCreateFailedError as ex:
@@ -1089,9 +1134,17 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     )
     def delete(self, pk: int) -> Response:
         """Delete a dashboard.
+
+        When the ``SOFT_DELETE`` feature flag is enabled, marks the dashboard
+        as deleted (sets ``deleted_at``) and hides it from list/detail
+        endpoints; the row is preserved and recoverable via
+        ``POST /api/v1/dashboard/<uuid>/restore`` by an owner or admin.
+        With the flag disabled (the default), the dashboard is permanently
+        hard-deleted and is not recoverable.
         ---
         delete:
-          summary: Delete a dashboard
+          summary: Delete a dashboard (soft delete, recoverable via restore,
+            when the SOFT_DELETE feature flag is enabled; permanent otherwise)
           parameters:
           - in: path
             schema:
@@ -1145,9 +1198,17 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Bulk delete dashboards.
+
+        When the ``SOFT_DELETE`` feature flag is enabled, marks each dashboard
+        as deleted (sets ``deleted_at``) and hides it from list/detail
+        endpoints; rows are preserved and recoverable via
+        ``POST /api/v1/dashboard/<uuid>/restore`` by an owner or admin.
+        With the flag disabled (the default), the dashboards are permanently
+        hard-deleted and are not recoverable.
         ---
         delete:
-          summary: Bulk delete dashboards
+          summary: Bulk delete dashboards (soft delete, recoverable via restore,
+            when the SOFT_DELETE feature flag is enabled; permanent otherwise)
           parameters:
           - in: query
             name: q
@@ -1192,6 +1253,64 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         except DashboardForbiddenError:
             return self.response_403()
         except DashboardDeleteFailedError as ex:
+            return self.response_422(message=str(ex))
+
+    @expose("/<uuid>/restore", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.restore",
+        log_to_statsd=False,
+    )
+    def restore(self, uuid: str) -> Response:
+        """Restore a soft-deleted dashboard.
+        ---
+        post:
+          summary: Restore a soft-deleted dashboard
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid
+          responses:
+            200:
+              description: Dashboard restored
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            RestoreDashboardCommand(uuid).run()
+            return self.response(200, message="OK")
+        except DashboardNotFoundError:
+            return self.response_404()
+        except DashboardForbiddenError:
+            return self.response_403()
+        except DashboardSlugConflictError as ex:
+            return self.response_422(message=str(ex))
+        except DashboardRestoreFailedError as ex:
+            logger.error(
+                "Error restoring model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
             return self.response_422(message=str(ex))
 
     @expose("/export/", methods=("GET",))
@@ -1257,7 +1376,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             as_attachment=True,
             download_name=filename,
         )
-        if token := request.args.get("token"):
+        if token := sanitize_cookie_token(request.args.get("token")):
             response.set_cookie(token, "done", max_age=600)
         return response
 
@@ -1348,7 +1467,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             as_attachment=True,
             download_name=filename,
         )
-        if token := request.args.get("token"):
+        if token := sanitize_cookie_token(request.args.get("token")):
             response.set_cookie(token, "done", max_age=600)
         return response
 
@@ -1452,7 +1571,6 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
 
         if cache_payload.should_trigger_task(force):
             logger.info("Triggering screenshot ASYNC")
-            screenshot_obj.cache.set(cache_key, ScreenshotCachePayload().to_dict())
             cache_dashboard_screenshot.delay(
                 username=get_current_user(),
                 guest_token=(
@@ -1648,7 +1766,6 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                 "Triggering thumbnail compute (dashboard id: %s) ASYNC",
                 str(dashboard.id),
             )
-            screenshot_obj.cache.set(cache_key, ScreenshotCachePayload().to_dict())
             cache_dashboard_thumbnail.delay(
                 current_user=current_user,
                 dashboard_id=dashboard.id,
@@ -1851,6 +1968,15 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     @requires_form_data
     def import_(self) -> Response:
         """Import dashboard(s) with associated charts/datasets/databases.
+
+        When the ``SOFT_DELETE`` feature flag is enabled and an imported
+        dashboard's UUID matches an existing **soft-deleted** dashboard, the
+        import restores that dashboard and applies the upload's contents —
+        **even when ``overwrite`` is not set**. Active dashboards keep the
+        usual contract (never mutated without ``overwrite=true``); a
+        soft-deleted UUID match is treated as an explicit request to bring
+        the dashboard back. Requires ``can_write`` and ownership of the
+        deleted row (or admin). See UPDATING.md for details.
         ---
         post:
           summary: Import dashboard(s) with associated charts/datasets/databases
@@ -2131,7 +2257,10 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        DeleteEmbeddedDashboardCommand(dashboard).run()
+        try:
+            DeleteEmbeddedDashboardCommand(dashboard).run()
+        except DashboardForbiddenError:
+            return self.response_403()
         return self.response(200, message="OK")
 
     @expose("/<id_or_slug>/copy/", methods=("POST",))

@@ -45,7 +45,7 @@ import {
   ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
 
-import { isEmpty, merge } from 'lodash';
+import { isEmpty, merge } from 'lodash-es';
 import isEqualColumns from './utils/isEqualColumns';
 import DateWithFormatter from './utils/DateWithFormatter';
 import {
@@ -130,13 +130,12 @@ const processComparisonTotals = (
     Object.keys(totalRecord).forEach(key => {
       if (totalRecord[key] !== undefined && !key.includes(comparisonSuffix)) {
         transformedTotals[`Main ${key}`] =
-          parseInt(transformedTotals[`Main ${key}`]?.toString() || '0', 10) +
-          parseInt(totalRecord[key]?.toString() || '0', 10);
+          parseFloat(transformedTotals[`Main ${key}`]?.toString() || '0') +
+          parseFloat(totalRecord[key]?.toString() || '0');
         transformedTotals[`# ${key}`] =
-          parseInt(transformedTotals[`# ${key}`]?.toString() || '0', 10) +
-          parseInt(
+          parseFloat(transformedTotals[`# ${key}`]?.toString() || '0') +
+          parseFloat(
             totalRecord[`${key}__${comparisonSuffix}`]?.toString() || '0',
-            10,
           );
         const { valueDifference, percentDifferenceNum } = calculateDifferences(
           transformedTotals[`Main ${key}`] as number,
@@ -233,6 +232,9 @@ const processColumns = memoizeOne(function processColumns(
   const metricsSet = new Set(metrics);
   const percentMetricsSet = new Set(percentMetrics);
   const rawPercentMetricsSet = new Set(rawPercentMetrics);
+  const columnsByName = new Map(
+    (props.datasource.columns ?? []).map(col => [col.column_name, col]),
+  );
 
   const columns: DataColumnMeta[] = (colnames || [])
     .filter(
@@ -245,6 +247,7 @@ const processColumns = memoizeOne(function processColumns(
       const config = columnConfig[key] || {};
       // for the purpose of presentation, only numeric values are treated as metrics
       // because users can also add things like `MAX(str_col)` as a metric.
+      const isFilterable = columnsByName.get(key)?.filterable;
       const isMetric = metricsSet.has(key) && isNumeric(key, records);
       const isPercentMetric = percentMetricsSet.has(key);
       const label =
@@ -327,6 +330,7 @@ const processColumns = memoizeOne(function processColumns(
         isPercentMetric,
         formatter,
         config,
+        isFilterable,
         description,
         currencyCodeColumn,
       };

@@ -17,7 +17,7 @@
 from collections import Counter
 from typing import Any
 
-from flask import redirect, request
+from flask import redirect, request, url_for
 from flask_appbuilder import expose, permission_name
 from flask_appbuilder.api import rison as parse_rison
 from flask_appbuilder.security.decorators import has_access, has_access_api
@@ -36,6 +36,7 @@ from superset.connectors.sqla.utils import get_physical_table_metadata
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.dataset import DatasetDAO
 from superset.daos.datasource import DatasourceDAO
+from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.core import Database
 from superset.sql.parse import Table
@@ -223,6 +224,28 @@ class Datasource(BaseSupersetView):
                 dashboard,
             ):
                 return json_error_response(_("Forbidden"), status=403)
+        else:
+            # Pre-fetch and access-check only for table-type datasources.
+            # Non-table types (query, saved_query) use a different access model;
+            # passing them to raise_for_access(datasource=...) would check the
+            # wrong attributes. Let get_samples() handle the lookup for those types.
+            if params["datasource_type"] in {
+                DatasourceType.TABLE.value,
+                DatasourceType.DATASET.value,
+            }:
+                try:
+                    dataset = DatasourceDAO.get_datasource(
+                        datasource_type=params["datasource_type"],
+                        database_id_or_uuid=params["datasource_id"],
+                    )
+                except (DatasourceNotFound, DatasourceTypeNotSupportedError):
+                    return self.response_404()
+                try:
+                    security_manager.raise_for_access(datasource=dataset)
+                except SupersetSecurityException:
+                    return json_error_response(_("Forbidden"), status=403)
+            else:
+                dataset = None
 
         rv = get_samples(
             datasource_type=params["datasource_type"],
@@ -231,6 +254,7 @@ class Datasource(BaseSupersetView):
             page=params["page"],
             per_page=params["per_page"],
             payload=payload,
+            datasource=dataset,
             dashboard_id=dashboard_id,
         )
         return self.json_response({"result": rv})
@@ -254,4 +278,6 @@ class DatasetEditor(BaseSupersetView):
         dev = request.args.get("testing")
         if dev is not None:
             return super().render_app_template()
-        return redirect("/")
+        # url_for keeps the redirect inside the application root under
+        # subdirectory deployments (a bare "/" would escape the prefix).
+        return redirect(url_for("Superset.welcome"))

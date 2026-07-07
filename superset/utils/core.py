@@ -59,7 +59,7 @@ from typing import (
     TypedDict,
     TypeVar,
 )
-from urllib.parse import unquote_plus
+from urllib.parse import unquote_plus, urlparse
 from zipfile import ZipFile
 
 import markdown as md
@@ -96,7 +96,6 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
-from superset.explorables.base import Explorable
 from superset.sql.parse import sanitize_clause
 from superset.superset_typing import (
     AdhocColumn,
@@ -115,7 +114,7 @@ from superset.utils.hashing import hash_from_dict, hash_from_str
 from superset.utils.pandas import detect_datetime_format
 
 if TYPE_CHECKING:
-    from superset.connectors.sqla.models import TableColumn
+    from superset.explorables.base import ColumnMetadata, Explorable
     from superset.models.core import Database
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
@@ -200,6 +199,7 @@ class DatasourceType(StrEnum):
     QUERY = "query"
     SAVEDQUERY = "saved_query"
     VIEW = "view"
+    SEMANTIC_VIEW = "semantic_view"
 
 
 class LoggerLevel(StrEnum):
@@ -396,6 +396,27 @@ def parse_js_uri_path_item(
     return unquote_plus(item) if unquote and item else item
 
 
+# Matches a safe, opaque token suitable for use as a cookie name. Restricting the
+# allowed characters prevents client-controlled input from injecting unexpected
+# cookie attributes or control characters.
+COOKIE_TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
+
+
+def sanitize_cookie_token(token: str | None) -> str | None:
+    """Return the token if it is a valid cookie name, otherwise None.
+
+    The export endpoints echo a client-provided ``token`` query parameter back as
+    a cookie name to signal download completion. Validate it against a strict
+    allow-list before trusting it.
+
+    :param token: the client-provided token value
+    :return: the token if valid, else None
+    """
+    if token and COOKIE_TOKEN_RE.match(token):
+        return token
+    return None
+
+
 def cast_to_num(value: float | int | str | None) -> float | int | None:
     """Casts a value to an int/float
 
@@ -488,6 +509,7 @@ def error_msg_from_exception(ex: Exception) -> str:
 
 
 def markdown(raw: str, markup_wrap: bool | None = False) -> str:
+    """Render Markdown to sanitized HTML."""
     safe_markdown_tags = {
         "h1",
         "h2",
@@ -517,7 +539,7 @@ def markdown(raw: str, markup_wrap: bool | None = False) -> str:
     }
     safe_markdown_attrs = {
         "img": {"src", "alt", "title"},
-        "a": {"href", "alt", "title"},
+        "a": {"href", "alt", "title", "target"},
     }
     safe = md.markdown(
         raw or "",
@@ -528,6 +550,7 @@ def markdown(raw: str, markup_wrap: bool | None = False) -> str:
         ],
     )
     # pylint: disable=no-member
+    # nh3 preserves supported link attributes and enforces a safe rel value.
     safe = nh3.clean(safe, tags=safe_markdown_tags, attributes=safe_markdown_attrs)
     if markup_wrap:
         safe = Markup(safe)
@@ -765,7 +788,7 @@ def pessimistic_connection_handling(some_engine: Engine) -> None:
             # run a SELECT 1.   use a core select() so that
             # the SELECT of a scalar value without a table is
             # appropriately formatted for the backend
-            connection.scalar(select([1]))
+            connection.scalar(select(1))
         except exc.DBAPIError as err:
             # catch SQLAlchemy's DBAPIError, which is a wrapper
             # for the DBAPI's exception.  It includes a .connection_invalidated
@@ -777,7 +800,7 @@ def pessimistic_connection_handling(some_engine: Engine) -> None:
                 # itself and establish a new connection.  The disconnect detection
                 # here also causes the whole connection pool to be invalidated
                 # so that all stale connections are discarded.
-                connection.scalar(select([1]))
+                connection.scalar(select(1))
             else:
                 raise
         finally:
@@ -827,6 +850,9 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     smtp_mail_to = recipients_string_to_list(to)
 
     msg = MIMEMultipart(mime_subtype)
+    # Strip CR/LF from the subject so the value cannot inject additional
+    # email headers via header folding/splitting.
+    subject = subject.replace("\r", "").replace("\n", " ").strip()
     msg["Subject"] = subject
     msg["From"] = smtp_mail_from
     msg["To"] = ", ".join(smtp_mail_to)
@@ -912,6 +938,11 @@ def send_mime_email(
     smtp_starttls = config["SMTP_STARTTLS"]
     smtp_ssl = config["SMTP_SSL"]
     smtp_ssl_server_auth = config["SMTP_SSL_SERVER_AUTH"]
+    # A missing timeout means the socket blocks forever when the SMTP server is
+    # unreachable, wedging the report schedule in the WORKING state. Fall back to
+    # the key being absent for backwards compatibility with custom configs.
+    # Keep this fallback in sync with the SMTP_TIMEOUT default in config.py.
+    smtp_timeout = config.get("SMTP_TIMEOUT", 30)
 
     if dryrun:
         logger.info("Dryrun enabled, email notification content is below:")
@@ -922,17 +953,27 @@ def send_mime_email(
     # root CA certificates
     ssl_context = ssl.create_default_context() if smtp_ssl_server_auth else None
     smtp = (
-        smtplib.SMTP_SSL(smtp_host, smtp_port, context=ssl_context)
+        smtplib.SMTP_SSL(
+            smtp_host, smtp_port, context=ssl_context, timeout=smtp_timeout
+        )
         if smtp_ssl
-        else smtplib.SMTP(smtp_host, smtp_port)
+        else smtplib.SMTP(smtp_host, smtp_port, timeout=smtp_timeout)
     )
-    if smtp_starttls:
-        smtp.starttls(context=ssl_context)
-    if smtp_user and smtp_password:
-        smtp.login(smtp_user, smtp_password)
-    logger.debug("Sent an email to %s", str(e_to))
-    smtp.sendmail(e_from, e_to, mime_msg.as_string())
-    smtp.quit()
+    try:
+        if smtp_starttls:
+            smtp.starttls(context=ssl_context)
+        if smtp_user and smtp_password:
+            smtp.login(smtp_user, smtp_password)
+        logger.debug("Sent an email to %s", str(e_to))
+        smtp.sendmail(e_from, e_to, mime_msg.as_string())
+    finally:
+        # Always release the socket; the new timeout means starttls/login/
+        # sendmail can raise, and a skipped quit() would leak connections in
+        # the long-lived worker process.
+        try:
+            smtp.quit()
+        except smtplib.SMTPException:
+            pass
 
 
 def recipients_string_to_list(address_string: str | None) -> list[str]:
@@ -1730,15 +1771,12 @@ def get_metric_type_from_column(column: Any, datasource: Explorable) -> str:
     :return: The inferred metric type as a string, or an empty string if the
              column is not a metric or no valid operation is found.
     """
-
-    from superset.connectors.sqla.models import SqlMetric
-
-    metric: SqlMetric = next(
-        (metric for metric in datasource.metrics if metric.metric_name == column),
-        SqlMetric(metric_name=""),
+    metric = next(
+        (m for m in datasource.metrics if m.metric_name == column),
+        None,
     )
 
-    if metric.metric_name == "":
+    if metric is None:
         return ""
 
     expression: str = metric.expression
@@ -1784,7 +1822,7 @@ def extract_dataframe_dtypes(
 
     generic_types: list[GenericDataType] = []
     for column in df.columns:
-        column_object = columns_by_name.get(column)
+        column_object = columns_by_name.get(str(column))
         series = df[column]
         inferred_type: str = ""
         if series.isna().all():
@@ -1814,11 +1852,17 @@ def extract_dataframe_dtypes(
     return generic_types
 
 
-def extract_column_dtype(col: TableColumn) -> GenericDataType:
-    if col.is_temporal:
+def extract_column_dtype(col: ColumnMetadata) -> GenericDataType:
+    # Check for temporal type
+    if hasattr(col, "is_temporal") and col.is_temporal:
         return GenericDataType.TEMPORAL
-    if col.is_numeric:
+    if col.is_dttm:
+        return GenericDataType.TEMPORAL
+
+    # Check for numeric type
+    if hasattr(col, "is_numeric") and col.is_numeric:
         return GenericDataType.NUMERIC
+
     # TODO: add check for boolean data type when proper support is added
     return GenericDataType.STRING
 
@@ -1832,9 +1876,7 @@ def get_time_filter_status(
     applied_time_extras: dict[str, str],
 ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     temporal_columns: set[Any] = {
-        (col.column_name if hasattr(col, "column_name") else col.get("column_name"))
-        for col in datasource.columns
-        if (col.is_dttm if hasattr(col, "is_dttm") else col.get("is_dttm"))
+        col.column_name for col in datasource.columns if col.is_dttm
     }
     applied: list[dict[str, str]] = []
     rejected: list[dict[str, str]] = []
@@ -2104,8 +2146,21 @@ def check_is_safe_zip(zip_file: ZipFile) -> None:
             raise SupersetException("Found file with size above allowed threshold")
         uncompress_size += zip_file_element.file_size
         compress_size += zip_file_element.compress_size
-    compress_ratio = uncompress_size / compress_size
-    if compress_ratio > app.config["ZIP_FILE_MAX_COMPRESS_RATIO"]:
+        # Bound the total decompressed size, not just the per-file size, so an
+        # archive of many individually-allowed entries cannot exhaust memory.
+        # Checked inside the loop to fail fast once the running total exceeds
+        # the cap rather than after summing every entry.
+        if uncompress_size > app.config["ZIP_FILE_MAX_TOTAL_SIZE"]:
+            raise SupersetException(
+                "Found total uncompressed size above allowed threshold"
+            )
+    # Guard the division: a zero compressed size would otherwise raise
+    # ZeroDivisionError instead of a clean error. The total-size cap above
+    # still bounds memory when compress_size is reported as zero.
+    if (
+        compress_size
+        and uncompress_size / compress_size > app.config["ZIP_FILE_MAX_COMPRESS_RATIO"]
+    ):
         raise SupersetException("Zip compress ratio above allowed threshold")
 
 
@@ -2132,11 +2187,21 @@ def to_int(v: Any, value_if_invalid: int = 0) -> int:
 def get_query_source_from_request() -> QuerySource | None:
     if not request or not request.referrer:
         return None
-    if "/superset/dashboard/" in request.referrer:
+    # Match on the referrer's path only, so query-string payloads (e.g.
+    # /explore/?next=/dashboard/1/) cannot misattribute the source. The bare
+    # segment covers legacy /superset/dashboard/ referrers and any
+    # application-root prefix (e.g. /myapp/dashboard/1/).
+    try:
+        referrer_path = urlparse(request.referrer).path
+    except ValueError:
+        # Client-controlled header; e.g. "http://[" raises on the IPv6
+        # bracket check and must not 500 the query path.
+        return None
+    if "/dashboard/" in referrer_path:
         return QuerySource.DASHBOARD
-    if "/explore/" in request.referrer:
+    if "/explore/" in referrer_path:
         return QuerySource.CHART
-    if "/sqllab/" in request.referrer:
+    if "/sqllab/" in referrer_path:
         return QuerySource.SQL_LAB
     return None
 

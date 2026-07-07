@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { omit } from 'lodash';
+import { omit } from 'lodash-es';
 import {
   ensureIsArray,
   getChartControlPanelRegistry,
@@ -156,6 +156,40 @@ export class StandardizedFormData {
     return controls;
   }
 
+  // Time shifts only meaningful for viz types whose "Time shift" control offers
+  // them (Big Number / Table period-over-period). Other viz types reuse the same
+  // `time_compare` key without these choices.
+  private static specialTimeShifts = ['inherit', 'custom'];
+
+  // Drop `time_compare` markers the target viz can't honor so they don't carry
+  // over as un-removable tags when switching chart types.
+  static dropUnsupportedTimeShifts(
+    controlsState: Record<string, unknown>,
+  ): void {
+    const control = controlsState?.time_compare as
+      { value?: unknown; choices?: unknown } | undefined;
+    if (!control || !Array.isArray(control.value)) {
+      return;
+    }
+    const supportedChoices = new Set(
+      ensureIsArray(control.choices)
+        .filter(
+          (choice): choice is [string, string] =>
+            Array.isArray(choice) && typeof choice[0] === 'string',
+        )
+        .map(choice => choice[0]),
+    );
+    const filtered = control.value.filter(
+      (shift: unknown) =>
+        typeof shift !== 'string' ||
+        !StandardizedFormData.specialTimeShifts.includes(shift) ||
+        supportedChoices.has(shift),
+    );
+    if (filtered.length !== control.value.length) {
+      control.value = filtered.length ? filtered : null;
+    }
+  }
+
   private getLatestFormData(vizType: string): QueryFormData {
     if (this.has(vizType)) {
       return this.get(vizType);
@@ -215,6 +249,7 @@ export class StandardizedFormData {
       ...publicFormData,
       viz_type: targetVizType,
     });
+    StandardizedFormData.dropUnsupportedTimeShifts(targetControlsState);
     const targetFormData = {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ...getFormDataFromControls(targetControlsState as any),

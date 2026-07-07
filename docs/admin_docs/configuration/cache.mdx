@@ -86,6 +86,39 @@ instead requires a cachelib object.
 
 See [Async Queries via Celery](/admin-docs/configuration/async-queries-celery) for details.
 
+## Celery beat
+
+Superset has a Celery task that will periodically warm up the cache based on different strategies.
+To use it, add the following to your `superset_config.py`:
+
+```python
+from celery.schedules import crontab
+from superset.config import CeleryConfig
+
+# User that will be used to authenticate and render dashboards for cache warmup
+SUPERSET_CACHE_WARMUP_USER = "user_with_permission_to_dashboards"
+
+# Extend the default CeleryConfig to add cache warmup schedule
+class CustomCeleryConfig(CeleryConfig):
+    beat_schedule = {
+        **CeleryConfig.beat_schedule,
+        'cache-warmup-hourly': {
+            'task': 'cache-warmup',
+            'schedule': crontab(minute=0, hour='*'),  # hourly
+            'kwargs': {
+                'strategy_name': 'top_n_dashboards',
+                'top_n': 5,
+                'since': '7 days ago',
+            },
+        },
+    }
+
+CELERY_CONFIG = CustomCeleryConfig
+```
+
+This will cache the top 5 most popular dashboards every hour. For other
+strategies, check the `superset/tasks/cache.py` file.
+
 ## Caching Thumbnails
 
 This is an optional feature that can be turned on by activating its [feature flag](/admin-docs/configuration/configuring-superset#feature-flags) on config:
@@ -138,14 +171,33 @@ THUMBNAIL_CACHE_CONFIG = init_thumbnail_cache
 ```
 
 Using the above example cache keys for dashboards will be `superset_thumb__dashboard__{ID}`. You can
-override the base URL for selenium using:
+override the base URL for Selenium using:
 
 ```
 WEBDRIVER_BASEURL = "https://superset.company.com"
 ```
 
-Additional selenium web drive configuration can be set using `WEBDRIVER_CONFIGURATION`. You can
-implement a custom function to authenticate selenium. The default function uses the `flask-login`
+To control which user account is used for rendering thumbnails and warming up caches, configure
+`THUMBNAIL_EXECUTORS` and `CACHE_WARMUP_EXECUTORS`. Each accepts a list of executor types (which
+resolve to an owner, creator, modifier, or the currently-logged-in user) and/or a `FixedExecutor`
+pinned to a specific username. By default, thumbnails render as the current user
+(`ExecutorType.CURRENT_USER`) and cache warmup runs as the chart/dashboard owner
+(`ExecutorType.OWNER`).
+
+To force both to run as a dedicated service account (`admin` in this example):
+
+```python
+from superset.tasks.types import ExecutorType, FixedExecutor
+
+THUMBNAIL_EXECUTORS = [FixedExecutor("admin")]
+CACHE_WARMUP_EXECUTORS = [FixedExecutor("admin")]
+```
+
+Use a dedicated read-only service account here rather than a personal admin account, so that
+thumbnail rendering and cache warmup tasks don't fail if a specific user's credentials change.
+
+Additional Selenium WebDriver configuration can be set using `WEBDRIVER_CONFIGURATION`. You can
+implement a custom function to authenticate Selenium. The default function uses the `flask-login`
 session cookie. Here's an example of a custom function signature:
 
 ```python
@@ -158,6 +210,20 @@ Then on configuration:
 ```
 WEBDRIVER_AUTH_FUNC = auth_driver
 ```
+
+## ETag Support for Thumbnails
+
+Thumbnail and screenshot endpoints return `ETag` response headers based on the cached content digest. Clients can use conditional requests to avoid downloading unchanged images:
+
+```
+GET /api/v1/chart/42/thumbnail/
+If-None-Match: "abc123..."
+
+→ 304 Not Modified  (if unchanged)
+→ 200 OK            (with new image if changed)
+```
+
+This is particularly useful for embedded dashboards and external integrations that periodically poll for updated screenshots — unchanged thumbnails return immediately with no payload.
 
 ## Distributed Coordination Backend
 

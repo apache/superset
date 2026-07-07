@@ -52,7 +52,7 @@ import {
 } from 'src/dashboard/actions/chartCustomizationActions';
 
 import { useImmer } from 'use-immer';
-import { isEmpty, isEqual, debounce } from 'lodash';
+import { isEmpty, isEqual, debounce } from 'lodash-es';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
 import { applicationRoot } from 'src/utils/getBootstrapData';
@@ -107,8 +107,14 @@ const publishDataMask = debounce(
     const previousParams = new URLSearchParams(search);
     const newParams = new URLSearchParams();
     let dataMaskKey: string | null;
+    // Capture the raw, still-URL-encoded `f=` payload from the query string
+    // directly. URLSearchParams decodes values (and turns `+` into space), which
+    // would corrupt the Rison payload if we re-inserted it without re-encoding.
+    const rawRisonMatch = search.match(/[?&]f=([^&]*)/);
+    const rawRisonFilterValue = rawRisonMatch ? rawRisonMatch[1] : null;
+
     previousParams.forEach((value, key) => {
-      if (!EXCLUDED_URL_PARAMS.includes(key)) {
+      if (!EXCLUDED_URL_PARAMS.includes(key) && key !== 'f') {
         newParams.append(key, value);
       }
     });
@@ -136,9 +142,11 @@ const publishDataMask = debounce(
 
     // pathname could be updated somewhere else through window.history
     // keep react router history in sync with window history
-    // replace params only when current page is /superset/dashboard
+    // replace params only when current page is a dashboard route under the
+    // configured applicationRoot (e.g. `/dashboard/...` for root deploy,
+    // `/superset/dashboard/...` for the legacy subdir deploy).
     // this prevents a race condition between updating filters and navigating to Explore
-    if (window.location.pathname.includes('/superset/dashboard')) {
+    if (window.location.pathname.startsWith(`${applicationRoot()}/dashboard`)) {
       // The history API is part of React router and understands that a basename may exist.
       // Internally it treats all paths as if they are relative to the root and appends
       // it when necessary. We strip any prefix so that history.replace adds it back and doesn't
@@ -148,9 +156,16 @@ const publishDataMask = debounce(
       if (appRoot !== '/' && replacementPathname.startsWith(appRoot)) {
         replacementPathname = replacementPathname.substring(appRoot.length);
       }
+      // Manually reconstruct the search string to preserve Rison filter encoding
+      let searchString = newParams.toString();
+      if (rawRisonFilterValue) {
+        const separator = searchString ? '&' : '';
+        searchString = `${searchString}${separator}f=${rawRisonFilterValue}`;
+      }
+
       history.replace({
         pathname: replacementPathname,
-        search: newParams.toString(),
+        search: searchString,
       });
     }
   },
@@ -498,17 +513,20 @@ const FilterBar: FC<FiltersBarProps> = ({
       // Range filters use [null, null] as the cleared value; others use undefined
       const clearedValue =
         filterType === 'filter_range' ? [null, null] : undefined;
-      const clearedDataMask = {
-        filterState: { value: clearedValue },
-        extraFormData: {},
-      };
+      const isRequired = !!filter.controlValues?.enableEmptyFilter;
       if (dataMaskSelected[id]) {
-        dispatch(updateDataMask(id, clearedDataMask));
+        // Stage the cleared value locally; do NOT dispatch to Redux here.
+        // Persistence happens when the user clicks Apply.
         setDataMaskSelected(draft => {
           if (draft[id].filterState?.value !== undefined) {
             draft[id].filterState!.value = clearedValue;
           }
           draft[id].extraFormData = {};
+          if (draft[id].filterState) {
+            draft[id].filterState!.validateStatus = isRequired
+              ? 'error'
+              : undefined;
+          }
         });
         newClearAllTriggers[id] = true;
       }

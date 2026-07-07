@@ -30,6 +30,7 @@ import pytest
 from superset.mcp_service.chart.schemas import (
     ColumnRef,
     FilterConfig,
+    PivotTableChartConfig,
     TableChartConfig,
     XYChartConfig,
 )
@@ -58,13 +59,13 @@ def mock_dataset_context() -> DatasetContext:
 
 
 class TestGetCanonicalColumnName:
-    """Test _get_canonical_column_name static method."""
+    """Test get_canonical_column_name static method."""
 
     def test_exact_match_returns_same_name(
         self, mock_dataset_context: DatasetContext
     ) -> None:
         """Test that exact match returns the same column name."""
-        result = DatasetValidator._get_canonical_column_name(
+        result = DatasetValidator.get_canonical_column_name(
             "OrderDate", mock_dataset_context
         )
         assert result == "OrderDate"
@@ -73,7 +74,7 @@ class TestGetCanonicalColumnName:
         self, mock_dataset_context: DatasetContext
     ) -> None:
         """Test that lowercase input returns the canonical (dataset) column name."""
-        result = DatasetValidator._get_canonical_column_name(
+        result = DatasetValidator.get_canonical_column_name(
             "orderdate", mock_dataset_context
         )
         assert result == "OrderDate"
@@ -84,7 +85,7 @@ class TestGetCanonicalColumnName:
         """Test that snake_case input returns the canonical column name."""
         # 'order_date' won't match 'OrderDate' directly, but would match if
         # the dataset had 'order_date'. This test verifies case-insensitive matching.
-        result = DatasetValidator._get_canonical_column_name(
+        result = DatasetValidator.get_canonical_column_name(
             "productline", mock_dataset_context
         )
         assert result == "ProductLine"
@@ -93,7 +94,7 @@ class TestGetCanonicalColumnName:
         self, mock_dataset_context: DatasetContext
     ) -> None:
         """Test that uppercase input returns the canonical column name."""
-        result = DatasetValidator._get_canonical_column_name(
+        result = DatasetValidator.get_canonical_column_name(
             "SALES", mock_dataset_context
         )
         assert result == "Sales"
@@ -102,7 +103,7 @@ class TestGetCanonicalColumnName:
         self, mock_dataset_context: DatasetContext
     ) -> None:
         """Test that metric names are also normalized."""
-        result = DatasetValidator._get_canonical_column_name(
+        result = DatasetValidator.get_canonical_column_name(
             "totalrevenue", mock_dataset_context
         )
         assert result == "TotalRevenue"
@@ -111,91 +112,14 @@ class TestGetCanonicalColumnName:
         self, mock_dataset_context: DatasetContext
     ) -> None:
         """Test that unknown columns return the original name."""
-        result = DatasetValidator._get_canonical_column_name(
+        result = DatasetValidator.get_canonical_column_name(
             "unknown_column", mock_dataset_context
         )
         assert result == "unknown_column"
 
 
-class TestNormalizeXYConfig:
-    """Test _normalize_xy_config static method."""
-
-    def test_normalize_x_axis_column(
-        self, mock_dataset_context: DatasetContext
-    ) -> None:
-        """Test that x-axis column name is normalized."""
-        config_dict: Dict[str, Any] = {
-            "chart_type": "xy",
-            "x": {"name": "orderdate"},
-            "y": [{"name": "Sales", "aggregate": "SUM"}],
-            "kind": "line",
-        }
-
-        DatasetValidator._normalize_xy_config(config_dict, mock_dataset_context)
-
-        assert config_dict["x"]["name"] == "OrderDate"
-
-    def test_normalize_y_axis_columns(
-        self, mock_dataset_context: DatasetContext
-    ) -> None:
-        """Test that y-axis column names are normalized."""
-        config_dict: Dict[str, Any] = {
-            "chart_type": "xy",
-            "x": {"name": "OrderDate"},
-            "y": [
-                {"name": "sales", "aggregate": "SUM"},
-                {"name": "QUANTITY_ORDERED", "aggregate": "COUNT"},
-            ],
-            "kind": "bar",
-        }
-
-        DatasetValidator._normalize_xy_config(config_dict, mock_dataset_context)
-
-        assert config_dict["y"][0]["name"] == "Sales"
-        assert config_dict["y"][1]["name"] == "quantity_ordered"
-
-    def test_normalize_group_by_column(
-        self, mock_dataset_context: DatasetContext
-    ) -> None:
-        """Test that group_by column name is normalized."""
-        config_dict: Dict[str, Any] = {
-            "chart_type": "xy",
-            "x": {"name": "OrderDate"},
-            "y": [{"name": "Sales", "aggregate": "SUM"}],
-            "kind": "line",
-            "group_by": [{"name": "productline"}],
-        }
-
-        DatasetValidator._normalize_xy_config(config_dict, mock_dataset_context)
-
-        assert config_dict["group_by"][0]["name"] == "ProductLine"
-
-
-class TestNormalizeTableConfig:
-    """Test _normalize_table_config static method."""
-
-    def test_normalize_table_columns(
-        self, mock_dataset_context: DatasetContext
-    ) -> None:
-        """Test that table column names are normalized."""
-        config_dict: Dict[str, Any] = {
-            "chart_type": "table",
-            "columns": [
-                {"name": "orderdate"},
-                {"name": "PRODUCTLINE"},
-                {"name": "sales", "aggregate": "SUM"},
-            ],
-        }
-
-        DatasetValidator._normalize_table_config(config_dict, mock_dataset_context)
-
-        assert config_dict["columns"][0]["name"] == "OrderDate"
-        assert config_dict["columns"][1]["name"] == "ProductLine"
-        assert config_dict["columns"][2]["name"] == "Sales"
-
-
 class TestNormalizeFilters:
-    """Test _normalize_filters static method."""
+    """Test normalize_filters static method."""
 
     def test_normalize_filter_columns(
         self, mock_dataset_context: DatasetContext
@@ -208,7 +132,7 @@ class TestNormalizeFilters:
             ],
         }
 
-        DatasetValidator._normalize_filters(config_dict, mock_dataset_context)
+        DatasetValidator.normalize_filters(config_dict, mock_dataset_context)
 
         assert config_dict["filters"][0]["column"] == "ProductLine"
         assert config_dict["filters"][1]["column"] == "OrderDate"
@@ -236,6 +160,7 @@ class TestNormalizeColumnNames:
 
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
 
+        assert normalized.x is not None
         assert normalized.x.name == "OrderDate"
         assert normalized.y[0].name == "Sales"
         assert normalized.filters is not None
@@ -264,6 +189,58 @@ class TestNormalizeColumnNames:
         assert normalized.columns[2].name == "Sales"
 
     @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_table_sql_expression_column_skips_name_normalization(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """sql_expression columns have name=None; normalization must skip them."""
+        mock_get_context.return_value = mock_dataset_context
+
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[
+                ColumnRef(name="orderdate"),
+                ColumnRef(sql_expression="SUM(sales)/COUNT(*)", label="Avg Sale"),
+            ],
+        )
+        # Must not raise — get_canonical_column_name(None, ...) crashes without guard.
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert normalized.columns[0].name == "OrderDate"
+        assert normalized.columns[1].sql_expression == "SUM(sales)/COUNT(*)"
+        assert normalized.columns[1].name is None
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_handlebars_sql_expression_metric_skips_name_normalization(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """sql_expression metrics in handlebars charts must not cause a crash.
+
+        HandlebarsChartConfig rejects sql_expression on columns/groupby, but
+        allows it on metrics; that is the live code path where name=None can occur.
+        """
+        from superset.mcp_service.chart.schemas import HandlebarsChartConfig
+
+        mock_get_context.return_value = mock_dataset_context
+
+        config = HandlebarsChartConfig(
+            chart_type="handlebars",
+            handlebars_template="{{col}}",
+            query_mode="aggregate",
+            groupby=[ColumnRef(name="orderdate")],
+            metrics=[
+                ColumnRef(name="sales", aggregate="SUM"),
+                ColumnRef(sql_expression="COUNT(DISTINCT id)", label="Unique IDs"),
+            ],
+        )
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert normalized.groupby is not None
+        assert normalized.groupby[0].name == "OrderDate"
+        assert normalized.metrics is not None
+        assert normalized.metrics[1].sql_expression == "COUNT(DISTINCT id)"
+        assert normalized.metrics[1].name is None
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
     def test_returns_original_when_dataset_not_found(self, mock_get_context) -> None:
         """Test that original config is returned when dataset context is unavailable."""
         mock_get_context.return_value = None
@@ -278,6 +255,7 @@ class TestNormalizeColumnNames:
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=999)
 
         # Should return original config unchanged
+        assert normalized.x is not None
         assert normalized.x.name == "orderdate"
         assert normalized.y[0].name == "sales"
 
@@ -318,6 +296,7 @@ class TestTimeSeriesFilterPromptFix:
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
 
         # After normalization, x.name should match the filter column exactly
+        assert normalized.x is not None
         assert normalized.x.name == "OrderDate"
         assert normalized.filters is not None
         assert normalized.filters[0].column == "OrderDate"
@@ -394,6 +373,7 @@ class TestNormalizeUppercaseDataset:
 
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=24)
 
+        assert normalized.x is not None
         assert normalized.x.name == "ds"
         assert normalized.y[0].name == "DISTANCE"
         assert normalized.group_by is not None
@@ -417,6 +397,7 @@ class TestNormalizeUppercaseDataset:
 
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=24)
 
+        assert normalized.x is not None
         assert normalized.x.name == "ds"
         assert normalized.y[0].name == "DEPARTURE_DELAY"
 
@@ -459,6 +440,7 @@ class TestNormalizeEdgeCases:
 
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
 
+        assert normalized.x is not None
         assert normalized.x.name == "OrderDate"
         assert normalized.y[0].name == "Sales"
         assert normalized.filters is None
@@ -480,6 +462,7 @@ class TestNormalizeEdgeCases:
 
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
 
+        assert normalized.x is not None
         assert normalized.x.name == "OrderDate"
         assert normalized.filters is not None
         assert len(normalized.filters) == 0
@@ -500,6 +483,7 @@ class TestNormalizeEdgeCases:
 
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
 
+        assert normalized.x is not None
         assert normalized.x.name == "OrderDate"
         assert normalized.group_by is None
 
@@ -527,6 +511,7 @@ class TestNormalizeEdgeCases:
 
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
 
+        assert normalized.x is not None
         assert normalized.x.name == "OrderDate"
         assert normalized.y[0].name == "Sales"
         assert normalized.y[1].name == "quantity_ordered"
@@ -554,6 +539,8 @@ class TestNormalizeEdgeCases:
         first = DatasetValidator.normalize_column_names(config, dataset_id=18)
         second = DatasetValidator.normalize_column_names(first, dataset_id=18)
 
+        assert first.x is not None
+        assert second.x is not None
         assert first.x.name == second.x.name == "OrderDate"
         assert first.y[0].name == second.y[0].name == "Sales"
         assert first.filters is not None
@@ -636,6 +623,7 @@ class TestNormalizeXAxisFilterConsistency:
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
 
         assert normalized.filters is not None
+        assert normalized.x is not None
         assert normalized.x.name == normalized.filters[0].column == "OrderDate"
 
     @patch.object(DatasetValidator, "_get_dataset_context")
@@ -656,6 +644,7 @@ class TestNormalizeXAxisFilterConsistency:
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=24)
 
         assert normalized.filters is not None
+        assert normalized.x is not None
         assert normalized.x.name == normalized.filters[0].column == "ds"
 
     @patch.object(DatasetValidator, "_get_dataset_context")
@@ -729,3 +718,378 @@ class TestValidateSavedMetrics:
         assert not is_valid
         assert error is not None
         assert error.error_code == "INVALID_SAVED_METRIC"
+
+
+class TestGetCanonicalMetricName:
+    """Tests for get_canonical_metric_name — metrics-only lookup."""
+
+    def test_exact_match(self, mock_dataset_context: DatasetContext) -> None:
+        result = DatasetValidator.get_canonical_metric_name(
+            "TotalRevenue", mock_dataset_context
+        )
+        assert result == "TotalRevenue"
+
+    def test_case_insensitive_match(self, mock_dataset_context: DatasetContext) -> None:
+        result = DatasetValidator.get_canonical_metric_name(
+            "totalrevenue", mock_dataset_context
+        )
+        assert result == "TotalRevenue"
+
+    def test_unknown_metric_returns_original(
+        self, mock_dataset_context: DatasetContext
+    ) -> None:
+        result = DatasetValidator.get_canonical_metric_name(
+            "no_such_metric", mock_dataset_context
+        )
+        assert result == "no_such_metric"
+
+    def test_column_name_not_matched(
+        self, mock_dataset_context: DatasetContext
+    ) -> None:
+        """A name that matches a column but not a metric returns the original."""
+        result = DatasetValidator.get_canonical_metric_name(
+            "Sales", mock_dataset_context
+        )
+        assert result == "Sales"
+
+
+@pytest.fixture
+def collision_dataset_context() -> DatasetContext:
+    """Dataset where a column and a metric share the same case-insensitive name
+    but have different casing — the scenario that exposed the saved-metric bug."""
+    return DatasetContext(
+        id=99,
+        table_name="sales_data",
+        schema="public",
+        database_name="examples",
+        available_columns=[
+            {"name": "totalrevenue", "type": "DECIMAL", "is_numeric": True},
+        ],
+        available_metrics=[
+            {
+                "name": "TotalRevenue",
+                "expression": "SUM(amount)",
+                "description": None,
+            },
+        ],
+    )
+
+
+class TestSavedMetricNormalizationCorrectness:
+    """Saved metrics must resolve against available_metrics, not available_columns.
+
+    When a column and a metric share the same case-insensitive name but have
+    different casing, get_canonical_column_name (columns-first) returns the
+    column's casing.  For saved_metric=True refs this is wrong — downstream
+    metric resolution is exact-name based and expects the metric's casing.
+    """
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_xy_saved_metric_uses_metric_casing(
+        self,
+        mock_get_context: Any,
+        collision_dataset_context: DatasetContext,
+    ) -> None:
+        mock_get_context.return_value = collision_dataset_context
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="totalrevenue"),
+            y=[ColumnRef(name="totalrevenue", saved_metric=True)],
+        )
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=99)
+
+        # x is a regular column ref — gets column casing
+        assert normalized.x is not None
+        assert normalized.x.name == "totalrevenue"
+        # y is a saved metric — must get metric casing, not column casing
+        assert normalized.y[0].name == "TotalRevenue"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_table_saved_metric_uses_metric_casing(
+        self,
+        mock_get_context: Any,
+        collision_dataset_context: DatasetContext,
+    ) -> None:
+        from superset.mcp_service.chart.schemas import TableChartConfig
+
+        mock_get_context.return_value = collision_dataset_context
+
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[
+                ColumnRef(name="totalrevenue"),
+                ColumnRef(name="totalrevenue", saved_metric=True),
+            ],
+        )
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=99)
+
+        assert normalized.columns[0].name == "totalrevenue"
+        assert normalized.columns[1].name == "TotalRevenue"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_pie_saved_metric_uses_metric_casing(
+        self,
+        mock_get_context: Any,
+        collision_dataset_context: DatasetContext,
+    ) -> None:
+        from superset.mcp_service.chart.schemas import PieChartConfig
+
+        mock_get_context.return_value = collision_dataset_context
+
+        config = PieChartConfig(
+            chart_type="pie",
+            dimension=ColumnRef(name="totalrevenue"),
+            metric=ColumnRef(name="totalrevenue", saved_metric=True),
+        )
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=99)
+
+        assert normalized.dimension.name == "totalrevenue"
+        assert normalized.metric.name == "TotalRevenue"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_big_number_saved_metric_uses_metric_casing(
+        self,
+        mock_get_context: Any,
+        collision_dataset_context: DatasetContext,
+    ) -> None:
+        from superset.mcp_service.chart.schemas import BigNumberChartConfig
+
+        mock_get_context.return_value = collision_dataset_context
+
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="totalrevenue", saved_metric=True),
+        )
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=99)
+
+        assert normalized.metric.name == "TotalRevenue"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_mixed_timeseries_saved_metrics_use_metric_casing(
+        self,
+        mock_get_context: Any,
+        collision_dataset_context: DatasetContext,
+    ) -> None:
+        from superset.mcp_service.chart.schemas import (
+            ColumnRef,
+            MixedTimeseriesChartConfig,
+        )
+
+        context = DatasetContext(
+            id=99,
+            table_name="sales_data",
+            schema="public",
+            database_name="examples",
+            available_columns=[
+                {"name": "ds", "type": "TIMESTAMP", "is_temporal": True},
+                {"name": "totalrevenue", "type": "DECIMAL", "is_numeric": True},
+            ],
+            available_metrics=[
+                {
+                    "name": "TotalRevenue",
+                    "expression": "SUM(amount)",
+                    "description": None,
+                },
+                {
+                    "name": "OrderCount",
+                    "expression": "COUNT(*)",
+                    "description": None,
+                },
+            ],
+        )
+        mock_get_context.return_value = context
+
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="totalrevenue", saved_metric=True)],
+            y_secondary=[ColumnRef(name="ordercount", saved_metric=True)],
+        )
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=99)
+
+        assert normalized.y[0].name == "TotalRevenue"
+        assert normalized.y_secondary[0].name == "OrderCount"
+
+
+class TestPreValidateAliasHandling:
+    """pre_validate must accept schema field aliases, not just canonical names."""
+
+    def test_xy_pre_validate_accepts_metrics_alias(self) -> None:
+        from superset.mcp_service.chart.registry import get_registry
+
+        plugin = get_registry().get("xy")
+        assert plugin is not None
+
+        config_with_alias = {
+            "chart_type": "xy",
+            "metrics": [{"name": "revenue", "aggregate": "SUM"}],
+        }
+        error = plugin.pre_validate(config_with_alias)
+        assert error is None, f"pre_validate rejected 'metrics' alias: {error}"
+
+    def test_mixed_timeseries_pre_validate_accepts_x_axis_alias(self) -> None:
+        from superset.mcp_service.chart.registry import get_registry
+
+        plugin = get_registry().get("mixed_timeseries")
+        assert plugin is not None
+
+        config_with_alias = {
+            "chart_type": "mixed_timeseries",
+            "x_axis": {"name": "ds"},
+            "metrics": [{"name": "revenue", "aggregate": "SUM"}],
+            "metrics_b": [{"name": "orders", "aggregate": "COUNT"}],
+        }
+        error = plugin.pre_validate(config_with_alias)
+        assert error is None, f"pre_validate rejected aliases: {error}"
+
+    def test_mixed_timeseries_pre_validate_still_rejects_truly_missing(self) -> None:
+        from superset.mcp_service.chart.registry import get_registry
+
+        plugin = get_registry().get("mixed_timeseries")
+        assert plugin is not None
+
+        config_missing_secondary = {
+            "chart_type": "mixed_timeseries",
+            "x": {"name": "ds"},
+            "y": [{"name": "revenue", "aggregate": "SUM"}],
+        }
+        error = plugin.pre_validate(config_missing_secondary)
+        assert error is not None
+
+
+class TestNormalizePivotTableColumnRefs:
+    """Test normalize_column_refs for PivotTableChartPlugin.
+
+    Covers rows, metrics, columns, and filters — the four field groups that
+    PivotTableChartPlugin.normalize_column_refs() processes.
+    """
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_normalize_rows_case_mismatch(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """Rows with wrong case are normalized to the canonical dataset column name."""
+        mock_get_context.return_value = mock_dataset_context
+
+        config = PivotTableChartConfig(
+            chart_type="pivot_table",
+            rows=[ColumnRef(name="productline")],
+            metrics=[ColumnRef(name="sales", aggregate="SUM")],
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert normalized.rows[0].name == "ProductLine"
+        assert normalized.metrics[0].name == "Sales"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_normalize_columns_case_mismatch(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """Optional column-grouping field is normalized when present."""
+        mock_get_context.return_value = mock_dataset_context
+
+        config = PivotTableChartConfig(
+            chart_type="pivot_table",
+            rows=[ColumnRef(name="ProductLine")],
+            metrics=[ColumnRef(name="Sales", aggregate="SUM")],
+            columns=[ColumnRef(name="PRODUCTLINE")],
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert normalized.columns is not None
+        assert normalized.columns[0].name == "ProductLine"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_normalize_filters_alongside_rows(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """Filters are normalized together with rows and metrics."""
+        mock_get_context.return_value = mock_dataset_context
+
+        config = PivotTableChartConfig(
+            chart_type="pivot_table",
+            rows=[ColumnRef(name="PRODUCTLINE")],
+            metrics=[ColumnRef(name="QUANTITY_ORDERED", aggregate="SUM")],
+            filters=[FilterConfig(column="orderdate", op=">", value="2023-01-01")],
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert normalized.rows[0].name == "ProductLine"
+        assert normalized.metrics[0].name == "quantity_ordered"
+        assert normalized.filters is not None
+        assert normalized.filters[0].column == "OrderDate"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_normalize_saved_metric_uses_canonical_metric_name(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """A saved_metric=True entry in metrics uses get_canonical_metric_name."""
+        mock_get_context.return_value = mock_dataset_context
+
+        config = PivotTableChartConfig(
+            chart_type="pivot_table",
+            rows=[ColumnRef(name="ProductLine")],
+            metrics=[ColumnRef(name="totalrevenue", saved_metric=True)],
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert normalized.metrics[0].name == "TotalRevenue"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_normalize_sql_expression_metric_skipped(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """sql_expression metrics are skipped — no AttributeError on name=None."""
+        mock_get_context.return_value = mock_dataset_context
+
+        config = PivotTableChartConfig(
+            chart_type="pivot_table",
+            rows=[ColumnRef(name="ProductLine")],
+            metrics=[
+                ColumnRef(
+                    name=None,
+                    sql_expression="SUM(Sales * 1.1)",
+                    label="Adjusted Sales",
+                ),
+                ColumnRef(name="sales", aggregate="AVG"),
+            ],
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        # sql_expression metric is passed through unchanged (name stays None)
+        assert normalized.metrics[0].name is None
+        assert normalized.metrics[0].sql_expression == "SUM(Sales * 1.1)"
+        # ad-hoc metric is normalized
+        assert normalized.metrics[1].name == "Sales"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_normalize_multiple_rows_and_metrics(
+        self, mock_get_context, uppercase_dataset_context: DatasetContext
+    ) -> None:
+        """Multiple rows and metrics entries are all normalized."""
+        mock_get_context.return_value = uppercase_dataset_context
+
+        config = PivotTableChartConfig(
+            chart_type="pivot_table",
+            rows=[
+                ColumnRef(name="airline"),
+                ColumnRef(name="distance", aggregate="AVG"),
+            ],
+            metrics=[
+                ColumnRef(name="departure_delay", aggregate="AVG"),
+                ColumnRef(name="arrival_delay", aggregate="SUM"),
+            ],
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=24)
+
+        assert normalized.rows[0].name == "AIRLINE"
+        assert normalized.rows[1].name == "DISTANCE"
+        assert normalized.metrics[0].name == "DEPARTURE_DELAY"
+        assert normalized.metrics[1].name == "ARRIVAL_DELAY"

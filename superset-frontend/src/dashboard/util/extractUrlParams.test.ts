@@ -18,19 +18,18 @@
  */
 import extractUrlParams from './extractUrlParams';
 
-const originalWindowLocation = window.location;
-
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('extractUrlParams', () => {
+  let locationSpy: jest.SpyInstance;
+
   beforeAll(() => {
-    // @ts-expect-error
-    delete window.location;
-    // @ts-expect-error
-    window.location = { search: '?edit=true&abc=123' };
+    locationSpy = jest
+      .spyOn(window, 'location', 'get')
+      .mockReturnValue({ search: '?edit=true&abc=123' } as Location);
   });
 
   afterAll(() => {
-    window.location = originalWindowLocation;
+    locationSpy.mockRestore();
   });
 
   test('returns all urlParams', () => {

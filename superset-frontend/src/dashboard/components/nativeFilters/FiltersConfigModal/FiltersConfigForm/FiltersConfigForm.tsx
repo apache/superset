@@ -38,7 +38,7 @@ import {
 } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
-import { debounce, isEqual } from 'lodash';
+import { debounce, isEqual } from 'lodash-es';
 import {
   forwardRef,
   useCallback,
@@ -120,6 +120,7 @@ import {
   INPUT_WIDTH,
 } from './constants';
 import DependencyList from './DependencyList';
+import { datasetLabel } from 'src/features/semanticLayers/label';
 
 const FORM_ITEM_WIDTH = 260;
 
@@ -325,6 +326,11 @@ const FiltersConfigForm = (
   const filters = form.getFieldValue('filters');
   const formValues = filters?.[filterId];
   const formFilter = formValues || undoFormValues || defaultFormFilter;
+  const formFilterWithTimeGrains = formFilter as typeof formFilter & {
+    time_grains?: string[];
+  };
+  const savedTimeGrains =
+    filterToEdit?.time_grains ?? customizationToEdit?.time_grains;
 
   const handleModifyFilter = useCallback(() => {
     if (onModifyFilter) {
@@ -587,7 +593,7 @@ const FiltersConfigForm = (
     !!filterToEdit?.time_range;
 
   const hasTimeGrainPreFilter = !!(
-    formFilter?.time_grains?.length || filterToEdit?.time_grains?.length
+    formFilterWithTimeGrains?.time_grains?.length || savedTimeGrains?.length
   );
 
   const hasEnableSingleValue =
@@ -1052,7 +1058,7 @@ const FiltersConfigForm = (
                       <StyledFormItem
                         expanded={expanded}
                         name={['filters', filterId, 'dataset']}
-                        label={<StyledLabel>{t('Dataset')}</StyledLabel>}
+                        label={<StyledLabel>{datasetLabel()}</StyledLabel>}
                         initialValue={
                           datasetDetails
                             ? {
@@ -1072,7 +1078,10 @@ const FiltersConfigForm = (
                         rules={[
                           {
                             required: !isRemoved,
-                            message: t('Dataset is required'),
+                            message:
+                              datasetLabel() === t('Datasource')
+                                ? t('Datasource is required')
+                                : t('Dataset is required'),
                           },
                         ]}
                         {...getFiltersConfigModalTestId('datasource-input')}
@@ -1098,7 +1107,7 @@ const FiltersConfigForm = (
                     ) : (
                       <StyledFormItem
                         expanded={expanded}
-                        label={<StyledLabel>{t('Dataset')}</StyledLabel>}
+                        label={<StyledLabel>{datasetLabel()}</StyledLabel>}
                       >
                         <Loading position="inline-centered" />
                       </StyledFormItem>
@@ -1286,7 +1295,9 @@ const FiltersConfigForm = (
                                     </CollapsibleControl>
                                   </FormItem>
                                 )}
-                                {itemTypeField === 'filter_timegrain' &&
+                                {(itemTypeField === 'filter_timegrain' ||
+                                  itemTypeField ===
+                                    'chart_customization_timegrain') &&
                                   hasDataset &&
                                   datasetDetails?.time_grain_sqla &&
                                   datasetDetails.time_grain_sqla.length > 0 && (
@@ -1321,9 +1332,7 @@ const FiltersConfigForm = (
                                             filterId,
                                             'time_grains',
                                           ]}
-                                          initialValue={
-                                            filterToEdit?.time_grains
-                                          }
+                                          initialValue={savedTimeGrains}
                                           {...getFiltersConfigModalTestId(
                                             'time-grain-allowlist',
                                           )}
@@ -1407,7 +1416,7 @@ const FiltersConfigForm = (
                                           }}
                                         />
                                       </StyledRowFormItem>
-                                      {hasMetrics && (
+                                      {hasMetrics && !isChartCustomization && (
                                         <StyledRowSubFormItem
                                           expanded={expanded}
                                           name={[
@@ -1889,10 +1898,12 @@ const FiltersConfigForm = (
                                             iconSize="xl"
                                             iconColor={theme.colorPrimary}
                                             css={css`
-                                              margin-left: ${theme.sizeUnit *
-                                              2}px;
-                                              margin-top: ${theme.sizeUnit *
-                                              1.5}px;
+                                              margin-left: ${
+                                                theme.sizeUnit * 2
+                                              }px;
+                                              margin-top: ${
+                                                theme.sizeUnit * 1.5
+                                              }px;
                                             `}
                                             onClick={() => refreshHandler(true)}
                                           />

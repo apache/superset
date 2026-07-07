@@ -22,12 +22,14 @@ import Link from '@docusaurus/Link';
 import { Card, Carousel, Flex } from 'antd';
 import styled from '@emotion/styled';
 import GitHubButton from 'react-github-btn';
+import { load } from 'js-yaml';
 import { mq } from '../utils';
 import SectionHeader from '../components/SectionHeader';
 import databaseData from '../data/databases.json';
 import BlurredSection from '../components/BlurredSection';
 import DataSet from '../../../RESOURCES/INTHEWILD.yaml';
 import type { DatabaseData } from '../components/databases/types';
+import GetStartedSplitButton from '../components/GetStartedSplitButton';
 import '../styles/main.css';
 
 // Build database list from databases.json (databases with logos)
@@ -59,7 +61,7 @@ interface DataSetType {
   categories: Record<string, Organization[]>;
 }
 
-const typedDataSet = DataSet as DataSetType;
+const typedDataSet = load(DataSet) as DataSetType;
 
 // Extract all organizations with logos for the carousel
 const companiesWithLogos = Object.values(typedDataSet.categories)
@@ -188,20 +190,6 @@ const StyledTitleContainer = styled('div')`
         }
       }
     }
-  }
-`;
-
-const StyledButton = styled(Link)`
-  border-radius: 10px;
-  font-size: 20px;
-  font-weight: bold;
-  width: 170px;
-  padding: 10px 0;
-  margin: 15px auto 0;
-  ${mq[1]} {
-    font-size: 19px;
-    width: 175px;
-    padding: 10px 0;
   }
 `;
 
@@ -717,9 +705,10 @@ export default function Home(): JSX.Element {
               </span>
             </div>
             <img src="/img/community/line.png" alt="line" />
-            <StyledButton className="default-button-theme" href="/docs/intro">
-              Get Started
-            </StyledButton>
+            <GetStartedSplitButton
+              variant="hero"
+              rootClassName="default-button-theme get-started-split"
+            />
           </div>
           <StyledScreenshotContainer>
             <img

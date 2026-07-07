@@ -184,6 +184,29 @@ class TestListChartsRequestSchema:
         with pytest.raises(ValueError, match="Field required"):
             ChartFilter(col="slice_name")  # Missing opr and value
 
+    def test_dashboards_filter_accepted(self):
+        """`dashboards` is a valid filter column for finding charts on a dashboard."""
+        # The filter is accepted at schema-validation time
+        f = ChartFilter(col="dashboards", opr="eq", value=42)
+        assert f.col == "dashboards"
+        assert f.opr.value == "eq"
+        assert f.value == 42
+
+        # And composes into a request like any other filter
+        request = ListChartsRequest(filters=[f])
+        assert request.filters[0].col == "dashboards"
+
+    def test_invalid_filter_column_rejected(self):
+        """Unknown filter columns are rejected by the literal."""
+        with pytest.raises(
+            ValueError,
+            match=(
+                "Input should be 'slice_name', 'viz_type', 'datasource_name', "
+                "'created_by_fk', 'changed_by_fk' or 'dashboards'"
+            ),
+        ):
+            ChartFilter(col="nonexistent_column", opr="eq", value=1)
+
     def test_search_and_filters_conflict_validation(self):
         """Test that using both search and filters raises validation error."""
         with pytest.raises(
@@ -318,3 +341,15 @@ class TestChartDataModelMetadataPrivacy:
 
         data = json.loads(result.content[0].text)
         assert data["error_type"] == DATA_MODEL_METADATA_ERROR_TYPE
+
+
+@patch("superset.daos.chart.ChartDAO.list")
+@pytest.mark.asyncio
+async def test_list_charts_no_arguments(mock_list, mcp_server):
+    """Regression test: list_charts must accept zero arguments without raising
+    pydantic_core.ValidationError: Missing required argument: request."""
+    mock_list.return_value = ([], 0)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool("list_charts", {})
+    data = json.loads(result.content[0].text)
+    assert "charts" in data

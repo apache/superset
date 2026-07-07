@@ -54,6 +54,7 @@ export interface LayerFormData extends SqlaFormData {
   spatial?: SpatialData;
   line_column?: string;
   geojson?: string;
+  cross_filter_column?: string | null;
 }
 
 export interface FilterResult {
@@ -408,10 +409,45 @@ const getLineColumnFilters = ({
   data: PickingInfo;
 }): FilterResult => {
   const path = (data?.object?.path || data.object?.polygon) as string;
-  const val = JSON.stringify(path);
 
   if (!formData.line_column) throw new Error('Line column is required');
   if (!path) throw new Error('Position of picked data is required');
+
+  // Preferred path: emit on a dimension column the user selected. The value
+  // can land either directly on the picked feature (groupby/excluded keys are
+  // spread by addPropertiesToFeature) or under extraProps when it overlaps
+  // with js_columns (addJsColumnsToExtraProps).
+  if (formData.cross_filter_column) {
+    const col = formData.cross_filter_column;
+    const obj = data.object ?? {};
+    const extraProps = (obj.extraProps ?? {}) as Record<string, unknown>;
+    const dimensionVal = (obj[col] ?? extraProps[col]) as
+      string | number | boolean | null | undefined;
+
+    if (dimensionVal == null) {
+      throw new Error(
+        `Cross-filter column "${col}" not present on picked feature. ` +
+          `Re-save the chart to refresh its query.`,
+      );
+    }
+
+    return {
+      values: [dimensionVal],
+      filters: [
+        {
+          col,
+          op: '==',
+          val: dimensionVal,
+        },
+      ],
+    };
+  }
+
+  // No cross_filter_column configured: emit a filter on the geometry column.
+  // This is preserved for backwards compatibility, but typically does not
+  // match anything stored as a full GeoJSON Feature; users should set
+  // cross_filter_column instead.
+  const val = JSON.stringify(path);
 
   return {
     values: [val],
@@ -436,6 +472,36 @@ const getGeojsonFilters = ({
   formData: LayerFormData;
   data: PickingInfo;
 }): FilterResult => {
+  // Preferred path: emit on a property of the picked GeoJSON Feature.
+  if (formData.cross_filter_column) {
+    const col = formData.cross_filter_column;
+    const properties = (data.object?.properties ?? {}) as Record<
+      string,
+      unknown
+    >;
+    const dimensionVal = properties[col] as
+      string | number | boolean | null | undefined;
+
+    if (dimensionVal == null) {
+      throw new Error(
+        `Cross-filter column "${col}" not present on picked feature properties`,
+      );
+    }
+
+    return {
+      values: [dimensionVal],
+      filters: [
+        {
+          col,
+          op: '==',
+          val: dimensionVal,
+        },
+      ],
+    };
+  }
+
+  // No cross_filter_column configured: substring match against the stored
+  // geojson string. Preserved for backwards compatibility.
   const geometry = data.object?.geometry?.coordinates;
 
   if (!geometry) throw new Error('Position of picked data is required');

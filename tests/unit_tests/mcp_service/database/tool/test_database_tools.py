@@ -23,9 +23,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
+from pydantic import ValidationError
 
 from superset.mcp_service.app import mcp
-from superset.mcp_service.database.schemas import ListDatabasesRequest
+from superset.mcp_service.database.schemas import DatabaseFilter, ListDatabasesRequest
 from superset.mcp_service.privacy import DATA_MODEL_METADATA_ERROR_TYPE
 from superset.utils import json
 
@@ -37,6 +38,26 @@ list_databases_module = importlib.import_module(
 get_database_info_module = importlib.import_module(
     "superset.mcp_service.database.tool.get_database_info"
 )
+
+
+class TestDatabaseFilterSchema:
+    """Tests for DatabaseFilter schema — filterable columns."""
+
+    def test_created_by_fk_is_rejected_as_filter_column(self):
+        """created_by_fk is not a public filter column; use created_by_me instead."""
+        with pytest.raises(ValidationError):
+            DatabaseFilter(col="created_by_fk", opr="eq", value=1)
+
+    def test_changed_by_fk_is_rejected_as_filter_column(self):
+        """changed_by_fk is not a public filter column; it exposes a user enumeration
+        vector (caller can probe which databases a given user ID has touched)."""
+        with pytest.raises(ValidationError):
+            DatabaseFilter(col="changed_by_fk", opr="eq", value=1)
+
+    def test_invalid_filter_column_rejected(self):
+        """Columns not in the Literal set must be rejected."""
+        with pytest.raises(ValidationError):
+            DatabaseFilter(col="not_a_real_column", opr="eq", value=1)
 
 
 def create_mock_database(
@@ -249,11 +270,29 @@ async def test_list_databases_does_not_expose_user_directory_fields(
 
 
 def test_database_filter_rejects_user_directory_fields() -> None:
-    """Test user directory fields cannot be used for database filters."""
-    with pytest.raises(ValueError, match="created_by_fk"):
+    """Test user directory fields cannot be used for database filters.
+
+    All FK columns (created_by_fk, changed_by_fk) and user-directory string
+    fields (created_by, created_by_name, etc.) must be rejected.
+    """
+    with pytest.raises(ValidationError, match="created_by_name"):
         ListDatabasesRequest(
-            filters=[{"col": "created_by_fk", "opr": "eq", "value": 1}],
+            filters=[{"col": "created_by_name", "opr": "eq", "value": "admin"}],
         )
+
+
+def test_database_filter_rejects_created_by_fk() -> None:
+    """created_by_fk is no longer a valid filter column; use created_by_me instead."""
+    with pytest.raises(ValidationError, match="created_by_fk"):
+        ListDatabasesRequest(
+            filters=[{"col": "created_by_fk", "opr": "eq", "value": 0}],
+        )
+
+
+def test_database_request_accepts_created_by_me() -> None:
+    """created_by_me=True is the correct way to filter by current user."""
+    request = ListDatabasesRequest(created_by_me=True)
+    assert request.created_by_me is True
 
 
 @patch("superset.daos.database.DatabaseDAO.list")
@@ -297,3 +336,45 @@ async def test_get_database_info_not_found(mock_find, mcp_server):
             "get_database_info", {"request": {"identifier": 999}}
         )
         assert result.data["error_type"] == "not_found"
+
+
+@patch("superset.daos.database.DatabaseDAO.list")
+@pytest.mark.asyncio
+async def test_list_databases_does_not_expose_sensitive_credential_columns(
+    mock_list, mcp_server
+) -> None:
+    """Sensitive credential columns cannot be surfaced via select_columns."""
+    database = create_mock_database()
+    database._mapping = {
+        "id": database.id,
+        "database_name": database.database_name,
+    }
+    mock_list.return_value = ([database], 1)
+
+    async with Client(mcp_server) as client:
+        request = ListDatabasesRequest(
+            page=1,
+            page_size=10,
+            select_columns=[
+                "id",
+                "database_name",
+                "password",
+                "sqlalchemy_uri",
+                "encrypted_extra",
+                "server_cert",
+            ],
+        )
+        result = await client.call_tool(
+            "list_databases", {"request": request.model_dump()}
+        )
+
+    data = json.loads(result.content[0].text)
+    assert data["columns_requested"] == ["id", "database_name"]
+    assert data["columns_loaded"] == ["id", "database_name"]
+    sensitive = {"password", "sqlalchemy_uri", "encrypted_extra", "server_cert"}
+    assert not sensitive.intersection(data.get("columns_available", []))
+    for row in data.get("databases", []):
+        assert not sensitive.intersection(row.keys())
+    # Verify the exploit path: DAO must never receive sensitive column names.
+    dao_columns = mock_list.call_args.kwargs["columns"]
+    assert not sensitive.intersection(dao_columns)

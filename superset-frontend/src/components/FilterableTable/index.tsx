@@ -110,7 +110,7 @@ export const FilterableTable = ({
   );
 
   const keywordFilter = useCallback(
-    node => {
+    (node: { data: Datum }) => {
       if (filterText && node.data) {
         return hasMatch(filterText, node.data);
       }

@@ -22,12 +22,11 @@ Validates that referenced columns exist in the dataset schema.
 
 import difflib
 import logging
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, TypeVar
 
 from superset.mcp_service.chart.schemas import (
+    ChartConfig,
     ColumnRef,
-    TableChartConfig,
-    XYChartConfig,
 )
 from superset.mcp_service.common.error_schemas import (
     ChartGenerationError,
@@ -35,7 +34,52 @@ from superset.mcp_service.common.error_schemas import (
     DatasetContext,
 )
 
+_C = TypeVar("_C", bound=ChartConfig)
+
 logger = logging.getLogger(__name__)
+
+
+def build_dataset_context_from_orm(dataset: Any) -> DatasetContext | None:
+    """Construct a :class:`DatasetContext` from an already-fetched ORM dataset.
+
+    Callers that already have the ORM object (e.g. after permission checks)
+    should use this to avoid a redundant ``DatasetDAO.find_by_id`` round trip.
+    """
+    if dataset is None:
+        return None
+
+    columns: List[Dict[str, Any]] = []
+    for col in getattr(dataset, "columns", []) or []:
+        columns.append(
+            {
+                "name": col.column_name,
+                "type": str(col.type) if col.type else "UNKNOWN",
+                "is_temporal": getattr(col, "is_temporal", False),
+                "is_numeric": getattr(col, "is_numeric", False),
+            }
+        )
+
+    metrics: List[Dict[str, Any]] = []
+    for metric in getattr(dataset, "metrics", []) or []:
+        metrics.append(
+            {
+                "name": metric.metric_name,
+                "expression": metric.expression,
+                "description": metric.description,
+            }
+        )
+
+    database = getattr(dataset, "database", None)
+    database_name = getattr(database, "database_name", None) or ""
+    return DatasetContext(
+        id=dataset.id,
+        table_name=dataset.table_name,
+        schema=dataset.schema,
+        database_name=database_name,
+        available_columns=columns,
+        available_metrics=metrics,
+    )
+
 
 # Exceptions that can occur during column name normalization.
 # Shared by the validation pipeline and tool-level normalization calls.
@@ -53,7 +97,7 @@ class DatasetValidator:
 
     @staticmethod
     def validate_against_dataset(
-        config: TableChartConfig | XYChartConfig,
+        config: ChartConfig,
         dataset_id: int | str,
         dataset_context: DatasetContext | None = None,
     ) -> Tuple[bool, ChartGenerationError | None]:
@@ -96,33 +140,72 @@ class DatasetValidator:
         if column_error:
             return False, column_error
 
-        # Validate aggregation compatibility
-        if isinstance(config, (TableChartConfig, XYChartConfig)):
-            aggregation_errors = DatasetValidator._validate_aggregations(
-                column_refs, dataset_context
-            )
-            if aggregation_errors:
-                return False, aggregation_errors[0]
+        # Validate aggregation compatibility for every config that produced
+        # column refs. ``_validate_aggregations`` is config-agnostic — gating
+        # it to Table/XY would let pie / pivot table / mixed timeseries /
+        # handlebars / big number slip through ``SUM(non_numeric)`` patterns
+        # for the fast-path tools that skip Tier 2.
+        aggregation_errors = DatasetValidator._validate_aggregations(
+            column_refs, dataset_context
+        )
+        if aggregation_errors:
+            return False, aggregation_errors[0]
 
         return True, None
 
     @staticmethod
-    def _validate_columns_exist(
+    def _validate_columns_exist(  # noqa: C901
         column_refs: List[ColumnRef], dataset_context: DatasetContext
     ) -> ChartGenerationError | None:
-        """Validate that non-saved-metric column refs exist in the dataset."""
-        invalid_columns = []
+        """Validate that non-saved-metric column refs exist in the dataset.
+
+        A ``ColumnRef`` with ``saved_metric=False`` must match an entry in
+        ``available_columns``. Saved-metric *names* don't satisfy this check —
+        otherwise ``{name: "sum_boys", aggregate: "SUM"}`` (no
+        ``saved_metric=true``) would slip through and downstream code would
+        emit ``SUM(sum_boys)`` as an ad-hoc SIMPLE metric, producing the
+        broken-SQL pattern this validator is meant to prevent.
+        """
+        column_names_lower = {
+            col["name"].lower() for col in dataset_context.available_columns
+        }
+        metric_names_lower = {
+            metric["name"].lower() for metric in dataset_context.available_metrics
+        }
+
+        invalid_columns: List[ColumnRef] = []
+        saved_metric_typo: List[ColumnRef] = []
         for col_ref in column_refs:
             if col_ref.saved_metric:
                 continue
-            if not DatasetValidator._column_exists(col_ref.name, dataset_context):
+            if col_ref.sql_expression:
+                # SQL metrics don't reference a dataset column.
+                continue
+            if col_ref.name is None:
+                # Should be unreachable per validate_metric_shape; defensive.
+                continue
+            name_lower = col_ref.name.lower()
+            if name_lower in column_names_lower:
+                continue
+            if name_lower in metric_names_lower:
+                # Name matches a saved metric but the ref didn't opt into
+                # saved-metric resolution. Surface a tailored hint so the
+                # caller (typically an LLM) can flip ``saved_metric=true``.
+                saved_metric_typo.append(col_ref)
+            else:
                 invalid_columns.append(col_ref)
+
+        if saved_metric_typo:
+            return DatasetValidator._build_saved_metric_hint_error(saved_metric_typo)
 
         if not invalid_columns:
             return None
 
         suggestions_map = {}
         for col_ref in invalid_columns:
+            # Loop above filters out refs without a name; defensive guard.
+            if col_ref.name is None:
+                continue
             suggestions = DatasetValidator._get_column_suggestions(
                 col_ref.name, dataset_context
             )
@@ -133,62 +216,49 @@ class DatasetValidator:
         )
 
     @staticmethod
+    def _build_saved_metric_hint_error(
+        refs: List[ColumnRef],
+    ) -> ChartGenerationError:
+        """Error response when a non-saved-metric ref names a saved metric."""
+        names = [r.name for r in refs]
+        names_str = ", ".join(f"'{n}'" for n in names)
+        first = names[0]
+        return ChartGenerationError(
+            error_type="saved_metric_not_marked",
+            message=(
+                f"{names_str} matches a saved metric but the ref doesn't "
+                f"have saved_metric=true"
+            ),
+            details=(
+                f"The dataset has a saved metric named {names_str}. To use "
+                f"it, set 'saved_metric': true on the column ref instead of "
+                f"providing an 'aggregate'. With the current shape, the "
+                f"chart would emit ad-hoc SQL like SUM({first}) — which is "
+                f"invalid because {first} is a metric expression, not a "
+                f"column."
+            ),
+            suggestions=[
+                f'Did you mean: {{"name": "{first}", "saved_metric": true}}?',
+                "Use saved_metric=true to reference a saved dataset metric",
+                "Or pick a real column name and apply an aggregate to it",
+            ],
+            error_code="SAVED_METRIC_NOT_MARKED",
+        )
+
+    @staticmethod
     def _get_dataset_context(dataset_id: int | str) -> DatasetContext | None:
-        """Get dataset context with column information."""
+        """Fetch the ORM dataset by ID/UUID and build a :class:`DatasetContext`."""
         try:
             from superset.daos.dataset import DatasetDAO
 
-            # Find dataset
             if isinstance(dataset_id, int) or (
                 isinstance(dataset_id, str) and dataset_id.isdigit()
             ):
                 dataset = DatasetDAO.find_by_id(int(dataset_id))
             else:
-                # Try UUID lookup
                 dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
 
-            if not dataset:
-                return None
-
-            # Build context
-            columns = []
-            metrics = []
-
-            # Add table columns
-            for col in dataset.columns:
-                columns.append(
-                    {
-                        "name": col.column_name,
-                        "type": str(col.type) if col.type else "UNKNOWN",
-                        "is_temporal": col.is_temporal
-                        if hasattr(col, "is_temporal")
-                        else False,
-                        "is_numeric": col.is_numeric
-                        if hasattr(col, "is_numeric")
-                        else False,
-                    }
-                )
-
-            # Add metrics
-            for metric in dataset.metrics:
-                metrics.append(
-                    {
-                        "name": metric.metric_name,
-                        "expression": metric.expression,
-                        "description": metric.description,
-                    }
-                )
-
-            return DatasetContext(
-                id=dataset.id,
-                table_name=dataset.table_name,
-                schema=dataset.schema,
-                database_name=dataset.database.database_name
-                if dataset.database
-                else None,
-                available_columns=columns,
-                available_metrics=metrics,
-            )
+            return build_dataset_context_from_orm(dataset)
 
         except Exception as e:
             logger.error("Error getting dataset context for %s: %s", dataset_id, e)
@@ -196,26 +266,30 @@ class DatasetValidator:
 
     @staticmethod
     def _extract_column_references(
-        config: TableChartConfig | XYChartConfig,
+        config: ChartConfig,
     ) -> List[ColumnRef]:
-        """Extract all column references from configuration."""
-        refs = []
+        """Extract all column references from configuration via the plugin registry.
 
-        if isinstance(config, TableChartConfig):
-            refs.extend(config.columns)
-        elif isinstance(config, XYChartConfig):
-            if config.x is not None:
-                refs.append(config.x)
-            refs.extend(config.y)
-            if config.group_by:
-                refs.extend(config.group_by)
+        Previously only handled TableChartConfig and XYChartConfig, causing
+        5 of 7 chart types to silently skip column validation. Now delegates
+        to the plugin for each chart type so all types are covered.
+        """
+        # Local import: plugins call DatasetValidator helpers from
+        # normalize_column_refs().
+        # A top-level import of registry in dataset_validator would make loading this
+        # module implicitly trigger plugin registration, creating a circular dependency.
+        from superset.mcp_service.chart.registry import get_registry
 
-        # Add filter columns
-        if hasattr(config, "filters") and config.filters:
-            for filter_config in config.filters:
-                refs.append(ColumnRef(name=filter_config.column))
+        chart_type = getattr(config, "chart_type", None)
+        if chart_type is None:
+            return []
 
-        return refs
+        plugin = get_registry().get(chart_type)
+        if plugin is None:
+            logger.warning("No plugin registered for chart_type=%r", chart_type)
+            return []
+
+        return plugin.extract_column_refs(config)
 
     @staticmethod
     def _column_exists(column_name: str, dataset_context: DatasetContext) -> bool:
@@ -235,7 +309,7 @@ class DatasetValidator:
         return False
 
     @staticmethod
-    def _get_canonical_column_name(
+    def get_canonical_column_name(
         column_name: str, dataset_context: DatasetContext
     ) -> str:
         """
@@ -269,43 +343,26 @@ class DatasetValidator:
         return column_name
 
     @staticmethod
-    def _normalize_xy_config(
-        config_dict: Dict[str, Any], dataset_context: DatasetContext
-    ) -> None:
-        """Normalize column names in an XY chart config dict in place."""
-        # Normalize x-axis column
-        if "x" in config_dict and config_dict["x"]:
-            config_dict["x"]["name"] = DatasetValidator._get_canonical_column_name(
-                config_dict["x"]["name"], dataset_context
-            )
+    def get_canonical_metric_name(
+        metric_name: str, dataset_context: DatasetContext
+    ) -> str:
+        """Return the canonical saved-metric name from available_metrics.
 
-        # Normalize y-axis columns
-        if "y" in config_dict and config_dict["y"]:
-            for y_col in config_dict["y"]:
-                y_col["name"] = DatasetValidator._get_canonical_column_name(
-                    y_col["name"], dataset_context
-                )
+        Unlike get_canonical_column_name, this only searches available_metrics
+        so that a same-named column with different casing cannot shadow the
+        metric's canonical name.  Use this whenever saved_metric=True.
 
-        # Normalize group_by columns
-        if "group_by" in config_dict and config_dict["group_by"]:
-            for gb_col in config_dict["group_by"]:
-                gb_col["name"] = DatasetValidator._get_canonical_column_name(
-                    gb_col["name"], dataset_context
-                )
+        Returns the original name when no metric matches (validation catches
+        the missing-metric case separately).
+        """
+        metric_lower = metric_name.lower()
+        for metric in dataset_context.available_metrics:
+            if metric["name"].lower() == metric_lower:
+                return metric["name"]
+        return metric_name
 
     @staticmethod
-    def _normalize_table_config(
-        config_dict: Dict[str, Any], dataset_context: DatasetContext
-    ) -> None:
-        """Normalize column names in a table chart config dict in place."""
-        if "columns" in config_dict and config_dict["columns"]:
-            for col in config_dict["columns"]:
-                col["name"] = DatasetValidator._get_canonical_column_name(
-                    col["name"], dataset_context
-                )
-
-    @staticmethod
-    def _normalize_filters(
+    def normalize_filters(
         config_dict: Dict[str, Any], dataset_context: DatasetContext
     ) -> None:
         """Normalize filter column names in a config dict in place."""
@@ -313,17 +370,17 @@ class DatasetValidator:
             for filter_config in config_dict["filters"]:
                 if filter_config and "column" in filter_config:
                     filter_config["column"] = (
-                        DatasetValidator._get_canonical_column_name(
+                        DatasetValidator.get_canonical_column_name(
                             filter_config["column"], dataset_context
                         )
                     )
 
     @staticmethod
     def normalize_column_names(
-        config: TableChartConfig | XYChartConfig,
+        config: _C,
         dataset_id: int | str,
         dataset_context: DatasetContext | None = None,
-    ) -> TableChartConfig | XYChartConfig:
+    ) -> _C:
         """
         Normalize column names in config to match the canonical dataset column names.
 
@@ -331,6 +388,9 @@ class DatasetValidator:
         (e.g., 'order_date') don't match exactly with the dataset column names
         (e.g., 'OrderDate'). The frontend performs case-sensitive comparisons,
         so we need to ensure column names match exactly.
+
+        Previously only XYChartConfig and TableChartConfig were normalized; now
+        all 7 chart types are handled via the plugin registry.
 
         Args:
             config: Chart configuration with column references
@@ -346,22 +406,24 @@ class DatasetValidator:
         if not dataset_context:
             return config
 
-        # Create a mutable copy of the config
-        config_dict = config.model_dump()
+        # Local import: plugins call DatasetValidator helpers from
+        # normalize_column_refs().
+        # A top-level import of registry in dataset_validator would make loading this
+        # module implicitly trigger plugin registration, creating a circular dependency.
+        from superset.mcp_service.chart.registry import get_registry
 
-        # Normalize based on config type
-        if isinstance(config, XYChartConfig):
-            DatasetValidator._normalize_xy_config(config_dict, dataset_context)
-        elif isinstance(config, TableChartConfig):
-            DatasetValidator._normalize_table_config(config_dict, dataset_context)
+        chart_type = getattr(config, "chart_type", None)
+        if chart_type is None:
+            return config
 
-        # Normalize filter columns (common to both config types)
-        DatasetValidator._normalize_filters(config_dict, dataset_context)
+        plugin = get_registry().get(chart_type)
+        if plugin is None:
+            logger.warning(
+                "No plugin for chart_type=%r; skipping column normalization", chart_type
+            )
+            return config
 
-        # Reconstruct the config with normalized names
-        if isinstance(config, XYChartConfig):
-            return XYChartConfig.model_validate(config_dict)
-        return TableChartConfig.model_validate(config_dict)
+        return plugin.normalize_column_refs(config, dataset_context)
 
     @staticmethod
     def _get_column_suggestions(
@@ -379,20 +441,28 @@ class DatasetValidator:
 
         # Find close matches
         column_lower = column_name.lower()
+        candidate_lookup = [name[0].lower() for name in all_names]
         close_matches = difflib.get_close_matches(
             column_lower,
-            [name[0].lower() for name in all_names],
+            candidate_lookup,
             n=max_suggestions,
             cutoff=0.6,
         )
 
-        # Build suggestions with proper case and type info
+        # Build suggestions with proper case and type info. ``ColumnSuggestion``
+        # requires ``similarity_score`` and does not have a ``data_type`` field;
+        # we score via difflib ratio and store the candidate kind in ``type``.
         suggestions = []
         for match in close_matches:
-            for name, col_type, data_type in all_names:
+            for name, col_type, _data_type in all_names:
                 if name.lower() == match:
+                    score = difflib.SequenceMatcher(None, column_lower, match).ratio()
                     suggestions.append(
-                        ColumnSuggestion(name=name, type=col_type, data_type=data_type)
+                        ColumnSuggestion(
+                            name=name,
+                            type=col_type,
+                            similarity_score=round(score, 3),
+                        )
                     )
                     break
 
@@ -409,20 +479,20 @@ class DatasetValidator:
             ChartErrorBuilder,
         )
 
-        # Format error message
         if len(invalid_columns) == 1:
             col = invalid_columns[0]
-            suggestions = suggestions_map.get(col.name, [])
+            col_name = col.name or "<unknown column>"
+            suggestions = suggestions_map.get(col_name, [])
 
             if suggestions:
                 return ChartErrorBuilder.column_not_found_error(
-                    col.name, [s.name for s in suggestions]
+                    col_name, [s.name for s in suggestions]
                 )
             else:
-                return ChartErrorBuilder.column_not_found_error(col.name)
+                return ChartErrorBuilder.column_not_found_error(col_name)
         else:
             # Multiple invalid columns
-            invalid_names = [col.name for col in invalid_columns]
+            invalid_names: list[str] = [col.name for col in invalid_columns if col.name]
             return ChartErrorBuilder.build_error(
                 error_type="multiple_invalid_columns",
                 template_key="column_not_found",
@@ -451,10 +521,13 @@ class DatasetValidator:
         _column_exists (which checks both lists) but fail at query time.
         """
         metric_names = {m["name"].lower() for m in dataset_context.available_metrics}
-        invalid = [
+        # ``saved_metric=True`` requires ``name`` per ColumnRef.validate_metric_shape.
+        invalid: list[str] = [
             col_ref.name
             for col_ref in column_refs
-            if col_ref.saved_metric and col_ref.name.lower() not in metric_names
+            if col_ref.saved_metric
+            and col_ref.name is not None
+            and col_ref.name.lower() not in metric_names
         ]
         if not invalid:
             return None
@@ -492,7 +565,13 @@ class DatasetValidator:
         for col_ref in column_refs:
             if col_ref.saved_metric:
                 continue  # Saved metrics have built-in aggregation
+            if col_ref.sql_expression:
+                # Custom SQL metrics bring their own aggregation expression.
+                continue
             if not col_ref.aggregate:
+                continue
+            if col_ref.name is None:
+                # Should be unreachable per validate_metric_shape; defensive.
                 continue
 
             # Find column info
@@ -503,8 +582,12 @@ class DatasetValidator:
                     break
 
             if col_info:
-                # Check numeric aggregates on non-numeric columns
-                numeric_aggs = ["SUM", "AVG", "MIN", "MAX", "STDDEV", "VAR", "MEDIAN"]
+                # Check numeric aggregates on non-numeric columns.
+                # MIN and MAX are intentionally excluded: they work on dates
+                # and text in most SQL engines, so restricting them here would
+                # produce false-positive errors.  Leave those to the Tier-2
+                # compile check.
+                numeric_aggs = ["SUM", "AVG", "STDDEV", "VAR", "MEDIAN"]
                 if (
                     col_ref.aggregate in numeric_aggs
                     and not col_info.get("is_numeric", False)

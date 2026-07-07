@@ -24,6 +24,330 @@ assists people when migrating to a new version.
 
 ## Next
 
+- [39925](https://github.com/apache/superset/pull/39925): URL prefixing for `SUPERSET_APP_ROOT` subdirectory deployments is now handled automatically by helpers in `src/utils/navigationUtils` (`openInNewTab`, `redirect`, `getShareableUrl`, `<AppLink>`). Direct imports of `ensureAppRoot` / `makeUrl` from `src/utils/pathUtils` are forbidden outside `navigationUtils.ts` (enforced by a static-invariant test); contributors writing new code should use the focused helpers instead. No runtime behaviour change for existing callers — all 19 prior call sites have been migrated and four pre-existing double-prefix and missing-prefix bugs are fixed as part of the migration.
+
+- [39925](https://github.com/apache/superset/pull/39925): `SupersetClient.getUrl()` now strips a single leading application-root segment from the supplied `endpoint` before building the request URL, so a caller that accidentally pre-prefixes its endpoint (for example by wrapping it with `ensureAppRoot` before passing it to the client) no longer produces a doubled `/superset/superset/...` URL under subdirectory deployment. The strip is **single-pass** — a genuine `/superset/superset/<slug>` route is preserved, not collapsed — and **silent** (no console warning); the static-invariant test remains the primary signal for pre-prefixing at the call site, and this runtime strip is a safety net beneath it. Code that intentionally targeted a literal `/<app_root>/<app_root>/...` endpoint through `getUrl` (a configuration that has no legitimate use under the prefixing model) would have its first redundant segment removed.
+
+- **Breaking — `Superset` view class route prefix removed.** The `Superset` view in `superset/views/core.py` now declares `route_base = ""`, overriding Flask-AppBuilder's auto-derived `/superset` prefix. Routes that previously lived at `/superset/welcome/`, `/superset/dashboard/<id>/`, `/superset/dashboard/p/<key>/`, `/superset/explore/`, etc. now respond at `/welcome/`, `/dashboard/<id>/`, `/dashboard/p/<key>/`, `/explore/`, etc. Under subdirectory deployment (`SUPERSET_APP_ROOT=/superset`) the URLs are unchanged from end-user perspective — `AppRootMiddleware` re-applies the prefix via `SCRIPT_NAME`. Under root deployments, any external integration or bookmark that hard-codes `/superset/<endpoint>/` paths must be updated to drop the prefix. This fixes the doubled `/superset/superset/...` URLs that `url_for` emitted for these endpoints under subdirectory deployment and the related 404s on the routes themselves.
+
+- **Breaking — Three sibling view classes route prefix removed.** Following the same rationale as the `Superset` class above, `ExplorePermalinkView` (`superset/views/explore.py`), `TagModelView`, and `TaggedObjectsModelView` (`superset/views/tags.py`, `superset/views/all_entities.py`) now mount at the application root rather than a hard-coded `/superset/...`. The user-visible URLs `/superset/explore/p/<key>/`, `/superset/tags/`, and `/superset/all_entities/` are unchanged under subdirectory deployment; under root deployments these views now serve `/explore/p/<key>/`, `/tags/`, and `/all_entities/`, so any external integration or bookmark must drop the `/superset/` prefix. `Dashboard.url` and `Dashboard.get_url` likewise return `/dashboard/<id>/` instead of the prior `/superset/dashboard/<id>/` literal so downstream consumers (DashboardList row hrefs, MCP service `dashboard_url`) emit a single, deployment-correct prefix.
+
+- **Legacy `/superset/*` path support.** A new outermost WSGI middleware `LegacyPrefixRedirectMiddleware` (`superset/middleware/legacy_prefix_redirect.py`) 308-redirects every enumerated legacy `/superset/<canonical>` path to its post-`route_base=""` canonical location (e.g. `/superset/welcome/` → `/welcome/` under root; → `/superset/welcome/` under `SUPERSET_APP_ROOT=/superset`, because the canonical resolves through `AppRootMiddleware`). Bookmarks, email links, and external integrations survive the route-base collapse for one release cycle. POST against a GET-only canonical returns 410 Gone instead of 308 (308 would 405 on retry). The shim is removed at EOL `5.0.0`, matching the `@deprecated(eol_version="5.0.0")` gate on `Superset.explore` and `Superset.explore_json`.
+
+- **PWA web app manifest served dynamically.** The PWA manifest is now served at `/pwa-manifest.json` (under `APPLICATION_ROOT`) by a new `PwaManifestView` (`superset/views/pwa_manifest.py`) instead of the static file at `/static/assets/pwa-manifest.json`. The legacy static source at `superset-frontend/src/pwa-manifest.json` has been removed (along with its `webpack.config.js` `CopyPlugin` rule). The new endpoint resolves `APPLICATION_ROOT` and `STATIC_ASSETS_PREFIX` at request time so PWA install works under subdirectory deployments and split static-prefix / app-root deployments (where `STATIC_ASSETS_PREFIX` points to a CDN host while the Superset backend stays under `APPLICATION_ROOT`). The `<link rel="manifest">` href in `superset/templates/superset/spa.html` was updated correspondingly (using a new `application_root_rstrip` template global). Operators with a forked `spa.html` should switch any manifest `<link>` to `{{ application_root_rstrip }}/pwa-manifest.json`.
+
+- **Hard re-bookmark break — `/superset/sql/<database_id>/`.** SQL Lab moved to its own blueprint at `/sqllab/`. The legacy `/superset/sql/<id>/` shape changed to a query-string form (`/sqllab/?dbid=<id>`); no 1:1 path mapping exists, so `LegacyPrefixRedirectMiddleware` does **not** redirect this route — it passes through and surfaces a 404. Users with bookmarks to `/superset/sql/<id>/` must update them to `/sqllab/?dbid=<id>`.
+
+- **`SqlaTable.sql_url` query-string format.** `SqlaTable.sql_url` now URL-encodes `table_name` and joins it as a query parameter rather than concatenating a second `?`. Previously, with `Database.sql_url` returning `/sqllab/?dbid=<id>`, the concatenation produced `/sqllab/?dbid=<id>?table_name=<raw>` — a malformed second `?` that broke the query parser. External code that parsed the legacy `<base>?table_name=<raw>` shape now sees properly percent-encoded values (e.g. `/` → `%2F`, ` ` → `+` or `%20`); decode with `urllib.parse.parse_qsl`.
+
+- **New config flag `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE` (default `False`).** Share/permalink URLs now substitute `window.location.origin` for the backend-supplied origin so a proxied or subdirectory-deployed Superset never hands the user an unreachable internal hostname. Operators whose reverse proxy correctly forwards `X-Forwarded-Host` *and* who want permalinks to carry the backend's literal origin can opt out by setting `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE = True` in `superset_config.py`. Default `False` (rewrite is on); flipping the default would regress the dominant proxied/subdir deployment to an unreachable host.
+
+- [41651](https://github.com/apache/superset/pull/41651): **New do-not-translate standard for translation catalogs.** Strings that must stay identical to the source — icon names (e.g. `bolt`), enum/option values (`step-after`), SQL keywords, API field names (`error_message`), code constants, and example placeholders — are now marked with a `#. do-not-translate` extracted comment. The list lives in the `superset/translations/do-not-translate.txt` registry; `scripts/translations/apply_do_not_translate.py` stamps the marker onto `messages.pot` during `babel_update.sh`, and `pybabel update` propagates it to every `.po`, so the status is consistent across all languages. The AI backfill (`backfill_po.py`) and translators leave these entries untranslated (source fallback). The legacy per-catalog convention (a `# Не переводить` translator comment in the `ru` catalog) is still honored for back-compat but is superseded by this standard; contributors adding new machine-read strings should add the msgid to the registry rather than annotating individual catalogs.
+
+### SQL Lab denies large-object and information_schema access by default
+
+`DISALLOWED_SQL_FUNCTIONS` and `DISALLOWED_SQL_TABLES` now ship with additional default entries, so SQL Lab and chart-data queries that reference them are rejected where they were previously allowed:
+
+- PostgreSQL large-object routines (`lo_from_bytea`, `lo_export`, `lo_import`, `lo_put`, `lo_create`, `lo_creat`, `lowrite`, `lo_get`, `loread`, `lo_unlink`), which read and write bytes on the database server's filesystem.
+- The SQL-standard `information_schema` views (`tables`, `columns`, `routines`, `views`, the privilege/grant views, etc.), which expose table, column, privilege, and view-definition metadata across the whole database.
+
+Deployments that legitimately query these (for example tooling that introspects `information_schema`) can restore the previous behavior by overriding `DISALLOWED_SQL_FUNCTIONS` / `DISALLOWED_SQL_TABLES` in `superset_config.py` to drop the entries they need.
+
+Because the denylist now resolves the effective schema through the query-aware path, PostgreSQL queries that change the `search_path` (e.g. `SET search_path = ...`) are rejected on the SQL Lab execution and cost-estimate paths whenever any `DISALLOWED_SQL_TABLES` entry is configured (the default for PostgreSQL), matching the behavior previously applied only when `RLS_IN_SQLLAB` was enabled.
+
+### SQL parser input length cap (SQL_MAX_PARSE_LENGTH)
+
+The SQL parser now rejects scripts whose UTF-8 byte length exceeds the new
+`SQL_MAX_PARSE_LENGTH` config option (default `1_000_000` bytes) before they are
+handed to sqlglot, which bounds parser memory and CPU usage. A single query
+larger than the cap (for example a very large `IN (...)` list or a big
+virtual-dataset SQL) raises a parse error in SQL Lab and dashboard-generated
+queries. Deployments that legitimately run queries above this size should raise
+the value, and `SQL_MAX_PARSE_LENGTH = None` disables the check entirely.
+
+### Guest-token RLS rules reject unknown fields
+
+The `rls` rules passed to `POST /api/v1/security/guest_token/` are now validated strictly: a rule may only contain `dataset` and `clause`. Previously unknown fields were silently dropped, so a mistyped or legacy scope key (most commonly `datasource` instead of `dataset`) produced a rule with no `dataset`, which is treated as a *global* rule applied to every dataset the embedded resource can reach. Such a request now returns HTTP 400 identifying the offending field instead of issuing a token with an unintended global rule. Integrators that were sending extra fields in RLS rules must remove them; valid dataset-scoped (`{"dataset": 41, "clause": "..."}`) and global (`{"clause": "..."}`) rules are unaffected.
+
+### MCP service requires `MCP_JWT_AUDIENCE` when JWT auth is enabled
+
+When the MCP service has JWT auth enabled (`MCP_AUTH_ENABLED = True`), an audience must be configured via `MCP_JWT_AUDIENCE` so issued tokens are bound to this service. The service now fails to start with a clear configuration error when the audience is unset, instead of starting with audience validation skipped. Deployments that enable MCP JWT auth must set `MCP_JWT_AUDIENCE` to the audience value their identity provider issues for the MCP service. API-key-only MCP deployments (JWT auth disabled) are unaffected.
+
+### Swagger UI is opt-in (off by default)
+
+`FAB_API_SWAGGER_UI` now defaults to `False` and is driven by the `SUPERSET_ENABLE_SWAGGER_UI` environment variable. The interactive Swagger UI / OpenAPI documentation endpoints (e.g. `/swagger/v1`) are therefore no longer exposed by default. To enable them, set `SUPERSET_ENABLE_SWAGGER_UI=true` (the bundled Docker development environment sets this) or override `FAB_API_SWAGGER_UI = True` in `superset_config.py`.
+
+### Build details (git SHA / build number) are admin-only by default
+
+The git SHA and build number surfaced in the "About" section, the bootstrap payload, and the public `/version` endpoint are now only included for admin users by default; the release version string is still shown to everyone. To expose the build details to all users (the previous behavior), set the `SUPERSET_EXPOSE_BUILD_DETAILS` environment variable (or `EXPOSE_BUILD_DETAILS_TO_USERS = True` in `superset_config.py`).
+
+### Helm chart adopts Kubernetes recommended labels (breaking upgrade)
+
+The Helm chart now labels and selects workloads using the [Kubernetes recommended labels](https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/) (`app.kubernetes.io/*`) instead of the legacy `app`/`release` labels. Because a Deployment's `spec.selector.matchLabels` is immutable, `helm upgrade` against an existing release will fail with a `field is immutable` error.
+
+To upgrade, delete the affected workloads (which selector labels changed) before upgrading, then run the upgrade so they are recreated with the new labels:
+
+```bash
+kubectl delete deployment,statefulset -l release=<release-name> -n <namespace>
+helm upgrade <release-name> superset/superset
+```
+
+Alternatively, perform a fresh install. This is a one-time migration; subsequent upgrades are unaffected.
+
+### Pivot table First/Last aggregations follow data order
+
+The pivot table chart's `First` and `Last` aggregations now return the first and last value in data (query result) order, instead of effectively returning the minimum and maximum. Existing pivot tables that use these aggregations for totals/subtotals may show different values after upgrading. For deterministic results, ensure the underlying query has a stable sort order.
+
+### `FetchRetryOptions` callback parameters widened to allow `null`
+
+The `error` and `response` parameters of the `retryDelay` and `retryOn` callbacks in `FetchRetryOptions` (exported from `@superset-ui/core`) are now typed `Error | null` and `Response | null` to match the actual call-site signature provided by `fetch-retry`. Because these parameter types are contravariant, consumers who typed their callbacks with the non-nullable `(attempt: number, error: Error, response: Response) => number` will get a TypeScript compile error. Widen your callback signatures to accept `Error | null` / `Response | null`.
+
+### `thumbnail_url` removed from dashboard list API response
+
+The `thumbnail_url` field has been removed from `GET /api/v1/dashboard/` list responses. External consumers relying on this field must now construct the thumbnail URL client-side using `id` and `changed_on_utc`:
+
+```
+/api/v1/dashboard/{id}/thumbnail/{changed_on_utc}/
+```
+
+The thumbnail endpoint redirects to the current digest URL regardless of whether the supplied digest is exact. If the image is not yet cached, that digest URL may return `202` and trigger async generation. Using `changed_on_utc` as the digest is sufficient for cache-busting purposes.
+
+### Tagging fix for `create_all`-bootstrapped schemas
+
+Only affects deployments whose metadata schema was created with SQLAlchemy's `create_all` (rather than `superset db upgrade`) on a foreign-key-enforcing backend — PostgreSQL, or MySQL with `FOREIGN_KEY_CHECKS=1`. Such schemas carry three invalid foreign keys on `tagged_object.object_id` that break tagging (`TAGGING_SYSTEM = True`) with a `ForeignKeyViolation`. Schemas built via `superset db upgrade` are unaffected.
+
+This release stops the ORM from emitting these constraints, but it cannot drop ones already present in your schema. If affected, drop them manually (names vary by backend, so look them up first):
+
+```sql
+-- PostgreSQL: names are typically tagged_object_object_id_fkey, _fkey1, _fkey2
+ALTER TABLE tagged_object DROP CONSTRAINT <constraint_name>;
+
+-- MySQL: find names via `SHOW CREATE TABLE tagged_object;`
+ALTER TABLE tagged_object DROP FOREIGN KEY <constraint_name>;
+```
+
+### Webhook alerts/reports block private/internal hosts by default
+
+Webhook alert/report dispatch (`WebhookNotification.send`) now validates the target URL's host against the same private/internal-IP block applied to dataset import URLs. If the resolved host is in a loopback, link-local, private (RFC-1918), shared-CGNAT, or multicast range, the webhook is rejected with `NotificationParamException`.
+
+Deployments that intentionally point webhooks at internal targets (chatops bridges, internal automation servers, on-premises Mattermost/Rocket.Chat, etc.) can opt out by setting `ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS = True` in `superset_config.py`. This mirrors the existing `DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS` opt-out for dataset imports.
+
+### Impala cancel_query blocks private/internal hosts by default
+
+The Impala engine spec's `cancel_query` issues an HTTP request from the Superset backend to the host configured on the Impala database connection. That host is now validated before the request: if it resolves to a private/internal IP range, the cancel call is refused and a warning is logged. Operators whose Impala cluster runs on an internal network can opt out by setting `IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS = True` in `superset_config.py`. This mirrors the dataset-import and webhook opt-out flags.
+
+### Map chart renderer and OpenStreetMap migration behavior
+
+The MapLibre migration for deck.gl charts preserves saved non-Mapbox styles on
+the MapLibre-compatible path. Saved styles such as OpenStreetMap, `tile://`
+tile templates, generic HTTPS style URLs, and charts without a saved style are
+not reclassified as Mapbox during migration and do not require
+`MAPBOX_API_KEY` only because of the migration.
+
+Saved true Mapbox styles whose value starts with `mapbox://` remain
+Mapbox-backed. If a Superset deployment does not configure `MAPBOX_API_KEY`,
+those saved Mapbox charts keep the existing missing-key message instead of
+silently falling back to MapLibre or another provider. In Explore, deck.gl and
+point-cluster renderer controls preserve saved Mapbox state, but the Mapbox
+choice is not available as a new working renderer without a configured key.
+
+The MapLibre style choices include `Streets (OSM)`, backed by
+`https://tile.openstreetmap.org/{z}/{x}/{y}.png`. This OpenStreetMap tile
+service requires visible `© OpenStreetMap contributors` attribution and should
+be used through normal browser map tile requests and caching; it is not intended
+for bulk prefetch or offline tile downloads.
+
+### Password complexity policy enabled by default
+
+Superset now ships a default password-complexity policy, enforced (via Flask-AppBuilder) across self-registration, the user create/edit/reset forms, and the User REST API. The policy requires a minimum password length of 8 characters and rejects a built-in blocklist of common/guessable passwords.
+
+This is enabled by default (`FAB_PASSWORD_COMPLEXITY_ENABLED = True`), so new or reset passwords that are too short or appear in the blocklist will be rejected where they were previously accepted. Existing stored passwords are unaffected until they are next changed.
+
+Operators can tune or disable the policy via config:
+
+- `AUTH_PASSWORD_MIN_LENGTH` — minimum length (default `8`).
+- `AUTH_PASSWORD_COMMON_BLOCKLIST` — extra passwords to reject, in addition to the built-in list.
+- `FAB_PASSWORD_COMPLEXITY_VALIDATOR` — replace with your own callable for custom rules.
+- `FAB_PASSWORD_COMPLEXITY_ENABLED = False` — disable enforcement entirely.
+
+### Data uploads bounded by UPLOAD_MAX_FILE_SIZE_BYTES
+
+Single data-file uploads (CSV, Excel, columnar) are now bounded by the `UPLOAD_MAX_FILE_SIZE_BYTES` config option, which defaults to `100 * 1024 * 1024` (100 MB). Files larger than this are rejected with a `413` before their contents are buffered into memory. Set `UPLOAD_MAX_FILE_SIZE_BYTES = None` to disable the check and restore unbounded uploads.
+### Currency symbol position follows the locale when unset
+
+When a chart's currency control leaves the **Prefix or suffix** field empty, the currency symbol position is now derived from the deployment locale's own convention via `Intl.NumberFormat` instead of always defaulting to a suffix. For example, under the default `en-US` locale `USD`, `GBP`, and `EUR` render as a prefix (`$ 1,000`), while eurozone locales such as `fr-FR` render `EUR` as a suffix (`1 000 €`). An explicit Prefix/Suffix selection is always honored and is unaffected.
+
+Charts that relied on the previous always-suffix default for an unset position will render the symbol on the locale-appropriate side instead; set the position explicitly on the metric's currency control to pin it.
+
+### Duration formatter precision
+
+The `DURATION` number formatter now uses `Intl.DurationFormat` for locale-aware output. By default, sub-second fields are omitted, so values that previously displayed fractional seconds with `pretty-ms`, such as `10500` milliseconds rendering as `10.5s`, now render as `10s`.
+
+To preserve sub-second precision in custom duration formatters, enable `formatSubMilliseconds`.
+
+### Cache warmup authenticates via SUPERSET_CACHE_WARMUP_USER
+
+The `cache-warmup` Celery task now drives a real WebDriver session for reliable authentication and reads the user to authenticate as from the new `SUPERSET_CACHE_WARMUP_USER` config option. It no longer consults `CACHE_WARMUP_EXECUTORS` for the warmup path. `SUPERSET_CACHE_WARMUP_USER` defaults to `None`, so the task fails fast with a clear message until you set it. Operators who previously relied on `CACHE_WARMUP_EXECUTORS` for cache warmup must set `SUPERSET_CACHE_WARMUP_USER` to a dedicated least-privilege user with access to the dashboards they want warmed up before the next warmup run.
+
+### YDB now uses a native sqlglot dialect
+
+YDB SQL parsing now relies on the dedicated [`ydb-sqlglot-plugin`](https://pypi.org/project/ydb-sqlglot-plugin/) dialect, which registers itself with sqlglot automatically. YDB users must install this plugin (e.g., via `pip install "apache-superset[ydb]"`) to avoid a `ValueError` when Superset parses YDB queries.
+
+### Embedded dashboards enforce configured Allowed Domains for postMessage
+
+The embedded dashboard page now validates the origin of incoming `postMessage` events against the dashboard's configured **Allowed Domains**. The server-rendered embedded page exposes the configured domains in its bootstrap payload, and the frontend rejects message events whose origin is not in that list.
+
+Enforcement only applies when the Allowed Domains list is non-empty. If the list is empty (the default), any origin is accepted, so there is no behavior change for embeds that did not configure Allowed Domains.
+
+### Default guest/async JWT secrets are rejected at startup
+
+Superset already refuses to start in production (non-debug, non-testing) when `SECRET_KEY` is left at its built-in default, and when `GUEST_TOKEN_JWT_SECRET` is left at its default while `EMBEDDED_SUPERSET` is enabled. This behavior is extended to `GLOBAL_ASYNC_QUERIES_JWT_SECRET`: if the `GLOBAL_ASYNC_QUERIES` feature flag is enabled and the secret is still the publicly known default (`test-secret-change-me`), Superset logs a clear error and refuses to start.
+
+As with the existing `SECRET_KEY` check, this only fails in production. In debug mode, testing mode, or under the test runner, a warning is logged instead of exiting, so local development is unaffected.
+
+To resolve the error, set a strong random value in `superset_config.py`:
+
+```python
+GLOBAL_ASYNC_QUERIES_JWT_SECRET = "<output of: openssl rand -base64 42>"
+```
+
+The check is only active when the relevant feature is enabled, so deployments that do not use global async queries (or embedding) are not affected.
+
+### Guest token revocation (opt-in)
+
+Embedded guest tokens can be coarsely revoked at runtime via a new opt-in mechanism. A new config flag `GUEST_TOKEN_REVOCATION_ENABLED` (default `False`) gates the feature. When enabled, every minted guest token carries a revocation version, and tokens whose version is below the current expected version (stored in the metadata database) are rejected at validation time.
+
+Bump the expected version with the new CLI command to invalidate all outstanding guest tokens:
+
+```bash
+superset revoke-guest-tokens
+```
+
+This change is backward compatible. The feature is off by default, and even when enabled nothing is revoked until an admin explicitly bumps the version: the expected version starts at `0`, and tokens minted before this change (which carry no version claim) are treated as version `0`. No database migration is required.
+
+### Sessions are terminated when an account is disabled
+
+Disabling a user account (setting `active` to `False`, via the admin UI, REST API, or CLI) now terminates that user's outstanding sessions on their next request, instead of relying on a passive check. This works for both client-side cookie sessions and server-side session stores via a per-user invalidation epoch (`user_attribute.sessions_invalidated_at`, added by a migration). The mechanism is inert for users that were never disabled (NULL epoch), so there is no behavior change for active users. Re-enabling an account and logging in again starts a fresh, valid session. The migration backfills the epoch for accounts that are already disabled at upgrade time, so re-enabling such an account does not revive a session that predates this feature.
+
+### Opt-in SSH tunnel server host key verification
+
+SSH tunnels can now optionally pin the expected SSH server host key as a defense-in-depth measure against man-in-the-middle attacks. paramiko's transport performs no known-hosts checking by default, so previously the SSH server's identity was not verified. This feature is opt-in and off by default; existing tunnels are unaffected.
+
+- A new nullable `server_host_key` column on the `ssh_tunnels` table stores the expected host key in authorized-key form (e.g. `ssh-ed25519 AAAA...`). It is a public key and is stored in plaintext. It can be set via the SSH tunnel POST/PUT payloads (`ssh_tunnel.server_host_key`).
+- When a tunnel has `server_host_key` set, Superset connects to the SSH server, reads the host key it presents, and rejects the tunnel if it does not match.
+- A new config flag `SSH_TUNNEL_STRICT_HOST_KEY_CHECKING` (default `False`) controls fail-closed behavior. When `True`, every tunnel must declare a `server_host_key`; a tunnel without one is rejected.
+
+Runbook to adopt:
+
+1. Capture the SSH server's host key, e.g. `ssh-keyscan -t ed25519 ssh.example.com` (verify it out-of-band).
+2. Set that value on the tunnel's `server_host_key` (via the database/SSH tunnel API or UI payload).
+3. Optionally set `SSH_TUNNEL_STRICT_HOST_KEY_CHECKING = True` in `superset_config.py` to require host-key verification on all tunnels.
+
+### SMTP server certificate validation enabled by default
+
+`SMTP_SSL_SERVER_AUTH` now defaults to `True` (previously `False`). With this default, STARTTLS/SSL connections to the configured SMTP server validate the server's TLS certificate against the system trusted CA store. This makes outbound email (alerts and reports) verify the mail server's identity out of the box.
+
+If your SMTP server presents a self-signed certificate, or a certificate that is not trusted by the system CA store, email delivery may now fail with a certificate verification error. To restore the previous behavior of skipping certificate validation, set the following in `superset_config.py`:
+
+```python
+SMTP_SSL_SERVER_AUTH = False
+```
+
+The recommended fix is to add the SMTP server's certificate (or its issuing CA) to the system trust store rather than disabling validation.
+
+### Dataset import validates catalog against the target connection
+
+Importing a dataset now validates the `catalog` field against the target database connection. When the connection has multi-catalog disabled (`allow_multi_catalog` off) and the dataset's catalog is not the connection's default catalog, the import fails instead of silently persisting the non-default catalog. This matches the validation already enforced on the dataset update path and prevents imported datasets from querying an unintended database.
+
+If you relied on importing datasets with a non-default catalog, enable "Allow changing catalogs" on the target connection, or set the dataset's catalog to the connection's default before importing.
+
+### Extension supply-chain controls (denylist + version policy)
+
+Two opt-in static gates control which extensions are allowed to load:
+
+- `EXTENSION_DENYLIST` refuses extensions matching an id (every version) or `id@version` (a single version), e.g. `["compromised-extension", "other-ext@1.2.3"]`.
+- `EXTENSION_VERSION_POLICY` enforces a minimum version per extension id, e.g. `{"acme.widget": "1.2.0"}` (PEP 440 comparison); a release below the minimum is refused.
+
+Both default to empty (no behavior change). They apply to both the `LOCAL_EXTENSIONS` and `EXTENSIONS_PATH` load paths.
+
+### Dynamic Group By respects the sort toggle for display values
+
+The Dynamic Group By chart customization now orders its display values according to the "Sort display control values" toggle: ascending (A–Z), descending (Z–A), or the dataset's source order when the toggle is unset. Previously the dropdown always sorted alphabetically. Existing dashboards where the toggle was never set will show options in source order instead of A–Z; open the customization and enable the toggle to restore alphabetical ordering.
+
+### Selectable encryption engine for app-encrypted fields (AES-GCM)
+
+App-encrypted fields (database passwords, SSH tunnel credentials, OAuth tokens, etc.) can now use authenticated **AES-GCM** encryption instead of the historical unauthenticated **AES-CBC**. A new config selects the engine for the default adapter:
+
+```python
+# "aes" (AES-CBC, historical default) | "aes-gcm" (authenticated, recommended for new installs)
+SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = "aes"
+```
+
+**No action required / no behavior change:** the default remains `"aes"`, so existing installs are unaffected.
+
+**Opting in on an existing install:** flipping the engine on a populated database without re-encrypting first will make stored secrets undecryptable, because the two ciphertext formats are not compatible. A migrator is provided. Recommended runbook:
+
+1. Take a metadata-DB backup.
+2. Re-encrypt existing secrets into the new engine (the `SECRET_KEY` is unchanged):
+   ```bash
+   superset re-encrypt-secrets --engine aes-gcm
+   ```
+3. Set `SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = "aes-gcm"` in your config.
+4. Restart Superset.
+5. Re-run the migrator once more after the restart:
+   ```bash
+   superset re-encrypt-secrets --engine aes-gcm
+   ```
+   A live instance keeps writing *new* secrets as AES-CBC during the window between step 2 and the restart in step 4; this second pass sweeps those up (it is idempotent, so already-migrated values are skipped).
+
+Schedule the cutover in a quiet window. Runtime reads use only the single configured engine, so in a multi-worker deployment there is an unavoidable brief decrypt-outage between the migration commit and the last worker restarting with the new config — each migrator run is transactional, but the fleet-wide cutover is not zero-downtime.
+
+The migration is transactional (all-or-nothing) and idempotent — it can be safely re-run or resumed. Note that AES-GCM, unlike AES-CBC, does not support querying directly over encrypted columns; audit any code that filters on an encrypted column before switching. See the SIP at `docs/sip/authenticated-encryption-at-rest.md` for details.
+
+### Soft delete and restore for charts
+
+**Everything in this section applies only when the `SOFT_DELETE` feature flag is enabled. The flag defaults to `False`** (`@lifecycle: development`), so on a default deployment `DELETE /api/v1/chart/<id>` continues to **hard-delete permanently** — nothing is recoverable. Enable `SOFT_DELETE` to get the behavior described below.
+
+**Flag-toggle caveat:** the soft-delete visibility filter is evaluated per query while the flag is on. If charts are soft-deleted during a flag-on window and the flag is later turned **off**, those rows reappear as live charts in all lists, lookups, and relationship loads (including dashboards that contained them). The `POST /<uuid>/restore` endpoint and the `chart_deleted_state` list filter remain functional regardless of the flag, deliberately, so rows soft-deleted during a flag-on window stay discoverable and restorable after a rollback of the flag.
+
+With the flag enabled: `DELETE /api/v1/chart/<id>` no longer hard-deletes the chart (the bulk-delete endpoint behaves the same way). The row is marked with a `deleted_at` timestamp and hidden from all list, detail, and lookup endpoints. Charts in this state are excluded from default queries and from relationship loads (e.g. `dashboard.slices`).
+
+**Operational notes:** a report schedule whose target chart is soft-deleted now fails its runs with an explicit error ("The chart this report targets was deleted...") until the chart is restored or the report re-pointed — chart deletion is blocked while a report references the chart, but a validate/commit race or a flag toggle can still produce this state. Dashboards **preserve** their membership rows for soft-deleted charts: saving a dashboard does not sever a trashed member, and restoring the chart re-attaches it to its dashboards.
+
+**New endpoint** — `POST /api/v1/chart/<uuid>/restore` clears `deleted_at` and returns the chart to active state. Requires `can_write on Chart` and ownership of the row (or admin). Soft-deleted charts can also be surfaced in the list endpoint via the new `chart_deleted_state` rison filter: `include` returns both live and soft-deleted rows, `only` returns just the soft-deleted ones. Any other value is ignored. For non-admin users, soft-deleted rows are limited to charts they own — the same audience that can restore them.
+
+**Permissions migration:** existing role grants of `can_write on Chart` cover the new restore endpoint automatically; no role migration is required.
+
+**Schema migration:** the migration adds a nullable `deleted_at` column and an index on it (`ix_slices_deleted_at`) to the `slices` table. The column add is instant; the index build runs inline (no `CONCURRENTLY`) and may briefly block writes on the `slices` table (INSERT/UPDATE/DELETE are queued while the index builds; reads are unaffected) on large Postgres deployments. MySQL InnoDB builds the index online (no blocking).
+
+**Rollback note:** if the application code is rolled back after charts have been soft-deleted, the older code path's visibility filter no longer applies and previously hidden rows become visible to the older code. Pair the rollback with a data decision (restore the rows, hard-delete them, or also downgrade the migration) rather than assuming the old hard-delete semantics still hold. **Downgrading the migration destroys the deletion markers**: `downgrade()` drops the `deleted_at` column, so any not-yet-restored soft-deleted charts silently become live, active charts with no record they were ever deleted. Reconcile the trash (restore or hard-delete each row) *before* downgrading, and disable the `SOFT_DELETE` flag first so no new soft deletes land mid-rollback.
+
+**Importer behavior:** importing a chart YAML whose UUID matches an existing **soft-deleted** chart is treated as an implicit restore-with-update — **and this happens even when `overwrite` is not set**. This is a deliberate asymmetry with active rows: an active chart imported without `overwrite=true` is returned unchanged, but a soft-deleted UUID match is restored *and* has the upload's contents applied regardless of the `overwrite` argument, on the reasoning that re-importing a deleted chart's exact UUID is an explicit request to bring it back. The restore preserves the original PK and all out-of-archive references (`dashboard_slices` junctions, `report.chart_id`, tag rows). The operation is permission-gated: non-owners get `ImportFailedError`, and callers without `can_write` get `ImportFailedError` instead of silently receiving the soft-deleted row.
+
+- [39914](https://github.com/apache/superset/pull/39914) `ALERT_REPORT_SLACK_V2` now defaults to `True` and the legacy Slack v1 integration (`Slack` recipient type, `files.upload` API) is deprecated for removal in the next major. Slack blocked new apps from `files.upload` in May 2024 and fully retired the method for all apps on November 12, 2025; because the v1 path sends files through `files.upload`, v1 file-bearing sends now fail at the API level — only text-only `chat_postMessage` still works via the legacy path. Grant your Slack bot the `channels:read` and `groups:read` scopes so existing `Slack` recipients can be auto-upgraded to `SlackV2` on next send. Operators who explicitly override the flag to `False`, or whose Slack bot is missing those scopes, will see deprecation warnings while text-only sends continue through the legacy path.
+
+### Soft delete and restore for dashboards
+
+**Everything in this section applies only when the `SOFT_DELETE` feature flag is enabled. The flag defaults to `False`** (`@lifecycle: development`), so on a default deployment `DELETE /api/v1/dashboard/<id>` continues to **hard-delete permanently** — nothing is recoverable. Enable `SOFT_DELETE` to get the behavior described below.
+
+**Flag-toggle caveat:** the soft-delete visibility filter is evaluated per query while the flag is on. If dashboards are soft-deleted during a flag-on window and the flag is later turned **off**, those rows reappear as live dashboards in all lists and lookups (including slug lookups — if a soft-deleted dashboard's slug was reused while the flag was on, both rows become visible with the same slug). The `POST /<uuid>/restore` endpoint and the `dashboard_deleted_state` list filter remain functional regardless of the flag, deliberately, so rows soft-deleted during a flag-on window stay discoverable and restorable after a rollback of the flag.
+
+With the flag enabled: `DELETE /api/v1/dashboard/<id>` no longer hard-deletes the dashboard (the bulk-delete endpoint behaves the same way). The row is marked with a `deleted_at` timestamp and hidden from the dashboard API's list, detail, and lookup endpoints, which return 404 for soft-deleted dashboards. The embedded-dashboard iframe URL (`/embedded/<uuid>`) keeps rendering because it reads only `embedded.allowed_domains` and `embedded.dashboard_id` (the FK column) without dereferencing the parent dashboard; the frontend's subsequent dashboard-API fetch is what sees the 404 and surfaces "dashboard not found" to the user.
+
+**New endpoint** — `POST /api/v1/dashboard/<uuid>/restore` clears `deleted_at` and returns the dashboard to active state. Requires `can_write on Dashboard` and ownership of the row (or admin). Soft-deleted dashboards can also be surfaced in the list endpoint via the new `dashboard_deleted_state` rison filter: `include` returns both live and soft-deleted rows, `only` returns just the soft-deleted ones. Any other value is ignored. For non-admin users, soft-deleted rows are limited to dashboards they own — the same audience that can restore them.
+
+**Permissions migration:** existing role grants of `can_write on Dashboard` cover the new restore endpoint automatically; no role migration is required.
+
+**Schema migration:** the migration adds a nullable `deleted_at` column and an index on it (`ix_dashboards_deleted_at`) to the `dashboards` table, and **replaces the full unique constraint on `slug`** with a partial unique index (`ix_dashboards_active_slug`) enforcing slug uniqueness only among active (non-soft-deleted) rows. The column add is instant. On Postgres the constraint swap briefly blocks reads and writes during `ALTER TABLE ... DROP CONSTRAINT` (acquires `ACCESS EXCLUSIVE`), then blocks writes only during `CREATE UNIQUE INDEX` (acquires `ShareLock`); reads pass through during the index build. Both windows are sub-second on a typical `dashboards` table. MySQL InnoDB builds the functional index online (no blocking).
+
+**Rollback note:** the downgrade restores the original full unique constraint on `slug`. If the partial-index window allowed slug reuse (a soft-deleted row and an active row holding the same slug), `ALTER TABLE ... ADD CONSTRAINT idx_unique_slug UNIQUE (slug)` will abort with a unique-constraint violation. Before downgrading, hard-delete the soft-deleted duplicates (or rename one side) so each slug appears at most once across all rows. Rolling back the application code while leaving the new migration in place is also possible but exposes soft-deleted rows to the older code path; pair the rollback with a data decision (restore, hard-delete, or migrate-down).
+
+The partial-index replacement is dialect-dependent: PostgreSQL uses a native `WHERE deleted_at IS NULL` partial index; MySQL 8.0.13+ uses a functional index over `(CASE WHEN deleted_at IS NULL THEN slug END)` (8.0.13 is the first release with functional key parts). **MySQL <8.0.13, MariaDB, and SQLite keep the original full unique constraint** (functional indexes / column-level UNIQUE recreation aren't supported cleanly — MariaDB is excluded even at 10.x because its `CASE`-expression index semantics differ), so on those backends a soft-deleted dashboard continues to reserve its slug for the lifetime of the row.
+
+**Slug semantics:** on PostgreSQL and MySQL 8.0.13+, the slug of a soft-deleted dashboard is **free for reuse**. A new active dashboard can claim it immediately. Restoring a soft-deleted dashboard whose slug has since been claimed returns **422 with a clean error** (`DashboardSlugConflictError`) — rename one of the dashboards and retry; the restore is not silently rejected by a database-level constraint violation.
+
+**Importer behavior:** importing a dashboard YAML whose UUID matches an existing **soft-deleted** dashboard is treated as an implicit restore-with-update — **and this happens even when `overwrite` is not set**. This is a deliberate asymmetry with active rows: an active dashboard imported without `overwrite=true` is returned unchanged (the import never mutates it), but a soft-deleted UUID match is restored *and* has the upload's contents applied regardless of the `overwrite` argument, on the reasoning that re-importing a deleted dashboard's exact UUID is an explicit request to bring it back. The restore preserves the original PK and all pre-deletion relationship rows (`dashboard_slices` junctions, role grants, owners, tags) — including role grants that were implicitly revoked by the deletion. Callers whose imports must never mutate existing state should treat bundles that may contain previously deleted UUIDs accordingly. The operation is permission-gated: it requires `can_write` and ownership of the deleted row (or admin) — non-owners get `ImportFailedError`, and callers without `can_write` get `ImportFailedError` instead of silently receiving the soft-deleted row.
+
 ### Granular Export Controls
 
 A new feature flag `GRANULAR_EXPORT_CONTROLS` introduces three fine-grained permissions that replace the legacy `can_csv` permission:
@@ -45,6 +369,16 @@ The Deck.gl MapBox chart's **Opacity**, **Default longitude**, **Default latitud
 **Behavior change for existing charts:** Previously, the viewport controls had hard-coded default values (`-122.405293`, `37.772123`, zoom `11` — San Francisco) that were stored in each chart's `form_data` but never applied. The map always used `fitBounds` to center on the data. With this fix, those stored values are now respected, which means existing MapBox charts may open centered on the old default coordinates instead of fitting to data bounds.
 
 **To restore fit-to-data behavior:** Open the chart in Explore, clear the **Default longitude**, **Default latitude**, and **Zoom** fields in the Viewport section, and re-save the chart.
+
+### Combined datasource list endpoint
+
+Added a new combined datasource list endpoint at `GET /api/v1/datasource/` to serve datasets and semantic views in one response.
+
+- The endpoint is available to users with at least one of `can_read` on `Dataset` or `SemanticView`.
+- Semantic views are included only when the `SEMANTIC_LAYERS` feature flag is enabled.
+- The endpoint enforces strict `order_column` validation and returns `400` for invalid sort columns.
+
+## 6.1.0
 
 ### ClickHouse minimum driver version bump
 
@@ -303,6 +637,29 @@ See `superset/mcp_service/PRODUCTION.md` for deployment guides.
   }
   ```
 
+### Composite primary keys on many-to-many association tables
+
+Eight M:N association tables move from a synthetic `id INTEGER PRIMARY KEY` to a composite `PRIMARY KEY (fk1, fk2)` on their two foreign-key columns. The surrogate `id` is dropped, and the redundant `UNIQUE (fk1, fk2)` on the two tables that carried one is removed (now subsumed by the PK).
+
+| Table | Composite PK |
+|---|---|
+| `dashboard_roles` | `(dashboard_id, role_id)` |
+| `dashboard_slices` | `(dashboard_id, slice_id)` |
+| `dashboard_user` | `(user_id, dashboard_id)` |
+| `report_schedule_user` | `(user_id, report_schedule_id)` |
+| `rls_filter_roles` | `(role_id, rls_filter_id)` |
+| `rls_filter_tables` | `(table_id, rls_filter_id)` |
+| `slice_user` | `(user_id, slice_id)` |
+| `sqlatable_user` | `(user_id, table_id)` |
+
+**Before upgrading:**
+
+- The migration **deletes** two classes of pre-existing rows the composite PK cannot accommodate: duplicate `(fk1, fk2)` pairs (it keeps the lowest `id` and removes the rest) and rows with `NULL` in either FK column. Both are meaningless for `secondary=` association tables, but export the affected rows first if you need an audit record.
+- External tooling (BI tools, backup scripts) that references the surrogate `id` on these tables will break; no application code references it.
+- Downgrade restores the `id` column (and the original `UNIQUE` on the two tables that had it) but leaves the FK columns `NOT NULL` (intentional — a `NULL` FK in a junction row is meaningless).
+
+For large `dashboard_slices` / `report_schedule_user` tables, see the operator runbook in [#39859](https://github.com/apache/superset/pull/39859) — pre-flight inventory queries, per-dialect lock-window sizing, and the duplicate / NULL-FK roll-up — to plan the maintenance window.
+
 ## 6.0.0
 - [33055](https://github.com/apache/superset/pull/33055): Upgrades Flask-AppBuilder to 5.0.0. The AUTH_OID authentication type has been deprecated and is no longer available as an option in Flask-AppBuilder. OpenID (OID) is considered a deprecated authentication protocol - if you are using AUTH_OID, you will need to migrate to an alternative authentication method such as OAuth, LDAP, or database authentication before upgrading.
 - [34871](https://github.com/apache/superset/pull/34871): Fixed Jest test hanging issue from Ant Design v5 upgrade. MessageChannel is now mocked in test environment to prevent rc-overflow from causing Jest to hang. Test environment only - no production impact.
@@ -321,7 +678,7 @@ Note: Pillow is now a required dependency (previously optional) to support image
 - [33116](https://github.com/apache/superset/pull/33116) In Echarts Series charts (e.g. Line, Area, Bar, etc.) charts, the `x_axis_sort_series` and `x_axis_sort_series_ascending` form data items have been renamed with `x_axis_sort` and `x_axis_sort_asc`.
   There's a migration added that can potentially affect a significant number of existing charts.
 - [32317](https://github.com/apache/superset/pull/32317) The horizontal filter bar feature is now out of testing/beta development and its feature flag `HORIZONTAL_FILTER_BAR` has been removed.
-- [31590](https://github.com/apache/superset/pull/31590) Marks the begining of intricate work around supporting dynamic Theming, and breaks support for [THEME_OVERRIDES](https://github.com/apache/superset/blob/732de4ac7fae88e29b7f123b6cbb2d7cd411b0e4/superset/config.py#L671) in favor of a new theming system based on AntD V5. Likely this will be in disrepair until settling over the 5.x lifecycle.
+- [31590](https://github.com/apache/superset/pull/31590) Marks the beginning of intricate work around supporting dynamic Theming, and breaks support for [THEME_OVERRIDES](https://github.com/apache/superset/blob/732de4ac7fae88e29b7f123b6cbb2d7cd411b0e4/superset/config.py#L671) in favor of a new theming system based on AntD V5. Likely this will be in disrepair until settling over the 5.x lifecycle.
 - [32432](https://github.com/apache/superset/pull/32432) Moves the List Roles FAB view to the frontend and requires `FAB_ADD_SECURITY_API` to be enabled in the configuration and `superset init` to be executed.
 - [34319](https://github.com/apache/superset/pull/34319) Drill to Detail and Drill By is now supported in Embedded mode, and also with the `DASHBOARD_RBAC` FF. If you don't want to expose these features in Embedded / `DASHBOARD_RBAC`, make sure the roles used for Embedded / `DASHBOARD_RBAC`don't have the required permissions to perform D2D actions.
 
@@ -336,7 +693,7 @@ Note: Pillow is now a required dependency (previously optional) to support image
 - [31774](https://github.com/apache/superset/pull/31774): Fixes the spelling of the `USE-ANALAGOUS-COLORS` feature flag. Please update any scripts/configuration item to use the new/corrected `USE-ANALOGOUS-COLORS` flag spelling.
 - [31582](https://github.com/apache/superset/pull/31582) Removed the legacy Area, Bar, Event Flow, Heatmap, Histogram, Line, Sankey, and Sankey Loop charts. They were all automatically migrated to their ECharts counterparts with the exception of the Event Flow and Sankey Loop charts which were removed as they were not actively maintained and not widely used. If you were using the Event Flow or Sankey Loop charts, you will need to find an alternative solution.
 - [31198](https://github.com/apache/superset/pull/31198) Disallows by default the use of the following ClickHouse functions: "version", "currentDatabase", "hostName".
-- [29798](https://github.com/apache/superset/pull/29798) Since 3.1.0, the intial schedule for an alert or report was mistakenly offset by the specified timezone's relation to UTC. The initial schedule should now begin at the correct time.
+- [29798](https://github.com/apache/superset/pull/29798) Since 3.1.0, the initial schedule for an alert or report was mistakenly offset by the specified timezone's relation to UTC. The initial schedule should now begin at the correct time.
 - [30021](https://github.com/apache/superset/pull/30021) The `dev` layer in our Dockerfile no long includes firefox binaries, only Chromium to reduce bloat/docker-build-time.
 - [30099](https://github.com/apache/superset/pull/30099) Translations are no longer included in the default docker image builds. If your environment requires translations, you'll want to set the docker build arg `BUILD_TRANSLATIONS=true`.
 - [31262](https://github.com/apache/superset/pull/31262) NOTE: deprecated `pylint` in favor of `ruff` as our only python linter. Only affect development workflows positively (not the release itself). It should cover most important rules, be much faster, but some things linting rules that were enforced before may not be enforce in the exact same way as before.
@@ -349,7 +706,7 @@ Note: Pillow is now a required dependency (previously optional) to support image
 - [25166](https://github.com/apache/superset/pull/25166) Changed the default configuration of `UPLOAD_FOLDER` from `/app/static/uploads/` to `/static/uploads/`. It also removed the unused `IMG_UPLOAD_FOLDER` and `IMG_UPLOAD_URL` configuration options.
 - [30284](https://github.com/apache/superset/pull/30284) Deprecated GLOBAL_ASYNC_QUERIES_REDIS_CONFIG in favor of the new GLOBAL_ASYNC_QUERIES_CACHE_BACKEND configuration. To leverage Redis Sentinel, set CACHE_TYPE to RedisSentinelCache, or use RedisCache for standalone Redis
 - [31961](https://github.com/apache/superset/pull/31961) Upgraded React from version 16.13.1 to 17.0.2. If you are using custom frontend extensions or plugins, you may need to update them to be compatible with React 17.
-- [31260](https://github.com/apache/superset/pull/31260) Docker images now use `uv pip install` instead of `pip install` to manage the python envrionment. Most docker-based deployments will be affected, whether you derive one of the published images, or have custom bootstrap script that install python libraries (drivers)
+- [31260](https://github.com/apache/superset/pull/31260) Docker images now use `uv pip install` instead of `pip install` to manage the python environment. Most docker-based deployments will be affected, whether you derive one of the published images, or have custom bootstrap script that install python libraries (drivers)
 
 ### Potential Downtime
 
@@ -426,7 +783,7 @@ Note: Pillow is now a required dependency (previously optional) to support image
 - [26462](https://github.com/apache/superset/issues/26462): Removes the Profile feature given that it's not actively maintained and not widely used.
 - [26377](https://github.com/apache/superset/pull/26377): Removes the deprecated Redirect API that supported short URLs used before the permalink feature.
 - [26329](https://github.com/apache/superset/issues/26329): Removes the deprecated `DASHBOARD_NATIVE_FILTERS` feature flag. The previous value of the feature flag was `True` and now the feature is permanently enabled.
-- [25510](https://github.com/apache/superset/pull/25510): Reenforces that any newly defined Python data format (other than epoch) must adhere to the ISO 8601 standard (enforced by way of validation at the API and database level) after a previous relaxation to include slashes in addition to dashes. From now on when specifying new columns, dataset owners will need to use a SQL expression instead to convert their string columns of the form %Y/%m/%d etc. to a `DATE`, `DATETIME`, etc. type.
+- [25510](https://github.com/apache/superset/pull/25510): Reinforces that any newly defined Python data format (other than epoch) must adhere to the ISO 8601 standard (enforced by way of validation at the API and database level) after a previous relaxation to include slashes in addition to dashes. From now on when specifying new columns, dataset owners will need to use a SQL expression instead to convert their string columns of the form %Y/%m/%d etc. to a `DATE`, `DATETIME`, etc. type.
 - [26372](https://github.com/apache/superset/issues/26372): Removes the deprecated `GENERIC_CHART_AXES` feature flag. The previous value of the feature flag was `True` and now the feature is permanently enabled.
 
 ### Potential Downtime

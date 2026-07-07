@@ -22,7 +22,7 @@ import logging
 import re
 from collections.abc import Hashable
 from datetime import datetime
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, cast, Optional, TYPE_CHECKING
 
 import sqlalchemy as sqla
 from flask import current_app as app
@@ -44,6 +44,7 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.engine.url import URL
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql.elements import ColumnElement, literal_column
 from superset_core.queries.models import (
@@ -52,7 +53,11 @@ from superset_core.queries.models import (
 )
 
 from superset import security_manager
-from superset.exceptions import SupersetParseError, SupersetSecurityException
+from superset.exceptions import (
+    SupersetException,
+    SupersetParseError,
+    SupersetSecurityException,
+)
 from superset.explorables.base import TimeGrainDict
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.helpers import (
@@ -67,7 +72,7 @@ from superset.sql.parse import (
     Table,
 )
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.superset_typing import ExplorableData, QueryObjectDict
+from superset.superset_typing import DatasetColumnData, ExplorableData, QueryObjectDict
 from superset.utils import json
 from superset.utils.core import (
     GenericDataType,
@@ -97,6 +102,14 @@ class SqlTablesMixin:  # pylint: disable=too-few-public-methods
                 ).tables
             )
         except (SupersetSecurityException, SupersetParseError, TemplateError):
+            return []
+        except SupersetException as ex:
+            # Jinja macros such as ``{{ dataset(id) }}`` or ``{{ metric(...) }}``
+            # may reference resources that no longer exist (e.g. a deleted
+            # dataset). Surfacing the failure here would break list endpoints
+            # that include ``sql_tables`` in their payload, hiding every saved
+            # query from the user. Treat it as a parse failure instead.
+            logger.warning("Unable to extract tables from SQL via Jinja: %s", ex)
             return []
 
 
@@ -159,6 +172,20 @@ class Query(
     changed_on = Column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
     )
+
+    @hybrid_property
+    def duration(self) -> Optional[float]:
+        start = self.start_running_time or self.start_time
+        if self.end_time is not None and start is not None:
+            return float(self.end_time - start)
+        return None
+
+    @duration.expression  # type: ignore[no-redef]
+    def duration(cls) -> ColumnElement:  # noqa: N805
+        return sqla.func.coalesce(
+            cls.end_time - sqla.func.coalesce(cls.start_running_time, cls.start_time),
+            0,
+        )
 
     database = relationship(
         "Database",
@@ -262,7 +289,7 @@ class Query(
             ],
             "filter_select": True,
             "name": self.tab_name,
-            "columns": [o.data for o in self.columns],
+            "columns": [cast(DatasetColumnData, o.data) for o in self.columns],
             "metrics": [],
             "id": self.id,
             "type": self.type,
@@ -279,10 +306,18 @@ class Query(
         """
         Raise an exception if the user cannot access the resource.
 
+        Re-validation of a SQL Lab query uses the same strict scoping as the
+        initial execute path (``force_dataset_match=True``) so that fetching
+        results, exporting CSV, and streaming-exporting all enforce the same
+        per-table dataset-match requirement. ``raise_for_access`` parses
+        ``executed_sql`` (the Jinja-rendered query that actually ran) when
+        set, keeping the table set aligned with execution even though the
+        original ``template_params`` are not persisted on the query record.
+
         :raises SupersetSecurityException: If the user cannot access the resource
         """
 
-        security_manager.raise_for_access(query=self)
+        security_manager.raise_for_access(query=self, force_dataset_match=True)
 
     @property
     def db_engine_spec(
@@ -561,6 +596,21 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
     saved_query = relationship("SavedQuery", foreign_keys=[saved_query_id])
 
     def to_dict(self) -> dict[str, Any]:
+        latest_query = None
+        try:
+            if self.latest_query:
+                latest_query = self.latest_query.to_dict()
+        except Exception:
+            query = self.__dict__.get("latest_query")
+            logger.warning(
+                "Failed to load/serialize latest_query for tab state %s "
+                "(latest_query_id=%s, query_status=%s)",
+                self.id,
+                self.latest_query_id,
+                getattr(query, "status", "N/A"),
+                exc_info=True,
+            )
+
         return {
             "id": self.id,
             "user_id": self.user_id,
@@ -572,7 +622,7 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
             "table_schemas": [ts.to_dict() for ts in self.table_schemas],
             "sql": self.sql,
             "query_limit": self.query_limit,
-            "latest_query": self.latest_query.to_dict() if self.latest_query else None,
+            "latest_query": latest_query,
             "autorun": self.autorun,
             "template_params": self.template_params,
             "hide_left_bar": self.hide_left_bar,

@@ -50,6 +50,7 @@ import {
   getTimeFormatterForGranularity,
   BinaryQueryObjectFilterClause,
   extractTextFromHTML,
+  TimeGranularity,
 } from '@superset-ui/core';
 import {
   styled,
@@ -57,7 +58,7 @@ import {
   useTheme,
   SupersetTheme,
 } from '@apache-superset/core/theme';
-import { t, tn } from '@apache-superset/core/translation';
+import { t } from '@apache-superset/core/translation';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
   Input,
@@ -74,7 +75,7 @@ import {
   PlusCircleOutlined,
   TableOutlined,
 } from '@ant-design/icons';
-import { isEmpty, debounce, isEqual } from 'lodash';
+import { isEmpty, debounce, isEqual } from 'lodash-es';
 import {
   ColorFormatters,
   getTextColorForBackground,
@@ -253,12 +254,13 @@ function SearchInput({
   inputRef,
 }: SearchInputProps) {
   return (
-    <Space direction="horizontal" size={4} className="dt-global-filter">
-      {t('Search')}
+    <Space direction="vertical" size={4} className="dt-global-filter">
+      <span aria-hidden="true">{t('Search')}</span>
       <Input
-        aria-label={t('Search %s records', count)}
-        placeholder={tn('%s record', '%s records...', count, count)}
+        aria-label={t('Search records')}
+        placeholder={t('Search records')}
         value={value}
+        size="small"
         onChange={onChange}
         onBlur={onBlur}
         ref={inputRef}
@@ -275,18 +277,18 @@ function SelectPageSize({
   const { Option } = Select;
 
   return (
-    <span className="dt-select-page-size">
+    <Space direction="vertical" size={4} className="dt-select-page-size">
       <VisuallyHidden htmlFor="pageSizeSelect">
         {t('Select page size')}
       </VisuallyHidden>
-      {t('Show')}{' '}
+      {t('Entries per page')}
       <Select<number>
         id="pageSizeSelect"
         value={current}
         onChange={value => onChange(value)}
         size="small"
         css={(theme: SupersetTheme) => css`
-          width: ${theme.sizeUnit * 18}px;
+          width: ${theme.sizeUnit * 30}px;
         `}
         aria-label={t('Show entries per page')}
       >
@@ -300,14 +302,74 @@ function SelectPageSize({
             </Option>
           );
         })}
-      </Select>{' '}
-      {t('entries per page')}
-    </span>
+      </Select>
+    </Space>
   );
 }
 
 const getNoResultsMessage = (filter: string) =>
   filter ? t('No matching records found') : t('No records found');
+
+/**
+ * Calculates the inclusive/exclusive temporal range for a bucket.
+ * standard SQL range pattern: [start, end)
+ */
+function getTimeRangeFromGranularity(
+  startTime: Date,
+  granularity: TimeGranularity,
+): [Date, Date] {
+  const time = startTime.getTime();
+  const date = startTime.getUTCDate();
+  const month = startTime.getUTCMonth();
+  const year = startTime.getUTCFullYear();
+
+  // Constants
+  const MS_IN_SECOND = 1000;
+  const MS_IN_MINUTE = 60 * MS_IN_SECOND;
+  const MS_IN_HOUR = 60 * MS_IN_MINUTE;
+
+  switch (granularity) {
+    case TimeGranularity.SECOND:
+      return [startTime, new Date(time + MS_IN_SECOND)];
+    case TimeGranularity.MINUTE:
+      return [startTime, new Date(time + MS_IN_MINUTE)];
+    case TimeGranularity.FIVE_MINUTES:
+      return [startTime, new Date(time + MS_IN_MINUTE * 5)];
+    case TimeGranularity.TEN_MINUTES:
+      return [startTime, new Date(time + MS_IN_MINUTE * 10)];
+    case TimeGranularity.FIFTEEN_MINUTES:
+      return [startTime, new Date(time + MS_IN_MINUTE * 15)];
+    case TimeGranularity.THIRTY_MINUTES:
+      return [startTime, new Date(time + MS_IN_MINUTE * 30)];
+    case TimeGranularity.HOUR:
+      return [startTime, new Date(time + MS_IN_HOUR)];
+    case TimeGranularity.DAY:
+    case TimeGranularity.DATE:
+      return [startTime, new Date(Date.UTC(year, month, date + 1))];
+    case TimeGranularity.WEEK:
+    case TimeGranularity.WEEK_STARTING_SUNDAY:
+    case TimeGranularity.WEEK_STARTING_MONDAY:
+      return [startTime, new Date(Date.UTC(year, month, date + 7))];
+    case TimeGranularity.WEEK_ENDING_SATURDAY:
+    case TimeGranularity.WEEK_ENDING_SUNDAY:
+      // Week-ending buckets are labeled by the bucket's final day.
+      return [
+        new Date(Date.UTC(year, month, date - 6)),
+        new Date(Date.UTC(year, month, date + 1)),
+      ];
+    case TimeGranularity.MONTH:
+      return [startTime, new Date(Date.UTC(year, month + 1, 1))];
+    case TimeGranularity.QUARTER:
+      return [
+        startTime,
+        new Date(Date.UTC(year, Math.floor(month / 3) * 3 + 3, 1)),
+      ];
+    case TimeGranularity.YEAR:
+      return [startTime, new Date(Date.UTC(year + 1, 0, 1))];
+    default:
+      return [startTime, new Date(Date.UTC(year, month, date + 1))];
+  }
+}
 
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: TableChartTransformedProps<D> & {
@@ -471,7 +533,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     // so that cross-filters work on the receiving chart
                     const resolvedCol = columnLabelToNameMap[col] ?? col;
                     const val = ensureIsArray(updatedFilters?.[col]);
-                    if (!val.length)
+                    if (
+                      !val.length ||
+                      val[0] === null ||
+                      (val[0] instanceof DateWithFormatter &&
+                        val[0].input === null)
+                    )
                       return {
                         col: resolvedCol,
                         op: 'IS NULL' as const,
@@ -578,15 +645,47 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         filteredColumnsMeta.forEach(col => {
           if (!col.isMetric) {
-            let dataRecordValue = value[col.key];
-            dataRecordValue = extractTextFromHTML(dataRecordValue);
+            const dataRecordValue = value[col.key];
 
-            drillToDetailFilters.push({
-              col: col.key,
-              op: '==',
-              val: dataRecordValue as string | number | boolean,
-              formattedVal: formatColumnValue(col, dataRecordValue)[1],
-            });
+            // FIX: Explicitly handle NULL values for temporal and non-temporal columns
+            // DateWithFormatter objects wrap nulls, so we must check both
+            if (
+              dataRecordValue == null ||
+              (dataRecordValue instanceof DateWithFormatter &&
+                dataRecordValue.input == null)
+            ) {
+              drillToDetailFilters.push({
+                col: col.key,
+                op: 'IS NULL' as any,
+                val: null,
+              });
+            } else if (col.dataType === GenericDataType.Temporal && timeGrain) {
+              const startTime =
+                dataRecordValue instanceof Date
+                  ? dataRecordValue
+                  : new Date(dataRecordValue as string | number);
+
+              const [rangeStartTime, rangeEndTime] =
+                getTimeRangeFromGranularity(startTime, timeGrain);
+              const timeRangeValue = `${rangeStartTime.toISOString()} : ${rangeEndTime.toISOString()}`;
+
+              drillToDetailFilters.push({
+                col: col.key,
+                op: 'TEMPORAL_RANGE',
+                val: timeRangeValue,
+                grain: timeGrain,
+                formattedVal: formatColumnValue(col, dataRecordValue)[1],
+              });
+            } else {
+              // Non-temporal columns use exact match
+              const sanitizedValue = extractTextFromHTML(dataRecordValue);
+              drillToDetailFilters.push({
+                col: col.key,
+                op: '==',
+                val: sanitizedValue as string | number | boolean,
+                formattedVal: formatColumnValue(col, sanitizedValue)[1],
+              });
+            }
           }
         });
         onContextMenu(clientX, clientY, {
@@ -600,7 +699,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 filters: [
                   {
                     col: cellPoint.key,
-                    op: '==',
+                    op: (cellPoint.value == null ||
+                    (cellPoint.value instanceof DateWithFormatter &&
+                      cellPoint.value.input == null)
+                      ? 'IS NULL'
+                      : '==') as any,
                     val: extractTextFromHTML(cellPoint.value),
                   },
                 ],
@@ -615,6 +718,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     isRawRecords,
     filteredColumnsMeta,
     getCrossFilterDataMask,
+    timeGrain,
   ]);
 
   const getHeaderColumns = useCallback(
@@ -1031,13 +1135,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
-            font-weight: ${color
-              ? `${theme.fontWeightBold}`
-              : `${theme.fontWeightNormal}`};
+            font-weight: ${
+              color ? `${theme.fontWeightBold}` : `${theme.fontWeightNormal}`
+            };
             background: ${backgroundColor || undefined};
-            padding-left: ${column.isChildColumn
-              ? `${theme.sizeUnit * 5}px`
-              : `${theme.sizeUnit}px`};
+            padding-left: ${
+              column.isChildColumn
+                ? `${theme.sizeUnit * 5}px`
+                : `${theme.sizeUnit}px`
+            };
           `;
 
           const cellBarStyles = css`
@@ -1045,10 +1151,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             height: 100%;
             display: block;
             top: 0;
-            ${valueRange &&
-            typeof value === 'number' &&
-            valueRangeFlag &&
-            `
+            ${
+              valueRange &&
+              typeof value === 'number' &&
+              valueRangeFlag &&
+              `
                 width: ${`${cellWidth({
                   value: value as number,
                   valueRange,
@@ -1067,15 +1174,18 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     theme,
                   })
                 };
-              `}
+              `
+            }
           `;
 
           let arrowStyles = css`
-            color: ${basicColorFormatters &&
-            basicColorFormatters[row.index][originKey]?.arrowColor ===
-              ColorSchemeEnum.Green
-              ? theme.colorSuccess
-              : theme.colorError};
+            color: ${
+              basicColorFormatters &&
+              basicColorFormatters[row.index][originKey]?.arrowColor ===
+                ColorSchemeEnum.Green
+                ? theme.colorSuccess
+                : theme.colorError
+            };
             margin-right: ${theme.sizeUnit}px;
           `;
 
@@ -1084,10 +1194,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             basicColorColumnFormatters?.length > 0
           ) {
             arrowStyles = css`
-              color: ${basicColorColumnFormatters[row.index][column.key]
-                ?.arrowColor === ColorSchemeEnum.Green
-                ? theme.colorSuccess
-                : theme.colorError};
+              color: ${
+                basicColorColumnFormatters[row.index][column.key]
+                  ?.arrowColor === ColorSchemeEnum.Green
+                  ? theme.colorSuccess
+                  : theme.colorError
+              };
               margin-right: ${theme.sizeUnit}px;
             `;
           }
@@ -1100,8 +1212,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             onClick:
               emitCrossFilters && !valueRange && !isMetric
                 ? () => {
+                    const isFilterable = columnsMeta.find(
+                      (cm: DataColumnMeta) => cm.key === key,
+                    )?.isFilterable;
                     // allow selecting text in a cell
-                    if (!getSelectedText()) {
+                    if (!getSelectedText() && isFilterable !== false) {
                       toggleFilter(key, value);
                     }
                   }
@@ -1267,7 +1382,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           )
         ) : undefined,
         sortDescFirst: sortDesc,
-        sortType: getSortTypeByDataType(dataType),
+        // Metrics and percent metrics always have numeric values; use numeric sort
+        // even if the backend reports the column type as String.
+        sortType:
+          isMetric || isPercentMetric
+            ? 'basic'
+            : getSortTypeByDataType(dataType),
       };
     },
     [
@@ -1504,8 +1624,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         pageSize={pageSize}
         serverPaginationData={serverPaginationData}
         pageSizeOptions={pageSizeOptions}
-        width={widthFromState}
-        height={heightFromState}
+        width={Math.max(0, widthFromState - theme.sizeUnit * 10)}
+        height={Math.max(0, heightFromState - theme.sizeUnit * 10)}
         serverPagination={serverPagination}
         onServerPaginationChange={handleServerPaginationChange}
         onColumnOrderChange={() => setColumnOrderToggle(!columnOrderToggle)}

@@ -22,6 +22,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
+from fastmcp.client.client import CallToolResult
+from mcp.types import TextContent
 from pydantic import ValidationError
 
 from superset.mcp_service.app import mcp
@@ -44,6 +46,14 @@ from superset.utils import json
 get_schema_module = importlib.import_module(
     "superset.mcp_service.system.tool.get_schema"
 )
+
+
+def _result_text(result: CallToolResult) -> str:
+    """Return the text payload from the first content block of a tool result."""
+    block = result.content[0]
+    assert isinstance(block, TextContent)
+    return block.text
+
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -198,7 +208,7 @@ async def test_get_schema_returns_structured_privacy_error_for_dataset(mcp_serve
                 {"request": {"model_type": "dataset"}},
             )
 
-    data = json.loads(result.content[0].text)
+    data = json.loads(_result_text(result))
     assert data["error_type"] == DATA_MODEL_METADATA_ERROR_TYPE
     assert data["privacy_scope"] == "data_model"
 
@@ -241,7 +251,7 @@ async def test_get_schema_redacts_chart_data_model_fields(mcp_server):
                 {"request": {"model_type": "chart"}},
             )
 
-    data = json.loads(result.content[0].text)
+    data = json.loads(_result_text(result))
     schema_info = data["schema_info"]
     assert all(
         column["name"] not in CHART_DATA_MODEL_COLUMNS
@@ -389,7 +399,7 @@ class TestGetInstanceInfoCurrentUserViaMCP:
             async with Client(mcp_server) as client:
                 result = await client.call_tool("get_instance_info", {"request": {}})
 
-        data = json.loads(result.content[0].text)
+        data = json.loads(_result_text(result))
         assert "current_user" in data
         cu = data["current_user"]
         assert cu["id"] == 5
@@ -418,7 +428,7 @@ class TestGetInstanceInfoCurrentUserViaMCP:
             async with Client(mcp_server) as client:
                 result = await client.call_tool("get_instance_info", {"request": {}})
 
-        data = json.loads(result.content[0].text)
+        data = json.loads(_result_text(result))
         assert data["current_user"] is None
 
     @pytest.mark.asyncio
@@ -444,7 +454,7 @@ class TestGetInstanceInfoCurrentUserViaMCP:
             async with Client(mcp_server) as client:
                 result = await client.call_tool("get_instance_info", {"request": {}})
 
-        data = json.loads(result.content[0].text)
+        data = json.loads(_result_text(result))
         cu = data["current_user"]
         assert cu["id"] == 99
         assert cu["username"] == "bot"
@@ -460,28 +470,50 @@ class TestGetInstanceInfoCurrentUserViaMCP:
 # ---------------------------------------------------------------------------
 
 
-def test_chart_filter_rejects_created_by_fk() -> None:
-    """Test that ChartFilter rejects user-directory columns."""
-    with pytest.raises(ValidationError):
-        ChartFilter(col="created_by_fk", opr="eq", value=42)
+def test_chart_filter_rejects_user_directory_columns_other_than_fk() -> None:
+    """ChartFilter still rejects user-directory columns that expose names."""
+    for col in ("created_by_name", "owners", "changed_by"):
+        with pytest.raises(ValidationError):
+            ChartFilter.model_validate({"col": col, "opr": "eq", "value": "anything"})
+
+
+def test_chart_filter_accepts_created_and_changed_by_fk() -> None:
+    """ChartFilter allows filtering by created_by_fk / changed_by_fk (user IDs)."""
+    for col in ("created_by_fk", "changed_by_fk"):
+        f = ChartFilter.model_validate({"col": col, "opr": "eq", "value": 42})
+        assert f.col == col
 
 
 def test_chart_filter_rejects_invalid_column():
     """Test that ChartFilter rejects invalid column names."""
     with pytest.raises(ValidationError):
-        ChartFilter(col="nonexistent_column", opr="eq", value=42)
+        ChartFilter.model_validate(
+            {"col": "nonexistent_column", "opr": "eq", "value": 42}
+        )
 
 
-def test_dashboard_filter_rejects_created_by_fk():
-    """Test that DashboardFilter rejects user-directory columns."""
-    with pytest.raises(ValidationError):
-        DashboardFilter(col="created_by_fk", opr="eq", value=42)
+def test_dashboard_filter_rejects_user_directory_columns_other_than_fk() -> None:
+    """DashboardFilter still rejects user-directory columns that expose names."""
+    for col in ("created_by_name", "owners", "changed_by"):
+        with pytest.raises(ValidationError):
+            DashboardFilter.model_validate(
+                {"col": col, "opr": "eq", "value": "anything"}
+            )
+
+
+def test_dashboard_filter_accepts_created_and_changed_by_fk() -> None:
+    """DashboardFilter allows filtering by created_by_fk / changed_by_fk."""
+    for col in ("created_by_fk", "changed_by_fk"):
+        f = DashboardFilter.model_validate({"col": col, "opr": "eq", "value": 42})
+        assert f.col == col
 
 
 def test_dashboard_filter_rejects_invalid_column():
     """Test that DashboardFilter rejects invalid column names."""
     with pytest.raises(ValidationError):
-        DashboardFilter(col="nonexistent_column", opr="eq", value=42)
+        DashboardFilter.model_validate(
+            {"col": "nonexistent_column", "opr": "eq", "value": 42}
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -492,12 +524,12 @@ def test_dashboard_filter_rejects_invalid_column():
 def test_chart_filter_existing_columns_still_work():
     """Test that pre-existing chart filter columns are not broken."""
     for col in ("slice_name", "viz_type", "datasource_name"):
-        f = ChartFilter(col=col, opr="eq", value="test")
+        f = ChartFilter.model_validate({"col": col, "opr": "eq", "value": "test"})
         assert f.col == col
 
 
 def test_dashboard_filter_existing_columns_still_work():
     """Test that pre-existing dashboard filter columns are not broken."""
     for col in ("dashboard_title", "published", "favorite"):
-        f = DashboardFilter(col=col, opr="eq", value="test")
+        f = DashboardFilter.model_validate({"col": col, "opr": "eq", "value": "test"})
         assert f.col == col

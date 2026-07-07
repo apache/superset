@@ -142,6 +142,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
     order_columns = [
         "changed_on",
         "database.database_name",
+        "duration",
         "rows",
         "schema",
         "start_time",
