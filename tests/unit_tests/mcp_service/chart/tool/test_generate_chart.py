@@ -432,6 +432,7 @@ def _make_mock_chart(chart_id: int = 42) -> Mock:
     chart.created_on = None
     chart.created_on_humanized = "2 days ago"
     chart.uuid = "test-uuid-42"
+    chart.deleted_at = None
     chart.tags = []
     chart.owners = []
     return chart

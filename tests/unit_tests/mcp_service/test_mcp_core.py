@@ -312,3 +312,19 @@ def test_explicit_title_column_overrides_dao_attribute() -> None:
 )
 def test_slugify_handles_edge_cases(identifier: str, expected_slug: str) -> None:
     assert _slugify(identifier) == expected_slug
+
+
+def test_deleted_state_bound_filter_delegates_bound_value() -> None:
+    """The adapter passed to DAO custom_filters must forward the bound
+    deleted_state value — BaseDAO.list invokes custom filters with
+    ``apply(query, None)``, which the FAB filter would treat as 'live only'."""
+    from unittest.mock import Mock
+
+    from superset.mcp_service.mcp_core import DeletedStateBoundFilter
+
+    inner = Mock()
+    inner.apply.return_value = "filtered-query"
+    bound = DeletedStateBoundFilter(inner, "only", model=Mock)
+
+    assert bound.apply("query", None) == "filtered-query"
+    inner.apply.assert_called_once_with("query", "only")
