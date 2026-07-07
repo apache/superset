@@ -106,6 +106,10 @@ class MCPNoAuthSourceError(ValueError):
 # scope. When introducing a new method permission, add it here.
 _METHOD_TO_REQUIRED_SCOPE = {
     "read": "superset:read",
+    # "get" is the read-class permission FAB registers on its security API
+    # views (User/Role) — those views have no can_read, so tools targeting
+    # them declare method_permission_name="get".
+    "get": "superset:read",
     "write": "superset:write",
     "delete": "superset:write",
     # SQL execution (execute_sql, get_chart_sql) runs arbitrary queries and is
