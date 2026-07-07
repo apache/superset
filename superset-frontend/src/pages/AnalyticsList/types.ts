@@ -46,5 +46,7 @@ export interface ContentItem {
   user_permission?: 'editor' | 'viewer' | null;
   parent_uuid?: string | null;
   inherits_permissions?: boolean;
+  is_private?: boolean;
+  is_only_me?: boolean;
   folder_path?: Array<{ uuid: string; name: string }>;
 }

@@ -200,6 +200,19 @@ class FolderDAO(BaseDAO[Folder]):
                 fq = fq.where(Folder.changed_on >= modified_start)
             if modified_end:
                 fq = fq.where(Folder.changed_on <= modified_end)
+            # Hide other users' private folders from everyone (including admins)
+            if user_id:
+                own_private_ids = (
+                    select(folder_editors.c.folder_id).where(
+                        folder_editors.c.user_id == user_id
+                    )
+                )
+                fq = fq.where(
+                    or_(
+                        Folder.is_private.is_(False),
+                        Folder.id.in_(own_private_ids),
+                    )
+                )
             # Access filter: non-admins only see folders they are a member of
             if not is_admin and user_id:
                 from superset.folders.utils import user_accessible_folder_ids
@@ -423,9 +436,19 @@ class FolderDAO(BaseDAO[Folder]):
         sort_col = sort_map.get(sort_column, unioned.c.changed_on)
         order = sort_col.asc() if sort_order == "asc" else sort_col.desc()
 
-        # Pinned items always on top (root level only, per-user)
+        # Sort priority at root: Only Me (0) → pinned (1-3) → unpinned (4)
         pin_order = (literal(4) + literal(0)).label("pin_order")
         if folder_id is None and user_id:
+            only_me_order = (
+                select(literal(0) + literal(0))
+                .where(
+                    unioned.c.item_type == "folder",
+                    Folder.id == unioned.c.item_id,
+                    Folder.is_private.is_(True),
+                )
+                .correlate(unioned)
+                .scalar_subquery()
+            )
             pin_position = (
                 select(FolderPin.position)
                 .where(
@@ -448,7 +471,9 @@ class FolderDAO(BaseDAO[Folder]):
                 .correlate(unioned)
                 .scalar_subquery()
             )
-            pin_order = func.coalesce(pin_position, literal(4) + literal(0)).label("pin_order")
+            pin_order = func.coalesce(
+                only_me_order, pin_position, literal(4) + literal(0)
+            ).label("pin_order")
 
         page_rows = db.session.execute(
             select(unioned.c.item_type, unioned.c.item_id)
@@ -696,6 +721,45 @@ class FolderDAO(BaseDAO[Folder]):
         return (
             db.session.query(model.id).filter(model.id == asset_id).first() is not None
         )
+
+    # ------------------------------------------------------------------ #
+    # Private / "Only Me" folders
+    # ------------------------------------------------------------------ #
+    @classmethod
+    def get_or_create_only_me_folder(cls, user_id: int) -> Folder:
+        """Return the user's 'Only Me' folder, creating it if it doesn't exist."""
+        from superset.utils import json as json_utils
+
+        folder = (
+            db.session.query(Folder)
+            .join(folder_editors, folder_editors.c.folder_id == Folder.id)
+            .filter(
+                folder_editors.c.user_id == user_id,
+                Folder.is_private.is_(True),
+                Folder.parent_id.is_(None),
+            )
+            .all()
+        )
+        for f in folder:
+            extra = json_utils.loads(f.extra) if f.extra else {}
+            if extra.get("only_me"):
+                return f
+
+        new_folder = cls.create(
+            attributes={
+                "name": "Only Me",
+                "is_private": True,
+                "parent_id": None,
+                "folder_type": "analytics",
+                "extra": json_utils.dumps({"only_me": True, "inherits_permissions": False}),
+            }
+        )
+        db.session.flush()
+        db.session.execute(
+            folder_editors.insert().values(folder_id=new_folder.id, user_id=user_id)
+        )
+        db.session.flush()
+        return new_folder
 
     # ------------------------------------------------------------------ #
     # Pins

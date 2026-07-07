@@ -46,9 +46,16 @@ class DeleteFolderCommand(BaseCommand):
         FolderDAO.delete_folder(self._model, self._archive_items)
 
     def validate(self) -> None:
+        from superset.utils import json as json_utils
+
         self._model = FolderDAO.find_by_id_or_uuid(self._id)
         if not self._model:
             raise FolderNotFoundError()
+
+        # "Only Me" folder cannot be deleted
+        extra = json_utils.loads(self._model.extra) if self._model.extra else {}
+        if extra.get("only_me"):
+            raise FolderForbiddenError()
 
         if not security_manager.is_admin():
             user_id = get_user_id()

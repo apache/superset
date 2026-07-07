@@ -706,7 +706,7 @@ function AnalyticsList({
             onClick: () => void;
           }> = [];
 
-          if (isAtRoot) {
+          if (isAtRoot && !original.is_only_me) {
             if (isPinned(original)) {
               contextMenuItems.push({
                 key: 'unpin',
@@ -723,7 +723,7 @@ function AnalyticsList({
               });
             }
           }
-          if (canEditCurrentFolder) {
+          if (canEditCurrentFolder && !original.is_only_me) {
             contextMenuItems.push({
               key: 'move',
               label: t('Move to…'),
@@ -742,13 +742,35 @@ function AnalyticsList({
                     if (e.key === 'Enter') drillInto(original);
                   }}
                 >
-                  <Icons.FolderOutlined
-                    iconSize="m"
-                    css={{
-                      color: theme.colorSuccess,
-                    }}
-                  />
+                  {original.is_private ? (
+                    <Icons.LockOutlined
+                      iconSize="m"
+                      css={{ color: theme.colorTextSecondary }}
+                    />
+                  ) : (
+                    <Icons.FolderOutlined
+                      iconSize="m"
+                      css={{
+                        color: original.parent_uuid
+                          ? theme.colorWarning
+                          : theme.colorSuccess,
+                      }}
+                    />
+                  )}
                   {highlightName(original.name)}
+                  {original.is_private && (
+                    <span
+                      css={{
+                        fontSize: theme.fontSizeXS,
+                        padding: `0 ${theme.sizeUnit}px`,
+                        borderRadius: theme.borderRadius,
+                        background: theme.colorBgLayout,
+                        color: theme.colorTextSecondary,
+                      }}
+                    >
+                      {t('Private')}
+                    </span>
+                  )}
                   {pinIcon}
                 </NameLink>
               );
@@ -936,7 +958,7 @@ function AnalyticsList({
             const canEdit = original.user_permission === 'editor';
             return (
               <Actions className="actions">
-                {canEdit && (
+                {canEdit && !original.is_private && (
                   <Tooltip title={t('Manage permissions')} placement="bottom">
                     <span
                       role="button"
@@ -948,7 +970,7 @@ function AnalyticsList({
                     </span>
                   </Tooltip>
                 )}
-                {canEdit && (
+                {canEdit && !original.is_only_me && (
                   <Tooltip title={t('Rename folder')} placement="bottom">
                     <span
                       role="button"
@@ -987,7 +1009,7 @@ function AnalyticsList({
                       />
                     </Tooltip>
                   )}
-                {canEdit && (
+                {canEdit && !original.is_only_me && (
                   <Tooltip title={t('Delete folder')} placement="bottom">
                     <span
                       role="button"

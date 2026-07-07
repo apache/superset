@@ -127,11 +127,15 @@ class FolderPermissionDAO:
     def copy_permissions_to_subfolder(
         parent_folder_id: int, child_folder_id: int
     ) -> None:
-        """Copy all editors/viewers from parent to child folder.
+        """Replace child folder permissions with parent's.
 
-        Called when a subfolder is created. Sets extra.inherits_permissions = true
-        on the child.
+        Clears existing editors/viewers on the child, then copies the parent's.
+        Sets extra.inherits_permissions = true on the child.
+        Skips private folders — their permissions are owner-only.
         """
+        child = db.session.query(Folder).get(child_folder_id)
+        if child and child.is_private:
+            return
 
         # Clear child's existing permissions
         db.session.execute(
@@ -200,6 +204,8 @@ class FolderPermissionDAO:
             )
             result = []
             for child in children:
+                if child.is_private:
+                    continue
                 extra = json_utils.loads(child.extra) if child.extra else {}
                 if extra.get("inherits_permissions", True):
                     result.append(child.id)

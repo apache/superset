@@ -102,6 +102,14 @@ def _get_user_permission(folder: Folder) -> str | None:
     return None
 
 
+def _is_only_me(folder: Folder) -> bool:
+    """Return whether this is the system 'Only Me' private folder."""
+    if not folder.is_private or not folder.extra:
+        return False
+    extra = json_utils.loads(folder.extra)
+    return bool(extra.get("only_me"))
+
+
 def _get_inherits_permissions(folder: Folder) -> bool:
     """Return whether this folder inherits permissions from its parent."""
     if not folder.extra:
@@ -143,6 +151,7 @@ def serialize_folder(
         "changed_by": _serialize_user(folder.changed_by),
         "user_permission": _get_user_permission(folder),
         "inherits_permissions": _get_inherits_permissions(folder),
+        "is_only_me": _is_only_me(folder),
         "owners": [
             _serialize_user(u) for u in (folder.editors or [])
         ],
@@ -412,17 +421,22 @@ class FolderRestApi(BaseSupersetApi):
         folder_type = request.args.get("folder_type")
         folders = FolderDAO.get_folders(folder_type=folder_type)
 
-        # Non-admins only see folders they have access to
-        if not security_manager.is_admin():
-            user_id = get_user_id()
-            if user_id:
-                folders = [
-                    f
-                    for f in folders
-                    if FolderPermissionDAO.user_has_folder_access(user_id, f.id)
-                ]
-            else:
-                folders = []
+        # Filter folders by access — hide other users' private folders from everyone
+        if (user_id := get_user_id()):
+            folders = [
+                f
+                for f in folders
+                if (
+                    not f.is_private
+                    or FolderPermissionDAO.user_has_folder_access(user_id, f.id)
+                )
+                and (
+                    security_manager.is_admin()
+                    or FolderPermissionDAO.user_has_folder_access(user_id, f.id)
+                )
+            ]
+        else:
+            folders = []
 
         # Precompute counts to avoid N+1 queries
         folder_ids = [f.id for f in folders]
@@ -500,6 +514,12 @@ class FolderRestApi(BaseSupersetApi):
               $ref: '#/components/responses/500'
         """
         folder_type = request.args.get("folder_type", DEFAULT_FOLDER_TYPE)
+
+        # Lazy-create the "Only Me" folder for eligible users
+        user_id = get_user_id()
+        if user_id and can_manage_folders(g.user):
+            FolderDAO.get_or_create_only_me_folder(user_id)
+
         parsed = _parse_rison_args(kwargs.get("rison", {}))
         rows, count = FolderDAO.get_contents(None, folder_type, **parsed)
         result = (
@@ -1196,6 +1216,8 @@ class FolderRestApi(BaseSupersetApi):
         folder = FolderDAO.get_by_uuid(folder_uuid)
         if not folder:
             return self.response_404()
+        if folder.is_private:
+            return self.response_403()
         try:
             self._raise_for_folder_edit(folder)
         except FolderForbiddenError:
@@ -1253,6 +1275,8 @@ class FolderRestApi(BaseSupersetApi):
         folder = FolderDAO.get_by_uuid(folder_uuid)
         if not folder:
             return self.response_404()
+        if folder.is_private:
+            return self.response_403()
         try:
             self._raise_for_folder_edit(folder)
         except FolderForbiddenError:
@@ -1298,6 +1322,8 @@ class FolderRestApi(BaseSupersetApi):
         folder = FolderDAO.get_by_uuid(folder_uuid)
         if not folder:
             return self.response_404()
+        if folder.is_private:
+            return self.response_403()
         try:
             self._raise_for_folder_edit(folder)
         except FolderForbiddenError:

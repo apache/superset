@@ -110,6 +110,8 @@ class UpdateFolderCommand(BaseCommand):
         return new_parent_id
 
     def validate(self) -> None:
+        from superset.utils import json as json_utils
+
         self._model = FolderDAO.find_by_id_or_uuid(self._id)
         if not self._model:
             raise FolderNotFoundError()
@@ -120,6 +122,16 @@ class UpdateFolderCommand(BaseCommand):
                 user_id, self._model.id
             ):
                 raise FolderForbiddenError()
+
+        # "Only Me" folder: reject name/parent changes (sync_permissions is allowed)
+        extra = json_utils.loads(self._model.extra) if self._model.extra else {}
+        if extra.get("only_me"):
+            if "name" in self._properties or "parent_uuid" in self._properties:
+                raise FolderForbiddenError()
+
+        # Private folders cannot be moved into other folders
+        if self._model.is_private and "parent_uuid" in self._properties:
+            raise FolderForbiddenError()
 
         exceptions: list[ValidationError] = []
         new_parent_id = self._validate_parent(exceptions)

@@ -55,6 +55,21 @@ def folder_raise_for_access_bypass(**kwargs: Any) -> bool:
 
     dashboard = kwargs.get("dashboard")
     chart = kwargs.get("chart")
+
+    # Never bypass for assets in private folders unless the user is the owner
+    if is_asset_in_private_folder(
+        dashboard_id=dashboard.id if dashboard else None,
+        chart_id=chart.id if chart else None,
+    ):
+        from superset.daos.folder_permissions import FolderPermissionDAO as _PDAO
+
+        has_access = _PDAO.user_has_folder_access_for_asset(
+            user_id=user_id,
+            dashboard_id=dashboard.id if dashboard else None,
+            chart_id=chart.id if chart else None,
+        )
+        return has_access
+
     query_context = kwargs.get("query_context")
     viz = kwargs.get("viz")
     datasource = kwargs.get("datasource")
@@ -114,3 +129,55 @@ def folder_extra_owners(resource: Any) -> list[Any]:
         }
         for u in get_folder_editor_users(fo.folder_id)
     ]
+
+
+def after_asset_create(asset: Any, asset_type: str) -> None:
+    """Auto-assign newly created charts/dashboards to the user's 'Only Me' folder."""
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.info("[after_asset_create] called with asset_type=%s, asset_id=%s", asset_type, asset.id)
+
+    from superset.daos.folder import FolderDAO
+    from superset.folders.utils import can_manage_folders
+
+    user_id = get_user_id()
+    logger.info("[after_asset_create] user_id=%s", user_id)
+    if not user_id:
+        logger.info("[after_asset_create] no user_id, returning")
+        return
+
+    from flask import g
+
+    if not hasattr(g, "user"):
+        logger.info("[after_asset_create] no g.user, returning")
+        return
+    if not can_manage_folders(g.user):
+        logger.info("[after_asset_create] user cannot manage folders, roles=%s", [r.name for r in g.user.roles])
+        return
+
+    logger.info("[after_asset_create] creating/getting Only Me folder")
+    folder = FolderDAO.get_or_create_only_me_folder(user_id)
+    logger.info("[after_asset_create] assigning asset to folder %s", folder.id)
+    FolderDAO.assign_assets(folder, [{"type": asset_type, "id": asset.id}])
+    logger.info("[after_asset_create] done")
+
+
+def is_asset_in_private_folder(
+    dashboard_id: int | None = None,
+    chart_id: int | None = None,
+) -> bool:
+    """Check if an asset is in a private folder."""
+    from superset.folders.models import Folder, FolderObject
+
+    query = db.session.query(FolderObject).join(
+        Folder, Folder.id == FolderObject.folder_id
+    ).filter(Folder.is_private.is_(True))
+
+    if dashboard_id:
+        if query.filter(FolderObject.dashboard_id == dashboard_id).first():
+            return True
+    if chart_id:
+        if query.filter(FolderObject.chart_id == chart_id).first():
+            return True
+    return False
