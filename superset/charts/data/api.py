@@ -219,6 +219,8 @@ class ChartDataRestApi(ChartRestApi):
             command.validate()
         except DatasourceNotFound:
             return self.response_404()
+        except SupersetSecurityException:
+            return self.response_403()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
         except ValidationError as error:
@@ -319,6 +321,8 @@ class ChartDataRestApi(ChartRestApi):
             command.validate()
         except DatasourceNotFound:
             return self.response_404()
+        except SupersetSecurityException:
+            return self.response_403()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
         except ValidationError as error:
@@ -405,6 +409,8 @@ class ChartDataRestApi(ChartRestApi):
             command.validate()
         except ChartDataCacheLoadError:
             return self.response_404()
+        except SupersetSecurityException:
+            return self.response_403()
         except ValidationError as error:
             return self.response_400(
                 message=_("Request is incorrect: %(error)s", error=error.messages)
