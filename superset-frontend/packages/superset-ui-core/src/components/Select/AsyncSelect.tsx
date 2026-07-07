@@ -86,6 +86,7 @@ import {
   MAX_TAG_COUNT,
   TOKEN_SEPARATORS,
   DEFAULT_SORT_COMPARATOR,
+  DROPDOWN_BUILTIN_PLACEMENTS,
 } from './constants';
 
 const Error = ({ error }: { error: string }) => (
@@ -791,6 +792,7 @@ const AsyncSelect = forwardRef(
           placeholder={placeholder}
           showSearch={shouldShowSearch}
           tokenSeparators={tokenSeparators}
+          builtinPlacements={DROPDOWN_BUILTIN_PLACEMENTS}
           value={selectValue}
           suffixIcon={getSuffixIcon(
             isLoading,
