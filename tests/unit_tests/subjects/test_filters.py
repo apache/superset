@@ -23,6 +23,8 @@ These tests verify subject-based dashboard, chart, and report access filters.
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from superset.subjects.types import SubjectType
 
 
@@ -291,3 +293,48 @@ def test_subject_type_filter_no_entity_key():
     query.filter.assert_called_once()
     _assert_subject_type_filter_values(query, [SubjectType.USER, SubjectType.ROLE])
     assert result is query.filter.return_value
+
+
+@pytest.mark.parametrize(
+    ("filter_key", "model_attr", "field_name", "filter_value", "table_name"),
+    [
+        ("user", "user_model", "username", "admin", "ab_user"),
+        ("role", "role_model", "name", "Alpha", "ab_role"),
+        ("group", "group_model", "name", "Engineering", "ab_group"),
+    ],
+)
+def test_subject_type_filter_applies_extra_related_filter(
+    app_context,
+    filter_key: str,
+    model_attr: str,
+    field_name: str,
+    filter_value: str,
+    table_name: str,
+):
+    """Subject pickers respect user/role/group EXTRA_RELATED_QUERY_FILTERS."""
+    from superset import db, security_manager
+    from superset.subjects.filters import subject_type_filter
+    from superset.subjects.models import Subject
+
+    model = getattr(security_manager, model_attr)
+    column = getattr(model, field_name)
+
+    def related_filter(query):
+        return query.filter(column == filter_value)
+
+    config = {
+        "SUBJECTS_RELATED_TYPES": None,
+        "EXTRA_RELATED_QUERY_FILTERS": {filter_key: related_filter},
+    }
+
+    filter_cls = subject_type_filter(None)
+    f = object.__new__(filter_cls)
+    query = db.session.query(Subject)
+
+    with patch("superset.subjects.filters.current_app") as mock_app:
+        mock_app.config.get = lambda key, default=None: config.get(key, default)
+        result = f.apply(query, None)
+
+    sql = str(result.statement.compile(compile_kwargs={"literal_binds": True}))
+    assert table_name in sql
+    assert filter_value in sql

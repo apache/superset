@@ -40,6 +40,7 @@ import {
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
   mapPickerValuesToSubjects,
+  mapSubjectValuesToIds,
   type SubjectPickerValue,
 } from 'src/features/subjects/SubjectPicker';
 import Subject from 'src/types/Subject';
@@ -377,7 +378,7 @@ const PropertiesModal = ({
     } = {};
     if (isFeatureEnabled(FeatureFlag.EnableViewers)) {
       moreOnSubmitProps.viewers = viewers;
-      morePutProps.viewers = (viewers || []).map(v => v.id);
+      morePutProps.viewers = mapSubjectValuesToIds(viewers || []);
     }
     if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
       moreOnSubmitProps.tags = tags;
@@ -417,7 +418,7 @@ const PropertiesModal = ({
         description: description || null,
         slug: slug || null,
         json_metadata: currentJsonMetadata || null,
-        editors: (editors || []).map(e => e.id),
+        editors: mapSubjectValuesToIds(editors || []),
         certified_by: certifiedBy || null,
         certification_details:
           certifiedBy && certificationDetails ? certificationDetails : null,

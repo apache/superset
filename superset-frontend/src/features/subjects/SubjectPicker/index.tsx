@@ -20,13 +20,12 @@ import { type ReactNode, useCallback } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { AsyncSelect } from '@superset-ui/core/components';
 import rison from 'rison';
+import { SUBJECT_OPTION_FILTER_PROPS } from 'src/features/subjects/SubjectSelectLabel';
 import {
-  SubjectSelectLabel,
-  SUBJECT_TEXT_LABEL_PROP,
-  SUBJECT_DETAIL_PROP,
-  SUBJECT_OPTION_FILTER_PROPS,
-} from 'src/features/subjects/SubjectSelectLabel';
-import { mergeSubjectPickerValues, type SubjectPickerValue } from './utils';
+  mergeSubjectPickerValues,
+  normalizeSubjectToPickerValue,
+  type SubjectPickerValue,
+} from './utils';
 
 export {
   mapPickerValuesToSubjects,
@@ -99,25 +98,19 @@ const SubjectPicker = ({
           .filter((item: { extra: { active?: boolean } }) =>
             item.extra.active !== undefined ? item.extra.active : true,
           )
-          .map(
+          .flatMap(
             (item: {
               value: number;
               text: string;
               extra: { type?: number; secondary_label?: string };
             }) => {
-              const detail = item.extra?.secondary_label ?? '';
-              return {
+              const value = normalizeSubjectToPickerValue({
                 value: item.value,
-                label: SubjectSelectLabel({
-                  label: item.text,
-                  type: item.extra?.type,
-                  secondaryLabel: detail || undefined,
-                }),
+                text: item.text,
                 type: item.extra?.type,
-                secondary_label: detail,
-                [SUBJECT_TEXT_LABEL_PROP]: item.text,
-                [SUBJECT_DETAIL_PROP]: detail,
-              };
+                secondary_label: item.extra?.secondary_label,
+              });
+              return value ? [value] : [];
             },
           ),
         totalCount: response.json.count,

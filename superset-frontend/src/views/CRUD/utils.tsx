@@ -38,11 +38,7 @@ import { findPermission } from 'src/utils/findPermission';
 import { User } from 'src/types/bootstrapTypes';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { RecentActivity, WelcomeTable } from 'src/features/home/types';
-import {
-  SubjectSelectLabel,
-  SUBJECT_TEXT_LABEL_PROP,
-  SUBJECT_DETAIL_PROP,
-} from 'src/features/subjects/SubjectSelectLabel';
+import { normalizeSubjectToPickerValue } from 'src/features/subjects/SubjectPicker/utils';
 import {
   Dashboard,
   EncryptedExtraField,
@@ -295,21 +291,24 @@ const createFetchSubjectRelation =
       const result = await fetchRelated(filterValue, page, pageSize);
       return {
         ...result,
-        data: result.data.map(item => {
+        data: result.data.flatMap(item => {
           const secondaryLabel = item.extra?.secondary_label as
             string | undefined;
           const type = item.extra?.type as number | undefined;
-          return {
-            label: SubjectSelectLabel({
-              label: item.label,
-              type,
-              secondaryLabel,
-            }),
+          const value = normalizeSubjectToPickerValue({
             value: item.value,
-            title: item.label,
-            [SUBJECT_TEXT_LABEL_PROP]: item.label,
-            [SUBJECT_DETAIL_PROP]: secondaryLabel ?? '',
-          };
+            text: item.label,
+            type,
+            secondary_label: secondaryLabel,
+          });
+          return value
+            ? [
+                {
+                  ...value,
+                  title: item.label,
+                },
+              ]
+            : [];
         }),
       };
     };

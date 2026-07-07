@@ -43,6 +43,7 @@ import { fallbackExploreInitialData } from 'src/explore/fixtures';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { getFormDataWithDashboardContext } from 'src/explore/controlUtils/getFormDataWithDashboardContext';
 import type Chart from 'src/types/Chart';
+import { mapSubjectValuesToIds } from 'src/features/subjects/SubjectPicker';
 
 const isValidResult = (rv: JsonObject): boolean =>
   rv?.result?.form_data && rv?.result?.dataset;
@@ -254,8 +255,8 @@ export default function ExplorePage() {
                     datasource: err.extra?.datasource_name,
                     slice_id: id,
                     slice_url: url,
-                    editors: editors?.map(({ id }) => id),
-                    viewers: viewers?.map(({ id }) => id),
+                    editors: mapSubjectValuesToIds(editors),
+                    viewers: mapSubjectValuesToIds(viewers),
                   };
                   dispatch(
                     hydrateExplore({

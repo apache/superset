@@ -59,6 +59,7 @@ import { isEmpty } from 'lodash-es';
 import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
 import type Subject from 'src/types/Subject';
 import { openInNewTab, redirect } from 'src/utils/navigationUtils';
+import { mapSubjectValuesToIds } from 'src/features/subjects/SubjectPicker';
 
 interface QueryDatabase {
   id?: number;
@@ -285,7 +286,7 @@ export const SaveDatasetModal = ({
               is_dttm: d.is_dttm,
             }),
           ),
-          editors: datasetToOverwrite.editors?.map(editor => editor.id) || [],
+          editors: mapSubjectValuesToIds(datasetToOverwrite.editors || []),
           overrideColumns: true,
           templateParams,
         }),

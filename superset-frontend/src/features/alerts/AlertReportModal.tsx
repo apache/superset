@@ -43,16 +43,14 @@ import {
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import {
-  SubjectSelectLabel,
-  SUBJECT_TEXT_LABEL_PROP,
-  SUBJECT_DETAIL_PROP,
-} from 'src/features/subjects/SubjectSelectLabel';
 import SubjectPicker, {
+  mapSubjectPickerValuesToIds,
   mapSubjectsToPickerValues,
+  normalizeSubjectToPickerValue,
   type SubjectPickerValue,
 } from 'src/features/subjects/SubjectPicker';
 import type Subject from 'src/types/Subject';
+import { SubjectType } from 'src/types/Subject';
 // import { Form as AntdForm } from 'src/components/Form';
 import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import {
@@ -968,7 +966,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           : null,
       custom_width: isScreenshot ? currentAlert?.custom_width : undefined,
       database: currentAlert?.database?.value,
-      editors: (currentAlert?.editors || []).map(editor => editor.value),
+      editors: mapSubjectPickerValuesToIds(currentAlert?.editors || []),
       recipients,
       report_format: reportFormat || DEFAULT_NOTIFICATION_FORMAT,
       extra: contentType === ContentType.Dashboard ? currentAlert?.extra : {},
@@ -1879,6 +1877,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   // Initialize
   useEffect(() => {
+    const currentUserEditor =
+      currentUserSubjectId !== undefined && currentUser
+        ? normalizeSubjectToPickerValue({
+            value: currentUserSubjectId,
+            text: `${currentUser.firstName} ${currentUser.lastName}`,
+            type: SubjectType.User,
+            secondary_label: currentUser.email,
+          })
+        : undefined;
+
     if (
       isEditMode &&
       (!currentAlert?.id || alert?.id !== currentAlert.id || (isHidden && show))
@@ -1893,20 +1901,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     ) {
       setCurrentAlert({
         ...defaultAlert,
-        editors:
-          currentUserSubjectId !== undefined && currentUser
-            ? [
-                {
-                  value: currentUserSubjectId,
-                  label: SubjectSelectLabel({
-                    label: `${currentUser.firstName} ${currentUser.lastName}`,
-                    type: 1,
-                  }),
-                  [SUBJECT_TEXT_LABEL_PROP]: `${currentUser.firstName} ${currentUser.lastName}`,
-                  [SUBJECT_DETAIL_PROP]: currentUser.email ?? '',
-                },
-              ]
-            : [],
+        editors: currentUserEditor ? [currentUserEditor] : [],
       });
       setNotificationSettings([
         {

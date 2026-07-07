@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any, Optional
 
 from flask import current_app
@@ -57,6 +58,49 @@ def _apply_excluded_users(query: Query) -> Query:
     )
 
 
+def _apply_extra_related_query_filters(query: Query) -> Query:
+    extra_filters = current_app.config.get("EXTRA_RELATED_QUERY_FILTERS") or {}
+    filter_specs: tuple[
+        tuple[str, SubjectType, Any, Callable[[], type[DeclarativeMeta]]],
+        ...,
+    ] = (
+        (
+            "user",
+            SubjectType.USER,
+            Subject.user_id,
+            lambda: security_manager.user_model,
+        ),
+        (
+            "role",
+            SubjectType.ROLE,
+            Subject.role_id,
+            lambda: security_manager.role_model,
+        ),
+        (
+            "group",
+            SubjectType.GROUP,
+            Subject.group_id,
+            lambda: security_manager.group_model,
+        ),
+    )
+
+    for key, subject_type, subject_fk, get_model in filter_specs:
+        if extra_filter := extra_filters.get(key):
+            model = get_model()
+            related_query = extra_filter(db.session.query(model)).with_entities(
+                model.id
+            )
+            query = query.filter(
+                or_(Subject.type != subject_type, subject_fk.in_(related_query))
+            )
+
+    return query
+
+
+def _apply_subject_list_filters(query: Query) -> Query:
+    return _apply_extra_related_query_filters(_apply_excluded_users(query))
+
+
 def subject_type_filter(entity_config_key: str | None = None) -> type[BaseFilter]:
     """Return a BaseFilter subclass scoped to a specific entity config.
 
@@ -78,9 +122,9 @@ def subject_type_filter(entity_config_key: str | None = None) -> type[BaseFilter
 
             allowed = entity_types if entity_types is not None else global_types
             if allowed is None:
-                return _apply_excluded_users(query)
+                return _apply_subject_list_filters(query)
 
-            return _apply_excluded_users(query.filter(Subject.type.in_(allowed)))
+            return _apply_subject_list_filters(query.filter(Subject.type.in_(allowed)))
 
     return _Filter
 
@@ -103,8 +147,10 @@ class BaseFilterRelatedSubjects(BaseFilter):
             "SUBJECTS_RELATED_TYPES"
         )
         if allowed_types is not None:
-            return _apply_excluded_users(query.filter(Subject.type.in_(allowed_types)))
-        return _apply_excluded_users(query)
+            return _apply_subject_list_filters(
+                query.filter(Subject.type.in_(allowed_types))
+            )
+        return _apply_subject_list_filters(query)
 
 
 class FilterRelatedSubjects(BaseFilter):
@@ -119,7 +165,7 @@ class FilterRelatedSubjects(BaseFilter):
     def apply(self, query: Query, value: Optional[Any]) -> Query:
         if value:
             ilike_value = f"%{value}%"
-            return _apply_excluded_users(
+            return _apply_subject_list_filters(
                 query.filter(
                     or_(
                         Subject.label.ilike(ilike_value),
@@ -127,7 +173,7 @@ class FilterRelatedSubjects(BaseFilter):
                     )
                 )
             )
-        return _apply_excluded_users(query)
+        return _apply_subject_list_filters(query)
 
 
 def filter_subject_relation_by_current_user(
