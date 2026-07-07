@@ -87,10 +87,12 @@ test('the wired onCellKeyDown copies the focused cell value on Ctrl/Cmd+C', asyn
   renderChart();
   await waitFor(() => expect(captured.props?.onCellKeyDown).toBeDefined());
 
+  // Shape mirrors AG Grid's real CellKeyDownEvent: no pre-formatted value; the
+  // displayed text is produced by the column's valueFormatter.
   captured.props?.onCellKeyDown({
     event: { key: 'c', metaKey: true },
     value: 2871,
-    valueFormatted: '2,871',
+    colDef: { valueFormatter: () => '2,871' },
   });
 
   expect(writeText).toHaveBeenCalledWith('2,871');

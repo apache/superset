@@ -25,18 +25,32 @@
  * we provide a small Ctrl/Cmd+C handler that copies the focused cell's value.
  */
 
-/** Minimal shape of a keyboard event needed to detect a copy shortcut. */
-export interface CopyKeyboardEvent {
-  key?: string;
-  ctrlKey?: boolean;
-  metaKey?: boolean;
-}
+/**
+ * Keyboard fields we read to detect a copy shortcut. AG Grid types the event as
+ * the DOM `Event`, so we accept that and read the keyboard fields optionally
+ * (at runtime a cell key-down carries a `KeyboardEvent`).
+ */
+export type CopyKeyboardEvent = Partial<
+  Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey'>
+> &
+  Partial<Event>;
 
-/** Minimal shape of the AG Grid cell key-down params we rely on. */
+/**
+ * Minimal shape of the AG Grid `CellKeyDownEvent` we rely on. The event carries
+ * no pre-formatted value, so we re-run the column's `valueFormatter` ourselves.
+ */
 export interface CopyableCellParams {
   event?: CopyKeyboardEvent | null;
   value?: unknown;
-  valueFormatted?: unknown;
+  colDef?: {
+    valueFormatter?: unknown;
+  } | null;
+  // Forwarded to the valueFormatter; Superset's reads `value` and `node`.
+  node?: unknown;
+  column?: unknown;
+  data?: unknown;
+  api?: unknown;
+  context?: unknown;
 }
 
 /** True when the event is Ctrl+C (Win/Linux) or Cmd+C (macOS). */
@@ -49,22 +63,41 @@ export function isCopyShortcut(event?: CopyKeyboardEvent | null): boolean {
 }
 
 /**
- * Resolves the text to copy for a cell. Prefers the formatted (displayed) value
- * so the copied text matches what the user sees; falls back to the raw value.
- * Null/undefined values copy as an empty string.
+ * Resolves the text to copy so it matches what the user sees: runs the column's
+ * `valueFormatter` (as the grid does when painting the cell) to copy the
+ * displayed value (`2,871`, `$2.87K`, `N/A`, ...). Falls back to the raw value
+ * when there is no formatter or it throws; null/undefined copy as empty string.
  */
 export function getCellCopyText(params?: CopyableCellParams): string {
   if (!params) {
     return '';
   }
-  const raw =
-    params.valueFormatted !== null && params.valueFormatted !== undefined
-      ? params.valueFormatted
-      : params.value;
-  if (raw === null || raw === undefined) {
+
+  const { valueFormatter } = params.colDef ?? {};
+  if (typeof valueFormatter === 'function') {
+    try {
+      const formatted = valueFormatter({
+        value: params.value,
+        node: params.node,
+        column: params.column,
+        colDef: params.colDef,
+        data: params.data,
+        api: params.api,
+        context: params.context,
+      });
+      if (formatted !== null && formatted !== undefined) {
+        return String(formatted);
+      }
+    } catch {
+      // Fall through to the raw value below.
+    }
+  }
+
+  const { value } = params;
+  if (value === null || value === undefined) {
     return '';
   }
-  return String(raw);
+  return String(value);
 }
 
 /**
@@ -117,7 +150,7 @@ export function copyCellValueOnKeyDown(params?: CopyableCellParams): boolean {
     return false;
   }
   const text = getCellCopyText(params);
-  // Fire and forget — the clipboard write is async but the handler is sync.
-  void writeTextToClipboard(text);
+  // Fire and forget; writeTextToClipboard already swallows its own errors.
+  writeTextToClipboard(text).catch(() => {});
   return true;
 }
