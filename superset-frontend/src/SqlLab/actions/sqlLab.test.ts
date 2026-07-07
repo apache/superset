@@ -749,7 +749,7 @@ describe('async actions', () => {
         database_name: 'examples',
         id: 2,
       },
-      description: '',
+      description: 'A saved query description',
       id: 1,
       label: 'Query 1',
       schema: 'public',
@@ -799,6 +799,7 @@ describe('async actions', () => {
 
       const expectedParams = {
         name: 'Query 1',
+        description: 'A saved query description',
         dbId: 2,
         catalog: null,
         schema: 'public',
