@@ -1808,10 +1808,13 @@ describe('DatabaseModal', () => {
     // inside an animated tab pane, and rc-motion's animation state in jsdom
     // is nondeterministic, so toBeVisible flakes while the form is in fact
     // rendered (see the animated={{ tabPane: true }} Tabs in DatabaseModal)
-    expect(
-      await screen.findByTestId('database-name-input'),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId('sqlalchemy-uri-input')).toBeInTheDocument();
+    const nameInput = await screen.findByTestId('database-name-input');
+    const uriInput = screen.getByTestId('sqlalchemy-uri-input');
+    expect(nameInput).toBeInTheDocument();
+    expect(uriInput).toBeInTheDocument();
+    // also confirm the form is actually usable, not just present
+    expect(nameInput).toBeEnabled();
+    expect(uriInput).toBeEnabled();
   });
 
   test.each([
