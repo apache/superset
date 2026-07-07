@@ -146,7 +146,11 @@ export function OAuth2RedirectMessage({
         dashboardId: dId,
         errorMitigationFunction: mitigate,
       } = latestStateRef.current;
-
+      // `handled`/`lastHandledTabIdRef` are only set below, after this whole
+      // chain, and only reached when a branch actually dispatches — so a
+      // signal that arrives before state is ready (e.g. `query` still null
+      // in SQL Lab) falls through to the catch-all `return` and a later
+      // fallback signal can still succeed.
       if (mitigate) {
         mitigate();
       } else if (src === 'sqllab' && q) {
