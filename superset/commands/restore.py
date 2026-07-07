@@ -74,14 +74,19 @@ class BaseRestoreCommand(BaseCommand, Generic[T]):
         _perform()
 
     def validate(self) -> T:  # type: ignore[override]
-        # ``skip_visibility_filter=True`` is the *only* bypass — the
-        # entity's RBAC ``base_filter`` stays in effect, matching the
-        # behavior of ``find_by_ids`` on the existing delete paths.
-        # Restore should not see rows the user cannot see in the live
-        # UI; ownership is then verified by ``raise_for_ownership``.
+        # Both bypasses are deliberate. ``skip_visibility_filter`` lets the
+        # lookup see the soft-deleted row at all. ``skip_base_filter`` keeps
+        # an owner's own trash reachable even when the entity's RBAC
+        # ``base_filter`` has no ownership leg (charts/datasets filter by
+        # datasource access): the security model's ``raise_for_access``
+        # counts ownership as datasource access, so a lost grant must not
+        # hide a row from the one audience that can restore it. The restore
+        # audience is enforced below by ``raise_for_ownership`` — owners or
+        # admin; anyone else holding a valid uuid gets 403.
         model = self.dao.find_by_id(
             self._model_uuid,
             id_column="uuid",
+            skip_base_filter=True,
             skip_visibility_filter=True,
         )
         if model is None:
