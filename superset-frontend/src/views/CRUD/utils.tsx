@@ -270,7 +270,7 @@ export const getRecentActivityObjs = (
 export const createFetchRelated = createFetchResourceMethod('related');
 export const createFetchDistinct = createFetchResourceMethod('distinct');
 
-const createFetchSubjects =
+const createFetchSubjectRelation =
   (relation: string) =>
   (
     resource: string,
@@ -315,8 +315,9 @@ const createFetchSubjects =
     };
   };
 
-export const createFetchEditors = createFetchSubjects('editors');
-export const createFetchViewers = createFetchSubjects('viewers');
+export const createFetchEditors = createFetchSubjectRelation('editors');
+export const createFetchSubjects = createFetchSubjectRelation('subjects');
+export const createFetchViewers = createFetchSubjectRelation('viewers');
 
 export function createErrorHandler(
   handleErrorFunc: (

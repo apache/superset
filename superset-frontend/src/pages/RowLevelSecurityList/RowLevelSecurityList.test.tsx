@@ -17,7 +17,15 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { act, render, screen, within } from 'spec/helpers/testing-library';
+import rison from 'rison';
+import {
+  act,
+  render,
+  screen,
+  selectPillOption,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
@@ -26,6 +34,8 @@ import RowLevelSecurityList from '.';
 
 const ruleListEndpoint = 'glob:*/api/v1/rowlevelsecurity/?*';
 const ruleInfoEndpoint = 'glob:*/api/v1/rowlevelsecurity/_info*';
+const relatedSubjectsEndpoint =
+  'glob:*/api/v1/rowlevelsecurity/related/subjects*';
 
 const mockRules = [
   {
@@ -121,11 +131,30 @@ fetchMock.get(
   { permissions: ['can_read', 'can_write'] },
   { name: ruleInfoEndpoint },
 );
+fetchMock.get(
+  relatedSubjectsEndpoint,
+  { result: [{ value: 10, text: 'Alpha', extra: { type: 2 } }], count: 1 },
+  { name: relatedSubjectsEndpoint },
+);
 global.URL.createObjectURL = jest.fn();
 
 const mockUser = {
   userId: 1,
 };
+
+function getLatestRuleApiCall() {
+  const calls = fetchMock.callHistory.calls(/rowlevelsecurity\/\?q/);
+  const latest = calls[calls.length - 1];
+  const queryString = latest
+    ? new URL(latest.url).searchParams.get('q')
+    : undefined;
+  return queryString
+    ? {
+        call: latest,
+        query: rison.decode(queryString) as { filters?: unknown[] },
+      }
+    : null;
+}
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('RuleList RTL', () => {
@@ -195,9 +224,30 @@ describe('RuleList RTL', () => {
     const searchFilters = screen.queryAllByTestId('filters-search');
     expect(searchFilters).toHaveLength(1);
 
-    // Select filters render as compact pill buttons (Filter Type, Modified by)
+    // Select filters render as compact pill buttons (Filter Type, Subject, Modified by)
     const selectContainers = screen.queryAllByTestId('select-filter-container');
-    expect(selectContainers).toHaveLength(2);
+    expect(selectContainers).toHaveLength(3);
+  });
+
+  test('selecting Subject filter encodes rel_m_m subjects in API call', async () => {
+    await renderAndWait();
+    await screen.findByTestId('rls-list-view');
+
+    await selectPillOption('Alpha', 'Subject');
+
+    await waitFor(() => {
+      const latest = getLatestRuleApiCall();
+      expect(latest).not.toBeNull();
+      expect(latest!.query.filters).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            col: 'subjects',
+            opr: 'rel_m_m',
+            value: 10,
+          }),
+        ]),
+      );
+    });
   });
 
   test('renders correct list columns', async () => {
