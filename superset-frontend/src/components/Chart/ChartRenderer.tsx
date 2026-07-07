@@ -43,6 +43,7 @@ import {
   LatestQueryFormData,
   AgGridChartState,
   ContextMenuFilters,
+  BinaryQueryObjectFilterClause,
   DataRecordFilters,
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
@@ -146,7 +147,7 @@ export interface ChartRendererProps {
    * emitting a cross-filter when a drill-down hierarchy is configured.
    */
   onDrillDown?: (
-    filters: import('@superset-ui/core').BinaryQueryObjectFilterClause[],
+    filters: BinaryQueryObjectFilterClause[],
     label: string,
   ) => void;
 }
@@ -178,7 +179,7 @@ interface ChartHooks {
    * identifying the click and a human-readable label for the breadcrumb.
    */
   onDrillDown?: (
-    filters: import('@superset-ui/core').BinaryQueryObjectFilterClause[],
+    filters: BinaryQueryObjectFilterClause[],
     label: string,
   ) => void;
 }

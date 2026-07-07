@@ -806,6 +806,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: stable
     # @category: runtime_config
     "DRILL_BY": True,
+    # Enable hierarchical drill-down navigation on ECharts bar/line/pie/funnel/gauge/radar
+    # @lifecycle: testing
+    "DRILL_DOWN_HIERARCHY": False,
     # Enable Druid JOINs (requires Druid version with JOIN support)
     # @lifecycle: stable
     # @category: runtime_config

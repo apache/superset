@@ -25,13 +25,8 @@ import {
   Optional,
 } from '@superset-ui/core';
 
-export const isXAxisSet = (formData: QueryFormData) => {
-  const xAxis = formData.x_axis;
-  if (Array.isArray(xAxis)) {
-    return xAxis.length > 0 && isQueryFormColumn(xAxis[0]);
-  }
-  return isQueryFormColumn(xAxis);
-};
+export const isXAxisSet = (formData: QueryFormData) =>
+  isQueryFormColumn(formData.x_axis);
 
 export const getXAxisColumn = (
   formData: QueryFormData,
@@ -42,12 +37,7 @@ export const getXAxisColumn = (
   }
 
   if (isXAxisSet(formData)) {
-    const xAxis = formData.x_axis;
-    // When x_axis is an array (multi-level drill hierarchy), use the first entry
-    if (Array.isArray(xAxis)) {
-      return xAxis[0];
-    }
-    return xAxis;
+    return formData.x_axis;
   }
   return DTTM_ALIAS;
 };

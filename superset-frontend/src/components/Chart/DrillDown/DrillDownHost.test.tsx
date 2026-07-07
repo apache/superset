@@ -30,6 +30,12 @@ import { DrillDownHost } from './DrillDownHost';
 import { clearDrillDownState } from './useDrillDownState';
 import type { ChartRendererProps } from '../ChartRenderer';
 
+// Enable the drill-down feature flag for all tests in this file.
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: (flag: string) => flag === 'DRILL_DOWN_HIERARCHY',
+}));
+
 function render(ui: ReactElement) {
   return rtlRender(ui, {
     wrapper: ({ children }) => (
@@ -119,7 +125,8 @@ test('DrillDownHost passes through to ChartRenderer when no hierarchy', () => {
 test('DrillDownHost shows breadcrumb wrapper when hierarchy exists', () => {
   const formDataWithHierarchy: QueryFormData = {
     ...baseFormData,
-    x_axis: ['country', 'region', 'city'],
+    x_axis: 'country',
+    drilldown_hierarchy: ['country', 'region', 'city'],
   };
 
   render(
@@ -139,7 +146,8 @@ test('DrillDownHost shows breadcrumb wrapper when hierarchy exists', () => {
 test('onDrillDown is provided when hierarchy exists', () => {
   const formDataWithHierarchy: QueryFormData = {
     ...baseFormData,
-    x_axis: ['country', 'region', 'city'],
+    x_axis: 'country',
+    drilldown_hierarchy: ['country', 'region', 'city'],
   };
 
   render(
@@ -177,7 +185,8 @@ test('returning to the top level clears the cross-filter and re-queries the base
   const triggerQuery = jest.fn();
   const formDataWithHierarchy: QueryFormData = {
     ...baseFormData,
-    x_axis: ['country', 'region', 'city'],
+    x_axis: 'country',
+    drilldown_hierarchy: ['country', 'region', 'city'],
   };
 
   let capturedOnDrillDown:

@@ -95,7 +95,7 @@ export function DrillDownBreadcrumb({
             <span
               css={css`
                 color: ${theme.colorTextTertiary};
-                margin: 0 2px;
+                margin: 0 ${theme.sizeUnit / 2}px;
               `}
             >
               ›
@@ -129,7 +129,7 @@ export function DrillDownBreadcrumb({
           <span
             css={css`
               color: ${theme.colorTextTertiary};
-              margin: 0 2px;
+              margin: 0 ${theme.sizeUnit / 2}px;
             `}
           >
             ›

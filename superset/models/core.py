@@ -32,7 +32,6 @@ from datetime import datetime
 from functools import lru_cache
 from inspect import signature
 from typing import Any, Callable, cast, Optional, TYPE_CHECKING
-from weakref import WeakSet
 from urllib.parse import quote
 
 import numpy
@@ -105,16 +104,6 @@ logger = logging.getLogger(__name__)
 # different kwargs naturally falls through to a fresh engine.
 _ENGINE_CACHE: dict[tuple[int, str, str], Engine] = {}
 _ENGINE_CACHE_LOCK = threading.Lock()
-
-# Tracks engines that already have a prequeries "connect" listener registered.
-# Engines are cached and shared across threads (see ``_ENGINE_CACHE``), so the
-# prequeries listener must be registered once per engine rather than added and
-# removed on every request. Mutating a shared engine's listener collection
-# while another thread iterates it (when opening a connection) raises
-# "deque mutated during iteration". A ``WeakSet`` lets engines be garbage
-# collected when they fall out of the cache.
-_PREQUERIES_REGISTERED_ENGINES: "WeakSet[Engine]" = WeakSet()
-_PREQUERIES_LISTENER_LOCK = threading.Lock()
 
 if TYPE_CHECKING:
     from superset_core.queries.types import AsyncQueryHandle, QueryOptions, QueryResult
@@ -523,35 +512,22 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                     if prequeries:
                         # SQLAlchemy connect event: runs prequeries on every new
                         # DBAPI connection (e.g. SET search_path for PostgreSQL).
-                        #
-                        # Register the listener once per engine. Engines are
-                        # cached and shared across threads, so adding/removing a
-                        # listener on every request mutates the engine's shared
-                        # listener collection while other threads iterate it when
-                        # opening connections, raising
-                        # "deque mutated during iteration". The engine cache key
-                        # includes catalog/schema, so an engine's prequeries are
-                        # stable and only need to be registered a single time.
-                        with _PREQUERIES_LISTENER_LOCK:
-                            if engine not in _PREQUERIES_REGISTERED_ENGINES:
+                        def run_prequeries(
+                            dbapi_connection: Any,
+                            connection_record: Any,  # pylint: disable=unused-argument
+                        ) -> None:
+                            cursor = dbapi_connection.cursor()
+                            try:
+                                for prequery in prequeries:
+                                    cursor.execute(prequery)
+                            finally:
+                                cursor.close()
 
-                                def run_prequeries(
-                                    dbapi_connection: Any,
-                                    connection_record: Any,  # pylint: disable=unused-argument
-                                    # Capture prequeries by value at definition
-                                    # time to avoid Python's closure late-binding.
-                                    _prequeries: list[str] = prequeries,
-                                ) -> None:
-                                    cursor = dbapi_connection.cursor()
-                                    try:
-                                        for prequery in _prequeries:
-                                            cursor.execute(prequery)
-                                    finally:
-                                        cursor.close()
-
-                                sqla.event.listen(engine, "connect", run_prequeries)
-                                _PREQUERIES_REGISTERED_ENGINES.add(engine)
-                        yield engine
+                        sqla.event.listen(engine, "connect", run_prequeries)
+                        try:
+                            yield engine
+                        finally:
+                            sqla.event.remove(engine, "connect", run_prequeries)
                     else:
                         yield engine
 

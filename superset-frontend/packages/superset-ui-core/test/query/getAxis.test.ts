@@ -33,23 +33,6 @@ test('isXAxisSet', () => {
   ).toBeTruthy();
 });
 
-test('isXAxisSet handles x_axis as an array (drill-down hierarchy)', () => {
-  expect(
-    isXAxisSet({
-      datasource: '123',
-      viz_type: VizType.Table,
-      x_axis: ['country', 'region'] as unknown as string,
-    }),
-  ).toBeTruthy();
-  expect(
-    isXAxisSet({
-      datasource: '123',
-      viz_type: VizType.Table,
-      x_axis: [] as unknown as string,
-    }),
-  ).not.toBeTruthy();
-});
-
 test('getXAxisColumn returns undefined when neither granularity_sqla nor x_axis is set', () => {
   expect(
     getXAxisColumn({ datasource: '123', viz_type: VizType.Table }),
@@ -64,16 +47,6 @@ test('getXAxisColumn returns x_axis when x_axis is set', () => {
       x_axis: 'my_axis',
     }),
   ).toBe('my_axis');
-});
-
-test('getXAxisColumn returns the first entry when x_axis is an array', () => {
-  expect(
-    getXAxisColumn({
-      datasource: '123',
-      viz_type: VizType.Table,
-      x_axis: ['country', 'region'] as unknown as string,
-    }),
-  ).toBe('country');
 });
 
 test('getXAxisColumn returns DTTM_ALIAS when only granularity_sqla is set', () => {

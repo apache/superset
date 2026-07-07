@@ -113,11 +113,7 @@ interface UseDrillDownStateResult {
    * Push a new level onto the drill stack. Called from the chart's click
    * handler with the filters that identify the clicked data point.
    */
-  drillDown: (
-    filters: BinaryQueryObjectFilterClause[],
-    label: string,
-    options?: { groupbyFieldName?: string; adhocFilterFieldName?: string },
-  ) => void;
+  drillDown: (filters: BinaryQueryObjectFilterClause[], label: string) => void;
   /** Truncate the drill stack to the given depth (0 = back to start) */
   resetTo: (depth: number) => void;
   /** Reset to base data (depth 0) */
@@ -198,21 +194,14 @@ export function useDrillDownState({
   const hierarchy = useMemo<string[]>(() => {
     const fd = formData as Record<string, unknown>;
 
-    // Option 1: x_axis is an array (multi-column, the new UX)
-    const xAxis = fd.x_axis ?? fd.xAxis;
-    if (Array.isArray(xAxis) && xAxis.length > 1) {
-      return xAxis as string[];
-    }
-
-    // Option 2: explicit drilldown_hierarchy field (legacy/separate control)
+    // The drill-down hierarchy is defined via the `drilldown_hierarchy` field
+    // on the chart's form_data — an ordered list of column names representing
+    // the levels to drill through. The first entry is the initial grouping
+    // column shown at the base level.
     const drillLevels = ensureIsArray(
       fd[HIERARCHY_FIELD] ?? fd[HIERARCHY_FIELD_CAMEL],
     ) as string[];
-    if (drillLevels.length > 0) {
-      const xAxisStr = typeof xAxis === 'string' ? xAxis : undefined;
-      if (xAxisStr && !drillLevels.includes(xAxisStr)) {
-        return [xAxisStr, ...drillLevels];
-      }
+    if (drillLevels.length > 1) {
       return drillLevels;
     }
 

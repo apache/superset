@@ -28,6 +28,8 @@ import {
   QueryData,
   QueryFormData,
   BinaryQueryObjectFilterClause,
+  FeatureFlag,
+  isFeatureEnabled,
 } from '@superset-ui/core';
 import { css } from '@apache-superset/core/theme';
 import { useDrillDownState } from './useDrillDownState';
@@ -164,7 +166,7 @@ export function DrillDownHost({
     }
   }, [drillStack.length]);
 
-  if (!hasHierarchy) {
+  if (!hasHierarchy || !isFeatureEnabled(FeatureFlag.DrillDownHierarchy)) {
     return <ChartRendererComponent {...rendererProps} />;
   }
 

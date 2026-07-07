@@ -73,7 +73,8 @@ test('hierarchy is empty when x_axis is a single string with no drilldown_hierar
 test('hierarchy is built from x_axis array with 2+ items', () => {
   const formData = {
     ...baseFormData,
-    x_axis: ['country', 'region', 'city'],
+    x_axis: 'country',
+    drilldown_hierarchy: ['country', 'region', 'city'],
   };
 
   const { result } = renderHook(() =>
@@ -108,7 +109,8 @@ test('hierarchy is built from drilldown_hierarchy field', () => {
 test('drillDown() pushes a level onto the stack', async () => {
   const formData = {
     ...baseFormData,
-    x_axis: ['country', 'region', 'city'],
+    x_axis: 'country',
+    drilldown_hierarchy: ['country', 'region', 'city'],
   };
 
   const { result } = renderHook(() =>
@@ -134,7 +136,8 @@ test('drillDown() pushes a level onto the stack', async () => {
 test('drillDown() at last level sets selectedLeaf instead of pushing', () => {
   const formData = {
     ...baseFormData,
-    x_axis: ['country', 'region'],
+    x_axis: 'country',
+    drilldown_hierarchy: ['country', 'region'],
   };
 
   const { result } = renderHook(() =>
@@ -166,7 +169,8 @@ test('drillDown() at last level sets selectedLeaf instead of pushing', () => {
 test('resetTo(0) clears the stack', () => {
   const formData = {
     ...baseFormData,
-    x_axis: ['country', 'region', 'city'],
+    x_axis: 'country',
+    drilldown_hierarchy: ['country', 'region', 'city'],
   };
 
   const { result } = renderHook(() =>
@@ -194,7 +198,8 @@ test('resetTo(0) clears the stack', () => {
 test('effectiveFormData swaps x_axis when drilling', () => {
   const formData = {
     ...baseFormData,
-    x_axis: ['country', 'region', 'city'],
+    x_axis: 'country',
+    drilldown_hierarchy: ['country', 'region', 'city'],
     groupby: [],
   };
 
@@ -217,7 +222,8 @@ test('effectiveFormData swaps x_axis when drilling', () => {
 test('effectiveFormData adds adhoc_filters from drill stack', () => {
   const formData = {
     ...baseFormData,
-    x_axis: ['country', 'region', 'city'],
+    x_axis: 'country',
+    drilldown_hierarchy: ['country', 'region', 'city'],
     groupby: [],
     adhoc_filters: [
       {
@@ -285,7 +291,8 @@ test('effectiveFormData swaps groupby when chart uses groupby', () => {
 test('fetches data when drilling and returns it as effectiveQueriesResponse', async () => {
   const formData = {
     ...baseFormData,
-    x_axis: ['country', 'region', 'city'],
+    x_axis: 'country',
+    drilldown_hierarchy: ['country', 'region', 'city'],
     groupby: [],
     adhoc_filters: [],
   };
@@ -318,7 +325,8 @@ test('fetches data when drilling and returns it as effectiveQueriesResponse', as
 test('drill state survives a remount (persisted per chart id)', async () => {
   const formData = {
     ...baseFormData,
-    x_axis: ['country', 'region', 'city'],
+    x_axis: 'country',
+    drilldown_hierarchy: ['country', 'region', 'city'],
   };
 
   const first = renderHook(() =>
@@ -353,7 +361,8 @@ test('drill state survives a remount (persisted per chart id)', async () => {
 test('reconfiguring the chart (viz type change) clears persisted drill state', async () => {
   const formData = {
     ...baseFormData,
-    x_axis: ['country', 'region', 'city'],
+    x_axis: 'country',
+    drilldown_hierarchy: ['country', 'region', 'city'],
   };
 
   const { result, rerender } = renderHook(
