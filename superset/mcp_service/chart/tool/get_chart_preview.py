@@ -1432,6 +1432,10 @@ async def get_chart_preview(
     """Get chart preview by ID or UUID.
 
     Returns preview URL or formatted content (ascii, table, vega_lite).
+
+    When format includes 'url', the returned preview_url uses the same scheme
+    as the configured instance URL (HTTPS in production/staging, HTTP in local
+    development).
     """
     await ctx.info(
         "Starting chart preview generation: identifier=%s, format=%s, width=%s, "

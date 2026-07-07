@@ -120,5 +120,8 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "dependencies": {
+    "lodash-es": "^4.18.1"
   }
 }

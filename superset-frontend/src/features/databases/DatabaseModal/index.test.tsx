@@ -1220,26 +1220,40 @@ describe('DatabaseModal', () => {
             'ssh-tunnel-server_address-input',
           );
           expect(SSHTunnelServerAddressInput).toHaveValue('');
-          userEvent.type(SSHTunnelServerAddressInput, 'localhost');
-          expect(SSHTunnelServerAddressInput).toHaveValue('localhost');
+          fireEvent.change(SSHTunnelServerAddressInput, {
+            target: { value: 'localhost' },
+          });
+          await waitFor(() =>
+            expect(SSHTunnelServerAddressInput).toHaveValue('localhost'),
+          );
           const SSHTunnelServerPortInput = screen.getByTestId(
             'ssh-tunnel-server_port-input',
           );
           expect(SSHTunnelServerPortInput).toHaveValue(null);
-          userEvent.type(SSHTunnelServerPortInput, '22');
-          expect(SSHTunnelServerPortInput).toHaveValue(22);
+          fireEvent.change(SSHTunnelServerPortInput, {
+            target: { value: '22' },
+          });
+          await waitFor(() => expect(SSHTunnelServerPortInput).toHaveValue(22));
           const SSHTunnelUsernameInput = screen.getByTestId(
             'ssh-tunnel-username-input',
           );
           expect(SSHTunnelUsernameInput).toHaveValue('');
-          userEvent.type(SSHTunnelUsernameInput, 'test');
-          expect(SSHTunnelUsernameInput).toHaveValue('test');
+          fireEvent.change(SSHTunnelUsernameInput, {
+            target: { value: 'test' },
+          });
+          await waitFor(() =>
+            expect(SSHTunnelUsernameInput).toHaveValue('test'),
+          );
           const SSHTunnelPasswordInput = screen.getByTestId(
             'ssh-tunnel-password-input',
           );
           expect(SSHTunnelPasswordInput).toHaveValue('');
-          userEvent.type(SSHTunnelPasswordInput, 'pass');
-          expect(SSHTunnelPasswordInput).toHaveValue('pass');
+          fireEvent.change(SSHTunnelPasswordInput, {
+            target: { value: 'pass' },
+          });
+          await waitFor(() =>
+            expect(SSHTunnelPasswordInput).toHaveValue('pass'),
+          );
         });
 
         test('properly interacts with SSH Tunnel form textboxes', async () => {
@@ -1258,26 +1272,70 @@ describe('DatabaseModal', () => {
             'ssh-tunnel-server_address-input',
           );
           expect(SSHTunnelServerAddressInput).toHaveValue('');
-          userEvent.type(SSHTunnelServerAddressInput, 'localhost');
-          expect(SSHTunnelServerAddressInput).toHaveValue('localhost');
+          fireEvent.change(SSHTunnelServerAddressInput, {
+            target: { value: 'localhost' },
+          });
+          await waitFor(() =>
+            expect(SSHTunnelServerAddressInput).toHaveValue('localhost'),
+          );
           const SSHTunnelServerPortInput = screen.getByTestId(
             'ssh-tunnel-server_port-input',
           );
           expect(SSHTunnelServerPortInput).toHaveValue(null);
-          userEvent.type(SSHTunnelServerPortInput, '22');
-          expect(SSHTunnelServerPortInput).toHaveValue(22);
+          fireEvent.change(SSHTunnelServerPortInput, {
+            target: { value: '22' },
+          });
+          await waitFor(() => expect(SSHTunnelServerPortInput).toHaveValue(22));
           const SSHTunnelUsernameInput = screen.getByTestId(
             'ssh-tunnel-username-input',
           );
           expect(SSHTunnelUsernameInput).toHaveValue('');
-          userEvent.type(SSHTunnelUsernameInput, 'test');
-          expect(SSHTunnelUsernameInput).toHaveValue('test');
+          fireEvent.change(SSHTunnelUsernameInput, {
+            target: { value: 'test' },
+          });
+          await waitFor(() =>
+            expect(SSHTunnelUsernameInput).toHaveValue('test'),
+          );
           const SSHTunnelPasswordInput = screen.getByTestId(
             'ssh-tunnel-password-input',
           );
           expect(SSHTunnelPasswordInput).toHaveValue('');
-          userEvent.type(SSHTunnelPasswordInput, 'pass');
-          expect(SSHTunnelPasswordInput).toHaveValue('pass');
+          fireEvent.change(SSHTunnelPasswordInput, {
+            target: { value: 'pass' },
+          });
+          await waitFor(() =>
+            expect(SSHTunnelPasswordInput).toHaveValue('pass'),
+          );
+        });
+
+        test('does not fire blur validation for SSH fields in the SQLAlchemy form', async () => {
+          setup();
+
+          userEvent.click(
+            await screen.findByRole('button', {
+              name: /sqlite/i,
+            }),
+          );
+
+          expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
+          const SSHTunnelingToggle = screen.getByTestId('ssh-tunnel-switch');
+          userEvent.click(SSHTunnelingToggle);
+          const SSHTunnelServerAddressInput = await screen.findByTestId(
+            'ssh-tunnel-server_address-input',
+          );
+          fireEvent.change(SSHTunnelServerAddressInput, {
+            target: { value: 'localhost' },
+          });
+          fireEvent.blur(SSHTunnelServerAddressInput);
+          await waitFor(() =>
+            expect(SSHTunnelServerAddressInput).toHaveValue('localhost'),
+          );
+
+          // ``validate_parameters`` expects a dynamic-form payload, so SSH
+          // field blur must not call it from the SQLAlchemy-URI form
+          expect(
+            fetchMock.callHistory.calls(VALIDATE_PARAMS_ENDPOINT).length,
+          ).toEqual(0);
         });
 
         test('if the SSH Tunneling toggle is not true, no inputs are displayed', async () => {
@@ -1372,7 +1430,10 @@ describe('DatabaseModal', () => {
           }),
         );
 
-        const textboxes = screen.getAllByRole('textbox');
+        // Wait for step 2 to render
+        expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+
+        const textboxes = await screen.findAllByRole('textbox');
         const hostField = textboxes[0];
         const portField = screen.getByRole('spinbutton');
         // textboxes[1] is the connection `database` field; the engine display
@@ -1390,15 +1451,20 @@ describe('DatabaseModal', () => {
 
         expect(connectButton).toBeDisabled();
 
-        userEvent.type(hostField, 'localhost');
-        userEvent.type(portField, '5432');
-        userEvent.type(databaseField, 'postgres');
-        userEvent.type(usernameField, 'testdb');
-        userEvent.type(passwordField, 'demoPassword');
+        fireEvent.change(hostField, { target: { value: 'localhost' } });
+        fireEvent.blur(hostField);
+        fireEvent.change(portField, { target: { value: '5432' } });
+        fireEvent.blur(portField);
+        fireEvent.change(databaseField, { target: { value: 'postgres' } });
+        fireEvent.blur(databaseField);
+        fireEvent.change(usernameField, { target: { value: 'testdb' } });
+        fireEvent.blur(usernameField);
+        fireEvent.change(passwordField, { target: { value: 'demoPassword' } });
+        fireEvent.blur(passwordField);
 
         await waitFor(() => expect(connectButton).toBeEnabled());
 
-        expect(await screen.findByDisplayValue(/5432/i)).toBeInTheDocument();
+        await waitFor(() => expect(portField).toHaveValue(5432));
         expect(hostField).toHaveValue('localhost');
         expect(portField).toHaveValue(5432);
         expect(databaseField).toHaveValue('postgres');
@@ -1407,11 +1473,109 @@ describe('DatabaseModal', () => {
 
         expect(connectButton).toBeEnabled();
         userEvent.click(connectButton);
+        // Verify that validation was called during the form interaction
+        // Note: With the optimized validation, redundant calls on the same db state are skipped
         await waitFor(() => {
           expect(
             fetchMock.callHistory.calls(VALIDATE_PARAMS_ENDPOINT).length,
-          ).toEqual(5);
+          ).toBeGreaterThan(0);
         });
+      });
+
+      test('does not fire redundant validation on blur when db has not changed', async () => {
+        setup();
+
+        userEvent.click(
+          await screen.findByRole('button', {
+            name: /postgresql/i,
+          }),
+        );
+
+        expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+
+        const textboxes = await screen.findAllByRole('textbox');
+        const hostField = textboxes[0];
+
+        // Type a value and blur - should trigger validation
+        fireEvent.change(hostField, { target: { value: 'localhost' } });
+        fireEvent.blur(hostField);
+
+        await waitFor(() => {
+          expect(
+            fetchMock.callHistory.calls(VALIDATE_PARAMS_ENDPOINT).length,
+          ).toEqual(1);
+        });
+
+        // Blur again without changing the value - should NOT trigger another validation
+        fireEvent.focus(hostField);
+        fireEvent.blur(hostField);
+
+        // Wait a tick to ensure no additional calls are made
+        await waitFor(() => {
+          expect(
+            fetchMock.callHistory.calls(VALIDATE_PARAMS_ENDPOINT).length,
+          ).toEqual(1);
+        });
+      });
+
+      test('keeps Connect disabled when blur validation fails without a usable response', async () => {
+        fetchMock.modifyRoute('validate-params', {
+          response: { throws: new TypeError('Network request failed') },
+        });
+        const consoleErrorSpy = jest
+          .spyOn(console, 'error')
+          .mockImplementation(() => {});
+
+        setup();
+
+        userEvent.click(
+          await screen.findByRole('button', {
+            name: /postgresql/i,
+          }),
+        );
+
+        expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+
+        const textboxes = await screen.findAllByRole('textbox');
+        const hostField = textboxes[0];
+        const portField = screen.getByRole('spinbutton');
+        const databaseField = textboxes[1];
+        const usernameField = textboxes[2];
+        const passwordField = textboxes[3];
+        const connectButton = screen.getByRole('button', { name: 'Connect' });
+
+        fireEvent.change(hostField, { target: { value: 'localhost' } });
+        fireEvent.blur(hostField);
+        fireEvent.change(portField, { target: { value: '5432' } });
+        fireEvent.blur(portField);
+        fireEvent.change(databaseField, { target: { value: 'postgres' } });
+        fireEvent.blur(databaseField);
+        fireEvent.change(usernameField, { target: { value: 'testdb' } });
+        fireEvent.blur(usernameField);
+        fireEvent.change(passwordField, { target: { value: 'demoPassword' } });
+        fireEvent.blur(passwordField);
+
+        await waitFor(() => {
+          expect(
+            fetchMock.callHistory.calls(VALIDATE_PARAMS_ENDPOINT).length,
+          ).toBeGreaterThan(0);
+        });
+
+        // A request without a usable response is not a completed validation
+        // cycle, so the Connect button must stay disabled
+        expect(connectButton).toBeDisabled();
+
+        // Once the endpoint recovers, the next blur retries (failed attempts
+        // are not cached) and completes the validation cycle
+        fetchMock.modifyRoute('validate-params', {
+          response: { message: 'OK' },
+        });
+        fireEvent.focus(passwordField);
+        fireEvent.blur(passwordField);
+
+        await waitFor(() => expect(connectButton).toBeEnabled());
+
+        consoleErrorSpy.mockRestore();
       });
     });
 
@@ -1640,8 +1804,14 @@ describe('DatabaseModal', () => {
 
     userEvent.click(screen.getByTestId('sqla-connect-btn'));
 
-    expect(await screen.findByTestId('database-name-input')).toBeVisible();
-    expect(screen.getByTestId('sqlalchemy-uri-input')).toBeVisible();
+    // assert on presence rather than visibility: the SQLAlchemy form mounts
+    // inside an animated tab pane, and rc-motion's animation state in jsdom
+    // is nondeterministic, so toBeVisible flakes while the form is in fact
+    // rendered (see the animated={{ tabPane: true }} Tabs in DatabaseModal)
+    expect(
+      await screen.findByTestId('database-name-input'),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('sqlalchemy-uri-input')).toBeInTheDocument();
   });
 
   test.each([

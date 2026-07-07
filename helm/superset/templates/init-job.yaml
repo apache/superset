@@ -24,13 +24,7 @@ metadata:
   name: {{ template "superset.fullname" . }}-init-db
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "superset.name" . }}
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
-    {{- if .Values.extraLabels }}
-      {{- toYaml .Values.extraLabels | nindent 4 }}
-    {{- end }}
+    {{- include "superset.componentLabels" (dict "component" "init" "root" .) | nindent 4 }}
   {{- if .Values.init.jobAnnotations }}
   annotations: {{- toYaml .Values.init.jobAnnotations | nindent 4 }}
   {{- end }}
@@ -42,9 +36,7 @@ spec:
       annotations: {{- toYaml .Values.init.podAnnotations | nindent 8 }}
       {{- end }}
       labels:
-        app: {{ template "superset.name" . }}
-        chart: {{ template "superset.chart" . }}
-        release: {{ .Release.Name }}
+        {{- include "superset.componentSelectorLabels" (dict "component" "init" "root" .) | nindent 8 }}
         job: {{ template "superset.fullname" . }}-init-db
         {{- if .Values.extraLabels }}
           {{- toYaml .Values.extraLabels | nindent 8 }}

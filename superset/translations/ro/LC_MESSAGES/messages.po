@@ -12046,8 +12046,18 @@ msgstr ""
 "Standardul codului de țară pe care Superset ar trebui să-l găsească în "
 "coloana [country]"
 
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+
 msgid "The dashboard has been saved"
 msgstr "Panoul de control a fost salvat"
+
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
+msgstr ""
 
 msgid "The data source seems to have been deleted"
 msgstr "Sursa de date pare să fi fost ștearsă"

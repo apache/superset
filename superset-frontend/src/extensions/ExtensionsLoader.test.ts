@@ -23,6 +23,19 @@ import ExtensionsLoader from './ExtensionsLoader';
 
 type Extension = core.Extension;
 
+const mockApplicationRoot = jest.fn<string, []>(() => '');
+
+jest.mock('src/utils/getBootstrapData', () => {
+  const actual = jest.requireActual<
+    typeof import('src/utils/getBootstrapData')
+  >('src/utils/getBootstrapData');
+  return {
+    __esModule: true,
+    ...actual,
+    applicationRoot: () => mockApplicationRoot(),
+  };
+});
+
 function createMockExtension(overrides: Partial<Extension> = {}): Extension {
   return {
     id: 'test-extension',
@@ -37,7 +50,38 @@ function createMockExtension(overrides: Partial<Extension> = {}): Extension {
 
 beforeEach(() => {
   (ExtensionsLoader as any).instance = undefined;
+  mockApplicationRoot.mockReturnValue('');
 });
+
+/**
+ * Capture the src attribute of the remote-entry script element and trigger
+ * its onerror handler so loadModule short-circuits without webpack module
+ * federation globals.
+ */
+function captureRemoteEntryScript(): {
+  getSrc: () => string | null;
+  restore: () => void;
+} {
+  let capturedSrc: string | null = null;
+  const appendChildSpy = jest
+    .spyOn(document.head, 'appendChild')
+    .mockImplementation((element: Node) => {
+      if (element instanceof HTMLScriptElement) {
+        capturedSrc = element.getAttribute('src');
+        if (element.onerror) {
+          const errorHandler = element.onerror;
+          setTimeout(() => {
+            errorHandler('Script load halted by test');
+          }, 0);
+        }
+      }
+      return element;
+    });
+  return {
+    getSrc: () => capturedSrc,
+    restore: () => appendChildSpy.mockRestore(),
+  };
+}
 
 test('creates a singleton instance', () => {
   const instance1 = ExtensionsLoader.getInstance();
@@ -124,6 +168,70 @@ test('logs success after initializeExtensions completes', async () => {
   expect(infoSpy).toHaveBeenCalledWith('Extensions initialized successfully.');
 
   infoSpy.mockRestore();
+});
+
+// Subdirectory regression (gap review 2026-06-10): the backend emits a
+// router-relative remoteEntry URL; assigning it raw to `script.src` resolved
+// it against the domain root, 404ing every extension under a subdirectory
+// deployment.
+test('prefixes a router-relative remoteEntry with the application root', async () => {
+  mockApplicationRoot.mockReturnValue('/superset');
+  const loader = ExtensionsLoader.getInstance();
+  const errorSpy = jest.spyOn(logging, 'error').mockImplementation();
+  const script = captureRemoteEntryScript();
+
+  await loader.initializeExtension(
+    createMockExtension({
+      id: 'sub-ext',
+      remoteEntry: '/api/v1/extensions/pub/sub-ext/remoteEntry.js',
+    }),
+  );
+
+  expect(script.getSrc()).toBe(
+    '/superset/api/v1/extensions/pub/sub-ext/remoteEntry.js',
+  );
+
+  errorSpy.mockRestore();
+  script.restore();
+});
+
+test('leaves the remoteEntry unprefixed on root deployments', async () => {
+  const loader = ExtensionsLoader.getInstance();
+  const errorSpy = jest.spyOn(logging, 'error').mockImplementation();
+  const script = captureRemoteEntryScript();
+
+  await loader.initializeExtension(
+    createMockExtension({
+      id: 'root-ext',
+      remoteEntry: '/api/v1/extensions/pub/root-ext/remoteEntry.js',
+    }),
+  );
+
+  expect(script.getSrc()).toBe(
+    '/api/v1/extensions/pub/root-ext/remoteEntry.js',
+  );
+
+  errorSpy.mockRestore();
+  script.restore();
+});
+
+test('passes an absolute remoteEntry URL through unchanged', async () => {
+  mockApplicationRoot.mockReturnValue('/superset');
+  const loader = ExtensionsLoader.getInstance();
+  const errorSpy = jest.spyOn(logging, 'error').mockImplementation();
+  const script = captureRemoteEntryScript();
+
+  await loader.initializeExtension(
+    createMockExtension({
+      id: 'cdn-ext',
+      remoteEntry: 'https://cdn.example.com/remoteEntry.js',
+    }),
+  );
+
+  expect(script.getSrc()).toBe('https://cdn.example.com/remoteEntry.js');
+
+  errorSpy.mockRestore();
+  script.restore();
 });
 
 test('logs error when initializeExtensions fails', async () => {

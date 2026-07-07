@@ -245,7 +245,7 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
           />
         }
       />
-      <TabTitle>{qe.name}</TabTitle>{' '}
+      <TabTitle data-test="sql-editor-tab-title">{qe.name}</TabTitle>{' '}
       <StatusIcon
         className="status-icon"
         iconSize="m"

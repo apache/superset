@@ -968,11 +968,9 @@ test('should apply dashed line style to time comparison series with single metri
   const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
   const mainSeries = series.find(s => s.name === 'sum__num') as
-    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
-    | undefined;
+    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
   const comparisonSeries = series.find(s => s.name === '1 week ago') as
-    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
-    | undefined;
+    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
 
   expect(mainSeries).toBeDefined();
   expect(comparisonSeries).toBeDefined();
@@ -1013,13 +1011,11 @@ test('should apply dashed line style to time comparison series with metric__offs
   const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
   const mainSeries = series.find(s => s.name === 'sum__num') as
-    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
-    | undefined;
+    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
   const comparisonSeries = series.find(
     s => s.name === 'sum__num__1 week ago',
   ) as
-    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
-    | undefined;
+    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
 
   expect(mainSeries).toBeDefined();
   expect(comparisonSeries).toBeDefined();
@@ -1051,8 +1047,7 @@ test('should apply connectNulls to time comparison series', () => {
   const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
   const comparisonSeries = series.find(s => s.name === '1 week ago') as
-    | (SeriesOption & { connectNulls?: boolean })
-    | undefined;
+    (SeriesOption & { connectNulls?: boolean }) | undefined;
 
   expect(comparisonSeries).toBeDefined();
   expect(comparisonSeries?.connectNulls).toBe(true);
@@ -1571,6 +1566,47 @@ test('xAxisForceCategorical forces Category axis regardless of Numeric coltype',
 
   expect(xAxis.type).toBe(AxisType.Category);
   expect(xAxis.triggerEvent).toBe(true);
+});
+
+test('temporal x coltype forced categorical yields a Category axis with date labels', () => {
+  // Issue #28204: with a temporal x-axis (e.g. weekly grain) the default Time
+  // scale places ticks at "nice" intervals that don't line up with the buckets.
+  // Forcing categorical maps each bucket to a discrete, tick-aligned category
+  // while still formatting the labels as dates rather than raw timestamps.
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['metric'],
+      granularity_sqla: 'ds',
+      x_axis: '__timestamp',
+      xAxisForceCategorical: true,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          { __timestamp: ts1, metric: 10 },
+          { __timestamp: ts2, metric: 20 },
+        ],
+        {
+          colnames: ['__timestamp', 'metric'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+        },
+      ),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as {
+    type: string;
+    axisLabel: { formatter: (v: Date) => string };
+  };
+
+  expect(xAxis.type).toBe(AxisType.Category);
+  const label = xAxis.axisLabel.formatter(new Date(ts1));
+  expect(typeof label).toBe('string');
+  expect(label).not.toMatch(/NaN/);
+  expect(label).not.toBe(String(ts1));
 });
 
 test('temporal x coltype wires the time formatter and Time axis', () => {
