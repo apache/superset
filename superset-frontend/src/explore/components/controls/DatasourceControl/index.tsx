@@ -52,6 +52,7 @@ import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { safeStringify } from 'src/utils/safeStringify';
 import { datasetLabelLower } from 'src/features/semanticLayers/label';
 import { Link } from 'react-router-dom';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 // Extended Datasource interface with all properties used in this component
 interface ExtendedDatasource extends Datasource {
@@ -341,8 +342,9 @@ export default function DatasourceControl({
     }
   }
 
+  const userSubjects = getBootstrapData()?.common?.user_subjects ?? [];
   const allowEdit =
-    datasource.editors?.map(o => o.id || o.value).includes(user.userId) ||
+    datasource.editors?.some(o => userSubjects.includes(o.id || o.value)) ||
     isUserAdmin(user);
 
   const canAccessSqlLab = userHasPermission(user, 'SQL Lab', 'menu_access');

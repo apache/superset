@@ -36,6 +36,7 @@ import type {
 import SupersetText from 'src/utils/textUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { User } from 'src/types/bootstrapTypes';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { RecentActivity, WelcomeTable } from 'src/features/home/types';
 import {
   SubjectSelectLabel,
@@ -276,11 +277,19 @@ const createFetchSubjects =
     handleError: (error: Response) => void,
     user?: { userId: string | number; firstName: string; lastName: string },
   ) => {
+    const currentUserSubjectId = getBootstrapData()?.common?.user_subject_id;
+    const subjectUser =
+      currentUserSubjectId === undefined || !user
+        ? undefined
+        : {
+            ...user,
+            userId: currentUserSubjectId,
+          };
     const fetchRelated = createFetchRelated(
       resource,
       relation,
       handleError,
-      user,
+      subjectUser,
     );
     return async (filterValue = '', page: number, pageSize: number) => {
       const result = await fetchRelated(filterValue, page, pageSize);

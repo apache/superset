@@ -39,6 +39,18 @@ jest.mock('@superset-ui/core', () => ({
   isFeatureEnabled: () => true,
 }));
 
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    common: {
+      conf: {},
+      feature_flags: {},
+      user_subject_id: 1,
+      user_subjects: [1],
+    },
+  })),
+}));
+
 jest.mock('src/features/databases/state.ts', () => ({
   useCommonConf: () => ({
     ALERT_REPORTS_NOTIFICATION_METHODS: ['Email', 'Slack', 'SlackV2'],
@@ -494,7 +506,7 @@ test('calls build tooltip', async () => {
       hasErrors: true,
     },
     generalSection: {
-      errors: ['name', 'editors'],
+      errors: ['name'],
       name: 'General information',
       hasErrors: true,
     },

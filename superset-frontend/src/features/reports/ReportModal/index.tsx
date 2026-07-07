@@ -51,6 +51,7 @@ import {
   NotificationFormats,
 } from 'src/features/reports/types';
 import { reportSelector } from 'src/views/CRUD/hooks';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { StyledInputContainer } from 'src/features/alerts/AlertReportModal';
 import { CreationMethod } from './HeaderReportDropdown';
 import {
@@ -112,7 +113,6 @@ function ReportModal({
   show = false,
   dashboardId,
   chart,
-  userId,
   userEmail,
   ccEmail,
   bccEmail,
@@ -127,6 +127,7 @@ function ReportModal({
   const defaultNotificationFormat = isTextBasedChart
     ? NotificationFormats.Text
     : NotificationFormats.PNG;
+  const currentUserSubjectId = getBootstrapData()?.common?.user_subject_id;
   const entityName = dashboardName || chartName;
   const initialState: ReportObjectState = useMemo(
     () => ({
@@ -201,7 +202,9 @@ function ReportModal({
           editReport(currentReport.id, {
             ...commonFields,
             creation_method: creationMethod,
-            editors: [userId],
+            ...(currentUserSubjectId === undefined
+              ? {}
+              : { editors: [currentUserSubjectId] }),
             recipients: [
               {
                 recipient_config_json: {

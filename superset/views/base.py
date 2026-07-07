@@ -472,6 +472,19 @@ def _get_user_subjects(user_id: int | None) -> list[int]:
         return []
 
 
+def _get_user_subject_id(user_id: int | None) -> int | None:
+    """Return the USER-type subject ID for the current user."""
+    if user_id is None:
+        return None
+    try:
+        from superset.subjects.utils import get_user_subject
+
+        subject = get_user_subject(user_id)
+        return subject.id if subject else None
+    except Exception:  # noqa: S110
+        return None
+
+
 def _get_frontend_config_value(key: str) -> Any:
     """Get frontend config value, converting sets to lists for JSON compatibility."""
     val = app.config.get(key)
@@ -577,6 +590,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         ],
         "menu_data": menu_data(g.user),
         "pdf_compression_level": app.config["PDF_COMPRESSION_LEVEL"],
+        "user_subject_id": _get_user_subject_id(user_id),
         "user_subjects": _get_user_subjects(user_id),
     }
 

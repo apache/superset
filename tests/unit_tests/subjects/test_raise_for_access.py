@@ -272,6 +272,10 @@ def test_raise_for_access_datasource_chart_viewer_promiscuous(app_context, monke
         patch.object(sm, "can_access", return_value=False),
         patch.object(sm, "is_editor", return_value=False),
         patch.object(sm, "is_viewer", return_value=True),
+        patch(
+            "superset.is_feature_enabled",
+            side_effect=lambda flag: flag == "ENABLE_VIEWERS",
+        ),
         patch.object(
             type(sm), "session", new_callable=PropertyMock, return_value=mock_session
         ),
@@ -303,6 +307,10 @@ def test_raise_for_access_datasource_chart_editor_promiscuous(app_context, monke
         patch.object(sm, "can_access", return_value=False),
         patch.object(sm, "is_editor", side_effect=lambda resource: resource is chart),
         patch.object(sm, "is_viewer", return_value=False),
+        patch(
+            "superset.is_feature_enabled",
+            side_effect=lambda flag: flag == "ENABLE_VIEWERS",
+        ),
         patch.object(
             type(sm), "session", new_callable=PropertyMock, return_value=mock_session
         ),

@@ -44,6 +44,19 @@ import {
   getDeleteRouteName,
 } from './DatasetList.testHelpers';
 
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    common: {
+      conf: {},
+      feature_flags: {},
+      user_subjects: [1],
+    },
+  })),
+  applicationRoot: jest.fn(() => ''),
+  staticAssetsPrefix: jest.fn(() => ''),
+}));
+
 const mockAddDangerToast = jest.fn();
 const mockAddSuccessToast = jest.fn();
 

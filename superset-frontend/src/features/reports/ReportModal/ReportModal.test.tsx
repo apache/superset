@@ -26,7 +26,24 @@ import {
 } from 'spec/helpers/testing-library';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { FeatureFlag, VizType, isFeatureEnabled } from '@superset-ui/core';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import ReportModal from '.';
+
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    common: {
+      conf: {},
+      feature_flags: {},
+      user_subject_id: 99,
+      user_subjects: [99],
+    },
+  })),
+}));
+
+const mockedGetBootstrapData = getBootstrapData as jest.MockedFunction<
+  typeof getBootstrapData
+>;
 
 const REPORT_ENDPOINT = 'glob:*/api/v1/report*';
 fetchMock.get(REPORT_ENDPOINT, {});
@@ -59,6 +76,14 @@ jest.mock('@superset-ui/core', () => ({
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 beforeEach(() => {
+  mockedGetBootstrapData.mockReturnValue({
+    common: {
+      conf: {},
+      feature_flags: {},
+      user_subject_id: 99,
+      user_subjects: [99],
+    },
+  } as ReturnType<typeof getBootstrapData>);
   mockedIsFeatureEnabled.mockImplementation(
     featureFlag => featureFlag === FeatureFlag.AlertReports,
   );
@@ -305,10 +330,74 @@ test('edit mode dispatches editReport via PUT on save', async () => {
   expect(body.crontab).toBe('0 12 * * 1');
   expect(body.report_format).toBe('PNG');
   expect(body.dashboard).toBe(1);
+  expect(body.editors).toEqual([99]);
   expect(body.recipients).toBeDefined();
   expect(body.recipients[0].type).toBe('Email');
 
   fetchMock.removeRoute('put-report-42');
+});
+
+test('edit mode does not fall back to user id when subject id is unavailable', async () => {
+  mockedGetBootstrapData.mockReturnValue({
+    common: {
+      conf: {},
+      feature_flags: {},
+      user_subjects: [],
+    },
+  } as ReturnType<typeof getBootstrapData>);
+
+  const existingReport = {
+    id: 43,
+    name: 'Existing Report',
+    description: '',
+    crontab: '0 12 * * 1',
+    creation_method: 'dashboards',
+    report_format: 'PNG',
+    timezone: 'America/New_York',
+    active: true,
+    type: 'Report',
+    dashboard: 1,
+    editors: [99],
+    recipients: [
+      {
+        recipient_config_json: { target: 'test@test.com' },
+        type: 'Email',
+      },
+    ],
+  };
+  const store = createStore(
+    {
+      reports: {
+        dashboards: { 1: existingReport },
+      },
+    },
+    reducerIndex,
+  );
+
+  fetchMock.put(
+    'glob:*/api/v1/report/43',
+    { id: 43, result: {} },
+    {
+      name: 'put-report-43',
+    },
+  );
+
+  render(<ReportModal {...defaultProps} userId={1} />, { useRedux: true, store });
+
+  const saveButton = screen.getByRole('button', { name: /save/i });
+  await waitFor(() => userEvent.click(saveButton));
+
+  await waitFor(() => {
+    const calls = fetchMock.callHistory.calls('put-report-43');
+    expect(calls.length).toBeGreaterThan(0);
+  });
+
+  const calls = fetchMock.callHistory.calls('put-report-43');
+  const body = JSON.parse(calls[calls.length - 1].options.body as string);
+
+  expect(body.editors).toBeUndefined();
+
+  fetchMock.removeRoute('put-report-43');
 });
 
 test('submit failure dispatches danger toast and keeps modal open', async () => {

@@ -529,7 +529,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const currentUser = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
-  const currentUserSubjectId = getBootstrapData()?.common?.user_subjects?.[0];
+  const currentUserSubjectId = getBootstrapData()?.common?.user_subject_id;
   // Check config for alternate notification methods setting
   const conf = useCommonConf();
   const allowedNotificationMethods: NotificationMethodOption[] =
