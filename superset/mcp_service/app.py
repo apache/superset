@@ -133,7 +133,7 @@ Dashboard Management:
 - update_dashboard: Update an existing dashboard's title/description/slug/published/layout/theme/CSS (requires write access; ownership-checked per-instance)
 - duplicate_dashboard: Duplicate an existing dashboard, optionally deep-copying its charts (requires write access)
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
-- delete_dashboard: Permanently delete a dashboard by ID/UUID/slug (requires ownership; destructive; does not delete its charts)
+- delete_dashboard: Delete a dashboard by ID/UUID/slug (requires ownership; destructive; does not delete its charts; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
 - manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select and filter_time)
 - remove_chart_from_dashboard: Remove a chart from an existing dashboard (requires write access)
 
@@ -182,7 +182,7 @@ Chart Management:
 - generate_explore_link: Create an interactive explore URL (preferred for exploration)
 - update_chart: Update existing saved chart configuration (requires write access)
 - update_chart_preview: Update cached chart preview without saving (requires write access)
-- delete_chart: Permanently delete a chart by ID/UUID (requires ownership; destructive)
+- delete_chart: Delete a chart by ID/UUID (requires ownership; destructive; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
 
 SQL Lab Integration:
 - execute_sql: Execute SQL queries and get results (requires database_id and SQL access)

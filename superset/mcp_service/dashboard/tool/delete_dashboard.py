@@ -26,6 +26,7 @@ from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset import is_feature_enabled
 from superset.commands.dashboard.exceptions import (
     DashboardDeleteFailedReportsExistError,
     DashboardForbiddenError,
@@ -71,6 +72,15 @@ def _rollback() -> None:
         )
 
 
+def _routes_to_soft_delete() -> bool:
+    """Mirror the ``BaseDAO.delete`` routing predicate so the response can
+    report whether the row was trashed (restorable) or permanently removed."""
+    from superset.models.dashboard import Dashboard
+    from superset.models.helpers import SoftDeleteMixin
+
+    return issubclass(Dashboard, SoftDeleteMixin) and is_feature_enabled("SOFT_DELETE")
+
+
 @tool(
     tags=["mutate"],
     class_permission_name="Dashboard",
@@ -83,13 +93,15 @@ def _rollback() -> None:
 async def delete_dashboard(
     request: DeleteDashboardRequest, ctx: Context
 ) -> DeleteDashboardResponse:
-    """Permanently delete a dashboard.
+    """Delete a dashboard.
 
-    Identify the dashboard by numeric ID, UUID string, or slug. This is
-    destructive and cannot be undone. It removes the dashboard container only —
-    the charts on it are NOT deleted. The caller must own the dashboard (or be
-    an Admin); dashboards with attached alerts/reports cannot be deleted until
-    those are removed.
+    Identify the dashboard by numeric ID, UUID string, or slug. When the
+    ``SOFT_DELETE`` feature flag is enabled the dashboard is moved to trash and
+    can be restored by an owner or Admin; otherwise the delete is permanent and
+    cannot be undone. The ``soft_deleted`` response field reports which
+    happened. It removes the dashboard container only — the charts on it are
+    NOT deleted. The caller must own the dashboard (or be an Admin); dashboards
+    with attached alerts/reports cannot be deleted until those are removed.
 
     Example:
     ```json
@@ -120,14 +132,24 @@ async def delete_dashboard(
         with event_logger.log_context(action="mcp.delete_dashboard"):
             DeleteDashboardCommand([dashboard_id]).run()
 
+        soft_deleted = _routes_to_soft_delete()
+        if soft_deleted:
+            message = (
+                f"Moved dashboard '{dashboard_name}' (id={dashboard_id}) to "
+                "trash; it can be restored by an owner or Admin. Its charts "
+                "were not deleted."
+            )
+        else:
+            message = (
+                f"Permanently deleted dashboard '{dashboard_name}' "
+                f"(id={dashboard_id}). Its charts were not deleted."
+            )
         return DeleteDashboardResponse(
             success=True,
             deleted_id=dashboard_id,
             deleted_name=dashboard_name,
-            message=(
-                f"Deleted dashboard '{dashboard_name}' (id={dashboard_id}). "
-                "Its charts were not deleted."
-            ),
+            soft_deleted=soft_deleted,
+            message=message,
         )
     except DashboardForbiddenError:
         await ctx.warning(

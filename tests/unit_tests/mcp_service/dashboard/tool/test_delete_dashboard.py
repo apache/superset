@@ -32,6 +32,7 @@ _FIND = (
     "superset.mcp_service.dashboard.tool.delete_dashboard._find_dashboard_by_identifier"
 )
 _RUN = "superset.commands.dashboard.delete.DeleteDashboardCommand.run"
+_FLAG = "superset.mcp_service.dashboard.tool.delete_dashboard.is_feature_enabled"
 
 
 @pytest.fixture
@@ -92,6 +93,51 @@ async def test_delete_dashboard_success(
     assert content["deleted_name"] == "Sales Dashboard"
     assert content["permission_denied"] is False
     mock_run.assert_called_once()
+
+
+@patch(_FLAG)
+@patch(_RUN)
+@patch(_FIND)
+@pytest.mark.asyncio
+async def test_delete_dashboard_soft_delete_reports_restorable(
+    mock_find: Mock, mock_run: Mock, mock_flag: Mock, mcp_server: object
+) -> None:
+    mock_find.return_value = _mock_dashboard(1, "Sales Dashboard")
+    mock_run.return_value = None
+    mock_flag.side_effect = lambda flag: flag == "SOFT_DELETE"
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "delete_dashboard", {"request": {"identifier": 1}}
+        )
+
+    content = result.structured_content
+    assert content["success"] is True
+    assert content["soft_deleted"] is True
+    assert "restor" in (content["message"] or "").lower()
+    assert "charts were not deleted" in (content["message"] or "")
+
+
+@patch(_FLAG)
+@patch(_RUN)
+@patch(_FIND)
+@pytest.mark.asyncio
+async def test_delete_dashboard_hard_delete_reports_permanent(
+    mock_find: Mock, mock_run: Mock, mock_flag: Mock, mcp_server: object
+) -> None:
+    mock_find.return_value = _mock_dashboard(1, "Sales Dashboard")
+    mock_run.return_value = None
+    mock_flag.return_value = False
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "delete_dashboard", {"request": {"identifier": 1}}
+        )
+
+    content = result.structured_content
+    assert content["success"] is True
+    assert content["soft_deleted"] is False
+    assert "permanent" in (content["message"] or "").lower()
 
 
 @patch(_RUN)

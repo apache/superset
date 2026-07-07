@@ -87,6 +87,46 @@ async def test_delete_chart_success(
     mock_run.assert_called_once()
 
 
+@patch("superset.mcp_service.chart.tool.delete_chart.is_feature_enabled")
+@patch("superset.commands.chart.delete.DeleteChartCommand.run")
+@patch("superset.mcp_service.chart.tool.delete_chart.find_chart_by_identifier")
+@pytest.mark.asyncio
+async def test_delete_chart_soft_delete_reports_restorable(
+    mock_find: Mock, mock_run: Mock, mock_flag: Mock, mcp_server: object
+) -> None:
+    mock_find.return_value = _mock_chart(chart_id=10, slice_name="Sales")
+    mock_run.return_value = None
+    mock_flag.side_effect = lambda flag: flag == "SOFT_DELETE"
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool("delete_chart", {"request": {"identifier": 10}})
+
+    content = result.structured_content
+    assert content["success"] is True
+    assert content["soft_deleted"] is True
+    assert "restor" in (content["message"] or "").lower()
+
+
+@patch("superset.mcp_service.chart.tool.delete_chart.is_feature_enabled")
+@patch("superset.commands.chart.delete.DeleteChartCommand.run")
+@patch("superset.mcp_service.chart.tool.delete_chart.find_chart_by_identifier")
+@pytest.mark.asyncio
+async def test_delete_chart_hard_delete_reports_permanent(
+    mock_find: Mock, mock_run: Mock, mock_flag: Mock, mcp_server: object
+) -> None:
+    mock_find.return_value = _mock_chart(chart_id=10, slice_name="Sales")
+    mock_run.return_value = None
+    mock_flag.return_value = False
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool("delete_chart", {"request": {"identifier": 10}})
+
+    content = result.structured_content
+    assert content["success"] is True
+    assert content["soft_deleted"] is False
+    assert "permanent" in (content["message"] or "").lower()
+
+
 @patch("superset.commands.chart.delete.DeleteChartCommand.run")
 @patch("superset.mcp_service.chart.tool.delete_chart.find_chart_by_identifier")
 @pytest.mark.asyncio

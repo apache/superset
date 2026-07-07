@@ -25,6 +25,7 @@ from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset import is_feature_enabled
 from superset.commands.chart.exceptions import (
     ChartDeleteFailedReportsExistError,
     ChartForbiddenError,
@@ -51,6 +52,15 @@ def _rollback() -> None:
         logger.warning("Database rollback failed during delete_chart error handling")
 
 
+def _routes_to_soft_delete() -> bool:
+    """Mirror the ``BaseDAO.delete`` routing predicate so the response can
+    report whether the row was trashed (restorable) or permanently removed."""
+    from superset.models.helpers import SoftDeleteMixin
+    from superset.models.slice import Slice
+
+    return issubclass(Slice, SoftDeleteMixin) and is_feature_enabled("SOFT_DELETE")
+
+
 @tool(
     tags=["mutate"],
     class_permission_name="Chart",
@@ -63,12 +73,14 @@ def _rollback() -> None:
 async def delete_chart(
     request: DeleteChartRequest, ctx: Context
 ) -> DeleteChartResponse:
-    """Permanently delete a saved chart.
+    """Delete a saved chart.
 
-    Identify the chart by numeric ID or UUID string (NOT chart name). This is
-    destructive and cannot be undone. The caller must own the chart (or be an
-    Admin); charts with attached alerts/reports cannot be deleted until those
-    are removed.
+    Identify the chart by numeric ID or UUID string (NOT chart name). When the
+    ``SOFT_DELETE`` feature flag is enabled the chart is moved to trash and can
+    be restored by an owner or Admin; otherwise the delete is permanent and
+    cannot be undone. The ``soft_deleted`` response field reports which
+    happened. The caller must own the chart (or be an Admin); charts with
+    attached alerts/reports cannot be deleted until those are removed.
 
     Example:
     ```json
@@ -99,11 +111,20 @@ async def delete_chart(
         with event_logger.log_context(action="mcp.delete_chart"):
             DeleteChartCommand([chart_id]).run()
 
+        soft_deleted = _routes_to_soft_delete()
+        if soft_deleted:
+            message = (
+                f"Moved chart '{chart_name}' (id={chart_id}) to trash. "
+                "It can be restored by an owner or Admin."
+            )
+        else:
+            message = f"Permanently deleted chart '{chart_name}' (id={chart_id})."
         return DeleteChartResponse(
             success=True,
             deleted_id=chart_id,
             deleted_name=chart_name,
-            message=f"Deleted chart '{chart_name}' (id={chart_id}).",
+            soft_deleted=soft_deleted,
+            message=message,
         )
     except ChartForbiddenError:
         await ctx.warning("Permission denied deleting chart id=%s" % (chart_id,))

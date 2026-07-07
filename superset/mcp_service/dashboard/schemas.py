@@ -1799,6 +1799,14 @@ class DeleteDashboardResponse(BaseModel):
     success: bool = Field(description="Whether the dashboard was deleted")
     deleted_id: int | None = Field(None, description="ID of the deleted dashboard")
     deleted_name: str | None = Field(None, description="Title of the deleted dashboard")
+    soft_deleted: bool = Field(
+        False,
+        description=(
+            "True when the dashboard was soft-deleted (moved to trash, because "
+            "the SOFT_DELETE feature flag is enabled) and can be restored by an "
+            "owner or Admin. False means the delete was permanent."
+        ),
+    )
     message: str | None = Field(None, description="Human-readable outcome message")
     error: str | None = Field(None, description="Error message if the delete failed")
     error_type: str | None = Field(None, description="Type of error if failed")
@@ -1809,6 +1817,8 @@ class DeleteDashboardResponse(BaseModel):
             "not retry; ask the user)."
         ),
     )
+
+
 # ---------------------------------------------------------------------------
 # manage_native_filters schemas
 # ---------------------------------------------------------------------------
