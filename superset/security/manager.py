@@ -1196,7 +1196,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             and self._same_user(acting_user_id, userid)
         )
 
-        if current_app.config.get("AUTH_TYPE") == AUTH_DB and target_user_id is not None:
+        if (
+            current_app.config.get("AUTH_TYPE") == AUTH_DB
+            and target_user_id is not None
+        ):
             from superset.utils.auth_session_stamp import (
                 bump_user_session_auth_stamp,
                 sync_session_auth_stamp_on_login,

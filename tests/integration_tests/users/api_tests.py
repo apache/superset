@@ -209,9 +209,7 @@ class TestCurrentUserApi(SupersetTestCase):
             )
             assert rv.status_code == 200
 
-            new_logs = (
-                db.session.query(Log).filter(Log.id > max_log_id_before).all()
-            )
+            new_logs = db.session.query(Log).filter(Log.id > max_log_id_before).all()
             assert new_logs, "Expected at least one audit log row for password change"
             for log in new_logs:
                 log_json = log.json or ""
@@ -225,9 +223,10 @@ class TestCurrentUserApi(SupersetTestCase):
                 log for log in new_logs if log.action == "UserPasswordChanged"
             ]
             assert len(password_change_logs) == 1
-            assert password_change_logs[0].user_id == security_manager.find_user(
-                username=ADMIN_USERNAME
-            ).id
+            assert (
+                password_change_logs[0].user_id
+                == security_manager.find_user(username=ADMIN_USERNAME).id
+            )
         finally:
             self._restore_admin_default_password()
 
