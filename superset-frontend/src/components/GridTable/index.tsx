@@ -202,8 +202,6 @@ export function GridTable<RecordType extends object>({
         doesExternalFilterPass={externalFilter}
         components={gridComponents}
         gridOptions={gridOptions}
-        rowHeight={rowHeight}
-        headerHeight={headerHeight}
         onCellKeyDown={onKeyDown}
         themeOverrides={themeOverrides}
       />
