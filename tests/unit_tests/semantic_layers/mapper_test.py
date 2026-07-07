@@ -2865,8 +2865,8 @@ def test_get_group_limit_filters_no_granularity(
 
 
 # ---------------------------------------------------------------------------
-# Coverage-gap closure: filter-value coercion per dimension type (see
-# notes/semantic-cache-coverage-workplan.md in the planning repo)
+# Coverage-gap closure (PR #41856): filter-value coercion per dimension
+# type — each dtype's full accept and reject surface
 # ---------------------------------------------------------------------------
 
 
@@ -2881,13 +2881,20 @@ def _typed_dim(dtype: pa.DataType) -> Dimension:
         (pa.bool_(), None, None),
         # boolean parsing
         (pa.bool_(), True, True),
+        # every accepted token, both cases where trimmed/lowered — the set
+        # is the contract
         (pa.bool_(), "true", True),
         (pa.bool_(), " T ", True),
+        (pa.bool_(), "t", True),
         (pa.bool_(), "1", True),
         (pa.bool_(), "yes", True),
+        (pa.bool_(), "y", True),
         (pa.bool_(), "on", True),
         (pa.bool_(), "false", False),
+        (pa.bool_(), "f", False),
         (pa.bool_(), "0", False),
+        (pa.bool_(), "no", False),
+        (pa.bool_(), "n", False),
         (pa.bool_(), "off", False),
         # integer
         (pa.int64(), 5, 5),

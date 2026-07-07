@@ -523,9 +523,12 @@ def _implies(new: Filter, cached: Filter) -> bool:  # noqa: C901
         if nop == Operator.NOT_EQUALS:
             return nval == cval
         if nop == Operator.EQUALS:
-            return nval != cval
+            # EQUALS None means IS_NULL; a cached negative predicate's rows
+            # contain no NULLs (SQL three-valued logic), so it can never
+            # contain the NULL-matching query.
+            return nval is not None and nval != cval
         if nop == Operator.IN and isinstance(nval, frozenset):
-            return cval not in nval
+            return all(v is not None for v in nval) and cval not in nval
         return False
 
     if cop == Operator.IN and isinstance(cval, frozenset):
@@ -541,9 +544,11 @@ def _implies(new: Filter, cached: Filter) -> bool:  # noqa: C901
         if nop == Operator.NOT_EQUALS:
             return cval.issubset({nval})
         if nop == Operator.EQUALS:
-            return nval not in cval
+            # See the NOT_EQUALS branch above: NULL-matching queries are
+            # never contained by negative cached predicates.
+            return nval is not None and nval not in cval
         if nop == Operator.IN and isinstance(nval, frozenset):
-            return cval.isdisjoint(nval)
+            return all(v is not None for v in nval) and cval.isdisjoint(nval)
         return False
 
     if cop in _RANGE_OPS:
@@ -739,7 +744,12 @@ def _mask_for(df: pd.DataFrame, f: Filter) -> pd.Series:  # noqa: C901
     if op == Operator.LESS_THAN_OR_EQUAL:
         return series <= val
     if op == Operator.IN:
-        return series.isin(list(val) if isinstance(val, frozenset) else [val])
+        # SQL: a NULL row never satisfies IN (even when the list contains
+        # NULL); pandas isin(None) would match None in object columns.
+        return (
+            series.isin(list(val) if isinstance(val, frozenset) else [val])
+            & series.notna()
+        )
     if op == Operator.NOT_IN:
         # See NOT_EQUALS: NULLs are excluded from negative predicates in SQL.
         return (
@@ -750,7 +760,12 @@ def _mask_for(df: pd.DataFrame, f: Filter) -> pd.Series:  # noqa: C901
     if op == Operator.IS_NOT_NULL:
         return series.notna()
     if op == Operator.LIKE:
-        return series.astype(str).str.match(_sql_like_to_regex(str(val)))
+        # SQL: NULL LIKE p is UNKNOWN -> excluded. Without the guard,
+        # astype(str) stringifies NULLs ("nan"/"None"/"NaT") and they can
+        # spuriously match patterns like 'n%'.
+        return series.notna() & series.astype(str).str.match(
+            _sql_like_to_regex(str(val))
+        )
     if op == Operator.NOT_LIKE:
         # See NOT_EQUALS; also astype(str) would turn NaN into the literal
         # string "nan", silently matching patterns.

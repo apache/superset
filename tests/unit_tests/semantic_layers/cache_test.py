@@ -40,13 +40,23 @@ from superset_core.semantic_layers.types import (
 )
 
 from superset.semantic_layers.cache import (
+    _apply_order,
     _apply_post_processing,
+    _comparable,
+    _group_limit_key,
     _implies,
+    _mask_for,
+    _projection_allowed,
     _projection_input_complete,
+    _scalar_in_range,
+    _sql_like_to_regex,
+    _timeout,
+    _value_to_jsonable,
     CachedEntry,
     can_satisfy,
     ReuseMode,
     shape_key,
+    store_result,
     value_key,
     ViewMeta,
 )
@@ -845,8 +855,9 @@ def test_project_rejected_when_order_references_dropped_metric() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Coverage-gap closure: pairwise implication tables (see
-# notes/semantic-cache-coverage-workplan.md in the planning repo)
+# Coverage-gap closure (PR #41856): pairwise implication tables — the
+# expected values encode SQL set-containment semantics, not implementation
+# echoes; treat a mismatch as a containment bug
 # ---------------------------------------------------------------------------
 
 _D = dim("t.c")
@@ -942,13 +953,31 @@ def _w(op: Operator, value: Any) -> Filter:
             True,
         ),
         (
-            _w(Operator.LESS_THAN_OR_EQUAL, 5),
+            _w(Operator.LESS_THAN_OR_EQUAL, 4),
             _w(Operator.LESS_THAN_OR_EQUAL, 5),
             True,
         ),
         (
             _w(Operator.LESS_THAN_OR_EQUAL, 6),
             _w(Operator.LESS_THAN_OR_EQUAL, 5),
+            False,
+        ),
+        # looser new bounds must NOT be contained (a mutant returning True
+        # here would serve silently truncated results)
+        (_w(Operator.LESS_THAN, 15), _w(Operator.LESS_THAN, 10), False),
+        (_w(Operator.LESS_THAN, 7), _w(Operator.LESS_THAN_OR_EQUAL, 5), False),
+        # NULL-matching new predicates are never contained by negative
+        # cached predicates (their SQL result sets contain no NULL rows)
+        (_w(Operator.EQUALS, None), _w(Operator.NOT_EQUALS, 5), False),
+        (
+            _w(Operator.IN, frozenset({None, 3})),
+            _w(Operator.NOT_EQUALS, 5),
+            False,
+        ),
+        (_w(Operator.EQUALS, None), _w(Operator.NOT_IN, frozenset({1, 2})), False),
+        (
+            _w(Operator.IN, frozenset({3, None})),
+            _w(Operator.NOT_IN, frozenset({1, 2})),
             False,
         ),
         # EQUALS vs range delegates to _scalar_in_range
@@ -963,8 +992,6 @@ def test_implies_operator_matrix(new: Filter, cached: Filter, expected: bool) ->
 
 
 def test_scalar_in_range_non_range_operator_returns_false() -> None:
-    from superset.semantic_layers.cache import _scalar_in_range
-
     # Callers only pass range operators; the fallthrough guards direct misuse.
     assert _scalar_in_range(1, Operator.EQUALS, 1) is False
 
@@ -988,8 +1015,6 @@ def test_scalar_in_range_non_range_operator_returns_false() -> None:
     ],
 )
 def test_comparable_matrix(a: Any, b: Any, expected: bool) -> None:
-    from superset.semantic_layers.cache import _comparable
-
     assert _comparable(a, b) is expected
 
 
@@ -1051,8 +1076,6 @@ def test_can_satisfy_rollup_order_on_dropped_dimension_rejects() -> None:
 def test_projection_rejected_when_cached_entry_has_group_limit() -> None:
     import dataclasses
 
-    from superset.semantic_layers.cache import _projection_allowed
-
     m_sum = met("t.sum", aggregation=AggregationType.SUM)
     q_cached = query(dimensions=[COL_A, COL_B], metrics=[m_sum])
     entry = dataclasses.replace(entry_from(q_cached), group_limit_key="gl")
@@ -1066,7 +1089,6 @@ def test_store_result_trims_bucket_to_max_entries(mocker: Any) -> None:
     import dataclasses
 
     from superset.semantic_layers import cache as cache_module
-    from superset.semantic_layers.cache import store_result
 
     class PlainCache:
         def __init__(self) -> None:
@@ -1111,8 +1133,6 @@ def test_store_result_trims_bucket_to_max_entries(mocker: Any) -> None:
 
 
 def test_value_to_jsonable_edges() -> None:
-    from superset.semantic_layers.cache import _value_to_jsonable
-
     assert _value_to_jsonable(frozenset({3, 1, 2})) == [1, 2, 3]
     assert _value_to_jsonable(datetime(2026, 1, 2, 3, 4)) == "2026-01-02T03:04:00"
     assert _value_to_jsonable(timedelta(minutes=2)) == 120.0
@@ -1121,8 +1141,6 @@ def test_value_to_jsonable_edges() -> None:
 
 def test_group_limit_key_serializes_all_fields() -> None:
     from superset_core.semantic_layers.types import GroupLimit
-
-    from superset.semantic_layers.cache import _group_limit_key
 
     gl = GroupLimit(
         dimensions=[COL_B, COL_A],
@@ -1146,8 +1164,6 @@ def test_group_limit_key_serializes_all_fields() -> None:
 def test_timeout_falls_back_to_data_cache_config(
     app_context: None, mocker: Any
 ) -> None:
-    from superset.semantic_layers.cache import _timeout
-
     mocker.patch.dict(
         "superset.semantic_layers.cache.current_app.config",
         {"DATA_CACHE_CONFIG": {"CACHE_DEFAULT_TIMEOUT": 1234}},
@@ -1162,7 +1178,12 @@ def test_timeout_falls_back_to_data_cache_config(
 
 
 def _mask_df() -> pd.DataFrame:
-    return pd.DataFrame({"a": [1.0, 2.0, None], "s": ["alpha", "beta", "a.c"]})
+    # Row 3 is NULL in both columns so every operator's NULL behaviour is
+    # observable (SQL three-valued logic: NULLs never satisfy predicates,
+    # positive or negative — only IS_NULL).
+    return pd.DataFrame(
+        {"a": [1.0, 2.0, None, 3.0], "s": ["alpha", "beta", "a.c", None]}
+    )
 
 
 @pytest.mark.parametrize(
@@ -1171,28 +1192,31 @@ def _mask_df() -> pd.DataFrame:
         (Operator.EQUALS, 1.0, "a", [0]),
         (Operator.EQUALS, None, "a", [2]),
         # SQL three-valued logic: NULLs are excluded from negative predicates
-        (Operator.NOT_EQUALS, 1.0, "a", [1]),
-        (Operator.NOT_EQUALS, None, "a", [0, 1]),
-        (Operator.GREATER_THAN, 1.0, "a", [1]),
-        (Operator.GREATER_THAN_OR_EQUAL, 1.0, "a", [0, 1]),
+        (Operator.NOT_EQUALS, 1.0, "a", [1, 3]),
+        (Operator.NOT_EQUALS, None, "a", [0, 1, 3]),
+        (Operator.GREATER_THAN, 1.0, "a", [1, 3]),
+        (Operator.GREATER_THAN_OR_EQUAL, 1.0, "a", [0, 1, 3]),
         (Operator.LESS_THAN, 2.0, "a", [0]),
         (Operator.LESS_THAN_OR_EQUAL, 2.0, "a", [0, 1]),
         (Operator.IN, frozenset({1.0, 2.0}), "a", [0, 1]),
         (Operator.IN, 1.0, "a", [0]),  # scalar IN
-        (Operator.NOT_IN, frozenset({1.0}), "a", [1]),
+        # an IN list containing NULL still never matches NULL rows in SQL
+        (Operator.IN, frozenset({"alpha", None}), "s", [0]),
+        (Operator.NOT_IN, frozenset({1.0}), "a", [1, 3]),
         (Operator.IS_NULL, None, "a", [2]),
-        (Operator.IS_NOT_NULL, None, "a", [0, 1]),
+        (Operator.IS_NOT_NULL, None, "a", [0, 1, 3]),
+        # NULLs never satisfy LIKE / NOT_LIKE (astype(str) would otherwise
+        # stringify them into matchable "nan"/"None" sentinels)
         (Operator.LIKE, "a%", "s", [0, 2]),
         (Operator.LIKE, "a_c", "s", [2]),
+        (Operator.LIKE, "N%", "s", []),
         (Operator.NOT_LIKE, "a%", "s", [1]),
-        (Operator.ADHOC, "x", "a", [0, 1, 2]),  # unknown op: no filtering
+        (Operator.ADHOC, "x", "a", [0, 1, 2, 3]),  # unknown op: no filtering
     ],
 )
 def test_mask_for_operator_matrix(
     op: Operator, val: Any, column: str, expected_index: list[int]
 ) -> None:
-    from superset.semantic_layers.cache import _mask_for
-
     col = Dimension(id=f"t.{column}", name=column, type=pa.utf8())
     f = Filter(type=PredicateType.WHERE, column=col, operator=op, value=val)
     df = _mask_df()
@@ -1201,8 +1225,6 @@ def test_mask_for_operator_matrix(
 
 
 def test_mask_for_column_less_filter_is_all_true() -> None:
-    from superset.semantic_layers.cache import _mask_for
-
     f = Filter(type=PredicateType.WHERE, column=None, operator=Operator.EQUALS, value=1)
     df = _mask_df()
     assert _mask_for(df, f).all()
@@ -1215,12 +1237,17 @@ def test_mask_for_column_less_filter_is_all_true() -> None:
         ("a_c", ["abc", "a.c"], ["ac", "abbc"]),
         ("a.c", ["a.c"], ["abc"]),  # regex metachars are literal
         ("50%*", ["50x*"], ["50x"]),  # '*' is literal, '%' wildcards
+        ("a_c", ["a.c"], ["a.cd"]),  # end-anchored: no trailing extras
+        ("100", ["100"], ["1000"]),
+        # no escape support: backslash is a literal character, the % still
+        # wildcards (see the divergence note in the docstring)
+        ("50\\%", ["50\\anything"], ["50x"]),
     ],
 )
 def test_sql_like_to_regex(
     pattern: str, matches: list[str], rejects: list[str]
 ) -> None:
-    """Pins the CURRENT translation: % → .*, _ → ., everything else literal.
+    """Pins the implemented translation: % → .*, _ → ., all else literal.
 
     Note: there is NO escape-character support — ``\\%`` is a literal
     backslash followed by a wildcard, which diverges from warehouses (e.g.
@@ -1230,8 +1257,6 @@ def test_sql_like_to_regex(
     """
     import re as _re
 
-    from superset.semantic_layers.cache import _sql_like_to_regex
-
     rx = _re.compile(_sql_like_to_regex(pattern))
     for good in matches:
         assert rx.match(good), f"{pattern!r} should match {good!r}"
@@ -1240,8 +1265,6 @@ def test_sql_like_to_regex(
 
 
 def test_apply_order_skips_unknown_columns_and_sorts_known() -> None:
-    from superset.semantic_layers.cache import _apply_order
-
     df = pd.DataFrame({"a": [2, 1, 3]})
     missing = dim("t.zz", "zz")
     present = dim("t.a", "a")
