@@ -346,7 +346,7 @@
     "open-cli": "^9.0.0",
     "oxlint": "^1.71.0",
     "po2json": "^0.4.5",
-    "prettier": "3.9.3",
+    "prettier": "3.9.4",
     "prettier-plugin-packagejson": "^3.0.2",
     "process": "^0.11.10",
     "react-dnd-test-backend": "^16.0.1",
