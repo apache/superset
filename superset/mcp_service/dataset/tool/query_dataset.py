@@ -84,20 +84,46 @@ def _validate_names(
     requested: list[str],
     valid: set[str],
     kind: str,
+    *,
+    empty_hint: str | None = None,
+    list_valid_on_miss: bool = False,
 ) -> list[str]:
     """Return list of error messages for names not found in *valid*.
 
-    Includes close-match suggestions when available.
+    Includes close-match suggestions when available. When *valid* is empty,
+    appends *empty_hint* instead of a useless fuzzy match. When no close
+    match exists and *list_valid_on_miss* is set, lists the valid names so
+    the caller does not have to guess again.
     """
     errors: list[str] = []
     for name in requested:
         if name not in valid:
-            suggestions = difflib.get_close_matches(name, valid, n=3, cutoff=0.6)
             msg = f"Unknown {kind}: '{name}'"
-            if suggestions:
-                msg += f". Did you mean: {', '.join(suggestions)}?"
+            if not valid:
+                if empty_hint:
+                    msg += f". {empty_hint}"
+            else:
+                suggestions = difflib.get_close_matches(name, valid, n=3, cutoff=0.6)
+                if suggestions:
+                    msg += f". Did you mean: {', '.join(suggestions)}?"
+                elif list_valid_on_miss:
+                    shown = sorted(valid)[:10]
+                    more = len(valid) - len(shown)
+                    suffix = (
+                        f" (and {more} more; call get_dataset_info for the full list)"
+                        if more > 0
+                        else ""
+                    )
+                    msg += f". Valid {kind}s: {', '.join(shown)}{suffix}"
             errors.append(msg)
     return errors
+
+
+_NO_SAVED_METRICS_HINT = (
+    "This dataset has no saved metrics, and query_dataset accepts saved "
+    "metric names only (not ad-hoc expressions). Use execute_sql for "
+    "ad-hoc aggregates, or add a saved metric to the dataset."
+)
 
 
 @requires_data_model_metadata_access
@@ -118,6 +144,10 @@ async def query_dataset(  # noqa: C901
     Returns tabular data without requiring a saved chart. Use this when you want
     to compute saved metrics, group by dimensions, or apply filters directly
     against a dataset's curated semantic layer.
+
+    Metrics must be saved metric names from get_dataset_info; ad-hoc
+    expressions such as "SUM(col)" are not accepted. When the dataset has no
+    saved metric for the aggregate you need, use execute_sql instead.
 
     Workflow:
     1. list_datasets -> find a dataset
@@ -213,7 +243,13 @@ async def query_dataset(  # noqa: C901
             _validate_names(request.columns, valid_columns, "column")
         )
         validation_errors.extend(
-            _validate_names(request.metrics, valid_metrics, "metric")
+            _validate_names(
+                request.metrics,
+                valid_metrics,
+                "metric",
+                empty_hint=_NO_SAVED_METRICS_HINT,
+                list_valid_on_miss=True,
+            )
         )
         # Validate filter column names against dataset columns
         filter_cols = [f.col for f in request.filters]

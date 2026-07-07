@@ -38,11 +38,11 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-lodash": "^8.0.0",
     "globals": "^17.6.0",
-    "prettier": "^3.8.4",
+    "prettier": "^3.9.3",
     "ts-node": "^10.9.2",
     "tscw-config": "^1.1.2",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.62.0",
+    "typescript-eslint": "^8.62.1",
     "vitest": "^4.1.5"
   },
   "engines": {
