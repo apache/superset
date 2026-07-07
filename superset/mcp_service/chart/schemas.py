@@ -1824,6 +1824,108 @@ class XYChartConfig(UnknownFieldCheckMixin):
         return self
 
 
+class HistogramChartConfig(UnknownFieldCheckMixin):
+    """Config for histogram charts (viz_type ``histogram_v2``)."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["histogram"] = "histogram"
+    column: ColumnRef = Field(
+        ...,
+        description="Numeric column to bin (a physical dataset column)",
+    )
+    groupby: List[ColumnRef] | None = Field(
+        None,
+        description="Optional dimensions to split the distribution into series",
+    )
+    bins: int = Field(5, description="Number of histogram bins", ge=1, le=1000)
+    normalize: bool = Field(False, description="Normalize bin counts to proportions")
+    cumulative: bool = Field(False, description="Accumulate bin counts left to right")
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    row_limit: int = Field(10000, description="Max rows sampled", ge=1, le=100000)
+
+    @model_validator(mode="after")
+    def reject_metric_style_column(self) -> "HistogramChartConfig":
+        """The binned column is a physical column, not a metric."""
+        _reject_sql_expression_on_dimension(self.column, "column")
+        if self.column and self.column.saved_metric:
+            raise ValueError(
+                "column cannot use saved_metric=True; histograms bin a "
+                "physical numeric column"
+            )
+        for i, col in enumerate(self.groupby or []):
+            _reject_sql_expression_on_dimension(col, f"groupby[{i}]")
+        return self
+
+
+class BoxPlotChartConfig(UnknownFieldCheckMixin):
+    """Config for box plot charts (viz_type ``box_plot``)."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["box_plot"] = "box_plot"
+    metrics: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description="Metrics whose distributions are plotted (use aggregate "
+        "e.g. AVG, SUM for ad-hoc, or saved_metric=True for saved metrics)",
+    )
+    distribute_across: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description="Columns whose values form the boxes along the x-axis "
+        "(one box per value)",
+    )
+    dimensions: List[ColumnRef] | None = Field(
+        None,
+        description="Optional series dimensions (one colored box group per value)",
+    )
+    whisker_type: Literal["tukey", "min_max", "percentile"] = Field(
+        "tukey",
+        description="Whisker algorithm: 'tukey' (1.5 IQR), 'min_max' (no "
+        "outliers), or 'percentile' (requires percentile_low/percentile_high)",
+    )
+    percentile_low: int | None = Field(
+        None, description="Lower whisker percentile (0-100)", ge=0, le=100
+    )
+    percentile_high: int | None = Field(
+        None, description="Upper whisker percentile (0-100)", ge=0, le=100
+    )
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    row_limit: int = Field(100, description="Max boxes", ge=1, le=10000)
+    number_format: str = Field("SMART_NUMBER", max_length=50)
+    date_format: str = Field("smart_date", max_length=50)
+
+    @model_validator(mode="after")
+    def validate_percentiles_and_dimensions(self) -> "BoxPlotChartConfig":
+        if self.whisker_type == "percentile":
+            if self.percentile_low is None or self.percentile_high is None:
+                raise ValueError(
+                    "whisker_type='percentile' requires both percentile_low "
+                    "and percentile_high"
+                )
+            if self.percentile_low >= self.percentile_high:
+                raise ValueError("percentile_low must be less than percentile_high")
+        elif self.percentile_low is not None or self.percentile_high is not None:
+            raise ValueError(
+                "percentile_low/percentile_high only apply when "
+                "whisker_type='percentile'"
+            )
+        for i, col in enumerate(self.distribute_across):
+            _reject_sql_expression_on_dimension(col, f"distribute_across[{i}]")
+        for i, col in enumerate(self.dimensions or []):
+            _reject_sql_expression_on_dimension(col, f"dimensions[{i}]")
+        return self
+
+
 # Discriminated union for runtime validation (not exposed in JSON Schema)
 ChartConfig = Annotated[
     XYChartConfig
@@ -1832,13 +1934,15 @@ ChartConfig = Annotated[
     | PivotTableChartConfig
     | MixedTimeseriesChartConfig
     | HandlebarsChartConfig
-    | BigNumberChartConfig,
+    | BigNumberChartConfig
+    | HistogramChartConfig
+    | BoxPlotChartConfig,
     Field(
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
             "'pie', 'pivot_table', 'mixed_timeseries', 'handlebars', "
-            "or 'big_number'"
+            "'big_number', 'histogram', or 'box_plot'"
         ),
     ),
 ]
@@ -1866,6 +1970,7 @@ _VIZ_TYPE_TO_CHART_TYPE: dict[str, tuple[str, str | None]] = {
     "ag-grid-table": ("table", None),
     "big_number_total": ("big_number", None),
     "pivot_table_v2": ("pivot_table", None),
+    "histogram_v2": ("histogram", None),
 }
 
 

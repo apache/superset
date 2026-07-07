@@ -29,7 +29,9 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
+    BoxPlotChartConfig,
     HandlebarsChartConfig,
+    HistogramChartConfig,
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
@@ -48,6 +50,8 @@ _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
     "mixed_timeseries": TypeAdapter(MixedTimeseriesChartConfig),
     "handlebars": TypeAdapter(HandlebarsChartConfig),
     "big_number": TypeAdapter(BigNumberChartConfig),
+    "histogram": TypeAdapter(HistogramChartConfig),
+    "box_plot": TypeAdapter(BoxPlotChartConfig),
 }
 
 VALID_CHART_TYPES = sorted(_CHART_TYPE_ADAPTERS.keys())
@@ -123,6 +127,35 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "show_trendline": True,
             "aggregation": "sum",
             "time_grain": "P1D",
+        },
+    ],
+    "histogram": [
+        {
+            "chart_type": "histogram",
+            "column": {"name": "trip_duration"},
+            "bins": 20,
+        },
+        {
+            "chart_type": "histogram",
+            "column": {"name": "fare_amount"},
+            "groupby": [{"name": "payment_type"}],
+            "normalize": True,
+        },
+    ],
+    "box_plot": [
+        {
+            "chart_type": "box_plot",
+            "metrics": [{"name": "fare_amount", "aggregate": "AVG"}],
+            "distribute_across": [{"name": "day_of_week"}],
+        },
+        {
+            "chart_type": "box_plot",
+            "metrics": [{"name": "duration", "aggregate": "AVG"}],
+            "distribute_across": [{"name": "month"}],
+            "dimensions": [{"name": "vendor"}],
+            "whisker_type": "percentile",
+            "percentile_low": 10,
+            "percentile_high": 90,
         },
     ],
 }
