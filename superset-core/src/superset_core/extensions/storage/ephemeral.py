@@ -36,16 +36,32 @@ Usage (via extension context - preferred):
 
     # User-scoped state (default - private to current user)
     ctx.storage.ephemeral.get('preference')
-    ctx.storage.ephemeral.set('preference', 'compact', ttl=3600)
+    ctx.storage.ephemeral.set('preference', 'compact', EphemeralSetOptions(ttl=3600))
     ctx.storage.ephemeral.remove('preference')
 
     # Shared state (explicit opt-in - visible to all users)
     ctx.storage.ephemeral.shared.get('job_progress')
-    ctx.storage.ephemeral.shared.set('job_progress', {'pct': 42}, ttl=3600)
+    ctx.storage.ephemeral.shared.set(
+        'job_progress', {'pct': 42}, EphemeralSetOptions(ttl=3600)
+    )
     ctx.storage.ephemeral.shared.remove('job_progress')
 """
 
+from dataclasses import dataclass
 from typing import Any, ClassVar, Protocol
+
+
+@dataclass(frozen=True)
+class EphemeralSetOptions:
+    """
+    Options for an ephemeral state `set` call.
+
+    NOTE: This is intentionally minimal for the initial implementation.
+    Additional options can be added here later without changing the `set`
+    signature on `EphemeralStateAccessor`/`EphemeralState`.
+    """
+
+    ttl: int | None = None
 
 
 class EphemeralStateAccessor(Protocol):
@@ -55,7 +71,9 @@ class EphemeralStateAccessor(Protocol):
         """Get a value from ephemeral state."""
         ...
 
-    def set(self, key: str, value: Any, ttl: int | None = None) -> None:
+    def set(
+        self, key: str, value: Any, options: EphemeralSetOptions | None = None
+    ) -> None:
         """Set a value in ephemeral state with TTL."""
         ...
 
@@ -92,7 +110,7 @@ class EphemeralState:
         raise NotImplementedError("Class will be replaced during initialization")
 
     @staticmethod
-    def set(key: str, value: Any, ttl: int | None = None) -> None:
+    def set(key: str, value: Any, options: EphemeralSetOptions | None = None) -> None:
         """
         Set a value in user-scoped ephemeral state with TTL.
 
@@ -101,7 +119,8 @@ class EphemeralState:
 
         :param key: The key to store.
         :param value: The value to store (must be JSON-serializable).
-        :param ttl: Time-to-live in seconds. Defaults to MAX_TTL from config.
+        :param options: Optional `EphemeralSetOptions`, e.g. `ttl=3600`.
+            Defaults to MAX_TTL from config when not specified.
         """
         raise NotImplementedError("Class will be replaced during initialization")
 

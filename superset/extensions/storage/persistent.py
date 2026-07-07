@@ -28,6 +28,7 @@ from typing import Any, ClassVar
 
 from flask import g
 from superset_core.extensions.storage.persistent import (
+    PersistentSetOptions,
     PersistentState as CorePersistentState,
 )
 
@@ -92,17 +93,28 @@ class SharedPersistentStateAccessor:
         return _decode(raw)
 
     @transaction()
-    def set(self, key: str, value: Any) -> None:
+    def set(
+        self, key: str, value: Any, options: PersistentSetOptions | None = None
+    ) -> None:
         """
         Set a value in shared persistent state.
 
         :param key: The key to store.
         :param value: The value to store (must be JSON-serializable).
+        :param options: Optional `PersistentSetOptions`, e.g. `encrypt=True`
+            to store the value encrypted at rest.
         :raises ExtensionStorageQuotaExceeded: if this write would exceed the
             extension's configured persistent storage quota.
         """
         extension_id = _get_extension_id()
-        ExtensionStorageDAO.set(extension_id, key, _encode(value), user_fk=None)
+        encrypt = options.encrypt if options is not None else False
+        ExtensionStorageDAO.set(
+            extension_id,
+            key,
+            _encode(value),
+            user_fk=None,
+            encrypt=encrypt,
+        )
 
     @transaction()
     def remove(self, key: str) -> None:
@@ -141,18 +153,27 @@ class PersistentState(CorePersistentState):
 
     @staticmethod
     @transaction()
-    def set(key: str, value: Any) -> None:
+    def set(key: str, value: Any, options: PersistentSetOptions | None = None) -> None:
         """
         Set a value in user-scoped persistent state.
 
         :param key: The key to store.
         :param value: The value to store (must be JSON-serializable).
+        :param options: Optional `PersistentSetOptions`, e.g. `encrypt=True`
+            to store the value encrypted at rest.
         :raises ExtensionStorageQuotaExceeded: if this write would exceed the
             extension's configured persistent storage quota.
         """
         extension_id = _get_extension_id()
         user_id = _get_current_user_id()
-        ExtensionStorageDAO.set(extension_id, key, _encode(value), user_fk=user_id)
+        encrypt = options.encrypt if options is not None else False
+        ExtensionStorageDAO.set(
+            extension_id,
+            key,
+            _encode(value),
+            user_fk=user_id,
+            encrypt=encrypt,
+        )
 
     @staticmethod
     @transaction()

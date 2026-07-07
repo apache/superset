@@ -27,6 +27,7 @@ from flask import Flask
 from superset.extensions.context import use_context
 from superset.extensions.storage.ephemeral import (
     _build_cache_key,
+    EphemeralSetOptions,
     EphemeralState,
 )
 from tests.unit_tests.extensions.storage.conftest import (
@@ -96,7 +97,7 @@ def test_ephemeral_state_set_builds_correct_key_and_uses_ttl(
 
     with app.app_context(), use_context(ctx):
         set_user(42)
-        EphemeralState.set("my-key", {"value": 123}, ttl=600)
+        EphemeralState.set("my-key", {"value": 123}, EphemeralSetOptions(ttl=600))
 
     expected_key = "superset-ext:my-org.my-ext:user:42:my-key"
     mock_cache.set.assert_called_once_with(expected_key, {"value": 123}, timeout=600)
@@ -166,7 +167,7 @@ def test_shared_accessor_set_and_remove(mock_cm: MagicMock, app: Flask) -> None:
 
     with app.app_context(), use_context(ctx):
         set_user(1)
-        EphemeralState.shared.set("key", {"shared": True}, ttl=300)
+        EphemeralState.shared.set("key", {"shared": True}, EphemeralSetOptions(ttl=300))
         EphemeralState.shared.remove("key")
 
     expected_key = "superset-ext:org.ext:shared:key"

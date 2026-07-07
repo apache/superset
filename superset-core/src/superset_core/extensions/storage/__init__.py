@@ -47,16 +47,19 @@ cleanup job pruning rows linked to resources that no longer exist), see
 
 Usage:
     from superset_core.extensions.context import get_context
+    from superset_core.extensions.storage.ephemeral import EphemeralSetOptions
 
     ctx = get_context()
 
     # Tier 2: Ephemeral state
     ctx.storage.ephemeral.get('preference')
-    ctx.storage.ephemeral.set('preference', 'compact', ttl=3600)
+    ctx.storage.ephemeral.set('preference', 'compact', EphemeralSetOptions(ttl=3600))
 
     # Tier 2: Shared ephemeral state
     ctx.storage.ephemeral.shared.get('job_progress')
-    ctx.storage.ephemeral.shared.set('job_progress', {'pct': 42}, ttl=3600)
+    ctx.storage.ephemeral.shared.set(
+        'job_progress', {'pct': 42}, EphemeralSetOptions(ttl=3600)
+    )
 
     # Tier 3: Persistent state
     ctx.storage.persistent.get('config')

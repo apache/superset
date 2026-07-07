@@ -89,30 +89,6 @@ test('different users use isolated keys', async () => {
   expect(await store.get('key')).toBeNull();
 });
 
-test('shared.get returns null when key is not in storage', async () => {
-  const store = createBrowserStorage(localStorage, 'org.ext');
-  expect(await store.shared.get('key')).toBeNull();
-});
-
-test('shared.set writes value without user scope', async () => {
-  const store = createBrowserStorage(localStorage, 'org.ext');
-  await store.shared.set('device', 'abc-123');
-  expect(localStorage.getItem('superset-ext:org.ext:device')).toBe('"abc-123"');
-});
-
-test('shared.get reads value without user scope', async () => {
-  localStorage.setItem('superset-ext:org.ext:device', '"abc-123"');
-  const store = createBrowserStorage(localStorage, 'org.ext');
-  expect(await store.shared.get('device')).toBe('abc-123');
-});
-
-test('shared.remove deletes key without user scope', async () => {
-  localStorage.setItem('superset-ext:org.ext:device', '"abc-123"');
-  const store = createBrowserStorage(localStorage, 'org.ext');
-  await store.shared.remove('device');
-  expect(localStorage.getItem('superset-ext:org.ext:device')).toBeNull();
-});
-
 test('works with sessionStorage', async () => {
   const store = createBrowserStorage(sessionStorage, 'org.ext');
   await store.set('step', 3);

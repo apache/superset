@@ -36,7 +36,7 @@ Storage is always accessed through the extension context via `getContext()`. Thi
 | ---- | ----------------- | ------------------------------------------ | -------------------------------------- |
 | 1    | Browser storage   | `ctx.storage.local`, `ctx.storage.session` | UI state, wizard progress, draft forms |
 | 2    | Server-side cache | `ctx.storage.ephemeral`                    | Job progress, temporary results        |
-| 3    | Database          | `ctx.storage.persistent`                   | User preferences, durable config       |
+| 3    | Database          | `ctx.storage.persistent`                   | Saved artifacts, durable config        |
 
 ## Tier 1: Local State
 
@@ -88,19 +88,7 @@ await ctx.storage.session.set('unsaved_form', { name: 'Draft' });
 const step = await ctx.storage.session.get('wizard_step');
 ```
 
-### Shared State
-
-By default, data is scoped to the current user. Use `shared` for data that should be accessible to all users on the same device.
-
-```typescript
-import { extensions } from '@apache-superset/core';
-
-const ctx = extensions.getContext();
-
-// Shared across all users on this device
-await ctx.storage.local.shared.set('device_id', 'abc-123');
-const deviceId = await ctx.storage.local.shared.get('device_id');
-```
+Tier 1 has no `shared` accessor. Browser storage is per-device, so a "shared" value would only be visible to other users of that same browser, not to other users of the extension generally — see `.shared` on [Tier 2](#tier-2-ephemeral-state) or [Tier 3](#tier-3-persistent-state) for storage that's actually shared across users.
 
 ### When to Use Tier 1
 
@@ -142,11 +130,14 @@ await ctx.storage.ephemeral.remove('job_progress');
 
 ```python
 from superset_core.extensions.context import get_context
+from superset_core.extensions.storage.ephemeral import EphemeralSetOptions
 
 ctx = get_context()
 
 # Store job progress with a 5-minute TTL
-ctx.storage.ephemeral.set('job_progress', {'pct': 42, 'status': 'running'}, ttl=300)
+ctx.storage.ephemeral.set(
+    'job_progress', {'pct': 42, 'status': 'running'}, EphemeralSetOptions(ttl=300)
+)
 
 # Retrieve
 progress = ctx.storage.ephemeral.get('job_progress')
@@ -170,10 +161,13 @@ const result = await ctx.storage.ephemeral.shared.get('shared_result');
 
 ```python
 from superset_core.extensions.context import get_context
+from superset_core.extensions.storage.ephemeral import EphemeralSetOptions
 
 ctx = get_context()
 
-ctx.storage.ephemeral.shared.set('shared_result', {'data': [1, 2, 3]}, ttl=3600)
+ctx.storage.ephemeral.shared.set(
+    'shared_result', {'data': [1, 2, 3]}, EphemeralSetOptions(ttl=3600)
+)
 result = ctx.storage.ephemeral.shared.get('shared_result')
 ```
 
@@ -203,14 +197,14 @@ import { extensions } from '@apache-superset/core';
 
 const ctx = extensions.getContext();
 
-// Store user preferences
-await ctx.storage.persistent.set('preferences', { theme: 'dark', locale: 'en' });
+// Store a saved SQL snippet
+await ctx.storage.persistent.set('snippet:top_customers', { sql: 'SELECT ...' });
 
 // Retrieve
-const prefs = await ctx.storage.persistent.get('preferences');
+const snippet = await ctx.storage.persistent.get('snippet:top_customers');
 
 // Remove
-await ctx.storage.persistent.remove('preferences');
+await ctx.storage.persistent.remove('snippet:top_customers');
 ```
 
 ### Backend Usage
@@ -220,14 +214,14 @@ from superset_core.extensions.context import get_context
 
 ctx = get_context()
 
-# Store user preferences
-ctx.storage.persistent.set('preferences', {'theme': 'dark', 'locale': 'en'})
+# Store a saved SQL snippet
+ctx.storage.persistent.set('snippet:top_customers', {'sql': 'SELECT ...'})
 
 # Retrieve
-prefs = ctx.storage.persistent.get('preferences')
+snippet = ctx.storage.persistent.get('snippet:top_customers')
 
 # Remove
-ctx.storage.persistent.remove('preferences')
+ctx.storage.persistent.remove('snippet:top_customers')
 ```
 
 ### Shared State
@@ -271,9 +265,8 @@ ExtensionStorageDAO.delete(orphaned)
 
 ### When to Use Tier 3
 
-- User preferences and settings
 - Extension configuration that must survive restarts
-- Saved state that needs to roam across devices and browsers
+- User-specific saved artifacts that need to roam across devices and browsers (e.g. saved SQL snippets, annotations)
 - Any data where loss is unacceptable
 
 ### Limitations
@@ -317,7 +310,7 @@ For development, the default `SupersetMetastoreCache` stores data in the metadat
 
 ### Tier 3: Persistent Storage
 
-Tier 3 values are stored in the `extension_storage` database table. Values are stored unencrypted by default; encryption is opt-in per write, and is only available from the frontend SDK (the REST API accepts an `encrypt` flag, exposed via `PersistentSetOptions`):
+Tier 3 values are stored in the `extension_storage` database table. Values are stored unencrypted by default; encryption is opt-in per write, available via a `PersistentSetOptions`-shaped `encrypt` option:
 
 ```typescript
 import { extensions } from '@apache-superset/core';
@@ -326,6 +319,16 @@ const ctx = extensions.getContext();
 
 await ctx.storage.persistent.set('api_token', 'sk-...', { encrypt: true });
 const token = await ctx.storage.persistent.get('api_token');
+```
+
+```python
+from superset_core.extensions.context import get_context
+from superset_core.extensions.storage.persistent import PersistentSetOptions
+
+ctx = get_context()
+
+ctx.storage.persistent.set('api_token', 'sk-...', PersistentSetOptions(encrypt=True))
+token = ctx.storage.persistent.get('api_token')
 ```
 
 Encryption reuses Superset's existing `EncryptedType` (from `sqlalchemy-utils`) rather than a separate mechanism — the same infrastructure used for database connection credentials. The key is not configured directly: user-scoped values are encrypted with a key derived per-user via HMAC-SHA256 from the deployment's `SECRET_KEY`, so ciphertext for one user cannot be decrypted as another's; shared/global values (written via `.shared`) use `SECRET_KEY` directly. The encryption engine (AES-CBC by default) can be changed for the whole deployment via the existing `SQLALCHEMY_ENCRYPTED_FIELD_ENGINE` config, the same setting that controls encryption for database credentials elsewhere in Superset — there is no separate key list or rotation mechanism specific to extension storage. When `SECRET_KEY` is rotated, extension storage rows are re-encrypted by the existing `SecretsMigrator` tooling alongside database credentials, with no extension-specific steps required.

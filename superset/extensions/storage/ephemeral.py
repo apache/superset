@@ -28,6 +28,7 @@ from typing import Any, ClassVar
 
 from flask import g
 from superset_core.extensions.storage.ephemeral import (
+    EphemeralSetOptions,
     EphemeralState as CoreEphemeralState,
 )
 
@@ -92,15 +93,19 @@ class SharedEphemeralStateAccessor:
         cache_key = self._build_key(key)
         return cache_manager.extension_ephemeral_state_cache.get(cache_key)
 
-    def set(self, key: str, value: Any, ttl: int | None = None) -> None:
+    def set(
+        self, key: str, value: Any, options: EphemeralSetOptions | None = None
+    ) -> None:
         """
         Set a value in shared ephemeral state with TTL.
 
         :param key: The key to store.
         :param value: The value to store (must be JSON-serializable).
-        :param ttl: Time-to-live in seconds. Defaults to CACHE_DEFAULT_TIMEOUT.
+        :param options: Optional `EphemeralSetOptions`, e.g. `ttl=3600`.
+            Defaults to CACHE_DEFAULT_TIMEOUT when not specified.
         """
         cache_key = self._build_key(key)
+        ttl = options.ttl if options is not None else None
         cache_manager.extension_ephemeral_state_cache.set(cache_key, value, timeout=ttl)
 
     def remove(self, key: str) -> None:
@@ -143,17 +148,19 @@ class EphemeralState(CoreEphemeralState):
         return cache_manager.extension_ephemeral_state_cache.get(cache_key)
 
     @staticmethod
-    def set(key: str, value: Any, ttl: int | None = None) -> None:
+    def set(key: str, value: Any, options: EphemeralSetOptions | None = None) -> None:
         """
         Set a value in user-scoped ephemeral state with TTL.
 
         :param key: The key to store.
         :param value: The value to store (must be JSON-serializable).
-        :param ttl: Time-to-live in seconds. Defaults to CACHE_DEFAULT_TIMEOUT.
+        :param options: Optional `EphemeralSetOptions`, e.g. `ttl=3600`.
+            Defaults to CACHE_DEFAULT_TIMEOUT when not specified.
         """
         extension_id = _get_extension_id()
         user_id = _get_current_user_id()
         cache_key = EphemeralState._build_user_key(extension_id, user_id, key)
+        ttl = options.ttl if options is not None else None
         cache_manager.extension_ephemeral_state_cache.set(cache_key, value, timeout=ttl)
 
     @staticmethod

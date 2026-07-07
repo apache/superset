@@ -26,6 +26,7 @@ from flask import Flask
 
 from superset.extensions.context import use_context
 from superset.extensions.storage.persistent import (
+    PersistentSetOptions,
     PersistentState,
     SharedPersistentStateAccessor,
 )
@@ -107,7 +108,56 @@ def test_persistent_state_set_encodes_value(
 
     expected_bytes = json.dumps({"theme": "dark"}).encode()
     mock_dao.set.assert_called_once_with(
-        "test-org.test-ext", "prefs", expected_bytes, user_fk=42
+        "test-org.test-ext",
+        "prefs",
+        expected_bytes,
+        user_fk=42,
+        encrypt=False,
+    )
+
+
+@patch("superset.db")
+@patch("superset.extensions.storage.persistent.ExtensionStorageDAO")
+def test_persistent_state_set_with_encrypt_option(
+    mock_dao: MagicMock, mock_db: MagicMock, app: Flask
+) -> None:
+    """PersistentState.set passes encrypt=True when options.encrypt is set."""
+    ctx = create_context()
+
+    with app.app_context(), use_context(ctx):
+        set_user(42)
+        PersistentState.set("token", "sk-...", PersistentSetOptions(encrypt=True))
+
+    expected_bytes = json.dumps("sk-...").encode()
+    mock_dao.set.assert_called_once_with(
+        "test-org.test-ext",
+        "token",
+        expected_bytes,
+        user_fk=42,
+        encrypt=True,
+    )
+
+
+@patch("superset.db")
+@patch("superset.extensions.storage.persistent.ExtensionStorageDAO")
+def test_shared_accessor_set_with_encrypt_option(
+    mock_dao: MagicMock, mock_db: MagicMock, app: Flask
+) -> None:
+    """SharedPersistentStateAccessor.set passes encrypt=True when requested."""
+    ctx = create_context()
+    accessor = SharedPersistentStateAccessor()
+
+    with app.app_context(), use_context(ctx):
+        set_user(42)
+        accessor.set("shared_token", "sk-...", PersistentSetOptions(encrypt=True))
+
+    expected_bytes = json.dumps("sk-...").encode()
+    mock_dao.set.assert_called_once_with(
+        "test-org.test-ext",
+        "shared_token",
+        expected_bytes,
+        user_fk=None,
+        encrypt=True,
     )
 
 

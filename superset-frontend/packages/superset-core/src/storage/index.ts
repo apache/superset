@@ -61,18 +61,6 @@ export interface StorageAccessor {
 }
 
 /**
- * Base interface for a storage tier.
- * All storage tiers implement this interface with user-scoped default and shared accessor.
- */
-export interface StorageTier extends StorageAccessor {
-  /**
-   * Shared storage accessor.
-   * Data stored via shared is visible to all users.
-   */
-  shared: StorageAccessor;
-}
-
-/**
  * Options required when setting ephemeral (server-cached) state.
  */
 export interface EphemeralSetOptions {
@@ -135,15 +123,19 @@ export interface PersistentStorageTier extends PersistentStorageAccessor {
 export interface ExtensionStorage {
   /**
    * Browser localStorage - persists across browser sessions.
-   * Data is scoped to the current extension and user.
+   * Data is scoped to the current extension and user. There is no
+   * `.shared` accessor for this tier: browser storage is per-device, so a
+   * "shared" value would only be visible to other users of the same
+   * browser, not to other users of the extension generally.
    */
-  local: StorageTier;
+  local: StorageAccessor;
 
   /**
    * Browser sessionStorage - cleared when the tab closes.
-   * Data is scoped to the current extension and user.
+   * Data is scoped to the current extension and user. There is no
+   * `.shared` accessor for this tier; see `local` above.
    */
-  session: StorageTier;
+  session: StorageAccessor;
 
   /**
    * Server-side cache (Redis/Memcached) with TTL.

@@ -239,12 +239,12 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         resource_uuid: str | None = None,
         category: str | None = None,
         description: str | None = None,
-        is_encrypted: bool = False,
+        encrypt: bool = False,
     ) -> ExtensionStorage:
-        """Upsert a storage entry.  Encrypts value when is_encrypted=True."""
+        """Upsert a storage entry.  Encrypts value when encrypt=True."""
         stored_value = (
             _enc_type(user_fk).process_bind_param(value, db.engine.dialect)
-            if is_encrypted
+            if encrypt
             else value
         )
 
@@ -266,7 +266,7 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
             entry.value_type = value_type
             entry.category = category
             entry.description = description
-            entry.is_encrypted = is_encrypted
+            entry.is_encrypted = encrypt
         else:
             entry = ExtensionStorage(
                 extension_id=extension_id,
@@ -278,7 +278,7 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
                 resource_uuid=resource_uuid,
                 category=category,
                 description=description,
-                is_encrypted=is_encrypted,
+                is_encrypted=encrypt,
             )
             db.session.add(entry)
         db.session.flush()

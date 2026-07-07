@@ -184,9 +184,7 @@ def test_dao_set_encrypts_value_when_requested(
     mock_enc_type.return_value.process_bind_param.return_value = b"ciphertext"
 
     with app.app_context():
-        ExtensionStorageDAO.set(
-            "my-ext", "key", b"plaintext", user_fk=1, is_encrypted=True
-        )
+        ExtensionStorageDAO.set("my-ext", "key", b"plaintext", user_fk=1, encrypt=True)
 
     mock_enc_type.assert_called_once_with(1)
     mock_enc_type.return_value.process_bind_param.assert_called_once_with(

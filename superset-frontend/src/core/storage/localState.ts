@@ -17,11 +17,7 @@
  * under the License.
  */
 
-import type {
-  JsonValue,
-  StorageAccessor,
-  StorageTier,
-} from '@apache-superset/core/storage';
+import type { JsonValue, StorageAccessor } from '@apache-superset/core/storage';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
 const KEY_PREFIX = 'superset-ext';
@@ -45,23 +41,7 @@ function buildKey(...parts: (string | number)[]): string {
 export function createBrowserStorage(
   storage: Storage,
   extensionId: string,
-): StorageTier {
-  const shared: StorageAccessor = {
-    async get<T = JsonValue>(key: string): Promise<T | null> {
-      const storageKey = buildKey(extensionId, key);
-      const value = storage.getItem(storageKey);
-      return value ? (JSON.parse(value) as T) : null;
-    },
-    async set<T = JsonValue>(key: string, value: T): Promise<void> {
-      const storageKey = buildKey(extensionId, key);
-      storage.setItem(storageKey, JSON.stringify(value));
-    },
-    async remove(key: string): Promise<void> {
-      const storageKey = buildKey(extensionId, key);
-      storage.removeItem(storageKey);
-    },
-  };
-
+): StorageAccessor {
   return {
     async get<T = JsonValue>(key: string): Promise<T | null> {
       const userId = getCurrentUserId();
@@ -79,6 +59,5 @@ export function createBrowserStorage(
       const storageKey = buildKey(extensionId, 'user', userId, key);
       storage.removeItem(storageKey);
     },
-    shared,
   };
 }

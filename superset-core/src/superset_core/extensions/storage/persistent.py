@@ -43,9 +43,28 @@ Usage (via extension context - preferred):
     ctx.storage.persistent.shared.get('global_config')
     ctx.storage.persistent.shared.set('global_config', {'version': 2})
     ctx.storage.persistent.shared.remove('global_config')
+
+    # Encrypted at rest
+    ctx.storage.persistent.set(
+        'api_token', 'sk-...', PersistentSetOptions(encrypt=True)
+    )
 """
 
+from dataclasses import dataclass
 from typing import Any, ClassVar, Protocol
+
+
+@dataclass(frozen=True)
+class PersistentSetOptions:
+    """
+    Options for a persistent state `set` call.
+
+    NOTE: This is intentionally minimal for the initial implementation.
+    Additional options can be added here later without changing the `set`
+    signature on `PersistentStateAccessor`/`PersistentState`.
+    """
+
+    encrypt: bool = False
 
 
 class PersistentStateAccessor(Protocol):
@@ -55,7 +74,9 @@ class PersistentStateAccessor(Protocol):
         """Get a value from persistent state."""
         ...
 
-    def set(self, key: str, value: Any) -> None:
+    def set(
+        self, key: str, value: Any, options: PersistentSetOptions | None = None
+    ) -> None:
         """Set a value in persistent state."""
         ...
 
@@ -92,7 +113,7 @@ class PersistentState:
         raise NotImplementedError("Class will be replaced during initialization")
 
     @staticmethod
-    def set(key: str, value: Any) -> None:
+    def set(key: str, value: Any, options: PersistentSetOptions | None = None) -> None:
         """
         Set a value in user-scoped persistent state.
 
@@ -102,6 +123,8 @@ class PersistentState:
 
         :param key: The key to store.
         :param value: The value to store (must be JSON-serializable).
+        :param options: Optional `PersistentSetOptions`, e.g. `encrypt=True`
+            to store the value encrypted at rest.
         """
         raise NotImplementedError("Class will be replaced during initialization")
 

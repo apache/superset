@@ -438,7 +438,7 @@ class ExtensionStorageRestApi(BaseApi):
         value_bytes = json.dumps(body["value"]).encode()
         try:
             ExtensionStorageDAO.set(
-                extension_id, key, value_bytes, user_fk=user_fk, is_encrypted=encrypt
+                extension_id, key, value_bytes, user_fk=user_fk, encrypt=encrypt
             )
         except ExtensionStorageQuotaExceeded as ex:
             return self.response(ex.status, message=ex.message)
