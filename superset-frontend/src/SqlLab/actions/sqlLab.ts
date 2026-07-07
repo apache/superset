@@ -1539,6 +1539,7 @@ export function popSavedQuery(
         } as Record<string, unknown>;
         const tmpAdaptedProps = {
           name: queryEditorProps.name as string,
+          description: queryEditorProps.description as string,
           dbId: (queryEditorProps.database as { id: number }).id,
           catalog: queryEditorProps.catalog as string,
           schema: queryEditorProps.schema as string,
