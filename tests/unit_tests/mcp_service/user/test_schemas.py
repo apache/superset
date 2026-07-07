@@ -102,6 +102,29 @@ def test_serialize_user_object_round_trip_with_empty_roles() -> None:
     assert info.email == "admin@example.com"
 
 
+def test_serialize_user_object_omits_sensitive_fields_when_not_permitted() -> None:
+    """email and roles must be None when include_sensitive=False."""
+    role_admin = MagicMock()
+    role_admin.name = "Admin"
+
+    user = MagicMock()
+    user.id = 1
+    user.username = "admin"
+    user.first_name = "Admin"
+    user.last_name = "User"
+    user.active = True
+    user.email = "admin@example.com"
+    user.changed_on = None
+    user.roles = [role_admin]
+
+    info = serialize_user_object(user, include_sensitive=False)
+
+    assert info is not None
+    assert info.email is None
+    assert info.roles is None
+    assert info.username == "admin"
+
+
 def test_serialize_user_object_round_trip_with_role_objects() -> None:
     """Full from_attributes path through serialize_user_object -> UserInfo."""
     role_admin = MagicMock()
