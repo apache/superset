@@ -80,10 +80,10 @@ const onClick = (
 const StyledButton = styled.span`
   button {
     line-height: 13px;
-    transition: background-color 0ms;
-    &:last-of-type {
-      margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
-    }
+    min-width: auto !important;
+    padding: 0 ${({ theme }) => theme.sizeUnit * 3}px 0
+      ${({ theme }) => theme.sizeUnit * 2}px;
+
     span[name='caret-down'] {
       display: flex;
       margin-left: ${({ theme }) => theme.sizeUnit * 1}px;

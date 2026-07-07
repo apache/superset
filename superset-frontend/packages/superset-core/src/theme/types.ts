@@ -260,14 +260,14 @@ export interface SupersetSpecificTokens {
   dashboardTileBoxShadow?: string;
 
   /**
-   * SQL Lab grid customization tokens.
-   * Control the appearance of the AG Grid result table in SQL Lab.
+   * Results grid customization tokens.
+   * Control the appearance of AG Grid-backed result tables (e.g. SQL Lab).
    */
-  sqlLabGridRowHeight?: number;
-  sqlLabGridHeaderFontWeight?: number;
-  sqlLabGridHeaderFontSize?: number;
-  sqlLabGridBorderRadius?: number;
-  sqlLabGridNoStriping?: boolean;
+  resultsGridRowHeight?: number;
+  resultsGridHeaderFontWeight?: number;
+  resultsGridHeaderFontSize?: number;
+  resultsGridBorderRadius?: number;
+  resultsGridNoStriping?: boolean;
 }
 
 /**

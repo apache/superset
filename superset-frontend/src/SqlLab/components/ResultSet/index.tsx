@@ -44,6 +44,8 @@ import {
   FilterableTable,
   ErrorMessageWithStackTrace,
 } from 'src/components';
+import type { GridThemeOverrides } from 'src/components/GridTable/types';
+import { buildResultsGridThemeOverrides } from './buildResultsGridThemeOverrides';
 import { nanoid } from 'nanoid';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -215,31 +217,10 @@ const ResultSet = ({
     FilterableTable;
   const theme = useTheme();
 
-  const resultsGridThemeOverrides = useMemo<
-    Record<string, any> | undefined
-  >(() => {
-    const overrides: Record<string, any> = {};
-
-    if (typeof theme.sqlLabGridHeaderFontSize === 'number') {
-      overrides.headerFontSize = theme.sqlLabGridHeaderFontSize;
-    }
-    if (typeof theme.sqlLabGridHeaderFontWeight === 'number') {
-      overrides.headerFontWeight = theme.sqlLabGridHeaderFontWeight;
-    }
-    if (typeof theme.sqlLabGridRowHeight === 'number') {
-      overrides.rowHeight = theme.sqlLabGridRowHeight;
-      overrides.headerHeight = theme.sqlLabGridRowHeight;
-    }
-    if (typeof theme.sqlLabGridBorderRadius === 'number') {
-      overrides.borderRadius = theme.sqlLabGridBorderRadius;
-      overrides.wrapperBorderRadius = theme.sqlLabGridBorderRadius;
-    }
-    if (theme.sqlLabGridNoStriping === true) {
-      overrides.oddRowBackgroundColor = 'transparent';
-    }
-
-    return Object.keys(overrides).length > 0 ? overrides : undefined;
-  }, [theme]);
+  const resultsGridThemeOverrides = useMemo<GridThemeOverrides | undefined>(
+    () => buildResultsGridThemeOverrides(theme),
+    [theme],
+  );
 
   const [searchText, setSearchText] = useState('');
   const [cachedData, setCachedData] = useState<Record<string, unknown>[]>([]);

@@ -26,6 +26,16 @@ export type ColDef = {
   field: string;
 };
 
+export interface GridThemeOverrides {
+  headerFontSize?: number;
+  headerFontWeight?: number;
+  rowHeight?: number;
+  headerHeight?: number;
+  borderRadius?: number;
+  wrapperBorderRadius?: number;
+  oddRowBackgroundColor?: string;
+}
+
 export interface TableProps<RecordType> {
   /**
    * Data that will populate the each row and map to the column key.
@@ -60,5 +70,5 @@ export interface TableProps<RecordType> {
 
   striped?: boolean;
 
-  themeOverrides?: Record<string, any>;
+  themeOverrides?: GridThemeOverrides;
 }

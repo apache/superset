@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { GridThemeOverrides } from '../GridTable/types';
+
 export type CellDataType = string | number | null;
 export type Datum = Record<string, CellDataType>;
 
@@ -31,5 +33,5 @@ export interface FilterableTableProps {
   striped?: boolean;
   expandedColumns?: string[];
   allowHTML?: boolean;
-  themeOverrides?: Record<string, any>;
+  themeOverrides?: GridThemeOverrides;
 }
