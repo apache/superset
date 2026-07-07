@@ -304,6 +304,11 @@ class TestDatabaseModel(SupersetTestCase):
             ),
         )
         table = self.get_table(name="birth_names")
+        # This test targets filter operators, not the dataset Hour Offset. A
+        # non-zero offset shifts temporal filter bounds (#104810) and other tests
+        # in the suite can leave one set on the shared birth_names table, so pin
+        # it to 0 here to keep the temporal-range literal deterministic.
+        table.offset = 0
         for filter_ in filters:
             query_obj = {
                 "granularity": None,

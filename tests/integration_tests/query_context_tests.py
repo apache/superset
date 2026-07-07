@@ -124,6 +124,10 @@ def test_time_offset_comparison_queries_use_chart_row_limit(
     def cache_timeout_fn() -> int:
         return query_context._processor.get_cache_timeout()
 
+    # A non-zero dataset Hour Offset shifts temporal filter bounds (#104810) and
+    # other tests can leave one set on the shared birth_names table; pin it to 0
+    # so the comparison-window literals below stay deterministic.
+    query_context.datasource.offset = 0
     time_offsets_obj = query_context.datasource.processing_time_offsets(
         df, query_object, cache_key_fn, cache_timeout_fn, query_context.force
     )
