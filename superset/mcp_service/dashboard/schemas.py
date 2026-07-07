@@ -683,19 +683,22 @@ class DeleteDashboardRequest(BaseModel):
     confirm: bool = Field(
         ...,
         description=(
-            "Explicit confirmation of the deletion. Deleting a dashboard is "
-            "permanent and cannot be undone. The tool refuses to delete unless "
-            "this is set to true."
+            "Explicit confirmation of the deletion. Depending on the "
+            "deployment, deletion is either recoverable via "
+            "undelete_dashboard (soft delete) or permanent (hard delete) — "
+            "the response's 'permanent' field reports which applied. The "
+            "tool refuses to delete unless this is set to true."
         ),
     )
 
 
 class DeletedDashboardSummary(BaseModel):
-    """Summary of a dashboard targeted for deletion."""
+    """Summary of a dashboard targeted for deletion or restoration."""
 
     id: int = Field(..., description="ID of the dashboard")
     dashboard_title: str | None = Field(None, description="Title of the dashboard")
     slug: str | None = Field(None, description="Slug of the dashboard")
+    uuid: str | None = Field(None, description="UUID of the dashboard")
 
     @field_validator("dashboard_title", "slug")
     @classmethod
@@ -709,8 +712,14 @@ class DeletedDashboardSummary(BaseModel):
 class DeleteDashboardResponse(BaseModel):
     """Response schema for deleting a dashboard."""
 
-    deleted: bool = Field(
-        False, description="True when the dashboard was permanently deleted"
+    deleted: bool = Field(False, description="True when the dashboard was deleted")
+    permanent: bool = Field(
+        False,
+        description=(
+            "True when the deletion was a permanent hard delete. False when "
+            "the dashboard was soft-deleted and can be recovered with "
+            "undelete_dashboard."
+        ),
     )
     dashboard: DeletedDashboardSummary | None = Field(
         None, description="Summary of the deleted (or targeted) dashboard"
@@ -724,6 +733,36 @@ class DeleteDashboardResponse(BaseModel):
 
         The error may echo the dashboard-controlled title — it must be wrapped
         so the LLM treats it as data, not instructions.
+        """
+        if value is None:
+            return value
+        return sanitize_for_llm_context(value, field_path=("error",))
+
+
+class UndeleteDashboardRequest(BaseModel):
+    """Request schema for undeleting (restoring) a soft-deleted dashboard."""
+
+    dashboard_id: int = Field(
+        ..., description="ID of the soft-deleted dashboard to restore"
+    )
+
+
+class UndeleteDashboardResponse(BaseModel):
+    """Response schema for undeleting (restoring) a dashboard."""
+
+    restored: bool = Field(False, description="True when the dashboard was restored")
+    dashboard: DeletedDashboardSummary | None = Field(
+        None, description="Summary of the restored (or targeted) dashboard"
+    )
+    error: str | None = Field(None, description="Error message, if operation failed")
+
+    @field_validator("error")
+    @classmethod
+    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
+        """Wrap error text before it is exposed to LLM context.
+
+        The error may echo the dashboard-controlled title or slug — both must
+        be wrapped so the LLM treats them as data, not instructions.
         """
         if value is None:
             return value

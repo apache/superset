@@ -18,8 +18,10 @@
 """
 MCP tool: delete_dashboard
 
-This tool permanently deletes a dashboard. It requires an explicit
-``confirm=true`` safety gate so callers must state destructive intent.
+This tool deletes a dashboard. It requires an explicit ``confirm=true``
+safety gate so callers must state destructive intent. When the
+``SOFT_DELETE`` feature flag is enabled the dashboard is soft-deleted and
+recoverable via ``undelete_dashboard``; otherwise the delete is permanent.
 """
 
 import logging
@@ -51,10 +53,13 @@ async def delete_dashboard(
     request: DeleteDashboardRequest, ctx: Context
 ) -> DeleteDashboardResponse:
     """
-    Permanently delete a dashboard by ID. The charts on the dashboard are
-    NOT deleted — only the dashboard itself. This action cannot be undone,
-    so the tool refuses to run unless ``confirm=true`` is explicitly passed.
+    Delete a dashboard by ID. The charts on the dashboard are NOT deleted —
+    only the dashboard itself. The tool refuses to run unless
+    ``confirm=true`` is explicitly passed. The response's ``permanent``
+    field reports whether the delete was a recoverable soft delete
+    (restore with ``undelete_dashboard``) or a permanent hard delete.
     """
+    from superset import is_feature_enabled
     from superset.commands.dashboard.delete import DeleteDashboardCommand
     from superset.commands.dashboard.exceptions import (
         DashboardDeleteFailedError,
@@ -63,16 +68,24 @@ async def delete_dashboard(
     )
     from superset.daos.dashboard import DashboardDAO
 
+    soft_delete_enabled = is_feature_enabled("SOFT_DELETE")
+
     if not request.confirm:
         await ctx.warning(
             "Deletion of dashboard %s not confirmed" % (request.dashboard_id,)
         )
+        recovery_note = (
+            "The dashboard can be restored afterwards with undelete_dashboard."
+            if soft_delete_enabled
+            else "The deletion is permanent and cannot be undone."
+        )
         return DeleteDashboardResponse(
             deleted=False,
+            permanent=False,
             dashboard=None,
             error=(
-                f"Deletion not confirmed. Deleting dashboard "
-                f"{request.dashboard_id} is permanent and cannot be undone. "
+                f"Deletion not confirmed. This will delete dashboard "
+                f"{request.dashboard_id}. {recovery_note} "
                 "Re-run with confirm=true to proceed."
             ),
         )
@@ -84,6 +97,7 @@ async def delete_dashboard(
             if not dashboard:
                 return DeleteDashboardResponse(
                     deleted=False,
+                    permanent=False,
                     dashboard=None,
                     error=(
                         f"Dashboard with ID {request.dashboard_id} not found. "
@@ -94,6 +108,7 @@ async def delete_dashboard(
                 id=dashboard.id,
                 dashboard_title=dashboard.dashboard_title,
                 slug=dashboard.slug,
+                uuid=str(dashboard.uuid) if dashboard.uuid else None,
             )
 
         with event_logger.log_context(action="mcp.delete_dashboard.delete"):
@@ -101,11 +116,17 @@ async def delete_dashboard(
 
         logger.info("Deleted dashboard %s", request.dashboard_id)
         await ctx.info("Deleted dashboard %s" % (request.dashboard_id,))
-        return DeleteDashboardResponse(deleted=True, dashboard=summary, error=None)
+        return DeleteDashboardResponse(
+            deleted=True,
+            permanent=not soft_delete_enabled,
+            dashboard=summary,
+            error=None,
+        )
 
     except DashboardNotFoundError:
         return DeleteDashboardResponse(
             deleted=False,
+            permanent=False,
             dashboard=None,
             error=(
                 f"Dashboard with ID {request.dashboard_id} not found. "
@@ -119,6 +140,7 @@ async def delete_dashboard(
         )
         return DeleteDashboardResponse(
             deleted=False,
+            permanent=False,
             dashboard=summary,
             error=(
                 f"You don't have permission to delete dashboard "
@@ -132,6 +154,7 @@ async def delete_dashboard(
         )
         return DeleteDashboardResponse(
             deleted=False,
+            permanent=False,
             dashboard=summary,
             error=f"Failed to delete dashboard {request.dashboard_id}: {exc.message}",
         )

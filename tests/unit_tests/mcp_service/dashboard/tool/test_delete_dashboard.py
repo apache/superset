@@ -19,7 +19,7 @@
 Unit tests for the delete_dashboard MCP tool.
 
 Covers:
-- Successful delete (happy path)
+- Successful delete with SOFT_DELETE on (recoverable) and off (permanent)
 - confirm=false refusal (safety gate)
 - Dashboard not found
 - Permission denied (user does not own the dashboard)
@@ -56,33 +56,45 @@ def _mock_dashboard(id: int = 1, title: str = "Sales Dashboard") -> Mock:
     dashboard.id = id
     dashboard.dashboard_title = title
     dashboard.slug = f"test-dashboard-{id}"
+    dashboard.uuid = f"dashboard-uuid-{id}"
     return dashboard
 
 
+@pytest.mark.parametrize("soft_delete_enabled", [True, False])
 @patch("superset.commands.dashboard.delete.DeleteDashboardCommand")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_successful_delete(
-    mock_find_by_id: Mock, mock_delete_cmd_cls: Mock, mcp_server: object
+    mock_find_by_id: Mock,
+    mock_delete_cmd_cls: Mock,
+    mcp_server: object,
+    soft_delete_enabled: bool,
 ) -> None:
-    """Happy path: dashboard deleted, summary echoed back."""
+    """Happy path: dashboard deleted, summary echoed back, and the
+    ``permanent`` field reflects whether SOFT_DELETE is enabled."""
     mock_find_by_id.return_value = _mock_dashboard(id=1, title="Sales Dashboard")
     mock_delete_cmd = Mock()
     mock_delete_cmd.run.return_value = None
     mock_delete_cmd_cls.return_value = mock_delete_cmd
 
-    async with Client(mcp_server) as client:
-        result = await client.call_tool(
-            "delete_dashboard",
-            {"request": {"dashboard_id": 1, "confirm": True}},
-        )
+    with patch(
+        "superset.is_feature_enabled",
+        side_effect=lambda flag: flag == "SOFT_DELETE" and soft_delete_enabled,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "delete_dashboard",
+                {"request": {"dashboard_id": 1, "confirm": True}},
+            )
 
     content = result.structured_content
     assert content["deleted"] is True
+    assert content["permanent"] is (not soft_delete_enabled)
     assert content["error"] is None
     assert content["dashboard"]["id"] == 1
     assert "Sales Dashboard" in content["dashboard"]["dashboard_title"]
     assert "test-dashboard-1" in content["dashboard"]["slug"]
+    assert content["dashboard"]["uuid"] == "dashboard-uuid-1"
     mock_delete_cmd_cls.assert_called_once_with([1])
     mock_delete_cmd.run.assert_called_once()
 
