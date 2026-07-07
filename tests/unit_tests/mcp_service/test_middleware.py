@@ -35,6 +35,7 @@ from superset.commands.exceptions import (
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.mcp_service.auth import MCPNoAuthSourceError, MCPPermissionDeniedError
+from superset.mcp_service.constants import DEFAULT_MAX_LIST_ITEMS
 from superset.mcp_service.mcp_config import MCP_RESPONSE_SIZE_CONFIG
 from superset.mcp_service.middleware import (
     _is_user_error,
@@ -453,6 +454,27 @@ class TestCreateResponseSizeGuardMiddleware:
         assert middleware is not None
         assert middleware.token_limit == 25_000  # Default
         assert middleware.warn_threshold_pct == 80  # Default
+
+    def test_falls_back_to_default_when_max_list_items_is_none(self) -> None:
+        """A config explicitly set to None (not just missing) shouldn't crash.
+
+        `dict.get(key, default)` only falls back when the key is absent, so
+        an operator setting MCP_RESPONSE_SIZE_CONFIG["max_list_items"] = None
+        would otherwise reach `int(None)` and raise TypeError.
+        """
+        mock_config = {"enabled": True, "max_list_items": None}
+
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_config
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            middleware = create_response_size_guard_middleware()
+
+        assert middleware is not None
+        assert middleware.max_list_items == DEFAULT_MAX_LIST_ITEMS
 
     def test_handles_exception_gracefully(self) -> None:
         """Should return None on expected configuration exceptions."""

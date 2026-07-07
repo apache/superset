@@ -1451,13 +1451,17 @@ def create_response_size_guard_middleware() -> ResponseSizeGuardMiddleware | Non
             logger.info("Response size guard is disabled")
             return None
 
+        max_list_items = config.get("max_list_items", DEFAULT_MAX_LIST_ITEMS)
+        if max_list_items is None:
+            max_list_items = DEFAULT_MAX_LIST_ITEMS
+
         middleware = ResponseSizeGuardMiddleware(
             token_limit=int(config.get("token_limit", DEFAULT_TOKEN_LIMIT)),
             warn_threshold_pct=int(
                 config.get("warn_threshold_pct", DEFAULT_WARN_THRESHOLD_PCT)
             ),
             excluded_tools=config.get("excluded_tools"),
-            max_list_items=int(config.get("max_list_items", DEFAULT_MAX_LIST_ITEMS)),
+            max_list_items=int(max_list_items),
         )
 
         logger.info(
