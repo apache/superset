@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, getMetricLabel } from '@superset-ui/core';
+import { ChartProps, getMetricLabel, QueryFormMetric } from '@superset-ui/core';
 import { addJsColumnsToExtraProps, DataRecord } from '../spatialUtils';
 import {
   createBaseTransformResult,
   getRecordsFromQuery,
-  getMetricLabelFromFormData,
   parseMetricValue,
   addPropertiesToFeature,
 } from '../transformUtils';
@@ -112,7 +111,12 @@ function processPolygonData(
     return [];
   }
 
-  const metricLabel = getMetricLabelFromFormData(metric);
+  // Metric from GUI Config (Explore) can be an object (saved/adhoc), so normalize it to
+  // the query-result label; this key is used to read the metric and expose it
+  // in extraProps for tooltip resolution.
+  const metricLabel = metric
+    ? getMetricLabel(metric as QueryFormMetric)
+    : undefined;
 
   let elevationLabel: string | undefined;
   let fixedElevationValue: number | undefined;
@@ -221,6 +225,12 @@ function processPolygonData(
           typeof metricValue === 'number'
         ) {
           feature.metrics![metricLabel] = metricValue;
+          // Expose the configured metric under its own label in extraProps so
+          // tooltip field lookups can resolve it with the same key users select.
+          feature.extraProps = {
+            ...feature.extraProps,
+            [metricLabel]: metricValue,
+          };
         }
       }
 

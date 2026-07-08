@@ -37,7 +37,7 @@
     "dompurify": "^3.4.11",
     "prop-types": "^15.8.1",
     "urijs": "^1.19.11",
-    "lodash-es": "^4.17.21"
+    "lodash-es": "^4.18.1"
   },
   "peerDependencies": {
     "@apache-superset/core": "*",

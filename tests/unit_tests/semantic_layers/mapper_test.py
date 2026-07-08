@@ -20,6 +20,7 @@ from typing import Any
 from unittest.mock import MagicMock
 from zoneinfo import ZoneInfo
 
+import freezegun
 import pandas as pd
 import pyarrow as pa
 import pytest
@@ -1507,6 +1508,53 @@ def test_get_results_with_multiple_time_offsets(
     pd.testing.assert_frame_equal(result.df, expected_df)
 
 
+def test_get_results_with_time_offset_and_no_dimensions(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Aggregate-only queries (no dimensions) with a time offset should not
+    crash. Regression for ``IndexError: list index out of range`` inside
+    pandas, which fired when ``main_df.merge(..., on=[])`` was attempted
+    because the empty ``columns`` list left no join keys.
+    """
+    # Aggregate without group-by produces a single row per query.
+    main_df = pd.DataFrame({"total_sales": [1000.0]})
+    offset_df = pd.DataFrame({"total_sales": [950.0]})
+
+    mock_main_result = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="SELECT SUM(amount)")],
+        results=pa.Table.from_pandas(main_df.copy()),
+    )
+    mock_offset_result = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="SELECT SUM(amount)")],
+        results=pa.Table.from_pandas(offset_df.copy()),
+    )
+    mock_datasource.implementation.get_table = mocker.Mock(
+        side_effect=[mock_main_result, mock_offset_result]
+    )
+
+    query_object = ValidatedQueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=[],
+        granularity="order_date",
+        time_offsets=["1 day ago"],
+    )
+
+    # No exception, and the offset value rides alongside the main one.
+    result = get_results(query_object)
+    expected_df = pd.DataFrame(
+        {
+            "total_sales": [1000.0],
+            "total_sales__1 day ago": [950.0],
+        }
+    )
+    pd.testing.assert_frame_equal(result.df, expected_df)
+
+
 def test_get_results_with_empty_offset_result(
     mock_datasource: MagicMock,
     mocker: MockerFixture,
@@ -1692,6 +1740,37 @@ def test_get_results_with_multiple_dimensions(
     )
 
     pd.testing.assert_frame_equal(result.df, expected_df)
+
+
+def test_get_results_handles_none_results(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Some semantic-layer driver implementations return ``SemanticResult(results=None)``
+    when a query produces zero rows (for example, ``snowflake.connector``'s
+    ``fetch_arrow_all``). ``get_results`` must coerce that to an empty Arrow table
+    rather than crashing on ``None.to_pandas()``.
+    """
+    mock_result = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="SELECT 1")],
+        results=None,
+    )
+    mock_datasource.implementation.get_table = mocker.Mock(return_value=mock_result)
+
+    query_object = ValidatedQueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["category"],
+    )
+
+    result = get_results(query_object)
+
+    assert result.df is not None
+    assert result.df.empty
+    assert set(result.df.columns) == {"category", "total_sales"}
 
 
 def test_get_results_no_datasource() -> None:
@@ -1980,11 +2059,11 @@ def test_get_time_bounds_with_offset_no_bounds(
 
 def test_convert_query_object_filter_temporal_range_with_value() -> None:
     """
-    Test conversion of TEMPORAL_RANGE filter with valid string value.
+    Test conversion of TEMPORAL_RANGE filter with an explicit "start : end" value.
     """
     all_dimensions = {
         "order_date": Dimension(
-            "order_date", "order_date", pa.utf8(), "order_date", "Order date"
+            "order_date", "order_date", pa.timestamp("us"), "order_date", "Order date"
         )
     }
     filter_: ValidatedQueryObjectFilterClause = {
@@ -2000,15 +2079,78 @@ def test_convert_query_object_filter_temporal_range_with_value() -> None:
             type=PredicateType.WHERE,
             column=all_dimensions["order_date"],
             operator=Operator.GREATER_THAN_OR_EQUAL,
-            value="2025-01-01",
+            value=datetime(2025, 1, 1),
         ),
         Filter(
             type=PredicateType.WHERE,
             column=all_dimensions["order_date"],
             operator=Operator.LESS_THAN,
-            value="2025-12-31",
+            value=datetime(2025, 12, 31),
         ),
     }
+
+
+@pytest.mark.parametrize(
+    "time_range",
+    [
+        "Last week",
+        "Last 7 days",
+        "Last month",
+        "Next 30 days",
+        "previous calendar week",
+        "previous calendar month",
+        "previous calendar year",
+        "Current day",
+        "Current week",
+    ],
+)
+def test_convert_query_object_filter_temporal_range_named_ranges(
+    time_range: str,
+) -> None:
+    """
+    Named time ranges must be parsed via the standard time-range parser rather than
+    split on " : ". Previously these raised ``ValueError`` from
+    ``"Last week".split(" : ")``.
+    """
+    all_dimensions = {
+        "order_date": Dimension(
+            "order_date", "order_date", pa.timestamp("us"), "order_date", "Order date"
+        )
+    }
+    filter_: ValidatedQueryObjectFilterClause = {
+        "op": FilterOperator.TEMPORAL_RANGE.value,
+        "col": "order_date",
+        "val": time_range,
+    }
+
+    with freezegun.freeze_time("2025-10-15"):
+        result = _convert_query_object_filter(filter_, all_dimensions)
+
+    assert result is not None
+    assert {f.operator for f in result} == {
+        Operator.GREATER_THAN_OR_EQUAL,
+        Operator.LESS_THAN,
+    }
+    for f in result:
+        assert isinstance(f.value, datetime)
+
+
+def test_convert_query_object_filter_temporal_range_no_filter() -> None:
+    """
+    A "No filter" value should produce no filters at all.
+    """
+    all_dimensions = {
+        "order_date": Dimension(
+            "order_date", "order_date", pa.timestamp("us"), "order_date", "Order date"
+        )
+    }
+    filter_: ValidatedQueryObjectFilterClause = {
+        "op": FilterOperator.TEMPORAL_RANGE.value,
+        "col": "order_date",
+        "val": "No filter",
+    }
+
+    assert _convert_query_object_filter(filter_, all_dimensions) is None
 
 
 def test_convert_query_object_filter_temporal_range_coerces_date_bounds() -> None:
@@ -2983,8 +3125,9 @@ def test_coerce_integer_rejects_non_integer_float() -> None:
 
 
 def test_coerce_integer_rejects_other_types() -> None:
+    raw: Any = [1]
     with pytest.raises(ValueError, match="Invalid integer value"):
-        _coerce_scalar_filter_value([1], _dim(pa.int64()))
+        _coerce_scalar_filter_value(raw, _dim(pa.int64()))
 
 
 @pytest.mark.parametrize(
@@ -3008,8 +3151,9 @@ def test_coerce_floating_invalid_string_raises() -> None:
 
 
 def test_coerce_floating_rejects_other_types() -> None:
+    raw: Any = [1.0]
     with pytest.raises(ValueError, match="Invalid numeric value"):
-        _coerce_scalar_filter_value([1.0], _dim(pa.float64()))
+        _coerce_scalar_filter_value(raw, _dim(pa.float64()))
 
 
 def test_coerce_date_from_datetime() -> None:

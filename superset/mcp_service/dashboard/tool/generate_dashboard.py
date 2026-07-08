@@ -425,8 +425,7 @@ def generate_dashboard(  # noqa: C901
         # response.dashboard_url) share a single source. Prefer the slug
         # over the id to match ``update_dashboard``'s canonical URL shape.
         dashboard_url = (
-            f"{get_superset_base_url()}/superset/dashboard/"
-            f"{dashboard.slug or dashboard.id}/"
+            f"{get_superset_base_url()}/dashboard/{dashboard.slug or dashboard.id}/"
         )
 
         # Re-fetch with eager-loaded relationships for serialization.

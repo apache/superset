@@ -86,9 +86,11 @@ export default function VerticalRadioControl({
                       css={css`
                         margin-left: 4px;
                         font-size: 12px;
-                        color: ${disabled
-                          ? theme.colorTextDisabled
-                          : theme.colorTextTertiary};
+                        color: ${
+                          disabled
+                            ? theme.colorTextDisabled
+                            : theme.colorTextTertiary
+                        };
                         cursor: help;
                       `}
                     />

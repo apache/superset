@@ -619,13 +619,33 @@ categories:
     - name: Symmetrics
       url: https://www.symmetrics.fyi
 
-  Government:
+  Government / Public authority:
+    - name: Centre Régional Auvergnat de l'Information Géographique (France)
+      url: https://www.craig.fr/
+      logo: craig.png
+
     - name: City of Ann Arbor, MI
       url: https://www.a2gov.org/
       contributors: ["@sfirke"]
 
+    - name: Métropole Européenne de Lille (France)
+      url: https://data.lillemetropole.fr/accueil/
+      logo: mel.jpg
+
     - name: NRLM - Sarathi, India
       url: https://pib.gov.in/PressReleasePage.aspx?PRID=1999586
+
+    - name: Région Bretagne (France)
+      url: https://geobretagne.fr/
+      logo: geobretagne.svg
+
+    - name: Région Hauts-de-France (France)
+      url: https://www.geo2france.fr/
+      logo: geo2france.svg
+
+    - name: Rennes Métropole (France)
+      url: https://metropole.rennes.fr/
+      logo: rennes-ville-metropole_noir.svg
 
     - name: RIS3 Strategy of CZ, MIT CR
       url: https://www.ris3.cz/
@@ -682,6 +702,10 @@ categories:
       url: https://automattic.com/
       contributors: ["@Khrol", "@Usiel"]
 
+    - name: CamptoCamp
+      url: https://camptocamp.com/
+      logo: camptocamp.svg
+
     - name: Dropbox
       url: https://www.dropbox.com/
       contributors: ["@bkyryliuk"]
@@ -689,6 +713,10 @@ categories:
     - name: Flowbird
       url: https://flowbird.com
       contributors: ["@EmmanuelCbd"]
+
+    - name: geOrchestra
+      url: https://www.georchestra.org
+      logo: georchestra.svg
 
     - name: GEOTAB
       url: https://www.geotab.com
@@ -706,6 +734,10 @@ categories:
       url: https://www.increff.com/
       contributors: ["@ishansinghania"]
 
+    - name: jDev
+      url: https://jdev.fr/
+      logo: jDev.svg
+
     - name: Let's Roam
       url: https://www.letsroam.com/
 
@@ -715,6 +747,11 @@ categories:
     - name: Onebeat
       url: https://1beat.com/
       contributors: ["@GuyAttia"]
+
+    - name: pi-Geosolutions
+      url: https://www.pi-geosolutions.fr/
+      logo: pi-Geosolutions.png
+      contributors: ["@jeanpommier"]
 
     - name: X
       url: https://x.com/

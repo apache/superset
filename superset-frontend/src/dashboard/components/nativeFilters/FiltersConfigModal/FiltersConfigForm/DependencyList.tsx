@@ -112,7 +112,11 @@ const Row = ({
         }
         value={value}
       />
-      <DeleteFilter iconSize="xl" onClick={() => onDelete(selection)} />
+      <DeleteFilter
+        iconSize="xl"
+        onClick={() => onDelete(selection)}
+        aria-label={t('Remove dependency')}
+      />
     </RowPanel>
   );
 };
