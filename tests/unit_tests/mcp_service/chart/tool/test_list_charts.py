@@ -80,7 +80,7 @@ def mock_chart():
     chart.created_on = None
     chart.created_on_humanized = "2 days ago"
     chart.tags = []
-    chart.owners = []
+    chart.editors = []
     chart.uuid = "test-uuid-123"
     chart.cache_timeout = None
     chart.form_data = {}
@@ -202,7 +202,7 @@ class TestListChartsRequestSchema:
             ValueError,
             match=(
                 "Input should be 'slice_name', 'viz_type', 'datasource_name', "
-                "'created_by_fk', 'changed_by_fk' or 'dashboards'"
+                "'editor', 'created_by_fk', 'changed_by_fk' or 'dashboards'"
             ),
         ):
             ChartFilter(col="nonexistent_column", opr="eq", value=1)

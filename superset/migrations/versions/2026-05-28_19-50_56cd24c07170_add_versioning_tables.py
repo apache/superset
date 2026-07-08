@@ -66,7 +66,7 @@ UUIDv5 ``version_uuid`` derived from ``entity.uuid`` and
 ``transaction_id`` for stable external references.
 
 Revision ID: 56cd24c07170
-Revises: 3a8e6f2c1b95
+Revises: b1c2d3e4f5a6
 Create Date: 2026-05-28 19:50:00.000000
 
 """
@@ -84,7 +84,7 @@ revision = "56cd24c07170"
 # association-tables change (2bee73611e32). That ordering is required: the
 # Continuum shadow tables this migration creates mirror the composite-PK shape
 # of the live association tables, so composite-PK must already have run.
-down_revision = "3a8e6f2c1b95"
+down_revision = "b1c2d3e4f5a6"
 
 
 def upgrade() -> None:

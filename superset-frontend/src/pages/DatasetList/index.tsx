@@ -38,10 +38,11 @@ import rison from 'rison';
 import {
   createFetchRelated,
   createFetchDistinct,
-  createFetchOwners,
+  createFetchEditors,
   createErrorHandler,
 } from 'src/views/CRUD/utils';
-import { OWNER_OPTION_FILTER_PROPS } from 'src/features/owners/OwnerSelectLabel';
+import { SUBJECT_OPTION_FILTER_PROPS } from 'src/features/subjects/SubjectSelectLabel';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { ColumnObject } from 'src/features/datasets/types';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
@@ -59,7 +60,6 @@ import {
 import {
   DatasourceModal,
   GenericLink,
-  FacePile,
   ImportModal as ImportModelsModal,
   ModifiedInfo,
   ListView,
@@ -73,7 +73,7 @@ import { Typography } from '@superset-ui/core/components/Typography';
 import handleResourceExport from 'src/utils/export';
 import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
-import Owner from 'src/types/Owner';
+import Subject from 'src/types/Subject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Icons } from '@superset-ui/core/components/Icons';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
@@ -100,6 +100,8 @@ import { useSelector } from 'react-redux';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import type { BootstrapData } from 'src/types/bootstrapTypes';
+import type User from 'src/types/User';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 const SEMANTIC_LAYERS_FLAG = 'SEMANTIC_LAYERS' as FeatureFlag;
 type DatasetExtra = {
@@ -156,7 +158,7 @@ const Actions = styled.div`
 
 type Dataset = {
   changed_by_name: string;
-  changed_by: Owner;
+  changed_by: User;
   changed_on_delta_humanized: string;
   database: {
     id: string;
@@ -166,7 +168,7 @@ type Dataset = {
   source_type?: 'database' | 'semantic_layer';
   explore_url: string;
   id: number;
-  owners: Array<Owner>;
+  editors: Array<Subject>;
   schema: string | null;
   table_name: string;
   description?: string | null;
@@ -223,6 +225,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   // can inspect them when a different filter changes.
   const currentTypeFilter = useRef<unknown>(undefined);
   const currentConnectionFilter = useRef<unknown>(undefined);
+  const userSubjects = useMemo(
+    () => new Set(getBootstrapData()?.common?.user_subjects ?? []),
+    [],
+  );
 
   // Ref wired to ListView's filter controls for programmatic per-filter clearing.
   const filtersRef = useRef<{
@@ -806,11 +812,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       {
         Cell: ({
           row: {
-            original: { owners = [] },
+            original: { editors = [] },
           },
-        }: CellProps<Dataset>) => <FacePile users={owners} />,
-        Header: t('Owners'),
-        id: 'owners',
+        }: CellProps<Dataset>) => <SubjectPile subjects={editors} />,
+        Header: t('Editors'),
+        id: 'editors',
         disableSortBy: true,
         size: 'lg',
       },
@@ -891,9 +897,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
           // Dataset: full set of actions
           const allowEdit =
-            original.owners
-              .map((o: Owner) => o.id)
-              .includes(Number(user.userId)) || isUserAdmin(user);
+            original.editors
+              ?.map((o: Subject) => o.id)
+              .some((id: number) => userSubjects.has(id)) || isUserAdmin(user);
 
           const handleEdit = () => openDatasetEditModal(original);
           const handleDelete = () => openDatasetDeleteModal(original);
@@ -915,7 +921,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     allowEdit
                       ? t('Edit')
                       : t(
-                          'You must be a dataset owner in order to edit. Please reach out to a dataset owner to request modifications or edit access.',
+                          'You must be a dataset editor in order to edit. Please reach out to a dataset editor to request modifications or edit access.',
                         )
                   }
                   placement="bottom"
@@ -1007,6 +1013,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       handleBulkDatasetExport,
       PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET,
       user,
+      userSubjects,
     ],
   );
 
@@ -1111,24 +1118,23 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
-        Header: t('Owner'),
-        key: 'owner',
-        id: 'owners',
+        Header: t('Editor'),
+        key: 'editor',
+        id: 'editors',
         input: 'select',
         operator: FilterOperator.RelationManyMany,
         unfilteredLabel: 'All',
-        fetchSelects: createFetchOwners(
+        fetchSelects: createFetchEditors(
           'dataset',
           createErrorHandler(errMsg =>
             t(
-              'An error occurred while fetching %s owner values: %s',
-              datasetLabelLower(),
+              'An error occurred while fetching dataset editor values: %s',
               errMsg,
             ),
           ),
           user,
         ),
-        optionFilterProps: OWNER_OPTION_FILTER_PROPS,
+        optionFilterProps: SUBJECT_OPTION_FILTER_PROPS,
         paginate: true,
         popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },

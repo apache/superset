@@ -33,8 +33,9 @@ from typing import (
     Union,
 )
 
-from flask import current_app, Flask, g, Request
+from flask import current_app, Flask, g, has_app_context, Request, Response
 from flask_appbuilder import Model
+from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.security.sqla.apis import GroupApi, RoleApi, UserApi
 from flask_appbuilder.security.sqla.apis.permission_view_menu.api import (
@@ -123,6 +124,49 @@ def get_conf() -> Any:
     return current_app.config
 
 
+def _get_subject_id(subject: Any) -> int | None:
+    from superset.subjects.models import (
+        Subject,  # pylint: disable=import-outside-toplevel
+    )
+
+    if isinstance(subject, Subject):
+        return subject.id
+    if isinstance(subject, int):
+        return subject
+    if isinstance(subject, dict):
+        subject_id = subject.get("id")
+    else:
+        return None
+    try:
+        return int(subject_id) if subject_id is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def get_extra_editor_subject_ids(resource: Model) -> list[int]:
+    """
+    Resolve additional editor subject IDs for a resource.
+
+    The configured resolver may return Subject instances, raw subject IDs, or
+    dict-like subject representations containing an ``id`` key.
+    """
+    if not has_app_context():
+        return []
+
+    resolver = current_app.config.get("EXTRA_EDITORS_RESOLVER")
+    if not resolver:
+        return []
+
+    subject_ids: list[int] = []
+    seen: set[int] = set()
+    for subject in resolver(resource) or []:
+        subject_id = _get_subject_id(subject)
+        if subject_id is not None and subject_id not in seen:
+            subject_ids.append(subject_id)
+            seen.add(subject_id)
+    return subject_ids
+
+
 DATABASE_PERM_REGEX = re.compile(r"^\[.+\]\.\(id\:(?P<id>\d+)\)$")
 
 
@@ -172,24 +216,111 @@ def _log_audit_event(action: str, payload: dict[str, Any]) -> None:
 
 class SupersetRoleApi(RoleApi):
     """
-    Overriding the RoleApi to be able to delete roles with permissions
-    and to add audit logging for role CRUD operations.
+    Overriding the RoleApi to sync Subject rows, handle deletion constraints,
+    and add audit logging for role CRUD operations.
+    RoleApi delegates to post_headless/put_headless which call these hooks.
+    Since datamodel.add/edit commits before hooks fire, we flush the sync
+    changes via an explicit commit.
     """
 
-    def pre_delete(self, item: Model) -> None:
-        """
-        Overriding this method to be able to delete items when they have constraints
-        """
-        item.permissions = []
-
     def post_add(self, item: Model) -> None:
+        from superset.daos.role import RoleDAO
+
+        RoleDAO._sync_subject(item)
+        self.datamodel.session.commit()  # pylint: disable=consider-using-transaction
         _log_audit_event("RoleCreated", {"role_name": item.name, "role_id": item.id})
 
     def post_update(self, item: Model) -> None:
+        from superset.daos.role import RoleDAO
+
+        RoleDAO._sync_subject(item)
+        self.datamodel.session.commit()  # pylint: disable=consider-using-transaction
         _log_audit_event("RoleUpdated", {"role_name": item.name, "role_id": item.id})
+
+    def pre_delete(self, item: Model) -> None:
+        from superset.daos.role import RoleDAO
+
+        item.permissions = []
+        RoleDAO._delete_subject(item.id)
 
     def post_delete(self, item: Model) -> None:
         _log_audit_event("RoleDeleted", {"role_name": item.name, "role_id": item.id})
+
+
+class SupersetGroupApi(GroupApi):
+    """
+    Overriding the GroupApi to sync Subject rows and add audit logging.
+    GroupApi delegates to post_add/post_update after successful writes.
+    """
+
+    @expose("/", methods=["POST"])
+    @protect()
+    @safe
+    def post(self) -> Response:
+        """Create a new group.
+        ---
+        post:
+          responses:
+            201:
+              description: Group created
+            400:
+              description: Bad request
+            500:
+              description: Server error
+        """
+        return super().post()
+
+    @expose("/<pk>", methods=["PUT"])
+    @protect()
+    @safe
+    def put(self, pk: int) -> Response:  # type: ignore[override]
+        """Update a group.
+        ---
+        put:
+          parameters:
+            - in: path
+              name: pk
+              schema:
+                type: integer
+          responses:
+            200:
+              description: Group updated
+            400:
+              description: Bad request
+            404:
+              description: Not found
+            500:
+              description: Server error
+        """
+        return super().put(pk)
+
+    def post_add(self, item: Model) -> None:
+        from superset.daos.group import GroupDAO
+
+        GroupDAO._sync_subject(item)
+        self.datamodel.session.commit()  # pylint: disable=consider-using-transaction
+        _log_audit_event(
+            "GroupCreated",
+            {"group_name": item.name, "group_id": item.id},
+        )
+
+    def post_update(self, item: Model) -> None:
+        from superset.daos.group import GroupDAO
+
+        GroupDAO._sync_subject(item)
+        self.datamodel.session.commit()  # pylint: disable=consider-using-transaction
+        _log_audit_event(
+            "GroupUpdated",
+            {"group_name": item.name, "group_id": item.id},
+        )
+
+    def post_delete(self, item: Model) -> None:
+        _log_audit_event("GroupDeleted", {"group_name": item.name, "group_id": item.id})
+
+    def pre_delete(self, item: Model) -> None:
+        from superset.daos.group import GroupDAO
+
+        GroupDAO._delete_subject(item.id)
 
 
 class ExcludeUsersFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -217,8 +348,10 @@ class ExcludeUsersFilter(BaseFilter):  # pylint: disable=too-few-public-methods
 
 class SupersetUserApi(UserApi):
     """
-    Overriding the UserApi to be able to delete users and filter excluded users
-    and to add audit logging for user CRUD operations.
+    Overriding the UserApi to sync Subject rows, filter excluded users,
+    handle deletion constraints, and add audit logging.
+    UserApi has custom post/put that bypass hooks, so we override them
+    and sync after the parent method succeeds.
     """
 
     base_filters = [["username", ExcludeUsersFilter, lambda: []]]
@@ -238,11 +371,70 @@ class SupersetUserApi(UserApi):
         "changed_on",
     ]
 
+    @expose("/", methods=["POST"])
+    @protect()
+    @safe
+    def post(self) -> Response:
+        """Create a new user.
+        ---
+        post:
+          responses:
+            201:
+              description: User created
+            400:
+              description: Bad request
+            500:
+              description: Server error
+        """
+        response = super().post()
+        if response.status_code == 201:
+            from superset.daos.user import UserDAO
+
+            user_id = response.json.get("id")
+            if user_id:
+                user = self.datamodel.session.get(self.datamodel.obj, user_id)
+                if user:
+                    UserDAO._sync_subject(user)
+                    self.datamodel.session.commit()  # pylint: disable=consider-using-transaction
+        return response
+
+    @expose("/<pk>", methods=["PUT"])
+    @protect()
+    @safe
+    def put(self, pk: int) -> Response:  # type: ignore[override]
+        """Update a user.
+        ---
+        put:
+          parameters:
+            - in: path
+              name: pk
+              schema:
+                type: integer
+          responses:
+            200:
+              description: User updated
+            400:
+              description: Bad request
+            404:
+              description: Not found
+            500:
+              description: Server error
+        """
+        response = super().put(pk)
+        if response.status_code == 200:
+            from superset.daos.user import UserDAO
+
+            user = self.datamodel.get(pk, self._base_filters)
+            if user:
+                UserDAO._sync_subject(user)
+                self.datamodel.session.commit()  # pylint: disable=consider-using-transaction
+        return response
+
     def pre_delete(self, item: Model) -> None:
-        """
-        Overriding this method to be able to delete items when they have constraints
-        """
+        from superset.daos.user import UserDAO
+
         item.roles = []
+        UserDAO._delete_subject(item.id)
 
     def post_add(self, item: Model) -> None:
         _log_audit_event(
@@ -273,21 +465,6 @@ class SupersetUserApi(UserApi):
                 "target_user_id": item.id,
             },
         )
-
-
-class SupersetGroupApi(GroupApi):
-    """
-    Overriding the GroupApi to add audit logging for group CRUD operations.
-    """
-
-    def post_add(self, item: Model) -> None:
-        _log_audit_event("GroupCreated", {"group_name": item.name, "group_id": item.id})
-
-    def post_update(self, item: Model) -> None:
-        _log_audit_event("GroupUpdated", {"group_name": item.name, "group_id": item.id})
-
-    def post_delete(self, item: Model) -> None:
-        _log_audit_event("GroupDeleted", {"group_name": item.name, "group_id": item.id})
 
 
 class _FilterPermissionNameContains(BaseFilter):
@@ -1406,7 +1583,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self, dataset: "BaseDatasource", dashboard: "Dashboard"
     ) -> bool:
         """
-        Return True if an embedded user or DASHBOARD_RBAC user can drill a dataset.
+        Return True if an embedded user or viewer (in promiscuous mode) can
+        drill a dataset via dashboard access.
         """
         from superset import is_feature_enabled
 
@@ -1417,11 +1595,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 and self.has_guest_access(dashboard)
             )
             or (
-                is_feature_enabled("DASHBOARD_RBAC")
-                and dashboard.roles
+                is_feature_enabled("ENABLE_VIEWERS")
+                and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
+                and self.is_viewer(dashboard)
                 and dashboard.published
-                and {role.id for role in dashboard.roles}
-                & {role.id for role in self.get_user_roles()}
             )
         ) and dataset.id in {dataset.id for dataset in dashboard.datasources}:
             return True
@@ -3437,7 +3614,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def get_exclude_users_from_lists() -> list[str]:
         """
         Override to dynamically identify a list of usernames to exclude from
-        all UI dropdown lists, owners, created_by filters etc...
+        all UI dropdown lists, editors, created_by filters etc...
 
         It will exclude all users from the all endpoints of the form
         ``/api/v1/<modelview>/related/<column>``
@@ -3674,7 +3851,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     if self.can_access(
                         "datasource_access",
                         datasource_.perm or "",
-                    ) or self.is_owner(datasource_):
+                    ) or self.is_editor(datasource_):
                         # access to any datasource is sufficient
                         break
                 else:
@@ -3712,10 +3889,39 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             assert datasource
 
+            def has_promiscuous_chart_access() -> bool:
+                if not (
+                    form_data
+                    and is_feature_enabled("ENABLE_VIEWERS")
+                    and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
+                    and (viewer_slice_id := form_data.get("slice_id"))
+                    and (
+                        viewer_slc := self.session.query(Slice)
+                        .filter(Slice.id == viewer_slice_id)
+                        .one_or_none()
+                    )
+                ):
+                    return False
+
+                viewer_datasource_id = getattr(viewer_slc, "datasource_id", None)
+                datasource_id = getattr(datasource, "id", None)
+                same_datasource = (
+                    isinstance(viewer_datasource_id, int)
+                    and isinstance(datasource_id, int)
+                    and viewer_datasource_id == datasource_id
+                )
+                if (
+                    not same_datasource
+                    and getattr(viewer_slc, "datasource", None) is not datasource
+                ):
+                    return False
+
+                return self.is_viewer(viewer_slc) or self.is_editor(viewer_slc)
+
             if not (
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
-                or self.is_owner(datasource)
+                or self.is_editor(datasource)
                 or (
                     # Grant access to the datasource only if dashboard RBAC is enabled
                     # or the user is an embedded guest user with access to the dashboard
@@ -3729,10 +3935,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         .one_or_none()
                     )
                     and (
-                        (is_feature_enabled("DASHBOARD_RBAC") and dashboard_.roles)
-                        or (
+                        (
                             is_feature_enabled("EMBEDDED_SUPERSET")
                             and self.is_guest_user()
+                        )
+                        or (
+                            is_feature_enabled("ENABLE_VIEWERS")
+                            and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
+                            and self.is_viewer(dashboard_)
                         )
                     )
                     and (
@@ -3801,6 +4011,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     )
                     and self.can_access_dashboard(dashboard_)
                 )
+                # Chart-viewer/editor promiscuous mode: bypass datasource
+                # access if the user is a viewer or editor of the chart
+                # and promiscuous mode is enabled.
+                or has_promiscuous_chart_access()
             ):
                 raise SupersetSecurityException(
                     self.get_datasource_access_error_object(datasource)
@@ -3833,28 +4047,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     self.get_dashboard_access_error_object(dashboard)
                 )
 
-            if self.is_admin() or self.is_owner(dashboard):
+            if self.is_admin() or self.is_editor(dashboard):
                 return
 
-            # TODO: Once a better sharing flow is in place, we should move the
-            # dashboard.published check here so that it's applied to both
-            # regular RBAC and DASHBOARD_RBAC
-
-            # DASHBOARD_RBAC logic - Manage dashboard access through roles.
-            # Only applicable in case the dashboard has roles set.
-            if is_feature_enabled("DASHBOARD_RBAC") and dashboard.roles:
-                if dashboard.published and {role.id for role in dashboard.roles} & {
-                    role.id for role in self.get_user_roles()
-                }:
+            if dashboard.viewers:
+                if dashboard.published and self.is_viewer(dashboard):
                     return
-
-            # REGULAR RBAC logic
-            # User can only acess the dashboard in case:
-            #    It doesn't have any datasets; OR
-            #    They have access to at least one dataset used.
-            # We currently don't check if the dashboard is published,
-            # to allow creators to share a WIP dashboard with a viewer
-            # to collect feedback.
             elif not dashboard.datasources or any(
                 self.can_access_datasource(datasource)
                 for datasource in dashboard.datasources
@@ -3866,10 +4064,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
 
         if chart:
-            if self.is_admin() or self.is_owner(chart):
+            if self.is_admin() or self.is_editor(chart):
                 return
 
-            if chart.datasource and self.can_access_datasource(chart.datasource):
+            if chart.viewers:
+                if self.is_viewer(chart):
+                    return
+            elif chart.datasource and self.can_access_datasource(chart.datasource):
                 return
 
             raise SupersetSecurityException(self.get_chart_access_error_object(chart))
@@ -3998,27 +4199,28 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import (
-            RLSFilterRoles,
+            RLSFilterSubjects,
             RLSFilterTables,
             RowLevelSecurityFilter,
         )
+        from superset.subjects.utils import get_current_user_subject_ids
 
-        user_roles = [role.id for role in self.get_user_roles(g.user)]
-        regular_filter_roles = (
-            self.session.query(RLSFilterRoles.c.rls_filter_id)
+        user_subject_ids = get_current_user_subject_ids()
+        regular_filter_subjects = (
+            self.session.query(RLSFilterSubjects.c.rls_filter_id)
             .join(RowLevelSecurityFilter)
             .filter(
                 RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.REGULAR
             )
-            .filter(RLSFilterRoles.c.role_id.in_(user_roles))
+            .filter(RLSFilterSubjects.c.subject_id.in_(user_subject_ids))
         )
-        base_filter_roles = (
-            self.session.query(RLSFilterRoles.c.rls_filter_id)
+        base_filter_subjects = (
+            self.session.query(RLSFilterSubjects.c.rls_filter_id)
             .join(RowLevelSecurityFilter)
             .filter(
                 RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.BASE
             )
-            .filter(RLSFilterRoles.c.role_id.in_(user_roles))
+            .filter(RLSFilterSubjects.c.subject_id.in_(user_subject_ids))
         )
         filter_tables = self.session.query(RLSFilterTables.c.rls_filter_id).filter(
             RLSFilterTables.c.table_id == table.id
@@ -4035,12 +4237,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     and_(
                         RowLevelSecurityFilter.filter_type
                         == RowLevelSecurityFilterType.REGULAR,
-                        RowLevelSecurityFilter.id.in_(regular_filter_roles),
+                        RowLevelSecurityFilter.id.in_(regular_filter_subjects),
                     ),
                     and_(
                         RowLevelSecurityFilter.filter_type
                         == RowLevelSecurityFilterType.BASE,
-                        RowLevelSecurityFilter.id.notin_(base_filter_roles),
+                        RowLevelSecurityFilter.id.notin_(base_filter_subjects),
                     ),
                 )
             )
@@ -4082,27 +4284,28 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import (
-            RLSFilterRoles,
+            RLSFilterSubjects,
             RLSFilterTables,
             RowLevelSecurityFilter,
         )
+        from superset.subjects.utils import get_current_user_subject_ids
 
-        user_roles = [role.id for role in self.get_user_roles(g.user)]
-        regular_filter_roles = (
-            self.session.query(RLSFilterRoles.c.rls_filter_id)
+        user_subject_ids = get_current_user_subject_ids()
+        regular_filter_subjects = (
+            self.session.query(RLSFilterSubjects.c.rls_filter_id)
             .join(RowLevelSecurityFilter)
             .filter(
                 RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.REGULAR
             )
-            .filter(RLSFilterRoles.c.role_id.in_(user_roles))
+            .filter(RLSFilterSubjects.c.subject_id.in_(user_subject_ids))
         )
-        base_filter_roles = (
-            self.session.query(RLSFilterRoles.c.rls_filter_id)
+        base_filter_subjects = (
+            self.session.query(RLSFilterSubjects.c.rls_filter_id)
             .join(RowLevelSecurityFilter)
             .filter(
                 RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.BASE
             )
-            .filter(RLSFilterRoles.c.role_id.in_(user_roles))
+            .filter(RLSFilterSubjects.c.subject_id.in_(user_subject_ids))
         )
 
         # Batch query: get (table_id, filter) pairs for all uncached tables
@@ -4123,12 +4326,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     and_(
                         RowLevelSecurityFilter.filter_type
                         == RowLevelSecurityFilterType.REGULAR,
-                        RowLevelSecurityFilter.id.in_(regular_filter_roles),
+                        RowLevelSecurityFilter.id.in_(regular_filter_subjects),
                     ),
                     and_(
                         RowLevelSecurityFilter.filter_type
                         == RowLevelSecurityFilterType.BASE,
-                        RowLevelSecurityFilter.id.notin_(base_filter_roles),
+                        RowLevelSecurityFilter.id.notin_(base_filter_subjects),
                     ),
                 )
             )
@@ -4445,100 +4648,140 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 return True
         return False
 
-    def raise_for_ownership(self, resource: Model) -> None:
+    def raise_for_editorship(self, resource: Model) -> None:
         """
-        Raise an exception if the user does not own the resource.
+        Raise an exception if the user is not an editor of the resource.
 
-        Note admins are deemed owners of all resources.
+        Note admins are deemed editors of all resources.
 
         The internal re-query opts out of the soft-delete visibility
         listener via ``execution_options(_skip_visibility_filter_classes=
-        {resource.__class__})`` so callers passing a soft-deleted resource
-        (e.g., ``BaseRestoreCommand``) get the correct ownership
-        decision. The bypass is scoped to ``resource.__class__`` only —
-        any soft-deletable relationships read from ``orig_resource``
-        (none today; ``.owners`` is a User) remain filtered.
+        {resource.__class__})`` when callers pass a soft-deleted resource
+        (e.g., ``BaseRestoreCommand``). The bypass is scoped to
+        ``resource.__class__`` only, so soft-deletable relationships read
+        from ``orig_resource`` remain filtered.
 
         :param resource: The dashboard, dataset, chart, etc. resource
-        :raises SupersetSecurityException: If the current user is not an owner
+        :raises SupersetSecurityException: If the current user is not an editor
         """
         # Inline import: ``superset.models.helpers`` transitively imports
         # ``superset.models.core``, which depends on lazily-initialised
         # ``superset.feature_flag_manager``. A top-level import here would
-        # create a circular dependency (security ↔ models.core ↔ superset).
+        # create a circular dependency (security <-> models.core <-> superset).
         from superset.models.helpers import (  # pylint: disable=import-outside-toplevel  # noqa: E501
             SKIP_VISIBILITY_FILTER_CLASSES,
+            SoftDeleteMixin,
         )
 
         if self.is_admin():
             return
 
-        # The internal re-query below is filtered by the global soft-delete
-        # listener for any ``SoftDeleteMixin`` model. Callers that have
-        # intentionally loaded a soft-deleted resource (e.g.,
-        # ``BaseRestoreCommand``) need the re-query to see the row so the
-        # owners list can be read. Attach the bypass scoped to this
-        # resource's class only — the per-query option is enough here
-        # because ``.get()`` resolves directly without going through any
-        # framework that strips options.
-        orig_resource = (
-            self.session.query(resource.__class__)
-            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {resource.__class__}})
-            .get(resource.id)
+        orig_resource = resource
+        if isinstance(resource, SoftDeleteMixin):
+            # ``resource`` may have been loaded through a visibility bypass.
+            # Re-query with the same narrow bypass so the editor relationship
+            # is checked against the persisted row.
+            resource_id = cast(Any, resource).id
+            orig_resource = (
+                self.session.query(resource.__class__)
+                .execution_options(
+                    **{SKIP_VISIBILITY_FILTER_CLASSES: {resource.__class__}}
+                )
+                .get(resource_id)
+            )
+            if orig_resource is None:
+                raise SupersetSecurityException(
+                    SupersetError(
+                        error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
+                        message=_(
+                            "Resource was removed before editorship could be verified",
+                        ),
+                        level=ErrorLevel.ERROR,
+                    )
+                )
+
+        if self.is_editor(orig_resource):
+            return
+
+        raise SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
+                message=_(
+                    "You don't have the rights to alter %(resource)s",
+                    resource=resource,
+                ),
+                level=ErrorLevel.ERROR,
+            )
         )
-        # Explicit guard: ``orig_resource`` is ``None`` only if a parallel
-        # writer hard-deleted the row between the caller's load and this
-        # re-query. Falling through with ``owners=[]`` would surface as a
-        # misleading "ownership" error; raise the real cause instead.
-        if orig_resource is None:
-            raise SupersetSecurityException(
-                SupersetError(
-                    error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
-                    message=_(
-                        "Resource was removed before ownership could be verified",
-                    ),
-                    level=ErrorLevel.ERROR,
-                )
-            )
-        owners = orig_resource.owners if hasattr(orig_resource, "owners") else []
 
-        if g.user.is_anonymous or g.user not in owners:
-            # Extension hook: check if the user is an extra owner
-            resolver = current_app.config.get("EXTRA_OWNERS_RESOLVER")
-            if resolver and not g.user.is_anonymous:
-                extra_owners = resolver(orig_resource)
-                user_id = g.user.id
-                if any(
-                    (u.id if hasattr(u, "id") else u.get("id")) == user_id
-                    for u in extra_owners
-                ):
-                    return
-
-            raise SupersetSecurityException(
-                SupersetError(
-                    error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
-                    message=_(
-                        "You don't have the rights to alter %(resource)s",
-                        resource=resource,
-                    ),
-                    level=ErrorLevel.ERROR,
-                )
-            )
-
-    def is_owner(self, resource: Model) -> bool:
+    def is_editor(self, resource: Model) -> bool:
         """
-        Returns True if the current user is an owner of the resource, False otherwise.
+        Returns True if the current user is an editor of the resource.
+
+        Checks whether any of the user's subject IDs (user, roles, groups)
+        are present in the resource's ``editors`` list.
 
         :param resource: The dashboard, dataset, chart, etc. resource
-        :returns: Whether the current user is an owner of the resource
+        :returns: Whether the current user is an editor of the resource
         """
+        from superset.subjects.utils import get_user_subject_ids, subjects_from_roles
 
-        try:
-            self.raise_for_ownership(resource)
-        except SupersetSecurityException:
+        if self.is_admin():
+            return True
+
+        if user_id := get_user_id():
+            subject_ids = set(get_user_subject_ids(user_id))
+        elif self.is_guest_user():
+            subject_ids = {
+                s.id for s in subjects_from_roles(getattr(g.user, "roles", []))
+            }
+        else:
+            subject_ids = set()
+        if not subject_ids:
+            return False
+        editor_subject_ids = set(get_extra_editor_subject_ids(resource))
+        if hasattr(resource, "editors"):
+            editor_subject_ids.update(s.id for s in resource.editors)
+        return bool(subject_ids & editor_subject_ids)
+
+    def is_viewer(self, resource: Model) -> bool:
+        """
+        Returns True if the current user can view the resource.
+
+        Editors can always view. If the resource also has a ``viewers``
+        relationship, the user's subjects are checked against viewers too.
+
+        :param resource: The dashboard, chart, etc. resource
+        :returns: Whether the current user can view the resource
+        """
+        from superset.subjects.utils import get_user_subject_ids, subjects_from_roles
+
+        if self.is_admin():
+            return True
+
+        if user_id := get_user_id():
+            subject_ids = set(get_user_subject_ids(user_id))
+        elif self.is_guest_user():
+            subject_ids = {
+                s.id for s in subjects_from_roles(getattr(g.user, "roles", []))
+            }
+        else:
+            subject_ids = set()
+        if not subject_ids:
             return False
 
-        return True
+        editor_subject_ids = set(get_extra_editor_subject_ids(resource))
+        if hasattr(resource, "editors"):
+            editor_subject_ids.update(s.id for s in resource.editors)
+        if subject_ids & editor_subject_ids:
+            return True
+
+        if hasattr(resource, "viewers") and bool(
+            subject_ids & {s.id for s in resource.viewers}
+        ):
+            return True
+
+        return False
 
     def is_admin(self) -> bool:
         """

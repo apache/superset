@@ -70,7 +70,6 @@ FEATURE_FLAGS = {
     "foo": "bar",
     "ENABLE_TEMPLATE_PROCESSING": True,
     "ALERT_REPORTS": True,
-    "AVOID_COLORS_COLLISION": True,
     "DRILL_TO_DETAIL": True,
     "DRILL_BY": True,
     "GLOBAL_TASK_FRAMEWORK": True,
