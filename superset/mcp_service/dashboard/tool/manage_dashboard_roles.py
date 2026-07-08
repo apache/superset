@@ -222,7 +222,7 @@ def manage_dashboard_roles(
 
     return ManageDashboardRolesResponse(
         roles=[
-            info
+            info.model_copy(update={"permissions": None})
             for role in dashboard.roles
             if (info := serialize_role_object(role)) is not None
         ],
