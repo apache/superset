@@ -94,10 +94,12 @@ describe('canDownloadData', () => {
     expect(canDownloadData(neither)).toEqual(false);
   });
 
-  test('checks can_export_data when GranularExportControls is on, keeping can_csv as a fallback', () => {
+  test('checks can_export_data only when GranularExportControls is on, matching the backend', () => {
     mockIsFeatureEnabled.mockReturnValue(true);
     expect(canDownloadData(exportOnly)).toEqual(true);
-    expect(canDownloadData(csvOnly)).toEqual(true);
+    // no can_csv fallback: a can_csv-only user would 403 at the backend, so
+    // the button must not show
+    expect(canDownloadData(csvOnly)).toEqual(false);
     expect(canDownloadData(both)).toEqual(true);
     expect(canDownloadData(neither)).toEqual(false);
   });
