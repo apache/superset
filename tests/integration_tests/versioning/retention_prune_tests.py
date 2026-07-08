@@ -24,6 +24,7 @@ retries on transient serialization failures and gives up after the cap.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import Any
 
 import pytest
@@ -31,6 +32,8 @@ from sqlalchemy_continuum import version_class
 
 from superset.extensions import db
 from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+from superset.versioning.changes.table import version_changes_table
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (  # noqa: F401
     load_birth_names_dashboard_with_slices,
@@ -65,13 +68,47 @@ class TestDashboardVersionRetention(SupersetTestCase):
     ``SUPERSET_VERSION_HISTORY_RETENTION_DAYS`` while preserving live rows."""
 
     @pytest.fixture(autouse=True)
-    def _load_data(self, load_birth_names_dashboard_with_slices):  # noqa: PT004, F811
-        pass
+    def _load_data(
+        self,
+        load_birth_names_dashboard_with_slices: None,  # noqa: F811
+    ) -> Iterator[None]:
+        """Establish the capture state this integration class requires.
+
+        Continuum stores its option and SQLAlchemy event listeners globally.
+        Initialization unit tests intentionally exercise the kill-switch that
+        detaches those listeners, so a mixed or reordered pytest invocation can
+        otherwise enter these tests with capture disabled. Reasserting the
+        integration suite's prerequisite here makes each test order-independent.
+        """
+        import sqlalchemy as sa
+        from sqlalchemy_continuum import versioning_manager
+
+        from superset.initialization import SupersetAppInitializer
+
+        previous_versioning: bool = bool(
+            versioning_manager.options.get("versioning", True)
+        )
+        listeners_were_attached: bool = sa.event.contains(
+            sa.orm.Mapper,
+            "after_insert",
+            versioning_manager.track_inserts,
+        )
+
+        versioning_manager.options["versioning"] = True
+        SupersetAppInitializer._add_continuum_write_listeners()
+        try:
+            yield
+        finally:
+            if listeners_were_attached:
+                SupersetAppInitializer._add_continuum_write_listeners()
+            else:
+                SupersetAppInitializer._remove_continuum_write_listeners()
+            versioning_manager.options["versioning"] = previous_versioning
 
     def test_retention_prunes_old_rows(self) -> None:
         """``prune_old_versions`` removes shadow rows whose owning
         ``version_transaction.issued_at`` is older than the retention
-        window, while preserving the live row and the baseline."""
+        window, while preserving every transaction that anchors a live row."""
         from datetime import datetime, timedelta
 
         import sqlalchemy as sa
@@ -189,7 +226,7 @@ class TestDashboardVersionRetention(SupersetTestCase):
         dashboard_id = dashboard.id
         original_title = dashboard.dashboard_title
 
-        m2m = version_class(Dashboard).__table__.metadata.tables[
+        m2m: sa.Table = version_class(Dashboard).__table__.metadata.tables[
             "dashboard_slices_version"
         ]
 
@@ -235,6 +272,125 @@ class TestDashboardVersionRetention(SupersetTestCase):
             )
         finally:
             dashboard.dashboard_title = original_title
+            db.session.commit()
+
+    def test_retention_preserves_multi_flush_transaction(self) -> None:
+        """Pruning preserves #41940's final multi-flush semantic projection."""
+        from datetime import datetime, timedelta, timezone
+
+        import sqlalchemy as sa
+        from sqlalchemy_continuum import versioning_manager
+
+        from superset.tasks.version_history_retention import _prune_old_versions_impl
+
+        _persist_fixture_state()
+        dashboard: Dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "USA Births Names")
+            .one()
+        )
+        chart: Slice = dashboard.slices[0]
+        dashboard_title = dashboard.dashboard_title
+        chart_name = chart.slice_name
+        tx_table = versioning_manager.transaction_cls.__table__
+        dashboard_version_table = version_class(Dashboard).__table__
+        chart_version_table = version_class(Slice).__table__
+        boundary = db.session.scalar(sa.select(sa.func.max(tx_table.c.id))) or 0
+
+        try:
+            dashboard.dashboard_title = "USA Births Names multi-flush dashboard"
+            db.session.flush()
+            chart.slice_name = "USA Births Names multi-flush chart"
+            db.session.commit()
+
+            change_rows = db.session.execute(
+                sa.select(
+                    version_changes_table.c.transaction_id,
+                    version_changes_table.c.entity_kind,
+                )
+                .where(version_changes_table.c.transaction_id > boundary)
+                .where(
+                    sa.or_(
+                        sa.and_(
+                            version_changes_table.c.entity_kind == "dashboard",
+                            version_changes_table.c.entity_id == dashboard.id,
+                        ),
+                        sa.and_(
+                            version_changes_table.c.entity_kind == "chart",
+                            version_changes_table.c.entity_id == chart.id,
+                        ),
+                    )
+                )
+            ).all()
+            assert {row.entity_kind for row in change_rows} == {"dashboard", "chart"}
+            transaction_ids: set[int] = {row.transaction_id for row in change_rows}
+            assert len(transaction_ids) == 1
+            transaction_id: int = transaction_ids.pop()
+            assert (
+                db.session.scalar(
+                    sa.select(dashboard_version_table.c.transaction_id)
+                    .where(dashboard_version_table.c.id == dashboard.id)
+                    .where(dashboard_version_table.c.end_transaction_id.is_(None))
+                )
+                == transaction_id
+            )
+            assert (
+                db.session.scalar(
+                    sa.select(chart_version_table.c.transaction_id)
+                    .where(chart_version_table.c.id == chart.id)
+                    .where(chart_version_table.c.end_transaction_id.is_(None))
+                )
+                == transaction_id
+            )
+
+            with db.engine.begin() as conn:
+                conn.execute(
+                    sa.update(tx_table).values(
+                        issued_at=datetime.now(timezone.utc).replace(tzinfo=None)
+                        - timedelta(days=100)
+                    )
+                )
+
+            _prune_old_versions_impl(retention_days=30)
+            db.session.rollback()
+
+            assert (
+                db.session.scalar(
+                    sa.select(sa.func.count())
+                    .select_from(tx_table)
+                    .where(tx_table.c.id == transaction_id)
+                )
+                == 1
+            )
+            surviving_kinds = set(
+                db.session.scalars(
+                    sa.select(version_changes_table.c.entity_kind).where(
+                        version_changes_table.c.transaction_id == transaction_id
+                    )
+                )
+            )
+            assert {"dashboard", "chart"}.issubset(surviving_kinds)
+            assert (
+                db.session.scalar(
+                    sa.select(sa.func.count())
+                    .select_from(dashboard_version_table)
+                    .where(dashboard_version_table.c.id == dashboard.id)
+                    .where(dashboard_version_table.c.end_transaction_id.is_(None))
+                )
+                == 1
+            )
+            assert (
+                db.session.scalar(
+                    sa.select(sa.func.count())
+                    .select_from(chart_version_table)
+                    .where(chart_version_table.c.id == chart.id)
+                    .where(chart_version_table.c.end_transaction_id.is_(None))
+                )
+                == 1
+            )
+        finally:
+            dashboard.dashboard_title = dashboard_title
+            chart.slice_name = chart_name
             db.session.commit()
 
     def test_retention_retries_on_serialization_failure(self) -> None:
@@ -330,7 +486,7 @@ class TestDashboardVersionRetention(SupersetTestCase):
                 "SELECT 1", {}, Exception("could not serialize access")
             )
 
-        call_count = 0
+        call_count: int = 0
 
         def counting_fail(*args: Any, **kwargs: Any) -> dict[str, Any]:
             nonlocal call_count
