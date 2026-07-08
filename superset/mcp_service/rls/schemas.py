@@ -49,7 +49,7 @@ ALL_RLS_COLUMNS = [
     "name",
     "filter_type",
     "tables",
-    "roles",
+    "subjects",
     "clause",
     "group_key",
     "changed_on",
@@ -77,9 +77,11 @@ class RlsTableRef(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class RlsRoleRef(BaseModel):
-    id: int | None = Field(None, description="Role ID")
-    name: str | None = Field(None, description="Role name")
+class RlsSubjectRef(BaseModel):
+    id: int | None = Field(None, description="Subject ID")
+    label: str | None = Field(None, description="Subject label")
+    secondary_label: str | None = Field(None, description="Secondary subject label")
+    type: int | None = Field(None, description="Subject type")
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -90,8 +92,8 @@ class RlsFilterInfo(BaseModel):
     tables: List[RlsTableRef] | None = Field(
         None, description="Tables this filter applies to"
     )
-    roles: List[RlsRoleRef] | None = Field(
-        None, description="Roles this filter applies to"
+    subjects: List[RlsSubjectRef] | None = Field(
+        None, description="Subjects this filter applies to"
     )
     clause: str | None = Field(None, description="SQL WHERE clause")
     group_key: str | None = Field(
@@ -235,12 +237,14 @@ def serialize_rls_filter_object(rls_filter: Any) -> RlsFilterInfo | None:
         for t in (getattr(rls_filter, "tables", None) or [])
     ]
 
-    roles = [
-        RlsRoleRef(
-            id=getattr(r, "id", None),
-            name=getattr(r, "name", None),
+    subjects = [
+        RlsSubjectRef(
+            id=getattr(subject, "id", None),
+            label=getattr(subject, "label", None),
+            secondary_label=getattr(subject, "secondary_label", None),
+            type=getattr(subject, "type", None),
         )
-        for r in (getattr(rls_filter, "roles", None) or [])
+        for subject in (getattr(rls_filter, "subjects", None) or [])
     ]
 
     return RlsFilterInfo(
@@ -248,7 +252,7 @@ def serialize_rls_filter_object(rls_filter: Any) -> RlsFilterInfo | None:
         name=getattr(rls_filter, "name", None),
         filter_type=getattr(rls_filter, "filter_type", None),
         tables=tables,
-        roles=roles,
+        subjects=subjects,
         clause=getattr(rls_filter, "clause", None),
         group_key=getattr(rls_filter, "group_key", None),
         changed_on=getattr(rls_filter, "changed_on", None),

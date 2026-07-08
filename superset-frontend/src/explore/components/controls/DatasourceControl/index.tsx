@@ -52,12 +52,13 @@ import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { safeStringify } from 'src/utils/safeStringify';
 import { datasetLabelLower } from 'src/features/semanticLayers/label';
 import { Link } from 'react-router-dom';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 // Extended Datasource interface with all properties used in this component
 interface ExtendedDatasource extends Datasource {
   sql?: string;
   select_star?: string;
-  owners?: Array<{
+  editors?: Array<{
     id: number;
     first_name: string;
     last_name: string;
@@ -341,9 +342,12 @@ export default function DatasourceControl({
     }
   }
 
+  const userSubjects = getBootstrapData()?.common?.user_subjects ?? [];
   const allowEdit =
-    datasource.owners?.map(o => o.id || o.value).includes(user.userId) ||
-    isUserAdmin(user);
+    datasource.editors?.some(o => {
+      const subjectId = o.id ?? o.value;
+      return subjectId !== undefined && userSubjects.includes(subjectId);
+    }) || isUserAdmin(user);
 
   const canAccessSqlLab = userHasPermission(user, 'SQL Lab', 'menu_access');
 
@@ -359,7 +363,7 @@ export default function DatasourceControl({
       label: !allowEdit ? (
         <Tooltip
           title={t(
-            'You must be a %s owner in order to edit. Please reach out to a %s owner to request modifications or edit access.',
+            'You must be a %s editor in order to edit. Please reach out to a %s editor to request modifications or edit access.',
             datasetLabelLower(),
             datasetLabelLower(),
           )}

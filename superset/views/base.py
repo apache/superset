@@ -42,6 +42,7 @@ from flask_appbuilder.security.sqla.models import User
 from flask_babel import get_locale, gettext as __
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_wtf.form import FlaskForm
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Query
 from wtforms.fields.core import Field, UnboundField
 
@@ -460,6 +461,33 @@ def get_default_spinner_svg() -> str | None:
         return None
 
 
+def _get_user_subjects(user_id: int | None) -> list[int]:
+    """Return subject IDs for the current user, or empty list."""
+    if user_id is None:
+        return []
+    try:
+        from superset.subjects.utils import get_user_subject_ids
+
+        return get_user_subject_ids(user_id)
+    except Exception:
+        logger.warning("Could not load current user subject IDs", exc_info=True)
+        return []
+
+
+def _get_user_subject_id(user_id: int | None) -> int | None:
+    """Return the USER-type subject ID for the current user."""
+    if user_id is None:
+        return None
+    try:
+        from superset.subjects.utils import get_user_subject
+
+        subject = get_user_subject(user_id)
+        return subject.id if subject else None
+    except Exception:
+        logger.warning("Could not load current user subject ID", exc_info=True)
+        return None
+
+
 def _get_frontend_config_value(key: str) -> Any:
     """Get frontend config value, converting sets to lists for JSON compatibility."""
     val = app.config.get(key)
@@ -565,6 +593,8 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         ],
         "menu_data": menu_data(g.user),
         "pdf_compression_level": app.config["PDF_COMPRESSION_LEVEL"],
+        "user_subject_id": _get_user_subject_id(user_id),
+        "user_subjects": _get_user_subjects(user_id),
     }
 
     bootstrap_data.update(app.config["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
@@ -769,7 +799,29 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             models.Database,
             models.Database.id == self.model.database_id,
         )
-        return query.filter(get_dataset_access_filters(self.model))
+        access_filter = get_dataset_access_filters(self.model)
+        # Editors keep sight of their own soft-deleted rows regardless of
+        # datasource grants: ``raise_for_access`` counts editorship as
+        # datasource access, and the restore audience is editors/admins.
+        # The leg is inert for live rows (``deleted_at IS NULL`` fails it)
+        # and only ever matters when a deleted-state rison filter has opted
+        # the request in to seeing soft-deleted rows — without that session
+        # bypass, no soft-deleted row reaches this query at all.
+        deleted_at = getattr(self.model, "deleted_at", None)
+        editors = getattr(self.model, "editors", None)
+        user_id = utils.get_user_id()
+        if deleted_at is not None and editors is not None and user_id:
+            from superset.subjects.models import Subject  # noqa: PLC0415
+            from superset.subjects.utils import (  # noqa: PLC0415
+                get_user_subject_ids_subquery,
+            )
+
+            editable_trash = and_(
+                deleted_at.is_not(None),
+                editors.any(Subject.id.in_(get_user_subject_ids_subquery(user_id))),
+            )
+            return query.filter(or_(access_filter, editable_trash))
+        return query.filter(access_filter)
 
 
 class CsvResponse(Response):

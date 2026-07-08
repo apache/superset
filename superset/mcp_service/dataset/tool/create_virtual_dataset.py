@@ -114,6 +114,7 @@ async def create_virtual_dataset(
         from superset.commands.dataset.exceptions import (
             DatasetCreateFailedError,
             DatasetInvalidError,
+            DatasetSoftDeletedTwinExistsError,
             DatasetUpdateFailedError,
         )
         from superset.mcp_service.utils.url_utils import get_superset_base_url
@@ -164,6 +165,20 @@ async def create_virtual_dataset(
             url=dataset_url,
         )
 
+    except DatasetSoftDeletedTwinExistsError as exc:
+        # Raised directly by validate() (not wrapped in DatasetInvalidError):
+        # a soft-deleted dataset still occupies this physical table. Return the
+        # actionable restore-or-rename message instead of an unexpected error.
+        await ctx.warning(f"Virtual dataset blocked by soft-deleted twin: {exc}")
+        return CreateVirtualDatasetResponse(
+            id=None,
+            dataset_name=request.dataset_name,
+            sql=request.sql,
+            database_id=request.database_id,
+            columns=[],
+            url=None,
+            error=str(exc),
+        )
     except DatasetInvalidError as exc:
         messages = exc.normalized_messages()
         await ctx.warning(f"Virtual dataset validation failed: {messages}")

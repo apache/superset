@@ -15,9 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import urllib.parse
+import urllib.request
 from collections.abc import Sequence
+from contextlib import closing
 from datetime import datetime, timedelta
 from typing import Any, Optional, TYPE_CHECKING, Union
+from urllib.error import URLError
 from uuid import UUID
 
 import pandas as pd
@@ -75,6 +79,7 @@ from superset.reports.notifications.exceptions import (
     NotificationParamException,
     SlackV1NotificationError,
 )
+from superset.subjects.types import SubjectType
 from superset.tasks.utils import get_executor
 from superset.utils import json
 from superset.utils.core import HeaderDataType, override_user, recipients_string_to_list
@@ -265,7 +270,7 @@ class BaseReportState:
         # while ``chart_id`` is still set. Without this guard the branch
         # below silently falls through to the dashboard path and fails
         # opaquely; raising here surfaces a clear, actionable error inside
-        # the state-machine envelope (ERROR log row + owner notification).
+        # the state-machine envelope (ERROR log row + notification dispatch).
         # Every content path (_get_screenshots, _get_csv_data,
         # _get_embedded_data, _get_notification_content) funnels through this
         # method, so this is the single choke point.
@@ -591,22 +596,137 @@ class BaseReportState:
 
         return pdf
 
+    def _get_chart_data_request_payload(
+        self,
+        result_format: ChartDataResultFormat,
+    ) -> dict[str, Any]:
+        """
+        Build the POST payload used for chart data exports.
+
+        :param result_format: Desired table-like chart data format.
+        :return: Query context updated with export result format/type and pagination.
+        :raises ReportScheduleExecuteUnexpectedError: If the chart query context is
+            missing or invalid.
+        """
+        try:
+            query_context = json.loads(self._report_schedule.chart.query_context)
+        except (TypeError, json.JSONDecodeError) as ex:
+            raise ReportScheduleExecuteUnexpectedError(
+                "Chart has no valid query context saved."
+            ) from ex
+
+        if not isinstance(query_context, dict):
+            raise ReportScheduleExecuteUnexpectedError(
+                "Chart has no valid query context saved."
+            )
+
+        result_type = ChartDataResultType.POST_PROCESSED.value
+        force = bool(self._report_schedule.force_screenshot)
+        query_context["result_format"] = result_format.value
+        query_context["result_type"] = result_type
+        query_context["force"] = force
+
+        form_data = query_context.get("form_data")
+        if isinstance(form_data, dict):
+            form_data["result_format"] = result_format.value
+            form_data["result_type"] = result_type
+            form_data["force"] = force
+
+            if form_data.get("server_pagination"):
+                row_limit = form_data.get("row_limit") or 0
+                queries = query_context.get("queries")
+                if isinstance(queries, list):
+                    data_query_updated = False
+                    download_queries = []
+                    for query in queries:
+                        if isinstance(query, dict) and query.get("is_rowcount"):
+                            continue
+                        if isinstance(query, dict) and not data_query_updated:
+                            query = {
+                                **query,
+                                "row_limit": row_limit,
+                                "row_offset": 0,
+                            }
+                            data_query_updated = True
+                        download_queries.append(query)
+                    query_context["queries"] = download_queries
+
+        return query_context
+
+    @staticmethod
+    def _post_chart_data(
+        chart_url: str,
+        auth_cookies: Optional[dict[str, str]],
+        request_payload: dict[str, Any],
+        timeout: Optional[float] = None,
+    ) -> Optional[bytes]:
+        """
+        POST a chart data request using report executor authentication.
+
+        :param chart_url: HTTP(S) chart data endpoint URL.
+        :param auth_cookies: Authentication cookies to attach to the request.
+        :param request_payload: Prepared chart data request payload.
+        :param timeout: Optional request timeout in seconds.
+        :return: Response body bytes, or None when response content is missing.
+        :raises URLError: If the URL scheme is unsupported or the response fails.
+        """
+        if not auth_cookies:
+            raise URLError("Missing authentication cookies for chart data request")
+
+        cookie_str = ";".join([f"{key}={val}" for key, val in auth_cookies.items()])
+        request_body = urllib.parse.urlencode(
+            {"form_data": json.dumps(request_payload)}
+        ).encode("utf-8")
+        parsed_url = urllib.parse.urlparse(chart_url)
+        if parsed_url.scheme not in {"http", "https"}:
+            raise URLError(f"Unsupported chart data URL scheme: {parsed_url.scheme}")
+
+        request = urllib.request.Request(  # noqa: S310
+            chart_url,
+            data=request_body,
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Cookie": cookie_str,
+            },
+            method="POST",
+        )
+        with closing(
+            urllib.request.build_opener().open(request, timeout=timeout)  # noqa: S310
+        ) as response:
+            content = response.read()
+            if response.getcode() != 200:
+                raise URLError(response.getcode())
+        return content or None
+
     def _get_csv_data(self) -> bytes:
         start_time = datetime.utcnow()
-        url = self._get_url(result_format=ChartDataResultFormat.CSV)
         user, username = resolve_executor_user(self._report_schedule)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
         if self._report_schedule.chart.query_context is None:
             logger.warning("No query context found, taking a screenshot to generate it")
             self._update_query_context()
+            db.session.refresh(self._report_schedule.chart)
 
         try:
-            csv_data = get_chart_csv_data(
-                chart_url=url,
-                auth_cookies=auth_cookies,
-                timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
-            )
+            if self._report_schedule.chart.query_context is None:
+                url = self._get_url(result_format=ChartDataResultFormat.CSV)
+                csv_data = get_chart_csv_data(
+                    chart_url=url,
+                    auth_cookies=auth_cookies,
+                    timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+                )
+            else:
+                request_payload = self._get_chart_data_request_payload(
+                    ChartDataResultFormat.CSV
+                )
+                url = get_url_path("ChartDataRestApi.data")
+                csv_data = self._post_chart_data(
+                    chart_url=url,
+                    auth_cookies=auth_cookies,
+                    request_payload=request_payload,
+                    timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+                )
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.info(
                 "CSV data generation from %s as user %s took %.2fs - execution_id: %s",
@@ -734,7 +854,11 @@ class BaseReportState:
             "notification_format": self._report_schedule.report_format,
             "chart_id": chart_id,
             "dashboard_id": dashboard_id,
-            "owners": self._report_schedule.owners,
+            "editors": [
+                s.user.id
+                for s in self._report_schedule.editors
+                if s.type == SubjectType.USER and s.user
+            ],
             "slack_channels": slack_channels,
             "execution_id": str(self._execution_id),
         }
@@ -898,16 +1022,17 @@ class BaseReportState:
             name=sanitize_title(name), text=message, header_data=header_data, url=url
         )
 
-        # filter recipients to recipients who are also owners
-        owner_recipients = [
+        # filter recipients to recipients who are also editors
+        editor_recipients = [
             ReportRecipients(
                 type=ReportRecipientType.EMAIL,
-                recipient_config_json=json.dumps({"target": owner.email}),
+                recipient_config_json=json.dumps({"target": s.user.email}),
             )
-            for owner in self._report_schedule.owners
+            for s in self._report_schedule.editors
+            if s.type == SubjectType.USER and s.user
         ]
 
-        self._send(notification_content, owner_recipients)
+        self._send(notification_content, editor_recipients)
 
     def is_in_grace_period(self) -> bool:
         """
@@ -1251,11 +1376,11 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             # Resolve the executor at the run() boundary, tolerating a missing
             # user (find_user -> None) so the state machine still runs and its
             # error envelope writes the ERROR execution-log row and sends the
-            # owner notification. The dedicated ReportScheduleExecutorNotFoundError
+            # editor notification. The dedicated ReportScheduleExecutorNotFoundError
             # guard lives at the content sites (_get_screenshots / _get_csv_data /
             # _get_embedded_data), which raise inside that envelope. Guarding here
             # instead would surface the executor error above the state machine,
-            # suppressing both the log row and the owner notification. The
+            # suppressing both the log row and the editor notification. The
             # alert-query path (AlertCommand) is intentionally left unchanged — a
             # missing executor there surfaces as a query error, not the dedicated
             # executor error; tightening it is out of scope here.

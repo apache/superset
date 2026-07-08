@@ -747,6 +747,7 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
         flask_app.config.get("MCP_AUTH_ENABLED", False)
         or flask_app.config.get("MCP_API_KEY_ENABLED", False)
         or flask_app.config.get("FAB_API_KEY_ENABLED", False)
+        or flask_app.config.get("MCP_EMBEDDED_GUEST_AUTH_ENABLED", False)
     ):
         from superset.mcp_service.mcp_config import (
             create_default_mcp_auth_factory,

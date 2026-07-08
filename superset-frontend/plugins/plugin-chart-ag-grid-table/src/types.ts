@@ -192,6 +192,7 @@ export interface InputColumn {
     TimeFormatter | NumberFormatter | CustomFormatter | CurrencyFormatter;
   originalLabel?: string;
   metricName?: string;
+  description?: string;
 }
 
 export type ValueRange = [number, number] | null;
@@ -222,7 +223,7 @@ export type Dataset = {
   created_on_humanized: string;
   description: string;
   table_name: string;
-  owners: {
+  editors: {
     first_name: string;
     last_name: string;
   }[];

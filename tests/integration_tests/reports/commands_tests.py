@@ -97,6 +97,7 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_data,  # noqa: F401
 )
 from tests.integration_tests.reports.utils import (
+    _subjects_for_users,
     cleanup_report_schedule,
     create_report_notification,
     CSV_FILE,
@@ -218,10 +219,11 @@ def create_report_email_chart_with_cc_and_bcc():
 
 @pytest.fixture
 def create_report_email_chart_alpha_owner(get_user):
-    owners = [get_user("alpha")]
+    alpha = get_user("alpha")
+    editors = _subjects_for_users([alpha])
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
-        email_target="target@email.com", chart=chart, owners=owners
+        email_target="target@email.com", chart=chart, editors=editors
     )
     yield report_schedule
 
@@ -782,11 +784,11 @@ def test_email_chart_report_schedule_alpha_owner(
 ):
     """
     ExecuteReport Command: Test chart email report schedule with screenshot
-    executed as the chart owner
+    executed as the chart editor
     """
     config_key = "ALERT_REPORTS_EXECUTORS"
     original_config_value = app.config[config_key]
-    app.config[config_key] = [ExecutorType.OWNER]
+    app.config[config_key] = [ExecutorType.EDITOR]
 
     # setup screenshot mock
     username = ""

@@ -22,15 +22,10 @@ from marshmallow import fields, Schema
 
 from superset.connectors.sqla.models import SqlaTable
 from superset.semantic_layers.models import SemanticView
+from superset.subjects.schemas import SubjectResponseSchema
 
 
 class _ChangedBySchema(Schema):
-    first_name = fields.String()
-    last_name = fields.String()
-
-
-class _OwnerSchema(Schema):
-    id = fields.Integer()
     first_name = fields.String()
     last_name = fields.String()
 
@@ -58,7 +53,7 @@ class DatasetListSchema(Schema):
     default_endpoint = fields.String(allow_none=True)
     is_sqllab_view = fields.Boolean(allow_none=True)
     is_managed_externally = fields.Boolean(allow_none=True)
-    owners = fields.Method("get_owners")
+    editors = fields.List(fields.Nested(SubjectResponseSchema))
     changed_by_name = fields.String()
     changed_by = fields.Method("get_changed_by")
     changed_on_delta_humanized = fields.Method("get_changed_on_delta_humanized")
@@ -72,14 +67,6 @@ class DatasetListSchema(Schema):
             return None
         return _DatabaseSchema().dump(
             {"id": obj.database_id, "database_name": obj.database.database_name}
-        )
-
-    def get_owners(self, obj: SqlaTable) -> list[dict[str, object]]:
-        return _OwnerSchema(many=True).dump(
-            [
-                {"id": o.id, "first_name": o.first_name, "last_name": o.last_name}
-                for o in obj.owners
-            ]
         )
 
     def get_changed_by(self, obj: SqlaTable) -> dict[str, object] | None:
@@ -117,7 +104,7 @@ class SemanticViewListSchema(Schema):
     default_endpoint = fields.Constant(None)
     is_sqllab_view = fields.Constant(False)
     is_managed_externally = fields.Constant(False)
-    owners = fields.Constant([])
+    editors = fields.Constant([])
     changed_by_name = fields.String()
     changed_by = fields.Method("get_changed_by")
     changed_on_delta_humanized = fields.Method("get_changed_on_delta_humanized")

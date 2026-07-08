@@ -414,10 +414,10 @@ def find_existing_for_import(model_cls: type[Any], uuid: str) -> Any | None:
 
     **Canonical pattern — restore in place.** The dashboard importer
     (``superset/commands/dashboard/importers/v1/utils.py``) establishes
-    the reference handling: after validating permissions/ownership, clear
+    the reference handling: after validating permissions/editorship, clear
     ``deleted_at`` on the existing row (``existing.restore()``) and apply
     the config as an update, preserving the PK and all relationship rows
-    (junction tables, role grants, owners, tags) that a hard delete would
+    (junction tables, editor/viewer subjects, tags) that a hard delete would
     cascade away. Entity importers adopting soft delete should follow the
     same pattern so re-import semantics stay uniform across entities.
     :func:`clear_soft_deleted_for_import` (hard-delete-and-replace) is the

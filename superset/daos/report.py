@@ -26,7 +26,6 @@ from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.extensions import db
 from superset.reports.filters import ReportScheduleFilter
 from superset.reports.models import (
-    report_schedule_user,
     ReportExecutionLog,
     ReportRecipients,
     ReportSchedule,
@@ -51,10 +50,10 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
         query: Any,
         column_operators: list[ColumnOperator] | None = None,
     ) -> Any:
-        """Override to handle owners.id and created_by_fk_or_owner via subqueries.
+        """Override to handle editor self-filters via subqueries.
 
-        - owners.id: filters reports by owner user ID via report_schedule_user M2M table
-        - created_by_fk_or_owner: OR(created_by_fk == value, id IN owners_subq)
+        - editor: filters reports by editor user ID via report_schedule_editors
+        - created_by_fk_or_editor: OR(created_by_fk == value, id IN editor_subq)
         """
         if not column_operators:
             return query
@@ -63,24 +62,44 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
         for c in column_operators:
             if not isinstance(c, ColumnOperator):
                 c = ColumnOperator.model_validate(c)
-            if c.col == "owners.id":
+            if c.col == "editor":
+                from superset.subjects.models import report_schedule_editors, Subject
+
                 operator_enum = ColumnOperatorEnum(c.opr)
-                subq = select(report_schedule_user.c.report_schedule_id).where(
-                    operator_enum.apply(report_schedule_user.c.user_id, c.value)
+                subq = (
+                    select(report_schedule_editors.c.report_schedule_id)
+                    .join(
+                        Subject.__table__,
+                        Subject.__table__.c.id == report_schedule_editors.c.subject_id,
+                    )
+                    .where(
+                        Subject.__table__.c.type == 1,
+                        operator_enum.apply(Subject.__table__.c.user_id, c.value),
+                    )
                 )
                 query = query.filter(ReportSchedule.id.in_(subq))
-            elif c.col == "created_by_fk_or_owner":
+            elif c.col == "created_by_fk_or_editor":
                 if c.opr != "eq":
                     raise ValueError(
-                        f"created_by_fk_or_owner only supports 'eq'; got '{c.opr}'"
+                        f"created_by_fk_or_editor only supports 'eq'; got '{c.opr}'"
                     )
-                owner_subq = select(report_schedule_user.c.report_schedule_id).where(
-                    report_schedule_user.c.user_id == c.value
+                from superset.subjects.models import report_schedule_editors, Subject
+
+                editor_subq = (
+                    select(report_schedule_editors.c.report_schedule_id)
+                    .join(
+                        Subject.__table__,
+                        Subject.__table__.c.id == report_schedule_editors.c.subject_id,
+                    )
+                    .where(
+                        Subject.__table__.c.type == 1,
+                        Subject.__table__.c.user_id == c.value,
+                    )
                 )
                 query = query.filter(
                     or_(
                         ReportSchedule.created_by_fk == c.value,
-                        ReportSchedule.id.in_(owner_subq),
+                        ReportSchedule.id.in_(editor_subq),
                     )
                 )
             else:
