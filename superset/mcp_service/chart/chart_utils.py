@@ -266,6 +266,24 @@ def generate_explore_link(
         return f"{base_url}/explore/?datasource_type=table&datasource_id={dataset_id}"
 
 
+def _find_dataset_by_id_or_uuid(dataset_id: int | str | None) -> Any | None:
+    """Look up a dataset by numeric ID or UUID string.
+
+    Shared by callers that resolve a dataset from the ``dataset_id | str | None``
+    shape accepted throughout this module; each caller decides its own behavior
+    for a missing dataset_id or dataset (raise vs. default vs. None).
+    """
+    if not dataset_id:
+        return None
+    from superset.daos.dataset import DatasetDAO
+
+    if isinstance(dataset_id, int) or (
+        isinstance(dataset_id, str) and dataset_id.isdigit()
+    ):
+        return DatasetDAO.find_by_id(int(dataset_id))
+    return DatasetDAO.find_by_id(dataset_id, id_column="uuid")
+
+
 def is_column_truly_temporal(column_name: str, dataset_id: int | str | None) -> bool:
     """
     Check if a column is truly temporal based on its SQL data type.
@@ -284,20 +302,13 @@ def is_column_truly_temporal(column_name: str, dataset_id: int | str | None) -> 
     Returns:
         True if the column has a real temporal SQL type, False otherwise
     """
-    from superset.daos.dataset import DatasetDAO
     from superset.utils.core import GenericDataType
 
     if not dataset_id:
         return True  # Default to temporal if we can't check (backward compatible)
 
     try:
-        # Find dataset
-        if isinstance(dataset_id, int) or (
-            isinstance(dataset_id, str) and dataset_id.isdigit()
-        ):
-            dataset = DatasetDAO.find_by_id(int(dataset_id))
-        else:
-            dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
+        dataset = _find_dataset_by_id_or_uuid(dataset_id)
 
         if not dataset:
             return True  # Default to temporal if dataset not found
@@ -724,14 +735,8 @@ def _resolve_default_x_axis(
 
     if not dataset_id:
         raise ValueError("x-axis column is required when dataset_id is not provided")
-    from superset.daos.dataset import DatasetDAO
 
-    if isinstance(dataset_id, int) or (
-        isinstance(dataset_id, str) and dataset_id.isdigit()
-    ):
-        dataset = DatasetDAO.find_by_id(int(dataset_id))
-    else:
-        dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
+    dataset = _find_dataset_by_id_or_uuid(dataset_id)
 
     if not dataset or not dataset.main_dttm_col:
         raise ValueError(
@@ -872,16 +877,7 @@ def _find_dataset_main_dttm_col(dataset_id: int | str | None) -> str | None:
     raising when no temporal column can be found — callers use it as a
     best-effort fallback, not a hard requirement.
     """
-    if not dataset_id:
-        return None
-    from superset.daos.dataset import DatasetDAO
-
-    if isinstance(dataset_id, int) or (
-        isinstance(dataset_id, str) and dataset_id.isdigit()
-    ):
-        dataset = DatasetDAO.find_by_id(int(dataset_id))
-    else:
-        dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
+    dataset = _find_dataset_by_id_or_uuid(dataset_id)
     return dataset.main_dttm_col if dataset else None
 
 
@@ -934,12 +930,14 @@ def map_big_number_config(
     _add_adhoc_filters(form_data, config.filters)
 
     # Bind a TEMPORAL_RANGE adhoc filter so dashboard time-range filters have
-    # a column to apply to — mirrors the Explore UI's default `adhoc_filters`
-    # control, which is always populated even for big_number_total (which has
-    # no dedicated time-column control). Falls back to the dataset's
-    # main_dttm_col when the caller didn't specify temporal_column.
+    # a column to apply to — mirrors the Explore UI's `BigNumberTotal` control
+    # panel, which exposes an `adhoc_filters` control even though there's no
+    # dedicated time-column control for the total variant. Falls back to the
+    # dataset's main_dttm_col when the caller didn't specify temporal_column.
+    # Guarded by is_column_truly_temporal (same check map_xy_config applies to
+    # its x-axis) so a non-temporal column never gets a TEMPORAL_RANGE filter.
     temporal_column = config.temporal_column or _find_dataset_main_dttm_col(dataset_id)
-    if temporal_column:
+    if temporal_column and is_column_truly_temporal(temporal_column, dataset_id):
         _ensure_temporal_adhoc_filter(form_data, temporal_column)
 
     return form_data

@@ -368,6 +368,7 @@ class TestMapBigNumberConfig:
         charts created via MCP not responding to dashboard filters)."""
         mock_dataset = MagicMock()
         mock_dataset.main_dttm_col = "order_date"
+        mock_dataset.columns = []
         mock_find_by_id.return_value = mock_dataset
 
         config = BigNumberChartConfig(
@@ -381,7 +382,7 @@ class TestMapBigNumberConfig:
         assert len(form_data["adhoc_filters"]) == 1
         assert form_data["adhoc_filters"][0]["subject"] == "order_date"
         assert form_data["adhoc_filters"][0]["operator"] == "TEMPORAL_RANGE"
-        mock_find_by_id.assert_called_once_with(42)
+        assert all(c.args == (42,) for c in mock_find_by_id.call_args_list)
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     def test_total_no_dataset_main_dttm_col_skips_temporal_filter(
@@ -497,6 +498,27 @@ class TestMapConfigToFormDataBigNumber:
         )
         form_data = map_config_to_form_data(config)
         assert form_data["viz_type"] == "big_number"
+
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_dispatch_forwards_dataset_id_for_dashboard_filter_binding(
+        self, mock_find_by_id: MagicMock
+    ) -> None:
+        """Regression test for BigNumberChartPlugin.to_form_data() dropping
+        dataset_id: the dispatcher must forward it through so the dataset's
+        main_dttm_col fallback in map_big_number_config() actually runs."""
+        mock_dataset = MagicMock()
+        mock_dataset.main_dttm_col = "order_date"
+        mock_dataset.columns = []
+        mock_find_by_id.return_value = mock_dataset
+
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+        )
+        form_data = map_config_to_form_data(config, dataset_id=42)
+
+        assert form_data["adhoc_filters"][0]["subject"] == "order_date"
+        assert form_data["adhoc_filters"][0]["operator"] == "TEMPORAL_RANGE"
 
 
 class TestGenerateChartNameBigNumber:
