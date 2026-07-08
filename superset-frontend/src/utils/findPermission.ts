@@ -34,7 +34,7 @@ export const findPermission = memoizeOne(
  * permission but keeps can_csv as a fallback, so turning the flag on never
  * silently removes access a user already had.
  */
-export const canDownloadData = (roles?: UserRoles | null) =>
+export const canDownloadData = (roles?: UserRoles | null): boolean =>
   isFeatureEnabled(FeatureFlag.GranularExportControls)
     ? findPermission('can_export_data', 'Superset', roles) ||
       findPermission('can_csv', 'Superset', roles)
