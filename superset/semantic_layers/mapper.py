@@ -124,6 +124,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
     # Step 2: Execute the main query (first in the list)
     main_query = queries[0]
     main_result = dispatcher(main_query)
+    main_result = _coerce_empty_result(main_result, main_query)
 
     main_df = stringify_extension_columns(main_result.results).to_pandas()
 
@@ -155,6 +156,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
     ):
         # Execute the offset query
         result = dispatcher(offset_query)
+        result = _coerce_empty_result(result, offset_query)
 
         # Add this query's requests to the collection
         all_requests.extend(result.requests)
@@ -219,6 +221,32 @@ def get_results(query_object: QueryObject) -> QueryResult:
         semantic_result,
         query_object,
         duration,
+    )
+
+
+def _coerce_empty_result(
+    semantic_result: SemanticResult,
+    query: SemanticQuery,
+) -> SemanticResult:
+    """
+    Guard against ``SemanticResult.results is None``.
+
+    Some semantic-layer driver implementations return ``None`` when a query
+    produces zero rows (for example, ``snowflake.connector``'s
+    ``fetch_arrow_all`` does this). Downstream consumers expect an Arrow table,
+    so build an empty one with the columns implied by the query's dimensions
+    and metrics.
+    """
+    if semantic_result.results is not None:
+        return semantic_result
+
+    columns = {
+        **{dim.name: pa.array([], type=dim.type) for dim in query.dimensions},
+        **{metric.name: pa.array([], type=metric.type) for metric in query.metrics},
+    }
+    return SemanticResult(
+        requests=semantic_result.requests,
+        results=pa.table(columns),
     )
 
 

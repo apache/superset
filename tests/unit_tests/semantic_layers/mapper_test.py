@@ -1742,6 +1742,37 @@ def test_get_results_with_multiple_dimensions(
     pd.testing.assert_frame_equal(result.df, expected_df)
 
 
+def test_get_results_handles_none_results(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Some semantic-layer driver implementations return ``SemanticResult(results=None)``
+    when a query produces zero rows (for example, ``snowflake.connector``'s
+    ``fetch_arrow_all``). ``get_results`` must coerce that to an empty Arrow table
+    rather than crashing on ``None.to_pandas()``.
+    """
+    mock_result = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="SELECT 1")],
+        results=None,
+    )
+    mock_datasource.implementation.get_table = mocker.Mock(return_value=mock_result)
+
+    query_object = ValidatedQueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["category"],
+    )
+
+    result = get_results(query_object)
+
+    assert result.df is not None
+    assert result.df.empty
+    assert set(result.df.columns) == {"category", "total_sales"}
+
+
 def test_get_results_no_datasource() -> None:
     """
     Test that get_results raises error when datasource is missing.

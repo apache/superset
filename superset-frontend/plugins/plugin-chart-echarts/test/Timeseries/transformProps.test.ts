@@ -938,6 +938,46 @@ describe('legend sorting', () => {
   });
 });
 
+test('honors user-selected plain legend type for top orientation when space allows (#39540)', () => {
+  // Regression test for issue #39540: switching the legend type control from
+  // scroll to plain must reach the rendered ECharts config. Horizontal legends
+  // were once unconditionally forced to scroll; scroll should be a fallback
+  // reserved for legends that do not fit the available space.
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      legendType: LegendType.Plain,
+      legendOrientation: LegendOrientation.Top,
+      showLegend: true,
+    },
+  });
+
+  const { legend } = transformProps(chartProps).echartOptions as {
+    legend: { show?: boolean; type?: LegendType };
+  };
+
+  expect(legend.show).toBe(true);
+  expect(legend.type).toBe(LegendType.Plain);
+});
+
+test('honors user-selected plain legend type for bottom orientation when space allows (#39540)', () => {
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      legendType: LegendType.Plain,
+      legendOrientation: LegendOrientation.Bottom,
+      showLegend: true,
+    },
+  });
+
+  const { legend } = transformProps(chartProps).echartOptions as {
+    legend: { show?: boolean; type?: LegendType };
+  };
+
+  expect(legend.show).toBe(true);
+  expect(legend.type).toBe(LegendType.Plain);
+});
+
 const timeCompareFormData: SqlaFormData = {
   colorScheme: 'bnbColors',
   datasource: '3__table',
