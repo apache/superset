@@ -84,7 +84,7 @@ const HALF_DONUT_START_ANGLE = 180;
 export const isHalfDonut = (
   sweptAngle: number,
   startAngle: number,
-): boolean => 
+): boolean =>
   (
     sweptAngle <= HALF_DONUT_SWEEP_LIMIT &&
     startAngle === HALF_DONUT_START_ANGLE
