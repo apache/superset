@@ -147,7 +147,11 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: undefined,
               label: t('Color Range Start'),
-              description: t('test'),
+              description: t(
+                'Lower bound of the color scale. When both start and end are ' +
+                  'set, the legend uses this fixed range instead of the ' +
+                  'automatic data range.',
+              ),
             },
           },
           {
@@ -159,7 +163,11 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: undefined,
               label: t('Color Range End'),
-              description: t('test'),
+              description: t(
+                'Upper bound of the color scale. When both start and end are ' +
+                  'set, the legend uses this fixed range instead of the ' +
+                  'automatic data range.',
+              ),
             },
           },
         ],

@@ -105,7 +105,10 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
     }
     const timestamps = metricsData[metric];
     const rawExtents = useCustomColorRange
-      ? ([colorRangeStart, colorRangeEnd - 1] as [number, number])
+      ? ([
+          Math.min(colorRangeStart as number, colorRangeEnd as number),
+          Math.max(colorRangeStart as number, colorRangeEnd as number),
+        ] as [number, number])
       : d3Extent(Object.keys(timestamps), key => timestamps[key]);
     // Guard against undefined extents (empty data)
     const extents: [number, number] =
