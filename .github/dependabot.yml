@@ -35,9 +35,6 @@ updates:
       # as a single manual upgrade anyway. TODO: remove when Babel 8 support is viable.
       - dependency-name: "@babel/*"
         update-types: ["version-update:semver-major"]
-      # `just-handlerbars-helpers` library in plugin-chart-handlebars requires `currencyformatter`` to be < 2
-      - dependency-name: "currencyformatter.js"
-        update-types: ["version-update:semver-major"]
     directory: "/superset-frontend/"
     schedule:
       interval: "daily"
