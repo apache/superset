@@ -202,6 +202,51 @@ class SupersetTestCases(SupersetTestCase):
             in sql
         )
 
+    @mock.patch("superset.models.core.Database.db_engine_spec", BaseEngineSpec)
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_jinja_calculated_column_in_order_by(self):
+        """
+        A calculated column referenced by a SIMPLE adhoc metric in `orderby`
+        should have its Jinja template rendered, the same way it is for
+        SELECT/WHERE/GROUP BY.
+        """
+        table = self.get_table(name="birth_names")
+        TableColumn(
+            column_name="gender_cc_jinja",
+            type="VARCHAR(255)",
+            table=table,
+            expression="""
+            case
+              when gender='boy' then {{ "'male'" }}
+              else {{ "'female'" }}
+            end
+            """,
+        )
+
+        table.database.sqlalchemy_uri = "sqlite://"
+        query_obj = {
+            "groupby": ["gender_cc_jinja"],
+            "is_timeseries": False,
+            "filter": [],
+            "orderby": [
+                [
+                    {
+                        "expressionType": "SIMPLE",
+                        "column": {"column_name": "gender_cc_jinja"},
+                        "aggregate": "MAX",
+                        "label": "max_gender_cc_jinja",
+                    },
+                    True,
+                ]
+            ],
+        }
+        sql = table.get_query_str(query_obj)
+        orderby_clause = sql.split("ORDER BY")[1]
+        assert "{%" not in orderby_clause
+        assert "{{" not in orderby_clause
+        assert "'male'" in orderby_clause
+        assert "'female'" in orderby_clause
+
 
 def test_time_grain_denylist():
     config = app.config.copy()
