@@ -192,6 +192,7 @@ export interface InputColumn {
     TimeFormatter | NumberFormatter | CustomFormatter | CurrencyFormatter;
   originalLabel?: string;
   metricName?: string;
+  description?: string;
 }
 
 export type ValueRange = [number, number] | null;

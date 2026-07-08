@@ -120,7 +120,7 @@ export default typedMemo(function DataTable<D extends object>({
   onServerPaginationChange,
   rowCount,
   selectPageSize,
-  noResults: noResultsText = 'No data found',
+  noResults: noResultsText = t('No data found'),
   hooks,
   serverPagination,
   wrapperRef: userWrapperRef,

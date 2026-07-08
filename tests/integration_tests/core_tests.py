@@ -898,6 +898,22 @@ class TestCore(SupersetTestCase):
         rv = self.client.get(f"/explore/?form_data={quote(json.dumps(form_data))}")
         assert rv.headers["Location"] == f"/explore/?form_data_key={random_key}"
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @mock.patch("superset.security.SupersetSecurityManager.raise_for_access")
+    def test_explore_view_checks_datasource_access(
+        self, mock_raise_for_access: mock.Mock
+    ) -> None:
+        """The explore view runs the per-datasource access check on the loaded
+        datasource, consistent with the explore command, before rendering its
+        metadata."""
+        self.login(ADMIN_USERNAME)
+        tbl_id: int | None = self.table_ids.get("energy_usage")
+
+        self.client.post(f"/explore/table/{tbl_id}/")
+
+        mock_raise_for_access.assert_called_once()
+        assert mock_raise_for_access.call_args.kwargs["datasource"].id == tbl_id
+
     def test_explore_no_datasource_renders_spa(self):
         # `Slice.slice_url` emits form_data carrying only `slice_id`; without a
         # datasource the cache-and-redirect contract can't produce a different
