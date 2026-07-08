@@ -237,6 +237,7 @@ const SaveModal = ({
     );
 
     return (
+      !!slice &&
       (can_overwrite || isUserAdmin(user) || canEditSlice) &&
       !slice?.is_managed_externally
     );
