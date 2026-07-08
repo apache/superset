@@ -36,7 +36,11 @@ import {
   BottomRightResizeHandle,
 } from './ResizableHandle';
 import resizableConfig from '../../util/resizableConfig';
-import { GRID_BASE_UNIT, GRID_GUTTER_SIZE } from '../../util/constants';
+import {
+  GRID_BASE_UNIT,
+  GRID_GUTTER_SIZE,
+  BOTTOM_RESIZE_DIRECTION,
+} from '../../util/constants';
 
 const proxyToInfinity = Number.MAX_VALUE;
 
@@ -67,7 +71,6 @@ export interface ResizableContainerProps {
 // because columns are not multiples of a single variable (width = n*cols + (n-1) * gutters)
 // we snap to the base unit and then snap to _actual_ column multiples on stop
 const SNAP_TO_GRID: [number, number] = [GRID_BASE_UNIT, GRID_BASE_UNIT];
-const BOTTOM_RESIZE_DIRECTION = 'bottom';
 const HANDLE_CLASSES = {
   right: 'resizable-container-handle--right',
   bottom: 'resizable-container-handle--bottom',

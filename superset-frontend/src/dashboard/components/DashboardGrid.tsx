@@ -28,7 +28,7 @@ import type { LayoutItem } from 'src/dashboard/types';
 import type { DropResult } from 'src/dashboard/components/dnd/dragDroppableConfig';
 import DashboardComponent from '../containers/DashboardComponent';
 import { Droppable } from './dnd/DragDroppable';
-import { GRID_GUTTER_SIZE, GRID_COLUMN_COUNT } from '../util/constants';
+import { GRID_GUTTER_SIZE, GRID_COLUMN_COUNT, BOTTOM_RESIZE_DIRECTION } from '../util/constants';
 import { TAB_TYPE } from '../util/componentTypes';
 
 export interface DashboardGridProps {
@@ -124,8 +124,6 @@ const GridColumnGuide = styled.div`
     }
   `};
 `;
-
-const BOTTOM_RESIZE_DIRECTION = 'bottom';
 
 const GridRowGuide = styled.div`
   ${({ theme }) => css`
