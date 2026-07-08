@@ -37,6 +37,33 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.9.1\n"
 
+#, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a new "
+"dataset over this table, or use a different table name."
+msgstr ""
+
+#, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or "
+"upload to a different table name."
+msgstr ""
+
+msgid ""
+"Cannot delete a database whose only remaining datasets are soft-deleted. "
+"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
+"permanently once a purge capability ships, or remove the underlying rows "
+"out-of-band, before deleting the database."
+msgstr ""
+
+msgid ""
+"Dataset cannot be restored because another active dataset already references "
+"the same physical table (same database, catalog, schema, and table name). "
+"Delete the duplicate or rename the table before restoring."
+msgstr ""
+
 msgid ""
 "\n"
 "                The cumulative option allows you to see how your data "
@@ -3164,9 +3191,6 @@ msgstr "Culoare după"
 msgid "Color for breakpoint"
 msgstr "Culoare pentru punct de întrerupere"
 
-msgid "Color Metric"
-msgstr "Indicator culoare"
-
 msgid "Color of the source location"
 msgstr "Culoarea locației sursă"
 
@@ -4644,7 +4668,7 @@ msgid "Deleted %(num)d theme"
 msgid_plural "Deleted %(num)d themes"
 msgstr[0] "Ștearsă %(num)d temă"
 msgstr[1] "Șterse %(num)d teme"
-msgstr[2] "Șterse %(num)d de teme""
+msgstr[2] "Șterse %(num)d de teme"
 
 #, python-format
 msgid "Deleted %s"
@@ -10218,7 +10242,7 @@ msgid "Saved expressions"
 msgstr "Expresii salvate"
 
 msgid "Saved metric"
-msgstr "Indicator salvat""
+msgstr "Indicator salvat"
 
 msgid "Saved queries"
 msgstr "Interogări salvate"
@@ -12049,8 +12073,18 @@ msgstr ""
 "Standardul codului de țară pe care Superset ar trebui să-l găsească în "
 "coloana [country]"
 
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+
 msgid "The dashboard has been saved"
 msgstr "Panoul de control a fost salvat"
+
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
+msgstr ""
 
 msgid "The data source seems to have been deleted"
 msgstr "Sursa de date pare să fi fost ștearsă"
@@ -13422,7 +13456,7 @@ msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "Aceasta a fost declanșată de:"
 msgstr[1] "Acestea pot fi declanșate de:"
-msgstr[2] "Acestea pot fi declanșate de către:""
+msgstr[2] "Acestea pot fi declanșate de către:"
 
 msgid ""
 "This will be applied to the whole table. Arrows (↑ and ↓) will be added "
@@ -14447,7 +14481,7 @@ msgstr ""
 "Vizualizează un indicator corelat pentru perechi de grupuri. Hartile "
 "termice (Heatmaps) excelează în evidențierea corelației sau a "
 "intensității dintre două grupuri. Culoarea este utilizată pentru a "
-"sublinia intensitatea legăturii dintre fiecare pereche de grupuri.""
+"sublinia intensitatea legăturii dintre fiecare pereche de grupuri."
 
 msgid ""
 "Visualize geospatial data like 3D buildings, landscapes, or objects in "

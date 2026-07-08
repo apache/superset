@@ -128,8 +128,13 @@ Dashboard Management:
 - list_dashboards: List dashboards with advanced filters (1-based pagination)
 - get_dashboard_info: Get detailed dashboard information by ID
 - get_dashboard_layout: Get parsed tabs and chart positions for a dashboard (companion to get_dashboard_info when its omitted_fields hint flags position_json)
+- get_dashboard_datasets: List the datasets used by a dashboard's charts, with columns and metrics (context for configuring native filters)
 - generate_dashboard: Create a dashboard from chart IDs (requires write access)
+- update_dashboard: Update an existing dashboard's title/description/slug/published/layout/theme/CSS (requires write access; ownership-checked per-instance)
+- duplicate_dashboard: Duplicate an existing dashboard, optionally deep-copying its charts (requires write access)
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
+- manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select and filter_time)
+- remove_chart_from_dashboard: Remove a chart from an existing dashboard (requires write access)
 
 Annotation Layers:
 - list_annotation_layers: List annotation layers with advanced filters (1-based pagination)
@@ -286,6 +291,31 @@ Use created_by_me for authorship, owned_by_me for edit ownership, or both
 together for the union. All flags can be combined with 'filters' but not
 with 'search'.
 
+To explore metrics across all data sources (built-in datasets + external semantic views):
+1. list_metrics(request={{"search": "<keyword>"}})
+   -> returns metrics with dataset_id/view_id and compatible_dimensions inline
+2. get_table(request={{
+     "dataset_id": <id>,          # OR "view_id": <id> for external semantic views
+     "metrics": ["revenue"],
+     "dimensions": ["region"],
+     "time_range": "Last 30 days",
+     "row_limit": 500
+   }}) -> returns tabular results
+   - Use "dataset_id" when list_metrics returned source="builtin"
+   - Use "view_id" when list_metrics returned source="external"
+
+To progressively refine a query (compatible dimensions/metrics):
+- get_compatible_dimensions(request={{
+    "selected_metrics": ["revenue"],
+    "selected_dimensions": [],
+    "dataset_id": <id>  # or "view_id": <id>
+  }}) -> dimensions valid to add to the current selection
+- get_compatible_metrics(request={{
+    "selected_metrics": [],
+    "selected_dimensions": ["region"],
+    "view_id": <id>  # useful for external semantic layers with constraints
+  }}) -> metrics valid to add to the current selection
+
 To query a dataset's semantic layer (metrics, dimensions):
 1. list_datasets(request={{}}) -> find a dataset
 2. get_dataset_info(request={{"identifier": <id>}}) -> examine columns AND metrics
@@ -352,10 +382,12 @@ Time grain for temporal x-axis (time_grain parameter):
 - PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P1Y (yearly)
 
 Chart Types in Existing Charts (viewable via list_charts/get_chart_info):
-- pie, big_number, big_number_total, funnel, gauge_chart
-- echarts_timeseries_line, echarts_timeseries_bar, echarts_timeseries_area
-- pivot_table_v2, heatmap_v2, sankey_v2, sunburst_v2, treemap_v2
-- word_cloud, world_map, box_plot, bubble, mixed_timeseries
+Each chart returned by list_charts / get_chart_info includes a
+chart_type_display_name field with a human-readable name when available.
+This field is populated only for the 7 chart types supported by generate_chart
+(xy, pie, table, pivot_table, big_number, mixed_timeseries, handlebars).
+For all other viz_types (Funnel, Gauge, Heatmap, etc.) it will be null —
+use the raw viz_type field instead when referring to those chart types.
 
 Query Examples:
 - List all tables:
@@ -423,8 +455,10 @@ Input format:
 {_feature_availability}Permission Awareness:
 {_instance_info_role_bullet}- ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
   charts, or dashboards). SQL execution is a separate permission — see execute_sql below.
-- Write tools (generate_chart, generate_dashboard, update_chart, create_dataset, create_virtual_dataset,
-  save_sql_query, add_chart_to_existing_dashboard, update_chart_preview) require write
+- Write tools (generate_chart, generate_dashboard, update_chart, duplicate_dashboard,
+  create_dataset, create_virtual_dataset, save_sql_query, add_chart_to_existing_dashboard,
+  manage_native_filters, remove_chart_from_dashboard,
+  update_chart_preview) require write
   permissions. These tools are only listed for users who have the necessary access.
   If a write tool does not appear in the tool list, the current user lacks write access.
 - execute_sql requires SQL Lab access (execute_sql_query permission), which is separate
@@ -667,6 +701,7 @@ warnings.filterwarnings(
 # NOTE: Always add new prompt/resource imports here when creating new prompts/resources.
 # Prompts use @mcp.prompt decorators and resources use @mcp.resource decorators.
 # They register automatically on import, similar to tools.
+import superset.mcp_service.chart.plugins  # noqa: F401, E402  — registers all chart type plugins
 from superset.mcp_service.annotation_layer.tool import (  # noqa: F401, E402
     get_annotation_layer_info,
     get_layer_annotation_info,
@@ -690,10 +725,15 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
 )
 from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     add_chart_to_existing_dashboard,
+    duplicate_dashboard,
     generate_dashboard,
+    get_dashboard_datasets,
     get_dashboard_info,
     get_dashboard_layout,
     list_dashboards,
+    manage_native_filters,
+    remove_chart_from_dashboard,
+    update_dashboard,
 )
 from superset.mcp_service.database.tool import (  # noqa: F401, E402
     get_database_info,
@@ -728,6 +768,12 @@ from superset.mcp_service.role.tool import (  # noqa: F401, E402
 from superset.mcp_service.saved_query.tool import (  # noqa: F401, E402
     get_saved_query_info,
     list_saved_queries,
+)
+from superset.mcp_service.semantic_layer.tool import (  # noqa: F401, E402
+    get_compatible_dimensions,
+    get_compatible_metrics,
+    get_table,
+    list_metrics,
 )
 from superset.mcp_service.sql_lab.tool import (  # noqa: F401, E402
     execute_sql,

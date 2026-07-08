@@ -34,6 +34,7 @@ from superset.utils.core import get_user_id
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
+from superset.views.filters import BaseDeletedStateFilter
 
 
 class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -265,3 +266,19 @@ class DashboardHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public
         if value is False:
             return query.filter(and_(Dashboard.created_by_fk.is_(None)))
         return query
+
+
+class DashboardDeletedStateFilter(  # pylint: disable=too-few-public-methods
+    BaseDeletedStateFilter
+):
+    """Rison filter for the GET list that exposes soft-deleted dashboards.
+
+    Soft-deleted rows are scoped to the **restore audience** (owners or
+    admins) by ``BaseDeletedStateFilter._scope_to_restore_audience`` — the
+    cross-entity contract lives on the base, so this class is a pure
+    declaration. Live rows keep their normal ``DashboardAccessFilter``
+    visibility.
+    """
+
+    arg_name = "dashboard_deleted_state"
+    model = Dashboard

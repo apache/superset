@@ -21,7 +21,7 @@ from unittest.mock import MagicMock
 from markupsafe import Markup
 from sqlalchemy.orm import Session
 
-from superset.tags.models import get_tag, Tag, TagType
+from superset.tags.models import get_tag, Tag, TaggedObject, TagType
 
 
 def test_get_tag_returns_plain_string_not_markup() -> None:
@@ -260,4 +260,17 @@ def test_tag_name_type_after_database_operation() -> None:
     )
     assert added_tag.name.__class__ is str, (
         "Tag name should be exactly str type, not a subclass"
+    )
+
+
+def test_tagged_object_object_id_has_no_foreign_keys() -> None:
+    """Guard against ``tagged_object.object_id`` regaining a foreign key.
+
+    It is a polymorphic reference (see the rationale on the model); declaring
+    FKs there is unsatisfiable and breaks tagging (issue #35941).
+    """
+    foreign_keys = TaggedObject.__table__.c.object_id.foreign_keys
+    assert foreign_keys == set(), (
+        "tagged_object.object_id must not declare foreign keys; it is a "
+        "polymorphic reference resolved via object_type"
     )

@@ -423,5 +423,13 @@ class ApiOwnersTestCaseMixin:
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/{self.resource_name}/related/owner"
 
-        rv = self.client.get(uri)
+        with patch("superset.views.base_api.logger") as mock_logger:
+            rv = self.client.get(uri)
         assert rv.status_code == 404
+        # A disallowed related field is recorded as a security log event,
+        # including the rejected column name, in addition to the 404.
+        mock_logger.warning.assert_called_once()
+        assert "column=owner" in (
+            mock_logger.warning.call_args.args[0]
+            % mock_logger.warning.call_args.args[1:]
+        )
