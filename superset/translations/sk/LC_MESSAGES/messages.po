@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-08 12:27-0700\n"
+"POT-Creation-Date: 2026-06-23 03:46-0700\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -27,6 +27,33 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
+
+#, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a new "
+"dataset over this table, or use a different table name."
+msgstr ""
+
+#, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or "
+"upload to a different table name."
+msgstr ""
+
+msgid ""
+"Cannot delete a database whose only remaining datasets are soft-deleted. "
+"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
+"permanently once a purge capability ships, or remove the underlying rows "
+"out-of-band, before deleting the database."
+msgstr ""
+
+msgid ""
+"Dataset cannot be restored because another active dataset already references "
+"the same physical table (same database, catalog, schema, and table name). "
+"Delete the duplicate or rename the table before restoring."
+msgstr ""
 
 msgid ""
 "\n"
@@ -874,6 +901,9 @@ msgstr "Databáza sa stejným názvom již existuje."
 msgid "A date is required when using custom date shift"
 msgstr "Pri použití vlastného posunu data je vyžadováno dátum."
 
+msgid "A description for your dashboard"
+msgstr ""
+
 #, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
@@ -904,17 +934,18 @@ msgstr ""
 "Zoznam názvov domén, ktoré môžu vkladať túto nástenku. Ponechanie tohto "
 "poľa prázdneho umožní vkladanie z akejkoľvek domény."
 
+msgid "A list of subjects who can alter the chart. Searchable by name."
+msgstr "Zoznam subjektov, ktoré môžu upravovať graf. Vyhľadateľné podľa mena."
+
+msgid "A list of subjects who can view the chart. Searchable by name."
+msgstr "Zoznam subjektov, ktoré môžu zobrazovať graf. Vyhľadateľné podľa mena."
+
 msgid "A list of tags that have been applied to this chart."
 msgstr "Zoznam značek, ktoré boli aplikované na tento graf."
 
 #, fuzzy
 msgid "A list of tags that have been applied to this dashboard."
 msgstr "Zoznam štítkov, ktoré boli aplikované na túto nástenku."
-
-msgid "A list of users who can alter the chart. Searchable by name or username."
-msgstr ""
-"Zoznam používateľov, ktorí môžu menit graf. Možno vyhledávat popodľa "
-"jména alebo uživatelského jména."
 
 msgid "A map of the world, that can indicate values in different countries."
 msgstr "Mapa sveta, ktorá môže znázorňovať hodnoty v rôznych krainách."
@@ -928,6 +959,11 @@ msgstr ""
 
 msgid "A metric to use for color"
 msgstr "Metrika pre určenie farby"
+
+msgid ""
+"A multiplier applied to the point radius. Use this to uniformly scale all"
+" points."
+msgstr ""
 
 msgid "A new chart and dashboard will be created."
 msgstr "Bude vytvorený nový graf a nová nástenka."
@@ -1054,8 +1090,8 @@ msgstr "Pracuje se"
 msgid "About"
 msgstr "O aplikácii"
 
-msgid "Access & ownership"
-msgstr "Prístup a vlastnictví"
+msgid "Access"
+msgstr "Prístup"
 
 msgid "Access token"
 msgstr "Prístupový token"
@@ -1751,10 +1787,6 @@ msgid "An error occurred while fetching %s info: %s"
 msgstr "Pri načítavanie informací o %s došlo k chybe: %s"
 
 #, fuzzy, python-format
-msgid "An error occurred while fetching %s owner values: %s"
-msgstr "Pri načítavaní hodnôt vlastníkov došlo k chybe: %s"
-
-#, fuzzy, python-format
 msgid "An error occurred while fetching %s related data"
 msgstr "Pri načítavanie dat súvisejúcich sa sadou dat došlo k chybe"
 
@@ -1782,8 +1814,12 @@ msgid "An error occurred while fetching available views"
 msgstr "Pri načítavanie dostupných témat došlo k chybe"
 
 #, python-format
-msgid "An error occurred while fetching chart owners values: %s"
-msgstr "Pri načítavaní hodnôt vlastníkov grafu došlo k chybe: %s"
+msgid "An error occurred while fetching chart editor values: %s"
+msgstr "Pri načítavaní hodnôt editorov grafu sa vyskytla chyba: %s"
+
+#, python-format
+msgid "An error occurred while fetching chart viewer values: %s"
+msgstr "Pri načítavaní hodnôt zobrazujúcich grafu sa vyskytla chyba: %s"
 
 #, fuzzy
 msgid "An error occurred while fetching connections"
@@ -1794,8 +1830,12 @@ msgid "An error occurred while fetching created by values: %s"
 msgstr "Pri načítavanie hodnôt schématu došlo k chybe: %s"
 
 #, python-format
-msgid "An error occurred while fetching dashboard owner values: %s"
-msgstr "Pri načítavaní hodnôt vlastníkov nástenky došlo k chybe: %s"
+msgid "An error occurred while fetching dashboard editor values: %s"
+msgstr "Pri načítavaní hodnôt editorov dashboardu sa vyskytla chyba: %s"
+
+#, python-format
+msgid "An error occurred while fetching dashboard viewer values: %s"
+msgstr "Pri načítavaní hodnôt zobrazujúcich dashboardu sa vyskytla chyba: %s"
 
 msgid "An error occurred while fetching dashboards"
 msgstr "Pri načítavanie násteniek došlo k chybe"
@@ -1817,15 +1857,19 @@ msgid "An error occurred while fetching dataset datasource values: %s"
 msgstr "Pri načítavanie hodnôt zdroje dat sady dat došlo k chybe: %s"
 
 #, python-format
+msgid "An error occurred while fetching dataset editor values: %s"
+msgstr "Pri načítavaní hodnôt editorov množiny údajov sa vyskytla chyba: %s"
+
+#, python-format
 msgid "An error occurred while fetching dataset related data: %s"
 msgstr "Pri načítavanie dat súvisejúcich sa sadou dat došlo k chybe: %s"
 
+#, python-format
+msgid "An error occurred while fetching editor values: %s"
+msgstr "Pri načítavaní hodnôt editorov sa vyskytla chyba: %s"
+
 msgid "An error occurred while fetching function names."
 msgstr "Pri načítavaní názvov funkciuí došlo k chybe."
-
-#, python-format
-msgid "An error occurred while fetching owners values: %s"
-msgstr "Pri načítavaní hodnôt vlastníkov došlo k chybe: %s"
 
 #, python-format
 msgid "An error occurred while fetching schema values: %s"
@@ -1842,19 +1886,9 @@ msgstr "Pri načítavanie hodnôt schématu došlo k chybe: %s"
 msgid "An error occurred while fetching tab state"
 msgstr "Pri načítavanie stavu karty došlo k chybe"
 
-msgid "An error occurred while fetching table metadata"
-msgstr "Pri načítavanie metadat tabuľky došlo k chybe"
-
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr "Pri načítavanie metadat tabuľky došlo k chybe"
-
-msgid ""
-"An error occurred while fetching table metadata. Please contact your "
-"administrator."
-msgstr ""
-"Pri načítavanie metadat tabuľky došlo k chybe. Kontaktujte prosím svojho "
-"administrátora."
 
 #, fuzzy
 msgid "An error occurred while fetching the configuration schema"
@@ -1891,6 +1925,11 @@ msgstr "Pri formátovanie SQL došlo k chybe"
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "Pri importu %s došlo k chybe: %s"
+
+msgid ""
+"An error occurred while loading SQL Lab. This may be caused by a "
+"corrupted query state."
+msgstr ""
 
 msgid "An error occurred while loading dashboard information."
 msgstr "Pri načítavanie informací o nástenke došlo k chybe."
@@ -3114,6 +3153,13 @@ msgstr "Graf %(id)s nenalezen"
 msgid "Chart Data: %s"
 msgstr "Data grafu: %s"
 
+#, python-format
+msgid "Chart Editor: %s"
+msgid_plural "Chart Editors: %s"
+msgstr[0] "Editor grafu: %s"
+msgstr[1] "Editori grafu: %s"
+msgstr[2] "Editori grafu: %s"
+
 msgid "Chart ID"
 msgstr "ID grafu"
 
@@ -3122,13 +3168,6 @@ msgstr "Možnosti grafu"
 
 msgid "Chart Orientation"
 msgstr "Orientace grafu"
-
-#, fuzzy, python-format
-msgid "Chart Owner: %s"
-msgid_plural "Chart Owners: %s"
-msgstr[0] "Vlastník grafu: %s"
-msgstr[1] "Vlastníci grafu: %s"
-msgstr[2] "Vlastníci grafu: %s"
 
 msgid "Chart Source"
 msgstr "Zdroj grafu"
@@ -3161,6 +3200,9 @@ msgstr "Zmeny grafu"
 msgid "Chart could not be created."
 msgstr "Graf sa nepodarilo vytvoriť."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "Graf sa nepodarilo aktualizovať."
 
@@ -3173,6 +3215,9 @@ msgstr "Hodnota prispôsobenia grafu je vyžadovaná"
 
 msgid "Chart does not exist"
 msgstr "Graf neexistuje"
+
+msgid "Chart editors"
+msgstr "Editori grafu"
 
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr "Graf nemá uložený kontext dotazu. Uložte prosím graf znovu."
@@ -3195,9 +3240,6 @@ msgstr "Graf nenalezen"
 
 msgid "Chart options"
 msgstr "Možnosti grafu"
-
-msgid "Chart owners"
-msgstr "Vlastníci grafu"
 
 msgid "Chart parameters are invalid."
 msgstr "Parametre grafu sú neplatné."
@@ -3665,9 +3707,6 @@ msgstr "Stĺpec „%(column)s“ nie je číselný alebo neexistuje ve výsledc�
 msgid "Column Configuration"
 msgstr "Konfigurácia stĺpce"
 
-msgid "Column Formatting"
-msgstr "Formátovanie stĺpce"
-
 msgid "Column Settings"
 msgstr "Nastavenie stĺpce"
 
@@ -3806,6 +3845,9 @@ msgid ""
 msgstr ""
 "Čiarkou oddelené hranica intervalů, např. 2,4,5 pre intervaly 0-2, 2-4 a "
 "4-5. Posledný číslo by sa melo shodovať s hodnotou zadanou pre MAX."
+
+msgid "Common (unit per pixel at zoom 0)"
+msgstr ""
 
 msgid "Comparator option"
 msgstr "Možnosť komparátoru"
@@ -4099,6 +4141,9 @@ msgstr "Nepodarilo sa načítať všetky uložené grafy"
 
 msgid "Could not find viz object"
 msgstr "Nemožno najít objekt vizualizácia"
+
+msgid "Could not load SQL Lab"
+msgstr ""
 
 msgid "Could not load database driver"
 msgstr "Nepodarilo sa načítať ovladač databáza"
@@ -4745,6 +4790,9 @@ msgstr "Sadu dat sa nepodarilo vytvoriť."
 
 msgid "Dataset could not be duplicated."
 msgstr "Sadu dat sa nepodarilo duplikovať."
+
+msgid "Dataset could not be restored."
+msgstr ""
 
 msgid "Dataset could not be updated."
 msgstr "Sadu dat sa nepodarilo aktualizovať."
@@ -5994,11 +6042,30 @@ msgstr "Upraviť časový rozsah"
 msgid "Edit user"
 msgstr "Upraviť používateľa"
 
+msgid "Editable"
+msgstr "Upraviteľné"
+
 msgid "Edited"
 msgstr "Upraveno"
 
 msgid "Editing 1 filter:"
 msgstr "Úprava 1 filtra:"
+
+msgid "Editor"
+msgstr "Editor"
+
+msgid "Editors"
+msgstr "Editori"
+
+msgid "Editors is a list of subjects who can alter the dashboard."
+msgstr "Editori sú zoznam subjektov, ktoré môžu upravovať dashboard."
+
+msgid ""
+"Editors is a list of subjects who can alter the dashboard. Searchable by "
+"name."
+msgstr ""
+"Editori sú zoznam subjektov, ktoré môžu upravovať dashboard. Vyhľadateľné"
+" podľa mena."
 
 msgid "Either the database is spelled incorrectly or does not exist."
 msgstr "Buď je názov databáza napsán nesprávne, alebo databáza neexistuje."
@@ -6468,8 +6535,8 @@ msgstr "Nahranie Excelu"
 msgid "Exclude selected values"
 msgstr "Vylúčiť vybrané hodnoty"
 
-msgid "Excluded roles"
-msgstr "Vyloučené role"
+msgid "Excluded subjects"
+msgstr "Vylúčené subjekty"
 
 msgid "Executed SQL"
 msgstr "Provedené SQL"
@@ -7096,10 +7163,11 @@ msgstr ""
 "Pre viac informací o objektech, ktoré sú v kontextu v rozsahu tejto "
 "funkce, sa podívejte na"
 
+#, fuzzy
 msgid ""
-"For regular filters, these are the roles this filter will be applied to. "
-"For base filters, these are the roles that the filter DOES NOT apply to, "
-"e.g. Admin if admin should see all data."
+"For regular filters, these are the subjects (users, roles, groups) this "
+"filter will be applied to. For base filters, these are the subjects that "
+"the filter DOES NOT apply to, e.g. Admin if admin should see all data."
 msgstr ""
 "Pre bežné filtre sú to role, na ktoré bude tento filter aplikován. Pre "
 "základný filtre sú to role, na ktoré sa filter NEVZTAHUJE, např. Admin, "
@@ -7205,9 +7273,6 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "Formátované CSV přiloženo v e-mailu"
-
-msgid "Formatted date"
-msgstr "Formátované dátum"
 
 msgid "Formatted value"
 msgstr "Formátovaná hodnota"
@@ -8113,9 +8178,6 @@ msgstr "Klávesové zkratky"
 msgid "Keys are shown only once at creation. Store them securely."
 msgstr "Kľúče sa zobrazujú iba raz pri vytvorení. Uchovávajte ich bezpečne."
 
-msgid "Keys for table"
-msgstr "Klíče pre tabuľku"
-
 msgid "Kilometers"
 msgstr "Kilometry"
 
@@ -8643,8 +8705,8 @@ msgstr ""
 msgid "Manage"
 msgstr "Spravovať"
 
-msgid "Manage dashboard owners and access permissions"
-msgstr "Spravovať vlastníkov a přístupová práva dashboardů"
+msgid "Manage dashboard editors and access permissions"
+msgstr "Spravovať editorov dashboardu a prístupové oprávnenia"
 
 msgid "Manage email report"
 msgstr "Spravovať e-mailový report"
@@ -8701,9 +8763,11 @@ msgstr ""
 msgid "Mapbox"
 msgstr "Mapbox"
 
+# Machine-corrected via backfill_po.py (claude-sonnet-4-6) [replaced a
+# mistranslation]
 #, fuzzy
 msgid "Mapbox (API key required)"
-msgstr "E-mail je povinný"
+msgstr "Mapbox (vyžaduje sa kľúč API)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -9189,11 +9253,9 @@ msgstr "Násobitel"
 # sr_Latn]
 #, fuzzy
 msgid ""
-"Must be a chart owner to overwrite this chart. Save as a new chart "
+"Must be a chart editor to overwrite this chart. Save as a new chart "
 "instead."
-msgstr ""
-"Na prepísanie tohto grafu musíte byť jeho vlastníkom. Namiesto toho ho "
-"uložte ako nový graf."
+msgstr "Ak chcete prepísať tento graf, musíte byť editorom grafu. Namiesto toho ho uložte ako nový graf."
 
 msgid "Must be unique"
 msgstr "Musí byť jedinečný"
@@ -9891,6 +9953,12 @@ msgstr "Otvoriť kartu Zdroje dat"
 msgid "Open SQL Lab in a new tab"
 msgstr "Otvoriť SQL Lab v novém okne"
 
+msgid "Open chart in new tab"
+msgstr ""
+
+msgid "Open dashboard in new tab"
+msgstr ""
+
 msgid "Open in SQL Lab"
 msgstr "Otvoriť v SQL Labu"
 
@@ -9975,9 +10043,6 @@ msgstr "Orientace stromu"
 
 msgid "Original"
 msgstr "Pôvodný"
-
-msgid "Original table column order"
-msgstr "Pôvodný poradie stĺpcov tabuľky"
 
 msgid "Original value"
 msgstr "Pôvodný hodnota"
@@ -10067,25 +10132,6 @@ msgstr "Přepsat text v editoru dotazem na tuto tabuľku"
 msgid "Owned Created or Favored"
 msgstr "Vlastnené, vytvořené alebo obľúbené"
 
-msgid "Owner"
-msgstr "Vlastník"
-
-msgid "Owners"
-msgstr "Vlastníci"
-
-msgid "Owners are invalid"
-msgstr "Vlastníci sú neplatní"
-
-msgid "Owners is a list of users who can alter the dashboard."
-msgstr "Vlastníci je zoznam používateľov, ktorí môžu menit nástenku."
-
-msgid ""
-"Owners is a list of users who can alter the dashboard. Searchable by name"
-" or username."
-msgstr ""
-"Vlastníci je zoznam používateľov, ktorí môžu menit nástenku. Možno "
-"vyhledávat popodľa jména alebo uživatelského jména."
-
 msgid "PDF download failed, please refresh and try again."
 msgstr "Staženie PDF zlyhalo, obnovte prosím stránku a skúste to znovu."
 
@@ -10162,6 +10208,10 @@ msgstr "Heslo"
 
 msgid "Password is required"
 msgstr "Heslo je povinné"
+
+#, python-format
+msgid "Password must be at least %(min_length)s characters long."
+msgstr ""
 
 #, fuzzy
 msgid "Password:"
@@ -10469,12 +10519,11 @@ msgstr "Zadejte prosím heslo znovu."
 msgid "Please re-export your file and try importing again"
 msgstr "Exportujte prosím súbor znovu a skúste ho importovať znovu"
 
-#, fuzzy
-msgid "Please reach out to the Chart Owner for assistance."
-msgid_plural "Please reach out to the Chart Owners for assistance."
-msgstr[0] "Obraťte sa prosím na vlastníka grafu pre pomoc."
-msgstr[1] "Obraťte sa prosím na vlastníky grafu pre pomoc."
-msgstr[2] "Obraťte sa prosím na vlastníky grafu pre pomoc."
+msgid "Please reach out to the Chart Editor for assistance."
+msgid_plural "Please reach out to the Chart Editors for assistance."
+msgstr[0] "Obráťte sa na editora grafu so žiadosťou o pomoc."
+msgstr[1] "Obráťte sa na editorov grafu so žiadosťou o pomoc."
+msgstr[2] "Obráťte sa na editorov grafu so žiadosťou o pomoc."
 
 msgid "Please save your chart first, then try creating a new email report."
 msgstr ""
@@ -10533,6 +10582,9 @@ msgstr "Meřítko polomeru bodu"
 
 msgid "Point Radius Unit"
 msgstr "Jednotka polomeru bodu"
+
+msgid "Point Radius Units"
+msgstr ""
 
 msgid "Point Size"
 msgstr "Veľkosť bodu"
@@ -10989,6 +11041,9 @@ msgstr "Relatívne množství"
 msgid "Reload"
 msgstr "Znovu načítať"
 
+msgid "Reload SQL Lab"
+msgstr ""
+
 msgid "Remove"
 msgstr "Odstrániť"
 
@@ -11014,9 +11069,6 @@ msgstr "Odstrániť položku"
 
 msgid "Remove query from log"
 msgstr "Odstrániť dotaz z protokolu"
-
-msgid "Remove table preview"
-msgstr "Odstrániť náhľad tabuľky"
 
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
@@ -11107,6 +11159,9 @@ msgstr "Report je aktívny"
 msgid "Report name"
 msgstr "Názov reportu"
 
+msgid "Report not yet run"
+msgstr ""
+
 msgid "Report schedule client error"
 msgstr "Chyba klienta plánu reportu"
 
@@ -11159,6 +11214,10 @@ msgstr "Požadované hodnoty ovládacích prvkov boli odstránenýy"
 msgid "Resample"
 msgstr "Převzorkovať"
 
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
+
 msgid "Resample method should be in "
 msgstr "Metoda převzorkovanie by mela být v "
 
@@ -11203,11 +11262,8 @@ msgstr "Zdroj již má připojený report."
 msgid "Resource was not found."
 msgstr "Zdroj nebyl nalezen."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
-msgid "Resource was removed before ownership could be verified"
-msgstr "Zdroj bol odstránený predtým, ako bolo možné overiť vlastníctvo"
+msgid "Resource was removed before editorship could be verified"
+msgstr "Zdroj bol odstránený pred overením oprávnenia na úpravy"
 
 msgid "Restore filter"
 msgstr "Obnoviť filter"
@@ -11255,9 +11311,11 @@ msgstr "Obrátit zemepisnou šírku/délku "
 msgid "Revoke"
 msgstr "Odstrániť"
 
+# Machine-corrected via backfill_po.py (claude-sonnet-4-6) [replaced a
+# mistranslation]
 #, fuzzy
 msgid "Revoke API Key"
-msgstr "Kľúč skupiny"
+msgstr "Odvolať API kľúč"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
@@ -11313,24 +11371,6 @@ msgstr "Názov role je povinný"
 
 msgid "Roles"
 msgstr "Role"
-
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks. If no roles are "
-"defined, regular access permissions apply."
-msgstr ""
-"Role je zoznam, ktorý definuje prístup k nástenke. Udelenie prístupu roli"
-" k nástenke obejde kontroly na úrovni sady dat. Pokiaľ nesú definovány "
-"žiadne role, platí bežná přístupová oprávnenie."
-
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks.If no roles are "
-"defined, regular access permissions apply."
-msgstr ""
-"Role je zoznam, ktorý definuje prístup k nástenke. Udelenie prístupu roli"
-" k nástenke obejde kontroly na úrovni sady dat. Pokiaľ nesú definovány "
-"žiadne role, platí bežná přístupová oprávnenie."
 
 #, fuzzy
 msgid "Rolling Function"
@@ -11801,9 +11841,8 @@ msgstr "Hľadať popodľa textu dotazu"
 msgid "Search calculated columns by name"
 msgstr "Počítané stĺpce"
 
-#, fuzzy
-msgid "Search charts by name, owner, or dashboard"
-msgstr "Na tejto nástenke nesú pridanýy žiadne grafy"
+msgid "Search charts by name, editor, or dashboard"
+msgstr "Hľadať grafy podľa názvu, editora alebo dashboardu"
 
 msgid "Search columns"
 msgstr "Hľadať stĺpce"
@@ -11816,6 +11855,9 @@ msgstr "Hľadať stĺpce"
 msgid "Search columns..."
 msgstr "Hľadať stĺpce..."
 
+msgid "Search editors"
+msgstr "Hľadať editorov"
+
 msgid "Search in filters"
 msgstr "Hľadať ve filtrech"
 
@@ -11824,16 +11866,11 @@ msgid "Search metrics by key or label"
 msgstr "Hľadať metriky a stĺpce"
 
 #, fuzzy
-msgid "Search owners"
-msgstr "Hľadať vlastníky"
-
-#, fuzzy
-msgid "Search roles"
-msgstr "Hľadať role"
-
-#, fuzzy
 msgid "Search tags"
 msgstr "Hľadať štítky"
+
+msgid "Search viewers"
+msgstr "Hľadať zobrazujúcich"
 
 msgid "Search..."
 msgstr "Hľadať..."
@@ -12110,6 +12147,9 @@ msgstr "Vybrať dimenzi pre Top N"
 msgid "Select dimension values"
 msgstr "Vybrať hodnoty dimenze"
 
+msgid "Select editors"
+msgstr "Vybrať editorov"
+
 msgid "Select file"
 msgstr "Vybrať súbor"
 
@@ -12179,9 +12219,6 @@ msgstr "Vyberte alebo zadejte symbol meny"
 
 msgid "Select or type dataset name"
 msgstr "Vyberte alebo zadejte názov sady dat"
-
-msgid "Select owners"
-msgstr "Vybrať vlastníky"
 
 msgid "Select page size"
 msgstr "Vybrať veľkosť stránky"
@@ -13328,6 +13365,9 @@ msgstr "Ulice"
 msgid "Streets (Carto)"
 msgstr "Stromový graf"
 
+msgid "Streets (OSM)"
+msgstr ""
+
 msgid "Strength to pull the graph toward center"
 msgstr "Síla pre přitahovanie grafu ke středu"
 
@@ -13366,6 +13406,18 @@ msgstr "Podkategorie"
 
 msgid "Subdomain"
 msgstr "Subdoména"
+
+msgid "Subject"
+msgstr "Subjekt"
+
+msgid "Subject type"
+msgstr "Typ subjektu"
+
+msgid "Subjects"
+msgstr "Subjekty"
+
+msgid "Subjects are invalid"
+msgstr "Subjekty sú neplatné"
 
 msgid "Submit"
 msgstr "Odoslať"
@@ -13808,6 +13860,9 @@ msgstr ""
 "používať @task. Podrobnosti o konfigurácii nájdete na "
 "https://superset.apache.org/docs/configuration/async-queries-celery."
 
+msgid "The SSH server host key could not be verified against the expected key."
+msgstr ""
+
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
 "values across\n"
@@ -13859,6 +13914,11 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+
 msgid "The chart is still loading. Please wait a moment and try again."
 msgstr "Graf sa ešte načítava. Chvíľu počkajte a skúste to znova."
 
@@ -13944,6 +14004,11 @@ msgstr "Standard kódu zeme, ktorý by mel Superset očekávat ve stĺpci [zeme]
 
 msgid "The dashboard has been saved"
 msgstr "Nástenka bola uložena"
+
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
+msgstr ""
 
 msgid "The data source seems to have been deleted"
 msgstr "Zdá se, že zdroj dat bol zmazaný"
@@ -14456,6 +14521,11 @@ msgstr ""
 "Polomer jednotlivých bodov (tech, ktoré nesú ve zhluku). Buď číselný "
 "stĺpec, alebo `Auto`, ktoré škáluje bod na základe nejväčšího zhluku"
 
+msgid ""
+"The radius of point features, in the units specified below. The final "
+"rendered size is this value multiplied by Point Radius Scale."
+msgstr ""
+
 msgid "The report has been created"
 msgstr "Report bol vytvořen"
 
@@ -14657,6 +14727,11 @@ msgstr "Jednotka pre veľkosť ikony"
 
 msgid "The unit for label size"
 msgstr "Jednotka pre veľkosť popisku"
+
+msgid ""
+"The unit for point radius. Use \"pixels\" for consistent screen-space "
+"sizing regardless of zoom level."
+msgstr ""
 
 msgid "The unit of measure for the specified point radius"
 msgstr "Jednotka míry pre zadaný polomer bodu"
@@ -15353,6 +15428,9 @@ msgstr ""
 "Táto stránka je určena k vloženie do iframe, ale zdá se, že tomu tak nie "
 "je."
 
+msgid "This password is too common; please choose a less guessable one."
+msgstr ""
+
 msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
@@ -15701,6 +15779,18 @@ msgstr "Pre získanie čitelné URL pre vaši nástenku"
 
 msgid "Token Request URI"
 msgstr "URI žádosti o token"
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
 
 #, fuzzy
 msgid "Tool Panel"
@@ -16556,10 +16646,6 @@ msgstr "Zobraziť ako tabuľku"
 msgid "View in SQL Lab"
 msgstr "Zobraziť v SQL Labu"
 
-#, python-format
-msgid "View keys & indexes (%s)"
-msgstr "Zobraziť klíče a indexy (%s)"
-
 msgid "View query"
 msgstr "Zobraziť dotaz"
 
@@ -16573,6 +16659,21 @@ msgstr "Zobrazeno"
 #, python-format
 msgid "Viewed %s"
 msgstr "Zobrazeno %s"
+
+msgid "Viewer"
+msgstr "Zobrazujúci"
+
+msgid "Viewers"
+msgstr "Zobrazujúci"
+
+msgid ""
+"Viewers is a list of subjects who can view the dashboard. If no viewers "
+"are defined, the dashboard is accessible to all users with appropriate "
+"datasource permissions."
+msgstr ""
+"Zobrazujúci sú zoznam subjektov, ktoré môžu zobrazovať dashboard. Ak nie "
+"sú definovaní žiadni zobrazujúci, dashboard je prístupný všetkým "
+"používateľom s príslušnými oprávneniami k zdroju údajov."
 
 msgid "Viewport"
 msgstr "Zobrazovací oblasť"
@@ -17475,6 +17576,9 @@ msgstr "Nemáte oprávnenie k úprave tejto nástenky."
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "Nemáte dostatečná oprávnenie k úprave grafu"
 
+msgid "You don't have access to one or more of the referenced datasources."
+msgstr ""
+
 msgid "You don't have access to this chart."
 msgstr "K tomuto grafu nemáte prístup."
 
@@ -17553,20 +17657,19 @@ msgstr ""
 "nebudete moci plne vrátiť späť následující akce. Môžete uložiť svoj "
 "aktuálny stav pre resetovanie historie."
 
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"You must be a %s owner in order to edit. Please reach out to a %s owner "
-"to request modifications or edit access."
-msgstr ""
-"Pre úpravu musíte být vlastníkem sady dat. Obraťte sa prosím na vlastníka"
-" sady dat a požádejte o úpravy alebo o prístup k úpravám."
+"You must be a %s editor in order to edit. Please reach out to a %s editor"
+" to request modifications or edit access."
+msgstr "Ak chcete upravovať, musíte byť editorom %s. Obráťte sa na editora %s a požiadajte o úpravy alebo prístup k úpravám."
 
 msgid ""
-"You must be a dataset owner in order to edit. Please reach out to a "
-"dataset owner to request modifications or edit access."
+"You must be a dataset editor in order to edit. Please reach out to a "
+"dataset editor to request modifications or edit access."
+msgstr "Ak chcete upravovať, musíte byť editorom dátovej množiny. Obráťte sa na editora dátovej množiny a požiadajte o úpravy alebo prístup k úpravám."
+
+msgid "You must change your password before continuing."
 msgstr ""
-"Pre úpravu musíte být vlastníkem sady dat. Obraťte sa prosím na vlastníka"
-" sady dat a požádejte o úpravy alebo o prístup k úpravám."
 
 msgid "You must pick a name for the new dashboard"
 msgstr "Musíte vybrať názov pre novou nástenku"
@@ -17574,9 +17677,12 @@ msgstr "Musíte vybrať názov pre novou nástenku"
 msgid "You must run the query successfully first"
 msgstr "Nejprve musíte úspešne spustiť dotaz"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"'all_database_access' or 'all_datasource_access' permission"
+msgstr ""
+
 msgid "You need to"
 msgstr "Musíte"
 
@@ -17653,6 +17759,9 @@ msgstr "Váš dotaz bol aktualizován"
 
 msgid "Your report could not be deleted"
 msgstr "Váš report sa nepodarilo zmazať"
+
+msgid "Your session has ended. Please sign in again."
+msgstr ""
 
 #, fuzzy
 msgid "Your user information"
@@ -17760,6 +17869,9 @@ msgstr "`row_offset` musí byť väčší alebo roven 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "`width` musí byť väčší alebo roven 0"
 
+msgid "`window` must be between 1 and 10000"
+msgstr ""
+
 #, fuzzy
 msgid "a few seconds"
 msgstr "5 sekund"
@@ -17791,6 +17903,9 @@ msgstr "anotace"
 msgid "annotation_layer"
 msgstr "vrstva_anotací"
 
+msgid "apple"
+msgstr ""
+
 msgid "asfreq"
 msgstr "asfreq"
 
@@ -17806,6 +17921,9 @@ msgstr "pozadí"
 #, fuzzy
 msgid "background color"
 msgstr "Farba pozadí"
+
+msgid "banana"
+msgstr ""
 
 msgid "basis"
 msgstr "základ"
@@ -18085,6 +18203,9 @@ msgstr "napr. CI/CD Pipeline, Analytics Script"
 
 msgid "edit mode"
 msgstr "režim úprav"
+
+msgid "editors"
+msgstr "editori"
 
 msgid "email subject"
 msgstr "předmet e-mailu"
@@ -18423,9 +18544,6 @@ msgstr "pôvodný"
 
 msgid "overall"
 msgstr "celkove"
-
-msgid "owners"
-msgstr "vlastníci"
 
 msgid "p-value precision"
 msgstr "ceznost p-hodnoty"

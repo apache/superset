@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-08 12:27-0700\n"
+"POT-Creation-Date: 2026-06-23 03:46-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -27,6 +27,33 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
+
+#, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a new "
+"dataset over this table, or use a different table name."
+msgstr ""
+
+#, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or "
+"upload to a different table name."
+msgstr ""
+
+msgid ""
+"Cannot delete a database whose only remaining datasets are soft-deleted. "
+"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
+"permanently once a purge capability ships, or remove the underlying rows "
+"out-of-band, before deleting the database."
+msgstr ""
+
+msgid ""
+"Dataset cannot be restored because another active dataset already references "
+"the same physical table (same database, catalog, schema, and table name). "
+"Delete the duplicate or rename the table before restoring."
+msgstr ""
 
 msgid ""
 "\n"
@@ -269,9 +296,11 @@ msgstr ""
 " una programación con un intervalo mínimo de %(minimum_interval)d minutos"
 " por ejecución."
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid "%(rows)d rows returned"
-msgstr "líneas obtenidas"
+msgstr "%(rows)d filas devueltas"
 
 #, fuzzy, python-format
 msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
@@ -870,6 +899,9 @@ msgstr "Ya existe una base de datos con el mismo nombre."
 msgid "A date is required when using custom date shift"
 msgstr "Se requiere una fecha cuando se utiliza el cambio de fecha personalizado"
 
+msgid "A description for your dashboard"
+msgstr ""
+
 #, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
@@ -901,17 +933,24 @@ msgstr ""
 "Una lista de nombres de dominio que pueden incrustarse en este panel. "
 "Dejar este campo vacío permitirá la incrustación desde cualquier dominio."
 
+#, fuzzy
+msgid "A list of subjects who can alter the chart. Searchable by name."
+msgstr ""
+"Una lista de usuarios que pueden modificar el gráfico. Se puede buscar "
+"por nombre o nombre de usuario."
+
+#, fuzzy
+msgid "A list of subjects who can view the chart. Searchable by name."
+msgstr ""
+"Una lista de usuarios que pueden modificar el gráfico. Se puede buscar "
+"por nombre o nombre de usuario."
+
 msgid "A list of tags that have been applied to this chart."
 msgstr "Una lista de etiquetas que se han aplicado a este gráfico."
 
 #, fuzzy
 msgid "A list of tags that have been applied to this dashboard."
 msgstr "Una lista de etiquetas que se han aplicado a este gráfico."
-
-msgid "A list of users who can alter the chart. Searchable by name or username."
-msgstr ""
-"Una lista de usuarios que pueden modificar el gráfico. Se puede buscar "
-"por nombre o nombre de usuario."
 
 msgid "A map of the world, that can indicate values in different countries."
 msgstr "Un mapa del mundo que puede indicar valores en diferentes países."
@@ -925,6 +964,11 @@ msgstr ""
 
 msgid "A metric to use for color"
 msgstr "Una métrica que se puede usar para el color"
+
+msgid ""
+"A multiplier applied to the point radius. Use this to uniformly scale all"
+" points."
+msgstr ""
 
 msgid "A new chart and dashboard will be created."
 msgstr "Se crearán un nuevo gráfico y un nuevo panel de control."
@@ -1053,8 +1097,8 @@ msgid "About"
 msgstr "Acerca de"
 
 #, fuzzy
-msgid "Access & ownership"
-msgstr "Token de acceso"
+msgid "Access"
+msgstr "correcto"
 
 msgid "Access token"
 msgstr "Token de acceso"
@@ -1763,10 +1807,6 @@ msgid "An error occurred while fetching %s info: %s"
 msgstr "Se ha producido un error al recuperar la información de %s: %s"
 
 #, fuzzy, python-format
-msgid "An error occurred while fetching %s owner values: %s"
-msgstr "Se ha producido un error al recuperar los valores de los propietarios: %s"
-
-#, fuzzy, python-format
 msgid "An error occurred while fetching %s related data"
 msgstr ""
 "Se ha producido un error al recuperar los datos relacionados con el "
@@ -1796,10 +1836,12 @@ msgid "An error occurred while fetching available views"
 msgstr "Se ha producido un error al recuperar las plantillas CSS disponibles"
 
 #, python-format
-msgid "An error occurred while fetching chart owners values: %s"
-msgstr ""
-"Se ha producido un error al recuperar los valores de los propietarios del"
-" gráfico: %s"
+msgid "An error occurred while fetching chart editor values: %s"
+msgstr "Se ha producido un error al recuperar los valores de los editores del gráfico: %s"
+
+#, python-format
+msgid "An error occurred while fetching chart viewer values: %s"
+msgstr "Se ha producido un error al recuperar los valores de los visualizadores del gráfico: %s"
 
 #, fuzzy
 msgid "An error occurred while fetching connections"
@@ -1810,10 +1852,12 @@ msgid "An error occurred while fetching created by values: %s"
 msgstr "Se ha producido un error al recuperar los valores del esquema: %s"
 
 #, python-format
-msgid "An error occurred while fetching dashboard owner values: %s"
-msgstr ""
-"Se ha producido un error al recuperar los valores del propietario del "
-"panel de control: %s"
+msgid "An error occurred while fetching dashboard editor values: %s"
+msgstr "Se ha producido un error al recuperar los valores de los editores del panel de control: %s"
+
+#, python-format
+msgid "An error occurred while fetching dashboard viewer values: %s"
+msgstr "Se ha producido un error al recuperar los valores de los visualizadores del panel de control: %s"
 
 msgid "An error occurred while fetching dashboards"
 msgstr "Se ha producido un error al recuperar los paneles de control"
@@ -1839,17 +1883,21 @@ msgstr ""
 "del conjunto de datos: %s"
 
 #, python-format
+msgid "An error occurred while fetching dataset editor values: %s"
+msgstr "Se ha producido un error al recuperar los valores de los editores del conjunto de datos: %s"
+
+#, python-format
 msgid "An error occurred while fetching dataset related data: %s"
 msgstr ""
 "Se ha producido un error al recuperar los datos relacionados con el "
 "conjunto de datos: %s"
 
+#, python-format
+msgid "An error occurred while fetching editor values: %s"
+msgstr "Se ha producido un error al recuperar los valores de editores: %s"
+
 msgid "An error occurred while fetching function names."
 msgstr "Se ha producido un error al recuperar los nombres de las funciones."
-
-#, python-format
-msgid "An error occurred while fetching owners values: %s"
-msgstr "Se ha producido un error al recuperar los valores de los propietarios: %s"
 
 #, python-format
 msgid "An error occurred while fetching schema values: %s"
@@ -1866,19 +1914,9 @@ msgstr "Se ha producido un error al recuperar los valores del esquema: %s"
 msgid "An error occurred while fetching tab state"
 msgstr "Se ha producido un error al recuperar el estado de la pestaña"
 
-msgid "An error occurred while fetching table metadata"
-msgstr "Se ha producido un error al recuperar los metadatos de la tabla"
-
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr "Se ha producido un error al recuperar los metadatos de la tabla"
-
-msgid ""
-"An error occurred while fetching table metadata. Please contact your "
-"administrator."
-msgstr ""
-"Se ha producido un error al recuperar los metadatos de la tabla. Contacta"
-" con tu administrador."
 
 #, fuzzy
 msgid "An error occurred while fetching the configuration schema"
@@ -1917,6 +1955,11 @@ msgstr "Se ha producido un error al cargar el SQL"
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "Se produjo un error importando %s: %s"
+
+msgid ""
+"An error occurred while loading SQL Lab. This may be caused by a "
+"corrupted query state."
+msgstr ""
 
 msgid "An error occurred while loading dashboard information."
 msgstr "Se ha producido un error al cargar la información del panel de control."
@@ -2834,8 +2877,8 @@ msgid ""
 " not applying, ask your Superset administrator to adjust the HTML "
 "sanitization configuration."
 msgstr ""
-"Los estilos CSS pueden ser eliminados por la sanitización HTML del lado del"
-" servidor. Si los estilos no se aplican, solicite al administrador de "
+"Los estilos CSS pueden ser eliminados por la sanitización HTML del lado "
+"del servidor. Si los estilos no se aplican, solicite al administrador de "
 "Superset que ajuste la configuración de sanitización HTML."
 
 msgid "CSS template"
@@ -3204,6 +3247,12 @@ msgstr "No se ha encontrado el gráfico %(id)s"
 msgid "Chart Data: %s"
 msgstr "Datos del gráfico: %s"
 
+#, python-format
+msgid "Chart Editor: %s"
+msgid_plural "Chart Editors: %s"
+msgstr[0] "Editor del gráfico: %s"
+msgstr[1] "Editores del gráfico: %s"
+
 msgid "Chart ID"
 msgstr "ID del gráfico"
 
@@ -3212,12 +3261,6 @@ msgstr "Opciones del gráfico"
 
 msgid "Chart Orientation"
 msgstr "Orientación del gráfico"
-
-#, python-format
-msgid "Chart Owner: %s"
-msgid_plural "Chart Owners: %s"
-msgstr[0] "Propietario del gráfico: %s"
-msgstr[1] "Propietarios del gráfico: %s"
 
 msgid "Chart Source"
 msgstr "Fuente del gráfico"
@@ -3250,6 +3293,9 @@ msgstr "Cambios en el gráfico"
 msgid "Chart could not be created."
 msgstr "No se ha podido crear el gráfico."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "No se ha podido actualizar el gráfico."
 
@@ -3266,6 +3312,9 @@ msgstr "El valor del filtro es obligatorio"
 
 msgid "Chart does not exist"
 msgstr "El gráfico no existe"
+
+msgid "Chart editors"
+msgstr "Editores del gráfico"
 
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr ""
@@ -3290,9 +3339,6 @@ msgstr "No se ha encontrado ningún gráfico"
 
 msgid "Chart options"
 msgstr "Opciones del gráfico"
-
-msgid "Chart owners"
-msgstr "Propietarios del gráfico"
 
 msgid "Chart parameters are invalid."
 msgstr "Los parámetros del gráfico no son válidos."
@@ -3782,9 +3828,6 @@ msgstr ""
 msgid "Column Configuration"
 msgstr "Configuración de la columna"
 
-msgid "Column Formatting"
-msgstr "Formato de columna"
-
 msgid "Column Settings"
 msgstr "Ajustes de columna"
 
@@ -3926,6 +3969,9 @@ msgstr ""
 "Límites de intervalo separados por comas, como por ejemplo «1,2,4», para "
 "los intervalos 0-2, 2-4 y 4-5. El último número debe coincidir con el "
 "valor proporcionado para MÁXIMO."
+
+msgid "Common (unit per pixel at zoom 0)"
+msgstr ""
 
 msgid "Comparator option"
 msgstr "Opción de comparador"
@@ -4228,6 +4274,9 @@ msgstr "No se han podido recuperar todos los gráficos guardados"
 
 msgid "Could not find viz object"
 msgstr "No se ha podido encontrar el objeto de visualización"
+
+msgid "Could not load SQL Lab"
+msgstr ""
 
 msgid "Could not load database driver"
 msgstr "No se ha podido cargar el controlador de la base de datos"
@@ -4908,6 +4957,9 @@ msgstr "No se ha podido crear el conjunto de datos."
 msgid "Dataset could not be duplicated."
 msgstr "No se ha podido duplicar el conjunto de datos."
 
+msgid "Dataset could not be restored."
+msgstr ""
+
 msgid "Dataset could not be updated."
 msgstr "No se ha podido actualizar el conjunto de datos."
 
@@ -5243,7 +5295,6 @@ msgid ""
 "Defines the value that determines the boundary between different regions "
 "or levels in the data "
 msgstr ""
-"\n"
 "Define el valor que determina el límite entre diferentes regiones o "
 "niveles en los datos "
 
@@ -6183,11 +6234,29 @@ msgstr "Editar intervalo de tiempo"
 msgid "Edit user"
 msgstr "Editar usuario"
 
+#, fuzzy
+msgid "Editable"
+msgstr "Editar alerta"
+
 msgid "Edited"
 msgstr "Editado"
 
 msgid "Editing 1 filter:"
 msgstr "Editando 1 filtro:"
+
+msgid "Editor"
+msgstr "Editor"
+
+msgid "Editors"
+msgstr "Editores"
+
+msgid "Editors is a list of subjects who can alter the dashboard."
+msgstr "Los editores son una lista de sujetos que pueden modificar el panel de control."
+
+msgid ""
+"Editors is a list of subjects who can alter the dashboard. Searchable by "
+"name."
+msgstr "Los editores son una lista de sujetos que pueden modificar el panel de control. Se pueden buscar por nombre."
 
 msgid "Either the database is spelled incorrectly or does not exist."
 msgstr "La base de datos está mal escrita o no existe."
@@ -6683,8 +6752,9 @@ msgstr "Subida de Excel"
 msgid "Exclude selected values"
 msgstr "Excluir valores seleccionados"
 
-msgid "Excluded roles"
-msgstr "Roles excluidos"
+#, fuzzy
+msgid "Excluded subjects"
+msgstr "Seleccionar asunto"
 
 msgid "Executed SQL"
 msgstr "SQL ejecutado"
@@ -7343,10 +7413,11 @@ msgstr ""
 "Para obtener más información sobre los objetos que están en contexto en "
 "el alcance de esta función, consulta el"
 
+#, fuzzy
 msgid ""
-"For regular filters, these are the roles this filter will be applied to. "
-"For base filters, these are the roles that the filter DOES NOT apply to, "
-"e.g. Admin if admin should see all data."
+"For regular filters, these are the subjects (users, roles, groups) this "
+"filter will be applied to. For base filters, these are the subjects that "
+"the filter DOES NOT apply to, e.g. Admin if admin should see all data."
 msgstr ""
 "Para los filtros regulares, estos son los roles a los que se aplicará "
 "este filtro. Para los filtros base, estos son los roles a los que el "
@@ -7467,9 +7538,6 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "CSV formateado adjunto en el correo electrónico"
-
-msgid "Formatted date"
-msgstr "Fecha formateada"
 
 msgid "Formatted value"
 msgstr "Valor formateado"
@@ -8419,9 +8487,6 @@ msgstr ""
 "Las claves se muestran solo una vez al crearlas. Guárdelas de forma "
 "segura."
 
-msgid "Keys for table"
-msgstr "Claves para la tabla"
-
 msgid "Kilometers"
 msgstr "Kilómetros"
 
@@ -8963,9 +9028,8 @@ msgid "Manage"
 msgstr "Gestionar"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
-#, fuzzy
-msgid "Manage dashboard owners and access permissions"
-msgstr "Gestionar propietarios del panel y permisos de acceso"
+msgid "Manage dashboard editors and access permissions"
+msgstr "Gestionar editores del panel de control y permisos de acceso"
 
 msgid "Manage email report"
 msgstr "Gestionar informe de correo electrónico"
@@ -9528,11 +9592,9 @@ msgstr "Multiplicador"
 # sr_Latn]
 #, fuzzy
 msgid ""
-"Must be a chart owner to overwrite this chart. Save as a new chart "
+"Must be a chart editor to overwrite this chart. Save as a new chart "
 "instead."
-msgstr ""
-"Debe ser propietario del gráfico para sobrescribirlo. Guárdelo como un "
-"nuevo gráfico."
+msgstr "Debes ser editor del gráfico para sobrescribir este gráfico. Guárdalo como un gráfico nuevo."
 
 msgid "Must be unique"
 msgstr "Debe ser único"
@@ -10254,6 +10316,12 @@ msgstr "Abrir la pestaña de la fuente de datos"
 msgid "Open SQL Lab in a new tab"
 msgstr "Ejecutar consulta en una nueva pestaña"
 
+msgid "Open chart in new tab"
+msgstr ""
+
+msgid "Open dashboard in new tab"
+msgstr ""
+
 msgid "Open in SQL Lab"
 msgstr "Abrir en SQL Lab"
 
@@ -10339,9 +10407,6 @@ msgstr "Orientación del árbol"
 
 msgid "Original"
 msgstr "Original"
-
-msgid "Original table column order"
-msgstr "Orden de columna de la tabla original"
 
 msgid "Original value"
 msgstr "Valor original"
@@ -10432,27 +10497,6 @@ msgstr "Sobrescribir el texto en el editor con una consulta en esta tabla"
 msgid "Owned Created or Favored"
 msgstr "Propiedad creada o favorecida"
 
-msgid "Owner"
-msgstr "Propietario"
-
-msgid "Owners"
-msgstr "Propietarios"
-
-msgid "Owners are invalid"
-msgstr "Los propietarios no son válidos"
-
-msgid "Owners is a list of users who can alter the dashboard."
-msgstr ""
-"Los propietarios son una lista de usuarios que pueden modificar el panel "
-"de control."
-
-msgid ""
-"Owners is a list of users who can alter the dashboard. Searchable by name"
-" or username."
-msgstr ""
-"Los propietarios son una lista de usuarios que pueden modificar el panel "
-"de control. Se pueden buscar por nombre o nombre de usuario."
-
 msgid "PDF download failed, please refresh and try again."
 msgstr "La descarga del PDF ha fallado; actualiza e inténtalo de nuevo."
 
@@ -10529,6 +10573,10 @@ msgstr "Contraseña"
 
 msgid "Password is required"
 msgstr "La contraseña es obligatoria"
+
+#, python-format
+msgid "Password must be at least %(min_length)s characters long."
+msgstr ""
 
 #, fuzzy
 msgid "Password:"
@@ -10846,10 +10894,10 @@ msgstr "Vuelve a introducir tu contraseña."
 msgid "Please re-export your file and try importing again"
 msgstr "Vuelve a exportar tu archivo e intenta importarlo de nuevo"
 
-msgid "Please reach out to the Chart Owner for assistance."
-msgid_plural "Please reach out to the Chart Owners for assistance."
-msgstr[0] "Ponte en contacto con el propietario del gráfico para obtener ayuda."
-msgstr[1] "Ponte en contacto con los propietarios del gráfico para obtener ayuda."
+msgid "Please reach out to the Chart Editor for assistance."
+msgid_plural "Please reach out to the Chart Editors for assistance."
+msgstr[0] "Ponte en contacto con el editor del gráfico para obtener ayuda."
+msgstr[1] "Ponte en contacto con los editores del gráfico para obtener ayuda."
 
 msgid "Please save your chart first, then try creating a new email report."
 msgstr ""
@@ -10910,6 +10958,9 @@ msgstr "Escala del radio del punto"
 
 msgid "Point Radius Unit"
 msgstr "Unidad del radio del punto"
+
+msgid "Point Radius Units"
+msgstr ""
 
 msgid "Point Size"
 msgstr "Tamaño del punto"
@@ -11379,6 +11430,9 @@ msgstr "Cantidad relativa"
 msgid "Reload"
 msgstr "Volver a cargar"
 
+msgid "Reload SQL Lab"
+msgstr ""
+
 msgid "Remove"
 msgstr "Eliminar"
 
@@ -11407,9 +11461,6 @@ msgstr "Eliminar elemento"
 
 msgid "Remove query from log"
 msgstr "Eliminar consulta del registro"
-
-msgid "Remove table preview"
-msgstr "Eliminar la vista previa de la tabla"
 
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
@@ -11511,6 +11562,9 @@ msgstr "El informe está activo"
 msgid "Report name"
 msgstr "Nombre del informe"
 
+msgid "Report not yet run"
+msgstr ""
+
 msgid "Report schedule client error"
 msgstr "Error de cliente en la programación de informes"
 
@@ -11563,6 +11617,10 @@ msgstr "Se han eliminado los valores de control obligatorios"
 msgid "Resample"
 msgstr "Remuestreo"
 
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
+
 msgid "Resample method should be in "
 msgstr "El método de remuestreo debe estar en "
 
@@ -11609,11 +11667,8 @@ msgstr "El recurso ya tiene un informe adjunto."
 msgid "Resource was not found."
 msgstr "No se ha encontrado el recurso."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
-msgid "Resource was removed before ownership could be verified"
-msgstr "El recurso fue eliminado antes de que se pudiera verificar la propiedad"
+msgid "Resource was removed before editorship could be verified"
+msgstr ""
 
 msgid "Restore filter"
 msgstr "Restablecer filtro"
@@ -11719,26 +11774,6 @@ msgstr "El nombre del rol es obligatorio"
 
 msgid "Roles"
 msgstr "Roles"
-
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks. If no roles are "
-"defined, regular access permissions apply."
-msgstr ""
-"La de los roles es una lista que define el acceso al panel de control. "
-"Conceder a un rol acceso a un panel de control omitirá las comprobaciones"
-" a nivel de conjunto de datos. Si no se definen roles, se aplican los "
-"permisos de acceso normales."
-
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks.If no roles are "
-"defined, regular access permissions apply."
-msgstr ""
-"La de los roles es una lista que define el acceso al panel de control. "
-"Conceder a un rol acceso a un panel de control omitirá las comprobaciones"
-" a nivel de conjunto de datos. Si no se definen roles, se aplican los "
-"permisos de acceso normales."
 
 msgid "Rolling Function"
 msgstr "Función móvil"
@@ -12223,9 +12258,8 @@ msgstr "Buscar por texto de consulta"
 msgid "Search calculated columns by name"
 msgstr "Columnas calculadas"
 
-#, fuzzy
-msgid "Search charts by name, owner, or dashboard"
-msgstr "No hay gráficos añadidos a este panel de control"
+msgid "Search charts by name, editor, or dashboard"
+msgstr "Buscar gráficos por nombre, editor o panel de control"
 
 msgid "Search columns"
 msgstr "Buscar columnas"
@@ -12238,6 +12272,9 @@ msgstr "Buscar columnas"
 msgid "Search columns..."
 msgstr "Buscar columnas"
 
+msgid "Search editors"
+msgstr "Buscar editores"
+
 msgid "Search in filters"
 msgstr "Buscar en filtros"
 
@@ -12246,16 +12283,11 @@ msgid "Search metrics by key or label"
 msgstr "Buscar métricas y columnas"
 
 #, fuzzy
-msgid "Search owners"
-msgstr "Seleccionar propietarios"
-
-#, fuzzy
-msgid "Search roles"
-msgstr "Buscar columnas"
-
-#, fuzzy
 msgid "Search tags"
 msgstr "Seleccionar etiquetas"
+
+msgid "Search viewers"
+msgstr "Buscar visualizadores"
 
 msgid "Search..."
 msgstr "Buscar..."
@@ -12539,6 +12571,9 @@ msgstr "Selecciona una dimensión"
 msgid "Select dimension values"
 msgstr "Selecciona una dimensión"
 
+msgid "Select editors"
+msgstr "Seleccionar editores"
+
 msgid "Select file"
 msgstr "Seleccionar archivo"
 
@@ -12613,9 +12648,6 @@ msgstr "Selecciona o introduce el símbolo de la moneda"
 
 msgid "Select or type dataset name"
 msgstr "Selecciona o introduce el nombre del conjunto de datos"
-
-msgid "Select owners"
-msgstr "Seleccionar propietarios"
 
 msgid "Select page size"
 msgstr "Selecciona el tamaño de la página"
@@ -13826,6 +13858,9 @@ msgstr "Calles"
 msgid "Streets (Carto)"
 msgstr "Gráfico de árbol"
 
+msgid "Streets (OSM)"
+msgstr ""
+
 msgid "Strength to pull the graph toward center"
 msgstr "Fuerza para tirar del gráfico hacia el centro"
 
@@ -13865,6 +13900,22 @@ msgstr "Categoría"
 
 msgid "Subdomain"
 msgstr "Subdominio"
+
+#, fuzzy
+msgid "Subject"
+msgstr "asunto del correo"
+
+#, fuzzy
+msgid "Subject type"
+msgstr "Tipo de paso"
+
+#, fuzzy
+msgid "Subjects"
+msgstr "asunto del correo"
+
+#, fuzzy
+msgid "Subjects are invalid"
+msgstr "Los propietarios no son válidos"
 
 msgid "Submit"
 msgstr "Enviar"
@@ -14323,6 +14374,9 @@ msgstr ""
 "Consulte https://superset.apache.org/docs/configuration/async-queries-"
 "celery para detalles de configuración."
 
+msgid "The SSH server host key could not be verified against the expected key."
+msgstr ""
+
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
 "values across\n"
@@ -14377,6 +14431,11 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+
 msgid "The chart is still loading. Please wait a moment and try again."
 msgstr ""
 "El gráfico todavía se está cargando. Por favor, espere un momento e "
@@ -14470,6 +14529,11 @@ msgstr ""
 
 msgid "The dashboard has been saved"
 msgstr "El panel de control se ha guardado"
+
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
+msgstr ""
 
 msgid "The data source seems to have been deleted"
 msgstr "Parece que se ha eliminado la fuente de datos"
@@ -15036,6 +15100,11 @@ msgstr ""
 "sea una columna numérica o «Automática», que redimensiona el punto en "
 "función del clúster más grande"
 
+msgid ""
+"The radius of point features, in the units specified below. The final "
+"rendered size is this value multiplied by Point Radius Scale."
+msgstr ""
+
 msgid "The report has been created"
 msgstr "El informe se ha creado"
 
@@ -15253,6 +15322,11 @@ msgstr "Tamaño de fuente del subtítulo"
 #, fuzzy
 msgid "The unit for label size"
 msgstr "La unidad para el tamaño de etiqueta"
+
+msgid ""
+"The unit for point radius. Use \"pixels\" for consistent screen-space "
+"sizing regardless of zoom level."
+msgstr ""
 
 msgid "The unit of measure for the specified point radius"
 msgstr "La unidad de medida para el radio de punto especificado"
@@ -16000,6 +16074,9 @@ msgstr ""
 "Esta página está pensada para incrustarse en un iframe, pero parece que "
 "no es el caso."
 
+msgid "This password is too common; please choose a less guessable one."
+msgstr ""
+
 msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
@@ -16360,6 +16437,18 @@ msgstr "Para obtener una URL legible para tu panel de control"
 #, fuzzy
 msgid "Token Request URI"
 msgstr "URI de solicitud de token"
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
 
 #, fuzzy
 msgid "Tool Panel"
@@ -17251,10 +17340,6 @@ msgstr "Ver como tabla"
 msgid "View in SQL Lab"
 msgstr "Ver en SQL Lab"
 
-#, python-format
-msgid "View keys & indexes (%s)"
-msgstr "Ver claves e índices (%s)"
-
 msgid "View query"
 msgstr "Ver consulta"
 
@@ -17268,6 +17353,18 @@ msgstr "Visto"
 #, python-format
 msgid "Viewed %s"
 msgstr "Visto %s"
+
+msgid "Viewer"
+msgstr "Visualizador"
+
+msgid "Viewers"
+msgstr "Visualizadores"
+
+msgid ""
+"Viewers is a list of subjects who can view the dashboard. If no viewers "
+"are defined, the dashboard is accessible to all users with appropriate "
+"datasource permissions."
+msgstr ""
 
 msgid "Viewport"
 msgstr "Ventana de visualización"
@@ -18205,6 +18302,9 @@ msgstr "No tienes permisos para editar este panel de control."
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "No tienes permisos suficientes para editar el gráfico"
 
+msgid "You don't have access to one or more of the referenced datasources."
+msgstr ""
+
 msgid "You don't have access to this chart."
 msgstr "No tienes acceso a este gráfico."
 
@@ -18283,22 +18383,19 @@ msgstr ""
 " deshacer completamente las acciones posteriores. Puedes guardar tu "
 "estado actual para restablecer el historial."
 
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"You must be a %s owner in order to edit. Please reach out to a %s owner "
-"to request modifications or edit access."
-msgstr ""
-"El conjunto de datos debe ser de tu propiedad para poder editar. Ponte en"
-" contacto con un propietario del conjunto de datos para solicitar "
-"modificaciones o editar el acceso."
+"You must be a %s editor in order to edit. Please reach out to a %s editor"
+" to request modifications or edit access."
+msgstr "Debes ser editor de %s para poder editar. Ponte en contacto con un editor de %s para solicitar modificaciones o acceso de edición."
 
 msgid ""
-"You must be a dataset owner in order to edit. Please reach out to a "
-"dataset owner to request modifications or edit access."
+"You must be a dataset editor in order to edit. Please reach out to a "
+"dataset editor to request modifications or edit access."
+msgstr "Debes ser editor del conjunto de datos para poder editar. Ponte en contacto con un editor del conjunto de datos para solicitar modificaciones o acceso de edición."
+
+msgid "You must change your password before continuing."
 msgstr ""
-"El conjunto de datos debe ser de tu propiedad para poder editar. Ponte en"
-" contacto con un propietario del conjunto de datos para solicitar "
-"modificaciones o editar el acceso."
 
 msgid "You must pick a name for the new dashboard"
 msgstr "Debes elegir un nombre para el nuevo panel de control"
@@ -18306,9 +18403,12 @@ msgstr "Debes elegir un nombre para el nuevo panel de control"
 msgid "You must run the query successfully first"
 msgstr "Primero debes ejecutar la consulta correctamente"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"'all_database_access' or 'all_datasource_access' permission"
+msgstr ""
+
 msgid "You need to"
 msgstr "Necesita"
 
@@ -18390,6 +18490,9 @@ msgstr "Tu consulta se ha actualizado"
 
 msgid "Your report could not be deleted"
 msgstr "No se ha podido eliminar tu informe"
+
+msgid "Your session has ended. Please sign in again."
+msgstr ""
 
 #, fuzzy
 msgid "Your user information"
@@ -18498,6 +18601,9 @@ msgstr "«row_offset» debe ser mayor o igual a 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "«width» debe ser mayor o igual a 0"
 
+msgid "`window` must be between 1 and 10000"
+msgstr ""
+
 #, fuzzy
 msgid "a few seconds"
 msgstr "5 segundos"
@@ -18529,6 +18635,9 @@ msgstr "anotación"
 msgid "annotation_layer"
 msgstr "annotation_layer"
 
+msgid "apple"
+msgstr ""
+
 msgid "asfreq"
 msgstr "asfreq"
 
@@ -18544,6 +18653,9 @@ msgstr "fondo"
 #, fuzzy
 msgid "background color"
 msgstr "Color de fondo"
+
+msgid "banana"
+msgstr ""
 
 msgid "basis"
 msgstr "base"
@@ -18827,6 +18939,9 @@ msgstr "p.ej., CI/CD Pipeline, Script de análisis"
 
 msgid "edit mode"
 msgstr "modo de edición"
+
+msgid "editors"
+msgstr "editores"
 
 msgid "email subject"
 msgstr "asunto del correo"
@@ -19171,9 +19286,6 @@ msgstr "Original"
 msgid "overall"
 msgstr "general"
 
-msgid "owners"
-msgstr "propietarios"
-
 msgid "p-value precision"
 msgstr "precisión del valor p"
 
@@ -19264,10 +19376,8 @@ msgstr "en ejecución"
 msgid "save"
 msgstr "guardar"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "schema1,schema2"
-msgstr "schema1,schema2"
+msgstr ""
 
 msgid "seconds"
 msgstr "segundos"
@@ -19324,10 +19434,8 @@ msgstr "correcto"
 msgid "sum"
 msgstr "suma"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "superset.example.com"
-msgstr "superset.example.com"
+msgstr ""
 
 msgid "syntax."
 msgstr "sintaxis"
@@ -19444,10 +19552,8 @@ msgstr "y: los valores se normalizan dentro de cada fila"
 msgid "year"
 msgstr "año"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "your-project-1234-a1"
-msgstr "your-project-1234-a1"
+msgstr ""
 
 msgid "zoom area"
 msgstr "área del «zoom»"

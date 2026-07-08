@@ -694,7 +694,14 @@ const AsyncSelect = forwardRef(
         }
       } else {
         const token = tokenSeparators.find(token => pastedText.includes(token));
-        const array = token ? uniq(pastedText.split(token)) : [pastedText];
+        const array = token
+          ? uniq(
+              pastedText
+                .split(token)
+                .map(s => s.trim())
+                .filter(Boolean),
+            )
+          : [pastedText.trim()].filter(Boolean);
         const values = (
           await Promise.all(array.map(item => getPastedTextValue(item)))
         ).filter(item => item !== undefined) as AntdLabeledValue[];
@@ -739,7 +746,10 @@ const AsyncSelect = forwardRef(
             ) => number
           }
           getPopupContainer={
-            getPopupContainer || (triggerNode => triggerNode.parentNode)
+            getPopupContainer ||
+            ((triggerNode: HTMLElement) =>
+              (triggerNode?.closest('.ant-modal-content') as HTMLElement) ||
+              (triggerNode.parentNode as HTMLElement))
           }
           headerPosition={headerPosition}
           labelInValue

@@ -355,6 +355,17 @@ translations](#applying-translations) above), so an AI-generated string is shown
 in the UI as soon as it is built and deployed. Reviewers should verify each
 entry and remove the `#, fuzzy` flag to promote it to a confirmed translation.
 
+The script never touches entries that must stay literal — icon names, enum
+values, SQL keywords, API field names, and example placeholders. These are
+registered in `superset/translations/do-not-translate.txt`;
+`scripts/translations/apply_do_not_translate.py` stamps them in `messages.pot`
+with a `#. do-not-translate` extracted comment (run automatically
+from `babel_update.sh`), which `pybabel update` then propagates to every
+catalog. To mark a new string do-not-translate, add its msgid to the registry.
+The backfill also honors that marker and any legacy do-not-translate translator
+comment (e.g. the `ru` catalog's `# Не переводить`), leaving such entries
+untranslated so they fall back to the source token.
+
 #### Prerequisites
 
 ```bash

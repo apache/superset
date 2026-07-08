@@ -33,7 +33,7 @@ def mock_header_data() -> HeaderDataType:
     return {
         "notification_format": "PNG",
         "notification_type": "Alert",
-        "owners": [1],
+        "editors": [1],
         "notification_source": None,
         "chart_id": None,
         "dashboard_id": None,

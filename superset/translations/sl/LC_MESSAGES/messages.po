@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-06-08 12:27-0700\n"
+"POT-Creation-Date: 2026-06-23 03:46-0700\n"
 "PO-Revision-Date: 2024-10-05 23:46+0200\n"
 "Last-Translator: dkrat7 <dkrat7 @github.com>\n"
 "Language: sl_SI\n"
@@ -28,6 +28,33 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
+
+#, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a new "
+"dataset over this table, or use a different table name."
+msgstr ""
+
+#, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or "
+"upload to a different table name."
+msgstr ""
+
+msgid ""
+"Cannot delete a database whose only remaining datasets are soft-deleted. "
+"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
+"permanently once a purge capability ships, or remove the underlying rows "
+"out-of-band, before deleting the database."
+msgstr ""
+
+msgid ""
+"Dataset cannot be restored because another active dataset already references "
+"the same physical table (same database, catalog, schema, and table name). "
+"Delete the duplicate or rename the table before restoring."
+msgstr ""
 
 msgid ""
 "\n"
@@ -920,6 +947,9 @@ msgstr "Podatkovna baza z enakim imenom že obstaja."
 msgid "A date is required when using custom date shift"
 msgstr "Datum je obvezen pri uporabi prilagojenega premika datuma"
 
+msgid "A description for your dashboard"
+msgstr ""
+
 #, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
@@ -950,17 +980,20 @@ msgstr ""
 "Seznam imen domen, ki lahko vgradijo to nadzorno ploščo. Če polje ostane "
 "prazno, je vgrajevanje dovoljeno iz vseh domen."
 
+msgid "A list of subjects who can alter the chart. Searchable by name."
+msgstr ""
+"Seznam subjektov, ki lahko spreminjajo grafikon. Iskanje po imenu je "
+"omogočeno."
+
+msgid "A list of subjects who can view the chart. Searchable by name."
+msgstr "Seznam subjektov, ki lahko vidijo grafikon. Iskanje po imenu je omogočeno."
+
 msgid "A list of tags that have been applied to this chart."
 msgstr "Seznam oznak, ki so povezane s tem grafikonom."
 
 #, fuzzy
 msgid "A list of tags that have been applied to this dashboard."
 msgstr "Seznam oznak, ki so povezane s tem grafikonom."
-
-msgid "A list of users who can alter the chart. Searchable by name or username."
-msgstr ""
-"Seznam uporabnikov, ki lahko spreminjajo ta grafikon. Možno je iskanje po"
-" imenu ali uporabniškem imenu."
 
 msgid "A map of the world, that can indicate values in different countries."
 msgstr "Zemljevid sveta, ki lahko prikazuje vrednosti po državah."
@@ -974,6 +1007,11 @@ msgstr ""
 
 msgid "A metric to use for color"
 msgstr "Mera za barvo"
+
+msgid ""
+"A multiplier applied to the point radius. Use this to uniformly scale all"
+" points."
+msgstr ""
 
 msgid "A new chart and dashboard will be created."
 msgstr "Ustvarjena bosta nov grafikon in nadzorna plošča."
@@ -1099,9 +1137,8 @@ msgstr "Delam"
 msgid "About"
 msgstr "O programu"
 
-#, fuzzy
-msgid "Access & ownership"
-msgstr "Žeton za dostop"
+msgid "Access"
+msgstr "Dostop"
 
 msgid "Access token"
 msgstr "Žeton za dostop"
@@ -1812,10 +1849,6 @@ msgid "An error occurred while fetching %s info: %s"
 msgstr "Napaka pri pridobivanju informacij za %s: %s"
 
 #, fuzzy, python-format
-msgid "An error occurred while fetching %s owner values: %s"
-msgstr "Pri pridobivanju polja lastnik je prišlo do napake: %s"
-
-#, fuzzy, python-format
 msgid "An error occurred while fetching %s related data"
 msgstr "Napaka pri pridobivanju podatkov iz podatkovnega seta"
 
@@ -1843,8 +1876,12 @@ msgid "An error occurred while fetching available views"
 msgstr "Pri pridobivanju CSS predlog je prišlo do napake"
 
 #, python-format
-msgid "An error occurred while fetching chart owners values: %s"
-msgstr "Pri pridobivanju polja lastnik grafikona je prišlo do napake: %s"
+msgid "An error occurred while fetching chart editor values: %s"
+msgstr "Pri pridobivanju vrednosti urednikov grafikona je prišlo do napake: %s"
+
+#, python-format
+msgid "An error occurred while fetching chart viewer values: %s"
+msgstr "Pri pridobivanju vrednosti gledalcev grafikona je prišlo do napake: %s"
 
 #, fuzzy
 msgid "An error occurred while fetching connections"
@@ -1855,8 +1892,16 @@ msgid "An error occurred while fetching created by values: %s"
 msgstr "Pri pridobivanju vrednosti shem je prišlo do napake: %s"
 
 #, python-format
-msgid "An error occurred while fetching dashboard owner values: %s"
-msgstr "Pri pridobivanju polja lastnik nadzorne plošče je prišlo do napake: %s"
+msgid "An error occurred while fetching dashboard editor values: %s"
+msgstr ""
+"Pri pridobivanju vrednosti urednikov nadzorne plošče je prišlo do napake:"
+" %s"
+
+#, python-format
+msgid "An error occurred while fetching dashboard viewer values: %s"
+msgstr ""
+"Pri pridobivanju vrednosti gledalcev nadzorne plošče je prišlo do napake:"
+" %s"
 
 msgid "An error occurred while fetching dashboards"
 msgstr "Prišlo je do napake pri pridobivanju nadzornih plošč"
@@ -1880,15 +1925,21 @@ msgstr ""
 "do napake: %s"
 
 #, python-format
+msgid "An error occurred while fetching dataset editor values: %s"
+msgstr ""
+"Pri pridobivanju vrednosti urednikov nabora podatkov je prišlo do napake:"
+" %s"
+
+#, python-format
 msgid "An error occurred while fetching dataset related data: %s"
 msgstr "Napaka pri pridobivanju podatkov iz podatkovnega seta: %s"
 
+#, python-format
+msgid "An error occurred while fetching editor values: %s"
+msgstr "Pri pridobivanju vrednosti urednikov je prišlo do napake: %s"
+
 msgid "An error occurred while fetching function names."
 msgstr "Pri pridobivanju imen funkcij je prišlo do napake."
-
-#, python-format
-msgid "An error occurred while fetching owners values: %s"
-msgstr "Pri pridobivanju polja lastnik je prišlo do napake: %s"
 
 #, python-format
 msgid "An error occurred while fetching schema values: %s"
@@ -1905,19 +1956,9 @@ msgstr "Pri pridobivanju vrednosti shem je prišlo do napake: %s"
 msgid "An error occurred while fetching tab state"
 msgstr "Pri pridobivanju stanja zavihka je prišlo do napake"
 
-msgid "An error occurred while fetching table metadata"
-msgstr "Pri pridobivanju metapodatkov tabele je prišlo do napake"
-
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr "Pri pridobivanju metapodatkov tabele je prišlo do napake"
-
-msgid ""
-"An error occurred while fetching table metadata. Please contact your "
-"administrator."
-msgstr ""
-"Pri pridobivanju metapodatkov tabele je prišlo do napake. Kontaktirajte "
-"administratorja."
 
 #, fuzzy
 msgid "An error occurred while fetching the configuration schema"
@@ -1956,6 +1997,11 @@ msgstr "Pri nalaganju SQL je prišlo do napake"
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "Napaka pri uvažanju %s: %s"
+
+msgid ""
+"An error occurred while loading SQL Lab. This may be caused by a "
+"corrupted query state."
+msgstr ""
 
 msgid "An error occurred while loading dashboard information."
 msgstr "Prišlo je do napake pri pridobivanju informacij o nadzorni plošči."
@@ -3252,6 +3298,14 @@ msgstr "Grafikon %(id)s ni najden"
 msgid "Chart Data: %s"
 msgstr "Podatki grafikona: %s"
 
+#, python-format
+msgid "Chart Editor: %s"
+msgid_plural "Chart Editors: %s"
+msgstr[0] "Urednik grafikona: %s"
+msgstr[1] "Uredniki grafikona: %s"
+msgstr[2] "Uredniki grafikona: %s"
+msgstr[3] "Uredniki grafikona: %s"
+
 msgid "Chart ID"
 msgstr "ID grafikona"
 
@@ -3260,14 +3314,6 @@ msgstr "Možnosti grafikona"
 
 msgid "Chart Orientation"
 msgstr "Orientacija grafikona"
-
-#, python-format
-msgid "Chart Owner: %s"
-msgid_plural "Chart Owners: %s"
-msgstr[0] "Lastnik grafikona: %s"
-msgstr[1] "Lastnika grafikona: %s"
-msgstr[2] "Lastniki grafikona: %s"
-msgstr[3] "Lastniki grafikona: %s"
 
 msgid "Chart Source"
 msgstr "Podatkovni vir grafikona"
@@ -3300,6 +3346,9 @@ msgstr "Spremembe grafikona"
 msgid "Chart could not be created."
 msgstr "Grafikona ni mogoče ustvariti."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "Grafikona ni mogoče posodobiti."
 
@@ -3315,6 +3364,9 @@ msgstr "Vrednost filtra je obvezna"
 
 msgid "Chart does not exist"
 msgstr "Grafikon ne obstaja"
+
+msgid "Chart editors"
+msgstr "Uredniki grafikona"
 
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr "Grafikon nima shranjenega konteksta poizvedbe. Ponovno shranite grafikon."
@@ -3337,9 +3389,6 @@ msgstr "Grafikon ni najden"
 
 msgid "Chart options"
 msgstr "Možnosti grafikona"
-
-msgid "Chart owners"
-msgstr "Lastniki grafikona"
 
 msgid "Chart parameters are invalid."
 msgstr "Parametri grafikona so neveljavni."
@@ -3829,9 +3878,6 @@ msgstr "Stolpec \"%(column)s\" ni numeričen ali ne obstaja v rezultatu poizvedb
 msgid "Column Configuration"
 msgstr "Konfiguracija stolpca"
 
-msgid "Column Formatting"
-msgstr "Oblikovanje stolpca"
-
 #, fuzzy
 msgid "Column Settings"
 msgstr "Nastavitve poligonov"
@@ -3978,6 +4024,9 @@ msgid ""
 msgstr ""
 "Z vejico ločeni intervali, npr. 2,4,5 za intervale 0-2, 2-4 in 4-5. "
 "Zadnja številka naj bo enaka vrednosti za MAX."
+
+msgid "Common (unit per pixel at zoom 0)"
+msgstr ""
 
 msgid "Comparator option"
 msgstr "Možnosti komparatorja"
@@ -4301,6 +4350,9 @@ msgstr "Vseh shranjenih grafikonov ni bilo mogoče pridobiti"
 
 msgid "Could not find viz object"
 msgstr "Ni mogoče najti vizualizacijskega objekta"
+
+msgid "Could not load SQL Lab"
+msgstr ""
 
 msgid "Could not load database driver"
 msgstr "Ni mogoče naložiti gonilnika podatkovne baze"
@@ -4980,6 +5032,9 @@ msgstr "Podatkovnega niza ni mogoče ustvariti."
 
 msgid "Dataset could not be duplicated."
 msgstr "Podatkovnega niza ni mogoče duplicirati."
+
+msgid "Dataset could not be restored."
+msgstr ""
 
 msgid "Dataset could not be updated."
 msgstr "Podatkovnega niza ni mogoče posodobiti."
@@ -6274,11 +6329,30 @@ msgstr "Uredi časovno obdobje"
 msgid "Edit user"
 msgstr "Uredi poizvedbo"
 
+msgid "Editable"
+msgstr "Uredljivo"
+
 msgid "Edited"
 msgstr "Urejeno"
 
 msgid "Editing 1 filter:"
 msgstr "Urejanje enega filtra:"
+
+msgid "Editor"
+msgstr "Urednik"
+
+msgid "Editors"
+msgstr "Uredniki"
+
+msgid "Editors is a list of subjects who can alter the dashboard."
+msgstr "Uredniki so seznam subjektov, ki lahko spreminjajo nadzorno ploščo."
+
+msgid ""
+"Editors is a list of subjects who can alter the dashboard. Searchable by "
+"name."
+msgstr ""
+"Uredniki so seznam subjektov, ki lahko spreminjajo nadzorno ploščo. "
+"Iskanje po imenu je omogočeno."
 
 msgid "Either the database is spelled incorrectly or does not exist."
 msgstr "Ime podatkovne baze je zapisano napačno ali pa ne obstaja."
@@ -6796,8 +6870,8 @@ msgstr "Nalaganje Excel-a"
 msgid "Exclude selected values"
 msgstr "Izloči izbrane vrednosti"
 
-msgid "Excluded roles"
-msgstr "Izključene vloge"
+msgid "Excluded subjects"
+msgstr "Izključeni subjekti"
 
 msgid "Executed SQL"
 msgstr "Izvedena poizvedba"
@@ -7467,10 +7541,11 @@ msgid ""
 "function, refer to the"
 msgstr "Za dodatne informacije o objektih v kontekstu te funkcije si oglejte"
 
+#, fuzzy
 msgid ""
-"For regular filters, these are the roles this filter will be applied to. "
-"For base filters, these are the roles that the filter DOES NOT apply to, "
-"e.g. Admin if admin should see all data."
+"For regular filters, these are the subjects (users, roles, groups) this "
+"filter will be applied to. For base filters, these are the subjects that "
+"the filter DOES NOT apply to, e.g. Admin if admin should see all data."
 msgstr ""
 "Za navadne filtre so te vloge tiste, ki bodo filtrirane. Za osnovne "
 "filtre, so te vloge tiste, ki NE bodo filtrirane, npr. Admin, če naj "
@@ -7593,9 +7668,6 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "Oblikovan CSV pripet e-pošti"
-
-msgid "Formatted date"
-msgstr "Oblikovan datum"
 
 msgid "Formatted value"
 msgstr "Oblikovana vrednost"
@@ -8552,9 +8624,6 @@ msgstr "Bližnjice na tipkovnici"
 msgid "Keys are shown only once at creation. Store them securely."
 msgstr "Ključi so prikazani samo enkrat ob ustvarjanju. Hranite jih varno."
 
-msgid "Keys for table"
-msgstr "Ključi za tabelo"
-
 msgid "Kilometers"
 msgstr "Kilometri"
 
@@ -9110,11 +9179,8 @@ msgstr ""
 msgid "Manage"
 msgstr "Upravljanje"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
-# ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Manage dashboard owners and access permissions"
-msgstr "Upravljajte lastnike nadzorne plošče in dovoljenja za dostop"
+msgid "Manage dashboard editors and access permissions"
+msgstr "Upravljanje urednikov nadzorne plošče in dovoljenj za dostop"
 
 msgid "Manage email report"
 msgstr "Upravljaj e-poštno poročilo"
@@ -9705,11 +9771,9 @@ msgstr "Množitelj"
 # sr_Latn]
 #, fuzzy
 msgid ""
-"Must be a chart owner to overwrite this chart. Save as a new chart "
+"Must be a chart editor to overwrite this chart. Save as a new chart "
 "instead."
-msgstr ""
-"Morate biti lastnik grafikona, da bi ga prepisali. Namesto tega shranite "
-"kot nov grafikon."
+msgstr "Če želite prepisati ta grafikon, morate biti urednik grafikona. Namesto tega ga shranite kot nov grafikon."
 
 msgid "Must be unique"
 msgstr "Mora biti unikaten"
@@ -10420,6 +10484,12 @@ msgstr "Odpri zavihek s podatkovnim virom"
 msgid "Open SQL Lab in a new tab"
 msgstr "Zaženi poizvedbo v novem zavihku"
 
+msgid "Open chart in new tab"
+msgstr ""
+
+msgid "Open dashboard in new tab"
+msgstr ""
+
 msgid "Open in SQL Lab"
 msgstr "Odpri v SQL laboratoriju"
 
@@ -10503,9 +10573,6 @@ msgstr "Orientacija drevesa"
 
 msgid "Original"
 msgstr "Izvoren"
-
-msgid "Original table column order"
-msgstr "Vrstni red stolpcev izvorne tabele"
 
 msgid "Original value"
 msgstr "Izvorna vrednost"
@@ -10595,25 +10662,6 @@ msgstr "Besedilo v urejevalniku prepišite s poizvedbo na to tabelo"
 msgid "Owned Created or Favored"
 msgstr "Lastnik, Ustvaril ali Priljubljen"
 
-msgid "Owner"
-msgstr "Lastnik"
-
-msgid "Owners"
-msgstr "Lastniki"
-
-msgid "Owners are invalid"
-msgstr "Lastniki niso veljavni"
-
-msgid "Owners is a list of users who can alter the dashboard."
-msgstr "\"Lastniki\" je seznam uporabnikov, ki lahko spreminjajo nadzorno ploščo."
-
-msgid ""
-"Owners is a list of users who can alter the dashboard. Searchable by name"
-" or username."
-msgstr ""
-"\"Lastniki\" je seznam uporabnikov, ki lahko spreminjajo nadzorno ploščo."
-" Iskanje je možno po imenu ali uporabniškem imenu."
-
 #, fuzzy
 msgid "PDF download failed, please refresh and try again."
 msgstr "Prenos slike ni uspel. Osvežite in poskusite ponovno."
@@ -10692,6 +10740,10 @@ msgstr "Geslo"
 #, fuzzy
 msgid "Password is required"
 msgstr "Tip je obvezen"
+
+#, python-format
+msgid "Password must be at least %(min_length)s characters long."
+msgstr ""
 
 #, fuzzy
 msgid "Password:"
@@ -11023,12 +11075,12 @@ msgstr "Ponovno vpišite geslo."
 msgid "Please re-export your file and try importing again"
 msgstr "Ponovno izvozite datoteko in jo nato uvozite"
 
-msgid "Please reach out to the Chart Owner for assistance."
-msgid_plural "Please reach out to the Chart Owners for assistance."
-msgstr[0] "Za pomoč se obrnite na lastnika grafikona."
-msgstr[1] "Za pomoč se obrnite na lastnika grafikona."
-msgstr[2] "Za pomoč se obrnite na lastnike grafikona."
-msgstr[3] "Za pomoč se obrnite na lastnike grafikona."
+msgid "Please reach out to the Chart Editor for assistance."
+msgid_plural "Please reach out to the Chart Editors for assistance."
+msgstr[0] "Za pomoč se obrnite na urednika grafikona."
+msgstr[1] "Za pomoč se obrnite na urednike grafikona."
+msgstr[2] "Za pomoč se obrnite na urednike grafikona."
+msgstr[3] "Za pomoč se obrnite na urednike grafikona."
 
 msgid "Please save your chart first, then try creating a new email report."
 msgstr ""
@@ -11087,6 +11139,9 @@ msgstr "Skaliranje radija točk"
 
 msgid "Point Radius Unit"
 msgstr "Enota radija točk"
+
+msgid "Point Radius Units"
+msgstr ""
 
 msgid "Point Size"
 msgstr "Velikost točke"
@@ -11553,6 +11608,9 @@ msgstr "Relativne vrednosti"
 msgid "Reload"
 msgstr "Ponovno naloži"
 
+msgid "Reload SQL Lab"
+msgstr ""
+
 msgid "Remove"
 msgstr "Odstrani"
 
@@ -11685,6 +11743,9 @@ msgstr "Poročilo je aktivno"
 msgid "Report name"
 msgstr "Naslov poročila"
 
+msgid "Report not yet run"
+msgstr ""
+
 msgid "Report schedule client error"
 msgstr "Napaka klienta urnika poročanja"
 
@@ -11740,6 +11801,10 @@ msgstr "Zahtevane kontrolne vrednosti so bile odstranjene"
 msgid "Resample"
 msgstr "Prevzorči"
 
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
+
 msgid "Resample method should be in "
 msgstr "Metoda za prevzorčenje v mora biti v "
 
@@ -11788,11 +11853,10 @@ msgstr "Vir že ima povezano poročilo."
 msgid "Resource was not found."
 msgstr "Vir ni bil najden."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
-msgid "Resource was removed before ownership could be verified"
-msgstr "Vir je bil odstranjen, preden je bilo mogoče preveriti lastništvo"
+msgid "Resource was removed before editorship could be verified"
+msgstr ""
+"Vir je bil odstranjen, preden je bilo mogoče preveriti dovoljenje za "
+"urejanje"
 
 msgid "Restore filter"
 msgstr "Povrni filter"
@@ -11898,26 +11962,6 @@ msgstr "Zahtevano je ime"
 
 msgid "Roles"
 msgstr "Vloge"
-
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks. If no roles are "
-"defined, regular access permissions apply."
-msgstr ""
-"\"Vloge\" je seznam, ki definira dostop do nadzorne plošče. Dodelitev "
-"vloge za dostop do nadzorne plošče bo obšlo preverjanje na nivoju "
-"podatkovnega seta. Če vloga ni definirana, bodo veljavna običajna pravila"
-" dostopov."
-
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks.If no roles are "
-"defined, regular access permissions apply."
-msgstr ""
-"\"Vloge\" je seznam, ki definira dostop do nadzorne plošče. Dodelitev "
-"vloge za dostop do nadzorne plošče bo obšlo preverjanje na nivoju "
-"podatkovnega seta. Če vloga ni definirana, bodo veljavna običajna pravila"
-" dostopov."
 
 msgid "Rolling Function"
 msgstr "Drseča funkcija"
@@ -12398,9 +12442,8 @@ msgstr "Išči po vsebini poizvedbe"
 msgid "Search calculated columns by name"
 msgstr "Izračunani stolpci"
 
-#, fuzzy
-msgid "Search charts by name, owner, or dashboard"
-msgstr "V nadzorni plošči ni grafikonov"
+msgid "Search charts by name, editor, or dashboard"
+msgstr "Iskanje grafikonov po imenu, uredniku ali nadzorni plošči"
 
 msgid "Search columns"
 msgstr "Iskanje stolpcev"
@@ -12413,6 +12456,9 @@ msgstr "Iskanje stolpcev"
 msgid "Search columns..."
 msgstr "Iskanje stolpcev"
 
+msgid "Search editors"
+msgstr "Iskanje urednikov"
+
 msgid "Search in filters"
 msgstr "Iskanje v filtrih"
 
@@ -12421,16 +12467,11 @@ msgid "Search metrics by key or label"
 msgstr "Iskanje mer in stolpcev"
 
 #, fuzzy
-msgid "Search owners"
-msgstr "Izberite lastnike"
-
-#, fuzzy
-msgid "Search roles"
-msgstr "Iskanje stolpcev"
-
-#, fuzzy
 msgid "Search tags"
 msgstr "Izberite oznake"
+
+msgid "Search viewers"
+msgstr "Iskanje gledalcev"
 
 msgid "Search..."
 msgstr "Iskanje ..."
@@ -12711,6 +12752,9 @@ msgstr "Izberite dimenzijo"
 msgid "Select dimension values"
 msgstr "Izberite dimenzijo"
 
+msgid "Select editors"
+msgstr "Izberi urednike"
+
 msgid "Select file"
 msgstr "Izberite datoteko"
 
@@ -12784,9 +12828,6 @@ msgstr "Izberite ali vnesite simbol valute"
 
 msgid "Select or type dataset name"
 msgstr "Izberite ali vnesite ime podatkovnega seta"
-
-msgid "Select owners"
-msgstr "Izberite lastnike"
 
 #, fuzzy
 msgid "Select page size"
@@ -13998,6 +14039,9 @@ msgstr "Ulice"
 msgid "Streets (Carto)"
 msgstr "Drevesni grafikon"
 
+msgid "Streets (OSM)"
+msgstr ""
+
 msgid "Strength to pull the graph toward center"
 msgstr "Sila privlačnosti med grafikonom in središčem"
 
@@ -14037,6 +14081,18 @@ msgstr "Kategorija"
 
 msgid "Subdomain"
 msgstr "Poddomena"
+
+msgid "Subject"
+msgstr "Subjekt"
+
+msgid "Subject type"
+msgstr "Vrsta subjekta"
+
+msgid "Subjects"
+msgstr "Subjekti"
+
+msgid "Subjects are invalid"
+msgstr "Subjekti niso veljavni"
 
 msgid "Submit"
 msgstr "Pošlji"
@@ -14502,6 +14558,9 @@ msgstr ""
 "konfiguraciji glejte https://superset.apache.org/docs/configuration"
 "/async-queries-celery."
 
+msgid "The SSH server host key could not be verified against the expected key."
+msgstr ""
+
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
 "values across\n"
@@ -14551,6 +14610,11 @@ msgid ""
 msgstr ""
 "Kategorija izvornih vozlišč, na podlagi katere je določena barva. Če je "
 "vozlišče povezano z več kot eno kategorijo, bo uporabljena samo prva."
+
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -14647,6 +14711,11 @@ msgstr "Standard za oznake držav, ki bodo podane v stolpcu z državami"
 
 msgid "The dashboard has been saved"
 msgstr "Nadzorna plošča je bila shranjena"
+
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
+msgstr ""
 
 msgid "The data source seems to have been deleted"
 msgstr "Zdi se, da je bil podatkovni vir izbrisan"
@@ -15182,6 +15251,11 @@ msgstr ""
 "Radij posameznih točk (tistih, ki niso v gruči). Numerični stolpec ali "
 "`Auto` (skalira točke na osnovi največje gruče)"
 
+msgid ""
+"The radius of point features, in the units specified below. The final "
+"rendered size is this value multiplied by Point Radius Scale."
+msgstr ""
+
 msgid "The report has been created"
 msgstr "Poročilo je bilo ustvarjeno"
 
@@ -15394,6 +15468,11 @@ msgstr "Velikost mehurčka"
 #, fuzzy
 msgid "The unit for label size"
 msgstr "Enota za velikost oznake"
+
+msgid ""
+"The unit for point radius. Use \"pixels\" for consistent screen-space "
+"sizing regardless of zoom level."
+msgstr ""
 
 msgid "The unit of measure for the specified point radius"
 msgstr "Enota merila za definiran radij točk"
@@ -16131,6 +16210,9 @@ msgid ""
 " is not the case."
 msgstr "Ta stran naj bi bila vdelana kot iframe, vendar izgleda, da temu ni tako."
 
+msgid "This password is too common; please choose a less guessable one."
+msgstr ""
+
 msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
@@ -16502,6 +16584,18 @@ msgstr "Za pridobitev berljivega URL-ja za nadzorno ploščo"
 #, fuzzy
 msgid "Token Request URI"
 msgstr "URI zahteve za žeton"
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
 
 #, fuzzy
 msgid "Tool Panel"
@@ -17276,9 +17370,11 @@ msgstr "SQL-izraz"
 msgid "Validate query"
 msgstr "Ogled poizvedbe"
 
+# Machine-corrected via backfill_po.py (claude-sonnet-4-6) [replaced a
+# mistranslation]
 #, fuzzy
 msgid "Validate your expression"
-msgstr "Neveljaven cron izraz"
+msgstr "Preverite vaš izraz"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -17395,10 +17491,6 @@ msgstr "Ogled kot tabela"
 msgid "View in SQL Lab"
 msgstr "Ogled v SQL laboratoriju"
 
-#, python-format
-msgid "View keys & indexes (%s)"
-msgstr "Ogled ključev in indeksov (%s)"
-
 msgid "View query"
 msgstr "Ogled poizvedbe"
 
@@ -17412,6 +17504,21 @@ msgstr "Ogledano"
 #, python-format
 msgid "Viewed %s"
 msgstr "Ogledane %s"
+
+msgid "Viewer"
+msgstr "Gledalec"
+
+msgid "Viewers"
+msgstr "Gledalci"
+
+msgid ""
+"Viewers is a list of subjects who can view the dashboard. If no viewers "
+"are defined, the dashboard is accessible to all users with appropriate "
+"datasource permissions."
+msgstr ""
+"Gledalci so seznam subjektov, ki lahko vidijo nadzorno ploščo. Če "
+"gledalci niso določeni, je nadzorna plošča dostopna vsem uporabnikom z "
+"ustreznimi dovoljenji za vir podatkov."
 
 msgid "Viewport"
 msgstr "Pogled"
@@ -18339,6 +18446,9 @@ msgstr "Nimate dovoljenj za urejanje te nadzorne plošče."
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "Nimate zadostnih dovoljenj za urejanje grafikona"
 
+msgid "You don't have access to one or more of the referenced datasources."
+msgstr ""
+
 msgid "You don't have access to this chart."
 msgstr "Nimate dostopa do tega grafikona."
 
@@ -18417,26 +18527,31 @@ msgstr ""
 "boste mogli več povrniti nadaljnjih dejanj. Količino lahko resetirate, če"
 " shranite stanje."
 
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"You must be a %s owner in order to edit. Please reach out to a %s owner "
-"to request modifications or edit access."
-msgstr ""
-"Za urejanje morate biti lastnik podatkovnega seta. Za dostop do urejanja "
-"kontaktirajte lastnika podatkovnega seta."
+"You must be a %s editor in order to edit. Please reach out to a %s editor"
+" to request modifications or edit access."
+msgstr "Za urejanje morate biti urednik za %s. Obrnite se na urednika za %s, da zahtevate spremembe ali dostop za urejanje."
 
 msgid ""
-"You must be a dataset owner in order to edit. Please reach out to a "
-"dataset owner to request modifications or edit access."
+"You must be a dataset editor in order to edit. Please reach out to a "
+"dataset editor to request modifications or edit access."
+msgstr "Za urejanje morate biti urednik nabora podatkov. Obrnite se na urednika nabora podatkov, da zahtevate spremembe ali dostop za urejanje."
+
+msgid "You must change your password before continuing."
 msgstr ""
-"Za urejanje morate biti lastnik podatkovnega seta. Za dostop do urejanja "
-"kontaktirajte lastnika podatkovnega seta."
 
 msgid "You must pick a name for the new dashboard"
 msgstr "Izbrati morate ime nove nadzorne plošče"
 
 msgid "You must run the query successfully first"
 msgstr "Najprej morate uspešno izvesti poizvedbo"
+
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"'all_database_access' or 'all_datasource_access' permission"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18524,6 +18639,9 @@ msgstr "Vaša poizvedba je posodobljena"
 
 msgid "Your report could not be deleted"
 msgstr "Vašega poročila ni mogoče izbrisati"
+
+msgid "Your session has ended. Please sign in again."
+msgstr ""
 
 #, fuzzy
 msgid "Your user information"
@@ -18635,6 +18753,9 @@ msgstr "`row_offset` mora biti večja ali enaka 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "`width` mora biti večja ali enaka 0"
 
+msgid "`window` must be between 1 and 10000"
+msgstr ""
+
 #, fuzzy
 msgid "a few seconds"
 msgstr "5 seconds"
@@ -18666,6 +18787,9 @@ msgstr "oznaka"
 msgid "annotation_layer"
 msgstr "annotation_layer"
 
+msgid "apple"
+msgstr ""
+
 msgid "asfreq"
 msgstr "asfreq"
 
@@ -18681,6 +18805,9 @@ msgstr "ozadje"
 #, fuzzy
 msgid "background color"
 msgstr "ozadje"
+
+msgid "banana"
+msgstr ""
 
 msgid "basis"
 msgstr "basis"
@@ -18963,6 +19090,9 @@ msgstr "npr. CI/CD Pipeline, Analytics Script"
 
 msgid "edit mode"
 msgstr "načinu urejanja"
+
+msgid "editors"
+msgstr "uredniki"
 
 msgid "email subject"
 msgstr "zadeva sporočila"
@@ -19313,9 +19443,6 @@ msgstr "Izvoren"
 
 msgid "overall"
 msgstr "skupaj"
-
-msgid "owners"
-msgstr "lastniki"
 
 msgid "p-value precision"
 msgstr "točnost p-vrednosti"
