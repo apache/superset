@@ -62,7 +62,9 @@ def mock_auth() -> Iterator[Mock]:
 
 @patch("superset.daos.theme.ThemeDAO.find_by_id")
 @pytest.mark.asyncio
-async def test_get_theme_info_by_id_success(mock_find: MagicMock, mcp_server: object) -> None:
+async def test_get_theme_info_by_id_success(
+    mock_find: MagicMock, mcp_server: object
+) -> None:
     """Returns ThemeInfo when the theme is found by numeric ID."""
     mock_find.return_value = create_mock_theme()
     async with Client(mcp_server) as client:
@@ -77,7 +79,9 @@ async def test_get_theme_info_by_id_success(mock_find: MagicMock, mcp_server: ob
 
 @patch("superset.daos.theme.ThemeDAO.find_by_id")
 @pytest.mark.asyncio
-async def test_get_theme_info_by_uuid_success(mock_find: MagicMock, mcp_server: object) -> None:
+async def test_get_theme_info_by_uuid_success(
+    mock_find: MagicMock, mcp_server: object
+) -> None:
     """Returns ThemeInfo when the theme is found by UUID string."""
     uuid = "11111111-1111-1111-1111-111111111111"
     mock_find.return_value = create_mock_theme(uuid=uuid)
@@ -95,7 +99,9 @@ async def test_get_theme_info_by_uuid_success(mock_find: MagicMock, mcp_server: 
 
 @patch("superset.daos.theme.ThemeDAO.find_by_id", return_value=None)
 @pytest.mark.asyncio
-async def test_get_theme_info_not_found(mock_find: MagicMock, mcp_server: object) -> None:
+async def test_get_theme_info_not_found(
+    mock_find: MagicMock, mcp_server: object
+) -> None:
     """Returns a ThemeError when the theme is not found."""
     async with Client(mcp_server) as client:
         result = await client.call_tool(

@@ -96,7 +96,9 @@ async def test_list_themes_basic(mock_list: MagicMock, mcp_server: object) -> No
 
 @patch("superset.daos.theme.ThemeDAO.list")
 @pytest.mark.asyncio
-async def test_list_themes_without_request(mock_list: MagicMock, mcp_server: object) -> None:
+async def test_list_themes_without_request(
+    mock_list: MagicMock, mcp_server: object
+) -> None:
     """Listing with no request payload uses defaults."""
     theme = create_mock_theme()
     mock_list.return_value = ([theme], 1)
