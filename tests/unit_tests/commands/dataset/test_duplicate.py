@@ -207,7 +207,7 @@ def test_duplicate_dataset_success() -> None:
                 return_value=True,
             ):
                 with patch(
-                    "superset.commands.dataset.duplicate.DuplicateDatasetCommand.populate_owners",
+                    "superset.commands.utils.populate_subject_list",
                     return_value=[],
                 ):
                     with patch("superset.commands.dataset.duplicate.db.session.add"):
@@ -215,7 +215,7 @@ def test_duplicate_dataset_success() -> None:
                             {
                                 "base_model_id": 1,
                                 "table_name": "duplicated_dataset",
-                                "owners": [],
+                                "editors": [],
                             }
                         )
 
@@ -237,14 +237,14 @@ def test_duplicate_dataset_not_found() -> None:
         return_value=None,
     ):
         with patch(
-            "superset.commands.dataset.duplicate.DuplicateDatasetCommand.populate_owners",
+            "superset.commands.utils.populate_subject_list",
             return_value=[],
         ):
             command = DuplicateDatasetCommand(
                 {
                     "base_model_id": 999,
                     "table_name": "duplicated_dataset",
-                    "owners": [],
+                    "editors": [],
                 }
             )
 
@@ -277,14 +277,14 @@ def test_duplicate_dataset_not_virtual() -> None:
             return_value=True,
         ):
             with patch(
-                "superset.commands.dataset.duplicate.DuplicateDatasetCommand.populate_owners",
+                "superset.commands.utils.populate_subject_list",
                 return_value=[],
             ):
                 command = DuplicateDatasetCommand(
                     {
                         "base_model_id": 1,
                         "table_name": "duplicated_dataset",
-                        "owners": [],
+                        "editors": [],
                     }
                 )
 
@@ -319,14 +319,14 @@ def test_duplicate_dataset_name_exists_same_database_schema() -> None:
             return_value=False,  # Name already exists
         ):
             with patch(
-                "superset.commands.dataset.duplicate.DuplicateDatasetCommand.populate_owners",
+                "superset.commands.utils.populate_subject_list",
                 return_value=[],
             ):
                 command = DuplicateDatasetCommand(
                     {
                         "base_model_id": 1,
                         "table_name": "existing_dataset",
-                        "owners": [],
+                        "editors": [],
                     }
                 )
 
@@ -378,7 +378,7 @@ def test_duplicate_dataset_catalog_preserved() -> None:
                 return_value=True,
             ):
                 with patch(
-                    "superset.commands.dataset.duplicate.DuplicateDatasetCommand.populate_owners",
+                    "superset.commands.utils.populate_subject_list",
                     return_value=[],
                 ):
                     with patch("superset.commands.dataset.duplicate.db.session.add"):
@@ -386,7 +386,7 @@ def test_duplicate_dataset_catalog_preserved() -> None:
                             {
                                 "base_model_id": 1,
                                 "table_name": "duplicated_dataset",
-                                "owners": [],
+                                "editors": [],
                             }
                         )
 
@@ -424,14 +424,14 @@ def test_duplicate_dataset_catalog_passed_to_uniqueness_check() -> None:
             return_value=True,
         ) as mock_validate:
             with patch(
-                "superset.commands.dataset.duplicate.DuplicateDatasetCommand.populate_owners",
+                "superset.commands.utils.populate_subject_list",
                 return_value=[],
             ):
                 command = DuplicateDatasetCommand(
                     {
                         "base_model_id": 1,
                         "table_name": "duplicated_dataset",
-                        "owners": [],
+                        "editors": [],
                     }
                 )
 
@@ -501,7 +501,7 @@ def test_duplicate_dataset_with_columns_and_metrics() -> None:
                 return_value=True,
             ):
                 with patch(
-                    "superset.commands.dataset.duplicate.DuplicateDatasetCommand.populate_owners",
+                    "superset.commands.utils.populate_subject_list",
                     return_value=[],
                 ):
                     with patch("superset.commands.dataset.duplicate.db.session.add"):
@@ -509,7 +509,7 @@ def test_duplicate_dataset_with_columns_and_metrics() -> None:
                             {
                                 "base_model_id": 1,
                                 "table_name": "duplicated_dataset",
-                                "owners": [],
+                                "editors": [],
                             }
                         )
 
