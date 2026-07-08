@@ -147,7 +147,9 @@ async def create_theme(
         await ctx.error("Failed to create theme: %s" % (str(exc),))
         return CreateThemeResponse(
             success=False,
-            error=f"Failed to create theme: {exc}",
+            # Raw SQLAlchemy text can leak SQL/connection details; the full
+            # exception is already in the server log via logger.exception.
+            error="Failed to create theme due to a database error.",
             error_type="CreateFailedError",
         )
     except Exception as exc:
