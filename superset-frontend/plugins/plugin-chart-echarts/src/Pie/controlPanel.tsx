@@ -140,7 +140,7 @@ const config: ControlPanelConfig = {
             name: 'sweptAngle',
             config: {
               type: 'NumberControl',
-              min: 0,
+              min: 10,
               max: 360,
               step: 10,
               label: t('Swept angle'),

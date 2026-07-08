@@ -75,13 +75,12 @@ export function parseParams({
   return [name, formattedValue, formattedPercent];
 }
 
-const HALF_DONUT_BASE_POSITION = 69;
-const HALF_DONUT_TOP_OFFSET = 68.5;
+const HALF_DONUT_OFFSET = 68.5;
 const DONUT_OFFSET = 50;
 const HALF_DONUT_SWEEP_LIMIT = 180;
 const HALF_DONUT_START_ANGLE = 180;
 
-export const isHalfDonut = (sweptAngle: number, startAngle: number): boolean =>
+export const isHalfDonut = (startAngle: number, sweptAngle: number): boolean =>
   sweptAngle <= HALF_DONUT_SWEEP_LIMIT && startAngle === HALF_DONUT_START_ANGLE;
 export function getTotalValuePadding({
   chartPadding,
@@ -93,9 +92,9 @@ export function getTotalValuePadding({
 }: TotalValuePaddingProps): PaddingResult {
   const safeHeight = height || 1;
   const safeWidth = width || 1;
-  const isHalf = isHalfDonut(sweptAngle, startAngle);
+  const isHalf = isHalfDonut(startAngle, sweptAngle);
 
-  const getDonutBase = () => (isHalf ? HALF_DONUT_TOP_OFFSET : DONUT_OFFSET);
+  const getDonutBase = () => (isHalf ? HALF_DONUT_OFFSET : DONUT_OFFSET);
   const calculateTop = (): string => {
     if (chartPadding.bottom) {
       return donut
@@ -105,9 +104,7 @@ export function getTotalValuePadding({
 
     if (chartPadding.top || isHalf) {
       if (donut) {
-        const base = chartPadding.top
-          ? getDonutBase()
-          : HALF_DONUT_BASE_POSITION;
+        const base = chartPadding.top ? getDonutBase() : HALF_DONUT_OFFSET;
         return `${base + (chartPadding.top / safeHeight) * 50}%`;
       }
       return `${(chartPadding.top / safeHeight) * 100}%`;
@@ -428,7 +425,7 @@ export default function transformProps(
       animation: false,
       roseType: roseType || undefined,
       radius: [`${donut ? innerRadius : 0}%`, `${outerRadius}%`],
-      center: ['50%', isHalfDonut(sweptAngle, startAngle) ? '70%' : '50%'],
+      center: ['50%', isHalfDonut(startAngle, sweptAngle) ? '70%' : '50%'],
       startAngle,
       endAngle: startAngle - sweptAngle,
       avoidLabelOverlap: true,
