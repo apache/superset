@@ -157,8 +157,8 @@ function DashboardGrid({
 }: DashboardGridProps) {
   const theme = useTheme();
   const [isResizing, setIsResizing] = useState(false);
-  const [rowGuideTop, setRowGuideTop] = useState<number | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
+  const rowGuideRef = useRef<HTMLDivElement | null>(null);
 
   const setGridRef = useCallback((ref: HTMLDivElement | null): void => {
     gridRef.current = ref;
@@ -166,7 +166,9 @@ function DashboardGrid({
 
   const handleResizeStart = useCallback((): void => {
     setIsResizing(true);
-    setRowGuideTop(null);
+    if (rowGuideRef.current) {
+      rowGuideRef.current.style.visibility = 'hidden';
+    }
   }, []);
 
   const getRowGuidePosition = useCallback(
@@ -191,7 +193,11 @@ function DashboardGrid({
       _delta: { width: number; height: number },
     ): void => {
       if (direction.toLowerCase().includes(BOTTOM_RESIZE_DIRECTION)) {
-        setRowGuideTop(getRowGuidePosition(elementRef));
+        const newTop = getRowGuidePosition(elementRef);
+        if (rowGuideRef.current && newTop !== null) {
+          rowGuideRef.current.style.top = `${newTop}px`;
+          rowGuideRef.current.style.visibility = 'visible';
+        }
       }
     },
     [getRowGuidePosition],
@@ -212,7 +218,9 @@ function DashboardGrid({
       });
 
       setIsResizing(false);
-      setRowGuideTop(null);
+      if (rowGuideRef.current) {
+        rowGuideRef.current.style.visibility = 'hidden';
+      }
     },
     [resizeComponent],
   );
@@ -386,10 +394,11 @@ function DashboardGrid({
                   }}
                 />
               ))}
-          {isResizing && rowGuideTop !== null && (
+          {isResizing && (
             <GridRowGuide
+              ref={rowGuideRef}
               className="grid-row-guide"
-              style={{ top: rowGuideTop }}
+              style={{ visibility: 'hidden' }}
             />
           )}
         </GridContent>

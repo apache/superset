@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useCallback, useMemo, ReactNode } from 'react';
+import {
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  useEffect,
+  ReactNode,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { ResizeCallback, ResizeStartCallback, Resizable } from 're-resizable';
 import cx from 'classnames';
@@ -194,11 +201,13 @@ export default function ResizableContainer({
   maxHeightMultiple = proxyToInfinity,
 }: ResizableContainerProps) {
   const [isResizing, setIsResizing] = useState<boolean>(false);
-  const [cursorLabel, setCursorLabel] = useState<{
-    x: number;
-    y: number;
-    height: number;
-  } | null>(null);
+  const cursorLabelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isResizing && cursorLabelRef.current) {
+      cursorLabelRef.current.style.display = 'none';
+    }
+  }, [isResizing]);
 
   const handleResize = useCallback<ResizeCallback>(
     (event, direction, elementRef, delta) => {
@@ -217,7 +226,12 @@ export default function ResizableContainer({
           minHeightMultiple * heightStep,
           heightMultiple * heightStep + snappedDelta,
         );
-        setCursorLabel({ x: clientX, y: clientY, height: currentHeightPx });
+        if (cursorLabelRef.current) {
+          cursorLabelRef.current.style.display = 'block';
+          cursorLabelRef.current.style.left = `${clientX}px`;
+          cursorLabelRef.current.style.top = `${clientY}px`;
+          cursorLabelRef.current.textContent = `${currentHeightPx}px`;
+        }
       }
     },
     [onResize, heightMultiple, heightStep, minHeightMultiple],
@@ -251,7 +265,6 @@ export default function ResizableContainer({
           id,
         );
       }
-      setCursorLabel(null);
       setIsResizing(false);
     },
     [
@@ -363,13 +376,10 @@ export default function ResizableContainer({
       >
         {children}
       </StyledResizable>
-      {cursorLabel &&
-        createPortal(
-          <CursorLabel style={{ left: cursorLabel.x, top: cursorLabel.y }}>
-            {cursorLabel.height}px
-          </CursorLabel>,
-          document.body,
-        )}
+      {createPortal(
+        <CursorLabel ref={cursorLabelRef} style={{ display: 'none' }} />,
+        document.body,
+      )}
     </>
   );
 }

@@ -113,9 +113,14 @@ test('should render row guide when resizing from the bottom', () => {
 
   const component = getAllByTestId('mock-dashboard-component')[0];
   fireEvent.click(component);
+
+  // guide is in DOM but hidden until first bottom resize event
+  expect(container.querySelector('.grid-row-guide')).toBeInTheDocument();
   fireEvent.mouseMove(component);
 
-  expect(container.querySelector('.grid-row-guide')).toBeInTheDocument();
+  const guide = container.querySelector('.grid-row-guide') as HTMLElement;
+  expect(guide).toBeInTheDocument();
+  expect(guide.style.visibility).toBe('visible');
 });
 
 test('should remove row guide after resize stops', () => {
