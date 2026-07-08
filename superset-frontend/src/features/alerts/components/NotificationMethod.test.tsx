@@ -330,7 +330,7 @@ describe('NotificationMethod', () => {
     });
   });
 
-  test('should load email recipient options from report owners', async () => {
+  test('should load email recipient options from report users', async () => {
     jest.spyOn(SupersetClient, 'get').mockResolvedValueOnce({
       json: {
         count: 1,
@@ -373,7 +373,9 @@ describe('NotificationMethod', () => {
     ).toBeInTheDocument();
     expect(SupersetClient.get).toHaveBeenCalledWith(
       expect.objectContaining({
-        endpoint: expect.stringContaining('/api/v1/report/related/owners?q='),
+        endpoint: expect.stringContaining(
+          '/api/v1/report/related/created_by?q=',
+        ),
       }),
     );
     expect(SupersetClient.get).toHaveBeenCalledWith(

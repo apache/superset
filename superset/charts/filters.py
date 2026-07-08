@@ -27,6 +27,11 @@ from superset.connectors.sqla import models
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import FavStar
 from superset.models.slice import Slice
+from superset.subjects.filters import (
+    EditableFilter,
+    subject_relation_exists_for_current_user,
+)
+from superset.subjects.models import chart_editors
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
 from superset.utils.core import get_user_id
 from superset.utils.filters import get_dataset_access_filters
@@ -106,6 +111,60 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         if security_manager.can_access_all_datasources():
             return query
 
+        return self._apply_viewers(query)
+
+    def _apply_viewers(self, query: Query) -> Query:
+        from superset.subjects.models import chart_editors, chart_viewers
+        from superset.subjects.utils import get_user_subject_ids_subquery
+
+        user_id = get_user_id()
+        subject_subquery = get_user_subject_ids_subquery(user_id) if user_id else None
+
+        filters: list[Any] = []
+
+        # (A) Editor query: editors see all their charts
+        if subject_subquery is not None:
+            editor_query = (
+                db.session.query(Slice.id)
+                .join(chart_editors, Slice.id == chart_editors.c.chart_id)
+                .filter(chart_editors.c.subject_id.in_(subject_subquery))
+            )
+            filters.append(Slice.id.in_(editor_query))
+
+        # (B) Viewer query: viewers see their charts
+        if subject_subquery is not None:
+            viewer_query = (
+                db.session.query(Slice.id)
+                .join(chart_viewers, Slice.id == chart_viewers.c.chart_id)
+                .filter(chart_viewers.c.subject_id.in_(subject_subquery))
+            )
+            filters.append(Slice.id.in_(viewer_query))
+
+        # (C) No-viewer fallback: charts with no viewers → dataset-based access
+        chart_has_viewers = Slice.viewers.any()
+        table_alias = aliased(SqlaTable)
+        no_viewer_query = (
+            db.session.query(Slice.id)
+            .join(table_alias, Slice.datasource_id == table_alias.id)
+            .join(models.Database, table_alias.database_id == models.Database.id)
+            .filter(
+                and_(
+                    ~chart_has_viewers,
+                    get_dataset_access_filters(Slice),
+                )
+            )
+        )
+        filters.append(Slice.id.in_(no_viewer_query))
+
+        extra_filters = current_app.config.get("EXTRA_ACCESS_QUERY_FILTERS", {})
+        if extra_charts_filter := extra_filters.get("charts"):
+            user_id = get_user_id()
+            if user_id:
+                filters.append(Slice.id.in_(extra_charts_filter(user_id)))
+
+        return query.filter(or_(*filters)) if filters else query
+
+    def _apply_legacy(self, query: Query) -> Query:
         table_alias = aliased(SqlaTable)
         query = query.join(table_alias, self.model.datasource_id == table_alias.id)
         query = query.join(
@@ -127,6 +186,14 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
                 *extra_access_filters,
             )
         )
+
+
+class ChartEditableFilter(EditableFilter):  # pylint: disable=too-few-public-methods
+    """Filter for charts the user can edit."""
+
+    model = Slice
+    editors_table = chart_editors
+    editors_fk_column = "chart_id"
 
 
 class ChartHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -174,10 +241,10 @@ class ChartOwnedCreatedFavoredByMeFilter(BaseFilter):  # pylint: disable=too-few
         if security_manager.current_user is None:
             return query
 
-        owner_ids_query = (
-            db.session.query(Slice.id)
-            .join(Slice.owners)
-            .filter(security_manager.user_model.id == get_user_id())
+        from superset.subjects.models import chart_editors
+
+        editor_ids_query = db.session.query(chart_editors.c.chart_id).filter(
+            subject_relation_exists_for_current_user(chart_editors)
         )
 
         return query.join(
@@ -191,7 +258,7 @@ class ChartOwnedCreatedFavoredByMeFilter(BaseFilter):  # pylint: disable=too-few
         ).filter(
             # pylint: disable=comparison-with-callable
             or_(
-                Slice.id.in_(owner_ids_query),
+                Slice.id.in_(editor_ids_query),
                 Slice.created_by_fk == get_user_id(),
                 Slice.changed_by_fk == get_user_id(),
                 FavStar.user_id == get_user_id(),
@@ -205,14 +272,11 @@ class ChartDeletedStateFilter(  # pylint: disable=too-few-public-methods
     """Rison filter for the GET list that exposes soft-deleted charts.
 
     Soft-deleted rows are additionally scoped to the **restore audience**: only
-    the chart's owners (or admins) may enumerate them. This mirrors
-    ``RestoreChartCommand``'s ``raise_for_ownership`` check, so a read-access
-    non-owner (who can see the chart via datasource access) cannot list
+    the chart's editors (or admins) may enumerate them. This mirrors
+    ``RestoreChartCommand``'s ``raise_for_editorship`` check, so a read-access
+    non-editor (who can see the chart via datasource access) cannot list
     soft-deleted charts they could never restore. Live rows are unaffected —
-    they keep their normal ``ChartFilter`` visibility. The ownership scoping is
-    part of the cross-entity deleted-state contract: only the restore audience
-    may enumerate soft-deleted rows — any entity exposing a deleted-state
-    filter is expected to apply the same scoping.
+    they keep their normal ``ChartFilter`` visibility.
     """
 
     arg_name = "chart_deleted_state"
@@ -224,13 +288,15 @@ class ChartDeletedStateFilter(  # pylint: disable=too-few-public-methods
         if normalized not in {"include", "only"} or security_manager.is_admin():
             return query
 
-        # Non-admins may only see soft-deleted charts they own. ``any()`` emits
-        # an EXISTS subquery so it composes with the base access filter without
-        # producing duplicate rows from a join.
-        owned = Slice.owners.any(security_manager.user_model.id == get_user_id())
+        # Non-admins may only see soft-deleted charts they can edit. ``any()``
+        # emits an EXISTS subquery so it composes with the base access filter
+        # without producing duplicate rows from a join.
+        editable = Slice.editors.any(
+            subject_relation_exists_for_current_user(chart_editors)
+        )
         if normalized == "only":
             # ``super().apply`` already restricted to ``deleted_at IS NOT NULL``.
-            return query.filter(owned)
+            return query.filter(editable)
         # ``include``: keep all live rows (normal access) and add only the
-        # soft-deleted rows this user owns.
-        return query.filter(or_(Slice.deleted_at.is_(None), owned))
+        # soft-deleted rows this user can edit.
+        return query.filter(or_(Slice.deleted_at.is_(None), editable))

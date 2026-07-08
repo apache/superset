@@ -223,7 +223,7 @@ export type Dataset = {
   created_on_humanized: string;
   description: string;
   table_name: string;
-  owners: {
+  editors: {
     first_name: string;
     last_name: string;
   }[];

@@ -16,23 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
-import { OwnerSelectLabel } from '.';
+import getUserName from './getUserName';
 
-test('renders name and email', () => {
-  render(OwnerSelectLabel({ name: 'John Doe', email: 'jdoe@example.com' }));
-  expect(screen.getByText('John Doe')).toBeInTheDocument();
-  expect(screen.getByText('jdoe@example.com')).toBeInTheDocument();
+test('render user name correctly', () => {
+  expect(getUserName({ id: 1, first_name: 'Foo', last_name: 'Bar' })).toEqual(
+    'Foo Bar',
+  );
+
+  expect(getUserName({ id: 2, full_name: 'John Doe' })).toEqual('John Doe');
 });
 
-test('renders only name when email is undefined', () => {
-  render(OwnerSelectLabel({ name: 'Jane Smith' }));
-  expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+test('return empty string for undefined user', () => {
+  expect(getUserName(undefined)).toEqual('');
 });
 
-test('renders only name when email is empty string', () => {
-  render(OwnerSelectLabel({ name: 'Jane Smith', email: '' }));
-  expect(screen.getByText('Jane Smith')).toBeInTheDocument();
-  const container = screen.getByText('Jane Smith').parentElement;
-  expect(container?.children).toHaveLength(1);
+test('return empty string when no name fields are set', () => {
+  expect(getUserName({ id: 1 })).toEqual('');
+});
+
+test('handle only first_name set', () => {
+  expect(getUserName({ id: 1, first_name: 'Foo' })).toEqual('Foo');
+});
+
+test('handle only last_name set', () => {
+  expect(getUserName({ id: 1, last_name: 'Bar' })).toEqual('Bar');
 });

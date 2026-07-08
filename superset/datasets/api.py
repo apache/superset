@@ -66,6 +66,7 @@ from superset.databases.filters import DatabaseFilter
 from superset.datasets.filters import (
     DatasetCertifiedFilter,
     DatasetDeletedStateFilter,
+    DatasetEditableFilter,
     DatasetIsNullOrEmptyFilter,
 )
 from superset.datasets.schemas import (
@@ -84,6 +85,7 @@ from superset.datasets.schemas import (
 )
 from superset.exceptions import SupersetSyntaxErrorException, SupersetTemplateException
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
+from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
 from superset.utils import json
 from superset.utils.core import parse_boolean_string, sanitize_cookie_token
 from superset.views.base import DatasourceFilter
@@ -97,7 +99,7 @@ from superset.views.base_api import (
 from superset.views.error_handling import handle_api_exception
 from superset.views.filters import (
     BaseFilterRelatedUsers,
-    FilterRelatedOwners,
+    FilterRelatedUsers,
     SoftDeleteApiMixin,
 )
 
@@ -116,7 +118,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     # ``can_restore_Dataset``) when the mapping is missing, which standard
     # roles don't carry. Mirrors the permission model documented for
     # ``DELETE`` / ``bulk_delete``: endpoint-level ``can_write`` plus
-    # resource-level ``raise_for_ownership``. See themes/api.py for the
+    # resource-level ``raise_for_editorship``. See themes/api.py for the
     # established pattern.
     method_permission_name = {
         **MODEL_API_RW_METHOD_PERMISSION_MAP,
@@ -154,9 +156,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "explore_url",
         "extra",
         "kind",
-        "owners.id",
-        "owners.first_name",
-        "owners.last_name",
+        "editors.id",
+        "editors.label",
+        "editors.type",
         "catalog",
         "schema",
         "sql",
@@ -193,9 +195,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "is_sqllab_view",
         "template_params",
         "select_star",
-        "owners.id",
-        "owners.first_name",
-        "owners.last_name",
+        "editors.id",
+        "editors.label",
+        "editors.type",
         "columns.advanced_data_type",
         "columns.changed_on",
         "columns.column_name",
@@ -258,7 +260,14 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()
     duplicate_model_schema = DatasetDuplicateSchema()
-    add_columns = ["database", "catalog", "schema", "table_name", "sql", "owners"]
+    add_columns = [
+        "database",
+        "catalog",
+        "schema",
+        "table_name",
+        "sql",
+        "editors",
+    ]
     edit_columns = [
         "table_name",
         "sql",
@@ -276,7 +285,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "cache_timeout",
         "is_sqllab_view",
         "template_params",
-        "owners",
+        "editors",
         "columns",
         "metrics",
         "extra",
@@ -284,24 +293,40 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     openapi_spec_tag = "Datasets"
 
     base_related_field_filters = {
-        "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "database": [["id", DatabaseFilter, lambda: []]],
+        "editors": [
+            [
+                "type",
+                subject_type_filter("SUBJECTS_RELATED_TYPES"),
+                lambda: [],
+            ]
+        ],
     }
     related_field_filters = {
-        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
-        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
         "database": "database_name",
+        "editors": RelatedFieldFilter("label", FilterRelatedSubjects),
+    }
+    text_field_rel_fields = {
+        "editors": "label",
+    }
+    extra_fields_rel_fields = {
+        "editors": ["type", "active", "secondary_label", "img"],
     }
     search_filters = {
         "sql": [DatasetIsNullOrEmptyFilter],
-        "id": [DatasetCertifiedFilter, DatasetDeletedStateFilter],
+        "id": [
+            DatasetCertifiedFilter,
+            DatasetDeletedStateFilter,
+            DatasetEditableFilter,
+        ],
     }
     search_columns = [
         "id",
         "uuid",
         "database",
-        "owners",
+        "editors",
         "catalog",
         "schema",
         "sql",
@@ -310,7 +335,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "changed_by",
         "uuid",
     ]
-    allowed_rel_fields = {"database", "owners", "created_by", "changed_by"}
+    allowed_rel_fields = {"database", "created_by", "changed_by", "editors"}
     allowed_distinct_fields = {"catalog", "schema"}
 
     apispec_parameter_schemas = {
@@ -499,7 +524,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         When the ``SOFT_DELETE`` feature flag is enabled, marks the dataset
         as deleted (sets ``deleted_at``) and hides it from list/detail
         endpoints and relationship loads; the row is preserved and
-        recoverable via ``POST /api/v1/dataset/<uuid>/restore`` by an owner
+        recoverable via ``POST /api/v1/dataset/<uuid>/restore`` by an editor
         or admin. With the flag disabled (the default), the dataset is
         permanently hard-deleted and is not recoverable.
         ---
@@ -800,9 +825,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             if not dataset:
                 return self.response_404()
 
-            # Check ownership
+            # Check editorship
             try:
-                security_manager.raise_for_ownership(dataset)
+                security_manager.raise_for_editorship(dataset)
             except Exception:  # pylint: disable=broad-except
                 return self.response_403()
 
@@ -902,7 +927,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         When the ``SOFT_DELETE`` feature flag is enabled, marks each dataset
         as deleted (sets ``deleted_at``) and hides it from list/detail
         endpoints and relationship loads; rows are preserved and recoverable
-        via ``POST /api/v1/dataset/<uuid>/restore`` by an owner or admin.
+        via ``POST /api/v1/dataset/<uuid>/restore`` by an editor or admin.
         With the flag disabled (the default), the datasets are permanently
         hard-deleted and are not recoverable.
         ---
@@ -1032,7 +1057,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         **even when ``overwrite`` is not set**. Active datasets keep the
         usual contract (never mutated without ``overwrite=true``); a
         soft-deleted UUID match is treated as an explicit request to bring
-        the dataset back. Requires ``can_write`` and ownership of the
+        the dataset back. Requires ``can_write`` and editorship of the
         deleted row (or admin). See UPDATING.md for details.
         ---
         post:
@@ -1462,8 +1487,8 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         drill_info_select_columns = [
             "id",
             "table_name",
-            "owners.first_name",
-            "owners.last_name",
+            "editors.label",
+            "editors.type",
             "created_by.first_name",
             "created_by.last_name",
             "created_on_humanized",

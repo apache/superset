@@ -59,6 +59,7 @@ from superset.constants import (
 from superset.jinja_context import BaseTemplateProcessor
 from superset.key_value.types import JsonKeyValueCodec
 from superset.stats_logger import DummyStatsLogger
+from superset.subjects.types import SubjectType
 from superset.superset_typing import CacheConfig
 from superset.tasks.types import ExecutorType
 from superset.themes.types import Theme
@@ -821,11 +822,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: stable
     # @category: runtime_config
     "CSS_TEMPLATES": True,
-    # Role-based access control for dashboards
-    # @lifecycle: stable
-    # @category: runtime_config
-    # @docs: https://superset.apache.org/docs/using-superset/creating-your-first-dashboard
-    "DASHBOARD_RBAC": False,
+    # Subject-based viewer access control for dashboards and charts.
+    # When enabled, resources can have explicit viewer Subject assignments.
+    # @lifecycle: testing
+    # @category: security
+    "ENABLE_VIEWERS": False,
     # Supports simultaneous data and dashboard virtualization for backend performance
     # @lifecycle: stable
     # @category: runtime_config
@@ -1161,17 +1162,20 @@ THEME_FONT_URL_ALLOWED_DOMAINS: list[str] = [
 EXTRA_SEQUENTIAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
 # User used to execute cache warmup tasks
-# By default, the cache is warmed up using the primary owner. To fall back to using
-# a fixed user (admin in this example), use the following configuration:
+# By default, the cache is warmed up using a physical user represented by the
+# editors (giving priority to the last modifier, then the creator, then the first
+# direct user editor, then a deterministic user from editor role/group subjects).
+# To fall back to using a fixed user (admin in this example), use the following
+# configuration:
 #
 # from superset.tasks.types import ExecutorType, FixedExecutor
 #
-# CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER, FixedExecutor("admin")]
+# CACHE_WARMUP_EXECUTORS = [ExecutorType.EDITOR, FixedExecutor("admin")]
 #
 # NOTE: The `cache-warmup` Celery task no longer consults CACHE_WARMUP_EXECUTORS.
 # It authenticates as the single user configured via SUPERSET_CACHE_WARMUP_USER
 # (defined below). This setting is retained for other executor-based code paths.
-CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER]
+CACHE_WARMUP_EXECUTORS = [ExecutorType.EDITOR]
 
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
@@ -1567,7 +1571,7 @@ DASHBOARD_AUTO_REFRESH_INTERVALS = [
 
 # Performance optimization: Return only custom tags in dashboard list API
 # When enabled, filters out implicit tags (owner, type, favorited_by) at SQL JOIN level
-# Reduces response payload and query time for dashboards with many owners
+# Reduces response payload and query time for dashboards with many editors
 DASHBOARD_LIST_CUSTOM_TAGS_ONLY: bool = False
 
 # This is used as a workaround for the alerts & reports scheduler task to get the time
@@ -2191,7 +2195,7 @@ def EMAIL_HEADER_MUTATOR(  # pylint: disable=invalid-name,unused-argument  # noq
 
 
 # Define a list of usernames to be excluded from all dropdown lists of users
-# Owners, filters for created_by, etc.
+# Editors, filters for created_by, etc.
 # The users can also be excluded by overriding the get_exclude_users_from_lists method
 # in security manager
 EXCLUDE_USERS_FROM_LISTS: list[str] | None = None
@@ -2216,25 +2220,27 @@ MACHINE_AUTH_PROVIDER_CLASS = "superset.utils.machine_auth.MachineAuthProvider"
 ALERT_REPORTS_CRON_WINDOW_SIZE = 59
 ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 # Which user to attempt to execute Alerts/Reports as. By default,
-# execute as the primary owner of the alert/report (giving priority to the last
-# modifier and then the creator if either is contained within the list of owners,
-# otherwise the first owner will be used).
+# execute as a physical user represented by the alert/report editors (giving
+# priority to the last modifier and then the creator if either is an editor,
+# otherwise the first direct user editor, then a deterministic user from editor
+# role/group subjects). Editor resolution checks both direct user-type subjects
+# and indirect membership through role/group subjects.
 #
-# To first try to execute as the creator in the owners list (if present), then fall
-# back to the creator, then the last modifier in the owners list (if present), then the
-# last modifier, then an owner and finally the "admin" user, set as follows:
+# To first try to execute as the creator if they're an editor (directly or via
+# role/group), then fall back to the creator, then the last modifier if they're an
+# editor, then the last modifier, then any editor, and finally the "admin" user:
 #
 # from superset.tasks.types import ExecutorType, FixedExecutor
 #
 # ALERT_REPORTS_EXECUTORS = [
-#     ExecutorType.CREATOR_OWNER,
+#     ExecutorType.CREATOR_EDITOR,
 #     ExecutorType.CREATOR,
-#     ExecutorType.MODIFIER_OWNER,
+#     ExecutorType.MODIFIER_EDITOR,
 #     ExecutorType.MODIFIER,
-#     ExecutorType.OWNER,
+#     ExecutorType.EDITOR,
 #     FixedExecutor("admin"),
 # ]
-ALERT_REPORTS_EXECUTORS: list[ExecutorType] = [ExecutorType.OWNER]
+ALERT_REPORTS_EXECUTORS: list[ExecutorType] = [ExecutorType.EDITOR]
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
 ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
@@ -2792,8 +2798,8 @@ ENVIRONMENT_TAG_CONFIG = {
 
 
 # Extra related query filters make it possible to limit which objects are shown
-# in the UI. For examples, to only show "admin" or users starting with the letter "b" in
-# the "Owners" dropdowns, you could add the following in your config:
+# in the UI. For example, to only show "admin" or users starting with the letter "b"
+# in subject dropdowns, you could add the following in your config:
 # def user_filter(query: Query, *args, *kwargs):
 #     from superset import security_manager
 #
@@ -2806,14 +2812,35 @@ ENVIRONMENT_TAG_CONFIG = {
 #
 #  EXTRA_RELATED_QUERY_FILTERS = {"user": user_filter}
 #
-# Similarly, to restrict the roles in the "Roles" dropdown you can provide a custom
-# filter callback for the "role" key.
+# Similarly, to restrict the roles or groups in their respective dropdowns you can
+# provide custom filter callbacks for the "role" and "group" keys.
 class ExtraRelatedQueryFilters(TypedDict, total=False):
     role: Callable[[Query], Query]
     user: Callable[[Query], Query]
+    group: Callable[[Query], Query]
 
 
 EXTRA_RELATED_QUERY_FILTERS: ExtraRelatedQueryFilters = {}
+
+# When True, viewers of a dashboard/chart bypass dataset-level RBAC checks.
+# Only effective when ENABLE_VIEWERS is on.
+VIEWER_PROMISCUOUS_MODE = False
+
+# Default Subject types shown in editor/viewer/subject pickers.
+# Entity-specific SUBJECTS_RELATED_TYPES_* settings can replace this default.
+# None = show all types (USER, ROLE, GROUP).
+SUBJECTS_RELATED_TYPES: list[SubjectType] | None = [
+    SubjectType.USER,
+    SubjectType.GROUP,
+]
+
+# Per-entity overrides for the default SUBJECTS_RELATED_TYPES picker behavior.
+# When set, the entity-specific list completely replaces the global default.
+# None = inherit global behavior.
+SUBJECTS_RELATED_TYPES_DASHBOARDS: list[SubjectType] | None = None
+SUBJECTS_RELATED_TYPES_CHARTS: list[SubjectType] | None = None
+SUBJECTS_RELATED_TYPES_RLS: list[SubjectType] | None = None
+SUBJECTS_RELATED_TYPES_ALERT_REPORTS: list[SubjectType] | None = None
 
 
 # Extra dynamic query filters make it possible to limit which objects are shown
@@ -2850,9 +2877,9 @@ class ExtraAccessQueryFilters(TypedDict, total=False):
 EXTRA_ACCESS_QUERY_FILTERS: ExtraAccessQueryFilters = {}
 # Bypass raise_for_access for specific assets. Return True to skip checks.
 EXTRA_RAISE_FOR_ACCESS_BYPASS: Callable[..., bool] | None = None
-# Resolve extra owners for a resource. Also used for ownership checks and
-# to skip auto-adding the current user to owners on create.
-EXTRA_OWNERS_RESOLVER: Callable[..., list[Any]] | None = None
+# Resolve additional editor subjects for a resource. Also used for editorship
+# checks and lockout-prevention logic.
+EXTRA_EDITORS_RESOLVER: Callable[..., list[Any]] | None = None
 # Post-create hook for charts/dashboards. Receives (model, asset_type).
 AFTER_ASSET_CREATE: Callable[[Any, str], None] | None = None
 

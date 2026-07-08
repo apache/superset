@@ -602,7 +602,7 @@ def _load_api_key_user_by_username(username: str) -> User:
     """Load a user by username after transport-layer API key validation."""
     user_with_rels = load_user_with_relationships(username=username)
     if user_with_rels is None:
-        raise PermissionError(f"API key owner '{username}' not found in database.")
+        raise PermissionError(f"API key user '{username}' not found in database.")
     return user_with_rels
 
 

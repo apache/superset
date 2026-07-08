@@ -39,9 +39,7 @@ jest.mock('src/hooks/apiResources/queryApi', () => ({
     reducerPath: 'queryApi',
     reducer: (state = {}) => state,
     middleware:
-      () =>
-      (next: (action: unknown) => unknown) =>
-      (action: unknown) =>
+      () => (next: (action: unknown) => unknown) => (action: unknown) =>
         next(action),
   },
 }));

@@ -16,9 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type Owner from 'src/types/Owner';
 
-export interface FacePileProps {
-  users: Owner[];
-  maxCount?: number;
+/**
+ * The Subject model as returned from the API.
+ * Subjects represent users, roles, or groups that can be
+ * assigned as editors or viewers on dashboards and charts.
+ */
+export enum SubjectType {
+  User = 1,
+  Role = 2,
+  Group = 3,
+}
+
+export default interface Subject {
+  id: number;
+  label?: string;
+  secondary_label?: string;
+  img?: string;
+  type: SubjectType;
+  active?: boolean;
 }
