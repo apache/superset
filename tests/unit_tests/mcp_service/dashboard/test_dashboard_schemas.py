@@ -32,6 +32,8 @@ from superset.mcp_service.dashboard.schemas import (
     _extract_native_filters,
     _safe_user_label,
     dashboard_serializer,
+    DuplicateDashboardRequest,
+    DuplicateDashboardResponse,
     GenerateDashboardRequest,
     serialize_chart_summary,
     serialize_dashboard_object,
@@ -53,10 +55,9 @@ def _mock_dashboard(
     id: int = 1,
     title: str = "Test Dashboard",
     slug: str | None = None,
-    owners: list[Any] | None = None,
+    editors: list[Any] | None = None,
     slices: list[Any] | None = None,
     tags: list[Any] | None = None,
-    roles: list[Any] | None = None,
 ) -> MagicMock:
     """Create a mock Dashboard ORM object."""
     dashboard = MagicMock()
@@ -79,10 +80,9 @@ def _mock_dashboard(
     dashboard.is_managed_externally = False
     dashboard.external_url = None
     dashboard.uuid = None
-    dashboard.owners = owners or []
+    dashboard.editors = editors or []
     dashboard.slices = slices or []
     dashboard.tags = tags or []
-    dashboard.roles = roles or []
     return dashboard
 
 
@@ -128,7 +128,7 @@ class TestSerializeDashboardObject:
         dashboard = _mock_dashboard(id=42, slug=None)
         result = serialize_dashboard_object(dashboard)
 
-        assert result.url == "http://localhost:8088/superset/dashboard/42/"
+        assert result.url == "http://localhost:8088/dashboard/42/"
 
     @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
     def test_url_uses_slug_when_available(self, mock_base_url) -> None:
@@ -138,7 +138,7 @@ class TestSerializeDashboardObject:
         dashboard = _mock_dashboard(id=42, slug="my-dashboard")
         result = serialize_dashboard_object(dashboard)
 
-        assert result.url == "http://localhost:8088/superset/dashboard/my-dashboard/"
+        assert result.url == "http://localhost:8088/dashboard/my-dashboard/"
 
     @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
     def test_no_json_metadata_or_position_json_in_response(self, mock_base_url) -> None:
@@ -261,7 +261,7 @@ class TestSerializeDashboardObject:
         # Verify no heavy fields
         assert not hasattr(result.charts[0], "form_data")
         assert not hasattr(result.charts[0], "tags")
-        assert not hasattr(result.charts[0], "owners")
+        assert not hasattr(result.charts[0], "editors")
 
     @patch("superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata")
     @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
@@ -320,7 +320,7 @@ class TestSerializeDashboardObject:
             "cross_filters_enabled": True,
         }
         dashboard = _mock_dashboard(id=1, slices=[chart])
-        dashboard.url = "/superset/dashboard/1/"
+        dashboard.url = "/dashboard/1/"
         dashboard.json_metadata = json_dumps(metadata)
 
         result = dashboard_serializer(dashboard)
@@ -379,7 +379,7 @@ class TestSerializeDashboardObject:
         assert result.certified_by == _wrapped("Analytics Team")
         assert result.certification_details == _wrapped("Certified by analytics")
         assert result.slug == "safe-slug"
-        assert result.url == "http://localhost:8088/superset/dashboard/safe-slug/"
+        assert result.url == "http://localhost:8088/dashboard/safe-slug/"
         assert result.uuid == "dashboard-uuid-7"
         assert result.native_filters[0].id == "NATIVE_FILTER-abc123"
         assert result.native_filters[0].name == _wrapped("Region Filter")
@@ -836,3 +836,71 @@ class TestSafeUserLabel:
         """Numbers and other non-string scalars also coerce to None
         rather than being str-cast and silently leaking the value."""
         assert _safe_user_label(42) is None
+
+
+class TestDuplicateDashboardRequestTitleSanitization:
+    """XSS / sanitization behavior for DuplicateDashboardRequest.dashboard_title."""
+
+    def test_plain_title_passes_without_warning(self) -> None:
+        """A clean title is accepted unchanged with no sanitization warning."""
+        req = DuplicateDashboardRequest(dashboard_id=1, dashboard_title="Regional Copy")
+        assert req.dashboard_title == "Regional Copy"
+        assert req.sanitization_warnings == []
+
+    def test_title_accepts_aliases(self) -> None:
+        """The title can be supplied via the ``name``/``title`` aliases."""
+        req = DuplicateDashboardRequest(dashboard_id="my-slug", name="From Name")
+        assert req.dashboard_title == "From Name"
+
+    def test_script_only_title_is_rejected(self) -> None:
+        """A title that sanitizes to nothing (XSS-only) is rejected."""
+        with pytest.raises(ValidationError, match="removed entirely by sanitization"):
+            DuplicateDashboardRequest(
+                dashboard_id=1, dashboard_title="<script>alert(1)</script>"
+            )
+
+    def test_empty_title_is_rejected(self) -> None:
+        """An empty title is rejected at the schema layer."""
+        with pytest.raises(ValidationError):
+            DuplicateDashboardRequest(dashboard_id=1, dashboard_title="")
+
+    def test_partial_strip_emits_warning(self) -> None:
+        """A partially stripped title is kept but flagged with a warning."""
+        req = DuplicateDashboardRequest(
+            dashboard_id=1, dashboard_title="Q1 <b>Review</b>"
+        )
+        assert req.dashboard_title == "Q1 Review"
+        assert len(req.sanitization_warnings) == 1
+        assert "dashboard_title" in req.sanitization_warnings[0]
+
+    def test_client_supplied_warnings_are_discarded(self) -> None:
+        """``sanitization_warnings`` is server-only; client input is dropped."""
+        req = DuplicateDashboardRequest(
+            dashboard_id=1,
+            dashboard_title="Plain Title",
+            sanitization_warnings=["<script>fake notice</script>"],
+        )
+        assert req.sanitization_warnings == []
+
+
+class TestDuplicateDashboardResponse:
+    """Serialization and error sanitization for DuplicateDashboardResponse."""
+
+    def test_defaults(self) -> None:
+        """An empty response has null payload fields and no flags set."""
+        resp = DuplicateDashboardResponse()
+        assert resp.dashboard is None
+        assert resp.dashboard_url is None
+        assert resp.duplicated_slices is False
+        assert resp.error is None
+        assert resp.warnings == []
+
+    def test_error_is_wrapped_for_llm_context(self) -> None:
+        """Error text is wrapped in LLM-context delimiters before exposure."""
+        resp = DuplicateDashboardResponse(error="Dashboard 'x' not found.")
+        assert resp.error == _wrapped("Dashboard 'x' not found.")
+
+    def test_none_error_is_not_wrapped(self) -> None:
+        """A null error stays null rather than being wrapped."""
+        resp = DuplicateDashboardResponse(dashboard_url="http://host/d/1/")
+        assert resp.error is None

@@ -27,7 +27,7 @@ import {
 } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import { RootState } from 'src/dashboard/types';
-import { cloneDeep } from 'lodash';
+import { cloneDeep } from 'lodash-es';
 import { setDataMaskForFilterChangesComplete } from 'src/dataMask/actions';
 import { HYDRATE_DASHBOARD } from './hydrate';
 import {

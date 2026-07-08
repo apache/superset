@@ -55,7 +55,7 @@ def test_execute_now_success() -> None:
             ),
             patch(
                 "superset.commands.report.execute_now.security_manager"
-                ".raise_for_ownership"
+                ".raise_for_editorship"
             ),
         ):
             command = ExecuteReportScheduleNowCommand(1)
@@ -88,7 +88,7 @@ def test_execute_now_not_found() -> None:
 
 
 def test_execute_now_forbidden() -> None:
-    """Command raises ReportScheduleForbiddenError when the caller is not an owner."""
+    """Command raises ReportScheduleForbiddenError for a non-editor caller."""
     mock_scheduler = MagicMock()
 
     with patch.dict(sys.modules, {"superset.tasks.scheduler": mock_scheduler}):
@@ -101,7 +101,7 @@ def test_execute_now_forbidden() -> None:
             ),
             patch(
                 "superset.commands.report.execute_now.security_manager"
-                ".raise_for_ownership",
+                ".raise_for_editorship",
                 side_effect=SupersetSecurityException(MagicMock(message="Forbidden")),
             ),
         ):
@@ -129,7 +129,7 @@ def test_execute_now_celery_not_configured() -> None:
             ),
             patch(
                 "superset.commands.report.execute_now.security_manager"
-                ".raise_for_ownership"
+                ".raise_for_editorship"
             ),
         ):
             command = ExecuteReportScheduleNowCommand(1)
@@ -154,7 +154,7 @@ def test_execute_now_unexpected_failure() -> None:
             ),
             patch(
                 "superset.commands.report.execute_now.security_manager"
-                ".raise_for_ownership"
+                ".raise_for_editorship"
             ),
         ):
             command = ExecuteReportScheduleNowCommand(1)
@@ -178,7 +178,7 @@ def test_execute_now_sets_time_limit_when_working_timeout_configured() -> None:
             ),
             patch(
                 "superset.commands.report.execute_now.security_manager"
-                ".raise_for_ownership"
+                ".raise_for_editorship"
             ),
             patch("superset.commands.report.execute_now.current_app") as mock_app,
         ):

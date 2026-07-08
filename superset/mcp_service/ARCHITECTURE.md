@@ -145,7 +145,7 @@ graph LR
 
 **User-Based Access Control**:
 - Users can only access resources they have permissions for
-- Dashboard ownership and role-based permissions are enforced
+- Dashboard editorship and role-based permissions are enforced
 - The `can_access_datasource()` method validates dataset access
 
 **Dataset Access Filters**:

@@ -27,6 +27,7 @@ import {
 } from 'react';
 import {
   DndContext,
+  DragOverlay,
   useSensor,
   useSensors,
   PointerSensor,
@@ -36,6 +37,18 @@ import {
   UniqueIdentifier,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { css, styled } from '@apache-superset/core/theme';
+import {
+  ColumnOptionProps,
+  MetricOptionProps,
+} from '@superset-ui/chart-controls';
+import { Flex } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { DndItemType } from 'src/explore/components/DndItemType';
+import {
+  StyledColumnOption,
+  StyledMetricOption,
+} from 'src/explore/components/optionRenderers';
 import { DatasourcePanelDndItem } from '../DatasourcePanel/types';
 
 /**
@@ -50,6 +63,30 @@ export interface ActiveDragData {
   onMoveLabel?: (dragIndex: number, hoverIndex: number) => void;
   onDropLabel?: () => void;
 }
+
+/**
+ * Container for the <DragOverlay> preview. Mirrors DatasourceItemContainer
+ * (the lifted row from DatasourcePanelDragOption) so the item following the
+ * cursor reads as the raised source row. Fully opaque on purpose — the faded
+ * source row is what signals "in flight", not the overlay.
+ */
+const DragOverlayContainer = styled(Flex)`
+  ${({ theme }) => css`
+    width: 100%;
+    height: ${theme.sizeUnit * 6}px;
+    padding: 0 ${theme.sizeUnit}px;
+    color: ${theme.colorText};
+    background-color: ${theme.colorBgElevated};
+    border-radius: 4px;
+    box-shadow: 0 2px 8px ${theme.colorSplit};
+    cursor: grabbing;
+
+    > div {
+      min-width: 0;
+      margin-right: ${theme.sizeUnit * 2}px;
+    }
+  `}
+`;
 
 /**
  * Context to track if something is being dragged (for visual feedback)
@@ -229,6 +266,30 @@ export const ExploreDndContextProvider: FC<ExploreDndContextProps> = ({
           </ActiveDragContext.Provider>
         </DraggingContext.Provider>
       </DropzoneContext.Provider>
+      {/*
+        @dnd-kit has no native drag image (unlike react-dnd's HTML5 backend),
+        so the item following the cursor must be rendered explicitly here.
+        Reorder drags leave activeData null on purpose, so only external
+        DatasourcePanel drags (which carry a value) get a preview.
+      */}
+      <DragOverlay dropAnimation={null}>
+        {activeData?.value ? (
+          <DragOverlayContainer align="center" justify="space-between">
+            {activeData.type === DndItemType.Column ? (
+              <StyledColumnOption
+                column={activeData.value as ColumnOptionProps['column']}
+                showType
+              />
+            ) : (
+              <StyledMetricOption
+                metric={activeData.value as MetricOptionProps['metric']}
+                showType
+              />
+            )}
+            <Icons.Drag iconSize="xl" />
+          </DragOverlayContainer>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 };

@@ -214,6 +214,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.groups import GroupsListView
         from superset.views.log.api import LogRestApi
         from superset.views.logs import ActionLogView
+        from superset.views.pwa_manifest import PwaManifestView
         from superset.views.redirect import RedirectView
         from superset.views.roles import RolesListView
         from superset.views.sql_lab.views import (
@@ -305,10 +306,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         if app_root.endswith("/"):
             app_root = app_root.rstrip("/")
 
+        # FAB renders this href verbatim in menus and does not apply
+        # SCRIPT_NAME at render time, so the application_root has to be baked
+        # in at registration. The previous hardcoded `/superset/welcome/`
+        # collided with non-`/superset/` deployments AND with the new
+        # `Superset.route_base = ""`. `app_root` is normalized above.
         appbuilder.add_link(
             "Home",
             label=_("Home"),
-            href="/superset/welcome/",
+            href=f"{app_root}/welcome/",
             cond=lambda: bool(current_app.config["LOGO_TARGET_PATH"]),
         )
 
@@ -388,6 +394,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             ),
         )
 
+        if feature_flag_manager.is_feature_enabled("ENABLE_VIEWERS"):
+            from superset.subjects.views import SubjectModelView
+
+            appbuilder.add_view(
+                SubjectModelView,
+                "Subjects",
+                label=_("Subjects"),
+                category="Security",
+                category_label=_("Security"),
+            )
+
         appbuilder.add_view(
             DynamicPluginsView,
             "Plugins",
@@ -462,6 +479,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TaggedObjectsModelView)
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
+        appbuilder.add_view_no_menu(PwaManifestView)
         appbuilder.add_view_no_menu(RedirectView)
         appbuilder.add_view_no_menu(RoleRestAPI)
         appbuilder.add_view_no_menu(UserInfoView)
@@ -624,6 +642,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         Runs init logic in the context of the app
         """
         self.configure_fab()
+        self.configure_subjects()
         self.configure_url_map_converters()
         self.configure_data_sources()
         self.configure_auth_provider()
@@ -828,7 +847,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         try:
             with self.superset_app.app_context():
                 # Simple connection test
-                db.engine.execute(text("SELECT 1"))
+                with db.engine.connect() as connection:
+                    connection.execute(text("SELECT 1"))
         except Exception:
             db_uri = self.database_uri
 
@@ -967,6 +987,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.indexview = SupersetIndexView
         appbuilder.security_manager_class = custom_sm
         appbuilder.init_app(self.superset_app, db.session)
+
+    def configure_subjects(self) -> None:
+        from superset.subjects.hooks import register_subject_hooks
+
+        register_subject_hooks()
 
     def configure_url_map_converters(self) -> None:
         #

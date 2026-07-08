@@ -18,7 +18,7 @@
  */
 import { FormatLocaleDefinition } from 'd3-format';
 import { TimeLocaleDefinition } from 'd3-time-format';
-import { isPlainObject } from 'lodash';
+import { isPlainObject } from 'lodash-es';
 import { Languages } from 'src/features/home/LanguagePicker';
 import {
   AnyThemeConfig,
@@ -99,6 +99,7 @@ export interface BrandProps {
   alt: string;
   tooltip: string;
   text: string;
+  hide_logo?: boolean;
 }
 
 export interface NavBarProps {
@@ -170,6 +171,8 @@ export interface CommonBootstrapData {
   d3_format: Partial<FormatLocaleDefinition>;
   d3_time_format: Partial<TimeLocaleDefinition>;
   pdf_compression_level: 'NONE' | 'FAST' | 'MEDIUM' | 'SLOW';
+  user_subject_id?: number;
+  user_subjects?: number[];
 }
 
 export interface BootstrapData {

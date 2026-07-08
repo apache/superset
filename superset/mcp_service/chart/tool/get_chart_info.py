@@ -170,6 +170,21 @@ def _apply_unsaved_state_override(result: ChartInfo, form_data_key: str) -> None
             # Update viz_type from cached form_data if present
             if result.form_data and "viz_type" in result.form_data:
                 result.viz_type = result.form_data["viz_type"]
+                if result.viz_type:
+                    try:
+                        from superset.mcp_service.chart.registry import (
+                            display_name_for_viz_type,
+                        )
+
+                        result.chart_type_display_name = display_name_for_viz_type(
+                            result.viz_type
+                        )
+                    except Exception as exc:  # noqa: BLE001
+                        logger.debug(
+                            "Failed to resolve display name for viz_type=%r: %s",
+                            result.viz_type,
+                            exc,
+                        )
 
             # Update filters from cached form_data
             result.filters = extract_filters_from_form_data(result.form_data)
@@ -292,8 +307,9 @@ async def get_chart_info(
     # branch returned above).
     assert request.identifier is not None
 
-    # Eager load tags to avoid N+1 queries during serialization.
+    # Eager load editors and tags to avoid N+1 queries during serialization
     eager_options = [
+        subqueryload(Slice.editors),
         subqueryload(Slice.tags),
     ]
 

@@ -24,7 +24,7 @@ import { RootState } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';
 import { useDragDropManager } from 'react-dnd';
 import classNames from 'classnames';
-import { debounce } from 'lodash';
+import { debounce } from 'lodash-es';
 
 const StyledDiv = styled.div`
   ${({ theme }) => css`

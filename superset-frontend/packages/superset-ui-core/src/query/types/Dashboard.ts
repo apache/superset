@@ -106,6 +106,7 @@ export type ChartCustomization = {
   };
   description?: string;
   removed?: boolean;
+  time_grains?: string[];
 };
 
 export type ChartCustomizationDivider = Partial<
@@ -185,10 +186,7 @@ export function isFilterDivider(
 
 export function isChartCustomization(
   filterElement:
-    | Filter
-    | Divider
-    | ChartCustomization
-    | ChartCustomizationDivider,
+    Filter | Divider | ChartCustomization | ChartCustomizationDivider,
 ): filterElement is ChartCustomization {
   return filterElement.type === ChartCustomizationType.ChartCustomization;
 }
@@ -203,10 +201,7 @@ export type FilterConfiguration = Array<Filter | Divider>;
 
 export type Filters = {
   [filterId: string]:
-    | Filter
-    | Divider
-    | ChartCustomization
-    | ChartCustomizationDivider;
+    Filter | Divider | ChartCustomization | ChartCustomizationDivider;
 };
 
 export type PartialFilters = {
@@ -225,8 +220,7 @@ export type ChartCustomizationConfiguration = Array<
 
 export type ChartCustomizations = {
   [chartCustomizationId: string]:
-    | ChartCustomization
-    | ChartCustomizationDivider;
+    ChartCustomization | ChartCustomizationDivider;
 };
 
 export type PartialChartCustomizations = {
