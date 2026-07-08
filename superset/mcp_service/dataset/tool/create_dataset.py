@@ -33,6 +33,7 @@ from superset.commands.dataset.create import CreateDatasetCommand
 from superset.commands.dataset.exceptions import (
     DatasetCreateFailedError,
     DatasetInvalidError,
+    DatasetSoftDeletedTwinExistsError,
 )
 from superset.extensions import event_logger
 from superset.mcp_service.dataset.schemas import (
@@ -149,6 +150,13 @@ async def create_dataset(
         )
         return result
 
+    except DatasetSoftDeletedTwinExistsError as exc:
+        # Raised directly by validate() (not wrapped in DatasetInvalidError):
+        # a soft-deleted dataset still occupies this physical table. Surface
+        # the actionable restore-or-rename message rather than letting it fall
+        # through to the generic "unexpected error" branch.
+        await ctx.warning("Dataset creation blocked by soft-deleted twin: %s" % (exc,))
+        return DatasetError.create(error=str(exc), error_type="DatasetExistsError")
     except DatasetInvalidError as exc:
         # CreateDatasetCommand.validate() collects validation errors into
         # DatasetInvalidError.exceptions, never raising them directly.

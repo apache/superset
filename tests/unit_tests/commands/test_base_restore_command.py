@@ -124,13 +124,16 @@ def test_validate_raises_forbidden_when_ownership_check_fails(
             cmd.validate()
 
 
-def test_validate_calls_dao_with_visibility_bypass_only(app_context: None) -> None:
+def test_validate_calls_dao_with_both_bypasses(app_context: None) -> None:
     """The DAO load uses ``skip_visibility_filter=True`` (so the
-    soft-deleted row is visible) and ``id_column='uuid'`` — but does
-    NOT bypass the entity's ``base_filter``. Restore should honor RBAC
-    the same way ``delete`` does (which loads through ``find_by_ids``
-    without ``skip_base_filter=True``); the visibility bypass is the
-    only escape hatch needed for restore."""
+    soft-deleted row is visible), ``skip_base_filter=True``, and
+    ``id_column='uuid'``. The base-filter bypass is deliberate: an
+    entity's RBAC ``base_filter`` may have no ownership leg (charts and
+    datasets filter by datasource access), and ``raise_for_access``
+    counts ownership as datasource access — so a lost grant must not
+    hide a row from the one audience that can restore it. The restore
+    audience (owners or admin) is enforced by ``raise_for_ownership``
+    instead."""
     soft_deleted = MagicMock()
     soft_deleted.deleted_at = datetime(2026, 1, 1)
     cmd = _make_command(dao_find_result=soft_deleted)
@@ -142,6 +145,7 @@ def test_validate_calls_dao_with_visibility_bypass_only(app_context: None) -> No
     cmd.dao.find_by_id.assert_called_once_with(
         "uuid-1",
         id_column="uuid",
+        skip_base_filter=True,
         skip_visibility_filter=True,
     )
 

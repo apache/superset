@@ -14,12 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+
 from flask_babel import lazy_gettext as _
 from sqlalchemy import not_, or_
 from sqlalchemy.orm.query import Query
 
 from superset.connectors.sqla.models import SqlaTable
 from superset.views.base import BaseFilter
+from superset.views.filters import BaseDeletedStateFilter
 
 
 class DatasetIsNullOrEmptyFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -51,3 +54,19 @@ class DatasetCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-meth
                 )
             )
         return query
+
+
+class DatasetDeletedStateFilter(  # pylint: disable=too-few-public-methods
+    BaseDeletedStateFilter
+):
+    """Rison filter for the GET list that exposes soft-deleted datasets.
+
+    Soft-deleted rows are scoped to the **restore audience** (owners or
+    admins) by ``BaseDeletedStateFilter._scope_to_restore_audience`` — the
+    cross-entity contract lives on the base, so this class is a pure
+    declaration. Live rows keep their normal ``DatasourceFilter``
+    visibility.
+    """
+
+    arg_name = "dataset_deleted_state"
+    model = SqlaTable

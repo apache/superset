@@ -2386,8 +2386,8 @@ describe('plugin-chart-table', () => {
     test('excludes UUID columns from Search By dropdown', async () => {
       const props = transformProps({
         ...testData.basic,
-        formData: {
-          ...testData.basic.formData,
+        rawFormData: {
+          ...testData.basic.rawFormData,
           server_pagination: true,
           include_search: true,
         },
@@ -2419,16 +2419,21 @@ describe('plugin-chart-table', () => {
         </ProviderWrapper>,
       );
 
-      // Open the dropdown
-      const searchBySelect = screen.getByRole('combobox', {
-        name: /search by/i,
-      });
+      // Scope query via `within` on the parent container of the "Search by" text
+      const searchByLabel = screen.getByText('Search by');
+      const searchBySelect = within(searchByLabel.parentElement!).getByRole(
+        'combobox',
+      );
       fireEvent.mouseDown(searchBySelect);
 
       // Normal string column is available
-      expect(await screen.findByRole('option', { name: 'name' })).toBeInTheDocument();
+      expect(
+        await screen.findByRole('option', { name: 'name' }),
+      ).toBeInTheDocument();
       // UUID column is explicitly excluded
-      expect(screen.queryByRole('option', { name: 'uuid_col' })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', { name: 'uuid_col' }),
+      ).not.toBeInTheDocument();
     });
   });
 });
