@@ -138,6 +138,12 @@ export default function transformProps(
     legendState,
   } = chartProps;
 
+  const xAxisForceCategoricalProvided =
+    Object.prototype.hasOwnProperty.call(
+      formData as Record<string, unknown>,
+      'xAxisForceCategorical',
+    );
+
   let focusedSeries: string | null = null;
 
   const {
@@ -258,7 +264,28 @@ export default function transformProps(
 
   const dataTypes = getColtypesMapping(queriesData[0]);
   const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
-  const xAxisType = getAxisType(stack, xAxisForceCategorical, xAxisDataType);
+  const hasBarSeries =
+    seriesType === EchartsTimeseriesSeriesType.Bar ||
+    seriesTypeB === EchartsTimeseriesSeriesType.Bar;
+
+  // Runtime fallback for legacy/external payloads that may omit
+  // `xAxisForceCategorical` (it would otherwise come from DEFAULT_FORM_DATA
+  // with a `false` value, which routes unstacked numeric bars to Value axis).
+  let effectiveXAxisForceCategorical = xAxisForceCategorical;
+  if (
+    !xAxisForceCategoricalProvided &&
+    hasBarSeries &&
+    xAxisDataType === GenericDataType.Numeric &&
+    !stack
+  ) {
+    effectiveXAxisForceCategorical = true;
+  }
+
+  const xAxisType = getAxisType(
+    stack,
+    effectiveXAxisForceCategorical,
+    xAxisDataType,
+  );
 
   const [rawSeriesA, sortedTotalValuesA] = extractSeries(rebasedDataA, {
     fillNeighborValue: stack ? 0 : undefined,
