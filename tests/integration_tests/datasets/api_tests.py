@@ -27,13 +27,14 @@ import pytest
 import rison
 import yaml
 from freezegun import freeze_time
-from sqlalchemy import inspect, text
+from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
 
 from superset.commands.dataset.exceptions import DatasetCreateFailedError
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.extensions import db, security_manager
 from superset.models.core import Database
 from superset.models.slice import Slice
@@ -154,6 +155,7 @@ class TestDatasetApi(SupersetTestCase):
     def get_fixture_datasets(self) -> list[SqlaTable]:
         return (
             db.session.query(SqlaTable)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
             .options(joinedload(SqlaTable.database))
             .filter(SqlaTable.table_name.in_(self.fixture_tables_names))
             .all()
@@ -191,19 +193,40 @@ class TestDatasetApi(SupersetTestCase):
     @pytest.fixture
     def create_datasets(self):
         with self.create_app().app_context():
+            # Purge any soft-deleted rows that occupy the unique constraint.
+            # Restrict to ``deleted_at IS NOT NULL``: ``get_fixture_datasets``
+            # bypasses the visibility filter and matches by table name only,
+            # so an unrestricted purge would also hard-delete *live* datasets
+            # other suites created over the same AB tables.
+            stale = [
+                ds for ds in self.get_fixture_datasets() if ds.deleted_at is not None
+            ]
+            for ds in stale:
+                db.session.delete(ds)
+            if stale:
+                db.session.commit()
+
             datasets = []
             admin = self.get_user("admin")
             main_db = get_main_database()
             for tables_name in self.fixture_tables_names:
                 datasets.append(self.insert_dataset(tables_name, [admin.id], main_db))
 
+            # Capture IDs eagerly — dataset objects may be detached after yield
+            dataset_ids = [ds.id for ds in datasets]
+
             yield datasets
 
-            # rollback changes
-            for dataset in datasets:
-                state = inspect(dataset)
-                if not state.was_deleted:
-                    db.session.delete(dataset)
+            # rollback changes (including soft-deleted rows)
+            for dataset_id in dataset_ids:
+                row = (
+                    db.session.query(SqlaTable)
+                    .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+                    .filter(SqlaTable.id == dataset_id)
+                    .one_or_none()
+                )
+                if row:
+                    db.session.delete(row)
             db.session.commit()
 
     @staticmethod
@@ -1951,23 +1974,40 @@ class TestDatasetApi(SupersetTestCase):
             db_connection,
         ]
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_delete_dataset_item(self):
         """
         Dataset API: Test delete dataset item
         """
 
         dataset = self.insert_default_dataset()
+        dataset_id = dataset.id
         view_menu = security_manager.find_view_menu(dataset.get_perm())
         assert view_menu is not None
         view_menu_id = view_menu.id
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dataset/{dataset.id}"
-        rv = self.client.delete(uri)
-        assert rv.status_code == 200
-        non_view_menu = db.session.query(security_manager.viewmenu_model).get(
-            view_menu_id
-        )
-        assert non_view_menu is None
+        try:
+            uri = f"api/v1/dataset/{dataset.id}"
+            rv = self.client.delete(uri)
+            assert rv.status_code == 200
+            # With soft delete, the row still exists (with deleted_at set) so
+            # FAB permissions are preserved for potential restore.
+            non_view_menu = db.session.query(security_manager.viewmenu_model).get(
+                view_menu_id
+            )
+            assert non_view_menu is not None
+        finally:
+            # Hard-delete the (possibly soft-deleted) row even on assertion
+            # failure, to avoid unique constraint collisions in later tests.
+            row = (
+                db.session.query(SqlaTable)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+                .filter(SqlaTable.id == dataset_id)
+                .one_or_none()
+            )
+            if row:
+                db.session.delete(row)
+                db.session.commit()
 
     def test_delete_item_dataset_not_owned(self):
         """
@@ -2149,6 +2189,7 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 422
         assert data == {"message": "Dataset metric delete failed."}
 
+    @with_feature_flags(SOFT_DELETE=True)
     @pytest.mark.usefixtures("create_datasets")
     def test_bulk_delete_dataset_items(self):
         """
@@ -2175,9 +2216,9 @@ class TestDatasetApi(SupersetTestCase):
             .all()
         )
         assert datasets == []
-        # Assert permissions get cleaned
+        # With soft delete, FAB permissions are preserved for potential restore
         for view_menu_name in view_menu_names:
-            assert security_manager.find_view_menu(view_menu_name) is None
+            assert security_manager.find_view_menu(view_menu_name) is not None
 
     @pytest.mark.usefixtures("create_datasets")
     def test_bulk_delete_item_dataset_not_owned(self):

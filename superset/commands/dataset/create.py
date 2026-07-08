@@ -28,6 +28,7 @@ from superset.commands.dataset.exceptions import (
     DatasetDataAccessIsNotAllowed,
     DatasetExistsValidationError,
     DatasetInvalidError,
+    DatasetSoftDeletedTwinExistsError,
     TableNotFoundValidationError,
 )
 from superset.daos.dataset import DatasetDAO
@@ -74,6 +75,14 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             table = Table(table_name, schema, catalog)
 
             if not DatasetDAO.validate_uniqueness(database, table):
+                # Distinguish the hidden-twin case: uniqueness fails while
+                # the caller's dataset list looks empty. Raise the targeted
+                # 422 (naming the twin's uuid and the restore endpoint)
+                # instead of the opaque "already exists".
+                if soft_twin := DatasetDAO.find_soft_deleted_logical_duplicate(
+                    database, table
+                ):
+                    raise DatasetSoftDeletedTwinExistsError(str(soft_twin.uuid))
                 exceptions.append(DatasetExistsValidationError(table))
 
         # Validate table exists on dataset if sql is not provided

@@ -145,3 +145,90 @@ def test_validate_file_size_skips_when_not_seekable(
     )
     # size can't be determined cheaply -> skip rather than raising a 500
     UploadCommand.validate_file_size(_non_seekable_file())
+
+
+def _stub_run_environment(mocker: MockerFixture) -> MagicMock:
+    """Stub everything ``run()`` needs up to the dataset lookup."""
+    model = mocker.MagicMock()
+    model.db_engine_spec.supports_file_upload = True
+    model.db_engine_spec.normalize_table_name_for_upload.return_value = ("t", None)
+    mocker.patch(
+        "superset.commands.database.uploaders.base.DatabaseDAO.find_by_id",
+        return_value=model,
+    )
+    mocker.patch(
+        "superset.commands.database.uploaders.base.schema_allows_file_upload",
+        return_value=True,
+    )
+    mocker.patch.dict(
+        "superset.commands.database.uploaders.base.current_app.config",
+        {"UPLOAD_MAX_FILE_SIZE_BYTES": 1024},
+    )
+    db_mock = mocker.patch("superset.commands.database.uploaders.base.db")
+    # No visible dataset over the target table.
+    db_mock.session.query.return_value.filter_by.return_value.one_or_none.return_value = None  # noqa: E501
+    return model
+
+
+def test_run_blocks_upload_over_soft_deleted_twin(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """An upload targeting a table held by a soft-deleted dataset must be
+    refused BEFORE any file data is written.
+
+    The dataset lookup in ``run()`` goes through the soft-delete visibility
+    filter, so the hidden twin is invisible and, unguarded, the upload would
+    create an active twin (permanently blocking restore) or hit the legacy
+    unique constraint — after ``reader.read`` had already loaded the file's
+    contents into the analytics database, outside the metadata transaction.
+    """
+    from superset.commands.database.exceptions import (
+        DatabaseUploadSoftDeletedDatasetExistsError,
+    )
+
+    _stub_run_environment(mocker)
+    soft_twin = MagicMock()
+    soft_twin.uuid = "11111111-2222-3333-4444-555555555555"
+    mocker.patch(
+        # the guard imports DatasetDAO inside run() (deferred to avoid a
+        # circular import), so patch it at the source module
+        "superset.daos.dataset.DatasetDAO.find_soft_deleted_logical_duplicate",
+        return_value=soft_twin,
+    )
+
+    reader = MagicMock()
+    command = UploadCommand(
+        model_id=1, table_name="t", file=_file(b"x"), schema=None, reader=reader
+    )
+    with pytest.raises(DatabaseUploadSoftDeletedDatasetExistsError) as excinfo:
+        command.run()
+
+    assert "11111111-2222-3333-4444-555555555555" in str(excinfo.value)
+    # The guard must fire before the file contents are written.
+    reader.read.assert_not_called()
+
+
+def test_run_proceeds_when_no_soft_deleted_twin(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """Control: with no hidden twin, the upload reads the file and creates
+    the dataset as before."""
+    _stub_run_environment(mocker)
+    mocker.patch(
+        # the guard imports DatasetDAO inside run() (deferred to avoid a
+        # circular import), so patch it at the source module
+        "superset.daos.dataset.DatasetDAO.find_soft_deleted_logical_duplicate",
+        return_value=None,
+    )
+    mocker.patch(
+        "superset.commands.database.uploaders.base.SqlaTable",
+        return_value=MagicMock(),
+    )
+    mocker.patch("superset.commands.database.uploaders.base.get_user")
+
+    reader = MagicMock()
+    command = UploadCommand(
+        model_id=1, table_name="t", file=_file(b"x"), schema=None, reader=reader
+    )
+    command.run()
+    reader.read.assert_called_once()

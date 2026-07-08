@@ -104,6 +104,7 @@ from superset.models.helpers import (
     ExploreMixin,
     ImportExportMixin,
     QueryResult,
+    SoftDeleteMixin,
     SQLA_QUERY_KEYS,
     validate_adhoc_subquery,
 )
@@ -1303,6 +1304,7 @@ sqlatable_user = DBTable(
 
 class SqlaTable(
     CoreDataset,
+    SoftDeleteMixin,
     BaseDatasource,
     ExploreMixin,
 ):  # pylint: disable=too-many-public-methods

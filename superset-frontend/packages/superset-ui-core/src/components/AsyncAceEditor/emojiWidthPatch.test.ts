@@ -132,6 +132,35 @@ test('renderer leaves emoji-free tokens entirely to the original path', () => {
   expect(screenColumn).toBe(8);
 });
 
+test('emoji boxes carry the token-class styling of their token', () => {
+  const container = document.createElement('div');
+  const layer = new TextLayer(container);
+  layer.config = { characterWidth: 10 };
+
+  const parent = document.createElement('div');
+  layer.$renderToken(
+    parent,
+    0,
+    { type: 'constant.language', value: '✨' },
+    '✨',
+  );
+
+  const box = parent.querySelector<HTMLElement>('.ace_cjk');
+  expect(box?.className).toBe('ace_cjk ace_constant ace_language');
+});
+
+test('emoji boxes in plain text tokens carry no extra classes', () => {
+  const container = document.createElement('div');
+  const layer = new TextLayer(container);
+  layer.config = { characterWidth: 10 };
+
+  const parent = document.createElement('div');
+  layer.$renderToken(parent, 0, { type: 'text', value: '✨' }, '✨');
+
+  const box = parent.querySelector<HTMLElement>('.ace_cjk');
+  expect(box?.className).toBe('ace_cjk');
+});
+
 test('patch is idempotent', () => {
   const before = EditSession.prototype.$getStringScreenWidth;
   patchAceEmojiWidths(EditSession, TextLayer);

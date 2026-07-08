@@ -291,6 +291,31 @@ Use created_by_me for authorship, owned_by_me for edit ownership, or both
 together for the union. All flags can be combined with 'filters' but not
 with 'search'.
 
+To explore metrics across all data sources (built-in datasets + external semantic views):
+1. list_metrics(request={{"search": "<keyword>"}})
+   -> returns metrics with dataset_id/view_id and compatible_dimensions inline
+2. get_table(request={{
+     "dataset_id": <id>,          # OR "view_id": <id> for external semantic views
+     "metrics": ["revenue"],
+     "dimensions": ["region"],
+     "time_range": "Last 30 days",
+     "row_limit": 500
+   }}) -> returns tabular results
+   - Use "dataset_id" when list_metrics returned source="builtin"
+   - Use "view_id" when list_metrics returned source="external"
+
+To progressively refine a query (compatible dimensions/metrics):
+- get_compatible_dimensions(request={{
+    "selected_metrics": ["revenue"],
+    "selected_dimensions": [],
+    "dataset_id": <id>  # or "view_id": <id>
+  }}) -> dimensions valid to add to the current selection
+- get_compatible_metrics(request={{
+    "selected_metrics": [],
+    "selected_dimensions": ["region"],
+    "view_id": <id>  # useful for external semantic layers with constraints
+  }}) -> metrics valid to add to the current selection
+
 To query a dataset's semantic layer (metrics, dimensions):
 1. list_datasets(request={{}}) -> find a dataset
 2. get_dataset_info(request={{"identifier": <id>}}) -> examine columns AND metrics
@@ -743,6 +768,12 @@ from superset.mcp_service.role.tool import (  # noqa: F401, E402
 from superset.mcp_service.saved_query.tool import (  # noqa: F401, E402
     get_saved_query_info,
     list_saved_queries,
+)
+from superset.mcp_service.semantic_layer.tool import (  # noqa: F401, E402
+    get_compatible_dimensions,
+    get_compatible_metrics,
+    get_table,
+    list_metrics,
 )
 from superset.mcp_service.sql_lab.tool import (  # noqa: F401, E402
     execute_sql,

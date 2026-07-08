@@ -280,6 +280,22 @@ test('disables overwrite option for new slice', () => {
   expect(getByRole('radio', { name: 'Save (Overwrite)' })).toBeDisabled();
 });
 
+test('defaults to Save As for new chart even when can_overwrite is true', () => {
+  const { getByRole } = setup(
+    {},
+    mockStore({
+      ...initialState,
+      explore: {
+        ...initialState.explore,
+        slice: null,
+        can_overwrite: true,
+      },
+    }),
+  );
+  expect(getByRole('radio', { name: 'Save (Overwrite)' })).toBeDisabled();
+  expect(getByRole('radio', { name: 'Save as...' })).toBeChecked();
+});
+
 test('disables overwrite option for non-owner', () => {
   const { getByRole, getByText } = setup(
     {},

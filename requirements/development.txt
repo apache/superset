@@ -178,7 +178,7 @@ croniter==6.2.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-cryptography==48.0.1
+cryptography==49.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -360,7 +360,7 @@ google-auth-oauthlib==1.2.1
     # via
     #   pandas-gbq
     #   pydata-google-auth
-google-cloud-bigquery==3.27.0
+google-cloud-bigquery==3.42.1
     # via
     #   apache-superset
     #   pandas-gbq
@@ -790,9 +790,10 @@ pynacl==1.6.2
     # via
     #   -c requirements/base-constraint.txt
     #   paramiko
-pyopenssl==26.2.0
+pyopenssl==26.3.0
     # via
     #   -c requirements/base-constraint.txt
+    #   google-auth
     #   shillelagh
 pyparsing==3.2.3
     # via
