@@ -2130,12 +2130,12 @@ test('bootstrapDefaultMode: reads "dark" from bootstrap config and starts in DAR
   expect(controller.getCurrentMode()).toBe(ThemeMode.DARK);
 });
 
-test('bootstrapDefaultMode: reads "light" from bootstrap config and starts in DEFAULT mode', () => {
+test('bootstrapDefaultMode: reads "default" from bootstrap config and starts in DEFAULT mode', () => {
   mockGetBootstrapData.mockReturnValue(
     createMockBootstrapData({
       default: DEFAULT_THEME,
       dark: DARK_THEME,
-      defaultMode: 'light',
+      defaultMode: 'default',
     }),
   );
   const controller = createController();

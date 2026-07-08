@@ -703,7 +703,7 @@ export class ThemeController {
     const hasCustomDark = hasValidDark && !this.isEmptyTheme(darkTheme);
 
     const modeMap: Record<string, ThemeMode> = {
-      light: ThemeMode.DEFAULT,
+      default: ThemeMode.DEFAULT,
       dark: ThemeMode.DARK,
       system: ThemeMode.SYSTEM,
     };
