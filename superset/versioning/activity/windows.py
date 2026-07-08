@@ -94,15 +94,15 @@ def union_windows(windows: list[Window]) -> list[Window]:
     out: list[Window] = [sorted_windows[0]]
     for current in sorted_windows[1:]:
         prev = out[-1]
+        if not prev.merges_with(current):
+            out.append(current)
+            continue
         if prev.end_tx is None:
             # Prior window is open-ended; it absorbs everything past.
             continue
-        if current.start_tx <= prev.end_tx:
-            # Overlapping or touching — extend the prior window.
-            new_end: int | None = (
-                None if current.end_tx is None else max(prev.end_tx, current.end_tx)
-            )
-            out[-1] = Window(prev.start_tx, new_end)
-        else:
-            out.append(current)
+        # Overlapping or touching — extend the prior window.
+        new_end: int | None = (
+            None if current.end_tx is None else max(prev.end_tx, current.end_tx)
+        )
+        out[-1] = Window(prev.start_tx, new_end)
     return out

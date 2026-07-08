@@ -60,7 +60,7 @@ Package layout (descends from public entry point to leaf helpers):
   the ActivityRecord DTO (summary headlines, ``changed_by`` projection,
   uuid lookup).
 * :mod:`.kinds` — the kind-translation tables, the ``Window`` /
-  ``EntityWindows`` type aliases, and :func:`load_shadow_model`.
+  ``EntityWindows`` type aliases, and :func:`load_live_model`.
 
 The public surface (re-exported here) is the eight symbols below.
 Sub-module privates are intentionally NOT re-exported — tests and

@@ -53,7 +53,7 @@ from superset.versioning.activity.impact import (
 from superset.versioning.activity.kinds import (
     API_KIND_LABEL,
     chunked_ids,
-    load_shadow_model,
+    load_live_model,
     NAME_COLUMN,
     TABLE_KIND_TO_API,
     USER_FACING_KIND,
@@ -155,15 +155,23 @@ def apply_record_decoration(
             if record["entity_deleted"]:
                 # Security: a tombstoned related entity has no live row, so
                 # the visibility filter cannot access-gate it (there is
-                # nothing to apply the FAB access filter to). Redact the raw
-                # diff CONTENT — filter values, column names, SQL/adhoc
-                # expressions — so a requester entitled only to the path
-                # entity can't read the internal change values of a deleted
-                # related entity. The entity_name and the headline
-                # are kept deliberately (the panel shows "(deleted)
-                # <name>"); only the value payload is stripped. Self-path
-                # tombstones are untouched — the endpoint already gated them
-                # via ``raise_for_access`` on the path entity.
+                # nothing to apply the FAB access filter to). Deletion must
+                # not WIDEN what a requester entitled only to the path entity
+                # can see, so redact everything that would identify the
+                # deleted related entity or its editors: its name, the
+                # synthesized headline, the editor identity, and the raw diff
+                # CONTENT (filter values, column names, SQL/adhoc
+                # expressions). The record still appears — kind, operation,
+                # and timestamps remain, rendered as a generic
+                # "(deleted) <kind>" marker — so the stream stays honest
+                # about WHEN something changed without disclosing WHAT, WHO,
+                # or WHICH entity. Self-path tombstones are untouched: the
+                # endpoint already gated them via ``raise_for_access`` on the
+                # path entity.
+                label = API_KIND_LABEL.get(api_kind, api_kind)
+                record["entity_name"] = ""
+                record["summary"] = f"(deleted) {label}"
+                record["changed_by"] = None
                 record["from_value"] = None
                 record["to_value"] = None
                 record["path"] = None
@@ -204,7 +212,7 @@ def _lookup_entity_uuids(
         for api_kind, entity_ids in by_kind.items():
             if api_kind not in NAME_COLUMN:
                 continue
-            model_cls = load_shadow_model(NAME_COLUMN[api_kind][0])
+            model_cls = load_live_model(NAME_COLUMN[api_kind][0])
             live_tbl = model_cls.__table__
             # Chunk the IN-clause to stay under SQLite's bind-variable floor
             # (a wide dashboard can have more related entities than the floor).

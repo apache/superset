@@ -100,18 +100,35 @@ def test_intersect_windows(
 
 
 def test_resolve_scope_self_only_for_dashboard() -> None:
-    """``include='self'`` yields exactly one tuple covering all transactions."""
-    assert resolve_scope("Dashboard", 42, "self") == [
+    """``include='self'`` yields exactly one tuple, bounded at the entity's
+    first tracked transaction."""
+    assert resolve_scope("Dashboard", 42, "self", 0) == [
         ("Dashboard", 42, [Window(0, None)]),
     ]
 
 
+def test_resolve_scope_self_window_bounded_at_first_tracked_tx() -> None:
+    """The self window starts at ``self_start_tx`` (the entity's first
+    tracked transaction), not 0 — so a reused integer id can't inherit a
+    hard-deleted predecessor's history."""
+    assert resolve_scope("Dashboard", 42, "self", 17) == [
+        ("Dashboard", 42, [Window(17, None)]),
+    ]
+
+
+def test_resolve_scope_self_empty_when_no_tracked_history() -> None:
+    """``self_start_tx=None`` (no shadow rows for this id+uuid yet) yields
+    no self window, so a reused id surfaces nothing from its predecessor."""
+    assert resolve_scope("Dashboard", 42, "self", None) == []
+    assert resolve_scope("Dashboard", 42, "self") == []
+
+
 def test_resolve_scope_self_only_for_chart() -> None:
-    assert resolve_scope("Slice", 7, "self") == [("Slice", 7, [Window(0, None)])]
+    assert resolve_scope("Slice", 7, "self", 0) == [("Slice", 7, [Window(0, None)])]
 
 
 def test_resolve_scope_self_only_for_dataset() -> None:
-    assert resolve_scope("SqlaTable", 9, "self") == [
+    assert resolve_scope("SqlaTable", 9, "self", 0) == [
         ("SqlaTable", 9, [Window(0, None)]),
     ]
 
@@ -123,7 +140,7 @@ def test_dataset_has_no_related_scope() -> None:
 
 def test_dataset_all_returns_only_self() -> None:
     """For datasets, ``include='all'`` == ``include='self'`` (AV-004)."""
-    assert resolve_scope("SqlaTable", 9, "all") == [
+    assert resolve_scope("SqlaTable", 9, "all", 0) == [
         ("SqlaTable", 9, [Window(0, None)]),
     ]
 
