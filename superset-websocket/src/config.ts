@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { readFileSync } from 'fs';
 import { merge as _merge } from 'lodash-es';
 
 export interface RedisConfig {
@@ -104,7 +105,7 @@ function configFromFile(): Partial<ConfigType> {
   const isTest = process.env.NODE_ENV === 'test';
   const configFile = isTest ? '../config.test.json' : '../config.json';
   try {
-    return require(configFile);
+    return JSON.parse(readFileSync(configFile, 'utf8')) as ConfigType;
   } catch {
     console.warn('config.json file not found');
     return {};
