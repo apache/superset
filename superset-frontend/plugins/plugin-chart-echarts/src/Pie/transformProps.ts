@@ -78,18 +78,31 @@ export function parseParams({
 const HALF_DONUT_BASE_POSITION = 69;
 const HALF_DONUT_TOP_OFFSET = 68.5;
 const DONUT_OFFSET = 50;
+const HALF_DONUT_SWEEP_LIMIT = 180;
+const HALF_DONUT_START_ANGLE = 180;
 
+export const isHalfDonut = (
+  sweptAngle: number,
+  startAngle: number,
+): boolean => {
+  return (
+    sweptAngle <= HALF_DONUT_SWEEP_LIMIT &&
+    startAngle === HALF_DONUT_START_ANGLE
+  );
+};
 export function getTotalValuePadding({
   chartPadding,
   donut,
   width,
   height,
-  half,
+  startAngle,
+  sweptAngle,
 }: TotalValuePaddingProps): PaddingResult {
   const safeHeight = height || 1;
   const safeWidth = width || 1;
+  const isHalf = isHalfDonut(sweptAngle, startAngle);
 
-  const getDonutBase = () => (half ? HALF_DONUT_TOP_OFFSET : DONUT_OFFSET);
+  const getDonutBase = () => (isHalf ? HALF_DONUT_TOP_OFFSET : DONUT_OFFSET);
   const calculateTop = (): string => {
     if (chartPadding.bottom) {
       return donut
@@ -97,7 +110,7 @@ export function getTotalValuePadding({
         : '0';
     }
 
-    if (chartPadding.top || half) {
+    if (chartPadding.top || isHalf) {
       if (donut) {
         const base = chartPadding.top
           ? getDonutBase()
@@ -191,7 +204,6 @@ export default function transformProps(
   const contributionLabel = getContributionLabel(metricLabel);
   const groupbyLabels = groupby.map(getColumnLabel);
   const minShowLabelAngle = (showLabelsThreshold || 0) * 3.6;
-  const half = sweptAngle <= 180 && startAngle === 180;
 
   const numberFormatter = getValueFormatter(
     metric,
@@ -423,7 +435,7 @@ export default function transformProps(
       animation: false,
       roseType: roseType || undefined,
       radius: [`${donut ? innerRadius : 0}%`, `${outerRadius}%`],
-      center: ['50%', half ? '70%' : '50%'],
+      center: ['50%', isHalfDonut(sweptAngle, startAngle) ? '70%' : '50%'],
       startAngle,
       endAngle: startAngle - sweptAngle,
       avoidLabelOverlap: true,
@@ -486,7 +498,14 @@ export default function transformProps(
     graphic: showTotal
       ? {
           type: 'text',
-          ...getTotalValuePadding({ chartPadding, donut, width, height, half }),
+          ...getTotalValuePadding({
+            chartPadding,
+            donut,
+            width,
+            height,
+            startAngle,
+            sweptAngle,
+          }),
           style: {
             text: t('Total: %s', numberFormatter(totalValue)),
             fontSize: 16,

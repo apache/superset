@@ -116,7 +116,8 @@ export interface TotalValuePaddingProps {
   donut: boolean;
   width: number;
   height: number;
-  half: boolean;
+  sweptAngle: number;
+  startAngle: number;
 }
 
 export interface PaddingResult {
