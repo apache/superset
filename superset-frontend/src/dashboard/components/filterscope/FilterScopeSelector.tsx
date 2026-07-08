@@ -313,7 +313,7 @@ const ScopeSelector = styled.div`
           display: block;
         }
 
-        /* disable style from react-checkbox-trees.css */
+        /* disable style from react-checkbox-tree.css */
         .rct-node-clickable:hover,
         .rct-node-clickable:focus,
         label:hover,
