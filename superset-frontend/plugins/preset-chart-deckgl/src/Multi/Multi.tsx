@@ -476,8 +476,7 @@ const DeckMulti = (props: DeckMultiProps) => {
         ),
       ).then(slices =>
         slices.filter(
-          (slice): slice is { slice_id: number } & JsonObject =>
-            slice !== null,
+          (slice): slice is { slice_id: number } & JsonObject => slice !== null,
         ),
       ),
     [],
