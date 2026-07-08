@@ -25,7 +25,7 @@ mappings here translate between them. Adjacent kind-keyed dicts live
 here too: the per-kind human-readable label, the user-facing
 lowercase form, and the 404 exception class.
 
-The :func:`load_shadow_model` helper exists in the same module
+The :func:`load_live_model` helper exists in the same module
 because each lookup is keyed on the same set of class names — keeping
 it adjacent to the mappings makes the kind-translation surface
 discoverable at a glance.
@@ -178,18 +178,22 @@ class Window:
 
 #: A related-entity scope row: ``(api_kind, entity_id, [windows])``.
 #: ``api_kind`` is the DTO-facing kind (``"Slice"``, etc.), not the
-#: table-stored kind. Left as a tuple alias for now — the
+#: table-stored kind. Modelled as a tuple alias — the
 #: ``(api_kind, entity_id)`` pair is logically a key with the window
 #: list as its value, so a dict shape may fit better than a flat
-#: dataclass when this is revisited.
+#: dataclass.
 EntityWindows = tuple[str, int, list[Window]]
 
 
-def load_shadow_model(model_name: str) -> type[Model]:
-    """Inline-import a shadow model class by name. Deferred until call
+def load_live_model(model_name: str) -> type[Model]:
+    """Inline-import a live model class by name. Deferred until call
     time because the versioning package is initialised before all model
     mappers are configured (same idiom used throughout
-    :mod:`superset.versioning.changes`)."""
+    :mod:`superset.versioning.changes`).
+
+    Returns the LIVE model class (``Dashboard`` / ``Slice`` /
+    ``SqlaTable``), not a Continuum shadow class — callers derive the
+    shadow table separately via ``version_class(...)`` where needed."""
     # pylint: disable=import-outside-toplevel
     if model_name == "Dashboard":
         from superset.models.dashboard import Dashboard

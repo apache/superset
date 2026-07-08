@@ -102,6 +102,15 @@ def batch_chart_counts(
         return {}
 
     dataset_ids = {dataset_id for dataset_id, _ in pairs}
+    # Bound both validity windows to the transaction range the page-set
+    # needs. Both the attachment (m2m) and the chart→dataset (slice) window
+    # must straddle a requested target_tx, so a row whose window starts
+    # after the newest target, or closes at/before the oldest one, can
+    # never contribute a match. Without this the join multiplies every
+    # attachment row by the full slice version history — an unbounded cross
+    # product on dashboards with long-lived, frequently-edited charts.
+    target_txs = {target_tx for _, target_tx in pairs}
+    min_tx, max_tx = min(target_txs), max(target_txs)
     # Chunk the datasource_id IN-clause to stay under SQLite's bind-variable
     # floor (a dashboard pointing at very many datasets can exceed it).
     rows: list[Any] = []
@@ -120,6 +129,16 @@ def batch_chart_counts(
             slices_tbl.c.datasource_id.in_(chunk),
             slices_tbl.c.datasource_type == "table",
             slices_tbl.c.operation_type != 2,
+            m2m_tbl.c.transaction_id <= max_tx,
+            sa.or_(
+                m2m_tbl.c.end_transaction_id.is_(None),
+                m2m_tbl.c.end_transaction_id > min_tx,
+            ),
+            slices_tbl.c.transaction_id <= max_tx,
+            sa.or_(
+                slices_tbl.c.end_transaction_id.is_(None),
+                slices_tbl.c.end_transaction_id > min_tx,
+            ),
         )
         rows.extend(db.session.connection().execute(stmt).mappings().all())
 

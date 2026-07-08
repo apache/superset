@@ -387,9 +387,13 @@ class TestDashboardActivityView(SupersetTestCase):
         """T042 / D-15: when a chart was on the dashboard and has since
         been hard-deleted, the chart's historical change records still
         surface in the dashboard's activity stream, marked with
-        ``entity_deleted: true`` and ``entity_uuid: null``. ``entity_name``
-        is preserved from the last shadow row so the UI can show
-        "(deleted) Girls" without a live row to query.
+        ``entity_deleted: true`` and ``entity_uuid: null``. Because a
+        tombstoned related entity has no live row to access-gate, its
+        identifying metadata is redacted: ``entity_name`` is blanked,
+        ``summary`` collapses to a generic "(deleted) <kind>" marker, and
+        ``changed_by`` (plus the diff values) are dropped — the record
+        still marks WHEN a change happened without disclosing WHAT, WHO,
+        or WHICH entity to a requester entitled only to the dashboard.
 
         Hard-delete pattern: edit the chart (creates a Slice change
         record), commit, then ``db.session.delete(chart); commit``.
@@ -439,9 +443,17 @@ class TestDashboardActivityView(SupersetTestCase):
             assert got_uuid is None, (
                 f"Hard-deleted entity should have null entity_uuid; got {got_uuid!r}"
             )
-            assert sample["entity_name"], (
-                "entity_name should be recovered from the last shadow row; "
-                f"got empty: {sample!r}"
+            # A tombstoned related entity cannot be access-gated, so its
+            # identifying metadata is redacted rather than recovered.
+            assert sample["entity_name"] == "", (
+                f"deleted entity_name should be redacted to ''; got {sample!r}"
+            )
+            assert sample["summary"].startswith("(deleted)"), (
+                "deleted record should carry a generic '(deleted) <kind>' "
+                f"headline; got {sample!r}"
+            )
+            assert sample["changed_by"] is None, (
+                f"deleted record should redact changed_by; got {sample!r}"
             )
         finally:
             db.session.rollback()

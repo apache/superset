@@ -56,6 +56,7 @@ from superset.versioning.activity.kinds import EntityWindows
 from superset.versioning.activity.queries import (
     apply_entity_name_denormalization,
     fetch_change_records,
+    first_tracked_tx,
     mark_first_tracked_saves,
     resolve_path_entity,
 )
@@ -217,6 +218,7 @@ def get_activity(
     q: str | None = None,
     page: int = 0,
     page_size: int = _DEFAULT_PAGE_SIZE,
+    resolved_entity: Any | None = None,
 ) -> tuple[list[dict[str, Any]], int, bool]:
     """Cross-entity activity stream for one path entity.
 
@@ -226,10 +228,16 @@ def get_activity(
     pointed at, etc.).
 
     Returns ``(records, total_count, truncated)``. ``truncated`` is
-    ``True`` when the per-request fetch ceiling
-    (``queries._MAX_FETCHED_RECORDS``) bit — older records exist beyond
-    what was materialized, so ``count`` is a floor, not the absolute
-    total. The count is post-visibility (silent visibility filter),
+    ``True`` when the per-kind fetch ceiling
+    (``queries._MAX_FETCHED_RECORDS``) bit for any kind — the stream is
+    clamped to a clean time cut and older records exist beyond it, so
+    ``count`` is a floor, not the absolute total.
+
+    *resolved_entity*, when supplied, is the already-resolved live path
+    entity (the endpoint resolves it once via ``resolve_endpoint_path_entity``
+    for the ``raise_for_access`` gate); passing it here skips a second
+    identical ``find_active_by_uuid`` lookup and the TOCTOU window between
+    them. The count is post-visibility (silent visibility filter),
     post-include-filter, and — when ``q`` is supplied — post-
     search-filter (``count`` reflects the matches, the contract the
     server-side search exists to provide), not just the size of the
@@ -239,12 +247,19 @@ def get_activity(
     Raises ``DashboardNotFoundError`` / ``ChartNotFoundError`` /
     ``DatasetNotFoundError`` when the path entity doesn't exist.
     """
-    _path_entity, path_id = resolve_path_entity(model_cls, entity_uuid)
+    if resolved_entity is not None:
+        path_entity, path_id = resolved_entity, resolved_entity.id
+    else:
+        path_entity, path_id = resolve_path_entity(model_cls, entity_uuid)
     path_kind = model_cls.__name__
     kind_key = path_kind.lower()  # "dashboard" / "slice" / "sqlatable"
 
+    # Lower-bound the self window at the entity's first tracked transaction
+    # (matched on (id, uuid)) so a reused integer id can't inherit a
+    # hard-deleted predecessor's history.
+    self_start_tx = first_tracked_tx(model_cls, path_id, path_entity.uuid)
     with _phase_timer(kind_key, "relationship_resolution_ms"):
-        entity_windows = resolve_scope(path_kind, path_id, include)
+        entity_windows = resolve_scope(path_kind, path_id, include, self_start_tx)
     if not entity_windows:
         _emit_request_shape_attributes(
             kind_key,
@@ -331,7 +346,9 @@ def activity_endpoint(
     except ActivityParamsError as exc:
         return api.response_400(message=str(exc))
 
-    records, count, truncated = get_activity(model_cls, entity.uuid, **params)
+    records, count, truncated = get_activity(
+        model_cls, entity.uuid, resolved_entity=entity, **params
+    )
     payload = ActivityResponseSchema().dump(
         {"result": records, "count": count, "truncated": truncated}
     )

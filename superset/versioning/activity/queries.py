@@ -36,6 +36,7 @@ mappers are configured.
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -48,7 +49,7 @@ from superset.versioning.activity.kinds import (
     API_KIND_TO_TABLE,
     chunked_ids,
     EntityWindows,
-    load_shadow_model,
+    load_live_model,
     NAME_COLUMN,
     NOT_FOUND_EXC,
     TABLE_KIND_TO_API,
@@ -56,6 +57,8 @@ from superset.versioning.activity.kinds import (
 )
 from superset.versioning.activity.windows import row_within_any_window
 from superset.versioning.changes import version_changes_table
+
+logger = logging.getLogger(__name__)
 
 # ---- Path-entity resolution -----------------------------------------------
 
@@ -82,6 +85,30 @@ def resolve_path_entity(model_cls: type[Model], entity_uuid: UUID) -> tuple[Any,
             )
         raise exc_cls(str(entity_uuid))
     return entity, entity.id
+
+
+def first_tracked_tx(
+    model_cls: type[Model], entity_id: int, entity_uuid: UUID
+) -> int | None:
+    """Return the earliest Continuum transaction_id of the shadow rows
+    that belong to *this* live entity, matched on ``(id, uuid)``; ``None``
+    when the entity has no tracked history yet.
+
+    Used to lower-bound the self-scope window. Matching on the integer
+    ``id`` alone would inherit a previously hard-deleted entity's history
+    under id reuse (SQLite/MySQL reuse ``max(id)+1``); pinning the uuid
+    too — the same discrimination :func:`mark_first_tracked_saves` uses —
+    scopes the window to the current entity's own transactions.
+    """
+    # pylint: disable=import-outside-toplevel
+    from sqlalchemy_continuum import version_class
+
+    shadow_tbl = version_class(model_cls).__table__
+    stmt = sa.select(sa.func.min(shadow_tbl.c.transaction_id)).where(
+        shadow_tbl.c.id == entity_id,
+        shadow_tbl.c.uuid == entity_uuid,
+    )
+    return db.session.connection().execute(stmt).scalar()
 
 
 # ---- Phase A: relationship-traversal queries ------------------------------
@@ -121,7 +148,24 @@ def charts_attached_to_dashboard(dashboard_id: int) -> list[tuple[int, Window]]:
         )
         .all()
     )
-    return [(row[0], Window(row[1], row[2])) for row in rows]
+    result: list[tuple[int, Window]] = []
+    for row in rows:
+        try:
+            window = Window(row[1], row[2])
+        except ValueError:
+            # A degenerate shadow row (end_tx <= start_tx) must not 500 the
+            # endpoint; skip it and leave a breadcrumb for investigation.
+            logger.warning(
+                "activity: skipping degenerate dashboard_slices_version row "
+                "(dashboard_id=%s, slice_id=%s, tx=%s, end_tx=%s)",
+                dashboard_id,
+                row[0],
+                row[1],
+                row[2],
+            )
+            continue
+        result.append((row[0], window))
+    return result
 
 
 def datasets_used_by_chart(slice_id: int) -> list[tuple[int, Window]]:
@@ -185,12 +229,21 @@ def batch_datasets_used_by_charts(
             .all()
         )
     for row in rows:
-        grouped.setdefault(row["id"], []).append(
-            (
+        try:
+            window = Window(row["transaction_id"], row["end_transaction_id"])
+        except ValueError:
+            # A degenerate shadow row (end_tx <= start_tx) must not 500 the
+            # endpoint; skip it and leave a breadcrumb for investigation.
+            logger.warning(
+                "activity: skipping degenerate slices_version row "
+                "(slice_id=%s, datasource_id=%s, tx=%s, end_tx=%s)",
+                row["id"],
                 row["datasource_id"],
-                Window(row["transaction_id"], row["end_transaction_id"]),
+                row["transaction_id"],
+                row["end_transaction_id"],
             )
-        )
+            continue
+        grouped.setdefault(row["id"], []).append((row["datasource_id"], window))
     return grouped
 
 
@@ -226,10 +279,13 @@ def fetch_change_records(
     the requester can't read are silently dropped and must not
     contribute to ``count``), so the orchestrator paginates in Python
     over the filtered list — there is no DB-level page ``OFFSET`` here.
-    There IS a per-statement safety ``LIMIT`` (``_MAX_FETCHED_RECORDS``)
-    that bounds how much history a single request materializes; when it
-    bites, the second return value is ``True`` and the caller surfaces
-    ``truncated`` on the response.
+    There IS a per-kind safety ceiling (``_MAX_FETCHED_RECORDS``) that
+    bounds how much history a single request materializes (to at most
+    ``n_kinds * _MAX_FETCHED_RECORDS``); when a kind exhausts it, the
+    second return value is ``True``, the returned stream is clamped to a
+    clean time cut (records older than the highest per-kind fetch floor
+    are dropped so truncation is a time boundary, not per-kind holes), and
+    the caller surfaces ``truncated`` on the response.
 
     Returns ``(records, truncated)``. Records are ordered by
     ``(issued_at DESC, transaction_id DESC, sequence DESC)`` — the
@@ -270,7 +326,7 @@ def fetch_change_records(
             hi = None if (cur[1] is None or w.end_tx is None) else max(cur[1], w.end_tx)
             bounds_by_kind[table_kind] = (lo, hi)
 
-    rows, truncated = _select_change_rows_for_kinds(
+    rows, truncated, truncation_floor = _select_change_rows_for_kinds(
         ids_by_kind, bounds_by_kind, since, until, _MAX_FETCHED_RECORDS
     )
     filtered = [
@@ -280,6 +336,14 @@ def fetch_change_records(
             row, windows_by_entity.get((row["entity_kind"], row["entity_id"]), [])
         )
     ]
+    if truncated and truncation_floor is not None:
+        # Collapse truncation to a clean time cut. Below the highest per-kind
+        # fetch floor at least one kind is missing rows, so surfacing the
+        # other kinds there would present an incomplete ("nothing else
+        # changed") picture. Drop everything older than the floor so
+        # ``truncated=True`` means "complete at/after this instant, nothing
+        # shown before it" — a time boundary rather than per-kind holes.
+        filtered = [r for r in filtered if r["issued_at"] >= truncation_floor]
     # Sort key must be TOTAL so pagination is stable across requests: two
     # records from different entities can share (issued_at, transaction_id,
     # sequence), so append (entity_kind, entity_id) to break remaining ties
@@ -304,7 +368,7 @@ def _select_change_rows_for_kinds(
     since: datetime | None,
     until: datetime | None,
     limit: int,
-) -> tuple[list[dict[str, Any]], bool]:
+) -> tuple[list[dict[str, Any]], bool, datetime | None]:
     """Fire one SELECT per entity_kind with ``entity_id IN (...)``;
     concatenate the results. Each SELECT joins ``version_transaction``
     + ``ab_user`` so the orchestrator has the columns it needs for
@@ -367,15 +431,21 @@ def _select_change_rows_for_kinds(
 
     out: list[dict[str, Any]] = []
     truncated = False
+    truncation_floors: list[datetime] = []
     for table_kind, entity_ids in ids_by_kind.items():
-        # Chunk ``entity_ids`` to stay inside SQLite's
-        # ``SQLITE_MAX_VARIABLE_NUMBER`` floor (default 999, raised to
-        # 32766 in 3.32+ but the older limit ships in many builds). The
-        # bind count grows linearly with chart-on-dashboard count; a
-        # dashboard built from a huge chart library can reach the floor.
-        # Postgres + MySQL accept the full list, but the chunk is
+        # The fetch budget is per KIND, not per id-chunk. A kind whose
+        # entity_ids span several bind-variable chunks shares one ``limit``
+        # across those chunks, so the rows a single request materializes are
+        # bounded by ``n_kinds * limit`` (<= 3 * _MAX_FETCHED_RECORDS), not
+        # ``n_chunks * limit``. ``entity_ids`` is chunked to stay inside
+        # SQLite's ``SQLITE_MAX_VARIABLE_NUMBER`` floor (default 999 in many
+        # builds); Postgres + MySQL accept the full list but the chunk is
         # dialect-agnostic for simplicity.
+        kind_rows: list[dict[str, Any]] = []
         for chunk in chunked_ids(entity_ids):
+            remaining = limit - len(kind_rows)
+            if remaining <= 0:
+                break
             stmt = (
                 sa.select(*select_cols)
                 .select_from(join_tree)
@@ -395,39 +465,39 @@ def _select_change_rows_for_kinds(
                 stmt = stmt.where(tx_tbl.c.issued_at >= since)
             if until is not None:
                 stmt = stmt.where(tx_tbl.c.issued_at < until)
-            # Bounded fetch: cap each statement at the most-recent
-            # ``limit`` rows so a path entity with very long history (or a
-            # dashboard with many related charts/datasets) can't
-            # materialize an unbounded result set in Python. The same
-            # ordering keys as ``fetch_change_records``' final sort make
-            # the cap take the newest records; if a statement returns a
-            # full ``limit``, older records exist beyond it and the caller
-            # surfaces ``truncated`` on the response.
             # Match fetch_change_records' final Python sort key order
-            # (issued_at, transaction_id, sequence, entity_id) so a truncating
-            # LIMIT keeps exactly the rows the final sort ranks highest.
-            # entity_kind is constant within a per-kind statement.
+            # (issued_at, transaction_id, sequence, entity_id) so the
+            # per-kind budget keeps exactly the rows the final sort ranks
+            # highest. entity_kind is constant within a per-kind statement.
             stmt = stmt.order_by(
                 tx_tbl.c.issued_at.desc(),
                 vc.c.transaction_id.desc(),
                 vc.c.sequence.desc(),
                 vc.c.entity_id.desc(),
-            ).limit(limit)
-            rows = [
+            ).limit(remaining)
+            kind_rows.extend(
                 dict(row)
                 for row in db.session.connection().execute(stmt).mappings().all()
-            ]
-            if len(rows) >= limit:
-                truncated = True
-            out.extend(rows)
-    return out, truncated
+            )
+        if len(kind_rows) >= limit:
+            # This kind exhausted its budget; older rows almost certainly
+            # exist beyond it. Record the oldest ``issued_at`` fetched for
+            # the kind so the caller can collapse truncation into a single
+            # clean time cut across all kinds (see fetch_change_records).
+            truncated = True
+            truncation_floors.append(min(r["issued_at"] for r in kind_rows))
+        out.extend(kind_rows)
+    truncation_floor = max(truncation_floors) if truncation_floors else None
+    return out, truncated, truncation_floor
 
 
-# Per-statement safety ceiling on how many change rows a single activity
-# request will materialize (per kind-chunk). Bounds memory/CPU for a path
-# entity with very long history or many related entities; when a statement
-# returns a full ``_MAX_FETCHED_RECORDS`` the response is flagged
-# ``truncated`` so clients know older records exist beyond the window.
+# Per-KIND safety ceiling on how many change rows a single activity request
+# will materialize for one entity kind (shared across that kind's id-chunks).
+# Bounds memory/CPU for a path entity with very long history or many related
+# entities to <= n_kinds * _MAX_FETCHED_RECORDS per request. When a kind
+# exhausts its budget the response is flagged ``truncated`` and the returned
+# stream is clamped to a clean time cut so clients see a complete window with
+# older records omitted, not per-kind holes.
 _MAX_FETCHED_RECORDS = 5000
 
 
@@ -468,7 +538,7 @@ def mark_first_tracked_saves(records: list[dict[str, Any]]) -> None:
         model_name = TABLE_KIND_TO_API.get(table_kind)
         if model_name is None:
             continue
-        live_model = load_shadow_model(model_name)
+        live_model = load_live_model(model_name)
         live_tbl = live_model.__table__
         shadow_tbl = version_class(live_model).__table__
         for chunk in chunked_ids(entity_ids):
@@ -515,13 +585,22 @@ def _resolve_names_for_kind(
     # pylint: disable=import-outside-toplevel
     from sqlalchemy_continuum import version_class
 
-    if api_kind not in NAME_COLUMN:
+    if api_kind not in NAME_COLUMN or not pairs:
         return {}
 
     model_name, name_col = NAME_COLUMN[api_kind]
-    model_cls = load_shadow_model(model_name)
+    model_cls = load_live_model(model_name)
     shadow_tbl = version_class(model_cls).__table__
     ids = {eid for eid, _ in pairs}
+    # Bound the scan to the transaction range the page-set actually needs.
+    # A row valid at some target_tx must start at/before the newest target
+    # and stay open past the oldest one, so rows outside
+    # ``[min_target_tx, max_target_tx]`` can never win the validity match.
+    # Without this bound the query loads every historical version row of
+    # every referenced entity — an entity with thousands of versions would
+    # defeat the memory ceiling the change-record fetch enforces.
+    target_txs = {target_tx for _, target_tx in pairs}
+    min_tx, max_tx = min(target_txs), max(target_txs)
     per_entity: dict[int, list[tuple[int, int | None, Any]]] = {}
     # Chunk the IN-clause to stay under SQLite's bind-variable floor (the
     # same reason _select_change_rows_for_kinds chunks).
@@ -534,7 +613,14 @@ def _resolve_names_for_kind(
                     shadow_tbl.c.transaction_id,
                     shadow_tbl.c.end_transaction_id,
                     shadow_tbl.c[name_col],
-                ).where(shadow_tbl.c.id.in_(chunk))
+                ).where(
+                    shadow_tbl.c.id.in_(chunk),
+                    shadow_tbl.c.transaction_id <= max_tx,
+                    sa.or_(
+                        shadow_tbl.c.end_transaction_id.is_(None),
+                        shadow_tbl.c.end_transaction_id > min_tx,
+                    ),
+                )
             )
             .all()
         )
@@ -545,7 +631,9 @@ def _resolve_names_for_kind(
     for entity_id, target_tx in pairs:
         for start_tx, end_tx, name in per_entity.get(entity_id, []):
             if start_tx <= target_tx and (end_tx is None or end_tx > target_tx):
-                resolved[(entity_id, target_tx)] = name
+                # Coerce a NULL name (e.g. a DELETE shadow row winning the
+                # validity match) to "" so entity_name is never None.
+                resolved[(entity_id, target_tx)] = name if name is not None else ""
                 break
     return resolved
 
@@ -639,7 +727,7 @@ def _tombstone_states_for_kind(
     if api_kind not in NAME_COLUMN:
         return {entity_id: dict(_TOMBSTONE) for entity_id in entity_ids}
 
-    model_cls = load_shadow_model(NAME_COLUMN[api_kind][0])
+    model_cls = load_live_model(NAME_COLUMN[api_kind][0])
     live_tbl = model_cls.__table__
     has_deleted_at = "deleted_at" in live_tbl.c
     cols = [live_tbl.c.id] + ([live_tbl.c.deleted_at] if has_deleted_at else [])

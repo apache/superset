@@ -24,9 +24,11 @@ Skipped by default. Run on demand:
 Measures the three success criteria defined in the spec:
 
   * SC-002: version list endpoint responds in under 1 second
-  * SC-003: restore endpoint completes in under 3 seconds
   * SC-004: save path p95 overhead under 50 ms with Continuum tracking
             on vs. off (FR-014)
+
+(SC-003, the restore-endpoint benchmark, lands with the restore endpoint
+in a later PR.)
 
 The test prints a summary table suitable for pasting into the PR
 description. It also asserts each target so regressions fail loudly
@@ -57,7 +59,6 @@ SKIP_REASON = "Performance validation is manual. Set SUPERSET_PERF_VALIDATION=1 
 
 # Thresholds from spec.md §Success Criteria.
 LIST_ENDPOINT_MAX_MS = 1000  # SC-002
-RESTORE_ENDPOINT_MAX_MS = 3000  # SC-003
 SAVE_OVERHEAD_P95_MAX_MS = 50  # SC-004
 
 # Activity-view thresholds (sc-107283 §Success Criteria).
@@ -131,42 +132,10 @@ class PerfValidationTests(SupersetTestCase):
             f">= {LIST_ENDPOINT_MAX_MS}ms"
         )
 
-    def test_sc003_restore_endpoint_under_3s(self) -> None:
-        """SC-003: restore endpoint completes in under 3 seconds."""
-        self.login(ADMIN_USERNAME)
-
-        chart = self._seed_chart_with_n_versions(5)
-        chart_uuid = str(chart.uuid)
-
-        list_response = self.client.get(f"/api/v1/chart/{chart_uuid}/versions/")
-        assert list_response.status_code == 200
-        versions = list_response.get_json()["result"]
-        assert len(versions) >= 2, "need at least two versions to restore"
-        target_version_uuid = versions[-1]["version_uuid"]
-
-        restore_url = (
-            f"/api/v1/chart/{chart_uuid}/versions/{target_version_uuid}/restore"
-        )
-
-        # Warm up once
-        self.client.post(restore_url)
-
-        timings: list[float] = []
-        for _ in range(5):
-            t0 = time.perf_counter()
-            response = self.client.post(restore_url)
-            timings.append(time.perf_counter() - t0)
-            assert response.status_code == 200
-
-        stats = _timings_ms(timings)
-        print(
-            f"\n[SC-003] POST /restore chart "
-            f"p50={stats['p50']:.1f}ms max={stats['max']:.1f}ms n={stats['n']}"
-        )
-        assert stats["max"] < RESTORE_ENDPOINT_MAX_MS, (
-            f"SC-003 failed: restore max {stats['max']:.1f}ms "
-            f">= {RESTORE_ENDPOINT_MAX_MS}ms"
-        )
+    # SC-003 (restore endpoint under 3s) intentionally omitted here: the
+    # version-restore route (POST /<uuid>/versions/<version_uuid>/restore)
+    # ships in a later PR, so there is nothing to time at this point in the
+    # stack. Re-add this benchmark alongside the restore endpoint.
 
     def test_sc004_save_overhead_under_50ms(self) -> None:
         """SC-004: save path p95 overhead under 50ms (FR-014).

@@ -59,7 +59,7 @@ from typing import Any
 from superset.extensions import db
 from superset.versioning.activity.kinds import (
     chunked_ids,
-    load_shadow_model,
+    load_live_model,
     NAME_COLUMN,
     TABLE_KIND_TO_API,
 )
@@ -169,7 +169,7 @@ def _resolve_visibility(
             for entity_id in entity_ids:
                 visible[(api_kind, entity_id)] = True
             continue
-        model_cls = load_shadow_model(NAME_COLUMN[api_kind][0])
+        model_cls = load_live_model(NAME_COLUMN[api_kind][0])
         access_filter = access_filter_classes[api_kind]("id", SQLAInterface(model_cls))
 
         # Chunk the candidate ids to stay under SQLite's bind-variable floor

@@ -44,16 +44,31 @@ from superset.versioning.activity.windows import (
 )
 
 
-def resolve_scope(path_kind: str, path_id: int, include: str) -> list[EntityWindows]:
+def resolve_scope(
+    path_kind: str,
+    path_id: int,
+    include: str,
+    self_start_tx: int | None = None,
+) -> list[EntityWindows]:
     """Build the ``[(api_kind, entity_id, [windows])]`` list that
     :func:`~superset.versioning.activity.queries.fetch_change_records`
-    consumes, branching by *path_kind* and *include* mode."""
+    consumes, branching by *path_kind* and *include* mode.
+
+    *self_start_tx* lower-bounds the self window at the path entity's first
+    tracked transaction (see
+    :func:`~superset.versioning.activity.queries.first_tracked_tx`). This
+    scopes the self stream to the current entity's own history: matching
+    self records on the bare integer id would otherwise inherit a
+    hard-deleted predecessor's change records under id reuse
+    (SQLite/MySQL reuse ``max(id)+1``). ``None`` means the entity has no
+    tracked history yet, so the self stream contributes nothing.
+    """
     want_self = include in ("all", "self")
     want_related = include in ("all", "related")
 
     scope: list[EntityWindows] = []
-    if want_self:
-        scope.append((path_kind, path_id, [Window(0, None)]))
+    if want_self and self_start_tx is not None:
+        scope.append((path_kind, path_id, [Window(self_start_tx, None)]))
     if want_related:
         scope.extend(_resolve_related_scope(path_kind, path_id))
     return scope

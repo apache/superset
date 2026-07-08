@@ -416,8 +416,10 @@ class ActivityRecordSchema(Schema):
         metadata={
             "description": (
                 'Synthesized headline for ``source: "related"`` records — '
-                'e.g., ``"Dataset updated: Sales Transactions"`` '
-                'Absent for ``source: "self"`` records.'
+                'e.g., ``"Dataset updated: Sales Transactions"``. '
+                'Empty string for ``source: "self"`` records, except '
+                "``__meta__`` self records (e.g. restore announcements), "
+                "which carry their own headline."
             )
         },
     )
