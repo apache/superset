@@ -29,6 +29,13 @@ describe('Advanced analytics', () => {
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@v1Data' });
 
+    // Relative time comparison offsets need a time grain to join the offset
+    // results back onto the base query. The saved chart has none, so pick one.
+    cy.get('[data-test=time_grain_sqla]').find('.ant-select').click();
+    cy.get('.ant-select-item-option[title="Day"]')
+      .first()
+      .click({ force: true });
+
     cy.get('.ant-collapse-header')
       .contains('Advanced analytics')
       .click({ force: true });
