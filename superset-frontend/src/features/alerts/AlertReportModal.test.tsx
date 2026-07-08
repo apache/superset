@@ -414,16 +414,16 @@ const addAsyncSelectValue = async (
     },
   });
   await waitFor(() => {
-    expect(
-      fetchMock.callHistory.calls(endpoint).length,
-    ).toBeGreaterThan(0);
+    expect(fetchMock.callHistory.calls(endpoint).length).toBeGreaterThan(0);
   });
 };
 
 const removeFirstAsyncSelectValue = async (testId: string) => {
   const select = await screen.findByTestId(testId);
   // eslint-disable-next-line testing-library/no-node-access
-  const removeButton = select.querySelector('.ant-select-selection-item-remove');
+  const removeButton = select.querySelector(
+    '.ant-select-selection-item-remove',
+  );
   expect(removeButton).toBeInTheDocument();
   await userEvent.click(removeButton as HTMLElement);
 };
