@@ -33,6 +33,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import db, event_logger
 from superset.mcp_service.theme.schemas import CreateThemeRequest, CreateThemeResponse
+from superset.mcp_service.utils.sanitization import sanitize_for_llm_context
 from superset.themes.schemas import _sanitize_and_validate_theme_config
 from superset.utils import json
 
@@ -127,12 +128,17 @@ async def create_theme(
         await ctx.info(
             "Theme created: id=%s, uuid=%s" % (theme.id, getattr(theme, "uuid", None))
         )
+        # Wrap the user-controlled name like the list/get responses do, so
+        # the create path is not an unsanitized echo channel into LLM context.
+        safe_name = sanitize_for_llm_context(
+            theme.theme_name, field_path=("theme_name",)
+        )
         return CreateThemeResponse(
             success=True,
             id=theme.id,
             uuid=str(uuid) if (uuid := getattr(theme, "uuid", None)) else None,
-            theme_name=theme.theme_name,
-            message=f"Theme '{theme.theme_name}' created successfully",
+            theme_name=safe_name,
+            message=f"Theme '{safe_name}' created successfully",
         )
 
     except SQLAlchemyError as exc:

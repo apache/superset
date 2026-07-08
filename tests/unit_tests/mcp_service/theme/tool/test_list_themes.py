@@ -17,6 +17,7 @@
 
 """Unit tests for the list_themes MCP tool."""
 
+from collections.abc import Iterator
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -48,12 +49,12 @@ def create_mock_theme(
 
 
 @pytest.fixture
-def mcp_server():
+def mcp_server() -> object:
     return mcp
 
 
 @pytest.fixture(autouse=True)
-def mock_auth():
+def mock_auth() -> Iterator[Mock]:
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
         mock_user = Mock()
         mock_user.id = 1
@@ -65,18 +66,18 @@ def mock_auth():
 class TestThemeFilterSchema:
     """Tests for ThemeFilter schema — filterable columns."""
 
-    def test_invalid_filter_column_rejected(self):
+    def test_invalid_filter_column_rejected(self) -> None:
         with pytest.raises(ValidationError):
             ThemeFilter(col="not_a_real_column", opr="eq", value="x")
 
-    def test_valid_theme_name_filter(self):
+    def test_valid_theme_name_filter(self) -> None:
         f = ThemeFilter(col="theme_name", opr="ct", value="blue")
         assert f.col == "theme_name"
 
 
 @patch("superset.daos.theme.ThemeDAO.list")
 @pytest.mark.asyncio
-async def test_list_themes_basic(mock_list, mcp_server):
+async def test_list_themes_basic(mock_list, mcp_server) -> None:
     """Basic theme listing returns the mocked theme."""
     theme = create_mock_theme()
     mock_list.return_value = ([theme], 1)
@@ -95,7 +96,7 @@ async def test_list_themes_basic(mock_list, mcp_server):
 
 @patch("superset.daos.theme.ThemeDAO.list")
 @pytest.mark.asyncio
-async def test_list_themes_without_request(mock_list, mcp_server):
+async def test_list_themes_without_request(mock_list, mcp_server) -> None:
     """Listing with no request payload uses defaults."""
     theme = create_mock_theme()
     mock_list.return_value = ([theme], 1)
@@ -108,7 +109,7 @@ async def test_list_themes_without_request(mock_list, mcp_server):
 
 @patch("superset.daos.theme.ThemeDAO.list")
 @pytest.mark.asyncio
-async def test_list_themes_multiple(mock_list, mcp_server):
+async def test_list_themes_multiple(mock_list, mcp_server) -> None:
     """Multiple themes are returned."""
     themes = [
         create_mock_theme(theme_id=1, theme_name="Light"),

@@ -238,6 +238,14 @@ class CreateThemeRequest(BaseModel):
         ),
     ]
 
+    @field_validator("theme_name")
+    @classmethod
+    def reject_blank_theme_name(cls, value: str) -> str:
+        """Mirror the REST ThemePostSchema check: no empty/whitespace names."""
+        if not value or not value.strip():
+            raise ValueError("Theme name cannot be empty.")
+        return value
+
 
 class CreateThemeResponse(BaseModel):
     success: bool = Field(..., description="Whether the theme was created")
