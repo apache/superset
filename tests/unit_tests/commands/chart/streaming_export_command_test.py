@@ -39,10 +39,14 @@ def _setup_chart_mocks(
     datasource = mocker.MagicMock()
     datasource.get_query_str.return_value = sql
     datasource.database = mocker.MagicMock()
-    # Pass-through mutator so ``text(mutated_sql)`` receives the test's SQL
-    # string unchanged. Individual tests can override ``return_value`` to
-    # exercise specific mutation behavior.
-    datasource.database.mutate_sql_based_on_config.side_effect = lambda s: s
+
+    # Pass-through mutator so the raw SQL string flows unchanged into the
+    # streaming path in existing tests. Individual tests can override
+    # ``return_value`` to exercise specific mutation behavior.
+    def _passthrough_mutator(query: str) -> str:
+        return query
+
+    datasource.database.mutate_sql_based_on_config.side_effect = _passthrough_mutator
     datasource.catalog = catalog
     datasource.schema = schema
     query_context.datasource = datasource

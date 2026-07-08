@@ -773,7 +773,9 @@ def test_csv_export_config_custom_decimal_for_decimal_type(mocker, mock_query) -
     assert "56.78" not in csv_data
 
 
-def test_sqllab_streaming_does_not_double_mutate_sql(mocker, mock_query) -> None:
+def test_sqllab_streaming_does_not_double_mutate_sql(
+    mocker: MockerFixture, mock_query: MagicMock
+) -> None:
     """Regression test for #40465 review feedback.
 
     The SQL Lab streaming path reads ``executed_sql``, which was already
