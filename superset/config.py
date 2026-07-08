@@ -523,6 +523,12 @@ LANGUAGES = {
     "uk": {"flag": "ua", "name": "Ukrainian"},
     "mi": {"flag": "nz", "name": "Māori"},
     "ro": {"flag": "ro", "name": "Romanian"},
+    "ar": {"flag": "sa", "name": "Arabic"},
+    "ca": {"flag": "es", "name": "Catalan"},
+    "fa": {"flag": "ir", "name": "Persian"},
+    "fi": {"flag": "fi", "name": "Finnish"},
+    "th": {"flag": "th", "name": "Thai"},
+    "tr": {"flag": "tr", "name": "Turkish"},
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
