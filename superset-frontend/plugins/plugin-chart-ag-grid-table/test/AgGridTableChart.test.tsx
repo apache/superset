@@ -17,7 +17,7 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
-import { render, screen, waitFor } from '@superset-ui/core/spec';
+import { render, screen, waitFor, fireEvent } from '@superset-ui/core/spec';
 import { QueryMode, TimeGranularity, SMART_DATE_ID } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
@@ -193,6 +193,141 @@ test('AgGridTableChart renders with search enabled', async () => {
   expect(searchInput).toBeInTheDocument();
   expect(searchInput).toHaveAttribute('type', 'text');
   expect(searchInput).toHaveAttribute('id', 'filter-text-box');
+});
+
+test('excludes UUID columns from Search By dropdown', async () => {
+  const props = transformProps({
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      server_pagination: true,
+      include_search: true,
+    },
+    datasource: {
+      ...testData.basic.datasource,
+      columns: [
+        { column_name: 'name', type: 'VARCHAR' },
+        { column_name: 'uuid_col', type: 'UUID' },
+        { column_name: 'nullable_uuid_col', type: 'Nullable(UUID)' },
+      ],
+    },
+    queriesData: [
+      {
+        ...testData.basic.queriesData[0],
+        colnames: ['name', 'uuid_col', 'nullable_uuid_col'],
+        coltypes: [
+          GenericDataType.String,
+          GenericDataType.String,
+          GenericDataType.String,
+        ],
+        data: [
+          {
+            name: 'Michael',
+            uuid_col: '123e4567-e89b-12d3-a456-426614174000',
+            nullable_uuid_col: '123e4567-e89b-12d3-a456-426614174000',
+          },
+        ],
+      },
+    ],
+  });
+  props.includeSearch = true;
+  props.serverPagination = true;
+  props.rowCount = 100;
+  props.serverPaginationData = {
+    currentPage: 0,
+    pageSize: 20,
+  };
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    const grid = document.querySelector('.ag-container');
+    expect(grid).toBeInTheDocument();
+  });
+
+  // Open the Search By dropdown
+  const searchBySelect = document.querySelector(
+    '.search-select .ant-select-selector',
+  );
+  expect(searchBySelect).toBeInTheDocument();
+  fireEvent.mouseDown(searchBySelect!);
+
+  // Normal string column is available
+  expect(
+    await screen.findByRole('option', { name: 'name' }),
+  ).toBeInTheDocument();
+  // UUID columns are explicitly excluded
+  expect(
+    screen.queryByRole('option', { name: 'uuid_col' }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('option', { name: 'nullable_uuid_col' }),
+  ).not.toBeInTheDocument();
+});
+
+test('reconciles invalid/UUID searchColumn on mount', async () => {
+  const props = transformProps({
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      server_pagination: true,
+      include_search: true,
+    },
+    datasource: {
+      ...testData.basic.datasource,
+      columns: [
+        { column_name: 'name', type: 'VARCHAR' },
+        { column_name: 'uuid_col', type: 'UUID' },
+      ],
+    },
+    queriesData: [
+      {
+        ...testData.basic.queriesData[0],
+        colnames: ['name', 'uuid_col'],
+        coltypes: [GenericDataType.String, GenericDataType.String],
+      },
+    ],
+  });
+  props.includeSearch = true;
+  props.serverPagination = true;
+  props.rowCount = 100;
+  props.serverPaginationData = {
+    currentPage: 0,
+    pageSize: 20,
+    searchColumn: 'uuid_col', // Stale UUID column which is now excluded
+  };
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(mockSetDataMask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownState: expect.objectContaining({
+          searchColumn: 'name',
+        }),
+      }),
+    );
+  });
 });
 
 test('AgGridTableChart renders with totals', async () => {

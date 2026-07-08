@@ -44,6 +44,14 @@ import { buildSelectionCrossFilterDataMask } from './utils/getCrossFilterDataMas
 import { StyledChartContainer } from './styles';
 import type { FilterState } from './utils/filterStateManager';
 
+/**
+ * Helper to determine if a column should be treated as a UUID.
+ * Matches both exact "uuid" and dialect-wrapped forms like "Nullable(UUID)".
+ */
+function isUuidColumn(column?: { type?: string }): boolean {
+  return column?.type?.toLowerCase().includes('uuid') ?? false;
+}
+
 const getGridHeight = (height: number, includeSearch: boolean | undefined) => {
   let calculatedGridHeight = height;
   if (includeSearch) {
@@ -103,7 +111,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   useEffect(() => {
     const options = columns
-      .filter(col => col?.dataType === GenericDataType.String)
+      .filter(
+        col => col?.dataType === GenericDataType.String && !isUuidColumn(col),
+      )
       .map(column => ({
         value: column.key,
         label: column.label,
@@ -154,6 +164,18 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       changed = true;
     }
 
+    if (
+      serverPagination &&
+      serverPaginationData?.searchColumn &&
+      searchOptions.length > 0 &&
+      !searchOptions.some(
+        opt => opt.value === serverPaginationData.searchColumn,
+      )
+    ) {
+      nextOwnState.searchColumn = searchOptions[0].value;
+      changed = true;
+    }
+
     if (changed) {
       updateTableOwnState(setDataMask, nextOwnState);
     }
@@ -167,6 +189,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     rawSummaryColumns,
     serverPaginationData,
     setDataMask,
+    searchOptions,
   ]);
 
   const comparisonColumns = [
@@ -415,7 +438,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const modifiedOwnState = {
         ...serverPaginationData,
         searchColumn:
-          serverPaginationData?.searchColumn || searchOptions[0]?.value,
+          (searchOptions.some(
+            opt => opt.value === serverPaginationData?.searchColumn,
+          ) &&
+            serverPaginationData?.searchColumn) ||
+          searchOptions[0]?.value,
         searchText,
         currentPage: 0, // Reset to first page when searching
         lastFilteredColumn: undefined,

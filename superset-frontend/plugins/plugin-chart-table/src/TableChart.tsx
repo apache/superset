@@ -131,7 +131,7 @@ function getSortTypeByDataType(dataType: GenericDataType): DefaultSortTypes {
  * Helper to determine if a column should be treated as a UUID
  */
 function isUuidColumn(column?: { type?: string }): boolean {
-  return column?.type?.toLowerCase() === 'uuid';
+  return column?.type?.toLowerCase().includes('uuid') ?? false;
 }
 
 /**
@@ -1483,7 +1483,26 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     if (!isEqual(options, searchOptions)) {
       setSearchOptions(options || []);
     }
-  }, [columns, searchOptions]);
+
+    if (
+      serverPagination &&
+      serverPaginationData?.searchColumn &&
+      options.length > 0 &&
+      !options.some(opt => opt.value === serverPaginationData.searchColumn)
+    ) {
+      updateTableOwnState(setDataMask, {
+        ...serverPaginationData,
+        searchColumn: options[0].value,
+      });
+    }
+  }, [
+    columns,
+    searchOptions,
+    serverPagination,
+    serverPaginationData,
+    setDataMask,
+    visibleColumnsMeta,
+  ]);
 
   const handleServerPaginationChange = useCallback(
     (pageNumber: number, pageSize: number) => {
@@ -1564,7 +1583,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     const modifiedOwnState = {
       ...serverPaginationData,
       searchColumn:
-        serverPaginationData?.searchColumn || searchOptions[0]?.value,
+        (searchOptions.some(
+          opt => opt.value === serverPaginationData?.searchColumn,
+        ) &&
+          serverPaginationData?.searchColumn) ||
+        searchOptions[0]?.value,
       searchText,
       currentPage: 0, // Reset to first page when searching
     };

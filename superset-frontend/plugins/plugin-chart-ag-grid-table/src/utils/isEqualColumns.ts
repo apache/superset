@@ -66,8 +66,8 @@ export default function isEqualColumns(
       JSON.stringify(b.rawFormData.column_config || null) &&
     JSON.stringify(descA) === JSON.stringify(descB) &&
     isEqualArray(
-      (a.datasource?.columns || []).map(c => c.type),
-      (b.datasource?.columns || []).map(c => c.type)
+      (a.datasource?.columns || []).map(c => `${c.column_name}:${c.type}`),
+      (b.datasource?.columns || []).map(c => `${c.column_name}:${c.type}`),
     )
   );
 }

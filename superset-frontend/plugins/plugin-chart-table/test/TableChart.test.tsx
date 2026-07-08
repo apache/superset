@@ -2396,17 +2396,23 @@ describe('plugin-chart-table', () => {
           columns: [
             { column_name: 'name', type: 'VARCHAR' },
             { column_name: 'uuid_col', type: 'UUID' },
+            { column_name: 'nullable_uuid_col', type: 'Nullable(UUID)' },
           ],
         },
         queriesData: [
           {
             ...testData.basic.queriesData[0],
-            colnames: ['name', 'uuid_col'],
-            coltypes: [GenericDataType.String, GenericDataType.String],
+            colnames: ['name', 'uuid_col', 'nullable_uuid_col'],
+            coltypes: [
+              GenericDataType.String,
+              GenericDataType.String,
+              GenericDataType.String,
+            ],
             data: [
               {
                 name: 'Michael',
                 uuid_col: '123e4567-e89b-12d3-a456-426614174000',
+                nullable_uuid_col: '123e4567-e89b-12d3-a456-426614174000',
               },
             ],
           },
@@ -2419,21 +2425,70 @@ describe('plugin-chart-table', () => {
         </ProviderWrapper>,
       );
 
-      // Scope query via `within` on the parent container of the "Search by" text
-      const searchByLabel = screen.getByText('Search by');
-      const searchBySelect = within(searchByLabel.parentElement!).getByRole(
-        'combobox',
-      );
+      // Use the aria-label on the SearchSelectDropdown for a stable query
+      const searchBySelect = screen.getByRole('combobox', {
+        name: 'Search by',
+      });
       fireEvent.mouseDown(searchBySelect);
 
       // Normal string column is available
       expect(
         await screen.findByRole('option', { name: 'name' }),
       ).toBeInTheDocument();
-      // UUID column is explicitly excluded
+      // UUID columns are explicitly excluded
       expect(
         screen.queryByRole('option', { name: 'uuid_col' }),
       ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', { name: 'nullable_uuid_col' }),
+      ).not.toBeInTheDocument();
+    });
+
+    test('reconciles invalid/UUID searchColumn on mount', () => {
+      const setDataMask = jest.fn();
+      const props = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          server_pagination: true,
+          include_search: true,
+        },
+        datasource: {
+          ...testData.basic.datasource,
+          columns: [
+            { column_name: 'name', type: 'VARCHAR' },
+            { column_name: 'uuid_col', type: 'UUID' },
+          ],
+        },
+        ownState: {
+          searchColumn: 'uuid_col', // Persisted UUID searchColumn which is now excluded
+        },
+        hooks: {
+          setDataMask,
+        },
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['name', 'uuid_col'],
+            coltypes: [GenericDataType.String, GenericDataType.String],
+          },
+        ],
+      });
+
+      render(
+        <ProviderWrapper>
+          <TableChart {...props} sticky={false} />
+        </ProviderWrapper>,
+      );
+
+      // Verify that it reconciled the stale/UUID searchColumn to the first valid one ('name')
+      expect(setDataMask).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ownState: expect.objectContaining({
+            searchColumn: 'name',
+          }),
+        }),
+      );
     });
   });
 });

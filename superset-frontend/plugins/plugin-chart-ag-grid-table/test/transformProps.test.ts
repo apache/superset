@@ -109,14 +109,12 @@ test('extracts type from datasource.columns for a regular column', () => {
       } as unknown as TableChartProps['queriesData'][number],
     ],
     datasource: {
-      columns: [
-        { column_name: 'col1', type: 'UUID' },
-      ],
+      columns: [{ column_name: 'col1', type: 'UUID' }],
       metrics: [],
       columnFormats: {},
       currencyFormats: {},
       verboseMap: {},
-    },
+    } as unknown as TableChartProps['datasource'],
   });
 
   const result = transformProps(props);

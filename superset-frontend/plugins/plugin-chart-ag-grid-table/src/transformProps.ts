@@ -449,6 +449,9 @@ const processColumns = memoizeOne(function processColumns(
         isPercentMetric,
         formatter,
         config,
+        // Note: type is looked up by physical column_name from the dataset metadata.
+        // Adhoc columns/SQL expressions over UUID columns won't have a direct match here
+        // and will default to undefined, meaning they will remain searchable.
         type: columnsByName.get(key)?.type,
         description,
       };
