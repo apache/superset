@@ -26,6 +26,7 @@ from fastmcp import Client
 from marshmallow import ValidationError
 
 from superset.mcp_service.app import mcp
+from superset.mcp_service.utils.sanitization import sanitize_for_llm_context
 from superset.utils import json
 
 # Resolve the module object directly so patch.object targets the module, not
@@ -92,7 +93,9 @@ async def test_create_theme_success_with_dict(
     assert data["success"] is True
     assert data["id"] == 7
     assert data["uuid"] == "22222222-2222-2222-2222-222222222222"
-    assert "Corporate Blue" in data["theme_name"]
+    assert data["theme_name"] == sanitize_for_llm_context(
+        "Corporate Blue", field_path=("theme_name",)
+    )
     mock_sanitize.assert_called_once_with(config)
     # json_data persisted as a serialized string
     create_kwargs = mock_create.call_args.kwargs["attributes"]

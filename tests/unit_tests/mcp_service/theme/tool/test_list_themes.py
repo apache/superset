@@ -77,7 +77,7 @@ class TestThemeFilterSchema:
 
 @patch("superset.daos.theme.ThemeDAO.list")
 @pytest.mark.asyncio
-async def test_list_themes_basic(mock_list, mcp_server) -> None:
+async def test_list_themes_basic(mock_list: MagicMock, mcp_server: object) -> None:
     """Basic theme listing returns the mocked theme."""
     theme = create_mock_theme()
     mock_list.return_value = ([theme], 1)
@@ -96,7 +96,7 @@ async def test_list_themes_basic(mock_list, mcp_server) -> None:
 
 @patch("superset.daos.theme.ThemeDAO.list")
 @pytest.mark.asyncio
-async def test_list_themes_without_request(mock_list, mcp_server) -> None:
+async def test_list_themes_without_request(mock_list: MagicMock, mcp_server: object) -> None:
     """Listing with no request payload uses defaults."""
     theme = create_mock_theme()
     mock_list.return_value = ([theme], 1)
@@ -109,7 +109,7 @@ async def test_list_themes_without_request(mock_list, mcp_server) -> None:
 
 @patch("superset.daos.theme.ThemeDAO.list")
 @pytest.mark.asyncio
-async def test_list_themes_multiple(mock_list, mcp_server) -> None:
+async def test_list_themes_multiple(mock_list: MagicMock, mcp_server: object) -> None:
     """Multiple themes are returned."""
     themes = [
         create_mock_theme(theme_id=1, theme_name="Light"),
