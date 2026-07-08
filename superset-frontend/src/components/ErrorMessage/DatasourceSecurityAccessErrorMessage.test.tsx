@@ -99,3 +99,37 @@ test('explains table access for TABLE_SECURITY_ACCESS_ERROR', () => {
   render(<DatasourceSecurityAccessErrorMessage {...props} />);
   expect(screen.getByText(/public.sales, public.users/)).toBeInTheDocument();
 });
+
+test('renders plainly when the error carries no access payload', () => {
+  // DATASOURCE_SECURITY_ACCESS_ERROR is reused for virtual-dataset SQL
+  // validation ("Only SELECT statements are allowed"); without an access
+  // payload the component must not show request-access guidance.
+  const props = {
+    ...baseProps,
+    error: {
+      ...baseProps.error,
+      extra: null,
+      message: 'Only `SELECT` statements are allowed',
+    },
+  };
+  render(<DatasourceSecurityAccessErrorMessage {...props} />);
+  expect(
+    screen.getByText(/Only `SELECT` statements are allowed/),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(/Request access/)).toBeNull();
+  expect(screen.queryByText(/access to this chart's data/)).toBeNull();
+});
+
+test('uses query wording for the sqllab source', () => {
+  const props = {
+    ...baseProps,
+    source: 'sqllab' as ErrorSource,
+  };
+  render(<DatasourceSecurityAccessErrorMessage {...props} />);
+  expect(
+    screen.getByText(/This query uses the "Quarterly Sales"/),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText("You don't have access to this data"),
+  ).toBeInTheDocument();
+});

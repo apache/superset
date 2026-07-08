@@ -23,11 +23,18 @@ from superset.security.manager import (
     _render_permission_instructions_link,
     SupersetSecurityManager,
 )
+from superset.sql.parse import Table
 
 MANAGER = "superset.security.manager"
 
 
-def _render(template, *, username="alice", anonymous=False, **kwargs):
+def _render(
+    template: str | None,
+    *,
+    username: str = "alice",
+    anonymous: bool = False,
+    **kwargs: str,
+) -> str | None:
     with (
         patch(
             f"{MANAGER}.get_conf",
@@ -40,18 +47,18 @@ def _render(template, *, username="alice", anonymous=False, **kwargs):
         return _render_permission_instructions_link(**kwargs)
 
 
-def test_empty_or_unset_link_returns_none():
+def test_empty_or_unset_link_returns_none() -> None:
     assert _render("") is None
     assert _render(None) is None
 
 
-def test_plain_link_without_placeholders_is_unchanged():
+def test_plain_link_without_placeholders_is_unchanged() -> None:
     assert _render("https://wiki.example.com/data-access") == (
         "https://wiki.example.com/data-access"
     )
 
 
-def test_datasource_placeholders_are_filled_and_url_encoded():
+def test_datasource_placeholders_are_filled_and_url_encoded() -> None:
     out = _render(
         "https://acme.example.com/req?id={datasource_id}"
         "&name={datasource_name}&u={username}",
@@ -62,7 +69,7 @@ def test_datasource_placeholders_are_filled_and_url_encoded():
     assert out == ("https://acme.example.com/req?id=12&name=Quarterly%20Sales&u=alice")
 
 
-def test_table_names_filled_and_encoded():
+def test_table_names_filled_and_encoded() -> None:
     out = _render(
         "https://acme.example.com/req?tables={table_names}",
         table_names="public.sales,public.users",
@@ -70,7 +77,7 @@ def test_table_names_filled_and_encoded():
     assert out == ("https://acme.example.com/req?tables=public.sales%2Cpublic.users")
 
 
-def test_anonymous_user_renders_empty_username():
+def test_anonymous_user_renders_empty_username() -> None:
     out = _render(
         "https://acme.example.com/req?u={username}",
         anonymous=True,
@@ -78,8 +85,9 @@ def test_anonymous_user_renders_empty_username():
     assert out == "https://acme.example.com/req?u="
 
 
-def test_unreferenced_placeholders_left_untouched():
-    # datasource link doesn't supply table_names; that token stays literal
+def test_unsupplied_placeholders_render_empty() -> None:
+    # datasource link doesn't supply table_names; that token renders as
+    # an empty value (matching the helper's documented behavior)
     out = _render(
         "https://acme.example.com/req?id={datasource_id}&t={table_names}",
         datasource_id="9",
@@ -87,7 +95,7 @@ def test_unreferenced_placeholders_left_untouched():
     assert out == "https://acme.example.com/req?id=9&t="
 
 
-def test_get_datasource_access_link_pulls_from_datasource_data():
+def test_get_datasource_access_link_pulls_from_datasource_data() -> None:
     ds = MagicMock()
     ds.data = {"id": 12, "name": "Quarterly Sales"}
     with (
@@ -108,7 +116,7 @@ def test_get_datasource_access_link_pulls_from_datasource_data():
     assert out == "https://acme.example.com/req?id=12&name=Quarterly%20Sales"
 
 
-def test_get_table_access_link_joins_table_names():
+def test_get_table_access_link_joins_table_names() -> None:
     sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
     with (
         patch(
@@ -123,7 +131,10 @@ def test_get_table_access_link_joins_table_names():
     ):
         g_mock.user.is_anonymous = False
         g_mock.user.username = "alice"
-        out = sm.get_table_access_link({"public.sales", "public.users"})
+        out = sm.get_table_access_link(
+            {Table("sales", "public"), Table("users", "public")}
+        )
+    assert out is not None
     assert out.startswith("https://acme.example.com/req?tables=")
     assert "public.sales" in out
     assert "public.users" in out

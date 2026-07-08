@@ -50,22 +50,46 @@ export function DatasourceSecurityAccessErrorMessage({
   const { extra, level, message } = error;
   const isVisualization = ['dashboard', 'explore'].includes(source || '');
 
+  // DATASOURCE_SECURITY_ACCESS_ERROR is also raised for non-access failures
+  // (e.g. virtual-dataset SQL validation: "Only SELECT statements are
+  // allowed"). Those errors carry no access payload — render them plainly
+  // rather than misleading the user with request-access guidance.
+  const isAccessDenial = !!extra?.datasource_name || !!extra?.tables?.length;
+  if (!isAccessDenial) {
+    return (
+      <ErrorAlert
+        errorType={t('Unexpected error')}
+        message={message}
+        type={level}
+        closable={closable}
+      />
+    );
+  }
+
   let explanation: string;
   if (extra?.datasource_name) {
-    explanation = t(
-      'This chart uses the "%s" dataset, which you do not have permission ' +
-        'to view.',
-      extra.datasource_name,
-    );
-  } else if (extra?.tables?.length) {
-    explanation = t(
-      'You do not have access to the data behind this chart ' + '(tables: %s).',
-      extra.tables.join(', '),
-    );
+    explanation = isVisualization
+      ? t(
+          'This chart uses the "%s" dataset, which you do not have ' +
+            'permission to view.',
+          extra.datasource_name,
+        )
+      : t(
+          'This query uses the "%s" dataset, which you do not have ' +
+            'permission to view.',
+          extra.datasource_name,
+        );
   } else {
-    explanation = t(
-      'You do not have permission to view the data behind this chart.',
-    );
+    explanation = isVisualization
+      ? t(
+          'You do not have access to the data behind this chart ' +
+            '(tables: %s).',
+          extra?.tables?.join(', '),
+        )
+      : t(
+          'You do not have access to the following tables: %s.', // sqllab
+          extra?.tables?.join(', '),
+        );
   }
 
   const owners = extra?.owners;
@@ -116,7 +140,11 @@ export function DatasourceSecurityAccessErrorMessage({
 
   return (
     <ErrorAlert
-      errorType={t("You don't have access to this chart's data")}
+      errorType={
+        isVisualization
+          ? t("You don't have access to this chart's data")
+          : t("You don't have access to this data")
+      }
       message={explanation}
       description={description}
       descriptionDetails={descriptionDetails}
