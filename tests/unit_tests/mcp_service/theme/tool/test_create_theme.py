@@ -23,6 +23,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from fastmcp import Client
+from flask import Flask
 from marshmallow import ValidationError
 
 from superset.mcp_service.app import mcp
@@ -233,7 +234,7 @@ async def test_create_theme_rejects_blank_name(mcp_server: object) -> None:
 
 
 @pytest.mark.asyncio
-async def test_create_theme_rbac_denied(mcp_server: object, app) -> None:
+async def test_create_theme_rbac_denied(mcp_server: object, app: Flask) -> None:
     """RBAC-denied path: a caller lacking can_write on Theme is rejected
     before any validation or persistence happens."""
     from fastmcp.exceptions import ToolError
