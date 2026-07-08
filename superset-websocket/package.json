@@ -10,7 +10,7 @@
     "type": "tsc --noEmit",
     "eslint": "eslint",
     "lint": "npm run eslint -- . && npm run type",
-    "dev-server": "node --experimental-strip-types src/index.ts start",
+    "dev-server": "npm run build && npm run start",
     "build": "tsc",
     "prettier-check": "prettier --check .",
     "prettier-write": "prettier --write .",
