@@ -1149,6 +1149,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "PermissionViewMenu",
         "ViewMenu",
         "User",
+        "Subject",
         # FAB registers ApiKeyApi when FAB_API_KEY_ENABLED=True
         "ApiKey",
     } | USER_MODEL_VIEWS
