@@ -3494,14 +3494,14 @@ def test_map_query_object_shifts_time_offset_via_temporal_range_filter(
         assert query.filters is not None
         gte = next(
             f.value
-            for f in query.filters
+            for f in query.filters or ()
             if f.column is not None
             and f.column.name == "order_date"
             and f.operator == Operator.GREATER_THAN_OR_EQUAL
         )
         lt = next(
             f.value
-            for f in query.filters
+            for f in query.filters or ()
             if f.column is not None
             and f.column.name == "order_date"
             and f.operator == Operator.LESS_THAN

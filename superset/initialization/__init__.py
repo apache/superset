@@ -870,11 +870,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Retention is time-based and runs out-of-band as a Celery beat
         # task — see ``superset/tasks/version_history_retention.py``
         # and the ``version_history.prune_old_versions`` entry in
-        # ``CELERYBEAT_SCHEDULE`` (``superset/config.py``). The previous
-        # synchronous after_commit listener was retired so retention
-        # work doesn't add latency to user saves.
+        # ``CeleryConfig.beat_schedule`` (``superset/config.py``). The
+        # previous synchronous after_commit listener was retired so
+        # retention work doesn't add latency to user saves.
 
-    _RETENTION_TASK_NAME = "version_history.prune_old_versions"
+    _RETENTION_TASK_NAME: str = "version_history.prune_old_versions"
 
     def _warn_if_retention_beat_missing(self) -> None:
         """WARN at startup when the resolved Celery beat schedule has no
@@ -887,23 +887,40 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         the entry; this check makes the misconfiguration visible in the
         deploy log before disk pressure makes it visible at 03:00.
 
-        Handles three shapes of ``CELERY_CONFIG``:
+        Handles four shapes of ``CELERY_CONFIG``:
         * ``None`` — Celery deliberately disabled, no retention either
           way; return without warning.
         * a class or module with a ``beat_schedule`` attribute — the
           default ``CeleryConfig`` shape.
         * a dict — Celery's documented "config as dict" shape, supported
           by ``celery_app.config_from_object``.
+        * a dotted import string — also accepted by Celery, but deliberately
+          skipped here because resolving operator code solely for this warning
+          would duplicate Celery loader behavior and could add startup side
+          effects.
         """
-        celery_config = self.config.get("CELERY_CONFIG")
+        celery_config: Any = self.config.get("CELERY_CONFIG")
         if celery_config is None:
             return  # Celery disabled entirely; no retention task to warn about.
+        if isinstance(celery_config, str):
+            return  # Celery resolves dotted config references in its loader.
         beat_schedule = (
             celery_config.get("beat_schedule")
             if isinstance(celery_config, dict)
             else getattr(celery_config, "beat_schedule", None)
         )
-        if not beat_schedule or self._RETENTION_TASK_NAME not in beat_schedule:
+        # Match on the ``task`` each entry runs, not the schedule entry key:
+        # an operator may register the retention task under any key (e.g.
+        # ``{"prune_versions": {"task": "version_history.prune_old_versions"}}``),
+        # which is still correctly scheduled and must not warn. The default
+        # config happens to use the task name as the key, but that's incidental.
+        registered_tasks: set[Any] = {
+            entry.get("task")
+            for entry in (beat_schedule or {}).values()
+            if isinstance(entry, dict)
+        }
+        registered_tasks.update(beat_schedule or {})  # tolerate key == task name
+        if not beat_schedule or self._RETENTION_TASK_NAME not in registered_tasks:
             logger.warning(
                 "versioning: CELERY_CONFIG.beat_schedule is missing the "
                 "%r entry — the retention task will not fire and shadow "

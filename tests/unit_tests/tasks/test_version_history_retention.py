@@ -18,8 +18,8 @@
 ``superset.tasks.version_history_retention``.
 
 Covers the branches that emit statsd counters: the ``retention_days <= 0``
-short-circuit, the ``no versioned classes resolved`` short-circuit, the
-``OperationalError`` retry path, and the terminal failure counter. The
+short-circuit, incomplete shadow-table resolution, the ``OperationalError``
+retry path, and the terminal failure counter. The
 "happy path" / SERIALIZABLE retry behaviour against a real database is
 exercised by ``tests/integration_tests/versioning/retention_prune_tests.py``;
 this file pins the metric-emission contract that is load-bearing for
@@ -33,6 +33,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from sqlalchemy.exc import OperationalError
+from sqlalchemy_continuum.exc import ClassNotVersioned
 
 from superset.tasks import version_history_retention
 
@@ -59,26 +60,55 @@ def test_retention_disabled_emits_skipped_metric(stats: MagicMock) -> None:
     stats.gauge.assert_not_called()
 
 
-def test_no_versioned_classes_resolved_emits_skipped_metric(
+def test_task_normalizes_string_retention_config(stats: MagicMock) -> None:
+    """String values from custom config modules are normalized to integers."""
+    mock_app: MagicMock = MagicMock()
+    mock_app.config = {"SUPERSET_VERSION_HISTORY_RETENTION_DAYS": "30"}
+    with (
+        patch.object(version_history_retention, "current_app", mock_app),
+        patch.object(
+            version_history_retention,
+            "_prune_old_versions_impl",
+            return_value={"pruned_transactions": 0},
+        ) as prune,
+    ):
+        result = version_history_retention.prune_old_versions()
+
+    assert result == {"pruned_transactions": 0}
+    prune.assert_called_once_with(30)
+    stats.incr.assert_not_called()
+
+
+def test_incomplete_shadow_table_resolution_fails_closed(
     stats: MagicMock,
 ) -> None:
-    """When ``_resolve_shadow_tables`` returns an empty parent list (the
-    init-order regression case), the task emits ``.skipped`` and returns
-    without raising. Same metric name as the operator-disabled branch on
-    purpose — the dashboard alert is "task is running and has nothing to
-    do", not "task discovered a misconfiguration"; the WARNING log
-    carries the diagnostic detail."""
-    empty_tables = version_history_retention.ShadowTables(
-        parent=[], child=[], m2m=None, transaction=MagicMock()
-    )
-    with patch.object(
-        version_history_retention,
-        "_resolve_shadow_tables",
-        return_value=empty_tables,
+    """Missing shadow metadata must abort before the destructive pass."""
+    with (
+        patch.object(
+            version_history_retention,
+            "_resolve_shadow_tables",
+            side_effect=RuntimeError("missing shadow"),
+        ),
+        pytest.raises(RuntimeError, match="missing shadow"),
     ):
-        result = version_history_retention._prune_old_versions_impl(retention_days=30)
-    assert result == {"skipped": 1}
-    stats.incr.assert_called_once_with("superset.versioning.retention.skipped")
+        version_history_retention._prune_old_versions_impl(retention_days=30)
+    stats.incr.assert_not_called()
+
+
+def test_resolve_shadow_tables_rejects_partial_registry() -> None:
+    """One missing versioned mapper makes the complete registry unsafe."""
+    resolved_table: MagicMock = MagicMock()
+
+    def resolve_version_class(model: type[object]) -> MagicMock:
+        if model.__name__ == "TableColumn":
+            raise ClassNotVersioned(model)
+        version_model = MagicMock()
+        version_model.__table__ = resolved_table
+        return version_model
+
+    with patch("sqlalchemy_continuum.version_class", side_effect=resolve_version_class):
+        with pytest.raises(RuntimeError, match="TableColumn"):
+            version_history_retention._resolve_shadow_tables(MagicMock())
 
 
 def test_serialization_failure_then_success_increments_retried_once(
@@ -93,7 +123,7 @@ def test_serialization_failure_then_success_increments_retried_once(
     The contract on ``.retried`` is "fires per retry attempt observed"
     (per-attempt, not per-session). This test pins the per-attempt shape so
     a future refactor doesn't silently change the metric semantics."""
-    pass_fn = MagicMock(
+    pass_fn: MagicMock = MagicMock(
         side_effect=[
             OperationalError("SELECT 1", {}, Exception("could not serialize access")),
             {"pruned_transactions": 7, "cutoff": "2026-01-01T00:00:00"},
@@ -126,7 +156,7 @@ def test_all_attempts_fail_reraises_after_max_retries(stats: MagicMock) -> None:
     """When every attempt raises ``OperationalError``, the task re-raises
     after ``_MAX_RETRY_ATTEMPTS`` so the outer Celery wrapper logs it.
     The retry counter fires once per attempt that hit the exception."""
-    exc = OperationalError("SELECT 1", {}, Exception("conflict"))
+    exc: OperationalError = OperationalError("SELECT 1", {}, Exception("conflict"))
     tables = version_history_retention.ShadowTables(
         parent=[MagicMock()], child=[MagicMock()], m2m=None, transaction=MagicMock()
     )
@@ -154,7 +184,7 @@ def test_terminal_failure_emits_failed_metric_and_swallows(stats: MagicMock) -> 
     """The Celery wrapper catches a terminal failure, returns ``{"error": 1}``
     (so the schedule isn't poisoned), AND emits a ``.failed`` counter so the
     destructive job's primary failure mode is alertable, not just logged."""
-    mock_app = MagicMock()
+    mock_app: MagicMock = MagicMock()
     mock_app.config = {"SUPERSET_VERSION_HISTORY_RETENTION_DAYS": 30}
     with (
         patch.object(version_history_retention, "current_app", mock_app),

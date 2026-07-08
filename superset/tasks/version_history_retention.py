@@ -19,7 +19,7 @@
 Retention is time-based. The task deletes parent + child shadow rows
 owned by ``version_transaction`` rows whose ``issued_at`` is older
 than ``SUPERSET_VERSION_HISTORY_RETENTION_DAYS`` (default 30, env
-overridable, ``0`` to disable).
+overridable, non-positive to disable).
 
 One preservation rule, applied across every shadow table (parent,
 child, and the M2M association):
@@ -33,12 +33,13 @@ row remaining; the historical chain (including the synthetic
 baseline) ages out.
 
 If any shadow row anchored at a transaction is live (in a parent,
-child, or M2M shadow), the whole transaction is preserved (along with
-its other shadow rows and ``version_changes`` rows). Otherwise, all of
-the transaction's shadow rows are deleted and the ``version_transaction``
-row itself is dropped — its ``version_changes`` rows cascade via the FK.
+child, or M2M shadow), the ``version_transaction`` and its
+``version_changes`` rows are preserved. Closed shadow rows whose lifecycle
+touches a pruned transaction are removed so their foreign keys cannot retain
+otherwise-expired history. Every other prunable transaction is dropped, and
+its ``version_changes`` rows cascade via the FK.
 
-Registered via ``CELERYBEAT_SCHEDULE`` in ``superset/config.py``.
+Registered via ``CeleryConfig.beat_schedule`` in ``superset/config.py``.
 Idempotent: a second run prunes nothing.
 """
 
@@ -48,7 +49,7 @@ import logging
 import time
 from collections.abc import Iterator
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import sqlalchemy as sa
@@ -57,7 +58,7 @@ from sqlalchemy.exc import OperationalError
 
 from superset.extensions import celery_app, db, stats_logger_manager
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -98,23 +99,20 @@ def _resolve_shadow_tables(tx_table: sa.Table) -> ShadowTables:
     # Narrowing the catch keeps a real underlying failure (e.g. a metadata
     # inconsistency after ``make_versioned``) from being silently swallowed
     # into a no-op retention pass.
+    missing_tables: list[str] = []
     parent_tables: list[sa.Table] = []
     for cls in (Dashboard, Slice, SqlaTable):
         try:
             parent_tables.append(version_class(cls).__table__)
         except ClassNotVersioned:
-            logger.warning(
-                "retention: %s is not versioned; skipping shadow", cls.__name__
-            )
+            missing_tables.append(cls.__name__)
 
     child_tables: list[sa.Table] = []
     for cls in (TableColumn, SqlMetric):
         try:
             child_tables.append(version_class(cls).__table__)
         except ClassNotVersioned:
-            logger.warning(
-                "retention: %s is not versioned; skipping shadow", cls.__name__
-            )
+            missing_tables.append(cls.__name__)
 
     metadata = parent_tables[0].metadata if parent_tables else None
     m2m_table = (
@@ -122,6 +120,14 @@ def _resolve_shadow_tables(tx_table: sa.Table) -> ShadowTables:
         if metadata is not None
         else None
     )
+    if m2m_table is None:
+        missing_tables.append("dashboard_slices_version")
+
+    if missing_tables:
+        raise RuntimeError(
+            "version-history retention requires every shadow table; missing: "
+            + ", ".join(missing_tables)
+        )
 
     return ShadowTables(
         parent=parent_tables,
@@ -182,7 +188,14 @@ def _resolve_prune_window(
     from sqlalchemy_continuum import versioning_manager
 
     tx_table = versioning_manager.transaction_cls.__table__
-    candidate_ids = [
+    # ``ORDER BY id LIMIT`` lets PostgreSQL and MySQL use the primary key for
+    # a populated backlog, where expired transactions cluster at the low-id
+    # end. The separate ``issued_at`` index added by migration d3b9a1f6c204
+    # covers the complementary case: when no rows meet the cutoff, both
+    # engines choose it for an empty range scan instead of walking the full
+    # primary key. Planner checks with 500,000 rows confirmed that adding the
+    # cutoff index does not displace the efficient primary-key backlog plan.
+    candidate_ids: list[int] = [
         row[0]
         for row in conn.execute(
             sa.select(tx_table.c.id)
@@ -237,14 +250,14 @@ def _resolve_prune_window(
 # which splits the create/close predicates into two statements) well inside
 # that floor, with margin for any other bound params in the surrounding
 # statement.
-_TX_ID_CHUNK_SIZE = 500
+_TX_ID_CHUNK_SIZE: int = 500
 
 # Maximum ``version_transaction`` rows resolved + pruned per SERIALIZABLE
 # pass. The prune loops over id-ordered windows of this size (see
 # ``_prune_old_versions_impl``) so memory and lock/transaction-hold time
 # stay bounded per pass instead of scaling with the full backlog on the
 # first run after deploy.
-_MAX_PRUNE_BATCH = 1000
+_MAX_PRUNE_BATCH: int = 1000
 
 
 def _delete_for_transactions(
@@ -310,17 +323,17 @@ def _chunked(items: list[int], size: int) -> Iterator[list[int]]:
 #: A daily Celery beat schedule means the next chance is 24h out, so
 #: a small inline retry materially improves the recovery time for the
 #: serialization-conflict path.
-_MAX_RETRY_ATTEMPTS = 3
+_MAX_RETRY_ATTEMPTS: int = 3
 
 #: Base for exponential backoff between retries (seconds). Worst-case
 #: extra latency with the 3-attempt cap above and the factor below is
 #: ``BASE + BASE * FACTOR`` = ~0.5s — well inside the prune's own
 #: typical runtime.
-_RETRY_BACKOFF_BASE_SECONDS = 0.1
+_RETRY_BACKOFF_BASE_SECONDS: float = 0.1
 
 #: Exponential-backoff multiplier between successive retry attempts.
 #: Backoff for attempt N is ``BASE * (FACTOR ** (N - 1))``.
-_RETRY_BACKOFF_FACTOR = 4
+_RETRY_BACKOFF_FACTOR: int = 4
 
 #: Statsd metric prefix for retention emissions. Mirrors the activity-view
 #: orchestrator's ``superset.activity_view.*`` namespace so a single
@@ -329,7 +342,7 @@ _RETRY_BACKOFF_FACTOR = 4
 #: fires for the "retention disabled" and "no versioned classes" cases;
 #: the retried counter fires when the SERIALIZABLE block tripped at
 #: least one conflict before settling.
-_METRIC_PREFIX = "superset.versioning.retention"
+_METRIC_PREFIX: str = "superset.versioning.retention"
 
 
 def _run_prune_pass(
@@ -345,7 +358,7 @@ def _run_prune_pass(
     # parents: children and the M2M association live on independent
     # validity lifecycles and may anchor a still-live row at an older
     # transaction than the parent's current live row.
-    live_bearing_tables = [*tables.parent, *tables.child]
+    live_bearing_tables: list[sa.Table] = [*tables.parent, *tables.child]
     if tables.m2m is not None:
         live_bearing_tables.append(tables.m2m)
 
@@ -403,10 +416,13 @@ def _run_pass_with_retry(
     ``_MAX_RETRY_ATTEMPTS`` attempts conflict.
 
     Postgres surfaces conflicts as ``SerializationFailure`` (a subclass
-    of ``sqlalchemy.exc.OperationalError``). Without the inline retry a
-    single conflict pushes the next attempt 24h out (daily Celery beat),
-    so under sustained write pressure the prune could silently fail for
-    days in a row.
+    of ``sqlalchemy.exc.OperationalError``). The catch is deliberately the
+    broader ``OperationalError`` — it also covers transient faults such as
+    SQLite's "database is locked" and dropped connections, all of which are
+    safe to retry because each pass is idempotent and runs in its own fresh
+    transaction. Without the inline retry a single conflict pushes the next
+    attempt 24h out (daily Celery beat), so under sustained write pressure
+    the prune could silently fail for days in a row.
     """
     for attempt in range(1, _MAX_RETRY_ATTEMPTS + 1):
         try:
@@ -430,7 +446,7 @@ def _run_pass_with_retry(
                 backoff,
             )
             time.sleep(backoff)
-    raise AssertionError("retention retry loop exited without result")
+    raise AssertionError("unreachable")  # pragma: no cover
 
 
 def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
@@ -471,21 +487,19 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
     from sqlalchemy_continuum import versioning_manager
 
     tables = _resolve_shadow_tables(versioning_manager.transaction_cls.__table__)
-    if not tables.parent:
-        logger.warning(
-            "version_history_retention: no versioned classes resolved; skipping",
-        )
-        stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.skipped")
-        return {"skipped": 1}
-
-    cutoff = datetime.utcnow() - timedelta(days=retention_days)
+    # Naive-UTC to match ``version_transaction.issued_at`` (Continuum stores
+    # it tz-naive via ``utc_now()``); ``datetime.utcnow()`` is deprecated on
+    # 3.12+, so derive the same value from the tz-aware clock and drop tzinfo.
+    cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+        days=retention_days
+    )
 
     # Drain the backlog one bounded, id-ordered window at a time. Each
     # window is its own retried SERIALIZABLE pass, so memory and
     # lock/transaction-hold time stay bounded per pass even on the first
     # run after deploy. The loop stops once a window returns fewer than a
     # full batch of candidates (nothing left older than the cutoff).
-    totals = {
+    totals: dict[str, int] = {
         "pruned_transactions": 0,
         "pruned_parent_shadows": 0,
         "pruned_child_shadows": 0,
@@ -519,10 +533,10 @@ def prune_old_versions() -> dict[str, Any]:
     doesn't poison the schedule (the next firing retries from a clean
     slate).
     """
-    retention_days: int = current_app.config.get(
-        "SUPERSET_VERSION_HISTORY_RETENTION_DAYS", 30
-    )
     try:
+        retention_days = int(
+            current_app.config.get("SUPERSET_VERSION_HISTORY_RETENTION_DAYS", 30)
+        )
         return _prune_old_versions_impl(retention_days)
     except Exception:  # pylint: disable=broad-except
         logger.exception("version_history.prune_old_versions: task failed")
