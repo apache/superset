@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import datetime
-from typing import cast
 from unittest import mock
 
 import pytest
@@ -226,12 +225,12 @@ class SupersetTestCases(SupersetTestCase):
         )
 
         table.database.sqlalchemy_uri = "sqlite://"
-        query_obj = {
+        query_obj: QueryObjectDict = {
             "groupby": ["gender_cc_jinja"],
             "is_timeseries": False,
             "filter": [],
             "orderby": [
-                [
+                (
                     {
                         "expressionType": "SIMPLE",
                         "column": {"column_name": "gender_cc_jinja"},
@@ -239,10 +238,10 @@ class SupersetTestCases(SupersetTestCase):
                         "label": "max_gender_cc_jinja",
                     },
                     True,
-                ]
+                )
             ],
         }
-        sql = table.get_query_str(cast(QueryObjectDict, query_obj))
+        sql = table.get_query_str(query_obj)
         orderby_clause = sql.split("ORDER BY")[1]
         assert "{%" not in orderby_clause
         assert "{{" not in orderby_clause
