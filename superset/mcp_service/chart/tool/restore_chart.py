@@ -104,9 +104,7 @@ async def restore_chart(
     chart_id = chart.id
     # Chart names are user-controlled; wrap before composing response text so
     # a hostile name cannot inject prompt content into the tool output.
-    chart_name = sanitize_for_llm_context(
-        chart.slice_name, field_path=("slice_name",)
-    )
+    chart_name = sanitize_for_llm_context(chart.slice_name, field_path=("slice_name",))
 
     if chart.deleted_at is None:
         return RestoreChartResponse(
