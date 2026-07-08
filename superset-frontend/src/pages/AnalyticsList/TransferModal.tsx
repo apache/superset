@@ -22,6 +22,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { t } from '@apache-superset/core/translation';
@@ -249,6 +250,8 @@ export default function TransferModal({
   const [movedToLeft, setMovedToLeft] = useState<TransferItem[]>([]);
   const [leftSearch, setLeftSearch] = useState('');
   const [rightSearch, setRightSearch] = useState('');
+  const leftSyncedSearch = useRef('');
+  const rightSyncedSearch = useRef('');
   const [targetFolderUuid, setTargetFolderUuid] = useState<string | null>(null);
   const [allFolders, setAllFolders] = useState<FolderOption[]>([]);
   const [leftLoading, setLeftLoading] = useState(false);
@@ -323,6 +326,7 @@ export default function TransferModal({
       setLeftLoading(true);
       fetchPage(currentFolderUuid, 0, leftSearch || undefined)
         .then(({ items, total }) => {
+          leftSyncedSearch.current = leftSearch;
           setLeftItems(items);
           setLeftTotal(total);
           setLeftPage(0);
@@ -336,10 +340,11 @@ export default function TransferModal({
   useEffect(() => {
     if (!show || !targetFolderUuid) return;
     const timer = setTimeout(() => {
-      const apiUuid = targetFolderUuid === '__root__' ? null : targetFolderUuid;
       setRightLoading(true);
+      const apiUuid = targetFolderUuid === '__root__' ? null : targetFolderUuid;
       fetchPage(apiUuid, 0, rightSearch || undefined)
         .then(({ items, total }) => {
+          rightSyncedSearch.current = rightSearch;
           setRightItems(items);
           setRightTotal(total);
           setRightPage(0);
@@ -351,25 +356,39 @@ export default function TransferModal({
   }, [rightSearch, show, targetFolderUuid, addDangerToast]);
 
   // Scroll handler — fetch next page when near bottom (AsyncSelect pattern)
-  const handleLeftScroll = useCallback(
-    (e: UIEvent<HTMLDivElement>) => {
+  const handleScroll = useCallback(
+    (side: 'left' | 'right') => (e: UIEvent<HTMLDivElement>) => {
+      const isLeft = side === 'left';
+      const page = isLeft ? leftPage : rightPage;
+      const total = isLeft ? leftTotal : rightTotal;
+      const loading = isLeft ? leftLoading : rightLoading;
+      const search = isLeft ? leftSearch : rightSearch;
+      const setItems = isLeft ? setLeftItems : setRightItems;
+      const setPage = isLeft ? setLeftPage : setRightPage;
+      const setLoading = isLeft ? setLeftLoading : setRightLoading;
+      const folderUuid = isLeft
+        ? currentFolderUuid
+        : targetFolderUuid === '__root__'
+          ? null
+          : targetFolderUuid;
+
       const el = e.currentTarget;
       const nearBottom =
         el.scrollTop > (el.scrollHeight - el.offsetHeight) * SCROLL_THRESHOLD;
-      const hasMore = (leftPage + 1) * PAGE_SIZE < leftTotal;
-      if (!leftLoading && hasMore && nearBottom) {
-        const nextPage = leftPage + 1;
-        setLeftLoading(true);
-        fetchPage(currentFolderUuid, nextPage, leftSearch || undefined)
+      const hasMore = (page + 1) * PAGE_SIZE < total;
+      if (!loading && hasMore && nearBottom) {
+        const nextPage = page + 1;
+        setLoading(true);
+        fetchPage(folderUuid, nextPage, search || undefined)
           .then(({ items }) => {
-            setLeftItems(prev => {
+            setItems(prev => {
               const existing = new Set(prev.map(i => i.key));
               return [...prev, ...items.filter(i => !existing.has(i.key))];
             });
-            setLeftPage(nextPage);
+            setPage(nextPage);
           })
           .catch(() => addDangerToast(t('Error loading more items')))
-          .finally(() => setLeftLoading(false));
+          .finally(() => setLoading(false));
       }
     },
     [
@@ -377,46 +396,19 @@ export default function TransferModal({
       leftTotal,
       leftLoading,
       leftSearch,
-      currentFolderUuid,
-      addDangerToast,
-    ],
-  );
-
-  const handleRightScroll = useCallback(
-    (e: UIEvent<HTMLDivElement>) => {
-      const el = e.currentTarget;
-      const nearBottom =
-        el.scrollTop > (el.scrollHeight - el.offsetHeight) * SCROLL_THRESHOLD;
-      const hasMore = (rightPage + 1) * PAGE_SIZE < rightTotal;
-      if (!rightLoading && hasMore && nearBottom) {
-        const nextPage = rightPage + 1;
-        const apiUuid =
-          targetFolderUuid === '__root__' ? null : targetFolderUuid;
-        setRightLoading(true);
-        fetchPage(apiUuid, nextPage, rightSearch || undefined)
-          .then(({ items }) => {
-            setRightItems(prev => {
-              const existing = new Set(prev.map(i => i.key));
-              return [...prev, ...items.filter(i => !existing.has(i.key))];
-            });
-            setRightPage(nextPage);
-          })
-          .catch(() => addDangerToast(t('Error loading more items')))
-          .finally(() => setRightLoading(false));
-      }
-    },
-    [
       rightPage,
       rightTotal,
       rightLoading,
       rightSearch,
+      currentFolderUuid,
       targetFolderUuid,
       addDangerToast,
     ],
   );
 
-  const toggleLeftSelect = useCallback((key: string) => {
-    setLeftSelected(prev => {
+  const toggleSelection = useCallback((key: string, side: 'left' | 'right') => {
+    const setter = side === 'left' ? setLeftSelected : setRightSelected;
+    setter(prev => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
@@ -424,14 +416,23 @@ export default function TransferModal({
     });
   }, []);
 
-  const toggleRightSelect = useCallback((key: string) => {
-    setRightSelected(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  }, []);
+  const selectAll = useCallback(
+    (filtered: TransferItem[], setter: typeof setLeftSelected) => {
+      setter(prev => new Set([...prev, ...filtered.map(i => i.key)]));
+    },
+    [],
+  );
+
+  const deselectAll = useCallback(
+    (filtered: TransferItem[], setter: typeof setLeftSelected) => {
+      setter(prev => {
+        const next = new Set(prev);
+        filtered.forEach(i => next.delete(i.key));
+        return next;
+      });
+    },
+    [],
+  );
 
   const moveRight = useCallback(() => {
     if (!leftSelected.size) return;
@@ -562,38 +563,32 @@ export default function TransferModal({
           !rightKeys.has(i.key),
       );
     }
-    // Append moved-to-left items that match the search
+    // Append moved-to-left items filtered by the synced search value,
+    // so they disappear at the same time as server results.
     const serverKeys = new Set(items.map(i => i.key));
-    const q = leftSearch?.toLowerCase();
+    const q = leftSyncedSearch.current?.toLowerCase();
     const localMatches = movedToLeft.filter(
       i => !serverKeys.has(i.key) && (!q || i.name.toLowerCase().includes(q)),
     );
     return [...items, ...localMatches];
-  }, [
-    leftItems,
-    leftSearch,
-    movedToRight,
-    movedToLeft,
-    targetFolderUuid,
-    rightItems,
-  ]);
+  }, [leftItems, movedToRight, movedToLeft, targetFolderUuid, rightItems]);
 
   const filteredRight = useMemo(() => {
     const movedLeftKeys = new Set(movedToLeft.map(i => i.key));
-    // Server items minus anything moved to the left
     const items = rightItems.filter(
       i =>
         !movedLeftKeys.has(i.key) &&
         !(i.type === 'folder' && i.uuid === currentFolderUuid),
     );
-    // Append moved-to-right items that match the search
+    // Append moved-to-right items filtered by the synced search value,
+    // so they disappear at the same time as server results.
     const serverKeys = new Set(items.map(i => i.key));
-    const q = rightSearch?.toLowerCase();
+    const q = rightSyncedSearch.current?.toLowerCase();
     const localMatches = movedToRight.filter(
       i => !serverKeys.has(i.key) && (!q || i.name.toLowerCase().includes(q)),
     );
     return [...items, ...localMatches];
-  }, [rightItems, rightSearch, movedToLeft, movedToRight, currentFolderUuid]);
+  }, [rightItems, movedToLeft, movedToRight, currentFolderUuid]);
 
   const leftSelectableCount = filteredLeft.filter(
     (i: TransferItem) => !leftSelected.has(i.key),
@@ -720,15 +715,7 @@ export default function TransferModal({
                   buttonStyle="link"
                   buttonSize="xsmall"
                   disabled={leftSelectableCount === 0}
-                  onClick={() =>
-                    setLeftSelected(
-                      (prev: Set<string>) =>
-                        new Set([
-                          ...prev,
-                          ...filteredLeft.map((i: TransferItem) => i.key),
-                        ]),
-                    )
-                  }
+                  onClick={() => selectAll(filteredLeft, setLeftSelected)}
                 >
                   {t('Select all (%s)', formatCount(leftSelectableCount))}
                 </Button>
@@ -736,15 +723,7 @@ export default function TransferModal({
                   buttonStyle="link"
                   buttonSize="xsmall"
                   disabled={leftDeselectableCount === 0}
-                  onClick={() =>
-                    setLeftSelected((prev: Set<string>) => {
-                      const next = new Set(prev);
-                      filteredLeft.forEach((i: TransferItem) =>
-                        next.delete(i.key),
-                      );
-                      return next;
-                    })
-                  }
+                  onClick={() => deselectAll(filteredLeft, setLeftSelected)}
                 >
                   {t('Deselect all (%s)', formatCount(leftDeselectableCount))}
                 </Button>
@@ -761,14 +740,14 @@ export default function TransferModal({
               {leftLoading && !leftItems.length ? (
                 <Skeleton active />
               ) : (
-                <ScrollableList onScroll={handleLeftScroll}>
+                <ScrollableList onScroll={handleScroll('left')}>
                   <List
                     dataSource={filteredLeft}
                     locale={{ emptyText: t('No items') }}
                     renderItem={(item: TransferItem) => (
                       <List.Item
                         key={item.key}
-                        onClick={() => toggleLeftSelect(item.key)}
+                        onClick={() => toggleSelection(item.key, 'left')}
                         css={{ cursor: 'pointer' }}
                       >
                         <Flex align="center" gap={theme.sizeUnit * 2}>
@@ -847,15 +826,7 @@ export default function TransferModal({
                   buttonStyle="link"
                   buttonSize="xsmall"
                   disabled={rightSelectableCount === 0}
-                  onClick={() =>
-                    setRightSelected(
-                      (prev: Set<string>) =>
-                        new Set([
-                          ...prev,
-                          ...filteredRight.map((i: TransferItem) => i.key),
-                        ]),
-                    )
-                  }
+                  onClick={() => selectAll(filteredRight, setRightSelected)}
                 >
                   {t('Select all (%s)', formatCount(rightSelectableCount))}
                 </Button>
@@ -863,15 +834,7 @@ export default function TransferModal({
                   buttonStyle="link"
                   buttonSize="xsmall"
                   disabled={rightDeselectableCount === 0}
-                  onClick={() =>
-                    setRightSelected((prev: Set<string>) => {
-                      const next = new Set(prev);
-                      filteredRight.forEach((i: TransferItem) =>
-                        next.delete(i.key),
-                      );
-                      return next;
-                    })
-                  }
+                  onClick={() => deselectAll(filteredRight, setRightSelected)}
                 >
                   {t('Deselect all (%s)', formatCount(rightDeselectableCount))}
                 </Button>
@@ -892,14 +855,14 @@ export default function TransferModal({
               ) : rightLoading && !rightItems.length ? (
                 <Skeleton active />
               ) : (
-                <ScrollableList onScroll={handleRightScroll}>
+                <ScrollableList onScroll={handleScroll('right')}>
                   <List
                     dataSource={filteredRight}
                     locale={{ emptyText: t('No items') }}
                     renderItem={(item: TransferItem) => (
                       <List.Item
                         key={item.key}
-                        onClick={() => toggleRightSelect(item.key)}
+                        onClick={() => toggleSelection(item.key, 'right')}
                         css={{ cursor: 'pointer' }}
                       >
                         <Flex align="center" gap={theme.sizeUnit * 2}>

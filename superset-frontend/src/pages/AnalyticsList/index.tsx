@@ -229,6 +229,7 @@ function AnalyticsList({
   ]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   // Charts per expanded dashboard, owned here so they survive antd remounting
   // the expanded-row subtree (which would otherwise re-flash the loader).
   const [chartsByDashboard, setChartsByDashboard] = useState<
@@ -359,6 +360,20 @@ function AnalyticsList({
       setExpandedKeys([]);
       // Drop cached charts so a re-expand after the list changes refetches.
       setChartsByDashboard({});
+
+      // Track the name filter for search highlighting
+      const nameFilter = filters.find(f => f.id === 'name');
+      setSearchQuery(
+        nameFilter?.value
+          ? String(
+              typeof nameFilter.value === 'object' &&
+                nameFilter.value !== null &&
+                'value' in nameFilter.value
+                ? (nameFilter.value as { value: unknown }).value
+                : nameFilter.value,
+            )
+          : '',
+      );
 
       // Build rison-encoded filters matching the standard {col, opr, value} format
       const filterExps: Array<{ col: string; opr: string; value: unknown }> =
@@ -672,6 +687,24 @@ function AnalyticsList({
       handleResourceExport('dashboard', dashboards, () => {});
   }, []);
 
+  const highlightName = useCallback(
+    (name: string) => {
+      if (!searchQuery) return name;
+      const idx = name.toLowerCase().indexOf(searchQuery.toLowerCase());
+      if (idx === -1) return name;
+      return (
+        <span>
+          {name.slice(0, idx)}
+          <mark css={{ background: theme.colorPrimaryBg, padding: 0 }}>
+            {name.slice(idx, idx + searchQuery.length)}
+          </mark>
+          {name.slice(idx + searchQuery.length)}
+        </span>
+      );
+    },
+    [searchQuery, theme.colorPrimaryBg],
+  );
+
   const columns = useMemo(
     () => [
       {
@@ -739,7 +772,7 @@ function AnalyticsList({
                       color: theme.colorSuccessTextHover,
                     }}
                   />
-                  {original.name}
+                  {highlightName(original.name)}
                   {pinIcon}
                 </NameLink>
               );
@@ -753,9 +786,11 @@ function AnalyticsList({
                     css={{ color: theme.colorWarningBgHover }}
                   />
                   {original.url ? (
-                    <NameLink href={original.url}>{original.name}</NameLink>
+                    <NameLink href={original.url}>
+                      {highlightName(original.name)}
+                    </NameLink>
                   ) : (
-                    original.name
+                    highlightName(original.name)
                   )}
                   {pinIcon}
                   <CaretButton
@@ -778,7 +813,7 @@ function AnalyticsList({
                   iconSize="m"
                   css={{ color: theme.colorErrorTextHover }}
                 />
-                {original.name}
+                {highlightName(original.name)}
                 {pinIcon}
               </NameLink>
             ) : (
@@ -787,7 +822,7 @@ function AnalyticsList({
                   iconSize="m"
                   css={{ color: theme.colorErrorTextHover }}
                 />
-                {original.name}
+                {highlightName(original.name)}
                 {pinIcon}
               </NameRow>
             );
@@ -1032,6 +1067,7 @@ function AnalyticsList({
       pinnedKeys.size,
       pinItem,
       unpinItem,
+      highlightName,
       theme,
     ],
   );
@@ -1226,8 +1262,21 @@ function AnalyticsList({
     ],
   };
 
+  // Persistent hover-like highlight on expanded dashboard rows via dynamic CSS,
+  // since antd Table doesn't support styling the parent row of an expanded section.
+  const expandedRowStyle = useMemo(() => {
+    if (!expandedKeys.length) return null;
+    const selectors = expandedKeys
+      .map(key => `.ant-table-row[data-row-key="${key}"] > td`)
+      .join(', ');
+    return (
+      <style>{`${selectors} { background: ${theme.controlItemBgHover} !important; }`}</style>
+    );
+  }, [expandedKeys, theme.controlItemBgHover]);
+
   return (
     <>
+      {expandedRowStyle}
       {showCreateFolder && (
         <CreateFolderModal
           show
