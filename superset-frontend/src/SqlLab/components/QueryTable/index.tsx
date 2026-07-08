@@ -28,7 +28,7 @@ import {
 } from '@superset-ui/core/components';
 import ProgressBar from '@superset-ui/core/components/ProgressBar';
 import { t } from '@apache-superset/core/translation';
-import { QueryResponse, QueryState } from '@superset-ui/core';
+import { QueryResponse } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/theme';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 
@@ -397,24 +397,12 @@ const QueryTable = ({
         modalBody={
           selectedQuery ? (
             <ModalResultSetWrapper>
-              {(() => {
-                const height =
-                  reduxQueries[selectedQuery.id]?.state ===
-                    QueryState.Success &&
-                  reduxQueries[selectedQuery.id]?.results
-                    ? Math.floor(window.innerHeight * 0.5)
-                    : undefined;
-                return (
-                  <ResultSet
-                    showSql
-                    queryId={selectedQuery.id}
-                    displayLimit={displayLimit}
-                    defaultQueryLimit={1000}
-                    useFixedHeight
-                    height={height}
-                  />
-                );
-              })()}
+              <ResultSet
+                showSql
+                queryId={selectedQuery.id}
+                displayLimit={displayLimit}
+                defaultQueryLimit={1000}
+              />
             </ModalResultSetWrapper>
           ) : null
         }
