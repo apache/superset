@@ -401,12 +401,6 @@
     ],
     "deprecated": [
       {
-        "name": "AVOID_COLORS_COLLISION",
-        "default": true,
-        "lifecycle": "deprecated",
-        "description": "Avoid color collisions in charts by using distinct colors"
-      },
-      {
         "name": "DRILL_TO_DETAIL",
         "default": true,
         "lifecycle": "deprecated",

@@ -912,9 +912,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # These flags default to True and will be removed in a future major
     # release. Set to True in your config to avoid unexpected changes.
     # -----------------------------------------------------------------
-    # Avoid color collisions in charts by using distinct colors
-    # @lifecycle: deprecated
-    "AVOID_COLORS_COLLISION": True,
     # Enable drill-to-detail functionality in charts
     # @lifecycle: deprecated
     "DRILL_TO_DETAIL": True,

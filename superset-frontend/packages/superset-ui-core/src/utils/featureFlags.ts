@@ -29,7 +29,6 @@ export enum FeatureFlag {
   AlertReportWebhook = 'ALERT_REPORT_WEBHOOK',
   AlertReportsFilter = 'ALERT_REPORTS_FILTER',
   AllowFullCsvExport = 'ALLOW_FULL_CSV_EXPORT',
-  AvoidColorsCollision = 'AVOID_COLORS_COLLISION',
   ChartPluginsExperimental = 'CHART_PLUGINS_EXPERIMENTAL',
   ConfirmDashboardDiff = 'CONFIRM_DASHBOARD_DIFF',
   CssTemplates = 'CSS_TEMPLATES',
