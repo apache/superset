@@ -1625,12 +1625,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const onChangeDashboardFilterValue = (
     idx: number,
     filterValues:
-      | SelectValue
-      | SelectValue[]
-      | string
-      | string[]
-      | number
-      | number[],
+      SelectValue | SelectValue[] | string | string[] | number | number[],
   ) => {
     let values: any;
     if (typeof filterValues === 'string') {
@@ -1799,12 +1794,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
   const validateContentSection = () => {
     const errors = [];
-    if (
-      !(
-        (contentType === ContentType.Dashboard && !!currentAlert?.dashboard) ||
-        (contentType === ContentType.Chart && !!currentAlert?.chart)
-      )
-    ) {
+    if (!(
+      (contentType === ContentType.Dashboard && !!currentAlert?.dashboard) ||
+      (contentType === ContentType.Chart && !!currentAlert?.chart)
+    )) {
       errors.push(TRANSLATIONS.CONTENT_ERROR_TEXT);
     }
 
@@ -1839,13 +1832,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     if (!currentAlert?.sql?.length) {
       errors.push(TRANSLATIONS.SQL_ERROR_TEXT);
     }
-    if (
-      !(
-        (conditionNotNull || !!currentAlert?.validator_config_json?.op) &&
-        (conditionNotNull ||
-          currentAlert?.validator_config_json?.threshold !== undefined)
-      )
-    ) {
+    if (!(
+      (conditionNotNull || !!currentAlert?.validator_config_json?.op) &&
+      (conditionNotNull ||
+        currentAlert?.validator_config_json?.threshold !== undefined)
+    )) {
       errors.push(TRANSLATIONS.ALERT_CONDITION_ERROR_TEXT);
     }
     updateValidationStatus(Sections.Alert, errors);

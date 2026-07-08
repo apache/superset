@@ -229,6 +229,7 @@ const SaveModal = ({
 
   const canOverwriteSlice = useCallback(
     (): boolean =>
+      !!slice &&
       (can_overwrite ||
         isUserAdmin(user) ||
         slice?.owners?.includes(user.userId)) &&

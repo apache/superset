@@ -430,6 +430,9 @@ APP_ICON = "/static/assets/images/superset-logo-horiz.png"
 # (THEME_DEFAULT["token"]["brandLogoHref"]); see sync_theme_logo_href below.
 LOGO_TARGET_PATH = None
 
+# When True, hide the navbar logo.
+HIDE_NAVBAR_LOGO: bool = False
+
 # Specify tooltip that should appear when hovering over the App Icon/Logo
 # NOTE: This variable is deprecated and not used in the new theme system.
 LOGO_TOOLTIP = ""
@@ -702,9 +705,15 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: testing
     # @docs: https://superset.apache.org/docs/configuration/alerts-reports
     "ALERT_REPORTS": False,
-    # Enables Slack V2 integration for Alerts and Reports
+    # Enables Slack V2 integration for Alerts and Reports.
+    # Defaults to True; the legacy Slack v1 path is deprecated and will be removed
+    # in the next major release. Operators must grant the Slack bot both the
+    # `channels:read` and `groups:read` scopes so existing v1 recipients can be
+    # auto-upgraded on their next send. Without those scopes, file uploads fail
+    # (Slack retired the `files.upload` endpoint in 2025) and only text-only
+    # `chat_postMessage` sends will continue to work via the legacy path.
     # @lifecycle: testing
-    "ALERT_REPORT_SLACK_V2": False,
+    "ALERT_REPORT_SLACK_V2": True,
     # Enables webhook integration for Alerts and Reports
     # @lifecycle: testing
     "ALERT_REPORT_WEBHOOK": False,
@@ -1207,6 +1216,35 @@ THUMBNAIL_COMPUTING_CACHE_TTL = int(timedelta(seconds=360).total_seconds())
 # Celery task. Intentionally defaults to None so operators pick a dedicated
 # least-privilege user rather than inadvertently running warmup as "admin".
 SUPERSET_CACHE_WARMUP_USER: str | None = None
+# To warm up native filter option queries, use the `native_filter_options` strategy.
+# This strategy pre-populates the cache for Value-type native filter dropdowns by
+# executing the same chart-data queries the UI sends when a user opens a filter.
+#
+# Cache entries are warmed under SUPERSET_CACHE_WARMUP_USER. Without the shared
+# cache key optimization (not included in this PR), entries are scoped to the
+# warm-up user's normal cache partition. Users with different role sets may still
+# experience cache misses on first load.
+#
+# Example Celery beat configuration:
+#
+#     beat_schedule = {
+#         "cache-warmup-native-filters": {
+#             "task": "cache-warmup",
+#             "schedule": crontab(minute=0, hour=3),  # daily at 03:00
+#             "kwargs": {
+#                 "strategy_name": "native_filter_options",
+#                 "dashboard_ids": [1, 2, 3],
+#             },
+#         },
+#     }
+#
+# Requirements:
+# - SUPERSET_CACHE_WARMUP_USER must be set to a user with access to the
+#   dashboards and datasets referenced by the native filters.
+# - DATA_CACHE_CONFIG must be configured (Redis recommended).
+# - Celery beat must be running.
+# - Cascade/dependent filters and search-term variants are not warmed in this
+#   version; only base option queries are supported.
 
 # Time before selenium times out after trying to locate an element on the page and wait
 # for that element to load for a screenshot.

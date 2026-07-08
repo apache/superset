@@ -38,10 +38,10 @@
     "eslint": "^10.5.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.6.0",
-    "prettier": "^3.8.4",
+    "prettier": "^3.9.4",
     "tscw-config": "^1.1.2",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.62.0",
+    "typescript-eslint": "^8.62.1",
     "vitest": "^4.1.5"
   },
   "engines": {

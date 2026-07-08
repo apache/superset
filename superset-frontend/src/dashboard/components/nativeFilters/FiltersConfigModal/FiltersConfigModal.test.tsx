@@ -93,6 +93,9 @@ const bigIntChartDataState = () => {
             data: [
               { name: 'Abigail', count: 228 },
               { name: 'Aaron', count: 123012930123123n },
+              // Exceeds Number.MAX_SAFE_INTEGER, mirroring the BigInt values
+              // that parseResponse produces for large integer columns
+              { name: 'Adah', count: 9007199254740993n },
               { name: 'Adam', count: 454 },
             ],
             applied_filters: [{ column: 'name' }],
@@ -181,6 +184,7 @@ const NAME_REQUIRED_REGEX = /^name is required$/i;
 const COLUMN_REQUIRED_REGEX = /^column is required$/i;
 const PRE_FILTER_REQUIRED_REGEX = /^pre-filter is required$/i;
 const DEFAULT_VALUE_INVALID_REGEX = /choose.*valid value/i;
+const REMOVE_FILTER_BUTTON_REGEX = /Remove filter/i;
 
 const props: FiltersConfigModalProps = {
   isOpen: true,
@@ -773,6 +777,18 @@ test('renders a filter with a chart containing BigInt values', async () => {
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
 });
 
+test('creates a new filter when a chart contains BigInt values', () => {
+  // Repro for #35087: opening "Add or edit filters" on a dashboard where a
+  // chart queried a BigInt column must not throw
+  // "TypeError: Do not know how to serialize a BigInt"
+  defaultRender(bigIntChartDataState(), props);
+
+  expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
+  expect(screen.getByText(FILTER_NAME_REGEX)).toBeInTheDocument();
+  expect(screen.getByText(DATASET_REGEX)).toBeInTheDocument();
+  expect(screen.getByText(COLUMN_REGEX)).toBeInTheDocument();
+});
+
 test('displays empty state when modal opens with no filters and createNewOnOpen is false', () => {
   defaultRender(defaultState(), { ...props, createNewOnOpen: false });
 
@@ -974,13 +990,15 @@ test('restores a deleted filter via the "Restore filter" button', async () => {
 
   const filterContainer = screen.getByTestId('filter-title-container');
   const firstTab = within(filterContainer).getAllByRole('tab')[0];
-  fireEvent.click(within(firstTab).getByRole('button', { name: /delete/i }));
+  fireEvent.click(
+    within(firstTab).getByRole('button', { name: REMOVE_FILTER_BUTTON_REGEX }),
+  );
 
   expect(
     await screen.findByText(/you have removed this filter/i),
   ).toBeInTheDocument();
   const restoreButton = screen.getByTestId('restore-filter-button');
-  await userEvent.click(restoreButton);
+  userEvent.click(restoreButton);
 
   await waitFor(() => {
     expect(
@@ -1009,11 +1027,13 @@ test('undoes a filter deletion via the sidebar "Undo?" link', async () => {
 
   const filterContainer = screen.getByTestId('filter-title-container');
   const firstTab = within(filterContainer).getAllByRole('tab')[0];
-  fireEvent.click(within(firstTab).getByRole('button', { name: /delete/i }));
+  fireEvent.click(
+    within(firstTab).getByRole('button', { name: REMOVE_FILTER_BUTTON_REGEX }),
+  );
 
   const undoButton = await screen.findByTestId('undo-button');
   expect(undoButton).toHaveTextContent(/undo\?/i);
-  await userEvent.click(undoButton);
+  userEvent.click(undoButton);
 
   await waitFor(() => {
     expect(

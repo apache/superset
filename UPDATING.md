@@ -42,6 +42,8 @@ assists people when migrating to a new version.
 
 - **New config flag `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE` (default `False`).** Share/permalink URLs now substitute `window.location.origin` for the backend-supplied origin so a proxied or subdirectory-deployed Superset never hands the user an unreachable internal hostname. Operators whose reverse proxy correctly forwards `X-Forwarded-Host` *and* who want permalinks to carry the backend's literal origin can opt out by setting `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE = True` in `superset_config.py`. Default `False` (rewrite is on); flipping the default would regress the dominant proxied/subdir deployment to an unreachable host.
 
+- [41651](https://github.com/apache/superset/pull/41651): **New do-not-translate standard for translation catalogs.** Strings that must stay identical to the source — icon names (e.g. `bolt`), enum/option values (`step-after`), SQL keywords, API field names (`error_message`), code constants, and example placeholders — are now marked with a `#. do-not-translate` extracted comment. The list lives in the `superset/translations/do-not-translate.txt` registry; `scripts/translations/apply_do_not_translate.py` stamps the marker onto `messages.pot` during `babel_update.sh`, and `pybabel update` propagates it to every `.po`, so the status is consistent across all languages. The AI backfill (`backfill_po.py`) and translators leave these entries untranslated (source fallback). The legacy per-catalog convention (a `# Не переводить` translator comment in the `ru` catalog) is still honored for back-compat but is superseded by this standard; contributors adding new machine-read strings should add the msgid to the registry rather than annotating individual catalogs.
+
 ### SQL Lab denies large-object and information_schema access by default
 
 `DISALLOWED_SQL_FUNCTIONS` and `DISALLOWED_SQL_TABLES` now ship with additional default entries, so SQL Lab and chart-data queries that reference them are rejected where they were previously allowed:
@@ -78,6 +80,19 @@ When the MCP service has JWT auth enabled (`MCP_AUTH_ENABLED = True`), an audien
 ### Build details (git SHA / build number) are admin-only by default
 
 The git SHA and build number surfaced in the "About" section, the bootstrap payload, and the public `/version` endpoint are now only included for admin users by default; the release version string is still shown to everyone. To expose the build details to all users (the previous behavior), set the `SUPERSET_EXPOSE_BUILD_DETAILS` environment variable (or `EXPOSE_BUILD_DETAILS_TO_USERS = True` in `superset_config.py`).
+
+### Helm chart adopts Kubernetes recommended labels (breaking upgrade)
+
+The Helm chart now labels and selects workloads using the [Kubernetes recommended labels](https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/) (`app.kubernetes.io/*`) instead of the legacy `app`/`release` labels. Because a Deployment's `spec.selector.matchLabels` is immutable, `helm upgrade` against an existing release will fail with a `field is immutable` error.
+
+To upgrade, delete the affected workloads (which selector labels changed) before upgrading, then run the upgrade so they are recreated with the new labels:
+
+```bash
+kubectl delete deployment,statefulset -l release=<release-name> -n <namespace>
+helm upgrade <release-name> superset/superset
+```
+
+Alternatively, perform a fresh install. This is a one-time migration; subsequent upgrades are unaffected.
 
 ### Pivot table First/Last aggregations follow data order
 
@@ -288,6 +303,58 @@ SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = "aes"
 Schedule the cutover in a quiet window. Runtime reads use only the single configured engine, so in a multi-worker deployment there is an unavoidable brief decrypt-outage between the migration commit and the last worker restarting with the new config — each migrator run is transactional, but the fleet-wide cutover is not zero-downtime.
 
 The migration is transactional (all-or-nothing) and idempotent — it can be safely re-run or resumed. Note that AES-GCM, unlike AES-CBC, does not support querying directly over encrypted columns; audit any code that filters on an encrypted column before switching. See the SIP at `docs/sip/authenticated-encryption-at-rest.md` for details.
+
+### Soft delete and restore for datasets
+
+**The soft-delete behavior in this section applies only when the `SOFT_DELETE` feature flag is enabled. The flag defaults to `False`** (`@lifecycle: development`), so on a default deployment `DELETE /api/v1/dataset/<id>` continues to **hard-delete permanently** — nothing is recoverable. Enable `SOFT_DELETE` to get the behavior described below.
+
+**Flag-toggle caveat:** the soft-delete visibility filter is evaluated per query while the flag is on. If datasets are soft-deleted during a flag-on window and the flag is later turned **off**, those rows reappear as live datasets in all lists, lookups, and relationship loads (including charts that reference them). The `POST /<uuid>/restore` endpoint and the `dataset_deleted_state` list filter remain functional regardless of the flag, deliberately, so rows soft-deleted during a flag-on window stay discoverable and restorable after a rollback of the flag.
+
+**Flag-independent parts of this work** (active even with `SOFT_DELETE` off): the restore endpoint and deleted-state filter (above); the database-deletion guard counting soft-deleted datasets; the `get_or_create_dataset` soft-deleted-twin pre-check; the combined datasource listing (`GET /api/v1/datasource/...`) always excluding soft-deleted datasets; and the two uniqueness-validation changes documented at the end of this section. Everything else — the soft DELETE itself and the visibility filtering — is flag-gated.
+
+With the flag enabled: `DELETE /api/v1/dataset/<id>` no longer hard-deletes the dataset (the bulk-delete endpoint behaves the same way). The row is marked with a `deleted_at` timestamp and hidden from all list, detail, and lookup endpoints. Datasets in this state are excluded from default queries and from relationship loads (e.g. `database.tables`).
+
+**No cascade in v1.** Soft-delete does not propagate to dependent charts or dashboards: they remain visible. Loading a chart whose dataset is soft-deleted surfaces a "datasource not found" error at chart-load time. Restore the dataset to recover.
+
+**Database deletion is blocked by soft-deleted datasets.** Superset already refuses to delete a database that still has datasets (`DatabaseDeleteDatasetsExistFailedError`); that check now explicitly counts soft-deleted datasets too (it bypasses the visibility filter), since the soft-deleted `tables` rows still reference the database via `database_id` and must not be orphaned. Consequence: because dataset `DELETE` is soft and v1 ships no hard-delete/purge, **a database that has ever had datasets cannot be deleted through the API once those datasets are soft-deleted** — the rows remain and keep blocking the delete. Until a purge capability lands, operators who must remove such a database have to hard-delete the underlying `tables` rows out-of-band first. This is a deliberate trade-off (no orphaned rows / restorable datasets) and is expected to be resolved by the planned purge work.
+
+**Side-effect change for operators.** Because the row is no longer physically deleted, FAB `ab_view_menu` / permission-view rows tied to the dataset are also preserved. Downstream automation that relied on `DELETE /api/v1/dataset/<id>` cleaning up those rows must now react to the new `POST /api/v1/dataset/<uuid>/restore` lifecycle, or call the eventual hard-delete endpoint.
+
+**New endpoint** — `POST /api/v1/dataset/<uuid>/restore` clears `deleted_at` and returns the dataset to active state. Requires `can_write on Dataset` and ownership of the row (or admin). Soft-deleted datasets can also be surfaced in the list endpoint via the new `dataset_deleted_state` rison filter: `include` returns both live and soft-deleted rows, `only` returns just the soft-deleted ones. Any other value is ignored. For non-admin users, soft-deleted rows are limited to datasets they own — the same audience that can restore them.
+
+**Permissions migration:** existing role grants of `can_write on Dataset` cover the new restore endpoint automatically; no role migration is required.
+
+**Schema migration:** the migration adds a nullable `deleted_at` column and an index on it (`ix_tables_deleted_at`) to the `tables` table. The column add is instant; the index build runs inline (no `CONCURRENTLY`) and may briefly block writes on the `tables` table (INSERT/UPDATE/DELETE are queued while the index builds; reads are unaffected) on large Postgres deployments. MySQL InnoDB builds the index online (no blocking). Production deployments with many thousands of datasets should run this migration during a maintenance window.
+
+**Rollback note:** if the application code is rolled back after datasets have been soft-deleted, the older code path's visibility filter no longer applies and previously hidden rows become visible to the older code. Pair the rollback with a data decision (restore the rows, hard-delete them, or also downgrade the migration) rather than assuming the old hard-delete semantics still hold. **Downgrading the migration destroys the deletion markers**: `downgrade()` drops the `deleted_at` column, so any not-yet-restored soft-deleted datasets silently become live, active datasets with no record they were ever deleted. Reconcile the trash (restore or hard-delete each row) *before* downgrading, and disable the `SOFT_DELETE` flag first so no new soft deletes land mid-rollback.
+
+**SQL Lab / dataset-creation flows:** creating a dataset over a table whose dataset sits in the trash is refused. The SQL Lab "save as dataset" flow (`get_or_create_dataset`) and file uploads return a **422 naming the hidden twin and the restore endpoint**; the plain create, update, and duplicate paths currently fail with the generic "already exists" 422. In all cases the remediation is the same: restore the hidden dataset (or use a different table name). Perm-string maintenance also covers hidden rows: renaming a database rewrites `perm`/`schema_perm`/`catalog_perm` on soft-deleted datasets and their charts, so a later restore does not resurrect stale permission strings.
+
+**Importer behavior:** importing a dataset YAML whose UUID matches an existing **soft-deleted** dataset is treated as an implicit restore-with-update — **and this happens even when `overwrite` is not set**. This is a deliberate asymmetry with active rows: an active dataset imported without `overwrite=true` is returned unchanged, but a soft-deleted UUID match is restored *and* has the upload's contents applied regardless of the `overwrite` argument, on the reasoning that re-importing a deleted dataset's exact UUID is an explicit request to bring it back. The restore preserves the original PK, the chart back-reference, `table_columns`, and `sql_metrics`. Non-owners get `ImportFailedError`. Callers without `can_write` get `ImportFailedError` instead of silently receiving the soft-deleted row.
+
+**Uniqueness-validation changes that apply regardless of the feature flag:** two dataset uniqueness checks were tightened alongside this work and are active even with `SOFT_DELETE` off. (1) Create/update uniqueness treats a dataset whose `catalog` is `NULL` as belonging to the database's default catalog, so a legacy twin pair (`catalog=NULL` vs. `catalog=<default>`, same database/schema/name) that older versions allowed now fails validation with "already exists" when either row is edited — resolve by renaming or removing one of the twins. (2) Duplicating a dataset now checks name collisions scoped to the target (database, catalog, schema) instead of globally by name alone: duplicates into other databases that were previously blocked are now allowed.
+
+### Soft delete and restore for charts
+
+**Everything in this section applies only when the `SOFT_DELETE` feature flag is enabled. The flag defaults to `False`** (`@lifecycle: development`), so on a default deployment `DELETE /api/v1/chart/<id>` continues to **hard-delete permanently** — nothing is recoverable. Enable `SOFT_DELETE` to get the behavior described below.
+
+**Flag-toggle caveat:** the soft-delete visibility filter is evaluated per query while the flag is on. If charts are soft-deleted during a flag-on window and the flag is later turned **off**, those rows reappear as live charts in all lists, lookups, and relationship loads (including dashboards that contained them). The `POST /<uuid>/restore` endpoint and the `chart_deleted_state` list filter remain functional regardless of the flag, deliberately, so rows soft-deleted during a flag-on window stay discoverable and restorable after a rollback of the flag.
+
+With the flag enabled: `DELETE /api/v1/chart/<id>` no longer hard-deletes the chart (the bulk-delete endpoint behaves the same way). The row is marked with a `deleted_at` timestamp and hidden from all list, detail, and lookup endpoints. Charts in this state are excluded from default queries and from relationship loads (e.g. `dashboard.slices`).
+
+**Operational notes:** a report schedule whose target chart is soft-deleted now fails its runs with an explicit error ("The chart this report targets was deleted...") until the chart is restored or the report re-pointed — chart deletion is blocked while a report references the chart, but a validate/commit race or a flag toggle can still produce this state. Dashboards **preserve** their membership rows for soft-deleted charts: saving a dashboard does not sever a trashed member, and restoring the chart re-attaches it to its dashboards.
+
+**New endpoint** — `POST /api/v1/chart/<uuid>/restore` clears `deleted_at` and returns the chart to active state. Requires `can_write on Chart` and ownership of the row (or admin). Soft-deleted charts can also be surfaced in the list endpoint via the new `chart_deleted_state` rison filter: `include` returns both live and soft-deleted rows, `only` returns just the soft-deleted ones. Any other value is ignored. For non-admin users, soft-deleted rows are limited to charts they own — the same audience that can restore them.
+
+**Permissions migration:** existing role grants of `can_write on Chart` cover the new restore endpoint automatically; no role migration is required.
+
+**Schema migration:** the migration adds a nullable `deleted_at` column and an index on it (`ix_slices_deleted_at`) to the `slices` table. The column add is instant; the index build runs inline (no `CONCURRENTLY`) and may briefly block writes on the `slices` table (INSERT/UPDATE/DELETE are queued while the index builds; reads are unaffected) on large Postgres deployments. MySQL InnoDB builds the index online (no blocking).
+
+**Rollback note:** if the application code is rolled back after charts have been soft-deleted, the older code path's visibility filter no longer applies and previously hidden rows become visible to the older code. Pair the rollback with a data decision (restore the rows, hard-delete them, or also downgrade the migration) rather than assuming the old hard-delete semantics still hold. **Downgrading the migration destroys the deletion markers**: `downgrade()` drops the `deleted_at` column, so any not-yet-restored soft-deleted charts silently become live, active charts with no record they were ever deleted. Reconcile the trash (restore or hard-delete each row) *before* downgrading, and disable the `SOFT_DELETE` flag first so no new soft deletes land mid-rollback.
+
+**Importer behavior:** importing a chart YAML whose UUID matches an existing **soft-deleted** chart is treated as an implicit restore-with-update — **and this happens even when `overwrite` is not set**. This is a deliberate asymmetry with active rows: an active chart imported without `overwrite=true` is returned unchanged, but a soft-deleted UUID match is restored *and* has the upload's contents applied regardless of the `overwrite` argument, on the reasoning that re-importing a deleted chart's exact UUID is an explicit request to bring it back. The restore preserves the original PK and all out-of-archive references (`dashboard_slices` junctions, `report.chart_id`, tag rows). The operation is permission-gated: non-owners get `ImportFailedError`, and callers without `can_write` get `ImportFailedError` instead of silently receiving the soft-deleted row.
+
+- [39914](https://github.com/apache/superset/pull/39914) `ALERT_REPORT_SLACK_V2` now defaults to `True` and the legacy Slack v1 integration (`Slack` recipient type, `files.upload` API) is deprecated for removal in the next major. Slack blocked new apps from `files.upload` in May 2024 and fully retired the method for all apps on November 12, 2025; because the v1 path sends files through `files.upload`, v1 file-bearing sends now fail at the API level — only text-only `chat_postMessage` still works via the legacy path. Grant your Slack bot the `channels:read` and `groups:read` scopes so existing `Slack` recipients can be auto-upgraded to `SlackV2` on next send. Operators who explicitly override the flag to `False`, or whose Slack bot is missing those scopes, will see deprecation warnings while text-only sends continue through the legacy path.
 
 ### Soft delete and restore for dashboards
 

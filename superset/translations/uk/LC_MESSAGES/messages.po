@@ -30,6 +30,33 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
+#, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a new "
+"dataset over this table, or use a different table name."
+msgstr ""
+
+#, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or "
+"upload to a different table name."
+msgstr ""
+
+msgid ""
+"Cannot delete a database whose only remaining datasets are soft-deleted. "
+"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
+"permanently once a purge capability ships, or remove the underlying rows "
+"out-of-band, before deleting the database."
+msgstr ""
+
+msgid ""
+"Dataset cannot be restored because another active dataset already references "
+"the same physical table (same database, catalog, schema, and table name). "
+"Delete the duplicate or rename the table before restoring."
+msgstr ""
+
 msgid ""
 "\n"
 "                The cumulative option allows you to see how your data "
@@ -3109,6 +3136,9 @@ msgstr "Зміни діаграми"
 msgid "Chart could not be created."
 msgstr "Не вдалося створити діаграму."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "Не вдалося оновити діаграму."
 
@@ -4659,6 +4689,9 @@ msgstr "Не вдалося створити набір даних."
 
 msgid "Dataset could not be duplicated."
 msgstr "Не вдалося дублювати набір даних."
+
+msgid "Dataset could not be restored."
+msgstr ""
 
 msgid "Dataset could not be updated."
 msgstr "Не вдалося оновити набір даних."
@@ -13522,6 +13555,11 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+
 msgid "The chart is still loading. Please wait a moment and try again."
 msgstr "Графік ще завантажується. Зачекайте хвилину і спробуйте знову."
 
@@ -13606,6 +13644,11 @@ msgstr "Стандарт коду країни, який очікується в
 
 msgid "The dashboard has been saved"
 msgstr "Звіт збережено"
+
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
+msgstr ""
 
 msgid "The data source seems to have been deleted"
 msgstr "Схоже, джерела даних вилучено"
