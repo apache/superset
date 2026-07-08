@@ -113,7 +113,7 @@ const GridContent = styled.div<{ editMode?: boolean }>`
 
 const GridColumnGuide = styled.div`
   ${({ theme }) => css`
-    // /* Editing guides */
+    /* Editing guides */
     &.grid-column-guide {
       position: absolute;
       top: 0;
