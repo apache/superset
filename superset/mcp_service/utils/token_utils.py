@@ -473,7 +473,7 @@ INFO_TOOLS = frozenset(
 _MAX_STRING_CHARS = 500
 # Maximum items to keep in list fields before truncation (configurable via
 # MCP_RESPONSE_SIZE_CONFIG["max_list_items"])
-_MAX_LIST_ITEMS = DEFAULT_MAX_LIST_ITEMS
+_MAX_LIST_ITEMS: int = DEFAULT_MAX_LIST_ITEMS
 # Maximum keys to keep when summarizing large dict fields
 _MAX_DICT_KEYS = 20
 

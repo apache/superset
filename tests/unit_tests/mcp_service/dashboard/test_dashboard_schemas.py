@@ -899,7 +899,7 @@ class TestDashboardInfoLargeListGuidance:
 
     def test_charts_field_documents_list_charts_escape_hatch(self) -> None:
         """The charts field description points to list_charts pagination."""
-        description = DashboardInfo.model_fields["charts"].description
+        description: str | None = DashboardInfo.model_fields["charts"].description
         assert description is not None
         assert "list_charts" in description
         assert "dashboards" in description
@@ -907,7 +907,9 @@ class TestDashboardInfoLargeListGuidance:
 
     def test_native_filters_field_documents_max_list_items_config(self) -> None:
         """The native_filters field description mentions the configurable cap."""
-        description = DashboardInfo.model_fields["native_filters"].description
+        description: str | None = DashboardInfo.model_fields[
+            "native_filters"
+        ].description
         assert description is not None
         assert "max_list_items" in description
 
