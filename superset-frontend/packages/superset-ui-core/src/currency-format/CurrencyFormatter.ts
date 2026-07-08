@@ -39,13 +39,18 @@ interface CurrencyFormatter {
   ): string;
 }
 
-export const getCurrencySymbol = (currency: Partial<Currency>) =>
-  new Intl.NumberFormat('en-US', {
+export const getCurrencySymbol = (currency: Partial<Currency>) => {
+  if (currency.symbol === 'KHR') {
+    return '៛';
+  }
+
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currency.symbol,
   })
     .formatToParts(1)
     .find(x => x.type === 'currency')?.value;
+};
 
 export function normalizeCurrency(value: RowDataValue): string | null {
   if (value === null || value === undefined) return null;
