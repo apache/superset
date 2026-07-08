@@ -30,6 +30,7 @@ export type BoxPlotQueryFormData = QueryFormData & {
   numberFormat?: string;
   whiskerOptions?: BoxPlotFormDataWhiskerOptions;
   xTickLayout?: BoxPlotFormXTickLayout;
+  yAxisSlider?: boolean;
 } & TitleFormData;
 
 export type BoxPlotFormDataWhiskerOptions =
@@ -41,11 +42,7 @@ export type BoxPlotFormDataWhiskerOptions =
   | '10/90 percentiles';
 
 export type BoxPlotFormXTickLayout =
-  | '45°'
-  | '90°'
-  | 'auto'
-  | 'flat'
-  | 'staggered';
+  '45°' | '90°' | 'auto' | 'flat' | 'staggered';
 
 // @ts-expect-error
 export const DEFAULT_FORM_DATA: BoxPlotQueryFormData = {

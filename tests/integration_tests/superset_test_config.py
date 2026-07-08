@@ -70,7 +70,6 @@ FEATURE_FLAGS = {
     "foo": "bar",
     "ENABLE_TEMPLATE_PROCESSING": True,
     "ALERT_REPORTS": True,
-    "AVOID_COLORS_COLLISION": True,
     "DRILL_TO_DETAIL": True,
     "DRILL_BY": True,
     "GLOBAL_TASK_FRAMEWORK": True,
@@ -134,6 +133,10 @@ ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 3
 
 FAB_ADD_SECURITY_API = True
+
+# Swagger UI / OpenAPI spec is opt-in in the base config; enable it for tests
+# that exercise the /api/v1/_openapi spec endpoint.
+FAB_API_SWAGGER_UI = True
 
 
 class CeleryConfig:

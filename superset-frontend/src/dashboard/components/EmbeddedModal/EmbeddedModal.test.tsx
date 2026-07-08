@@ -139,6 +139,18 @@ test('shows and hides confirmation alert when deactivating', async () => {
   });
 });
 
+test('populates the allowed-domains input from the API response', async () => {
+  setup();
+
+  const allowedDomainsInput = (await screen.findByRole('textbox', {
+    name: /Allowed Domains/i,
+  })) as HTMLInputElement;
+
+  await waitFor(() => {
+    expect(allowedDomainsInput.value).toBe('example.com');
+  });
+});
+
 test('enables Save Changes button when allowed domains are modified', async () => {
   setup();
 

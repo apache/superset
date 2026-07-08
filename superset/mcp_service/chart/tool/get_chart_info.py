@@ -20,6 +20,7 @@ MCP tool: get_chart_info
 """
 
 import logging
+from typing import Any
 
 from fastmcp import Context
 from sqlalchemy.orm import subqueryload
@@ -169,6 +170,21 @@ def _apply_unsaved_state_override(result: ChartInfo, form_data_key: str) -> None
             # Update viz_type from cached form_data if present
             if result.form_data and "viz_type" in result.form_data:
                 result.viz_type = result.form_data["viz_type"]
+                if result.viz_type:
+                    try:
+                        from superset.mcp_service.chart.registry import (
+                            display_name_for_viz_type,
+                        )
+
+                        result.chart_type_display_name = display_name_for_viz_type(
+                            result.viz_type
+                        )
+                    except Exception as exc:  # noqa: BLE001
+                        logger.debug(
+                            "Failed to resolve display name for viz_type=%r: %s",
+                            result.viz_type,
+                            exc,
+                        )
 
             # Update filters from cached form_data
             result.filters = extract_filters_from_form_data(result.form_data)
@@ -213,7 +229,7 @@ def _apply_unsaved_state_override(result: ChartInfo, form_data_key: str) -> None
 )
 async def get_chart_info(
     request: GetChartInfoRequest, ctx: Context
-) -> ChartInfo | ChartError:
+) -> dict[str, Any] | ChartError:
     """Get chart metadata by ID or UUID.
 
     IMPORTANT FOR LLM CLIENTS:
@@ -277,17 +293,23 @@ async def get_chart_info(
                 "form_data_key=%s" % (request.form_data_key,)
             )
             result = _build_unsaved_chart_info(request.form_data_key)
+            if isinstance(result, ChartError):
+                return result
             if not can_view_data_model_metadata:
-                return redact_chart_data_model_fields(result)
-            return result
+                result = redact_chart_data_model_fields(result)
+            return result.model_dump(
+                mode="json",
+                context={"select_columns": request.select_columns},
+            )
 
     # At this point identifier must be set (validator ensures at least one
     # of identifier/form_data_key is provided, and the form_data_key-only
     # branch returned above).
     assert request.identifier is not None
 
-    # Eager load tags to avoid N+1 queries during serialization.
+    # Eager load editors and tags to avoid N+1 queries during serialization
     eager_options = [
+        subqueryload(Slice.editors),
         subqueryload(Slice.tags),
     ]
 
@@ -333,6 +355,11 @@ async def get_chart_info(
             error = await _attach_dashboard_filters(result, request.dashboard_id, ctx)
             if error is not None:
                 return error
+
+        return result.model_dump(
+            mode="json",
+            context={"select_columns": request.select_columns},
+        )
     else:
         await ctx.warning("Chart retrieval failed: error=%s" % (str(result),))
 

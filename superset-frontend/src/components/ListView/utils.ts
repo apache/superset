@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useMemo, useState, ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   useFilters,
   usePagination,
@@ -34,7 +34,7 @@ import {
 } from 'use-query-params';
 
 import rison from 'rison';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import {
   ListViewFetchDataConfig as FetchDataConfig,
   ListViewFilter as Filter,
@@ -192,13 +192,7 @@ interface UseListViewConfig {
   count: number;
   initialPageSize: number;
   initialSort?: SortColumn[];
-  bulkSelectMode?: boolean;
   initialFilters?: Filter[];
-  bulkSelectColumnConfig?: {
-    id: string;
-    Header: (conf: any) => ReactNode;
-    Cell: (conf: any) => ReactNode;
-  };
   renderCard?: boolean;
   defaultViewMode?: ViewModeType;
 }
@@ -211,8 +205,6 @@ export function useListViewState({
   initialPageSize,
   initialFilters = [],
   initialSort = [],
-  bulkSelectMode = false,
-  bulkSelectColumnConfig,
   renderCard = false,
   defaultViewMode = 'card',
 }: UseListViewConfig) {
@@ -246,13 +238,11 @@ export function useListViewState({
       (renderCard ? defaultViewMode : 'table'),
   );
 
-  const columnsWithSelect = useMemo(() => {
+  const columnsWithFilter = useMemo(
     // add exact filter type so filters with falsy values are not filtered out
-    const columnsWithFilter = columns.map(f => ({ ...f, filter: 'exact' }));
-    return bulkSelectMode
-      ? [bulkSelectColumnConfig, ...columnsWithFilter]
-      : columnsWithFilter;
-  }, [bulkSelectMode, columns]);
+    () => columns.map(f => ({ ...f, filter: 'exact' })),
+    [columns],
+  );
 
   const {
     getTableProps,
@@ -271,7 +261,7 @@ export function useListViewState({
     state: { pageIndex, pageSize, sortBy, filters },
   } = useTable(
     {
-      columns: columnsWithSelect,
+      columns: columnsWithFilter,
       data,
       disableFilters: true,
       disableSortRemove: true,

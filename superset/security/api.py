@@ -24,7 +24,15 @@ from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.security.decorators import permission_name, protect
 from flask_appbuilder.security.sqla.models import RegisterUser, Role
 from flask_wtf.csrf import generate_csrf
-from marshmallow import EXCLUDE, fields, post_load, Schema, ValidationError
+from marshmallow import (
+    EXCLUDE,
+    fields,
+    post_load,
+    RAISE,
+    Schema,
+    validate,
+    ValidationError,
+)
 from sqlalchemy import asc, desc
 from sqlalchemy.orm import selectinload
 
@@ -34,7 +42,11 @@ from superset.commands.dashboard.embedded.exceptions import (
 from superset.commands.exceptions import ForbiddenError
 from superset.exceptions import SupersetGenericErrorException
 from superset.extensions import db, event_logger
-from superset.security.guest_token import GuestTokenResourceType
+from superset.security.guest_token import (
+    build_guest_token_audit_payload,
+    GuestTokenResourceType,
+)
+from superset.utils.core import get_user_id
 from superset.views.base_api import (
     BaseSupersetApi,
     BaseSupersetModelRestApi,
@@ -74,8 +86,33 @@ class ResourceSchema(PermissiveSchema):
         return data
 
 
-class RlsRuleSchema(PermissiveSchema):
-    dataset = fields.Integer()
+class RlsRuleSchema(Schema):
+    """
+    Schema for a single row-level security rule attached to a guest token.
+
+    Unlike the other guest-token schemas, this one rejects unknown fields
+    instead of silently dropping them. A rule is scoped to a dataset only when
+    it carries a valid positive integer ``dataset`` key; a rule with no
+    ``dataset`` is treated as global and its ``clause`` is applied to every
+    dataset the embedded resource can reach (see ``get_guest_rls_filters``).
+    Silently excluding an unexpected field -- most commonly a mistyped or
+    legacy scope key such as ``datasource`` -- would therefore turn an intended
+    dataset-scoped rule into a global one without any feedback to the caller.
+    Raising on unknown fields surfaces the mistake as an HTTP 400 before a
+    token is ever issued and keeps the accepted payload aligned with the
+    documented ``RlsRule`` contract (``dataset`` and ``clause``).
+
+    For the same reason ``dataset`` is constrained to strict, positive
+    integers: a falsy value such as ``0`` (or ``false``, which marshmallow
+    coerces to ``0``) would pass a bare ``Integer`` field but then read as
+    falsy in ``get_guest_rls_filters``, silently widening a scoped rule to
+    every dataset.
+    """
+
+    class Meta:  # pylint: disable=too-few-public-methods
+        unknown = RAISE
+
+    dataset = fields.Integer(strict=True, validate=validate.Range(min=1))
     clause = fields.String(required=True)  # todo other options?
 
 
@@ -203,6 +240,15 @@ class SecurityRestApi(BaseSupersetApi):
                 body["resources"],
                 body["rls"],
                 **({"datasets": body["datasets"]} if "datasets" in body else {}),
+            )
+            logger.info(
+                "Guest token issued: %s",
+                build_guest_token_audit_payload(
+                    issuer_user_id=get_user_id(),
+                    source_ip=request.remote_addr,
+                    body=body,
+                    token=token,
+                ),
             )
             return self.response(200, token=token)
         except EmbeddedDashboardNotFoundError as error:
@@ -358,8 +404,12 @@ class RoleRestAPI(BaseSupersetApi):
             )
         except ForbiddenError as e:
             return self.response_403(message=str(e))
-        except Exception as e:
-            return self.response_500(message=str(e))
+        except Exception:
+            # Log the full error server-side for operator visibility, but return
+            # a generic message so internal details (ORM/driver error text, SQL
+            # fragments, schema names) are not echoed back to the caller.
+            logger.exception("Unexpected error in RoleRestAPI.get_list")
+            return self.response_500(message="An unexpected error occurred")
 
 
 class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
@@ -370,6 +420,11 @@ class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
     resource_name = "security/user_registrations"
     datamodel = SQLAInterface(RegisterUser)
     allow_browser_login = True
+    # NOTE: registration_hash is intentionally excluded from both list_columns
+    # and search_columns. It is a bearer token for the
+    # /register/activation/<hash> flow; exposing it in API responses (and thus
+    # logs/caches) or allowing it to be filtered on would let a holder activate
+    # the pending account.
     list_columns = [
         "id",
         "username",
@@ -377,5 +432,11 @@ class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
         "first_name",
         "last_name",
         "registration_date",
-        "registration_hash",
+    ]
+    search_columns = [
+        "username",
+        "email",
+        "first_name",
+        "last_name",
+        "registration_date",
     ]

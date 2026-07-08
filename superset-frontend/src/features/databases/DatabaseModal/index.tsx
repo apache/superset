@@ -63,7 +63,7 @@ import {
 } from 'src/views/CRUD/hooks';
 import { FileEncryptedExtraFields } from 'src/views/CRUD/types';
 import { useCommonConf } from 'src/features/databases/state';
-import { isEmpty, pick } from 'lodash';
+import { isEmpty, pick } from 'lodash-es';
 import { OnlyKeyWithType } from 'src/utils/types';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import {
@@ -591,6 +591,10 @@ export function dbReducer(
             catalog: payloadCatalog,
           },
           // eslint-disable-next-line camelcase
+          engine_information:
+            action.payload.engine_information ||
+            trimmedState.engine_information,
+          // eslint-disable-next-line camelcase
           query_input,
         };
       }
@@ -601,6 +605,9 @@ export function dbReducer(
         configuration_method: action.payload.configuration_method,
         parameters: action.payload.parameters || trimmedState.parameters,
         ssh_tunnel: action.payload.ssh_tunnel || trimmedState.ssh_tunnel,
+        // eslint-disable-next-line camelcase
+        engine_information:
+          action.payload.engine_information || trimmedState.engine_information,
         // eslint-disable-next-line camelcase
         query_input,
       };
@@ -661,6 +668,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     hasValidated,
     setHasValidated,
   ] = useDatabaseValidation();
+  const lastValidatedDbSnapshotRef = useRef<string | null>(null);
   const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
   const [showCTAbtns, setShowCTAbtns] = useState(false);
   const [dbName, setDbName] = useState('');
@@ -768,6 +776,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const handleClearValidationErrors = useCallback(() => {
     setValidationErrors(null);
     setHasValidated(false);
+    lastValidatedDbSnapshotRef.current = null;
     clearError();
   }, [setValidationErrors, setHasValidated, clearError]);
 
@@ -844,6 +853,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     [onChange],
   );
 
+  const handleTextChange = useCallback(
+    ({ target }: { target: HTMLInputElement }) => {
+      onChange(ActionType.TextChange, {
+        name: target.name,
+        value: target.value,
+      });
+    },
+    [onChange],
+  );
+
   const handleChangeWithValidation = useCallback(
     (
       actionType: ActionType,
@@ -854,6 +873,21 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     },
     [onChange, handleClearValidationErrors],
   );
+
+  const getBlurValidation = useCallback(async () => {
+    const currentDbSnapshot = JSON.stringify(db);
+    if (currentDbSnapshot === lastValidatedDbSnapshotRef.current) {
+      return [];
+    }
+    const result = await getValidation(db);
+    // Only cache after a request that produced a usable response. ``null``
+    // signals an unexpected/network failure, in which case we leave the
+    // snapshot untouched so the next blur retries.
+    if (result !== null) {
+      lastValidatedDbSnapshotRef.current = currentDbSnapshot;
+    }
+    return result;
+  }, [db, getValidation]);
 
   const onClose = () => {
     setDB({ type: ActionType.Reset });
@@ -933,7 +967,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
 
       const errors = await getValidation(dbToUpdate, true);
-      if (!isEmpty(validationErrors) || errors?.length) {
+      // ``getValidation`` returns ``[]`` on success, a field-keyed object
+      // for blocking errors (e.g. the duplicate ``database_name`` check),
+      // and ``null`` for stale or unexpected responses. During save we
+      // cannot proceed without a usable result, so treat ``null`` as
+      // blocking too — only ``[]`` is a clean pass. The decision relies on
+      // this fresh result alone: the ``validationErrors`` state in this
+      // closure may still hold errors from before the user fixed the form.
+      const hasReturnedErrors =
+        errors === null ||
+        (Array.isArray(errors) ? errors.length > 0 : !isEmpty(errors));
+      if (hasReturnedErrors) {
         addDangerToast(
           t('Connection failed, please check your connection settings.'),
         );
@@ -1201,9 +1245,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           // For all other options, sort alphabetically
           return String(a.label).localeCompare(String(b.label));
         }}
-        getPopupContainer={triggerNode =>
-          triggerNode.parentElement || document.body
-        }
+        getPopupContainer={() => document.body}
         dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
       />
       <Alert
@@ -1840,7 +1882,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           name: target.name,
           value: target.value,
         });
-        handleClearValidationErrors();
       }}
       setSSHTunnelLoginMethod={(method: AuthType) =>
         setDB({
@@ -1848,6 +1889,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           payload: { login_method: method },
         })
       }
+      isValidating={isValidating}
+      validationErrors={validationErrors}
+      // ``validate_parameters`` only understands dynamic-form payloads; in
+      // SQLAlchemy-URI mode SSH fields are exercised via "Test connection"
+      // instead, so blur validation is skipped there.
+      getValidation={useSqlAlchemyForm ? () => {} : getBlurValidation}
     />
   );
 
@@ -1923,13 +1970,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           });
         }}
         onParametersChange={handleParametersChange}
-        onChange={({ target }: { target: HTMLInputElement }) =>
-          handleChangeWithValidation(ActionType.TextChange, {
-            name: target.name,
-            value: target.value,
-          })
-        }
-        getValidation={() => getValidation(db)}
+        onChange={handleTextChange}
+        getValidation={getBlurValidation}
         validationErrors={validationErrors}
         getPlaceholder={getPlaceholder}
         clearValidationErrors={handleClearValidationErrors}

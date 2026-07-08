@@ -439,13 +439,10 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   const appendFormData = (formData: FormData, data: Record<string, any>) => {
     const allFieldsNotInType = getAllFieldsNotInType();
     Object.entries(data).forEach(([key, value]) => {
-      if (
-        !(
-          allFieldsNotInType.includes(key) ||
-          (NonNullFields.includes(key) &&
-            (value === undefined || value === null))
-        )
-      ) {
+      if (!(
+        allFieldsNotInType.includes(key) ||
+        (NonNullFields.includes(key) && (value === undefined || value === null))
+      )) {
         formData.append(key, value);
       }
     });
@@ -578,8 +575,11 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     return Promise.resolve();
   };
 
-  const validateDatabase = (_: any, value: string) => {
-    if (!currentDatabaseId) {
+  const validateDatabase = (
+    _: any,
+    value: { value: number; label: string } | null | undefined,
+  ) => {
+    if (!value?.value) {
       return Promise.reject(t('Selecting a database is required'));
     }
     return Promise.resolve();

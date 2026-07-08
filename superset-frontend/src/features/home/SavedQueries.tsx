@@ -27,16 +27,11 @@ import CodeSyntaxHighlighter, {
 import { LoadingCards } from 'src/pages/Home';
 import { TableTab } from 'src/views/CRUD/types';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import {
-  Dropdown,
-  DeleteModal,
-  Button,
-  ListViewCard,
-} from '@superset-ui/core/components';
+import { DeleteModal, Icons, ListViewCard } from '@superset-ui/core/components';
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import { copyQueryLink, useListViewResource } from 'src/views/CRUD/hooks';
-import { Icons } from '@superset-ui/core/components/Icons';
 import { User } from 'src/types/bootstrapTypes';
+import { KebabMenuButton } from 'src/components';
 import {
   CardContainer,
   createErrorHandler,
@@ -45,7 +40,6 @@ import {
   shortenSQL,
 } from 'src/views/CRUD/utils';
 import { assetUrl } from 'src/utils/assetUrl';
-import { ensureAppRoot } from 'src/utils/pathUtils';
 import { navigateTo } from 'src/utils/navigationUtils';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
@@ -306,7 +300,8 @@ export const SavedQueries = ({
             <CardStyles key={q.id}>
               <ListViewCard
                 imgURL=""
-                url={ensureAppRoot(`/sqllab?savedQueryId=${q.id}`)}
+                url={`/sqllab?savedQueryId=${q.id}`}
+                linkComponent={Link}
                 title={q.label}
                 imgFallbackURL={assetUrl(
                   '/static/assets/images/empty-query.svg',
@@ -344,14 +339,10 @@ export const SavedQueries = ({
                       e.preventDefault();
                     }}
                   >
-                    <Dropdown
-                      menu={{ items: menuItems(q) }}
-                      trigger={['click', 'hover']}
-                    >
-                      <Button buttonSize="xsmall" buttonStyle="link">
-                        <Icons.MoreOutlined iconSize="xl" />
-                      </Button>
-                    </Dropdown>
+                    <KebabMenuButton
+                      menuItems={menuItems(q)}
+                      dataTest="saved-query-card-menu"
+                    />
                   </ListViewCard.Actions>
                 }
               />

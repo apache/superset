@@ -50,10 +50,12 @@ def create_mock_rls_filter(
     table.table_name = "sales"
     rls_filter.tables = [table]
 
-    role = MagicMock()
-    role.id = 1
-    role.name = "Alpha"
-    rls_filter.roles = [role]
+    subject = MagicMock()
+    subject.id = 1
+    subject.label = "Alpha"
+    subject.secondary_label = None
+    subject.type = 2
+    rls_filter.subjects = [subject]
 
     return rls_filter
 
@@ -136,7 +138,7 @@ async def test_list_rls_filters_with_search(mock_list, mcp_server):
 
 @patch("superset.daos.security.RLSDAO.list")
 @pytest.mark.asyncio
-async def test_list_rls_filters_returns_tables_and_roles(mock_list, mcp_server):
+async def test_list_rls_filters_returns_tables_and_subjects(mock_list, mcp_server):
     rls_filter = create_mock_rls_filter()
     mock_list.return_value = ([rls_filter], 1)
 
@@ -144,7 +146,7 @@ async def test_list_rls_filters_returns_tables_and_roles(mock_list, mcp_server):
         request = ListRlsFiltersRequest(
             page=1,
             page_size=10,
-            select_columns=["id", "name", "tables", "roles"],
+            select_columns=["id", "name", "tables", "subjects"],
         )
         result = await client.call_tool(
             "list_rls_filters", {"request": request.model_dump()}
@@ -153,8 +155,8 @@ async def test_list_rls_filters_returns_tables_and_roles(mock_list, mcp_server):
         item = data["rls_filters"][0]
         assert "tables" in item
         assert item["tables"][0]["table_name"] == "sales"
-        assert "roles" in item
-        assert item["roles"][0]["name"] == "Alpha"
+        assert "subjects" in item
+        assert item["subjects"][0]["label"] == "Alpha"
 
 
 @patch("superset.daos.security.RLSDAO.list")
@@ -201,7 +203,7 @@ async def test_get_rls_filter_info_not_found(mock_find, mcp_server):
 
 @patch("superset.daos.security.RLSDAO.find_by_id")
 @pytest.mark.asyncio
-async def test_get_rls_filter_info_includes_tables_and_roles(mock_find, mcp_server):
+async def test_get_rls_filter_info_includes_tables_and_subjects(mock_find, mcp_server):
     rls_filter = create_mock_rls_filter()
     mock_find.return_value = rls_filter
 
@@ -211,7 +213,7 @@ async def test_get_rls_filter_info_includes_tables_and_roles(mock_find, mcp_serv
         )
         data = json.loads(result.content[0].text)
         assert data["tables"][0]["table_name"] == "sales"
-        assert data["roles"][0]["name"] == "Alpha"
+        assert data["subjects"][0]["label"] == "Alpha"
 
 
 def test_list_rls_filters_request_rejects_search_and_filters():
@@ -224,22 +226,21 @@ def test_list_rls_filters_request_rejects_search_and_filters():
 
 @patch("superset.daos.security.RLSDAO.list")
 @pytest.mark.asyncio
-async def test_list_rls_filters_roles_only_select_columns(mock_list, mcp_server):
-    """Regression: select_columns=['roles'] must not raise ValueError.
-
-    'roles' is in USER_DIRECTORY_FIELDS so ModelListCore would raise if it
-    were the sole column passed to run_tool. The tool must strip it before
-    calling run_tool and restore it in the model_dump context.
-    """
+async def test_list_rls_filters_subjects_only_select_columns(mock_list, mcp_server):
+    """select_columns=['subjects'] returns only subject data."""
     rls_filter = create_mock_rls_filter()
     mock_list.return_value = ([rls_filter], 1)
 
     async with Client(mcp_server) as client:
-        request = ListRlsFiltersRequest(page=1, page_size=10, select_columns=["roles"])
+        request = ListRlsFiltersRequest(
+            page=1,
+            page_size=10,
+            select_columns=["subjects"],
+        )
         result = await client.call_tool(
             "list_rls_filters", {"request": request.model_dump()}
         )
         data = json.loads(result.content[0].text)
         item = data["rls_filters"][0]
-        assert "roles" in item
-        assert item["roles"][0]["name"] == "Alpha"
+        assert "subjects" in item
+        assert item["subjects"][0]["label"] == "Alpha"

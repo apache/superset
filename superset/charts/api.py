@@ -21,7 +21,7 @@ from io import BytesIO
 from typing import Any, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
-from flask import redirect, request, Response, send_file, url_for
+from flask import current_app, redirect, request, Response, send_file, url_for
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -35,6 +35,8 @@ from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
     ChartCreatedByMeFilter,
+    ChartDeletedStateFilter,
+    ChartEditableFilter,
     ChartFavoriteFilter,
     ChartFilter,
     ChartHasCreatedByFilter,
@@ -64,12 +66,14 @@ from superset.commands.chart.exceptions import (
     ChartForbiddenError,
     ChartInvalidError,
     ChartNotFoundError,
+    ChartRestoreFailedError,
     ChartUpdateFailedError,
     DashboardsForbiddenError,
 )
 from superset.commands.chart.export import ExportChartsCommand
 from superset.commands.chart.fave import AddFavoriteChartCommand
 from superset.commands.chart.importers.dispatcher import ImportChartsCommand
+from superset.commands.chart.restore import RestoreChartCommand
 from superset.commands.chart.unfave import DelFavoriteChartCommand
 from superset.commands.chart.update import UpdateChartCommand
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
@@ -84,9 +88,15 @@ from superset.daos.chart import ChartDAO
 from superset.exceptions import ScreenshotImageNotAvailableException
 from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
+from superset.security.manager import get_extra_editor_subject_ids
+from superset.subjects.filters import (
+    FilterRelatedSubjects,
+    subject_type_filter,
+)
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.utils import json
+from superset.utils.core import sanitize_cookie_token
 from superset.utils.screenshots import (
     ChartScreenshot,
     DEFAULT_CHART_WINDOW_SIZE,
@@ -101,12 +111,16 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import (
+    BaseFilterRelatedUsers,
+    FilterRelatedUsers,
+    SoftDeleteApiMixin,
+)
 
 logger = logging.getLogger(__name__)
 
 
-class ChartRestApi(BaseSupersetModelRestApi):
+class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Slice)
 
     resource_name = "chart"
@@ -123,6 +137,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         RouteMethod.IMPORT,
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
+        "restore",
         "viz_types",
         "favorite_status",
         "add_favorite",
@@ -133,7 +148,17 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "warm_up_cache",
     }
     class_permission_name = "Chart"
-    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+    # Custom methods (``restore``) need an explicit entry; FAB's @protect()
+    # decorator falls back to ``can_<method>_<class>`` (i.e.
+    # ``can_restore_Chart``) when the mapping is missing, which standard
+    # roles don't carry. Mirrors the permission model documented for
+    # ``DELETE`` / ``bulk_delete``: endpoint-level ``can_write`` plus
+    # resource-level ``raise_for_ownership``. See themes/api.py for the
+    # established pattern.
+    method_permission_name = {
+        **MODEL_API_RW_METHOD_PERMISSION_MAP,
+        "restore": "write",
+    }
 
     list_columns = [
         "is_managed_externally",
@@ -165,10 +190,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "last_saved_by.id",
         "last_saved_by.first_name",
         "last_saved_by.last_name",
-        "owners.first_name",
-        "owners.id",
-        "owners.last_name",
-        "owners.email",
+        "editors.id",
+        "editors.label",
+        "editors.type",
+        "viewers.id",
+        "viewers.label",
+        "viewers.type",
         "dashboards.id",
         "dashboards.dashboard_title",
         "params",
@@ -208,7 +235,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "description",
         "id",
         "uuid",
-        "owners",
+        "editors",
         "dashboards",
         "slice_name",
         "viz_type",
@@ -221,6 +248,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "id": [
             ChartFavoriteFilter,
             ChartCertifiedFilter,
+            ChartEditableFilter,
+            ChartDeletedStateFilter,
             ChartOwnedCreatedFavoredByMeFilter,
         ],
         "slice_name": [ChartAllTextFilter],
@@ -251,20 +280,40 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     order_rel_fields = {
         "slices": ("slice_name", "asc"),
-        "owners": ("first_name", "asc"),
+        "editors": ("label", "asc"),
+        "viewers": ("label", "asc"),
+    }
+    text_field_rel_fields = {
+        "editors": "label",
+        "viewers": "label",
     }
     base_related_field_filters = {
-        "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "editors": [
+            ["type", subject_type_filter("SUBJECTS_RELATED_TYPES_CHARTS"), lambda: []]
+        ],
+        "viewers": [
+            ["type", subject_type_filter("SUBJECTS_RELATED_TYPES_CHARTS"), lambda: []]
+        ],
     }
     related_field_filters = {
-        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
-        "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
-        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
+        "editors": RelatedFieldFilter("label", FilterRelatedSubjects),
+        "viewers": RelatedFieldFilter("label", FilterRelatedSubjects),
     }
 
-    allowed_rel_fields = {"owners", "created_by", "changed_by"}
+    allowed_rel_fields = {
+        "created_by",
+        "changed_by",
+        "editors",
+        "viewers",
+    }
+    extra_fields_rel_fields = {
+        "editors": ["type", "active", "secondary_label", "img"],
+        "viewers": ["type", "active", "secondary_label", "img"],
+    }
 
     @expose("/<id_or_uuid>", methods=["GET"])
     @protect()
@@ -309,6 +358,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         try:
             dash = ChartDAO.get_by_id_or_uuid(id_or_uuid)
             result = self.chart_get_response_schema.dump(dash)
+            if current_app.config.get("EXTRA_EDITORS_RESOLVER"):
+                result["extra_editors"] = get_extra_editor_subject_ids(dash)
             return self.response(200, result=result)
         except ChartNotFoundError:
             return self.response_404()
@@ -364,7 +415,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             new_model = CreateChartCommand(item).run()
-            return self.response(201, id=new_model.id, result=item)
+            return self.response(201, id=new_model.id, result=item, uuid=new_model.uuid)
         except DashboardsForbiddenError as ex:
             return self.response(ex.status, message=ex.message)
         except ChartInvalidError as ex:
@@ -468,9 +519,17 @@ class ChartRestApi(BaseSupersetModelRestApi):
     )
     def delete(self, pk: int) -> Response:
         """Delete a chart.
+
+        When the ``SOFT_DELETE`` feature flag is enabled, marks the chart as
+        deleted (sets ``deleted_at``) and hides it from list/detail endpoints
+        and relationship loads; the row is preserved and recoverable via
+        ``POST /api/v1/chart/<uuid>/restore`` by an owner or admin. With the
+        flag disabled (the default), the chart is permanently hard-deleted
+        and is not recoverable.
         ---
         delete:
-          summary: Delete a chart
+          summary: Delete a chart (soft delete, recoverable via restore, when
+            the SOFT_DELETE feature flag is enabled; permanent otherwise)
           parameters:
           - in: path
             schema:
@@ -524,9 +583,17 @@ class ChartRestApi(BaseSupersetModelRestApi):
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Bulk delete charts.
+
+        When the ``SOFT_DELETE`` feature flag is enabled, marks each chart as
+        deleted (sets ``deleted_at``) and hides it from list/detail endpoints
+        and relationship loads; rows are preserved and recoverable via
+        ``POST /api/v1/chart/<uuid>/restore`` by an owner or admin. With the
+        flag disabled (the default), the charts are permanently hard-deleted
+        and are not recoverable.
         ---
         delete:
-          summary: Bulk delete charts
+          summary: Bulk delete charts (soft delete, recoverable via restore,
+            when the SOFT_DELETE feature flag is enabled; permanent otherwise)
           parameters:
           - in: query
             name: q
@@ -569,6 +636,62 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ChartForbiddenError:
             return self.response_403()
         except ChartDeleteFailedError as ex:
+            return self.response_422(message=str(ex))
+
+    @expose("/<uuid>/restore", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.restore",
+        log_to_statsd=False,
+    )
+    def restore(self, uuid: str) -> Response:
+        """Restore a soft-deleted chart.
+        ---
+        post:
+          summary: Restore a soft-deleted chart
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid
+          responses:
+            200:
+              description: Chart restored
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            RestoreChartCommand(uuid).run()
+            return self.response(200, message="OK")
+        except ChartNotFoundError:
+            return self.response_404()
+        except ChartForbiddenError:
+            return self.response_403()
+        except ChartRestoreFailedError as ex:
+            logger.error(
+                "Error restoring model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
             return self.response_422(message=str(ex))
 
     @expose("/<pk>/cache_screenshot/", methods=("GET",))
@@ -882,7 +1005,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             as_attachment=True,
             download_name=filename,
         )
-        if token := request.args.get("token"):
+        if token := sanitize_cookie_token(request.args.get("token")):
             response.set_cookie(token, "done", max_age=600)
         return response
 
@@ -1027,9 +1150,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         return self.response(200, result="OK")
 
     def _pre_related_check(self, column_name: str) -> Optional[Response]:
-        """Restrict the owners related field to users with write access."""
+        """Restrict the editors related field to users with write access."""
         if (
-            column_name == "owners"
+            column_name == "editors"
             and not security_manager.can_access_all_datasources()
         ):
             return self.response_403()
@@ -1100,6 +1223,15 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @requires_form_data
     def import_(self) -> Response:
         """Import chart(s) with associated datasets and databases.
+
+        When the ``SOFT_DELETE`` feature flag is enabled and an imported
+        chart's UUID matches an existing **soft-deleted** chart, the import
+        restores that chart and applies the upload's contents — **even when
+        ``overwrite`` is not set**. Active charts keep the usual contract
+        (never mutated without ``overwrite=true``); a soft-deleted UUID match
+        is treated as an explicit request to bring the chart back. Requires
+        ``can_write`` and ownership of the deleted row (or admin). See
+        UPDATING.md for details.
         ---
         post:
           summary: Import chart(s) with associated datasets and databases

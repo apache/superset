@@ -38,7 +38,7 @@ import {
 } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
-import { debounce, isEqual } from 'lodash';
+import { debounce, isEqual } from 'lodash-es';
 import {
   forwardRef,
   useCallback,
@@ -329,9 +329,8 @@ const FiltersConfigForm = (
   const formFilterWithTimeGrains = formFilter as typeof formFilter & {
     time_grains?: string[];
   };
-  const filterToEditWithTimeGrains = filterToEdit as
-    | (Filter & { time_grains?: string[] })
-    | undefined;
+  const savedTimeGrains =
+    filterToEdit?.time_grains ?? customizationToEdit?.time_grains;
 
   const handleModifyFilter = useCallback(() => {
     if (onModifyFilter) {
@@ -594,8 +593,7 @@ const FiltersConfigForm = (
     !!filterToEdit?.time_range;
 
   const hasTimeGrainPreFilter = !!(
-    formFilterWithTimeGrains?.time_grains?.length ||
-    filterToEditWithTimeGrains?.time_grains?.length
+    formFilterWithTimeGrains?.time_grains?.length || savedTimeGrains?.length
   );
 
   const hasEnableSingleValue =
@@ -1297,7 +1295,9 @@ const FiltersConfigForm = (
                                     </CollapsibleControl>
                                   </FormItem>
                                 )}
-                                {itemTypeField === 'filter_timegrain' &&
+                                {(itemTypeField === 'filter_timegrain' ||
+                                  itemTypeField ===
+                                    'chart_customization_timegrain') &&
                                   hasDataset &&
                                   datasetDetails?.time_grain_sqla &&
                                   datasetDetails.time_grain_sqla.length > 0 && (
@@ -1332,9 +1332,7 @@ const FiltersConfigForm = (
                                             filterId,
                                             'time_grains',
                                           ]}
-                                          initialValue={
-                                            filterToEditWithTimeGrains?.time_grains
-                                          }
+                                          initialValue={savedTimeGrains}
                                           {...getFiltersConfigModalTestId(
                                             'time-grain-allowlist',
                                           )}
@@ -1418,7 +1416,7 @@ const FiltersConfigForm = (
                                           }}
                                         />
                                       </StyledRowFormItem>
-                                      {hasMetrics && (
+                                      {hasMetrics && !isChartCustomization && (
                                         <StyledRowSubFormItem
                                           expanded={expanded}
                                           name={[
@@ -1900,10 +1898,12 @@ const FiltersConfigForm = (
                                             iconSize="xl"
                                             iconColor={theme.colorPrimary}
                                             css={css`
-                                              margin-left: ${theme.sizeUnit *
-                                              2}px;
-                                              margin-top: ${theme.sizeUnit *
-                                              1.5}px;
+                                              margin-left: ${
+                                                theme.sizeUnit * 2
+                                              }px;
+                                              margin-top: ${
+                                                theme.sizeUnit * 1.5
+                                              }px;
                                             `}
                                             onClick={() => refreshHandler(true)}
                                           />

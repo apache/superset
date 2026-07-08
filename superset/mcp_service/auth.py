@@ -46,19 +46,40 @@ Configuration:
 
 import logging
 from contextlib import AbstractContextManager, nullcontext
-from typing import Any, Callable, TYPE_CHECKING, TypeVar
+from typing import Any, Callable, cast, TYPE_CHECKING, TypeAlias, TypeVar
 
 from flask import current_app, g, has_app_context, has_request_context
-from flask_appbuilder.security.sqla.models import Group, User
+from flask_appbuilder.security.sqla.models import User
+
+from superset import is_feature_enabled, security_manager
+from superset.mcp_service.composite_token_verifier import (
+    API_KEY_PASSTHROUGH_CLAIM,
+    API_KEY_VALIDATED_USERNAME_CLAIM,
+)
+from superset.mcp_service.guest_token_verifier import GUEST_TOKEN_CLAIM
+from superset.mcp_service.mcp_config import (
+    default_user_resolver,
+    get_mcp_api_key_enabled,
+)
+from superset.mcp_service.utils.error_sanitization import (
+    sanitize_for_log as _sanitize_for_log,
+)
+from superset.security.guest_token import GuestUser
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
     from superset.mcp_service.chart.chart_utils import DatasetValidationResult
+    from superset.security.guest_token import GuestToken
 
 # Type variable for decorated functions
 F = TypeVar("F", bound=Callable[..., Any])
 
 logger = logging.getLogger(__name__)
+
+# An MCP request resolves to a real DB ``User`` or, for embedded guests, a
+# ``GuestUser`` (an AnonymousUserMixin, not a ``User`` subclass). Both are valid
+# authenticated principals for tool execution.
+MCPUser: TypeAlias = User | GuestUser
 
 # Constants for RBAC permission attributes (mirrors FAB conventions)
 PERMISSION_PREFIX = "can_"
@@ -71,18 +92,97 @@ _warned_permissionless_tools: set[str] = set()
 
 
 class MCPNoAuthSourceError(ValueError):
-    """Raised when no authentication source is available for a request.
+    """Raised when no authentication source is configured for MCP.
 
-    Subclasses ``ValueError`` so existing ``except ValueError`` handlers and
-    tests keep working, while callers that need to distinguish "no auth source
-    configured at all" (fail open in dev/internal deployments) from a genuine
-    credential failure (fail closed) can ``isinstance``-check instead of
-    matching a fragile message string.
+    Inherits from ``ValueError`` so callers can catch ``ValueError`` broadly
+    and then use ``isinstance(exc, MCPNoAuthSourceError)`` to distinguish
+    "no auth configured at all" (safe to fail open) from other value errors
+    (fail closed).
     """
 
 
-class MCPPermissionDeniedError(Exception):
-    """Raised when user lacks required RBAC permission for an MCP tool."""
+# Maps a tool's method permission to the OAuth-style token scope it requires.
+# Used by ``check_tool_permission`` for scope-aware authorization: enforcement
+# is the INTERSECTION of token scopes and DB RBAC. Only applied when the token
+# actually carries scopes — see ``_token_scope_allows``.
+#
+# SECURITY: this map must cover EVERY method permission used by an MCP tool.
+# A scoped token presented for a method that is NOT in this map is denied
+# (fail closed) rather than allowed, so adding a tool with a new custom
+# permission cannot silently bypass scope enforcement. ``execute_sql_query``
+# is a privileged, write-class operation and therefore requires the write
+# scope. When introducing a new method permission, add it here.
+_METHOD_TO_REQUIRED_SCOPE = {
+    "read": "superset:read",
+    "write": "superset:write",
+    "delete": "superset:write",
+    # SQL execution (execute_sql, get_chart_sql) runs arbitrary queries and is
+    # treated as a write-class privileged operation for scope purposes.
+    "execute_sql_query": "superset:write",
+}
+
+
+def _get_token_scopes() -> set[str] | None:
+    """Return the set of scopes on the current JWT access token, or None.
+
+    Returns None when there is no JWT context or the token carries no scopes,
+    so callers can fall back to RBAC-only behavior (back-compat for API-key and
+    scope-less JWT deployments). Returns a (possibly populated) set only when
+    the token explicitly advertises scopes.
+    """
+    try:
+        from fastmcp.server.dependencies import get_access_token
+    except ImportError:
+        return None
+
+    try:
+        access_token = get_access_token()
+    except Exception:  # noqa: BLE001 - no JWT context for this request
+        return None
+
+    if access_token is None:
+        return None
+
+    scopes = getattr(access_token, "scopes", None)
+    if not scopes:
+        # Token present but no scopes advertised: do NOT enforce scope checks.
+        return None
+    return {str(s) for s in scopes}
+
+
+def _token_scope_allows(method_permission_name: str) -> bool:
+    """Return whether the current token's scopes permit the given method.
+
+    Back-compat: returns True (allow) when the token carries no scopes or there
+    is no JWT context, so deployments not using scopes keep RBAC-only behavior.
+    Only when the token advertises scopes is the mapped required scope enforced.
+    """
+    token_scopes = _get_token_scopes()
+    if token_scopes is None:
+        return True
+    required_scope = _METHOD_TO_REQUIRED_SCOPE.get(method_permission_name)
+    if required_scope is None:
+        # Fail closed: a scoped token was presented for a method permission that
+        # is not in the scope map. Rather than silently bypassing scope
+        # enforcement, deny it so an unmapped (e.g. newly added custom) method
+        # permission cannot be reached by a scoped token. Map the permission in
+        # ``_METHOD_TO_REQUIRED_SCOPE`` to grant access.
+        logger.warning(
+            "Denying scoped token for unmapped method permission '%s'; "
+            "add it to _METHOD_TO_REQUIRED_SCOPE to grant scoped access.",
+            method_permission_name,
+        )
+        return False
+    return required_scope in token_scopes
+
+
+class MCPPermissionDeniedError(PermissionError):
+    """Raised when user lacks required RBAC permission for an MCP tool.
+
+    Inherits from ``PermissionError`` so the middleware classifies denials as
+    user errors (HTTP 403 / WARNING log / "Access denied" sanitized message)
+    rather than unexpected server errors.
+    """
 
     def __init__(
         self,
@@ -103,7 +203,70 @@ class MCPPermissionDeniedError(Exception):
         super().__init__(message)
 
 
-def check_tool_permission(func: Callable[..., Any], *, log_denial: bool = True) -> bool:
+def _log_scope_denial(
+    func: Callable[..., Any],
+    method_permission_name: str,
+    permission_str: str,
+    class_permission_name: str,
+    *,
+    log_denial: bool,
+) -> None:
+    """Log a scope-based denial for a tool the user has RBAC access to.
+
+    Extracted from ``check_tool_permission`` to keep that function's
+    cyclomatic complexity in check.
+    """
+    required_scope = _METHOD_TO_REQUIRED_SCOPE.get(method_permission_name)
+    if log_denial:
+        logger.warning(
+            "Scope denied for user %s: token lacks required scope "
+            "'%s' for %s on %s (tool: %s)",
+            _sanitize_for_log(g.user.username),
+            required_scope,
+            permission_str,
+            class_permission_name,
+            func.__name__,
+        )
+    else:
+        logger.debug(
+            "Tool hidden for user %s: token lacks required scope '%s' (tool: %s)",
+            _sanitize_for_log(g.user.username),
+            required_scope,
+            func.__name__,
+        )
+
+
+# Guest deny-list default (when MCP_GUEST_DENIED_TOOLS is unset); blocks tools
+# with no RBAC class that would otherwise fall open. Sync with mcp_config.py.
+_DEFAULT_GUEST_DENIED_TOOLS: frozenset[str] = frozenset(
+    {"find_users", "get_instance_info"}
+)
+
+
+def _tool_denied_for_guest(func: Callable[..., Any]) -> bool:
+    """True when the current user is a guest and ``func`` is on the guest
+    deny-list — barring enumeration tools (user listing, instance metadata) that
+    may declare no RBAC class. ``isinstance`` (not ``is_guest_user``) keeps this
+    cheap and off the feature-flag path."""
+    if not isinstance(getattr(g, "user", None), GuestUser):
+        return False
+    denied = current_app.config.get("MCP_GUEST_DENIED_TOOLS")
+    # A str would make ``in`` do substring matching and corrupt the decision;
+    # require a real collection, else fall back to the default.
+    if not isinstance(denied, (set, frozenset, list, tuple)):
+        if denied is not None:
+            logger.warning(
+                "MCP_GUEST_DENIED_TOOLS must be a set/list of tool names, got %s; "
+                "using the default deny-list",
+                type(denied).__name__,
+            )
+        denied = _DEFAULT_GUEST_DENIED_TOOLS
+    return getattr(func, "__name__", None) in denied
+
+
+def check_tool_permission(  # noqa: C901
+    func: Callable[..., Any], *, log_denial: bool = True
+) -> bool:
     """Check if the current user has RBAC permission for an MCP tool.
 
     Reads permission metadata stored on the function by the @tool decorator
@@ -122,12 +285,24 @@ def check_tool_permission(func: Callable[..., Any], *, log_denial: bool = True) 
         True if user has permission or no permission is required.
     """
     try:
-        from flask import current_app
+        # Embedded guests are barred from sensitive enumeration tools regardless
+        # of RBAC config (the deny-list is a guest restriction, not a FAB
+        # permission, so it must hold even when MCP_RBAC_ENABLED is False).
+        if _tool_denied_for_guest(func):
+            if log_denial:
+                logger.warning(
+                    "Tool %s denied for embedded guest (MCP_GUEST_DENIED_TOOLS)",
+                    func.__name__,
+                )
+            else:
+                logger.debug(
+                    "Tool %s hidden for embedded guest (MCP_GUEST_DENIED_TOOLS)",
+                    func.__name__,
+                )
+            return False
 
         if not current_app.config.get("MCP_RBAC_ENABLED", True):
             return True
-
-        from superset import security_manager
 
         if not hasattr(g, "user") or not g.user:
             if log_denial:
@@ -163,19 +338,37 @@ def check_tool_permission(func: Callable[..., Any], *, log_denial: bool = True) 
             permission_str, class_permission_name
         )
 
+        # Scope-aware authorization: enforce the INTERSECTION of token scopes
+        # and DB RBAC. A tool is allowed only if the user has the RBAC
+        # permission AND the token carries the required scope.
+        #
+        # Back-compat: scope enforcement applies ONLY when the token actually
+        # advertises scopes. Tokens/deployments that don't use scopes (API keys,
+        # scope-less JWTs, dev-mode) fall through to RBAC-only behavior — see
+        # ``_token_scope_allows``.
+        if has_permission and not _token_scope_allows(method_permission_name):
+            _log_scope_denial(
+                func,
+                method_permission_name,
+                permission_str,
+                class_permission_name,
+                log_denial=log_denial,
+            )
+            return False
+
         if not has_permission:
             if log_denial:
                 logger.warning(
-                    "Permission denied for user %s: %s on %s (tool: %s)",
-                    g.user.username,
+                    "Permission denied for user id=%s: %s on %s (tool: %s)",
+                    getattr(g.user, "id", "?"),
                     permission_str,
                     class_permission_name,
                     func.__name__,
                 )
             else:
                 logger.debug(
-                    "Tool hidden for user %s: %s on %s (tool: %s)",
-                    g.user.username,
+                    "Tool hidden for user id=%s: %s on %s (tool: %s)",
+                    getattr(g.user, "id", "?"),
                     permission_str,
                     class_permission_name,
                     func.__name__,
@@ -205,13 +398,17 @@ def is_tool_visible_to_current_user(tool: Any) -> bool:
         True if the tool is visible to the current user, False otherwise.
     """
     try:
-        from flask import current_app
-
-        if not current_app.config.get("MCP_RBAC_ENABLED", True):
-            return True
-
         tool_func = getattr(tool, "fn", None)
         if tool_func is None:
+            return True
+
+        # Hide guest-denied tools from tools/list regardless of RBAC config
+        # (enforced again at call time in check_tool_permission, including for
+        # permission-less tools).
+        if _tool_denied_for_guest(tool_func):
+            return False
+
+        if not current_app.config.get("MCP_RBAC_ENABLED", True):
             return True
 
         from superset.mcp_service.privacy import (
@@ -232,32 +429,21 @@ def is_tool_visible_to_current_user(tool: Any) -> bool:
         return check_tool_permission(tool_func, log_denial=False)
 
     except (AttributeError, RuntimeError, ValueError):
-        logger.debug(
-            "Could not evaluate tool visibility for current user", exc_info=True
-        )
+        logger.debug("Could not evaluate tool visibility for current user")
         return False
 
 
 def load_user_with_relationships(
     username: str | None = None, email: str | None = None
 ) -> User | None:
-    """
-    Load a user with all relationships needed for permission checks.
+    """Load a user with roles and group roles eagerly loaded.
 
-    This function eagerly loads User.roles, User.groups, and Group.roles
-    to prevent detached instance errors when the session is closed/rolled back.
-
-    IMPORTANT: Always use this function instead of security_manager.find_user()
-    when loading users for MCP tool execution. The find_user() method doesn't
-    eagerly load Group.roles, causing "detached instance" errors when permission
-    checks access group.roles after the session is rolled back.
-
-    Args:
-        username: The username to look up (optional if email provided)
-        email: The email to look up (optional if username provided)
-
-    Returns:
-        User object with relationships loaded, or None if not found
+    Delegates to :meth:`SupersetSecurityManager.find_user_with_relationships`,
+    which mirrors FAB's ``find_user`` (including ``auth_username_ci`` and
+    ``MultipleResultsFound`` handling) while adding eager loading of
+    ``User.roles`` and ``User.groups.roles`` to prevent detached-instance
+    errors when the SQLAlchemy session is closed or rolled back after the
+    lookup — as happens in MCP tool-execution contexts.
 
     Raises:
         ValueError: If neither username nor email is provided
@@ -265,24 +451,10 @@ def load_user_with_relationships(
     if not username and not email:
         raise ValueError("Either username or email must be provided")
 
-    from sqlalchemy.orm import joinedload
-
-    from superset.extensions import db
-
-    query = db.session.query(User).options(
-        joinedload(User.roles),
-        joinedload(User.groups).joinedload(Group.roles),
-    )
-
-    if username:
-        query = query.filter(User.username == username)
-    else:
-        query = query.filter(User.email == email)
-
-    return query.first()
+    return security_manager.find_user_with_relationships(username=username, email=email)
 
 
-def _resolve_user_from_jwt_context(app: Any) -> User | None:
+def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
     """
     Resolve the current user from the MCP SDK's per-request JWT context.
 
@@ -296,6 +468,8 @@ def _resolve_user_from_jwt_context(app: Any) -> User | None:
     Returns:
         User object with relationships loaded, or None if no JWT context
         (i.e. no token present — caller should fall through to next source).
+        For a verified embedded guest token (``client_id == "guest"``) returns
+        the corresponding ``GuestUser`` built from the token's resources/RLS.
 
     Raises:
         ValueError: If JWT resolves a username that doesn't exist in the DB
@@ -311,8 +485,79 @@ def _resolve_user_from_jwt_context(app: Any) -> User | None:
     if access_token is None:
         return None
 
+    # API key pass-through: CompositeTokenVerifier accepted this token
+    # at the transport layer but defers actual validation to
+    # _resolve_user_from_api_key() (priority 2 in get_user_from_request).
+    # Require client_id=="api_key" (set by CompositeTokenVerifier) in addition
+    # to the claim so that an external IdP JWT that happens to include the
+    # claim name is not misclassified as an API-key pass-through.
+    claims = getattr(access_token, "claims", None)
+
+    # Embedded guest token (already admitted by the GuestTokenVerifier): resolve
+    # as the highest-priority identity so a valid guest is never downgraded.
+    # Anti-forgery: only the GuestTokenVerifier sets the marker (the composite
+    # verifier strips it from JWT tokens) and this branch requires guest auth
+    # enabled, so a crafted IdP JWT with the marker can't pose as a guest.
+    if (
+        isinstance(claims, dict)
+        and claims.get(GUEST_TOKEN_CLAIM)
+        and getattr(access_token, "client_id", None) == "guest"
+    ):
+        if not (
+            is_feature_enabled("EMBEDDED_SUPERSET")
+            and app.config.get("MCP_EMBEDDED_GUEST_AUTH_ENABLED", False)
+        ):
+            logger.warning(
+                "Guest-marked token presented but embedded guest auth is not "
+                "enabled; rejecting"
+            )
+            return None
+        logger.debug("Resolving MCP request as embedded guest user")
+        # Drop the internal marker so it does not leak into GuestUser.guest_token.
+        guest_claims: dict[str, Any] = {
+            k: v for k, v in claims.items() if k != GUEST_TOKEN_CLAIM
+        }
+        return security_manager.get_guest_user_from_token(
+            cast("GuestToken", guest_claims)
+        )
+
+    if isinstance(claims, dict) and claims.get(API_KEY_PASSTHROUGH_CLAIM):
+        if getattr(access_token, "client_id", None) == "api_key":
+            logger.debug(
+                "API key pass-through token detected, deferring to API key auth"
+            )
+            return None
+        logger.debug(
+            "API key passthrough claim present but client_id is not 'api_key';"
+            " processing as JWT"
+        )
+
+    # Multi-issuer safety: when more than one issuer is trusted, a bare
+    # username/email lookup is NOT issuer-scoped, so two issuers that mint the
+    # same username/email claim would resolve to the same Superset user.
+    #
+    # Single-issuer deployments (the common case) are safe — the issuer is
+    # already pinned by the verifier, so the username space is unambiguous and
+    # we keep the existing lookup key to avoid breaking them. For multi-issuer
+    # configs we warn: operators should provide an issuer-aware MCP_USER_RESOLVER
+    # that derives a compound (iss + sub) identity. This is the least-breaking
+    # correct option (warn, don't change the key out from under existing
+    # single-issuer deployments).
+    configured_issuer = app.config.get("MCP_JWT_ISSUER")
+    if isinstance(configured_issuer, (list, tuple, set)) and len(configured_issuer) > 1:
+        if not app.config.get("MCP_USER_RESOLVER"):
+            token_iss = claims.get("iss") if isinstance(claims, dict) else None
+            logger.warning(
+                "Multiple JWT issuers are trusted (MCP_JWT_ISSUER is a list) but "
+                "the default user resolver maps token claims to Superset users by "
+                "username/email without binding the issuer (iss=%s). Distinct "
+                "issuers minting the same username/email will collide. Configure an "
+                "issuer-aware MCP_USER_RESOLVER to derive a compound (iss+sub) "
+                "identity.",
+                _sanitize_for_log(token_iss),
+            )
+
     # Use configurable resolver or default
-    from superset.mcp_service.mcp_config import default_user_resolver
 
     resolver = app.config.get("MCP_USER_RESOLVER", default_user_resolver)
     username = resolver(app, access_token)
@@ -331,47 +576,44 @@ def _resolve_user_from_jwt_context(app: Any) -> User | None:
     if not user:
         # Fail closed: JWT says this user should exist but they don't.
         # Do NOT fall through to MCP_DEV_USERNAME or stale g.user.
+        # Avoid echoing the JWT-extracted username in the exception message
+        # (CodeQL py/clear-text-logging-sensitive-data).
+        logger.debug("JWT-authenticated user not found in database (identity from JWT)")
         raise ValueError(
-            f"JWT authenticated user '{username}' not found in Superset database. "
-            f"Ensure the user exists before granting MCP access."
+            "JWT authenticated user not found in Superset database. "
+            "Ensure the user exists before granting MCP access."
         )
 
     return user
 
 
-def _resolve_user_from_api_key(app: Any) -> User | None:
-    """
-    Resolve the current user from an API key in the Authorization header.
+def _redact_access_token(access_token: Any) -> None:
+    """Redact the raw token value after validation so it does not persist."""
+    try:
+        object.__setattr__(access_token, "token", "")
+    except (AttributeError, TypeError):
+        # Immutable AccessToken: the raw token still lives on the object.
+        # Log so the failure is visible; downstream log sanitization (where
+        # configured) must redact it.
+        logger.debug("Could not redact raw API key from AccessToken")
 
-    Uses FAB SecurityManager's API key validation. Only attempts when
-    FAB_API_KEY_ENABLED is True and a request context is active.
 
-    Returns:
-        User object with relationships loaded, or None if no API key present
-        or API key auth is not enabled/available.
+def _load_api_key_user_by_username(username: str) -> User:
+    """Load a user by username after transport-layer API key validation."""
+    user_with_rels = load_user_with_relationships(username=username)
+    if user_with_rels is None:
+        raise PermissionError(f"API key user '{username}' not found in database.")
+    return user_with_rels
 
-    Raises:
-        PermissionError: If an API key is present but invalid/expired,
-            or if validation is not available in this FAB version.
-    """
-    if not app.config.get("FAB_API_KEY_ENABLED", False) or not has_request_context():
-        return None
+
+def _validate_api_key_fallback(app: Any, api_key_string: str | None) -> User:
+    """Validate an API key via FAB when transport-layer validation was skipped."""
+    if not api_key_string:
+        raise PermissionError(
+            "API key pass-through token is missing the raw token value."
+        )
 
     sm = app.appbuilder.sm
-    # extract_api_key_from_request is FAB's method for reading
-    # the Bearer token from the Authorization header and matching prefixes.
-    # Not all FAB versions include this method, so guard with hasattr.
-    if not hasattr(sm, "extract_api_key_from_request"):
-        logger.debug(
-            "FAB SecurityManager does not have extract_api_key_from_request; "
-            "API key authentication is not available in this FAB version"
-        )
-        return None
-
-    api_key_string = sm.extract_api_key_from_request()
-    if api_key_string is None:
-        return None
-
     if not hasattr(sm, "validate_api_key"):
         logger.warning(
             "FAB SecurityManager does not have validate_api_key; "
@@ -383,31 +625,88 @@ def _resolve_user_from_api_key(app: Any) -> User | None:
 
     user = sm.validate_api_key(api_key_string)
     if not user:
+        create_url = app.config.get("MCP_API_KEY_CREATE_URL", "/profile/")
         raise PermissionError(
-            "Invalid or expired API key. "
-            "Create a new key at /api/v1/security/api_keys/."
+            f"Invalid or expired API key. Create a new key at {create_url}."
         )
 
-    # Reload user with all relationships eagerly loaded to avoid
-    # detached-instance errors during later permission checks.
     user_with_rels = load_user_with_relationships(username=user.username)
     if user_with_rels is None:
         logger.warning(
-            "Failed to reload API key user %s with relationships; "
-            "using original user object which may have lazy-loaded "
-            "relationships",
-            user.username,
+            "Failed to reload API key user id=%s with relationships; "
+            "using original user object which may have lazy-loaded relationships",
+            getattr(user, "id", "?"),
         )
         return user
     return user_with_rels
 
 
-def get_user_from_request() -> User:
+def _resolve_user_from_api_key(app: Any) -> User | None:
+    """
+    Resolve the current user from an API key passed via Bearer token.
+
+    Reads the token from FastMCP's per-request ``AccessToken`` (set by
+    ``CompositeTokenVerifier`` when a Bearer token matches an API key
+    prefix). The streamable-http transport does not push a Flask request
+    context, so we cannot rely on ``flask.request`` headers — the verifier
+    already saw the token and stashed it on the ``AccessToken``.
+
+    Returns:
+        User object with relationships loaded, or None if no API key
+        pass-through token is present or API key auth is not enabled.
+
+    Raises:
+        PermissionError: If an API key pass-through token is present but
+            invalid/expired (fail closed — do NOT fall through to weaker
+            auth sources like ``MCP_DEV_USERNAME``), or if validation is
+            not available in this FAB version.
+    """
+    if not get_mcp_api_key_enabled(app):
+        return None
+
+    try:
+        from fastmcp.server.dependencies import get_access_token
+    except ImportError:
+        logger.debug("fastmcp.server.dependencies not available, skipping API key auth")
+        return None
+
+    access_token = get_access_token()
+    if access_token is None:
+        return None
+
+    # Only validate tokens that the CompositeTokenVerifier flagged as
+    # API key pass-throughs. Plain JWTs were already validated by the JWT
+    # verifier and resolved in _resolve_user_from_jwt_context.
+    claims = getattr(access_token, "claims", None)
+    if not (isinstance(claims, dict) and claims.get(API_KEY_PASSTHROUGH_CLAIM)):
+        return None
+    # Defense-in-depth: require client_id=="api_key" (set by CompositeTokenVerifier)
+    # to guard against rogue external IdP JWTs that include the passthrough claim.
+    if getattr(access_token, "client_id", None) != "api_key":
+        return None
+
+    # Fast path: transport layer already validated the key and stored the
+    # username in the claim — skip the second DB call.
+    if validated_username := claims.get(API_KEY_VALIDATED_USERNAME_CLAIM):
+        _redact_access_token(access_token)
+        return _load_api_key_user_by_username(validated_username)
+
+    # Fallback: no transport-level validation (app=None in CompositeTokenVerifier).
+    # Validate the raw token against FAB here instead.
+    api_key_string = getattr(access_token, "token", None)
+    _redact_access_token(access_token)
+    return _validate_api_key_fallback(app, api_key_string)
+
+
+def get_user_from_request() -> MCPUser:
     """
     Get the current user for the MCP tool request.
 
     Priority order:
-    1. JWT auth context (per-request ContextVar from MCP SDK) — safest
+    1. JWT auth context (per-request ContextVar from MCP SDK) — safest. This
+       also resolves a verified embedded guest token to a ``GuestUser`` (when
+       ``MCP_EMBEDDED_GUEST_AUTH_ENABLED`` + ``EMBEDDED_SUPERSET`` are on), so a
+       guest can never be downgraded to a lower-priority source.
     2. API key from Authorization header (via FAB SecurityManager)
     3. MCP_DEV_USERNAME from configuration (for development/testing)
     4. g.user fallback (for external middleware like Preset's
@@ -423,8 +722,6 @@ def get_user_from_request() -> User:
     Raises:
         ValueError: If user cannot be authenticated or found
     """
-    from flask import current_app
-
     # Priority 1: JWT context (per-request safe via ContextVar)
     if (jwt_user := _resolve_user_from_jwt_context(current_app)) is not None:
         return jwt_user
@@ -447,26 +744,26 @@ def get_user_from_request() -> User:
     if hasattr(g, "user") and g.user:
         return g.user
 
-    # No auth source available. Keep the client-facing message generic so it
-    # does not disclose server configuration; the detailed diagnostics are
-    # logged server-side only.
+    # No auth source available. Keep the configuration diagnostics in the
+    # server logs only -- the message returned to the (unauthenticated) client
+    # must not reveal which auth mechanisms are configured.
     auth_enabled = current_app.config.get("MCP_AUTH_ENABLED", False)
     jwt_configured = bool(
         current_app.config.get("MCP_JWKS_URI")
         or current_app.config.get("MCP_JWT_PUBLIC_KEY")
         or current_app.config.get("MCP_JWT_SECRET")
     )
-    dev_username_configured = bool(current_app.config.get("MCP_DEV_USERNAME"))
-    logger.debug(
-        "MCP authentication failed: no valid credentials provided "
-        "(no JWT access token, no API key, no g.user from middleware)"
-    )
-    logger.debug(
-        "MCP auth diagnostics: MCP_AUTH_ENABLED=%s, JWT keys configured=%s, "
-        "MCP_DEV_USERNAME configured=%s",
-        auth_enabled,
-        jwt_configured,
-        dev_username_configured,
+    details = [
+        f"No JWT access token in MCP request context "
+        f"(MCP_AUTH_ENABLED={auth_enabled}, "
+        f"JWT keys configured={jwt_configured})",
+        "No API key in Authorization header",
+        "MCP_DEV_USERNAME is not configured",
+        "g.user was not set by external middleware",
+    ]
+    logger.warning(
+        "MCP request could not be authenticated. Tried: %s",
+        "; ".join(details),
     )
     raise MCPNoAuthSourceError(
         "Authentication required. No valid credentials provided."
@@ -491,8 +788,6 @@ def has_dataset_access(dataset: "SqlaTable") -> bool:
         Returns False on any error to fail securely.
     """
     try:
-        from superset import security_manager
-
         # Check if user has read access to the dataset
         if hasattr(g, "user") and g.user:
             # Use Superset's security manager to check dataset access
@@ -524,14 +819,14 @@ def check_chart_data_access(chart: Any) -> "DatasetValidationResult":
     return validate_chart_dataset(chart, check_access=True)
 
 
-def _log_user_resolution_failure(exc: ValueError) -> None:
-    """Log a user-resolution ValueError at the appropriate level.
+def _log_user_resolution_failure(exc: ValueError | PermissionError) -> None:
+    """Log a user-resolution failure at the appropriate level.
 
-    ``MCPNoAuthSourceError`` (no JWT, no API key, no MCP_DEV_USERNAME
-    configured) is expected in unauthenticated/dev deployments and during
-    tools/list scanning — log at DEBUG to avoid ERROR noise. All other
-    ValueErrors (e.g. dev username not in DB) are genuine credential failures
-    and are logged at ERROR.
+    "No authenticated user found" is expected in unauthenticated/dev
+    deployments (no JWT, no API key, no MCP_DEV_USERNAME configured) and
+    during tools/list scanning — log at DEBUG to avoid ERROR noise.
+    All other failures (e.g. dev username not in DB, permission denied) are
+    genuine credential failures and are logged at ERROR.
     """
     if isinstance(exc, MCPNoAuthSourceError):
         logger.debug("MCP: no auth source configured, unauthenticated request")
@@ -539,20 +834,17 @@ def _log_user_resolution_failure(exc: ValueError) -> None:
         logger.error("MCP user resolution failed, denying request: %s", exc)
 
 
-def _reject_if_inactive(user: User | None) -> None:
-    """Raise ``ValueError`` if the resolved user account is deactivated.
-
-    A still-valid JWT or API key must not grant MCP access to a user whose
-    account has been disabled. This mirrors Flask-Login's ``is_active`` check
-    for web sessions, which the MCP auth path does not otherwise go through.
-    """
-    if user is not None and not (
-        getattr(user, "is_active", True) and getattr(user, "active", True)
-    ):
-        raise ValueError("User account is disabled")
+def _assert_user_active(user: MCPUser | None) -> None:
+    """Raise ValueError if the user account is disabled (no-op for None)."""
+    if user is None:
+        return
+    if not getattr(user, "is_active", getattr(user, "active", True)):
+        raise ValueError(
+            f"Account for user '{getattr(user, 'username', user)}' is disabled."
+        )
 
 
-def _setup_user_context() -> User | None:
+def _setup_user_context() -> MCPUser | None:
     """
     Set up user context for MCP tool execution.
 
@@ -567,7 +859,6 @@ def _setup_user_context() -> User | None:
     # tool calls when no per-request middleware refreshes it.
     # Only clear in app-context-only mode; preserve g.user when
     # a request context is active (external middleware set it).
-    from flask import has_request_context
 
     if not has_request_context():
         g.pop("user", None)
@@ -579,7 +870,6 @@ def _setup_user_context() -> User | None:
     for attempt in range(2):
         try:
             user = get_user_from_request()
-            _reject_if_inactive(user)
 
             # Validate user has necessary relationships loaded.
             # Force access to ensure they're loaded if lazy.
@@ -612,7 +902,7 @@ def _setup_user_context() -> User | None:
             logger.error("DB connection failed on retry during user setup: %s", e)
             _cleanup_session_on_error()
             raise
-        except ValueError as e:
+        except (ValueError, PermissionError) as e:
             # User resolution failed — fail closed. Do not fall back to
             # g.user from middleware, as that could allow a request to
             # proceed as a different user in multi-tenant deployments.
@@ -623,6 +913,7 @@ def _setup_user_context() -> User | None:
                 g.pop("user", None)
             raise
 
+    _assert_user_active(user)
     g.user = user
     return user
 
@@ -883,5 +1174,9 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     # Also remove ctx from annotations to match signature
     if "ctx" in new_wrapper.__annotations__:
         del new_wrapper.__annotations__["ctx"]
+
+    # Mark this wrapper as protected so a startup assertion can verify every
+    # registered tool went through mcp_auth_hook (see issue #39395).
+    new_wrapper._mcp_auth_protected = True  # type: ignore[attr-defined]
 
     return new_wrapper  # type: ignore[return-value]

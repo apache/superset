@@ -2,7 +2,8 @@ name: 🎪 Superset Showtime
 
 # Ultra-simple: just sync on any PR state change
 on:
-  # zizmor: ignore[dangerous-triggers] - required to react to PR label changes; this workflow does not check out or execute PR-provided code
+  # zizmor: ignore[dangerous-triggers] - required to react to PR label changes; PR code is
+  # only checked out and built after the maintainer-authorization gate (write/admin actors)
   pull_request_target:
     types: [labeled, unlabeled, synchronize, closed]
 
@@ -10,11 +11,11 @@ on:
   workflow_dispatch:
     inputs:
       pr_number:
-        description: 'PR number to sync'
+        description: "PR number to sync"
         required: true
         type: number
       sha:
-        description: 'Specific SHA to deploy (optional, defaults to latest)'
+        description: "Specific SHA to deploy (optional, defaults to latest)"
         required: false
         type: string
 
@@ -152,10 +153,14 @@ jobs:
 
       - name: Checkout PR code (only if build needed)
         if: steps.auth.outputs.authorized == 'true' && steps.check.outputs.build_needed == 'true'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ steps.check.outputs.target_sha }}
           persist-credentials: false
+          # Building fork PR code is Showtime's purpose: deploys are gated on the
+          # maintainer-authorization step above (write/admin actors only), so this
+          # checkout is an explicit, authorized opt-in rather than an automatic one.
+          allow-unsafe-pr-checkout: true
 
       - name: Setup Docker Environment (only if build needed)
         if: steps.auth.outputs.authorized == 'true' && steps.check.outputs.build_needed == 'true'

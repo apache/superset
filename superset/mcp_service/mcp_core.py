@@ -149,7 +149,7 @@ class ModelListCore(BaseCore, Generic[L]):
         logger: logging.Logger | None = None,
         all_columns: List[str] | None = None,
         sortable_columns: List[str] | None = None,
-        owner_filter_column: str = "owner",
+        editor_filter_column: str = "editor",
     ) -> None:
         super().__init__(logger)
         self.dao_class = dao_class
@@ -160,13 +160,16 @@ class ModelListCore(BaseCore, Generic[L]):
         self.search_columns = filter_user_directory_columns(search_columns)
         self.list_field_name = list_field_name
         self.output_list_schema = output_list_schema
+        # Track whether an explicit allowlist was provided so _get_columns_to_load
+        # can skip the allowlist check for tools that did not declare one.
+        self._has_explicit_all_columns = all_columns is not None
         self._all_columns = filter_user_directory_columns(
             all_columns if all_columns else default_columns
         )
         self._sortable_columns = filter_user_directory_columns(
             sortable_columns if sortable_columns else []
         )
-        self._owner_filter_column = owner_filter_column
+        self._editor_filter_column = editor_filter_column
 
     @property
     def all_columns(self) -> List[str]:
@@ -187,6 +190,15 @@ class ModelListCore(BaseCore, Generic[L]):
 
         parsed_columns = parse_json_or_list(select_columns, param_name="select_columns")
         columns_to_load = filter_user_directory_columns(parsed_columns)
+
+        # Restrict to the declared allowlist so callers cannot probe for columns
+        # excluded from columns_available (e.g. password, sqlalchemy_uri) that
+        # still exist on the ORM model. Only enforced when all_columns was
+        # explicitly provided; tools without an allowlist are not restricted.
+        if self._has_explicit_all_columns and self._all_columns:
+            allowed = set(self._all_columns)
+            columns_to_load = [col for col in columns_to_load if col in allowed]
+
         if not columns_to_load:
             raise ValueError("select_columns contains no valid columns")
 
@@ -213,18 +225,18 @@ class ModelListCore(BaseCore, Generic[L]):
         self,
         filters: Any,
         created_by_me: bool,
-        owned_by_me: bool,
+        edited_by_me: bool,
         user: Any,
     ) -> Any:
-        """Translate created_by_me/owned_by_me flags into ColumnOperator filters.
+        """Translate created_by_me/edited_by_me flags into ColumnOperator filters.
 
         Validates authentication and injects the current user's ID in one step,
         so no placeholder value ever reaches the DAO layer.
 
         When both flags are set, a single combined OR filter is used so results
-        include items where the user is either the creator or an owner.
+        include items where the user is either the creator or an editor.
         """
-        if not (created_by_me or owned_by_me):
+        if not (created_by_me or edited_by_me):
             return filters
 
         if not user or not getattr(user, "is_authenticated", False):
@@ -232,15 +244,15 @@ class ModelListCore(BaseCore, Generic[L]):
 
         user_id: int = user.id
         extra: ColumnOperator
-        if created_by_me and owned_by_me:
+        if created_by_me and edited_by_me:
             extra = ColumnOperator(
-                col="created_by_fk_or_owner", opr="eq", value=user_id
+                col="created_by_fk_or_editor", opr="eq", value=user_id
             )
         elif created_by_me:
             extra = ColumnOperator(col="created_by_fk", opr="eq", value=user_id)
         else:
             extra = ColumnOperator(
-                col=self._owner_filter_column, opr="eq", value=user_id
+                col=self._editor_filter_column, opr="eq", value=user_id
             )
 
         if filters is None:
@@ -284,7 +296,7 @@ class ModelListCore(BaseCore, Generic[L]):
         page: int = 0,
         page_size: int = 10,
         created_by_me: bool = False,
-        owned_by_me: bool = False,
+        edited_by_me: bool = False,
     ) -> L:
         # Clamp page_size to MAX_PAGE_SIZE as defense-in-depth
         page_size = min(page_size, MAX_PAGE_SIZE)
@@ -294,7 +306,7 @@ class ModelListCore(BaseCore, Generic[L]):
         filters_applied = filters if isinstance(filters, list) else []
 
         filters = self._prepend_self_lookup_filters(
-            filters, created_by_me, owned_by_me, get_current_user()
+            filters, created_by_me, edited_by_me, get_current_user()
         )
 
         # Parse select_columns using generic utility (accepts JSON, list, or CSV)

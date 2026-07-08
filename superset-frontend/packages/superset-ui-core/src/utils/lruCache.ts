@@ -55,7 +55,12 @@ class LRUCache<T> {
       throw new TypeError('The LRUCache key must be string.');
     }
     if (this.cache.size >= this.capacity) {
-      this.cache.delete(this.cache.keys().next().value);
+      // Forward-compat: TS 6.0 types IteratorResult.value as `string | undefined`
+      // when not explicitly checked; guard before passing to Map#delete.
+      const oldestKey = this.cache.keys().next().value;
+      if (oldestKey !== undefined) {
+        this.cache.delete(oldestKey);
+      }
     }
     this.cache.set(key, value);
   }

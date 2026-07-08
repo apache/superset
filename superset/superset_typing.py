@@ -221,6 +221,7 @@ class QueryObjectDict(TypedDict, total=False):
     group_others_when_limit_reached: bool
     to_dttm: datetime | None
     time_shift: str | None
+    time_compare_full_range: bool
     post_processing: list[dict[str, Any]]
 
     # Additional fields used throughout the codebase
@@ -273,7 +274,7 @@ class ExplorableData(TypedDict, total=False):
         metrics: List of metric definitions
         folders: Folder structure (JSON field)
         order_by_choices: Available ordering options
-        owners: List of owner IDs or owner details
+        editors: List of editor IDs or editor details
         verbose_map: Mapping of column/metric names to verbose names
         select_star: SELECT * query for this datasource
 
@@ -319,7 +320,7 @@ class ExplorableData(TypedDict, total=False):
     metrics: list["DatasetMetricData"]
     folders: Any  # JSON field, can be list or dict
     order_by_choices: list[tuple[str, str]]
-    owners: list[int] | list[dict[str, Any]]  # Can be either format
+    editors: list[int] | list[dict[str, Any]]  # Can be either format
     verbose_map: dict[str, str]
     select_star: str | None
 
