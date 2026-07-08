@@ -236,7 +236,7 @@ SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE = None
 # If the backend does not provide this value at all (an older backend that
 # predates the key, or it is set to None), the frontend falls back to a
 # built-in default of 5000 ms.
-SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS = 0
+SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS: int = 0
 
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
 CUSTOM_SECURITY_MANAGER = None
