@@ -17,7 +17,11 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { ensureIsArray, getColumnLabel, QueryFormColumn } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  getColumnLabel,
+  QueryFormColumn,
+} from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { cloneDeep } from 'lodash-es';
 import {
