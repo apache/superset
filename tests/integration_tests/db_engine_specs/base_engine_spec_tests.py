@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import datetime
+from typing import cast
 from unittest import mock
 
 import pytest
@@ -31,6 +32,7 @@ from superset.db_engine_specs.odps import OdpsBaseEngineSpec, OdpsEngineSpec
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.sql.parse import Table
+from superset.superset_typing import QueryObjectDict
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.test_app import app
@@ -204,7 +206,7 @@ class SupersetTestCases(SupersetTestCase):
 
     @mock.patch("superset.models.core.Database.db_engine_spec", BaseEngineSpec)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_jinja_calculated_column_in_order_by(self):
+    def test_jinja_calculated_column_in_order_by(self) -> None:
         """
         A calculated column referenced by a SIMPLE adhoc metric in `orderby`
         should have its Jinja template rendered, the same way it is for
@@ -240,7 +242,7 @@ class SupersetTestCases(SupersetTestCase):
                 ]
             ],
         }
-        sql = table.get_query_str(query_obj)
+        sql = table.get_query_str(cast(QueryObjectDict, query_obj))
         orderby_clause = sql.split("ORDER BY")[1]
         assert "{%" not in orderby_clause
         assert "{{" not in orderby_clause
