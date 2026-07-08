@@ -16,14 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Owner from 'src/types/Owner';
 
-export default function getOwnerName(owner?: Owner): string {
-  if (!owner) {
-    return '';
-  }
-  return (
-    owner.full_name ||
-    [owner.first_name, owner.last_name].filter(Boolean).join(' ')
-  );
+/**
+ * Minimal User reference as returned from the API
+ * (used for changed_by, created_by, etc.)
+ */
+
+export default interface User {
+  first_name?: string;
+  id: number;
+  last_name?: string;
+  full_name?: string;
+  email?: string;
 }

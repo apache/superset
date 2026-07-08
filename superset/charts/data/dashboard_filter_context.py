@@ -259,7 +259,7 @@ def _check_dashboard_access(dashboard: Dashboard) -> None:
     """
     Check that the user has access to the dashboard.
     Uses the security manager's raise_for_access which handles
-    guest users, admins, owners, and DASHBOARD_RBAC.
+    guest users, admins, editors, and viewer access.
 
     :raises SupersetSecurityException: if the user cannot access the dashboard
     """

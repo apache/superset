@@ -36,6 +36,15 @@ import SaveModal, {
 import { CHART_WIDTH } from 'src/dashboard/constants';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
 
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    common: {
+      user_subjects: [1],
+    },
+  })),
+}));
+
 jest.mock('@superset-ui/core/components/Select', () => ({
   ...jest.requireActual('@superset-ui/core/components/Select/AsyncSelect'),
   AsyncSelect: ({ onChange }: { onChange: (val: any) => void }) => (
@@ -75,7 +84,7 @@ const initialState = {
     slice: {
       slice_id: 1,
       slice_name: 'title',
-      owners: [1],
+      editors: [{ id: 1 }],
     },
     alert: null,
   },
@@ -105,11 +114,6 @@ const mockEvent = {
   value: 10,
 };
 
-const mockDashboardData = {
-  pks: ['id'],
-  result: [{ id: 'id', dashboard_title: 'dashboard title' }],
-};
-
 const queryStore = mockStore({
   chart: {},
   saveModal: {
@@ -126,12 +130,10 @@ const queryStore = mockStore({
   },
 });
 
-const fetchDashboardsEndpoint = `glob:*/dashboardasync/api/read?_flt_0_owners=${1}`;
 const fetchChartEndpoint = `glob:*/api/v1/chart/${1}*`;
 const fetchDashboardEndpoint = `glob:*/api/v1/dashboard/*`;
 
 beforeAll(() => {
-  fetchMock.get(fetchDashboardsEndpoint, mockDashboardData);
   fetchMock.get(fetchChartEndpoint, { id: 1, dashboards: [1] });
   fetchMock.get(fetchDashboardEndpoint, {
     result: [{ id: 'id', dashboard_title: 'dashboard title' }],
@@ -296,18 +298,24 @@ test('defaults to Save As for new chart even when can_overwrite is true', () => 
   expect(getByRole('radio', { name: 'Save as...' })).toBeChecked();
 });
 
-test('disables overwrite option for non-owner', () => {
+test('disables overwrite option for non-editor', () => {
   const { getByRole, getByText } = setup(
     {},
     mockStore({
       ...initialState,
-      user: { userId: 2 },
+      explore: {
+        ...initialState.explore,
+        slice: {
+          ...initialState.explore.slice,
+          editors: [{ id: 999 }],
+        },
+      },
     }),
   );
   expect(getByRole('radio', { name: 'Save (Overwrite)' })).toBeDisabled();
   expect(
     getByText(
-      'Must be a chart owner to overwrite this chart. Save as a new chart instead.',
+      'Must be a chart editor to overwrite this chart. Save as a new chart instead.',
     ),
   ).toBeInTheDocument();
 });
@@ -334,7 +342,7 @@ test('disables overwrite option for externally managed slice', () => {
   ).toBeInTheDocument();
 });
 
-test('enables overwrite option for admin non-owner', () => {
+test('enables overwrite option for admin non-editor', () => {
   const { getByRole } = setup(
     {},
     mockStore({

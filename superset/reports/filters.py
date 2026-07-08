@@ -23,6 +23,7 @@ from sqlalchemy.orm.query import Query
 from superset import db, security_manager
 from superset.daos.base import _escape_like
 from superset.reports.models import ReportSchedule
+from superset.subjects.filters import subject_relation_exists_for_current_user
 from superset.views.base import BaseFilter
 
 
@@ -30,15 +31,16 @@ class ReportScheduleFilter(BaseFilter):  # pylint: disable=too-few-public-method
     def apply(self, query: Query, value: Any) -> Query:
         if security_manager.can_access_all_datasources():
             return query
-        owner_ids_query = (
-            db.session.query(ReportSchedule.id)
-            .join(ReportSchedule.owners)
-            .filter(
-                security_manager.user_model.id
-                == security_manager.user_model.get_user_id()
-            )
-        )
-        return query.filter(ReportSchedule.id.in_(owner_ids_query))
+
+        return self._apply_editors(query)
+
+    def _apply_editors(self, query: Query) -> Query:
+        from superset.subjects.models import report_schedule_editors
+
+        editor_ids_query = db.session.query(
+            report_schedule_editors.c.report_schedule_id
+        ).filter(subject_relation_exists_for_current_user(report_schedule_editors))
+        return query.filter(ReportSchedule.id.in_(editor_ids_query))
 
 
 class ReportScheduleAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods

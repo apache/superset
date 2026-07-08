@@ -59,7 +59,7 @@ def _find_and_authorize_dashboard(
     the not-found and forbidden cases so the main tool body has a single
     pre-condition branch. Returns ``DashboardError`` on not-found and
     ``UpdateDashboardResponse`` (with ``permission_denied=True``) on
-    ownership failure — the two shapes carry different information for
+    editorship failure; the two shapes carry different information for
     the caller.
     """
     # avoids ImportError before Flask app initialisation:
@@ -86,7 +86,7 @@ def _find_and_authorize_dashboard(
         )
 
     try:
-        security_manager.raise_for_ownership(dashboard)
+        security_manager.raise_for_editorship(dashboard)
     except SupersetSecurityException:
         return None, UpdateDashboardResponse(
             permission_denied=True,

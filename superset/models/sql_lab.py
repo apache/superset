@@ -294,7 +294,6 @@ class Query(
             "id": self.id,
             "type": self.type,
             "sql": self.sql,
-            "owners": self.owners_data,
             "database": {"id": self.database_id, "backend": self.database.backend},
             "order_by_choices": order_by_choices,
             "catalog": self.catalog,
@@ -324,10 +323,6 @@ class Query(
         self,
     ) -> builtins.type["BaseEngineSpec"]:  # pylint: disable=unsubscriptable-object
         return self.database.db_engine_spec
-
-    @property
-    def owners_data(self) -> list[dict[str, Any]]:
-        return []
 
     @property
     def uid(self) -> str:

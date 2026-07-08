@@ -224,7 +224,13 @@ def test_run_proceeds_when_no_soft_deleted_twin(
         "superset.commands.database.uploaders.base.SqlaTable",
         return_value=MagicMock(),
     )
-    mocker.patch("superset.commands.database.uploaders.base.get_user")
+    user = MagicMock()
+    user.id = 1
+    mocker.patch(
+        "superset.commands.database.uploaders.base.get_user",
+        return_value=user,
+    )
+    mocker.patch("superset.subjects.utils.get_user_subject", return_value=None)
 
     reader = MagicMock()
     command = UploadCommand(

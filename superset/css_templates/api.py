@@ -40,7 +40,7 @@ from superset.views.base_api import (
     RelatedFieldFilter,
     statsd_metrics,
 )
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +97,7 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
     openapi_spec_methods = openapi_spec_methods_override
 
     related_field_filters = {
-        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
     }
     base_related_field_filters = {
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],

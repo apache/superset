@@ -79,6 +79,7 @@ from superset.reports.notifications.exceptions import (
     NotificationParamException,
     SlackV1NotificationError,
 )
+from superset.subjects.types import SubjectType
 from superset.tasks.utils import get_executor
 from superset.utils import json
 from superset.utils.core import HeaderDataType, override_user, recipients_string_to_list
@@ -269,7 +270,7 @@ class BaseReportState:
         # while ``chart_id`` is still set. Without this guard the branch
         # below silently falls through to the dashboard path and fails
         # opaquely; raising here surfaces a clear, actionable error inside
-        # the state-machine envelope (ERROR log row + owner notification).
+        # the state-machine envelope (ERROR log row + notification dispatch).
         # Every content path (_get_screenshots, _get_csv_data,
         # _get_embedded_data, _get_notification_content) funnels through this
         # method, so this is the single choke point.
@@ -853,7 +854,11 @@ class BaseReportState:
             "notification_format": self._report_schedule.report_format,
             "chart_id": chart_id,
             "dashboard_id": dashboard_id,
-            "owners": self._report_schedule.owners,
+            "editors": [
+                s.user.id
+                for s in self._report_schedule.editors
+                if s.type == SubjectType.USER and s.user
+            ],
             "slack_channels": slack_channels,
             "execution_id": str(self._execution_id),
         }
@@ -1017,16 +1022,17 @@ class BaseReportState:
             name=sanitize_title(name), text=message, header_data=header_data, url=url
         )
 
-        # filter recipients to recipients who are also owners
-        owner_recipients = [
+        # filter recipients to recipients who are also editors
+        editor_recipients = [
             ReportRecipients(
                 type=ReportRecipientType.EMAIL,
-                recipient_config_json=json.dumps({"target": owner.email}),
+                recipient_config_json=json.dumps({"target": s.user.email}),
             )
-            for owner in self._report_schedule.owners
+            for s in self._report_schedule.editors
+            if s.type == SubjectType.USER and s.user
         ]
 
-        self._send(notification_content, owner_recipients)
+        self._send(notification_content, editor_recipients)
 
     def is_in_grace_period(self) -> bool:
         """
@@ -1370,11 +1376,11 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             # Resolve the executor at the run() boundary, tolerating a missing
             # user (find_user -> None) so the state machine still runs and its
             # error envelope writes the ERROR execution-log row and sends the
-            # owner notification. The dedicated ReportScheduleExecutorNotFoundError
+            # editor notification. The dedicated ReportScheduleExecutorNotFoundError
             # guard lives at the content sites (_get_screenshots / _get_csv_data /
             # _get_embedded_data), which raise inside that envelope. Guarding here
             # instead would surface the executor error above the state machine,
-            # suppressing both the log row and the owner notification. The
+            # suppressing both the log row and the editor notification. The
             # alert-query path (AlertCommand) is intentionally left unchanged — a
             # missing executor there surfaces as a query error, not the dedicated
             # executor error; tightening it is out of scope here.
