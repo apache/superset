@@ -865,7 +865,29 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
     return form_data
 
 
-def map_big_number_config(config: BigNumberChartConfig) -> Dict[str, Any]:
+def _find_dataset_main_dttm_col(dataset_id: int | str | None) -> str | None:
+    """Look up a dataset's default temporal column, if any.
+
+    Unlike ``_resolve_default_x_axis``, this returns ``None`` instead of
+    raising when no temporal column can be found — callers use it as a
+    best-effort fallback, not a hard requirement.
+    """
+    if not dataset_id:
+        return None
+    from superset.daos.dataset import DatasetDAO
+
+    if isinstance(dataset_id, int) or (
+        isinstance(dataset_id, str) and dataset_id.isdigit()
+    ):
+        dataset = DatasetDAO.find_by_id(int(dataset_id))
+    else:
+        dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
+    return dataset.main_dttm_col if dataset else None
+
+
+def map_big_number_config(
+    config: BigNumberChartConfig, dataset_id: int | str | None = None
+) -> Dict[str, Any]:
     """Map big number chart config to Superset form_data."""
     # Determine viz_type: big_number (with trendline) or big_number_total
     if config.show_trendline and config.temporal_column:
@@ -910,6 +932,15 @@ def map_big_number_config(config: BigNumberChartConfig) -> Dict[str, Any]:
             form_data["aggregation"] = config.aggregation
 
     _add_adhoc_filters(form_data, config.filters)
+
+    # Bind a TEMPORAL_RANGE adhoc filter so dashboard time-range filters have
+    # a column to apply to — mirrors the Explore UI's default `adhoc_filters`
+    # control, which is always populated even for big_number_total (which has
+    # no dedicated time-column control). Falls back to the dataset's
+    # main_dttm_col when the caller didn't specify temporal_column.
+    temporal_column = config.temporal_column or _find_dataset_main_dttm_col(dataset_id)
+    if temporal_column:
+        _ensure_temporal_adhoc_filter(form_data, temporal_column)
 
     return form_data
 

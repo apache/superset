@@ -17,6 +17,8 @@
 
 """Tests for Big Number chart type support in MCP service."""
 
+from unittest.mock import MagicMock, patch
+
 import pytest
 from pydantic import ValidationError
 
@@ -356,6 +358,77 @@ class TestMapBigNumberConfig:
         assert "granularity_sqla" not in form_data
         assert "time_grain_sqla" not in form_data
         assert "start_y_axis_at_zero" not in form_data
+
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_total_binds_dataset_main_dttm_col_for_dashboard_filters(
+        self, mock_find_by_id: MagicMock
+    ) -> None:
+        """Big Number Total falls back to dataset.main_dttm_col so dashboard
+        time-range filters have a column to bind to (regression test for
+        charts created via MCP not responding to dashboard filters)."""
+        mock_dataset = MagicMock()
+        mock_dataset.main_dttm_col = "order_date"
+        mock_find_by_id.return_value = mock_dataset
+
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+        )
+        form_data = map_big_number_config(config, dataset_id=42)
+
+        assert form_data["viz_type"] == "big_number_total"
+        assert "adhoc_filters" in form_data
+        assert len(form_data["adhoc_filters"]) == 1
+        assert form_data["adhoc_filters"][0]["subject"] == "order_date"
+        assert form_data["adhoc_filters"][0]["operator"] == "TEMPORAL_RANGE"
+        mock_find_by_id.assert_called_once_with(42)
+
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_total_no_dataset_main_dttm_col_skips_temporal_filter(
+        self, mock_find_by_id: MagicMock
+    ) -> None:
+        """When the dataset has no temporal column, no TEMPORAL_RANGE filter
+        can be added — there's nothing for a dashboard filter to bind to."""
+        mock_dataset = MagicMock()
+        mock_dataset.main_dttm_col = None
+        mock_find_by_id.return_value = mock_dataset
+
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+        )
+        form_data = map_big_number_config(config, dataset_id=42)
+
+        assert "adhoc_filters" not in form_data
+
+    def test_explicit_temporal_column_used_without_trendline(self) -> None:
+        """An explicit temporal_column binds the dashboard filter even when
+        show_trendline is False, without needing a dataset lookup."""
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            temporal_column="order_date",
+        )
+        form_data = map_big_number_config(config)
+
+        assert form_data["viz_type"] == "big_number_total"
+        assert form_data["adhoc_filters"][0]["subject"] == "order_date"
+        assert form_data["adhoc_filters"][0]["operator"] == "TEMPORAL_RANGE"
+
+    def test_trendline_also_gets_temporal_adhoc_filter(self) -> None:
+        """Trendline charts get both granularity_sqla and a TEMPORAL_RANGE
+        adhoc filter, matching either binding mechanism the dashboard uses."""
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            temporal_column="order_date",
+            show_trendline=True,
+        )
+        form_data = map_big_number_config(config)
+
+        assert form_data["granularity_sqla"] == "order_date"
+        assert form_data["adhoc_filters"][0]["subject"] == "order_date"
+        assert form_data["adhoc_filters"][0]["operator"] == "TEMPORAL_RANGE"
 
     def test_with_aggregation_sum(self) -> None:
         """aggregation='sum' is written to form_data for trendline charts."""
