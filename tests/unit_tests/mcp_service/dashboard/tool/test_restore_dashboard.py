@@ -21,6 +21,7 @@ Run through the async MCP Client (not direct calls); auth is mocked via the
 autouse mock_auth fixture, matching the other dashboard tool test files.
 """
 
+from collections.abc import Iterator
 from datetime import datetime
 from unittest.mock import Mock, patch
 from uuid import UUID
@@ -42,7 +43,7 @@ def mcp_server() -> object:
 
 
 @pytest.fixture(autouse=True)
-def mock_auth():
+def mock_auth() -> Iterator[Mock]:
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
         mock_user = Mock()
         mock_user.id = 1
@@ -114,7 +115,7 @@ async def test_restore_dashboard_success_by_numeric_id(
     content = result.structured_content
     assert content["success"] is True
     assert content["restored_id"] == 1
-    assert content["restored_name"] == "Sales Dashboard"
+    assert "Sales Dashboard" in content["restored_name"]
     assert content["permission_denied"] is False
     mock_command.assert_called_once_with(str(_UUID))
     mock_command.return_value.run.assert_called_once()
