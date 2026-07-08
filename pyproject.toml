@@ -44,7 +44,7 @@ dependencies = [
     # explicitly to keep fresh ``pip install apache-superset`` working
     # without the ``base.txt`` lock file (#40962).
     "cachetools>=6.2.1, <7",
-    "celery>=5.3.6, <6.0.0",
+    "celery>=5.6.3, <6.0.0",
     "click>=8.4.0",
     "click-option-group",
     "colorama",
@@ -188,7 +188,7 @@ ocient = [
 oracle = ["oracledb>=2.0.0, <5"]
 parseable = ["sqlalchemy-parseable>=0.1.6,<0.2.0"]
 pinot = ["pinotdb>=5.0.0, <10.0.0"]
-playwright = ["playwright>=1.60.0, <2"]
+playwright = ["playwright>=1.61.0, <2"]
 postgres = ["psycopg2-binary==2.9.12"]
 presto = ["pyhive[presto]>=0.6.5"]
 trino = ["trino>=0.337.0"]
