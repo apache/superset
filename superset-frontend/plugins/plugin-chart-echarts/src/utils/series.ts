@@ -967,6 +967,10 @@ export function getAreaScaledSymbolSize(
   return Math.sqrt(minSize ** 2 + ratio * (maxSize ** 2 - minSize ** 2));
 }
 
+// Bar charts default to categorical via chart control panels
+// (xAxisForceCategorical), not via seriesType coercion here.
+// When forceCategorical is false, numeric + unstacked charts use a Value axis
+// so users can see spacing for missing x values.
 export function getAxisType(
   stack: StackType,
   forceCategorical?: boolean,
