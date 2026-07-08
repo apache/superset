@@ -105,7 +105,7 @@ function defaultConfig(): ConfigType {
 function configFromFile(): Partial<ConfigType> {
   const isTest = process.env.NODE_ENV === 'test';
   const configFile = isTest ? '../config.test.json' : '../config.json';
-  const configFilePath = resolve(import.meta.dirname, configFile)
+  const configFilePath = resolve(import.meta.dirname, configFile);
   try {
     return JSON.parse(readFileSync(configFilePath, 'utf8')) as ConfigType;
   } catch {
