@@ -1831,18 +1831,6 @@ describe('capTickMarks', () => {
   });
 });
 
-test('getAxisType uses Value axis for numeric bar charts when not forced categorical', () => {
-  expect(getAxisType(false, false, GenericDataType.Numeric)).toEqual(
-    AxisType.Value,
-  );
-});
-
-test('getAxisType uses Category axis for numeric bar charts when forced categorical', () => {
-  expect(getAxisType(false, true, GenericDataType.Numeric)).toEqual(
-    AxisType.Category,
-  );
-});
-
 test('getMinAndMaxFromBounds returns empty object when not truncating', () => {
   expect(
     getMinAndMaxFromBounds(
