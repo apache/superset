@@ -81,15 +81,8 @@ const DONUT_OFFSET = 50;
 const HALF_DONUT_SWEEP_LIMIT = 180;
 const HALF_DONUT_START_ANGLE = 180;
 
-export const isHalfDonut = (
-  sweptAngle: number,
-  startAngle: number,
-): boolean =>
-  (
-    sweptAngle <= HALF_DONUT_SWEEP_LIMIT &&
-    startAngle === HALF_DONUT_START_ANGLE
-  )
-;
+export const isHalfDonut = (sweptAngle: number, startAngle: number): boolean =>
+  sweptAngle <= HALF_DONUT_SWEEP_LIMIT && startAngle === HALF_DONUT_START_ANGLE;
 export function getTotalValuePadding({
   chartPadding,
   donut,
