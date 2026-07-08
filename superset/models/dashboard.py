@@ -130,8 +130,8 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
     # SPIKE (full-Continuum): ``slices`` removed from
     # the exclude list so Continuum auto-creates an association version table
     # for ``dashboard_slices`` and ``Reverter(relations=["slices"])`` can
-    # restore chart membership. Owners / roles stay excluded — access metadata,
-    # not user-authored content (ADR-005).
+    # restore chart membership. Owners / roles / editors / viewers stay
+    # excluded — access metadata, not user-authored content (ADR-005).
     # Audit columns (changed_on/created_on/changed_by_fk/created_by_fk) are
     # auto-bumped by AuditMixin on every save; excluding them lets Continuum's
     # is_modified() return False on no-op saves (e.g. owners-only edits) so we
@@ -145,6 +145,8 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
         "exclude": [
             "owners",
             "roles",
+            "editors",
+            "viewers",
             "changed_on",
             "created_on",
             "changed_by_fk",

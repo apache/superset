@@ -94,6 +94,8 @@ class Slice(  # pylint: disable=too-many-public-methods
         "exclude": [
             "query_context",
             "owners",
+            "editors",
+            "viewers",
             "dashboards",
             "changed_on",
             "created_on",

@@ -1327,6 +1327,7 @@ class SqlaTable(
     __versioned__: dict[str, Any] = {
         "exclude": [
             "owners",
+            "editors",
             "row_level_security_filters",
             "changed_on",
             "created_on",
