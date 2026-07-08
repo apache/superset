@@ -21,7 +21,7 @@ import '@testing-library/jest-dom';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
-import { DatasourceType, SupersetClient } from '@superset-ui/core';
+import { DatasourceType, JsonObject, SupersetClient } from '@superset-ui/core';
 import DeckMulti from './Multi';
 
 // Capture the layers handed to the DeckGL container so we can inspect the
@@ -48,9 +48,37 @@ jest.mock('../DeckGLContainer', () => ({
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   SupersetClient: {
-    get: jest.fn(),
+    post: jest.fn(),
   },
 }));
+
+// register stub buildQuery/transformProps for the layer types the tests use.
+// The stub transformProps simply echoes the fetched records through as
+// layer features, so `addColorToFeatures` (exercised in Multi.tsx) resolves
+// colors from the same raw records the tests assert against.
+const { getChartBuildQueryRegistry, getChartTransformPropsRegistry } =
+  jest.requireActual('@superset-ui/core');
+['deck_scatter', 'deck_arc'].forEach(vizType => {
+  getChartBuildQueryRegistry().registerValue(
+    vizType,
+    (formData: Record<string, unknown>) => ({
+      datasource: 'test_datasource',
+      queries: [{}],
+      form_data: formData,
+    }),
+  );
+  getChartTransformPropsRegistry().registerValue(
+    vizType,
+    (chartProps: { queriesData: { data: JsonObject[] }[] }) => ({
+      payload: {
+        data: {
+          features: chartProps.queriesData?.[0]?.data || [],
+          mapboxApiKey: 'test-key',
+        },
+      },
+    }),
+  );
+});
 
 const mockStore = configureStore({
   reducer: {
@@ -119,14 +147,16 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockLayerCapture.layers = [];
   // The scatter sublayer query returns features tagged with a category column.
-  (SupersetClient.get as jest.Mock).mockResolvedValue({
+  (SupersetClient.post as jest.Mock).mockResolvedValue({
     json: {
-      data: {
-        features: [
-          { position: [0, 0], radius: 1, cat_color: 'A' },
-          { position: [1, 1], radius: 1, cat_color: 'B' },
-        ],
-      },
+      result: [
+        {
+          data: [
+            { position: [0, 0], radius: 1, cat_color: 'A' },
+            { position: [1, 1], radius: 1, cat_color: 'B' },
+          ],
+        },
+      ],
     },
   });
 });
@@ -221,11 +251,9 @@ test('keeps fixed source and target colors for arc subslices saved before the co
       },
     },
   };
-  (SupersetClient.get as jest.Mock).mockResolvedValue({
+  (SupersetClient.post as jest.Mock).mockResolvedValue({
     json: {
-      data: {
-        features: [{ sourcePosition: [0, 0], targetPosition: [1, 1] }],
-      },
+      result: [{ data: [{ sourcePosition: [0, 0], targetPosition: [1, 1] }] }],
     },
   });
 
