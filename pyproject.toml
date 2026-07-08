@@ -44,7 +44,7 @@ dependencies = [
     # explicitly to keep fresh ``pip install apache-superset`` working
     # without the ``base.txt`` lock file (#40962).
     "cachetools>=6.2.1, <7",
-    "celery>=5.3.6, <6.0.0",
+    "celery>=5.6.3, <6.0.0",
     "click>=8.4.0",
     "click-option-group",
     "colorama",
