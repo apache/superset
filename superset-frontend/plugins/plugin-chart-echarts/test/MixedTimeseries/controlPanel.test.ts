@@ -120,7 +120,9 @@ const numericXAxisState = {
     x_axis: { value: 'year' },
     datasource: {
       datasource: {
-        columns: [{ column_name: 'year', type_generic: GenericDataType.Numeric }],
+        columns: [
+          { column_name: 'year', type_generic: GenericDataType.Numeric },
+        ],
       },
     },
     seriesType: { value: EchartsTimeseriesSeriesType.Line },
@@ -133,7 +135,9 @@ const nonNumericXAxisState = {
     x_axis: { value: 'year' },
     datasource: {
       datasource: {
-        columns: [{ column_name: 'year', type_generic: GenericDataType.String }],
+        columns: [
+          { column_name: 'year', type_generic: GenericDataType.String },
+        ],
       },
     },
     seriesType: { value: EchartsTimeseriesSeriesType.Bar },
@@ -190,16 +194,13 @@ test('xAxisForceCategorical preserves explicit user value', () => {
     : undefined;
 
   expect(
-    initialValue?.(
-      { value: false },
-      {
-        ...numericXAxisState,
-        controls: {
-          ...numericXAxisState.controls,
-          seriesType: { value: EchartsTimeseriesSeriesType.Bar },
-        },
-      } as unknown as ControlPanelState,
-    ),
+    initialValue?.({ value: false }, {
+      ...numericXAxisState,
+      controls: {
+        ...numericXAxisState.controls,
+        seriesType: { value: EchartsTimeseriesSeriesType.Bar },
+      },
+    } as unknown as ControlPanelState),
   ).toBe(false);
 });
 
@@ -224,12 +225,9 @@ test('xAxisForceCategorical returns true for numeric x-axis when x_axis_sort exi
   // line-only state would normally return false, but mixedXAxisForceCategoricalControl
   // forces true when form_data.x_axis_sort is defined.
   expect(
-    initialValue?.(
-      undefined,
-      {
-        ...numericXAxisState,
-        form_data: { x_axis_sort: 'year' },
-      } as unknown as ControlPanelState,
-    ),
+    initialValue?.(undefined, {
+      ...numericXAxisState,
+      form_data: { x_axis_sort: 'year' },
+    } as unknown as ControlPanelState),
   ).toBe(true);
 });
