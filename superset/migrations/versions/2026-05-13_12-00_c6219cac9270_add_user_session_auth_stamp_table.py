@@ -17,7 +17,7 @@
 """add user_session_auth_stamp table
 
 Revision ID: c6219cac9270
-Revises: 7c4a8d09ca37
+Revises: 3a8e6f2c1b95
 Create Date: 2026-05-13 12:00:00.000000
 
 """
@@ -28,7 +28,7 @@ from superset.migrations.shared.utils import create_table, drop_table
 
 # revision identifiers, used by Alembic.
 revision: str = "c6219cac9270"
-down_revision: str = "7c4a8d09ca37"
+down_revision: str = "3a8e6f2c1b95"
 
 
 def upgrade() -> None:
