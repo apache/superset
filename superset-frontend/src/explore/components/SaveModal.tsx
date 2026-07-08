@@ -233,9 +233,9 @@ const SaveModal = ({
     if (userId === undefined) {
       return false;
     }
-    // Owners can arrive either as plain ids (number) or as objects depending on
-    // where the slice was hydrated from (bootstrap vs. SLICE_UPDATED reducer),
-    // so normalize to the numeric id before comparing.
+    // The Slice type declares `owners` as `number[]`, but the explore
+    // bootstrap payload can carry owners as API `Owner` objects (`{ id }`)
+    // instead, so normalize to the numeric id before comparing.
     return Boolean(
       slice?.owners?.some((owner: number | { id?: number }) =>
         typeof owner === 'number' ? owner === userId : owner?.id === userId,

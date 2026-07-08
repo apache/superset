@@ -359,9 +359,9 @@ test('enables overwrite option for admin non-editor', () => {
 });
 
 test('enables overwrite option for owner when owners are objects', () => {
-  // The Slice type declares `owners: { id: number }[]`, and the explore
-  // bootstrap can deliver owners in object form. A chart owner must still be
-  // able to overwrite their own chart in that case.
+  // The Slice type declares `owners` as `number[]`, but the explore
+  // bootstrap can deliver owners as `{ id: number }` objects at runtime.
+  // A chart owner must still be able to overwrite their own chart in that case.
   const { getByRole } = setup(
     {},
     mockStore({
