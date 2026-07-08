@@ -383,6 +383,10 @@ class TestMapBigNumberConfig:
         assert form_data["adhoc_filters"][0]["subject"] == "order_date"
         assert form_data["adhoc_filters"][0]["operator"] == "TEMPORAL_RANGE"
         assert all(c.args == (42,) for c in mock_find_by_id.call_args_list)
+        # Regression test: the main_dttm_col fallback and the
+        # is_column_truly_temporal guard must share a single dataset lookup
+        # rather than each re-querying DatasetDAO for the same dataset_id.
+        mock_find_by_id.assert_called_once_with(42)
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     def test_total_no_dataset_main_dttm_col_skips_temporal_filter(

@@ -284,7 +284,11 @@ def _find_dataset_by_id_or_uuid(dataset_id: int | str | None) -> Any | None:
     return DatasetDAO.find_by_id(dataset_id, id_column="uuid")
 
 
-def is_column_truly_temporal(column_name: str, dataset_id: int | str | None) -> bool:
+def is_column_truly_temporal(
+    column_name: str,
+    dataset_id: int | str | None,
+    dataset: Any | None = None,
+) -> bool:
     """
     Check if a column is truly temporal based on its SQL data type.
 
@@ -298,17 +302,20 @@ def is_column_truly_temporal(column_name: str, dataset_id: int | str | None) -> 
     Args:
         column_name: Name of the column to check
         dataset_id: Dataset ID to look up column metadata
+        dataset: Optional pre-fetched dataset, reused as-is to avoid a
+            redundant DAO lookup when the caller already resolved it.
 
     Returns:
         True if the column has a real temporal SQL type, False otherwise
     """
     from superset.utils.core import GenericDataType
 
-    if not dataset_id:
+    if not dataset_id and dataset is None:
         return True  # Default to temporal if we can't check (backward compatible)
 
     try:
-        dataset = _find_dataset_by_id_or_uuid(dataset_id)
+        if dataset is None:
+            dataset = _find_dataset_by_id_or_uuid(dataset_id)
 
         if not dataset:
             return True  # Default to temporal if dataset not found
@@ -870,17 +877,6 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
     return form_data
 
 
-def _find_dataset_main_dttm_col(dataset_id: int | str | None) -> str | None:
-    """Look up a dataset's default temporal column, if any.
-
-    Unlike ``_resolve_default_x_axis``, this returns ``None`` instead of
-    raising when no temporal column can be found — callers use it as a
-    best-effort fallback, not a hard requirement.
-    """
-    dataset = _find_dataset_by_id_or_uuid(dataset_id)
-    return dataset.main_dttm_col if dataset else None
-
-
 def map_big_number_config(
     config: BigNumberChartConfig, dataset_id: int | str | None = None
 ) -> Dict[str, Any]:
@@ -932,15 +928,36 @@ def map_big_number_config(
     # Bind a TEMPORAL_RANGE adhoc filter so dashboard time-range filters have
     # a column to apply to — mirrors the Explore UI's `BigNumberTotal` control
     # panel, which exposes an `adhoc_filters` control even though there's no
-    # dedicated time-column control for the total variant. Falls back to the
-    # dataset's main_dttm_col when the caller didn't specify temporal_column.
-    # Guarded by is_column_truly_temporal (same check map_xy_config applies to
-    # its x-axis) so a non-temporal column never gets a TEMPORAL_RANGE filter.
-    temporal_column = config.temporal_column or _find_dataset_main_dttm_col(dataset_id)
-    if temporal_column and is_column_truly_temporal(temporal_column, dataset_id):
+    # dedicated time-column control for the total variant.
+    if temporal_column := _resolve_big_number_temporal_column(config, dataset_id):
         _ensure_temporal_adhoc_filter(form_data, temporal_column)
 
     return form_data
+
+
+def _resolve_big_number_temporal_column(
+    config: BigNumberChartConfig, dataset_id: int | str | None
+) -> str | None:
+    """Resolve the column to bind a Big Number's TEMPORAL_RANGE filter to.
+
+    Falls back to the dataset's main_dttm_col when the caller didn't specify
+    temporal_column, and guards the result with is_column_truly_temporal (same
+    check map_xy_config applies to its x-axis) so a non-temporal column never
+    gets a TEMPORAL_RANGE filter. The dataset is fetched at most once here and
+    reused by is_column_truly_temporal instead of letting it re-query by
+    dataset_id.
+    """
+    dataset = None
+    if not config.temporal_column:
+        dataset = _find_dataset_by_id_or_uuid(dataset_id)
+    temporal_column = config.temporal_column or (
+        dataset.main_dttm_col if dataset else None
+    )
+    if temporal_column and is_column_truly_temporal(
+        temporal_column, dataset_id, dataset=dataset
+    ):
+        return temporal_column
+    return None
 
 
 def map_handlebars_config(config: HandlebarsChartConfig) -> Dict[str, Any]:
