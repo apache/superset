@@ -31,6 +31,7 @@ from superset.utils.core import (
     cast_to_boolean,
     check_is_safe_zip,
     DateColumn,
+    extract_dataframe_dtypes,
     FilterOperator,
     generic_find_constraint_name,
     generic_find_fk_constraint_name,
@@ -1848,3 +1849,10 @@ def test_sanitize_cookie_token_accepts_valid(token: str) -> None:
 )
 def test_sanitize_cookie_token_rejects_invalid(token: Optional[str]) -> None:
     assert sanitize_cookie_token(token) is None
+
+
+def test_extract_dataframe_dtypes_with_duplicate_columns() -> None:
+    """extract_dataframe_dtypes should not crash on duplicate column names."""
+    df = pd.DataFrame([[1, 2, 3]], columns=["a", "b", "a"])
+    result = extract_dataframe_dtypes(df)
+    assert len(result) == 3

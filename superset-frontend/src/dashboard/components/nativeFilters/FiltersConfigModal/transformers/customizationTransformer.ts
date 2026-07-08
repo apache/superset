@@ -42,16 +42,12 @@ type CustomizationFormInput =
   | Divider;
 
 type ChartCustomizationFormOrSaved =
-  | ChartCustomizationsFormItem
-  | ChartCustomization;
+  ChartCustomizationsFormItem | ChartCustomization;
 
 function isFilterType(
   formInputs: CustomizationFormInput,
 ): formInputs is
-  | NativeFiltersFormItem
-  | NativeFilterDivider
-  | Filter
-  | Divider {
+  NativeFiltersFormItem | NativeFilterDivider | Filter | Divider {
   return (
     'type' in formInputs &&
     (formInputs.type === NativeFilterType.NativeFilter ||

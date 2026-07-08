@@ -246,7 +246,7 @@ class Superset(BaseSupersetView):
     @permission_name("explore_json")
     @expose("/explore_json/data/<cache_key>", methods=("GET",))
     @check_resource_permissions(check_explore_cache_perms)
-    @deprecated(eol_version="5.0.0")
+    @deprecated(eol_version="5.0.0", new_target="/api/v1/chart/data/<cache_key>")
     def explore_json_data(self, cache_key: str) -> FlaskResponse:
         """Serves cached result data for async explore_json calls
 
@@ -490,6 +490,10 @@ class Superset(BaseSupersetView):
                     DatasourceType("table"),
                     datasource_id,
                 )
+
+        # Enforce per-datasource access before rendering its metadata.
+        if datasource:
+            security_manager.raise_for_access(datasource=datasource)
 
         datasource_name = datasource.name if datasource else _("[Missing Dataset]")
         viz_type = form_data.get("viz_type")

@@ -45,6 +45,8 @@ from superset.mcp_service.utils.schema_utils import (
     parse_json_or_model_list,
 )
 
+logger = __import__("logging").getLogger(__name__)
+
 DEFAULT_USER_COLUMNS = ["id", "username", "first_name", "last_name", "active"]
 
 USER_ALL_COLUMNS = [
@@ -104,6 +106,31 @@ class UserInfo(BaseModel):
         "access via get_user_info; not available in list_users because roles "
         "is a relationship, not a selectable column)",
     )
+
+    @field_validator("roles", mode="before")
+    @classmethod
+    def _extract_role_names(cls, v: Any) -> list[str] | None:
+        """Coerce Role ORM objects to their .name strings."""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            # Preserve Pydantic's default rejection of bare strings for list[str].
+            raise ValueError("roles must be a list, not a string")
+        result: list[str] = []
+        for item in v:
+            if isinstance(item, str):
+                result.append(escape_llm_context_delimiters(item))
+                continue
+            try:
+                name = item.name
+                if isinstance(name, str):
+                    result.append(escape_llm_context_delimiters(name))
+            except (AttributeError, DetachedInstanceError):
+                logger.debug(
+                    "Skipping role with detached instance in UserInfo.roles coercion"
+                )
+        return result
+
     changed_on: str | datetime | None = Field(
         None, description="Last modification timestamp"
     )
@@ -277,10 +304,16 @@ def serialize_user_object(
     if include_sensitive and include_roles:
         user_roles = getattr(user, "roles", None)
         if user_roles is not None:
-            try:
-                roles = [r.name for r in user_roles if hasattr(r, "name")]
-            except (AttributeError, DetachedInstanceError):
-                roles = None
+            roles = []
+            for r in user_roles:
+                try:
+                    if hasattr(r, "name") and isinstance(r.name, str):
+                        roles.append(escape_llm_context_delimiters(r.name))
+                except (AttributeError, DetachedInstanceError):
+                    logger.debug(
+                        "Skipping role that raised exception in serialize_user_object"
+                    )
+                    continue
 
     return UserInfo(
         id=getattr(user, "id", None),
@@ -295,8 +328,6 @@ def serialize_user_object(
         email=escape_llm_context_delimiters(getattr(user, "email", None))
         if include_sensitive
         else None,
-        roles=[sanitize_for_llm_context(r, field_path=("roles",)) for r in roles]
-        if roles is not None
-        else None,
+        roles=roles,
         changed_on=getattr(user, "changed_on", None),
     )

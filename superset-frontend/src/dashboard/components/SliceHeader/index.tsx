@@ -26,7 +26,12 @@ import {
   useState,
 } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { getExtensionsRegistry, QueryData, VizType } from '@superset-ui/core';
+import {
+  getExtensionsRegistry,
+  JsonObject,
+  QueryData,
+  VizType,
+} from '@superset-ui/core';
 import {
   css,
   styled,
@@ -58,6 +63,7 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   filters: object;
   handleToggleFullSize: () => void;
   formData: object;
+  ownState?: JsonObject;
   width: number;
   height: number;
   queriedDttm?: string | null;
@@ -157,7 +163,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       sliceName = '',
       supersetCanExplore = false,
       supersetCanShare = false,
-      supersetCanCSV = false,
+      supersetCanDownload = false,
       exportPivotCSV,
       exportFullCSV,
       exportFullXLSX,
@@ -174,6 +180,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       height,
       exportPivotExcel = () => ({}),
       chartHolderRef,
+      ownState,
     },
     ref,
   ) => {
@@ -367,7 +374,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   exportFullXLSX={exportFullXLSX}
                   supersetCanExplore={supersetCanExplore}
                   supersetCanShare={supersetCanShare}
-                  supersetCanCSV={supersetCanCSV}
+                  supersetCanDownload={supersetCanDownload}
                   componentId={componentId}
                   dashboardId={dashboardId}
                   addSuccessToast={addSuccessToast}
@@ -381,6 +388,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   crossFiltersEnabled={isCrossFiltersEnabled}
                   exportPivotExcel={exportPivotExcel}
                   chartHolderRef={chartHolderRef}
+                  ownState={ownState}
                 />
               )}
             </>

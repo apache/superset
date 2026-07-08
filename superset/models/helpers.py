@@ -102,6 +102,7 @@ from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
 from superset.sql.parse import sanitize_clause, SQLScript, SQLStatement
 from superset.superset_typing import (
+    AdhocColumn,
     AdhocMetric,
     Column as ColumnTyping,
     FilterValue,
@@ -2310,10 +2311,26 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             time_grain
         )
 
-        if join_column_producer and not time_grain:
-            raise QueryObjectValidationError(
-                _("Time Grain must be specified when using Time Shift.")
+        if not time_grain:
+            has_temporal_join_key = any(
+                pd.api.types.is_datetime64_any_dtype(df[key])
+                for key in join_keys
+                if key in df.columns
             )
+            if has_temporal_join_key:
+                has_relative_offset = any(
+                    not (
+                        self.is_valid_date_range(offset)
+                        and feature_flag_manager.is_feature_enabled(
+                            "DATE_RANGE_TIMESHIFTS_ENABLED"
+                        )
+                    )
+                    for offset in offset_dfs
+                )
+                if has_relative_offset:
+                    raise QueryObjectValidationError(
+                        _("Time Grain must be specified when using Time Comparison.")
+                    )
 
         for offset, offset_df in offset_dfs.items():
             is_date_range_offset = self.is_valid_date_range(
@@ -2585,16 +2602,26 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         label = utils.get_metric_name(metric)
 
         if expression_type == utils.AdhocMetricExpressionType.SIMPLE:
+            aggregate: Any = metric.get("aggregate")
+            if (
+                not isinstance(aggregate, str)
+                or aggregate not in self.sqla_aggregations
+            ):
+                raise QueryObjectValidationError(_("Adhoc metric aggregate is invalid"))
             metric_column = metric.get("column") or {}
             column_name = cast(str, metric_column.get("column_name"))
             sqla_column = sa.column(column_name)
-            sqla_metric = self.sqla_aggregations[metric["aggregate"]](sqla_column)
+            sqla_metric = self.sqla_aggregations[aggregate](sqla_column)
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
-            expression = metric.get("sqlExpression")
+            expression: Any = metric.get("sqlExpression")
+            if not isinstance(expression, str) or not expression.strip():
+                raise QueryObjectValidationError(
+                    _("Adhoc metric SQL expression is invalid")
+                )
 
             if not processed:
                 expression = self._process_select_expression(
-                    expression=metric["sqlExpression"],
+                    expression=expression,
                     database_id=self.database_id,
                     engine=self.database.backend,
                     schema=self.schema,
@@ -2753,7 +2780,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def adhoc_column_to_sqla(
         self,
-        col: "AdhocColumn",  # type: ignore  # noqa: F821
+        col: AdhocColumn,
         force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> tuple[ColumnElement, Optional[GenericDataType]]:
@@ -2900,6 +2927,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 time_col, label=label, template_processor=template_processor
             )
         )
+
+        # Honor the dataset "Hour Offset". Result timestamps are displayed shifted
+        # by +offset hours (see normalize_df / DateColumn in superset.utils.core),
+        # but the time filter compares the raw stored values. Shifting the filter
+        # bounds by -offset keeps the filter consistent with what is displayed;
+        # otherwise a date selection lands on the wrong calendar day (#104810).
+        if offset_hours := getattr(self, "offset", 0) or 0:
+            if start_dttm is not None:
+                start_dttm = start_dttm - timedelta(hours=offset_hours)
+            if end_dttm is not None:
+                end_dttm = end_dttm - timedelta(hours=offset_hours)
 
         l = []  # noqa: E741
         if start_dttm:
@@ -3282,6 +3320,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # use the key of the ColumnClause for the expected label
         metrics_exprs_by_label = {m.key: m for m in metrics_exprs}
         metrics_exprs_by_expr = {str(m): m for m in metrics_exprs}
+        adhoc_columns_by_label: dict[str, AdhocColumn] = {}
+        for selected in columns:
+            if not utils.is_adhoc_column(selected):
+                continue
+            selected_label = selected.get("label")
+            if isinstance(selected_label, str) and selected_label:
+                adhoc_columns_by_label[selected_label] = selected
 
         # Since orderby may use adhoc metrics, too; we need to process them first
         orderby_exprs: list[ColumnElement] = []
@@ -3313,6 +3358,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             elif col in metrics_exprs_by_label:
                 col = metrics_exprs_by_label[col]
                 need_groupby = True
+            elif isinstance(col, str) and col in adhoc_columns_by_label:
+                col, _unused = self.adhoc_column_to_sqla(
+                    col=adhoc_columns_by_label[col],
+                    template_processor=template_processor,
+                )
             elif col in metrics_by_name:
                 col = metrics_by_name[col].get_sqla_col(
                     template_processor=template_processor
@@ -3322,21 +3372,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 col = self.convert_tbl_column_to_sqla_col(
                     columns_by_name[col], template_processor=template_processor
                 )
-            elif isinstance(col, str) and columns:
-                # Check if this is a label reference to an adhoc column
-                adhoc_col = next(
-                    (
-                        c
-                        for c in columns
-                        if utils.is_adhoc_column(c) and c.get("label") == col
-                    ),
-                    None,
-                )
-                if adhoc_col:
-                    col, _unused = self.adhoc_column_to_sqla(
-                        col=adhoc_col,
-                        template_processor=template_processor,
-                    )
 
             if isinstance(col, ColumnElement):
                 orderby_exprs.append(col)

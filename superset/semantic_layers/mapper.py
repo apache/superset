@@ -52,7 +52,10 @@ from superset_core.semantic_layers.view import SemanticViewFeature
 
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_object import QueryObject
-from superset.common.utils.time_range_utils import get_since_until_from_query_object
+from superset.common.utils.time_range_utils import (
+    get_since_until_from_query_object,
+    get_since_until_from_time_range,
+)
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import NO_TIME_RANGE
 from superset.models.helpers import QueryResult
@@ -121,6 +124,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
     # Step 2: Execute the main query (first in the list)
     main_query = queries[0]
     main_result = dispatcher(main_query)
+    main_result = _coerce_empty_result(main_result, main_query)
 
     main_df = stringify_extension_columns(main_result.results).to_pandas()
 
@@ -152,6 +156,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
     ):
         # Execute the offset query
         result = dispatcher(offset_query)
+        result = _coerce_empty_result(result, offset_query)
 
         # Add this query's requests to the collection
         all_requests.extend(result.requests)
@@ -165,6 +170,18 @@ def get_results(query_object: QueryObject) -> QueryResult:
             for metric in metric_names:
                 offset_col_name = TIME_COMPARISON.join([metric, time_offset])
                 main_df[offset_col_name] = np.nan
+        elif not join_keys:
+            # No dimensions to join on — this is an aggregate-only query
+            # (e.g. ``metrics: ["Orders Count"]`` with empty ``columns``),
+            # which produces a single-row DataFrame. ``pandas.merge`` on an
+            # empty ``on=`` list crashes with ``IndexError`` deep in the
+            # join-indexer code, so we lift the offset metric values from
+            # the first row of ``offset_df`` straight onto ``main_df``.
+            for metric in metric_names:
+                offset_col_name = TIME_COMPARISON.join([metric, time_offset])
+                main_df[offset_col_name] = (
+                    offset_df[metric].iloc[0] if metric in offset_df else np.nan
+                )
         else:
             # Rename metric columns with time offset suffix
             # Format: "{metric_name}__{time_offset}"
@@ -204,6 +221,32 @@ def get_results(query_object: QueryObject) -> QueryResult:
         semantic_result,
         query_object,
         duration,
+    )
+
+
+def _coerce_empty_result(
+    semantic_result: SemanticResult,
+    query: SemanticQuery,
+) -> SemanticResult:
+    """
+    Guard against ``SemanticResult.results is None``.
+
+    Some semantic-layer driver implementations return ``None`` when a query
+    produces zero rows (for example, ``snowflake.connector``'s
+    ``fetch_arrow_all`` does this). Downstream consumers expect an Arrow table,
+    so build an empty one with the columns implied by the query's dimensions
+    and metrics.
+    """
+    if semantic_result.results is not None:
+        return semantic_result
+
+    columns = {
+        **{dim.name: pa.array([], type=dim.type) for dim in query.dimensions},
+        **{metric.name: pa.array([], type=metric.type) for metric in query.metrics},
+    }
+    return SemanticResult(
+        requests=semantic_result.requests,
+        results=pa.table(columns),
     )
 
 
@@ -543,9 +586,9 @@ def _convert_query_object_filter(
     if operator_str == FilterOperator.TEMPORAL_RANGE.value:
         if not isinstance(value, str) or value == NO_TIME_RANGE:
             return None
-        start, end = (side.strip() for side in value.split(" : "))
+        start, end = get_since_until_from_time_range(time_range=value)
         filters: set[Filter] = set()
-        if start:
+        if start is not None:
             filters.add(
                 Filter(
                     type=PredicateType.WHERE,
@@ -554,7 +597,7 @@ def _convert_query_object_filter(
                     value=_coerce_scalar_filter_value(start, dimension),
                 )
             )
-        if end:
+        if end is not None:
             filters.add(
                 Filter(
                     type=PredicateType.WHERE,

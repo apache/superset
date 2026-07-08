@@ -104,6 +104,7 @@ from superset.models.helpers import (
     ExploreMixin,
     ImportExportMixin,
     QueryResult,
+    SoftDeleteMixin,
     SQLA_QUERY_KEYS,
     validate_adhoc_subquery,
 )
@@ -1303,6 +1304,7 @@ sqlatable_user = DBTable(
 
 class SqlaTable(
     CoreDataset,
+    SoftDeleteMixin,
     BaseDatasource,
     ExploreMixin,
 ):  # pylint: disable=too-many-public-methods
@@ -1687,6 +1689,12 @@ class SqlaTable(
         label = utils.get_metric_name(metric, self.verbose_map)
 
         if expression_type == utils.AdhocMetricExpressionType.SIMPLE:
+            aggregate: Any = metric.get("aggregate")
+            if (
+                not isinstance(aggregate, str)
+                or aggregate not in self.sqla_aggregations
+            ):
+                raise QueryObjectValidationError(_("Adhoc metric aggregate is invalid"))
             metric_column = metric.get("column") or {}
             column_name = cast(str, metric_column.get("column_name"))
             table_column: TableColumn | None = columns_by_name.get(column_name)
@@ -1696,9 +1704,13 @@ class SqlaTable(
                 )
             else:
                 sqla_column = column(column_name)
-            sqla_metric = self.sqla_aggregations[metric["aggregate"]](sqla_column)
+            sqla_metric = self.sqla_aggregations[aggregate](sqla_column)
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
-            expression = metric.get("sqlExpression")
+            expression: str | None = metric.get("sqlExpression")
+            if not isinstance(expression, str) or not expression.strip():
+                raise QueryObjectValidationError(
+                    _("Adhoc metric SQL expression is invalid")
+                )
 
             if not processed:
                 try:
