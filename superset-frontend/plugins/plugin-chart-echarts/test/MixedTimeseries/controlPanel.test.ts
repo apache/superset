@@ -17,7 +17,7 @@
  * under the License.
  */
 import { GenericDataType } from '@apache-superset/core/common';
-import { ControlPanelState } from '@superset-ui/chart-controls';
+import { ControlPanelState, isCustomControlItem } from '@superset-ui/chart-controls';
 import controlPanel from '../../src/MixedTimeseries/controlPanel';
 import { EchartsTimeseriesSeriesType } from '../../src/Timeseries/types';
 
@@ -57,13 +57,28 @@ const numericXAxisState = {
   },
 } as unknown as ControlPanelState;
 
+const nonNumericXAxisState = {
+  controls: {
+    x_axis: { value: 'year' },
+    datasource: {
+      datasource: {
+        columns: [{ column_name: 'year', type_generic: GenericDataType.String }],
+      },
+    },
+    seriesType: { value: EchartsTimeseriesSeriesType.Bar },
+    seriesTypeB: { value: EchartsTimeseriesSeriesType.Bar },
+  },
+} as unknown as ControlPanelState;
+
 test('xAxisForceCategorical is exposed in shared query fields', () => {
   expect(getControl('xAxisForceCategorical')).not.toBeNull();
 });
 
 test('xAxisForceCategorical defaults to true when any query uses bar series', () => {
   const control = getControl('xAxisForceCategorical');
-  const initialValue = control?.config?.initialValue;
+  const initialValue = isCustomControlItem(control)
+    ? control.config.initialValue
+    : undefined;
 
   expect(
     initialValue?.(undefined, {
@@ -90,14 +105,18 @@ test('xAxisForceCategorical defaults to true when any query uses bar series', ()
 
 test('xAxisForceCategorical defaults to false for line-only mixed charts', () => {
   const control = getControl('xAxisForceCategorical');
-  const initialValue = control?.config?.initialValue;
+  const initialValue = isCustomControlItem(control)
+    ? control.config.initialValue
+    : undefined;
 
   expect(initialValue?.(undefined, numericXAxisState)).toBe(false);
 });
 
 test('xAxisForceCategorical preserves explicit user value', () => {
   const control = getControl('xAxisForceCategorical');
-  const initialValue = control?.config?.initialValue;
+  const initialValue = isCustomControlItem(control)
+    ? control.config.initialValue
+    : undefined;
 
   expect(
     initialValue?.(
@@ -111,4 +130,35 @@ test('xAxisForceCategorical preserves explicit user value', () => {
       } as unknown as ControlPanelState,
     ),
   ).toBe(false);
+});
+
+test('xAxisForceCategorical uses control value when x-axis is not numeric', () => {
+  const control = getControl('xAxisForceCategorical');
+  const initialValue = isCustomControlItem(control)
+    ? control.config.initialValue
+    : undefined;
+
+  // Even if the series are "bar", non-numeric x-axis must not be forced
+  // categorical based on x_axis_sort (mixedXAxisForceCategoricalControl
+  // short-circuits to control.value).
+  expect(initialValue?.({ value: false }, nonNumericXAxisState)).toBe(false);
+});
+
+test('xAxisForceCategorical returns true for numeric x-axis when x_axis_sort exists', () => {
+  const control = getControl('xAxisForceCategorical');
+  const initialValue = isCustomControlItem(control)
+    ? control.config.initialValue
+    : undefined;
+
+  // line-only state would normally return false, but mixedXAxisForceCategoricalControl
+  // forces true when form_data.x_axis_sort is defined.
+  expect(
+    initialValue?.(
+      undefined,
+      {
+        ...numericXAxisState,
+        form_data: { x_axis_sort: 'year' },
+      } as unknown as ControlPanelState,
+    ),
+  ).toBe(true);
 });
