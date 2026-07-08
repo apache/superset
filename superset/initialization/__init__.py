@@ -193,6 +193,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         from superset.sqllab.api import SqlLabRestApi
         from superset.sqllab.permalink.api import SqlLabPermalinkRestApi
+        from superset.subjects.api import SubjectRestApi
         from superset.tags.api import TagRestApi
         from superset.themes.api import ThemeRestApi
         from superset.views.alerts import AlertView, ReportView
@@ -287,6 +288,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(TagRestApi)
         appbuilder.add_api(SqlLabRestApi)
         appbuilder.add_api(SqlLabPermalinkRestApi)
+        appbuilder.add_api(SubjectRestApi)
         appbuilder.add_api(LogRestApi)
 
         if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
@@ -393,17 +395,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 current_app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
             ),
         )
-
-        if feature_flag_manager.is_feature_enabled("ENABLE_VIEWERS"):
-            from superset.subjects.views import SubjectModelView
-
-            appbuilder.add_view(
-                SubjectModelView,
-                "Subjects",
-                label=_("Subjects"),
-                category="Security",
-                category_label=_("Security"),
-            )
 
         appbuilder.add_view(
             DynamicPluginsView,

@@ -42,7 +42,10 @@ from superset_core.common.models import (
     Dashboard,
     Database,
     Dataset,
+    Group,
     KeyValue,
+    Role,
+    Subject,
     Tag,
     User,
 )
@@ -190,6 +193,34 @@ class UserDAO(BaseDAO[User]):
     id_column_name = "id"
 
 
+class RoleDAO(BaseDAO[Role]):
+    """
+    Abstract Role DAO interface.
+
+    Host implementations will replace this class during initialization
+    with a concrete implementation providing actual functionality.
+    """
+
+    # Class variables that will be set by host implementation
+    model_cls = None
+    base_filter = None
+    id_column_name = "id"
+
+
+class GroupDAO(BaseDAO[Group]):
+    """
+    Abstract Group DAO interface.
+
+    Host implementations will replace this class during initialization
+    with a concrete implementation providing actual functionality.
+    """
+
+    # Class variables that will be set by host implementation
+    model_cls = None
+    base_filter = None
+    id_column_name = "id"
+
+
 class TagDAO(BaseDAO[Tag]):
     """
     Abstract Tag DAO interface.
@@ -218,6 +249,21 @@ class KeyValueDAO(BaseDAO[KeyValue]):
     id_column_name = "id"
 
 
+class SubjectDAO(BaseDAO[Subject]):
+    """
+    Abstract Subject DAO interface.
+
+    Host implementations will replace this class during initialization
+    with a concrete implementation providing actual functionality.
+    """
+
+    # Class variables that will be set by host implementation
+    model_cls = None
+    base_filter = None
+    id_column_name = "id"
+    uuid_column_name = "uuid"
+
+
 __all__ = [
     "BaseDAO",
     "DatasetDAO",
@@ -225,6 +271,9 @@ __all__ = [
     "ChartDAO",
     "DashboardDAO",
     "UserDAO",
+    "RoleDAO",
+    "GroupDAO",
     "TagDAO",
     "KeyValueDAO",
+    "SubjectDAO",
 ]
