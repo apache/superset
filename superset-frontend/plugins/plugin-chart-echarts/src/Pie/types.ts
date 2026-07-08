@@ -103,3 +103,23 @@ export interface PieChartDataItem {
   };
   isOther?: boolean;
 }
+
+interface ChartPadding {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+
+export interface TotalValuePaddingProps {
+  chartPadding: ChartPadding;
+  donut: boolean;
+  width: number;
+  height: number;
+  half: boolean;
+}
+
+export interface PaddingResult {
+  top?: string;
+  left?: string;
+}

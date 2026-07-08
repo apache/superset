@@ -39,6 +39,8 @@ import {
   EchartsPieLabelType,
   PieChartDataItem,
   PieChartTransformedProps,
+  TotalValuePaddingProps,
+  PaddingResult,
 } from './types';
 import { DEFAULT_LEGEND_FORM_DATA, OpacityEnum } from '../constants';
 import {
@@ -73,64 +75,59 @@ export function parseParams({
   return [name, formattedValue, formattedPercent];
 }
 
-function getTotalValuePadding({
+const HALF_DONUT_BASE_POSITION = 69;
+const HALF_DONUT_TOP_OFFSET = 68.5;
+const DONUT_OFFSET = 50;
+
+export function getTotalValuePadding({
   chartPadding,
   donut,
   width,
   height,
   half,
-}: {
-  chartPadding: {
-    bottom: number;
-    left: number;
-    right: number;
-    top: number;
-  };
-  donut: boolean;
-  width: number;
-  height: number;
-  half: boolean;
-}) {
-  const padding: {
-    left?: string;
-    top?: string;
-  } = {
-    top: donut ? 'middle' : '0',
-    left: 'center',
-  };
-  // When half, the donut is centered at 70% - 1% so that the total does not go beyond the limits
-  const HALF_DONUT_BASE_POSITION = 69;
-  // When halfway, the donut is centered at 70% - 1% to keep the total from going over the limit - 0.5% legend offset
-  const HALF_DONUT_TOP_OFFSET = 68.5;
-  // When donut, the donut is centered at 50%
-  const DONUT_OFFSET = 50;
+}: TotalValuePaddingProps): PaddingResult {
+  const safeHeight = height || 1;
+  const safeWidth = width || 1;
+
   const getDonutBase = () => (half ? HALF_DONUT_TOP_OFFSET : DONUT_OFFSET);
-  if (half) {
-    padding.top = donut
-      ? `${HALF_DONUT_BASE_POSITION + (chartPadding.top / height / 2) * 100}%`
-      : `${(chartPadding.top / height) * 100}%`;
-  }
-  if (chartPadding.top) {
-    padding.top = donut
-      ? `${getDonutBase() + (chartPadding.top / height / 2) * 100}%`
-      : `${(chartPadding.top / height) * 100}%`;
-  }
-  if (chartPadding.bottom) {
-    padding.top = donut
-      ? `${getDonutBase() - (chartPadding.bottom / height / 2) * 100}%`
-      : '0';
-  }
-  if (chartPadding.left) {
-    const leftPaddingPercent = (chartPadding.left / width) * 100;
-    const adjustedLeftPercent = DONUT_OFFSET + leftPaddingPercent * 0.25;
-    padding.left = `${adjustedLeftPercent}%`;
-  }
-  if (chartPadding.right) {
-    const rightPaddingPercent = (chartPadding.right / width) * 100;
-    const adjustedLeftPercent = DONUT_OFFSET - rightPaddingPercent * 0.75;
-    padding.left = `${adjustedLeftPercent}%`;
-  }
-  return padding;
+  const calculateTop = (): string => {
+    if (chartPadding.bottom) {
+      return donut
+        ? `${getDonutBase() - (chartPadding.bottom / safeHeight) * 50}%`
+        : '0';
+    }
+
+    if (chartPadding.top || half) {
+      if (donut) {
+        const base = chartPadding.top
+          ? getDonutBase()
+          : HALF_DONUT_BASE_POSITION;
+        return `${base + (chartPadding.top / safeHeight) * 50}%`;
+      }
+      return `${(chartPadding.top / safeHeight) * 100}%`;
+    }
+
+    return donut ? 'middle' : '0';
+  };
+
+  const calculateLeft = (): string => {
+    if (chartPadding.right) {
+      const rightPercent = (chartPadding.right / safeWidth) * 100;
+      return `${DONUT_OFFSET - rightPercent * 0.75}%`;
+    }
+
+    if (chartPadding.left) {
+      const leftPercent = (chartPadding.left / safeWidth) * 100;
+      return `${DONUT_OFFSET + leftPercent * 0.25}%`;
+    }
+
+    return 'center';
+  };
+
+  return {
+    top: calculateTop(),
+    left: calculateLeft(),
+  };
 }
 
 export default function transformProps(
@@ -427,7 +424,7 @@ export default function transformProps(
       roseType: roseType || undefined,
       radius: [`${donut ? innerRadius : 0}%`, `${outerRadius}%`],
       center: ['50%', half ? '70%' : '50%'],
-      startAngle: startAngle,
+      startAngle,
       endAngle: startAngle - sweptAngle,
       avoidLabelOverlap: true,
       labelLine: labelsOutside && labelLine ? { show: true } : { show: false },
