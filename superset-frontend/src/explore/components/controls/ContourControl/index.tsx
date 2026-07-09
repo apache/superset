@@ -88,9 +88,11 @@ const ContourControl = ({ onChange, ...props }: ContourControlProps) => {
     setContours(newContours);
   };
 
-  const onShiftContour = (hoverIndex: number, dragIndex: number) => {
+  const onShiftContour = (dragIndex: number, hoverIndex: number) => {
     // @dnd-kit reports the final indices at drag-end, so reorder with a full
     // arrayMove rather than an adjacent swap to support non-adjacent drags.
+    // Args are (from, to) to match arrayMove and the other Dnd controls;
+    // passing them reversed moved the wrong contour on non-adjacent drags.
     setContours(arrayMove(contours, dragIndex, hoverIndex));
   };
 
