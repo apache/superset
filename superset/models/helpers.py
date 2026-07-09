@@ -552,15 +552,19 @@ class ImportExportMixin(UUIDMixin):
         self.params = json.dumps(params)
 
     def reset_ownership(self) -> None:
-        """object will belong to the user the current user"""
+        """object will belong to the current user"""
+        from superset.subjects.utils import get_user_subject
+
         # make sure the object doesn't have relations to a user
         # it will be filled by appbuilder on save
         self.created_by = None
         self.changed_by = None
         # flask global context might not exist (in cli or tests for example)
-        self.owners = []
-        if g and hasattr(g, "user"):
-            self.owners = [g.user]
+        self.editors = []
+        if g and hasattr(g, "user") and g.user:
+            user_subject = get_user_subject(g.user.id)
+            if user_subject:
+                self.editors = [user_subject]
 
     @property
     def params_dict(self) -> dict[Any, Any]:
@@ -758,7 +762,7 @@ def _collect_bypass_classes(execute_state: ORMExecuteState) -> frozenset[type]:
 
     Per-query: ``execution_options[SKIP_VISIBILITY_FILTER_CLASSES]`` — set
     by ``BaseDAO.find_by_id(skip_visibility_filter=True)``,
-    ``find_existing_for_import``, ``raise_for_ownership``, etc., for
+    ``find_existing_for_import``, ``raise_for_editorship``, etc., for
     narrow one-statement bypass.
 
     Per-session: ``session.info[SKIP_VISIBILITY_FILTER_CLASSES]`` — set by
@@ -991,6 +995,7 @@ class ExtraJSONMixin:
         self,
         _: str,
         value: Optional[dict[str, Any]],
+        **kwargs: Any,
     ) -> Any:
         if value is None:
             return "{}"
@@ -1098,10 +1103,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     @property
     def database_id(self) -> int:
-        raise NotImplementedError()
-
-    @property
-    def owners_data(self) -> list[Any]:
         raise NotImplementedError()
 
     @property
@@ -2311,10 +2312,26 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             time_grain
         )
 
-        if join_column_producer and not time_grain:
-            raise QueryObjectValidationError(
-                _("Time Grain must be specified when using Time Shift.")
+        if not time_grain:
+            has_temporal_join_key = any(
+                pd.api.types.is_datetime64_any_dtype(df[key])
+                for key in join_keys
+                if key in df.columns
             )
+            if has_temporal_join_key:
+                has_relative_offset = any(
+                    not (
+                        self.is_valid_date_range(offset)
+                        and feature_flag_manager.is_feature_enabled(
+                            "DATE_RANGE_TIMESHIFTS_ENABLED"
+                        )
+                    )
+                    for offset in offset_dfs
+                )
+                if has_relative_offset:
+                    raise QueryObjectValidationError(
+                        _("Time Grain must be specified when using Time Comparison.")
+                    )
 
         for offset, offset_df in offset_dfs.items():
             is_date_range_offset = self.is_valid_date_range(
@@ -2911,6 +2928,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 time_col, label=label, template_processor=template_processor
             )
         )
+
+        # Honor the dataset "Hour Offset". Result timestamps are displayed shifted
+        # by +offset hours (see normalize_df / DateColumn in superset.utils.core),
+        # but the time filter compares the raw stored values. Shifting the filter
+        # bounds by -offset keeps the filter consistent with what is displayed;
+        # otherwise a date selection lands on the wrong calendar day (#104810).
+        if offset_hours := getattr(self, "offset", 0) or 0:
+            if start_dttm is not None:
+                start_dttm = start_dttm - timedelta(hours=offset_hours)
+            if end_dttm is not None:
+                end_dttm = end_dttm - timedelta(hours=offset_hours)
 
         l = []  # noqa: E741
         if start_dttm:

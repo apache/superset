@@ -19,14 +19,17 @@
 import logging
 from typing import Any, Optional
 
+from marshmallow import ValidationError
+
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DatasourceNotFoundValidationError
 from superset.commands.security.exceptions import RLSRuleNotFoundError
 from superset.commands.security.utils import raise_for_datasource_access
-from superset.commands.utils import populate_roles
+from superset.commands.utils import populate_subject_list
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
 from superset.daos.security import RLSDAO
 from superset.extensions import db
+from superset.utils.core import RowLevelSecurityFilterType
 from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
@@ -37,7 +40,7 @@ class UpdateRLSRuleCommand(BaseCommand):
         self._model_id = model_id
         self._properties = data.copy()
         self._tables = self._properties.get("tables", [])
-        self._roles = self._properties.get("roles", [])
+        self._subjects = self._properties.get("subjects", [])
         self._model: Optional[RowLevelSecurityFilter] = None
 
     @transaction()
@@ -50,12 +53,30 @@ class UpdateRLSRuleCommand(BaseCommand):
         self._model = RLSDAO.find_by_id(int(self._model_id))
         if not self._model:
             raise RLSRuleNotFoundError()
+
         # Only resolve and overwrite the relationships that are actually present
         # in the request body. A partial update (e.g. changing only the name)
-        # must leave the rule's existing tables/roles bindings untouched rather
-        # than replacing them with empty lists.
-        if "roles" in self._properties:
-            self._properties["roles"] = populate_roles(self._roles)
+        # must leave the rule's existing tables/subjects bindings untouched
+        # rather than replacing them with empty lists.
+        if "subjects" in self._properties:
+            subjects = populate_subject_list(
+                self._subjects,
+                default_to_user=False,
+            )
+            self._properties["subjects"] = subjects
+        else:
+            subjects = list(self._model.subjects)
+
+        filter_type = self._properties.get("filter_type", self._model.filter_type)
+        filter_type_value = getattr(filter_type, "value", filter_type)
+        if (
+            filter_type_value == RowLevelSecurityFilterType.REGULAR.value
+            and not subjects
+        ):
+            raise ValidationError(
+                {"subjects": ["Regular RLS filters require at least one subject."]}
+            )
+
         if "tables" in self._properties:
             tables = (
                 db.session.query(SqlaTable)

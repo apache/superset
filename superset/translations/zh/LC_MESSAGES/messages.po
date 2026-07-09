@@ -29,6 +29,33 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
+#, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a new "
+"dataset over this table, or use a different table name."
+msgstr ""
+
+#, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or "
+"upload to a different table name."
+msgstr ""
+
+msgid ""
+"Cannot delete a database whose only remaining datasets are soft-deleted. "
+"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
+"permanently once a purge capability ships, or remove the underlying rows "
+"out-of-band, before deleting the database."
+msgstr ""
+
+msgid ""
+"Dataset cannot be restored because another active dataset already references "
+"the same physical table (same database, catalog, schema, and table name). "
+"Delete the duplicate or rename the table before restoring."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -3370,6 +3397,9 @@ msgstr "图表变化"
 msgid "Chart could not be created."
 msgstr "您的图表无法创建。"
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "您的图表无法更新。"
 
@@ -5161,6 +5191,9 @@ msgstr "无法创建数据集。"
 #, fuzzy
 msgid "Dataset could not be duplicated."
 msgstr "数据集无法复制。"
+
+msgid "Dataset could not be restored."
+msgstr ""
 
 msgid "Dataset could not be updated."
 msgstr "无法更新数据集。"
@@ -15096,6 +15129,11 @@ msgid ""
 "associated with more than one category, only the first will be used."
 msgstr "用于分配颜色的源节点类别。如果一个节点与多个类别关联，则只使用第一个类别"
 
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -15193,6 +15231,11 @@ msgstr "Superset 希望能够在 [国家] 栏中找到的 国家 / 地区 的标
 
 msgid "The dashboard has been saved"
 msgstr "该看板已成功保存。"
+
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
+msgstr ""
 
 msgid "The data source seems to have been deleted"
 msgstr "数据源已经被删除"

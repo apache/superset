@@ -57,9 +57,9 @@ export function saveChartToDashboard(chartName: string, dashboardName: string) {
           '.ant-select-selection-search-input[aria-label*="Select a dashboard"]',
         )
         .type(dashboardName, { force: true });
-      cy.wrap($modal)
-        .find(`.ant-select-item-option[title="${dashboardName}"]`)
-        .click();
+
+      cy.get(`.ant-select-item-option[title="${dashboardName}"]`).click();
+
       cy.getBySel('btn-modal-save').click();
       cy.wait('@update');
     });

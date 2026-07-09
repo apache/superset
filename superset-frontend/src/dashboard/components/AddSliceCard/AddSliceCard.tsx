@@ -174,8 +174,7 @@ const AddSliceCard: FC<{
   datasourceUrl?: string;
   datasourceName?: string;
   innerRef?:
-    | RefObject<HTMLDivElement>
-    | ((node: HTMLDivElement | null) => void);
+    RefObject<HTMLDivElement> | ((node: HTMLDivElement | null) => void);
   isSelected?: boolean;
   lastModified?: string;
   sliceName: string;

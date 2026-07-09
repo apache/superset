@@ -27,6 +27,7 @@ from superset.mcp_service.privacy import (
     is_data_model_metadata_error,
     redact_chart_data_model_fields,
 )
+from superset.mcp_service.report.schemas import ReportInfo
 
 
 def test_is_data_model_metadata_error_accepts_missing_privacy_scope() -> None:
@@ -77,8 +78,9 @@ def test_redact_chart_data_model_fields_removes_restricted_fields() -> None:
     "model",
     [
         ChartInfo(id=1, slice_name="Revenue"),
-        DashboardInfo(id=1, dashboard_title="Executive Dashboard", owners=[], roles=[]),
+        DashboardInfo(id=1, dashboard_title="Executive Dashboard", editors=[]),
         DatasetInfo(id=1, table_name="sales"),
+        ReportInfo(id=1, name="Daily Report", editors=[]),
         DatabaseInfo(id=1, database_name="warehouse"),
     ],
 )
@@ -87,16 +89,17 @@ def test_user_directory_fields_removed_from_python_and_json_dumps(model):
     for mode in (None, "json"):
         data = model.model_dump() if mode is None else model.model_dump(mode=mode)
 
-        for field in ("created_by", "changed_by", "owners", "roles"):
+        for field in ("created_by", "changed_by", "editors", "roles"):
             assert field not in data
 
 
 @pytest.mark.parametrize(
     ("schema_cls", "omitted_fields"),
     [
-        (ChartInfo, {"created_by", "changed_by", "changed_by_name", "owners"}),
-        (DashboardInfo, {"created_by", "changed_by", "owners", "roles"}),
-        (DatasetInfo, {"created_by", "changed_by", "owners"}),
+        (ChartInfo, {"created_by", "changed_by", "changed_by_name", "editors"}),
+        (DashboardInfo, {"created_by", "changed_by", "editors"}),
+        (DatasetInfo, {"created_by", "changed_by", "editors"}),
+        (ReportInfo, {"created_by", "changed_by", "editors"}),
         (DatabaseInfo, {"created_by", "changed_by"}),
     ],
 )

@@ -24,7 +24,7 @@ from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.utils import json
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.base_tests import subjects_from_users, SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
@@ -54,7 +54,7 @@ class TestDashboardSoftDelete(SupersetTestCase):
         dashboard = Dashboard(
             dashboard_title=title,
             slug=f"slug_{title}",
-            owners=[admin],
+            editors=subjects_from_users([admin]),
             published=True,
         )
         db.session.add(dashboard)
@@ -149,15 +149,15 @@ class TestDashboardSoftDelete(SupersetTestCase):
         _hard_delete_dashboard(deleted_id)
 
     @with_feature_flags(SOFT_DELETE=True)
-    def test_deleted_state_list_shows_owner_their_own_deleted(self) -> None:
-        """A non-admin owner can still enumerate their own soft-deleted
+    def test_deleted_state_list_shows_editor_their_own_deleted(self) -> None:
+        """A non-admin editor can still enumerate their own soft-deleted
         dashboards. Deleted-state scoping mirrors the restore audience, so it
-        must not lock owners out of their own trash."""
+        must not lock editors out of their own trash."""
         alpha = self.get_user("alpha")
         dashboard = Dashboard(
-            dashboard_title="sd_owner_dash",
-            slug="sd_owner_dash",
-            owners=[alpha],
+            dashboard_title="sd_editor_dash",
+            slug="sd_editor_dash",
+            editors=subjects_from_users([alpha]),
             published=True,
         )
         db.session.add(dashboard)
@@ -168,7 +168,7 @@ class TestDashboardSoftDelete(SupersetTestCase):
         self.client.delete(f"/api/v1/dashboard/{dashboard_id}")
 
         rison_query = (
-            "(filters:!((col:dashboard_title,opr:title_or_slug,value:sd_owner_dash),"
+            "(filters:!((col:dashboard_title,opr:title_or_slug,value:sd_editor_dash),"
             "(col:id,opr:dashboard_deleted_state,value:only)))"
         )
         rv = self.client.get(f"/api/v1/dashboard/?q={rison_query}")
@@ -180,14 +180,14 @@ class TestDashboardSoftDelete(SupersetTestCase):
         _hard_delete_dashboard(dashboard_id)
 
     @with_feature_flags(SOFT_DELETE=True)
-    def test_deleted_state_list_hides_non_owned_from_read_access_user(self) -> None:
-        """A read-access non-owner must not be able to enumerate a dashboard
+    def test_deleted_state_list_hides_non_editor_from_read_access_user(self) -> None:
+        """A read-access non-editor must not be able to enumerate a dashboard
         once it is soft-deleted.
 
         Gamma is granted ``datasource_access`` to a published dashboard's
         dataset, so ``DashboardAccessFilter`` makes the dashboard visible to
         gamma while it is live. After soft-delete, the deleted-state list is
-        scoped to the restore audience (owners/admins), so gamma — who could
+        scoped to the restore audience (editors/admins), so gamma — who could
         never restore it — must not see it via ``include`` or ``only``.
         """
         from superset.connectors.sqla.models import SqlaTable
@@ -211,7 +211,7 @@ class TestDashboardSoftDelete(SupersetTestCase):
         dashboard = Dashboard(
             dashboard_title="sd_acl_dash",
             slug="sd_acl_dash",
-            owners=[admin],
+            editors=subjects_from_users([admin]),
             slices=[chart],
             published=True,
         )
@@ -251,7 +251,7 @@ class TestDashboardSoftDelete(SupersetTestCase):
                 assert rv.status_code == 200
                 ids = [row["id"] for row in json.loads(rv.data)["result"]]
                 assert dashboard_id not in ids, (
-                    "read-access non-owner must not enumerate a soft-deleted "
+                    "read-access non-editor must not enumerate a soft-deleted "
                     f"dashboard via deleted_state={value}"
                 )
         finally:
@@ -355,7 +355,7 @@ class TestDashboardRestore(SupersetTestCase):
         dashboard = Dashboard(
             dashboard_title=title,
             slug=f"slug_{title}",
-            owners=[admin],
+            editors=subjects_from_users([admin]),
             published=True,
         )
         db.session.add(dashboard)
@@ -413,7 +413,7 @@ class TestDashboardRestore(SupersetTestCase):
 
     @with_feature_flags(SOFT_DELETE=True)
     def test_restore_uses_can_write_permission(self) -> None:
-        """Non-admin owner with ``can_write_Dashboard`` can hit the restore
+        """Non-admin editor with ``can_write_Dashboard`` can hit the restore
         endpoint.
 
         Pins the permission contract: ``method_permission_name`` must map
@@ -431,7 +431,7 @@ class TestDashboardRestore(SupersetTestCase):
         dashboard = Dashboard(
             dashboard_title="restore_perm_test",
             slug="slug_restore_perm_test",
-            owners=[alpha],
+            editors=subjects_from_users([alpha]),
             published=True,
         )
         db.session.add(dashboard)
@@ -442,12 +442,12 @@ class TestDashboardRestore(SupersetTestCase):
         self.login(ALPHA_USERNAME)
         rv = self.client.delete(f"/api/v1/dashboard/{dashboard_id}")
         assert rv.status_code == 200, (
-            f"Alpha owner soft-delete failed: {rv.status_code} {rv.data!r}"
+            f"Alpha editor soft-delete failed: {rv.status_code} {rv.data!r}"
         )
 
         rv = self.client.post(f"/api/v1/dashboard/{dashboard_uuid}/restore")
         assert rv.status_code == 200, (
-            f"Expected 200 from Alpha owner restore (can_write_Dashboard), "
+            f"Expected 200 from Alpha editor restore (can_write_Dashboard), "
             f"got {rv.status_code}: {rv.data!r}. If 403, "
             "method_permission_name is missing 'restore': 'write'."
         )
@@ -468,7 +468,7 @@ class TestDashboardRestore(SupersetTestCase):
             viz_type="table",
             datasource_type="table",
             datasource_id=1,
-            owners=[admin],
+            editors=subjects_from_users([admin]),
         )
         db.session.add(chart)
         db.session.commit()
@@ -521,7 +521,7 @@ class TestDashboardRestore(SupersetTestCase):
         first = Dashboard(
             dashboard_title="conflict_first",
             slug=shared_slug,
-            owners=[admin],
+            editors=subjects_from_users([admin]),
             published=True,
         )
         db.session.add(first)
@@ -538,7 +538,7 @@ class TestDashboardRestore(SupersetTestCase):
         second = Dashboard(
             dashboard_title="conflict_second",
             slug=shared_slug,
-            owners=[admin],
+            editors=subjects_from_users([admin]),
             published=True,
         )
         db.session.add(second)
@@ -582,7 +582,7 @@ class TestDashboardRestore(SupersetTestCase):
         first = Dashboard(
             dashboard_title="partial_first",
             slug=shared_slug,
-            owners=[admin],
+            editors=subjects_from_users([admin]),
             published=True,
         )
         db.session.add(first)
@@ -600,7 +600,7 @@ class TestDashboardRestore(SupersetTestCase):
         second = Dashboard(
             dashboard_title="partial_second",
             slug=shared_slug,
-            owners=[admin],
+            editors=subjects_from_users([admin]),
             published=True,
         )
         db.session.add(second)
@@ -656,7 +656,7 @@ class TestDashboardRestore(SupersetTestCase):
         original = Dashboard(
             dashboard_title="rename_target",
             slug=old_slug,
-            owners=[admin],
+            editors=subjects_from_users([admin]),
             published=True,
         )
         db.session.add(original)
@@ -674,7 +674,7 @@ class TestDashboardRestore(SupersetTestCase):
         claimant = Dashboard(
             dashboard_title="rename_claimant",
             slug=old_slug,
-            owners=[admin],
+            editors=subjects_from_users([admin]),
             published=True,
         )
         db.session.add(claimant)

@@ -36,6 +36,7 @@ import {
   getChartMetadataRegistry,
   VizType,
   BinaryQueryObjectFilterClause,
+  JsonObject,
   QueryFormData,
 } from '@superset-ui/core';
 import { css, useTheme, styled } from '@apache-superset/core/theme';
@@ -82,22 +83,18 @@ const RefreshTooltip = styled.div`
 const getScreenshotNodeSelector = (chartId: string | number) =>
   `.dashboard-chart-id-${chartId}`;
 
-const VerticalDotsTrigger = () => {
-  const theme = useTheme();
-  return (
-    <Icons.EllipsisOutlined
-      css={css`
-        transform: rotate(90deg);
-        &:hover {
-          cursor: pointer;
-        }
-      `}
-      iconSize="xl"
-      iconColor={theme.colorTextLabel}
-      className="dot"
-    />
-  );
-};
+const VerticalDotsTrigger = () => (
+  <Icons.EllipsisOutlined
+    css={css`
+      transform: rotate(90deg);
+      &:hover {
+        cursor: pointer;
+      }
+    `}
+    iconSize="xl"
+    className="dot"
+  />
+);
 
 export interface SliceHeaderControlsProps {
   chartHolderRef?: RefObject<HTMLDivElement>;
@@ -144,6 +141,8 @@ export interface SliceHeaderControlsProps {
   supersetCanDownload?: boolean;
 
   crossFiltersEnabled?: boolean;
+
+  ownState?: JsonObject;
 }
 type SliceHeaderControlsPropsWithRouter = SliceHeaderControlsProps &
   RouteComponentProps;
@@ -490,7 +489,12 @@ const SliceHeaderControls = (
             <div data-test="view-query-menu-item">{t('View query')}</div>
           }
           modalTitle={t('View query')}
-          modalBody={<ViewQueryModal latestQueryFormData={props.formData} />}
+          modalBody={
+            <ViewQueryModal
+              latestQueryFormData={props.formData}
+              ownState={props.ownState}
+            />
+          }
           draggable
           resizable
           responsive
