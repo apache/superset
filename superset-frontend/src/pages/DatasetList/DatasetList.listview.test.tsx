@@ -1021,11 +1021,10 @@ test('edit action is enabled for dataset editor', async () => {
 
   const row = screen.getByText(dataset.table_name).closest('tr');
   const editIcon = within(row!).getByTestId('edit');
-  const editButton = editIcon.closest('.action-button, .disabled');
+  const editButton = editIcon.closest('[role="button"]');
 
-  // Should have action-button class (not disabled)
-  expect(editButton).toHaveClass('action-button');
-  expect(editButton).not.toHaveClass('disabled');
+  // Should be enabled (not disabled)
+  expect(editButton).toHaveAttribute('aria-disabled', 'false');
 });
 
 test('edit action is disabled for non-editor', async () => {
@@ -1050,11 +1049,10 @@ test('edit action is disabled for non-editor', async () => {
 
   const row = screen.getByText(dataset.table_name).closest('tr');
   const editIcon = within(row!).getByTestId('edit');
-  const editButton = editIcon.closest('.action-button, .disabled');
+  const editButton = editIcon.closest('[role="button"]');
 
-  // Should have disabled class (disabled buttons still have 'action-button' class)
-  expect(editButton).toHaveClass('disabled');
-  expect(editButton).toHaveClass('action-button');
+  // Should be disabled
+  expect(editButton).toHaveAttribute('aria-disabled', 'true');
 });
 
 test('all action buttons are clickable and enabled for admin user', async () => {
@@ -1079,22 +1077,16 @@ test('all action buttons are clickable and enabled for admin user', async () => 
   const editIcon = within(row!).getByTestId('edit');
   const duplicateIcon = within(row!).getByTestId('copy');
 
-  const deleteButton = deleteIcon.closest('.action-button, .disabled');
-  const exportButton = exportIcon.closest('.action-button, .disabled');
-  const editButton = editIcon.closest('.action-button, .disabled');
-  const duplicateButton = duplicateIcon.closest('.action-button, .disabled');
+  const deleteButton = deleteIcon.closest('[role="button"]');
+  const exportButton = exportIcon.closest('[role="button"]');
+  const editButton = editIcon.closest('[role="button"]');
+  const duplicateButton = duplicateIcon.closest('[role="button"]');
 
-  // All should have action-button class (enabled)
-  expect(deleteButton).toHaveClass('action-button');
-  expect(exportButton).toHaveClass('action-button');
-  expect(editButton).toHaveClass('action-button');
-  expect(duplicateButton).toHaveClass('action-button');
-
-  // None should be disabled
-  expect(deleteButton).not.toHaveClass('disabled');
-  expect(exportButton).not.toHaveClass('disabled');
-  expect(editButton).not.toHaveClass('disabled');
-  expect(duplicateButton).not.toHaveClass('disabled');
+  // None should be disabled (export/duplicate never set aria-disabled at all)
+  expect(deleteButton).not.toHaveAttribute('aria-disabled', 'true');
+  expect(exportButton).not.toHaveAttribute('aria-disabled', 'true');
+  expect(editButton).not.toHaveAttribute('aria-disabled', 'true');
+  expect(duplicateButton).not.toHaveAttribute('aria-disabled', 'true');
 });
 
 test('displays error when initial dataset fetch fails with 500', async () => {

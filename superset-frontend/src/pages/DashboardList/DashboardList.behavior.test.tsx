@@ -39,6 +39,24 @@ jest.mock('src/utils/export', () => ({
   default: jest.fn(),
 }));
 
+// Mock bootstrap data so isUserEditorOrAdmin's subject-based check resolves
+// the mock user (userId 1) as a subject editor of the fixtures below.
+jest.mock('src/utils/getBootstrapData', () => {
+  const actual = jest.requireActual('src/utils/getBootstrapData');
+  const { DEFAULT_BOOTSTRAP_DATA } = jest.requireActual('src/constants');
+  return {
+    __esModule: true,
+    ...actual,
+    default: jest.fn(() => ({
+      ...DEFAULT_BOOTSTRAP_DATA,
+      common: {
+        ...DEFAULT_BOOTSTRAP_DATA.common,
+        user_subjects: [1],
+      },
+    })),
+  };
+});
+
 const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
   typeof isFeatureEnabled
 >;

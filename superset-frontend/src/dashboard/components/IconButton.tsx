@@ -17,35 +17,61 @@
  * under the License.
  */
 import { MouseEventHandler } from 'react';
-import { styled } from '@apache-superset/core/theme';
+import { styled, SupersetTheme } from '@apache-superset/core/theme';
 
 interface IconButtonProps {
   icon: JSX.Element;
   label?: string;
   onClick: MouseEventHandler<HTMLDivElement>;
+  disabled?: boolean;
+  'data-test'?: string;
 }
 
-const StyledDiv = styled.div`
+const disabledCss = `
+  cursor: not-allowed;
+  opacity: 0.5;
+`;
+
+const activeCss = ({ theme }: { theme: SupersetTheme }) => `
+  &:hover {
+    color: ${theme.colorPrimary};
+    background: ${theme.colorBgTextHover};
+  }
+`;
+
+const StyledDiv = styled.div<{ isDisabled?: boolean }>`
   display: flex;
   align-items: center;
   cursor: pointer;
   color: ${({ theme }) => theme.colorIcon};
-  &:hover {
-    color: ${({ theme }) => theme.colorPrimary};
-  }
+  padding: ${({ theme }) => theme.paddingXXS}px;
+  border-radius: ${({ theme }) => theme.borderRadiusXS}px;
+
+  ${({ isDisabled, theme }) => (isDisabled ? disabledCss : activeCss({ theme }))}
 `;
 
 const StyledSpan = styled.span`
   margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
-const IconButton = ({ icon, label, onClick }: IconButtonProps) => (
+const IconButton = ({
+  icon,
+  label,
+  onClick,
+  disabled,
+  'data-test': dataTest,
+}: IconButtonProps) => (
   <StyledDiv
     tabIndex={0}
     role="button"
+    isDisabled={disabled}
+    aria-disabled={disabled}
+    data-test={dataTest}
     onClick={e => {
       e.preventDefault();
-      onClick(e);
+      if (!disabled) {
+        onClick(e);
+      }
     }}
   >
     {icon}

@@ -22,6 +22,7 @@ import {
   UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
 import { Dashboard } from 'src/types/Dashboard';
+import Subject from 'src/types/Subject';
 import { findPermission } from 'src/utils/findPermission';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
@@ -39,6 +40,17 @@ export const isUserAdmin = (
   Object.keys(user.roles || {}).some(
     role => role.toLowerCase() === ADMIN_ROLE_NAME,
   );
+
+export const isUserEditorOrAdmin = (
+  user?: UserWithPermissionsAndRoles | UndefinedUser,
+  editors: Subject[] = [],
+): boolean => {
+  const userSubjects = getUserSubjects();
+  return (
+    editors.some(editor => userSubjects.includes(editor.id)) ||
+    isUserAdmin(user)
+  );
+};
 
 export const isUserDashboardEditor = (dashboard: Dashboard): boolean => {
   const userSubjects = getUserSubjects();
