@@ -27,6 +27,7 @@ def fake_datasource_factory():
         datasource = MagicMock(name="SqlaTable")
         datasource.type = "table"
         datasource.id = 1
+        datasource.columns = []
         datasource.database.db_engine_spec.supports_offset = supports_offset
         return datasource
 
@@ -87,8 +88,8 @@ def test_get_samples_uses_cursor_path_when_engine_disallows_offset(
 ):
     """
     When the engine reports supports_offset=False and the requested
-    page is > 1, get_samples delegates to fetch_data_with_cursor with the
-    SQL that Superset already compiled for the normal samples payload.
+    page is > 1, get_samples delegates to fetch_data_with_cursor with SQL
+    compiled statically (without executing the normal samples payload).
     """
     from superset.views.datasource import utils
 
@@ -99,17 +100,8 @@ def test_get_samples_uses_cursor_path_when_engine_disallows_offset(
     )
 
     samples_ctx = MagicMock()
-    samples_ctx.get_payload.return_value = {
-        "queries": [
-            {
-                "data": [],
-                "colnames": ["a"],
-                "coltypes": [2],
-                "status": "success",
-                "query": "SELECT a FROM idx LIMIT 50",
-            }
-        ]
-    }
+    samples_ctx.queries = [MagicMock()]
+    samples_ctx.datasource.get_query_str.return_value = "SELECT a FROM idx LIMIT 50"
     count_ctx = MagicMock()
     count_ctx.get_payload.return_value = {
         "queries": [{"data": [{"COUNT(*)": 200}], "status": "success"}]
@@ -134,9 +126,11 @@ def test_get_samples_uses_cursor_path_when_engine_disallows_offset(
     kwargs = datasource.database.db_engine_spec.fetch_data_with_cursor.call_args.kwargs
     assert kwargs["page_index"] == 2
     assert kwargs["page_size"] == 50
-    # The cursor path reuses the already-compiled samples SQL verbatim; the
-    # engine spec is responsible for any sanitation (strip ``;``/``LIMIT``).
+    # The cursor path compiles SQL statically via get_query_str, without
+    # executing the normal samples payload; the engine spec is responsible
+    # for any sanitation (strip ``;``/``LIMIT``).
     assert kwargs["sql"] == "SELECT a FROM idx LIMIT 50"
+    samples_ctx.get_payload.assert_not_called()
 
     assert result["data"] == [{"a": 99}]
     assert result["colnames"] == ["a"]
@@ -145,14 +139,16 @@ def test_get_samples_uses_cursor_path_when_engine_disallows_offset(
     assert result["total_count"] == 200
 
 
-def test_get_samples_cursor_path_propagates_coltypes_from_samples_payload(
+def test_get_samples_cursor_path_infers_coltypes_from_cursor_rows(
     fake_datasource_factory,
 ):
     """
-    Issue 1: coltypes from the normal samples payload must flow into the
-    cursor-path response dict so that SamplesPane's useGridColumns() picks
-    up type-based cell renderers on page 2+.
+    coltypes on the cursor path are inferred from the returned rows via
+    extract_dataframe_dtypes — the same function the normal (non-cursor)
+    path uses to type page 1 — so SamplesPane's useGridColumns() picks up
+    type-based cell renderers on page 2+ without an extra query.
     """
+    from superset.utils.core import GenericDataType
     from superset.views.datasource import utils
 
     datasource = fake_datasource_factory(supports_offset=False)
@@ -162,17 +158,8 @@ def test_get_samples_cursor_path_propagates_coltypes_from_samples_payload(
     )
 
     samples_ctx = MagicMock()
-    samples_ctx.get_payload.return_value = {
-        "queries": [
-            {
-                "data": [],
-                "colnames": ["a", "b"],
-                "coltypes": [2, 1],
-                "status": "success",
-                "query": "SELECT a, b FROM idx LIMIT 50",
-            }
-        ]
-    }
+    samples_ctx.queries = [MagicMock()]
+    samples_ctx.datasource.get_query_str.return_value = "SELECT a, b FROM idx LIMIT 50"
     count_ctx = MagicMock()
     count_ctx.get_payload.return_value = {
         "queries": [{"data": [{"COUNT(*)": 2000}], "status": "success"}]
@@ -193,7 +180,7 @@ def test_get_samples_cursor_path_propagates_coltypes_from_samples_payload(
             per_page=50,
         )
 
-    assert result["coltypes"] == [2, 1]
+    assert result["coltypes"] == [GenericDataType.STRING, GenericDataType.NUMERIC]
     assert result["colnames"] == ["a", "b"]
     assert result["data"] == [{"a": "x", "b": 1}]
 
@@ -216,17 +203,8 @@ def test_get_samples_cursor_path_cleans_count_cache_on_failure(
     )
 
     samples_ctx = MagicMock()
-    samples_ctx.get_payload.return_value = {
-        "queries": [
-            {
-                "data": [],
-                "colnames": ["a"],
-                "coltypes": [2],
-                "status": "success",
-                "query": "SELECT a FROM idx LIMIT 50",
-            }
-        ]
-    }
+    samples_ctx.queries = [MagicMock()]
+    samples_ctx.datasource.get_query_str.return_value = "SELECT a FROM idx LIMIT 50"
     count_ctx = MagicMock()
     count_ctx.get_payload.return_value = {
         "queries": [
@@ -262,14 +240,13 @@ def test_get_samples_cursor_path_cleans_count_cache_on_failure(
     assert isinstance(excinfo.value.__cause__, RuntimeError)
 
 
-def test_get_samples_cursor_path_raises_when_sample_payload_has_no_sql(
+def test_get_samples_cursor_path_raises_when_compiled_sql_is_empty(
     fake_datasource_factory,
 ):
     """
-    If the samples payload is ``success`` but carries no compiled ``query``
-    string, the cursor path has nothing to submit. Fail fast with a
-    descriptive error and evict the count cache, instead of handing an empty
-    statement to the engine driver.
+    If get_query_str compiles to an empty string, the cursor path has
+    nothing to submit. Fail fast with a descriptive error and evict the
+    count cache, instead of handing an empty statement to the engine driver.
     """
     from superset.commands.dataset.exceptions import DatasetSamplesFailedError
     from superset.constants import CacheRegion
@@ -278,18 +255,8 @@ def test_get_samples_cursor_path_raises_when_sample_payload_has_no_sql(
     datasource = fake_datasource_factory(supports_offset=False)
 
     samples_ctx = MagicMock()
-    samples_ctx.get_payload.return_value = {
-        "queries": [
-            {
-                "data": [],
-                "colnames": ["a"],
-                "coltypes": [2],
-                "status": "success",
-                # No ``query`` key — simulates a backend that reports success
-                # without emitting SQL (e.g. fully cached empty result).
-            }
-        ]
-    }
+    samples_ctx.queries = [MagicMock()]
+    samples_ctx.datasource.get_query_str.return_value = ""
     count_ctx = MagicMock()
     count_ctx.get_payload.return_value = {
         "queries": [

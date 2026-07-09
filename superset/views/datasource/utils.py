@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Iterable, Optional, TYPE_CHECKING
 
+import pandas as pd
 from flask import current_app as app
 
 from superset.commands.dataset.exceptions import DatasetSamplesFailedError
@@ -27,7 +28,7 @@ from superset.common.query_context_factory import QueryContextFactory
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.constants import CacheRegion
 from superset.daos.datasource import DatasourceDAO
-from superset.utils.core import QueryStatus
+from superset.utils.core import extract_dataframe_dtypes, QueryStatus
 from superset.views.datasource.schemas import SamplesPayloadSchema
 
 if TYPE_CHECKING:
@@ -227,54 +228,37 @@ def _fetch_samples_via_cursor(
     Fetch a single page of samples via engine-spec cursor pagination.
 
     Used when ``datasource.database.db_engine_spec.supports_offset`` is
-    False and a non-first page is requested. Reuses the SQL that Superset
-    already compiled for the normal samples payload, delegates cursor
-    iteration to the engine spec, and assembles a response dict compatible
-    with the normal samples path.
-
-    The samples payload is also executed (its SQL is OFFSET-stripped by the
-    models/helpers.py guard) to obtain the authoritative ``colnames`` and
-    ``coltypes`` that the frontend grid needs for type-based cell renderers
-    — ensuring page 2+ renders identically to page 1. The engine spec is
+    False and a non-first page is requested. Compiles the same SQL Superset
+    would run for the normal samples payload — without executing it — and
+    delegates cursor iteration to the engine spec. The engine spec is
     responsible for stripping any trailing ``LIMIT`` from the SQL so the
     cursor is not capped to a single page.
 
-    Cost: this path issues one extra "page-1-shaped" samples query on every
-    request for page ≥ 2, on top of the ``page_index + 1`` cursor round
-    trips. The extra query is what provides authoritative ``coltypes``
-    (derived from the DB-API cursor description) — the ES cursor response
-    only carries ES SQL type names, which would need a separate translator
-    to Superset's coltype enum. TODO: extract SQL via
-    ``datasource.get_query_str(query_obj.to_dict())`` and derive coltypes
-    from cursor metadata to eliminate the extra execution.
+    ``coltypes`` are inferred from the returned rows with
+    ``extract_dataframe_dtypes``, the same function the non-cursor path
+    uses to type page 1 — it works off the actual returned values, not
+    ``cursor.description``, so no ES-type-to-coltype translator is needed
+    and no extra query is required to source them.
     """
-    # Execute the normal samples payload to source authoritative colnames
-    # and coltypes. See the cost note in the docstring — this is deliberate.
-    # The helpers.py OFFSET guard keeps it to a single page-1-shaped query,
-    # not a full-table scan, for engines on the cursor path.
-    sample_payload = samples_instance.get_payload()["queries"][0]
-    if sample_payload.get("status") == QueryStatus.FAILED:
-        QueryCacheManager.delete(count_star_data.get("cache_key"), CacheRegion.DATA)
-        raise DatasetSamplesFailedError(sample_payload.get("error") or "")
-
-    sql = sample_payload.get("query")
+    query_obj = samples_instance.queries[0]
+    sql = samples_instance.datasource.get_query_str(query_obj.to_dict())
     if not sql:
         QueryCacheManager.delete(count_star_data.get("cache_key"), CacheRegion.DATA)
         raise DatasetSamplesFailedError("Empty samples query")
 
     engine_spec = datasource.database.db_engine_spec
-    rows, cursor_colnames = engine_spec.fetch_data_with_cursor(
+    rows, colnames = engine_spec.fetch_data_with_cursor(
         database=datasource.database,
         sql=sql,
         page_index=page_index,
         page_size=page_size,
     )
 
-    colnames = sample_payload.get("colnames") or cursor_colnames
-    coltypes = sample_payload.get("coltypes") or []
+    df = pd.DataFrame(rows, columns=colnames)
+    coltypes = extract_dataframe_dtypes(df, datasource)
 
     return {
-        "data": [dict(zip(colnames, row, strict=False)) for row in rows],
+        "data": df.to_dict(orient="records"),
         "colnames": colnames,
         "coltypes": coltypes,
         "status": QueryStatus.SUCCESS,
