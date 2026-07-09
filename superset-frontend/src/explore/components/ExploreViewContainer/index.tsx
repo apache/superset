@@ -36,6 +36,7 @@ import {
   JsonObject,
   MatrixifyFormData,
   DatasourceType,
+  ensureIsArray,
 } from '@superset-ui/core';
 import {
   ControlStateMapping,
@@ -44,8 +45,9 @@ import {
 import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
-import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash';
+import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash-es';
 import { Resizable } from 're-resizable';
+import { useHistory } from 'react-router-dom';
 import { Tooltip } from '@superset-ui/core/components';
 import { usePluginContext } from 'src/components';
 import { Global } from '@emotion/react';
@@ -63,8 +65,8 @@ import {
   LOG_ACTIONS_MOUNT_EXPLORER,
   LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
 } from 'src/logger/LogUtils';
-import { ensureAppRoot } from 'src/utils/pathUtils';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { sanitizeDocumentTitle } from 'src/utils/sanitizeDocumentTitle';
 import cx from 'classnames';
 import * as chartActions from 'src/components/Chart/chartAction';
 import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
@@ -170,10 +172,11 @@ const updateHistory = debounce(
     force,
     title,
     tabId,
+    history,
   ) => {
     const payload = { ...formData };
     const chartId = formData.slice_id;
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(history.location.search);
     const additionalParam = Object.fromEntries(params);
 
     if (chartId) {
@@ -192,7 +195,6 @@ const updateHistory = debounce(
 
     try {
       let key: string | null | undefined;
-      let stateModifier: 'replaceState' | 'pushState';
       if (isReplace) {
         key = await postFormData(
           datasourceId,
@@ -201,7 +203,6 @@ const updateHistory = debounce(
           chartId,
           tabId,
         );
-        stateModifier = 'replaceState';
       } else {
         key = getUrlParam(URL_PARAMS.formDataKey);
         if (key) {
@@ -214,10 +215,9 @@ const updateHistory = debounce(
             tabId,
           );
         }
-        stateModifier = 'pushState';
       }
       // avoid race condition in case user changes route before explore updates the url
-      if (window.location.pathname.startsWith(ensureAppRoot('/explore'))) {
+      if (history.location.pathname.startsWith('/explore')) {
         const url = mountExploreUrl(
           standalone ? URL_PARAMS.standalone.name : 'base',
           {
@@ -225,8 +225,9 @@ const updateHistory = debounce(
             ...additionalParam,
           },
           force,
+          false,
         );
-        window.history[stateModifier](payload, title, url);
+        history.replace(url, payload);
       }
     } catch (e) {
       logging.warn('Failed at altering browser history', e);
@@ -387,6 +388,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     getSidebarWidths(LocalStorageKeys.DatasourceWidth),
   );
   const tabId = useTabId();
+  const history = useHistory();
 
   const theme = useTheme();
 
@@ -396,7 +398,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   // Update document title when slice name changes
   useEffect(() => {
     if (props.sliceName) {
-      document.title = props.sliceName;
+      document.title = sanitizeDocumentTitle(props.sliceName);
     }
   }, [props.sliceName]);
 
@@ -412,8 +414,53 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     [originalTitle, theme?.brandAppName, theme?.brandLogoAlt],
   );
 
+  // M3 + M4: fire compatibility check on mount and whenever the metric /
+  // dimension selection changes.  Only semantic views use the endpoint;
+  // SQL datasets short-circuit to null inside fetchCompatibility.
+  const selectedMetrics = useMemo(
+    () =>
+      ensureIsArray(props.form_data.metrics).filter(
+        (m): m is string => typeof m === 'string',
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(props.form_data.metrics)],
+  );
+  const selectedDimensions = useMemo(
+    () =>
+      [
+        ...ensureIsArray(props.form_data.groupby),
+        ...ensureIsArray(props.form_data.columns),
+        ...(typeof props.form_data.x_axis === 'string'
+          ? [props.form_data.x_axis]
+          : []),
+      ].filter((d): d is string => typeof d === 'string'),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      JSON.stringify(props.form_data.groupby),
+      JSON.stringify(props.form_data.columns),
+      props.form_data.x_axis,
+    ],
+  );
+  useEffect(() => {
+    props.actions.fetchCompatibility(
+      props.datasource.type,
+      props.datasource.id as number,
+      selectedMetrics,
+      selectedDimensions,
+    );
+    // props.datasource.id covers the saved-chart-loading case (M4)
+  }, [
+    props.datasource.id,
+    props.datasource.type,
+    selectedMetrics,
+    selectedDimensions,
+  ]);
+
   const addHistory = useCallback(
-    async ({ isReplace = false, title } = {}) => {
+    async ({
+      isReplace = false,
+      title,
+    }: { isReplace?: boolean; title?: string } = {}) => {
       const formData = props.dashboardId
         ? {
             ...props.form_data,
@@ -431,6 +478,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         props.force,
         title,
         tabId,
+        history,
       );
     },
     [
@@ -441,21 +489,9 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       props.standalone,
       props.force,
       tabId,
+      history,
     ],
   );
-
-  const handlePopstate = useCallback(() => {
-    const formData = window.history.state;
-    if (formData && Object.keys(formData).length) {
-      props.actions.setExploreControls(formData);
-      props.actions.postChartFormData(
-        formData,
-        props.force,
-        props.timeout,
-        props.chart.id,
-      );
-    }
-  }, [props.actions, props.chart.id, props.timeout]);
 
   const onQuery = useCallback(() => {
     props.actions.setForceQuery(false);
@@ -525,17 +561,6 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       addHistory({ isReplace: true });
     }
   });
-
-  const previousHandlePopstate = usePrevious(handlePopstate);
-  useEffect(() => {
-    if (previousHandlePopstate) {
-      window.removeEventListener('popstate', previousHandlePopstate);
-    }
-    window.addEventListener('popstate', handlePopstate);
-    return () => {
-      window.removeEventListener('popstate', handlePopstate);
-    };
-  }, [handlePopstate, previousHandlePopstate]);
 
   const previousHandleKeyDown = usePrevious(handleKeydown);
   useEffect(() => {
@@ -1141,8 +1166,12 @@ function mapStateToProps(state: ExploreRootState) {
 
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
 
-  // exclude clientView from extra_form_data; keep other ownState pieces
-  const ownStateForQuery = omit(dataMask[slice_id]?.ownState, ['clientView']);
+  // exclude clientView and metricSqlExpressions from extra_form_data;
+  // metricSqlExpressions is runtime-only and must not be serialised to chart params
+  const ownStateForQuery = omit(dataMask[slice_id]?.ownState, [
+    'clientView',
+    'metricSqlExpressions',
+  ]);
 
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },

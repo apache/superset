@@ -202,7 +202,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \\
     mdx += `| Method | Endpoint | Description |\n`;
     mdx += `|--------|----------|-------------|\n`;
     for (const ep of tagEndpoints['Security']) {
-      mdx += `| \`${ep.method}\` | [${ep.summary}](./api/${ep.slug}) | \`${ep.path}\` |\n`;
+      mdx += `| \`${ep.method}\` | [${ep.summary}](/developer-docs/api/${ep.slug}) | \`${ep.path}\` |\n`;
     }
     mdx += '\n';
     renderedTags.add('Security');
@@ -229,7 +229,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \\
       mdx += `|--------|----------|-------------|\n`;
 
       for (const ep of endpoints) {
-        mdx += `| \`${ep.method}\` | [${ep.summary}](./api/${ep.slug}) | \`${ep.path}\` |\n`;
+        mdx += `| \`${ep.method}\` | [${ep.summary}](/developer-docs/api/${ep.slug}) | \`${ep.path}\` |\n`;
       }
 
       mdx += `\n</details>\n\n`;
@@ -252,7 +252,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \\
       mdx += `|--------|----------|-------------|\n`;
 
       for (const ep of endpoints) {
-        mdx += `| \`${ep.method}\` | [${ep.summary}](./api/${ep.slug}) | \`${ep.path}\` |\n`;
+        mdx += `| \`${ep.method}\` | [${ep.summary}](/developer-docs/api/${ep.slug}) | \`${ep.path}\` |\n`;
       }
 
       mdx += `\n</details>\n\n`;

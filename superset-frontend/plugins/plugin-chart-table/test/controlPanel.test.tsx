@@ -19,12 +19,14 @@
 import { GenericDataType } from '@apache-superset/core/common';
 import { QueryFormData } from '@superset-ui/core';
 import {
+  ColumnMeta,
   Dataset,
   isCustomControlItem,
   ControlConfig,
   ControlPanelState,
   ControlState,
   ColorSchemeEnum,
+  ObjectFormattingEnum,
 } from '@superset-ui/chart-controls';
 import config from '../src/controlPanel';
 
@@ -45,6 +47,31 @@ const findConditionalFormattingControl = (): ControlConfig | null => {
   return null;
 };
 
+const findMetricsMapStateToProps = ():
+  ControlConfig['mapStateToProps'] | null => {
+  for (const section of config.controlPanelSections) {
+    if (!section) continue;
+    for (const row of section.controlSetRows) {
+      for (const control of row) {
+        if (
+          control &&
+          typeof control === 'object' &&
+          'name' in control &&
+          (control as { name: string }).name === 'metrics' &&
+          'override' in control
+        ) {
+          return (
+            control as {
+              override: { mapStateToProps: ControlConfig['mapStateToProps'] };
+            }
+          ).override.mapStateToProps;
+        }
+      }
+    }
+  }
+  return null;
+};
+
 const createMockControlState = (value: string[] | undefined): ControlState => ({
   type: 'SelectControl',
   value,
@@ -55,11 +82,12 @@ const createMockControlState = (value: string[] | undefined): ControlState => ({
 
 const createMockExplore = (
   timeCompareValue: string[] | undefined,
+  datasourceColumns: Partial<Dataset>['columns'] = [],
 ): ControlPanelState => ({
   slice: { slice_id: 123 },
   datasource: {
     verbose_map: { col1: 'Column 1', col2: 'Column 2' },
-    columns: [],
+    columns: datasourceColumns,
   } as Partial<Dataset> as Dataset,
   controls: {
     time_compare: createMockControlState(timeCompareValue),
@@ -205,4 +233,189 @@ test('static extraColorChoices removed from config', () => {
   expect(controlConfig).toBeTruthy();
 
   expect(controlConfig?.extraColorChoices).toBeUndefined();
+});
+
+const createMockExploreWithColumns = (
+  columns: Partial<ColumnMeta>[],
+): ControlPanelState => ({
+  slice: { slice_id: 123 },
+  datasource: {
+    verbose_map: {},
+    columns,
+    metrics: [],
+  } as Partial<Dataset> as Dataset,
+  controls: {},
+  form_data: {
+    datasource: 'test',
+    viz_type: 'table',
+  } as QueryFormData,
+  common: {},
+  metadata: {},
+});
+
+const createMockMetricsControlState = (): ControlState => ({
+  type: 'MetricsControl',
+  value: [],
+  label: '',
+  default: undefined,
+  renderTrigger: false,
+});
+
+test('metrics control includes non-filterable columns', () => {
+  const mapStateToProps = findMetricsMapStateToProps();
+  expect(mapStateToProps).toBeTruthy();
+
+  const explore = createMockExploreWithColumns([
+    { column_name: 'filterable_col', filterable: true },
+    { column_name: 'non_filterable_col', filterable: false },
+  ]);
+  const result = mapStateToProps!(explore, createMockMetricsControlState());
+
+  expect(result.columns).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ column_name: 'filterable_col' }),
+      expect.objectContaining({ column_name: 'non_filterable_col' }),
+    ]),
+  );
+});
+
+test('columnOptions falls back to datasource columns when queriesResponse is empty', () => {
+  const controlConfig = findConditionalFormattingControl();
+  expect(controlConfig).toBeTruthy();
+
+  const datasourceColumns = [
+    { column_name: 'revenue', type_generic: GenericDataType.Numeric },
+    { column_name: 'name', type_generic: GenericDataType.String },
+  ];
+  const explore = createMockExplore(undefined, datasourceColumns);
+  const chart = { chartStatus: 'success' as const, queriesResponse: null };
+  const result = controlConfig!.mapStateToProps!(
+    explore,
+    createMockControlStateForConditionalFormatting(),
+    chart,
+  );
+
+  expect(result.columnOptions).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ value: 'revenue' }),
+      expect.objectContaining({ value: 'name' }),
+    ]),
+  );
+  expect(result.allColumns).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ value: 'revenue' }),
+      expect.objectContaining({ value: 'name' }),
+    ]),
+  );
+});
+
+test('columnOptions prefers queriesResponse over datasource columns', () => {
+  const controlConfig = findConditionalFormattingControl();
+  expect(controlConfig).toBeTruthy();
+
+  const datasourceColumns = [
+    { column_name: 'revenue', type_generic: GenericDataType.Numeric },
+    { column_name: 'extra_col', type_generic: GenericDataType.String },
+  ];
+  const explore = createMockExplore(undefined, datasourceColumns);
+  const chart = createMockChart();
+  const result = controlConfig!.mapStateToProps!(
+    explore,
+    createMockControlStateForConditionalFormatting(),
+    chart,
+  );
+
+  expect(result.columnOptions).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ value: 'col1' }),
+      expect.objectContaining({ value: 'col2' }),
+    ]),
+  );
+  expect(result.columnOptions).not.toEqual(
+    expect.arrayContaining([expect.objectContaining({ value: 'extra_col' })]),
+  );
+});
+
+test('columnOptions falls back to datasource when queriesResponse has empty colnames', () => {
+  const controlConfig = findConditionalFormattingControl();
+  expect(controlConfig).toBeTruthy();
+
+  const datasourceColumns = [
+    { column_name: 'revenue', type_generic: GenericDataType.Numeric },
+  ];
+  const explore = createMockExplore(undefined, datasourceColumns);
+  const chart = {
+    chartStatus: 'success' as const,
+    queriesResponse: [{ colnames: [], coltypes: [] }],
+  };
+  const result = controlConfig!.mapStateToProps!(
+    explore,
+    createMockControlStateForConditionalFormatting(),
+    chart,
+  );
+
+  expect(result.columnOptions).toEqual(
+    expect.arrayContaining([expect.objectContaining({ value: 'revenue' })]),
+  );
+});
+
+test('columnOptions returns empty when both queriesResponse and datasource have no columns', () => {
+  const controlConfig = findConditionalFormattingControl();
+  expect(controlConfig).toBeTruthy();
+
+  const explore = createMockExplore(undefined, []);
+  const chart = { chartStatus: 'success' as const, queriesResponse: null };
+  const result = controlConfig!.mapStateToProps!(
+    explore,
+    createMockControlStateForConditionalFormatting(),
+    chart,
+  );
+
+  expect(result.columnOptions).toEqual([]);
+  expect(result.allColumns).toEqual([]);
+});
+
+test('allColumns includes ENTIRE_ROW when falling back to datasource columns', () => {
+  const controlConfig = findConditionalFormattingControl();
+  expect(controlConfig).toBeTruthy();
+
+  const datasourceColumns = [
+    { column_name: 'revenue', type_generic: GenericDataType.Numeric },
+  ];
+  const explore = createMockExplore(undefined, datasourceColumns);
+  const chart = { chartStatus: 'success' as const, queriesResponse: null };
+  const result = controlConfig!.mapStateToProps!(
+    explore,
+    createMockControlStateForConditionalFormatting(),
+    chart,
+  );
+
+  expect(result.allColumns).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ value: ObjectFormattingEnum.ENTIRE_ROW }),
+    ]),
+  );
+});
+
+test('columnOptions defaults type_generic to String when missing from datasource columns', () => {
+  const controlConfig = findConditionalFormattingControl();
+  expect(controlConfig).toBeTruthy();
+
+  const datasourceColumns = [{ column_name: 'untyped_col' }];
+  const explore = createMockExplore(undefined, datasourceColumns);
+  const chart = { chartStatus: 'success' as const, queriesResponse: null };
+  const result = controlConfig!.mapStateToProps!(
+    explore,
+    createMockControlStateForConditionalFormatting(),
+    chart,
+  );
+
+  expect(result.columnOptions).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        value: 'untyped_col',
+        dataType: GenericDataType.String,
+      }),
+    ]),
+  );
 });

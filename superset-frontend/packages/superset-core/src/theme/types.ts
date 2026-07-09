@@ -110,6 +110,26 @@ export interface ColorVariants {
 }
 
 export interface SupersetSpecificTokens {
+  // Label variant tokens — Published/Draft (dashboard status)
+  labelPublishedColor?: string;
+  labelPublishedBg?: string;
+  labelPublishedBorderColor?: string;
+  labelPublishedIconColor?: string;
+  labelDraftColor?: string;
+  labelDraftBg?: string;
+  labelDraftBorderColor?: string;
+  labelDraftIconColor?: string;
+
+  // Label variant tokens — Dataset type (Physical/Virtual)
+  labelDatasetPhysicalColor?: string;
+  labelDatasetPhysicalBg?: string;
+  labelDatasetPhysicalBorderColor?: string;
+  labelDatasetPhysicalIconColor?: string;
+  labelDatasetVirtualColor?: string;
+  labelDatasetVirtualBg?: string;
+  labelDatasetVirtualBorderColor?: string;
+  labelDatasetVirtualIconColor?: string;
+
   // Font-related
   fontSizeXS: string;
   fontSizeXXL: string;
@@ -168,6 +188,86 @@ export interface SupersetSpecificTokens {
    * Defaults to colorPrimaryBgHover if not specified.
    */
   colorEditorSelection?: string;
+
+  // Secondary button tokens (Superset-specific)
+  // Ant Design's filled variant has no component tokens, so we provide our own.
+  // These fallback to colorPrimary* derived tokens when not set.
+  /**
+   * Text color for secondary buttons.
+   * Fallback: colorPrimary
+   */
+  buttonSecondaryColor?: string;
+  /**
+   * Background color for secondary buttons.
+   * Fallback: colorPrimaryBg
+   */
+  buttonSecondaryBg?: string;
+  /**
+   * Border color for secondary buttons.
+   * Fallback: transparent
+   */
+  buttonSecondaryBorderColor?: string;
+  /**
+   * Text color for secondary buttons on hover.
+   * Fallback: colorPrimary
+   */
+  buttonSecondaryHoverColor?: string;
+  /**
+   * Background color for secondary buttons on hover.
+   * Fallback: colorPrimaryBgHover
+   */
+  buttonSecondaryHoverBg?: string;
+  /**
+   * Border color for secondary buttons on hover.
+   * Fallback: transparent
+   */
+  buttonSecondaryHoverBorderColor?: string;
+  /**
+   * Text color for secondary buttons when active/pressed.
+   * Fallback: colorPrimary
+   */
+  buttonSecondaryActiveColor?: string;
+  /**
+   * Background color for secondary buttons when active/pressed.
+   * Fallback: colorPrimaryBorder
+   */
+  buttonSecondaryActiveBg?: string;
+  /**
+   * Border color for secondary buttons when active/pressed.
+   * Fallback: transparent
+   */
+  buttonSecondaryActiveBorderColor?: string;
+
+  // Component flexibility tokens (sizing, radius, behavior)
+  selectOptionActiveOutline?: boolean;
+  labelBorderRadius?: number;
+  buttonControlHeight?: number;
+  buttonControlHeightSM?: number;
+  buttonControlHeightXS?: number;
+  buttonPaddingInline?: number;
+  buttonPaddingInlineSM?: number;
+  buttonFontSize?: number;
+  buttonBorderRadius?: number;
+  buttonStyleMap?: Record<
+    string,
+    { type?: string; variant?: string; color?: string }
+  >;
+
+  // Dashboard tile tokens (opt-in, fallbacks: colorBgContainer bg, no border, borderRadius, hairline box-shadow)
+  dashboardTileBg?: string;
+  dashboardTileBorder?: string;
+  dashboardTileBorderRadius?: number;
+  dashboardTileBoxShadow?: string;
+
+  /**
+   * Results grid customization tokens.
+   * Control the appearance of AG Grid-backed result tables (e.g. SQL Lab).
+   */
+  resultsGridRowHeight?: number;
+  resultsGridHeaderFontWeight?: number;
+  resultsGridHeaderFontSize?: number;
+  resultsGridBorderRadius?: number;
+  resultsGridNoStriping?: boolean;
 }
 
 /**
@@ -426,6 +526,7 @@ export interface ThemeControllerOptions {
   canUpdateTheme?: () => boolean;
   canUpdateMode?: () => boolean;
   isGlobalContext?: boolean;
+  initialMode?: ThemeMode;
 }
 
 export interface ThemeContextType {
@@ -438,6 +539,12 @@ export interface ThemeContextType {
   clearLocalOverrides: () => void;
   getCurrentCrudThemeId: () => string | null;
   hasDevOverride: () => boolean;
+  /**
+   * True when an explicit theme config override is active (e.g. supplied via
+   * the Embedded SDK). Such an override takes precedence over a
+   * dashboard-level theme.
+   */
+  hasThemeConfigOverride: boolean;
   canSetMode: () => boolean;
   canSetTheme: () => boolean;
   canDetectOSPreference: () => boolean;

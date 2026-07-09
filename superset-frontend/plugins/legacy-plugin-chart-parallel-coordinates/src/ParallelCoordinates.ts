@@ -47,7 +47,9 @@ interface ParallelCoordinatesProps {
   width: number;
   height: number;
   colorMetric: string;
+  defaultLineColor: string;
   includeSeries: boolean;
+  isDarkMode: boolean;
   linearColorScheme: string;
   metrics: string[];
   series: string;
@@ -63,7 +65,9 @@ function ParallelCoordinates(
     width,
     height,
     colorMetric,
+    defaultLineColor,
     includeSeries,
+    isDarkMode,
     linearColorScheme,
     metrics,
     series,
@@ -87,9 +91,25 @@ function ParallelCoordinates(
             (d: Record<string, unknown>) => d[colorMetric] as number,
           ),
         )
-    : () => 'grey';
-  const color = (d: Record<string, unknown>) =>
-    (colorScale as Function)(d[colorMetric]);
+    : null;
+
+  const brightenForDarkMode = (colorStr: string): string => {
+    const hsl = d3.hsl(colorStr);
+    if (hsl.l < 0.5) {
+      hsl.l = Math.min(1, hsl.l + 0.4);
+      return hsl.toString();
+    }
+    return colorStr;
+  };
+
+  const color = (d: Record<string, unknown>): string => {
+    if (!colorScale) {
+      return defaultLineColor;
+    }
+    const baseColor = (colorScale as Function)(d[colorMetric]) as string;
+    return isDarkMode ? brightenForDarkMode(baseColor) : baseColor;
+  };
+
   const container = d3
     .select(element)
     .classed('superset-legacy-chart-parallel-coordinates', true);
@@ -105,7 +125,7 @@ function ParallelCoordinates(
     .width(width)
     .color(color)
     .alpha(0.5)
-    .composite('darken')
+    .composite(isDarkMode ? 'screen' : 'darken')
     .height(effHeight)
     .data(data)
     .dimensions(cols)

@@ -34,6 +34,7 @@ import { capitalize } from 'lodash/fp';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { useDispatch } from 'react-redux';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { ensureAppRoot } from 'src/utils/navigationUtils';
 
 type OAuthProvider = {
   name: string;
@@ -57,6 +58,7 @@ enum AuthType {
   AuthDB = 1,
   AuthLDAP = 2,
   AuthOauth = 4,
+  AuthSAML = 5,
 }
 
 const StyledCard = styled(Card)`
@@ -99,10 +101,10 @@ export default function Login() {
   );
 
   const buildProviderLoginUrl = (providerName: string) => {
-    const base = `/login/${providerName}`;
-    return nextUrl
-      ? `${base}${base.includes('?') ? '&' : '?'}next=${encodeURIComponent(nextUrl)}`
-      : base;
+    const base = `/login/${encodeURIComponent(providerName)}`;
+    return ensureAppRoot(
+      nextUrl ? `${base}?next=${encodeURIComponent(nextUrl)}` : base,
+    );
   };
 
   const authType: AuthType = bootstrapData.common.conf.AUTH_TYPE;
@@ -180,7 +182,8 @@ export default function Login() {
             </Form>
           </Flex>
         )}
-        {authType === AuthType.AuthOauth && (
+        {(authType === AuthType.AuthOauth ||
+          authType === AuthType.AuthSAML) && (
           <Flex justify="center" gap={0} vertical>
             <Form layout="vertical" requiredMark="optional" form={form}>
               {providers.map((provider: OAuthProvider) => (
@@ -254,7 +257,7 @@ export default function Login() {
                     <Button
                       block
                       type="default"
-                      href="/register/"
+                      href={ensureAppRoot('/register/')}
                       data-test="register-button"
                     >
                       {t('Register')}

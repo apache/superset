@@ -16,28 +16,82 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Children, ReactElement, Fragment } from 'react';
+import { Children, ReactElement, Fragment, forwardRef, Ref } from 'react';
 import cx from 'classnames';
 import { Button as AntdButton } from 'antd';
 import { useTheme } from '@apache-superset/core/theme';
 import { Tooltip } from '../Tooltip';
+import type { SupersetTheme } from '@apache-superset/core/theme';
 import type {
   ButtonColorType,
   ButtonProps,
+  ButtonStyleConfig,
   ButtonStyle,
   ButtonType,
   ButtonVariantType,
   OnClickHandler,
 } from './types';
 
-const BUTTON_STYLE_MAP: Record<
-  ButtonStyle,
-  {
-    type?: ButtonType;
-    variant?: ButtonVariantType;
-    color?: ButtonColorType;
-  }
-> = {
+/**
+ * Secondary Button Theming
+ *
+ * Ant Design's "filled" variant (used for secondary buttons) has no component-level
+ * tokens for customization. To enable full theming of secondary buttons, we use
+ * Superset-specific tokens (buttonSecondary*) with fallbacks to Ant Design's
+ * colorPrimary* derived tokens.
+ *
+ * Implementation approach (follows PR #38679 pattern for label tokens):
+ * - Default state: Applied via inline `style` prop (higher specificity than CSS classes)
+ * - Hover/Active states: Applied via `css` prop with !important (pseudo-selectors
+ *   cannot be applied via inline styles)
+ *
+ * Available tokens (all optional, with sensible fallbacks):
+ * - buttonSecondaryColor: Text color (fallback: colorPrimary)
+ * - buttonSecondaryBg: Background color (fallback: colorPrimaryBg)
+ * - buttonSecondaryBorderColor: Border color (fallback: transparent)
+ * - buttonSecondaryHoverColor: Hover text color (fallback: colorPrimary)
+ * - buttonSecondaryHoverBg: Hover background (fallback: colorPrimaryBgHover)
+ * - buttonSecondaryHoverBorderColor: Hover border (fallback: transparent)
+ * - buttonSecondaryActiveColor: Active/pressed text color (fallback: colorPrimary)
+ * - buttonSecondaryActiveBg: Active/pressed background (fallback: colorPrimaryBorder)
+ * - buttonSecondaryActiveBorderColor: Active/pressed border (fallback: transparent)
+ */
+
+/**
+ * Generates inline styles for secondary buttons (default state).
+ * Inline styles have higher specificity than CSS classes, so no !important needed.
+ */
+export const getSecondaryButtonStyle = (theme: SupersetTheme) => ({
+  color: theme.buttonSecondaryColor || theme.colorPrimary,
+  backgroundColor: theme.buttonSecondaryBg || theme.colorPrimaryBg,
+  borderColor: theme.buttonSecondaryBorderColor || 'transparent',
+});
+
+/**
+ * Generates CSS styles for secondary button hover/active states.
+ * Must use CSS (not inline styles) since pseudo-selectors cannot be applied via style prop.
+ * Uses !important to override Ant Design's default styles.
+ */
+export const getSecondaryButtonHoverStyles = (theme: SupersetTheme) => ({
+  '&:hover': {
+    color: `${theme.buttonSecondaryHoverColor || theme.colorPrimary} !important`,
+    backgroundColor: `${theme.buttonSecondaryHoverBg || theme.colorPrimaryBgHover} !important`,
+    borderColor: `${theme.buttonSecondaryHoverBorderColor || 'transparent'} !important`,
+  },
+  '&:active': {
+    color: `${theme.buttonSecondaryActiveColor || theme.colorPrimary} !important`,
+    backgroundColor: `${theme.buttonSecondaryActiveBg || theme.colorPrimaryBorder} !important`,
+    borderColor: `${theme.buttonSecondaryActiveBorderColor || 'transparent'} !important`,
+  },
+});
+
+type ButtonStyleMapping = {
+  type?: ButtonType;
+  variant?: ButtonVariantType;
+  color?: ButtonColorType;
+};
+
+const BUTTON_STYLE_MAP: Record<ButtonStyle, ButtonStyleMapping> = {
   primary: { type: 'primary', variant: 'solid', color: 'primary' },
   secondary: { variant: 'filled', color: 'primary' },
   tertiary: { variant: 'outlined', color: 'default' },
@@ -46,7 +100,7 @@ const BUTTON_STYLE_MAP: Record<
   link: { type: 'link' },
 };
 
-export function Button(props: ButtonProps) {
+function ButtonInner(props: ButtonProps, ref: Ref<HTMLElement>) {
   const {
     tooltip,
     placement,
@@ -59,30 +113,56 @@ export function Button(props: ButtonProps) {
     href,
     showMarginRight = true,
     icon,
+    styleConfig,
     ...restProps
   } = props;
 
   const theme = useTheme();
-  const { fontSizeSM, fontWeightStrong } = theme;
+  const { fontWeightStrong } = theme;
+  const btnFontSize = theme.buttonFontSize ?? theme.fontSizeSM;
 
-  let height = 32;
-  let padding = 18;
+  const resolvedStyleMap: Record<ButtonStyle, ButtonStyleMapping> =
+    theme.buttonStyleMap
+      ? (Object.fromEntries(
+          Object.entries(BUTTON_STYLE_MAP).map(([key, value]) => [
+            key,
+            { ...value, ...theme.buttonStyleMap?.[key as ButtonStyle] },
+          ]),
+        ) as Record<ButtonStyle, ButtonStyleMapping>)
+      : BUTTON_STYLE_MAP;
+
+  let defaultHeight = theme.buttonControlHeight ?? 32;
+  let defaultPaddingInline = theme.buttonPaddingInline ?? 18;
+  let defaultBorderRadius = theme.buttonBorderRadius ?? theme.borderRadius;
   if (buttonSize === 'xsmall') {
-    height = 22;
-    padding = 5;
+    defaultHeight = theme.buttonControlHeightXS ?? 22;
+    defaultPaddingInline = 5;
+    defaultBorderRadius = theme.buttonBorderRadius ?? theme.borderRadiusSM;
   } else if (buttonSize === 'small') {
-    height = 30;
-    padding = 10;
+    defaultHeight = theme.buttonControlHeightSM ?? 30;
+    defaultPaddingInline = theme.buttonPaddingInlineSM ?? 10;
+    defaultBorderRadius = theme.buttonBorderRadius ?? theme.borderRadiusSM;
   }
   if (buttonStyle === 'link') {
-    padding = 4;
+    defaultPaddingInline = 4;
   }
+
+  const resolvedStyleConfig: Required<ButtonStyleConfig> = {
+    controlHeight: styleConfig?.controlHeight ?? defaultHeight,
+    paddingInline: styleConfig?.paddingInline ?? defaultPaddingInline,
+    fontSize: styleConfig?.fontSize ?? btnFontSize,
+    fontWeight: styleConfig?.fontWeight ?? fontWeightStrong,
+    ctaMinWidth: styleConfig?.ctaMinWidth ?? theme.sizeUnit * 36,
+    ctaMinHeight: styleConfig?.ctaMinHeight ?? theme.sizeUnit * 8,
+    iconGap: styleConfig?.iconGap ?? theme.sizeUnit * 2,
+    borderRadius: styleConfig?.borderRadius ?? defaultBorderRadius,
+  };
 
   const {
     type: antdType = 'default',
     variant,
     color,
-  } = BUTTON_STYLE_MAP[buttonStyle ?? 'primary'];
+  } = resolvedStyleMap[buttonStyle ?? 'primary'] ?? BUTTON_STYLE_MAP.primary;
 
   const element = children as ReactElement;
 
@@ -94,23 +174,31 @@ export function Button(props: ButtonProps) {
     renderedChildren = Children.toArray(children);
   }
   const firstChildMargin =
-    showMarginRight && renderedChildren.length > 1 ? theme.sizeUnit * 2 : 0;
+    showMarginRight && renderedChildren.length > 1
+      ? resolvedStyleConfig.iconGap
+      : 0;
 
   const effectiveButtonStyle: ButtonStyle = buttonStyle ?? 'primary';
 
+  // Secondary button inline styles (default state) - inline styles override CSS classes
+  const secondaryStyle =
+    effectiveButtonStyle === 'secondary' && !disabled
+      ? getSecondaryButtonStyle(theme)
+      : undefined;
+
   const button = (
     <AntdButton
+      ref={ref as Ref<HTMLButtonElement & HTMLAnchorElement>}
       href={disabled ? undefined : href}
       disabled={disabled}
       type={antdType}
       variant={variant}
       danger={effectiveButtonStyle === 'danger'}
       color={color}
+      // Static class names for embedded-dashboard CSS targeting
       className={cx(
         className,
         'superset-button',
-        // A static class name containing the button style is available to
-        // support customizing button styles in embedded dashboards.
         `superset-button-${buttonStyle}`,
         { cta: !!cta },
       )}
@@ -119,12 +207,13 @@ export function Button(props: ButtonProps) {
         alignItems: 'center',
         justifyContent: 'center',
         lineHeight: 1,
-        fontSize: fontSizeSM,
-        fontWeight: fontWeightStrong,
-        height,
-        padding: `0px ${padding}px`,
-        minWidth: cta ? theme.sizeUnit * 36 : undefined,
-        minHeight: cta ? theme.sizeUnit * 8 : undefined,
+        fontSize: resolvedStyleConfig.fontSize,
+        fontWeight: resolvedStyleConfig.fontWeight,
+        height: resolvedStyleConfig.controlHeight,
+        padding: `0px ${resolvedStyleConfig.paddingInline}px`,
+        borderRadius: resolvedStyleConfig.borderRadius,
+        minWidth: cta ? resolvedStyleConfig.ctaMinWidth : undefined,
+        minHeight: cta ? resolvedStyleConfig.ctaMinHeight : undefined,
         marginLeft: 0,
         '& + .superset-button:not(.ant-btn-compact-item)': {
           marginLeft: theme.sizeUnit * 2,
@@ -132,15 +221,18 @@ export function Button(props: ButtonProps) {
         '& > span > :first-of-type': {
           marginRight: firstChildMargin,
         },
-        ':not(:hover)': effectiveButtonStyle === 'secondary' &&
-          !disabled && {
-            // NOTE: This is the best we can do contrast wise for the secondary button using antd tokens
-            // and abusing the semantics. Should be revisited when possible. https://github.com/apache/superset/pull/34253#issuecomment-3104834692
-            color: `${theme.colorPrimaryTextHover} !important`,
-          },
+        // Secondary button hover/active states via CSS
+        ...(effectiveButtonStyle === 'secondary' &&
+          !disabled &&
+          getSecondaryButtonHoverStyles(theme)),
       }}
       icon={icon}
       {...restProps}
+      style={
+        secondaryStyle
+          ? { ...secondaryStyle, ...restProps.style }
+          : restProps.style
+      }
     >
       {children}
     </AntdButton>
@@ -171,5 +263,7 @@ export function Button(props: ButtonProps) {
 
   return button;
 }
+
+export const Button = forwardRef<HTMLElement, ButtonProps>(ButtonInner);
 
 export type { ButtonProps, OnClickHandler };

@@ -21,7 +21,7 @@ import re
 from datetime import datetime
 from typing import Any, cast, Literal, NamedTuple, Optional, Union
 from re import Pattern
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 import numpy as np
@@ -138,8 +138,8 @@ class TestDatabaseModel(SupersetTestCase):
             assert col.is_temporal
 
     @patch("superset.jinja_context.get_username", return_value="abc")
-    def test_jinja_metrics_and_calc_columns(self, mock_username):
-        base_query_obj = {
+    def test_jinja_metrics_and_calc_columns(self, mock_username: MagicMock) -> None:
+        base_query_obj: dict[str, Any] = {
             "granularity": None,
             "from_dttm": None,
             "to_dttm": None,
@@ -190,16 +190,17 @@ class TestDatabaseModel(SupersetTestCase):
         sqla_query = table.get_sqla_query(**base_query_obj)
         query = table.database.compile_sqla_query(sqla_query.sqla_query)
 
-        # assert virtual dataset
-        assert "SELECT\n  'user_abc' AS user,\n  'xyz_P1D' AS time_grain" in query
+        # assert virtual dataset (SQL is not reformatted when no RLS applies)
+        assert "'user_abc' as user" in query
+        assert "'xyz_P1D' as time_grain" in query
         # assert dataset calculated column
         assert "case when 'abc' = 'abc' then 'yes' else 'no' end" in query
         # assert adhoc column
         assert "'foo_P1D'" in query
         # assert dataset saved metric
         assert "count('bar_P1D')" in query
-        # assert adhoc metric
-        assert "SUM(CASE WHEN user = 'user_abc' THEN 1 ELSE 0 END)" in query
+        # assert adhoc metric (sanitize_clause preserves the user's SQL verbatim)
+        assert "SUM(case when user = 'user_abc' then 1 else 0 end)" in query
         # Cleanup
         db.session.delete(table)
         db.session.commit()
@@ -303,6 +304,11 @@ class TestDatabaseModel(SupersetTestCase):
             ),
         )
         table = self.get_table(name="birth_names")
+        # This test targets filter operators, not the dataset Hour Offset. A
+        # non-zero offset shifts temporal filter bounds (#104810) and other tests
+        # in the suite can leave one set on the shared birth_names table, so pin
+        # it to 0 here to keep the temporal-range literal deterministic.
+        table.offset = 0
         for filter_ in filters:
             query_obj = {
                 "granularity": None,

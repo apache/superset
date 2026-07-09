@@ -47,7 +47,7 @@ class SavedQueryView(BaseSupersetView):
         return super().render_app_template()
 
 
-def _get_owner_id(tab_state_id: int) -> int:
+def _get_tab_user_id(tab_state_id: int) -> int | None:
     return db.session.query(TabState.user_id).filter_by(id=tab_state_id).scalar()
 
 
@@ -88,10 +88,10 @@ class TabStateView(BaseSupersetView):
     @expose("/<int:tab_state_id>", methods=("DELETE",))
     def delete(self, tab_state_id: int) -> FlaskResponse:
         try:
-            owner_id = _get_owner_id(tab_state_id)
-            if owner_id is None:
+            tab_user_id = _get_tab_user_id(tab_state_id)
+            if tab_user_id is None:
                 return Response(status=404)
-            if owner_id != get_user_id():
+            if tab_user_id != get_user_id():
                 return Response(status=403)
 
             db.session.query(TabState).filter(TabState.id == tab_state_id).delete(
@@ -109,10 +109,10 @@ class TabStateView(BaseSupersetView):
     @has_access_api
     @expose("/<int:tab_state_id>", methods=("GET",))
     def get(self, tab_state_id: int) -> FlaskResponse:
-        owner_id = _get_owner_id(tab_state_id)
-        if owner_id is None:
+        tab_user_id = _get_tab_user_id(tab_state_id)
+        if tab_user_id is None:
             return Response(status=404)
-        if owner_id != get_user_id():
+        if tab_user_id != get_user_id():
             return Response(status=403)
 
         tab_state = db.session.query(TabState).filter_by(id=tab_state_id).first()
@@ -126,10 +126,10 @@ class TabStateView(BaseSupersetView):
     @expose("<int:tab_state_id>/activate", methods=("POST",))
     def activate(self, tab_state_id: int) -> FlaskResponse:
         try:
-            owner_id = _get_owner_id(tab_state_id)
-            if owner_id is None:
+            tab_user_id = _get_tab_user_id(tab_state_id)
+            if tab_user_id is None:
                 return Response(status=404)
-            if owner_id != get_user_id():
+            if tab_user_id != get_user_id():
                 return Response(status=403)
 
             (
@@ -146,10 +146,10 @@ class TabStateView(BaseSupersetView):
     @has_access_api
     @expose("<int:tab_state_id>", methods=("PUT",))
     def put(self, tab_state_id: int) -> FlaskResponse:
-        owner_id = _get_owner_id(tab_state_id)
-        if owner_id is None:
+        tab_user_id = _get_tab_user_id(tab_state_id)
+        if tab_user_id is None:
             return Response(status=404)
-        if owner_id != get_user_id():
+        if tab_user_id != get_user_id():
             return Response(status=403)
 
         try:
@@ -165,10 +165,10 @@ class TabStateView(BaseSupersetView):
     @expose("<int:tab_state_id>/migrate_query", methods=("POST",))
     def migrate_query(self, tab_state_id: int) -> FlaskResponse:
         try:
-            owner_id = _get_owner_id(tab_state_id)
-            if owner_id is None:
+            tab_user_id = _get_tab_user_id(tab_state_id)
+            if tab_user_id is None:
                 return Response(status=404)
-            if owner_id != get_user_id():
+            if tab_user_id != get_user_id():
                 return Response(status=403)
 
             client_id = json.loads(request.form["queryId"])
@@ -226,10 +226,14 @@ class TableSchemaView(BaseSupersetView):
     def post(self) -> FlaskResponse:
         try:
             table = json.loads(request.form["table"])
+            tab_state_id = table["queryEditorId"]
+            tab_user_id = _get_tab_user_id(tab_state_id)
+            if tab_user_id is None or tab_user_id != get_user_id():
+                return json_error_response(__("Forbidden"), status=403)
 
             # delete any existing table schema
             db.session.query(TableSchema).filter(
-                TableSchema.tab_state_id == table["queryEditorId"],
+                TableSchema.tab_state_id == tab_state_id,
                 TableSchema.database_id == table["dbId"],
                 TableSchema.catalog == table.get("catalog"),
                 TableSchema.schema == table["schema"],
@@ -237,7 +241,7 @@ class TableSchemaView(BaseSupersetView):
             ).delete(synchronize_session=False)
 
             table_schema = TableSchema(
-                tab_state_id=table["queryEditorId"],
+                tab_state_id=tab_state_id,
                 database_id=table["dbId"],
                 catalog=table.get("catalog"),
                 schema=table["schema"],
@@ -256,9 +260,19 @@ class TableSchemaView(BaseSupersetView):
     @expose("/<int:table_schema_id>", methods=("DELETE",))
     def delete(self, table_schema_id: int) -> FlaskResponse:
         try:
-            db.session.query(TableSchema).filter(
-                TableSchema.id == table_schema_id
-            ).delete(synchronize_session=False)
+            tab_state_id = (
+                db.session.query(TableSchema.tab_state_id)
+                .filter_by(id=table_schema_id)
+                .scalar()
+            )
+            if tab_state_id is None:
+                return json_error_response(__("Not found"), status=404)
+            tab_user_id = _get_tab_user_id(tab_state_id)
+            if tab_user_id is None or tab_user_id != get_user_id():
+                return json_error_response(__("Forbidden"), status=403)
+            db.session.query(TableSchema).filter_by(id=table_schema_id).delete(
+                synchronize_session=False
+            )
             db.session.commit()
             return json_success(json.dumps("OK"))
         except Exception as ex:  # pylint: disable=broad-except
@@ -268,11 +282,24 @@ class TableSchemaView(BaseSupersetView):
     @has_access_api
     @expose("/<int:table_schema_id>/expanded", methods=("POST",))
     def expanded(self, table_schema_id: int) -> FlaskResponse:
-        payload = json.loads(request.form["expanded"])
-        (
-            db.session.query(TableSchema)
-            .filter_by(id=table_schema_id)
-            .update({"expanded": payload})
-        )
-        response = json.dumps({"id": table_schema_id, "expanded": payload})
-        return json_success(response)
+        try:
+            tab_state_id = (
+                db.session.query(TableSchema.tab_state_id)
+                .filter_by(id=table_schema_id)
+                .scalar()
+            )
+            if tab_state_id is None:
+                return json_error_response(__("Not found"), status=404)
+            tab_user_id = _get_tab_user_id(tab_state_id)
+            if tab_user_id is None or tab_user_id != get_user_id():
+                return json_error_response(__("Forbidden"), status=403)
+            payload = json.loads(request.form["expanded"])
+            db.session.query(TableSchema).filter_by(id=table_schema_id).update(
+                {"expanded": payload}
+            )
+            db.session.commit()
+            response = json.dumps({"id": table_schema_id, "expanded": payload})
+            return json_success(response)
+        except Exception as ex:  # pylint: disable=broad-except
+            db.session.rollback()
+            return json_error_response(error_msg_from_exception(ex), 400)

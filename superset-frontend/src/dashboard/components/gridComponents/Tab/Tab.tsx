@@ -36,6 +36,7 @@ import getChartIdsFromComponent from 'src/dashboard/util/getChartIdsFromComponen
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import { Typography } from '@superset-ui/core/components/Typography';
+import { ensureAppRoot } from 'src/utils/navigationUtils';
 import {
   useIsAutoRefreshing,
   useIsRefreshInFlight,
@@ -57,7 +58,7 @@ export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
 // Delay before refreshing charts to ensure they are fully mounted
 const CHART_MOUNT_DELAY = 100;
 
-interface TabProps {
+export interface TabProps {
   dashboardId: number;
   id: string;
   parentId: string;
@@ -333,7 +334,9 @@ const Tab = (props: TabProps): ReactElement => {
                       <span>
                         {t('You can')}{' '}
                         <Typography.Link
-                          href={`/chart/add?dashboard_id=${dashboardId}`}
+                          href={ensureAppRoot(
+                            `/chart/add?dashboard_id=${dashboardId}`,
+                          )}
                           rel="noopener noreferrer"
                           target="_blank"
                         >
@@ -446,7 +449,7 @@ const Tab = (props: TabProps): ReactElement => {
             title={component.meta.text}
             defaultTitle={component.meta.defaultText}
             placeholder={component.meta.placeholder}
-            canEdit={editMode && isFocused}
+            canEdit={editMode}
             onSaveTitle={handleChangeText}
             showTooltip={false}
             editing={editMode && isFocused}

@@ -26,6 +26,10 @@ export interface SortColumn {
 export interface SelectOption {
   label: ReactNode;
   value: any;
+  // Plain-text representation of the option. Callers should set this when
+  // `label` is a ReactNode so that the option can be serialized (e.g. into
+  // URL filter state) without losing the human-readable name.
+  title?: string;
   [key: string]: unknown;
 }
 
@@ -66,7 +70,7 @@ export interface ListViewFilter {
   dateFilterValueType?: 'unix' | 'iso';
   min?: number;
   max?: number;
-  dropdownStyle?: React.CSSProperties;
+  popupStyle?: React.CSSProperties;
   autoComplete?: string;
   inputName?: string;
 }
@@ -125,6 +129,7 @@ export enum ListViewFilterOperator {
   Between = 'between',
   DashboardIsFav = 'dashboard_is_favorite',
   ChartIsFav = 'chart_is_favorite',
+  TagIsFav = 'tag_is_favorite',
   ChartIsCertified = 'chart_is_certified',
   DashboardIsCertified = 'dashboard_is_certified',
   DatasetIsCertified = 'dataset_is_certified',

@@ -25,9 +25,12 @@ import logging
 from typing import Any, Dict, List
 
 from fastmcp import Context
-from superset_core.mcp.decorators import tool
+from flask import g
+from pydantic import ValidationError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.extensions import event_logger
+from superset.extensions import db, event_logger
 from superset.mcp_service.dashboard.constants import (
     generate_id,
     GRID_COLUMN_COUNT,
@@ -37,8 +40,12 @@ from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
     GenerateDashboardRequest,
     GenerateDashboardResponse,
+    serialize_chart_summary,
+    serialize_tag_object,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
+from superset.mcp_service.privacy import user_can_view_data_model_metadata
+from superset.mcp_service.system.schemas import serialize_subject_object
+from superset.mcp_service.utils.response_utils import humanize_timestamp
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
@@ -177,24 +184,43 @@ def _generate_title_from_charts(chart_objects: List[Any]) -> str:
     return title
 
 
-@tool(tags=["mutate"])
-@parse_request(GenerateDashboardRequest)
-def generate_dashboard(
+@tool(
+    tags=["mutate"],
+    class_permission_name="Dashboard",
+    annotations=ToolAnnotations(
+        title="Create dashboard",
+        readOnlyHint=False,
+        destructiveHint=False,
+    ),
+)
+def generate_dashboard(  # noqa: C901
     request: GenerateDashboardRequest, ctx: Context
 ) -> GenerateDashboardResponse:
-    """Create dashboard from chart IDs.
+    """Create a NEW dashboard from chart IDs.
 
     IMPORTANT:
+    - Use this tool ONLY when creating a brand-new dashboard.
+    - To add a chart to an EXISTING dashboard, use add_chart_to_existing_dashboard.
+      Never use this tool as a fallback when add_chart_to_existing_dashboard fails.
     - All charts must exist and be accessible to current user
-    - Charts arranged automatically in 2-column grid layout
+    - Layout: by default, charts are arranged in an auto-generated 2-column
+      grid. When ``position_json`` is supplied, that explicit layout is
+      written verbatim and the auto-generated grid is skipped — use this to
+      compose custom rows, header bands, or MARKDOWN/HEADER components.
 
     Returns:
     - Dashboard ID and URL
     """
+    # Advisory messages (e.g. title sanitization) surfaced to the caller
+    # alongside the created dashboard so they can tell when their input
+    # was altered.
+    sanitization_warnings = list(getattr(request, "sanitization_warnings", []) or [])
+
     try:
-        # Get chart objects from IDs (required for SQLAlchemy relationships)
-        from superset import db
-        from superset.commands.dashboard.create import CreateDashboardCommand
+        # avoids ImportError before Flask app initialisation:
+        # `Exception: App not initialized yet. Please call init_app first`
+        # raised from superset.utils.encrypt when Slice's encrypted Column
+        # types are instantiated at model-class definition time.
         from superset.models.slice import Slice
 
         with event_logger.log_context(action="mcp.generate_dashboard.chart_validation"):
@@ -212,12 +238,37 @@ def generate_dashboard(
                 return GenerateDashboardResponse(
                     dashboard=None,
                     dashboard_url=None,
-                    error=f"Charts not found: {list(missing_chart_ids)}",
+                    error=(
+                        f"Charts not found: {sorted(missing_chart_ids)}."
+                        " Use list_charts to get valid chart IDs."
+                    ),
                 )
 
-        # Create dashboard layout with chart objects
+            # Validate dataset access for each chart.
+            # check_chart_data_access is the centralized data-level
+            # permission check that complements the class-level RBAC
+            # enforced by mcp_auth_hook.
+            from superset.mcp_service.auth import check_chart_data_access
+
+            for chart in chart_objects:
+                validation = check_chart_data_access(chart)
+                if not validation.is_valid:
+                    return GenerateDashboardResponse(
+                        dashboard=None,
+                        dashboard_url=None,
+                        error=(
+                            f"Chart {chart.id} is not accessible: {validation.error}"
+                        ),
+                    )
+
+        # Create dashboard layout with chart objects.
+        # If the caller provided an explicit position_json, use it verbatim;
+        # otherwise auto-generate a packed-grid layout from the chart ids.
         with event_logger.log_context(action="mcp.generate_dashboard.layout"):
-            layout = _create_dashboard_layout(chart_objects)
+            if request.position_json:
+                layout = request.position_json
+            else:
+                layout = _create_dashboard_layout(chart_objects)
 
         # Resolve dashboard title: use provided title or derive from chart names
         dashboard_title = (
@@ -226,51 +277,217 @@ def generate_dashboard(
             else _generate_title_from_charts(chart_objects)
         )
 
-        # Prepare dashboard data and create dashboard
+        # Create the dashboard directly with db.session instead of using
+        # CreateDashboardCommand.  The command's @transaction decorator
+        # may operate in a different SQLAlchemy scoped-session than the
+        # one g.user and chart ORM objects are bound to in the MCP
+        # context, causing "Object is already attached to session X
+        # (this is Y)" errors.  By re-querying all ORM objects in the
+        # tool's own db.session we keep everything in a single session.
+        from sqlalchemy.orm import subqueryload
+
+        from superset.models.dashboard import Dashboard
+
         with event_logger.log_context(action="mcp.generate_dashboard.db_write"):
-            dashboard_data = {
-                "dashboard_title": dashboard_title,
-                "slug": None,  # Let Superset auto-generate slug
-                "css": "",
-                "json_metadata": json.dumps(
-                    {
-                        "filter_scopes": {},
-                        "expanded_slices": {},
-                        "refresh_frequency": 0,
-                        "timed_refresh_immune_slices": [],
-                        "color_scheme": None,
-                        "label_colors": {},
-                        "shared_label_colors": {},
-                        "color_scheme_domain": [],
-                        "cross_filters_enabled": False,
-                        "native_filter_configuration": [],
-                        "global_chart_configuration": {
-                            "scope": {
-                                "rootPath": ["ROOT_ID"],
-                                "excluded": [],
-                            }
-                        },
-                        "chart_configuration": {},
+            # Build the default json_metadata that every new dashboard gets.
+            # When the caller supplied json_metadata_overrides, merge those
+            # in shallowly so the LLM can override label_colors / color_scheme
+            # / cross_filters_enabled without re-specifying the whole shape.
+            json_metadata_dict: Dict[str, Any] = {
+                "filter_scopes": {},
+                "expanded_slices": {},
+                "refresh_frequency": 0,
+                "timed_refresh_immune_slices": [],
+                "color_scheme": None,
+                "label_colors": {},
+                "shared_label_colors": {},
+                "color_scheme_domain": [],
+                "cross_filters_enabled": False,
+                "native_filter_configuration": [],
+                "global_chart_configuration": {
+                    "scope": {
+                        "rootPath": ["ROOT_ID"],
+                        "excluded": [],
                     }
-                ),
-                "position_json": json.dumps(layout),
-                "published": request.published,
-                "slices": chart_objects,  # Pass ORM objects, not IDs
+                },
+                "chart_configuration": {},
             }
+            if request.json_metadata_overrides:
+                json_metadata_dict.update(request.json_metadata_overrides)
+            json_metadata = json.dumps(json_metadata_dict)
 
-            if request.description:
-                dashboard_data["description"] = request.description
+            try:
+                dashboard = Dashboard()
+                dashboard.dashboard_title = dashboard_title
+                dashboard.json_metadata = json_metadata
+                dashboard.position_json = json.dumps(layout)
+                dashboard.published = request.published
 
-            # Create the dashboard using Superset's command pattern
-            command = CreateDashboardCommand(dashboard_data)
-            dashboard = command.run()
+                if request.description:
+                    dashboard.description = request.description
 
-        # Convert to our response format
-        from superset.mcp_service.dashboard.schemas import (
-            serialize_tag_object,
-            serialize_user_object,
+                if request.slug:
+                    dashboard.slug = request.slug
+
+                if request.css:
+                    dashboard.css = request.css
+
+                # Re-query the current user and charts directly in the
+                # current db.session.  g.user was loaded in a Flask
+                # app_context that has since been torn down (the
+                # middleware's ``with flask_app.app_context()`` exits
+                # before the tool function runs), so the User object
+                # is bound to a dead/different scoped session.
+                # Querying fresh avoids all cross-session errors.
+                from superset.extensions import security_manager
+
+                current_user = (
+                    db.session.query(security_manager.user_model)
+                    .filter_by(id=g.user.id)
+                    .first()
+                )
+                if current_user:
+                    from superset.subjects.utils import get_user_subject
+
+                    subj = get_user_subject(current_user.id)
+                    if subj:
+                        dashboard.editors = [subj]
+
+                fresh_charts = (
+                    db.session.query(Slice)
+                    .filter(Slice.id.in_(request.chart_ids))
+                    .order_by(Slice.id)
+                    .all()
+                )
+                dashboard.slices = fresh_charts
+
+                db.session.add(dashboard)
+                db.session.commit()  # pylint: disable=consider-using-transaction
+                try:
+                    db.session.refresh(dashboard)
+                except SQLAlchemyError:
+                    logger.warning(
+                        "Dashboard %s created but refresh failed; "
+                        "continuing with current values",
+                        dashboard.id,
+                        exc_info=True,
+                    )
+            except IntegrityError as db_err:
+                try:
+                    db.session.rollback()  # pylint: disable=consider-using-transaction
+                except SQLAlchemyError:
+                    logger.warning(
+                        "Database rollback failed during error handling",
+                        exc_info=True,
+                    )
+                logger.error("Dashboard creation failed: %s", db_err, exc_info=True)
+                # Slug uniqueness is the only IntegrityError a caller
+                # can fix on retry; surface a clear, structured message
+                # so the LLM can propose a different slug. Detection
+                # scans both the Postgres constraint name
+                # (``dashboards_slug_key``) and the SQLite phrasing
+                # (``UNIQUE constraint failed: dashboards.slug``).
+                err_text = str(db_err).lower()
+                if request.slug and "slug" in err_text:
+                    return GenerateDashboardResponse(
+                        dashboard=None,
+                        dashboard_url=None,
+                        error=(
+                            f"Slug {request.slug!r} is already in use by "
+                            "another dashboard. Choose a different slug "
+                            "and retry, or omit the slug to get a "
+                            "generated URL."
+                        ),
+                    )
+                return GenerateDashboardResponse(
+                    dashboard=None,
+                    dashboard_url=None,
+                    error=("Failed to create dashboard due to a database constraint."),
+                )
+            except SQLAlchemyError as db_err:
+                try:
+                    db.session.rollback()  # pylint: disable=consider-using-transaction
+                except SQLAlchemyError:
+                    logger.warning(
+                        "Database rollback failed during error handling",
+                        exc_info=True,
+                    )
+                logger.error(
+                    "Dashboard creation failed: %s",
+                    db_err,
+                    exc_info=True,
+                )
+                return GenerateDashboardResponse(
+                    dashboard=None,
+                    dashboard_url=None,
+                    error="Failed to create dashboard due to a database error.",
+                )
+
+        # ``dashboard.id`` is fixed at create-commit time; the post-commit
+        # re-fetch below either returns the same row or fails — in either
+        # outcome the URL doesn't change. Bind it once so the three
+        # downstream consumers (partial response, DashboardInfo.url,
+        # response.dashboard_url) share a single source. Prefer the slug
+        # over the id to match ``update_dashboard``'s canonical URL shape.
+        dashboard_url = (
+            f"{get_superset_base_url()}/dashboard/{dashboard.slug or dashboard.id}/"
         )
 
+        # Re-fetch with eager-loaded relationships for serialization.
+        # The preceding commit may invalidate the session in multi-tenant
+        # environments, causing "Can't reconnect until invalid transaction
+        # is rolled back".  Wrap the DAO re-fetch in try/except; on failure,
+        # return a minimal response using only scalar attributes that are
+        # already loaded — relationship fields (editors, tags, slices) would
+        # trigger lazy-loading on the same dead session.
+        from superset.daos.dashboard import DashboardDAO
+
+        try:
+            dashboard = (
+                DashboardDAO.find_by_id(
+                    dashboard.id,
+                    query_options=[
+                        subqueryload(Dashboard.slices).subqueryload(Slice.editors),
+                        subqueryload(Dashboard.slices).subqueryload(Slice.tags),
+                        subqueryload(Dashboard.editors),
+                        subqueryload(Dashboard.tags),
+                    ],
+                )
+                or dashboard
+            )
+        except SQLAlchemyError:
+            logger.warning(
+                "Re-fetch of dashboard %s failed; returning minimal response",
+                dashboard.id,
+                exc_info=True,
+            )
+            try:
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+            except SQLAlchemyError:
+                logger.warning(
+                    "Database rollback failed during dashboard re-fetch error handling",
+                    exc_info=True,
+                )
+            return GenerateDashboardResponse(
+                dashboard=DashboardInfo(
+                    id=dashboard.id,
+                    dashboard_title=dashboard.dashboard_title,
+                    url=dashboard_url,
+                    chart_count=len(request.chart_ids),
+                    published=dashboard.published,
+                ),
+                dashboard_url=dashboard_url,
+                error=None,
+                warnings=sanitization_warnings
+                + [
+                    "Dashboard created but response metadata is partial "
+                    "(post-create refresh failed); some fields are omitted. "
+                    "Call get_dashboard_info to retrieve the full record."
+                ],
+            )
+
+        # Convert to our response format
+        include_data_model_metadata = user_can_view_data_model_metadata()
         dashboard_info = DashboardInfo(
             id=dashboard.id,
             dashboard_title=dashboard.dashboard_title,
@@ -279,39 +496,61 @@ def generate_dashboard(
             published=dashboard.published,
             created_on=dashboard.created_on,
             changed_on=dashboard.changed_on,
-            created_by=dashboard.created_by.username if dashboard.created_by else None,
-            changed_by=dashboard.changed_by.username if dashboard.changed_by else None,
+            created_on_humanized=humanize_timestamp(dashboard.created_on),
+            changed_on_humanized=humanize_timestamp(dashboard.changed_on),
+            created_by=dashboard.created_by_name or None,
+            changed_by=dashboard.changed_by_name or None,
             uuid=str(dashboard.uuid) if dashboard.uuid else None,
-            url=f"{get_superset_base_url()}/superset/dashboard/{dashboard.id}/",
+            url=dashboard_url,
             chart_count=len(request.chart_ids),
-            owners=[
-                serialize_user_object(owner)
-                for owner in getattr(dashboard, "owners", [])
-                if serialize_user_object(owner) is not None
+            editors=[
+                serialize_subject_object(editor)
+                for editor in getattr(dashboard, "editors", [])
+                if serialize_subject_object(editor) is not None
             ],
             tags=[
                 serialize_tag_object(tag)
                 for tag in getattr(dashboard, "tags", [])
                 if serialize_tag_object(tag) is not None
             ],
-            roles=[],  # Dashboard roles not typically set at creation
-            charts=[],  # Chart details not needed in response
+            charts=[
+                obj
+                for chart in getattr(dashboard, "slices", [])
+                if (
+                    obj := serialize_chart_summary(
+                        chart,
+                        include_data_model_metadata=include_data_model_metadata,
+                    )
+                )
+                is not None
+            ],
         )
-
-        dashboard_url = f"{get_superset_base_url()}/superset/dashboard/{dashboard.id}/"
 
         logger.info(
             "Created dashboard %s with %s charts", dashboard.id, len(request.chart_ids)
         )
 
         return GenerateDashboardResponse(
-            dashboard=dashboard_info, dashboard_url=dashboard_url, error=None
+            dashboard=dashboard_info,
+            dashboard_url=dashboard_url,
+            error=None,
+            warnings=sanitization_warnings,
         )
 
-    except Exception as e:
-        logger.error("Error creating dashboard: %s", e)
+    except (SQLAlchemyError, ValueError, AttributeError, ValidationError) as e:
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            logger.warning(
+                "Database rollback failed during error handling", exc_info=True
+            )
+        # ``str(e)`` on SQLAlchemyError frequently contains table/column/
+        # constraint names that should not leak to the MCP response.
+        # The raw exception is captured above via ``logger.error`` with
+        # ``exc_info=True``; the response surfaces a generic message.
+        logger.error("Error creating dashboard: %s", e, exc_info=True)
         return GenerateDashboardResponse(
             dashboard=None,
             dashboard_url=None,
-            error=f"Failed to create dashboard: {str(e)}",
+            error="Failed to create dashboard due to an internal error.",
         )

@@ -17,7 +17,14 @@
  * under the License.
  */
 
-import { act, render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import { testWithId } from 'src/utils/testUtils';
 import { Preset, makeApi } from '@superset-ui/core';
@@ -33,7 +40,7 @@ import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 import * as dataMaskActions from 'src/dataMask/actions';
 
-jest.useFakeTimers();
+jest.useFakeTimers({ advanceTimers: true });
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -387,6 +394,15 @@ test('FilterBar apply button is disabled after creating a filter', async () => {
   userEvent.click(screen.getByTestId(getTestId('collapsable')));
   userEvent.click(screen.getByLabelText('setting'));
   userEvent.click(screen.getByText('Add or edit filters and controls'));
+
+  // First add a filter via the dropdown (modal now shows empty state by default)
+  const dropdownButton = screen.getByTestId('new-item-dropdown-button');
+  fireEvent.mouseEnter(dropdownButton);
+  const addFilterMenuItem = await screen.findByRole('menuitem', {
+    name: /add filter/i,
+  });
+  fireEvent.click(addFilterMenuItem);
+
   userEvent.click(screen.getByText('Value'));
   userEvent.click(screen.getByText('Time range'));
   userEvent.type(
@@ -471,7 +487,7 @@ test('FilterBar renders correctly when filter has complete extraFormData', async
   expect(screen.getByTestId(getTestId('filter-icon'))).toBeInTheDocument();
 });
 
-test('handleClearAll dispatches updateDataMask with value undefined for filter_select', async () => {
+test('Clear All stages filter_select clear without dispatching until Apply', async () => {
   const filterId = 'NATIVE_FILTER-clear-select';
   const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
   const selectFilter = createFilter({
@@ -498,7 +514,9 @@ test('handleClearAll dispatches updateDataMask with value undefined for filter_s
       activeTabs: ['ROOT_ID'],
     },
     dataMask: {
-      [filterId]: createDataMask(filterId, ['East']),
+      [filterId]: createDataMask(filterId, ['East'], {
+        filters: [{ col: 'region', op: 'IN', val: ['East'] }],
+      }),
     },
     nativeFilters: {
       filters: { [filterId]: selectFilter },
@@ -518,14 +536,24 @@ test('handleClearAll dispatches updateDataMask with value undefined for filter_s
     userEvent.click(clearBtn);
   });
 
+  // Clear All must not dispatch — staging only
+  expect(updateDataMaskSpy).not.toHaveBeenCalled();
+
+  // Apply commits the staged clear
+  const applyBtn = screen.getByTestId(getTestId('apply-button'));
+  expect(applyBtn).not.toBeDisabled();
+  await act(async () => {
+    userEvent.click(applyBtn);
+  });
   expect(updateDataMaskSpy).toHaveBeenCalledWith(filterId, {
-    filterState: { value: undefined },
+    id: filterId,
+    filterState: { value: undefined, validateStatus: undefined },
     extraFormData: {},
   });
   updateDataMaskSpy.mockRestore();
 });
 
-test('handleClearAll dispatches updateDataMask with [null, null] for filter_range', async () => {
+test('Clear All stages filter_range clear with [null, null], dispatched on Apply', async () => {
   fetchMock.post('glob:*/api/v1/chart/data', {
     result: [{ data: [{ min: 0, max: 100 }] }],
   });
@@ -555,7 +583,9 @@ test('handleClearAll dispatches updateDataMask with [null, null] for filter_rang
       activeTabs: ['ROOT_ID'],
     },
     dataMask: {
-      [filterId]: createDataMask(filterId, [10, 50]),
+      [filterId]: createDataMask(filterId, [10, 50], {
+        filters: [{ col: 'age', op: '>=', val: 10 }],
+      }),
     },
     nativeFilters: {
       filters: { [filterId]: rangeFilter },
@@ -575,14 +605,21 @@ test('handleClearAll dispatches updateDataMask with [null, null] for filter_rang
     userEvent.click(clearBtn);
   });
 
+  expect(updateDataMaskSpy).not.toHaveBeenCalled();
+
+  const applyBtn = screen.getByTestId(getTestId('apply-button'));
+  await act(async () => {
+    userEvent.click(applyBtn);
+  });
   expect(updateDataMaskSpy).toHaveBeenCalledWith(filterId, {
-    filterState: { value: [null, null] },
+    id: filterId,
+    filterState: { value: [null, null], validateStatus: undefined },
     extraFormData: {},
   });
   updateDataMaskSpy.mockRestore();
 });
 
-test('handleClearAll only dispatches for filters present in dataMask', async () => {
+test('Clear All + Apply only dispatches for filters present in dataMask', async () => {
   const idInMask = 'NATIVE_FILTER-has-value';
   const idNotInMask = 'NATIVE_FILTER-no-value';
   const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
@@ -616,7 +653,9 @@ test('handleClearAll only dispatches for filters present in dataMask', async () 
       activeTabs: ['ROOT_ID'],
     },
     dataMask: {
-      [idInMask]: createDataMask(idInMask, ['v']),
+      [idInMask]: createDataMask(idInMask, ['v'], {
+        filters: [{ col: 'x', op: 'IN', val: ['v'] }],
+      }),
     },
     nativeFilters: {
       filters: {
@@ -637,10 +676,16 @@ test('handleClearAll only dispatches for filters present in dataMask', async () 
   await act(async () => {
     userEvent.click(clearBtn);
   });
+  expect(updateDataMaskSpy).not.toHaveBeenCalled();
 
+  const applyBtn = screen.getByTestId(getTestId('apply-button'));
+  await act(async () => {
+    userEvent.click(applyBtn);
+  });
   expect(updateDataMaskSpy).toHaveBeenCalledTimes(1);
   expect(updateDataMaskSpy).toHaveBeenCalledWith(idInMask, {
-    filterState: { value: undefined },
+    id: idInMask,
+    filterState: { value: undefined, validateStatus: undefined },
     extraFormData: {},
   });
   updateDataMaskSpy.mockRestore();
@@ -775,18 +820,342 @@ test('FilterBar Clear All only clears in-scope filters, not out-of-scope ones', 
   await act(async () => {
     userEvent.click(clearButton);
   });
+  expect(updateDataMaskSpy).not.toHaveBeenCalled();
 
-  // Verify only the in-scope filter was cleared, not the out-of-scope ones
-  const clearedFilterIds = updateDataMaskSpy.mock.calls.map(call => call[0]);
-  expect(clearedFilterIds).toContain(inScopeFilterId);
-  expect(clearedFilterIds).not.toContain(outOfScopeRequiredFilterId);
-  expect(clearedFilterIds).not.toContain(outOfScopeNonRequiredFilterId);
+  // After Apply: only the in-scope filter was cleared. Out-of-scope filters
+  // retain their original values (Apply re-dispatches them unchanged).
+  const applyButton = screen.getByTestId(getTestId('apply-button'));
+  await act(async () => {
+    userEvent.click(applyButton);
+  });
 
-  // Verify the in-scope filter was cleared with the correct value
   expect(updateDataMaskSpy).toHaveBeenCalledWith(inScopeFilterId, {
-    filterState: { value: undefined },
+    id: inScopeFilterId,
+    filterState: { value: undefined, validateStatus: undefined },
     extraFormData: {},
   });
 
+  // Out-of-scope filters keep their existing values; not cleared
+  const outOfScopeRequiredCall = updateDataMaskSpy.mock.calls.find(
+    call => call[0] === outOfScopeRequiredFilterId,
+  );
+  expect(outOfScopeRequiredCall?.[1]?.filterState?.value).toEqual(['value2']);
+  const outOfScopeNonRequiredCall = updateDataMaskSpy.mock.calls.find(
+    call => call[0] === outOfScopeNonRequiredFilterId,
+  );
+  expect(outOfScopeNonRequiredCall?.[1]?.filterState?.value).toEqual([
+    'value3',
+  ]);
+
   updateDataMaskSpy.mockRestore();
+});
+
+test('Clear All on a required filter disables Apply via validateStatus', async () => {
+  const filterId = 'NATIVE_FILTER-required-clear';
+  const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+  const requiredFilter = createFilter({
+    id: filterId,
+    name: 'Required Region',
+    filterType: 'filter_select',
+    targets: [{ datasetId: 7, column: { name: 'region' } }],
+    controlValues: { enableEmptyFilter: true },
+    chartsInScope: [18],
+  });
+  const state = {
+    ...stateWithoutNativeFilters,
+    dashboardInfo: {
+      id: 1,
+      dash_edit_perm: true,
+      filterBarOrientation: FilterBarOrientation.Vertical,
+      metadata: {
+        native_filter_configuration: [requiredFilter],
+        chart_configuration: {},
+      },
+    },
+    dashboardState: {
+      ...stateWithoutNativeFilters.dashboardState,
+      activeTabs: ['ROOT_ID'],
+    },
+    dataMask: {
+      [filterId]: createDataMask(filterId, ['East'], {
+        filters: [{ col: 'region', op: 'IN', val: ['East'] }],
+      }),
+    },
+    nativeFilters: {
+      filters: { [filterId]: requiredFilter },
+      filtersState: {},
+    },
+  };
+
+  const props = createOpenedBarProps();
+  renderFilterBar(props, state);
+  await act(async () => {
+    jest.advanceTimersByTime(300);
+  });
+
+  const clearBtn = screen.getByTestId(getTestId('clear-button'));
+  await act(async () => {
+    userEvent.click(clearBtn);
+  });
+
+  // No dispatch yet; Apply should be disabled because the required filter is empty
+  expect(updateDataMaskSpy).not.toHaveBeenCalled();
+  expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
+  updateDataMaskSpy.mockRestore();
+});
+
+test('FilterBar renders the configured filter name in the bar', async () => {
+  const filterId = 'NATIVE_FILTER-name-render';
+  const filter = createFilter({
+    id: filterId,
+    name: 'Region',
+    filterType: 'filter_select',
+    targets: [{ datasetId: 7, column: { name: 'region' } }],
+    chartsInScope: [18],
+  });
+  const state = {
+    ...stateWithoutNativeFilters,
+    dashboardInfo: {
+      id: 1,
+      dash_edit_perm: true,
+      filterBarOrientation: FilterBarOrientation.Vertical,
+      metadata: {
+        native_filter_configuration: [filter],
+        chart_configuration: {},
+      },
+    },
+    dashboardState: {
+      ...stateWithoutNativeFilters.dashboardState,
+      activeTabs: ['ROOT_ID'],
+    },
+    dataMask: { [filterId]: createDataMask(filterId, undefined, {}) },
+    nativeFilters: {
+      filters: { [filterId]: filter },
+      filtersState: {},
+    },
+  };
+
+  const props = createOpenedBarProps();
+  renderFilterBar(props, state);
+  await act(async () => {
+    jest.advanceTimersByTime(300);
+  });
+
+  expect(await screen.findByText('Region')).toBeInTheDocument();
+});
+
+test('Clicking the gear "Add or edit filters and controls" item opens the FiltersConfigModal', async () => {
+  const props = createOpenedBarProps();
+  renderFilterBar(props, stateWithoutNativeFilters);
+  await act(async () => {
+    jest.advanceTimersByTime(100);
+  });
+
+  const gear = await screen.findByTestId('filterbar-orientation-icon');
+  userEvent.click(gear);
+
+  const addEditItem = await screen.findByText(
+    'Add or edit filters and controls',
+  );
+  userEvent.click(addEditItem);
+
+  expect(await screen.findByTestId('filter-modal')).toBeInTheDocument();
+});
+
+test('FilterBar with orientation=Horizontal routes to Horizontal layout instead of Vertical', async () => {
+  // Migrated from the disabled Cypress spec _skip.horizontalFilterBar.test.ts:
+  // proves the orientation prop selects the Horizontal subtree. The settings
+  // gear (FilterBarSettings) is rendered only by Horizontal.tsx — Vertical.tsx
+  // does not mount it — so its presence is a horizontal-exclusive positive
+  // signal that won't false-pass if vertical heading copy is tuned. We flush
+  // all pending fake timers to clear useInitialization's setTimeout
+  // regardless of the production timeout literal.
+  const filter = createFilter({
+    id: 'NATIVE_FILTER-h1',
+    name: 'Horizontal filter',
+  });
+  const dataMask = createDataMask(filter.id);
+  const state = createStateWithFilter(filter, dataMask, {
+    filterBarOrientation: FilterBarOrientation.Horizontal,
+  });
+
+  render(<FilterBar orientation={FilterBarOrientation.Horizontal} />, {
+    initialState: state,
+    useDnd: true,
+    useRedux: true,
+    useRouter: true,
+  });
+
+  await act(async () => {
+    jest.runAllTimers();
+  });
+
+  expect(screen.getByRole('img', { name: 'setting' })).toBeInTheDocument();
+});
+
+test('FilterBar with orientation=Horizontal and no filters shows empty state alongside default actions', async () => {
+  // Covers the second half of sc-107387 task #107390 ("show all default
+  // actions in horizontal mode"). The original Cypress spec asserted four
+  // affordances render when the bar is horizontal with no filters: the
+  // empty-state copy, the settings gear, the action-buttons block, and the
+  // create-filter entry inside the gear menu. The dropdown contents are
+  // already covered by FilterBarSettings.test.tsx; here we keep scope to
+  // the layout-level affordances that are exclusive to Horizontal.tsx.
+  // Reload-persistence (the rest of #107390) is out of RTL scope and stays
+  // queued for Playwright.
+  const state = {
+    ...stateWithoutNativeFilters,
+    dashboardInfo: {
+      id: 1,
+      dash_edit_perm: true,
+      metadata: {
+        native_filter_configuration: [],
+        filterBarOrientation: FilterBarOrientation.Horizontal,
+      },
+    },
+    dashboardState: {
+      ...stateWithoutNativeFilters.dashboardState,
+      activeTabs: ['ROOT_ID'],
+    },
+    nativeFilters: { filters: {}, filtersState: {} },
+  };
+
+  render(<FilterBar orientation={FilterBarOrientation.Horizontal} />, {
+    initialState: state,
+    useDnd: true,
+    useRedux: true,
+    useRouter: true,
+  });
+
+  await act(async () => {
+    jest.runAllTimers();
+  });
+
+  expect(screen.getByTestId('horizontal-filterbar-empty')).toHaveTextContent(
+    'No filters are currently added to this dashboard.',
+  );
+  expect(screen.getByRole('img', { name: 'setting' })).toBeInTheDocument();
+  expect(screen.getByTestId('filterbar-action-buttons')).toBeInTheDocument();
+});
+
+test('required filter with a default value auto-applies on load without touching other filters', async () => {
+  // Regression proof for #34617: a dashboard with a required filter that has
+  // a default value used to leave the default un-applied (and Apply blocked
+  // by a stale validateStatus) until the user touched every filter. Since the
+  // auto-apply logic introduced by #36927, FilterBar dispatches the derived
+  // dataMask itself as soon as the filter control finishes loading — the user
+  // never has to touch the other filters, or the filter bar at all.
+  const requiredId = 'NATIVE_FILTER-required-with-default';
+  const untouchedId = 'NATIVE_FILTER-untouched';
+  const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+
+  fetchMock.post(
+    'glob:*/api/v1/chart/data',
+    {
+      result: [
+        {
+          data: [{ region: 'East' }, { region: 'West' }],
+          colnames: ['region'],
+          coltypes: [1],
+          applied_filters: [],
+        },
+      ],
+    },
+    { name: 'chart-data-issue-34617' },
+  );
+
+  const requiredFilter = createFilter({
+    id: requiredId,
+    name: 'Required Region',
+    filterType: 'filter_select',
+    targets: [{ datasetId: 7, column: { name: 'region' } }],
+    controlValues: { enableEmptyFilter: true },
+    defaultDataMask: { filterState: { value: ['East'] }, extraFormData: {} },
+    chartsInScope: [18],
+  });
+  const untouchedFilter = createFilter({
+    id: untouchedId,
+    name: 'Untouched Color',
+    filterType: 'filter_select',
+    targets: [{ datasetId: 7, column: { name: 'color' } }],
+    chartsInScope: [18],
+  });
+
+  const state = {
+    ...stateWithoutNativeFilters,
+    dashboardInfo: {
+      id: 1,
+      dash_edit_perm: true,
+      filterBarOrientation: FilterBarOrientation.Vertical,
+      metadata: {
+        native_filter_configuration: [requiredFilter, untouchedFilter],
+        chart_configuration: {},
+      },
+    },
+    dashboardState: {
+      ...stateWithoutNativeFilters.dashboardState,
+      activeTabs: ['ROOT_ID'],
+    },
+    // The default value has been hydrated into the applied dataMask, but its
+    // extraFormData has not been derived yet — the state right after a
+    // dashboard with default filter values loads.
+    dataMask: {
+      [requiredId]: createDataMask(requiredId, ['East'], {}),
+    },
+    nativeFilters: {
+      filters: {
+        [requiredId]: requiredFilter,
+        [untouchedId]: untouchedFilter,
+      },
+      filtersState: {},
+    },
+  };
+
+  const props = createOpenedBarProps();
+  renderFilterBar(props, state);
+
+  // Flush the filter control's data fetch and the plugin's initialization
+  // effects (same timer pattern as the other tests in this file).
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  // Once the filter control loads its values and emits the dataMask derived
+  // from the default value, FilterBar auto-applies it to Redux instead of
+  // holding it hostage behind a disabled Apply button.
+  await waitFor(() => {
+    expect(updateDataMaskSpy).toHaveBeenCalledWith(
+      requiredId,
+      expect.objectContaining({
+        extraFormData: {
+          filters: [{ col: 'region', op: 'IN', val: ['East'] }],
+        },
+        filterState: expect.objectContaining({ value: ['East'] }),
+      }),
+    );
+  });
+
+  // The other filter was never touched, and no dispatch was needed for it.
+  expect(updateDataMaskSpy.mock.calls.every(([id]) => id === requiredId)).toBe(
+    true,
+  );
+
+  // Nothing is left pending: the default value is already applied, so the
+  // Apply button is not blocking on untouched filters.
+  expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
+
+  updateDataMaskSpy.mockRestore();
+});
+
+test('FilterBar with orientation=Vertical renders Vertical layout (sanity counterpart to the horizontal routing test)', () => {
+  // Paired control for the routing test above: with Vertical orientation,
+  // the settings gear must NOT be present (Vertical.tsx does not render
+  // FilterBarSettings). Confirms the routing signal is horizontal-exclusive,
+  // not a coincidence of when timers fire.
+  const props = createClosedBarProps();
+  renderFilterBar(props);
+  expect(screen.getByText('Filters and controls')).toBeInTheDocument();
+  expect(
+    screen.queryByRole('img', { name: 'setting' }),
+  ).not.toBeInTheDocument();
 });

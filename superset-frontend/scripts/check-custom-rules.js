@@ -198,6 +198,62 @@ function checkI18nTemplates(ast, filepath) {
 }
 
 /**
+ * Check for eager t()/tn() calls in `label` / `description` properties of
+ * config objects evaluated at module load (e.g., controlPanel files). The
+ * translation is captured at module-evaluation time, before i18n has loaded,
+ * and never updates when the user switches language. The fix is to wrap the
+ * call in an arrow function: `label: () => t('Foo')`.
+ *
+ * Limited to controlPanel files because that's where this pattern is
+ * problematic at scale; t() inside JSX or component bodies is evaluated at
+ * render time and works fine.
+ */
+const EAGER_T_WATCHED_PROPS = new Set(['label', 'description']);
+
+function checkEagerTranslationsInConfig(ast, filepath) {
+  if (!/controlPanel\.(ts|tsx|js|jsx)$/.test(filepath)) return;
+
+  traverse(ast, {
+    ObjectProperty(path) {
+      const { node } = path;
+      if (node.computed || node.shorthand) return;
+
+      const keyName =
+        node.key.type === 'Identifier'
+          ? node.key.name
+          : node.key.type === 'StringLiteral'
+            ? node.key.value
+            : null;
+      if (!keyName || !EAGER_T_WATCHED_PROPS.has(keyName)) return;
+
+      const { value } = node;
+      if (
+        value.type !== 'CallExpression' ||
+        value.callee.type !== 'Identifier' ||
+        (value.callee.name !== 't' && value.callee.name !== 'tn')
+      ) {
+        return;
+      }
+
+      if (hasEslintDisable(path, 'i18n-strings/no-eager-t-in-config')) return;
+
+      // Warn (not error) because there are many pre-existing violations.
+      // The ESLint plugin provides an autofix so authors can sweep files
+      // as they touch them. Promote to error once the codebase is clean.
+      // eslint-disable-next-line no-console
+      console.warn(
+        `${YELLOW}⚠${RESET} ${filepath}:${node.loc?.start.line ?? '?'}: ` +
+          `Eager \`${keyName}: ${value.callee.name}(...)\` is evaluated at ` +
+          `module load, before i18n is initialized. Wrap in an arrow ` +
+          `function: \`${keyName}: () => ${value.callee.name}(...)\`. ` +
+          `Run \`eslint --fix\` to autofix.`,
+      );
+      warningCount += 1;
+    },
+  });
+}
+
+/**
  * Props that should contain translated strings
  */
 const TRANSLATABLE_PROPS = new Set([
@@ -565,6 +621,7 @@ function processFile(filepath) {
     checkNoLiteralColors(ast, filepath);
     checkNoFaIcons(ast, filepath);
     checkI18nTemplates(ast, filepath);
+    checkEagerTranslationsInConfig(ast, filepath);
     checkUntranslatedStrings(ast, filepath);
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -573,6 +630,35 @@ function processFile(filepath) {
     );
     warningCount += 1;
   }
+}
+
+/**
+ * Application source trees that must be authored in TypeScript. Matches the
+ * top-level `src/` directory as well as each package/plugin `src/` directory.
+ */
+const TS_ONLY_SOURCE_PATTERN =
+  /^(src|packages\/[^/]+\/src|plugins\/[^/]+\/src)\//;
+
+/**
+ * Enforce the TypeScript-only frontend convention: no `.js`/`.jsx` files may be
+ * added under the application source trees (including test files). Build
+ * artifacts and root-level config files (e.g. `.storybook/preview.jsx`,
+ * `webpack.config.js`) live outside these trees and are intentionally allowed.
+ *
+ * @param {string[]} candidateFiles paths relative to `superset-frontend/`
+ */
+function checkTypeScriptOnlySource(candidateFiles) {
+  candidateFiles.forEach(file => {
+    if (TS_ONLY_SOURCE_PATTERN.test(file) && /\.(js|jsx)$/.test(file)) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `${RED}✗${RESET} ${file}: frontend source must be TypeScript. ` +
+          `Rename to .ts/.tsx (the codebase is mid-migration to full ` +
+          `TypeScript; no new .js/.jsx files in src/).`,
+      );
+      errorCount += 1;
+    }
+  });
 }
 
 /**
@@ -600,6 +686,7 @@ function main() {
     /\/lib\//,
     /\/dist\//,
     /plugins\/legacy-/, // Legacy plugins can have old color patterns
+    /plugin-chart-point-cluster-map\/src\/controlPanel/, // Data visualization color choices
     /\/vendor\//, // Third-party vendor code
     /spec\/fixtures\//, // Test fixtures
     /theme\/exampleThemes/, // Theme examples legitimately have colors
@@ -607,6 +694,22 @@ function main() {
     /\/theme\/utils/, // Theme utility functions legitimately work with colors
     /packages\/superset-ui-core\/src\/color\/index\.ts/, // Core brand color constants
   ];
+
+  // Enforce TypeScript-only source. Run this on the raw file list (before the
+  // ignore patterns below strip out tests/stories) so that e.g. a new
+  // `*.test.jsx` is still rejected.
+  const tsOnlyCandidates =
+    args.length === 0
+      ? glob.sync('{src,packages/*/src,plugins/*/src}/**/*.{js,jsx}', {
+          ignore: [
+            '**/node_modules/**',
+            '**/esm/**',
+            '**/lib/**',
+            '**/dist/**',
+          ],
+        })
+      : args.map(f => f.replace(/^superset-frontend\//, ''));
+  checkTypeScriptOnlySource(tsOnlyCandidates);
 
   // If no files specified, check all
   if (files.length === 0) {
@@ -628,6 +731,7 @@ function main() {
         '**/lib/**', // Build artifacts
         '**/dist/**', // Build artifacts
         'plugins/legacy-*/**', // Legacy plugins
+        'plugins/plugin-chart-point-cluster-map/src/controlPanel.*', // Data visualization color choices
         '**/vendor/**',
         'spec/fixtures/**',
         '**/theme/exampleThemes/**',
@@ -647,24 +751,25 @@ function main() {
   if (files.length === 0) {
     // eslint-disable-next-line no-console
     console.log('No files to check.');
-    return;
+  } else {
+    // eslint-disable-next-line no-console
+    console.log(
+      `Checking ${files.length} files for Superset custom rules...\n`,
+    );
+
+    files.forEach(file => {
+      // Resolve the file path
+      const resolvedPath = path.resolve(file);
+      if (fs.existsSync(resolvedPath)) {
+        processFile(resolvedPath);
+      } else if (fs.existsSync(file)) {
+        processFile(file);
+      }
+    });
   }
 
   // eslint-disable-next-line no-console
-  console.log(`Checking ${files.length} files for Superset custom rules...\\n`);
-
-  files.forEach(file => {
-    // Resolve the file path
-    const resolvedPath = path.resolve(file);
-    if (fs.existsSync(resolvedPath)) {
-      processFile(resolvedPath);
-    } else if (fs.existsSync(file)) {
-      processFile(file);
-    }
-  });
-
-  // eslint-disable-next-line no-console
-  console.log(`\\n${errorCount} errors, ${warningCount} warnings`);
+  console.log(`\n${errorCount} errors, ${warningCount} warnings`);
 
   if (errorCount > 0) {
     process.exit(1);
@@ -681,4 +786,5 @@ module.exports = {
   checkNoFaIcons,
   checkI18nTemplates,
   checkUntranslatedStrings,
+  checkTypeScriptOnlySource,
 };

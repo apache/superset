@@ -23,6 +23,7 @@ import {
 } from '../../../../spec/helpers/testing-library';
 import { AxisType } from '@superset-ui/core';
 import type { EChartsCoreOption } from 'echarts/core';
+import type { ECElementEvent } from 'echarts/types/src/util/types';
 import type { ReactNode } from 'react';
 import {
   LegendOrientation,
@@ -156,9 +157,9 @@ const defaultFormData: EchartsTimeseriesFormData & {
   showLegend: false,
   legendSort: null,
   xAxisTitle: '',
-  xAxisTitleMargin: 0,
+  xAxisTitleMargin: 40,
   yAxisTitle: '',
-  yAxisTitleMargin: 15,
+  yAxisTitleMargin: 50,
   yAxisTitlePosition: '',
   time_range: 'No filter',
   granularity: undefined,
@@ -202,11 +203,15 @@ const defaultProps: TimeseriesChartTransformedProps = {
   onFocusedSeries: jest.fn(),
 };
 
-function getLatestHeight() {
+function getLatestEchartProps() {
   const lastCall = mockEchart.mock.calls.at(-1);
   expect(lastCall).toBeDefined();
   const [props] = lastCall as [EchartsProps];
-  return props.height;
+  return props;
+}
+
+function getLatestHeight() {
+  return getLatestEchartProps().height;
 }
 
 test('observes extra control height changes when ResizeObserver is available', async () => {
@@ -335,6 +340,7 @@ test('emits cross-filter on X-axis value when no dimensions and categorical X-ax
   const clickHandler = props.eventHandlers?.click;
   if (clickHandler) {
     clickHandler({
+      componentType: 'series',
       seriesName: 'Sales', // This is the metric name
       data: ['Product A', 100], // X-axis value is 'Product A'
       name: 'Product A',
@@ -361,6 +367,149 @@ test('emits cross-filter on X-axis value when no dimensions and categorical X-ax
   }
 });
 
+test('emits cross-filter on category value for horizontal bar clicks', async () => {
+  const setDataMaskMock = jest.fn();
+
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      emitCrossFilters
+      setDataMask={setDataMaskMock}
+      formData={{
+        ...defaultFormData,
+        orientation: OrientationType.Horizontal,
+      }}
+      xAxis={{
+        label: 'category_column',
+        type: AxisType.Category,
+      }}
+    />,
+  );
+
+  const clickHandler = getLatestEchartProps().eventHandlers?.click;
+  expect(clickHandler).toBeDefined();
+  clickHandler?.({
+    componentType: 'series',
+    seriesName: 'Sales',
+    data: [100, 'Product A'],
+    name: 'Product A',
+    dataIndex: 0,
+  });
+
+  await waitFor(
+    () => {
+      expect(setDataMaskMock).toHaveBeenCalled();
+    },
+    { timeout: 500 },
+  );
+
+  expect(setDataMaskMock.mock.calls[0][0].extraFormData.filters).toEqual([
+    {
+      col: 'category_column',
+      op: 'IN',
+      val: ['Product A'],
+    },
+  ]);
+});
+
+test('uses rendered categorical axis for query event handlers', () => {
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      xAxis={{
+        label: 'category_column',
+        type: AxisType.Category,
+      }}
+    />,
+  );
+
+  expect(getLatestEchartProps().queryEventHandlers?.[0].query).toBe(
+    'xAxis.category',
+  );
+
+  cleanup();
+  mockEchart.mockReset();
+
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      formData={{
+        ...defaultFormData,
+        orientation: OrientationType.Horizontal,
+      }}
+      xAxis={{
+        label: 'category_column',
+        type: AxisType.Category,
+      }}
+    />,
+  );
+
+  expect(getLatestEchartProps().queryEventHandlers?.[0].query).toBe(
+    'yAxis.category',
+  );
+});
+
+test('emits cross-filter from horizontal categorical axis label clicks', () => {
+  const setDataMaskMock = jest.fn();
+
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      emitCrossFilters
+      setDataMask={setDataMaskMock}
+      formData={{
+        ...defaultFormData,
+        orientation: OrientationType.Horizontal,
+      }}
+      xAxis={{
+        label: 'category_column',
+        type: AxisType.Category,
+      }}
+    />,
+  );
+
+  const labelClickHandler =
+    getLatestEchartProps().queryEventHandlers?.[0].handler;
+  expect(labelClickHandler).toBeDefined();
+  labelClickHandler?.({
+    value: 'Product A',
+  } as ECElementEvent);
+
+  expect(setDataMaskMock.mock.calls[0][0].extraFormData.filters).toEqual([
+    {
+      col: 'category_column',
+      op: 'IN',
+      val: ['Product A'],
+    },
+  ]);
+});
+
+test('does not emit duplicate cross-filter for generic axis label clicks', async () => {
+  const setDataMaskMock = jest.fn();
+
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      emitCrossFilters
+      setDataMask={setDataMaskMock}
+      xAxis={{
+        label: 'category_column',
+        type: AxisType.Category,
+      }}
+    />,
+  );
+
+  const clickHandler = getLatestEchartProps().eventHandlers?.click;
+  expect(clickHandler).toBeDefined();
+  clickHandler?.({
+    componentType: 'xAxis',
+    name: 'Product A',
+  });
+
+  await new Promise(resolve => setTimeout(resolve, 400));
+  expect(setDataMaskMock).not.toHaveBeenCalled();
+});
+
 test('does not emit cross-filter when no dimensions and time-based X-axis', async () => {
   const setDataMaskMock = jest.fn();
 
@@ -385,6 +534,7 @@ test('does not emit cross-filter when no dimensions and time-based X-axis', asyn
   const clickHandler = props.eventHandlers?.click;
   if (clickHandler) {
     clickHandler({
+      componentType: 'series',
       seriesName: 'Sales',
       data: [1609459200000, 100], // Timestamp
       name: '2021-01-01',
@@ -394,5 +544,114 @@ test('does not emit cross-filter when no dimensions and time-based X-axis', asyn
     // Wait a bit and verify setDataMask was NOT called
     await new Promise(resolve => setTimeout(resolve, 400));
     expect(setDataMaskMock).not.toHaveBeenCalled();
+  }
+});
+
+// Test for issue #41102: horizontal bar cross-filter must use the category
+// value, not the metric. For horizontal bars the data tuple is value-first
+// (e.g. [100, 'Product A']), so relying on data[0] emitted the metric value.
+test('emits cross-filter on the category value for a horizontal categorical bar', async () => {
+  const setDataMaskMock = jest.fn();
+
+  const propsWithHorizontalXAxis: TimeseriesChartTransformedProps = {
+    ...defaultProps,
+    emitCrossFilters: true,
+    setDataMask: setDataMaskMock,
+    formData: {
+      ...defaultFormData,
+      orientation: OrientationType.Horizontal,
+    },
+    groupby: [], // No dimensions
+    xAxis: {
+      label: 'category_column',
+      type: AxisType.Category, // Categorical X-axis
+    },
+  };
+
+  render(<EchartsTimeseries {...propsWithHorizontalXAxis} />);
+
+  const lastCall = mockEchart.mock.calls.at(-1);
+  expect(lastCall).toBeDefined();
+  const [props] = lastCall as [EchartsProps];
+
+  const clickHandler = props.eventHandlers?.click;
+  if (clickHandler) {
+    clickHandler({
+      componentType: 'series',
+      seriesName: 'Sales', // This is the metric name
+      data: [100, 'Product A'], // Horizontal: value first, category second
+      name: 'Product A',
+      dataIndex: 0,
+    });
+
+    await waitFor(
+      () => {
+        expect(setDataMaskMock).toHaveBeenCalled();
+      },
+      { timeout: 500 },
+    );
+
+    // Must filter on the category ('Product A'), not the metric value (100)
+    const dataMaskCall = setDataMaskMock.mock.calls[0][0];
+    expect(dataMaskCall.extraFormData.filters).toEqual([
+      {
+        col: 'category_column',
+        op: 'IN',
+        val: ['Product A'],
+      },
+    ]);
+  }
+});
+
+// Test for issue #41102: the context-menu ("Add cross-filter") path must also
+// use the category value, not the metric, for a horizontal categorical bar.
+test('context menu cross-filter uses the category value for a horizontal categorical bar', async () => {
+  const onContextMenuMock = jest.fn();
+
+  const propsWithHorizontalXAxis: TimeseriesChartTransformedProps = {
+    ...defaultProps,
+    emitCrossFilters: true,
+    onContextMenu: onContextMenuMock,
+    formData: {
+      ...defaultFormData,
+      orientation: OrientationType.Horizontal,
+    },
+    groupby: [], // No dimensions
+    xAxis: {
+      label: 'category_column',
+      type: AxisType.Category, // Categorical X-axis
+    },
+  };
+
+  render(<EchartsTimeseries {...propsWithHorizontalXAxis} />);
+
+  const lastCall = mockEchart.mock.calls.at(-1);
+  expect(lastCall).toBeDefined();
+  const [props] = lastCall as [EchartsProps];
+
+  const contextMenuHandler = props.eventHandlers?.contextmenu;
+  expect(contextMenuHandler).toBeDefined();
+  if (contextMenuHandler) {
+    await contextMenuHandler({
+      componentType: 'series',
+      seriesName: 'Sales', // This is the metric name
+      data: [100, 'Product A'], // Horizontal: value first, category second
+      name: 'Product A',
+      event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
+    });
+
+    await waitFor(() => {
+      expect(onContextMenuMock).toHaveBeenCalled();
+    });
+
+    // The cross-filter must use the category ('Product A'), not the metric (100)
+    const { crossFilter } = onContextMenuMock.mock.calls[0][2];
+    expect(crossFilter.dataMask.extraFormData.filters).toEqual([
+      {
+        col: 'category_column',
+        op: 'IN',
+        val: ['Product A'],
+      },
+    ]);
   }
 });

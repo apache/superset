@@ -20,11 +20,12 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from unittest import mock
 
-import prison
 import pytest
+import rison
 from flask import current_app
+from sqlalchemy import text
 
-from superset import db
+from superset import db, security_manager as sm
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.connectors.sqla.models import (  # noqa: F401
@@ -63,15 +64,26 @@ def create_test_table_context(database: Database):
 
     with database.get_sqla_engine() as engine:
         engine.execute(
-            f"CREATE TABLE IF NOT EXISTS {full_table_name} AS SELECT 1 as first, 2 as second"  # noqa: E501
+            text(f"""
+            CREATE TABLE IF NOT EXISTS {full_table_name} AS
+            SELECT 1 as first, 2 as second
+            """)
         )
-        engine.execute(f"INSERT INTO {full_table_name} (first, second) VALUES (1, 2)")  # noqa: S608
-        engine.execute(f"INSERT INTO {full_table_name} (first, second) VALUES (3, 4)")  # noqa: S608
+        engine.execute(
+            text(f"""
+            INSERT INTO {full_table_name} (first, second) VALUES (1, 2)
+            """)  # noqa: S608
+        )
+        engine.execute(
+            text(f"""
+            INSERT INTO {full_table_name} (first, second) VALUES (3, 4)
+            """)  # noqa: S608
+        )
 
     yield db.session
 
     with database.get_sqla_engine() as engine:
-        engine.execute(f"DROP TABLE {full_table_name}")
+        engine.execute(text(f"DROP TABLE {full_table_name}"))
 
 
 @contextmanager
@@ -174,7 +186,7 @@ class TestDatasource(SupersetTestCase):
     def test_external_metadata_by_name_for_physical_table(self):
         self.login(ADMIN_USERNAME)
         tbl = self.get_table(name="birth_names")
-        params = prison.dumps(
+        params = rison.dumps(
             {
                 "datasource_type": "table",
                 "database_name": tbl.database.database_name,
@@ -200,7 +212,7 @@ class TestDatasource(SupersetTestCase):
     def test_external_metadata_by_name_for_virtual_table(self):
         self.login(ADMIN_USERNAME)
         with create_and_cleanup_table() as tbl:
-            params = prison.dumps(
+            params = rison.dumps(
                 {
                     "datasource_type": "table",
                     "database_name": tbl.database.database_name,
@@ -217,11 +229,11 @@ class TestDatasource(SupersetTestCase):
     def test_external_metadata_by_name_for_virtual_table_uses_mutator(self):
         self.login(ADMIN_USERNAME)
         with create_and_cleanup_table() as tbl:
-            current_app.config["SQL_QUERY_MUTATOR"] = (
-                lambda sql, **kwargs: "SELECT 456 as intcol, 'def' as mutated_strcol"
+            current_app.config["SQL_QUERY_MUTATOR"] = lambda sql, **kwargs: (
+                "SELECT 456 as intcol, 'def' as mutated_strcol"
             )
 
-            params = prison.dumps(
+            params = rison.dumps(
                 {
                     "datasource_type": "table",
                     "database_name": tbl.database.database_name,
@@ -240,7 +252,7 @@ class TestDatasource(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         example_database = get_example_database()
         with create_test_table_context(example_database):
-            params = prison.dumps(
+            params = rison.dumps(
                 {
                     "datasource_type": "table",
                     "database_name": example_database.database_name,
@@ -256,7 +268,7 @@ class TestDatasource(SupersetTestCase):
             assert col_names == {"first", "second"}
 
         # No databases found
-        params = prison.dumps(
+        params = rison.dumps(
             {
                 "datasource_type": "table",
                 "database_name": "foo",
@@ -274,7 +286,7 @@ class TestDatasource(SupersetTestCase):
         )
 
         # No table found
-        params = prison.dumps(
+        params = rison.dumps(
             {
                 "datasource_type": "table",
                 "database_name": example_database.database_name,
@@ -292,7 +304,7 @@ class TestDatasource(SupersetTestCase):
         )
 
         # invalid query params
-        params = prison.dumps(
+        params = rison.dumps(
             {
                 "datasource_type": "table",
             }
@@ -353,10 +365,12 @@ class TestDatasource(SupersetTestCase):
 
         pytest.raises(
             SupersetGenericDBErrorException,
-            lambda: db.session.query(SqlaTable)
-            .filter_by(id=tbl.id)
-            .one_or_none()
-            .external_metadata(),
+            lambda: (
+                db.session.query(SqlaTable)
+                .filter_by(id=tbl.id)
+                .one_or_none()
+                .external_metadata()
+            ),
         )
 
         resp = self.client.get(url)
@@ -376,7 +390,6 @@ class TestDatasource(SupersetTestCase):
 
         datasource_post = get_datasource_post()
         datasource_post["id"] = tbl_id
-        datasource_post["owners"] = [1]
         data = dict(data=json.dumps(datasource_post))  # noqa: C408
         resp = self.get_json_resp("/datasource/save/", data)
         for k in datasource_post:
@@ -386,8 +399,6 @@ class TestDatasource(SupersetTestCase):
                 self.compare_lists(datasource_post[k], resp[k], "metric_name")
             elif k == "database":
                 assert resp[k]["id"] == datasource_post[k]["id"]
-            elif k == "owners":
-                assert [o["id"] for o in resp[k]] == datasource_post["owners"]
             else:
                 assert resp[k] == datasource_post[k]
 
@@ -397,7 +408,6 @@ class TestDatasource(SupersetTestCase):
 
         datasource_post = get_datasource_post()
         datasource_post["id"] = tbl_id
-        datasource_post["owners"] = [1]
         datasource_post["default_endpoint"] = "http://localhost/superset/1"
         data = dict(data=json.dumps(datasource_post))  # noqa: C408
         resp = self.client.post("/datasource/save/", data=data)
@@ -417,7 +427,6 @@ class TestDatasource(SupersetTestCase):
         db_id = tbl.database_id
         datasource_post = get_datasource_post()
         datasource_post["id"] = tbl_id
-        datasource_post["owners"] = [admin_user.id]
 
         new_db = self.create_fake_db()
         datasource_post["database"]["id"] = new_db.id
@@ -437,7 +446,6 @@ class TestDatasource(SupersetTestCase):
 
         datasource_post = get_datasource_post()
         datasource_post["id"] = tbl_id
-        datasource_post["owners"] = [admin_user.id]
         datasource_post["columns"].extend(
             [
                 {
@@ -467,7 +475,6 @@ class TestDatasource(SupersetTestCase):
 
         datasource_post = get_datasource_post()
         datasource_post["id"] = tbl.id
-        datasource_post["owners"] = [admin_user.id]
         data = dict(data=json.dumps(datasource_post))  # noqa: C408
         self.get_json_resp("/datasource/save/", data)
         url = f"/datasource/get/{tbl.type}/{tbl.id}/"
@@ -531,17 +538,26 @@ class TestDatasource(SupersetTestCase):
         self, mock_has_guest_access, mock_is_guest_user, mock_rls
     ):
         """
-        Embedded user can access the /samples view.
+        Embedded guest user can access /samples (for D2D) via the dashboard context
+        passed as form_data to QueryContextFactory.
         """
-        self.login(ADMIN_USERNAME)
+        # Gamma role doesn't have dataset access (mimic embedded role),
+        # but needs access to the /samples endpoint
+        gamma_role = sm.find_role("Gamma")
+        perm_view = sm.find_permission_view_menu("can_samples", "Datasource")
+        sm.add_permission_role(gamma_role, perm_view)
+        self.login(GAMMA_USERNAME)
         mock_is_guest_user.return_value = True
         mock_has_guest_access.return_value = True
         mock_rls.return_value = []
         tbl = self.get_table(name="birth_names")
         dash = self.get_dash_by_slug("births")
-        uri = f"/datasource/samples?datasource_id={tbl.id}&datasource_type=table&dashboard_id={dash.id}"  # noqa: E501
-        resp = self.client.post(uri, json={})
-        assert resp.status_code == 200
+        try:
+            uri = f"/datasource/samples?datasource_id={tbl.id}&datasource_type=table&dashboard_id={dash.id}"  # noqa: E501
+            resp = self.client.post(uri, json={})
+            assert resp.status_code == 200
+        finally:
+            sm.del_permission_role(gamma_role, perm_view)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
@@ -783,7 +799,7 @@ def test_get_samples_with_multiple_filters(
     assert "2000-01-02" in rv.json["result"]["query"]
     assert "2000-01-04" in rv.json["result"]["query"]
     assert "col3 = 1.2" in rv.json["result"]["query"]
-    assert "col4 IS NULL" in rv.json["result"]["query"]
+    assert "col4 is null" in rv.json["result"]["query"]
     assert "col2 = 'c'" in rv.json["result"]["query"]
 
 
@@ -798,7 +814,7 @@ def test_get_samples_pagination(test_client, login_as_admin, virtual_dataset):
     assert rv.json["result"]["total_count"] == 10
 
     # 2. incorrect per_page
-    per_pages = (current_app.config["SAMPLES_ROW_LIMIT"] + 1, 0, "xx")
+    per_pages = (10001, 0, "xx")
     for per_page in per_pages:
         uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&per_page={per_page}"  # noqa: E501
         rv = test_client.post(uri, json={})
@@ -835,3 +851,20 @@ def test_get_samples_pagination(test_client, login_as_admin, virtual_dataset):
     assert rv.json["result"]["per_page"] == 2
     assert rv.json["result"]["total_count"] == 10
     assert [row["col1"] for row in rv.json["result"]["data"]] == []
+
+
+def test_dataset_editor_show_redirects_to_welcome(test_client, login_as_admin):
+    """``DatasetEditor.show`` without ``?testing`` redirects via ``url_for``,
+    not a bare ``"/"`` (which would escape the application root under
+    subdirectory deployments). ``show`` never dereferences ``pk``."""
+    rv = test_client.get("/dataset/1")
+    assert rv.status_code == 302
+    assert rv.headers["Location"] == "/welcome/"
+
+
+def test_dataset_editor_show_redirect_honors_script_name(test_client, login_as_admin):
+    """Under a subdirectory deployment ``AppRootMiddleware`` sets
+    ``SCRIPT_NAME``; the redirect target must carry the application root."""
+    rv = test_client.get("/dataset/1", environ_overrides={"SCRIPT_NAME": "/myapp"})
+    assert rv.status_code == 302
+    assert rv.headers["Location"] == "/myapp/welcome/"

@@ -26,8 +26,7 @@ const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
-const TerserPlugin = require('terser-webpack-plugin');
+const MinimizerPlugin = require('minimizer-webpack-plugin');
 const LightningCSS = require('lightningcss');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 const {
@@ -36,10 +35,13 @@ const {
 } = require('webpack-manifest-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
-const parsedArgs = require('yargs').argv;
+const yargs = require('yargs');
+const { hideBin } = require('yargs/helpers');
 const Visualizer = require('webpack-visualizer-plugin2');
 const getProxyConfig = require('./webpack.proxy-config');
 const packageConfig = require('./package.json');
+
+const parsedArgs = yargs(hideBin(process.argv)).parse();
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
@@ -149,11 +151,7 @@ const plugins = [
   }),
 
   new CopyPlugin({
-    patterns: [
-      'package.json',
-      { from: 'src/assets/images', to: 'images' },
-      { from: 'src/pwa-manifest.json', to: 'pwa-manifest.json' },
-    ],
+    patterns: ['package.json', { from: 'src/assets/images', to: 'images' }],
   }),
 
   // static pages
@@ -200,9 +198,16 @@ if (!process.env.CI) {
 if (isDevMode) {
   plugins.push(
     new ReactRefreshWebpackPlugin({
-      // Exclude service worker from React Refresh - it runs in a worker context
-      // without DOM/window and doesn't need HMR
-      exclude: /service-worker/,
+      // Exclude:
+      //   - node_modules (the plugin's default — must be re-added when overriding
+      //     `exclude`, otherwise pre-bundled ESM packages such as
+      //     react-checkbox-tree get the refresh loader injected into their
+      //     nested webpack runtime, causing
+      //     `__webpack_require__.$Refresh$ is undefined` at module factory
+      //     execution time.
+      //   - service worker (runs in a worker context without DOM/window and
+      //     does not need HMR).
+      exclude: [/node_modules/, /service-worker/],
     }),
   );
 }
@@ -219,11 +224,15 @@ if (!isDevMode) {
 
 // TypeScript type checking and .d.ts generation
 // SWC handles transpilation; this plugin handles type checking separately.
-// build: true enables project references so .d.ts files are auto-generated.
+// build: true enables project references so .d.ts files are auto-generated
+// across the monorepo when editing plugins/packages.
 // mode: 'write-references' writes .d.ts output (no manual `npm run plugins:build` needed).
-// Story files are excluded because they import @storybook-shared which resolves
-// outside plugin rootDir ("src"), causing errors in --build mode.
-if (isDevMode) {
+// Set DISABLE_TS_CHECKER=true to skip this plugin entirely (~2-3 GB savings).
+// Type errors are still caught by pre-commit and CI.
+const disableTsChecker = ['true', '1'].includes(
+  (process.env.DISABLE_TS_CHECKER || '').toLowerCase(),
+);
+if (isDevMode && !disableTsChecker) {
   plugins.push(
     new ForkTsCheckerWebpackPlugin({
       async: true,
@@ -388,7 +397,6 @@ const config = {
               'react-dom',
               'redux',
               'react-redux',
-              'react-sortable-hoc',
               'react-table',
               'react-ace',
               'webpack.*',
@@ -417,20 +425,18 @@ const config = {
     },
     usedExports: 'global',
     minimizer: [
-      new CssMinimizerPlugin({
-        minify: CssMinimizerPlugin.lightningCssMinify,
+      new MinimizerPlugin({
+        test: /\.css(\?.*)?$/i,
+        minify: MinimizerPlugin.lightningCssMinify,
         minimizerOptions: {
-          targets: LightningCSS.browserslistToTargets([
-            'last 3 chrome versions',
-            'last 3 firefox versions',
-            'last 3 safari versions',
-            'last 3 edge versions',
-          ]),
+          targets: LightningCSS.browserslistToTargets(
+            packageConfig.browserslist,
+          ),
         },
       }),
-      new TerserPlugin({
-        minify: TerserPlugin.swcMinify,
-        terserOptions: {
+      new MinimizerPlugin({
+        minify: MinimizerPlugin.swcMinify,
+        minimizerOptions: {
           compress: {
             drop_console: false,
           },
@@ -490,7 +496,7 @@ const config = {
         },
       },
       {
-        test: /node_modules\/(geostyler-style|geostyler-qgis-parser)\/.*\.js$/,
+        test: /node_modules\/(geostyler|geostyler-openlayers-parser|geostyler-mapbox-parser|geostyler-sld-parser)\/.*\.js$/,
         resolve: {
           fullySpecified: false,
         },
@@ -498,10 +504,7 @@ const config = {
       {
         test: /\.tsx?$/,
         exclude: [/\.test.tsx?$/, /node_modules/],
-        // Skip thread-loader in dev mode - it breaks HMR by running in worker threads
-        use: isDevMode
-          ? [createSwcLoader('typescript', true)]
-          : ['thread-loader', createSwcLoader('typescript', true)],
+        use: [createSwcLoader('typescript', true)],
       },
       {
         test: /\.jsx?$/,
@@ -535,7 +538,7 @@ const config = {
           {
             loader: 'css-loader',
             options: {
-              sourceMap: true,
+              sourceMap: !isDevMode,
             },
           },
         ],
@@ -619,10 +622,23 @@ const config = {
   watchOptions: isDevMode
     ? {
         // Watch all plugin and package source directories
-        ignored: ['**/node_modules', '**/.git', '**/lib', '**/esm', '**/dist'],
-        // Poll less frequently to reduce file handles
+        ignored: [
+          '**/node_modules',
+          '**/.git',
+          '**/lib',
+          '**/esm',
+          '**/dist',
+          '**/.temp_cache',
+          '**/coverage',
+          '**/*.test.*',
+          '**/*.stories.*',
+          '**/cypress-base',
+          '**/*.geojson',
+        ],
+        // Poll-based watching is needed in Docker/VM where native fs events
+        // don't propagate from host to container.
         poll: 2000,
-        // Aggregate changes for 500ms before rebuilding
+        // Aggregate changes before rebuilding
         aggregateTimeout: 500,
       }
     : undefined,

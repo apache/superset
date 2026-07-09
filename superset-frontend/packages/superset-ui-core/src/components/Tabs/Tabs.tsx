@@ -51,8 +51,10 @@ const StyledTabs = ({
       .ant-tabs-content-holder {
         overflow: ${allowOverflow ? 'visible' : 'auto'};
         ${fullHeight && 'height: 100%;'}
-        ${contentHeight &&
-        `height: ${typeof contentHeight === 'number' ? `${contentHeight}px` : contentHeight};`}
+        ${
+          contentHeight &&
+          `height: ${typeof contentHeight === 'number' ? `${contentHeight}px` : contentHeight};`
+        }
         ${contentPadding}
       }
       .ant-tabs-content {
@@ -66,9 +68,11 @@ const StyledTabs = ({
         margin: 0;
       }
       .ant-tabs-nav-wrap {
-        ${!(tabBarStyle && 'paddingLeft' in tabBarStyle)
-          ? `padding: 0 ${theme.sizeUnit * 4}px;`
-          : ''}
+        ${
+          !(tabBarStyle && 'paddingLeft' in tabBarStyle)
+            ? `padding: 0 ${theme.sizeUnit * 4}px;`
+            : ''
+        }
       }
       .ant-tabs-tab {
         flex: 1 1 auto;
@@ -155,6 +159,11 @@ export const StyledLineEditableTabs = styled(EditableTabs)`
 
   .ant-tabs-tab-btn {
     font-size: ${({ theme }) => theme.fontSize}px;
+
+    .editable-title textarea,
+    .editable-title input[type='text'] {
+      font-size: inherit;
+    }
   }
 
   .ant-tabs-tab-remove {

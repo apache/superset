@@ -83,10 +83,7 @@ export interface MetricColumnType {
 }
 
 export type ColumnType =
-  | ColumnMeta
-  | SimpleExpressionType
-  | SQLExpressionType
-  | MetricColumnType;
+  ColumnMeta | SimpleExpressionType | SQLExpressionType | MetricColumnType;
 
 export interface Props {
   adhocFilter: AdhocFilter;
@@ -199,7 +196,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
     if (MULTI_OPERATORS.has(operatorId)) {
       newComparator = Array.isArray(currentComparator)
         ? currentComparator
-        : [currentComparator].filter(element => element);
+        : [currentComparator].filter(element => element != null);
     } else {
       newComparator = Array.isArray(currentComparator)
         ? currentComparator[0]
@@ -377,6 +374,14 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   const shouldFocusComparator =
     !!subjectSelectProps.value && !!operatorSelectProps.value;
 
+  const isUnaryOperator =
+    operatorId !== undefined &&
+    DISABLE_INPUT_OPERATORS.includes(operatorId as Operators);
+
+  const hasComparatorOptions =
+    (operatorId && MULTI_OPERATORS.has(operatorId as Operators)) ||
+    suggestions.length > 0;
+
   const comparatorSelectProps = {
     allowClear: true,
     allowNewOptions: true,
@@ -389,14 +394,12 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     value: comparator as SelectValue,
     onChange: onComparatorChange,
     notFoundContent: t('Type a value here'),
-    disabled:
-      operatorId !== undefined &&
-      DISABLE_INPUT_OPERATORS.includes(operatorId as Operators),
     placeholder: createSuggestionsPlaceholder(),
   };
 
   const comparatorHasValue =
-    comparator &&
+    comparator != null &&
+    comparator !== '' &&
     (Array.isArray(comparator)
       ? comparator.length > 0
       : String(comparator).length > 0);
@@ -522,8 +525,7 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   const subjectComponent = (
     <Select
       css={{
-        marginTop: theme.sizeUnit * 4,
-        marginBottom: theme.sizeUnit * 4,
+        marginBottom: theme.marginXS,
       }}
       data-test="select-element"
       options={columns.map(column => ({
@@ -554,49 +556,45 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
           }))}
         {...operatorSelectProps}
       />
-      {(operatorId && MULTI_OPERATORS.has(operatorId as Operators)) ||
-      suggestions.length > 0 ? (
-        <Tooltip
-          title={
-            advancedDataTypesState.errorMessage ||
-            advancedDataTypesState.parsedAdvancedDataType
-          }
-        >
-          <SelectWithLabel
-            css={css`
-              margin-top: ${theme.sizeUnit * 4}px;
-            `}
-            labelText={labelText}
-            options={suggestions}
-            {...comparatorSelectProps}
-          />
-        </Tooltip>
-      ) : (
-        <Tooltip
-          title={
-            advancedDataTypesState.errorMessage ||
-            advancedDataTypesState.parsedAdvancedDataType
-          }
-        >
-          <div
-            css={css`
-              margin-top: ${theme.sizeUnit * 4}px;
-            `}
-          />
-          <Input
-            data-test="adhoc-filter-simple-value"
-            name="filter-value"
-            ref={comparatorInputRef}
-            onChange={onInputComparatorChange}
-            value={typeof comparator === 'string' ? comparator : undefined}
-            placeholder={t('Filter value (case sensitive)')}
-            disabled={
-              operatorId !== undefined &&
-              DISABLE_INPUT_OPERATORS.includes(operatorId as Operators)
+      {!isUnaryOperator &&
+        (hasComparatorOptions ? (
+          <Tooltip
+            title={
+              advancedDataTypesState.errorMessage ||
+              advancedDataTypesState.parsedAdvancedDataType
             }
-          />
-        </Tooltip>
-      )}
+          >
+            <SelectWithLabel
+              css={css`
+                margin-top: ${theme.marginXS}px;
+              `}
+              labelText={labelText}
+              options={suggestions}
+              {...comparatorSelectProps}
+            />
+          </Tooltip>
+        ) : (
+          <Tooltip
+            title={
+              advancedDataTypesState.errorMessage ||
+              advancedDataTypesState.parsedAdvancedDataType
+            }
+          >
+            <div
+              css={css`
+                margin-top: ${theme.marginXS}px;
+              `}
+            />
+            <Input
+              data-test="adhoc-filter-simple-value"
+              name="filter-value"
+              ref={comparatorInputRef}
+              onChange={onInputComparatorChange}
+              value={typeof comparator === 'string' ? comparator : undefined}
+              placeholder={t('Filter value (case sensitive)')}
+            />
+          </Tooltip>
+        ))}
     </>
   );
   return (

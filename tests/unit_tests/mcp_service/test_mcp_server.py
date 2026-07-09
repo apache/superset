@@ -19,6 +19,8 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 
 def test_create_event_store_returns_none_when_no_redis_url():
     """EventStore returns None when no Redis URL configured (single-pod mode)."""
@@ -158,3 +160,81 @@ def test_create_event_store_returns_none_when_redis_store_fails():
         result = create_event_store(config)
 
         assert result is None
+
+
+def test_create_auth_provider_uses_default_factory_for_mcp_api_key_only() -> None:
+    """MCP_API_KEY_ENABLED=True should install auth even when FAB API keys are off."""
+    from superset.mcp_service.server import _create_auth_provider
+
+    flask_app = MagicMock()
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": None,
+        "MCP_AUTH_ENABLED": False,
+        "MCP_API_KEY_ENABLED": True,
+        "FAB_API_KEY_ENABLED": False,
+    }.get(key, default)
+    auth_provider = MagicMock()
+
+    with patch(
+        "superset.mcp_service.mcp_config.create_default_mcp_auth_factory",
+        return_value=auth_provider,
+    ) as create_default_mcp_auth_factory:
+        result = _create_auth_provider(flask_app)
+
+    assert result is auth_provider
+    create_default_mcp_auth_factory.assert_called_once_with(flask_app)
+
+
+def test_create_auth_provider_propagates_auth_config_error() -> None:
+    """A fatal auth config error must propagate, not fall through to no auth.
+
+    The default factory raises MCPAuthConfigError for an unusable auth
+    configuration. _create_auth_provider must re-raise it so the service fails
+    to start instead of silently returning None (which would run unauthenticated).
+    """
+    from superset.mcp_service.mcp_config import MCPAuthConfigError
+    from superset.mcp_service.server import _create_auth_provider
+
+    flask_app = MagicMock()
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": None,
+        "MCP_AUTH_ENABLED": True,
+        "MCP_API_KEY_ENABLED": False,
+        "FAB_API_KEY_ENABLED": False,
+    }.get(key, default)
+
+    with patch(
+        "superset.mcp_service.mcp_config.create_default_mcp_auth_factory",
+        side_effect=MCPAuthConfigError("MCP_JWT_AUDIENCE must be set"),
+    ):
+        with pytest.raises(MCPAuthConfigError):
+            _create_auth_provider(flask_app)
+
+
+def test_create_auth_provider_fails_closed_on_insecure_guest_secret() -> None:
+    """Guest-only deployment with an insecure GUEST_TOKEN_JWT_SECRET must abort.
+
+    When only MCP_EMBEDDED_GUEST_AUTH_ENABLED is on and the default factory
+    raises MCPAuthConfigError (insecure default guest secret), _create_auth_provider
+    must re-raise it — otherwise the server would boot with no authentication.
+    """
+    from superset.mcp_service.mcp_config import MCPAuthConfigError
+    from superset.mcp_service.server import _create_auth_provider
+
+    flask_app = MagicMock()
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": None,
+        "MCP_AUTH_ENABLED": False,
+        "MCP_API_KEY_ENABLED": False,
+        "FAB_API_KEY_ENABLED": False,
+        "MCP_EMBEDDED_GUEST_AUTH_ENABLED": True,
+    }.get(key, default)
+
+    with patch(
+        "superset.mcp_service.mcp_config.create_default_mcp_auth_factory",
+        side_effect=MCPAuthConfigError(
+            "GUEST_TOKEN_JWT_SECRET is the insecure default"
+        ),
+    ):
+        with pytest.raises(MCPAuthConfigError):
+            _create_auth_provider(flask_app)

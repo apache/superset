@@ -43,13 +43,14 @@ import {
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import Owner from 'src/types/Owner';
-import {
-  OwnerSelectLabel,
-  OWNER_TEXT_LABEL_PROP,
-  OWNER_EMAIL_PROP,
-  OWNER_OPTION_FILTER_PROPS,
-} from 'src/features/owners/OwnerSelectLabel';
+import SubjectPicker, {
+  mapSubjectPickerValuesToIds,
+  mapSubjectsToPickerValues,
+  normalizeSubjectToPickerValue,
+  type SubjectPickerValue,
+} from 'src/features/subjects/SubjectPicker';
+import type Subject from 'src/types/Subject';
+import { SubjectType } from 'src/types/Subject';
 // import { Form as AntdForm } from 'src/components/Form';
 import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import {
@@ -64,10 +65,13 @@ import {
   Loading,
   Select,
   Switch,
+  Tooltip,
   TreeSelect,
   Button,
   type CheckboxChangeEvent,
 } from '@superset-ui/core/components';
+
+import { navigateTo } from 'src/utils/navigationUtils';
 
 import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
 import { timezoneOptionsCache } from '@superset-ui/core/components/TimezoneSelector/TimezoneOptionsCache';
@@ -97,6 +101,7 @@ import {
 import { StatusMessage } from 'src/filters/components/common';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -131,6 +136,12 @@ export interface AlertReportModalProps {
   onHide: () => void;
   show: boolean;
 }
+
+type AlertFormState = Partial<
+  Omit<AlertObject, 'editors'> & {
+    editors?: SubjectPickerValue[];
+  }
+>;
 
 const DEFAULT_WORKING_TIMEOUT = 3600;
 const DEFAULT_CRON_VALUE = '0 0 * * *'; // every day
@@ -248,6 +259,31 @@ const AdditionalStyles = css`
 
     > div {
       flex: 1 1 auto;
+    }
+  }
+  .select-with-open-btn {
+    display: flex;
+    align-items: center;
+
+    & > div:first-child {
+      flex: 1 1 auto !important;
+      width: auto !important;
+      min-width: 0; /* allow overflow handling */
+    }
+
+    /* keep button compact and pinned to the right */
+    & > div:last-child {
+      flex: 0 0 auto !important;
+      width: auto !important;
+      margin-left: var(--open-btn-gap, 8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ensure inner select fills available space */
+    & > div:first-child > * {
+      width: 100% !important;
     }
   }
 `;
@@ -432,7 +468,7 @@ export const TRANSLATIONS = {
   NOTIFICATION_TITLE: t('Notification method'),
   // Error text
   NAME_ERROR_TEXT: t('name'),
-  OWNERS_ERROR_TEXT: t('owners'),
+  EDITORS_ERROR_TEXT: t('editors'),
   CONTENT_ERROR_TEXT: t('content type'),
   DATABASE_ERROR_TEXT: t('database'),
   SQL_ERROR_TEXT: t('sql'),
@@ -491,6 +527,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const currentUser = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
+  const currentUserSubjectId = getBootstrapData()?.common?.user_subject_id;
   // Check config for alternate notification methods setting
   const conf = useCommonConf();
   const allowedNotificationMethods: NotificationMethodOption[] =
@@ -498,8 +535,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const [disableSave, setDisableSave] = useState<boolean>(true);
 
-  const [currentAlert, setCurrentAlert] =
-    useState<Partial<AlertObject> | null>();
+  const [currentAlert, setCurrentAlert] = useState<AlertFormState | null>();
   const [isHidden, setIsHidden] = useState<boolean>(true);
 
   const [activeCollapsePanel, setActiveCollapsePanel] = useState<
@@ -674,7 +710,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     log_retention: ALERT_REPORTS_DEFAULT_RETENTION,
     working_timeout: ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT,
     name: '',
-    owners: [],
+    editors: [],
     recipients: [],
     sql: '',
     email_subject: '',
@@ -930,9 +966,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           : null,
       custom_width: isScreenshot ? currentAlert?.custom_width : undefined,
       database: currentAlert?.database?.value,
-      owners: (currentAlert?.owners || []).map(
-        owner => (owner as MetaObject).value || owner.id,
-      ),
+      editors: mapSubjectPickerValuesToIds(currentAlert?.editors || []),
       recipients,
       report_format: reportFormat || DEFAULT_NOTIFICATION_FORMAT,
       extra: contentType === ContentType.Dashboard ? currentAlert?.extra : {},
@@ -988,38 +1022,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   // Fetch data to populate form dropdowns
-  const loadOwnerOptions = useMemo(
-    () =>
-      (input = '', page: number, pageSize: number) => {
-        const query = rison.encode({
-          filter: input,
-          page,
-          page_size: pageSize,
-        });
-        return SupersetClient.get({
-          endpoint: `/api/v1/report/related/created_by?q=${query}`,
-        }).then(response => ({
-          data: response.json.result.map(
-            (item: {
-              value: number;
-              text: string;
-              extra: { email?: string };
-            }) => ({
-              value: item.value,
-              label: OwnerSelectLabel({
-                name: item.text,
-                email: item.extra?.email,
-              }),
-              [OWNER_TEXT_LABEL_PROP]: item.text,
-              [OWNER_EMAIL_PROP]: item.extra?.email ?? '',
-            }),
-          ),
-          totalCount: response.json.count,
-        }));
-      },
-    [],
-  );
-
   const getSourceData = useCallback(
     (db?: MetaObject) => {
       const database = db || currentAlert?.database;
@@ -1076,7 +1078,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const dashboard = currentAlert?.dashboard;
   useEffect(() => {
-    if (!tabsEnabled) return;
+    if (!tabsEnabled && !filtersEnabled) return;
 
     if (dashboard?.value) {
       SupersetClient.get({
@@ -1156,7 +1158,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           addDangerToast(t('There was an error retrieving dashboard tabs.'));
         });
     }
-  }, [dashboard, tabsEnabled, currentAlert?.extra, addDangerToast]);
+  }, [
+    dashboard,
+    tabsEnabled,
+    filtersEnabled,
+    currentAlert?.extra,
+    addDangerToast,
+  ]);
 
   const databaseLabel = currentAlert?.database && !currentAlert.database.label;
   useEffect(() => {
@@ -1264,10 +1272,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     [],
   );
 
-  const getChartVisualizationType = (chart: SelectValue) =>
-    SupersetClient.get({
+  const getChartVisualizationType = (chart: SelectValue) => {
+    if (!chart || typeof chart !== 'object' || chart.value === undefined) {
+      return;
+    }
+    return SupersetClient.get({
       endpoint: `/api/v1/chart/${chart.value}`,
     }).then(response => setChartVizType(response.json.result.viz_type));
+  };
 
   const updateEmailSubject = () => {
     const chartLabel = currentAlert?.chart?.label;
@@ -1355,8 +1367,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('sql', value || '');
   };
 
-  const onOwnersChange = (value: Array<SelectValue>) => {
-    updateAlertState('owners', value || []);
+  const onEditorsChange = (value: SubjectPickerValue[]) => {
+    updateAlertState('editors', value || []);
   };
 
   const onSourceChange = (value: Array<SelectValue>) => {
@@ -1368,8 +1380,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('chart', null);
     if (tabsEnabled) {
       setTabOptions([]);
-      setNativeFilterOptions([]);
       updateAnchorState('');
+    }
+    if (tabsEnabled || filtersEnabled) {
+      setNativeFilterOptions([]);
     }
     if (filtersEnabled) {
       setNativeFilterData([
@@ -1385,10 +1399,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
   };
 
+  const openDashboardInNewTab = (dashboardId?: number | string | null) => {
+    if (!dashboardId) return;
+    navigateTo(`/dashboard/${dashboardId}/`, { newWindow: true });
+  };
+
   const onChartChange = (chart: SelectValue) => {
     getChartVisualizationType(chart);
     updateAlertState('chart', chart || undefined);
     updateAlertState('dashboard', null);
+  };
+
+  const openChartInNewTab = (chartId?: number | string | null) => {
+    if (!chartId) return;
+    navigateTo(`/explore/?slice_id=${chartId}`, { newWindow: true });
   };
 
   const onActiveSwitch = (checked: boolean) => {
@@ -1575,12 +1599,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const onChangeDashboardFilterValue = (
     idx: number,
     filterValues:
-      | SelectValue
-      | SelectValue[]
-      | string
-      | string[]
-      | number
-      | number[],
+      SelectValue | SelectValue[] | string | string[] | number | number[],
   ) => {
     let values: any;
     if (typeof filterValues === 'string') {
@@ -1742,19 +1761,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     if (!currentAlert?.name?.length) {
       errors.push(TRANSLATIONS.NAME_ERROR_TEXT);
     }
-    if (!currentAlert?.owners?.length) {
-      errors.push(TRANSLATIONS.OWNERS_ERROR_TEXT);
+    if (!currentAlert?.editors?.length) {
+      errors.push(TRANSLATIONS.EDITORS_ERROR_TEXT);
     }
     updateValidationStatus(Sections.General, errors);
   };
   const validateContentSection = () => {
     const errors = [];
-    if (
-      !(
-        (contentType === ContentType.Dashboard && !!currentAlert?.dashboard) ||
-        (contentType === ContentType.Chart && !!currentAlert?.chart)
-      )
-    ) {
+    if (!(
+      (contentType === ContentType.Dashboard && !!currentAlert?.dashboard) ||
+      (contentType === ContentType.Chart && !!currentAlert?.chart)
+    )) {
       errors.push(TRANSLATIONS.CONTENT_ERROR_TEXT);
     }
 
@@ -1789,13 +1806,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     if (!currentAlert?.sql?.length) {
       errors.push(TRANSLATIONS.SQL_ERROR_TEXT);
     }
-    if (
-      !(
-        (conditionNotNull || !!currentAlert?.validator_config_json?.op) &&
-        (conditionNotNull ||
-          currentAlert?.validator_config_json?.threshold !== undefined)
-      )
-    ) {
+    if (!(
+      (conditionNotNull || !!currentAlert?.validator_config_json?.op) &&
+      (conditionNotNull ||
+        currentAlert?.validator_config_json?.threshold !== undefined)
+    )) {
       errors.push(TRANSLATIONS.ALERT_CONDITION_ERROR_TEXT);
     }
     updateValidationStatus(Sections.Alert, errors);
@@ -1862,6 +1877,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   // Initialize
   useEffect(() => {
+    const currentUserEditor =
+      currentUserSubjectId !== undefined && currentUser
+        ? normalizeSubjectToPickerValue({
+            value: currentUserSubjectId,
+            text: `${currentUser.firstName} ${currentUser.lastName}`,
+            type: SubjectType.User,
+            secondary_label: currentUser.email,
+          })
+        : undefined;
+
     if (
       isEditMode &&
       (!currentAlert?.id || alert?.id !== currentAlert.id || (isHidden && show))
@@ -1876,19 +1901,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     ) {
       setCurrentAlert({
         ...defaultAlert,
-        owners: currentUser
-          ? [
-              {
-                value: currentUser.userId,
-                label: OwnerSelectLabel({
-                  name: `${currentUser.firstName} ${currentUser.lastName}`,
-                  email: currentUser.email,
-                }),
-                [OWNER_TEXT_LABEL_PROP]: `${currentUser.firstName} ${currentUser.lastName}`,
-                [OWNER_EMAIL_PROP]: currentUser.email ?? '',
-              },
-            ]
-          : [],
+        editors: currentUserEditor ? [currentUserEditor] : [],
       });
       setNotificationSettings([
         {
@@ -1978,21 +1991,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               label: (resource.database as DatabaseObject).database_name,
             }
           : undefined,
-        owners: (resource.owners || []).map(owner => {
-          const ownerName =
-            (owner as MetaObject).label ||
-            `${(owner as Owner).first_name} ${(owner as Owner).last_name}`;
-          return {
-            value: (owner as MetaObject).value || owner.id,
-            label: OwnerSelectLabel({
-              name: typeof ownerName === 'string' ? ownerName : '',
-              email: (owner as Owner).email,
-            }),
-            [OWNER_TEXT_LABEL_PROP]:
-              typeof ownerName === 'string' ? ownerName : '',
-            [OWNER_EMAIL_PROP]: (owner as Owner).email ?? '',
-          };
-        }),
+        editors: mapSubjectsToPickerValues(
+          (resource.editors || []) as Subject[],
+        ),
         validator_config_json:
           resource.validator_type === 'not null'
             ? {
@@ -2010,7 +2011,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateEmailSubject();
   }, [
     currentAlertSafe.name,
-    currentAlertSafe.owners,
+    currentAlertSafe.editors,
     currentAlertSafe.database,
     currentAlertSafe.sql,
     currentAlertSafe.validator_config_json,
@@ -2071,7 +2072,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       width={500}
       wrapProps={{ 'data-test': 'alert-report-modal' }}
     >
-      <div css={AdditionalStyles}>
+      <div
+        css={AdditionalStyles}
+        style={{ ['--open-btn-gap' as any]: `${theme.sizeUnit}px` }}
+      >
         <Collapse
           expandIconPosition="end"
           activeKey={activeCollapsePanel}
@@ -2129,23 +2133,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       onChange={onInputChange}
                     />
                   </ModalFormField>
-                  <ModalFormField label={t('Owners')} required>
-                    <AsyncSelect
-                      ariaLabel={t('Owners')}
+                  <ModalFormField label={t('Editors')} required>
+                    <SubjectPicker
+                      relatedUrl="/api/v1/report/related/editors"
+                      ariaLabel={t('Editors')}
                       allowClear
-                      name="owners"
-                      mode="multiple"
-                      placeholder={t('Select owners')}
-                      value={
-                        (currentAlert?.owners as {
-                          label: string;
-                          value: number;
-                        }[]) || []
-                      }
-                      options={loadOwnerOptions}
-                      onChange={onOwnersChange}
-                      data-test="owners-select"
-                      optionFilterProps={OWNER_OPTION_FILTER_PROPS}
+                      placeholder={t('Select editors')}
+                      value={currentAlert?.editors || []}
+                      onChange={onEditorsChange}
+                      dataTest="editors-select"
                     />
                   </ModalFormField>
                   <ModalFormField label={t('Description')}>
@@ -2330,22 +2326,40 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                           {t('Select chart')}
                           <span className="required">*</span>
                         </div>
-                        <AsyncSelect
-                          ariaLabel={t('Chart')}
-                          name="chart"
-                          value={
-                            currentAlert?.chart?.label &&
-                            currentAlert?.chart?.value
-                              ? {
-                                  value: currentAlert.chart.value,
-                                  label: currentAlert.chart.label,
+                        <div className="input-container select-with-open-btn">
+                          <div>
+                            <AsyncSelect
+                              ariaLabel={t('Chart')}
+                              name="chart"
+                              allowClear
+                              value={
+                                currentAlert?.chart?.label &&
+                                currentAlert?.chart?.value
+                                  ? {
+                                      value: currentAlert.chart.value,
+                                      label: currentAlert.chart.label,
+                                    }
+                                  : undefined
+                              }
+                              options={loadChartOptions}
+                              onChange={onChartChange}
+                              placeholder={t('Select chart to use')}
+                            />
+                          </div>
+                          <div>
+                            <Tooltip title={t('Open chart in new tab')}>
+                              <Button
+                                aria-label={t('Open chart in new tab')}
+                                onClick={() =>
+                                  openChartInNewTab(currentAlert?.chart?.value)
                                 }
-                              : undefined
-                          }
-                          options={loadChartOptions}
-                          onChange={onChartChange}
-                          placeholder={t('Select chart to use')}
-                        />
+                                icon={<Icons.LinkOutlined iconSize="s" />}
+                                buttonSize="small"
+                                disabled={!currentAlert?.chart?.value}
+                              />
+                            </Tooltip>
+                          </div>
+                        </div>
                       </>
                     ) : (
                       <>
@@ -2353,22 +2367,41 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                           {t('Select dashboard')}
                           <span className="required">*</span>
                         </div>
-                        <AsyncSelect
-                          ariaLabel={t('Dashboard')}
-                          name="dashboard"
-                          value={
-                            currentAlert?.dashboard?.label &&
-                            currentAlert?.dashboard?.value
-                              ? {
-                                  value: currentAlert.dashboard.value,
-                                  label: currentAlert.dashboard.label,
+                        <div className="input-container select-with-open-btn">
+                          <div>
+                            <AsyncSelect
+                              ariaLabel={t('Dashboard')}
+                              name="dashboard"
+                              value={
+                                currentAlert?.dashboard?.label &&
+                                currentAlert?.dashboard?.value
+                                  ? {
+                                      value: currentAlert.dashboard.value,
+                                      label: currentAlert.dashboard.label,
+                                    }
+                                  : undefined
+                              }
+                              options={loadDashboardOptions}
+                              onChange={onDashboardChange}
+                              placeholder={t('Select dashboard to use')}
+                            />
+                          </div>
+                          <div>
+                            <Tooltip title={t('Open dashboard in new tab')}>
+                              <Button
+                                aria-label={t('Open dashboard in new tab')}
+                                onClick={() =>
+                                  openDashboardInNewTab(
+                                    currentAlert?.dashboard?.value,
+                                  )
                                 }
-                              : undefined
-                          }
-                          options={loadDashboardOptions}
-                          onChange={onDashboardChange}
-                          placeholder={t('Select dashboard to use')}
-                        />
+                                icon={<Icons.LinkOutlined iconSize="s" />}
+                                buttonSize="small"
+                                disabled={!currentAlert?.dashboard?.value}
+                              />
+                            </Tooltip>
+                          </div>
+                        </div>
                       </>
                     )}
                   </StyledInputContainer>

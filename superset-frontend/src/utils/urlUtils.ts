@@ -24,7 +24,7 @@ import {
 } from '@superset-ui/core';
 import Switchboard from '@superset-ui/switchboard';
 import rison from 'rison';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import {
   RESERVED_CHART_URL_PARAMS,
   RESERVED_DASHBOARD_URL_PARAMS,
@@ -38,22 +38,35 @@ export type UrlParamType = 'string' | 'number' | 'boolean' | 'object' | 'rison';
 export type UrlParam = (typeof URL_PARAMS)[keyof typeof URL_PARAMS];
 export function getUrlParam(
   param: UrlParam & { type: 'string' },
+  search?: string,
 ): string | null;
 export function getUrlParam(
   param: UrlParam & { type: 'number' },
+  search?: string,
 ): number | null;
 export function getUrlParam(
   param: UrlParam & { type: 'boolean' },
+  search?: string,
 ): boolean | null;
 export function getUrlParam(
   param: UrlParam & { type: 'object' },
+  search?: string,
 ): object | null;
-export function getUrlParam(param: UrlParam & { type: 'rison' }): object | null;
+export function getUrlParam(
+  param: UrlParam & { type: 'rison' },
+  search?: string,
+): string | object | null;
 export function getUrlParam(
   param: UrlParam & { type: 'rison | string' },
+  search?: string,
 ): string | object | null;
-export function getUrlParam({ name, type }: UrlParam): unknown {
-  const urlParam = new URLSearchParams(window.location.search).get(name);
+export function getUrlParam(
+  { name, type }: UrlParam,
+  search?: string,
+): unknown {
+  const urlParam = new URLSearchParams(search ?? window.location.search).get(
+    name,
+  );
   switch (type) {
     case 'number':
       if (!urlParam) {
@@ -160,6 +173,40 @@ function getPermalink(
 }
 
 /**
+ * Replaces the origin of an absolute URL with `window.location.origin`,
+ * preserving path, query, and hash. Returns the input unchanged if it does
+ * not parse as an absolute URL.
+ *
+ * Why: the backend builds permalinks with `url_for(_external=True)`, which
+ * trusts the request `Host` header. When `ENABLE_PROXY_FIX` is off or the
+ * proxy doesn't forward `X-Forwarded-Host` (docker-light, K8s services
+ * without ingress rewriting, etc.), the URL carries an internal hostname
+ * unreachable from the user's browser.
+ *
+ * Operator opt-OUT: the Flask config
+ * `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE` (default False) returns the
+ * backend-supplied URL untouched. Operators whose reverse proxy correctly
+ * forwards `X-Forwarded-Host` AND who want permalinks to carry the backend's
+ * literal origin can set the flag to True.
+ */
+export function rewritePermalinkOrigin(url: string): string {
+  const conf = getBootstrapData().common?.conf ?? {};
+  if (conf.EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE === true) {
+    return url;
+  }
+  const browsingOrigin = window.location.origin;
+  if (!browsingOrigin) {
+    return url;
+  }
+  try {
+    const parsed = new URL(url);
+    return `${browsingOrigin}${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return url;
+  }
+}
+
+/**
  * Resolves a permalink URL using the host app's custom callback if in embedded mode.
  * Falls back to the default URL if not embedded or if no callback is provided.
  */
@@ -187,9 +234,14 @@ async function resolvePermalinkUrl(
       // Silently fall back to default URL if Switchboard call fails
       // (e.g., if not in embedded context or callback throws)
     }
+    // Embedded host opted out (no callback, or threw): the backend URL is
+    // the only signal we have. Skip the origin rewrite — Superset is in
+    // an iframe and the iframe's origin is not necessarily reachable from
+    // where the user will paste the embed.
+    return { key, url };
   }
 
-  return { key, url };
+  return { key, url: rewritePermalinkOrigin(url) };
 }
 
 export async function getChartPermalink(

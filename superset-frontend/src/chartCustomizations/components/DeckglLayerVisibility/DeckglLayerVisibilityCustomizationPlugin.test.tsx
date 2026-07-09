@@ -32,6 +32,7 @@ jest.mock('@superset-ui/core', () => ({
 const mockSupersetClientGet = SupersetClient.get as jest.Mock;
 
 const defaultProps: PluginDeckglLayerVisibilityProps = {
+  data: [],
   formData: {
     viz_type: 'deckgl_layer_visibility',
     defaultToAllLayersVisible: true,
@@ -40,7 +41,13 @@ const defaultProps: PluginDeckglLayerVisibilityProps = {
   height: 400,
   width: 600,
   filterState: {},
+  inputRef: { current: null },
   setDataMask: jest.fn(),
+  setFocusedFilter: jest.fn(),
+  unsetFocusedFilter: jest.fn(),
+  setHoveredFilter: jest.fn(),
+  unsetHoveredFilter: jest.fn(),
+  setFilterActive: jest.fn(),
 };
 
 const mockCharts = {
@@ -85,10 +92,13 @@ test('displays loading state initially', () => {
     },
   });
 
-  expect(screen.getByText('Loading deck.gl layers...')).toBeInTheDocument();
+  expect(
+    screen.getByTestId('deckgl-layer-visibility-select'),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('combobox')).toBeDisabled();
 });
 
-test('displays message when no deck.gl multi layer charts are found', async () => {
+test('displays disabled select when no deck.gl multi layer charts are found', async () => {
   mockSupersetClientGet.mockResolvedValue({ json: { result: [] } });
 
   render(<DeckglLayerVisibilityCustomizationPlugin {...defaultProps} />, {
@@ -107,11 +117,7 @@ test('displays message when no deck.gl multi layer charts are found', async () =
   });
 
   await waitFor(() => {
-    expect(
-      screen.getByText(
-        'No deck.gl multi layer charts found in this dashboard.',
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('combobox')).toBeDisabled();
   });
 });
 
@@ -126,10 +132,10 @@ test('renders layer selection control with layers from API', async () => {
   });
 
   await waitFor(() => {
-    expect(screen.getByText('Exclude layers (deck.gl)')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('deckgl-layer-visibility-select'),
+    ).toBeInTheDocument();
   });
-
-  expect(screen.getByRole('combobox')).toBeInTheDocument();
 });
 
 test('collects unique layer IDs from multiple deck_multi charts', async () => {
@@ -168,7 +174,9 @@ test('handles layer selection and calls setDataMask', async () => {
   );
 
   await waitFor(() => {
-    expect(screen.getByText('Exclude layers (deck.gl)')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('deckgl-layer-visibility-select'),
+    ).toBeInTheDocument();
   });
 
   const select = screen.getByRole('combobox');
@@ -211,7 +219,9 @@ test('initializes with filterState value when provided', async () => {
   );
 
   await waitFor(() => {
-    expect(screen.getByText('Exclude layers (deck.gl)')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('deckgl-layer-visibility-select'),
+    ).toBeInTheDocument();
   });
 
   const select = screen.getByRole('combobox');
@@ -280,7 +290,9 @@ test('does not auto-initialize when defaultToAllLayersVisible is false', async (
   );
 
   await waitFor(() => {
-    expect(screen.getByText('Exclude layers (deck.gl)')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('deckgl-layer-visibility-select'),
+    ).toBeInTheDocument();
   });
 
   expect(setDataMaskMock).not.toHaveBeenCalled();
@@ -304,7 +316,9 @@ test('handles multiple layer selection', async () => {
   );
 
   await waitFor(() => {
-    expect(screen.getByText('Exclude layers (deck.gl)')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('deckgl-layer-visibility-select'),
+    ).toBeInTheDocument();
   });
 
   const select = screen.getByRole('combobox');
@@ -331,29 +345,36 @@ test('handles multiple layer selection', async () => {
   });
 });
 
-test('displays tooltip info icon', async () => {
-  mockSupersetClientGet.mockResolvedValue(mockApiResponse);
+test('displays tooltip on hover when select is disabled', async () => {
+  mockSupersetClientGet.mockResolvedValue({ json: { result: [] } });
 
   render(<DeckglLayerVisibilityCustomizationPlugin {...defaultProps} />, {
     useRedux: true,
     initialState: {
-      sliceEntities: { slices: mockCharts },
+      sliceEntities: {
+        slices: {
+          chart1: {
+            form_data: {
+              viz_type: 'line',
+            },
+          },
+        },
+      },
     },
   });
 
   await waitFor(() => {
-    expect(screen.getByText('Exclude layers (deck.gl)')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('deckgl-layer-visibility-select'),
+    ).toBeInTheDocument();
   });
 
-  const tooltipIcon = screen.getByRole('img', { name: /info-circle/i });
-  expect(tooltipIcon).toBeInTheDocument();
-
-  await userEvent.hover(tooltipIcon);
+  await userEvent.hover(screen.getByTestId('deckgl-layer-visibility-select'));
 
   await waitFor(() => {
     expect(
       screen.getByText(
-        'Choose layers to hide from all deck.gl Multiple Layer charts in this dashboard.',
+        'No multilayer deck.gl charts are currently added to this dashboard.',
       ),
     ).toBeInTheDocument();
   });
@@ -378,11 +399,7 @@ test('handles charts with undefined deck_slices', async () => {
   });
 
   await waitFor(() => {
-    expect(
-      screen.getByText(
-        'No deck.gl multi layer charts found in this dashboard.',
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('combobox')).toBeDisabled();
   });
 });
 
@@ -406,11 +423,7 @@ test('handles charts with non-array deck_slices', async () => {
   });
 
   await waitFor(() => {
-    expect(
-      screen.getByText(
-        'No deck.gl multi layer charts found in this dashboard.',
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('combobox')).toBeDisabled();
   });
 });
 
@@ -447,6 +460,30 @@ test('deduplicates layer IDs from multiple charts', async () => {
   expect(callArgs.endpoint).toContain('/api/v1/chart/?q=');
 });
 
+test('renders validate message when filterState has validateMessage', async () => {
+  mockSupersetClientGet.mockResolvedValue(mockApiResponse);
+
+  render(
+    <DeckglLayerVisibilityCustomizationPlugin
+      {...defaultProps}
+      filterState={{
+        validateMessage: 'This field is required',
+        validateStatus: 'error',
+      }}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        sliceEntities: { slices: mockCharts },
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.getByText('This field is required')).toBeInTheDocument();
+  });
+});
+
 test('respects existing visible_deckgl_layers from Redux state', async () => {
   mockSupersetClientGet.mockResolvedValue(mockApiResponse);
   const setDataMaskMock = jest.fn();
@@ -477,7 +514,9 @@ test('respects existing visible_deckgl_layers from Redux state', async () => {
   );
 
   await waitFor(() => {
-    expect(screen.getByText('Exclude layers (deck.gl)')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('deckgl-layer-visibility-select'),
+    ).toBeInTheDocument();
   });
 
   expect(setDataMaskMock).not.toHaveBeenCalled();

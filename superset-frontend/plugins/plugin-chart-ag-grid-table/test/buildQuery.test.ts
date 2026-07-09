@@ -90,7 +90,7 @@ describe('plugin-chart-ag-grid-table', () => {
         },
       ).queries[0];
 
-      expect(query.orderby).toEqual([['degree_type', true]]);
+      expect(query.orderby).toEqual([['Highest Degree', true]]);
     });
 
     test('should map string metric colId to backend identifier', () => {
@@ -265,6 +265,25 @@ describe('plugin-chart-ag-grid-table', () => {
         ['state', true],
         ['city', false],
       ]);
+    });
+
+    test('should use label (not sqlExpression) for adhoc column in CSV export sortModel', () => {
+      const adhocColumn = createAdhocColumn('sales / 100', 'Margin');
+
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          groupby: [adhocColumn],
+          result_format: 'csv',
+        },
+        {
+          ownState: {
+            sortModel: [{ colId: 'Margin', sort: 'desc' }],
+          },
+        },
+      ).queries[0];
+
+      expect(query.orderby?.[0]).toEqual(['Margin', false]);
     });
 
     test('should not add tie-breaker for non-download queries with server pagination', () => {
@@ -833,6 +852,75 @@ describe('plugin-chart-ag-grid-table', () => {
         expect(totalsQuery.columns).toEqual([]);
         expect(totalsQuery.row_limit).toBe(0);
       });
+
+      test('should reapply percent-metric contribution op to totals query', () => {
+        // Regression test for #37627: when a percent metric is configured and
+        // Show Summary (show_totals) is enabled, the totals query must rename
+        // percent-metric columns (`metric` -> `%metric`) so the footer can
+        // look them up. Otherwise the totals row renders 0.000%.
+        const { queries } = buildQuery({
+          ...basicFormData,
+          metrics: ['count'],
+          percent_metrics: ['count'],
+          show_totals: true,
+          query_mode: QueryMode.Aggregate,
+        });
+
+        // No server pagination -> queries[1] is the totals query.
+        const totalsQuery = queries[1];
+        const contributionRule = {
+          operation: 'contribution',
+          options: {
+            columns: ['count'],
+            rename_columns: ['%count'],
+          },
+        };
+
+        expect(queries[0].post_processing).toContainEqual(contributionRule);
+        expect(totalsQuery.post_processing).toEqual([contributionRule]);
+      });
+
+      test('should omit time-comparison op from totals post_processing', () => {
+        // The totals query must reuse ONLY the contribution rule; the
+        // time-comparison operator from the main query must not run against
+        // the single-row totals query.
+        const { queries } = buildQuery({
+          ...basicFormData,
+          metrics: ['count'],
+          percent_metrics: ['count'],
+          show_totals: true,
+          query_mode: QueryMode.Aggregate,
+          time_compare: ['1 year ago'],
+          comparison_type: 'values',
+        });
+
+        const totalsQuery = queries[1];
+
+        // Exactly one op (contribution) — the time-comparison operator from the
+        // main query must not be carried over to the single-row totals query.
+        expect(totalsQuery.post_processing).toHaveLength(1);
+        expect(totalsQuery.post_processing?.[0]).toMatchObject({
+          operation: 'contribution',
+        });
+        // The reused rule matches the main query's contribution rule verbatim.
+        expect(totalsQuery.post_processing?.[0]).toEqual(
+          queries[0].post_processing?.find(
+            op => op?.operation === 'contribution',
+          ),
+        );
+      });
+
+      test('should leave totals post_processing empty without percent metrics', () => {
+        const { queries } = buildQuery({
+          ...basicFormData,
+          metrics: ['count'],
+          show_totals: true,
+          query_mode: QueryMode.Aggregate,
+        });
+
+        const totalsQuery = queries[1];
+        expect(totalsQuery.post_processing).toEqual([]);
+      });
     });
 
     describe('Integration - all filter types together', () => {
@@ -1088,6 +1176,389 @@ describe('plugin-chart-ag-grid-table', () => {
       }).queries[0];
 
       expect(query.metrics).toEqual([]);
+    });
+  });
+
+  describe('buildQuery - label-to-SQL resolution in WHERE/HAVING', () => {
+    test('should resolve inline SQL metric labels in WHERE clause', () => {
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          server_pagination: true,
+          metrics: [
+            {
+              expressionType: 'SQL',
+              sqlExpression: 'SUM(revenue)',
+              label: 'Total Revenue',
+            },
+          ],
+        },
+        {
+          ownState: {
+            agGridComplexWhere: 'Total Revenue > 1000',
+          },
+        },
+      ).queries[0];
+
+      expect(query.extras?.where).toBe('(SUM(revenue)) > 1000');
+    });
+
+    test('should resolve SIMPLE metric labels in HAVING clause', () => {
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          server_pagination: true,
+          metrics: [
+            {
+              expressionType: 'SIMPLE',
+              aggregate: 'SUM',
+              column: { column_name: 'revenue' },
+              label: 'Total Revenue',
+            },
+          ],
+        },
+        {
+          ownState: {
+            agGridHavingClause: 'Total Revenue > 1000',
+          },
+        },
+      ).queries[0];
+
+      expect(query.extras?.having).toBe('(SUM(revenue)) > 1000');
+    });
+
+    test('should resolve adhoc column SQL expressions in WHERE clause', () => {
+      const adhocColumn = createAdhocColumn('UPPER(city)', 'City Upper');
+
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          server_pagination: true,
+          groupby: [adhocColumn],
+        },
+        {
+          ownState: {
+            agGridComplexWhere: "City Upper = 'NEW YORK'",
+          },
+        },
+      ).queries[0];
+
+      expect(query.extras?.where).toContain('UPPER(city)');
+    });
+
+    test('should wrap CASE expressions in parentheses', () => {
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          server_pagination: true,
+        },
+        {
+          ownState: {
+            agGridComplexWhere: "degree_level = 'High'",
+            metricSqlExpressions: {
+              degree_level:
+                "CASE WHEN degree = 'PhD' THEN 'High' ELSE 'Low' END",
+            },
+          },
+        },
+      ).queries[0];
+
+      expect(query.extras?.where).toBe(
+        "(CASE WHEN degree = 'PhD' THEN 'High' ELSE 'Low' END) = 'High'",
+      );
+    });
+
+    test('should wrap aggregate expressions in parentheses', () => {
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          server_pagination: true,
+        },
+        {
+          ownState: {
+            agGridHavingClause: 'total_count > 100',
+            metricSqlExpressions: {
+              total_count: 'COUNT(*)',
+            },
+          },
+        },
+      ).queries[0];
+
+      expect(query.extras?.having).toBe('(COUNT(*)) > 100');
+    });
+
+    test('should quote simple column names without parentheses', () => {
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          server_pagination: true,
+        },
+        {
+          ownState: {
+            agGridComplexWhere: "status = 'active'",
+            metricSqlExpressions: {
+              status: 'user_status',
+            },
+          },
+        },
+      ).queries[0];
+
+      expect(query.extras?.where).toBe("user_status = 'active'");
+    });
+
+    test('should resolve longer labels before shorter ones', () => {
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          server_pagination: true,
+          metrics: [
+            {
+              expressionType: 'SQL',
+              sqlExpression: 'COUNT(*)',
+              label: 'count',
+            },
+            {
+              expressionType: 'SQL',
+              sqlExpression: 'COUNT(DISTINCT id)',
+              label: 'count_distinct',
+            },
+          ],
+        },
+        {
+          ownState: {
+            agGridHavingClause: 'count_distinct > 5 AND count > 10',
+          },
+        },
+      ).queries[0];
+
+      expect(query.extras?.having).toContain('(COUNT(DISTINCT id)) > 5');
+      expect(query.extras?.having).toContain('(COUNT(*)) > 10');
+    });
+
+    test('should prefer query-level expressions over datasource-level', () => {
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          server_pagination: true,
+          metrics: [
+            {
+              expressionType: 'SQL',
+              sqlExpression: 'SUM(amount)',
+              label: 'total',
+            },
+          ],
+        },
+        {
+          ownState: {
+            agGridHavingClause: 'total > 500',
+            metricSqlExpressions: {
+              total: 'SUM(old_amount)',
+            },
+          },
+        },
+      ).queries[0];
+
+      // Query-level SUM(amount) should win over datasource-level SUM(old_amount)
+      expect(query.extras?.having).toBe('(SUM(amount)) > 500');
+    });
+
+    test('should not modify clause when no labels match', () => {
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          server_pagination: true,
+        },
+        {
+          ownState: {
+            agGridComplexWhere: 'physical_column > 10',
+          },
+        },
+      ).queries[0];
+
+      expect(query.extras?.where).toBe('physical_column > 10');
+    });
+
+    test('should resolve labels in both WHERE and HAVING simultaneously', () => {
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          server_pagination: true,
+          metrics: [
+            {
+              expressionType: 'SQL',
+              sqlExpression: 'SUM(sales)',
+              label: 'Total Sales',
+            },
+          ],
+        },
+        {
+          ownState: {
+            agGridComplexWhere: "region = 'West'",
+            agGridHavingClause: 'Total Sales > 1000',
+            metricSqlExpressions: {
+              region: "CASE WHEN area = 'W' THEN 'West' ELSE 'East' END",
+            },
+          },
+        },
+      ).queries[0];
+
+      expect(query.extras?.where).toContain('CASE WHEN');
+      expect(query.extras?.having).toBe('(SUM(sales)) > 1000');
+    });
+
+    test('should not resolve labels when server pagination is disabled', () => {
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          server_pagination: false,
+          metrics: [
+            {
+              expressionType: 'SQL',
+              sqlExpression: 'SUM(revenue)',
+              label: 'Total Revenue',
+            },
+          ],
+        },
+        {
+          ownState: {
+            agGridComplexWhere: 'Total Revenue > 1000',
+            metricSqlExpressions: {
+              some_col: 'COUNT(*)',
+            },
+          },
+        },
+      ).queries[0];
+
+      expect(query.extras?.where || undefined).toBeUndefined();
+    });
+  });
+
+  describe('buildQuery - raw records summary totals', () => {
+    const rawFormData: TableChartFormData = {
+      viz_type: VizType.Table,
+      datasource: '11__table',
+      query_mode: QueryMode.Raw,
+      all_columns: ['name', 'num'],
+      show_totals: true,
+    };
+
+    test('drops summary columns missing from the raw selection', () => {
+      // Own state can outlive a datasource or column-selection change; a
+      // persisted name absent from all_columns must never reach a SUM metric.
+      const { queries } = buildQuery(rawFormData, {
+        ownState: { rawSummaryColumns: ['num', 'ghost_col'] },
+      });
+
+      expect(queries).toHaveLength(2);
+      expect(queries[1].metrics).toEqual([
+        {
+          expressionType: 'SIMPLE',
+          aggregate: 'SUM',
+          column: { column_name: 'num' },
+          label: 'num',
+        },
+      ]);
+    });
+
+    test('keeps calculated dataset columns in the totals metrics', () => {
+      // Calculated columns are dataset-backed and resolve server-side from
+      // the column name alone (standard SIMPLE adhoc-metric resolution); the
+      // selection intersection must not assume physical columns only.
+      const { queries } = buildQuery(
+        { ...rawFormData, all_columns: ['name', 'num', 'boys_ratio_calc'] },
+        { ownState: { rawSummaryColumns: ['num', 'boys_ratio_calc'] } },
+      );
+
+      expect(queries).toHaveLength(2);
+      expect(queries[1].metrics).toEqual([
+        {
+          expressionType: 'SIMPLE',
+          aggregate: 'SUM',
+          column: { column_name: 'num' },
+          label: 'num',
+        },
+        {
+          expressionType: 'SIMPLE',
+          aggregate: 'SUM',
+          column: { column_name: 'boys_ratio_calc' },
+          label: 'boys_ratio_calc',
+        },
+      ]);
+    });
+
+    test('adds no totals query when every primed column left the selection', () => {
+      const { queries } = buildQuery(rawFormData, {
+        ownState: { rawSummaryColumns: ['ghost_col'] },
+      });
+
+      expect(queries).toHaveLength(1);
+    });
+
+    test('adds a SUM totals query when summary columns are primed', () => {
+      const { queries } = buildQuery(rawFormData, {
+        ownState: { rawSummaryColumns: ['num'] },
+      });
+
+      expect(queries).toHaveLength(2);
+      expect(queries[1]).toEqual(
+        expect.objectContaining({
+          columns: [],
+          row_limit: 0,
+          row_offset: 0,
+          metrics: [
+            {
+              expressionType: 'SIMPLE',
+              aggregate: 'SUM',
+              column: { column_name: 'num' },
+              label: 'num',
+            },
+          ],
+        }),
+      );
+      expect(queries[1].orderby).toBeUndefined();
+    });
+
+    test('adds no totals query without primed summary columns', () => {
+      const { queries } = buildQuery(rawFormData, { ownState: {} });
+      expect(queries).toHaveLength(1);
+    });
+
+    test('adds no totals query when show_totals is off', () => {
+      const { queries } = buildQuery(
+        { ...rawFormData, show_totals: false },
+        { ownState: { rawSummaryColumns: ['num'] } },
+      );
+      expect(queries).toHaveLength(1);
+    });
+
+    test('keeps the totals query last with server pagination', () => {
+      const { queries } = buildQuery(
+        { ...rawFormData, server_pagination: true },
+        { ownState: { rawSummaryColumns: ['num'] } },
+      );
+
+      expect(queries).toHaveLength(3);
+      expect(queries[1].is_rowcount).toBe(true);
+      expect(queries[2].columns).toEqual([]);
+      expect(queries[2].row_limit).toBe(0);
+    });
+
+    test('keeps aggregate-mode totals metrics untouched', () => {
+      const { queries } = buildQuery(
+        {
+          viz_type: VizType.Table,
+          datasource: '11__table',
+          query_mode: QueryMode.Aggregate,
+          groupby: ['state'],
+          metrics: ['count'],
+          show_totals: true,
+        },
+        { ownState: {} },
+      );
+
+      expect(queries).toHaveLength(2);
+      expect(queries[1].columns).toEqual([]);
+      expect(queries[1].metrics).toEqual(['count']);
     });
   });
 });

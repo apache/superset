@@ -19,13 +19,19 @@
 import {
   forwardRef,
   ReactNode,
+  RefObject,
   useContext,
   useEffect,
   useRef,
   useState,
 } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { getExtensionsRegistry, QueryData } from '@superset-ui/core';
+import {
+  getExtensionsRegistry,
+  JsonObject,
+  QueryData,
+  VizType,
+} from '@superset-ui/core';
 import {
   css,
   styled,
@@ -57,10 +63,12 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   filters: object;
   handleToggleFullSize: () => void;
   formData: object;
+  ownState?: JsonObject;
   width: number;
   height: number;
   queriedDttm?: string | null;
   exportPivotExcel?: (arg0: string) => void;
+  chartHolderRef?: RefObject<HTMLDivElement>;
 };
 
 const annotationsLoading = t('Annotation layers are still loading.');
@@ -155,7 +163,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       sliceName = '',
       supersetCanExplore = false,
       supersetCanShare = false,
-      supersetCanCSV = false,
+      supersetCanDownload = false,
       exportPivotCSV,
       exportFullCSV,
       exportFullXLSX,
@@ -171,6 +179,8 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       width,
       height,
       exportPivotExcel = () => ({}),
+      chartHolderRef,
+      ownState,
     },
     ref,
   ) => {
@@ -203,9 +213,12 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
 
     const rowLimit = Number(formData.row_limit ?? 0);
 
-    const isTableChart = formData.viz_type === 'table';
-    const countFromSecondQuery =
-      isTableChart && secondQueryResponse?.data?.[0]?.rowcount;
+    const isTableChart =
+      formData.viz_type === VizType.Table ||
+      formData.viz_type === VizType.TableAgGrid;
+    const countFromSecondQuery = isTableChart
+      ? secondQueryResponse?.data?.[0]?.rowcount
+      : undefined;
 
     const sqlRowCount =
       countFromSecondQuery != null
@@ -361,7 +374,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   exportFullXLSX={exportFullXLSX}
                   supersetCanExplore={supersetCanExplore}
                   supersetCanShare={supersetCanShare}
-                  supersetCanCSV={supersetCanCSV}
+                  supersetCanDownload={supersetCanDownload}
                   componentId={componentId}
                   dashboardId={dashboardId}
                   addSuccessToast={addSuccessToast}
@@ -374,6 +387,8 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   exploreUrl={exploreUrl}
                   crossFiltersEnabled={isCrossFiltersEnabled}
                   exportPivotExcel={exportPivotExcel}
+                  chartHolderRef={chartHolderRef}
+                  ownState={ownState}
                 />
               )}
             </>

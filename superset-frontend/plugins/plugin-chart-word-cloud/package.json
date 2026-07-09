@@ -31,15 +31,16 @@
   "dependencies": {
     "@types/d3-scale": "^4.0.9",
     "d3-cloud": "^1.2.9",
-    "d3-scale": "^4.0.2"
+    "d3-scale": "^4.0.2",
+    "lodash-es": "^4.18.1"
   },
   "peerDependencies": {
+    "@apache-superset/core": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "@apache-superset/core": "*",
     "@types/lodash": "*",
     "@types/react": "*",
-    "react": "^17.0.2"
+    "react": "^18.3.0"
   },
   "devDependencies": {
     "@types/d3-cloud": "^1.2.9"

@@ -33,12 +33,21 @@ from superset.commands.report.exceptions import (
     ReportScheduleNameUniquenessValidationError,
     ReportScheduleNotFoundError,
     ReportScheduleUpdateFailedError,
+    ReportScheduleUserEmailNotFoundError,
 )
+from superset.commands.utils import compute_subjects
 from superset.daos.database import DatabaseDAO
 from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
-from superset.reports.models import ReportSchedule, ReportScheduleType, ReportState
+from superset.reports.models import (
+    ReportCreationMethod,
+    ReportRecipientType,
+    ReportSchedule,
+    ReportScheduleType,
+    ReportState,
+)
 from superset.utils import json
+from superset.utils.core import get_user_email
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -75,7 +84,6 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
 
         # Optional fields
         database_id = self._properties.get("database")
-        owner_ids: Optional[list[int]] = self._properties.get("owners")
 
         exceptions: list[ValidationError] = []
 
@@ -88,6 +96,26 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
             and not self._properties["active"]
         ):
             self._properties["last_state"] = ReportState.NOOP
+
+        # For reports created from charts or dashboards the recipient must always
+        # be the requesting user's own email address.
+        if (
+            self._model.creation_method
+            in (
+                ReportCreationMethod.CHARTS,
+                ReportCreationMethod.DASHBOARDS,
+            )
+            and "recipients" in self._properties
+        ):
+            if user_email := get_user_email():
+                self._properties["recipients"] = [
+                    {
+                        "type": ReportRecipientType.EMAIL,
+                        "recipient_config_json": {"target": user_email},
+                    }
+                ]
+            else:
+                exceptions.append(ReportScheduleUserEmailNotFoundError())
 
         # Validate name/type uniqueness if either is changing
         if name != self._model.name or report_type != self._model.type:
@@ -131,26 +159,25 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
 
         # Validate chart or dashboard relations
         self.validate_chart_dashboard(exceptions, update=True)
+        self._validate_report_extra(exceptions)
 
         if "validator_config_json" in self._properties:
             self._properties["validator_config_json"] = json.dumps(
                 self._properties["validator_config_json"]
             )
 
-        # Check ownership
+        # Check editorship
         try:
-            security_manager.raise_for_ownership(self._model)
+            security_manager.raise_for_editorship(self._model)
         except SupersetSecurityException as ex:
             raise ReportScheduleForbiddenError() from ex
 
-        # Validate/Populate owner
-        try:
-            owners = self.compute_owners(
-                self._model.owners,
-                owner_ids,
-            )
-            self._properties["owners"] = owners
-        except ValidationError as ex:
-            exceptions.append(ex)
+        compute_subjects(
+            self._model,
+            self._properties,
+            exceptions,
+            include_viewers=False,
+        )
+
         if exceptions:
             raise ReportScheduleInvalidError(exceptions=exceptions)

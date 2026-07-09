@@ -26,6 +26,7 @@ import Table, {
   TableSize,
 } from '@superset-ui/core/components/Table';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
+import { openInNewTab, stripAppRoot } from 'src/utils/navigationUtils';
 import { ITableColumn } from './types';
 import MessageContent from './MessageContent';
 
@@ -183,7 +184,7 @@ export const tableColumnDefinition: ColumnsType<ITableColumn> = [
     dataIndex: 'type',
     key: 'type',
     width: '100px',
-    sorter: (a: ITableColumn, b: ITableColumn) => a.name.localeCompare(b.name),
+    sorter: (a: ITableColumn, b: ITableColumn) => a.type.localeCompare(b.type),
   },
 ];
 
@@ -227,11 +228,12 @@ const renderExistingDatasetAlert = (dataset?: DatasetObject) => (
         <span
           role="button"
           onClick={() => {
-            window.open(
-              dataset?.explore_url,
-              '_blank',
-              'noreferrer noopener popup=false',
-            );
+            if (dataset?.explore_url) {
+              // `explore_url` is router-relative from the backend (rooted under
+              // a subdirectory deployment); strip the root so openInNewTab's
+              // ensureAppRoot re-prefixes it once rather than doubling it.
+              openInNewTab(stripAppRoot(dataset.explore_url));
+            }
           }}
           tabIndex={0}
           className="view-dataset-button"

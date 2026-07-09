@@ -16,9 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useCallback, useMemo } from 'react';
+import {
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  useEffect,
+  ReactNode,
+} from 'react';
+import { createPortal } from 'react-dom';
 import { ResizeCallback, ResizeStartCallback, Resizable } from 're-resizable';
 import cx from 'classnames';
+import { addAlpha } from '@superset-ui/core';
 import { css, styled } from '@apache-superset/core/theme';
 
 import {
@@ -27,13 +36,17 @@ import {
   BottomRightResizeHandle,
 } from './ResizableHandle';
 import resizableConfig from '../../util/resizableConfig';
-import { GRID_BASE_UNIT, GRID_GUTTER_SIZE } from '../../util/constants';
+import {
+  GRID_BASE_UNIT,
+  GRID_GUTTER_SIZE,
+  BOTTOM_RESIZE_DIRECTION,
+} from '../../util/constants';
 
 const proxyToInfinity = Number.MAX_VALUE;
 
 export interface ResizableContainerProps {
   id: string;
-  children?: object;
+  children?: ReactNode;
   adjustableWidth?: boolean;
   adjustableHeight?: boolean;
   gutterWidth?: number;
@@ -62,6 +75,24 @@ const HANDLE_CLASSES = {
   right: 'resizable-container-handle--right',
   bottom: 'resizable-container-handle--bottom',
 };
+
+const CursorLabel = styled.div`
+  ${({ theme }) => css`
+    position: fixed;
+    background-color: ${addAlpha(theme.colorPrimary, 0.9)};
+    color: ${theme.colorBgBase};
+    font-size: ${theme.fontSizeXS}px;
+    font-weight: ${theme.fontWeightStrong};
+    line-height: 1;
+    padding: ${theme.sizeUnit}px ${theme.sizeUnit * 1.5}px;
+    border-radius: ${theme.borderRadius}px;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 9999;
+    transform: translate(12px, 12px);
+  `}
+`;
+
 // @ts-expect-error
 const StyledResizable = styled(Resizable)`
   ${({ theme }) => css`
@@ -173,12 +204,40 @@ export default function ResizableContainer({
   maxHeightMultiple = proxyToInfinity,
 }: ResizableContainerProps) {
   const [isResizing, setIsResizing] = useState<boolean>(false);
+  const cursorLabelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isResizing && cursorLabelRef.current) {
+      cursorLabelRef.current.style.display = 'none';
+    }
+  }, [isResizing]);
 
   const handleResize = useCallback<ResizeCallback>(
     (event, direction, elementRef, delta) => {
       if (onResize) onResize(event, direction, elementRef, delta);
+      if (direction.toLowerCase().includes(BOTTOM_RESIZE_DIRECTION)) {
+        const clientX =
+          'touches' in event
+            ? (event.touches[0]?.clientX ?? 0)
+            : (event as MouseEvent).clientX;
+        const clientY =
+          'touches' in event
+            ? (event.touches[0]?.clientY ?? 0)
+            : (event as MouseEvent).clientY;
+        const snappedDelta = Math.round(delta.height / heightStep) * heightStep;
+        const currentHeightPx = Math.max(
+          minHeightMultiple * heightStep,
+          heightMultiple * heightStep + snappedDelta,
+        );
+        if (cursorLabelRef.current) {
+          cursorLabelRef.current.style.display = 'block';
+          cursorLabelRef.current.style.left = `${clientX}px`;
+          cursorLabelRef.current.style.top = `${clientY}px`;
+          cursorLabelRef.current.textContent = `${currentHeightPx}px`;
+        }
+      }
     },
-    [onResize],
+    [onResize, heightMultiple, heightStep, minHeightMultiple],
   );
 
   const handleResizeStart = useCallback<ResizeStartCallback>(
@@ -275,47 +334,55 @@ export default function ResizableContainer({
   }, [editMode, adjustableWidth, adjustableHeight]);
 
   return (
-    <StyledResizable
-      enable={enableConfig}
-      grid={SNAP_TO_GRID}
-      gridGap={undefined}
-      minWidth={
-        adjustableWidth
-          ? minWidthMultiple * (widthStep + gutterWidth) - gutterWidth
-          : undefined
-      }
-      minHeight={adjustableHeight ? minHeightMultiple * heightStep : undefined}
-      maxWidth={
-        adjustableWidth && size.width
-          ? Math.max(
-              size.width,
-              Math.min(
-                proxyToInfinity,
-                maxWidthMultiple * (widthStep + gutterWidth) - gutterWidth,
-              ),
-            )
-          : undefined
-      }
-      maxHeight={
-        adjustableHeight && size.height
-          ? Math.max(
-              size.height,
-              Math.min(proxyToInfinity, maxHeightMultiple * heightStep),
-            )
-          : undefined
-      }
-      size={size}
-      onResizeStart={handleResizeStart}
-      onResize={handleResize}
-      onResizeStop={handleResizeStop}
-      handleComponent={handleComponent}
-      className={cx(
-        'resizable-container',
-        isResizing && 'resizable-container--resizing',
+    <>
+      <StyledResizable
+        enable={enableConfig}
+        grid={SNAP_TO_GRID}
+        gridGap={undefined}
+        minWidth={
+          adjustableWidth
+            ? minWidthMultiple * (widthStep + gutterWidth) - gutterWidth
+            : undefined
+        }
+        minHeight={
+          adjustableHeight ? minHeightMultiple * heightStep : undefined
+        }
+        maxWidth={
+          adjustableWidth && size.width
+            ? Math.max(
+                size.width,
+                Math.min(
+                  proxyToInfinity,
+                  maxWidthMultiple * (widthStep + gutterWidth) - gutterWidth,
+                ),
+              )
+            : undefined
+        }
+        maxHeight={
+          adjustableHeight && size.height
+            ? Math.max(
+                size.height,
+                Math.min(proxyToInfinity, maxHeightMultiple * heightStep),
+              )
+            : undefined
+        }
+        size={size}
+        onResizeStart={handleResizeStart}
+        onResize={handleResize}
+        onResizeStop={handleResizeStop}
+        handleComponent={handleComponent}
+        className={cx(
+          'resizable-container',
+          isResizing && 'resizable-container--resizing',
+        )}
+        handleClasses={HANDLE_CLASSES}
+      >
+        {children}
+      </StyledResizable>
+      {createPortal(
+        <CursorLabel ref={cursorLabelRef} style={{ display: 'none' }} />,
+        document.body,
       )}
-      handleClasses={HANDLE_CLASSES}
-    >
-      {children}
-    </StyledResizable>
+    </>
   );
 }

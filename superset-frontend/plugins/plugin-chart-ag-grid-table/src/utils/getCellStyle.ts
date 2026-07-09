@@ -17,9 +17,14 @@
  * under the License.
  */
 
-import { ColorFormatters } from '@superset-ui/chart-controls';
+import {
+  ColorFormatters,
+  getTextColorForBackground,
+  ObjectFormattingEnum,
+} from '@superset-ui/chart-controls';
 import { CellClassParams } from '@superset-ui/core/components/ThemedAgGridReact';
 import { BasicColorFormatterType, InputColumn } from '../types';
+import getRowBasicColorFormatter from './getRowBasicColorFormatter';
 
 type CellStyleParams = CellClassParams & {
   hasColumnColorFormatters: boolean | undefined;
@@ -29,6 +34,8 @@ type CellStyleParams = CellClassParams & {
     [Key: string]: BasicColorFormatterType;
   }[];
   col: InputColumn;
+  cellSurfaceColor: string;
+  hoverCellSurfaceColor: string;
 };
 
 const getCellStyle = (params: CellStyleParams) => {
@@ -42,8 +49,11 @@ const getCellStyle = (params: CellStyleParams) => {
     columnColorFormatters,
     col,
     node,
+    cellSurfaceColor,
+    hoverCellSurfaceColor,
   } = params;
   let backgroundColor;
+  let color;
   if (hasColumnColorFormatters) {
     columnColorFormatters!
       .filter(formatter => {
@@ -56,7 +66,16 @@ const getCellStyle = (params: CellStyleParams) => {
         const formatterResult =
           value || value === 0 ? formatter.getColorFromValue(value) : false;
         if (formatterResult) {
-          backgroundColor = formatterResult;
+          if (
+            formatter.objectFormatting === ObjectFormattingEnum.TEXT_COLOR ||
+            formatter.toTextColor
+          ) {
+            color = formatterResult;
+          } else if (
+            formatter.objectFormatting !== ObjectFormattingEnum.CELL_BAR
+          ) {
+            backgroundColor = formatterResult;
+          }
         }
       });
   }
@@ -66,15 +85,29 @@ const getCellStyle = (params: CellStyleParams) => {
     col?.metricName &&
     node?.rowPinned !== 'bottom'
   ) {
-    backgroundColor =
-      basicColorFormatters?.[rowIndex]?.[col.metricName]?.backgroundColor;
+    backgroundColor = getRowBasicColorFormatter(
+      node,
+      rowIndex,
+      basicColorFormatters,
+    )?.[col.metricName]?.backgroundColor;
   }
 
   const textAlign =
     col?.config?.horizontalAlign || (col?.isNumeric ? 'right' : 'left');
+  const resolvedTextColor = getTextColorForBackground(
+    { backgroundColor, color },
+    cellSurfaceColor,
+  );
+  const hoverResolvedTextColor = getTextColorForBackground(
+    { backgroundColor, color },
+    hoverCellSurfaceColor,
+  );
 
   return {
     backgroundColor: backgroundColor || '',
+    color: '',
+    '--ag-cell-value-color': resolvedTextColor || '',
+    '--ag-cell-value-hover-color': hoverResolvedTextColor || '',
     textAlign,
   };
 };

@@ -31,6 +31,7 @@ const SUPERSET_CUSTOM_TOKENS: Set<string> = new Set([
 
   // Brand tokens
   'brandIconMaxWidth',
+  'brandAppName',
   'brandLogoAlt',
   'brandLogoUrl',
   'brandLogoMargin',
@@ -47,6 +48,65 @@ const SUPERSET_CUSTOM_TOKENS: Set<string> = new Set([
 
   // Font loading
   'fontUrls',
+
+  // Label variant tokens — Published/Draft (dashboard status)
+  'labelPublishedColor',
+  'labelPublishedBg',
+  'labelPublishedBorderColor',
+  'labelPublishedIconColor',
+  'labelDraftColor',
+  'labelDraftBg',
+  'labelDraftBorderColor',
+  'labelDraftIconColor',
+
+  // Label variant tokens — Dataset type (Physical/Virtual)
+  'labelDatasetPhysicalColor',
+  'labelDatasetPhysicalBg',
+  'labelDatasetPhysicalBorderColor',
+  'labelDatasetPhysicalIconColor',
+  'labelDatasetVirtualColor',
+  'labelDatasetVirtualBg',
+  'labelDatasetVirtualBorderColor',
+  'labelDatasetVirtualIconColor',
+
+  // Editor tokens
+  'colorEditorSelection',
+
+  // Secondary button tokens
+  'buttonSecondaryColor',
+  'buttonSecondaryBg',
+  'buttonSecondaryBorderColor',
+  'buttonSecondaryHoverColor',
+  'buttonSecondaryHoverBg',
+  'buttonSecondaryHoverBorderColor',
+  'buttonSecondaryActiveColor',
+  'buttonSecondaryActiveBg',
+  'buttonSecondaryActiveBorderColor',
+
+  // Component flexibility tokens
+  'selectOptionActiveOutline',
+  'labelBorderRadius',
+  'buttonControlHeight',
+  'buttonControlHeightSM',
+  'buttonControlHeightXS',
+  'buttonPaddingInline',
+  'buttonPaddingInlineSM',
+  'buttonFontSize',
+  'buttonBorderRadius',
+  'buttonStyleMap',
+
+  // Dashboard tile tokens
+  'dashboardTileBg',
+  'dashboardTileBorder',
+  'dashboardTileBorderRadius',
+  'dashboardTileBoxShadow',
+
+  // Results grid tokens
+  'resultsGridRowHeight',
+  'resultsGridHeaderFontWeight',
+  'resultsGridHeaderFontSize',
+  'resultsGridBorderRadius',
+  'resultsGridNoStriping',
 ]);
 
 /**

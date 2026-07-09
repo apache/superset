@@ -16,20 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, ReactElement, useCallback } from 'react';
+import { useState, useEffect, useMemo, ReactElement, useCallback } from 'react';
 
 import { t } from '@apache-superset/core/translation';
 import {
+  ChartDataResponseResult,
   ensureIsArray,
   getChartMetadataRegistry,
   getClientErrorObject,
+  QueryData,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { ResultsPaneProps, QueryResultInterface } from '../types';
 import { SingleQueryResultPane } from './SingleQueryResultPane';
-import { TableControls } from './DataTableControls';
+import { TableControls, ROW_LIMIT_OPTIONS } from './DataTableControls';
 
 const Error = styled.pre`
   margin-top: ${({ theme }) => `${theme.sizeUnit * 4}px`};
@@ -45,6 +47,13 @@ const StyledDiv = styled.div`
 
 const cache = new WeakMap();
 
+// `queriesResponse` is the loose `QueryData`; only reuse it when every entry is
+// a full v1 result (colnames/coltypes/data arrays), else fall back to the API.
+const isV1QueryResult = (query: QueryData): query is ChartDataResponseResult =>
+  Array.isArray((query as ChartDataResponseResult).colnames) &&
+  Array.isArray((query as ChartDataResponseResult).coltypes) &&
+  Array.isArray((query as ChartDataResponseResult).data);
+
 export const useResultsPane = ({
   isRequest,
   queryFormData,
@@ -53,14 +62,16 @@ export const useResultsPane = ({
   errorMessage,
   setForceQuery,
   isVisible,
-  dataSize = 50,
   canDownload,
   columnDisplayNames,
+  queriesResponse,
 }: ResultsPaneProps): ReactElement[] => {
   const metadata = getChartMetadataRegistry().get(
     queryFormData?.viz_type || queryFormData?.vizType,
   );
 
+  const chartRowLimit = Number(queryFormData?.row_limit) || 10000;
+  const [rowLimit, setRowLimit] = useState(1000);
   const [resultResp, setResultResp] = useState<QueryResultInterface[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [responseError, setResponseError] = useState<string>('');
@@ -69,46 +80,94 @@ export const useResultsPane = ({
 
   const noOpInputChange = useCallback(() => {}, []);
 
+  // Never exceed the chart's own row_limit
+  const effectiveRowLimit = Math.min(rowLimit, chartRowLimit);
+
+  const cappedFormData = useMemo(
+    () => ({ ...queryFormData, row_limit: effectiveRowLimit }),
+    [queryFormData, effectiveRowLimit],
+  );
+
+  const handleRowLimitChange = useCallback(
+    (limit: number) => {
+      setRowLimit(limit);
+      cache.delete(cappedFormData);
+    },
+    [cappedFormData],
+  );
+
   useEffect(() => {
     // it's an invalid formData when gets a errorMessage
     if (errorMessage) return;
-    if (isRequest && cache.has(queryFormData)) {
+    if (!isRequest) return;
+
+    // The chart query and the results query produce identical SQL, so reuse the
+    // chart's data instead of a second request. The chart always ran with a
+    // row_limit >= effectiveRowLimit, so its first `effectiveRowLimit` rows
+    // match what a dedicated results query would return — slice locally to keep
+    // the row-limit dropdown working without a duplicate query.
+    if (queriesResponse?.length && queriesResponse.every(isV1QueryResult)) {
+      const mapped = queriesResponse.map(q => {
+        const result = q as ChartDataResponseResult;
+        const limitedData = ensureIsArray(result.data).slice(
+          0,
+          effectiveRowLimit,
+        );
+        return {
+          colnames: result.colnames,
+          coltypes: result.coltypes,
+          data: limitedData,
+          rowcount: limitedData.length,
+        };
+      }) as unknown as QueryResultInterface[];
+      setResultResp(mapped);
+      setResponseError('');
+      if (queryForce) {
+        setForceQuery?.(false);
+      }
+      setIsLoading(false);
+      return;
+    }
+
+    // Fallback: use cached data
+    if (cache.has(cappedFormData)) {
       setResultResp(
-        ensureIsArray(cache.get(queryFormData)) as QueryResultInterface[],
+        ensureIsArray(cache.get(cappedFormData)) as QueryResultInterface[],
       );
       setResponseError('');
       if (queryForce) {
         setForceQuery?.(false);
       }
       setIsLoading(false);
+      return;
     }
-    if (isRequest && !cache.has(queryFormData)) {
-      setIsLoading(true);
-      getChartDataRequest({
-        formData: queryFormData,
-        force: queryForce,
-        resultFormat: 'json',
-        resultType: 'results',
-        ownState,
+
+    // Fallback: fetch from API (legacy charts without queriesResponse)
+    setIsLoading(true);
+    getChartDataRequest({
+      formData: cappedFormData,
+      force: queryForce,
+      resultFormat: 'json',
+      resultType: 'results',
+      ownState,
+    })
+      .then(({ json }) => {
+        setResultResp(ensureIsArray(json.result) as QueryResultInterface[]);
+        setResponseError('');
+        cache.set(cappedFormData, json.result);
+        if (queryForce) {
+          setForceQuery?.(false);
+        }
       })
-        .then(({ json }) => {
-          setResultResp(ensureIsArray(json.result) as QueryResultInterface[]);
-          setResponseError('');
-          cache.set(queryFormData, json.result);
-          if (queryForce) {
-            setForceQuery?.(false);
-          }
-        })
-        .catch(response => {
-          getClientErrorObject(response).then(({ error, message }) => {
-            setResponseError(error || message || t('Sorry, an error occurred'));
-          });
-        })
-        .finally(() => {
-          setIsLoading(false);
+      .catch(response => {
+        getClientErrorObject(response).then(({ error, message }) => {
+          setResponseError(error || message || t('Sorry, an error occurred'));
         });
-    }
-  }, [queryFormData, isRequest]);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [cappedFormData, isRequest, queriesResponse, effectiveRowLimit]);
 
   useEffect(() => {
     if (errorMessage) {
@@ -163,11 +222,13 @@ export const useResultsPane = ({
         colnames={result.colnames}
         coltypes={result.coltypes}
         rowcount={result.rowcount}
-        dataSize={dataSize}
         datasourceId={queryFormData.datasource}
-        isVisible={isVisible}
+        isVisible={isVisible ?? true}
         canDownload={canDownload}
         columnDisplayNames={columnDisplayNames}
+        rowLimit={rowLimit}
+        rowLimitOptions={ROW_LIMIT_OPTIONS}
+        onRowLimitChange={handleRowLimitChange}
       />
     </StyledDiv>
   ));

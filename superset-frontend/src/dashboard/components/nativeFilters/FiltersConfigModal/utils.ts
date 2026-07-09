@@ -140,6 +140,9 @@ export const createHandleSave =
         time_range: formInputs.time_range,
         controlValues: formInputs.controlValues ?? {},
         granularity_sqla: formInputs.granularity_sqla,
+        ...(formInputs.time_grains?.length
+          ? { time_grains: formInputs.time_grains }
+          : {}),
         requiredFirst: Object.values(formInputs.requiredFirst ?? {}).find(
           rf => rf,
         ),

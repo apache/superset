@@ -30,7 +30,7 @@ import {
 import { logging } from '@apache-superset/core/utils';
 import { GenericDataType } from '@apache-superset/core/common';
 import memoizeOne from 'memoize-one';
-import { maxBy, minBy } from 'lodash';
+import { maxBy, minBy } from 'lodash-es';
 import type { ComposeOption } from 'echarts/core';
 import type { HeatmapSeriesOption } from 'echarts/charts';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';

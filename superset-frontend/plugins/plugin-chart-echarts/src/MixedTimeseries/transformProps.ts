@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { invert } from 'lodash';
+import { invert } from 'lodash-es';
 import {
   AnnotationLayer,
   AxisType,
@@ -55,6 +55,7 @@ import {
 import {
   EchartsTimeseriesSeriesType,
   ForecastSeriesEnum,
+  LegendOrientation,
   Refs,
 } from '../types';
 import { parseAxisBound } from '../utils/controls';
@@ -67,10 +68,12 @@ import {
   extractTooltipKeys,
   getAxisType,
   getColtypesMapping,
+  getHorizontalLegendAvailableWidth,
   getLegendProps,
   getMinAndMaxFromBounds,
   getOverMaxHiddenFormatter,
 } from '../utils/series';
+import { resolveLegendLayout } from '../utils/legendLayout';
 import {
   extractAnnotationLabels,
   getAnnotationData,
@@ -255,7 +258,15 @@ export default function transformProps(
 
   const dataTypes = getColtypesMapping(queriesData[0]);
   const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
-  const xAxisType = getAxisType(stack, xAxisForceCategorical, xAxisDataType);
+  const xAxisType = getAxisType(
+    stack,
+    xAxisForceCategorical,
+    xAxisDataType,
+    seriesType === EchartsTimeseriesSeriesType.Bar ||
+      seriesTypeB === EchartsTimeseriesSeriesType.Bar
+      ? EchartsTimeseriesSeriesType.Bar
+      : seriesType,
+  );
 
   const [rawSeriesA, sortedTotalValuesA] = extractSeries(rebasedDataA, {
     fillNeighborValue: stack ? 0 : undefined,
@@ -333,6 +344,16 @@ export default function transformProps(
     data2,
     currencyCodeColumn,
   );
+  const getAxisFormatterConfig = (axisIndex?: number) =>
+    axisIndex === 1
+      ? {
+          customFormatters: customFormattersSecondary,
+          formatter: formatterSecondary,
+        }
+      : {
+          customFormatters,
+          formatter,
+        };
 
   const primarySeries = new Set<string>();
   const secondarySeries = new Set<string>();
@@ -411,6 +432,8 @@ export default function transformProps(
   let [minSecondary, maxSecondary] = (yAxisBoundsSecondary || []).map(
     parseAxisBound,
   );
+  const getAxisMax = (axisIndex?: number) =>
+    axisIndex === 1 ? maxSecondary : yAxisMax;
 
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
@@ -434,10 +457,11 @@ export default function transformProps(
       // When no groupby, format as just the entry name with optional query identifier
       displayName = showQueryIdentifiers ? `${entryName} (Query A)` : entryName;
     }
+    const axisFormatterConfig = getAxisFormatterConfig(yAxisIndex);
 
     const seriesFormatter = getFormatter(
-      customFormatters,
-      formatter,
+      axisFormatterConfig.customFormatters,
+      axisFormatterConfig.formatter,
       metrics,
       labelMap?.[seriesName]?.[0],
       !!contributionMode,
@@ -469,7 +493,7 @@ export default function transformProps(
         formatter:
           seriesType === EchartsTimeseriesSeriesType.Bar
             ? getOverMaxHiddenFormatter({
-                max: yAxisMax,
+                max: getAxisMax(yAxisIndex),
                 formatter: seriesFormatter,
               })
             : seriesFormatter,
@@ -507,10 +531,11 @@ export default function transformProps(
       // When no groupby, format as just the entry name with optional query identifier
       displayName = showQueryIdentifiers ? `${entryName} (Query B)` : entryName;
     }
+    const axisFormatterConfig = getAxisFormatterConfig(yAxisIndexB);
 
     const seriesFormatter = getFormatter(
-      customFormattersSecondary,
-      formatterSecondary,
+      axisFormatterConfig.customFormatters,
+      axisFormatterConfig.formatter,
       metricsB,
       labelMapB?.[seriesName]?.[0],
       !!contributionMode,
@@ -543,7 +568,7 @@ export default function transformProps(
         formatter:
           seriesTypeB === EchartsTimeseriesSeriesType.Bar
             ? getOverMaxHiddenFormatter({
-                max: maxSecondary,
+                max: getAxisMax(yAxisIndexB),
                 formatter: seriesFormatter,
               })
             : seriesFormatter,
@@ -575,21 +600,88 @@ export default function transformProps(
       : String;
   const xAxisFormatter =
     xAxisDataType === GenericDataType.Temporal
-      ? getXAxisFormatter(xAxisTimeFormat)
+      ? getXAxisFormatter(xAxisTimeFormat, timeGrainSqla)
       : String;
+
+  const showMaxLabel =
+    xAxisType === AxisType.Time && xAxisLabelRotation === 0 && !!timeGrainSqla;
+  const deduplicatedFormatter = showMaxLabel
+    ? (() => {
+        let lastLabel: string | undefined;
+        const wrapper = (value: number | string) => {
+          const label =
+            typeof xAxisFormatter === 'function'
+              ? (xAxisFormatter as Function)(value)
+              : String(value);
+          if (label === lastLabel) {
+            return '';
+          }
+          lastLabel = label;
+          return label;
+        };
+        if (typeof xAxisFormatter === 'function' && 'id' in xAxisFormatter) {
+          (wrapper as any).id = (xAxisFormatter as any).id;
+        }
+        return wrapper;
+      })()
+    : xAxisFormatter;
 
   const addYAxisTitleOffset =
     !!(yAxisTitle || yAxisTitleSecondary) &&
     convertInteger(yAxisTitleMargin) !== 0;
   const addXAxisTitleOffset =
     !!xAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
+  const baseChartPadding = getPadding(
+    showLegend,
+    legendOrientation,
+    addYAxisTitleOffset,
+    zoomable,
+    legendMargin,
+    addXAxisTitleOffset,
+    yAxisTitlePosition,
+    convertInteger(yAxisTitleMargin),
+    convertInteger(xAxisTitleMargin),
+  );
+  const legendData = series
+    .filter(
+      entry =>
+        extractForecastSeriesContext((entry.name || '') as string).type ===
+        ForecastSeriesEnum.Observation,
+    )
+    .map(entry => entry.name)
+    .filter((name): name is string => Boolean(name))
+    .concat(extractAnnotationLabels(annotationLayers))
+    .sort((a: string, b: string) => {
+      if (!legendSort) return 0;
+      return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+    });
+  const { effectiveLegendMargin, effectiveLegendType } = resolveLegendLayout({
+    availableWidth:
+      legendOrientation === LegendOrientation.Top ||
+      legendOrientation === LegendOrientation.Bottom
+        ? getHorizontalLegendAvailableWidth({
+            chartWidth: width,
+            orientation: legendOrientation,
+            padding: baseChartPadding,
+            zoomable,
+          })
+        : undefined,
+    chartHeight: height,
+    chartWidth: width,
+    legendItems: legendData,
+    legendMargin,
+    orientation: legendOrientation,
+    show: showLegend,
+    theme,
+    type: legendType,
+  });
 
   const chartPadding = getPadding(
     showLegend,
     legendOrientation,
     addYAxisTitleOffset,
     zoomable,
-    legendMargin,
+    effectiveLegendMargin,
     addXAxisTitleOffset,
     yAxisTitlePosition,
     convertInteger(yAxisTitleMargin),
@@ -611,9 +703,14 @@ export default function transformProps(
       nameGap: convertInteger(xAxisTitleMargin),
       nameLocation: 'middle',
       axisLabel: {
-        formatter: xAxisFormatter,
+        hideOverlap: !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
+        formatter: deduplicatedFormatter,
         rotate: xAxisLabelRotation,
         interval: xAxisLabelInterval,
+        ...(showMaxLabel && {
+          showMaxLabel: true,
+          alignMaxLabel: 'right',
+        }),
       },
       minorTick: { show: minorTicks },
       minInterval:
@@ -753,7 +850,7 @@ export default function transformProps(
     },
     legend: {
       ...getLegendProps(
-        legendType,
+        effectiveLegendType,
         legendOrientation,
         showLegend,
         theme,
@@ -761,18 +858,7 @@ export default function transformProps(
         legendState,
         chartPadding,
       ),
-      data: series
-        .filter(
-          entry =>
-            extractForecastSeriesContext((entry.name || '') as string).type ===
-            ForecastSeriesEnum.Observation,
-        )
-        .map(entry => entry.id || entry.name || '')
-        .concat(extractAnnotationLabels(annotationLayers))
-        .sort((a: string, b: string) => {
-          if (!legendSort) return 0;
-          return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
-        }),
+      data: legendData,
     },
     series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
     toolbox: {
