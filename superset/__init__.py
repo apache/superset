@@ -17,6 +17,9 @@
 import flask_appbuilder
 from werkzeug.local import LocalProxy
 
+# This package initializer wires up Superset's shared, application-wide
+# dependencies (the app factory and the extension proxies below).
+
 # SQLAlchemy 2.0 enables "Annotated Declarative" mapping, which inspects class
 # attribute type annotations and requires mapped attributes to use ``Mapped[...]``.
 # Superset's models (and Flask-AppBuilder mixins) still carry legacy 1.x style
