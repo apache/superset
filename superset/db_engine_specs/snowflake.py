@@ -287,7 +287,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
                         else:
                             url = url.set(username=user.email)
 
-            url = url.update_query_dict({"token": user_token})
+                url = url.update_query_dict({"token": user_token})
 
         return url, engine_kwargs
 
