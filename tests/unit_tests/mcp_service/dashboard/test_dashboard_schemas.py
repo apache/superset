@@ -927,6 +927,12 @@ class TestRequestSchemaAliasChoices:
         req = GetDashboardInfoRequest.model_validate({"identifier": 42})
         assert req.identifier == 42
 
+    def test_get_dashboard_info_select_columns_columns_alias(self) -> None:
+        req = GetDashboardInfoRequest.model_validate(
+            {"id": 42, "columns": ["id", "dashboard_title"]}
+        )
+        assert req.select_columns == ["id", "dashboard_title"]
+
     def test_list_dashboards_select_columns_columns_alias(self) -> None:
         req = ListDashboardsRequest.model_validate(
             {"columns": ["id", "dashboard_title"]}
