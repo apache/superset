@@ -140,6 +140,29 @@ export const showValueControl: ControlSetItem = {
   },
 };
 
+export const labelPositionControl: ControlSetItem = {
+  name: 'label_position',
+  config: {
+    type: 'SelectControl',
+    freeForm: false,
+    label: t('Label Position'),
+    choices: [
+      ['auto', t('Auto')],
+      ['top', t('Top')],
+      ['inside', t('Inside')],
+      ['bottom', t('Bottom')],
+      ['left', t('Left')],
+      ['right', t('Right')],
+    ],
+    default: 'auto',
+    renderTrigger: true,
+    description: t('Position of the data label relative to the bar segment'),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.show_value?.value) ||
+      Boolean(controls?.show_valueB?.value),
+  },
+};
+
 export const colorByPrimaryAxisControl: ControlSetItem = {
   name: 'color_by_primary_axis',
   config: {
@@ -219,6 +242,7 @@ export const percentageThresholdControl: ControlSetItem = {
 
 export const showValueSection: ControlSetRow[] = [
   [showValueControl],
+  [labelPositionControl],
   [stackControl],
   [onlyTotalControl],
   [percentageThresholdControl],
@@ -230,11 +254,13 @@ export const colorByPrimaryAxisSection: ControlSetRow[] = [
 
 export const showValueSectionWithoutStack: ControlSetRow[] = [
   [showValueControl],
+  [labelPositionControl],
   [onlyTotalControl],
 ];
 
 export const showValueSectionWithoutStream: ControlSetRow[] = [
   [showValueControl],
+  [labelPositionControl],
   [stackControlWithoutStream],
   [onlyTotalControl],
   [percentageThresholdControl],

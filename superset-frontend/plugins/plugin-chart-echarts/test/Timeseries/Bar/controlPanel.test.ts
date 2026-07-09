@@ -292,3 +292,37 @@ test('x_axis_time_format should be hidden for numeric columns', () => {
     false,
   );
 });
+
+test('should have visibility function for label_position', () => {
+  const labelPositionCtrl: any = getControl('label_position');
+  expect(labelPositionCtrl).toBeDefined();
+  expect(labelPositionCtrl.config.visibility).toBeDefined();
+  expect(typeof labelPositionCtrl.config.visibility).toBe('function');
+
+  expect(
+    labelPositionCtrl.config.visibility({
+      controls: {
+        show_value: { value: true },
+        show_valueB: { value: false },
+      },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(true);
+
+  expect(
+    labelPositionCtrl.config.visibility({
+      controls: {
+        show_value: { value: false },
+        show_valueB: { value: true },
+      },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(true);
+
+  expect(
+    labelPositionCtrl.config.visibility({
+      controls: {
+        show_value: { value: false },
+        show_valueB: { value: false },
+      },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(false);
+});
