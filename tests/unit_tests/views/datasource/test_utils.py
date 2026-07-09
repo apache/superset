@@ -83,6 +83,61 @@ def test_get_samples_uses_normal_path_when_engine_supports_offset(
     datasource.database.db_engine_spec.fetch_data_with_cursor.assert_not_called()
 
 
+def test_get_samples_normal_path_cleans_count_cache_when_sample_data_failed(
+    fake_datasource_factory,
+):
+    """
+    On the normal (non-cursor) path, a FAILED samples payload must evict the
+    count-star cache and raise DatasetSamplesFailedError — mirroring the
+    cursor path's failure handling.
+    """
+    from superset.commands.dataset.exceptions import DatasetSamplesFailedError
+    from superset.constants import CacheRegion
+    from superset.views.datasource import utils
+
+    datasource = fake_datasource_factory(supports_offset=True)
+
+    samples_ctx = MagicMock()
+    samples_ctx.get_payload.return_value = {
+        "queries": [
+            {
+                "status": "failed",
+                "error": "backend query failed",
+            }
+        ]
+    }
+    count_ctx = MagicMock()
+    count_ctx.get_payload.return_value = {
+        "queries": [
+            {
+                "data": [{"COUNT(*)": 1}],
+                "status": "success",
+                "cache_key": "count-cache-key",
+            }
+        ]
+    }
+
+    with (
+        patch.object(
+            utils, "DatasourceDAO", MagicMock(get_datasource=lambda **kw: datasource)
+        ),
+        patch.object(utils, "QueryContextFactory") as qcf,
+        patch.object(utils, "QueryCacheManager") as cache_mgr,
+    ):
+        qcf.return_value.create.side_effect = [samples_ctx, count_ctx]
+
+        with pytest.raises(DatasetSamplesFailedError) as excinfo:
+            utils.get_samples(
+                datasource_type="table",
+                datasource_id=1,
+                page=1,
+                per_page=50,
+            )
+
+    cache_mgr.delete.assert_called_once_with("count-cache-key", CacheRegion.DATA)
+    assert "backend query failed" in str(excinfo.value)
+
+
 def test_get_samples_uses_cursor_path_when_engine_disallows_offset(
     fake_datasource_factory,
 ):

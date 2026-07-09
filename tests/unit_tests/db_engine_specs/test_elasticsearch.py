@@ -323,6 +323,49 @@ def test_fetch_data_with_cursor_closes_cursor_even_if_iteration_raises() -> None
     )
 
 
+def test_fetch_data_with_cursor_swallows_close_failure(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """
+    If the best-effort cursor-close request itself raises (e.g. the cursor
+    already expired server-side), the failure must be logged and swallowed
+    rather than masking a successful page fetch.
+    """
+    from superset.db_engine_specs.elasticsearch import ElasticSearchEngineSpec
+
+    def perform_request(
+        method: str,
+        path: str,
+        body: dict[str, Any] | None = None,
+        **_kwargs: Any,
+    ) -> dict[str, Any]:
+        if path.endswith("/close"):
+            raise RuntimeError("cursor already expired")
+        return {"columns": [{"name": "a"}], "rows": [[1]], "cursor": "CUR-1"}
+
+    transport = MagicMock()
+    transport.perform_request.side_effect = perform_request
+    conn = MagicMock()
+    conn.es.transport = transport
+    ctx = MagicMock()
+    ctx.__enter__ = MagicMock(return_value=conn)
+    ctx.__exit__ = MagicMock(return_value=False)
+    database = MagicMock()
+    database.get_raw_connection.return_value = ctx
+
+    with caplog.at_level("WARNING"):
+        rows, cols = ElasticSearchEngineSpec.fetch_data_with_cursor(
+            database=database,
+            sql="SELECT a FROM idx",
+            page_index=0,
+            page_size=1,
+        )
+
+    assert rows == [[1]]
+    assert cols == ["a"]
+    assert "Failed to close Elasticsearch SQL cursor" in caplog.text
+
+
 @pytest.mark.parametrize(
     "sql_in,expected_query",
     [
