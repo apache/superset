@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
@@ -139,6 +139,7 @@ export const SavedQueries = ({
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
 
+  const history = useHistory();
   const theme = useTheme();
 
   // Preload SQL language since we'll likely show SQL snippets
@@ -296,11 +297,12 @@ export const SavedQueries = ({
       {queries.length > 0 ? (
         <CardContainer showThumbnails={showThumbnails}>
           {queries.map(q => (
-            <CardStyles key={q.id}>
+            <CardStyles
+              key={q.id}
+              onClick={() => history.push(`/sqllab?savedQueryId=${q.id}`)}
+            >
               <ListViewCard
                 imgURL=""
-                url={`/sqllab?savedQueryId=${q.id}`}
-                linkComponent={Link}
                 title={q.label}
                 imgFallbackURL={assetUrl(
                   '/static/assets/images/empty-query.svg',
