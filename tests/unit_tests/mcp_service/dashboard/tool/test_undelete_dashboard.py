@@ -24,6 +24,7 @@ Covers:
 - Dashboard exists but is not soft-deleted
 - Permission denied (user does not own the dashboard)
 - Slug conflict with an active dashboard
+- Generic restore failure (e.g. database error during commit)
 """
 
 from collections.abc import Iterator
@@ -189,4 +190,31 @@ async def test_slug_conflict(
     content = result.structured_content
     assert content["restored"] is False
     assert "slug" in (content["error"] or "").lower()
+    assert content["dashboard"]["id"] == 1
+
+
+@patch("superset.commands.dashboard.restore.RestoreDashboardCommand")
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_restore_failed(
+    mock_find_by_id: Mock, mock_restore_cmd_cls: Mock, mcp_server: object
+) -> None:
+    """Returns a structured error when the restore command fails, e.g. due to
+    a database error during commit."""
+    from superset.commands.dashboard.exceptions import DashboardRestoreFailedError
+
+    mock_find_by_id.return_value = _mock_dashboard(id=1)
+    mock_restore_cmd = Mock()
+    mock_restore_cmd.run.side_effect = DashboardRestoreFailedError()
+    mock_restore_cmd_cls.return_value = mock_restore_cmd
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "undelete_dashboard",
+            {"request": {"dashboard_id": 1}},
+        )
+
+    content = result.structured_content
+    assert content["restored"] is False
+    assert "failed to restore" in (content["error"] or "").lower()
     assert content["dashboard"]["id"] == 1
