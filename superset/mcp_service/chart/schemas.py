@@ -347,6 +347,7 @@ class GetChartInfoRequest(BaseModel):
                 "set that excludes 'form_data' (the full chart config, can be 50KB+). "
                 "Add 'form_data' explicitly when you need the raw chart configuration."
             ),
+            validation_alias=AliasChoices("select_columns", "columns"),
         ),
     ]
 

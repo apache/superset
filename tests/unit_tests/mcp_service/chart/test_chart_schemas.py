@@ -1163,16 +1163,34 @@ class TestRequestSchemaAliasChoices:
         req = GetChartInfoRequest.model_validate({"identifier": 42})
         assert req.identifier == 42
 
+    def test_get_chart_info_select_columns_columns_alias(self) -> None:
+        req = GetChartInfoRequest.model_validate(
+            {"id": 42, "columns": ["id", "slice_name"]}
+        )
+        assert req.select_columns == ["id", "slice_name"]
+
     def test_get_chart_data_identifier_id_alias(self) -> None:
         req = GetChartDataRequest.model_validate({"id": 7})
+        assert req.identifier == 7
+
+    def test_get_chart_data_identifier_chart_id_alias(self) -> None:
+        req = GetChartDataRequest.model_validate({"chart_id": 7})
         assert req.identifier == 7
 
     def test_get_chart_preview_identifier_id_alias(self) -> None:
         req = GetChartPreviewRequest.model_validate({"id": 7})
         assert req.identifier == 7
 
+    def test_get_chart_preview_identifier_chart_id_alias(self) -> None:
+        req = GetChartPreviewRequest.model_validate({"chart_id": 7})
+        assert req.identifier == 7
+
     def test_get_chart_sql_identifier_id_alias(self) -> None:
         req = GetChartSqlRequest.model_validate({"id": 7})
+        assert req.identifier == 7
+
+    def test_get_chart_sql_identifier_chart_id_alias(self) -> None:
+        req = GetChartSqlRequest.model_validate({"chart_id": 7})
         assert req.identifier == 7
 
     def test_update_chart_identifier_id_alias(self) -> None:

@@ -400,6 +400,7 @@ class GetDatasetInfoRequest(MetadataCacheControl):
                 "Pass an explicit list to select only what you need "
                 "(e.g. ['id', 'table_name', 'columns', 'metrics'])."
             ),
+            validation_alias=AliasChoices("select_columns", "columns"),
         ),
     ]
     column_fields: Annotated[

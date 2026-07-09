@@ -43,6 +43,12 @@ class TestRequestSchemaAliasChoices:
         req = GetDatasetInfoRequest.model_validate({"identifier": 42})
         assert req.identifier == 42
 
+    def test_get_dataset_info_select_columns_columns_alias(self) -> None:
+        req = GetDatasetInfoRequest.model_validate(
+            {"id": 42, "columns": ["id", "table_name"]}
+        )
+        assert req.select_columns == ["id", "table_name"]
+
     def test_list_datasets_select_columns_columns_alias(self) -> None:
         req = ListDatasetsRequest.model_validate({"columns": ["id", "table_name"]})
         assert req.select_columns == ["id", "table_name"]

@@ -355,6 +355,7 @@ class GetDashboardInfoRequest(MetadataCacheControl):
                 "to override, e.g. ['id','dashboard_title','charts'] for minimal "
                 "output, or add 'css' to include raw dashboard CSS."
             ),
+            validation_alias=AliasChoices("select_columns", "columns"),
         ),
     ]
 
