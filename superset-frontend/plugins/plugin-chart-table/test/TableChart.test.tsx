@@ -31,6 +31,7 @@ import {
 } from '@superset-ui/core/spec';
 import { cloneDeep } from 'lodash-es';
 import {
+  type DataMask,
   QueryMode,
   TimeGranularity,
   SMART_DATE_ID,
@@ -1844,7 +1845,7 @@ describe('plugin-chart-table', () => {
       });
 
       test('clicking a temporal numeric-string cell emits numeric cross-filter values', () => {
-        const setDataMask = jest.fn();
+        const setDataMask = jest.fn<void, [DataMask]>();
         const timestamp = 1777248000000;
         const props = transformProps({
           ...testData.basic,
@@ -1879,10 +1880,10 @@ describe('plugin-chart-table', () => {
         fireEvent.click(screen.getByText(String(timestamp)));
 
         const crossFilterCall = setDataMask.mock.calls.find(
-          (call: any[]) => call[0]?.filterState?.filters,
+          call => call[0].filterState?.filters,
         );
         expect(crossFilterCall).toBeDefined();
-        expect(crossFilterCall![0].extraFormData.filters).toEqual([
+        expect(crossFilterCall?.[0].extraFormData?.filters).toEqual([
           {
             col: 'install_date',
             op: 'IN',

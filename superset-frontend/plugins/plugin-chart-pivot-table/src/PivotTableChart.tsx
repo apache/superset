@@ -248,7 +248,7 @@ const getCrossFilterValue = (
 const getDrillFilterFormattedValue = (
   value: string,
   formatter: DateFormatter | undefined,
-) => {
+): string => {
   const valueToFormat: DataRecordValue =
     value.trim() !== '' && Number.isFinite(Number(value))
       ? Number(value)

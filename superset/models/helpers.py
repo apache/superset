@@ -2637,7 +2637,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if values is None:
             return None
 
-        temporal_comparison_operators = {
+        temporal_comparison_operators: set[utils.FilterOperator] = {
             utils.FilterOperator.EQUALS,
             utils.FilterOperator.NOT_EQUALS,
             utils.FilterOperator.IN,
