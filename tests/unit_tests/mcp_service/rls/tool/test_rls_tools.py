@@ -244,3 +244,31 @@ async def test_list_rls_filters_subjects_only_select_columns(mock_list, mcp_serv
         item = data["rls_filters"][0]
         assert "subjects" in item
         assert item["subjects"][0]["label"] == "Alpha"
+
+
+@pytest.mark.asyncio
+async def test_list_rls_filters_guest_denied(mcp_server):
+    """An embedded guest is denied listing RLS filters, even with RBAC off."""
+    from superset.extensions import security_manager
+
+    with patch.object(security_manager, "is_guest_user", return_value=True):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("list_rls_filters", {})
+            data = json.loads(result.content[0].text)
+            assert data["error_type"] == "Forbidden"
+            assert "guest" in data["error"].lower()
+
+
+@pytest.mark.asyncio
+async def test_get_rls_filter_info_guest_denied(mcp_server):
+    """An embedded guest is denied RLS filter details, even with RBAC off."""
+    from superset.extensions import security_manager
+
+    with patch.object(security_manager, "is_guest_user", return_value=True):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_rls_filter_info", {"request": {"identifier": 1}}
+            )
+            data = json.loads(result.content[0].text)
+            assert data["error_type"] == "Forbidden"
+            assert "guest" in data["error"].lower()

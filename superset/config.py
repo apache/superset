@@ -1132,6 +1132,9 @@ def sync_theme_logo_href(
 # Enable UI-based theme administration for admins
 ENABLE_UI_THEME_ADMINISTRATION = True  # Allows admins to set system themes via UI
 
+# Default theme mode for sessions without a saved user preference.
+THEME_DEFAULT_MODE: Literal["default", "dark", "system"] = "system"
+
 # Maximum number of font URLs allowed per theme.
 THEME_FONTS_MAX_URLS: int = 15
 
