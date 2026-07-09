@@ -28,9 +28,11 @@ The suite runs with ``ENABLE_VERSIONING_CAPTURE=True`` (see
 autouse fixture clears the version tables around each test.
 """
 
+from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
+import sqlalchemy as sa
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable
@@ -199,6 +201,49 @@ class TestChartVersionsApi(SupersetTestCase):
             # Capture is on, so the post-save fields are populated.
             assert body["new_version"] is not None
             assert body["new_version_uuid"] is not None
+        finally:
+            self.client.put(f"/api/v1/chart/{chart_id}", json={"slice_name": "Girls"})
+
+    def test_baseline_failure_does_not_break_the_save(self) -> None:
+        """A failing baseline capture must not break the user's save.
+
+        The parent-baseline direct-SQL inserts run under a SAVEPOINT
+        (``begin_nested``). On PostgreSQL a failed statement aborts the whole
+        transaction even when the surrounding ``except`` swallows the Python
+        exception, so without the savepoint a baseline failure would poison —
+        and fail — the user's commit. Inject a genuinely failing SQL statement
+        into the baseline path (a pre-SQL Python raise would never reach the
+        database, so it must be real SQL) and assert the chart edit still
+        commits. Regresses the PostgreSQL transaction-poisoning bug in
+        ``baseline/insertion.py`` (only observable with capture on).
+        """
+        chart_id = self._girls_chart().id
+        self.login(ADMIN_USERNAME)
+
+        def _fail_baseline(conn, *args: object, **kwargs: object) -> None:
+            # Real failing statement so the DB transaction is aborted on
+            # PostgreSQL, exercising the SAVEPOINT rollback rather than a
+            # Python raise that never touches the connection.
+            conn.execute(
+                sa.text("INSERT INTO __versioning_missing_shadow__ (x) VALUES (1)")
+            )
+
+        try:
+            with patch(
+                "superset.versioning.baseline.insertion.insert_baseline_shadow_row",
+                side_effect=_fail_baseline,
+            ):
+                rv = self.client.put(
+                    f"/api/v1/chart/{chart_id}",
+                    json={"slice_name": "Girls survives baseline failure"},
+                )
+            assert rv.status_code == 200, rv.data
+
+            # The edit persisted despite the baseline capture failing.
+            got = json.loads(self.client.get(f"/api/v1/chart/{chart_id}").data)[
+                "result"
+            ]
+            assert got["slice_name"] == "Girls survives baseline failure"
         finally:
             self.client.put(f"/api/v1/chart/{chart_id}", json={"slice_name": "Girls"})
 
