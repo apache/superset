@@ -145,6 +145,7 @@ export const getBaselineSeriesForStream = (
 export function transformNegativeLabelsPosition(
   series: SeriesOption,
   isHorizontal: boolean,
+  labelPosition?: string,
 ): TimeseriesDataRecord[] {
   /*
    * Adjusts label position for negative values in bar series
@@ -160,7 +161,10 @@ export function transformNegativeLabelsPosition(
       ? {
           value,
           label: {
-            position: 'outside',
+            position:
+              labelPosition && labelPosition !== 'auto'
+                ? labelPosition
+                : 'outside',
           },
         }
       : value;
@@ -229,6 +233,7 @@ export function transformSeries(
     theme?: SupersetTheme;
     hasDimensions?: boolean;
     colorByPrimaryAxis?: boolean;
+    labelPosition?: string;
   },
 ): SeriesOption | undefined {
   const { name, data } = series;
@@ -260,6 +265,7 @@ export function transformSeries(
     timeShiftColor,
     theme,
     colorByPrimaryAxis = false,
+    labelPosition,
   } = opts;
   const contexts = seriesContexts[name || ''] || [];
   const hasForecast =
@@ -379,7 +385,13 @@ export function transformSeries(
             ),
           }
         : seriesType === 'bar' && !stack
-          ? { data: transformNegativeLabelsPosition(series, isHorizontal) }
+          ? {
+              data: transformNegativeLabelsPosition(
+                series,
+                isHorizontal,
+                labelPosition,
+              ),
+            }
           : null
       : null),
     connectNulls,
@@ -416,7 +428,12 @@ export function transformSeries(
     symbolSize: markerSize,
     label: {
       show: !!showValue,
-      position: isHorizontal ? 'right' : 'top',
+      position: (labelPosition === 'auto' || !labelPosition
+        ? isHorizontal
+          ? 'right'
+          : 'top'
+        : labelPosition) as any,
+      ...(plotType === 'bar' ? { overflow: 'truncate' } : {}),
       color: theme?.colorText,
       textBorderWidth: 0,
       formatter: (params: any) => {
