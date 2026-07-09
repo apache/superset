@@ -367,6 +367,58 @@ test('Sends the correct db when changing the database', async () => {
   );
 });
 
+test('clears the schema error banner after an invalidateTags-driven refetch', async () => {
+  // Regression test for the OAuth2 crud symptom (follow-up to PR #41101).
+  // The schema fetch fails and shows an error banner held in DatabaseSelector's
+  // local `errorPayload` state. After the OAuth2 redirect completes,
+  // OAuth2RedirectMessage dispatches invalidateTags, which refetches the
+  // subscribed schemas query. The banner must disappear once the refetch
+  // succeeds — previously it lingered because useSchemas only fired onSuccess
+  // through its lazy trigger, not on the subscribed refetch.
+  fetchMock.removeRoutes().clearHistory();
+  fetchMock.get(databaseApiRoute, fakeDatabaseApiResult, {
+    name: databaseApiRoute,
+  });
+  fetchMock.get(catalogApiRoute, fakeCatalogApiResult);
+  fetchMock.get(tablesApiRoute, fakeFunctionNamesApiResult);
+  let failSchemas = true;
+  fetchMock.get(schemaApiRoute, () =>
+    failSchemas
+      ? {
+          status: 500,
+          body: {
+            errors: [
+              {
+                error_type: 'GENERIC_DB_ENGINE_ERROR',
+                level: 'error',
+                message: 'Schemas could not be loaded',
+                extra: {},
+              },
+            ],
+          },
+        }
+      : fakeSchemaApiResult,
+  );
+
+  const props = createProps();
+  render(<DatabaseSelector {...props} />, { useRedux: true, store });
+
+  // The error banner appears once the initial schemas fetch fails.
+  expect(await screen.findByText('Unexpected error')).toBeInTheDocument();
+
+  // Simulate the OAuth2 redirect completing: the stored token makes the next
+  // fetch succeed, and the redirect handler invalidates the Schemas tag.
+  failSchemas = false;
+  act(() => {
+    store.dispatch(api.util.invalidateTags([{ type: 'Schemas', id: 'LIST' }]));
+  });
+
+  // The subscribed query refetches successfully and the banner is cleared.
+  await waitFor(() =>
+    expect(screen.queryByText('Unexpected error')).not.toBeInTheDocument(),
+  );
+});
+
 test('Sends the correct schema when changing the schema', async () => {
   const props = createProps();
   const { rerender } = render(<DatabaseSelector {...props} db={null} />, {

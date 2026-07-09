@@ -177,8 +177,10 @@ describe('useSchemas hook', () => {
       store.dispatch(api.util.invalidateTags(['Schemas']));
     });
 
+    // Only the currently subscribed query (expectDbId) is refetched on
+    // invalidation; the previously visited db2 entry is no longer subscribed.
     await waitFor(() =>
-      expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(4),
+      expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(3),
     );
     expect(fetchMock.callHistory.calls(schemaApiRoute)[2].url).toContain(
       expectDbId,
@@ -186,6 +188,90 @@ describe('useSchemas hook', () => {
     await waitFor(() =>
       expect(result.current.currentData).toEqual(expectedResult),
     );
+  });
+
+  test('fires onSuccess when the subscribed query refetches after invalidateTags', async () => {
+    // Regression test for the OAuth2 retry-after-redirect path (PR #41101).
+    // The redirect handler dispatches invalidateTags, which refetches the
+    // SUBSCRIBED query (not the lazy trigger). onSuccess must still fire so
+    // consumers holding local state (e.g. an auth error banner) get cleared.
+    const expectDbId = 'db1';
+    const schemaApiRoute = `glob:*/api/v1/database/${expectDbId}/schemas/*`;
+    fetchMock.get(schemaApiRoute, fakeApiResult);
+    const onSuccess = jest.fn();
+    const { result } = renderHook(
+      () =>
+        useSchemas({
+          dbId: expectDbId,
+          onSuccess,
+        }),
+      {
+        wrapper: createWrapper({
+          useRedux: true,
+          store,
+        }),
+      },
+    );
+
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(1),
+    );
+    expect(result.current.currentData).toEqual(expectedResult);
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      store.dispatch(
+        api.util.invalidateTags([{ type: 'Schemas', id: 'LIST' }]),
+      );
+    });
+
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(2),
+    );
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(2));
+    // isRefetched must be false so the selectors don't emit a "List refreshed"
+    // toast for an automatic refetch the user did not request.
+    expect(onSuccess).toHaveBeenLastCalledWith(expectedResult, false);
+  });
+
+  test('recovers from an error when the subscribed query refetches (OAuth2 retry)', async () => {
+    const expectDbId = 'db1';
+    const schemaApiRoute = `glob:*/api/v1/database/${expectDbId}/schemas/*`;
+    let shouldFail = true;
+    fetchMock.get(schemaApiRoute, () =>
+      shouldFail ? { status: 500, body: {} } : fakeApiResult,
+    );
+    const onSuccess = jest.fn();
+    const onError = jest.fn();
+    renderHook(
+      () =>
+        useSchemas({
+          dbId: expectDbId,
+          onSuccess,
+          onError,
+        }),
+      {
+        wrapper: createWrapper({
+          useRedux: true,
+          store,
+        }),
+      },
+    );
+
+    await waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
+    expect(onSuccess).not.toHaveBeenCalled();
+
+    // The OAuth2 redirect completes and the token is stored: the next fetch
+    // succeeds, and onSuccess must fire to clear the error banner.
+    shouldFail = false;
+    act(() => {
+      store.dispatch(
+        api.util.invalidateTags([{ type: 'Schemas', id: 'LIST' }]),
+      );
+    });
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
+    expect(onSuccess).toHaveBeenLastCalledWith(expectedResult, false);
   });
 
   test('returns correct schema list by a catalog', async () => {
