@@ -55,9 +55,18 @@ def insert_baseline_and_children(
     ``_insert_baseline_row`` does not trigger a flush of Continuum's
     pending Transaction object before our direct-SQL insert claims its
     tx_id.
+
+    The direct-SQL inserts also run under a SAVEPOINT (``begin_nested``):
+    on PostgreSQL a failed statement aborts the entire transaction even
+    when the exception is caught, so without the savepoint a baseline
+    failure would poison the user's save. Rolling back to the savepoint
+    keeps the outer transaction healthy, so a baseline failure degrades
+    to "no baseline row" instead of breaking the save — the same guard the
+    change-record persist path (``changes/listener.py``) and the
+    child-baseline path (``baseline/collection.py``) already use.
     """
     try:
-        with session.no_autoflush:
+        with session.no_autoflush, session.connection().begin_nested():
             tx_id = _insert_baseline_row(session, obj, version_table)
             if tx_id is None:
                 return
