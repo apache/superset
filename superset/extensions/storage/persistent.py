@@ -26,39 +26,23 @@ from __future__ import annotations
 
 from typing import Any, ClassVar
 
-from flask import g
 from superset_core.extensions.storage.persistent import (
     PersistentSetOptions,
     PersistentState as CorePersistentState,
 )
 
-from superset.extensions.context import get_current_extension_context
 from superset.extensions.storage.persistent_dao import ExtensionStorageDAO
+from superset.extensions.storage.utils import (
+    get_current_extension_id,
+    get_current_user_id,
+)
 from superset.utils import json
 from superset.utils.decorators import transaction
 
 
 def _get_extension_id() -> str:
     """Get the current extension ID from context."""
-    context = get_current_extension_context()
-    if context is None:
-        raise RuntimeError(
-            "persistent_state can only be used within an extension context. "
-            "Ensure this code is being executed during extension loading or "
-            "within an extension API request handler."
-        )
-    return context.manifest.id
-
-
-def _get_current_user_id() -> int:
-    """Get the current authenticated user's ID."""
-    user = getattr(g, "user", None)
-    if user is None or not hasattr(user, "id"):
-        raise RuntimeError(
-            "persistent_state requires an authenticated user. "
-            "Ensure the request has been authenticated."
-        )
-    return user.id
+    return get_current_extension_id("persistent_state")
 
 
 def _decode(raw: bytes | None) -> Any:
@@ -147,7 +131,7 @@ class PersistentState(CorePersistentState):
         :returns: The stored value, or None if not found.
         """
         extension_id = _get_extension_id()
-        user_id = _get_current_user_id()
+        user_id = get_current_user_id("persistent_state")
         raw = ExtensionStorageDAO.get_value(extension_id, key, user_fk=user_id)
         return _decode(raw)
 
@@ -165,7 +149,7 @@ class PersistentState(CorePersistentState):
             extension's configured persistent storage quota.
         """
         extension_id = _get_extension_id()
-        user_id = _get_current_user_id()
+        user_id = get_current_user_id("persistent_state")
         encrypt = options.encrypt if options is not None else False
         ExtensionStorageDAO.set(
             extension_id,
@@ -184,7 +168,7 @@ class PersistentState(CorePersistentState):
         :param key: The key to remove.
         """
         extension_id = _get_extension_id()
-        user_id = _get_current_user_id()
+        user_id = get_current_user_id("persistent_state")
         ExtensionStorageDAO.delete_by_key(extension_id, key, user_fk=user_id)
 
     #: Shared (global) persistent state accessor.

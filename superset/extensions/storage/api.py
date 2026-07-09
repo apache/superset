@@ -29,64 +29,22 @@ from __future__ import annotations
 
 from typing import Any
 
-from flask import current_app, g, request
+from flask import g, request
 from flask.wrappers import Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 
-from superset.extensions import cache_manager
+from superset.extensions.storage.ephemeral_dao import (
+    ExtensionEphemeralDAO,
+    ExtensionEphemeralTTLInvalid,
+    ExtensionEphemeralValueTooLarge,
+)
 from superset.extensions.storage.persistent_dao import (
     ExtensionStorageDAO,
     ExtensionStorageQuotaExceeded,
 )
-from superset.extensions.types import LoadedExtension
-from superset.extensions.utils import get_extensions
+from superset.extensions.storage.utils import get_extension_or_404, parse_ttl
 from superset.utils import json
 from superset.utils.decorators import transaction
-
-# Key separator
-SEPARATOR = ":"
-
-# Key prefix for extension ephemeral state
-KEY_PREFIX = "superset-ext"
-
-
-def _build_cache_key(*parts: Any) -> str:
-    """Build a namespaced cache key from parts."""
-    return SEPARATOR.join(str(part) for part in parts)
-
-
-def _get_extension_or_404(extension_id: str) -> LoadedExtension | None:
-    """Get extension by ID or return None if not found."""
-    extensions = get_extensions()
-    return extensions.get(extension_id)
-
-
-def _parse_ttl(body: dict[str, Any]) -> tuple[int | None, str | None]:
-    """Parse and validate TTL from request body.
-
-    Returns:
-        (ttl, error_message) - error_message is set if the value is missing or invalid.
-    """
-    if "ttl" not in body:
-        return None, "Field 'ttl' is required"
-    try:
-        ttl = int(body["ttl"])
-    except (TypeError, ValueError):
-        return None, "Field 'ttl' must be a positive integer"
-    if ttl <= 0:
-        return None, "Field 'ttl' must be a positive integer"
-    max_ttl = current_app.config.get("EXTENSIONS_EPHEMERAL_STORAGE", {}).get("MAX_TTL")
-    if max_ttl is not None and ttl > max_ttl:
-        return None, f"Field 'ttl' must not exceed {max_ttl} seconds"
-    return ttl, None
-
-
-def _build_storage_key(extension_id: str, key: str, shared: bool) -> str:
-    """Build the cache key based on scope (user or shared)."""
-    if shared:
-        return _build_cache_key(KEY_PREFIX, extension_id, "shared", key)
-    user_id = g.user.id
-    return _build_cache_key(KEY_PREFIX, extension_id, "user", user_id, key)
 
 
 class ExtensionStorageRestApi(BaseApi):
@@ -162,13 +120,12 @@ class ExtensionStorageRestApi(BaseApi):
               description: Extension not found
         """
         extension_id = f"{publisher}.{name}"
-        extension = _get_extension_or_404(extension_id)
+        extension = get_extension_or_404(extension_id)
         if not extension:
             return self.response_404("Extension not found")
 
         shared = request.args.get("shared", "false").lower() == "true"
-        cache_key = _build_storage_key(extension_id, key, shared)
-        value = cache_manager.extension_ephemeral_state_cache.get(cache_key)
+        value = ExtensionEphemeralDAO.get(extension_id, key, shared=shared)
 
         return self.response(200, result=value)
 
@@ -218,7 +175,8 @@ class ExtensionStorageRestApi(BaseApi):
                     - ttl
                   properties:
                     value:
-                      description: The value to store
+                      description: The value to store (must not exceed MAX_VALUE_SIZE
+                        bytes when JSON-encoded)
                     ttl:
                       type: integer
                       description: Time-to-live in seconds (must be a positive
@@ -232,7 +190,7 @@ class ExtensionStorageRestApi(BaseApi):
               description: Extension not found
         """
         extension_id = f"{publisher}.{name}"
-        extension = _get_extension_or_404(extension_id)
+        extension = get_extension_or_404(extension_id)
         if not extension:
             return self.response_404("Extension not found")
 
@@ -241,13 +199,15 @@ class ExtensionStorageRestApi(BaseApi):
             return self.response_400("Request body must contain 'value' field")
 
         value = body["value"]
-        ttl, error = _parse_ttl(body)
+        ttl, error = parse_ttl(body)
         if error:
             return self.response_400(error)
 
         shared = request.args.get("shared", "false").lower() == "true"
-        cache_key = _build_storage_key(extension_id, key, shared)
-        cache_manager.extension_ephemeral_state_cache.set(cache_key, value, timeout=ttl)
+        try:
+            ExtensionEphemeralDAO.set(extension_id, key, value, ttl, shared=shared)
+        except (ExtensionEphemeralTTLInvalid, ExtensionEphemeralValueTooLarge) as ex:
+            return self.response_400(ex.message)
 
         return self.response(200, message="Value stored successfully")
 
@@ -293,13 +253,12 @@ class ExtensionStorageRestApi(BaseApi):
               description: Extension not found
         """
         extension_id = f"{publisher}.{name}"
-        extension = _get_extension_or_404(extension_id)
+        extension = get_extension_or_404(extension_id)
         if not extension:
             return self.response_404("Extension not found")
 
         shared = request.args.get("shared", "false").lower() == "true"
-        cache_key = _build_storage_key(extension_id, key, shared)
-        cache_manager.extension_ephemeral_state_cache.delete(cache_key)
+        ExtensionEphemeralDAO.delete(extension_id, key, shared=shared)
 
         return self.response(200, message="Value deleted successfully")
 
@@ -352,7 +311,7 @@ class ExtensionStorageRestApi(BaseApi):
               description: Extension not found
         """
         extension_id = f"{publisher}.{name}"
-        extension = _get_extension_or_404(extension_id)
+        extension = get_extension_or_404(extension_id)
         if not extension:
             return self.response_404("Extension not found")
 
@@ -424,7 +383,7 @@ class ExtensionStorageRestApi(BaseApi):
               description: Extension persistent storage quota exceeded
         """
         extension_id = f"{publisher}.{name}"
-        extension = _get_extension_or_404(extension_id)
+        extension = get_extension_or_404(extension_id)
         if not extension:
             return self.response_404("Extension not found")
 
@@ -488,7 +447,7 @@ class ExtensionStorageRestApi(BaseApi):
               description: Extension not found
         """
         extension_id = f"{publisher}.{name}"
-        extension = _get_extension_or_404(extension_id)
+        extension = get_extension_or_404(extension_id)
         if not extension:
             return self.response_404("Extension not found")
 

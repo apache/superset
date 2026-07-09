@@ -174,9 +174,14 @@ def inject_rest_api_implementations() -> None:
 
             if context:
                 # EXTENSION CONTEXT
-                manifest = context.manifest
-                base_path = f"/extensions/{manifest.publisher}/{manifest.name}"
-                prefixed_id = f"extensions.{manifest.publisher}.{manifest.name}.{id}"
+                base_path = (
+                    f"/extensions/{context.extension.publisher}/"
+                    f"{context.extension.name}"
+                )
+                prefixed_id = (
+                    f"extensions.{context.extension.publisher}."
+                    f"{context.extension.name}.{id}"
+                )
 
             else:
                 # HOST CONTEXT
@@ -244,8 +249,10 @@ def inject_semantic_layer_implementations() -> None:
     ) -> Callable[[Any], Any]:
         def decorator(cls: Any) -> Any:
             if context := context_module.get_current_extension_context():
-                manifest = context.manifest
-                prefixed_id = f"extensions.{manifest.publisher}.{manifest.name}.{id}"
+                prefixed_id = (
+                    f"extensions.{context.extension.publisher}."
+                    f"{context.extension.name}.{id}"
+                )
             else:
                 prefixed_id = id
 

@@ -42,4 +42,4 @@ class ExtensionStorageFilter(BaseFilter):  # pylint: disable=too-few-public-meth
         context = get_current_extension_context()
         if context is None:
             return query.filter(ExtensionStorage.extension_id.is_(None))
-        return query.filter(ExtensionStorage.extension_id == context.manifest.id)
+        return query.filter(ExtensionStorage.extension_id == context.extension.id)

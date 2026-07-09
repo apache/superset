@@ -44,7 +44,7 @@ from __future__ import annotations
 from typing import Any, Protocol, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from superset_core.extensions.types import Manifest
+    from superset_core.extensions.types import BaseExtension
 
 
 class StorageAccessor(Protocol):
@@ -91,7 +91,7 @@ class ExtensionContext(Protocol):
     """
 
     @property
-    def extension(self) -> "Manifest":
+    def extension(self) -> "BaseExtension":
         """Metadata about the current extension."""
         ...
 

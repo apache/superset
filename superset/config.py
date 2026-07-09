@@ -1322,6 +1322,9 @@ EXTENSIONS_EPHEMERAL_STORAGE: CacheConfig = {
     # Maximum TTL (in seconds) that clients may request. Requests exceeding
     # this value are rejected. Defaults to 7 days.
     "MAX_TTL": int(timedelta(days=7).total_seconds()),
+    # Maximum size (in bytes) of a single stored value. Requests exceeding
+    # this value are rejected. Defaults to 100 KB.
+    "MAX_VALUE_SIZE": 100 * 1024,
     # The following parameter only applies to `MetastoreCache`:
     # How should entries be serialized/deserialized?
     "CODEC": JsonKeyValueCodec(),

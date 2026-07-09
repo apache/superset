@@ -15,7 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Tests for ephemeral state storage implementation."""
+"""Tests for the ephemeral state ambient accessor (ephemeral.py).
+
+Cache-key construction, TTL/MAX_VALUE_SIZE validation live in
+`ExtensionEphemeralDAO` (`ephemeral_dao.py`) and are tested once in
+`test_ephemeral_dao.py`; these tests cover the accessor's context/user
+resolution and delegation to that DAO.
+"""
 
 from __future__ import annotations
 
@@ -23,23 +29,18 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import Flask
+from flask_babel import Babel
 
 from superset.extensions.context import use_context
-from superset.extensions.storage.ephemeral import (
-    _build_cache_key,
-    EphemeralSetOptions,
-    EphemeralState,
+from superset.extensions.storage.ephemeral import EphemeralSetOptions, EphemeralState
+from superset.extensions.storage.ephemeral_dao import (
+    ExtensionEphemeralTTLInvalid,
+    ExtensionEphemeralValueTooLarge,
 )
 from tests.unit_tests.extensions.storage.conftest import (
     create_context,
     set_user,
 )
-
-
-def test_build_cache_key_joins_parts_with_separator():
-    """_build_cache_key joins all parts with colon separator."""
-    assert _build_cache_key("a", "b", "c") == "a:b:c"
-    assert _build_cache_key("prefix", 123, "key") == "prefix:123:key"
 
 
 def test_ephemeral_state_raises_without_context(app: Flask) -> None:
@@ -51,7 +52,7 @@ def test_ephemeral_state_raises_without_context(app: Flask) -> None:
             EphemeralState.get("key")
 
         with pytest.raises(RuntimeError, match="within an extension context"):
-            EphemeralState.set("key", "value")
+            EphemeralState.set("key", "value", EphemeralSetOptions(ttl=300))
 
         with pytest.raises(RuntimeError, match="within an extension context"):
             EphemeralState.remove("key")
@@ -67,7 +68,7 @@ def test_ephemeral_state_raises_without_user(app: Flask) -> None:
             EphemeralState.get("key")
 
 
-@patch("superset.extensions.storage.ephemeral.cache_manager")
+@patch("superset.extensions.storage.ephemeral_dao.cache_manager")
 def test_ephemeral_state_get_builds_correct_key(mock_cm: MagicMock, app: Flask) -> None:
     """EphemeralState.get() builds user-scoped key and calls cache.get()."""
     mock_cache = MagicMock()
@@ -85,7 +86,7 @@ def test_ephemeral_state_get_builds_correct_key(mock_cm: MagicMock, app: Flask) 
     assert result == {"data": "test"}
 
 
-@patch("superset.extensions.storage.ephemeral.cache_manager")
+@patch("superset.extensions.storage.ephemeral_dao.cache_manager")
 def test_ephemeral_state_set_builds_correct_key_and_uses_ttl(
     mock_cm: MagicMock, app: Flask
 ) -> None:
@@ -103,12 +104,13 @@ def test_ephemeral_state_set_builds_correct_key_and_uses_ttl(
     mock_cache.set.assert_called_once_with(expected_key, {"value": 123}, timeout=600)
 
 
-@patch("superset.extensions.storage.ephemeral.cache_manager")
-def test_ephemeral_state_set_uses_cache_default_timeout(
+@patch("superset.extensions.storage.ephemeral_dao.cache_manager")
+def test_ephemeral_state_set_rejects_ttl_exceeding_max(
     mock_cm: MagicMock, app: Flask
 ) -> None:
-    """EphemeralState.set() passes timeout=None when ttl not specified,
-    deferring to CACHE_DEFAULT_TIMEOUT in config."""
+    """EphemeralState.set() raises when ttl exceeds MAX_TTL, same as the REST API."""
+    app.config["EXTENSIONS_EPHEMERAL_STORAGE"] = {"MAX_TTL": 3600}
+    Babel(app)
     mock_cache = MagicMock()
     mock_cm.extension_ephemeral_state_cache = mock_cache
 
@@ -116,14 +118,33 @@ def test_ephemeral_state_set_uses_cache_default_timeout(
 
     with app.app_context(), use_context(ctx):
         set_user(1)
-        EphemeralState.set("key", "value")
+        with pytest.raises(ExtensionEphemeralTTLInvalid):
+            EphemeralState.set("key", "value", EphemeralSetOptions(ttl=7200))
 
-    mock_cache.set.assert_called_once()
-    call_args = mock_cache.set.call_args
-    assert call_args.kwargs["timeout"] is None
+    mock_cache.set.assert_not_called()
 
 
-@patch("superset.extensions.storage.ephemeral.cache_manager")
+@patch("superset.extensions.storage.ephemeral_dao.cache_manager")
+def test_ephemeral_state_set_rejects_value_exceeding_max_size(
+    mock_cm: MagicMock, app: Flask
+) -> None:
+    """EphemeralState.set() raises when value exceeds MAX_VALUE_SIZE."""
+    app.config["EXTENSIONS_EPHEMERAL_STORAGE"] = {"MAX_VALUE_SIZE": 10}
+    Babel(app)
+    mock_cache = MagicMock()
+    mock_cm.extension_ephemeral_state_cache = mock_cache
+
+    ctx = create_context()
+
+    with app.app_context(), use_context(ctx):
+        set_user(1)
+        with pytest.raises(ExtensionEphemeralValueTooLarge):
+            EphemeralState.set("key", "x" * 100, EphemeralSetOptions(ttl=300))
+
+    mock_cache.set.assert_not_called()
+
+
+@patch("superset.extensions.storage.ephemeral_dao.cache_manager")
 def test_ephemeral_state_remove_deletes_key(mock_cm: MagicMock, app: Flask) -> None:
     """EphemeralState.remove() calls cache.delete() with correct key."""
     mock_cache = MagicMock()
@@ -139,7 +160,7 @@ def test_ephemeral_state_remove_deletes_key(mock_cm: MagicMock, app: Flask) -> N
     mock_cache.delete.assert_called_once_with(expected_key)
 
 
-@patch("superset.extensions.storage.ephemeral.cache_manager")
+@patch("superset.extensions.storage.ephemeral_dao.cache_manager")
 def test_shared_accessor_builds_shared_key(mock_cm: MagicMock, app: Flask) -> None:
     """SharedEphemeralStateAccessor builds key without user scope."""
     mock_cache = MagicMock()
@@ -157,7 +178,7 @@ def test_shared_accessor_builds_shared_key(mock_cm: MagicMock, app: Flask) -> No
     assert result == "shared-value"
 
 
-@patch("superset.extensions.storage.ephemeral.cache_manager")
+@patch("superset.extensions.storage.ephemeral_dao.cache_manager")
 def test_shared_accessor_set_and_remove(mock_cm: MagicMock, app: Flask) -> None:
     """SharedEphemeralStateAccessor set() and remove() use shared key."""
     mock_cache = MagicMock()
@@ -175,7 +196,7 @@ def test_shared_accessor_set_and_remove(mock_cm: MagicMock, app: Flask) -> None:
     mock_cache.delete.assert_called_once_with(expected_key)
 
 
-@patch("superset.extensions.storage.ephemeral.cache_manager")
+@patch("superset.extensions.storage.ephemeral_dao.cache_manager")
 def test_different_extensions_have_isolated_keys(
     mock_cm: MagicMock, app: Flask
 ) -> None:
@@ -201,7 +222,7 @@ def test_different_extensions_have_isolated_keys(
     assert "superset-ext:org2.ext2:user:1:same-key" in calls
 
 
-@patch("superset.extensions.storage.ephemeral.cache_manager")
+@patch("superset.extensions.storage.ephemeral_dao.cache_manager")
 def test_different_users_have_isolated_keys(mock_cm: MagicMock, app: Flask) -> None:
     """Different users use different key prefixes for isolation."""
     mock_cache = MagicMock()

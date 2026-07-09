@@ -64,13 +64,13 @@ def test_use_context_supports_nesting():
     ctx2 = ConcreteExtensionContext(manifest2)
 
     with use_context(ctx1):
-        assert get_context().manifest.id == "org1.ext1"
+        assert get_context().extension.id == "org1.ext1"
 
         with use_context(ctx2):
-            assert get_context().manifest.id == "org2.ext2"
+            assert get_context().extension.id == "org2.ext2"
 
         # ctx1 is restored after inner context exits
-        assert get_context().manifest.id == "org1.ext1"
+        assert get_context().extension.id == "org1.ext1"
 
     assert get_current_extension_context() is None
 
@@ -80,9 +80,9 @@ def test_extension_context_creates_and_sets_context():
     manifest = create_manifest("my-org", "my-ext")
 
     with extension_context(manifest) as ctx:
-        assert ctx.manifest is manifest
+        assert ctx.extension is manifest
         assert get_context() is ctx
-        assert get_context().manifest.id == "my-org.my-ext"
+        assert get_context().extension.id == "my-org.my-ext"
 
     assert get_current_extension_context() is None
 

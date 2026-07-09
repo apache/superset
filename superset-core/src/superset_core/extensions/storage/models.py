@@ -65,6 +65,7 @@ class ExtensionStorageEntry(CoreModel):
     category: str | None
     description: str | None
     value: bytes
+    value_size: int
     value_type: str
     is_encrypted: bool
 

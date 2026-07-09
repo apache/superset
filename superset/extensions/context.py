@@ -32,7 +32,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import Any, Iterator
 
-from superset_core.extensions.types import Manifest
+from superset_core.extensions.types import BaseExtension, Manifest
 
 
 class ExtensionStorage:
@@ -59,13 +59,8 @@ class ConcreteExtensionContext:
         self._storage = ExtensionStorage()
 
     @property
-    def extension(self) -> Manifest:
-        """Extension metadata (new API)."""
-        return self._manifest
-
-    @property
-    def manifest(self) -> Manifest:
-        """Extension manifest (for backward compatibility)."""
+    def extension(self) -> BaseExtension:
+        """Extension metadata."""
         return self._manifest
 
     @property

@@ -92,7 +92,7 @@ def _get_quota() -> int | None:
 
     Returns None when no quota is configured (unlimited).
     """
-    config = current_app.config.get("EXTENSIONS_PERSISTENT_STORAGE", {})
+    config = current_app.config["EXTENSIONS_PERSISTENT_STORAGE"]
     return config.get("QUOTA_PER_EXTENSION")
 
 
@@ -102,14 +102,20 @@ def _check_quota(extension_id: str, new_size: int, existing_size: int = 0) -> No
     `existing_size` is the size of the row being replaced (0 for inserts),
     subtracted from current usage so overwriting a key doesn't double-count
     it against the quota it already occupies.
+
+    The usage query sums the `value_size` column via the covering
+    `ix_ext_storage_extension_id` index (on `extension_id, value_size`)
+    instead of `LENGTH(value)`, so it can run as an index-only scan rather
+    than reading every one of the extension's stored (and potentially
+    TOASTed) blobs. It is still O(rows) for the extension, so write latency
+    grows with row count — acceptable at the row counts a single extension
+    is expected to accumulate, but not a fully constant-time check.
     """
     quota = _get_quota()
     if quota is None:
         return
     current_usage = (
-        db.session.query(
-            func.coalesce(func.sum(func.length(ExtensionStorage.value)), 0)
-        )
+        db.session.query(func.coalesce(func.sum(ExtensionStorage.value_size), 0))
         .filter(ExtensionStorage.extension_id == extension_id)
         .scalar()
     )
@@ -259,10 +265,12 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
             )
             .first()
         )
-        existing_size = len(entry.value) if entry is not None else 0
-        _check_quota(extension_id, len(stored_value), existing_size)
+        new_size = len(stored_value)
+        existing_size = entry.value_size if entry is not None else 0
+        _check_quota(extension_id, new_size, existing_size)
         if entry is not None:
             entry.value = stored_value
+            entry.value_size = new_size
             entry.value_type = value_type
             entry.category = category
             entry.description = description
@@ -272,6 +280,7 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
                 extension_id=extension_id,
                 key=key,
                 value=stored_value,
+                value_size=new_size,
                 value_type=value_type,
                 user_fk=user_fk,
                 resource_type=resource_type,

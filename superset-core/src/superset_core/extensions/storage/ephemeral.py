@@ -56,12 +56,15 @@ class EphemeralSetOptions:
     """
     Options for an ephemeral state `set` call.
 
-    NOTE: This is intentionally minimal for the initial implementation.
+    `ttl` is required (no default): every write must have an explicit
+    expiration, matching the frontend `EphemeralSetOptions` and the REST API.
+
+    NOTE: Otherwise intentionally minimal for the initial implementation.
     Additional options can be added here later without changing the `set`
     signature on `EphemeralStateAccessor`/`EphemeralState`.
     """
 
-    ttl: int | None = None
+    ttl: int
 
 
 class EphemeralStateAccessor(Protocol):
@@ -71,9 +74,7 @@ class EphemeralStateAccessor(Protocol):
         """Get a value from ephemeral state."""
         ...
 
-    def set(
-        self, key: str, value: Any, options: EphemeralSetOptions | None = None
-    ) -> None:
+    def set(self, key: str, value: Any, options: EphemeralSetOptions) -> None:
         """Set a value in ephemeral state with TTL."""
         ...
 
@@ -110,7 +111,7 @@ class EphemeralState:
         raise NotImplementedError("Class will be replaced during initialization")
 
     @staticmethod
-    def set(key: str, value: Any, options: EphemeralSetOptions | None = None) -> None:
+    def set(key: str, value: Any, options: EphemeralSetOptions) -> None:
         """
         Set a value in user-scoped ephemeral state with TTL.
 
@@ -118,9 +119,10 @@ class EphemeralState:
         Other users cannot see or modify this data.
 
         :param key: The key to store.
-        :param value: The value to store (must be JSON-serializable).
-        :param options: Optional `EphemeralSetOptions`, e.g. `ttl=3600`.
-            Defaults to MAX_TTL from config when not specified.
+        :param value: The value to store (must be JSON-serializable, and not
+            exceed MAX_VALUE_SIZE from config).
+        :param options: `EphemeralSetOptions`, e.g. `ttl=3600`. Required —
+            `ttl` must not exceed MAX_TTL from config.
         """
         raise NotImplementedError("Class will be replaced during initialization")
 

@@ -19,55 +19,27 @@
 Host implementation for Ephemeral State (Tier 2 Storage).
 
 Provides the concrete cache-backed implementation that is injected into
-superset_core.extensions.storage.ephemeral at startup.
+superset_core.extensions.storage.ephemeral at startup. Delegates all cache
+access and validation (MAX_TTL, MAX_VALUE_SIZE) to `ExtensionEphemeralDAO`,
+shared with the REST API (`api.py`) so both enforce the same limits.
 """
 
 from __future__ import annotations
 
 from typing import Any, ClassVar
 
-from flask import g
 from superset_core.extensions.storage.ephemeral import (
     EphemeralSetOptions,
     EphemeralState as CoreEphemeralState,
 )
 
-from superset.extensions import cache_manager
-from superset.extensions.context import get_current_extension_context
-
-# Key separator
-SEPARATOR = ":"
-
-# Key prefix for extension ephemeral state
-KEY_PREFIX = "superset-ext"
+from superset.extensions.storage.ephemeral_dao import ExtensionEphemeralDAO
+from superset.extensions.storage.utils import get_current_extension_id
 
 
 def _get_extension_id() -> str:
     """Get the current extension ID from context."""
-    context = get_current_extension_context()
-    if context is None:
-        raise RuntimeError(
-            "ephemeral_state can only be used within an extension context. "
-            "Ensure this code is being executed during extension loading or "
-            "within an extension API request handler."
-        )
-    return context.manifest.id
-
-
-def _get_current_user_id() -> int:
-    """Get the current authenticated user's ID."""
-    user = getattr(g, "user", None)
-    if user is None or not hasattr(user, "id"):
-        raise RuntimeError(
-            "ephemeral_state requires an authenticated user. "
-            "Ensure the request has been authenticated."
-        )
-    return user.id
-
-
-def _build_cache_key(*parts: Any) -> str:
-    """Build a namespaced cache key from parts."""
-    return SEPARATOR.join(str(part) for part in parts)
+    return get_current_extension_id("ephemeral_state")
 
 
 class SharedEphemeralStateAccessor:
@@ -78,11 +50,6 @@ class SharedEphemeralStateAccessor:
     Extension ID is resolved lazily on each operation from the current context.
     """
 
-    def _build_key(self, key: str) -> str:
-        """Build a shared (global) cache key."""
-        extension_id = _get_extension_id()
-        return _build_cache_key(KEY_PREFIX, extension_id, "shared", key)
-
     def get(self, key: str) -> Any:
         """
         Get a value from shared ephemeral state.
@@ -90,23 +57,21 @@ class SharedEphemeralStateAccessor:
         :param key: The key to retrieve.
         :returns: The stored value, or None if not found or expired.
         """
-        cache_key = self._build_key(key)
-        return cache_manager.extension_ephemeral_state_cache.get(cache_key)
+        extension_id = _get_extension_id()
+        return ExtensionEphemeralDAO.get(extension_id, key, shared=True)
 
-    def set(
-        self, key: str, value: Any, options: EphemeralSetOptions | None = None
-    ) -> None:
+    def set(self, key: str, value: Any, options: EphemeralSetOptions) -> None:
         """
         Set a value in shared ephemeral state with TTL.
 
         :param key: The key to store.
-        :param value: The value to store (must be JSON-serializable).
-        :param options: Optional `EphemeralSetOptions`, e.g. `ttl=3600`.
-            Defaults to CACHE_DEFAULT_TIMEOUT when not specified.
+        :param value: The value to store (must be JSON-serializable, and not
+            exceed MAX_VALUE_SIZE from config).
+        :param options: `EphemeralSetOptions`, e.g. `ttl=3600`. Required —
+            `ttl` must not exceed MAX_TTL from config.
         """
-        cache_key = self._build_key(key)
-        ttl = options.ttl if options is not None else None
-        cache_manager.extension_ephemeral_state_cache.set(cache_key, value, timeout=ttl)
+        extension_id = _get_extension_id()
+        ExtensionEphemeralDAO.set(extension_id, key, value, options.ttl, shared=True)
 
     def remove(self, key: str) -> None:
         """
@@ -114,8 +79,8 @@ class SharedEphemeralStateAccessor:
 
         :param key: The key to remove.
         """
-        cache_key = self._build_key(key)
-        cache_manager.extension_ephemeral_state_cache.delete(cache_key)
+        extension_id = _get_extension_id()
+        ExtensionEphemeralDAO.delete(extension_id, key, shared=True)
 
 
 class EphemeralState(CoreEphemeralState):
@@ -130,11 +95,6 @@ class EphemeralState(CoreEphemeralState):
     """
 
     @staticmethod
-    def _build_user_key(extension_id: str, user_id: int, key: str) -> str:
-        """Build a user-scoped cache key."""
-        return _build_cache_key(KEY_PREFIX, extension_id, "user", user_id, key)
-
-    @staticmethod
     def get(key: str) -> Any:
         """
         Get a value from user-scoped ephemeral state.
@@ -143,25 +103,21 @@ class EphemeralState(CoreEphemeralState):
         :returns: The stored value, or None if not found or expired.
         """
         extension_id = _get_extension_id()
-        user_id = _get_current_user_id()
-        cache_key = EphemeralState._build_user_key(extension_id, user_id, key)
-        return cache_manager.extension_ephemeral_state_cache.get(cache_key)
+        return ExtensionEphemeralDAO.get(extension_id, key, shared=False)
 
     @staticmethod
-    def set(key: str, value: Any, options: EphemeralSetOptions | None = None) -> None:
+    def set(key: str, value: Any, options: EphemeralSetOptions) -> None:
         """
         Set a value in user-scoped ephemeral state with TTL.
 
         :param key: The key to store.
-        :param value: The value to store (must be JSON-serializable).
-        :param options: Optional `EphemeralSetOptions`, e.g. `ttl=3600`.
-            Defaults to CACHE_DEFAULT_TIMEOUT when not specified.
+        :param value: The value to store (must be JSON-serializable, and not
+            exceed MAX_VALUE_SIZE from config).
+        :param options: `EphemeralSetOptions`, e.g. `ttl=3600`. Required —
+            `ttl` must not exceed MAX_TTL from config.
         """
         extension_id = _get_extension_id()
-        user_id = _get_current_user_id()
-        cache_key = EphemeralState._build_user_key(extension_id, user_id, key)
-        ttl = options.ttl if options is not None else None
-        cache_manager.extension_ephemeral_state_cache.set(cache_key, value, timeout=ttl)
+        ExtensionEphemeralDAO.set(extension_id, key, value, options.ttl, shared=False)
 
     @staticmethod
     def remove(key: str) -> None:
@@ -171,9 +127,7 @@ class EphemeralState(CoreEphemeralState):
         :param key: The key to remove.
         """
         extension_id = _get_extension_id()
-        user_id = _get_current_user_id()
-        cache_key = EphemeralState._build_user_key(extension_id, user_id, key)
-        cache_manager.extension_ephemeral_state_cache.delete(cache_key)
+        ExtensionEphemeralDAO.delete(extension_id, key, shared=False)
 
     #: Shared (global) ephemeral state accessor.
     #: Data stored via this accessor is visible to all users of the extension.

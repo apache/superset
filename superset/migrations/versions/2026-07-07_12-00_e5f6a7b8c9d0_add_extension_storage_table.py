@@ -44,6 +44,7 @@ def upgrade() -> None:
         sa.Column("category", sa.String(64), nullable=True),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("value", sa.LargeBinary(2**24 - 1), nullable=False),
+        sa.Column("value_size", sa.Integer(), nullable=False),
         sa.Column(
             "value_type",
             sa.String(255),
@@ -89,10 +90,13 @@ def upgrade() -> None:
             name="uq_extension_storage_scoped_key",
         ),
     )
+    # Covers both the extension_id-only lookups (leftmost prefix) and the
+    # quota SUM(value_size) query, letting the latter run as an index-only
+    # scan instead of touching the LargeBinary value column.
     op.create_index(
         "ix_ext_storage_extension_id",
         "extension_storage",
-        ["extension_id"],
+        ["extension_id", "value_size"],
     )
     op.create_index(
         "ix_ext_storage_lookup",

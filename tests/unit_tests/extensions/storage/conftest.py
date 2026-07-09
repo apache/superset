@@ -33,6 +33,10 @@ def app() -> Flask:
     """Minimal Flask app for storage tests."""
     flask_app = Flask(__name__)
     flask_app.config["TESTING"] = True
+    # Mirrors the defaults set in superset/config.py, which are always
+    # present in a real Superset app.
+    flask_app.config["EXTENSIONS_EPHEMERAL_STORAGE"] = {}
+    flask_app.config["EXTENSIONS_PERSISTENT_STORAGE"] = {}
     return flask_app
 
 

@@ -15,7 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Tests for the Extension Storage REST API helper functions and logic."""
+"""Tests for the Extension Storage REST API endpoint handler logic.
+
+Pure helper functions (`parse_ttl`, `get_extension_or_404`, etc.) are shared
+across call sites and tested once in `superset.extensions.storage.utils`;
+see `test_utils.py`. Ephemeral (Tier 2) cache access and MAX_TTL/
+MAX_VALUE_SIZE validation live in `ExtensionEphemeralDAO`, tested in
+`test_ephemeral_dao.py`; these tests mock that DAO to verify the endpoints
+call into it correctly.
+"""
 
 from __future__ import annotations
 
@@ -24,238 +32,184 @@ from unittest.mock import MagicMock, patch
 from flask import Flask, g
 from flask_babel import Babel
 
-from superset.extensions.storage.api import (
-    _build_cache_key,
-    _build_storage_key,
-    _get_extension_or_404,
-    _parse_ttl,
-    ExtensionStorageRestApi,
-    KEY_PREFIX,
-    SEPARATOR,
+from superset.extensions.storage.api import ExtensionStorageRestApi
+from superset.extensions.storage.ephemeral_dao import (
+    ExtensionEphemeralTTLInvalid,
+    ExtensionEphemeralValueTooLarge,
 )
 from superset.extensions.storage.persistent_dao import (
     ExtensionStorageQuotaExceeded,
 )
 
-# ── _build_cache_key ──────────────────────────────────────────────────────────
-
-
-def test_build_cache_key_joins_with_separator():
-    """_build_cache_key joins parts with SEPARATOR."""
-    assert _build_cache_key("a", "b", "c") == f"a{SEPARATOR}b{SEPARATOR}c"
-
-
-def test_build_cache_key_converts_non_strings():
-    """_build_cache_key converts integers and other types to strings."""
-    assert _build_cache_key("prefix", 42, "key") == "prefix:42:key"
-
-
-def test_build_cache_key_single_part():
-    """_build_cache_key with a single part returns that part as a string."""
-    assert _build_cache_key("only") == "only"
-
-
-# ── _parse_ttl ────────────────────────────────────────────────────────────────
-
-
-def test_parse_ttl_returns_error_when_absent():
-    """_parse_ttl returns an error when 'ttl' is not in body."""
-    ttl, error = _parse_ttl({"value": "something"})
-    assert ttl is None
-    assert error is not None
-
-
-def test_parse_ttl_returns_valid_integer():
-    """_parse_ttl returns the parsed integer TTL."""
-    ttl, error = _parse_ttl({"ttl": 300})
-    assert ttl == 300
-    assert error is None
-
-
-def test_parse_ttl_parses_string_integer():
-    """_parse_ttl converts string TTL to int."""
-    ttl, error = _parse_ttl({"ttl": "600"})
-    assert ttl == 600
-    assert error is None
-
-
-def test_parse_ttl_rejects_non_numeric():
-    """_parse_ttl returns error for non-numeric TTL."""
-    ttl, error = _parse_ttl({"ttl": "not-a-number"})
-    assert ttl is None
-    assert error is not None
-    assert "positive integer" in error
-
-
-def test_parse_ttl_rejects_zero():
-    """_parse_ttl returns error for zero TTL."""
-    ttl, error = _parse_ttl({"ttl": 0})
-    assert ttl is None
-    assert error is not None
-
-
-def test_parse_ttl_rejects_negative():
-    """_parse_ttl returns error for negative TTL."""
-    ttl, error = _parse_ttl({"ttl": -10})
-    assert ttl is None
-    assert error is not None
-
-
-def test_parse_ttl_rejects_none_value():
-    """_parse_ttl returns error when ttl is None."""
-    ttl, error = _parse_ttl({"ttl": None})
-    assert ttl is None
-    assert error is not None
-
-
-# ── _get_extension_or_404 ────────────────────────────────────────────────────
-
-
-@patch("superset.extensions.storage.api.get_extensions")
-def test_get_extension_or_404_returns_extension(mock_get_ext: MagicMock) -> None:
-    """_get_extension_or_404 returns the extension when found."""
-    mock_ext = MagicMock()
-    mock_get_ext.return_value = {"acme.dashboard": mock_ext}
-    result = _get_extension_or_404("acme.dashboard")
-    assert result is mock_ext
-
-
-@patch("superset.extensions.storage.api.get_extensions")
-def test_get_extension_or_404_returns_none_when_missing(
-    mock_get_ext: MagicMock,
-) -> None:
-    """_get_extension_or_404 returns None when extension is not registered."""
-    mock_get_ext.return_value = {}
-    result = _get_extension_or_404("nonexistent.ext")
-    assert result is None
-
-
-# ── _build_storage_key ───────────────────────────────────────────────────────
-
-
-def test_build_storage_key_user_scoped(app: Flask) -> None:
-    """_build_storage_key builds user-scoped key with user ID."""
-    with app.app_context():
-        g.user = MagicMock(id=42)
-        key = _build_storage_key("acme.ext", "my-key", shared=False)
-        assert key == f"{KEY_PREFIX}:acme.ext:user:42:my-key"
-
-
-def test_build_storage_key_shared(app: Flask) -> None:
-    """_build_storage_key builds shared key without user ID."""
-    with app.app_context():
-        g.user = MagicMock(id=42)
-        key = _build_storage_key("acme.ext", "my-key", shared=True)
-        assert key == f"{KEY_PREFIX}:acme.ext:shared:my-key"
-
-
 # ── Ephemeral GET / PUT / DELETE endpoint logic ──────────────────────────────
 
 
-@patch("superset.extensions.storage.api.cache_manager")
-@patch("superset.extensions.storage.api.get_extensions")
-def test_ephemeral_get_builds_correct_key_and_returns_value(
-    mock_get_ext: MagicMock, mock_cm: MagicMock, app: Flask
+@patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_ephemeral_get_delegates_to_dao(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
-    """get_ephemeral handler flow: extension lookup -> key build -> cache get."""
+    """get_ephemeral calls ExtensionEphemeralDAO.get with the right scope."""
     mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
-    mock_cache = MagicMock()
-    mock_cm.extension_ephemeral_state_cache = mock_cache
-    mock_cache.get.return_value = {"data": 42}
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_dao.get.return_value = {"data": 42}
 
-    with app.app_context():
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/ephemeral/my-key"
+    ):
         g.user = MagicMock(id=7)
 
-        # Simulate what the endpoint does
-        extension_id = "acme.dashboard"
-        extension = _get_extension_or_404(extension_id)
-        assert extension is not None
+        body, status_code = ExtensionStorageRestApi().get_ephemeral(
+            "acme", "dashboard", "my-key"
+        )
 
-        shared = False
-        cache_key = _build_storage_key(extension_id, "my-key", shared)
-        value = mock_cache.get(cache_key)
-        assert value == {"data": 42}
-        expected_key = f"{KEY_PREFIX}:acme.dashboard:user:7:my-key"
-        mock_cache.get.assert_called_once_with(expected_key)
+        assert status_code == 200
+        assert body.get_json()["result"] == {"data": 42}
+        mock_dao.get.assert_called_once_with("acme.dashboard", "my-key", shared=False)
 
 
-@patch("superset.extensions.storage.api.cache_manager")
-@patch("superset.extensions.storage.api.get_extensions")
-def test_ephemeral_set_with_ttl(
-    mock_get_ext: MagicMock, mock_cm: MagicMock, app: Flask
+@patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_ephemeral_set_passes_ttl_and_value_to_dao(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
-    """Verifying the set_ephemeral handler flow: parse TTL -> build key -> cache set."""
+    """set_ephemeral parses TTL from the body and delegates to the DAO."""
     mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
-    mock_cache = MagicMock()
-    mock_cm.extension_ephemeral_state_cache = mock_cache
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
 
-    with app.app_context():
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/ephemeral/job",
+        method="PUT",
+        json={"value": {"progress": 50}, "ttl": 600},
+    ):
         g.user = MagicMock(id=7)
 
-        extension_id = "acme.dashboard"
-        body = {"value": {"progress": 50}, "ttl": 600}
-        ttl, error = _parse_ttl(body)
-        assert error is None
-        assert ttl == 600
+        body, status_code = ExtensionStorageRestApi().set_ephemeral(
+            "acme", "dashboard", "job"
+        )
 
-        cache_key = _build_storage_key(extension_id, "job", shared=False)
-        mock_cache.set(cache_key, body["value"], timeout=ttl)
-
-        expected_key = f"{KEY_PREFIX}:acme.dashboard:user:7:job"
-        mock_cache.set.assert_called_once_with(
-            expected_key, {"progress": 50}, timeout=600
+        assert status_code == 200
+        mock_dao.set.assert_called_once_with(
+            "acme.dashboard", "job", {"progress": 50}, 600, shared=False
         )
 
 
-@patch("superset.extensions.storage.api.cache_manager")
-@patch("superset.extensions.storage.api.get_extensions")
-def test_ephemeral_delete_calls_cache_delete(
-    mock_get_ext: MagicMock, mock_cm: MagicMock, app: Flask
+@patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_ephemeral_set_returns_400_on_ttl_invalid(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
-    """Verifying the delete_ephemeral handler flow: build key -> cache delete."""
+    """set_ephemeral returns a 400 when the DAO rejects the TTL."""
     mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
-    mock_cache = MagicMock()
-    mock_cm.extension_ephemeral_state_cache = mock_cache
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_dao.set.side_effect = ExtensionEphemeralTTLInvalid("TTL too large")
 
-    with app.app_context():
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/ephemeral/job",
+        method="PUT",
+        json={"value": {"progress": 50}, "ttl": 999999},
+    ):
         g.user = MagicMock(id=7)
 
-        extension_id = "acme.dashboard"
-        cache_key = _build_storage_key(extension_id, "to-delete", shared=False)
-        mock_cache.delete(cache_key)
+        body, status_code = ExtensionStorageRestApi().set_ephemeral(
+            "acme", "dashboard", "job"
+        )
 
-        expected_key = f"{KEY_PREFIX}:acme.dashboard:user:7:to-delete"
-        mock_cache.delete.assert_called_once_with(expected_key)
+        assert status_code == 400
+        assert "TTL too large" in body.get_json()["message"]
 
 
-@patch("superset.extensions.storage.api.cache_manager")
-@patch("superset.extensions.storage.api.get_extensions")
-def test_ephemeral_shared_uses_shared_key(
-    mock_get_ext: MagicMock, mock_cm: MagicMock, app: Flask
+@patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_ephemeral_set_returns_400_on_value_too_large(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
-    """Shared ephemeral operations use 'shared' scope instead of 'user:<id>'."""
+    """set_ephemeral returns a 400 when the DAO rejects an oversized value."""
     mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
-    mock_cache = MagicMock()
-    mock_cm.extension_ephemeral_state_cache = mock_cache
-    mock_cache.get.return_value = "shared-data"
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_dao.set.side_effect = ExtensionEphemeralValueTooLarge("Value too large")
 
-    with app.app_context():
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/ephemeral/job",
+        method="PUT",
+        json={"value": "x" * 1000, "ttl": 300},
+    ):
+        g.user = MagicMock(id=7)
+
+        body, status_code = ExtensionStorageRestApi().set_ephemeral(
+            "acme", "dashboard", "job"
+        )
+
+        assert status_code == 400
+        assert "Value too large" in body.get_json()["message"]
+
+
+@patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_ephemeral_delete_delegates_to_dao(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
+) -> None:
+    """delete_ephemeral calls ExtensionEphemeralDAO.delete with the right scope."""
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/ephemeral/to-delete",
+        method="DELETE",
+    ):
+        g.user = MagicMock(id=7)
+
+        body, status_code = ExtensionStorageRestApi().delete_ephemeral(
+            "acme", "dashboard", "to-delete"
+        )
+
+        assert status_code == 200
+        mock_dao.delete.assert_called_once_with(
+            "acme.dashboard", "to-delete", shared=False
+        )
+
+
+@patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_ephemeral_shared_query_param_uses_shared_scope(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
+) -> None:
+    """?shared=true passes shared=True through to the DAO instead of scoping by user."""
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_dao.get.return_value = "shared-data"
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/ephemeral/config?shared=true"
+    ):
         g.user = MagicMock(id=99)
 
-        extension_id = "acme.dashboard"
-        cache_key = _build_storage_key(extension_id, "config", shared=True)
-        result = mock_cache.get(cache_key)
+        body, status_code = ExtensionStorageRestApi().get_ephemeral(
+            "acme", "dashboard", "config"
+        )
 
-        assert result == "shared-data"
-        expected_key = f"{KEY_PREFIX}:acme.dashboard:shared:config"
-        mock_cache.get.assert_called_once_with(expected_key)
+        assert status_code == 200
+        assert body.get_json()["result"] == "shared-data"
+        mock_dao.get.assert_called_once_with("acme.dashboard", "config", shared=True)
 
 
 # ── Persistent GET / PUT / DELETE endpoint logic ─────────────────────────────
 
 
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.storage.api.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_persistent_get_user_scoped(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -277,7 +231,7 @@ def test_persistent_get_user_scoped(
 
 
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.storage.api.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_persistent_get_shared_scope(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -298,7 +252,7 @@ def test_persistent_get_shared_scope(
 
 
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.storage.api.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_persistent_set_encodes_and_stores(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -321,7 +275,7 @@ def test_persistent_set_encodes_and_stores(
 
 
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.storage.api.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_persistent_set_encrypt_flag(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -344,7 +298,7 @@ def test_persistent_set_encrypt_flag(
 
 
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.storage.api.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_persistent_delete_calls_dao(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -364,7 +318,7 @@ def test_persistent_delete_calls_dao(
 
 @patch("superset.db")
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.storage.api.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_persistent_set_returns_413_on_quota_exceeded(
     mock_get_ext: MagicMock, mock_dao: MagicMock, mock_db: MagicMock, app: Flask
 ) -> None:
@@ -425,22 +379,3 @@ def test_set_persistent_requires_value_field():
     """PUT body must contain 'value' field — test the validation logic."""
     body = {"some_other_field": True}  # missing 'value'
     assert "value" not in body
-
-
-# ── Extension not found returns None ─────────────────────────────────────────
-
-
-@patch("superset.extensions.storage.api.get_extensions")
-def test_unknown_extension_returns_none(mock_get_ext: MagicMock) -> None:
-    """When extension is not found, _get_extension_or_404 returns None."""
-    mock_get_ext.return_value = {"other.ext": MagicMock()}
-    result = _get_extension_or_404("unknown.ext")
-    assert result is None
-
-
-@patch("superset.extensions.storage.api.get_extensions")
-def test_empty_extensions_registry(mock_get_ext: MagicMock) -> None:
-    """When no extensions are registered, all lookups return None."""
-    mock_get_ext.return_value = {}
-    assert _get_extension_or_404("any.ext") is None
-    assert _get_extension_or_404("") is None

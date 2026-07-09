@@ -41,6 +41,9 @@ def app() -> Flask:
     flask_app = Flask(__name__)
     flask_app.config["TESTING"] = True
     flask_app.config["SECRET_KEY"] = "test-secret-key"  # noqa: S105
+    # Mirrors the default set in superset/config.py, which is always present
+    # in a real Superset app.
+    flask_app.config["EXTENSIONS_PERSISTENT_STORAGE"] = {}
     return flask_app
 
 
@@ -164,12 +167,14 @@ def test_dao_set_creates_new_entry_when_absent(mock_db: MagicMock, app: Flask) -
 def test_dao_set_updates_existing_entry(mock_db: MagicMock, app: Flask) -> None:
     """set() updates in-place when an entry already exists (no duplicate row)."""
     existing = MagicMock()
+    existing.value_size = 0
     mock_db.session.query.return_value.filter.return_value.first.return_value = existing
 
     with app.app_context():
         ExtensionStorageDAO.set("my-ext", "key", b'{"new": true}', user_fk=1)
 
     assert existing.value == b'{"new": true}'
+    assert existing.value_size == len(b'{"new": true}')
     mock_db.session.add.assert_not_called()
     mock_db.session.flush.assert_called_once()
 
@@ -192,6 +197,7 @@ def test_dao_set_encrypts_value_when_requested(
     )
     added_entry = mock_db.session.add.call_args[0][0]
     assert added_entry.value == b"ciphertext"
+    assert added_entry.value_size == len(b"ciphertext")
     assert added_entry.is_encrypted is True
 
 
@@ -250,6 +256,7 @@ def test_dao_set_overwrite_does_not_double_count_existing_row(
     """Overwriting a key nets out its own existing size against quota usage."""
     existing = MagicMock()
     existing.value = b"x" * 20
+    existing.value_size = 20
     mock_db.session.query.return_value.filter.return_value.first.return_value = existing
     # Usage already includes the 20 bytes this row occupies.
     mock_db.session.query.return_value.filter.return_value.scalar.return_value = 95
@@ -260,6 +267,7 @@ def test_dao_set_overwrite_does_not_double_count_existing_row(
         ExtensionStorageDAO.set("my-ext", "key", b"x" * 20, user_fk=1)
 
     assert existing.value == b"x" * 20
+    assert existing.value_size == 20
     mock_db.session.flush.assert_called_once()
 
 
@@ -270,6 +278,7 @@ def test_dao_set_overwrite_still_rejected_when_growth_exceeds_quota(
     """Overwriting with a larger value is rejected if the *net* growth exceeds quota."""
     existing = MagicMock()
     existing.value = b"x" * 20
+    existing.value_size = 20
     mock_db.session.query.return_value.filter.return_value.first.return_value = existing
     mock_db.session.query.return_value.filter.return_value.scalar.return_value = 95
 
@@ -278,6 +287,7 @@ def test_dao_set_overwrite_still_rejected_when_growth_exceeds_quota(
         ExtensionStorageDAO.set("my-ext", "key", b"x" * 30, user_fk=1)
 
     assert existing.value == b"x" * 20
+    assert existing.value_size == 20
 
 
 # ── delete ────────────────────────────────────────────────────────────────────

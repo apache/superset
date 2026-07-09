@@ -29,7 +29,6 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.orm import backref, relationship
 from sqlalchemy_utils import UUIDType
 from superset_core.extensions.storage.models import (
     ExtensionStorageEntry as CoreExtensionStorageEntry,
@@ -69,7 +68,11 @@ class ExtensionStorage(CoreExtensionStorageEntry, AuditMixinNullable, Model):
     # Extension identity
     extension_id = Column(String(255), nullable=False)
 
-    # Scope discriminators — all nullable; NULLs define the scope (see docstring)
+    # Scope discriminators — all nullable; NULLs define the scope (see docstring).
+    # No relationship() is declared for user_fk: extension storage rows are
+    # not deleted when their owning user is (ondelete="SET NULL" demotes them
+    # to global scope instead), and nothing reads through such a relationship,
+    # so there's no ORM object here for a future change to attach a cascade to.
     user_fk = Column(
         Integer,
         ForeignKey(
@@ -79,6 +82,10 @@ class ExtensionStorage(CoreExtensionStorageEntry, AuditMixinNullable, Model):
         ),
         nullable=True,
     )
+    # No FK here: resource_type is a free-form string naming the referenced
+    # table (a built-in Superset model or a resource type defined by another
+    # extension entirely), so the table a given row's resource_uuid points
+    # into varies per row and can't be fixed at the schema level.
     resource_type = Column(String(64), nullable=True)
     resource_uuid = Column(String(36), nullable=True)
 
@@ -91,14 +98,12 @@ class ExtensionStorage(CoreExtensionStorageEntry, AuditMixinNullable, Model):
 
     # Payload
     value = Column(LargeBinary(EXTENSION_STORAGE_MAX_SIZE), nullable=False)
+    # Byte length of `value`, kept in sync at write time so the quota SUM in
+    # _check_quota() can be computed from this fixed-width column instead of
+    # reading (and, once TOASTed, detoasting) every extension's stored blobs.
+    value_size = Column(Integer, nullable=False)
     value_type = Column(String(255), nullable=False, default="application/json")
     is_encrypted = Column(Boolean, nullable=False, default=False)
-
-    user = relationship(
-        "User",
-        backref=backref("extension_storage_entries", cascade="all, delete-orphan"),
-        foreign_keys=[user_fk],
-    )
 
     __table_args__ = (
         # Unique constraint prevents duplicate rows from concurrent writes
@@ -119,7 +124,10 @@ class ExtensionStorage(CoreExtensionStorageEntry, AuditMixinNullable, Model):
             "resource_uuid",
             "key",
         ),
-        Index("ix_ext_storage_extension_id", "extension_id"),
+        # Covers both extension_id-only lookups (leftmost prefix) and the
+        # quota SUM(value_size) query, letting the latter run as an
+        # index-only scan instead of touching the LargeBinary value column.
+        Index("ix_ext_storage_extension_id", "extension_id", "value_size"),
     )
 
     def __repr__(self) -> str:
