@@ -50,9 +50,9 @@ class SubjectRestApi(BaseSupersetModelRestApi):
         "info": "read",
     }
 
-    resource_name = "subject"
+    resource_name = "security/subject"
     allow_browser_login = True
-    openapi_spec_tag = "Subjects"
+    openapi_spec_tag = "Security Subjects"
     openapi_spec_methods = openapi_spec_methods_override
 
     list_columns = [

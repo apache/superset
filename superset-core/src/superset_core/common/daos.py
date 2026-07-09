@@ -262,18 +262,3 @@ class SubjectDAO(BaseDAO[Subject]):
     base_filter = None
     id_column_name = "id"
     uuid_column_name = "uuid"
-
-
-__all__ = [
-    "BaseDAO",
-    "DatasetDAO",
-    "DatabaseDAO",
-    "ChartDAO",
-    "DashboardDAO",
-    "UserDAO",
-    "RoleDAO",
-    "GroupDAO",
-    "TagDAO",
-    "KeyValueDAO",
-    "SubjectDAO",
-]

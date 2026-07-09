@@ -58,7 +58,7 @@ class TestSubjectApi(SupersetTestCase):
     def test_get_list_subject(self) -> None:
         """Subject API: Test get list"""
         self.login(ADMIN_USERNAME)
-        uri = "api/v1/subject/"
+        uri = "api/v1/security/subject/"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -81,7 +81,7 @@ class TestSubjectApi(SupersetTestCase):
                 {"col": "label", "opr": "subject_all_text", "value": "subject_label1"}
             ],
         }
-        uri = f"api/v1/subject/?q={rison.dumps(query_string)}"
+        uri = f"api/v1/security/subject/?q={rison.dumps(query_string)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -97,7 +97,7 @@ class TestSubjectApi(SupersetTestCase):
         query_string = {
             "filters": [{"col": "type", "opr": "eq", "value": int(SubjectType.ROLE)}],
         }
-        uri = f"api/v1/subject/?q={rison.dumps(query_string)}"
+        uri = f"api/v1/security/subject/?q={rison.dumps(query_string)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -108,7 +108,7 @@ class TestSubjectApi(SupersetTestCase):
         """Subject API: Test get single subject"""
         self.login(ADMIN_USERNAME)
         subject = db.session.query(Subject).first()
-        uri = f"api/v1/subject/{subject.id}"
+        uri = f"api/v1/security/subject/{subject.id}"
         rv = self.get_assert_metric(uri, "get")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -119,7 +119,7 @@ class TestSubjectApi(SupersetTestCase):
         """Subject API: Test info security is read-only"""
         self.login(ADMIN_USERNAME)
         params = {"keys": ["permissions"]}
-        uri = f"api/v1/subject/_info?q={rison.dumps(params)}"
+        uri = f"api/v1/security/subject/_info?q={rison.dumps(params)}"
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -130,13 +130,13 @@ class TestSubjectApi(SupersetTestCase):
     def test_get_list_subject_gamma(self) -> None:
         """Subject API: Test non-admin is forbidden"""
         self.login(GAMMA_USERNAME)
-        uri = "api/v1/subject/"
+        uri = "api/v1/security/subject/"
         rv = self.client.get(uri)
         assert rv.status_code == 403
 
     def test_subject_write_methods_absent(self) -> None:
         """Subject API: Test create/update/delete routes are not registered"""
         self.login(ADMIN_USERNAME)
-        assert self.client.post("api/v1/subject/", json={}).status_code == 405
-        assert self.client.put("api/v1/subject/1", json={}).status_code == 405
-        assert self.client.delete("api/v1/subject/1").status_code == 405
+        assert self.client.post("api/v1/security/subject/", json={}).status_code == 405
+        assert self.client.put("api/v1/security/subject/1", json={}).status_code == 405
+        assert self.client.delete("api/v1/security/subject/1").status_code == 405
