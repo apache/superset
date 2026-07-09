@@ -256,7 +256,7 @@ export default function transformProps(
     };
   }, {});
 
-  const { setDataMask = () => {}, onContextMenu } = hooks;
+  const { setDataMask = () => {}, onContextMenu, onDrillDown } = hooks;
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
 
   let totalValue = 0;
@@ -495,6 +495,7 @@ export default function transformProps(
     groupby,
     selectedValues,
     onContextMenu,
+    onDrillDown,
     refs,
     emitCrossFilters,
     coltypeMapping,
