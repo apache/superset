@@ -64,7 +64,7 @@ def _mock_dashboard(
 class TestManageDashboardCertification:
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_set_certification(
         self, mock_session: Mock, mock_get: Mock, mcp_server: object
     ) -> None:
@@ -97,7 +97,7 @@ class TestManageDashboardCertification:
 
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_set_certified_by_only(
         self, mock_session: Mock, mock_get: Mock, mcp_server: object
     ) -> None:
@@ -117,7 +117,7 @@ class TestManageDashboardCertification:
 
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_clear_with_empty_string(
         self, mock_session: Mock, mock_get: Mock, mcp_server: object
     ) -> None:
@@ -145,7 +145,7 @@ class TestManageDashboardCertification:
         assert payload["certification_details"] is None
 
     @patch(DAO_GET)
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_no_fields_is_noop(self, mock_get: Mock, mcp_server: object) -> None:
         dash = _mock_dashboard(certified_by="Existing")
         mock_get.return_value = dash
@@ -162,7 +162,7 @@ class TestManageDashboardCertification:
         assert any("No fields provided" in w for w in payload["warnings"])
 
     @patch(DAO_GET)
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_dashboard_not_found(
         self, mock_get: Mock, mcp_server: object
     ) -> None:
@@ -180,7 +180,7 @@ class TestManageDashboardCertification:
         assert "not found" in (payload.get("error") or "").lower()
 
     @patch(DAO_GET)
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_non_owner_gets_permission_denied(
         self, mock_get: Mock, mcp_server: object
     ) -> None:
@@ -203,7 +203,7 @@ class TestManageDashboardCertification:
         assert payload.get("permission_denied") is True
         assert dash.certified_by is None
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_xss_certified_by_is_sanitized(self, mcp_server: object) -> None:
         from superset.mcp_service.dashboard.schemas import (
             ManageDashboardCertificationRequest,
@@ -213,3 +213,17 @@ class TestManageDashboardCertification:
             identifier=1, certified_by="<script>alert(1)</script>Team"
         )
         assert "<script>" not in (request.certified_by or "")
+
+    @pytest.mark.asyncio()
+    async def test_xss_certification_details_is_sanitized(
+        self, mcp_server: object
+    ) -> None:
+        from superset.mcp_service.dashboard.schemas import (
+            ManageDashboardCertificationRequest,
+        )
+
+        request = ManageDashboardCertificationRequest(
+            identifier=1,
+            certification_details="<script>alert(1)</script>Verified details",
+        )
+        assert "<script>" not in (request.certification_details or "")

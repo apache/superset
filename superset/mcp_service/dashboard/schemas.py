@@ -1296,6 +1296,17 @@ class ManageDashboardCertificationRequest(BaseModel):
             return v
         return sanitize_user_input(v, "certified_by", max_length=500, allow_empty=True)
 
+    @field_validator("certification_details")
+    @classmethod
+    def sanitize_certification_details(cls, v: str | None) -> str | None:
+        """Sanitize certification_details to prevent XSS; it renders in the
+        same CertifiedBadge tooltip as certified_by."""
+        if v is None or v == "":
+            return v
+        return sanitize_user_input(
+            v, "certification_details", max_length=5000, allow_empty=True
+        )
+
 
 class ManageDashboardCertificationResponse(BaseModel):
     """Response schema for ``manage_dashboard_certification``."""
