@@ -37,9 +37,9 @@ from superset.mcp_service.dashboard.schemas import (
     DuplicateDashboardRequest,
     DuplicateDashboardResponse,
     GenerateDashboardRequest,
+    RestoreDashboardResponse,
     serialize_chart_summary,
     serialize_dashboard_object,
-    UndeleteDashboardResponse,
     UpdateDashboardRequest,
 )
 from superset.mcp_service.utils.sanitization import (
@@ -910,7 +910,7 @@ class TestDuplicateDashboardResponse:
 
 
 class TestDeletedDashboardSummary:
-    """LLM-context sanitization for the delete/undelete dashboard summary."""
+    """LLM-context sanitization for the delete/restore dashboard summary."""
 
     def test_title_and_slug_are_wrapped_for_llm_context(self) -> None:
         """Dashboard-controlled title and slug are wrapped before exposure."""
@@ -954,22 +954,22 @@ class TestDeleteDashboardResponse:
         assert resp.error is None
 
 
-class TestUndeleteDashboardResponse:
-    """Serialization and error sanitization for UndeleteDashboardResponse."""
+class TestRestoreDashboardResponse:
+    """Serialization and error sanitization for RestoreDashboardResponse."""
 
     def test_defaults(self) -> None:
         """An empty response has restored=False and null fields."""
-        resp = UndeleteDashboardResponse()
+        resp = RestoreDashboardResponse()
         assert resp.restored is False
         assert resp.dashboard is None
         assert resp.error is None
 
     def test_error_is_wrapped_for_llm_context(self) -> None:
         """Error text is wrapped in LLM-context delimiters before exposure."""
-        resp = UndeleteDashboardResponse(error="Slug 'x' already in use.")
+        resp = RestoreDashboardResponse(error="Slug 'x' already in use.")
         assert resp.error == _wrapped("Slug 'x' already in use.")
 
     def test_none_error_is_not_wrapped(self) -> None:
         """A null error stays null rather than being wrapped."""
-        resp = UndeleteDashboardResponse(restored=True)
+        resp = RestoreDashboardResponse(restored=True)
         assert resp.error is None

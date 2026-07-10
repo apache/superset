@@ -685,7 +685,7 @@ class DeleteDashboardRequest(BaseModel):
         description=(
             "Explicit confirmation of the deletion. Depending on the "
             "deployment, deletion is either recoverable via "
-            "undelete_dashboard (soft delete) or permanent (hard delete) — "
+            "restore_dashboard (soft delete) or permanent (hard delete) — "
             "the response's 'permanent' field reports which applied. The "
             "tool refuses to delete unless this is set to true."
         ),
@@ -718,7 +718,7 @@ class DeleteDashboardResponse(BaseModel):
         description=(
             "True when the deletion was a permanent hard delete. False when "
             "the dashboard was soft-deleted and can be recovered with "
-            "undelete_dashboard."
+            "restore_dashboard."
         ),
     )
     dashboard: DeletedDashboardSummary | None = Field(
@@ -739,16 +739,16 @@ class DeleteDashboardResponse(BaseModel):
         return sanitize_for_llm_context(value, field_path=("error",))
 
 
-class UndeleteDashboardRequest(BaseModel):
-    """Request schema for undeleting (restoring) a soft-deleted dashboard."""
+class RestoreDashboardRequest(BaseModel):
+    """Request schema for restoring a soft-deleted dashboard."""
 
     dashboard_id: int = Field(
         ..., description="ID of the soft-deleted dashboard to restore"
     )
 
 
-class UndeleteDashboardResponse(BaseModel):
-    """Response schema for undeleting (restoring) a dashboard."""
+class RestoreDashboardResponse(BaseModel):
+    """Response schema for restoring a dashboard."""
 
     restored: bool = Field(False, description="True when the dashboard was restored")
     dashboard: DeletedDashboardSummary | None = Field(

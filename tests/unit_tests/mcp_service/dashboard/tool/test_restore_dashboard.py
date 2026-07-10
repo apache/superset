@@ -16,7 +16,7 @@
 # under the License.
 
 """
-Unit tests for the undelete_dashboard MCP tool.
+Unit tests for the restore_dashboard MCP tool.
 
 Covers:
 - Successful restore (happy path)
@@ -83,7 +83,7 @@ async def test_successful_restore(
 
     async with Client(mcp_server) as client:
         result = await client.call_tool(
-            "undelete_dashboard",
+            "restore_dashboard",
             {"request": {"dashboard_id": 1}},
         )
 
@@ -108,7 +108,7 @@ async def test_dashboard_not_found(mock_find_by_id: Mock, mcp_server: object) ->
 
     async with Client(mcp_server) as client:
         result = await client.call_tool(
-            "undelete_dashboard",
+            "restore_dashboard",
             {"request": {"dashboard_id": 999}},
         )
 
@@ -129,7 +129,7 @@ async def test_dashboard_not_deleted(
 
     async with Client(mcp_server) as client:
         result = await client.call_tool(
-            "undelete_dashboard",
+            "restore_dashboard",
             {"request": {"dashboard_id": 1}},
         )
 
@@ -157,7 +157,7 @@ async def test_permission_denied(
 
     async with Client(mcp_server) as client:
         result = await client.call_tool(
-            "undelete_dashboard",
+            "restore_dashboard",
             {"request": {"dashboard_id": 1}},
         )
 
@@ -183,7 +183,7 @@ async def test_slug_conflict(
 
     async with Client(mcp_server) as client:
         result = await client.call_tool(
-            "undelete_dashboard",
+            "restore_dashboard",
             {"request": {"dashboard_id": 1}},
         )
 
@@ -210,7 +210,7 @@ async def test_restore_failed(
 
     async with Client(mcp_server) as client:
         result = await client.call_tool(
-            "undelete_dashboard",
+            "restore_dashboard",
             {"request": {"dashboard_id": 1}},
         )
 

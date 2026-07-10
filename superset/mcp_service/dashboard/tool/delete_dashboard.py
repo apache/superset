@@ -21,7 +21,7 @@ MCP tool: delete_dashboard
 This tool deletes a dashboard. It requires an explicit ``confirm=true``
 safety gate so callers must state destructive intent. When the
 ``SOFT_DELETE`` feature flag is enabled the dashboard is soft-deleted and
-recoverable via ``undelete_dashboard``; otherwise the delete is permanent.
+recoverable via ``restore_dashboard``; otherwise the delete is permanent.
 """
 
 import logging
@@ -57,7 +57,7 @@ async def delete_dashboard(
     only the dashboard itself. The tool refuses to run unless
     ``confirm=true`` is explicitly passed. The response's ``permanent``
     field reports whether the delete was a recoverable soft delete
-    (restore with ``undelete_dashboard``) or a permanent hard delete.
+    (restore with ``restore_dashboard``) or a permanent hard delete.
     """
     from superset import is_feature_enabled
     from superset.commands.dashboard.delete import DeleteDashboardCommand
@@ -75,7 +75,7 @@ async def delete_dashboard(
             "Deletion of dashboard %s not confirmed" % (request.dashboard_id,)
         )
         recovery_note = (
-            "The dashboard can be restored afterwards with undelete_dashboard."
+            "The dashboard can be restored afterwards with restore_dashboard."
             if soft_delete_enabled
             else "The deletion is permanent and cannot be undone."
         )

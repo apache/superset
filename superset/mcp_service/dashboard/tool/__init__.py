@@ -25,7 +25,7 @@ from .get_dashboard_layout import get_dashboard_layout
 from .list_dashboards import list_dashboards
 from .manage_native_filters import manage_native_filters
 from .remove_chart_from_dashboard import remove_chart_from_dashboard
-from .undelete_dashboard import undelete_dashboard
+from .restore_dashboard import restore_dashboard
 from .update_dashboard import update_dashboard
 
 __all__ = [
@@ -39,6 +39,6 @@ __all__ = [
     "manage_native_filters",
     "remove_chart_from_dashboard",
     "delete_dashboard",
-    "undelete_dashboard",
+    "restore_dashboard",
     "update_dashboard",
 ]

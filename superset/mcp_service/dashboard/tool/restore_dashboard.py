@@ -16,7 +16,7 @@
 # under the License.
 
 """
-MCP tool: undelete_dashboard
+MCP tool: restore_dashboard
 
 This tool restores a soft-deleted dashboard by clearing its ``deleted_at``
 timestamp. It is the recovery path for ``delete_dashboard`` when the
@@ -32,8 +32,8 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.schemas import (
     DeletedDashboardSummary,
-    UndeleteDashboardRequest,
-    UndeleteDashboardResponse,
+    RestoreDashboardRequest,
+    RestoreDashboardResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -44,14 +44,14 @@ logger = logging.getLogger(__name__)
     class_permission_name="Dashboard",
     method_permission_name="write",
     annotations=ToolAnnotations(
-        title="Undelete dashboard",
+        title="Restore dashboard",
         readOnlyHint=False,
         destructiveHint=False,
     ),
 )
-async def undelete_dashboard(
-    request: UndeleteDashboardRequest, ctx: Context
-) -> UndeleteDashboardResponse:
+async def restore_dashboard(
+    request: RestoreDashboardRequest, ctx: Context
+) -> RestoreDashboardResponse:
     """
     Restore a soft-deleted dashboard by ID, making it visible and usable
     again. Only dashboards deleted while soft delete was enabled can be
@@ -68,7 +68,7 @@ async def undelete_dashboard(
 
     summary: DeletedDashboardSummary | None = None
     try:
-        with event_logger.log_context(action="mcp.undelete_dashboard.validation"):
+        with event_logger.log_context(action="mcp.restore_dashboard.validation"):
             # Skip the visibility filter so the soft-deleted row is findable,
             # and the base filter so an owner's own trash stays reachable;
             # RestoreDashboardCommand re-checks ownership before restoring.
@@ -78,7 +78,7 @@ async def undelete_dashboard(
                 skip_visibility_filter=True,
             )
             if not dashboard:
-                return UndeleteDashboardResponse(
+                return RestoreDashboardResponse(
                     restored=False,
                     dashboard=None,
                     error=(
@@ -93,7 +93,7 @@ async def undelete_dashboard(
                 uuid=str(dashboard.uuid) if dashboard.uuid else None,
             )
             if dashboard.deleted_at is None:
-                return UndeleteDashboardResponse(
+                return RestoreDashboardResponse(
                     restored=False,
                     dashboard=summary,
                     error=(
@@ -102,15 +102,15 @@ async def undelete_dashboard(
                     ),
                 )
 
-        with event_logger.log_context(action="mcp.undelete_dashboard.restore"):
+        with event_logger.log_context(action="mcp.restore_dashboard.restore"):
             RestoreDashboardCommand(str(dashboard.uuid)).run()
 
         logger.info("Restored dashboard %s", request.dashboard_id)
         await ctx.info("Restored dashboard %s" % (request.dashboard_id,))
-        return UndeleteDashboardResponse(restored=True, dashboard=summary, error=None)
+        return RestoreDashboardResponse(restored=True, dashboard=summary, error=None)
 
     except DashboardNotFoundError:
-        return UndeleteDashboardResponse(
+        return RestoreDashboardResponse(
             restored=False,
             dashboard=summary,
             error=(
@@ -123,7 +123,7 @@ async def undelete_dashboard(
         await ctx.warning(
             "Permission denied restoring dashboard %s" % (request.dashboard_id,)
         )
-        return UndeleteDashboardResponse(
+        return RestoreDashboardResponse(
             restored=False,
             dashboard=summary,
             error=(
@@ -134,7 +134,7 @@ async def undelete_dashboard(
         )
 
     except DashboardSlugConflictError:
-        return UndeleteDashboardResponse(
+        return RestoreDashboardResponse(
             restored=False,
             dashboard=summary,
             error=(
@@ -149,7 +149,7 @@ async def undelete_dashboard(
         await ctx.error(
             "Failed to restore dashboard %s: %s" % (request.dashboard_id, str(exc))
         )
-        return UndeleteDashboardResponse(
+        return RestoreDashboardResponse(
             restored=False,
             dashboard=summary,
             error=(

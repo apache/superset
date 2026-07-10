@@ -136,7 +136,7 @@ Dashboard Management:
 - manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select and filter_time)
 - remove_chart_from_dashboard: Remove a chart from an existing dashboard (requires write access)
 - delete_dashboard: Delete a dashboard by ID; requires confirm=true; response reports whether the delete is recoverable (requires write access)
-- undelete_dashboard: Restore a soft-deleted dashboard by ID (requires write access; owners or admins only)
+- restore_dashboard: Restore a soft-deleted dashboard by ID (requires write access; owners or admins only)
 
 Annotation Layers:
 - list_annotation_layers: List annotation layers with advanced filters (1-based pagination)
@@ -736,7 +736,7 @@ from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     list_dashboards,
     manage_native_filters,
     remove_chart_from_dashboard,
-    undelete_dashboard,
+    restore_dashboard,
     update_dashboard,
 )
 from superset.mcp_service.database.tool import (  # noqa: F401, E402
