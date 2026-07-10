@@ -151,7 +151,82 @@ const withoutColTotals = {
   queriesData: basicQueriesData,
 };
 
+/**
+ * Two-dimension rows data so an outer row-label <th> spans multiple data rows.
+ * Grouped by [country, city] with "Spain" (last alphabetically) owning two
+ * cities, so the "Spain" <th> has rowSpan >= 2 and bottoms out the table.
+ *
+ * visibleRowKeys order (rowOrder key_a_to_z):
+ *   0: [France, Paris]
+ *   1: [Germany, Berlin]
+ *   2: [Spain, Barcelona]
+ *   3: [Spain, Madrid]
+ */
+const groupedRowsData = [
+  { country: 'France', city: 'Paris', 'SUM(sales)': 1000 },
+  { country: 'Germany', city: 'Berlin', 'SUM(sales)': 2000 },
+  { country: 'Spain', city: 'Barcelona', 'SUM(sales)': 1200 },
+  { country: 'Spain', city: 'Madrid', 'SUM(sales)': 1500 },
+];
+
+const groupedRowsQueriesData = [
+  {
+    ...basicQueryResult,
+    colnames: ['country', 'city', 'SUM(sales)'],
+    coltypes: [
+      GenericDataType.String,
+      GenericDataType.String,
+      GenericDataType.Numeric,
+    ],
+    data: groupedRowsData,
+  },
+];
+
+const groupedRowsFormData: QueryFormData = {
+  ...basicFormData,
+  groupbyRows: ['country', 'city'],
+  groupbyColumns: [],
+};
+
+/**
+ * Two row dimensions, colTotals disabled: the bottom-most spanning <th>
+ * ("Spain", rowSpan 2) should own the bottom edge.
+ */
+const groupedRowsWithoutColTotals = {
+  ...new ChartProps({
+    ...basicChartProps,
+    formData: {
+      ...groupedRowsFormData,
+      colTotals: false,
+      rowTotals: false,
+      rowSubTotals: false,
+      colSubTotals: false,
+    },
+  }),
+  queriesData: groupedRowsQueriesData,
+};
+
+/**
+ * Two row dimensions, colTotals enabled: the totals row owns the bottom edge,
+ * so no row-label <th> (spanning or otherwise) gets pvtRowLabelLast.
+ */
+const groupedRowsWithColTotals = {
+  ...new ChartProps({
+    ...basicChartProps,
+    formData: {
+      ...groupedRowsFormData,
+      colTotals: true,
+      rowTotals: false,
+      rowSubTotals: false,
+      colSubTotals: false,
+    },
+  }),
+  queriesData: groupedRowsQueriesData,
+};
+
 export default {
   withColTotals,
   withoutColTotals,
+  groupedRowsWithoutColTotals,
+  groupedRowsWithColTotals,
 };
