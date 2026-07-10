@@ -46,6 +46,15 @@ from superset.utils import json
 # Setuptools 80.x (pinned in requirements/base.txt) raises this as a plain
 # UserWarning, not DeprecationWarning -- don't add category=DeprecationWarning
 # here, it would silently stop matching.
+#
+# The same filter is also registered unconditionally in
+# DefaultLoggingConfigurator.configure_logging() (superset/utils/
+# logging_configurator.py), which runs before anything else in
+# SupersetAppInitializer.init_app(). That's now the primary suppression
+# point for the web app and celery workers; this one remains as a fallback
+# for standalone scripts that import this module without going through
+# create_app() (filterwarnings() calls are idempotent, so registering it
+# twice is harmless).
 warnings.filterwarnings(
     "ignore",
     message=r"pkg_resources is deprecated as an API",

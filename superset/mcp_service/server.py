@@ -62,6 +62,8 @@ def _suppress_third_party_warnings() -> None:
     - marshmallow ``RemovedInMarshmallow4Warning`` (triggered during
       database engine schema instantiation)
     - google.api_core ``FutureWarning`` (Python version support notices)
+    - sqlalchemy-redshift ``pkg_resources`` UserWarning (see
+      superset/db_engine_specs/redshift.py for details)
     """
     import warnings
 
@@ -81,6 +83,13 @@ def _suppress_third_party_warnings() -> None:
     warnings.filterwarnings(
         "ignore",
         message=r"authlib\.jose module is deprecated",
+    )
+    # Same treatment for the pkg_resources warning suppressed at package
+    # init time — covers late imports triggered by a Redshift-backed
+    # database connection opened after tool execution begins.
+    warnings.filterwarnings(
+        "ignore",
+        message=r"pkg_resources is deprecated as an API",
     )
 
 
