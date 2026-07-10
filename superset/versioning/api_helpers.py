@@ -141,8 +141,9 @@ _RAISE_FOR_ACCESS_KWARG: dict[str, str] = {
 
 
 class PathEntityResponseError(Exception):
-    """Carries a pre-built error ``Response`` from
-    :func:`resolve_endpoint_path_entity`. Endpoints catch it and return
+    """Carry a pre-built error response from endpoint path resolution.
+
+    Endpoints catch it and return
     the carried response directly. The shape exists so the
     UUID-parse + find-by-uuid + read-access check can live in one
     place across the ``/versions/`` and ``/activity/`` endpoint
@@ -156,8 +157,7 @@ class PathEntityResponseError(Exception):
 def resolve_endpoint_path_entity(
     api: Any, model_cls: type[Model], uuid_str: str
 ) -> tuple[Any, UUID]:
-    """Run the standard path-entity preflight for a /versions/ or
-    /activity/ endpoint:
+    """Run path-entity preflight for a versions or activity endpoint.
 
     1. Parse *uuid_str* into a UUID (or raise → 400).
     2. Look up the live entity via ``VersionDAO.find_active_by_uuid``

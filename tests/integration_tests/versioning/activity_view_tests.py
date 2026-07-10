@@ -295,6 +295,8 @@ class TestDashboardActivityView(SupersetTestCase):
         dashboard_uuid = str(dashboard.uuid)
         original_title = dashboard.dashboard_title
         dashboard_id = dashboard.id
+        chart_id: int | None = None
+        chart_original_name: str | None = None
 
         try:
             # Edit the dashboard's own field so we have a self record to
@@ -324,8 +326,9 @@ class TestDashboardActivityView(SupersetTestCase):
                 db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one()
             )
             dashboard.dashboard_title = original_title
-            chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
-            chart.slice_name = chart_original_name
+            if chart_id is not None and chart_original_name is not None:
+                chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
+                chart.slice_name = chart_original_name
             db.session.commit()
 
     def test_activity_pagination_clamps_oversized_page_size(self) -> None:

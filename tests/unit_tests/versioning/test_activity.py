@@ -31,7 +31,9 @@ by the integration suite in
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 from unittest.mock import patch
+from uuid import uuid4
 
 import pytest
 
@@ -51,7 +53,16 @@ from superset.versioning.activity.orchestrator import (
     _emit_request_shape_attributes,
     _MAX_PAGE_SIZE,
 )
-from superset.versioning.activity.render import _build_summary, _changed_by_dict
+from superset.versioning.activity.queries import (
+    _merge_result_into_heap,
+    _record_sort_key,
+    BoundedRecordHeap,
+)
+from superset.versioning.activity.render import (
+    _build_summary,
+    _changed_by_dict,
+    apply_record_decoration,
+)
 from superset.versioning.activity.scope import resolve_scope
 from superset.versioning.activity.windows import (
     intersect_windows,
@@ -123,6 +134,29 @@ def test_resolve_scope_self_empty_when_no_tracked_history() -> None:
     assert resolve_scope("Dashboard", 42, "self") == []
 
 
+def test_resolve_scope_related_empty_when_no_tracked_incarnation() -> None:
+    """A fresh entity reusing an integer id inherits no related history."""
+    with patch(
+        "superset.versioning.activity.scope._resolve_dashboard_scope"
+    ) as resolve_related:
+        assert resolve_scope("Dashboard", 42, "related", None) == []
+        resolve_related.assert_not_called()
+
+
+def test_resolve_scope_clips_related_windows_to_current_incarnation() -> None:
+    """Dependency windows from a reused path id start at its own first tx."""
+    with patch(
+        "superset.versioning.activity.scope._resolve_dashboard_scope",
+        return_value=[
+            ("Slice", 7, [Window(5, 15), Window(20, None)]),
+            ("SqlaTable", 9, [Window(1, 8)]),
+        ],
+    ):
+        assert resolve_scope("Dashboard", 42, "related", 10) == [
+            ("Slice", 7, [Window(10, 15), Window(20, None)]),
+        ]
+
+
 def test_resolve_scope_self_only_for_chart() -> None:
     assert resolve_scope("Slice", 7, "self", 0) == [("Slice", 7, [Window(0, None)])]
 
@@ -143,6 +177,104 @@ def test_dataset_all_returns_only_self() -> None:
     assert resolve_scope("SqlaTable", 9, "all", 0) == [
         ("SqlaTable", 9, [Window(0, None)]),
     ]
+
+
+def test_decoration_redacts_record_from_reused_entity_id() -> None:
+    """A historical UUID mismatch identifies a deleted predecessor."""
+    live_uuid = uuid4()
+    historical_uuid = uuid4()
+    record = {
+        "entity_kind": "chart",
+        "entity_id": 7,
+        "transaction_id": 20,
+        "sequence": 0,
+        "kind": "field",
+        "operation": "update",
+        "action_kind": None,
+        "path": "slice_name",
+        "from_value": "predecessor",
+        "to_value": "renamed",
+        "entity_name": "Old chart",
+        "changed_by_id": 1,
+        "first_name": "Ada",
+        "last_name": "Lovelace",
+        "user_id": 1,
+    }
+    with (
+        patch(
+            "superset.versioning.activity.render.check_entity_tombstones",
+            return_value={("Slice", 7): {"deleted": False, "deletion_state": None}},
+        ),
+        patch(
+            "superset.versioning.activity.render._lookup_entity_uuids",
+            return_value={("Slice", 7): live_uuid},
+        ),
+        patch(
+            "superset.versioning.activity.render.resolve_historical_entity_uuids",
+            return_value={("Slice", 7, 20): historical_uuid},
+        ),
+        patch(
+            "superset.versioning.activity.render.batch_chart_counts", return_value={}
+        ),
+    ):
+        apply_record_decoration([record], "Dashboard", 1)
+
+    assert record["entity_deleted"] is True
+    assert record["entity_uuid"] is None
+    assert record["version_uuid"] is None
+    assert record["entity_name"] == ""
+    assert record["from_value"] is None
+    assert record["to_value"] is None
+
+
+def test_bounded_heap_merges_newer_rows_from_later_id_chunks() -> None:
+    """A full early chunk cannot hide newer records from a later chunk."""
+
+    class Result(list[dict[str, Any]]):
+        closed = False
+
+        def close(self) -> None:
+            self.closed = True
+
+    def row(transaction_id: int, entity_id: int) -> dict[str, Any]:
+        return {
+            "issued_at": datetime(2026, 1, 1, 0, 0, transaction_id),
+            "transaction_id": transaction_id,
+            "sequence": 0,
+            "entity_kind": "chart",
+            "entity_id": entity_id,
+        }
+
+    windows = {
+        ("chart", 1): [Window(0, None)],
+        ("chart", 501): [Window(0, None)],
+    }
+    heap: BoundedRecordHeap = []
+    first = Result([row(2, 1), row(1, 1)])
+    second = Result([row(4, 501), row(3, 501)])
+
+    ordinal = _merge_result_into_heap(first, heap, windows, 2, 0)
+    _merge_result_into_heap(second, heap, windows, 2, ordinal)
+
+    assert first.closed
+    assert second.closed
+    assert [
+        entry[2]["transaction_id"]
+        for entry in sorted(heap, key=lambda entry: entry[0], reverse=True)
+    ] == [4, 3, 2]
+
+
+def test_total_sort_key_distinguishes_rows_at_same_timestamp() -> None:
+    issued_at = datetime(2026, 1, 1)
+    older = {
+        "issued_at": issued_at,
+        "transaction_id": 10,
+        "sequence": 1,
+        "entity_kind": "chart",
+        "entity_id": 7,
+    }
+    newer = {**older, "sequence": 2}
+    assert _record_sort_key(newer) > _record_sort_key(older)
 
 
 # ---- merge_entity_windows -----------------------------------------------
