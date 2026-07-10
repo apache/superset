@@ -69,7 +69,7 @@ def test_restore_dashboard_forbidden_raises(app_context: None) -> None:
         ),
         patch("superset.commands.restore.security_manager") as mock_sec,
     ):
-        mock_sec.raise_for_ownership = raise_security
+        mock_sec.raise_for_editorship = raise_security
 
         cmd = RestoreDashboardCommand("1")
         with pytest.raises(DashboardForbiddenError):
@@ -101,7 +101,7 @@ def test_restore_dashboard_slug_conflict_raises(app_context: None) -> None:
             RestoreDashboardCommand, "_has_active_slug_twin", return_value=True
         ) as mock_twin_check,
     ):
-        mock_sec.raise_for_ownership.return_value = None
+        mock_sec.raise_for_editorship.return_value = None
 
         cmd = RestoreDashboardCommand("1")
         with pytest.raises(DashboardSlugConflictError):
@@ -130,7 +130,7 @@ def test_restore_dashboard_no_slug_conflict_when_no_active_collision(
             RestoreDashboardCommand, "_has_active_slug_twin", return_value=False
         ),
     ):
-        mock_sec.raise_for_ownership.return_value = None
+        mock_sec.raise_for_editorship.return_value = None
 
         cmd = RestoreDashboardCommand("1")
         cmd.run()
@@ -158,7 +158,7 @@ def test_restore_dashboard_skips_conflict_check_when_no_slug(
             RestoreDashboardCommand, "_has_active_slug_twin", return_value=True
         ) as mock_twin_check,
     ):
-        mock_sec.raise_for_ownership.return_value = None
+        mock_sec.raise_for_editorship.return_value = None
 
         cmd = RestoreDashboardCommand("1")
         cmd.run()
@@ -191,7 +191,7 @@ def test_restore_dashboard_runs_conflict_check_for_empty_string_slug(
             RestoreDashboardCommand, "_has_active_slug_twin", return_value=True
         ) as mock_twin_check,
     ):
-        mock_sec.raise_for_ownership.return_value = None
+        mock_sec.raise_for_editorship.return_value = None
 
         cmd = RestoreDashboardCommand("1")
         with pytest.raises(DashboardSlugConflictError):

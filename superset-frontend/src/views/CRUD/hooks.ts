@@ -265,7 +265,10 @@ interface SingleViewResourceState<D extends object = any> {
   error: any | null;
 }
 
-export function useSingleViewResource<D extends object = any>(
+export function useSingleViewResource<
+  D extends object = any,
+  P extends object = D,
+>(
   resourceName: string,
   resourceLabel: string, // resourceLabel for translations
   handleErrorMsg: (errorMsg: string) => void,
@@ -327,7 +330,7 @@ export function useSingleViewResource<D extends object = any>(
   );
 
   const createResource = useCallback(
-    (resource: D, hideToast = false) => {
+    (resource: P, hideToast = false) => {
       // Set loading state
       updateState({
         loading: true,
@@ -371,7 +374,7 @@ export function useSingleViewResource<D extends object = any>(
   );
 
   const updateResource = useCallback(
-    (resourceID: number, resource: D, hideToast = false, setLoading = true) => {
+    (resourceID: number, resource: P, hideToast = false, setLoading = true) => {
       // Set loading state
       if (setLoading) {
         updateState({

@@ -59,9 +59,9 @@ export const useExploreMetadataBar = (
       modifiedBy: metadata.changed_by || t('Not available'),
     });
     items.push({
-      type: MetadataType.Owner as const,
+      type: MetadataType.Editor as const,
       createdBy: metadata.created_by || t('Not available'),
-      owners: metadata.owners.length > 0 ? metadata.owners : t('None'),
+      editors: metadata.editors.length > 0 ? metadata.editors : t('None'),
       createdOn: metadata.created_on_humanized,
     });
     if (slice?.description) {

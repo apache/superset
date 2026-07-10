@@ -17,7 +17,9 @@
  * under the License.
  */
 
-import { merge as _merge } from 'lodash';
+import { readFileSync } from 'fs';
+import { merge as _merge } from 'lodash-es';
+import { resolve } from 'path';
 
 export interface RedisConfig {
   port: number;
@@ -103,8 +105,9 @@ function defaultConfig(): ConfigType {
 function configFromFile(): Partial<ConfigType> {
   const isTest = process.env.NODE_ENV === 'test';
   const configFile = isTest ? '../config.test.json' : '../config.json';
+  const configFilePath = resolve(import.meta.dirname, configFile);
   try {
-    return require(configFile);
+    return JSON.parse(readFileSync(configFilePath, 'utf8')) as ConfigType;
   } catch {
     console.warn('config.json file not found');
     return {};

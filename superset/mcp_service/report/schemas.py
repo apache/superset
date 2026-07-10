@@ -37,12 +37,19 @@ from pydantic import (
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import (
     CreatedByMeMixin,
+    EditedByMeMixin,
     MetadataCacheControl,
-    OwnedByMeMixin,
 )
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from superset.mcp_service.privacy import filter_user_directory_fields
-from superset.mcp_service.system.schemas import PaginationInfo
+from superset.mcp_service.privacy import (
+    filter_user_directory_fields,
+    strip_user_directory_fields_from_schema,
+)
+from superset.mcp_service.system.schemas import (
+    PaginationInfo,
+    serialize_subject_object,
+    SubjectInfo,
+)
 from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.mcp_service.utils.response_utils import humanize_timestamp
 from superset.mcp_service.utils.schema_utils import (
@@ -105,8 +112,8 @@ class ReportInfo(BaseModel):
     creation_method: str | None = Field(
         None, description="How the report/alert was created"
     )
-    owners: List[Dict[str, Any]] | None = Field(
-        None, description="List of owners (always empty; excluded by privacy policy)"
+    editors: List[SubjectInfo] = Field(
+        default_factory=list, description="Report/Alert editors"
     )
     changed_on: str | datetime | None = Field(
         None, description="Last modification timestamp"
@@ -122,6 +129,7 @@ class ReportInfo(BaseModel):
         from_attributes=True,
         ser_json_timedelta="iso8601",
         populate_by_name=True,
+        json_schema_extra=strip_user_directory_fields_from_schema,
     )
 
     @model_serializer(mode="wrap")
@@ -176,7 +184,7 @@ class ReportList(BaseModel):
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-class ListReportsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
+class ListReportsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
     """Request schema for list_reports."""
 
     filters: Annotated[
@@ -305,7 +313,14 @@ def serialize_report_object(report: Any) -> ReportInfo | None:
         ),
         last_state=getattr(report, "last_state", None),
         creation_method=getattr(report, "creation_method", None),
-        owners=None,
+        editors=[
+            editor
+            for editor in (
+                serialize_subject_object(subject)
+                for subject in getattr(report, "editors", [])
+            )
+            if editor is not None
+        ],
         changed_on=getattr(report, "changed_on", None),
         changed_on_humanized=humanize_timestamp(getattr(report, "changed_on", None)),
         created_on=getattr(report, "created_on", None),

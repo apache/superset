@@ -60,7 +60,7 @@ const datasetWith = (exploreUrl: string): DatasetObject[] => [
     db: {
       id: 1,
       database_name: 'test_database',
-      owners: [1],
+      editors: [1],
       backend: 'test_backend',
     },
     schema: 'test_schema',

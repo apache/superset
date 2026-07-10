@@ -33,6 +33,7 @@ from superset.commands.database.exceptions import (
     DatabaseUploadFileTooLarge,
     DatabaseUploadNotSupported,
     DatabaseUploadSaveMetadataFailed,
+    DatabaseUploadSoftDeletedDatasetExistsError,
 )
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.database import DatabaseDAO
@@ -167,8 +168,6 @@ class UploadCommand(BaseCommand):
             )
         )
 
-        self._reader.read(self._file, self._model, self._table_name, self._schema)
-
         sqla_table = (
             db.session.query(SqlaTable)
             .filter_by(
@@ -179,11 +178,46 @@ class UploadCommand(BaseCommand):
             .one_or_none()
         )
         if not sqla_table:
+            from superset.subjects.utils import get_user_subject
+
+            user = get_user()
+            editors = []
+            if user:
+                subj = get_user_subject(user.id)
+                if subj:
+                    editors.append(subj)
+
+            # The lookup above runs through the soft-delete visibility filter,
+            # so a soft-deleted dataset over this table is invisible here.
+            # Without this guard the upload would create an active twin of the
+            # hidden row — permanently blocking its restore — or die on the
+            # legacy unique constraint. Check BEFORE ``reader.read`` writes
+            # the file's contents into the analytics database: that write is
+            # outside this command's metadata transaction and would not roll
+            # back. With SOFT_DELETE off, leftover soft-deleted rows are
+            # visible to the lookup above, so this branch is never reached
+            # for them (degraded-mode semantics, consistent with the create
+            # paths).
+            # Deferred import: daos.dataset pulls in views.base, which
+            # circularly imports back into the commands package at app init
+            # (same constraint documented in daos/dataset.py re: PR #40573).
+            from superset.daos.dataset import (  # noqa: PLC0415
+                DatasetDAO,
+            )
+
+            if soft_twin := DatasetDAO.find_soft_deleted_logical_duplicate(
+                self._model, Table(self._table_name, self._schema)
+            ):
+                raise DatabaseUploadSoftDeletedDatasetExistsError(str(soft_twin.uuid))
+
+        self._reader.read(self._file, self._model, self._table_name, self._schema)
+
+        if not sqla_table:
             sqla_table = SqlaTable(
                 table_name=self._table_name,
                 database=self._model,
                 database_id=self._model_id,
-                owners=[get_user()],
+                editors=editors,
                 schema=self._schema,
             )
             db.session.add(sqla_table)
