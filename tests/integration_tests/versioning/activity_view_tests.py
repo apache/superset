@@ -146,23 +146,26 @@ class TestDashboardActivityView(SupersetTestCase):
         Gamma (readable), and an admin-owned one Gamma may not read.
         """
         from superset import security_manager
+        from superset.subjects.utils import get_user_subject
         from superset.versioning.activity.visibility import (
             filter_records_by_visibility,
         )
 
         admin = security_manager.find_user(ADMIN_USERNAME)
         gamma = security_manager.find_user(GAMMA_USERNAME)
+        # Access control is subject-based (``editors``) since the Subject
+        # work replaced ``owners``; grant read via each user's Subject.
         visible = Dashboard(
             dashboard_title=f"vis-probe-owned {uuid4().hex[:8]}",
             slug=f"vis-owned-{uuid4().hex[:8]}",
             published=False,
-            owners=[gamma],
+            editors=[get_user_subject(gamma.id)],
         )
         hidden = Dashboard(
             dashboard_title=f"vis-probe-hidden {uuid4().hex[:8]}",
             slug=f"vis-hidden-{uuid4().hex[:8]}",
             published=False,
-            owners=[admin],
+            editors=[get_user_subject(admin.id)],
         )
         db.session.add_all([visible, hidden])
         db.session.commit()
