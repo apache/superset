@@ -304,8 +304,14 @@ function processGroupByCustomizations(
     return {};
   }
 
+  // ``form_data.datasource`` is encoded as ``<id>__<type>`` (e.g.
+  // ``7__table``, ``7__semantic_view``). Datasets and semantic views have
+  // independent ID spaces, so we have to compare both the numeric ID and the
+  // datasource type to avoid matching a semantic-view customization to a
+  // table chart that happens to share its numeric ID.
   const chartDatasetParts = String(chartDataset).split('__');
   const chartDatasetId = chartDatasetParts[0];
+  const chartDatasourceType = chartDatasetParts[1];
 
   const matchingCustomizations = chartCustomizationItems.filter(item => {
     if (item.removed) return false;
@@ -314,11 +320,20 @@ function processGroupByCustomizations(
     if (!targetDataset) return false;
 
     const targetDatasetId = String(targetDataset);
+    const targetDatasourceType = item.targets?.[0]?.datasourceType;
     const datasetMatches = chartDatasetId === targetDatasetId;
+    // ``datasourceType`` is optional on targets persisted before semantic
+    // views shipped, so a missing value on either side is treated as a
+    // wildcard match — this preserves behavior for pre-existing
+    // customizations while still disambiguating new ones.
+    const datasourceTypeMatches =
+      !targetDatasourceType ||
+      !chartDatasourceType ||
+      targetDatasourceType === chartDatasourceType;
     const chartMatches =
       item.chartsInScope == null || item.chartsInScope.includes(chart.id);
 
-    return datasetMatches && chartMatches;
+    return datasetMatches && datasourceTypeMatches && chartMatches;
   });
 
   const chartType = chart.form_data?.viz_type;

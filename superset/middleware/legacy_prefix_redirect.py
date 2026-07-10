@@ -46,14 +46,18 @@ Disposition rules
 * POST against a GET-only canonical → 410 Gone (308 would 405 on retry).
 * Anything not in :data:`LEGACY_REDIRECT_MAP` → pass through unchanged.
 
-``/superset/sql/<database_id>/`` is intentionally **not** redirected:
-``Database.sql_url`` changed shape to ``/sqllab/?dbid=<id>`` (query
-string, not a path) so no 1:1 mapping exists. ``UPDATING.md`` documents
-the hard re-bookmark break.
+``/superset/sql/<database_id>/`` has no 1:1 path mapping — ``Database.sql_url``
+changed shape to ``/sqllab/?dbid=<id>`` (query string, not a path). It is
+therefore handled by a dedicated special case (:data:`_LEGACY_SQL_RE`) rather
+than the closed-set map: a numeric ``<database_id>`` 308-redirects to
+``/sqllab/?dbid=<id>`` (merging any inbound query string with ``&``); a
+non-numeric tail falls through to the closed-set map (→ 404), preserving
+closed-set discipline.
 """
 
 from __future__ import annotations
 
+import re
 import sys
 from typing import Iterable, Optional
 from urllib.parse import quote
@@ -71,6 +75,14 @@ else:
 #: The legacy URL token the shim recognises. Hard-coded — not configurable.
 _LEGACY_PREFIX: str = "/superset"
 
+#: Special case for the legacy SQL Lab deep link. Matches the ``/superset``-
+#: stripped tail ``/sql/<database_id>/`` where ``<database_id>`` is numeric
+#: (the historical ``@expose("/sql/<int:database_id>/")`` GET route). Redirected
+#: to the migrated query-string shape ``/sqllab/?dbid=<id>`` rather than via the
+#: closed-set map, since it is a path→query-string transform, not a 1:1 path map.
+#: A non-numeric tail does not match and falls through to the map (→ 404).
+_LEGACY_SQL_RE: re.Pattern[str] = re.compile(r"^/sql/(\d+)/?$")
+
 #: Closed table mapping legacy canonical paths (the part *after*
 #: ``_LEGACY_PREFIX``) to ``(allowed_methods, canonical_path)``.
 #:
@@ -82,7 +94,7 @@ _LEGACY_PREFIX: str = "/superset"
 #: ``@expose`` decorator at HEAD ``1bc20f2206``; any change to a canonical
 #: endpoint's allowed methods MUST update the corresponding row (and the
 #: closed-set regression test in
-#: ``tests/integration_tests/middleware/test_legacy_prefix_redirect.py``).
+#: ``tests/unit_tests/middleware/test_legacy_prefix_redirect.py``).
 LEGACY_REDIRECT_MAP: dict[str, tuple[frozenset[str], str]] = {
     # views/core.py — Superset (route_base = "")
     "/welcome/": (frozenset({"GET"}), "/welcome/"),
@@ -98,6 +110,10 @@ LEGACY_REDIRECT_MAP: dict[str, tuple[frozenset[str], str]] = {
     "/file-handler": (frozenset({"GET"}), "/file-handler"),
     "/log/": (frozenset({"POST"}), "/log/"),
     "/sqllab/history/": (frozenset({"GET"}), "/sqllab/history/"),
+    # NOTE: the /explore_json[/data] canonicals below (Superset.explore_json /
+    # explore_json_data) are themselves @deprecated. When those endpoints are
+    # deleted these rows become redirects-to-404 — prune them (and their
+    # closed-set snapshot entries) in the same PR that removes the endpoints.
     "/explore_json/": (frozenset({"GET", "POST"}), "/explore_json/"),
     "/explore_json/data/": (frozenset({"GET"}), "/explore_json/data/"),
     # views/explore.py — ExploreView (route_base = "/explore") owns the
@@ -211,6 +227,22 @@ class LegacyPrefixRedirectMiddleware:
             return self.wsgi_app(environ, start_response)
 
         canonical_after_strip = candidate[len(_LEGACY_PREFIX) :] or "/"
+
+        # Special case: /superset/sql/<database_id>/ has no 1:1 path mapping —
+        # Database.sql_url migrated to the query-string shape /sqllab/?dbid=<id>.
+        # Redirect it explicitly (numeric id only) so legacy SQL Lab deep links
+        # survive one release cycle instead of hard-404ing.
+        if sql_match := _LEGACY_SQL_RE.match(canonical_after_strip):
+            if method != "GET":
+                # The old /superset/sql/<id>/ route was GET-only; a 308 would
+                # have the client retry-POST against /sqllab/ → 405. Emit 410.
+                return _response_with_location(410, None)(environ, start_response)
+            location = f"{self.app_root_prefix}/sqllab/?dbid={sql_match.group(1)}"
+            if query_string := environ.get("QUERY_STRING", ""):
+                # location already carries ?dbid=<id>; merge with & not ?.
+                location = f"{location}&{query_string}"
+            return _response_with_location(308, location)(environ, start_response)
+
         match = _match(canonical_after_strip)
         if match is None:
             # Unenumerated /superset path — closed-set discipline: pass
