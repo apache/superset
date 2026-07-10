@@ -2151,3 +2151,57 @@ def test_raise_for_access_evaluates_access_before_validate():
             processor.raise_for_access()
 
     query.validate.assert_not_called()
+
+
+def test_grouping_sets_fallback_handles_adhoc_and_physical_columns() -> None:
+    """
+    The fallback used on engines without native GROUPING SETS support must
+    build ``label_to_column`` from the same labels used to run each level's
+    subquery, for both physical (string) and adhoc (dict) columns, and in the
+    original column order. Otherwise an adhoc column ahead of a physical one
+    in ``query_object.columns`` misaligns the mapping, and adhoc groupby
+    columns referenced in ``grouping_sets`` are silently dropped.
+    """
+    import copy
+    from datetime import timedelta
+
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import QueryResult
+    from superset.superset_typing import AdhocColumn
+
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "DATE_TRUNC('month', dttm)",
+        "label": "month",
+    }
+    mock_datasource = MagicMock()
+
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=[adhoc_col, "state"],
+        grouping_sets=[["month", "state"], ["month"], []],
+    )
+
+    processor = QueryContextProcessor(MagicMock())
+    processor._qc_datasource = mock_datasource
+
+    captured_columns: list[list[Any]] = []
+
+    def fake_get_query_result(sub_query: QueryObject) -> QueryResult:
+        captured_columns.append(copy.copy(sub_query.columns))
+        return QueryResult(
+            df=pd.DataFrame({"metric": [1]}),
+            query="SELECT 1",
+            duration=timedelta(seconds=0),
+        )
+
+    mock_datasource.get_query_result.side_effect = fake_get_query_result
+
+    processor._grouping_sets_fallback(query_obj)
+
+    # Level ["month", "state"] must include both the adhoc and physical column,
+    # each mapped to its own definition (not swapped).
+    assert captured_columns[0] == [adhoc_col, "state"]
+    # Level ["month"] must still include the adhoc column, not drop it.
+    assert captured_columns[1] == [adhoc_col]
+    # Grand total level has no groupby columns.
+    assert captured_columns[2] == []

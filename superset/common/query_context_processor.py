@@ -49,6 +49,7 @@ from superset.utils.core import (
     DTTM_ALIAS,
     error_msg_from_exception,
     GenericDataType,
+    get_column_name,
     get_column_names_from_columns,
     get_column_names_from_metrics,
     is_adhoc_column,
@@ -276,8 +277,12 @@ class QueryContextProcessor:
         the same per-column markers the native path emits.
         """
         levels = query_object.grouping_sets
-        all_labels = get_column_names_from_columns(query_object.columns)
-        label_to_column = dict(zip(all_labels, query_object.columns, strict=False))
+        # Use the same label derivation as the native path (physical column name
+        # or adhoc column label) so both column kinds are represented and each
+        # label maps back to its own column, in the same order as the source
+        # list.
+        all_labels = [get_column_name(col) for col in query_object.columns]
+        label_to_column = dict(zip(all_labels, query_object.columns, strict=True))
 
         frames: list[pd.DataFrame] = []
         result: QueryResult | None = None
