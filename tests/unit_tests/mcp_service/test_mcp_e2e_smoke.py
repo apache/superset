@@ -166,7 +166,7 @@ async def _real_asgi_client() -> AsyncIterator[Client]:
     finally:
         # Restore the shared FastMCP singleton's middleware list so this
         # file cannot leak state into other mcp_service tests.
-        mcp.middleware = original_middleware
+        mcp.middleware[:] = original_middleware
 
 
 @pytest.mark.asyncio
