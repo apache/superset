@@ -21,6 +21,7 @@ Run through the async MCP Client; auth is mocked via the autouse mock_auth
 fixture, matching the other dashboard tool test files.
 """
 
+from collections.abc import Iterator
 from unittest.mock import Mock, patch
 
 import pytest
@@ -42,7 +43,7 @@ def mcp_server() -> object:
 
 
 @pytest.fixture(autouse=True)
-def mock_auth():
+def mock_auth() -> Iterator[Mock]:
     """Authenticate every tool call as a mock admin user."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
         mock_user = Mock()
