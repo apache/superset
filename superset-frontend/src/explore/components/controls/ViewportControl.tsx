@@ -78,7 +78,7 @@ export default function ViewportControl({
         value={value?.[ctrl]}
         onChange={(ctrlValue: number) => handleChange(ctrl, ctrlValue)}
         isFloat
-        label={ctrl}
+        ariaLabel={ctrl}
       />
     </div>
   );
