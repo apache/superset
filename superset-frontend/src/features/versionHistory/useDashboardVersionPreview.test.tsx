@@ -307,6 +307,33 @@ test('closing the preview restores the dataMask captured before previewing', asy
   expect(types.filter(type => type === CLEAR_DATA_MASK_STATE)).toHaveLength(2);
 });
 
+test('closing a pending preview prevents historical hydration', async () => {
+  let resolveSnapshot: (value: DashboardVersionSnapshot) => void = () => {};
+  mockedFetchSnapshot.mockReturnValue(
+    new Promise(resolve => {
+      resolveSnapshot = resolve;
+    }),
+  );
+  const store = makePreviewStore();
+  renderPreviewHook(store);
+
+  act(() => {
+    store.setState({
+      versionHistory: versionHistoryState({ preview: previewOf('v1') }),
+    });
+  });
+  await waitFor(() => expect(mockedFetchSnapshot).toHaveBeenCalledTimes(1));
+
+  act(() => {
+    store.setState({ versionHistory: versionHistoryState() });
+  });
+  await act(async () => {
+    resolveSnapshot(snapshot);
+  });
+
+  expect(mockedHydrateDashboard).not.toHaveBeenCalled();
+});
+
 test('switching previewed versions keeps the original live dataMask for exit', async () => {
   const store = makePreviewStore();
   renderPreviewHook(store);

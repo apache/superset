@@ -303,7 +303,7 @@ export function describeRecord(record: ActivityRecord): string {
 
 /**
  * Headline for a save container, identical across entity types (sc-107283
- * guide, 2026-06-12). The transaction `action_kind` drives an action-specific
+ * model. The transaction `action_kind` drives an action-specific
  * headline; otherwise the save's date/time heads the group and the descriptive
  * per-change rows render beneath it. `entityType` is retained for the shared
  * signature but no longer changes the headline.

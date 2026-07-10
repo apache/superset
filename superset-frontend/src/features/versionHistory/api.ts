@@ -48,7 +48,7 @@ export interface FetchActivityOptions {
   /**
    * Case-insensitive free-text search over the full history (not just the
    * loaded pages) — the server filters before paginating, so `count`
-   * reflects matches. Debounced upstream (sc-107283 guide, 2026-06-12).
+   * reflects matches. Debounced upstream.
    */
   q?: string;
   /** ISO-8601 lower bound on `issued_at` (inclusive). */

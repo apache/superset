@@ -57,7 +57,7 @@ export interface ActivityRecord {
    * save (the first update after its retroactive baseline). Such saves can
    * carry dozens of params-normalization records that aren't meaningful user
    * edits, so the container is collapsed. Always false for hard-deleted
-   * entities. (sc-107283 guide, 2026-06-12.) Optional for resilience against
+   * entities. Optional for resilience against
    * older backend responses that predate the field.
    */
   first_tracked_save?: boolean;

@@ -37,9 +37,13 @@ const Actions = styled.div`
 
 export interface PreviewBannerProps {
   entityType: VersionedEntityType;
+  canRestore?: boolean;
 }
 
-export default function PreviewBanner({ entityType }: PreviewBannerProps) {
+export default function PreviewBanner({
+  entityType,
+  canRestore = true,
+}: PreviewBannerProps) {
   const dispatch = useDispatch();
   const { entityType: activeEntityType, preview } =
     useSelector(selectVersionHistory);
@@ -83,13 +87,15 @@ export default function PreviewBanner({ entityType }: PreviewBannerProps) {
         message={message}
         action={
           <Actions>
-            <Button
-              buttonSize="small"
-              buttonStyle="primary"
-              onClick={() => requestRestore(target)}
-            >
-              {t('Restore this version')}
-            </Button>
+            {canRestore && (
+              <Button
+                buttonSize="small"
+                buttonStyle="primary"
+                onClick={() => requestRestore(target)}
+              >
+                {t('Restore this version')}
+              </Button>
+            )}
             <Button
               buttonSize="small"
               buttonStyle="secondary"

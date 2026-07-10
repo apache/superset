@@ -55,9 +55,12 @@ const versionHistoryState = (
 const renderBanner = (
   entityType: 'chart' | 'dashboard' = 'chart',
   state: VersionHistoryState = versionHistoryState(),
+  canRestore = true,
 ) => {
   const store = createStore({ versionHistory: state }, reducerIndex);
-  render(<PreviewBanner entityType={entityType} />, { store });
+  render(<PreviewBanner entityType={entityType} canRestore={canRestore} />, {
+    store,
+  });
   return store;
 };
 
@@ -77,6 +80,17 @@ test('shows the preview date once when the headline is the save date', () => {
   expect(
     screen.getByRole('button', { name: 'Restore this version' }),
   ).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Open as new chart' }),
+  ).toBeInTheDocument();
+});
+
+test('hides restore when the user cannot edit the entity', () => {
+  renderBanner('chart', versionHistoryState(), false);
+
+  expect(
+    screen.queryByRole('button', { name: 'Restore this version' }),
+  ).not.toBeInTheDocument();
   expect(
     screen.getByRole('button', { name: 'Open as new chart' }),
   ).toBeInTheDocument();

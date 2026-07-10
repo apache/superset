@@ -73,6 +73,9 @@ function buildPreviewFormData(
 
 export default function ChartVersionPreview() {
   const preview = useSelector(selectVersionPreview);
+  const canRestore = useSelector<ExplorePageState, boolean>(
+    state => state.explore?.can_overwrite ?? false,
+  );
   const datasource = useSelector<ExplorePageState, Dataset | undefined>(
     state => state.explore?.datasource as unknown as Dataset | undefined,
   );
@@ -114,8 +117,7 @@ export default function ChartVersionPreview() {
       // chart (e.g. the chart was switched to another dataset since);
       // fetch the metadata the preview should label itself with.
       const live = liveDatasourceRef.current as
-        | (Dataset & { id?: number; type?: string })
-        | undefined;
+        (Dataset & { id?: number; type?: string }) | undefined;
       let datasourceMeta: Dataset | undefined = live;
       if (
         !live ||
@@ -184,7 +186,7 @@ export default function ChartVersionPreview() {
 
   return (
     <Container data-test="chart-version-preview">
-      <PreviewBanner entityType="chart" />
+      <PreviewBanner entityType="chart" canRestore={canRestore} />
       {isLoading && <Loading />}
       {!isLoading && error && (
         <Alert type="error" closable={false} message={error} />

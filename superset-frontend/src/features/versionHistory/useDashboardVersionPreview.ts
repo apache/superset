@@ -254,10 +254,16 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
           dispatch(clearVersionPreview());
         }
       });
-    } else if (!versionUuid && appliedVersionRef.current) {
-      // Preview closed; put the live dashboard back along with the filter
-      // selections the user had before previewing.
+    } else if (!versionUuid) {
+      // Preview closed (including while its request is still pending).
+      // Invalidate the request unconditionally so historical data cannot be
+      // applied after the preview banner and interaction gates disappear.
       fetchIdRef.current += 1;
+      if (!appliedVersionRef.current) {
+        return;
+      }
+      // Put the live dashboard back along with the filter selections the
+      // user had before previewing.
       appliedVersionRef.current = null;
       const liveData = liveDataRef.current;
       if (liveData) {

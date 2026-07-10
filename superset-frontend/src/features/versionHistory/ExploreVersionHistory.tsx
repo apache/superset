@@ -75,6 +75,9 @@ export default function ExploreVersionHistory() {
   const slice = useSelector<ExplorePageState, Slice | undefined>(
     state => state.explore?.slice ?? undefined,
   );
+  const canRestore = useSelector<ExplorePageState, boolean>(
+    state => state.explore?.can_overwrite ?? false,
+  );
   const isPanelOpen = useSelector(selectIsVersionHistoryPanelOpen);
   const include = useSelector(selectVersionHistoryInclude);
   const preview = useSelector(selectVersionPreview);
@@ -128,7 +131,7 @@ export default function ExploreVersionHistory() {
   }, [uuid, isPanelOpen, sliceId, addDangerToast]);
 
   // Server-side search over the full history; debounce so each keystroke
-  // doesn't refetch (sc-107283 guide, 2026-06-12).
+  // doesn't refetch.
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebounceValue(searchTerm);
   const activity = useVersionActivity(
@@ -271,6 +274,7 @@ export default function ExploreVersionHistory() {
       <PanelHost>
         <VersionHistoryPanel
           entityType="chart"
+          canRestore={canRestore}
           activity={activity}
           include={include}
           onIncludeChange={handleIncludeChange}
