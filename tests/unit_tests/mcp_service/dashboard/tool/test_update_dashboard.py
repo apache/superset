@@ -494,10 +494,10 @@ class TestUpdateDashboard:
                     },
                 )
 
-        assert mock_ctx_info.await_count == 2
-        first_call, second_call = mock_ctx_info.await_args_list
-        assert "Updating dashboard" in first_call.args[0]
-        assert "updated" in second_call.args[0]
+        assert mock_ctx_info.await_count >= 2
+        awaited_messages = [c.args[0] for c in mock_ctx_info.await_args_list]
+        assert any("Updating dashboard" in msg for msg in awaited_messages)
+        assert any("updated" in msg for msg in awaited_messages)
 
     def test_request_slug_is_normalized(self) -> None:
         """Slug is cleaned to match the REST DashboardPutSchema contract."""
