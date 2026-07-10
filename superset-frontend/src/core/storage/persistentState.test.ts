@@ -188,16 +188,6 @@ test('remove calls correct URL', async () => {
   });
 });
 
-test('throws when key exceeds 255 characters', async () => {
-  const store = createPersistentState('myorg.myext');
-  const longKey = 'a'.repeat(256);
-  await expect(store.get(longKey)).rejects.toThrow('255 characters or less');
-  await expect(store.set(longKey, 'value')).rejects.toThrow(
-    '255 characters or less',
-  );
-  await expect(store.remove(longKey)).rejects.toThrow('255 characters or less');
-});
-
 test('keys are URL-encoded', async () => {
   const store = createPersistentState('myorg.myext');
   await store.get('key/with/slashes');

@@ -94,7 +94,7 @@ export interface ExtensionContext {
  * await ctx.storage.ephemeral.set('tempData', data, { ttl: 3600 });
  *
  * // Access shared (cross-user) storage
- * await ctx.storage.ephemeral.shared.set('globalCounter', count);
+ * await ctx.storage.ephemeral.shared.set('globalCounter', count, { ttl: 3600 });
  * ```
  */
 export declare function getContext(): ExtensionContext;

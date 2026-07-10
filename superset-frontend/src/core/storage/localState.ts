@@ -52,7 +52,11 @@ export function createBrowserStorage(
     async set<T = JsonValue>(key: string, value: T): Promise<void> {
       const userId = getCurrentUserId();
       const storageKey = buildKey(extensionId, 'user', userId, key);
-      storage.setItem(storageKey, JSON.stringify(value));
+      const serialized = JSON.stringify(value);
+      if (serialized === undefined) {
+        throw new Error('Storage value must be JSON-serializable.');
+      }
+      storage.setItem(storageKey, serialized);
     },
     async remove(key: string): Promise<void> {
       const userId = getCurrentUserId();

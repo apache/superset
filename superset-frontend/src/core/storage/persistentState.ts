@@ -34,15 +34,9 @@ import { resolveSetPayload } from './binaryCodec';
 export function createPersistentState(
   extensionId: string,
 ): PersistentStorageTier {
-  const MAX_KEY_LENGTH = 255;
   const [publisher, name] = extensionId.split('.');
 
   const buildUrl = (key: string, shared?: boolean): string => {
-    if (key.length > MAX_KEY_LENGTH) {
-      throw new Error(
-        `Persistent storage key must be ${MAX_KEY_LENGTH} characters or less.`,
-      );
-    }
     const encodedPublisher = encodeURIComponent(publisher);
     const encodedName = encodeURIComponent(name);
     const encodedKey = encodeURIComponent(key);

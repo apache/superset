@@ -19,6 +19,7 @@
 import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import ExtensionsLoader, { LoadedExtension } from './ExtensionsLoader';
+import type { Namespaces } from './Namespaces';
 
 const mockApplicationRoot = jest.fn<string, []>(() => '');
 
@@ -50,20 +51,22 @@ function createMockExtension(
 // Simulate what real webpack does when __webpack_init_sharing__ runs: it
 // registers the host's own eagerly-provided @apache-superset/core versions
 // into the share scope.
-function mockWebpackSharing(coreVersions: Record<string, unknown> = {}) {
-  (globalThis as any).__webpack_init_sharing__ = jest
-    .fn()
-    .mockImplementation(() => {
-      (globalThis as any).__webpack_share_scopes__.default[
-        '@apache-superset/core'
-      ] = coreVersions;
-    });
-  (globalThis as any).__webpack_share_scopes__ = { default: {} };
+function mockWebpackSharing(
+  coreVersions: Record<string, WebpackSharedScopeModule> = {},
+) {
+  globalThis.__webpack_share_scopes__ = { default: {} };
+  globalThis.__webpack_init_sharing__ = jest.fn().mockImplementation(() => {
+    globalThis.__webpack_share_scopes__.default['@apache-superset/core'] =
+      coreVersions;
+    return Promise.resolve();
+  });
 }
 
 function cleanupWebpackSharing() {
-  delete (globalThis as any).__webpack_init_sharing__;
-  delete (globalThis as any).__webpack_share_scopes__;
+  delete (globalThis as { __webpack_init_sharing__?: unknown })
+    .__webpack_init_sharing__;
+  delete (globalThis as { __webpack_share_scopes__?: unknown })
+    .__webpack_share_scopes__;
 }
 
 // Intercept script element creation so onload fires synchronously in jsdom.
@@ -79,12 +82,13 @@ function mockRemoteEntryLoad() {
 }
 
 beforeEach(() => {
-  (ExtensionsLoader as any).instance = undefined;
+  (ExtensionsLoader as unknown as { instance?: ExtensionsLoader }).instance =
+    undefined;
   mockApplicationRoot.mockReturnValue('');
   // Reset window.superset to a base object before each test, including a
   // shared singleton (commands) to verify identity is preserved across
   // per-extension scoped copies.
-  (window as any).superset = {
+  window.superset = {
     commands: { registerCommand: jest.fn() },
     extensions: {
       getContext: () => {
@@ -93,7 +97,7 @@ beforeEach(() => {
       getExtension: () => undefined,
       getAllExtensions: () => [],
     },
-  };
+  } as unknown as Namespaces;
 });
 
 /**
@@ -254,13 +258,15 @@ test('each extension gets an isolated getContext via module federation custom sc
   const loader = ExtensionsLoader.getInstance();
 
   // Capture the scoped @apache-superset/core instance each container receives
-  const capturedCoreModules: Array<any> = [];
+  const capturedCoreModules: Array<typeof import('@apache-superset/core')> = [];
 
   const makeContainer = () => ({
-    init: jest.fn().mockImplementation(async (scope: any) => {
+    init: jest.fn().mockImplementation(async (scope: WebpackSharedScope) => {
       // Simulate what a real container does: resolve the module from the scope
       const moduleFactory = await scope['@apache-superset/core']['0.1.0'].get();
-      capturedCoreModules.push(moduleFactory());
+      capturedCoreModules.push(
+        moduleFactory() as typeof import('@apache-superset/core'),
+      );
     }),
     get: jest.fn().mockResolvedValue(() => {}),
   });

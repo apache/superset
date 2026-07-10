@@ -41,6 +41,7 @@ from superset.extensions.storage.ephemeral_dao import (
 )
 from superset.extensions.storage.persistent_dao import (
     ExtensionStorageDAO,
+    ExtensionStorageKeyTooLong,
     ExtensionStorageListPayloadTooLarge,
     ExtensionStorageQuotaExceeded,
     ExtensionStorageValueTooLarge,
@@ -587,7 +588,11 @@ class ExtensionStorageRestApi(BaseApi):
                 user_fk=user_fk,
                 encrypt=encrypt,
             )
-        except (ExtensionStorageQuotaExceeded, ExtensionStorageValueTooLarge) as ex:
+        except (
+            ExtensionStorageKeyTooLong,
+            ExtensionStorageQuotaExceeded,
+            ExtensionStorageValueTooLarge,
+        ) as ex:
             return self.response(ex.status, message=ex.message)
 
         return self.response(200, message="Value stored successfully")

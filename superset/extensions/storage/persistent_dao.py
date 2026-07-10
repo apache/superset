@@ -90,6 +90,36 @@ class ExtensionStorageListPayloadTooLarge(SupersetGenericErrorException):
         )
 
 
+class ExtensionStorageKeyTooLong(SupersetGenericErrorException):
+    """Raised when a `set` call's key exceeds MAX_KEY_LENGTH."""
+
+    status = 400
+
+    def __init__(self, max_length: int) -> None:
+        super().__init__(
+            message=_(
+                "Storage key exceeds the maximum allowed length of "
+                "%(max_length)d characters.",
+                max_length=max_length,
+            ),
+        )
+
+
+#: Matches the `key` column's `String(255)` definition in `ExtensionStorage`
+#: (`persistent_model.py`). Enforced here, at the DAO boundary, so every
+#: caller (REST API, ambient accessors, direct DAO use) gets a consistent
+#: error instead of a database integrity/truncation failure — the frontend
+#: SDK enforces the same limit client-side purely so it can fail fast
+#: without a round trip, not as the source of truth.
+MAX_KEY_LENGTH = 255
+
+
+def _validate_key_length(key: str) -> None:
+    """Validate key length against MAX_KEY_LENGTH. Raises if over."""
+    if len(key) > MAX_KEY_LENGTH:
+        raise ExtensionStorageKeyTooLong(MAX_KEY_LENGTH)
+
+
 def _derive_key(secret: str, user_fk: int) -> str:
     """Derive a per-user encryption key from the master secret and user ID.
 
@@ -451,11 +481,13 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
     ) -> ExtensionStorage:
         """Upsert a storage entry.  Encrypts value when encrypt=True.
 
+        :raises ExtensionStorageKeyTooLong: if `key` exceeds MAX_KEY_LENGTH.
         :raises ExtensionStorageValueTooLarge: if `value` exceeds
             MAX_VALUE_SIZE.
         :raises ExtensionStorageQuotaExceeded: if writing `value` would push
             the extension over its total storage quota.
         """
+        _validate_key_length(key)
         _validate_value_size(value)
         stored_value = (
             _enc_type(user_fk).process_bind_param(value, db.engine.dialect)

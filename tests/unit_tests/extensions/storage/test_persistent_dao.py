@@ -32,9 +32,11 @@ from superset.extensions.storage.persistent_dao import (
     _derive_key,
     _enc_type,
     ExtensionStorageDAO,
+    ExtensionStorageKeyTooLong,
     ExtensionStorageListPayloadTooLarge,
     ExtensionStorageQuotaExceeded,
     ExtensionStorageValueTooLarge,
+    MAX_KEY_LENGTH,
 )
 from superset.extensions.storage.persistent_model import ExtensionStorage
 
@@ -348,6 +350,55 @@ def test_dao_set_encrypts_value_when_requested(
 
 
 # ── value size ────────────────────────────────────────────────────────────────
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_set_allows_key_at_max_length(mock_db: MagicMock, app: Flask) -> None:
+    """set() accepts a key exactly at MAX_KEY_LENGTH."""
+    Babel(app)
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
+
+    with app.app_context():
+        ExtensionStorageDAO.set("my-ext", "k" * MAX_KEY_LENGTH, b"value", user_fk=1)
+
+    mock_db.session.add.assert_called_once()
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_set_rejects_key_exceeding_max_length(
+    mock_db: MagicMock, app: Flask
+) -> None:
+    """set() raises ExtensionStorageKeyTooLong and does not write when the
+    key exceeds MAX_KEY_LENGTH."""
+    Babel(app)
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
+
+    with app.app_context():
+        with pytest.raises(ExtensionStorageKeyTooLong):
+            ExtensionStorageDAO.set(
+                "my-ext", "k" * (MAX_KEY_LENGTH + 1), b"value", user_fk=1
+            )
+
+    mock_db.session.add.assert_not_called()
+    mock_db.session.flush.assert_not_called()
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_set_checks_key_length_before_value_size(
+    mock_db: MagicMock, app: Flask
+) -> None:
+    """set() rejects an over-length key before running the value-size query,
+    since the key check happens first."""
+    Babel(app)
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
+
+    with app.app_context():
+        with pytest.raises(ExtensionStorageKeyTooLong):
+            ExtensionStorageDAO.set(
+                "my-ext", "k" * (MAX_KEY_LENGTH + 1), b"value", user_fk=1
+            )
+
+    mock_db.session.query.return_value.filter.return_value.first.assert_not_called()
 
 
 @patch("superset.extensions.storage.persistent_dao.db")

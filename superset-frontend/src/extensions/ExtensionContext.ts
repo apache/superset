@@ -44,9 +44,22 @@ class ExtensionContext implements ExtensionContextType {
   get storage(): ExtensionContextType['storage'] {
     if (!this._storage) {
       const { id } = this.extension;
+      // `local`/`session` are defined as lazy accessors, not eagerly
+      // constructed values: they read the global `localStorage`/
+      // `sessionStorage` bindings, which can throw in environments where
+      // Web Storage is unavailable or blocked (e.g. some sandboxed
+      // iframes). Deferring that access to per-tier property access means
+      // a blocked browser storage API only breaks `ctx.storage.local`/
+      // `.session` for extensions that actually use them, rather than
+      // preventing access to the server-backed `ephemeral`/`persistent`
+      // tiers as well.
       this._storage = {
-        local: createBrowserStorage(localStorage, id),
-        session: createBrowserStorage(sessionStorage, id),
+        get local() {
+          return createBrowserStorage(localStorage, id);
+        },
+        get session() {
+          return createBrowserStorage(sessionStorage, id);
+        },
         ephemeral: createEphemeralState(id),
         persistent: createPersistentState(id),
       };
