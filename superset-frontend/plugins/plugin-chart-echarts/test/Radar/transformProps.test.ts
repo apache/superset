@@ -128,6 +128,22 @@ describe('Radar transformProps', () => {
       },
     ]);
   });
+
+  test('passes the onDrillDown hook through to the transformed props', () => {
+    const onDrillDown = jest.fn();
+    const drillChartProps = new ChartProps({
+      formData,
+      width: 800,
+      height: 600,
+      queriesData,
+      theme: supersetTheme,
+      hooks: { onDrillDown },
+    });
+
+    const result = transformProps(drillChartProps as EchartsRadarChartProps);
+
+    expect(result.onDrillDown).toBe(onDrillDown);
+  });
 });
 
 describe('legend sorting', () => {

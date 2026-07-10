@@ -45,6 +45,19 @@ export type OnDrillDownHook = (
   label: string,
 ) => void;
 
+/**
+ * Build the `IN`-op cross-filter clauses the dashboard data-mask expects from
+ * a set of drill-down filter clauses. Shared by the drill (onDrillDown) and
+ * the breadcrumb navigation (handleResetTo) paths so their cross-filter shape
+ * can never diverge.
+ */
+const toCrossFilterClauses = (filters: BinaryQueryObjectFilterClause[]) =>
+  filters.map(f => ({
+    col: f.col,
+    op: 'IN' as const,
+    val: [f.val] as (string | number | boolean)[],
+  }));
+
 interface DrillDownHostProps extends ChartRendererProps {
   /** The wrapped renderer component */
   ChartRendererComponent: ComponentType<
@@ -114,11 +127,7 @@ export function DrillDownHost({
       ) {
         rendererProps.actions.updateDataMask(rendererProps.chartId, {
           extraFormData: {
-            filters: pathFilters.map(f => ({
-              col: f.col,
-              op: 'IN' as const,
-              val: [f.val] as (string | number | boolean)[],
-            })),
+            filters: toCrossFilterClauses(pathFilters),
           },
           filterState: {
             value: pathLabels,
@@ -180,12 +189,8 @@ export function DrillDownHost({
       } else {
         // Going to an intermediate level — rebuild accumulated filters
         // from all levels up to the target depth (mirroring effectiveFormData)
-        const accumulatedFilters = drillStack.slice(0, depth).flatMap(level =>
-          level.filters.map(f => ({
-            col: f.col,
-            op: 'IN' as const,
-            val: [f.val] as (string | number | boolean)[],
-          })),
+        const accumulatedFilters = toCrossFilterClauses(
+          drillStack.slice(0, depth).flatMap(level => level.filters),
         );
         const labels = drillStack.slice(0, depth).map(l => l.label);
         rendererProps.actions.updateDataMask(rendererProps.chartId, {
