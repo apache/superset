@@ -18,6 +18,8 @@
 
 import copy
 from collections.abc import Generator
+from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 from flask_appbuilder.security.sqla.models import Role, User
@@ -25,11 +27,17 @@ from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
 from superset import security_manager
+from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
 from superset.commands.dashboard.importers.v1.utils import import_dashboard
 from superset.commands.exceptions import ImportFailedError
 from superset.models.dashboard import Dashboard
 from superset.utils.core import override_user
-from tests.integration_tests.fixtures.importexport import dashboard_config
+from tests.integration_tests.fixtures.importexport import (
+    chart_config,
+    dashboard_config,
+    database_config,
+    dataset_config,
+)
 
 
 @pytest.fixture
@@ -245,3 +253,88 @@ def test_import_existing_dashboard_with_permission(
     # Assert that the can write to dashboard was checked
     mock_can_access.assert_called_once_with("can_write", "Dashboard")
     mock_can_access_dashboard.assert_called_once_with(dashboard)
+
+
+MODULE = "superset.commands.dashboard.importers.v1"
+
+
+def _mock_import_command(mocker: MockerFixture) -> dict[str, MagicMock]:
+    """
+    Patch the helpers used by ``ImportDashboardsCommand._import`` so we can call it
+    without touching a real database, and expose the mocks used to assert behaviour.
+    """
+    database = MagicMock(uuid=database_config["uuid"], id=1)
+    dataset = MagicMock(
+        uuid=dataset_config["uuid"],
+        id=2,
+        datasource_type="table",
+        table_name="imported_dataset",
+    )
+    # a chart that is not a filter_box so it isn't deleted at the end of the import
+    chart = MagicMock(uuid=chart_config["uuid"], id=3, viz_type="echarts_timeseries")
+    dashboard = MagicMock(id=4)
+
+    mock_import_database = mocker.patch(
+        f"{MODULE}.import_database", return_value=database
+    )
+    mock_import_dataset = mocker.patch(f"{MODULE}.import_dataset", return_value=dataset)
+    mock_import_chart = mocker.patch(f"{MODULE}.import_chart", return_value=chart)
+    mocker.patch(f"{MODULE}.import_dashboard", return_value=dashboard)
+
+    # keep the config dicts untouched so the discovery logic keeps working
+    mocker.patch(
+        f"{MODULE}.update_chart_config_dataset", side_effect=lambda config, _: config
+    )
+    mocker.patch(f"{MODULE}.update_id_refs", side_effect=lambda config, *_: config)
+    mocker.patch(f"{MODULE}.migrate_dashboard")
+
+    # avoid any real DB access
+    mock_db = mocker.patch(f"{MODULE}.db")
+    mock_db.session.execute.return_value.fetchall.return_value = []
+
+    return {
+        "import_database": mock_import_database,
+        "import_dataset": mock_import_dataset,
+        "import_chart": mock_import_chart,
+    }
+
+
+def _import_configs() -> dict[str, dict[str, Any]]:
+    return {
+        "databases/imported_database.yaml": copy.deepcopy(database_config),
+        "datasets/imported_dataset.yaml": copy.deepcopy(dataset_config),
+        "charts/imported_chart.yaml": copy.deepcopy(chart_config),
+        "dashboards/imported_dashboard.yaml": copy.deepcopy(dashboard_config),
+    }
+
+
+@pytest.mark.parametrize("overwrite", [True, False])
+def test_import_propagates_overwrite_to_related_objects(
+    mocker: MockerFixture,
+    overwrite: bool,
+) -> None:
+    """
+    The ``overwrite`` flag passed to the dashboard import command must be
+    propagated to the related databases, datasets and charts so they can be
+    overwritten as well.
+    """
+    mocks = _mock_import_command(mocker)
+
+    ImportDashboardsCommand._import(_import_configs(), overwrite=overwrite)
+
+    assert mocks["import_database"].call_args.kwargs["overwrite"] is overwrite
+    assert mocks["import_dataset"].call_args.kwargs["overwrite"] is overwrite
+    assert mocks["import_chart"].call_args.kwargs["overwrite"] is overwrite
+
+
+def test_import_defaults_to_no_overwrite(mocker: MockerFixture) -> None:
+    """
+    When no ``overwrite`` flag is provided, related objects must not be overwritten.
+    """
+    mocks = _mock_import_command(mocker)
+
+    ImportDashboardsCommand._import(_import_configs())
+
+    assert mocks["import_database"].call_args.kwargs["overwrite"] is False
+    assert mocks["import_dataset"].call_args.kwargs["overwrite"] is False
+    assert mocks["import_chart"].call_args.kwargs["overwrite"] is False
