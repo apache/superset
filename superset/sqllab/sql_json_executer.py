@@ -109,9 +109,9 @@ class SynchronousSqlJsonExecutor(SqlJsonExecutorBase):
             if data["errors"]:  # type: ignore
                 errors = [SupersetError(**params) for params in data["errors"]]  # type: ignore
                 status = (
-                    400
-                    if all(error.level == ErrorLevel.WARNING for error in errors)
-                    else 500
+                    500
+                    if any(error.level == ErrorLevel.ERROR for error in errors)
+                    else 400
                 )
                 raise SupersetErrorsException(errors, status=status)
             # old string-only error message

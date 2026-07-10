@@ -59,7 +59,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 INSUFFICIENT_PERMISSIONS_REGEX: Pattern[str] = re.compile(
-    r"\[INSUFFICIENT_PERMISSIONS\]|SQLSTATE: 42501"
+    r"\[INSUFFICIENT_PERMISSIONS\]|\bSQLSTATE:\s*42501\b"
 )
 
 
@@ -268,6 +268,25 @@ class DatabricksBaseEngineSpec(BaseEngineSpec):
     @classmethod
     def epoch_to_dttm(cls) -> str:
         return HiveEngineSpec.epoch_to_dttm()
+
+    @classmethod
+    def extract_errors(
+        cls,
+        ex: Exception,
+        context: dict[str, Any] | None = None,
+        database_name: str | None = None,
+    ) -> list[SupersetError]:
+        raw_message = cls._extract_error_message(ex)
+        if INSUFFICIENT_PERMISSIONS_REGEX.search(raw_message):
+            return [
+                SupersetError(
+                    error_type=SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
+                    message=raw_message,
+                    level=ErrorLevel.WARNING,
+                    extra={"engine_name": cls.engine_name},
+                )
+            ]
+        return super().extract_errors(ex, context, database_name)
 
 
 class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
@@ -496,56 +515,15 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         context: dict[str, Any] | None = None,
         database_name: str | None = None,
     ) -> list[SupersetError]:
-        raw_message = cls._extract_error_message(ex)
-
         context = context or {}
 
         # access_token isn't currently parseable from the
         # databricks error response, but adding it in here
         # for reference if their error message changes
-
         for key, value in cls.context_key_mapping.items():
             context[key] = context.get(value)
 
-        if INSUFFICIENT_PERMISSIONS_REGEX.search(raw_message):
-            return [
-                SupersetError(
-                    error_type=SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
-                    message=raw_message,
-                    level=ErrorLevel.WARNING,
-                    extra={"engine_name": cls.engine_name},
-                )
-            ]
-
-        db_engine_custom_errors = cls.get_database_custom_errors(database_name)
-        if not isinstance(db_engine_custom_errors, dict):
-            db_engine_custom_errors = {}
-
-        for regex, (message, error_type, extra) in [
-            *db_engine_custom_errors.items(),
-            *cls.custom_errors.items(),
-        ]:
-            match = regex.search(raw_message)
-            if match:
-                params = {**context, **match.groupdict()}
-                extra["engine_name"] = cls.engine_name
-                return [
-                    SupersetError(
-                        error_type=error_type,
-                        message=message % params,
-                        level=ErrorLevel.ERROR,
-                        extra=extra,
-                    )
-                ]
-
-        return [
-            SupersetError(
-                error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                message=cls._extract_error_message(ex),
-                level=ErrorLevel.ERROR,
-                extra={"engine_name": cls.engine_name},
-            )
-        ]
+        return super().extract_errors(ex, context, database_name)
 
     @classmethod
     def validate_parameters(  # type: ignore

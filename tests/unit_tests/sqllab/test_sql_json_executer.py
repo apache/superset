@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -23,7 +24,7 @@ from superset.sqllab.sql_json_executer import SynchronousSqlJsonExecutor
 from superset.utils.core import QueryStatus
 
 
-def _make_executor(data: dict) -> SynchronousSqlJsonExecutor:
+def _make_executor(data: dict[str, Any]) -> SynchronousSqlJsonExecutor:
     query_dao = MagicMock()
     get_sql_results_task = MagicMock(return_value=data)
     return SynchronousSqlJsonExecutor(
@@ -66,10 +67,63 @@ def test_execute_raises_400_when_all_errors_are_warnings() -> None:
     assert excinfo.value.status == 400
 
 
+def test_execute_raises_400_when_errors_are_warning_and_info() -> None:
+    """
+    A mix of WARNING and INFO errors (no ERROR-level entries) should still
+    surface as a 4xx, since nothing in the list indicates a server fault.
+    """
+    data = {
+        "status": QueryStatus.FAILED,
+        "errors": [
+            {
+                "message": "Insufficient privileges on Catalog 'foo'.",
+                "error_type": "CONNECTION_DATABASE_PERMISSIONS_ERROR",
+                "level": "warning",
+                "extra": {},
+            },
+            {
+                "message": "For your information.",
+                "error_type": "GENERIC_DB_ENGINE_ERROR",
+                "level": "info",
+                "extra": {},
+            },
+        ],
+    }
+    executor = _make_executor(data)
+
+    with pytest.raises(SupersetErrorsException) as excinfo:
+        executor.execute(_make_execution_context(), "SELECT 1", None)
+
+    assert excinfo.value.status == 400
+
+
 def test_execute_raises_500_when_any_error_is_error_level() -> None:
     """
-    Existing behavior is preserved: any ERROR-level (or mixed) rich error
-    still surfaces as a 500.
+    Existing behavior is preserved: a single ERROR-level rich error still
+    surfaces as a 500.
+    """
+    data = {
+        "status": QueryStatus.FAILED,
+        "errors": [
+            {
+                "message": "Something went wrong.",
+                "error_type": "GENERIC_DB_ENGINE_ERROR",
+                "level": "error",
+                "extra": {},
+            },
+        ],
+    }
+    executor = _make_executor(data)
+
+    with pytest.raises(SupersetErrorsException) as excinfo:
+        executor.execute(_make_execution_context(), "SELECT 1", None)
+
+    assert excinfo.value.status == 500
+
+
+def test_execute_raises_500_when_errors_are_mixed_warning_and_error() -> None:
+    """
+    A mix of WARNING and ERROR still surfaces as a 500: any ERROR wins.
     """
     data = {
         "status": QueryStatus.FAILED,
