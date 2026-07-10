@@ -69,6 +69,32 @@ test('allEventHandlers returns drill-down click handler when onDrillDown is pres
   );
 });
 
+test('drill-down click handler skips leading metric tokens in labelMap entries', () => {
+  const onDrillDown = jest.fn();
+  // Multi-metric charts (e.g. timeseries) produce labelMap entries that are
+  // prefixed with metric/series tokens ahead of the groupby values.
+  const props: TransformedProps = {
+    ...baseTransformedProps,
+    groupby: ['country'],
+    labelMap: {
+      'SUM(sales), USA': ['SUM(sales)', 'USA'],
+    },
+    onDrillDown,
+  };
+
+  const handlers = allEventHandlers(props);
+  handlers.click({ name: 'SUM(sales), USA' });
+
+  // The groupby column must bind to the trailing groupby value ('USA'),
+  // not the leading metric token ('SUM(sales)').
+  expect(onDrillDown).toHaveBeenCalledWith(
+    expect.arrayContaining([
+      expect.objectContaining({ col: 'country', op: '==', val: 'USA' }),
+    ]),
+    expect.any(String),
+  );
+});
+
 test('drill-down click handler reports the click via onDrillDown only', () => {
   const onDrillDown = jest.fn();
   const setDataMask = jest.fn();

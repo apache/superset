@@ -179,11 +179,17 @@ export const allEventHandlers = (
           if (!values) return;
           const drillFilters: BinaryQueryObjectFilterClause[] = [];
           groupby.forEach((dimension, i) => {
+            // labelMap entries may be prefixed with non-groupby tokens
+            // (metric/series names) for multi-metric charts, so skip them the
+            // same way the cross-filter path (getCrossFilterDataMask) does
+            // before mapping each groupby column to its value.
+            const metricsCount = values.length - groupby.length;
+            const val = values[metricsCount + i];
             drillFilters.push({
               col: dimension,
               op: '==',
-              val: values[i],
-              formattedVal: formatSeriesName(values[i], {
+              val,
+              formattedVal: formatSeriesName(val, {
                 timeFormatter: getTimeFormatter(formData.dateFormat),
                 numberFormatter: getNumberFormatter(formData.numberFormat),
                 coltype: coltypeMapping?.[getColumnLabel(dimension)],
