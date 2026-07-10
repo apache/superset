@@ -167,8 +167,7 @@ export class StandardizedFormData {
     controlsState: Record<string, unknown>,
   ): void {
     const control = controlsState?.time_compare as
-      | { value?: unknown; choices?: unknown }
-      | undefined;
+      { value?: unknown; choices?: unknown } | undefined;
     if (!control || !Array.isArray(control.value)) {
       return;
     }

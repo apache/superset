@@ -42,6 +42,7 @@ from flask_appbuilder.security.sqla.models import User
 from flask_babel import get_locale, gettext as __
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_wtf.form import FlaskForm
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Query
 from wtforms.fields.core import Field, UnboundField
 
@@ -65,6 +66,7 @@ from superset.themes.types import Theme, ThemeMode
 from superset.themes.utils import (
     is_valid_theme,
 )
+from superset.translations.utils import get_language_pack
 from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
 from superset.utils.version import get_version_metadata, visible_version_metadata
@@ -77,6 +79,7 @@ FRONTEND_CONF_KEYS = (
     "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT",
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT",
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE",
+    "SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS",
     "ENABLE_JAVASCRIPT_CONTROLS",
     "DEFAULT_SQLLAB_LIMIT",
     "DEFAULT_VIZ_TYPE",
@@ -125,6 +128,7 @@ FRONTEND_CONF_KEYS = (
     "MAPBOX_API_KEY",
     "DEFAULT_MAP_RENDERER",
     "CSV_STREAMING_ROW_THRESHOLD",
+    "EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE",
     "SCARF_ANALYTICS",
 )
 
@@ -173,20 +177,25 @@ def deprecated(
     """
 
     def _deprecated(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
+        _warned = False
+
         def wraps(self: BaseSupersetView, *args: Any, **kwargs: Any) -> FlaskResponse:
-            message = (
-                "%s.%s "
-                "This API endpoint is deprecated and will be removed in version %s"
-            )
-            logger_args = [
-                self.__class__.__name__,
-                f.__name__,
-                eol_version,
-            ]
-            if new_target:
-                message += " . Use the following API endpoint instead: %s"
-                logger_args.append(new_target)
-            logger.warning(message, *logger_args)
+            nonlocal _warned
+            if not _warned:
+                _warned = True
+                message = (
+                    "%s.%s "
+                    "This API endpoint is deprecated and will be removed in version %s"
+                )
+                logger_args = [
+                    self.__class__.__name__,
+                    f.__name__,
+                    eol_version,
+                ]
+                if new_target:
+                    message += " . Use the following API endpoint instead: %s"
+                    logger_args.append(new_target)
+                logger.warning(message, *logger_args)
             return f(self, *args, **kwargs)
 
         return functools.update_wrapper(wraps, f)
@@ -300,6 +309,7 @@ def menu_data(user: User) -> dict[str, Any]:
             "alt": appbuilder.app_name,
             "tooltip": app.config["LOGO_TOOLTIP"],
             "text": brand_text,
+            "hide_logo": app.config.get("HIDE_NAVBAR_LOGO", False),
         },
         "environment_tag": get_environment_tag(),
         "navbar_right": {
@@ -423,6 +433,7 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
         "theme": {
             "default": default_theme,
             "dark": dark_theme,
+            "defaultMode": app.config["THEME_DEFAULT_MODE"],
             "enableUiThemeAdministration": enable_ui_admin,
         }
     }
@@ -449,6 +460,33 @@ def get_default_spinner_svg() -> str | None:
             return f.read().strip()
     except (OSError, UnicodeDecodeError) as e:
         logger.warning("Could not load default spinner SVG: %s", e)
+        return None
+
+
+def _get_user_subjects(user_id: int | None) -> list[int]:
+    """Return subject IDs for the current user, or empty list."""
+    if user_id is None:
+        return []
+    try:
+        from superset.subjects.utils import get_user_subject_ids
+
+        return get_user_subject_ids(user_id)
+    except Exception:
+        logger.warning("Could not load current user subject IDs", exc_info=True)
+        return []
+
+
+def _get_user_subject_id(user_id: int | None) -> int | None:
+    """Return the USER-type subject ID for the current user."""
+    if user_id is None:
+        return None
+    try:
+        from superset.subjects.utils import get_user_subject
+
+        subject = get_user_subject(user_id)
+        return subject.id if subject else None
+    except Exception:
+        logger.warning("Could not load current user subject ID", exc_info=True)
         return None
 
 
@@ -557,6 +595,8 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         ],
         "menu_data": menu_data(g.user),
         "pdf_compression_level": app.config["PDF_COMPRESSION_LEVEL"],
+        "user_subject_id": _get_user_subject_id(user_id),
+        "user_subjects": _get_user_subjects(user_id),
     }
 
     bootstrap_data.update(app.config["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
@@ -569,7 +609,24 @@ def common_bootstrap_payload() -> dict[str, Any]:
     locale = get_locale()
     # Convert locale to string for proper cache key hashing
     locale_str = str(locale) if locale else None
-    return cached_common_bootstrap_data(utils.get_user_id(), locale_str)
+    payload = dict(cached_common_bootstrap_data(utils.get_user_id(), locale_str))
+    # Inject the Jed language pack outside the per-user memoize so the cached
+    # payload stays small and the pack is shared across users for the same
+    # locale. The frontend uses it to configure the translator synchronously,
+    # before any code-split chunk evaluates a module-level `const X = t('...')`
+    # (upstream issue #35330).
+    language = payload.get("locale")
+    if language and language != "en":
+        # Respect a pack already provided via COMMON_BOOTSTRAP_OVERRIDES_FUNC
+        # (the workaround in #35330 does exactly that), otherwise load the
+        # shared one. `get_language_pack` returns the empty English pack on a
+        # miss, which is the right result (English) when no translation file
+        # exists.
+        pack = payload.get("language_pack") or get_language_pack(language)
+    else:
+        pack = None
+    payload["language_pack"] = pack
+    return payload
 
 
 def get_spa_payload(extra_data: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -744,7 +801,29 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             models.Database,
             models.Database.id == self.model.database_id,
         )
-        return query.filter(get_dataset_access_filters(self.model))
+        access_filter = get_dataset_access_filters(self.model)
+        # Editors keep sight of their own soft-deleted rows regardless of
+        # datasource grants: ``raise_for_access`` counts editorship as
+        # datasource access, and the restore audience is editors/admins.
+        # The leg is inert for live rows (``deleted_at IS NULL`` fails it)
+        # and only ever matters when a deleted-state rison filter has opted
+        # the request in to seeing soft-deleted rows — without that session
+        # bypass, no soft-deleted row reaches this query at all.
+        deleted_at = getattr(self.model, "deleted_at", None)
+        editors = getattr(self.model, "editors", None)
+        user_id = utils.get_user_id()
+        if deleted_at is not None and editors is not None and user_id:
+            from superset.subjects.models import Subject  # noqa: PLC0415
+            from superset.subjects.utils import (  # noqa: PLC0415
+                get_user_subject_ids_subquery,
+            )
+
+            editable_trash = and_(
+                deleted_at.is_not(None),
+                editors.any(Subject.id.in_(get_user_subject_ids_subquery(user_id))),
+            )
+            return query.filter(or_(access_filter, editable_trash))
+        return query.filter(access_filter)
 
 
 class CsvResponse(Response):

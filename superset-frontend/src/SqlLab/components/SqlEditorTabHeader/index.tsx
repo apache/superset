@@ -179,7 +179,7 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
                       <Icons.CloseOutlined
                         iconSize="l"
                         css={css`
-                          verticalalign: middle;
+                          vertical-align: middle;
                         `}
                       />
                     </IconContainer>
@@ -196,7 +196,7 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
                     <IconContainer>
                       <Icons.EditOutlined
                         css={css`
-                          verticalalign: middle;
+                          vertical-align: middle;
                         `}
                         iconSize="l"
                       />
@@ -245,7 +245,7 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
           />
         }
       />
-      <TabTitle>{qe.name}</TabTitle>{' '}
+      <TabTitle data-test="sql-editor-tab-title">{qe.name}</TabTitle>{' '}
       <StatusIcon
         className="status-icon"
         iconSize="m"

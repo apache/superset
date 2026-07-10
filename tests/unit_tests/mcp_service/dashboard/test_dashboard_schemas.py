@@ -55,10 +55,9 @@ def _mock_dashboard(
     id: int = 1,
     title: str = "Test Dashboard",
     slug: str | None = None,
-    owners: list[Any] | None = None,
+    editors: list[Any] | None = None,
     slices: list[Any] | None = None,
     tags: list[Any] | None = None,
-    roles: list[Any] | None = None,
 ) -> MagicMock:
     """Create a mock Dashboard ORM object."""
     dashboard = MagicMock()
@@ -81,10 +80,9 @@ def _mock_dashboard(
     dashboard.is_managed_externally = False
     dashboard.external_url = None
     dashboard.uuid = None
-    dashboard.owners = owners or []
+    dashboard.editors = editors or []
     dashboard.slices = slices or []
     dashboard.tags = tags or []
-    dashboard.roles = roles or []
     return dashboard
 
 
@@ -130,7 +128,7 @@ class TestSerializeDashboardObject:
         dashboard = _mock_dashboard(id=42, slug=None)
         result = serialize_dashboard_object(dashboard)
 
-        assert result.url == "http://localhost:8088/superset/dashboard/42/"
+        assert result.url == "http://localhost:8088/dashboard/42/"
 
     @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
     def test_url_uses_slug_when_available(self, mock_base_url) -> None:
@@ -140,7 +138,7 @@ class TestSerializeDashboardObject:
         dashboard = _mock_dashboard(id=42, slug="my-dashboard")
         result = serialize_dashboard_object(dashboard)
 
-        assert result.url == "http://localhost:8088/superset/dashboard/my-dashboard/"
+        assert result.url == "http://localhost:8088/dashboard/my-dashboard/"
 
     @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
     def test_no_json_metadata_or_position_json_in_response(self, mock_base_url) -> None:
@@ -263,7 +261,7 @@ class TestSerializeDashboardObject:
         # Verify no heavy fields
         assert not hasattr(result.charts[0], "form_data")
         assert not hasattr(result.charts[0], "tags")
-        assert not hasattr(result.charts[0], "owners")
+        assert not hasattr(result.charts[0], "editors")
 
     @patch("superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata")
     @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
@@ -322,7 +320,7 @@ class TestSerializeDashboardObject:
             "cross_filters_enabled": True,
         }
         dashboard = _mock_dashboard(id=1, slices=[chart])
-        dashboard.url = "/superset/dashboard/1/"
+        dashboard.url = "/dashboard/1/"
         dashboard.json_metadata = json_dumps(metadata)
 
         result = dashboard_serializer(dashboard)
@@ -381,7 +379,7 @@ class TestSerializeDashboardObject:
         assert result.certified_by == _wrapped("Analytics Team")
         assert result.certification_details == _wrapped("Certified by analytics")
         assert result.slug == "safe-slug"
-        assert result.url == "http://localhost:8088/superset/dashboard/safe-slug/"
+        assert result.url == "http://localhost:8088/dashboard/safe-slug/"
         assert result.uuid == "dashboard-uuid-7"
         assert result.native_filters[0].id == "NATIVE_FILTER-abc123"
         assert result.native_filters[0].name == _wrapped("Region Filter")

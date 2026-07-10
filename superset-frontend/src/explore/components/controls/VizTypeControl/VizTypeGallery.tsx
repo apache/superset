@@ -778,7 +778,11 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           suffix={
             <InputIconAlignment>
               {searchInputValue && (
-                <Icons.CloseOutlined iconSize="m" onClick={stopSearching} />
+                <Icons.CloseOutlined
+                  iconSize="m"
+                  onClick={stopSearching}
+                  aria-label={t('Clear search')}
+                />
               )}
             </InputIconAlignment>
           }

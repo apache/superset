@@ -45,10 +45,11 @@ export const StyledContainer = styled.div<{ headerPosition: string }>`
 export const StyledSelect = styled(Select, {
   shouldForwardProp: prop => prop !== 'headerPosition' && prop !== 'oneLine',
 })<{ headerPosition?: string; oneLine?: boolean }>`
-  ${({ theme, headerPosition, oneLine }) => `
+  ${({ theme, headerPosition, oneLine }) => {
+    const useSubtleOptionHover = theme.selectOptionActiveOutline === false;
+    return `
     .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
-      outline: 2px solid ${theme.colorPrimary};
-      outline-offset: -2px;
+      ${useSubtleOptionHover ? 'outline: none;' : `outline: 2px solid ${theme.colorPrimary}; outline-offset: -2px;`}
     }
     flex: ${headerPosition === 'left' ? 1 : 0};
     line-height: ${theme.sizeXL}px;
@@ -82,7 +83,8 @@ export const StyledSelect = styled(Select, {
         }
       `
     };
- `}
+  `;
+  }}
 `;
 
 export const NoElement = styled.span`

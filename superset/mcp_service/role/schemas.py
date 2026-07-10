@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from typing import Annotated, Any, List, Literal
 
@@ -31,6 +32,7 @@ from pydantic import (
     model_validator,
     PositiveInt,
 )
+from sqlalchemy.orm.exc import DetachedInstanceError
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
@@ -46,6 +48,8 @@ DEFAULT_ROLE_COLUMNS = ["id", "name"]
 ROLE_ALL_COLUMNS = ["id", "name"]
 
 ROLE_SORTABLE_COLUMNS = ["id", "name"]
+
+logger = logging.getLogger(__name__)
 
 
 class RoleFilter(ColumnOperator):
@@ -232,6 +236,19 @@ class GetRoleInfoRequest(BaseModel):
     ]
 
 
+def _serialize_permission_name(permission: Any) -> str | None:
+    """Return direct permission names or FAB permission/view pairs."""
+    if (name := getattr(permission, "name", None)) is not None:
+        return str(name)
+
+    permission_name = getattr(getattr(permission, "permission", None), "name", None)
+    view_menu_name = getattr(getattr(permission, "view_menu", None), "name", None)
+    if permission_name and view_menu_name:
+        return f"{permission_name} on {view_menu_name}"
+
+    return None
+
+
 def serialize_role_object(
     role: Any, include_permissions: bool = False
 ) -> RoleInfo | None:
@@ -244,12 +261,38 @@ def serialize_role_object(
         return None
     permissions: list[str] | None = None
     if include_permissions:
-        raw_perms = getattr(role, "permissions", None)
-        if raw_perms is not None:
+        try:
+            raw_permissions = getattr(role, "permissions", None)
+        except DetachedInstanceError:
+            logger.debug(
+                "Role permissions relationship is detached: role_id=%s",
+                getattr(role, "id", None),
+                exc_info=True,
+            )
+            raw_permissions = None
+
+        if raw_permissions is not None:
+            permissions = []
             try:
-                permissions = [p.name for p in raw_perms if hasattr(p, "name")]
-            except (AttributeError, TypeError):
-                permissions = None
+                for permission in raw_permissions:
+                    try:
+                        permission_name = _serialize_permission_name(permission)
+                    except (DetachedInstanceError, TypeError):
+                        logger.debug(
+                            "Skipping unserializable role permission: role_id=%s",
+                            getattr(role, "id", None),
+                            exc_info=True,
+                        )
+                        continue
+
+                    if permission_name is not None:
+                        permissions.append(permission_name)
+            except (DetachedInstanceError, TypeError):
+                logger.debug(
+                    "Could not iterate role permissions: role_id=%s",
+                    getattr(role, "id", None),
+                    exc_info=True,
+                )
     return RoleInfo(
         id=getattr(role, "id", None),
         name=sanitize_for_llm_context(

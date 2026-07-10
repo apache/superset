@@ -39,14 +39,19 @@ from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
 from superset.mcp_service.common.cache_schemas import (
     CacheStatus,
     CreatedByMeMixin,
+    EditedByMeMixin,
     MetadataCacheControl,
-    OwnedByMeMixin,
     QueryCacheControl,
 )
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from superset.mcp_service.privacy import filter_user_directory_fields
+from superset.mcp_service.privacy import (
+    filter_user_directory_fields,
+    strip_user_directory_fields_from_schema,
+)
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
+    serialize_subject_object,
+    SubjectInfo,
     TagInfo,
 )
 from superset.mcp_service.utils import (
@@ -69,6 +74,7 @@ class DatasetFilter(ColumnOperator):
         "table_name",
         "schema",
         "database_name",
+        "editor",
         "created_by_fk",
         "changed_by_fk",
     ] = Field(
@@ -154,6 +160,9 @@ class DatasetInfo(BaseModel):
         None, description="Humanized creation time"
     )
     tags: List[TagInfo] = Field(default_factory=list, description="Dataset tags")
+    editors: List[SubjectInfo] = Field(
+        default_factory=list, description="Dataset editors"
+    )
     is_virtual: bool | None = Field(
         None, description="Whether the dataset is virtual (uses SQL)"
     )
@@ -185,6 +194,7 @@ class DatasetInfo(BaseModel):
         from_attributes=True,
         ser_json_timedelta="iso8601",
         populate_by_name=True,  # Allow both 'schema' (alias) and 'schema_name' (field)
+        json_schema_extra=strip_user_directory_fields_from_schema,
     )
 
     @model_serializer(mode="wrap")
@@ -249,7 +259,7 @@ class DatasetList(BaseModel):
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-class ListDatasetsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
+class ListDatasetsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
     """Request schema for list_datasets with clear, unambiguous types."""
 
     filters: Annotated[
@@ -369,10 +379,17 @@ class GetDatasetInfoRequest(MetadataCacheControl):
         Field(
             default_factory=lambda: list(DEFAULT_GET_DATASET_INFO_COLUMNS),
             description=(
-                "Top-level fields to include in the response. Defaults to a lean "
-                "set that excludes verbose fields like params, template_params, "
-                "extra, tags, certification_details. Pass an explicit list to "
-                "override (e.g. ['id','table_name','columns'] for minimal output)."
+                "Top-level fields to include in the response. "
+                "Default set: 'id', 'table_name', 'schema', 'database_name', "
+                "'database_id', 'uuid', 'is_virtual', 'description', "
+                "'main_dttm_col', 'sql', 'url', 'columns', 'metrics'. "
+                "Additional available fields: 'certified_by', "
+                "'certification_details', 'changed_on', 'changed_on_humanized', "
+                "'created_on', 'created_on_humanized', 'tags', 'schema_perm', "
+                "'offset', 'cache_timeout', 'params', 'template_params', "
+                "'extra', 'is_favorite'. "
+                "Pass an explicit list to select only what you need "
+                "(e.g. ['id', 'table_name', 'columns', 'metrics'])."
             ),
         ),
     ]
@@ -437,7 +454,7 @@ class CreateDatasetCalculatedColumn(BaseModel):
 class CreateDatasetRequest(BaseModel):
     """Request schema for create_dataset to register a physical table as a dataset."""
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
     database_id: Annotated[
         int,
@@ -473,11 +490,11 @@ class CreateDatasetRequest(BaseModel):
             description="Name of the physical table to register as a dataset",
         ),
     ]
-    owners: Annotated[
+    editors: Annotated[
         List[int] | None,
         Field(
             default=None,
-            description="Optional list of owner user IDs. "
+            description="Optional list of editor user IDs. "
             "Defaults to the calling user.",
         ),
     ]
@@ -886,6 +903,13 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
                 for tag in getattr(dataset, "tags", [])
             ]
             if getattr(dataset, "tags", None)
+            else [],
+            editors=[
+                info
+                for editor in getattr(dataset, "editors", [])
+                if (info := serialize_subject_object(editor)) is not None
+            ]
+            if getattr(dataset, "editors", None)
             else [],
             is_virtual=getattr(dataset, "is_virtual", None),
             database_id=getattr(dataset, "database_id", None),

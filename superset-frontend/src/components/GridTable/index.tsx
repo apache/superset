@@ -46,6 +46,7 @@ export function GridTable<RecordType extends object>({
   enableActions,
   size = GridSize.Middle,
   striped,
+  themeOverrides,
 }: TableProps<RecordType>) {
   const theme = useTheme();
   const isExternalFilterPresent = useCallback(
@@ -138,18 +139,20 @@ export function GridTable<RecordType extends object>({
     [columnReorderable, enableActions, sortable],
   );
 
-  const rowHeight = theme.sizeUnit * (size === GridSize.Middle ? 9 : 7);
+  const defaultRowHeight = theme.sizeUnit * (size === GridSize.Middle ? 9 : 7);
+  const rowHeight = themeOverrides?.rowHeight ?? defaultRowHeight;
+  const headerHeight = themeOverrides?.headerHeight ?? rowHeight;
 
   const gridOptions = useMemo<GridOptions>(
     () => ({
       enableCellTextSelection: true,
       ensureDomOrder: true,
       suppressFieldDotNotation: true,
-      headerHeight: rowHeight,
+      headerHeight,
       rowSelection: 'multiple',
       rowHeight,
     }),
-    [rowHeight],
+    [rowHeight, headerHeight],
   );
 
   return (
@@ -200,6 +203,7 @@ export function GridTable<RecordType extends object>({
         components={gridComponents}
         gridOptions={gridOptions}
         onCellKeyDown={onKeyDown}
+        themeOverrides={themeOverrides}
       />
     </div>
   );
