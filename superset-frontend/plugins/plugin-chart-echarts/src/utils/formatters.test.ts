@@ -17,14 +17,14 @@
  * under the License.
  */
 
-import { getSmartDateFormatter } from './formatters';
 import { TimeGranularity } from '@superset-ui/core';
+import { getSmartDateFormatter } from './formatters';
 
 test('getSmartDateFormatter preserves minutes for MINUTE grain', () => {
   const formatter = getSmartDateFormatter(TimeGranularity.MINUTE);
-  const date = new Date('2024-01-15T10:35:00Z');
-  const result = formatter(date);
-  expect(result).not.toBe(formatter(new Date('2024-01-15T10:00:00Z')));
+  const date1 = new Date('2024-01-15T10:35:00Z');
+  const date2 = new Date('2024-01-15T10:00:00Z');
+  expect(formatter(date1)).not.toBe(formatter(date2));
 });
 
 test('getSmartDateFormatter preserves minutes for FIFTEEN_MINUTES grain', () => {
