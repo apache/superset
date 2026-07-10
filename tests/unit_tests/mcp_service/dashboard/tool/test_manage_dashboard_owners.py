@@ -15,7 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Tests for the manage_dashboard_owners MCP tool."""
+"""Tests for the manage_dashboard_owners MCP tool.
+
+"Owners" are USER-type Subjects in the dashboard's ``editors`` list (the
+Subject-based model apache/superset#38831 introduced, replacing the legacy
+``owners`` relationship).
+"""
 
 from unittest.mock import Mock, patch
 
@@ -23,10 +28,12 @@ import pytest
 from fastmcp import Client
 
 from superset.mcp_service.app import mcp
+from superset.subjects.types import SubjectType
 from superset.utils import json
 
 DAO_GET = "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug"
-POPULATE_OWNER_LIST = "superset.commands.utils.populate_owner_list"
+GET_OR_CREATE_USER_SUBJECT = "superset.subjects.utils.get_or_create_user_subject"
+POPULATE_SUBJECT_LIST = "superset.commands.utils.populate_subject_list"
 
 
 @pytest.fixture
@@ -38,7 +45,7 @@ def mcp_server() -> object:
 def mock_auth():
     """Mock authentication for all tests in this module."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-        with patch("superset.security_manager.raise_for_ownership"):
+        with patch("superset.security_manager.raise_for_editorship"):
             mock_user = Mock()
             mock_user.id = 1
             mock_user.username = "admin"
@@ -46,49 +53,52 @@ def mock_auth():
             yield mock_get_user
 
 
-def _mock_user(id: int, username: str = "user") -> Mock:
-    user = Mock()
-    user.id = id
-    user.username = username
-    user.first_name = "First"
-    user.last_name = "Last"
-    user.active = True
-    user.changed_on = None
-    return user
+def _mock_subject(id: int, user_id: int, label: str = "user") -> Mock:
+    subject = Mock()
+    subject.id = id
+    subject.type = SubjectType.USER
+    subject.user_id = user_id
+    subject.role_id = None
+    subject.label = label
+    subject.active = True
+    return subject
 
 
 def _mock_dashboard(
     id: int = 42,
     title: str = "Test Dashboard",
     slug: str | None = "test-slug",
-    owners: list[Mock] | None = None,
+    editors: list[Mock] | None = None,
 ) -> Mock:
     dashboard = Mock()
     dashboard.id = id
     dashboard.dashboard_title = title
     dashboard.slug = slug
-    dashboard.owners = owners if owners is not None else [_mock_user(1, "admin")]
+    dashboard.editors = (
+        editors if editors is not None else [_mock_subject(100, 1, "admin")]
+    )
     return dashboard
 
 
 class TestManageDashboardOwners:
-    @patch(POPULATE_OWNER_LIST)
+    @patch(POPULATE_SUBJECT_LIST)
+    @patch(GET_OR_CREATE_USER_SUBJECT)
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_add_owner(
         self,
         mock_session: Mock,
         mock_get: Mock,
+        mock_get_or_create: Mock,
         mock_populate: Mock,
         mcp_server: object,
     ) -> None:
-        existing = _mock_user(1, "admin")
-        new_owner = _mock_user(7, "bob")
-        dash = _mock_dashboard(owners=[existing])
+        existing = _mock_subject(100, 1, "admin")
+        new_owner = _mock_subject(101, 7, "bob")
+        dash = _mock_dashboard(editors=[existing])
         mock_get.return_value = dash
-        # populate_owner_list resolves the final list; simulate it (and the
-        # side effect of assigning dashboard.owners like the real setter).
+        mock_get_or_create.side_effect = lambda uid: {1: existing, 7: new_owner}[uid]
         mock_populate.return_value = [existing, new_owner]
 
         async with Client(mcp_server) as client:
@@ -97,29 +107,37 @@ class TestManageDashboardOwners:
                 {"request": {"identifier": 42, "add_owner_ids": [7]}},
             )
 
-        mock_populate.assert_called_once_with([1, 7], default_to_user=False)
-        assert dash.owners == [existing, new_owner]
+        mock_populate.assert_called_once_with(
+            [100, 101],
+            default_to_user=False,
+            ensure_no_lockout=True,
+            field_name="editors",
+        )
+        assert dash.editors == [existing, new_owner]
         assert mock_session.commit.call_count >= 1
         payload = json.loads(result.content[0].text)
-        assert sorted(o["id"] for o in payload["owners"]) == [1, 7]
+        assert sorted(o["id"] for o in payload["owners"]) == [100, 101]
         assert payload["added_owner_ids"] == [7]
         assert payload["removed_owner_ids"] == []
 
-    @patch(POPULATE_OWNER_LIST)
+    @patch(POPULATE_SUBJECT_LIST)
+    @patch(GET_OR_CREATE_USER_SUBJECT)
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_remove_owner(
         self,
         mock_session: Mock,
         mock_get: Mock,
+        mock_get_or_create: Mock,
         mock_populate: Mock,
         mcp_server: object,
     ) -> None:
-        keep = _mock_user(1, "admin")
-        remove = _mock_user(2, "carol")
-        dash = _mock_dashboard(owners=[keep, remove])
+        keep = _mock_subject(100, 1, "admin")
+        remove = _mock_subject(101, 2, "carol")
+        dash = _mock_dashboard(editors=[keep, remove])
         mock_get.return_value = dash
+        mock_get_or_create.side_effect = lambda uid: {1: keep}[uid]
         mock_populate.return_value = [keep]
 
         async with Client(mcp_server) as client:
@@ -128,19 +146,21 @@ class TestManageDashboardOwners:
                 {"request": {"identifier": 42, "remove_owner_ids": [2]}},
             )
 
-        mock_populate.assert_called_once_with([1], default_to_user=False)
+        mock_populate.assert_called_once_with(
+            [100], default_to_user=False, ensure_no_lockout=True, field_name="editors"
+        )
         payload = json.loads(result.content[0].text)
         assert payload["removed_owner_ids"] == [2]
-        assert [o["id"] for o in payload["owners"]] == [1]
+        assert [o["id"] for o in payload["owners"]] == [100]
 
     @patch(DAO_GET)
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_remove_all_owners_rejected(
         self, mock_get: Mock, mcp_server: object
     ) -> None:
         """Removing every owner must be rejected before any DB write."""
-        original_owners = [_mock_user(1, "admin")]
-        dash = _mock_dashboard(owners=original_owners)
+        original_editors = [_mock_subject(100, 1, "admin")]
+        dash = _mock_dashboard(editors=original_editors)
         mock_get.return_value = dash
 
         async with Client(mcp_server) as client:
@@ -151,15 +171,15 @@ class TestManageDashboardOwners:
 
         payload = json.loads(result.content[0].text)
         assert "at least one owner" in (payload.get("error") or "").lower()
-        # dashboard.owners must remain untouched
-        assert dash.owners is original_owners
+        # dashboard.editors must remain untouched
+        assert dash.editors is original_editors
 
     @patch(DAO_GET)
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_remove_unknown_owner_id_rejected(
         self, mock_get: Mock, mcp_server: object
     ) -> None:
-        dash = _mock_dashboard(owners=[_mock_user(1, "admin")])
+        dash = _mock_dashboard(editors=[_mock_subject(100, 1, "admin")])
         mock_get.return_value = dash
 
         async with Client(mcp_server) as client:
@@ -173,7 +193,7 @@ class TestManageDashboardOwners:
         assert "not currently owners" in (payload.get("error") or "").lower()
 
     @patch(DAO_GET)
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_dashboard_not_found(
         self, mock_get: Mock, mcp_server: object
     ) -> None:
@@ -191,17 +211,17 @@ class TestManageDashboardOwners:
         assert "not found" in (payload.get("error") or "").lower()
 
     @patch(DAO_GET)
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_non_owner_gets_permission_denied(
         self, mock_get: Mock, mcp_server: object
     ) -> None:
         from superset.exceptions import SupersetSecurityException
 
-        dash = _mock_dashboard(owners=[_mock_user(1, "admin")])
+        dash = _mock_dashboard(editors=[_mock_subject(100, 1, "admin")])
         mock_get.return_value = dash
 
         with patch(
-            "superset.security_manager.raise_for_ownership",
+            "superset.security_manager.raise_for_editorship",
             side_effect=SupersetSecurityException(Mock(message="forbidden")),
         ):
             async with Client(mcp_server) as client:
@@ -213,17 +233,16 @@ class TestManageDashboardOwners:
         payload = json.loads(result.content[0].text)
         assert payload.get("permission_denied") is True
 
-    @patch(POPULATE_OWNER_LIST)
+    @patch(GET_OR_CREATE_USER_SUBJECT)
     @patch(DAO_GET)
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_unknown_user_id_in_add_rejected(
-        self, mock_get: Mock, mock_populate: Mock, mcp_server: object
+        self, mock_get: Mock, mock_get_or_create: Mock, mcp_server: object
     ) -> None:
-        from superset.commands.exceptions import OwnersNotFoundValidationError
-
-        dash = _mock_dashboard(owners=[_mock_user(1, "admin")])
+        existing = _mock_subject(100, 1, "admin")
+        dash = _mock_dashboard(editors=[existing])
         mock_get.return_value = dash
-        mock_populate.side_effect = OwnersNotFoundValidationError()
+        mock_get_or_create.side_effect = lambda uid: existing if uid == 1 else None
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
@@ -232,30 +251,34 @@ class TestManageDashboardOwners:
             )
 
         payload = json.loads(result.content[0].text)
-        assert "do not exist" in (payload.get("error") or "").lower()
+        assert "not exist" in (payload.get("error") or "").lower()
         assert "find_users" in (payload.get("error") or "")
 
-    @patch(POPULATE_OWNER_LIST)
+    @patch(POPULATE_SUBJECT_LIST)
+    @patch(GET_OR_CREATE_USER_SUBJECT)
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_self_removal_auto_readded_warns(
         self,
         mock_session: Mock,
         mock_get: Mock,
+        mock_get_or_create: Mock,
         mock_populate: Mock,
         mcp_server: object,
     ) -> None:
-        """When populate_owner_list re-adds a caller who tried to remove
-        themselves (self-protection), the response surfaces a warning
-        instead of silently diverging from what was requested."""
-        admin = _mock_user(1, "admin")
-        carol = _mock_user(2, "carol")
-        dave = _mock_user(3, "dave")
-        dash = _mock_dashboard(owners=[admin, carol, dave])
+        """When populate_subject_list re-adds a caller who tried to remove
+        themselves (ensure_no_lockout self-protection), the response
+        surfaces a warning instead of silently diverging from what was
+        requested."""
+        admin = _mock_subject(100, 1, "admin")
+        carol = _mock_subject(101, 2, "carol")
+        dave = _mock_subject(102, 3, "dave")
+        dash = _mock_dashboard(editors=[admin, carol, dave])
         mock_get.return_value = dash
-        # Requested new_owner_ids == [3] (dave), but populate_owner_list
-        # simulates re-adding admin (id=1) per its non-admin self-protection.
+        mock_get_or_create.side_effect = lambda uid: {3: dave}[uid]
+        # Requested new subject ids == [102] (dave), but populate_subject_list
+        # simulates re-adding admin's subject per ensure_no_lockout.
         mock_populate.return_value = [admin, dave]
 
         async with Client(mcp_server) as client:
@@ -264,11 +287,75 @@ class TestManageDashboardOwners:
                 {"request": {"identifier": 42, "remove_owner_ids": [1, 2]}},
             )
 
-        mock_populate.assert_called_once_with([3], default_to_user=False)
+        mock_populate.assert_called_once_with(
+            [102], default_to_user=False, ensure_no_lockout=True, field_name="editors"
+        )
         payload = json.loads(result.content[0].text)
         assert any("automatically re-added" in w for w in payload.get("warnings", []))
 
-    @pytest.mark.asyncio
+    @patch(DAO_GET)
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio()
+    async def test_add_already_owner_is_noop_without_disclosure(
+        self, mock_session: Mock, mock_get: Mock, mcp_server: object
+    ) -> None:
+        """Adding an ID that is already an owner is a no-op: skip the DB
+        write and do not return the full owner list. Otherwise a caller
+        could enumerate owners via a disguised "change" request that
+        never actually changes anything."""
+        existing = _mock_subject(100, 1, "admin")
+        dash = _mock_dashboard(editors=[existing])
+        mock_get.return_value = dash
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "manage_dashboard_owners",
+                {"request": {"identifier": 42, "add_owner_ids": [1]}},
+            )
+
+        mock_session.commit.assert_not_called()
+        payload = json.loads(result.content[0].text)
+        assert payload["owners"] == []
+        assert payload["added_owner_ids"] == []
+        assert any("no effective change" in w.lower() for w in payload["warnings"])
+
+    @patch(POPULATE_SUBJECT_LIST)
+    @patch(GET_OR_CREATE_USER_SUBJECT)
+    @patch(DAO_GET)
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio()
+    async def test_partial_change_still_discloses_full_owners(
+        self,
+        mock_session: Mock,
+        mock_get: Mock,
+        mock_get_or_create: Mock,
+        mock_populate: Mock,
+        mcp_server: object,
+    ) -> None:
+        """A request that DOES change something (even if one of several
+        requested ops is redundant) still returns the full owner list —
+        only a fully no-op request is suppressed."""
+        existing = _mock_subject(100, 1, "admin")
+        new_owner = _mock_subject(101, 7, "bob")
+        dash = _mock_dashboard(editors=[existing])
+        mock_get.return_value = dash
+        mock_get_or_create.side_effect = lambda uid: {1: existing, 7: new_owner}[uid]
+        mock_populate.return_value = [existing, new_owner]
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "manage_dashboard_owners",
+                # add_owner_ids includes the already-current owner (1) AND
+                # a genuinely new one (7) — net effect is a real change.
+                {"request": {"identifier": 42, "add_owner_ids": [1, 7]}},
+            )
+
+        assert mock_session.commit.call_count >= 1
+        payload = json.loads(result.content[0].text)
+        assert sorted(o["id"] for o in payload["owners"]) == [100, 101]
+        assert payload["added_owner_ids"] == [7]
+
+    @pytest.mark.asyncio()
     async def test_add_remove_overlap_rejected(self, mcp_server: object) -> None:
         from fastmcp.exceptions import ToolError
 
@@ -285,7 +372,7 @@ class TestManageDashboardOwners:
                     },
                 )
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_no_operation_rejected(self, mcp_server: object) -> None:
         from fastmcp.exceptions import ToolError
 

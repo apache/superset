@@ -18,10 +18,17 @@
 """
 Manage dashboard access roles FastMCP tool
 
-Adds/removes DASHBOARD_RBAC access roles via explicit operations. Companion
-to ``manage_dashboard_owners`` — dashboard roles are dropped from the
+Adds/removes role-based dashboard access via explicit operations. Companion
+to ``manage_dashboard_owners`` — dashboard access roles are dropped from the
 generic ``update_dashboard`` tool because a full-replacement access-control
 list silently widens or narrows who can see a dashboard.
+
+"Roles" are modeled as ROLE-type entries in the dashboard's Subject-based
+``viewers`` list (apache/superset#38831 replaced the legacy
+``roles``/``DASHBOARD_RBAC`` relationship with a unified Subject model
+covering User/Role/Group, gated by the ``ENABLE_VIEWERS`` feature flag
+instead of ``DASHBOARD_RBAC``). Any USER- or GROUP-type viewers already on
+the dashboard are preserved untouched by this tool.
 """
 
 import logging
@@ -32,15 +39,15 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
-from superset.commands.exceptions import RolesNotFoundValidationError
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db, event_logger
 from superset.mcp_service.dashboard.schemas import (
     ManageDashboardRolesRequest,
     ManageDashboardRolesResponse,
-    serialize_role_object,
 )
+from superset.mcp_service.system.schemas import serialize_subject_object
 from superset.mcp_service.utils.url_utils import get_superset_base_url
+from superset.subjects.types import SubjectType
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +77,7 @@ def _find_and_authorize_dashboard(
         )
 
     try:
-        security_manager.raise_for_ownership(dashboard)
+        security_manager.raise_for_editorship(dashboard)
     except SupersetSecurityException:
         return None, ManageDashboardRolesResponse(
             permission_denied=True,
@@ -91,6 +98,68 @@ def _dashboard_url(dashboard: Any) -> str:
     )
 
 
+def _viewer_role_ids(dashboard: Any) -> list[int]:
+    """Role IDs behind the dashboard's ROLE-type viewer subjects."""
+    return [
+        subject.role_id
+        for subject in dashboard.viewers
+        if subject.type == SubjectType.ROLE
+    ]
+
+
+def _other_viewers(dashboard: Any) -> list[Any]:
+    """Non-ROLE-type viewers (USER/GROUP subjects), preserved untouched."""
+    return [
+        subject for subject in dashboard.viewers if subject.type != SubjectType.ROLE
+    ]
+
+
+def _compute_new_role_ids(
+    dashboard: Any, request: ManageDashboardRolesRequest, viewers_enabled: bool
+) -> tuple[list[int] | None, ManageDashboardRolesResponse | None]:
+    """Load current viewer roles and apply add/remove operations.
+
+    Returns ``(new_role_ids, None)`` on success or ``(None, error_response)``
+    when the initial lazy-load fails or a removal targets an unassigned
+    role.
+    """
+    try:
+        current_role_ids = _viewer_role_ids(dashboard)
+    except SQLAlchemyError as db_err:
+        logger.error(
+            "Failed to load roles for dashboard %s: %s",
+            request.identifier,
+            db_err,
+            exc_info=True,
+        )
+        return None, ManageDashboardRolesResponse(
+            viewers_enabled=viewers_enabled,
+            error="Failed to load dashboard roles due to a database error.",
+        )
+
+    unknown_removals = sorted(set(request.remove_role_ids) - set(current_role_ids))
+    if unknown_removals:
+        return None, ManageDashboardRolesResponse(
+            viewers_enabled=viewers_enabled,
+            error=(
+                f"Cannot remove role IDs that are not currently assigned: "
+                f"{unknown_removals}. Current role IDs: "
+                f"{sorted(current_role_ids)}."
+            ),
+        )
+
+    new_role_ids = [
+        role_id
+        for role_id in current_role_ids
+        if role_id not in request.remove_role_ids
+    ]
+    for role_id in request.add_role_ids:
+        if role_id not in new_role_ids:
+            new_role_ids.append(role_id)
+
+    return new_role_ids, None
+
+
 @tool(
     tags=["mutate"],
     class_permission_name="Dashboard",
@@ -105,15 +174,19 @@ def manage_dashboard_roles(
     request: ManageDashboardRolesRequest, ctx: Context
 ) -> ManageDashboardRolesResponse:
     """
-    Add or remove dashboard RBAC access roles with explicit operations.
+    Add or remove dashboard access roles with explicit operations.
 
-    Dashboard roles (DASHBOARD_RBAC) restrict who can view a dashboard to
-    members of the listed roles, on top of normal Superset permissions. An
-    empty roles list means "no role restriction" — the dashboard is visible
-    per standard permissions instead. This only takes effect when the
-    ``DASHBOARD_RBAC`` feature flag is enabled; the response's
-    ``dashboard_rbac_enabled`` field reports whether it is, and ``warnings``
-    notes when a change was applied but has no live effect.
+    Dashboard access roles restrict who can view a dashboard to members of
+    the listed roles, on top of normal Superset permissions. An empty roles
+    list means "no role restriction" — the dashboard is visible per standard
+    permissions instead. This only takes effect when the ``ENABLE_VIEWERS``
+    feature flag is enabled; the response's ``viewers_enabled`` field
+    reports whether it is, and ``warnings`` notes when a change was applied
+    but has no live effect.
+
+    Roles are the ROLE-type entries in the dashboard's Subject-based
+    ``viewers`` list. Any USER- or GROUP-type viewers already on the
+    dashboard are left untouched.
 
     Unlike ``update_dashboard``'s dropped ``roles`` field, this tool never
     accepts a full-replacement list — only
@@ -144,54 +217,41 @@ def manage_dashboard_roles(
     if auth_error is not None:
         return auth_error
 
-    dashboard_rbac_enabled = is_feature_enabled("DASHBOARD_RBAC")
+    viewers_enabled = is_feature_enabled("ENABLE_VIEWERS")
     warnings: list[str] = []
-    if not dashboard_rbac_enabled:
+    if not viewers_enabled:
         warnings.append(
-            "The DASHBOARD_RBAC feature flag is disabled on this instance; "
-            "dashboard roles will be stored but have no effect on access "
+            "The ENABLE_VIEWERS feature flag is disabled on this instance; "
+            "dashboard viewers will be stored but have no effect on access "
             "control until it is enabled."
         )
 
-    current_role_ids = [role.id for role in dashboard.roles]
-
-    unknown_removals = sorted(set(request.remove_role_ids) - set(current_role_ids))
-    if unknown_removals:
-        return ManageDashboardRolesResponse(
-            dashboard_rbac_enabled=dashboard_rbac_enabled,
-            error=(
-                f"Cannot remove role IDs that are not currently assigned: "
-                f"{unknown_removals}. Current role IDs: "
-                f"{sorted(current_role_ids)}."
-            ),
-        )
-
-    new_role_ids = [
-        role_id
-        for role_id in current_role_ids
-        if role_id not in request.remove_role_ids
-    ]
-    for role_id in request.add_role_ids:
-        if role_id not in new_role_ids:
-            new_role_ids.append(role_id)
+    new_role_ids, compute_error = _compute_new_role_ids(
+        dashboard, request, viewers_enabled
+    )
+    if compute_error is not None:
+        return compute_error
+    assert new_role_ids is not None  # narrows for mypy
 
     try:
         with event_logger.log_context(action="mcp.manage_dashboard_roles.apply"):
-            from superset.commands.utils import populate_roles
+            from superset.subjects.utils import subjects_from_roles
 
-            try:
-                resolved_roles = populate_roles(new_role_ids)
-            except RolesNotFoundValidationError:
+            other_viewers = _other_viewers(dashboard)
+            resolved_role_subjects = subjects_from_roles(new_role_ids)
+            resolved_role_ids = {subject.role_id for subject in resolved_role_subjects}
+            missing_role_ids = sorted(set(new_role_ids) - resolved_role_ids)
+            if missing_role_ids:
                 return ManageDashboardRolesResponse(
-                    dashboard_rbac_enabled=dashboard_rbac_enabled,
+                    viewers_enabled=viewers_enabled,
                     error=(
                         f"One or more role IDs do not exist: "
-                        f"{request.add_role_ids}. Use list_roles to resolve "
+                        f"{missing_role_ids}. Use list_roles to resolve "
                         "valid role IDs."
                     ),
                 )
 
-            dashboard.roles = resolved_roles
+            dashboard.viewers = other_viewers + resolved_role_subjects
             db.session.commit()  # pylint: disable=consider-using-transaction
             try:
                 db.session.refresh(dashboard)
@@ -213,18 +273,19 @@ def manage_dashboard_roles(
             )
         logger.error("Dashboard roles update failed: %s", db_err, exc_info=True)
         return ManageDashboardRolesResponse(
-            dashboard_rbac_enabled=dashboard_rbac_enabled,
+            viewers_enabled=viewers_enabled,
             error="Failed to update dashboard roles due to a database error.",
         )
 
-    final_role_ids = {role.id for role in dashboard.roles}
+    final_role_ids = set(_viewer_role_ids(dashboard))
     ctx.info(f"Dashboard {dashboard.id} roles updated: {sorted(final_role_ids)}")
 
     return ManageDashboardRolesResponse(
         roles=[
             info
-            for role in dashboard.roles
-            if (info := serialize_role_object(role)) is not None
+            for subject in dashboard.viewers
+            if subject.type == SubjectType.ROLE
+            and (info := serialize_subject_object(subject)) is not None
         ],
         dashboard_url=_dashboard_url(dashboard),
         added_role_ids=sorted(final_role_ids & set(request.add_role_ids)),
@@ -233,6 +294,6 @@ def manage_dashboard_roles(
             for role_id in request.remove_role_ids
             if role_id not in final_role_ids
         ],
-        dashboard_rbac_enabled=dashboard_rbac_enabled,
+        viewers_enabled=viewers_enabled,
         warnings=warnings,
     )

@@ -103,7 +103,6 @@ from superset.mcp_service.system.schemas import (
     SubjectInfo,
     TagInfo,
 )
-from superset.mcp_service.user.schemas import UserInfo
 from superset.mcp_service.utils import (
     escape_llm_context_delimiters,
     sanitize_for_llm_context,
@@ -1091,6 +1090,11 @@ class ManageDashboardOwnersRequest(BaseModel):
     list with no safety guard, so an empty or partial list could silently
     orphan a dashboard), this tool takes explicit add/remove operations and
     rejects any change that would leave the dashboard with zero owners.
+
+    "Owners" here means USER-type entries in the dashboard's Subject-based
+    ``editors`` list (the ownership model apache/superset#38831 introduced,
+    replacing the legacy ``owners`` relationship). Any ROLE- or GROUP-type
+    editors already on the dashboard are left untouched by this tool.
     """
 
     identifier: int | str = Field(
@@ -1133,9 +1137,13 @@ class ManageDashboardOwnersRequest(BaseModel):
 class ManageDashboardOwnersResponse(BaseModel):
     """Response schema for ``manage_dashboard_owners``."""
 
-    owners: List[UserInfo] = Field(
+    owners: List[SubjectInfo] = Field(
         default_factory=list,
-        description="Full list of dashboard owners after the operation.",
+        description=(
+            "Full list of USER-type editor subjects (dashboard owners) "
+            "after the operation. Any ROLE/GROUP-type editors on the "
+            "dashboard are not included here."
+        ),
     )
     dashboard_url: str | None = Field(None, description="URL to view the dashboard")
     added_owner_ids: List[int] = Field(
@@ -1174,6 +1182,12 @@ class ManageDashboardRolesRequest(BaseModel):
 
     Unlike ``update_dashboard``'s dropped ``roles`` field (a full-replacement
     access-control list), this tool takes explicit add/remove operations.
+
+    "Roles" here means ROLE-type entries in the dashboard's Subject-based
+    ``viewers`` list (the access model apache/superset#38831 introduced,
+    replacing the legacy ``roles``/``DASHBOARD_RBAC`` relationship). Any
+    USER- or GROUP-type viewers already on the dashboard are left untouched
+    by this tool.
     """
 
     identifier: int | str = Field(
@@ -1215,9 +1229,13 @@ class ManageDashboardRolesRequest(BaseModel):
 class ManageDashboardRolesResponse(BaseModel):
     """Response schema for ``manage_dashboard_roles``."""
 
-    roles: List[RoleInfo] = Field(
+    roles: List[SubjectInfo] = Field(
         default_factory=list,
-        description="Full list of dashboard access roles after the operation.",
+        description=(
+            "Full list of ROLE-type viewer subjects (dashboard access "
+            "roles) after the operation. Any USER/GROUP-type viewers on "
+            "the dashboard are not included here."
+        ),
     )
     dashboard_url: str | None = Field(None, description="URL to view the dashboard")
     added_role_ids: List[int] = Field(
@@ -1228,13 +1246,13 @@ class ManageDashboardRolesResponse(BaseModel):
         default_factory=list,
         description="Role IDs actually removed by this call.",
     )
-    dashboard_rbac_enabled: bool = Field(
+    viewers_enabled: bool = Field(
         default=False,
         description=(
-            "Whether the DASHBOARD_RBAC feature flag is enabled on this "
-            "instance. When False, dashboard roles are stored but have no "
+            "Whether the ENABLE_VIEWERS feature flag is enabled on this "
+            "instance. When False, dashboard viewers are stored but have no "
             "effect on access control — access still follows normal "
-            "Superset permissions/ownership."
+            "Superset permissions/editorship."
         ),
     )
     warnings: List[str] = Field(

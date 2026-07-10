@@ -15,7 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Tests for the manage_dashboard_roles MCP tool."""
+"""Tests for the manage_dashboard_roles MCP tool.
+
+"Roles" are ROLE-type Subjects in the dashboard's ``viewers`` list (the
+Subject-based model apache/superset#38831 introduced, replacing the legacy
+``roles``/``DASHBOARD_RBAC`` relationship), gated by ``ENABLE_VIEWERS``.
+"""
 
 from unittest.mock import Mock, patch
 
@@ -23,10 +28,11 @@ import pytest
 from fastmcp import Client
 
 from superset.mcp_service.app import mcp
+from superset.subjects.types import SubjectType
 from superset.utils import json
 
 DAO_GET = "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug"
-POPULATE_ROLES = "superset.commands.utils.populate_roles"
+SUBJECTS_FROM_ROLES = "superset.subjects.utils.subjects_from_roles"
 IS_FEATURE_ENABLED = "superset.is_feature_enabled"
 
 
@@ -39,7 +45,7 @@ def mcp_server() -> object:
 def mock_auth():
     """Mock authentication for all tests in this module."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-        with patch("superset.security_manager.raise_for_ownership"):
+        with patch("superset.security_manager.raise_for_editorship"):
             mock_user = Mock()
             mock_user.id = 1
             mock_user.username = "admin"
@@ -47,46 +53,49 @@ def mock_auth():
             yield mock_get_user
 
 
-def _mock_role(id: int, name: str = "role") -> Mock:
-    role = Mock()
-    role.id = id
-    role.name = name
-    role.permissions = []
-    return role
+def _mock_subject(id: int, role_id: int, label: str = "role") -> Mock:
+    subject = Mock()
+    subject.id = id
+    subject.type = SubjectType.ROLE
+    subject.user_id = None
+    subject.role_id = role_id
+    subject.label = label
+    subject.active = True
+    return subject
 
 
 def _mock_dashboard(
     id: int = 42,
     title: str = "Test Dashboard",
     slug: str | None = "test-slug",
-    roles: list[Mock] | None = None,
+    viewers: list[Mock] | None = None,
 ) -> Mock:
     dashboard = Mock()
     dashboard.id = id
     dashboard.dashboard_title = title
     dashboard.slug = slug
-    dashboard.roles = roles if roles is not None else []
+    dashboard.viewers = viewers if viewers is not None else []
     return dashboard
 
 
 class TestManageDashboardRoles:
     @patch(IS_FEATURE_ENABLED, return_value=True)
-    @patch(POPULATE_ROLES)
+    @patch(SUBJECTS_FROM_ROLES)
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_add_role(
         self,
         mock_session: Mock,
         mock_get: Mock,
-        mock_populate: Mock,
+        mock_subjects_from_roles: Mock,
         mock_flag: Mock,
         mcp_server: object,
     ) -> None:
-        new_role = _mock_role(5, "Analyst")
-        dash = _mock_dashboard(roles=[])
+        new_subject = _mock_subject(200, 5, "Analyst")
+        dash = _mock_dashboard(viewers=[])
         mock_get.return_value = dash
-        mock_populate.return_value = [new_role]
+        mock_subjects_from_roles.return_value = [new_subject]
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
@@ -94,32 +103,32 @@ class TestManageDashboardRoles:
                 {"request": {"identifier": 42, "add_role_ids": [5]}},
             )
 
-        mock_populate.assert_called_once_with([5])
-        assert dash.roles == [new_role]
+        mock_subjects_from_roles.assert_called_once_with([5])
+        assert dash.viewers == [new_subject]
         assert mock_session.commit.call_count >= 1
         payload = json.loads(result.content[0].text)
-        assert [r["id"] for r in payload["roles"]] == [5]
+        assert [r["id"] for r in payload["roles"]] == [200]
         assert payload["added_role_ids"] == [5]
-        assert payload["dashboard_rbac_enabled"] is True
+        assert payload["viewers_enabled"] is True
         assert payload["warnings"] == []
 
     @patch(IS_FEATURE_ENABLED, return_value=False)
-    @patch(POPULATE_ROLES)
+    @patch(SUBJECTS_FROM_ROLES)
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_add_role_warns_when_flag_disabled(
         self,
         mock_session: Mock,
         mock_get: Mock,
-        mock_populate: Mock,
+        mock_subjects_from_roles: Mock,
         mock_flag: Mock,
         mcp_server: object,
     ) -> None:
-        new_role = _mock_role(5, "Analyst")
-        dash = _mock_dashboard(roles=[])
+        new_subject = _mock_subject(200, 5, "Analyst")
+        dash = _mock_dashboard(viewers=[])
         mock_get.return_value = dash
-        mock_populate.return_value = [new_role]
+        mock_subjects_from_roles.return_value = [new_subject]
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
@@ -128,27 +137,27 @@ class TestManageDashboardRoles:
             )
 
         payload = json.loads(result.content[0].text)
-        assert payload["dashboard_rbac_enabled"] is False
-        assert any("DASHBOARD_RBAC" in w for w in payload["warnings"])
+        assert payload["viewers_enabled"] is False
+        assert any("ENABLE_VIEWERS" in w for w in payload["warnings"])
 
     @patch(IS_FEATURE_ENABLED, return_value=True)
-    @patch(POPULATE_ROLES)
+    @patch(SUBJECTS_FROM_ROLES)
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_remove_role(
         self,
         mock_session: Mock,
         mock_get: Mock,
-        mock_populate: Mock,
+        mock_subjects_from_roles: Mock,
         mock_flag: Mock,
         mcp_server: object,
     ) -> None:
-        keep = _mock_role(5, "Analyst")
-        remove = _mock_role(6, "Sales")
-        dash = _mock_dashboard(roles=[keep, remove])
+        keep = _mock_subject(200, 5, "Analyst")
+        remove = _mock_subject(201, 6, "Sales")
+        dash = _mock_dashboard(viewers=[keep, remove])
         mock_get.return_value = dash
-        mock_populate.return_value = [keep]
+        mock_subjects_from_roles.return_value = [keep]
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
@@ -156,17 +165,17 @@ class TestManageDashboardRoles:
                 {"request": {"identifier": 42, "remove_role_ids": [6]}},
             )
 
-        mock_populate.assert_called_once_with([5])
+        mock_subjects_from_roles.assert_called_once_with([5])
         payload = json.loads(result.content[0].text)
         assert payload["removed_role_ids"] == [6]
 
     @patch(IS_FEATURE_ENABLED, return_value=True)
     @patch(DAO_GET)
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_remove_unknown_role_id_rejected(
         self, mock_get: Mock, mock_flag: Mock, mcp_server: object
     ) -> None:
-        dash = _mock_dashboard(roles=[_mock_role(5, "Analyst")])
+        dash = _mock_dashboard(viewers=[_mock_subject(200, 5, "Analyst")])
         mock_get.return_value = dash
 
         async with Client(mcp_server) as client:
@@ -181,7 +190,7 @@ class TestManageDashboardRoles:
 
     @patch(IS_FEATURE_ENABLED, return_value=True)
     @patch(DAO_GET)
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_dashboard_not_found(
         self, mock_get: Mock, mock_flag: Mock, mcp_server: object
     ) -> None:
@@ -200,17 +209,17 @@ class TestManageDashboardRoles:
 
     @patch(IS_FEATURE_ENABLED, return_value=True)
     @patch(DAO_GET)
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_non_owner_gets_permission_denied(
         self, mock_get: Mock, mock_flag: Mock, mcp_server: object
     ) -> None:
         from superset.exceptions import SupersetSecurityException
 
-        dash = _mock_dashboard(roles=[])
+        dash = _mock_dashboard(viewers=[])
         mock_get.return_value = dash
 
         with patch(
-            "superset.security_manager.raise_for_ownership",
+            "superset.security_manager.raise_for_editorship",
             side_effect=SupersetSecurityException(Mock(message="forbidden")),
         ):
             async with Client(mcp_server) as client:
@@ -223,17 +232,20 @@ class TestManageDashboardRoles:
         assert payload.get("permission_denied") is True
 
     @patch(IS_FEATURE_ENABLED, return_value=True)
-    @patch(POPULATE_ROLES)
+    @patch(SUBJECTS_FROM_ROLES)
     @patch(DAO_GET)
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_unknown_role_id_in_add_rejected(
-        self, mock_get: Mock, mock_populate: Mock, mock_flag: Mock, mcp_server: object
+        self,
+        mock_get: Mock,
+        mock_subjects_from_roles: Mock,
+        mock_flag: Mock,
+        mcp_server: object,
     ) -> None:
-        from superset.commands.exceptions import RolesNotFoundValidationError
-
-        dash = _mock_dashboard(roles=[])
+        dash = _mock_dashboard(viewers=[])
         mock_get.return_value = dash
-        mock_populate.side_effect = RolesNotFoundValidationError()
+        # subjects_from_roles silently skips roles without a matching Subject.
+        mock_subjects_from_roles.return_value = []
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
@@ -245,7 +257,7 @@ class TestManageDashboardRoles:
         assert "do not exist" in (payload.get("error") or "").lower()
         assert "list_roles" in (payload.get("error") or "")
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_add_remove_overlap_rejected(self, mcp_server: object) -> None:
         from fastmcp.exceptions import ToolError
 
@@ -262,7 +274,7 @@ class TestManageDashboardRoles:
                     },
                 )
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_no_operation_rejected(self, mcp_server: object) -> None:
         from fastmcp.exceptions import ToolError
 

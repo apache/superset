@@ -37,7 +37,7 @@ def mcp_server() -> object:
 def mock_auth():
     """Mock authentication for all tests in this module."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-        with patch("superset.security_manager.raise_for_ownership"):
+        with patch("superset.security_manager.raise_for_editorship"):
             mock_user = Mock()
             mock_user.id = 1
             mock_user.username = "admin"
@@ -190,7 +190,7 @@ class TestManageDashboardCertification:
         mock_get.return_value = dash
 
         with patch(
-            "superset.security_manager.raise_for_ownership",
+            "superset.security_manager.raise_for_editorship",
             side_effect=SupersetSecurityException(Mock(message="forbidden")),
         ):
             async with Client(mcp_server) as client:

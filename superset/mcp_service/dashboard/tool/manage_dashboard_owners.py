@@ -20,8 +20,16 @@ Manage dashboard owners FastMCP tool
 
 Adds/removes dashboard owners via explicit operations, guarding against the
 "empty owners" footgun that the generic ``update_dashboard`` tool
-deliberately does not expose (a full-replacement ``owners`` list has no
-"keep >=1 owner" guard in ``UpdateDashboardCommand``).
+deliberately does not expose (a full-replacement ``owners``/``editors`` list
+has no "keep >=1 owner" guard of its own — ``populate_subject_list``'s
+``ensure_no_lockout`` only re-adds the CALLER, it does not prevent an admin
+from emptying the list outright).
+
+"Owners" are modeled as USER-type entries in the dashboard's Subject-based
+``editors`` list (apache/superset#38831 replaced the legacy ``owners``
+relationship with a unified Subject model covering User/Role/Group). Any
+ROLE- or GROUP-type editors already on the dashboard are preserved
+untouched by this tool.
 """
 
 import logging
@@ -32,15 +40,16 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
-from superset.commands.exceptions import OwnersNotFoundValidationError
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db, event_logger
 from superset.mcp_service.dashboard.schemas import (
     ManageDashboardOwnersRequest,
     ManageDashboardOwnersResponse,
 )
-from superset.mcp_service.user.schemas import serialize_user_object
+from superset.mcp_service.system.schemas import serialize_subject_object
 from superset.mcp_service.utils.url_utils import get_superset_base_url
+from superset.subjects.exceptions import SubjectsNotFoundValidationError
+from superset.subjects.types import SubjectType
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +79,7 @@ def _find_and_authorize_dashboard(
         )
 
     try:
-        security_manager.raise_for_ownership(dashboard)
+        security_manager.raise_for_editorship(dashboard)
     except SupersetSecurityException:
         return None, ManageDashboardOwnersResponse(
             permission_denied=True,
@@ -89,6 +98,22 @@ def _dashboard_url(dashboard: Any) -> str:
         f"{get_superset_base_url()}/superset/dashboard/"
         f"{dashboard.slug or dashboard.id}/"
     )
+
+
+def _owner_user_ids(dashboard: Any) -> list[int]:
+    """User IDs behind the dashboard's USER-type editor subjects."""
+    return [
+        subject.user_id
+        for subject in dashboard.editors
+        if subject.type == SubjectType.USER
+    ]
+
+
+def _other_editors(dashboard: Any) -> list[Any]:
+    """Non-USER-type editors (ROLE/GROUP subjects), preserved untouched."""
+    return [
+        subject for subject in dashboard.editors if subject.type != SubjectType.USER
+    ]
 
 
 def _compute_new_owner_ids(
@@ -133,28 +158,47 @@ def _compute_new_owner_ids(
 def _apply_owner_change(
     dashboard: Any, new_owner_ids: list[int]
 ) -> ManageDashboardOwnersResponse | None:
-    """Resolve and persist the new owner list.
+    """Resolve the new owner user IDs to USER-type Subjects and persist.
 
-    Mutates ``dashboard.owners`` in place on success. Returns an error
-    response on failure, or ``None`` on success.
+    Mutates ``dashboard.editors`` in place on success — replacing the
+    USER-type entries while preserving any ROLE/GROUP-type editors. Returns
+    an error response on failure, or ``None`` on success.
     """
-    from superset.commands.utils import populate_owner_list
+    from superset.commands.utils import populate_subject_list
+    from superset.subjects.utils import get_or_create_user_subject
 
     try:
         with event_logger.log_context(action="mcp.manage_dashboard_owners.apply"):
+            other_editors = _other_editors(dashboard)
+
+            new_subject_ids: list[int] = []
+            for user_id in new_owner_ids:
+                subject = get_or_create_user_subject(user_id)
+                if subject is None:
+                    return ManageDashboardOwnersResponse(
+                        error=(
+                            f"User ID {user_id} does not exist. Use "
+                            "find_users to resolve valid user IDs."
+                        ),
+                    )
+                new_subject_ids.append(subject.id)
+
             try:
-                resolved_owners = populate_owner_list(
-                    new_owner_ids, default_to_user=False
+                resolved_owner_subjects = populate_subject_list(
+                    new_subject_ids,
+                    default_to_user=False,
+                    ensure_no_lockout=True,
+                    field_name="editors",
                 )
-            except OwnersNotFoundValidationError:
+            except SubjectsNotFoundValidationError:
                 return ManageDashboardOwnersResponse(
                     error=(
-                        "One or more user IDs do not exist. Use find_users "
-                        "to resolve valid user IDs."
+                        "One or more user IDs could not be resolved to "
+                        "owners. Use find_users to resolve valid user IDs."
                     ),
                 )
 
-            dashboard.owners = resolved_owners
+            dashboard.editors = other_editors + resolved_owner_subjects
             db.session.commit()  # pylint: disable=consider-using-transaction
             try:
                 db.session.refresh(dashboard)
@@ -188,7 +232,8 @@ def _build_owner_warnings(
     """Flag when the resolver re-added an ID that was not requested.
 
     Happens when a non-admin caller tries to remove themselves —
-    ``populate_owner_list``'s self-protection re-adds them.
+    ``populate_subject_list``'s ``ensure_no_lockout`` self-protection
+    re-adds their USER subject.
     """
     auto_added = final_owner_ids - set(new_owner_ids)
     if not auto_added:
@@ -221,16 +266,24 @@ def manage_dashboard_owners(
     a full-replacement list — only ``add_owner_ids``/``remove_owner_ids`` —
     and rejects any change that would leave the dashboard with zero owners.
 
+    Owners are the USER-type entries in the dashboard's Subject-based
+    ``editors`` list. Any ROLE- or GROUP-type editors already on the
+    dashboard are left untouched.
+
     A non-admin caller who removes themselves is automatically re-added
-    (mirrors the REST ``UpdateDashboardCommand`` self-protection) unless an
-    ``EXTRA_OWNERS_RESOLVER`` is configured on the instance; the response's
-    ``warnings`` reports when this happens.
+    (mirrors the same self-protection ``update_dashboard``'s editorship
+    check relies on) unless an ``EXTRA_EDITORS_RESOLVER`` is configured on
+    the instance; the response's ``warnings`` reports when this happens.
 
     Privacy: the returned ``owners`` list is sanctioned only as confirmation
     of the add/remove operation the caller explicitly requested on this
     dashboard. Do not use it to answer "who owns X" for a dashboard the
     caller did not ask to modify, and do not call this tool merely to look
     up current owners — those remain off-limits per the server instructions.
+    A request that has no effective change (e.g. "adding" an ID that is
+    already an owner) returns an empty ``owners`` list rather than the full
+    current set, so this tool cannot be used as a disguised directory
+    lookup.
 
     Example::
 
@@ -249,33 +302,77 @@ def manage_dashboard_owners(
     if auth_error is not None:
         return auth_error
 
-    current_owner_ids = [owner.id for owner in dashboard.owners]
+    try:
+        current_owner_ids = _owner_user_ids(dashboard)
+    except SQLAlchemyError as db_err:
+        logger.error(
+            "Failed to load owners for dashboard %s: %s",
+            request.identifier,
+            db_err,
+            exc_info=True,
+        )
+        return ManageDashboardOwnersResponse(
+            error="Failed to load dashboard owners due to a database error.",
+        )
+
     new_owner_ids, compute_error = _compute_new_owner_ids(current_owner_ids, request)
     if compute_error is not None:
         return compute_error
     assert new_owner_ids is not None  # narrows for mypy; empty list errors above
 
+    # No-op short-circuit: skip the DB write and, more importantly, the full
+    # owners list in the response. The owners list is only sanctioned as
+    # confirmation of an actual change (see docstring); returning it for a
+    # request that changes nothing would let a caller enumerate owners via
+    # a disguised no-op (e.g. "add" an ID that is already an owner).
+    if set(new_owner_ids) == set(current_owner_ids):
+        ctx.info(f"Dashboard {dashboard.id} owners unchanged; no-op request.")
+        return ManageDashboardOwnersResponse(
+            dashboard_url=_dashboard_url(dashboard),
+            warnings=[
+                "No effective change: requested owners already match the current state."
+            ],
+        )
+
     if (apply_error := _apply_owner_change(dashboard, new_owner_ids)) is not None:
         return apply_error
 
-    final_owner_ids = {owner.id for owner in dashboard.owners}
+    final_owner_ids = set(_owner_user_ids(dashboard))
     warnings = _build_owner_warnings(final_owner_ids, new_owner_ids)
+
+    # True deltas against the PRE-call state — not just membership in the
+    # request — so a redundant add/remove (already-satisfied, or reverted by
+    # ensure_no_lockout self-protection) is never reported or disclosed as a
+    # change.
+    added_owner_ids = sorted(
+        (final_owner_ids & set(request.add_owner_ids)) - set(current_owner_ids)
+    )
+    removed_owner_ids = sorted(
+        (set(request.remove_owner_ids) & set(current_owner_ids)) - final_owner_ids
+    )
+
+    if not added_owner_ids and not removed_owner_ids:
+        warnings.append(
+            "No effective change: the requested owners already matched the "
+            "final state after resolution."
+        )
+        ctx.info(f"Dashboard {dashboard.id} owners unchanged after resolution.")
+        return ManageDashboardOwnersResponse(
+            dashboard_url=_dashboard_url(dashboard),
+            warnings=warnings,
+        )
 
     ctx.info(f"Dashboard {dashboard.id} owners updated: {sorted(final_owner_ids)}")
 
     return ManageDashboardOwnersResponse(
         owners=[
             info
-            for owner in dashboard.owners
-            if (info := serialize_user_object(owner, include_sensitive=False))
-            is not None
+            for subject in dashboard.editors
+            if subject.type == SubjectType.USER
+            and (info := serialize_subject_object(subject)) is not None
         ],
         dashboard_url=_dashboard_url(dashboard),
-        added_owner_ids=sorted(final_owner_ids & set(request.add_owner_ids)),
-        removed_owner_ids=[
-            owner_id
-            for owner_id in request.remove_owner_ids
-            if owner_id not in final_owner_ids
-        ],
+        added_owner_ids=added_owner_ids,
+        removed_owner_ids=removed_owner_ids,
         warnings=warnings,
     )
