@@ -279,8 +279,9 @@ class TestExportDatasetsCommand(SupersetTestCase):
         mock_g.user = security_manager.find_user("admin")
         examples_db = get_example_database()
         with examples_db.get_sqla_engine() as engine:
-            engine.execute("DROP TABLE IF EXISTS 中文")
-            engine.execute("CREATE TABLE 中文 AS SELECT 2 as col")
+            with engine.begin() as conn:
+                conn.execute("DROP TABLE IF EXISTS 中文")
+                conn.execute("CREATE TABLE 中文 AS SELECT 2 as col")
         # scope cleanup to the example database so datasets with the same name
         # on other databases are left untouched
         stale = db.session.query(SqlaTable).filter_by(
@@ -307,7 +308,8 @@ class TestExportDatasetsCommand(SupersetTestCase):
         db.session.delete(example_dataset)
         db.session.commit()
         with examples_db.get_sqla_engine() as engine:
-            engine.execute("DROP TABLE 中文")
+            with engine.begin() as conn:
+                conn.execute("DROP TABLE 中文")
         db.session.commit()
 
 
@@ -618,10 +620,11 @@ class TestCreateDatasetCommand(SupersetTestCase):
     def test_create_dataset_command(self):
         examples_db = get_example_database()
         with examples_db.get_sqla_engine() as engine:
-            engine.execute(text("DROP TABLE IF EXISTS test_create_dataset_command"))
-            engine.execute(
-                text("CREATE TABLE test_create_dataset_command AS SELECT 2 as col")
-            )
+            with engine.begin() as conn:
+                conn.execute(text("DROP TABLE IF EXISTS test_create_dataset_command"))
+                conn.execute(
+                    text("CREATE TABLE test_create_dataset_command AS SELECT 2 as col")
+                )
 
         with override_user(security_manager.find_user("admin")):
             table = CreateDatasetCommand(
@@ -642,7 +645,8 @@ class TestCreateDatasetCommand(SupersetTestCase):
         db.session.delete(table)
         db.session.commit()
         with examples_db.get_sqla_engine() as engine:
-            engine.execute(text("DROP TABLE test_create_dataset_command"))
+            with engine.begin() as conn:
+                conn.execute(text("DROP TABLE test_create_dataset_command"))
         db.session.commit()
 
     def test_create_dataset_command_not_allowed(self):

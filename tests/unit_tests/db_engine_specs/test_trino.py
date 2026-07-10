@@ -683,11 +683,14 @@ def test_get_columns_error(mocker: MockerFixture):
         "The specified table does not exist."
     )
     Row = namedtuple("Row", ["Column", "Type"])
-    mock_inspector.bind.execute().fetchall.return_value = [
+
+    mock_connection = mocker.MagicMock()
+    mock_connection.execute().fetchall.return_value = [
         Row("field1", "row(a varchar, b date)"),
         Row("field2", "row(r1 row(a varchar, b varchar))"),
         Row("field3", "int"),
     ]
+    mock_inspector.engine.connect().__enter__.return_value = mock_connection
 
     actual = TrinoEngineSpec.get_columns(mock_inspector, Table("table", "schema"))
     expected = [
@@ -723,7 +726,7 @@ def test_get_columns_error(mocker: MockerFixture):
     _assert_columns_equal(actual, expected)
 
     assert_called_with_text(
-        mock_inspector.bind.execute,
+        mock_inspector.engine.connect().__enter__().execute,
         'SHOW COLUMNS FROM schema."table"',
     )
 
