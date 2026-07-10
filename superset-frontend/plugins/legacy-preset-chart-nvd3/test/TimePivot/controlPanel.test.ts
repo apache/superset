@@ -20,7 +20,9 @@ import { SqlaFormData } from '@superset-ui/core';
 import * as ChartControls from '@superset-ui/chart-controls';
 import controlPanel from '../../src/TimePivot/controlPanel';
 
-const { __mockShiftMetric } = ChartControls as any;
+const { __mockShiftMetric } = ChartControls as typeof ChartControls & {
+  __mockShiftMetric: jest.Mock;
+};
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
