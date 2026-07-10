@@ -14,13 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Protocol
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 
+class FakeDatasourceFactory(Protocol):
+    def __call__(self, supports_offset: bool) -> MagicMock: ...
+
+
 @pytest.fixture
-def fake_datasource_factory():
+def fake_datasource_factory() -> FakeDatasourceFactory:
     """Builds a MagicMock datasource whose db_engine_spec is configurable."""
 
     def _build(supports_offset: bool) -> MagicMock:
@@ -35,8 +40,8 @@ def fake_datasource_factory():
 
 
 def test_get_samples_uses_normal_path_when_engine_supports_offset(
-    fake_datasource_factory,
-):
+    fake_datasource_factory: FakeDatasourceFactory,
+) -> None:
     """
     Engines with supports_offset=True continue to use the existing
     QueryContext/get_payload path. No cursor-method calls.
@@ -84,8 +89,8 @@ def test_get_samples_uses_normal_path_when_engine_supports_offset(
 
 
 def test_get_samples_normal_path_cleans_count_cache_when_sample_data_failed(
-    fake_datasource_factory,
-):
+    fake_datasource_factory: FakeDatasourceFactory,
+) -> None:
     """
     On the normal (non-cursor) path, a FAILED samples payload must evict the
     count-star cache and raise DatasetSamplesFailedError — mirroring the
@@ -139,8 +144,8 @@ def test_get_samples_normal_path_cleans_count_cache_when_sample_data_failed(
 
 
 def test_get_samples_uses_cursor_path_when_engine_disallows_offset(
-    fake_datasource_factory,
-):
+    fake_datasource_factory: FakeDatasourceFactory,
+) -> None:
     """
     When the engine reports supports_offset=False and the requested
     page is > 1, get_samples delegates to fetch_data_with_cursor with SQL
@@ -195,8 +200,8 @@ def test_get_samples_uses_cursor_path_when_engine_disallows_offset(
 
 
 def test_get_samples_cursor_path_infers_coltypes_from_cursor_rows(
-    fake_datasource_factory,
-):
+    fake_datasource_factory: FakeDatasourceFactory,
+) -> None:
     """
     coltypes on the cursor path are inferred from the returned rows via
     extract_dataframe_dtypes — the same function the normal (non-cursor)
@@ -241,8 +246,8 @@ def test_get_samples_cursor_path_infers_coltypes_from_cursor_rows(
 
 
 def test_get_samples_cursor_path_cleans_count_cache_on_failure(
-    fake_datasource_factory,
-):
+    fake_datasource_factory: FakeDatasourceFactory,
+) -> None:
     """
     Issue 2: if fetch_data_with_cursor raises, the count-star cache must be
     evicted (mirroring the normal FAILED path) and the error re-raised as
@@ -296,8 +301,8 @@ def test_get_samples_cursor_path_cleans_count_cache_on_failure(
 
 
 def test_get_samples_cursor_path_raises_when_compiled_sql_is_empty(
-    fake_datasource_factory,
-):
+    fake_datasource_factory: FakeDatasourceFactory,
+) -> None:
     """
     If get_query_str compiles to an empty string, the cursor path has
     nothing to submit. Fail fast with a descriptive error and evict the
@@ -344,7 +349,9 @@ def test_get_samples_cursor_path_raises_when_compiled_sql_is_empty(
     datasource.database.db_engine_spec.fetch_data_with_cursor.assert_not_called()
 
 
-def test_get_samples_cursor_path_unused_for_page_one(fake_datasource_factory):
+def test_get_samples_cursor_path_unused_for_page_one(
+    fake_datasource_factory: FakeDatasourceFactory,
+) -> None:
     """
     Page 1 (row_offset = 0) does not need cursor iteration — the normal
     path already returns the first page correctly without emitting OFFSET.

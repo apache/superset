@@ -22,11 +22,43 @@ HELPERS_PATH = (
 )
 
 
-def _uses_supports_offset(node: ast.AST) -> bool:
-    """True if any attribute access on `node` references 'supports_offset'."""
+def _uses_supports_offset(node: ast.AST, *, negated: bool = False) -> bool:
+    """
+    True if `node` contains a positive (non-negated) reference to
+    `supports_offset` — i.e. a guard that reads true when the engine
+    *does* support OFFSET. A `not X.supports_offset` or
+    `X.supports_offset == False` reference does not count: gating
+    `.offset()` on an inverted condition would emit OFFSET on the exact
+    engines this guard exists to protect against.
+    """
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
+        return _uses_supports_offset(node.operand, negated=not negated)
+
+    if isinstance(node, ast.Attribute) and node.attr == "supports_offset":
+        return not negated
+
+    if isinstance(node, ast.BoolOp):
+        return any(
+            _uses_supports_offset(value, negated=negated) for value in node.values
+        )
+
+    if isinstance(node, ast.Compare):
+        operands = [node.left, *node.comparators]
+        if not any(
+            isinstance(operand, ast.Attribute) and operand.attr == "supports_offset"
+            for operand in operands
+        ):
+            return False
+        compares_false = any(
+            isinstance(operand, ast.Constant) and operand.value is False
+            for operand in operands
+        )
+        inverting_op = any(isinstance(op, (ast.Eq, ast.Is)) for op in node.ops)
+        return compares_false != inverting_op and not negated
+
     return any(
-        isinstance(child, ast.Attribute) and child.attr == "supports_offset"
-        for child in ast.walk(node)
+        _uses_supports_offset(child, negated=negated)
+        for child in ast.iter_child_nodes(node)
     )
 
 
