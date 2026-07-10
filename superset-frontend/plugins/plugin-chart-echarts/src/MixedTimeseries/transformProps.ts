@@ -834,21 +834,15 @@ export default function transformProps(
           .filter(key => keys.includes(key))
           .forEach(key => {
             const value = forecastValues[key];
-            // if there are no dimensions, key is a verbose name of a metric,
-            // otherwise it is a comma separated string where the first part is metric name.
-            // The tooltip key is the rendered series name, so resolve it through
-            // the display-keyed maps rather than the raw backend-keyed ones.
+            // The tooltip key is the rendered series name; resolve it through
+            // the display-keyed maps, whose values lead with the raw metric
+            // label both with and without dimensions. Fall back to the
+            // verbose-name inversion for series absent from the maps.
             let formatterKey;
             if (primarySeries.has(key)) {
-              formatterKey =
-                groupby.length === 0
-                  ? inverted[key]
-                  : displayLabelMap[key]?.[0];
+              formatterKey = displayLabelMap[key]?.[0] ?? inverted[key];
             } else {
-              formatterKey =
-                groupbyB.length === 0
-                  ? inverted[key]
-                  : displayLabelMapB[key]?.[0];
+              formatterKey = displayLabelMapB[key]?.[0] ?? inverted[key];
             }
             const tooltipFormatter = getFormatter(
               customFormatters,

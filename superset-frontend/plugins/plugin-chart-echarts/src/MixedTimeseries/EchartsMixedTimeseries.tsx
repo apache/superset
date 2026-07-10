@@ -169,12 +169,16 @@ export default function EchartsMixedTimeseries({
             formattedVal: xValueFormatter(data[0]),
           });
         }
-        if (data && xAxis.type === AxisType.Category && eventParams.name) {
+        if (
+          data &&
+          xAxis.type === AxisType.Category &&
+          eventParams.name != null
+        ) {
           drillToDetailFilters.push({
             col: xAxis.label,
             op: '==',
             val: eventParams.name,
-            formattedVal: eventParams.name,
+            formattedVal: String(eventParams.name),
           });
         }
         if (metricsCount >= 0) {
