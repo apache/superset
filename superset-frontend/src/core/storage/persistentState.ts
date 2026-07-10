@@ -51,7 +51,7 @@ export function createPersistentState(
   };
 
   const buildListUrl = (
-    options?: PersistentListOptions,
+    options: PersistentListOptions,
     isShared?: boolean,
   ): string => {
     const encodedPublisher = encodeURIComponent(publisher);
@@ -59,20 +59,16 @@ export function createPersistentState(
     const url = `/api/v1/extensions/${encodedPublisher}/${encodedName}/storage/persistent`;
     const params = new URLSearchParams();
     if (isShared) params.set('shared', 'true');
-    if (options?.resourceType)
-      params.set('resource_type', options.resourceType);
-    if (options?.resourceUuid)
-      params.set('resource_uuid', options.resourceUuid);
-    if (options?.page !== undefined) params.set('page', String(options.page));
-    if (options?.pageSize !== undefined) {
-      params.set('page_size', String(options.pageSize));
-    }
+    if (options.resourceType) params.set('resource_type', options.resourceType);
+    if (options.resourceUuid) params.set('resource_uuid', options.resourceUuid);
+    params.set('page', String(options.page));
+    params.set('page_size', String(options.pageSize));
     const query = params.toString();
     return query ? `${url}?${query}` : url;
   };
 
   const list = async <T = JsonValue>(
-    options: PersistentListOptions | undefined,
+    options: PersistentListOptions,
     isShared: boolean,
   ): Promise<PersistentListResult<T>> => {
     const response = await SupersetClient.get({
@@ -108,7 +104,7 @@ export function createPersistentState(
       });
     },
     async list<T = JsonValue>(
-      options?: PersistentListOptions,
+      options: PersistentListOptions,
     ): Promise<PersistentListResult<T>> {
       return list<T>(options, true);
     },
@@ -139,7 +135,7 @@ export function createPersistentState(
       });
     },
     async list<T = JsonValue>(
-      options?: PersistentListOptions,
+      options: PersistentListOptions,
     ): Promise<PersistentListResult<T>> {
       return list<T>(options, false);
     },

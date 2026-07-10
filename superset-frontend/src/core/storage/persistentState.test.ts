@@ -111,12 +111,13 @@ test('set respects an explicit codec for a Uint8Array value instead of auto-enco
   });
 });
 
-test('list calls correct URL with no query params by default', async () => {
+test('list calls correct URL with only page/pageSize as query params', async () => {
   mockGet.mockResolvedValue({ json: { result: [], count: 0 } });
   const store = createPersistentState('myorg.myext');
-  await store.list();
+  await store.list({ page: 0, pageSize: 10 });
   expect(mockGet).toHaveBeenCalledWith({
-    endpoint: '/api/v1/extensions/myorg/myext/storage/persistent',
+    endpoint:
+      '/api/v1/extensions/myorg/myext/storage/persistent?page=0&page_size=10',
   });
 });
 
@@ -128,7 +129,7 @@ test('list returns entries and count from response', async () => {
     },
   });
   const store = createPersistentState('myorg.myext');
-  const result = await store.list();
+  const result = await store.list({ page: 0, pageSize: 10 });
   expect(result.count).toBe(1);
   expect(result.entries).toEqual([
     { key: 'prefs', value: { theme: 'dark' }, codec: 'json' },
@@ -138,7 +139,7 @@ test('list returns entries and count from response', async () => {
 test('list returns empty entries and count 0 when result/count are absent', async () => {
   mockGet.mockResolvedValue({ json: {} });
   const store = createPersistentState('myorg.myext');
-  const result = await store.list();
+  const result = await store.list({ page: 0, pageSize: 10 });
   expect(result.entries).toEqual([]);
   expect(result.count).toBe(0);
 });
@@ -162,19 +163,20 @@ test('list passes filter and pagination options as query params', async () => {
 test('shared.list appends ?shared=true', async () => {
   mockGet.mockResolvedValue({ json: { result: [], count: 0 } });
   const store = createPersistentState('myorg.myext');
-  await store.shared.list();
+  await store.shared.list({ page: 0, pageSize: 10 });
   expect(mockGet).toHaveBeenCalledWith({
-    endpoint: '/api/v1/extensions/myorg/myext/storage/persistent?shared=true',
+    endpoint:
+      '/api/v1/extensions/myorg/myext/storage/persistent?shared=true&page=0&page_size=10',
   });
 });
 
 test('shared.list combines ?shared=true with other query params', async () => {
   mockGet.mockResolvedValue({ json: { result: [], count: 0 } });
   const store = createPersistentState('myorg.myext');
-  await store.shared.list({ page: 1 });
+  await store.shared.list({ page: 1, pageSize: 10 });
   expect(mockGet).toHaveBeenCalledWith({
     endpoint:
-      '/api/v1/extensions/myorg/myext/storage/persistent?shared=true&page=1',
+      '/api/v1/extensions/myorg/myext/storage/persistent?shared=true&page=1&page_size=10',
   });
 });
 

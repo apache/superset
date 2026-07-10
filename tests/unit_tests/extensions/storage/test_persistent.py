@@ -203,11 +203,11 @@ def test_shared_accessor_uses_null_user_fk(mock_dao: MagicMock, app: Flask) -> N
 
 
 @patch("superset.extensions.storage.persistent.ExtensionStorageDAO")
-def test_persistent_state_list_decodes_entries_and_defaults_options(
+def test_persistent_state_list_decodes_entries_and_forwards_options(
     mock_dao: MagicMock, app: Flask
 ) -> None:
     """PersistentState.list decodes every entry's value (no SAFE_CODECS
-    restriction for ambient backend code) and forwards default options."""
+    restriction for ambient backend code) and forwards the given options."""
     ctx = create_context()
     mock_dao.list_entries.return_value = (
         [
@@ -223,7 +223,7 @@ def test_persistent_state_list_decodes_entries_and_defaults_options(
 
     with app.app_context(), use_context(ctx):
         set_user(42)
-        result = PersistentState.list()
+        result = PersistentState.list(PersistentListOptions(page=0, page_size=10))
 
     mock_dao.list_entries.assert_called_once_with(
         "test-org.test-ext",
@@ -290,7 +290,7 @@ def test_persistent_state_list_handles_none_value(
 
     with app.app_context(), use_context(ctx):
         set_user(42)
-        result = PersistentState.list()
+        result = PersistentState.list(PersistentListOptions(page=0, page_size=10))
 
     assert result.entries[0].value is None
 
@@ -306,7 +306,7 @@ def test_shared_accessor_list_uses_null_user_fk(
 
     with app.app_context(), use_context(ctx):
         set_user(42)
-        accessor.list()
+        accessor.list(PersistentListOptions(page=0, page_size=10))
 
     mock_dao.list_entries.assert_called_once_with(
         "test-org.test-ext",

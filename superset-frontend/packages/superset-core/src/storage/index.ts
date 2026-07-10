@@ -80,22 +80,28 @@ export interface PersistentSetOptions {
 
 /**
  * Options for listing persistent (database-backed) state entries.
- * All fields are optional filters; omitting them lists every entry in the
- * caller's scope (global or user-scoped, depending on whether `list` is
- * called via `.shared` or directly).
+ *
+ * `page` and `pageSize` are required (no default): `list` returns one page
+ * of a caller's entries, not the whole result set, and a default would let
+ * that fact go unnoticed at the call site. Check the returned
+ * `PersistentListResult.count` against `pageSize` to know whether more
+ * pages exist.
+ *
+ * `resourceType`/`resourceUuid` are optional filters; omitting them lists
+ * every entry in the caller's scope (global or user-scoped, depending on
+ * whether `list` is called via `.shared` or directly).
  */
 export interface PersistentListOptions {
+  /** Zero-indexed page number. */
+  page: number;
+  /**
+   * Entries per page. There is no fixed ceiling on this value, but a page
+   * whose combined value size exceeds MAX_LIST_PAYLOAD_SIZE from config is
+   * rejected — reduce pageSize and retry if that happens.
+   */
+  pageSize: number;
   resourceType?: string;
   resourceUuid?: string;
-  /** Zero-indexed page number. Defaults to 0. */
-  page?: number;
-  /**
-   * Entries per page. Defaults to 10. There is no fixed ceiling on this
-   * value, but a page whose combined value size exceeds
-   * MAX_LIST_PAYLOAD_SIZE from config is rejected — reduce page_size and
-   * retry if that happens.
-   */
-  pageSize?: number;
 }
 
 /**
@@ -151,7 +157,7 @@ export interface PersistentStorageAccessor {
     options?: PersistentSetOptions,
   ): Promise<void>;
   list<T = JsonValue>(
-    options?: PersistentListOptions,
+    options: PersistentListOptions,
   ): Promise<PersistentListResult<T>>;
   remove(key: string): Promise<void>;
 }

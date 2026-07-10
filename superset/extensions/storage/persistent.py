@@ -51,7 +51,7 @@ def _get_extension_id() -> str:
 def _list(
     extension_id: str,
     user_fk: int | None,
-    options: PersistentListOptions | None,
+    options: PersistentListOptions,
 ) -> PersistentListResult:
     """Shared `list` implementation for both scopes.
 
@@ -59,7 +59,6 @@ def _list(
     restriction — every entry's value is decoded unconditionally, same as
     `get_decoded_value()`.
     """
-    options = options or PersistentListOptions()
     entries, count = ExtensionStorageDAO.list_entries(
         extension_id,
         user_fk=user_fk,
@@ -133,14 +132,12 @@ class SharedPersistentStateAccessor:
             encrypt=encrypt,
         )
 
-    def list(
-        self, options: PersistentListOptions | None = None
-    ) -> PersistentListResult:
+    def list(self, options: PersistentListOptions) -> PersistentListResult:
         """
         List entries in shared persistent state.
 
-        :param options: Optional `PersistentListOptions`, e.g.
-            `page`/`page_size` to paginate.
+        :param options: `PersistentListOptions`, e.g.
+            `PersistentListOptions(page=0, page_size=10)`.
         :returns: `PersistentListResult` with the page's entries and the
             total count across all pages.
         :raises ExtensionStorageListPayloadTooLarge: if the requested
@@ -214,12 +211,12 @@ class PersistentState(CorePersistentState):
         )
 
     @staticmethod
-    def list(options: PersistentListOptions | None = None) -> PersistentListResult:
+    def list(options: PersistentListOptions) -> PersistentListResult:
         """
         List entries in user-scoped persistent state.
 
-        :param options: Optional `PersistentListOptions`, e.g.
-            `page`/`page_size` to paginate.
+        :param options: `PersistentListOptions`, e.g.
+            `PersistentListOptions(page=0, page_size=10)`.
         :returns: `PersistentListResult` with the page's entries and the
             total count across all pages.
         :raises ExtensionStorageListPayloadTooLarge: if the requested

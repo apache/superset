@@ -246,9 +246,63 @@ ctx.storage.persistent.shared.set('global_config', {'version': 2})
 config = ctx.storage.persistent.shared.get('global_config')
 ```
 
+### Listing Entries
+
+Both the frontend and backend accessors support listing entries in the caller's scope, without needing to know every key in advance. `page` and `pageSize`/`page_size` are required on every call — `list()` always returns one page of results, never the whole result set, so there's no default that could make that fact easy to miss. Check the returned `count` (total entries matching the scope/filters, across all pages) against `pageSize`/`page_size` to know whether more pages exist.
+
+```typescript
+import { extensions } from '@apache-superset/core';
+
+const ctx = extensions.getContext();
+
+// Filter by resource
+const result = await ctx.storage.persistent.list({
+  resourceType: 'dashboard',
+  resourceUuid: '1234-uuid',
+  page: 0,
+  pageSize: 25,
+});
+result.entries.forEach(entry => {
+  console.log(entry.key, entry.value, entry.codec);
+});
+console.log(result.count); // total matching entries across all pages
+
+// Shared (global) scope
+const shared = await ctx.storage.persistent.shared.list({ page: 0, pageSize: 10 });
+```
+
+```python
+from superset_core.extensions.context import get_context
+from superset_core.extensions.storage.persistent import PersistentListOptions
+
+ctx = get_context()
+
+# Filter by resource
+result = ctx.storage.persistent.list(
+    PersistentListOptions(
+        resource_type="dashboard",
+        resource_uuid="1234-uuid",
+        page=0,
+        page_size=25,
+    )
+)
+for entry in result.entries:
+    print(entry.key, entry.value, entry.codec)
+print(result.count)  # total matching entries across all pages
+
+# Shared (global) scope
+shared = ctx.storage.persistent.shared.list(PersistentListOptions(page=0, page_size=10))
+```
+
+`resource_type`/`resource_uuid` filter to entries linked to one resource — since a single resource can have several keyed entries (e.g. `"layout"`, `"notes"`), this is how an extension enumerates all of them without tracking key names itself.
+
+There is no fixed limit on `page_size`, but the combined size of a requested page's values is checked against `MAX_LIST_PAYLOAD_SIZE` (see [Quotas](#quotas)) before any row's value is read from the database — a page that would exceed it is rejected rather than silently truncated, so reduce `page_size` and retry if that happens.
+
+Backend `list()` decodes every entry's value unconditionally. The REST API backing the frontend's `list()` call is more restrictive: an entry written with a codec that isn't safe to decode over the wire (e.g. `pickle`) comes back with `value: null` (its `codec` is still reported) rather than being decoded.
+
 ### Enumerating and Managing Storage from the Backend
 
-The `ctx.storage.persistent` accessor is for single-key reads and writes. Backend extension code that needs to enumerate its own rows in bulk — for example, a cleanup routine that removes storage linked to resources that no longer exist — can use `superset_core.extensions.storage.dao.ExtensionStorageDAO` instead:
+`ctx.storage.persistent.list()` covers the common case of listing an extension's own entries. Backend extension code that needs lower-level bulk operations — for example, a cleanup routine that removes storage linked to resources that no longer exist, using filters `list()` doesn't expose — can use `superset_core.extensions.storage.dao.ExtensionStorageDAO` instead:
 
 ```python
 from superset_core.extensions.storage.dao import ExtensionStorageDAO
@@ -261,7 +315,7 @@ orphaned = [e for e in entries if e.resource_uuid not in my_extension_live_resou
 ExtensionStorageDAO.delete(orphaned)
 ```
 
-`ExtensionStorageDAO` is automatically scoped to the calling extension's own rows — `extension_id` is never a parameter you pass, so there is no way to reach another extension's storage through this API. It supports the standard DAO operations (`find_all`, `find_one_or_none`, `filter_by`, `query`, `create`, `update`, `delete`), and, unlike `ctx.storage.persistent`, gives direct access to each row's scope columns (`resource_type`, `resource_uuid`, `category`, `description`) for entries created with those set.
+`ExtensionStorageDAO` is automatically scoped to the calling extension's own rows — `extension_id` is never a parameter you pass, so there is no way to reach another extension's storage through this API. It supports the standard DAO operations (`find_all`, `find_one_or_none`, `filter_by`, `query`, `create`, `update`, `delete`).
 
 ### When to Use Tier 3
 
@@ -272,7 +326,7 @@ ExtensionStorageDAO.delete(orphaned)
 ### Limitations
 
 - Higher latency than Tiers 1–2 (database round-trip per operation)
-- Subject to the 16 MB value size limit
+- Subject to the per-value size limit configured via `EXTENSIONS_PERSISTENT_STORAGE.MAX_VALUE_SIZE` (see [Quotas](#quotas))
 - Subject to the per-extension quota configured via `EXTENSIONS_PERSISTENT_STORAGE.QUOTA_PER_EXTENSION` (see [Quotas](#quotas))
 - Requires a database migration when first deployed
 
@@ -303,6 +357,7 @@ EXTENSIONS_EPHEMERAL_STORAGE = {
     "CACHE_TYPE": "RedisCache",
     "CACHE_REDIS_URL": "redis://localhost:6379/2",
     "MAX_TTL": 604800,  # 7 days maximum TTL
+    "MAX_VALUE_SIZE": 100 * 1024,  # 100 KB maximum per stored value
 }
 ```
 
@@ -335,14 +390,23 @@ Encryption reuses Superset's existing `EncryptedType` (from `sqlalchemy-utils`) 
 
 ### Quotas
 
-Persistent storage is subject to a per-extension quota, configured in `superset_config.py`:
+Persistent storage is subject to per-value, per-list-page, and per-extension size limits, configured in `superset_config.py`:
 
 ```python
 EXTENSIONS_PERSISTENT_STORAGE = {
     # Maximum total bytes an extension may store across all of its rows
     # (global, every user's, and shared). Defaults to 100 MB.
     "QUOTA_PER_EXTENSION": 100 * 1024 * 1024,
+    # Maximum size (in bytes) of a single stored value. Defaults to 1 MB.
+    "MAX_VALUE_SIZE": 1024 * 1024,
+    # Maximum combined value size (in bytes) that a single list() page may
+    # return. Defaults to 10 MB.
+    "MAX_LIST_PAYLOAD_SIZE": 10 * 1024 * 1024,
 }
 ```
 
-A write that would push the extension's total stored size over the configured quota is rejected — the frontend SDK's `set()` call rejects with an HTTP 413 response, and backend code calling `ctx.storage.persistent.set()` sees the corresponding exception raised. Overwriting an existing key nets out that key's own current size against usage first, so replacing a value with one of the same or smaller size never spuriously fails even when the extension is already near its quota.
+A write that would push the extension's total stored size over `QUOTA_PER_EXTENSION` is rejected — the frontend SDK's `set()` call rejects with an HTTP 413 response, and backend code calling `ctx.storage.persistent.set()` sees the corresponding exception raised. Overwriting an existing key nets out that key's own current size against usage first, so replacing a value with one of the same or smaller size never spuriously fails even when the extension is already near its quota.
+
+A write whose encoded value exceeds `MAX_VALUE_SIZE` is rejected outright, independently of the total quota.
+
+A `list()` call whose requested page would return more than `MAX_LIST_PAYLOAD_SIZE` combined bytes of value data is rejected — reduce `page`/`pageSize` and retry. This check runs against the page's stored sizes before any value is read from the database, so an oversized request fails fast. Because `list()`'s response is consumed as JSON in the browser, raising `MAX_LIST_PAYLOAD_SIZE` substantially above the default risks client-side memory and parse-time issues — treat the default as already generous rather than a floor to build up from.

@@ -49,8 +49,8 @@ Usage (via extension context - preferred):
         'api_token', 'sk-...', PersistentSetOptions(encrypt=True)
     )
 
-    # Listing entries
-    result = ctx.storage.persistent.list()
+    # Listing entries (page and page_size are required)
+    result = ctx.storage.persistent.list(PersistentListOptions(page=0, page_size=10))
     for entry in result.entries:
         print(entry.key, entry.value)
 """
@@ -78,19 +78,25 @@ class PersistentSetOptions:
 class PersistentListOptions:
     """Options for a persistent state `list` call.
 
-    All fields are optional filters; omitting them lists every entry in
-    the caller's scope (global or user-scoped, depending on whether `list`
-    is called via `.shared` or directly).
+    `page` and `page_size` are required (no default): `list` returns one
+    page of a caller's entries, not the whole result set, and a default
+    would let that fact go unnoticed at the call site. Check the returned
+    `PersistentListResult.count` against `page_size` to know whether more
+    pages exist.
+
+    `resource_type`/`resource_uuid` are optional filters; omitting them
+    lists every entry in the caller's scope (global or user-scoped,
+    depending on whether `list` is called via `.shared` or directly).
     """
 
-    resource_type: str | None = None
-    resource_uuid: str | None = None
     #: Zero-indexed page number.
-    page: int = 0
+    page: int
     #: Entries per page. There is no fixed ceiling on this value, but a
     #: page whose combined value size exceeds MAX_LIST_PAYLOAD_SIZE from
     #: config is rejected — reduce page_size and retry if that happens.
-    page_size: int = 10
+    page_size: int
+    resource_type: str | None = None
+    resource_uuid: str | None = None
 
 
 @dataclass(frozen=True)
@@ -126,9 +132,7 @@ class PersistentStateAccessor(Protocol):
         """Set a value in persistent state."""
         ...
 
-    def list(
-        self, options: PersistentListOptions | None = None
-    ) -> PersistentListResult:
+    def list(self, options: PersistentListOptions) -> PersistentListResult:
         """List entries in persistent state."""
         ...
 
@@ -184,15 +188,15 @@ class PersistentState:
         raise NotImplementedError("Class will be replaced during initialization")
 
     @staticmethod
-    def list(options: PersistentListOptions | None = None) -> PersistentListResult:
+    def list(options: PersistentListOptions) -> PersistentListResult:
         """
         List entries in user-scoped persistent state.
 
         Data is automatically scoped to the current authenticated user.
         Other users' entries are never returned.
 
-        :param options: Optional `PersistentListOptions`, e.g.
-            `page`/`page_size` to paginate.
+        :param options: `PersistentListOptions`, e.g.
+            `PersistentListOptions(page=0, page_size=10)`.
         :returns: `PersistentListResult` with the page's entries and the
             total count across all pages.
         """
