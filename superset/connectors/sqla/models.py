@@ -932,6 +932,15 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
 
     __tablename__ = "table_columns"
     __table_args__ = (UniqueConstraint("table_id", "column_name"),)
+    # SPIKE (full-Continuum): Continuum-versioned
+    # again, with audit-field exclusions to suppress the per-column-per-save
+    # noise rows that ADR-004 flagged as Failure 3. ``changed_on`` refreshes
+    # on every parent dataset save even when the column itself wasn't user-
+    # edited; capturing it produced one shadow row per column per save with
+    # no user signal.
+    __versioned__: dict[str, Any] = {
+        "exclude": ["changed_on", "created_on", "changed_by_fk", "created_by_fk"]
+    }
 
     id = Column(Integer, primary_key=True)
     column_name = Column(String(255), nullable=False)
@@ -1177,6 +1186,10 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
 
     __tablename__ = "sql_metrics"
     __table_args__ = (UniqueConstraint("table_id", "metric_name"),)
+    # SPIKE: same audit-field exclusions as TableColumn (see above).
+    __versioned__: dict[str, Any] = {
+        "exclude": ["changed_on", "created_on", "changed_by_fk", "created_by_fk"]
+    }
 
     id = Column(Integer, primary_key=True)
     metric_name = Column(String(255), nullable=False)
@@ -1295,6 +1308,37 @@ class SqlaTable(
     metric_class = SqlMetric
     column_class = TableColumn
     __tablename__ = "tables"
+    # Exclude M2M association relationships: Continuum only captures FK columns on
+    # association INSERTs (not the auto-increment id), which breaks the NOT NULL PK.
+    # deleted_at is deletion-state metadata (SoftDeleteMixin), tracked by soft
+    # delete, not content versioning; it is also absent from the tables_version
+    # shadow table, so leaving it in would fail every capture INSERT.
+    # Audit columns are auto-bumped on every save. Excluding them lets
+    # Continuum's is_modified() return False on no-op saves (e.g. owners-only
+    # edits) so we don't create empty version rows. version_transaction.user_id
+    # / issued_at preserve "who/when".
+    # The perm-string class (perm / schema_perm / catalog_perm) is derived
+    # security state, not user-authored content: permission maintenance
+    # rewrites it in bulk, and versioning it produced phantom transactions
+    # flooding the activity stream (one "updated" row per touched entity
+    # with no user edit — surfaced by the version-history UI).
+    # Excluding it also means a restore can't resurrect stale permission
+    # strings; the live, derived values stay authoritative.
+    __versioned__: dict[str, Any] = {
+        "exclude": [
+            "owners",
+            "editors",
+            "row_level_security_filters",
+            "changed_on",
+            "created_on",
+            "changed_by_fk",
+            "created_by_fk",
+            "perm",
+            "schema_perm",
+            "catalog_perm",
+            "deleted_at",
+        ]
+    }
 
     # Note this uniqueness constraint is not part of the physical schema, i.e., it does
     # not exist in the migrations, but is required by `import_from_dict` to ensure the
@@ -1428,7 +1472,7 @@ class SqlaTable(
         name = escape(self.name)
         url = escape(self.explore_url)
         anchor = f'<a target="_blank" href="{url}">{name}</a>'
-        return Markup(anchor)
+        return Markup(anchor)  # noqa: S704
 
     def get_catalog_perm(self) -> str | None:
         """Returns catalog permission if present, database one otherwise."""
