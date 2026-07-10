@@ -285,6 +285,38 @@ class User(CoreModel):
     active: bool
 
 
+class Role(CoreModel):
+    """
+    Abstract Role model interface.
+
+    Host implementations will replace this class during initialization
+    with concrete implementation providing actual functionality.
+    """
+
+    __abstract__ = True
+
+    # Type hints for expected attributes (no actual field definitions)
+    id: int
+    name: str | None
+
+
+class Group(CoreModel):
+    """
+    Abstract Group model interface.
+
+    Host implementations will replace this class during initialization
+    with concrete implementation providing actual functionality.
+    """
+
+    __abstract__ = True
+
+    # Type hints for expected attributes (no actual field definitions)
+    id: int
+    name: str | None
+    label: str | None
+    description: str | None
+
+
 class Tag(CoreModel):
     """
     Abstract Tag model interface.
@@ -320,6 +352,33 @@ class KeyValue(CoreModel):
     changed_by_fk: int | None
 
 
+class Subject(CoreModel):
+    """
+    Abstract Subject model interface.
+
+    A Subject is a unified representation of a User, Role, or Group. Host
+    implementations will replace this class during initialization with a
+    concrete implementation providing actual functionality.
+    """
+
+    __abstract__ = True
+
+    # Type hints for expected attributes (no actual field definitions)
+    id: int
+    uuid: UUID | None
+    label: str | None
+    secondary_label: str | None
+    active: bool | None
+    extra_search: str | None
+    type: int
+
+    # Convenience references to the underlying principal. Exactly one is set,
+    # matching ``type`` (User, Role, or Group respectively).
+    user: User | None
+    role: Role | None
+    group: Group | None
+
+
 def get_session() -> scoped_session:
     """
     Retrieve the SQLAlchemy session to directly interface with the
@@ -339,8 +398,11 @@ __all__ = [
     "Chart",
     "Dashboard",
     "User",
+    "Role",
+    "Group",
     "Tag",
     "KeyValue",
+    "Subject",
     "CoreModel",
     "get_session",
 ]

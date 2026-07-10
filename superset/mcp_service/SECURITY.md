@@ -239,9 +239,11 @@ MCP_EMBEDDED_GUEST_AUTH_ENABLED = True        # opt-in for the MCP transport (de
   source, so a guest is never downgraded to API-key / `MCP_DEV_USERNAME` / `g.user`.
 - Data access is scoped by core's existing `raise_for_access` (dataset allowlist,
   dashboard access, RLS) — guests only reach their token's resources.
-- Sensitive enumeration tools are denied to guests via `MCP_GUEST_DENIED_TOOLS`
-  (default `{"find_users", "get_instance_info"}`), enforced at both tool listing
-  and call time regardless of `MCP_RBAC_ENABLED`.
+- Guests are default-deny: they may call only the tools in `MCP_GUEST_ALLOWED_TOOLS`
+  (dashboard and chart read tools, scoped to the token's dashboards), enforced at
+  both tool listing and call time regardless of `MCP_RBAC_ENABLED`. Every other
+  tool (mutating, data-model, SQL, RLS, user/role/tag/task/annotation/report/query)
+  is denied by default.
 
 **Deployment requirements**
 
@@ -390,7 +392,7 @@ Different MCP tools require different Superset permissions:
 | `get_chart_info` | `can_read` on Slice + dataset access | Validates chart and dataset permissions |
 | `get_chart_data` | `can_read` on Slice + `datasource_access` | Executes query with RLS applied |
 | `generate_chart` | `can_write` on Slice + `datasource_access` | Creates new chart |
-| `update_chart` | `can_write` on Slice + ownership or Admin | Must own chart or be Admin |
+| `update_chart` | `can_write` on Slice + editorship or Admin | Must be a chart editor or Admin |
 | `list_datasets` | `datasource_access` | Returns only accessible datasets |
 | `get_dataset_info` | `datasource_access` | Validates dataset access |
 | `execute_sql` | `can_sql_json` or `can_sqllab` on Database | Executes SQL with RLS |

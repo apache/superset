@@ -47,11 +47,14 @@ def inject_dao_implementations() -> None:
     from superset.daos.dashboard import DashboardDAO as HostDashboardDAO
     from superset.daos.database import DatabaseDAO as HostDatabaseDAO
     from superset.daos.dataset import DatasetDAO as HostDatasetDAO
+    from superset.daos.group import GroupDAO as HostGroupDAO
     from superset.daos.key_value import KeyValueDAO as HostKeyValueDAO
     from superset.daos.query import (
         QueryDAO as HostQueryDAO,
         SavedQueryDAO as HostSavedQueryDAO,
     )
+    from superset.daos.role import RoleDAO as HostRoleDAO
+    from superset.daos.subject import SubjectDAO as HostSubjectDAO
     from superset.daos.tag import TagDAO as HostTagDAO
     from superset.daos.tasks import TaskDAO as HostTaskDAO
     from superset.daos.user import UserDAO as HostUserDAO
@@ -62,8 +65,11 @@ def inject_dao_implementations() -> None:
     core_common_dao_module.ChartDAO = HostChartDAO  # type: ignore[assignment,misc]
     core_common_dao_module.DashboardDAO = HostDashboardDAO  # type: ignore[assignment,misc]
     core_common_dao_module.UserDAO = HostUserDAO  # type: ignore[assignment,misc]
+    core_common_dao_module.RoleDAO = HostRoleDAO  # type: ignore[assignment,misc]
+    core_common_dao_module.GroupDAO = HostGroupDAO  # type: ignore[assignment,misc]
     core_common_dao_module.TagDAO = HostTagDAO  # type: ignore[assignment,misc]
     core_common_dao_module.KeyValueDAO = HostKeyValueDAO  # type: ignore[assignment,misc]
+    core_common_dao_module.SubjectDAO = HostSubjectDAO  # type: ignore[assignment,misc]
 
     # Replace abstract classes in queries.daos
     core_queries_dao_module.QueryDAO = HostQueryDAO  # type: ignore[assignment,misc]
@@ -83,7 +89,11 @@ def inject_model_implementations() -> None:
     import superset_core.common.models as core_common_models_module
     import superset_core.queries.models as core_queries_models_module
     import superset_core.tasks.models as core_tasks_models_module
-    from flask_appbuilder.security.sqla.models import User as HostUser
+    from flask_appbuilder.security.sqla.models import (
+        Group as HostGroup,
+        Role as HostRole,
+        User as HostUser,
+    )
 
     from superset.connectors.sqla.models import SqlaTable as HostDataset
     from superset.key_value.models import KeyValueEntry as HostKeyValue
@@ -92,6 +102,7 @@ def inject_model_implementations() -> None:
     from superset.models.slice import Slice as HostChart
     from superset.models.sql_lab import Query as HostQuery, SavedQuery as HostSavedQuery
     from superset.models.tasks import Task as HostTask
+    from superset.subjects.models import Subject as HostSubject
     from superset.tags.models import Tag as HostTag
 
     # In-place replacement in common.models
@@ -100,8 +111,11 @@ def inject_model_implementations() -> None:
     core_common_models_module.Chart = HostChart  # type: ignore[misc]
     core_common_models_module.Dashboard = HostDashboard  # type: ignore[misc]
     core_common_models_module.User = HostUser  # type: ignore[misc]
+    core_common_models_module.Role = HostRole  # type: ignore[misc]
+    core_common_models_module.Group = HostGroup  # type: ignore[misc]
     core_common_models_module.Tag = HostTag  # type: ignore[misc]
     core_common_models_module.KeyValue = HostKeyValue  # type: ignore[misc]
+    core_common_models_module.Subject = HostSubject  # type: ignore[misc]
 
     # In-place replacement in queries.models
     core_queries_models_module.Query = HostQuery  # type: ignore[misc]

@@ -118,12 +118,8 @@ async def test_list_metrics_builtin_happy_path(mcp_server: FastMCP) -> None:
     mock_ds = _make_dataset(42)
 
     with (
-        patch(
-            "superset.mcp_service.semantic_layer.tool.list_metrics.DatasetDAO"
-        ) as mock_dao,
-        patch(
-            "superset.mcp_service.semantic_layer.tool.list_metrics.SemanticViewDAO"
-        ) as mock_view_dao,
+        patch.object(list_metrics_module, "DatasetDAO") as mock_dao,
+        patch.object(list_metrics_module, "SemanticViewDAO") as mock_view_dao,
     ):
         mock_dao.find_by_id.return_value = mock_ds
         mock_view_dao.find_accessible.return_value = []
@@ -179,13 +175,9 @@ async def test_list_metrics_search_filter(mcp_server: FastMCP) -> None:
     mock_ds: MagicMock = _make_dataset(1)
 
     with (
-        patch(
-            "superset.mcp_service.semantic_layer.tool.list_metrics.DatasetDAO"
-        ) as mock_dao,
-        patch(
-            "superset.mcp_service.semantic_layer.tool.list_metrics.SemanticViewDAO"
-        ) as mock_view_dao,
-        patch("superset.mcp_service.semantic_layer.tool.list_metrics.db") as mock_db,
+        patch.object(list_metrics_module, "DatasetDAO") as mock_dao,
+        patch.object(list_metrics_module, "SemanticViewDAO") as mock_view_dao,
+        patch.object(list_metrics_module, "db") as mock_db,
     ):
         mock_view_dao.find_accessible.return_value = []
         mock_query: MagicMock = MagicMock()
@@ -215,9 +207,7 @@ async def test_list_metrics_external_includes_verbose_name(
     mock_view = _make_view(5)
     mock_view.metrics[0].verbose_name = "Bookings Count"
 
-    with patch(
-        "superset.mcp_service.semantic_layer.tool.list_metrics.SemanticViewDAO"
-    ) as mock_view_dao:
+    with patch.object(list_metrics_module, "SemanticViewDAO") as mock_view_dao:
         mock_view_dao.find_by_id.return_value = mock_view
 
         async with Client(mcp_server) as client:
@@ -237,9 +227,7 @@ async def test_list_metrics_external_access_denied(mcp_server: FastMCP) -> None:
     mock_view = _make_view(5)
     mock_view.raise_for_access.side_effect = _access_denied_exc()
 
-    with patch(
-        "superset.mcp_service.semantic_layer.tool.list_metrics.SemanticViewDAO"
-    ) as mock_view_dao:
+    with patch.object(list_metrics_module, "SemanticViewDAO") as mock_view_dao:
         mock_view_dao.find_by_id.return_value = mock_view
 
         async with Client(mcp_server) as client:
@@ -267,9 +255,7 @@ async def test_list_metrics_external_per_metric_compatible_dimensions(
 
     mock_view.get_compatible_dimensions.side_effect = _compatible_dimensions
 
-    with patch(
-        "superset.mcp_service.semantic_layer.tool.list_metrics.SemanticViewDAO"
-    ) as mock_view_dao:
+    with patch.object(list_metrics_module, "SemanticViewDAO") as mock_view_dao:
         mock_view_dao.find_by_id.return_value = mock_view
 
         async with Client(mcp_server) as client:
@@ -301,13 +287,9 @@ async def test_list_metrics_pagination_is_stable(mcp_server: FastMCP) -> None:
     mock_ds.columns = []
 
     with (
-        patch(
-            "superset.mcp_service.semantic_layer.tool.list_metrics.DatasetDAO"
-        ) as mock_dao,
-        patch(
-            "superset.mcp_service.semantic_layer.tool.list_metrics.SemanticViewDAO"
-        ) as mock_view_dao,
-        patch("superset.mcp_service.semantic_layer.tool.list_metrics.db") as mock_db,
+        patch.object(list_metrics_module, "DatasetDAO") as mock_dao,
+        patch.object(list_metrics_module, "SemanticViewDAO") as mock_view_dao,
+        patch.object(list_metrics_module, "db") as mock_db,
     ):
         mock_view_dao.find_accessible.return_value = []
         mock_query = MagicMock()

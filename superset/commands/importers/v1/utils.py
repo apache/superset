@@ -378,12 +378,44 @@ def safe_insert_dashboard_chart_relationships(
     # Insert new relationships in bulk, deduplicating to avoid unique constraint issues
 
     if unique_new_relationships := set(new_relationships):
+        _prime_versioning_unit_of_work()
         db.session.execute(
             dashboard_slices.insert(),
             [
                 {"dashboard_id": dashboard_id, "slice_id": chart_id}
                 for dashboard_id, chart_id in unique_new_relationships
             ],
+        )
+
+
+def _prime_versioning_unit_of_work() -> None:
+    """Ensure Continuum has a unit-of-work for the current connection.
+
+    ``dashboard_slices`` is a Continuum-tracked (versioned) association
+    table, so a raw Core INSERT/DELETE on it fires Continuum's engine-level
+    ``before_execute`` listener, which looks up a unit-of-work for the
+    connection and raises ``KeyError`` when none is registered (the same
+    failure class the dashboard test factory hit). The normal import flow
+    registers one via prior ORM flushes, so this is belt-and-suspenders for
+    a bulk relationship insert that might run before any flush on the
+    connection. No-op (the listener is detached) when version capture is
+    disabled, which is the shipped default; never allowed to break an import.
+    """
+    try:
+        # pylint: disable=import-outside-toplevel
+        from sqlalchemy_continuum import versioning_manager
+
+        # Mirror the exact condition Continuum's track_association_operations
+        # listener uses to decide whether it acts (versioning OR
+        # native_versioning), so the prime can't skip while the listener runs.
+        options = versioning_manager.options
+        if options.get("versioning") or options.get("native_versioning"):
+            versioning_manager.unit_of_work(db.session)
+    except Exception:  # pylint: disable=broad-except
+        logger.warning(
+            "versioning: could not prime Continuum unit-of-work before a "
+            "bulk dashboard_slices insert; proceeding without it.",
+            exc_info=True,
         )
 
 
@@ -414,10 +446,10 @@ def find_existing_for_import(model_cls: type[Any], uuid: str) -> Any | None:
 
     **Canonical pattern — restore in place.** The dashboard importer
     (``superset/commands/dashboard/importers/v1/utils.py``) establishes
-    the reference handling: after validating permissions/ownership, clear
+    the reference handling: after validating permissions/editorship, clear
     ``deleted_at`` on the existing row (``existing.restore()``) and apply
     the config as an update, preserving the PK and all relationship rows
-    (junction tables, role grants, owners, tags) that a hard delete would
+    (junction tables, editor/viewer subjects, tags) that a hard delete would
     cascade away. Entity importers adopting soft delete should follow the
     same pattern so re-import semantics stay uniform across entities.
     :func:`clear_soft_deleted_for_import` (hard-delete-and-replace) is the

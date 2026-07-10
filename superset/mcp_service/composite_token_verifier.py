@@ -114,7 +114,7 @@ class CompositeTokenVerifier(TokenVerifier):
         self._api_key_prefixes = tuple(valid)
 
     def _validate_api_key_sync(self, token: str) -> str | None:
-        """Validate an API key against FAB and return the owner's username.
+        """Validate an API key against FAB and return the user's username.
 
         Runs synchronously inside a thread executor. Pushes a fresh Flask
         app context so that FAB's SecurityManager can access the database.
