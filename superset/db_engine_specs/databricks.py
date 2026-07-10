@@ -17,7 +17,9 @@
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime
+from re import Pattern
 from typing import Any, Callable, cast, TYPE_CHECKING, TypedDict, Union
 
 from apispec import APISpec
@@ -55,6 +57,10 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+INSUFFICIENT_PERMISSIONS_REGEX: Pattern[str] = re.compile(
+    r"\[INSUFFICIENT_PERMISSIONS\]|SQLSTATE: 42501"
+)
 
 
 try:
@@ -500,6 +506,16 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
 
         for key, value in cls.context_key_mapping.items():
             context[key] = context.get(value)
+
+        if INSUFFICIENT_PERMISSIONS_REGEX.search(raw_message):
+            return [
+                SupersetError(
+                    error_type=SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
+                    message=raw_message,
+                    level=ErrorLevel.WARNING,
+                    extra={"engine_name": cls.engine_name},
+                )
+            ]
 
         db_engine_custom_errors = cls.get_database_custom_errors(database_name)
         if not isinstance(db_engine_custom_errors, dict):

@@ -235,6 +235,36 @@ def test_extract_errors_with_context() -> None:
     ]
 
 
+def test_extract_errors_insufficient_permissions() -> None:
+    """
+    Test that Databricks catalog/schema permission errors are classified as
+    a client-side, warning-level error instead of a generic server error.
+    """
+
+    msg = (
+        "[INSUFFICIENT_PERMISSIONS] Insufficient privileges: User does not "
+        "have USE CATALOG on Catalog 'platform_production'. SQLSTATE: 42501."
+    )
+    result = DatabricksNativeEngineSpec.extract_errors(Exception(msg))
+
+    assert result == [
+        SupersetError(
+            message=msg,
+            error_type=SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
+            level=ErrorLevel.WARNING,
+            extra={
+                "engine_name": "Databricks (legacy)",
+                "issue_codes": [
+                    {
+                        "code": 1017,
+                        "message": "Issue 1017 - User doesn't have the proper permissions.",  # noqa: E501
+                    }
+                ],
+            },
+        )
+    ]
+
+
 @pytest.mark.parametrize(
     "target_type,expected_result",
     [
