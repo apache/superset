@@ -62,6 +62,8 @@ def _find_dashboard_by_identifier(identifier: int | str) -> Any | None:
 
 
 def _rollback() -> None:
+    """Best-effort session rollback so a failed delete cannot poison the
+    request's transaction; rollback failures are logged, not raised."""
     from superset import db
 
     try:
@@ -114,7 +116,16 @@ async def delete_dashboard(
     """
     await ctx.info("Deleting dashboard: identifier=%s" % (request.identifier,))
 
-    dashboard = _find_dashboard_by_identifier(request.identifier)
+    try:
+        dashboard = _find_dashboard_by_identifier(request.identifier)
+    except SQLAlchemyError:
+        _rollback()
+        logger.exception("Dashboard lookup failed during delete_dashboard")
+        return DeleteDashboardResponse(
+            success=False,
+            error="Dashboard lookup failed due to a database error.",
+            error_type="LookupFailed",
+        )
     if not dashboard:
         safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
         msg = (
@@ -126,63 +137,74 @@ async def delete_dashboard(
     dashboard_id = dashboard.id
     dashboard_name = dashboard.dashboard_title
 
-    try:
-        from superset.commands.dashboard.delete import DeleteDashboardCommand
+    # The try/except sits inside log_context so failed attempts (forbidden,
+    # reports-exist, db errors) are recorded in the audit log too — the
+    # context manager does not log when an exception propagates through it.
+    with event_logger.log_context(action="mcp.delete_dashboard"):
+        try:
+            from superset.commands.dashboard.delete import DeleteDashboardCommand
 
-        with event_logger.log_context(action="mcp.delete_dashboard"):
             DeleteDashboardCommand([dashboard_id]).run()
 
-        soft_deleted = _routes_to_soft_delete()
-        if soft_deleted:
-            message = (
-                f"Moved dashboard '{dashboard_name}' (id={dashboard_id}) to "
-                "trash; it can be restored by an owner or Admin. Its charts "
-                "were not deleted."
+            soft_deleted = _routes_to_soft_delete()
+            if soft_deleted:
+                message = (
+                    f"Moved dashboard '{dashboard_name}' (id={dashboard_id}) to "
+                    "trash; it can be restored by an owner or Admin. Its charts "
+                    "were not deleted."
+                )
+            else:
+                message = (
+                    f"Permanently deleted dashboard '{dashboard_name}' "
+                    f"(id={dashboard_id}). Its charts were not deleted."
+                )
+            return DeleteDashboardResponse(
+                success=True,
+                deleted_id=dashboard_id,
+                deleted_name=dashboard_name,
+                soft_deleted=soft_deleted,
+                message=message,
             )
-        else:
-            message = (
-                f"Permanently deleted dashboard '{dashboard_name}' "
-                f"(id={dashboard_id}). Its charts were not deleted."
+        except DashboardForbiddenError:
+            await ctx.warning(
+                "Permission denied deleting dashboard id=%s" % (dashboard_id,)
             )
-        return DeleteDashboardResponse(
-            success=True,
-            deleted_id=dashboard_id,
-            deleted_name=dashboard_name,
-            soft_deleted=soft_deleted,
-            message=message,
-        )
-    except DashboardForbiddenError:
-        await ctx.warning(
-            "Permission denied deleting dashboard id=%s" % (dashboard_id,)
-        )
-        return DeleteDashboardResponse(
-            success=False,
-            permission_denied=True,
-            error=(
-                f"You do not have permission to delete dashboard "
-                f"'{dashboard_name}' (id={dashboard_id}). Ask the user to delete "
-                "it or grant access; do not retry."
-            ),
-            error_type="Forbidden",
-        )
-    except DashboardDeleteFailedReportsExistError as ex:
-        _rollback()
-        return DeleteDashboardResponse(
-            success=False,
-            error=(
-                f"Dashboard '{dashboard_name}' (id={dashboard_id}) cannot be "
-                f"deleted: {ex}. Remove the associated alerts/reports first."
-            ),
-            error_type="ReportsExist",
-        )
-    except DashboardNotFoundError:
-        msg = f"Dashboard id={dashboard_id} no longer exists."
-        return DeleteDashboardResponse(success=False, error=msg, error_type="NotFound")
-    except (CommandException, SQLAlchemyError, ValueError) as ex:
-        _rollback()
-        await ctx.error("Dashboard delete failed: %s: %s" % (type(ex).__name__, ex))
-        return DeleteDashboardResponse(
-            success=False,
-            error=f"Dashboard delete failed: {ex}",
-            error_type=type(ex).__name__,
-        )
+            return DeleteDashboardResponse(
+                success=False,
+                permission_denied=True,
+                error=(
+                    f"You do not have permission to delete dashboard "
+                    f"'{dashboard_name}' (id={dashboard_id}). Ask the user to "
+                    "delete it or grant access; do not retry."
+                ),
+                error_type="Forbidden",
+            )
+        except DashboardDeleteFailedReportsExistError as ex:
+            _rollback()
+            return DeleteDashboardResponse(
+                success=False,
+                error=(
+                    f"Dashboard '{dashboard_name}' (id={dashboard_id}) cannot be "
+                    f"deleted: {ex}. Remove the associated alerts/reports first."
+                ),
+                error_type="ReportsExist",
+            )
+        except DashboardNotFoundError:
+            msg = f"Dashboard id={dashboard_id} no longer exists."
+            return DeleteDashboardResponse(
+                success=False, error=msg, error_type="NotFound"
+            )
+        except (CommandException, SQLAlchemyError, ValueError) as ex:
+            _rollback()
+            await ctx.error("Dashboard delete failed: %s: %s" % (type(ex).__name__, ex))
+            # Raw SQLAlchemy text can leak SQL or connection details; command
+            # and validation messages are user-facing by design.
+            if isinstance(ex, SQLAlchemyError):
+                client_error = "Dashboard delete failed due to a database error."
+            else:
+                client_error = f"Dashboard delete failed: {ex}"
+            return DeleteDashboardResponse(
+                success=False,
+                error=client_error,
+                error_type=type(ex).__name__,
+            )

@@ -37,11 +37,13 @@ _FLAG = "superset.mcp_service.dashboard.tool.delete_dashboard.is_feature_enabled
 
 @pytest.fixture
 def mcp_server() -> object:
+    """Provide the FastMCP app instance under test."""
     return mcp
 
 
 @pytest.fixture(autouse=True)
 def mock_auth():
+    """Authenticate every tool call as a mock admin user."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
         mock_user = Mock()
         mock_user.id = 1
@@ -51,6 +53,7 @@ def mock_auth():
 
 
 def _mock_dashboard(dashboard_id: int = 1, title: str = "Sales Dashboard") -> Mock:
+    """Build a minimal dashboard stand-in with the attributes the tool reads."""
     dashboard = Mock()
     dashboard.id = dashboard_id
     dashboard.dashboard_title = title
@@ -92,6 +95,7 @@ async def test_delete_dashboard_success(
     assert content["deleted_id"] == 1
     assert content["deleted_name"] == "Sales Dashboard"
     assert content["permission_denied"] is False
+    assert "Its charts were not deleted" in (content["message"] or "")
     mock_run.assert_called_once()
 
 
@@ -187,3 +191,42 @@ async def test_delete_dashboard_blocked_by_reports(
     assert content["success"] is False
     assert content["permission_denied"] is False
     assert "report" in (content["error"] or "").lower()
+
+
+@patch(_RUN)
+@patch(_FIND)
+@pytest.mark.asyncio
+async def test_delete_dashboard_sqlalchemy_error_is_generic(
+    mock_find: Mock, mock_run: Mock, mcp_server: object
+) -> None:
+    """Raw SQLAlchemy text (SQL, connection details) must not reach the client."""
+    from sqlalchemy.exc import OperationalError
+
+    mock_find.return_value = _mock_dashboard(1, "Sales Dashboard")
+    mock_run.side_effect = OperationalError(
+        "DELETE FROM dashboards WHERE id = 1", {}, Exception("secret-host refused")
+    )
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "delete_dashboard", {"request": {"identifier": 1}}
+        )
+
+    content = result.structured_content
+    assert content["success"] is False
+    assert content["error"] == "Dashboard delete failed due to a database error."
+    assert "secret-host" not in (content["error"] or "")
+
+
+@pytest.mark.asyncio
+async def test_delete_dashboard_rejects_boolean_identifier(
+    mcp_server: object,
+) -> None:
+    """bool subclasses int; identifier=true must not coerce to dashboard ID 1."""
+    from fastmcp.exceptions import ToolError
+
+    async with Client(mcp_server) as client:
+        with pytest.raises(ToolError):
+            await client.call_tool(
+                "delete_dashboard", {"request": {"identifier": True}}
+            )

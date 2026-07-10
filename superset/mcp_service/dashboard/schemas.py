@@ -1801,6 +1801,15 @@ class DeleteDashboardRequest(BaseModel):
         description="Dashboard identifier - numeric ID, UUID string, or slug.",
     )
 
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so identifier=true would coerce to
+        dashboard ID 1 and delete the wrong object; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID, UUID, or slug string")
+        return value
+
 
 class DeleteDashboardResponse(BaseModel):
     """Result of a delete_dashboard operation."""
