@@ -832,17 +832,24 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
           // Semantic view: show edit and delete buttons
           if (isSemanticView) {
-            if ((!canEdit && !canDelete) || !allowEdit) return null;
+            if (!canEdit && !canDelete) return null;
             return (
               <Actions className="actions">
                 {canDelete && (
                   <Tooltip
                     id="delete-action-tooltip"
-                    title={t('Delete')}
+                    title={
+                      allowEdit
+                        ? t('Delete')
+                        : t(
+                            'You must be a dataset editor in order to delete. Please reach out to a dataset editor to request modifications or edit access.',
+                          )
+                    }
                     placement="bottom"
                   >
                     <IconButton
                       data-test="dataset-row-delete"
+                      disabled={!allowEdit}
                       onClick={() => handleSemanticViewDelete(original)}
                       onKeyDown={handleKeyboardActivation(() =>
                         handleSemanticViewDelete(original),
@@ -854,11 +861,18 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 {canEdit && (
                   <Tooltip
                     id="edit-action-tooltip"
-                    title={t('Edit')}
+                    title={
+                      allowEdit
+                        ? t('Edit')
+                        : t(
+                            'You must be a dataset editor in order to edit. Please reach out to a dataset editor to request modifications or edit access.',
+                          )
+                    }
                     placement="bottom"
                   >
                     <IconButton
                       data-test="dataset-row-edit"
+                      disabled={!allowEdit}
                       onClick={() => setSvCurrentlyEditing(original)}
                       onKeyDown={handleKeyboardActivation(() =>
                         setSvCurrentlyEditing(original),
