@@ -49,7 +49,7 @@ from superset.mcp_service.chart.schemas import (
     TableChartConfig,
     XYChartConfig,
 )
-from superset.utils.core import FilterOperator, GenericDataType
+from superset.utils.core import ColumnSpec, FilterOperator, GenericDataType
 
 
 class TestGetTableChartTypeLabel:
@@ -961,7 +961,6 @@ class TestMapConfigToFormData:
         must share a single dataset lookup rather than each re-querying
         DatasetDAO for the same dataset_id (mirrors the dedup fix applied to
         map_big_number_config's _resolve_big_number_temporal_column)."""
-        from superset.utils.core import ColumnSpec
 
         mock_column = MagicMock()
         mock_column.column_name = "order_date"
@@ -1424,10 +1423,6 @@ class TestIsColumnTrulyTemporal:
         generic_type: GenericDataType,
     ):
         """Helper to create a mock dataset with proper db_engine_spec"""
-        from unittest.mock import MagicMock
-
-        from superset.utils.core import ColumnSpec
-
         mock_column = MagicMock()
         mock_column.column_name = column_name
         mock_column.type = column_type

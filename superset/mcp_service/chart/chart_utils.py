@@ -25,7 +25,10 @@ generation that can be used by both generate_chart and generate_explore_link too
 import hashlib
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any, Dict, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from superset.connectors.sqla.models import SqlaTable
 
 from superset.constants import NO_TIME_RANGE
 from superset.mcp_service.chart.schemas import (
@@ -266,7 +269,7 @@ def generate_explore_link(
         return f"{base_url}/explore/?datasource_type=table&datasource_id={dataset_id}"
 
 
-def _find_dataset_by_id_or_uuid(dataset_id: int | str | None) -> Any | None:
+def _find_dataset_by_id_or_uuid(dataset_id: int | str | None) -> "SqlaTable | None":
     """Look up a dataset by numeric ID or UUID string.
 
     Shared by callers that resolve a dataset from the ``dataset_id | str | None``
@@ -278,7 +281,7 @@ def _find_dataset_by_id_or_uuid(dataset_id: int | str | None) -> Any | None:
     """
     if not dataset_id:
         return None
-    from superset.daos.dataset import DatasetDAO
+    from superset.daos.dataset import DatasetDAO  # avoid circular import
 
     return DatasetDAO.find_by_id_or_uuid(str(dataset_id))
 
@@ -286,7 +289,7 @@ def _find_dataset_by_id_or_uuid(dataset_id: int | str | None) -> Any | None:
 def is_column_truly_temporal(
     column_name: str,
     dataset_id: int | str | None,
-    dataset: Any | None = None,
+    dataset: "SqlaTable | None" = None,
 ) -> bool:
     """
     Check if a column is truly temporal based on its SQL data type.
@@ -734,7 +737,7 @@ def _ensure_temporal_adhoc_filter(form_data: Dict[str, Any], column: str) -> Non
 
 def _resolve_default_x_axis(
     config: XYChartConfig, dataset_id: int | str | None
-) -> tuple[XYChartConfig, Any | None]:
+) -> tuple[XYChartConfig, "SqlaTable | None"]:
     """Resolve x-axis to the dataset's main_dttm_col when x is omitted.
 
     Returns the (possibly updated) config alongside the dataset fetched while
