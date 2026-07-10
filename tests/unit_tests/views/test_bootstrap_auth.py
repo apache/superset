@@ -135,6 +135,27 @@ def test_recaptcha_shown_for_non_federated_auth(
     assert payload["conf"]["RECAPTCHA_PUBLIC_KEY"] == "test-key"
 
 
+@pytest.mark.parametrize(
+    "auth_type",
+    [AUTH_DB, AUTH_LDAP],
+)
+def test_bootstrap_does_not_crash_without_recaptcha_key(
+    app_context: None,
+    auth_type: int,
+) -> None:
+    """Missing RECAPTCHA_PUBLIC_KEY must not crash bootstrap (#37008/#39364)."""
+    from flask import current_app
+
+    current_app.config["AUTH_TYPE"] = auth_type
+    current_app.config["AUTH_USER_REGISTRATION"] = True
+    current_app.config["AUTH_USER_REGISTRATION_ROLE"] = "Public"
+    current_app.config.pop("RECAPTCHA_PUBLIC_KEY", None)
+
+    payload = _get_bootstrap()
+
+    assert "RECAPTCHA_PUBLIC_KEY" not in payload["conf"]
+
+
 # --- language_pack injection --------------------------------------------
 #
 # The Jed pack is injected by `common_bootstrap_payload` (outside the
