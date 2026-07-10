@@ -89,7 +89,11 @@ jobs:
       # in the context of push (using multi-platform build), we need to pull the image locally
       - name: Docker pull
         if: github.event_name == 'push' && (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker)
-        run: docker pull $IMAGE_TAG
+        run: |
+          for i in 1 2 3; do
+            docker pull $IMAGE_TAG && break
+            [ $i -lt 3 ] && sleep 30
+          done
 
       - name: Print docker stats
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
