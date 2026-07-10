@@ -26,6 +26,7 @@ from unittest.mock import call, MagicMock, Mock, patch
 
 import pytest
 from fastmcp import Client, FastMCP
+from fastmcp.exceptions import ToolError
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
@@ -309,3 +310,236 @@ async def test_list_metrics_pagination_is_stable(mcp_server: FastMCP) -> None:
 
     assert data_1["metrics"][0]["name"] == "aaa_metric"
     assert data_2["metrics"][0]["name"] == "zzz_metric"
+
+
+@pytest.mark.asyncio
+async def test_list_metrics_search_no_match_returns_empty(mcp_server: FastMCP) -> None:
+    """A search term that matches nothing returns an empty (not error) result."""
+    mock_ds = _make_dataset(1)
+
+    with (
+        patch.object(list_metrics_module, "DatasetDAO") as mock_dao,
+        patch.object(list_metrics_module, "SemanticViewDAO") as mock_view_dao,
+        patch.object(list_metrics_module, "db") as mock_db,
+    ):
+        mock_view_dao.find_accessible.return_value = []
+        mock_query: MagicMock = MagicMock()
+        mock_db.session.query.return_value.options.return_value = mock_query
+        mock_dao._apply_base_filter.return_value = mock_query
+        mock_query.all.return_value = [mock_ds]
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "list_metrics",
+                {"request": {"search": "no_such_metric_anywhere"}},
+            )
+        data = json.loads(result.content[0].text)
+
+    assert data["success"] is True
+    assert data["metrics"] == []
+    assert data["total_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_list_metrics_nonexistent_dataset_id_returns_empty(
+    mcp_server: FastMCP,
+) -> None:
+    """A dataset_id that doesn't resolve to a dataset returns an empty result.
+
+    The tool degrades gracefully (empty list) rather than raising NotFound,
+    since dataset_id here is a scoping filter, not a required lookup key.
+    """
+    with patch.object(list_metrics_module, "DatasetDAO") as mock_dao:
+        mock_dao.find_by_id.return_value = None
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "list_metrics",
+                {"request": {"dataset_id": 999999}},
+            )
+        data = json.loads(result.content[0].text)
+
+    assert data["success"] is True
+    assert data["metrics"] == []
+    assert data["total_count"] == 0
+    mock_dao.find_by_id.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_list_metrics_nonexistent_view_id_returns_empty(
+    mcp_server: FastMCP,
+) -> None:
+    """A view_id that doesn't resolve to a view returns an empty result."""
+    with patch.object(list_metrics_module, "SemanticViewDAO") as mock_view_dao:
+        mock_view_dao.find_by_id.return_value = None
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "list_metrics",
+                {"request": {"view_id": 999999}},
+            )
+        data = json.loads(result.content[0].text)
+
+    assert data["success"] is True
+    assert data["metrics"] == []
+    assert data["total_count"] == 0
+    mock_view_dao.find_by_id.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_list_metrics_search_unicode_matches(mcp_server: FastMCP) -> None:
+    """Unicode search strings match against unicode descriptions correctly."""
+    mock_ds = _make_dataset(1)
+    mock_ds.metrics[1].description = "café blend revenue – daily"
+
+    with (
+        patch.object(list_metrics_module, "DatasetDAO") as mock_dao,
+        patch.object(list_metrics_module, "SemanticViewDAO") as mock_view_dao,
+        patch.object(list_metrics_module, "db") as mock_db,
+    ):
+        mock_view_dao.find_accessible.return_value = []
+        mock_query: MagicMock = MagicMock()
+        mock_db.session.query.return_value.options.return_value = mock_query
+        mock_dao._apply_base_filter.return_value = mock_query
+        mock_query.all.return_value = [mock_ds]
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "list_metrics",
+                {"request": {"search": "café"}},
+            )
+        data = json.loads(result.content[0].text)
+
+    assert data["success"] is True
+    metrics = data["metrics"]
+    assert len(metrics) == 1
+    assert metrics[0]["name"] == "revenue"
+
+
+@pytest.mark.asyncio
+async def test_list_metrics_search_special_characters_no_crash(
+    mcp_server: FastMCP,
+) -> None:
+    """Search strings with regex-special characters are treated as plain text."""
+    mock_ds = _make_dataset(1)
+
+    with (
+        patch.object(list_metrics_module, "DatasetDAO") as mock_dao,
+        patch.object(list_metrics_module, "SemanticViewDAO") as mock_view_dao,
+        patch.object(list_metrics_module, "db") as mock_db,
+    ):
+        mock_view_dao.find_accessible.return_value = []
+        mock_query: MagicMock = MagicMock()
+        mock_db.session.query.return_value.options.return_value = mock_query
+        mock_dao._apply_base_filter.return_value = mock_query
+        mock_query.all.return_value = [mock_ds]
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "list_metrics",
+                {"request": {"search": "rev$enue%^&*()[.*]"}},
+            )
+        data = json.loads(result.content[0].text)
+
+    assert data["success"] is True
+    assert data["metrics"] == []
+    assert data["total_count"] == 0
+
+
+# ---------------------------------------------------------------------------
+# Pagination edge cases
+#
+# list_metrics hand-rolls its own pagination (list slicing) instead of using
+# ModelListCore, but the request schema still enforces page >= 1 and
+# 1 <= page_size <= 500 (superset/mcp_service/semantic_layer/schemas.py).
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_list_metrics_page_zero_rejected(mcp_server: FastMCP) -> None:
+    """page must be >= 1; page=0 is rejected before the tool body runs."""
+    async with Client(mcp_server) as client:
+        with pytest.raises(ToolError, match="greater than or equal to 1"):
+            await client.call_tool("list_metrics", {"request": {"page": 0}})
+
+
+@pytest.mark.asyncio
+async def test_list_metrics_negative_page_rejected(mcp_server: FastMCP) -> None:
+    """Negative page numbers are rejected the same way as page=0."""
+    async with Client(mcp_server) as client:
+        with pytest.raises(ToolError, match="greater than or equal to 1"):
+            await client.call_tool("list_metrics", {"request": {"page": -1}})
+
+
+@pytest.mark.asyncio
+async def test_list_metrics_page_size_zero_rejected(mcp_server: FastMCP) -> None:
+    """page_size must be >= 1; page_size=0 is rejected before the tool body
+    runs, surfacing as a structured ToolError rather than a raw 500."""
+    async with Client(mcp_server) as client:
+        with pytest.raises(ToolError, match="greater than or equal to 1"):
+            await client.call_tool("list_metrics", {"request": {"page_size": 0}})
+
+
+@pytest.mark.asyncio
+async def test_list_metrics_page_size_over_max_rejected(mcp_server: FastMCP) -> None:
+    """page_size above the 500 ceiling is rejected, not silently clamped."""
+    async with Client(mcp_server) as client:
+        with pytest.raises(ToolError, match="less than or equal to 500"):
+            await client.call_tool("list_metrics", {"request": {"page_size": 501}})
+
+
+@pytest.mark.asyncio
+async def test_list_metrics_page_size_at_max_accepted(mcp_server: FastMCP) -> None:
+    """page_size == 500 (the max) is accepted and echoed back."""
+    mock_ds = _make_dataset(42)
+
+    with (
+        patch.object(list_metrics_module, "DatasetDAO") as mock_dao,
+        patch.object(list_metrics_module, "SemanticViewDAO") as mock_view_dao,
+    ):
+        mock_dao.find_by_id.return_value = mock_ds
+        mock_view_dao.find_accessible.return_value = []
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "list_metrics",
+                {"request": {"dataset_id": 42, "page_size": 500}},
+            )
+        data = json.loads(result.content[0].text)
+
+    assert data["success"] is True
+    assert data["page_size"] == 500
+    assert data["total_count"] == 2
+
+
+@pytest.mark.asyncio
+async def test_list_metrics_page_beyond_last_page_returns_empty(
+    mcp_server: FastMCP,
+) -> None:
+    """Requesting a page past the end returns an empty page, not an error.
+
+    Unlike the ModelListCore-backed list tools, MetricList has no
+    has_next/has_previous fields — only metrics, total_count, page,
+    page_size, and total_pages.
+    """
+    mock_ds = _make_dataset(42)
+
+    with (
+        patch.object(list_metrics_module, "DatasetDAO") as mock_dao,
+        patch.object(list_metrics_module, "SemanticViewDAO") as mock_view_dao,
+    ):
+        mock_dao.find_by_id.return_value = mock_ds
+        mock_view_dao.find_accessible.return_value = []
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "list_metrics",
+                {"request": {"dataset_id": 42, "page": 9999, "page_size": 50}},
+            )
+        data = json.loads(result.content[0].text)
+
+    assert data["success"] is True
+    assert data["metrics"] == []
+    assert data["total_count"] == 2
+    assert data["page"] == 9999
+    assert data["total_pages"] == 1

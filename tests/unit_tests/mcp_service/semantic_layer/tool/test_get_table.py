@@ -297,3 +297,227 @@ async def test_get_table_external_time_range_without_dttm_validation_error(
     assert data["success"] is False
     assert data["error_type"] == "ValidationError"
     assert "no datetime dimension" in data["message"]
+
+
+@pytest.mark.asyncio
+async def test_get_table_dataset_not_found(mcp_server: FastMCP) -> None:
+    """get_table returns NotFound when dataset_id doesn't resolve to a dataset."""
+    with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=None):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {"request": {"dataset_id": 999999, "metrics": ["revenue"]}},
+            )
+        data = json.loads(result.content[0].text)
+
+    assert data["success"] is False
+    assert data["error_type"] == "NotFound"
+    assert "999999" in data["message"]
+
+
+@pytest.mark.asyncio
+async def test_get_table_view_not_found(mcp_server: FastMCP) -> None:
+    """get_table returns NotFound when view_id doesn't resolve to a view."""
+    with patch(
+        "superset.daos.semantic_layer.SemanticViewDAO.find_by_id",
+        return_value=None,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {"request": {"view_id": 999999, "metrics": ["bookings"]}},
+            )
+        data = json.loads(result.content[0].text)
+
+    assert data["success"] is False
+    assert data["error_type"] == "NotFound"
+    assert "999999" in data["message"]
+
+
+@pytest.mark.asyncio
+async def test_get_table_invalid_filter_column_validation_error(
+    mcp_server: FastMCP,
+) -> None:
+    """get_table errors when a filter references an unknown column."""
+    mock_ds = _make_dataset(42)
+
+    with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "dataset_id": 42,
+                        "metrics": ["revenue"],
+                        "filters": [{"col": "bogus_col", "op": "==", "val": "x"}],
+                    }
+                },
+            )
+        data = json.loads(result.content[0].text)
+
+    assert data["success"] is False
+    assert data["error_type"] == "ValidationError"
+    assert "Unknown filter column: 'bogus_col'" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_get_table_invalid_order_by_validation_error(
+    mcp_server: FastMCP,
+) -> None:
+    """get_table errors when order_by references an unknown column/metric."""
+    mock_ds = _make_dataset(42)
+
+    with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "dataset_id": 42,
+                        "metrics": ["revenue"],
+                        "order_by": ["bogus_order_col"],
+                    }
+                },
+            )
+        data = json.loads(result.content[0].text)
+
+    assert data["success"] is False
+    assert data["error_type"] == "ValidationError"
+    assert "Unknown order_by: 'bogus_order_col'" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_get_table_unknown_filter_operator_passes_through(
+    mcp_server: FastMCP,
+) -> None:
+    """An operator string outside the documented set is not schema-validated.
+
+    ``GetTableFilter.op`` is a plain ``str`` field (not a Literal/Enum), so
+    the tool does not reject unrecognized operator values itself -- it
+    forwards them verbatim to the query layer, which is responsible for
+    interpreting/rejecting them.
+    """
+    mock_ds = _make_dataset(42)
+    query_result = {
+        "queries": [
+            {
+                "data": [{"region": "west", "revenue": 100}],
+                "colnames": ["region", "revenue"],
+                "rowcount": 1,
+            }
+        ]
+    }
+
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as mock_command_cls,
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory"
+        ) as mock_factory_cls,
+    ):
+        mock_command_cls.return_value.run.return_value = query_result
+        mock_factory_cls.return_value.create.return_value = MagicMock()
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "dataset_id": 42,
+                        "metrics": ["revenue"],
+                        "filters": [
+                            {"col": "region", "op": "TOTALLY_BOGUS_OP", "val": "x"}
+                        ],
+                    }
+                },
+            )
+        data = json.loads(result.content[0].text)
+
+        create_kwargs = mock_factory_cls.return_value.create.call_args.kwargs
+        forwarded_filters = create_kwargs["queries"][0]["filters"]
+
+    assert data["success"] is True
+    assert {"col": "region", "op": "TOTALLY_BOGUS_OP", "val": "x"} in forwarded_filters
+
+
+@pytest.mark.asyncio
+async def test_get_table_unicode_filter_value_passes_through(
+    mcp_server: FastMCP,
+) -> None:
+    """Unicode filter values are forwarded to the query layer unmodified."""
+    mock_ds = _make_dataset(42)
+    query_result = {
+        "queries": [
+            {
+                "data": [{"region": "west", "revenue": 100}],
+                "colnames": ["region", "revenue"],
+                "rowcount": 1,
+            }
+        ]
+    }
+    unicode_val = "日本語 café €"
+
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as mock_command_cls,
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory"
+        ) as mock_factory_cls,
+    ):
+        mock_command_cls.return_value.run.return_value = query_result
+        mock_factory_cls.return_value.create.return_value = MagicMock()
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "dataset_id": 42,
+                        "metrics": ["revenue"],
+                        "filters": [{"col": "region", "op": "==", "val": unicode_val}],
+                    }
+                },
+            )
+        data = json.loads(result.content[0].text)
+
+        create_kwargs = mock_factory_cls.return_value.create.call_args.kwargs
+        forwarded_filters = create_kwargs["queries"][0]["filters"]
+
+    assert data["success"] is True
+    assert {"col": "region", "op": "==", "val": unicode_val} in forwarded_filters
+
+
+@pytest.mark.asyncio
+async def test_get_table_builtin_time_range_without_configured_dttm_validation_error(
+    mcp_server: FastMCP,
+) -> None:
+    """get_table rejects time_range on a builtin dataset with no main_dttm_col.
+
+    Mirrors the external-view "no datetime dimension" case, but for the
+    builtin path where the datetime column is inferred from
+    ``dataset.main_dttm_col`` instead of scanning columns.
+    """
+    mock_ds = _make_dataset(42)
+    mock_ds.main_dttm_col = None
+
+    with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "dataset_id": 42,
+                        "metrics": ["revenue"],
+                        "time_range": "Last 7 days",
+                    }
+                },
+            )
+        data = json.loads(result.content[0].text)
+
+    assert data["success"] is False
+    assert data["error_type"] == "ValidationError"
+    assert "no temporal column is configured" in data["message"]
