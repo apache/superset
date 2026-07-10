@@ -90,6 +90,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     filter: list[QueryObjectFilterClause]
     from_dttm: datetime | None
     granularity: str | None
+    grouping_sets: list[list[str]]
     inner_from_dttm: datetime | None
     inner_to_dttm: datetime | None
     is_rowcount: bool

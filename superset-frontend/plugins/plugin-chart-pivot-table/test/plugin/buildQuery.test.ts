@@ -88,7 +88,7 @@ test('non-additive metrics emit a single GROUPING SETS query with all levels', (
 
 test('should build groupby with series in form data', () => {
   const queryContext = buildQuery(formData);
-  // Multi-query rollup: the full-detail level is the last query (grand total is first).
+  // Single GROUPING SETS query: the sole query carries the full column set.
   const query = queryContext.queries[queryContext.queries.length - 1];
   expect(query.columns).toEqual([
     {
@@ -111,7 +111,7 @@ test('should work with old charts', () => {
     granularity_sqla: 'col1',
   };
   const queryContext = buildQuery(modifiedFormData);
-  // Multi-query rollup: the full-detail level is the last query (grand total is first).
+  // Single GROUPING SETS query: the sole query carries the full column set.
   const query = queryContext.queries[queryContext.queries.length - 1];
   expect(query.columns).toEqual([
     {
@@ -133,7 +133,7 @@ test('should prefer extra_form_data.time_grain_sqla over formData.time_grain_sql
     extra_form_data: { time_grain_sqla: TimeGranularity.QUARTER },
   };
   const queryContext = buildQuery(modifiedFormData);
-  // Multi-query rollup: the full-detail level is the last query (grand total is first).
+  // Single GROUPING SETS query: the sole query carries the full column set.
   const query = queryContext.queries[queryContext.queries.length - 1];
   expect(query.columns?.[0]).toEqual({
     timeGrain: TimeGranularity.QUARTER,
@@ -146,7 +146,7 @@ test('should prefer extra_form_data.time_grain_sqla over formData.time_grain_sql
 
 test('should fallback to formData.time_grain_sqla if extra_form_data.time_grain_sqla is not set', () => {
   const queryContext = buildQuery(formData);
-  // Multi-query rollup: the full-detail level is the last query (grand total is first).
+  // Single GROUPING SETS query: the sole query carries the full column set.
   const query = queryContext.queries[queryContext.queries.length - 1];
   expect(query.columns?.[0]).toEqual({
     timeGrain: formData.time_grain_sqla,
@@ -163,7 +163,7 @@ test('should not omit extras.time_grain_sqla from queryContext so dashboards app
     extra_form_data: { time_grain_sqla: TimeGranularity.QUARTER },
   };
   const queryContext = buildQuery(modifiedFormData);
-  // Multi-query rollup: the full-detail level is the last query (grand total is first).
+  // Single GROUPING SETS query: the sole query carries the full column set.
   const query = queryContext.queries[queryContext.queries.length - 1];
   expect(query.extras?.time_grain_sqla).toEqual(TimeGranularity.QUARTER);
 });
