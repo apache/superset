@@ -20,7 +20,7 @@ MCP tool: delete_dashboard
 """
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING
 
 from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
@@ -44,10 +44,13 @@ from superset.mcp_service.utils import (
     sanitize_for_llm_context,
 )
 
+if TYPE_CHECKING:
+    from superset.models.dashboard import Dashboard
+
 logger = logging.getLogger(__name__)
 
 
-def _find_dashboard_by_identifier(identifier: int | str) -> Any | None:
+def _find_dashboard_by_identifier(identifier: int | str) -> "Dashboard | None":
     """Resolve a dashboard by numeric ID, UUID string, or slug. Returns None."""
     from superset.daos.dashboard import DashboardDAO
 
