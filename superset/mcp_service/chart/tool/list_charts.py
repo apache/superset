@@ -104,7 +104,7 @@ async def list_charts(
         list_charts(search="revenue", page=1)  # DO NOT DO THIS
 
     Valid filter columns for ``filters[].col``:
-        ``slice_name``, ``viz_type``, ``datasource_name``,
+        ``slice_name``, ``viz_type``, ``datasource_name``, ``editor``,
         ``created_by_fk``, ``changed_by_fk``, ``dashboards``
 
     Sortable columns for ``order_column``:

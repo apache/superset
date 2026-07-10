@@ -281,7 +281,7 @@ def _validate_update_request(
     annotations=ToolAnnotations(
         title="Update dashboard layout/theme/CSS/metadata",
         readOnlyHint=False,
-        destructiveHint=False,
+        destructiveHint=True,
     ),
 )
 def update_dashboard(

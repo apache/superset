@@ -172,6 +172,7 @@ def _get_chart_type_schema_impl(
 
 @tool(
     tags=["discovery"],
+    class_permission_name="Chart",
     annotations=ToolAnnotations(
         title="Get chart type schema",
         readOnlyHint=True,
