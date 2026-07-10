@@ -29,8 +29,8 @@ This module collects all those decorations:
   one pass: pulls tombstones + uuids + impact counts in batches, then
   walks records adding the synthesized fields and stripping the
   internal-only columns the API contract doesn't expose.
-* :func:`_lookup_entity_uuids` — one IN-clause query per kind to
-  resolve live ``uuid`` for non-tombstoned entities.
+* :func:`_lookup_entity_uuids` plus the historical UUID resolver — identify
+  the live entity and the incarnation valid at each record transaction.
 * :func:`_build_summary` — pure projection of (api_kind, record kind,
   entity_name) onto the headline string.
 * :func:`_changed_by_dict` — projects the user columns onto the
@@ -58,7 +58,10 @@ from superset.versioning.activity.kinds import (
     TABLE_KIND_TO_API,
     USER_FACING_KIND,
 )
-from superset.versioning.activity.queries import check_entity_tombstones
+from superset.versioning.activity.queries import (
+    check_entity_tombstones,
+    resolve_historical_entity_uuids,
+)
 from superset.versioning.queries import derive_version_uuid
 
 _SUMMARY_VERBS: dict[str, str] = {
@@ -106,7 +109,8 @@ def apply_record_decoration(
         if TABLE_KIND_TO_API.get(r["entity_kind"])
     }
     tombstones = check_entity_tombstones(distinct)
-    uuids = _lookup_entity_uuids(distinct, tombstones)
+    live_uuids = _lookup_entity_uuids(distinct, tombstones)
+    historical_uuids = resolve_historical_entity_uuids(records)
     # Pre-compute impact counts for the whole page in one batch query
     # instead of one COUNT per related record (was N+1).
     impact_counts = batch_chart_counts(
@@ -119,7 +123,20 @@ def apply_record_decoration(
         tombstone = tombstones.get(
             (api_kind, entity_id), {"deleted": True, "deletion_state": None}
         )
-        entity_uuid = uuids.get((api_kind, entity_id))
+        live_uuid = live_uuids.get((api_kind, entity_id))
+        historical_uuid = historical_uuids.get(
+            (api_kind, entity_id, record["transaction_id"])
+        )
+        reused_identity = (
+            live_uuid is not None
+            and historical_uuid is not None
+            and live_uuid != historical_uuid
+        )
+        entity_uuid = historical_uuid or live_uuid
+        if tombstone["deleted"] or reused_identity:
+            entity_uuid = None
+        if reused_identity:
+            tombstone = {"deleted": True, "deletion_state": None}
         is_self = api_kind == path_kind and entity_id == path_id
 
         # Emit the user-facing form ("dashboard"/"chart"/"dataset") on the

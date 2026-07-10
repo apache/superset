@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from heapq import heappush, heapreplace
 from typing import Any
 from uuid import UUID
 
@@ -59,6 +60,9 @@ from superset.versioning.activity.windows import row_within_any_window
 from superset.versioning.changes import version_changes_table
 
 logger = logging.getLogger(__name__)
+
+RecordSortKey = tuple[datetime, int, int, str, int]
+BoundedRecordHeap = list[tuple[RecordSortKey, int, dict[str, Any]]]
 
 # ---- Path-entity resolution -----------------------------------------------
 
@@ -193,7 +197,7 @@ def batch_datasets_used_by_charts(
     dashboard-scope walker doesn't fire one query per chart on the
     dashboard. The previous per-slice shape became O(n_charts) round-
     trips, which dominated ``get_activity`` latency on dashboards with
-    rich history (profile run 2026-05-26 showed `resolve_scope`
+    rich history (profiling showed `resolve_scope`
     accounting for ~1.9s out of 4s p95).
     """
     if not slice_ids:
@@ -283,9 +287,9 @@ def fetch_change_records(
     bounds how much history a single request materializes (to at most
     ``n_kinds * _MAX_FETCHED_RECORDS``); when a kind exhausts it, the
     second return value is ``True``, the returned stream is clamped to a
-    clean time cut (records older than the highest per-kind fetch floor
-    are dropped so truncation is a time boundary, not per-kind holes), and
-    the caller surfaces ``truncated`` on the response.
+    clean total-order cut (records below the highest per-kind fetch floor
+    are dropped so truncation does not create per-kind holes), and the caller
+    surfaces ``truncated`` on the response.
 
     Returns ``(records, truncated)``. Records are ordered by
     ``(issued_at DESC, transaction_id DESC, sequence DESC)`` — the
@@ -327,36 +331,30 @@ def fetch_change_records(
             bounds_by_kind[table_kind] = (lo, hi)
 
     rows, truncated, truncation_floor = _select_change_rows_for_kinds(
-        ids_by_kind, bounds_by_kind, since, until, _MAX_FETCHED_RECORDS
+        ids_by_kind,
+        bounds_by_kind,
+        windows_by_entity,
+        since,
+        until,
+        _MAX_FETCHED_RECORDS,
     )
-    filtered = [
-        row
-        for row in rows
-        if row_within_any_window(
-            row, windows_by_entity.get((row["entity_kind"], row["entity_id"]), [])
-        )
-    ]
+    filtered = rows
     if truncated and truncation_floor is not None:
-        # Collapse truncation to a clean time cut. Below the highest per-kind
-        # fetch floor at least one kind is missing rows, so surfacing the
-        # other kinds there would present an incomplete ("nothing else
-        # changed") picture. Drop everything older than the floor so
-        # ``truncated=True`` means "complete at/after this instant, nothing
-        # shown before it" — a time boundary rather than per-kind holes.
-        filtered = [r for r in filtered if r["issued_at"] >= truncation_floor]
+        # Collapse truncation to a clean cut in the same TOTAL order used by
+        # pagination. Below the highest per-kind fetch floor at least one kind
+        # is missing rows, so surfacing other kinds there would present an
+        # incomplete picture. A timestamp-only cut is insufficient because
+        # several transactions/records can share one issued_at instant.
+        filtered = [
+            row for row in filtered if _record_sort_key(row) >= truncation_floor
+        ]
     # Sort key must be TOTAL so pagination is stable across requests: two
     # records from different entities can share (issued_at, transaction_id,
     # sequence), so append (entity_kind, entity_id) to break remaining ties
     # deterministically. Without these the relative order of tied records
     # depends on set-iteration order and a record could shift pages.
     filtered.sort(
-        key=lambda r: (
-            r["issued_at"],
-            r["transaction_id"],
-            r["sequence"],
-            r["entity_kind"],
-            r["entity_id"],
-        ),
+        key=_record_sort_key,
         reverse=True,
     )
     return filtered, truncated
@@ -365,12 +363,14 @@ def fetch_change_records(
 def _select_change_rows_for_kinds(
     ids_by_kind: dict[str, set[int]],
     bounds_by_kind: dict[str, tuple[int, int | None]],
+    windows_by_entity: dict[tuple[str, int], list[Window]],
     since: datetime | None,
     until: datetime | None,
     limit: int,
-) -> tuple[list[dict[str, Any]], bool, datetime | None]:
-    """Fire one SELECT per entity_kind with ``entity_id IN (...)``;
-    concatenate the results. Each SELECT joins ``version_transaction``
+) -> tuple[list[dict[str, Any]], bool, RecordSortKey | None]:
+    """Fetch bounded candidates per entity kind and ID chunk.
+
+    Each SELECT uses ``entity_id IN (...)`` and joins ``version_transaction``
     + ``ab_user`` so the orchestrator has the columns it needs for
     decoration.
 
@@ -431,21 +431,18 @@ def _select_change_rows_for_kinds(
 
     out: list[dict[str, Any]] = []
     truncated = False
-    truncation_floors: list[datetime] = []
+    truncation_floors: list[RecordSortKey] = []
     for table_kind, entity_ids in ids_by_kind.items():
-        # The fetch budget is per KIND, not per id-chunk. A kind whose
-        # entity_ids span several bind-variable chunks shares one ``limit``
-        # across those chunks, so the rows a single request materializes are
-        # bounded by ``n_kinds * limit`` (<= 3 * _MAX_FETCHED_RECORDS), not
-        # ``n_chunks * limit``. ``entity_ids`` is chunked to stay inside
-        # SQLite's ``SQLITE_MAX_VARIABLE_NUMBER`` floor (default 999 in many
-        # builds); Postgres + MySQL accept the full list but the chunk is
-        # dialect-agnostic for simplicity.
-        kind_rows: list[dict[str, Any]] = []
-        for chunk in chunked_ids(entity_ids):
-            remaining = limit - len(kind_rows)
-            if remaining <= 0:
-                break
+        # Keep the global newest ``limit + 1`` rows for this kind in a
+        # min-heap. Every id chunk is queried, so an arbitrary early chunk
+        # cannot consume the budget and hide newer rows from a later chunk.
+        # Each chunk stops after its own newest ``limit + 1`` exact-window
+        # matches: anything below that point already has ``limit + 1`` rows
+        # from the same chunk ahead of it and therefore cannot enter the
+        # global top ``limit + 1``.
+        kind_heap: BoundedRecordHeap = []
+        ordinal = 0
+        for chunk in chunked_ids(sorted(entity_ids)):
             stmt = (
                 sa.select(*select_cols)
                 .select_from(join_tree)
@@ -465,39 +462,84 @@ def _select_change_rows_for_kinds(
                 stmt = stmt.where(tx_tbl.c.issued_at >= since)
             if until is not None:
                 stmt = stmt.where(tx_tbl.c.issued_at < until)
-            # Match fetch_change_records' final Python sort key order
-            # (issued_at, transaction_id, sequence, entity_id) so the
-            # per-kind budget keeps exactly the rows the final sort ranks
-            # highest. entity_kind is constant within a per-kind statement.
+            # Match fetch_change_records' final Python sort key order.
+            # entity_kind is constant within a per-kind statement.
             stmt = stmt.order_by(
                 tx_tbl.c.issued_at.desc(),
                 vc.c.transaction_id.desc(),
                 vc.c.sequence.desc(),
                 vc.c.entity_id.desc(),
-            ).limit(remaining)
-            kind_rows.extend(
-                dict(row)
-                for row in db.session.connection().execute(stmt).mappings().all()
             )
-        if len(kind_rows) >= limit:
-            # This kind exhausted its budget; older rows almost certainly
-            # exist beyond it. Record the oldest ``issued_at`` fetched for
-            # the kind so the caller can collapse truncation into a single
-            # clean time cut across all kinds (see fetch_change_records).
+            result = (
+                db.session.connection()
+                .execution_options(stream_results=True)
+                .execute(stmt)
+                .mappings()
+            )
+            ordinal = _merge_result_into_heap(
+                result, kind_heap, windows_by_entity, limit, ordinal
+            )
+
+        if len(kind_heap) > limit:
             truncated = True
-            truncation_floors.append(min(r["issued_at"] for r in kind_rows))
+            # Remove the oldest extra probe row. The oldest retained key is
+            # the complete boundary for this kind.
+            kind_heap.sort(key=lambda entry: entry[0], reverse=True)
+            kind_heap = kind_heap[:limit]
+            truncation_floors.append(kind_heap[-1][0])
+        kind_rows = [entry[2] for entry in kind_heap]
         out.extend(kind_rows)
     truncation_floor = max(truncation_floors) if truncation_floors else None
     return out, truncated, truncation_floor
 
 
+def _record_sort_key(record: dict[str, Any]) -> RecordSortKey:
+    """Return the total newest-first activity ordering key."""
+    return (
+        record["issued_at"],
+        record["transaction_id"],
+        record["sequence"],
+        record["entity_kind"],
+        record["entity_id"],
+    )
+
+
+def _merge_result_into_heap(
+    result: Any,
+    heap: BoundedRecordHeap,
+    windows_by_entity: dict[tuple[str, int], list[Window]],
+    limit: int,
+    ordinal: int,
+) -> int:
+    """Merge one ordered id-chunk result into a bounded per-kind heap."""
+    chunk_matches = 0
+    try:
+        for mapping in result:
+            row = dict(mapping)
+            windows = windows_by_entity.get((row["entity_kind"], row["entity_id"]), [])
+            if not row_within_any_window(row, windows):
+                continue
+            key = _record_sort_key(row)
+            entry = (key, ordinal, row)
+            ordinal += 1
+            if len(heap) < limit + 1:
+                heappush(heap, entry)
+            elif key > heap[0][0]:
+                heapreplace(heap, entry)
+            chunk_matches += 1
+            if chunk_matches >= limit + 1:
+                break
+    finally:
+        result.close()
+    return ordinal
+
+
 # Per-KIND safety ceiling on how many change rows a single activity request
-# will materialize for one entity kind (shared across that kind's id-chunks).
-# Bounds memory/CPU for a path entity with very long history or many related
-# entities to <= n_kinds * _MAX_FETCHED_RECORDS per request. When a kind
-# exhausts its budget the response is flagged ``truncated`` and the returned
-# stream is clamped to a clean time cut so clients see a complete window with
-# older records omitted, not per-kind holes.
+# will retain for one entity kind (shared across that kind's id-chunks).
+# Bounds application memory for a path entity with very long history or many
+# related entities to <= n_kinds * (_MAX_FETCHED_RECORDS + 1) per request.
+# When a kind exhausts its budget the response is flagged ``truncated`` and
+# the returned stream is clamped to a clean total-order cut.
 _MAX_FETCHED_RECORDS = 5000
 
 
@@ -635,6 +677,80 @@ def _resolve_names_for_kind(
                 # validity match) to "" so entity_name is never None.
                 resolved[(entity_id, target_tx)] = name if name is not None else ""
                 break
+    return resolved
+
+
+def _resolve_uuids_for_kind(
+    api_kind: str, pairs: set[tuple[int, int]]
+) -> dict[tuple[int, int], UUID]:
+    """Resolve the entity UUID valid at each target transaction."""
+    # pylint: disable=import-outside-toplevel
+    from sqlalchemy_continuum import version_class
+
+    if api_kind not in NAME_COLUMN or not pairs:
+        return {}
+
+    model_cls = load_live_model(NAME_COLUMN[api_kind][0])
+    shadow_tbl = version_class(model_cls).__table__
+    ids = {entity_id for entity_id, _ in pairs}
+    target_txs = {target_tx for _, target_tx in pairs}
+    min_tx, max_tx = min(target_txs), max(target_txs)
+    per_entity: dict[int, list[tuple[int, int | None, UUID | None]]] = {}
+    for chunk in chunked_ids(ids):
+        rows = (
+            db.session.connection()
+            .execute(
+                sa.select(
+                    shadow_tbl.c.id,
+                    shadow_tbl.c.transaction_id,
+                    shadow_tbl.c.end_transaction_id,
+                    shadow_tbl.c.uuid,
+                ).where(
+                    shadow_tbl.c.id.in_(chunk),
+                    shadow_tbl.c.transaction_id <= max_tx,
+                    sa.or_(
+                        shadow_tbl.c.end_transaction_id.is_(None),
+                        shadow_tbl.c.end_transaction_id > min_tx,
+                    ),
+                )
+            )
+            .all()
+        )
+        for row in rows:
+            per_entity.setdefault(row[0], []).append((row[1], row[2], row[3]))
+
+    resolved: dict[tuple[int, int], UUID] = {}
+    for entity_id, target_tx in pairs:
+        for start_tx, end_tx, entity_uuid in per_entity.get(entity_id, []):
+            if (
+                entity_uuid is not None
+                and start_tx <= target_tx
+                and (end_tx is None or end_tx > target_tx)
+            ):
+                resolved[(entity_id, target_tx)] = entity_uuid
+                break
+    return resolved
+
+
+def resolve_historical_entity_uuids(
+    records: list[dict[str, Any]],
+) -> dict[tuple[str, int, int], UUID]:
+    """Return UUIDs keyed by API kind, entity id, and record transaction."""
+    needed_by_kind: dict[str, set[tuple[int, int]]] = {}
+    for record in records:
+        api_kind = TABLE_KIND_TO_API.get(record["entity_kind"])
+        if api_kind is None:
+            continue
+        needed_by_kind.setdefault(api_kind, set()).add(
+            (record["entity_id"], record["transaction_id"])
+        )
+
+    resolved: dict[tuple[str, int, int], UUID] = {}
+    for api_kind, pairs in needed_by_kind.items():
+        for (entity_id, target_tx), entity_uuid in _resolve_uuids_for_kind(
+            api_kind, pairs
+        ).items():
+            resolved[(api_kind, entity_id, target_tx)] = entity_uuid
     return resolved
 
 

@@ -207,4 +207,4 @@ def load_live_model(model_name: str) -> type[Model]:
         from superset.connectors.sqla.models import SqlaTable
 
         return SqlaTable
-    raise LookupError(f"No shadow class registered for {model_name!r}")
+    raise LookupError(f"No live model registered for {model_name!r}")

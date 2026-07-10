@@ -69,19 +69,39 @@ def resolve_scope(
     scope: list[EntityWindows] = []
     if want_self and self_start_tx is not None:
         scope.append((path_kind, path_id, [Window(self_start_tx, None)]))
-    if want_related:
-        scope.extend(_resolve_related_scope(path_kind, path_id))
+    if want_related and self_start_tx is not None:
+        scope.extend(_resolve_related_scope(path_kind, path_id, self_start_tx))
     return scope
 
 
-def _resolve_related_scope(path_kind: str, path_id: int) -> list[EntityWindows]:
+def _resolve_related_scope(
+    path_kind: str, path_id: int, self_start_tx: int
+) -> list[EntityWindows]:
     """Walk the dependency edges from the path entity to its related
-    entities. Datasets have no transitive layer in V2."""
+    entities. Datasets have no transitive layer in V2.
+
+    The path entity's incarnation boundary clips every related window so a
+    reused integer id cannot inherit a hard-deleted predecessor's dependency
+    history.
+    """
     if path_kind == "Dashboard":
-        return _resolve_dashboard_scope(path_id)
-    if path_kind == "Slice":
-        return _resolve_chart_scope(path_id)
-    return []
+        related = _resolve_dashboard_scope(path_id)
+    elif path_kind == "Slice":
+        related = _resolve_chart_scope(path_id)
+    else:
+        return []
+
+    incarnation = Window(self_start_tx, None)
+    clipped: list[EntityWindows] = []
+    for api_kind, entity_id, windows in related:
+        overlaps = [
+            overlap
+            for window in windows
+            if (overlap := intersect_windows(incarnation, window)) is not None
+        ]
+        if overlaps:
+            clipped.append((api_kind, entity_id, overlaps))
+    return merge_entity_windows(clipped)
 
 
 def _resolve_dashboard_scope(dashboard_id: int) -> list[EntityWindows]:

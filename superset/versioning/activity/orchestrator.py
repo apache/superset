@@ -418,7 +418,7 @@ def _emit_request_shape_attributes(
     # list includes the path entity itself (the "self" window); exclude
     # it so the gauge reflects only the *related* entities the request
     # fanned out to, not "this request touched itself".
-    by_kind: dict[str, int] = {"Slice": 0, "SqlaTable": 0, "Dashboard": 0}
+    by_kind: dict[str, int] = {"Slice": 0, "SqlaTable": 0}
     for api_kind, entity_id, _windows in entity_windows:
         if (api_kind, entity_id) == (path_kind, path_id):
             continue
