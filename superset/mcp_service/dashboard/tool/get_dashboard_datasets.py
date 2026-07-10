@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 
 
 @tool(
-    tags=["discovery"],
+    tags=["core"],
     class_permission_name="Dashboard",
     annotations=ToolAnnotations(
         title="Get dashboard datasets",
