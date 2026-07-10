@@ -240,7 +240,12 @@ fetchMock.get(databaseEndpoint, { result: [] });
 fetchMock.get(dashboardEndpoint, { result: [] }, { name: dashboardEndpoint });
 fetchMock.get(chartEndpoint, { result: [{ text: 'table chart', value: 1 }] });
 fetchMock.get(reportUsersEndpoint, { count: 0, result: [] });
-fetchMock.get(reportDashboardEndpoint, { result: [] });
+// Named for the same reason as dashboardEndpoint above.
+fetchMock.get(
+  reportDashboardEndpoint,
+  { result: [] },
+  { name: reportDashboardEndpoint },
+);
 fetchMock.get(reportChartEndpoint, {
   result: [{ text: 'table chart', value: 1 }],
 });
@@ -1098,9 +1103,11 @@ test('dashboard switching resets tab and filter selections', async () => {
     count: 2,
   };
   fetchMock.removeRoute(dashboardEndpoint);
-  fetchMock.get(dashboardEndpoint, dashboardOptions);
+  fetchMock.get(dashboardEndpoint, dashboardOptions, { name: dashboardEndpoint });
   fetchMock.removeRoute(reportDashboardEndpoint);
-  fetchMock.get(reportDashboardEndpoint, dashboardOptions);
+  fetchMock.get(reportDashboardEndpoint, dashboardOptions, {
+    name: reportDashboardEndpoint,
+  });
 
   // Dashboard 1 has tabs and filters
   fetchMock.removeRoute(tabsEndpoint);
@@ -1193,9 +1200,13 @@ test('dashboard switching resets tab and filter selections', async () => {
 
   // Restore dashboard endpoints
   fetchMock.removeRoute(dashboardEndpoint);
-  fetchMock.get(dashboardEndpoint, { result: [] });
+  fetchMock.get(dashboardEndpoint, { result: [] }, { name: dashboardEndpoint });
   fetchMock.removeRoute(reportDashboardEndpoint);
-  fetchMock.get(reportDashboardEndpoint, { result: [] });
+  fetchMock.get(
+    reportDashboardEndpoint,
+    { result: [] },
+    { name: reportDashboardEndpoint },
+  );
   fetchMock.removeRoute(tabs99);
 }, 45000);
 
