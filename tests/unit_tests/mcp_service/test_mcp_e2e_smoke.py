@@ -101,7 +101,8 @@ async def _run_asgi_lifespan(app: Starlette) -> AsyncIterator[None]:
             startup_complete.set()
         elif message["type"] == "lifespan.shutdown.complete":
             shutdown_complete.set()
-
+        elif message["type"] == "lifespan.shutdown.failed":
+            shutdown_complete.set()
     async with anyio.create_task_group() as task_group:
         task_group.start_soon(
             app, {"type": "lifespan", "asgi": {"version": "3.0"}}, receive, send
