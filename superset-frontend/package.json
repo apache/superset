@@ -368,7 +368,7 @@
     "webpack": "^5.108.3",
     "webpack-bundle-analyzer": "^5.3.0",
     "webpack-cli": "^7.0.3",
-    "webpack-dev-server": "^5.2.5",
+    "webpack-dev-server": "^6.0.0",
     "webpack-manifest-plugin": "^6.0.1",
     "webpack-sources": "^3.5.0",
     "webpack-visualizer-plugin2": "^2.0.0"
