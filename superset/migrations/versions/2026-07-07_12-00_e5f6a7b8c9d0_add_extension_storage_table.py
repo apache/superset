@@ -41,9 +41,7 @@ def upgrade() -> None:
         sa.Column("resource_type", sa.String(64), nullable=True),
         sa.Column("resource_uuid", sa.String(36), nullable=True),
         sa.Column("key", sa.String(255), nullable=False),
-        sa.Column("category", sa.String(64), nullable=True),
-        sa.Column("description", sa.Text(), nullable=True),
-        sa.Column("value", sa.LargeBinary(2**24 - 1), nullable=False),
+        sa.Column("value", sa.LargeBinary(), nullable=False),
         sa.Column("value_size", sa.Integer(), nullable=False),
         sa.Column(
             "codec",

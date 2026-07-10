@@ -1336,6 +1336,16 @@ EXTENSIONS_EPHEMERAL_STORAGE: CacheConfig = {
 EXTENSIONS_PERSISTENT_STORAGE: dict[str, Any] = {
     # Maximum storage quota per extension in bytes (default: 100 MB)
     "QUOTA_PER_EXTENSION": 100 * 1024 * 1024,
+    # Maximum size (in bytes) of a single stored value. Requests exceeding
+    # this value are rejected. Defaults to 1 MB.
+    "MAX_VALUE_SIZE": 1024 * 1024,
+    # Maximum combined value size (in bytes) that a single `list()` page may
+    # return. Requests whose page would exceed this are rejected rather than
+    # silently truncated. Defaults to 10 MB.
+    # NOTE: this response is consumed as JSON by the browser (REST API and
+    # frontend SDK), not just backend code — raising this substantially
+    # above the default risks client-side memory/parse-time issues.
+    "MAX_LIST_PAYLOAD_SIZE": 10 * 1024 * 1024,
 }
 
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation

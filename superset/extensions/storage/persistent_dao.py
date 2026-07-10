@@ -20,11 +20,12 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
+from dataclasses import dataclass
 from typing import Any
 
 from flask import current_app
 from flask_babel import gettext as _
-from sqlalchemy import and_, func, LargeBinary
+from sqlalchemy import and_, desc, func, LargeBinary
 
 from superset import db
 from superset.daos.base import BaseDAO
@@ -53,6 +54,38 @@ class ExtensionStorageQuotaExceeded(SupersetGenericErrorException):
                 "storage quota of %(quota)d bytes.",
                 extension_id=extension_id,
                 quota=quota,
+            ),
+        )
+
+
+class ExtensionStorageValueTooLarge(SupersetGenericErrorException):
+    """Raised when a `set` call's value exceeds MAX_VALUE_SIZE."""
+
+    status = 400
+
+    def __init__(self, max_size: int) -> None:
+        super().__init__(
+            message=_(
+                "Value exceeds the maximum allowed size of %(max_size)d bytes.",
+                max_size=max_size,
+            ),
+        )
+
+
+class ExtensionStorageListPayloadTooLarge(SupersetGenericErrorException):
+    """Raised when a `list` page's combined value size exceeds
+    MAX_LIST_PAYLOAD_SIZE."""
+
+    status = 400
+
+    def __init__(self, requested_size: int, max_size: int) -> None:
+        super().__init__(
+            message=_(
+                "Requested page would return %(requested_size)d bytes, "
+                "exceeding the maximum allowed list payload size of "
+                "%(max_size)d bytes. Reduce page_size and try again.",
+                requested_size=requested_size,
+                max_size=max_size,
             ),
         )
 
@@ -96,6 +129,31 @@ def _get_quota() -> int | None:
     """
     config = current_app.config["EXTENSIONS_PERSISTENT_STORAGE"]
     return config.get("QUOTA_PER_EXTENSION")
+
+
+def _get_max_list_payload_size() -> int | None:
+    """Return the configured max combined value size for a `list()` page.
+
+    Returns None when no limit is configured (unlimited).
+    """
+    config = current_app.config["EXTENSIONS_PERSISTENT_STORAGE"]
+    return config.get("MAX_LIST_PAYLOAD_SIZE")
+
+
+def _validate_value_size(encoded: bytes) -> None:
+    """Validate encoded value bytes against MAX_VALUE_SIZE. Raises if over.
+
+    Enforced independently of `QUOTA_PER_EXTENSION`: the quota bounds an
+    extension's total storage, while this bounds a single value. A
+    `list_entries()` page's combined size is bounded separately by
+    MAX_LIST_PAYLOAD_SIZE (see `ExtensionStorageDAO.list_entries`).
+    """
+    config = current_app.config["EXTENSIONS_PERSISTENT_STORAGE"]
+    max_size = config.get("MAX_VALUE_SIZE")
+    if max_size is None:
+        return
+    if len(encoded) > max_size:
+        raise ExtensionStorageValueTooLarge(max_size)
 
 
 def _check_quota(extension_id: str, new_size: int, existing_size: int = 0) -> None:
@@ -175,6 +233,50 @@ def _scope_filter(
     return filters
 
 
+def _list_scope_filter(
+    extension_id: str,
+    user_fk: int | None = None,
+    resource_type: str | None = None,
+    resource_uuid: str | None = None,
+) -> list[object]:
+    """Build the SQLAlchemy filter list for a `list()` call.
+
+    Same scope semantics as `_scope_filter` (an explicit None means "match
+    the global/unset scope"), minus the `key` filter.
+    """
+    filters: list[object] = [ExtensionStorage.extension_id == extension_id]
+    if user_fk is None:
+        filters.append(ExtensionStorage.user_fk.is_(None))
+    else:
+        filters.append(ExtensionStorage.user_fk == user_fk)
+    if resource_type is None:
+        filters.append(ExtensionStorage.resource_type.is_(None))
+    else:
+        filters.append(ExtensionStorage.resource_type == resource_type)
+    if resource_uuid is None:
+        filters.append(ExtensionStorage.resource_uuid.is_(None))
+    else:
+        filters.append(ExtensionStorage.resource_uuid == resource_uuid)
+    return filters
+
+
+@dataclass
+class ExtensionStorageListEntry:
+    """A single row returned by `ExtensionStorageDAO.list_entries`.
+
+    `value` is the raw (decrypted) payload, mirroring `get_value()` — it is
+    not decoded with `codec` here, since REST callers must first check
+    `codec` against `SAFE_CODECS` before deciding whether decoding it is
+    safe to expose over the API, while ambient backend callers (no such
+    restriction) decode unconditionally, same as `get_decoded_value()`.
+    """
+
+    key: str
+    value: bytes | None
+    codec: str
+    is_encrypted: bool
+
+
 class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
     """Persistent key-value store for extensions (Tier 3).
 
@@ -185,11 +287,12 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
 
     Two access shapes are supported:
 
-    * `get`/`set`/`delete` — single-key operations with explicit scope
-      discriminators (`user_fk`, `resource_type`, `resource_uuid`), used by
-      the ambient `persistent_state`/`ephemeral_state` accessors and the
-      REST API (both of which establish the ambient extension context
-      themselves before calling in).
+    * `get`/`set`/`delete_by_key`/`list_entries` — single-key or
+      paginated-listing operations with explicit scope discriminators
+      (`user_fk`, `resource_type`, `resource_uuid`), used by the ambient
+      `persistent_state`/`ephemeral_state` accessors and the REST API (both
+      of which establish the ambient extension context themselves before
+      calling in).
     * `find_all`/`find_one_or_none`/`filter_by`/`query`/`create`/`update`/
       `delete` (inherited from `BaseDAO`) — general-purpose DAO access for
       backend extension code that needs to enumerate or bulk-manage its own
@@ -266,6 +369,73 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
             return None
         return get_codec(entry.codec).decode(raw)
 
+    @staticmethod
+    def list_entries(
+        extension_id: str,
+        user_fk: int | None = None,
+        resource_type: str | None = None,
+        resource_uuid: str | None = None,
+        page: int = 0,
+        page_size: int = 10,
+    ) -> tuple[list[ExtensionStorageListEntry], int]:
+        """List entries in the given scope, most recently changed first.
+
+        Named `list_entries` rather than `list` (unlike the single-key
+        `get`/`set`/`delete_by_key` shape) because `BaseDAO` already
+        defines a generic `list()` with a different, incompatible
+        signature (search/sort/column-selection over arbitrary models);
+        overriding it here would break that contract for callers relying
+        on polymorphic DAO access.
+
+        Callers may request any `page_size` — there is no row-count
+        ceiling — but the combined `value_size` of the requested page is
+        checked against MAX_LIST_PAYLOAD_SIZE *before* the (potentially
+        large) `value` column is fetched for any row, so an oversized
+        request fails fast rather than reading data it will then reject.
+
+        :returns: (entries, total_count). `entries[i].value` is the raw
+            (decrypted) payload — see `ExtensionStorageListEntry`.
+        :raises ExtensionStorageListPayloadTooLarge: if the requested page's
+            combined value size exceeds MAX_LIST_PAYLOAD_SIZE.
+        """
+        filters = _list_scope_filter(
+            extension_id, user_fk, resource_type, resource_uuid
+        )
+        base_query = db.session.query(ExtensionStorage).filter(and_(*filters))
+        total_count = base_query.count()
+
+        page = max(page, 0)
+        page_size = max(page_size, 1)
+        page_query = (
+            base_query.order_by(desc(ExtensionStorage.changed_on))
+            .offset(page * page_size)
+            .limit(page_size)
+        )
+
+        if (max_payload_size := _get_max_list_payload_size()) is not None:
+            # Sum value_size for exactly this page's rows, without touching
+            # the `value` column, by reusing the same ordered/offset/limited
+            # query as a subquery.
+            subquery = page_query.with_entities(ExtensionStorage.value_size).subquery()
+            requested_size = db.session.query(
+                func.coalesce(func.sum(subquery.c.value_size), 0)
+            ).scalar()
+            if requested_size > max_payload_size:
+                raise ExtensionStorageListPayloadTooLarge(
+                    requested_size, max_payload_size
+                )
+
+        entries = [
+            ExtensionStorageListEntry(
+                key=row.key,
+                value=_decrypt_if_needed(row, extension_id, row.key),
+                codec=row.codec,
+                is_encrypted=row.is_encrypted,
+            )
+            for row in page_query.all()
+        ]
+        return entries, total_count
+
     # ── Write (upsert) ────────────────────────────────────────────────────────
 
     @staticmethod
@@ -277,11 +447,16 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         user_fk: int | None = None,
         resource_type: str | None = None,
         resource_uuid: str | None = None,
-        category: str | None = None,
-        description: str | None = None,
         encrypt: bool = False,
     ) -> ExtensionStorage:
-        """Upsert a storage entry.  Encrypts value when encrypt=True."""
+        """Upsert a storage entry.  Encrypts value when encrypt=True.
+
+        :raises ExtensionStorageValueTooLarge: if `value` exceeds
+            MAX_VALUE_SIZE.
+        :raises ExtensionStorageQuotaExceeded: if writing `value` would push
+            the extension over its total storage quota.
+        """
+        _validate_value_size(value)
         stored_value = (
             _enc_type(user_fk).process_bind_param(value, db.engine.dialect)
             if encrypt
@@ -306,8 +481,6 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
             entry.value = stored_value
             entry.value_size = new_size
             entry.codec = codec
-            entry.category = category
-            entry.description = description
             entry.is_encrypted = encrypt
         else:
             entry = ExtensionStorage(
@@ -319,8 +492,6 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
                 user_fk=user_fk,
                 resource_type=resource_type,
                 resource_uuid=resource_uuid,
-                category=category,
-                description=description,
                 is_encrypted=encrypt,
             )
             db.session.add(entry)

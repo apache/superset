@@ -41,7 +41,9 @@ from superset.extensions.storage.ephemeral_dao import (
 )
 from superset.extensions.storage.persistent_dao import (
     ExtensionStorageDAO,
+    ExtensionStorageListPayloadTooLarge,
     ExtensionStorageQuotaExceeded,
+    ExtensionStorageValueTooLarge,
 )
 from superset.extensions.storage.utils import get_extension_or_404, parse_ttl
 from superset.utils.decorators import transaction
@@ -291,6 +293,132 @@ class ExtensionStorageRestApi(BaseApi):
 
     @protect()
     @safe
+    @expose("/<publisher>/<name>/storage/persistent", methods=("GET",))
+    def list_persistent(self, publisher: str, name: str, **kwargs: Any) -> Response:
+        """List entries in persistent state.
+        ---
+        get:
+          summary: List entries in persistent state
+          parameters:
+          - in: path
+            name: publisher
+            schema:
+              type: string
+            required: true
+            description: Extension publisher
+          - in: path
+            name: name
+            schema:
+              type: string
+            required: true
+            description: Extension name
+          - in: query
+            name: shared
+            schema:
+              type: boolean
+            required: false
+            description: If true, list shared state visible to all users
+          - in: query
+            name: resource_type
+            schema:
+              type: string
+            required: false
+            description: Filter by resource type
+          - in: query
+            name: resource_uuid
+            schema:
+              type: string
+            required: false
+            description: Filter by resource UUID (requires resource_type)
+          - in: query
+            name: page
+            schema:
+              type: integer
+            required: false
+            description: Zero-indexed page number. Defaults to 0.
+          - in: query
+            name: page_size
+            schema:
+              type: integer
+            required: false
+            description: Number of entries per page. Defaults to 10. There
+              is no fixed ceiling, but a page whose combined value size
+              exceeds MAX_LIST_PAYLOAD_SIZE is rejected — reduce page_size
+              and retry if that happens.
+          responses:
+            200:
+              description: Entries retrieved successfully
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              description: The stored value, or null if its
+                                codec cannot be read over the REST API
+                            codec:
+                              type: string
+                      count:
+                        type: integer
+                        description: Total number of entries matching the
+                          given scope/filters, across all pages
+            400:
+              description: The requested page's combined value size exceeds
+                MAX_LIST_PAYLOAD_SIZE
+            404:
+              description: Extension not found
+        """
+        extension_id = f"{publisher}.{name}"
+        extension = get_extension_or_404(extension_id)
+        if not extension:
+            return self.response_404("Extension not found")
+
+        shared = request.args.get("shared", "false").lower() == "true"
+        user_fk = None if shared else g.user.id
+        resource_type = request.args.get("resource_type")
+        resource_uuid = request.args.get("resource_uuid")
+        try:
+            page = int(request.args.get("page", 0))
+            page_size = int(request.args.get("page_size", 10))
+        except (TypeError, ValueError):
+            return self.response_400("'page' and 'page_size' must be integers")
+
+        try:
+            entries, count = ExtensionStorageDAO.list_entries(
+                extension_id,
+                user_fk=user_fk,
+                resource_type=resource_type,
+                resource_uuid=resource_uuid,
+                page=page,
+                page_size=page_size,
+            )
+        except ExtensionStorageListPayloadTooLarge as ex:
+            return self.response(ex.status, message=ex.message)
+
+        result = [
+            {
+                "key": entry.key,
+                "value": (
+                    get_codec(entry.codec).decode(entry.value)
+                    if entry.codec in SAFE_CODECS and entry.value is not None
+                    else None
+                ),
+                "codec": entry.codec,
+            }
+            for entry in entries
+        ]
+
+        return self.response(200, result=result, count=count)
+
+    @protect()
+    @safe
     @expose("/<publisher>/<name>/storage/persistent/<key>", methods=("GET",))
     def get_persistent(
         self, publisher: str, name: str, key: str, **kwargs: Any
@@ -424,7 +552,8 @@ class ExtensionStorageRestApi(BaseApi):
             200:
               description: Value stored successfully
             400:
-              description: Invalid request body, or codec not allowed over the API
+              description: Invalid request body, codec not allowed over the
+                API, or value exceeds MAX_VALUE_SIZE
             404:
               description: Extension not found
             413:
@@ -458,7 +587,7 @@ class ExtensionStorageRestApi(BaseApi):
                 user_fk=user_fk,
                 encrypt=encrypt,
             )
-        except ExtensionStorageQuotaExceeded as ex:
+        except (ExtensionStorageQuotaExceeded, ExtensionStorageValueTooLarge) as ex:
             return self.response(ex.status, message=ex.message)
 
         return self.response(200, message="Value stored successfully")

@@ -79,6 +79,48 @@ export interface PersistentSetOptions {
 }
 
 /**
+ * Options for listing persistent (database-backed) state entries.
+ * All fields are optional filters; omitting them lists every entry in the
+ * caller's scope (global or user-scoped, depending on whether `list` is
+ * called via `.shared` or directly).
+ */
+export interface PersistentListOptions {
+  resourceType?: string;
+  resourceUuid?: string;
+  /** Zero-indexed page number. Defaults to 0. */
+  page?: number;
+  /**
+   * Entries per page. Defaults to 10. There is no fixed ceiling on this
+   * value, but a page whose combined value size exceeds
+   * MAX_LIST_PAYLOAD_SIZE from config is rejected — reduce page_size and
+   * retry if that happens.
+   */
+  pageSize?: number;
+}
+
+/**
+ * A single entry returned by a persistent state `list` call.
+ */
+export interface PersistentListEntry<T = JsonValue> {
+  key: string;
+  value: T | null;
+  /** Name of the codec `value` was encoded with, e.g. "json" or "base64". */
+  codec: string;
+}
+
+/**
+ * Result of a persistent state `list` call.
+ */
+export interface PersistentListResult<T = JsonValue> {
+  entries: PersistentListEntry<T>[];
+  /**
+   * Total number of entries matching the given scope/filters, across all
+   * pages — not just the number returned in `entries`.
+   */
+  count: number;
+}
+
+/**
  * Storage accessor for ephemeral state, requiring TTL on every set.
  */
 export interface EphemeralStorageAccessor {
@@ -108,6 +150,9 @@ export interface PersistentStorageAccessor {
     value: T,
     options?: PersistentSetOptions,
   ): Promise<void>;
+  list<T = JsonValue>(
+    options?: PersistentListOptions,
+  ): Promise<PersistentListResult<T>>;
   remove(key: string): Promise<void>;
 }
 

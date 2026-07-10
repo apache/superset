@@ -26,10 +26,12 @@ from flask import Flask
 
 from superset.extensions.context import use_context
 from superset.extensions.storage.persistent import (
+    PersistentListOptions,
     PersistentSetOptions,
     PersistentState,
     SharedPersistentStateAccessor,
 )
+from superset.extensions.storage.persistent_dao import ExtensionStorageListEntry
 from superset.utils import json
 from tests.unit_tests.extensions.storage.conftest import (
     create_context,
@@ -198,3 +200,119 @@ def test_shared_accessor_uses_null_user_fk(mock_dao: MagicMock, app: Flask) -> N
         "test-org.test-ext", "config", user_fk=None
     )
     assert result == "shared_value"
+
+
+@patch("superset.extensions.storage.persistent.ExtensionStorageDAO")
+def test_persistent_state_list_decodes_entries_and_defaults_options(
+    mock_dao: MagicMock, app: Flask
+) -> None:
+    """PersistentState.list decodes every entry's value (no SAFE_CODECS
+    restriction for ambient backend code) and forwards default options."""
+    ctx = create_context()
+    mock_dao.list_entries.return_value = (
+        [
+            ExtensionStorageListEntry(
+                key="prefs",
+                value=json.dumps({"theme": "dark"}).encode(),
+                codec="json",
+                is_encrypted=False,
+            ),
+        ],
+        1,
+    )
+
+    with app.app_context(), use_context(ctx):
+        set_user(42)
+        result = PersistentState.list()
+
+    mock_dao.list_entries.assert_called_once_with(
+        "test-org.test-ext",
+        user_fk=42,
+        resource_type=None,
+        resource_uuid=None,
+        page=0,
+        page_size=10,
+    )
+    assert result.count == 1
+    assert len(result.entries) == 1
+    assert result.entries[0].key == "prefs"
+    assert result.entries[0].value == {"theme": "dark"}
+    assert result.entries[0].codec == "json"
+
+
+@patch("superset.extensions.storage.persistent.ExtensionStorageDAO")
+def test_persistent_state_list_forwards_custom_options(
+    mock_dao: MagicMock, app: Flask
+) -> None:
+    """PersistentState.list forwards caller-supplied PersistentListOptions."""
+    ctx = create_context()
+    mock_dao.list_entries.return_value = ([], 0)
+
+    with app.app_context(), use_context(ctx):
+        set_user(42)
+        PersistentState.list(
+            PersistentListOptions(
+                resource_type="dashboard",
+                resource_uuid="uuid-1",
+                page=2,
+                page_size=25,
+            )
+        )
+
+    mock_dao.list_entries.assert_called_once_with(
+        "test-org.test-ext",
+        user_fk=42,
+        resource_type="dashboard",
+        resource_uuid="uuid-1",
+        page=2,
+        page_size=25,
+    )
+
+
+@patch("superset.extensions.storage.persistent.ExtensionStorageDAO")
+def test_persistent_state_list_handles_none_value(
+    mock_dao: MagicMock, app: Flask
+) -> None:
+    """PersistentState.list does not attempt to decode a None value (e.g.
+    a decryption failure), passing it through as None instead of raising."""
+    ctx = create_context()
+    mock_dao.list_entries.return_value = (
+        [
+            ExtensionStorageListEntry(
+                key="broken",
+                value=None,
+                codec="json",
+                is_encrypted=True,
+            ),
+        ],
+        1,
+    )
+
+    with app.app_context(), use_context(ctx):
+        set_user(42)
+        result = PersistentState.list()
+
+    assert result.entries[0].value is None
+
+
+@patch("superset.extensions.storage.persistent.ExtensionStorageDAO")
+def test_shared_accessor_list_uses_null_user_fk(
+    mock_dao: MagicMock, app: Flask
+) -> None:
+    """SharedPersistentStateAccessor.list uses user_fk=None for global scope."""
+    ctx = create_context()
+    mock_dao.list_entries.return_value = ([], 0)
+    accessor = SharedPersistentStateAccessor()
+
+    with app.app_context(), use_context(ctx):
+        set_user(42)
+        accessor.list()
+
+    mock_dao.list_entries.assert_called_once_with(
+        "test-org.test-ext",
+        user_fk=None,
+        resource_type=None,
+        resource_uuid=None,
+        page=0,
+        page_size=10,
+    )

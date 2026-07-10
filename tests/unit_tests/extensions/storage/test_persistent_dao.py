@@ -24,13 +24,17 @@ from unittest.mock import MagicMock, patch
 import pytest
 from flask import Flask
 from flask_babel import Babel
+from sqlalchemy.orm.session import Session
 
+from superset.extensions.storage.codecs import get_codec
 from superset.extensions.storage.filters import ExtensionStorageFilter
 from superset.extensions.storage.persistent_dao import (
     _derive_key,
     _enc_type,
     ExtensionStorageDAO,
+    ExtensionStorageListPayloadTooLarge,
     ExtensionStorageQuotaExceeded,
+    ExtensionStorageValueTooLarge,
 )
 from superset.extensions.storage.persistent_model import ExtensionStorage
 
@@ -57,6 +61,71 @@ def app_with_quota(app: Flask) -> Flask:
     app.config["EXTENSIONS_PERSISTENT_STORAGE"] = {"QUOTA_PER_EXTENSION": 100}
     Babel(app)
     return app
+
+
+@pytest.fixture
+def app_with_max_value_size(app: Flask) -> Flask:
+    """App fixture with a configured MAX_VALUE_SIZE (10 bytes).
+
+    Initializes Babel since exceeding the limit raises an exception whose
+    message is built with flask_babel's gettext.
+    """
+    app.config["EXTENSIONS_PERSISTENT_STORAGE"] = {"MAX_VALUE_SIZE": 10}
+    Babel(app)
+    return app
+
+
+@pytest.fixture
+def app_with_max_list_payload_size(app: Flask) -> Flask:
+    """App fixture with a configured MAX_LIST_PAYLOAD_SIZE (20 bytes).
+
+    Initializes Babel since exceeding the limit raises an exception whose
+    message is built with flask_babel's gettext.
+    """
+    app.config["EXTENSIONS_PERSISTENT_STORAGE"] = {"MAX_LIST_PAYLOAD_SIZE": 20}
+    Babel(app)
+    return app
+
+
+@pytest.fixture
+def list_session(session: Session) -> Session:
+    """In-memory SQLite session with the extension_storage table created,
+    used only by `list()` tests below (which exercise real queries rather
+    than mocking `db.session`, since `list()`'s query chain — count,
+    order_by, offset, limit, a value_size subquery sum — is too complex to
+    mock link-by-link without the test just re-asserting the
+    implementation)."""
+    ExtensionStorage.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    return session
+
+
+def _create_entry(
+    session: Session,
+    extension_id: str,
+    key: str,
+    value: bytes = b"{}",
+    codec: str = "json",
+    user_fk: int | None = None,
+    resource_type: str | None = None,
+    resource_uuid: str | None = None,
+    is_encrypted: bool = False,
+) -> ExtensionStorage:
+    """Insert an ExtensionStorage row directly, bypassing DAO.set() (whose
+    own validation isn't what these `list()` tests are exercising)."""
+    entry = ExtensionStorage(
+        extension_id=extension_id,
+        key=key,
+        value=value,
+        value_size=len(value),
+        codec=codec,
+        user_fk=user_fk,
+        resource_type=resource_type,
+        resource_uuid=resource_uuid,
+        is_encrypted=is_encrypted,
+    )
+    session.add(entry)
+    session.flush()
+    return entry
 
 
 # ── get / get_value ───────────────────────────────────────────────────────────
@@ -278,6 +347,66 @@ def test_dao_set_encrypts_value_when_requested(
     assert added_entry.is_encrypted is True
 
 
+# ── value size ────────────────────────────────────────────────────────────────
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_set_allows_write_when_no_max_value_size_configured(
+    mock_db: MagicMock, app: Flask
+) -> None:
+    """set() skips the value-size check entirely when MAX_VALUE_SIZE is unset."""
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
+
+    with app.app_context():
+        ExtensionStorageDAO.set("my-ext", "key", b"x" * 10000, user_fk=1)
+
+    mock_db.session.add.assert_called_once()
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_set_allows_value_within_max_value_size(
+    mock_db: MagicMock, app_with_max_value_size: Flask
+) -> None:
+    """set() accepts a value at or under MAX_VALUE_SIZE."""
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
+
+    with app_with_max_value_size.app_context():
+        ExtensionStorageDAO.set("my-ext", "key", b"x" * 10, user_fk=1)
+
+    mock_db.session.add.assert_called_once()
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_set_rejects_value_exceeding_max_value_size(
+    mock_db: MagicMock, app_with_max_value_size: Flask
+) -> None:
+    """set() raises ExtensionStorageValueTooLarge and does not write when the
+    value exceeds MAX_VALUE_SIZE."""
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
+
+    with app_with_max_value_size.app_context():
+        with pytest.raises(ExtensionStorageValueTooLarge):
+            ExtensionStorageDAO.set("my-ext", "key", b"x" * 11, user_fk=1)
+
+    mock_db.session.add.assert_not_called()
+    mock_db.session.flush.assert_not_called()
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_set_checks_value_size_before_quota(
+    mock_db: MagicMock, app_with_max_value_size: Flask
+) -> None:
+    """set() rejects an oversized value before running the quota usage query."""
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
+
+    with app_with_max_value_size.app_context():
+        with pytest.raises(ExtensionStorageValueTooLarge):
+            ExtensionStorageDAO.set("my-ext", "key", b"x" * 11, user_fk=1)
+
+    # scalar() is only called by the quota-usage query; it must not run.
+    mock_db.session.query.return_value.filter.return_value.scalar.assert_not_called()
+
+
 # ── quota ─────────────────────────────────────────────────────────────────────
 
 
@@ -464,3 +593,250 @@ def test_enc_type_user_key_differs_from_shared_key(app: Flask) -> None:
         secret = app.config["SECRET_KEY"]
         enc_user = _enc_type(user_fk=1)
         assert enc_user.key != secret
+
+
+# ── list ──────────────────────────────────────────────────────────────────────
+
+
+def test_list_returns_entries_and_total_count(
+    app: Flask, list_session: Session
+) -> None:
+    """list() returns decoded entries plus the total count across all pages."""
+    _create_entry(list_session, "my-ext", "a", value=b'{"n": 1}', user_fk=1)
+    _create_entry(list_session, "my-ext", "b", value=b'{"n": 2}', user_fk=1)
+
+    with app.app_context():
+        entries, total_count = ExtensionStorageDAO.list_entries("my-ext", user_fk=1)
+
+    assert total_count == 2
+    assert {e.key for e in entries} == {"a", "b"}
+    decoded = {}
+    for e in entries:
+        assert e.value is not None
+        decoded[e.key] = get_codec(e.codec).decode(e.value)
+    assert decoded == {"a": {"n": 1}, "b": {"n": 2}}
+
+
+def test_list_scopes_by_extension_id(app: Flask, list_session: Session) -> None:
+    """list() only returns entries for the given extension_id."""
+    _create_entry(list_session, "ext-a", "key", user_fk=1)
+    _create_entry(list_session, "ext-b", "key", user_fk=1)
+
+    with app.app_context():
+        entries, total_count = ExtensionStorageDAO.list_entries("ext-a", user_fk=1)
+
+    assert total_count == 1
+    assert entries[0].key == "key"
+
+
+def test_list_scopes_by_user_fk(app: Flask, list_session: Session) -> None:
+    """list() only returns entries matching the given user_fk (or global
+    scope when user_fk=None)."""
+    _create_entry(list_session, "my-ext", "mine", user_fk=1)
+    _create_entry(list_session, "my-ext", "theirs", user_fk=2)
+    _create_entry(list_session, "my-ext", "shared", user_fk=None)
+
+    with app.app_context():
+        entries, total_count = ExtensionStorageDAO.list_entries("my-ext", user_fk=1)
+
+    assert total_count == 1
+    assert entries[0].key == "mine"
+
+
+def test_list_scopes_by_resource(app: Flask, list_session: Session) -> None:
+    """list() only returns entries matching the given resource_type/uuid."""
+    _create_entry(
+        list_session,
+        "my-ext",
+        "a",
+        resource_type="dashboard",
+        resource_uuid="uuid-1",
+    )
+    _create_entry(
+        list_session,
+        "my-ext",
+        "b",
+        resource_type="dashboard",
+        resource_uuid="uuid-2",
+    )
+
+    with app.app_context():
+        entries, total_count = ExtensionStorageDAO.list_entries(
+            "my-ext", resource_type="dashboard", resource_uuid="uuid-1"
+        )
+
+    assert total_count == 1
+    assert entries[0].key == "a"
+
+
+def test_list_paginates_with_page_and_page_size(
+    app: Flask, list_session: Session
+) -> None:
+    """list() applies offset/limit based on page and page_size, while
+    total_count still reflects every matching row, not just the page."""
+    for i in range(5):
+        _create_entry(list_session, "my-ext", f"key-{i}", user_fk=1)
+
+    with app.app_context():
+        page_0, total_0 = ExtensionStorageDAO.list_entries(
+            "my-ext", user_fk=1, page=0, page_size=2
+        )
+        page_1, total_1 = ExtensionStorageDAO.list_entries(
+            "my-ext", user_fk=1, page=1, page_size=2
+        )
+
+    assert total_0 == total_1 == 5
+    assert len(page_0) == 2
+    assert len(page_1) == 2
+    assert {e.key for e in page_0}.isdisjoint({e.key for e in page_1})
+
+
+def test_list_defaults_to_page_size_ten(app: Flask, list_session: Session) -> None:
+    """list() returns at most 10 entries per page when page_size is not given."""
+    for i in range(15):
+        _create_entry(list_session, "my-ext", f"key-{i}", user_fk=1)
+
+    with app.app_context():
+        entries, total_count = ExtensionStorageDAO.list_entries("my-ext", user_fk=1)
+
+    assert total_count == 15
+    assert len(entries) == 10
+
+
+def test_list_allows_page_size_larger_than_ten(
+    app: Flask, list_session: Session
+) -> None:
+    """list() has no row-count ceiling — a caller-supplied page_size above
+    the default of 10 is honored, subject only to MAX_LIST_PAYLOAD_SIZE."""
+    for i in range(15):
+        _create_entry(list_session, "my-ext", f"key-{i}", user_fk=1)
+
+    with app.app_context():
+        entries, total_count = ExtensionStorageDAO.list_entries(
+            "my-ext", user_fk=1, page_size=15
+        )
+
+    assert total_count == 15
+    assert len(entries) == 15
+
+
+def test_list_orders_by_changed_on_descending(
+    app: Flask, list_session: Session
+) -> None:
+    """list() orders entries most-recently-changed first."""
+    from datetime import datetime, timedelta, timezone
+
+    first = _create_entry(list_session, "my-ext", "first", user_fk=1)
+    second = _create_entry(list_session, "my-ext", "second", user_fk=1)
+    now = datetime.now(timezone.utc)
+    first.changed_on = now - timedelta(hours=1)
+    second.changed_on = now
+    list_session.flush()
+
+    with app.app_context():
+        entries, _ = ExtensionStorageDAO.list_entries("my-ext", user_fk=1)
+
+    assert [e.key for e in entries] == ["second", "first"]
+
+
+def test_list_allows_page_within_max_list_payload_size(
+    app_with_max_list_payload_size: Flask, list_session: Session
+) -> None:
+    """list() succeeds when the page's combined value_size is within
+    MAX_LIST_PAYLOAD_SIZE (20 bytes in this fixture)."""
+    _create_entry(list_session, "my-ext", "a", value=b"x" * 10, user_fk=1)
+    _create_entry(list_session, "my-ext", "b", value=b"x" * 10, user_fk=1)
+
+    with app_with_max_list_payload_size.app_context():
+        entries, total_count = ExtensionStorageDAO.list_entries("my-ext", user_fk=1)
+
+    assert total_count == 2
+    assert len(entries) == 2
+
+
+def test_list_rejects_page_exceeding_max_list_payload_size(
+    app_with_max_list_payload_size: Flask, list_session: Session
+) -> None:
+    """list() raises ExtensionStorageListPayloadTooLarge when the requested
+    page's combined value_size exceeds MAX_LIST_PAYLOAD_SIZE, without
+    fetching the oversized rows' `value` column."""
+    _create_entry(list_session, "my-ext", "a", value=b"x" * 15, user_fk=1)
+    _create_entry(list_session, "my-ext", "b", value=b"x" * 15, user_fk=1)
+
+    with app_with_max_list_payload_size.app_context():
+        with pytest.raises(ExtensionStorageListPayloadTooLarge):
+            ExtensionStorageDAO.list_entries("my-ext", user_fk=1)
+
+
+def test_list_payload_size_check_considers_only_the_requested_page(
+    app_with_max_list_payload_size: Flask, list_session: Session
+) -> None:
+    """A row excluded from the requested page by pagination does not count
+    against MAX_LIST_PAYLOAD_SIZE for that page."""
+    # Page 0 (page_size=1) contains only one 15-byte row — within the
+    # 20-byte budget — even though a second 15-byte row exists overall.
+    _create_entry(list_session, "my-ext", "a", value=b"x" * 15, user_fk=1)
+    _create_entry(list_session, "my-ext", "b", value=b"x" * 15, user_fk=1)
+
+    with app_with_max_list_payload_size.app_context():
+        entries, total_count = ExtensionStorageDAO.list_entries(
+            "my-ext", user_fk=1, page_size=1
+        )
+
+    assert total_count == 2
+    assert len(entries) == 1
+
+
+def test_list_allows_unlimited_payload_when_not_configured(
+    app: Flask, list_session: Session
+) -> None:
+    """list() skips the payload-size check entirely when
+    MAX_LIST_PAYLOAD_SIZE is not configured."""
+    for i in range(3):
+        _create_entry(list_session, "my-ext", f"key-{i}", value=b"x" * 1000, user_fk=1)
+
+    with app.app_context():
+        entries, total_count = ExtensionStorageDAO.list_entries("my-ext", user_fk=1)
+
+    assert total_count == 3
+    assert len(entries) == 3
+
+
+@patch("superset.extensions.storage.persistent_dao._enc_type")
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_list_decrypts_encrypted_entries(
+    mock_db: MagicMock, mock_enc_type: MagicMock, app: Flask
+) -> None:
+    """list() decrypts entries written with is_encrypted=True before
+    returning them, same as get_value()."""
+    entry = MagicMock()
+    entry.key = "secret"
+    entry.value = b"encrypted-bytes"
+    entry.is_encrypted = True
+    entry.user_fk = 1
+    entry.codec = "json"
+    mock_db.session.query.return_value.filter.return_value.count.return_value = 1
+    page_query = (
+        mock_db.session.query.return_value.filter.return_value.order_by.return_value
+    )
+    page_query.offset.return_value.limit.return_value.all.return_value = [entry]
+    mock_enc_type.return_value.process_result_value.return_value = b"plaintext"
+
+    with app.app_context():
+        entries, total_count = ExtensionStorageDAO.list_entries("my-ext", user_fk=1)
+
+    assert total_count == 1
+    assert len(entries) == 1
+    assert entries[0].is_encrypted is True
+    assert entries[0].value == b"plaintext"
+
+
+def test_list_returns_empty_when_no_entries_match(
+    app: Flask, list_session: Session
+) -> None:
+    """list() returns an empty list and total_count=0 when nothing matches."""
+    with app.app_context():
+        entries, total_count = ExtensionStorageDAO.list_entries("my-ext", user_fk=1)
+
+    assert entries == []
+    assert total_count == 0

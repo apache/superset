@@ -48,9 +48,14 @@ Usage (via extension context - preferred):
     ctx.storage.persistent.set(
         'api_token', 'sk-...', PersistentSetOptions(encrypt=True)
     )
+
+    # Listing entries
+    result = ctx.storage.persistent.list()
+    for entry in result.entries:
+        print(entry.key, entry.value)
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, ClassVar, Protocol
 
 
@@ -69,6 +74,45 @@ class PersistentSetOptions:
     codec: str = "json"
 
 
+@dataclass(frozen=True)
+class PersistentListOptions:
+    """Options for a persistent state `list` call.
+
+    All fields are optional filters; omitting them lists every entry in
+    the caller's scope (global or user-scoped, depending on whether `list`
+    is called via `.shared` or directly).
+    """
+
+    resource_type: str | None = None
+    resource_uuid: str | None = None
+    #: Zero-indexed page number.
+    page: int = 0
+    #: Entries per page. There is no fixed ceiling on this value, but a
+    #: page whose combined value size exceeds MAX_LIST_PAYLOAD_SIZE from
+    #: config is rejected — reduce page_size and retry if that happens.
+    page_size: int = 10
+
+
+@dataclass(frozen=True)
+class PersistentListEntry:
+    """A single entry returned by a persistent state `list` call."""
+
+    key: str
+    value: Any
+    #: Name of the codec `value` was encoded with, e.g. "json" or "pickle".
+    codec: str
+
+
+@dataclass(frozen=True)
+class PersistentListResult:
+    """Result of a persistent state `list` call."""
+
+    entries: list[PersistentListEntry] = field(default_factory=list)
+    #: Total number of entries matching the given scope/filters, across all
+    #: pages — not just the number returned in `entries`.
+    count: int = 0
+
+
 class PersistentStateAccessor(Protocol):
     """Protocol for scoped persistent state access."""
 
@@ -80,6 +124,12 @@ class PersistentStateAccessor(Protocol):
         self, key: str, value: Any, options: PersistentSetOptions | None = None
     ) -> None:
         """Set a value in persistent state."""
+        ...
+
+    def list(
+        self, options: PersistentListOptions | None = None
+    ) -> PersistentListResult:
+        """List entries in persistent state."""
         ...
 
     def remove(self, key: str) -> None:
@@ -124,9 +174,27 @@ class PersistentState:
         Data persists indefinitely until explicitly removed.
 
         :param key: The key to store.
-        :param value: The value to store (must be JSON-serializable).
+        :param value: The value to store, encoded with `options.codec`
+            (default "json"). The encoded value must not exceed
+            MAX_VALUE_SIZE from config.
         :param options: Optional `PersistentSetOptions`, e.g. `encrypt=True`
-            to store the value encrypted at rest.
+            to store the value encrypted at rest, or `codec="pickle"` to
+            store a value that isn't JSON-serializable.
+        """
+        raise NotImplementedError("Class will be replaced during initialization")
+
+    @staticmethod
+    def list(options: PersistentListOptions | None = None) -> PersistentListResult:
+        """
+        List entries in user-scoped persistent state.
+
+        Data is automatically scoped to the current authenticated user.
+        Other users' entries are never returned.
+
+        :param options: Optional `PersistentListOptions`, e.g.
+            `page`/`page_size` to paginate.
+        :returns: `PersistentListResult` with the page's entries and the
+            total count across all pages.
         """
         raise NotImplementedError("Class will be replaced during initialization")
 

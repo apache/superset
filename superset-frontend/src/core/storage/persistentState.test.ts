@@ -111,6 +111,73 @@ test('set respects an explicit codec for a Uint8Array value instead of auto-enco
   });
 });
 
+test('list calls correct URL with no query params by default', async () => {
+  mockGet.mockResolvedValue({ json: { result: [], count: 0 } });
+  const store = createPersistentState('myorg.myext');
+  await store.list();
+  expect(mockGet).toHaveBeenCalledWith({
+    endpoint: '/api/v1/extensions/myorg/myext/storage/persistent',
+  });
+});
+
+test('list returns entries and count from response', async () => {
+  mockGet.mockResolvedValue({
+    json: {
+      result: [{ key: 'prefs', value: { theme: 'dark' }, codec: 'json' }],
+      count: 1,
+    },
+  });
+  const store = createPersistentState('myorg.myext');
+  const result = await store.list();
+  expect(result.count).toBe(1);
+  expect(result.entries).toEqual([
+    { key: 'prefs', value: { theme: 'dark' }, codec: 'json' },
+  ]);
+});
+
+test('list returns empty entries and count 0 when result/count are absent', async () => {
+  mockGet.mockResolvedValue({ json: {} });
+  const store = createPersistentState('myorg.myext');
+  const result = await store.list();
+  expect(result.entries).toEqual([]);
+  expect(result.count).toBe(0);
+});
+
+test('list passes filter and pagination options as query params', async () => {
+  mockGet.mockResolvedValue({ json: { result: [], count: 0 } });
+  const store = createPersistentState('myorg.myext');
+  await store.list({
+    resourceType: 'dashboard',
+    resourceUuid: 'uuid-1',
+    page: 2,
+    pageSize: 25,
+  });
+  expect(mockGet).toHaveBeenCalledWith({
+    endpoint:
+      '/api/v1/extensions/myorg/myext/storage/persistent' +
+      '?resource_type=dashboard&resource_uuid=uuid-1&page=2&page_size=25',
+  });
+});
+
+test('shared.list appends ?shared=true', async () => {
+  mockGet.mockResolvedValue({ json: { result: [], count: 0 } });
+  const store = createPersistentState('myorg.myext');
+  await store.shared.list();
+  expect(mockGet).toHaveBeenCalledWith({
+    endpoint: '/api/v1/extensions/myorg/myext/storage/persistent?shared=true',
+  });
+});
+
+test('shared.list combines ?shared=true with other query params', async () => {
+  mockGet.mockResolvedValue({ json: { result: [], count: 0 } });
+  const store = createPersistentState('myorg.myext');
+  await store.shared.list({ page: 1 });
+  expect(mockGet).toHaveBeenCalledWith({
+    endpoint:
+      '/api/v1/extensions/myorg/myext/storage/persistent?shared=true&page=1',
+  });
+});
+
 test('remove calls correct URL', async () => {
   const store = createPersistentState('myorg.myext');
   await store.remove('prefs');

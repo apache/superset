@@ -39,7 +39,10 @@ from superset.extensions.storage.ephemeral_dao import (
     ExtensionEphemeralValueTooLarge,
 )
 from superset.extensions.storage.persistent_dao import (
+    ExtensionStorageListEntry,
+    ExtensionStorageListPayloadTooLarge,
     ExtensionStorageQuotaExceeded,
+    ExtensionStorageValueTooLarge,
 )
 
 # ── Ephemeral GET / PUT / DELETE endpoint logic ──────────────────────────────
@@ -432,6 +435,35 @@ def test_persistent_set_returns_413_on_quota_exceeded(
         assert "quota" in body.get_json()["message"].lower()
 
 
+@patch("superset.db")
+@patch("superset.extensions.storage.api.ExtensionStorageDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_persistent_set_returns_400_on_value_too_large(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, mock_db: MagicMock, app: Flask
+) -> None:
+    """Persistent PUT returns a 400 response when the DAO rejects an
+    oversized value."""
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+    mock_dao.set.side_effect = ExtensionStorageValueTooLarge(10)
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/persistent/prefs",
+        method="PUT",
+        json={"value": "x" * 1000},
+    ):
+        g.user = MagicMock(id=42)
+
+        body, status_code = ExtensionStorageRestApi().set_persistent(
+            "acme", "dashboard", "prefs"
+        )
+
+        assert status_code == 400
+        assert "exceeds" in body.get_json()["message"].lower()
+
+
 # ── Persistent codec validation ──────────────────────────────────────────────
 
 
@@ -549,6 +581,208 @@ def test_persistent_get_returns_none_when_entry_missing(
 
         assert status_code == 200
         assert body.get_json()["result"] is None
+
+
+# ── Persistent list endpoint ──────────────────────────────────────────────────
+
+
+@patch("superset.extensions.storage.api.ExtensionStorageDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_list_persistent_returns_decoded_entries_and_count(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
+) -> None:
+    """list_persistent decodes each safe-codec entry's value and returns
+    the total count alongside the page."""
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+    mock_dao.list_entries.return_value = (
+        [
+            ExtensionStorageListEntry(
+                key="prefs",
+                value=b'{"theme": "dark"}',
+                codec="json",
+                is_encrypted=False,
+            ),
+        ],
+        1,
+    )
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/persistent"
+    ):
+        g.user = MagicMock(id=42)
+
+        body, status_code = ExtensionStorageRestApi().list_persistent(
+            "acme", "dashboard"
+        )
+
+        assert status_code == 200
+        payload = body.get_json()
+        assert payload["count"] == 1
+        assert payload["result"] == [
+            {
+                "key": "prefs",
+                "value": {"theme": "dark"},
+                "codec": "json",
+            }
+        ]
+        mock_dao.list_entries.assert_called_once_with(
+            "acme.dashboard",
+            user_fk=42,
+            resource_type=None,
+            resource_uuid=None,
+            page=0,
+            page_size=10,
+        )
+
+
+@patch("superset.extensions.storage.api.ExtensionStorageDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_list_persistent_omits_value_for_unsafe_codec(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
+) -> None:
+    """An entry stored with a codec outside SAFE_CODECS (e.g. pickle) comes
+    back with value=null, but the row and its codec are still listed."""
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+    mock_dao.list_entries.return_value = (
+        [
+            ExtensionStorageListEntry(
+                key="secret",
+                value=b"\x80pickled",
+                codec="pickle",
+                is_encrypted=False,
+            ),
+        ],
+        1,
+    )
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/persistent"
+    ):
+        g.user = MagicMock(id=42)
+
+        body, status_code = ExtensionStorageRestApi().list_persistent(
+            "acme", "dashboard"
+        )
+
+        assert status_code == 200
+        result = body.get_json()["result"]
+        assert result == [
+            {
+                "key": "secret",
+                "value": None,
+                "codec": "pickle",
+            }
+        ]
+
+
+@patch("superset.extensions.storage.api.ExtensionStorageDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_list_persistent_passes_query_params_to_dao(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
+) -> None:
+    """Query params (resource_type, resource_uuid, page, page_size, shared)
+    are parsed and passed through to the DAO."""
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+    mock_dao.list_entries.return_value = ([], 0)
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/persistent"
+        "?shared=true&resource_type=dashboard&resource_uuid=uuid-1"
+        "&page=2&page_size=25"
+    ):
+        g.user = MagicMock(id=42)
+
+        ExtensionStorageRestApi().list_persistent("acme", "dashboard")
+
+        mock_dao.list_entries.assert_called_once_with(
+            "acme.dashboard",
+            user_fk=None,
+            resource_type="dashboard",
+            resource_uuid="uuid-1",
+            page=2,
+            page_size=25,
+        )
+
+
+@patch("superset.extensions.storage.api.ExtensionStorageDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_list_persistent_returns_400_for_non_integer_page(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
+) -> None:
+    """A non-integer page/page_size query param returns 400 rather than a
+    500 from a failed int() conversion."""
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/persistent?page=not-a-number"
+    ):
+        g.user = MagicMock(id=42)
+
+        body, status_code = ExtensionStorageRestApi().list_persistent(
+            "acme", "dashboard"
+        )
+
+        assert status_code == 400
+        mock_dao.list_entries.assert_not_called()
+
+
+@patch("superset.extensions.storage.api.ExtensionStorageDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_list_persistent_returns_400_on_payload_too_large(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
+) -> None:
+    """list_persistent returns 400 when the DAO rejects the page for
+    exceeding MAX_LIST_PAYLOAD_SIZE."""
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+    mock_dao.list_entries.side_effect = ExtensionStorageListPayloadTooLarge(100, 50)
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/persistent"
+    ):
+        g.user = MagicMock(id=42)
+
+        body, status_code = ExtensionStorageRestApi().list_persistent(
+            "acme", "dashboard"
+        )
+
+        assert status_code == 400
+
+
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_list_persistent_returns_404_for_missing_extension(
+    mock_get_ext: MagicMock, app: Flask
+) -> None:
+    """list_persistent returns 404 when the extension does not exist."""
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_get_ext.return_value = {}
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/persistent"
+    ):
+        g.user = MagicMock(id=42)
+
+        body, status_code = ExtensionStorageRestApi().list_persistent(
+            "acme", "dashboard"
+        )
+
+        assert status_code == 404
 
 
 # ── Extension ID reconstruction ──────────────────────────────────────────────

@@ -26,7 +26,6 @@ from sqlalchemy import (
     Integer,
     LargeBinary,
     String,
-    Text,
     UniqueConstraint,
 )
 from sqlalchemy_utils import UUIDType
@@ -35,9 +34,6 @@ from superset_core.extensions.storage.models import (
 )
 
 from superset.models.helpers import AuditMixinNullable
-
-# 16 MB — matches the KeyValue store limit.
-EXTENSION_STORAGE_MAX_SIZE = 2**24 - 1
 
 
 class ExtensionStorage(CoreExtensionStorageEntry, AuditMixinNullable, Model):
@@ -94,12 +90,10 @@ class ExtensionStorage(CoreExtensionStorageEntry, AuditMixinNullable, Model):
     # Storage key within the scope
     key = Column(String(255), nullable=False)
 
-    # Optional metadata
-    category = Column(String(64), nullable=True)
-    description = Column(Text, nullable=True)
-
-    # Payload
-    value = Column(LargeBinary(EXTENSION_STORAGE_MAX_SIZE), nullable=False)
+    # Payload. Size is bounded at the application level by
+    # EXTENSIONS_PERSISTENT_STORAGE["MAX_VALUE_SIZE"], enforced in
+    # ExtensionStorageDAO.set(), rather than by a fixed column length here.
+    value = Column(LargeBinary, nullable=False)
     # Byte length of `value`, kept in sync at write time so the quota SUM in
     # _check_quota() can be computed from this fixed-width column instead of
     # reading (and, once TOASTed, detoasting) every extension's stored blobs.

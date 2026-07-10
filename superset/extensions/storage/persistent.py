@@ -27,6 +27,9 @@ from __future__ import annotations
 from typing import Any, ClassVar
 
 from superset_core.extensions.storage.persistent import (
+    PersistentListEntry,
+    PersistentListOptions,
+    PersistentListResult,
     PersistentSetOptions,
     PersistentState as CorePersistentState,
 )
@@ -43,6 +46,43 @@ from superset.utils.decorators import transaction
 def _get_extension_id() -> str:
     """Get the current extension ID from context."""
     return get_current_extension_id("persistent_state")
+
+
+def _list(
+    extension_id: str,
+    user_fk: int | None,
+    options: PersistentListOptions | None,
+) -> PersistentListResult:
+    """Shared `list` implementation for both scopes.
+
+    Unlike the REST API, ambient backend code has no SAFE_CODECS
+    restriction — every entry's value is decoded unconditionally, same as
+    `get_decoded_value()`.
+    """
+    options = options or PersistentListOptions()
+    entries, count = ExtensionStorageDAO.list_entries(
+        extension_id,
+        user_fk=user_fk,
+        resource_type=options.resource_type,
+        resource_uuid=options.resource_uuid,
+        page=options.page,
+        page_size=options.page_size,
+    )
+    return PersistentListResult(
+        entries=[
+            PersistentListEntry(
+                key=entry.key,
+                value=(
+                    get_codec(entry.codec).decode(entry.value)
+                    if entry.value is not None
+                    else None
+                ),
+                codec=entry.codec,
+            )
+            for entry in entries
+        ],
+        count=count,
+    )
 
 
 class SharedPersistentStateAccessor:
@@ -76,6 +116,8 @@ class SharedPersistentStateAccessor:
         :param options: Optional `PersistentSetOptions`, e.g. `encrypt=True`
             to store the value encrypted at rest, or `codec="pickle"` to
             store a value that isn't JSON-serializable.
+        :raises ExtensionStorageValueTooLarge: if the encoded value exceeds
+            MAX_VALUE_SIZE.
         :raises ExtensionStorageQuotaExceeded: if this write would exceed the
             extension's configured persistent storage quota.
         """
@@ -90,6 +132,22 @@ class SharedPersistentStateAccessor:
             user_fk=None,
             encrypt=encrypt,
         )
+
+    def list(
+        self, options: PersistentListOptions | None = None
+    ) -> PersistentListResult:
+        """
+        List entries in shared persistent state.
+
+        :param options: Optional `PersistentListOptions`, e.g.
+            `page`/`page_size` to paginate.
+        :returns: `PersistentListResult` with the page's entries and the
+            total count across all pages.
+        :raises ExtensionStorageListPayloadTooLarge: if the requested
+            page's combined value size exceeds MAX_LIST_PAYLOAD_SIZE.
+        """
+        extension_id = _get_extension_id()
+        return _list(extension_id, user_fk=None, options=options)
 
     @transaction()
     def remove(self, key: str) -> None:
@@ -137,6 +195,8 @@ class PersistentState(CorePersistentState):
         :param options: Optional `PersistentSetOptions`, e.g. `encrypt=True`
             to store the value encrypted at rest, or `codec="pickle"` to
             store a value that isn't JSON-serializable.
+        :raises ExtensionStorageValueTooLarge: if the encoded value exceeds
+            MAX_VALUE_SIZE.
         :raises ExtensionStorageQuotaExceeded: if this write would exceed the
             extension's configured persistent storage quota.
         """
@@ -152,6 +212,22 @@ class PersistentState(CorePersistentState):
             user_fk=user_id,
             encrypt=encrypt,
         )
+
+    @staticmethod
+    def list(options: PersistentListOptions | None = None) -> PersistentListResult:
+        """
+        List entries in user-scoped persistent state.
+
+        :param options: Optional `PersistentListOptions`, e.g.
+            `page`/`page_size` to paginate.
+        :returns: `PersistentListResult` with the page's entries and the
+            total count across all pages.
+        :raises ExtensionStorageListPayloadTooLarge: if the requested
+            page's combined value size exceeds MAX_LIST_PAYLOAD_SIZE.
+        """
+        extension_id = _get_extension_id()
+        user_id = get_current_user_id("persistent_state")
+        return _list(extension_id, user_fk=user_id, options=options)
 
     @staticmethod
     @transaction()

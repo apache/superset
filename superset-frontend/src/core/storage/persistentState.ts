@@ -19,6 +19,8 @@
 
 import type {
   JsonValue,
+  PersistentListOptions,
+  PersistentListResult,
   PersistentSetOptions,
   PersistentStorageAccessor,
   PersistentStorageTier,
@@ -48,6 +50,40 @@ export function createPersistentState(
     return shared ? `${url}?shared=true` : url;
   };
 
+  const buildListUrl = (
+    options?: PersistentListOptions,
+    isShared?: boolean,
+  ): string => {
+    const encodedPublisher = encodeURIComponent(publisher);
+    const encodedName = encodeURIComponent(name);
+    const url = `/api/v1/extensions/${encodedPublisher}/${encodedName}/storage/persistent`;
+    const params = new URLSearchParams();
+    if (isShared) params.set('shared', 'true');
+    if (options?.resourceType)
+      params.set('resource_type', options.resourceType);
+    if (options?.resourceUuid)
+      params.set('resource_uuid', options.resourceUuid);
+    if (options?.page !== undefined) params.set('page', String(options.page));
+    if (options?.pageSize !== undefined) {
+      params.set('page_size', String(options.pageSize));
+    }
+    const query = params.toString();
+    return query ? `${url}?${query}` : url;
+  };
+
+  const list = async <T = JsonValue>(
+    options: PersistentListOptions | undefined,
+    isShared: boolean,
+  ): Promise<PersistentListResult<T>> => {
+    const response = await SupersetClient.get({
+      endpoint: buildListUrl(options, isShared),
+    });
+    return {
+      entries: response.json?.result ?? [],
+      count: response.json?.count ?? 0,
+    };
+  };
+
   const shared: PersistentStorageAccessor = {
     async get<T = JsonValue>(key: string): Promise<T | null> {
       const response = await SupersetClient.get({
@@ -70,6 +106,11 @@ export function createPersistentState(
         }),
         headers: { 'Content-Type': 'application/json' },
       });
+    },
+    async list<T = JsonValue>(
+      options?: PersistentListOptions,
+    ): Promise<PersistentListResult<T>> {
+      return list<T>(options, true);
     },
     async remove(key: string): Promise<void> {
       await SupersetClient.delete({ endpoint: buildUrl(key, true) });
@@ -96,6 +137,11 @@ export function createPersistentState(
         }),
         headers: { 'Content-Type': 'application/json' },
       });
+    },
+    async list<T = JsonValue>(
+      options?: PersistentListOptions,
+    ): Promise<PersistentListResult<T>> {
+      return list<T>(options, false);
     },
     async remove(key: string): Promise<void> {
       await SupersetClient.delete({ endpoint: buildUrl(key) });

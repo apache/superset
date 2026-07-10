@@ -62,8 +62,6 @@ class ExtensionStorageEntry(CoreModel):
     resource_type: str | None
     resource_uuid: str | None
     key: str
-    category: str | None
-    description: str | None
     value: bytes
     value_size: int
     codec: str
