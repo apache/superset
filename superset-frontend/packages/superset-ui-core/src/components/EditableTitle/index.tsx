@@ -60,7 +60,7 @@ const StyledEditableTitle = styled.span<{
       font-size: ${({ theme }) => theme.fontSizeLG}px;
       padding: ${({ theme }) => theme.sizeUnit / 2}px;
       min-height: 100px;
-      width: 100%;
+      width: 95%;
     }
 
     &.datasource-sql-expression {

@@ -59,7 +59,7 @@ const IconButton = forwardRef<HTMLDivElement, IconButtonProps>(
     <StyledDiv
       {...rest}
       ref={ref}
-      tabIndex={0}
+      tabIndex={disabled ? -1 : 0}
       role="button"
       isDisabled={disabled}
       aria-disabled={disabled}

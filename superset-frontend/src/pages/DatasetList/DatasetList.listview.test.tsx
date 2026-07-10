@@ -42,6 +42,7 @@ import {
   mockDatasetListEndpoints,
   mockDatasetEditors,
   getDeleteRouteName,
+  mockEditorUser,
 } from './DatasetList.testHelpers';
 
 jest.mock('src/utils/getBootstrapData', () => ({
@@ -1035,13 +1036,8 @@ test('edit action is disabled for non-editor', async () => {
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
 
-  // Use a non-admin user to test the editor check.
-  const regularUser = {
-    ...mockAdminUser,
-    roles: { Admin: [['can_read', 'Dataset']] },
-  };
-
-  renderDatasetList(regularUser);
+  // editors does not include mockEditorUser, so edit button should be disabled
+  renderDatasetList(mockEditorUser);
 
   await waitFor(() => {
     expect(screen.getByText(dataset.table_name)).toBeInTheDocument();
