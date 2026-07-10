@@ -857,6 +857,118 @@ test('cross-filter label maps resolve verbose series names to raw label_map valu
   expect(transformed.labelMapB['Total Births']).toEqual(['sum__num']);
 });
 
+test('tooltip resolves per-metric formats through the display-keyed label map', () => {
+  // Multi-metric so getCustomFormatter cannot short-circuit on a single
+  // saved metric: the formatter key must come from resolving the rendered
+  // series name through the display-keyed map.
+  const rows = [{ ds: 599616000000, 'sum__num, boy': 0.5, 'avg__num, boy': 1 }];
+  const queryData = createTestQueryData(rows, {
+    colnames: ['ds', 'sum__num, boy', 'avg__num, boy'],
+    coltypes: [
+      GenericDataType.Temporal,
+      GenericDataType.Numeric,
+      GenericDataType.Numeric,
+    ],
+    label_map: {
+      ds: ['ds'],
+      'sum__num, boy': ['sum__num', 'boy'],
+      'avg__num, boy': ['avg__num', 'boy'],
+    },
+  });
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [queryData, queryData],
+    formData: {
+      ...formData,
+      metrics: ['sum__num', 'avg__num'],
+      x_axis: 'ds',
+      yAxisFormat: undefined,
+    },
+    queriesData: [queryData, queryData],
+    datasource: {
+      columnFormats: { sum__num: '.2%' },
+    },
+  });
+  const transformed = transformProps(chartProps);
+
+  const formatter = (transformed.echartOptions.tooltip as any).formatter as (
+    params: unknown,
+  ) => string;
+  const html = formatter({
+    value: [599616000000, 0.5],
+    seriesId: 'sum__num, boy',
+    marker: '',
+    color: '#333',
+  });
+
+  expect(html).toContain('50.00%');
+});
+
+test('tooltip resolves per-metric formats for secondary-query series', () => {
+  const rowsA = [
+    { ds: 599616000000, 'sum__num, boy': 0.5, 'avg__num, boy': 1 },
+  ];
+  const queryDataA = createTestQueryData(rowsA, {
+    colnames: ['ds', 'sum__num, boy', 'avg__num, boy'],
+    coltypes: [
+      GenericDataType.Temporal,
+      GenericDataType.Numeric,
+      GenericDataType.Numeric,
+    ],
+    label_map: {
+      ds: ['ds'],
+      'sum__num, boy': ['sum__num', 'boy'],
+      'avg__num, boy': ['avg__num', 'boy'],
+    },
+  });
+  const rowsB = [{ ds: 599616000000, 'count__num, boy': 2.5 }];
+  const queryDataB = createTestQueryData(rowsB, {
+    colnames: ['ds', 'count__num, boy'],
+    coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+    label_map: {
+      ds: ['ds'],
+      'count__num, boy': ['count__num', 'boy'],
+    },
+  });
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [queryDataA, queryDataB],
+    formData: {
+      ...formData,
+      metrics: ['sum__num', 'avg__num'],
+      metricsB: ['count__num', 'max__num'],
+      x_axis: 'ds',
+      yAxisFormat: undefined,
+      yAxisFormatSecondary: undefined,
+      yAxisIndex: 0,
+      yAxisIndexB: 1,
+    },
+    queriesData: [queryDataA, queryDataB],
+    datasource: {
+      columnFormats: { count__num: '.1f' },
+    },
+  });
+  const transformed = transformProps(chartProps);
+
+  const formatter = (transformed.echartOptions.tooltip as any).formatter as (
+    params: unknown,
+  ) => string;
+  const html = formatter({
+    value: [599616000000, 2.5],
+    seriesId: 'count__num, boy',
+    marker: '',
+    color: '#333',
+  });
+
+  expect(html).toContain('2.5');
+});
+
 test('temporal x coltype wires the time formatter and Time axis', () => {
   // Regression guard: the happy path for mixed-timeseries charts. Ensures
   // Temporal coltype still routes through the TimeFormatter so the time axis
