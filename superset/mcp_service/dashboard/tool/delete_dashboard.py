@@ -38,7 +38,10 @@ from superset.mcp_service.dashboard.schemas import (
     DeleteDashboardRequest,
     DeleteDashboardResponse,
 )
-from superset.mcp_service.utils import escape_llm_context_delimiters
+from superset.mcp_service.utils import (
+    escape_llm_context_delimiters,
+    sanitize_for_llm_context,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -102,8 +105,9 @@ async def delete_dashboard(
     can be restored by an owner or Admin; otherwise the delete is permanent and
     cannot be undone. The ``soft_deleted`` response field reports which
     happened. It removes the dashboard container only — the charts on it are
-    NOT deleted. The caller must own the dashboard (or be an Admin); dashboards
-    with attached alerts/reports cannot be deleted until those are removed.
+    NOT deleted. The caller must be an editor of the dashboard (owners and
+    Admins qualify); dashboards with attached alerts/reports cannot be
+    deleted until those are removed.
 
     Example:
     ```json
@@ -135,7 +139,10 @@ async def delete_dashboard(
         return DeleteDashboardResponse(success=False, error=msg, error_type="NotFound")
 
     dashboard_id = dashboard.id
-    dashboard_name = dashboard.dashboard_title
+    # Dashboard titles are user-controlled; wrap before composing responses.
+    dashboard_name = sanitize_for_llm_context(
+        dashboard.dashboard_title, field_path=("dashboard_title",)
+    )
 
     # The try/except sits inside log_context so failed attempts (forbidden,
     # reports-exist, db errors) are recorded in the audit log too — the

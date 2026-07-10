@@ -38,7 +38,10 @@ from superset.mcp_service.chart.schemas import (
     DeleteChartRequest,
     DeleteChartResponse,
 )
-from superset.mcp_service.utils import escape_llm_context_delimiters
+from superset.mcp_service.utils import (
+    escape_llm_context_delimiters,
+    sanitize_for_llm_context,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -81,8 +84,9 @@ async def delete_chart(
     ``SOFT_DELETE`` feature flag is enabled the chart is moved to trash and can
     be restored by an owner or Admin; otherwise the delete is permanent and
     cannot be undone. The ``soft_deleted`` response field reports which
-    happened. The caller must own the chart (or be an Admin); charts with
-    attached alerts/reports cannot be deleted until those are removed.
+    happened. The caller must be an editor of the chart (owners and Admins
+    qualify); charts with attached alerts/reports cannot be deleted until
+    those are removed.
 
     Example:
     ```json
@@ -114,7 +118,8 @@ async def delete_chart(
         return DeleteChartResponse(success=False, error=msg, error_type="NotFound")
 
     chart_id = chart.id
-    chart_name = chart.slice_name
+    # Chart names are user-controlled; wrap before composing response text.
+    chart_name = sanitize_for_llm_context(chart.slice_name, field_path=("slice_name",))
 
     # The try/except sits inside log_context so failed attempts (forbidden,
     # reports-exist, db errors) are recorded in the audit log too — the

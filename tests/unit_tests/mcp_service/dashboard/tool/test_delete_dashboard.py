@@ -94,7 +94,7 @@ async def test_delete_dashboard_success(
     content = result.structured_content
     assert content["success"] is True
     assert content["deleted_id"] == 1
-    assert content["deleted_name"] == "Sales Dashboard"
+    assert "Sales Dashboard" in content["deleted_name"]
     assert content["permission_denied"] is False
     assert "Its charts were not deleted" in (content["message"] or "")
     mock_run.assert_called_once()

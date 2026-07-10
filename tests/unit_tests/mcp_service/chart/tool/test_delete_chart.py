@@ -86,7 +86,7 @@ async def test_delete_chart_success(
     content = result.structured_content
     assert content["success"] is True
     assert content["deleted_id"] == 10
-    assert content["deleted_name"] == "Sales"
+    assert "Sales" in content["deleted_name"]
     assert content["permission_denied"] is False
     mock_run.assert_called_once()
 
