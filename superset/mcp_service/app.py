@@ -191,7 +191,7 @@ Chart Management:
 - get_chart_data: Get underlying chart data in text-friendly format
 - get_chart_sql: Get the rendered SQL query for a chart (without executing it)
 - get_chart_type_schema: Get the JSON Schema and examples for a chart_type before calling generate_chart/update_chart
-- generate_chart: Create and save a new chart permanently (requires write access)
+- generate_chart: Create a chart preview, optionally saving it permanently with save_chart=True (requires write access)
 - generate_explore_link: Create an interactive explore URL (preferred for exploration)
 - update_chart: Update existing saved chart configuration (requires write access;
   by default returns an unsaved preview URL — pass generate_preview=False to persist)
