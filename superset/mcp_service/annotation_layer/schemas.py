@@ -26,19 +26,14 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    field_validator,
-    model_validator,
-    PositiveInt,
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from superset.mcp_service.system.schemas import PaginationInfo
-from superset.mcp_service.utils import sanitize_for_llm_context
-from superset.mcp_service.utils.schema_utils import (
-    parse_json_or_list,
-    parse_json_or_model_list,
+from superset.mcp_service.common.pagination_schemas import (
+    PaginatedListRequest,
+    PaginatedResponse,
 )
+from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.utils import json as json_utils
 
 DEFAULT_LAYER_COLUMNS = ["id", "name", "descr"]
@@ -82,85 +77,12 @@ class AnnotationLayerInfo(BaseModel):
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
 
 
-class AnnotationLayerList(BaseModel):
+class AnnotationLayerList(PaginatedResponse[AnnotationLayerFilter]):
     annotation_layers: list[AnnotationLayerInfo]
-    count: int
-    total_count: int
-    page: int
-    page_size: int
-    total_pages: int
-    has_previous: bool
-    has_next: bool
-    columns_requested: list[str] = Field(default_factory=list)
-    columns_loaded: list[str] = Field(default_factory=list)
-    columns_available: list[str] = Field(default_factory=list)
-    sortable_columns: list[str] = Field(default_factory=list)
-    filters_applied: list[AnnotationLayerFilter] = Field(default_factory=list)
-    pagination: PaginationInfo | None = None
-    timestamp: datetime | None = None
-    model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-class ListAnnotationLayersRequest(BaseModel):
+class ListAnnotationLayersRequest(PaginatedListRequest[AnnotationLayerFilter]):
     """Request schema for list_annotation_layers."""
-
-    filters: Annotated[
-        list[AnnotationLayerFilter],
-        Field(
-            default_factory=list,
-            description="List of filter objects. Cannot be combined with 'search'.",
-        ),
-    ]
-    select_columns: Annotated[
-        list[str],
-        Field(
-            default_factory=list,
-            description="Columns to include in the response.",
-        ),
-    ]
-    search: Annotated[
-        str | None,
-        Field(
-            default=None,
-            description="Text search across annotation layer name and description.",
-        ),
-    ]
-    order_column: Annotated[
-        str | None, Field(default=None, description="Column to order results by.")
-    ]
-    order_direction: Annotated[
-        Literal["asc", "desc"],
-        Field(default="desc", description="Sort direction."),
-    ]
-    page: Annotated[
-        PositiveInt,
-        Field(default=1, description="Page number (1-based)."),
-    ]
-    page_size: Annotated[
-        int,
-        Field(
-            default=DEFAULT_PAGE_SIZE,
-            gt=0,
-            le=MAX_PAGE_SIZE,
-            description=f"Items per page (max {MAX_PAGE_SIZE}).",
-        ),
-    ]
-
-    @field_validator("filters", mode="before")
-    @classmethod
-    def parse_filters(cls, v: Any) -> list[AnnotationLayerFilter]:
-        return parse_json_or_model_list(v, AnnotationLayerFilter, "filters")
-
-    @field_validator("select_columns", mode="before")
-    @classmethod
-    def parse_columns(cls, v: Any) -> list[str]:
-        return parse_json_or_list(v, "select_columns")
-
-    @model_validator(mode="after")
-    def validate_search_and_filters(self) -> "ListAnnotationLayersRequest":
-        if self.search and self.filters:
-            raise ValueError("Cannot use both 'search' and 'filters' simultaneously.")
-        return self
 
 
 class GetAnnotationLayerInfoRequest(BaseModel):
@@ -180,88 +102,19 @@ class AnnotationInfo(BaseModel):
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
 
 
-class AnnotationList(BaseModel):
+class AnnotationList(PaginatedResponse[ColumnOperator]):
     annotations: list[AnnotationInfo]
-    count: int
-    total_count: int
-    page: int
-    page_size: int
-    total_pages: int
-    has_previous: bool
-    has_next: bool
     # layer_id defaults to 0; the tool sets it after ModelListCore constructs this
     # object. ModelListCore does not know about this domain-specific field.
     layer_id: int = 0
-    columns_requested: list[str] = Field(default_factory=list)
-    columns_loaded: list[str] = Field(default_factory=list)
-    columns_available: list[str] = Field(default_factory=list)
-    sortable_columns: list[str] = Field(default_factory=list)
-    filters_applied: list[ColumnOperator] = Field(default_factory=list)
-    pagination: PaginationInfo | None = None
-    timestamp: datetime | None = None
-    model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-class ListLayerAnnotationsRequest(BaseModel):
+class ListLayerAnnotationsRequest(PaginatedListRequest[AnnotationFilter]):
     """Request schema for list_layer_annotations."""
 
     layer_id: Annotated[
         int, Field(description="Annotation layer ID to list annotations for.")
     ]
-    filters: Annotated[
-        list[AnnotationFilter],
-        Field(
-            default_factory=list,
-            description="List of filter objects. Cannot be combined with 'search'.",
-        ),
-    ]
-    select_columns: Annotated[
-        list[str],
-        Field(default_factory=list, description="Columns to include in the response."),
-    ]
-    search: Annotated[
-        str | None,
-        Field(
-            default=None,
-            description="Text search across annotation short and long description.",
-        ),
-    ]
-    order_column: Annotated[
-        str | None, Field(default=None, description="Column to order results by.")
-    ]
-    order_direction: Annotated[
-        Literal["asc", "desc"],
-        Field(default="desc", description="Sort direction."),
-    ]
-    page: Annotated[
-        PositiveInt,
-        Field(default=1, description="Page number (1-based)."),
-    ]
-    page_size: Annotated[
-        int,
-        Field(
-            default=DEFAULT_PAGE_SIZE,
-            gt=0,
-            le=MAX_PAGE_SIZE,
-            description=f"Items per page (max {MAX_PAGE_SIZE}).",
-        ),
-    ]
-
-    @field_validator("filters", mode="before")
-    @classmethod
-    def parse_filters(cls, v: Any) -> list[AnnotationFilter]:
-        return parse_json_or_model_list(v, AnnotationFilter, "filters")
-
-    @field_validator("select_columns", mode="before")
-    @classmethod
-    def parse_columns(cls, v: Any) -> list[str]:
-        return parse_json_or_list(v, "select_columns")
-
-    @model_validator(mode="after")
-    def validate_search_and_filters(self) -> "ListLayerAnnotationsRequest":
-        if self.search and self.filters:
-            raise ValueError("Cannot use both 'search' and 'filters' simultaneously.")
-        return self
 
 
 class GetLayerAnnotationInfoRequest(BaseModel):
