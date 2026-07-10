@@ -777,6 +777,86 @@ test('xAxisForceCategorical forces Category axis regardless of Numeric coltype',
   expect(xAxis.type).toBe(AxisType.Category);
 });
 
+// labelMap/labelMapB must be keyed by the rendered series names or the
+// cross-filter/drill lookups in EchartsMixedTimeseries miss (#41622);
+// see the re-key comment in transformProps.ts.
+test('cross-filter label maps are keyed by the rendered series names', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: { ...formData, showQueryIdentifiers: false },
+    queriesData,
+  });
+  const transformed = transformProps(chartProps);
+
+  // The backend label_map is keyed by the flattened column names
+  // ("boy"/"girl") while the rendered series are "sum__num, boy" etc.
+  expect(transformed.labelMap).toEqual({
+    'sum__num, boy': ['boy'],
+    'sum__num, girl': ['girl'],
+  });
+  expect(transformed.labelMapB).toEqual({
+    'sum__num, boy': ['boy'],
+    'sum__num, girl': ['girl'],
+  });
+});
+
+test('cross-filter label maps resolve every rendered series name', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: { ...formData, showQueryIdentifiers: true },
+    queriesData,
+  });
+  const transformed = transformProps(chartProps);
+
+  const names = (transformed.echartOptions.series as SeriesOption[]).map(
+    series => String(series.name),
+  );
+  expect(names).toHaveLength(4);
+  names
+    .slice(0, transformed.seriesBreakdown)
+    .forEach(name => expect(transformed.labelMap[name]).toBeDefined());
+  names
+    .slice(transformed.seriesBreakdown)
+    .forEach(name => expect(transformed.labelMapB[name]).toBeDefined());
+});
+
+test('cross-filter label maps resolve verbose series names to raw label_map values', () => {
+  const verboseRows = [
+    { ds: 599616000000, sum__num: 1 },
+    { ds: 599916000000, sum__num: 3 },
+  ];
+  const verboseQueryData = createTestQueryData(verboseRows, {
+    label_map: { ds: ['ds'], sum__num: ['sum__num'] },
+  });
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [verboseQueryData, verboseQueryData],
+    formData: { ...formData, groupby: [], groupbyB: [] },
+    queriesData: [verboseQueryData, verboseQueryData],
+    datasource: {
+      verboseMap: { sum__num: 'Total Births' },
+    },
+  });
+  const transformed = transformProps(chartProps);
+
+  // rebaseForecastDatum renames data columns to their verbose names, so the
+  // rendered series is "Total Births" while label_map stays keyed by
+  // "sum__num" — the display-keyed map bridges the two.
+  expect(transformed.labelMap['Total Births']).toEqual(['sum__num']);
+  expect(transformed.labelMapB['Total Births']).toEqual(['sum__num']);
+});
+
 test('temporal x coltype wires the time formatter and Time axis', () => {
   // Regression guard: the happy path for mixed-timeseries charts. Ensures
   // Temporal coltype still routes through the TimeFormatter so the time axis

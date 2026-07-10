@@ -146,10 +146,14 @@ export default function transformProps(
     columnFormats = {},
     currencyCodeColumn,
   } = datasource;
-  const { label_map: labelMap, detected_currency: backendDetectedCurrency } =
+  // "raw" because these are keyed by the backend column labels; the maps
+  // returned to the component are re-keyed by the rendered series names below.
+  const { label_map: rawLabelMap, detected_currency: backendDetectedCurrency } =
     queriesData[0] as TimeseriesChartDataResponseResult;
-  const { label_map: labelMapB, detected_currency: backendDetectedCurrencyB } =
-    queriesData[1] as TimeseriesChartDataResponseResult;
+  const {
+    label_map: rawLabelMapB,
+    detected_currency: backendDetectedCurrencyB,
+  } = queriesData[1] as TimeseriesChartDataResponseResult;
   const data1 = (queriesData[0].data || []) as TimeseriesDataRecord[];
   const data2 = (queriesData[1].data || []) as TimeseriesDataRecord[];
   const annotationData = getAnnotationData(chartProps);
@@ -438,6 +442,16 @@ export default function transformProps(
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
 
+  // The rendered ECharts series names are display names that can diverge from
+  // the backend `label_map` keys: the metric display name is prepended when
+  // dimensions are present, query identifiers may be appended, and verbose
+  // names replace the raw column labels. Cross-filtering and drill lookups in
+  // EchartsMixedTimeseries resolve the clicked series name through the label
+  // map, so expose maps re-keyed by the rendered series names to keep those
+  // lookups working (#41622).
+  const displayLabelMap: Record<string, string[]> = {};
+  const displayLabelMapB: Record<string, string[]> = {};
+
   rawSeriesA.forEach(entry => {
     const entryName = String(entry.name || '');
     const seriesName = inverted[entryName] || entryName;
@@ -457,13 +471,19 @@ export default function transformProps(
       // When no groupby, format as just the entry name with optional query identifier
       displayName = showQueryIdentifiers ? `${entryName} (Query A)` : entryName;
     }
+
+    const labelMapValues = rawLabelMap?.[seriesName];
+    if (labelMapValues) {
+      displayLabelMap[displayName] = labelMapValues;
+    }
+
     const axisFormatterConfig = getAxisFormatterConfig(yAxisIndex);
 
     const seriesFormatter = getFormatter(
       axisFormatterConfig.customFormatters,
       axisFormatterConfig.formatter,
       metrics,
-      labelMap?.[seriesName]?.[0],
+      labelMapValues?.[0],
       !!contributionMode,
     );
 
@@ -514,7 +534,6 @@ export default function transformProps(
   rawSeriesB.forEach(entry => {
     const entryName = String(entry.name || '');
     const seriesEntry = inverted[entryName] || entryName;
-    const seriesName = `${seriesEntry} (1)`;
     const colorScaleKey = getOriginalSeries(seriesEntry, array);
 
     let displayName: string;
@@ -531,13 +550,19 @@ export default function transformProps(
       // When no groupby, format as just the entry name with optional query identifier
       displayName = showQueryIdentifiers ? `${entryName} (Query B)` : entryName;
     }
+
+    const labelMapValuesB = rawLabelMapB?.[seriesEntry];
+    if (labelMapValuesB) {
+      displayLabelMapB[displayName] = labelMapValuesB;
+    }
+
     const axisFormatterConfig = getAxisFormatterConfig(yAxisIndexB);
 
     const seriesFormatter = getFormatter(
       axisFormatterConfig.customFormatters,
       axisFormatterConfig.formatter,
       metricsB,
-      labelMapB?.[seriesName]?.[0],
+      labelMapValuesB?.[0],
       !!contributionMode,
     );
 
@@ -810,14 +835,20 @@ export default function transformProps(
           .forEach(key => {
             const value = forecastValues[key];
             // if there are no dimensions, key is a verbose name of a metric,
-            // otherwise it is a comma separated string where the first part is metric name
+            // otherwise it is a comma separated string where the first part is metric name.
+            // The tooltip key is the rendered series name, so resolve it through
+            // the display-keyed maps rather than the raw backend-keyed ones.
             let formatterKey;
             if (primarySeries.has(key)) {
               formatterKey =
-                groupby.length === 0 ? inverted[key] : labelMap[key]?.[0];
+                groupby.length === 0
+                  ? inverted[key]
+                  : displayLabelMap[key]?.[0];
             } else {
               formatterKey =
-                groupbyB.length === 0 ? inverted[key] : labelMapB[key]?.[0];
+                groupbyB.length === 0
+                  ? inverted[key]
+                  : displayLabelMapB[key]?.[0];
             }
             const tooltipFormatter = getFormatter(
               customFormatters,
@@ -912,8 +943,8 @@ export default function transformProps(
     echartOptions: mergedEchartOptions,
     setDataMask,
     emitCrossFilters,
-    labelMap,
-    labelMapB,
+    labelMap: displayLabelMap,
+    labelMapB: displayLabelMapB,
     groupby,
     groupbyB,
     seriesBreakdown: rawSeriesA.length,
