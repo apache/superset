@@ -225,6 +225,20 @@ SUPERSET_WEBSERVER_TIMEOUT = int(timedelta(minutes=1).total_seconds())
 SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT = 0
 SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE = None
 
+# Manual dashboard refresh can stagger chart data requests across this many
+# milliseconds so they do not all hit the backend at the same instant. This
+# defaults to 0, which preserves the original behavior where every chart
+# request fires at the same time when the user clicks the Refresh dashboard
+# button. Set a positive value to opt in to staggering; the frontend then
+# uses the larger of this value and the dashboard's stagger_time metadata,
+# which itself defaults to 5000 ms when it is not set explicitly. A dashboard
+# with stagger_refresh set to false in its metadata skips staggering on the
+# manual refresh path entirely, even when this value is positive.
+# If the backend does not provide this value at all (an older backend that
+# predates the key, or it is set to None), the frontend falls back to a
+# built-in default of 5000 ms.
+SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS: int = 0
+
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
 CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -1362,7 +1376,11 @@ CORS_OPTIONS: dict[Any, Any] = {
     "origins": [
         "https://tile.openstreetmap.org",
         "https://tile.osm.ch",
-    ]
+    ],
+    # Make the entity-version-history `ETag` header readable by cross-origin
+    # browser clients. Without this, `fetch()` callers cannot read the header
+    # even when CORS is otherwise permissive.
+    "expose_headers": ["ETag"],
 }
 
 # Sanitizes the HTML content used in markdowns to allow its rendering in a safe manner.
@@ -1541,6 +1559,21 @@ DATETIME_FORMAT_DETECTION_SAMPLE_SIZE = 1000
 
 # The limit for the Superset Meta DB when the feature flag ENABLE_SUPERSET_META_DB is on
 SUPERSET_META_DB_LIMIT: int | None = 1000
+
+# Master switch for entity-version-history capture. Ships defaulted ``False``
+# so the versioning infrastructure (schema + Continuum wiring) lands inert:
+# no save writes shadow rows or a ``version_transaction``/``version_changes``
+# record, while the /versions/ endpoints stay available read-only (returning
+# empty). Set to ``True`` in ``superset_config.py`` (or via the env var of the
+# same name) to enable the before-flush listeners that drive capture.
+# Capture is activated by flipping this default to on once validated in
+# production. It is an operational escape hatch — for use when a
+# versioning-induced regression needs a 30-second recovery instead of
+# revert-and-redeploy — not a feature flag, and remains as the permanent
+# kill-switch.
+ENABLE_VERSIONING_CAPTURE: bool = utils.parse_boolean_string(
+    os.environ.get("ENABLE_VERSIONING_CAPTURE", "false")
+)
 
 # Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None
