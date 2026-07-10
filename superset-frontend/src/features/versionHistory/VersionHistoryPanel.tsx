@@ -128,12 +128,13 @@ export interface VersionHistoryPanelProps {
   entityType: VersionedEntityType;
   activity: UseVersionActivityResult;
   include: ActivityInclude;
+  canRestore?: boolean;
   onIncludeChange: (include: ActivityInclude) => void;
   /**
    * Free-text search is controlled by the container, which debounces it
    * and feeds it to the activity hook so the server filters the full
    * history (not just the loaded pages). The panel renders the matches
-   * verbatim. (sc-107283 guide, 2026-06-12.)
+   * verbatim.
    */
   searchTerm: string;
   onSearchChange: (value: string) => void;
@@ -152,6 +153,7 @@ export default function VersionHistoryPanel({
   entityType,
   activity,
   include,
+  canRestore = true,
   onIncludeChange,
   searchTerm,
   onSearchChange,
@@ -264,6 +266,7 @@ export default function VersionHistoryPanel({
               entityType={entityType}
               group={entry}
               isCurrent={entry.transactionId === currentTransactionId}
+              canRestore={canRestore}
               isPreviewed={
                 entry.transactionId === previewedTransactionId &&
                 entry.transactionId !== currentTransactionId

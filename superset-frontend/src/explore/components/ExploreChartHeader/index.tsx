@@ -285,7 +285,7 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
         !isVersionPreviewActive &&
         (!slice ||
           canOverwrite ||
-          Boolean(slice?.editors?.some(editor => userSubjects.has(editor))),
+          Boolean(slice?.editors?.some(editor => userSubjects.has(editor)))),
       onSave: actions.updateChartTitle,
       placeholder: t('Add the name of the chart'),
       label: t('Chart title'),

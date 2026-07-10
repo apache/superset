@@ -320,8 +320,9 @@ const StyledDashboardContent = styled.div<{
     height: auto;
     flex: 1;
 
-    ${previewGated &&
-    `
+    ${
+      previewGated &&
+      `
       /* Block chart interactions (context menus, cross-filters, drills)
          while previewing a historical version. Tab bars deliberately stay
          clickable: previewing a tabbed dashboard requires navigating its
@@ -332,7 +333,8 @@ const StyledDashboardContent = styled.div<{
       .ant-tabs-nav {
         pointer-events: auto;
       }
-    `}
+    `
+    }
 
     .grid-container .dashboard-component-tabs {
       box-shadow: none;
@@ -579,12 +581,14 @@ const DashboardBuilder = () => {
               data-test="dashboard-filter-bar-gate"
               aria-disabled={isVersionPreviewActive}
               css={css`
-                ${isVersionPreviewActive
-                  ? `
+                ${
+                  isVersionPreviewActive
+                    ? `
                     pointer-events: none;
                     opacity: 0.5;
                   `
-                  : ''}
+                    : ''
+                }
               `}
               // inert blocks keyboard focus too; React 18 needs the spread form
               {...(isVersionPreviewActive ? { inert: '' } : {})}
@@ -675,12 +679,14 @@ const DashboardBuilder = () => {
                 aria-disabled={isVersionPreviewActive}
                 css={css`
                   height: 100%;
-                  ${isVersionPreviewActive
-                    ? `
+                  ${
+                    isVersionPreviewActive
+                      ? `
                       pointer-events: none;
                       opacity: 0.5;
                     `
-                    : ''}
+                      : ''
+                  }
                 `}
                 // inert blocks keyboard focus too; React 18 needs the spread form
                 {...(isVersionPreviewActive ? { inert: '' } : {})}
@@ -756,7 +762,7 @@ const DashboardBuilder = () => {
       <StyledContent fullSizeChartId={fullSizeChartId}>
         {isFeatureEnabled(FeatureFlag.VersionHistory) && (
           <Suspense fallback={null}>
-            <PreviewBanner entityType="dashboard" />
+            <PreviewBanner entityType="dashboard" canRestore={canEdit} />
           </Suspense>
         )}
         {!editMode &&
@@ -790,6 +796,15 @@ const DashboardBuilder = () => {
             data-test="dashboard-grid-gate"
             aria-disabled={isVersionPreviewActive}
             previewGated={isVersionPreviewActive}
+            onKeyDownCapture={event => {
+              if (
+                isVersionPreviewActive &&
+                !(event.target as HTMLElement).closest('.ant-tabs-nav')
+              ) {
+                event.preventDefault();
+                event.stopPropagation();
+              }
+            }}
           >
             {showDashboard ? (
               missingInitialFilters.length > 0 ? (

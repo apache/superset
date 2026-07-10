@@ -153,6 +153,7 @@ export interface SaveGroupItemProps {
   group: SaveGroup;
   /** The newest self save: it IS the live state, not a historical one. */
   isCurrent: boolean;
+  canRestore: boolean;
   isPreviewed: boolean;
   onPreview: (group: SaveGroup) => void;
   /** Leave an active historical preview (back to the live version). */
@@ -165,11 +166,17 @@ function GroupKebab({
   entityType,
   group,
   isCurrent,
+  canRestore,
   onRestore,
   onOpenAsNew,
 }: Pick<
   SaveGroupItemProps,
-  'entityType' | 'group' | 'isCurrent' | 'onRestore' | 'onOpenAsNew'
+  | 'entityType'
+  | 'group'
+  | 'isCurrent'
+  | 'canRestore'
+  | 'onRestore'
+  | 'onOpenAsNew'
 >) {
   const theme = useTheme();
   const itemStyle = {
@@ -181,7 +188,7 @@ function GroupKebab({
   };
   const menuItems = [
     // Restoring the live version is a no-op; offer it only on history.
-    ...(isCurrent
+    ...(isCurrent || !canRestore
       ? []
       : [
           {
@@ -235,6 +242,7 @@ export default function SaveGroupItem({
   entityType,
   group,
   isCurrent,
+  canRestore,
   isPreviewed,
   onPreview,
   onExitPreview,
@@ -304,6 +312,7 @@ export default function SaveGroupItem({
           entityType={entityType}
           group={group}
           isCurrent={isCurrent}
+          canRestore={canRestore}
           onRestore={onRestore}
           onOpenAsNew={onOpenAsNew}
         />
@@ -326,7 +335,7 @@ export default function SaveGroupItem({
               )}`}
               entityType={entityType}
               record={record}
-              showRestore={!isCurrent}
+              showRestore={canRestore && !isCurrent}
               isPreviewed={isPreviewed}
               isLast={index === visibleRecords.length - 1 && hiddenCount === 0}
               onPreview={previewIntent}

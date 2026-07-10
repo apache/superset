@@ -154,3 +154,29 @@ test('changing the search term refetches from page 0 with q', async () => {
     }),
   );
 });
+
+test('clearing the uuid ignores an in-flight response', async () => {
+  let resolveActivity: (value: {
+    count: number;
+    result: ActivityRecord[];
+  }) => void = () => {};
+  mockedFetchActivity.mockReturnValue(
+    new Promise(resolve => {
+      resolveActivity = resolve;
+    }),
+  );
+  const { result, rerender } = renderHook(
+    ({ uuid }: { uuid: string | undefined }) =>
+      useVersionActivity('chart', uuid, 'all'),
+    { initialProps: { uuid: 'uuid-1' as string | undefined } },
+  );
+  await waitFor(() => expect(mockedFetchActivity).toHaveBeenCalledTimes(1));
+
+  rerender({ uuid: undefined });
+  await act(async () => {
+    resolveActivity({ count: 1, result: [record(100, 0)] });
+  });
+
+  expect(result.current.records).toEqual([]);
+  expect(result.current.count).toBe(0);
+});

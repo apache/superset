@@ -51,7 +51,7 @@ export function useVersionActivity(
   include: ActivityInclude,
   // Free-text search runs server-side over the full history (not just the
   // loaded pages). Pass the already-debounced term; an empty/whitespace
-  // value omits the filter. (sc-107283 guide, 2026-06-12.)
+  // value omits the filter.
   q = '',
 ): UseVersionActivityResult {
   const [records, setRecords] = useState<ActivityRecord[]>([]);
@@ -71,11 +71,11 @@ export function useVersionActivity(
 
   const fetchPage = useCallback(
     async (pageToLoad: number, reset: boolean) => {
+      fetchIdRef.current += 1;
+      const fetchId = fetchIdRef.current;
       if (!uuid) {
         return;
       }
-      fetchIdRef.current += 1;
-      const fetchId = fetchIdRef.current;
       setIsLoading(true);
       setError(null);
       try {
@@ -113,6 +113,7 @@ export function useVersionActivity(
   );
 
   useEffect(() => {
+    recordsRef.current = [];
     setRecords([]);
     setCount(0);
     setPage(0);
