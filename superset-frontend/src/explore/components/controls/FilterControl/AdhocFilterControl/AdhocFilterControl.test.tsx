@@ -18,9 +18,27 @@
  */
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
+import { useSortable } from '@dnd-kit/sortable';
 import AdhocFilterControl from '.';
 import AdhocFilter from '../AdhocFilter';
 import { Clauses, ExpressionTypes } from '../types';
+import {
+  CapturedSortables,
+  captureSortableData,
+  simulateReorder,
+} from '../../DndColumnSelectControl/dndTestUtils';
+
+jest.mock('@dnd-kit/sortable', () => ({
+  ...jest.requireActual('@dnd-kit/sortable'),
+  useSortable: jest.fn(),
+}));
+
+const sortables: CapturedSortables = { items: [] };
+
+beforeEach(() => {
+  sortables.items = [];
+  (useSortable as jest.Mock).mockImplementation(captureSortableData(sortables));
+});
 
 interface TestProps {
   name: string;
@@ -111,6 +129,40 @@ describe('AdhocFilterControl', () => {
     await userEvent.click(removeButton);
 
     expect(onChange).toHaveBeenCalledWith([]);
+  });
+
+  test('reorder commits the new filter order to onChange, not the stale order', () => {
+    // Pins the fast-drag persistence fix: resolveDragEnd fires the reorder
+    // callback and the drop-commit in the same tick. A drop-commit closing over
+    // the pre-drag `values` would re-commit the old order and revert the reorder
+    // on reload. Assert the COMMITTED array, not just the rendered order.
+    const filterA = new AdhocFilter({
+      expressionType: ExpressionTypes.Sql,
+      sqlExpression: 'expr_a',
+      clause: Clauses.Having,
+    });
+    const filterB = new AdhocFilter({
+      expressionType: ExpressionTypes.Sql,
+      sqlExpression: 'expr_b',
+      clause: Clauses.Having,
+    });
+    const filterC = new AdhocFilter({
+      expressionType: ExpressionTypes.Sql,
+      sqlExpression: 'expr_c',
+      clause: Clauses.Having,
+    });
+    const onChange = jest.fn();
+
+    renderComponent({ value: [filterA, filterB, filterC], onChange });
+
+    // Move the first filter to the end: a multi-index move a swap would corrupt.
+    simulateReorder(sortables, 0, 2);
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    const committed = (onChange.mock.calls[0][0] as AdhocFilter[]).map(
+      filter => filter.sqlExpression,
+    );
+    expect(committed).toEqual(['expr_b', 'expr_c', 'expr_a']);
   });
 
   test('should show add filter button when no filters exist', () => {

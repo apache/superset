@@ -437,6 +437,33 @@ test('can drag metrics (reorder dispatches through the reorder + drop path)', ()
   expect(onChange).toHaveBeenCalled();
 });
 
+test('reorder commits the new order to onChange, not the stale pre-drag order', () => {
+  // Pins the fast-drag persistence fix (#33951 follow-up): resolveDragEnd fires
+  // the reorder callback and the drop-commit in the same synchronous tick. A
+  // drop-commit that closes over the pre-drag `value` would re-commit the old
+  // order, so the reorder shows in the UI but reverts on reload. Assert the
+  // COMMITTED array (what reaches onChange), not just the rendered order.
+  const onChange = jest.fn();
+  render(
+    <DndMetricSelect
+      {...defaultProps}
+      value={['metric_a', 'metric_b', 'metric_c']}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  // Move the first metric to the end: a multi-index move a swap would corrupt.
+  simulateReorder(sortables, 0, 2);
+
+  expect(onChange).toHaveBeenLastCalledWith([
+    'metric_b',
+    'metric_c',
+    'metric_a',
+  ]);
+});
+
 test('cannot drop a duplicated item', () => {
   const onChange = jest.fn();
   render(

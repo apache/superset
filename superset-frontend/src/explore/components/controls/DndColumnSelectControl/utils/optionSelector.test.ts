@@ -40,3 +40,15 @@ test('reorder to the same index leaves the order unchanged', () => {
   selector.reorder(1, 1);
   expect(selector.getValues()).toEqual(['a', 'b', 'c']);
 });
+
+test('reorder ignores out-of-range indices instead of splicing in undefined', () => {
+  // A fast drag can resolve to a stale endpoint. Without a bounds guard, an
+  // out-of-range `from` splices `undefined` into the values and corrupts the
+  // list, blowing up downstream consumers.
+  const selector = newSelector(['a', 'b', 'c']);
+  selector.reorder(5, 0);
+  selector.reorder(0, 5);
+  selector.reorder(-1, 1);
+  selector.reorder(1, -1);
+  expect(selector.getValues()).toEqual(['a', 'b', 'c']);
+});

@@ -266,8 +266,12 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
       const [moved] = newValues.splice(dragIndex, 1);
       newValues.splice(hoverIndex, 0, moved);
       setValues(newValues);
+      // Commit the reordered array to the parent so the new order persists. The
+      // filter path has no separate drop-commit callback (unlike metrics), so
+      // this is the only place the reorder can propagate to form data.
+      onChange(newValues);
     },
-    [values],
+    [onChange, values],
   );
 
   const getMetricExpression = useCallback(

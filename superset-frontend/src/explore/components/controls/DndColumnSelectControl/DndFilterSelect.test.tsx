@@ -35,6 +35,7 @@ import {
   within,
 } from 'spec/helpers/testing-library';
 import { useDroppable } from '@dnd-kit/core';
+import { useSortable } from '@dnd-kit/sortable';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Operators } from 'src/explore/constants';
@@ -48,8 +49,11 @@ import { DndItemType } from '../../DndItemType';
 import { Datasource } from '../../../types';
 import {
   CapturedDroppable,
+  CapturedSortables,
   captureDroppableData,
+  captureSortableData,
   simulateDrop,
+  simulateReorder,
 } from './dndTestUtils';
 
 jest.mock('src/core/editors', () => ({
@@ -63,14 +67,22 @@ jest.mock('@dnd-kit/core', () => ({
   useDroppable: jest.fn(),
 }));
 
+jest.mock('@dnd-kit/sortable', () => ({
+  ...jest.requireActual('@dnd-kit/sortable'),
+  useSortable: jest.fn(),
+}));
+
 const captured: CapturedDroppable = { current: undefined };
+const sortables: CapturedSortables = { items: [] };
 
 beforeEach(() => {
   jest.clearAllMocks();
   captured.current = undefined;
+  sortables.items = [];
   (useDroppable as jest.Mock).mockImplementation(
     captureDroppableData(captured),
   );
+  (useSortable as jest.Mock).mockImplementation(captureSortableData(sortables));
 });
 
 const defaultProps: Omit<DndFilterSelectProps, 'datasource'> = {
@@ -135,6 +147,45 @@ test('renders with value', async () => {
     store,
   });
   expect(await screen.findByText('COUNT(*)')).toBeInTheDocument();
+});
+
+test('reorder commits the new filter order to onChange', async () => {
+  // Pins the fast-drag persistence fix: onShiftOptions must both update local
+  // state AND commit to the parent. Previously it only called setValues, so the
+  // reordered order showed in the UI but was never persisted (reverted on
+  // reload). Assert the COMMITTED array, not just the rendered order.
+  const onChange = jest.fn();
+  const filterA = new AdhocFilter({
+    sqlExpression: 'expr_a',
+    expressionType: ExpressionTypes.Sql,
+  });
+  const filterB = new AdhocFilter({
+    sqlExpression: 'expr_b',
+    expressionType: ExpressionTypes.Sql,
+  });
+  const filterC = new AdhocFilter({
+    sqlExpression: 'expr_c',
+    expressionType: ExpressionTypes.Sql,
+  });
+
+  render(
+    <DndFilterSelect
+      {...defaultProps}
+      datasource={PLACEHOLDER_DATASOURCE}
+      value={[filterA, filterB, filterC]}
+      onChange={onChange}
+    />,
+    { useDndKit: true, store },
+  );
+
+  // Move the first filter to the end: a multi-index move a swap would corrupt.
+  simulateReorder(sortables, 0, 2);
+
+  expect(onChange).toHaveBeenCalledTimes(1);
+  const committed = (onChange.mock.calls[0][0] as AdhocFilter[]).map(
+    filter => filter.sqlExpression,
+  );
+  expect(committed).toEqual(['expr_b', 'expr_c', 'expr_a']);
 });
 
 test('renders options with saved metric', async () => {

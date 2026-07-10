@@ -321,27 +321,33 @@ function AdhocFilterControl({
     [values, onChange],
   );
 
-  const moveLabel = useCallback((dragIndex: number, hoverIndex: number) => {
-    setValues(prevValues => {
+  const moveLabel = useCallback(
+    (dragIndex: number, hoverIndex: number) => {
       if (
         dragIndex === hoverIndex ||
         dragIndex < 0 ||
         hoverIndex < 0 ||
-        dragIndex >= prevValues.length ||
-        hoverIndex >= prevValues.length
+        dragIndex >= values.length ||
+        hoverIndex >= values.length
       ) {
-        return prevValues;
+        return;
       }
-      const newValues = [...prevValues];
+      const newValues = [...values];
       const [moved] = newValues.splice(dragIndex, 1);
       newValues.splice(hoverIndex, 0, moved);
-      return newValues;
-    });
-  }, []);
+      setValues(newValues);
+      // Commit the freshly reordered array here rather than in onDropLabel.
+      // resolveDragEnd fires the reorder callback and the drop-commit in the
+      // same synchronous tick, so a drop-commit that closes over `values` would
+      // re-commit the stale pre-drag order and revert the reorder on reload.
+      onChange?.(newValues);
+    },
+    [onChange, values],
+  );
 
-  const onDropLabel = useCallback(() => {
-    onChange?.(values);
-  }, [onChange, values]);
+  // moveLabel already commits the reordered array. The drop event is a no-op so
+  // it cannot re-commit the stale pre-drag `values` its closure would capture.
+  const onDropLabel = useCallback(() => {}, []);
 
   const onNewFilter = useCallback(
     (newFilter: FilterOption | AdhocFilter) => {

@@ -90,6 +90,18 @@ export class OptionSelector {
   }
 
   reorder(from: number, to: number) {
+    // Guard against no-op and out-of-range indices. A fast drag can resolve to
+    // stale/identical endpoints; without this an out-of-range `from` splices
+    // `undefined` into the values and corrupts everything downstream.
+    if (
+      from === to ||
+      from < 0 ||
+      to < 0 ||
+      from >= this.values.length ||
+      to >= this.values.length
+    ) {
+      return;
+    }
     const [moved] = this.values.splice(from, 1);
     this.values.splice(to, 0, moved);
   }
