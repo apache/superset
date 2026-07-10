@@ -14,37 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask_appbuilder import ModelView
-from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import lazy_gettext as _
 
+from superset.daos.base import BaseDAO
 from superset.subjects.models import Subject
 
 
-class SubjectModelView(ModelView):
-    """Read-only admin view for Subjects."""
+class SubjectDAO(BaseDAO[Subject]):
+    """DAO for the Subject model.
 
-    datamodel = SQLAInterface(Subject)
-    route_base = "/subject"
-
-    list_title = _("Subjects")
-    show_title = _("Subject")
-
-    list_columns = ["id", "label", "type", "active"]
-    show_columns = [
-        "id",
-        "uuid",
-        "label",
-        "type",
-        "active",
-        "extra_search",
-        "user",
-        "role",
-        "group",
-    ]
-    search_exclude_columns = ["user", "role", "group"]
-
-    # Read-only: disable create/edit/delete
-    can_add = False
-    can_edit = False
-    can_delete = False
+    Subjects are derived from Users, Roles, and Groups (kept in sync via hooks),
+    so this DAO only needs the read/create/delete operations inherited from
+    ``BaseDAO``.
+    """
