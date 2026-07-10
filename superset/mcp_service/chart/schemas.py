@@ -1351,8 +1351,10 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
     temporal_column: str | None = Field(
         None,
         description=(
-            "Temporal column for the trendline x-axis. "
-            "Required when show_trendline is True."
+            "Temporal column for the trendline x-axis. Required when "
+            "show_trendline is True. Also used (whether or not a trendline is "
+            "shown) to bind the chart's dashboard time-range filter; when "
+            "omitted, the dataset's main temporal column is used instead."
         ),
         min_length=1,
         max_length=255,
