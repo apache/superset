@@ -212,22 +212,22 @@ def import_dataset(  # noqa: C901
     +==============+===============+=====================+=================+
     | alive        | False         | (n/a)               | return existing |
     +--------------+---------------+---------------------+-----------------+
-    | alive        | True          | can_write + owner   | UPDATE in place |
+    | alive        | True          | can_write + editor  | UPDATE in place |
     +--------------+---------------+---------------------+-----------------+
     | alive        | True          | can_write,          | raise           |
-    |              |               | not owner/admin     |                 |
+    |              |               | not editor/admin    |                 |
     +--------------+---------------+---------------------+-----------------+
-    | soft-deleted | False or True | can_write + owner   | restore + UPDATE|
+    | soft-deleted | False or True | can_write + editor  | restore + UPDATE|
     +--------------+---------------+---------------------+-----------------+
     | soft-deleted | False or True | can_write,          | raise           |
-    |              |               | not owner/admin     |                 |
+    |              |               | not editor/admin    |                 |
     +--------------+---------------+---------------------+-----------------+
     | soft-deleted | False or True | not can_write       | raise (Case B)  |
     +--------------+---------------+---------------------+-----------------+
 
     Re-importing a soft-deleted UUID is implicitly a restore-with-update:
     the user is bringing the dataset back by uploading it again. We apply
-    the same ownership check as the explicit overwrite path so non-owners
+    the same editorship check as the explicit overwrite path so non-editors
     cannot resurrect via re-import, and we raise rather than silently
     returning a soft-deleted row to callers without write permission
     (which would let them reattach charts/dashboards to a deleted dataset).
@@ -238,7 +238,7 @@ def import_dataset(  # noqa: C901
     )
     # `user` is None for background / example-loader paths (no Flask request
     # user). Combined with ``can_write=True`` (typically from
-    # ``ignore_permissions=True``), the ownership checks in the restore /
+    # ``ignore_permissions=True``), the editorship checks in the restore /
     # overwrite branches below are intentionally skipped because the caller has
     # already established trust at the command level.
     user = get_user()
@@ -264,10 +264,11 @@ def import_dataset(  # noqa: C901
                 )
             # ``user`` is None on background / example-loader paths; combined
             # with ``can_write`` (typically from ``ignore_permissions=True``)
-            # the ownership check is intentionally skipped because the caller
+            # the editorship check is intentionally skipped because the caller
             # already established trust.
             if user and (
-                user not in existing.owners and not security_manager.is_admin()
+                not security_manager.is_editor(existing)
+                and not security_manager.is_admin()
             ):
                 raise ImportFailedError(
                     f"Dataset {existing.table_name!r} (uuid {config['uuid']}) "
@@ -339,7 +340,8 @@ def import_dataset(  # noqa: C901
             if not overwrite or not can_write:
                 return existing
             if user and (
-                user not in existing.owners and not security_manager.is_admin()
+                not security_manager.is_editor(existing)
+                and not security_manager.is_admin()
             ):
                 raise ImportFailedError(
                     f"Dataset {existing.table_name!r} (uuid {config['uuid']}) "
@@ -505,8 +507,12 @@ def import_dataset(  # noqa: C901
     if data_uri and (not table_exists or force_data):
         load_data(data_uri, dataset, dataset.database)
 
-    if user and user not in dataset.owners:
-        dataset.owners.append(user)
+    if user:
+        from superset.subjects.utils import get_user_subject
+
+        subj = get_user_subject(user.id)
+        if subj and subj not in dataset.editors:
+            dataset.editors.append(subj)
 
     return dataset
 

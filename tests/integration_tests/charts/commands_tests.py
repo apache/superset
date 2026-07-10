@@ -43,7 +43,11 @@ from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.utils import json
 from superset.utils.core import override_user
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.base_tests import (
+    subjects_from_users,
+    SupersetTestCase,
+    user_is_editor,
+)
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -275,7 +279,8 @@ class TestImportChartsCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert chart.table.database == database
 
-        assert chart.owners == [admin]
+        assert len(chart.editors) == 1
+        assert user_is_editor(admin, chart)
 
         db.session.delete(chart)
         db.session.delete(dataset)
@@ -375,7 +380,6 @@ class TestChartsCreateCommand(SupersetTestCase):
         chart_data = {
             "slice_name": "new chart",
             "description": "new description",
-            "owners": [user.id],
             "viz_type": "new_viz_type",
             "params": json.dumps({"viz_type": "new_viz_type"}),
             "cache_timeout": 1000,
@@ -389,7 +393,8 @@ class TestChartsCreateCommand(SupersetTestCase):
         json_params = json.loads(chart.params)
         assert json_params == {"viz_type": "new_viz_type"}
         assert chart.slice_name == "new chart"
-        assert chart.owners == [user]
+        assert len(chart.editors) == 1
+        assert user_is_editor(user, chart)
         db.session.delete(chart)
         db.session.commit()
 
@@ -412,7 +417,7 @@ class TestChartsUpdateCommand(SupersetTestCase):
 
         command = UpdateChartCommand(
             pk,
-            {"description": "test", "owners": [user.id]},
+            {"description": "test"},
         )
         command.run()
 
@@ -439,7 +444,7 @@ class TestChartsUpdateCommand(SupersetTestCase):
 
         command = UpdateChartCommand(
             pk,
-            {"description": "test", "owners": [user.id]},
+            {"description": "test"},
         )
         # Sleep to ensure timestamp differs at MySQL's second precision (DATETIME(0))
         time.sleep(1)
@@ -458,12 +463,12 @@ class TestChartsUpdateCommand(SupersetTestCase):
     def test_query_context_update_command(self, mock_sm_g, mock_g):
         """
         Test that a user can generate the chart query context
-        payload without affecting owners
+        payload without affecting editors
         """
         chart = db.session.query(Slice).all()[0]
         pk = chart.id
         admin = security_manager.find_user(username="admin")
-        chart.owners = [admin]
+        chart.editors = subjects_from_users([admin])
         db.session.commit()
 
         user = security_manager.find_user(username="alpha")
@@ -477,8 +482,8 @@ class TestChartsUpdateCommand(SupersetTestCase):
         command.run()
         chart = db.session.query(Slice).get(pk)
         assert chart.query_context == query_context
-        assert len(chart.owners) == 1
-        assert chart.owners[0] == admin
+        assert len(chart.editors) == 1
+        assert user_is_editor(admin, chart)
 
     @patch("superset.commands.chart.update.ChartDAO.find_by_id")
     @patch("superset.commands.chart.update.g")
@@ -489,25 +494,25 @@ class TestChartsUpdateCommand(SupersetTestCase):
         self, mock_sm_g, mock_core_g, mock_update_g, mock_find_by_id
     ) -> None:
         """
-        A query_context-only update relaxes the ownership requirement but must
+        A query_context-only update relaxes the editor requirement but must
         still require access to the chart. We bypass the DAO ``ChartFilter``
         base filter (by patching ``find_by_id`` to return the chart directly)
         so the request reaches the new explicit ``raise_for_access`` check, and
-        assert that a non-owner with no access to the chart's datasource is
+        assert that a non-editor with no access to the chart's datasource is
         rejected with ``ChartForbiddenError``. This deterministically exercises
         the new branch and would fail on master, where the check is absent.
         """
         chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
         pk = chart.id
         admin = security_manager.find_user(username="admin")
-        chart.owners = [admin]
+        chart.editors = subjects_from_users([admin])
         db.session.commit()
 
         # Return the chart directly, bypassing ChartFilter, so the command's
         # own raise_for_access gate is what denies the request.
         mock_find_by_id.return_value = chart
 
-        # gamma has no access to the energy datasource and does not own the chart
+        # gamma has no access to the energy datasource and cannot edit the chart
         gamma = security_manager.find_user(username="gamma")
         mock_core_g.user = mock_sm_g.user = mock_update_g.user = gamma
         json_obj = {
@@ -524,7 +529,7 @@ class TestChartsUpdateCommand(SupersetTestCase):
     def test_update_chart_dashboard_security_existing_relationship(
         self, mock_sm_g, mock_u_g, mock_c_g
     ):
-        """Test that chart owners can update charts linked to inaccessible
+        """Test that chart editors can update charts linked to inaccessible
         dashboards (existing relationships)"""
         from superset.models.dashboard import Dashboard
 
@@ -536,13 +541,13 @@ class TestChartsUpdateCommand(SupersetTestCase):
         mock_u_g.user = mock_c_g.user = mock_sm_g.user = admin
 
         chart = db.session.query(Slice).first()
-        chart.owners = [alpha]
+        chart.editors = subjects_from_users([alpha])
 
         # Create a dashboard owned by admin (not accessible to alpha)
         admin_dashboard = Dashboard(
             dashboard_title="Admin Dashboard",
             slug="admin-dashboard",
-            owners=[admin],
+            editors=subjects_from_users([admin]),
             published=False,
         )
         db.session.add(admin_dashboard)
@@ -591,13 +596,13 @@ class TestChartsUpdateCommand(SupersetTestCase):
 
         # Create chart owned by alpha
         chart = db.session.query(Slice).first()
-        chart.owners = [alpha]
+        chart.editors = subjects_from_users([alpha])
 
         # Create private dashboard owned by admin (not accessible to alpha)
         admin_dashboard = Dashboard(
             dashboard_title="Admin Private Dashboard",
             slug="admin-private-dashboard",
-            owners=[admin],
+            editors=subjects_from_users([admin]),
             published=False,  # Private dashboard
         )
         db.session.add(admin_dashboard)
@@ -638,13 +643,13 @@ class TestChartsUpdateCommand(SupersetTestCase):
 
         # Create chart owned by admin
         chart = db.session.query(Slice).first()
-        chart.owners = [admin]
+        chart.editors = subjects_from_users([admin])
 
         # Create private dashboard owned by alpha
         alpha_dashboard = Dashboard(
             dashboard_title="Alpha Private Dashboard",
             slug="alpha-private-dashboard",
-            owners=[alpha],
+            editors=subjects_from_users([alpha]),
             published=False,
         )
         db.session.add(alpha_dashboard)

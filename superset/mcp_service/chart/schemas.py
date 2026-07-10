@@ -45,16 +45,21 @@ from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import (
     CacheStatus,
     CreatedByMeMixin,
+    EditedByMeMixin,
     FormDataCacheControl,
     MetadataCacheControl,
-    OwnedByMeMixin,
     QueryCacheControl,
 )
 from superset.mcp_service.common.error_schemas import ChartGenerationError, MCPBaseError
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from superset.mcp_service.privacy import filter_user_directory_fields
+from superset.mcp_service.privacy import (
+    filter_user_directory_fields,
+    strip_user_directory_fields_from_schema,
+)
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
+    serialize_subject_object,
+    SubjectInfo,
     TagInfo,
 )
 from superset.mcp_service.utils import (
@@ -97,7 +102,7 @@ class ChartLike(Protocol):
     created_on_humanized: str | None
     uuid: str | None
     tags: List[Any] | None
-    owners: List[Any] | None
+    editors: List[Any] | None
 
 
 class ChartInfo(BaseModel):
@@ -137,6 +142,9 @@ class ChartInfo(BaseModel):
     )
     uuid: str | None = Field(None, description="Chart UUID")
     tags: List[TagInfo] = Field(default_factory=list, description="Chart tags")
+    editors: List[SubjectInfo] = Field(
+        default_factory=list, description="Chart editors"
+    )
 
     # Filters extracted from form_data for easy inspection
     filters: ChartFiltersInfo | None = Field(
@@ -173,7 +181,11 @@ class ChartInfo(BaseModel):
         ),
     )
 
-    model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
+    model_config = ConfigDict(
+        from_attributes=True,
+        ser_json_timedelta="iso8601",
+        json_schema_extra=strip_user_directory_fields_from_schema,
+    )
 
     @model_serializer(mode="wrap")
     def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:
@@ -615,6 +627,13 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
             ]
             if getattr(chart, "tags", None)
             else [],
+            editors=[
+                info
+                for editor in getattr(chart, "editors", [])
+                if (info := serialize_subject_object(editor)) is not None
+            ]
+            if getattr(chart, "editors", None)
+            else [],
         )
     )
 
@@ -631,6 +650,7 @@ class ChartFilter(ColumnOperator):
         "slice_name",
         "viz_type",
         "datasource_name",
+        "editor",
         "created_by_fk",
         "changed_by_fk",
         "dashboards",
@@ -1912,7 +1932,7 @@ class ChartRequestNormalizerMixin(BaseModel):
         return _normalize_chart_request_input(data)
 
 
-class ListChartsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
+class ListChartsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
     """Request schema for list_charts with clear, unambiguous types."""
 
     filters: Annotated[

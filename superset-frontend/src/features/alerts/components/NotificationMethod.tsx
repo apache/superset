@@ -267,7 +267,7 @@ const fetchEmailRecipientOptions = async (
   });
 
   const response = await SupersetClient.get({
-    endpoint: `/api/v1/report/related/owners?q=${query}`,
+    endpoint: `/api/v1/report/related/created_by?q=${query}`,
   });
   const results = (response.json?.result ?? []) as RelatedUserOption[];
 

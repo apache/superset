@@ -228,7 +228,6 @@ class TestCore(SupersetTestCase):
         slc_data_attributes = slc.data.keys()
         assert "changed_on" in slc_data_attributes
         assert "modified" in slc_data_attributes
-        assert "owners" in slc_data_attributes
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_slices(self):

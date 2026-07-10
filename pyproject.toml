@@ -44,7 +44,7 @@ dependencies = [
     # explicitly to keep fresh ``pip install apache-superset`` working
     # without the ``base.txt`` lock file (#40962).
     "cachetools>=6.2.1, <7",
-    "celery>=5.3.6, <6.0.0",
+    "celery>=5.6.3, <6.0.0",
     "click>=8.4.0",
     "click-option-group",
     "colorama",
@@ -108,6 +108,7 @@ dependencies = [
     "simplejson>=4.1.1",
     "slack_sdk>=3.42.0, <4",
     "sqlalchemy>=1.4, <2",
+    "sqlalchemy-continuum>=1.6.0, <2.0.0",
     "sqlalchemy-utils>=0.42.1, <0.43", # expanding lowerbound to work with pydoris
     "sqlglot>=30.8.0, <31",
     # newer pandas needs 0.9+
@@ -188,7 +189,7 @@ ocient = [
 oracle = ["oracledb>=2.0.0, <5"]
 parseable = ["sqlalchemy-parseable>=0.1.6,<0.2.0"]
 pinot = ["pinotdb>=5.0.0, <10.0.0"]
-playwright = ["playwright>=1.60.0, <2"]
+playwright = ["playwright>=1.61.0, <2"]
 postgres = ["psycopg2-binary==2.9.12"]
 presto = ["pyhive[presto]>=0.6.5"]
 trino = ["trino>=0.337.0"]
@@ -209,7 +210,7 @@ tdengine = [
     "taospy>=2.8.9",
     "taos-ws-py>=0.6.9"
 ]
-teradata = ["teradatasql>=16.20.0.23"]
+teradata = ["teradatasql>=20.0.0.62"]
 thumbnails = [] # deprecated, will be removed in 7.0
 vertica = ["sqlalchemy-vertica-python>= 0.6.3, < 0.7"]
 netezza = ["nzalchemy>=11.0.2, < 11.2"]
@@ -235,7 +236,7 @@ development = [
     "pyfakefs",
     "pyinstrument>=5.1.2,<6",
     "pylint",
-    "pytest<8.0.0", # hairy issue with pytest >=8 where current_app proxies are not set in time
+    "pytest<10.0.0", # cap below the next major until validated; the earlier <8 pin (current_app proxy timing) no longer reproduces
     "pytest-asyncio",
     "pytest-cov",
     "pytest-mock",

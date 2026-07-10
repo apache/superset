@@ -108,7 +108,7 @@ cattrs==25.1.1
     # via
     #   -c requirements/base-constraint.txt
     #   requests-cache
-celery==5.5.2
+celery==5.6.3
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -503,7 +503,7 @@ keyring==25.7.0
     # via py-key-value-aio
 kiwisolver==1.4.7
     # via matplotlib
-kombu==5.5.3
+kombu==5.6.2
     # via
     #   -c requirements/base-constraint.txt
     #   celery
@@ -635,6 +635,7 @@ packaging==25.0
     #   fastmcp-slim
     #   google-cloud-bigquery
     #   gunicorn
+    #   kombu
     #   limits
     #   matplotlib
     #   pytest
@@ -983,9 +984,14 @@ sqlalchemy==1.4.54
     #   marshmallow-sqlalchemy
     #   shillelagh
     #   sqlalchemy-bigquery
+    #   sqlalchemy-continuum
     #   sqlalchemy-utils
 sqlalchemy-bigquery==1.17.0
     # via apache-superset
+sqlalchemy-continuum==1.6.0
+    # via
+    #   -c requirements/base-constraint.txt
+    #   apache-superset
 sqlalchemy-utils==0.42.1
     # via
     #   -c requirements/base-constraint.txt
@@ -1072,8 +1078,11 @@ tzdata==2025.2
     #   -c requirements/base-constraint.txt
     #   kombu
     #   pandas
-tzlocal==5.2
-    # via trino
+tzlocal==5.4.4
+    # via
+    #   -c requirements/base-constraint.txt
+    #   celery
+    #   trino
 uncalled-for==0.2.0
     # via fastmcp-slim
 url-normalize==2.2.1

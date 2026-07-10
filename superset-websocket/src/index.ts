@@ -26,8 +26,8 @@ import { parse } from 'cookie';
 import { Redis, RedisOptions } from 'ioredis';
 import StatsD from 'hot-shots';
 
-import { createLogger } from './logger';
-import { buildConfig, RedisConfig } from './config';
+import { createLogger } from './logger.js';
+import { buildConfig, RedisConfig } from './config.js';
 import { checkServerIdentity, PeerCertificate } from 'tls';
 
 export type StreamResult = [
