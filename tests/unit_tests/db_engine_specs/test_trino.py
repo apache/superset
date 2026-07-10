@@ -725,10 +725,11 @@ def test_get_columns_error(mocker: MockerFixture):
 
     _assert_columns_equal(actual, expected)
 
-    assert_called_with_text(
-        mock_inspector.engine.connect().__enter__().execute,
-        'SHOW COLUMNS FROM schema."table"',
-    )
+    with mock_inspector.engine.connect() as conn:
+        assert_called_with_text(
+            conn.execute,
+            'SHOW COLUMNS FROM schema."table"',
+        )
 
 
 def test_get_columns_expand_rows(mocker: MockerFixture):
