@@ -33,6 +33,7 @@ from flask import Flask, g
 from flask_babel import Babel
 
 from superset.extensions.storage.api import ExtensionStorageRestApi
+from superset.extensions.storage.codecs import get_codec
 from superset.extensions.storage.ephemeral_dao import (
     ExtensionEphemeralTTLInvalid,
     ExtensionEphemeralValueTooLarge,
@@ -49,12 +50,12 @@ from superset.extensions.storage.persistent_dao import (
 def test_ephemeral_get_delegates_to_dao(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
-    """get_ephemeral calls ExtensionEphemeralDAO.get with the right scope."""
+    """get_ephemeral calls ExtensionEphemeralDAO.get_raw with the right scope."""
     mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
     Babel(app)
     app.appbuilder = MagicMock()
     app.appbuilder.sm.is_item_public.return_value = True
-    mock_dao.get.return_value = {"data": 42}
+    mock_dao.get_raw.return_value = (get_codec("json").encode({"data": 42}), "json")
 
     with app.test_request_context(
         "/api/v1/extensions/acme/dashboard/storage/ephemeral/my-key"
@@ -67,7 +68,60 @@ def test_ephemeral_get_delegates_to_dao(
 
         assert status_code == 200
         assert body.get_json()["result"] == {"data": 42}
-        mock_dao.get.assert_called_once_with("acme.dashboard", "my-key", shared=False)
+        assert body.get_json()["codec"] == "json"
+        mock_dao.get_raw.assert_called_once_with(
+            "acme.dashboard", "my-key", shared=False
+        )
+
+
+@patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_ephemeral_get_returns_none_when_entry_missing(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
+) -> None:
+    """get_ephemeral returns result=None without a codec check when absent."""
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_dao.get_raw.return_value = None
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/ephemeral/missing"
+    ):
+        g.user = MagicMock(id=7)
+
+        body, status_code = ExtensionStorageRestApi().get_ephemeral(
+            "acme", "dashboard", "missing"
+        )
+
+        assert status_code == 200
+        assert body.get_json()["result"] is None
+
+
+@patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_ephemeral_get_returns_400_for_unsafe_stored_codec(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
+) -> None:
+    """get_ephemeral returns 400 when the stored value's codec is not in
+    SAFE_CODECS, rather than attempting to decode/return it over the API."""
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_dao.get_raw.return_value = (get_codec("pickle").encode({"x": 1}), "pickle")
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/ephemeral/my-key"
+    ):
+        g.user = MagicMock(id=7)
+
+        body, status_code = ExtensionStorageRestApi().get_ephemeral(
+            "acme", "dashboard", "my-key"
+        )
+
+        assert status_code == 400
 
 
 @patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
@@ -94,8 +148,37 @@ def test_ephemeral_set_passes_ttl_and_value_to_dao(
 
         assert status_code == 200
         mock_dao.set.assert_called_once_with(
-            "acme.dashboard", "job", {"progress": 50}, 600, shared=False
+            "acme.dashboard", "job", {"progress": 50}, 600, codec="json", shared=False
         )
+
+
+@patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_ephemeral_set_rejects_unsafe_codec(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
+) -> None:
+    """set_ephemeral returns 400 when 'codec' is not in SAFE_CODECS, and never
+    calls the DAO — pickle deserialization must not be reachable from the API.
+    """
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/ephemeral/job",
+        method="PUT",
+        json={"value": {"progress": 50}, "ttl": 600, "codec": "pickle"},
+    ):
+        g.user = MagicMock(id=7)
+
+        body, status_code = ExtensionStorageRestApi().set_ephemeral(
+            "acme", "dashboard", "job"
+        )
+
+        assert status_code == 400
+        assert "not allowed" in body.get_json()["message"].lower()
+        mock_dao.set.assert_not_called()
 
 
 @patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
@@ -189,7 +272,7 @@ def test_ephemeral_shared_query_param_uses_shared_scope(
     Babel(app)
     app.appbuilder = MagicMock()
     app.appbuilder.sm.is_item_public.return_value = True
-    mock_dao.get.return_value = "shared-data"
+    mock_dao.get_raw.return_value = (get_codec("json").encode("shared-data"), "json")
 
     with app.test_request_context(
         "/api/v1/extensions/acme/dashboard/storage/ephemeral/config?shared=true"
@@ -202,7 +285,9 @@ def test_ephemeral_shared_query_param_uses_shared_scope(
 
         assert status_code == 200
         assert body.get_json()["result"] == "shared-data"
-        mock_dao.get.assert_called_once_with("acme.dashboard", "config", shared=True)
+        mock_dao.get_raw.assert_called_once_with(
+            "acme.dashboard", "config", shared=True
+        )
 
 
 # ── Persistent GET / PUT / DELETE endpoint logic ─────────────────────────────
@@ -345,6 +430,125 @@ def test_persistent_set_returns_413_on_quota_exceeded(
 
         assert status_code == 413
         assert "quota" in body.get_json()["message"].lower()
+
+
+# ── Persistent codec validation ──────────────────────────────────────────────
+
+
+@patch("superset.db")
+@patch("superset.extensions.storage.api.ExtensionStorageDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_persistent_set_rejects_unsafe_codec(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, mock_db: MagicMock, app: Flask
+) -> None:
+    """Persistent PUT returns 400 when 'codec' is not in SAFE_CODECS, and never
+    calls the DAO — pickle deserialization must not be reachable from the API.
+    """
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/persistent/prefs",
+        method="PUT",
+        json={"value": "sk-...", "codec": "pickle"},
+    ):
+        g.user = MagicMock(id=42)
+
+        body, status_code = ExtensionStorageRestApi().set_persistent(
+            "acme", "dashboard", "prefs"
+        )
+
+        assert status_code == 400
+        assert "not allowed" in body.get_json()["message"].lower()
+        mock_dao.set.assert_not_called()
+
+
+@patch("superset.extensions.storage.api.ExtensionStorageDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_persistent_set_defaults_codec_to_json(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
+) -> None:
+    """Persistent PUT without a 'codec' field encodes with json and stores
+    codec="json" on the entry."""
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/persistent/prefs",
+        method="PUT",
+        json={"value": {"theme": "dark"}},
+    ):
+        g.user = MagicMock(id=42)
+
+        ExtensionStorageRestApi().set_persistent("acme", "dashboard", "prefs")
+
+        from superset.utils import json
+
+        mock_dao.set.assert_called_once_with(
+            "acme.dashboard",
+            "prefs",
+            json.dumps({"theme": "dark"}).encode(),
+            codec="json",
+            user_fk=42,
+            encrypt=False,
+        )
+
+
+@patch("superset.extensions.storage.api.ExtensionStorageDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_persistent_get_returns_400_for_unsafe_stored_codec(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
+) -> None:
+    """Persistent GET returns 400 when the stored entry's codec is not in
+    SAFE_CODECS, rather than attempting to decode/return it over the API."""
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+    entry = MagicMock()
+    entry.codec = "pickle"
+    mock_dao.get.return_value = entry
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/persistent/prefs"
+    ):
+        g.user = MagicMock(id=42)
+
+        body, status_code = ExtensionStorageRestApi().get_persistent(
+            "acme", "dashboard", "prefs"
+        )
+
+        assert status_code == 400
+        mock_dao.get_decoded_value.assert_not_called()
+
+
+@patch("superset.extensions.storage.api.ExtensionStorageDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_persistent_get_returns_none_when_entry_missing(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
+) -> None:
+    """Persistent GET returns result=None without a codec check when absent."""
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+    mock_dao.get.return_value = None
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/persistent/missing"
+    ):
+        g.user = MagicMock(id=42)
+
+        body, status_code = ExtensionStorageRestApi().get_persistent(
+            "acme", "dashboard", "missing"
+        )
+
+        assert status_code == 200
+        assert body.get_json()["result"] is None
 
 
 # ── Extension ID reconstruction ──────────────────────────────────────────────

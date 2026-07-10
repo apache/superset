@@ -21,18 +21,28 @@ MAX_TTL/MAX_VALUE_SIZE validation used by both the REST API and the ambient
 
 from __future__ import annotations
 
+import base64
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import Flask
 from flask_babel import Babel
 
+from superset.extensions.storage.codecs import get_codec
 from superset.extensions.storage.ephemeral_dao import (
     ExtensionEphemeralDAO,
     ExtensionEphemeralTTLInvalid,
     ExtensionEphemeralValueTooLarge,
 )
 from tests.unit_tests.extensions.storage.conftest import set_user
+
+
+def _envelope(value: Any, codec: str = "json") -> dict[str, str]:
+    """Build the cache envelope ExtensionEphemeralDAO stores values as."""
+    encoded = get_codec(codec).encode(value)
+    return {"codec": codec, "value": base64.b64encode(encoded).decode("ascii")}
+
 
 # ── get / set / delete key building ──────────────────────────────────────────
 
@@ -42,7 +52,7 @@ def test_get_user_scoped_key(mock_cm: MagicMock, app: Flask) -> None:
     """get() builds a user-scoped key when shared=False."""
     mock_cache = MagicMock()
     mock_cm.extension_ephemeral_state_cache = mock_cache
-    mock_cache.get.return_value = "value"
+    mock_cache.get.return_value = _envelope("value")
 
     with app.app_context():
         set_user(42)
@@ -70,13 +80,68 @@ def test_get_shared_key(mock_cm: MagicMock, app: Flask) -> None:
     """get() builds a shared key when shared=True, no user needed."""
     mock_cache = MagicMock()
     mock_cm.extension_ephemeral_state_cache = mock_cache
-    mock_cache.get.return_value = "value"
+    mock_cache.get.return_value = _envelope("value")
 
     with app.app_context():
         result = ExtensionEphemeralDAO.get("acme.ext", "key", shared=True)
 
     assert result == "value"
     mock_cache.get.assert_called_once_with("superset-ext:acme.ext:shared:key")
+
+
+@patch("superset.extensions.storage.ephemeral_dao.cache_manager")
+def test_get_returns_none_when_not_found(mock_cm: MagicMock, app: Flask) -> None:
+    """get() returns None without attempting to decode when the cache misses."""
+    mock_cache = MagicMock()
+    mock_cm.extension_ephemeral_state_cache = mock_cache
+    mock_cache.get.return_value = None
+
+    with app.app_context():
+        result = ExtensionEphemeralDAO.get("acme.ext", "key", shared=True)
+
+    assert result is None
+
+
+@patch("superset.extensions.storage.ephemeral_dao.cache_manager")
+def test_get_decodes_with_stored_codec(mock_cm: MagicMock, app: Flask) -> None:
+    """get() decodes the cached envelope using the codec it was written with."""
+    mock_cache = MagicMock()
+    mock_cm.extension_ephemeral_state_cache = mock_cache
+    mock_cache.get.return_value = _envelope({"pct": 42})
+
+    with app.app_context():
+        result = ExtensionEphemeralDAO.get("acme.ext", "key", shared=True)
+
+    assert result == {"pct": 42}
+
+
+@patch("superset.extensions.storage.ephemeral_dao.cache_manager")
+def test_get_raw_returns_bytes_and_codec(mock_cm: MagicMock, app: Flask) -> None:
+    """get_raw() returns the decoded envelope's raw bytes and codec name."""
+    mock_cache = MagicMock()
+    mock_cm.extension_ephemeral_state_cache = mock_cache
+    mock_cache.get.return_value = _envelope({"pct": 42}, codec="json")
+
+    with app.app_context():
+        result = ExtensionEphemeralDAO.get_raw("acme.ext", "key", shared=True)
+
+    assert result is not None
+    raw, codec = result
+    assert codec == "json"
+    assert get_codec(codec).decode(raw) == {"pct": 42}
+
+
+@patch("superset.extensions.storage.ephemeral_dao.cache_manager")
+def test_get_raw_returns_none_when_not_found(mock_cm: MagicMock, app: Flask) -> None:
+    """get_raw() returns None when the cache misses."""
+    mock_cache = MagicMock()
+    mock_cm.extension_ephemeral_state_cache = mock_cache
+    mock_cache.get.return_value = None
+
+    with app.app_context():
+        result = ExtensionEphemeralDAO.get_raw("acme.ext", "key", shared=True)
+
+    assert result is None
 
 
 @patch("superset.extensions.storage.ephemeral_dao.cache_manager")
@@ -104,8 +169,40 @@ def test_set_passes_ttl_to_cache(mock_cm: MagicMock, app: Flask) -> None:
         ExtensionEphemeralDAO.set("acme.ext", "key", "value", 300, shared=True)
 
     mock_cache.set.assert_called_once_with(
-        "superset-ext:acme.ext:shared:key", "value", timeout=300
+        "superset-ext:acme.ext:shared:key", _envelope("value"), timeout=300
     )
+
+
+@patch("superset.extensions.storage.ephemeral_dao.cache_manager")
+def test_set_defaults_codec_to_json(mock_cm: MagicMock, app: Flask) -> None:
+    """set() encodes the value with the json codec when none is specified."""
+    mock_cache = MagicMock()
+    mock_cm.extension_ephemeral_state_cache = mock_cache
+
+    with app.app_context():
+        ExtensionEphemeralDAO.set("acme.ext", "key", {"pct": 42}, 300, shared=True)
+
+    envelope = mock_cache.set.call_args[0][1]
+    assert envelope["codec"] == "json"
+    assert get_codec("json").decode(base64.b64decode(envelope["value"])) == {"pct": 42}
+
+
+@patch("superset.extensions.storage.ephemeral_dao.cache_manager")
+def test_set_stores_given_codec(mock_cm: MagicMock, app: Flask) -> None:
+    """set() encodes the value with the caller-supplied codec."""
+    mock_cache = MagicMock()
+    mock_cm.extension_ephemeral_state_cache = mock_cache
+
+    with app.app_context():
+        ExtensionEphemeralDAO.set(
+            "acme.ext", "key", {"pct": 42}, 300, codec="pickle", shared=True
+        )
+
+    envelope = mock_cache.set.call_args[0][1]
+    assert envelope["codec"] == "pickle"
+    assert get_codec("pickle").decode(base64.b64decode(envelope["value"])) == {
+        "pct": 42
+    }
 
 
 @patch("superset.extensions.storage.ephemeral_dao.cache_manager")

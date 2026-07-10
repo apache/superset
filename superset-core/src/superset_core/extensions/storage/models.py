@@ -47,9 +47,9 @@ class ExtensionStorageEntry(CoreModel):
     with a concrete implementation providing actual functionality.
 
     `value` is the raw stored payload (encrypted at rest when `is_encrypted`
-    is set); decoding/decryption is handled by
-    `superset_core.extensions.storage.dao.ExtensionStorageDAO`, not by
-    reading this field directly.
+    is set), encoded with the codec named by `codec`; decoding/decryption is
+    handled by `superset_core.extensions.storage.dao.ExtensionStorageDAO`,
+    not by reading this field directly.
     """
 
     __abstract__ = True
@@ -66,7 +66,7 @@ class ExtensionStorageEntry(CoreModel):
     description: str | None
     value: bytes
     value_size: int
-    value_type: str
+    codec: str
     is_encrypted: bool
 
     # Audit fields

@@ -65,9 +65,28 @@ test('set calls correct URL and includes value and ttl in body', async () => {
   await store.set('job_progress', { pct: 42 }, { ttl: 300 });
   expect(mockPut).toHaveBeenCalledWith({
     endpoint: '/api/v1/extensions/myorg/myext/storage/ephemeral/job_progress',
-    body: JSON.stringify({ value: { pct: 42 }, ttl: 300 }),
+    body: JSON.stringify({ value: { pct: 42 }, ttl: 300, codec: 'json' }),
     headers: { 'Content-Type': 'application/json' },
   });
+});
+
+test('set passes codec from options', async () => {
+  const store = createEphemeralState('myorg.myext');
+  await store.set('job_progress', 'sk-...', { ttl: 300, codec: 'pickle' });
+  expect(mockPut).toHaveBeenCalledWith({
+    endpoint: '/api/v1/extensions/myorg/myext/storage/ephemeral/job_progress',
+    body: JSON.stringify({ value: 'sk-...', ttl: 300, codec: 'pickle' }),
+    headers: { 'Content-Type': 'application/json' },
+  });
+});
+
+test('set auto base64-encodes a Uint8Array value with no codec specified', async () => {
+  const store = createEphemeralState('myorg.myext');
+  const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+  await store.set('icon', bytes, { ttl: 300 });
+  const body = JSON.parse(mockPut.mock.calls[0][0].body);
+  expect(body.codec).toBe('base64');
+  expect(body.value).toBe(btoa('\x89PNG'));
 });
 
 test('remove calls correct URL', async () => {
@@ -110,7 +129,7 @@ test('shared.set appends ?shared=true and includes value and ttl', async () => {
   expect(mockPut).toHaveBeenCalledWith({
     endpoint:
       '/api/v1/extensions/myorg/myext/storage/ephemeral/result?shared=true',
-    body: JSON.stringify({ value: [1, 2, 3], ttl: 600 }),
+    body: JSON.stringify({ value: [1, 2, 3], ttl: 600, codec: 'json' }),
     headers: { 'Content-Type': 'application/json' },
   });
 });

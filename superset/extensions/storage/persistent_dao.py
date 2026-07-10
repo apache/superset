@@ -20,6 +20,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
+from typing import Any
 
 from flask import current_app
 from flask_babel import gettext as _
@@ -28,6 +29,7 @@ from sqlalchemy import and_, func, LargeBinary
 from superset import db
 from superset.daos.base import BaseDAO
 from superset.exceptions import SupersetGenericErrorException
+from superset.extensions.storage.codecs import DEFAULT_CODEC, get_codec
 from superset.extensions.storage.filters import ExtensionStorageFilter
 from superset.extensions.storage.persistent_model import ExtensionStorage
 from superset.utils.encrypt import (
@@ -121,6 +123,29 @@ def _check_quota(extension_id: str, new_size: int, existing_size: int = 0) -> No
     )
     if current_usage - existing_size + new_size > quota:
         raise ExtensionStorageQuotaExceeded(extension_id, quota)
+
+
+def _decrypt_if_needed(
+    entry: ExtensionStorage, extension_id: str, key: str
+) -> bytes | None:
+    """Return `entry.value`, decrypted if `entry.is_encrypted`.
+
+    Returns None (and logs) if decryption fails, e.g. after key rotation.
+    """
+    if not entry.is_encrypted:
+        return entry.value
+    try:
+        return _enc_type(entry.user_fk).process_result_value(
+            entry.value, db.engine.dialect
+        )
+    except Exception:  # noqa: BLE001
+        logger.error(
+            "Failed to decrypt extension storage value for "
+            "extension_id=%s key=%s — possible key rotation issue",
+            extension_id,
+            key,
+        )
+        return None
 
 
 def _scope_filter(
@@ -217,20 +242,29 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         )
         if entry is None:
             return None
-        if entry.is_encrypted:
-            try:
-                return _enc_type(entry.user_fk).process_result_value(
-                    entry.value, db.engine.dialect
-                )
-            except Exception:  # noqa: BLE001
-                logger.error(
-                    "Failed to decrypt extension storage value for "
-                    "extension_id=%s key=%s — possible key rotation issue",
-                    extension_id,
-                    key,
-                )
-                return None
-        return entry.value
+        return _decrypt_if_needed(entry, extension_id, key)
+
+    @staticmethod
+    def get_decoded_value(
+        extension_id: str,
+        key: str,
+        user_fk: int | None = None,
+        resource_type: str | None = None,
+        resource_uuid: str | None = None,
+    ) -> Any:
+        """Return the value decoded with the codec it was written with.
+
+        :returns: The decoded value, or None if not found.
+        """
+        entry = ExtensionStorageDAO.get(
+            extension_id, key, user_fk, resource_type, resource_uuid
+        )
+        if entry is None:
+            return None
+        raw = _decrypt_if_needed(entry, extension_id, key)
+        if raw is None:
+            return None
+        return get_codec(entry.codec).decode(raw)
 
     # ── Write (upsert) ────────────────────────────────────────────────────────
 
@@ -239,7 +273,7 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         extension_id: str,
         key: str,
         value: bytes,
-        value_type: str = "application/json",
+        codec: str = DEFAULT_CODEC,
         user_fk: int | None = None,
         resource_type: str | None = None,
         resource_uuid: str | None = None,
@@ -271,7 +305,7 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         if entry is not None:
             entry.value = stored_value
             entry.value_size = new_size
-            entry.value_type = value_type
+            entry.codec = codec
             entry.category = category
             entry.description = description
             entry.is_encrypted = encrypt
@@ -281,7 +315,7 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
                 key=key,
                 value=stored_value,
                 value_size=new_size,
-                value_type=value_type,
+                codec=codec,
                 user_fk=user_fk,
                 resource_type=resource_type,
                 resource_uuid=resource_uuid,

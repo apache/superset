@@ -65,13 +65,16 @@ class SharedEphemeralStateAccessor:
         Set a value in shared ephemeral state with TTL.
 
         :param key: The key to store.
-        :param value: The value to store (must be JSON-serializable, and not
-            exceed MAX_VALUE_SIZE from config).
+        :param value: The value to store, encoded with `options.codec`
+            (default "json").
         :param options: `EphemeralSetOptions`, e.g. `ttl=3600`. Required —
-            `ttl` must not exceed MAX_TTL from config.
+            `ttl` must not exceed MAX_TTL from config. `codec="pickle"`
+            stores a value that isn't JSON-serializable.
         """
         extension_id = _get_extension_id()
-        ExtensionEphemeralDAO.set(extension_id, key, value, options.ttl, shared=True)
+        ExtensionEphemeralDAO.set(
+            extension_id, key, value, options.ttl, codec=options.codec, shared=True
+        )
 
     def remove(self, key: str) -> None:
         """
@@ -111,13 +114,16 @@ class EphemeralState(CoreEphemeralState):
         Set a value in user-scoped ephemeral state with TTL.
 
         :param key: The key to store.
-        :param value: The value to store (must be JSON-serializable, and not
-            exceed MAX_VALUE_SIZE from config).
+        :param value: The value to store, encoded with `options.codec`
+            (default "json").
         :param options: `EphemeralSetOptions`, e.g. `ttl=3600`. Required —
-            `ttl` must not exceed MAX_TTL from config.
+            `ttl` must not exceed MAX_TTL from config. `codec="pickle"`
+            stores a value that isn't JSON-serializable.
         """
         extension_id = _get_extension_id()
-        ExtensionEphemeralDAO.set(extension_id, key, value, options.ttl, shared=False)
+        ExtensionEphemeralDAO.set(
+            extension_id, key, value, options.ttl, codec=options.codec, shared=False
+        )
 
     @staticmethod
     def remove(key: str) -> None:

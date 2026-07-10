@@ -31,30 +31,18 @@ from superset_core.extensions.storage.persistent import (
     PersistentState as CorePersistentState,
 )
 
+from superset.extensions.storage.codecs import DEFAULT_CODEC, get_codec
 from superset.extensions.storage.persistent_dao import ExtensionStorageDAO
 from superset.extensions.storage.utils import (
     get_current_extension_id,
     get_current_user_id,
 )
-from superset.utils import json
 from superset.utils.decorators import transaction
 
 
 def _get_extension_id() -> str:
     """Get the current extension ID from context."""
     return get_current_extension_id("persistent_state")
-
-
-def _decode(raw: bytes | None) -> Any:
-    """Decode stored bytes back to a Python value."""
-    if raw is None:
-        return None
-    return json.loads(raw)
-
-
-def _encode(value: Any) -> bytes:
-    """Encode a Python value for database storage."""
-    return json.dumps(value).encode()
 
 
 class SharedPersistentStateAccessor:
@@ -73,8 +61,7 @@ class SharedPersistentStateAccessor:
         :returns: The stored value, or None if not found.
         """
         extension_id = _get_extension_id()
-        raw = ExtensionStorageDAO.get_value(extension_id, key, user_fk=None)
-        return _decode(raw)
+        return ExtensionStorageDAO.get_decoded_value(extension_id, key, user_fk=None)
 
     @transaction()
     def set(
@@ -84,18 +71,22 @@ class SharedPersistentStateAccessor:
         Set a value in shared persistent state.
 
         :param key: The key to store.
-        :param value: The value to store (must be JSON-serializable).
+        :param value: The value to store, encoded with `options.codec`
+            (default "json").
         :param options: Optional `PersistentSetOptions`, e.g. `encrypt=True`
-            to store the value encrypted at rest.
+            to store the value encrypted at rest, or `codec="pickle"` to
+            store a value that isn't JSON-serializable.
         :raises ExtensionStorageQuotaExceeded: if this write would exceed the
             extension's configured persistent storage quota.
         """
         extension_id = _get_extension_id()
         encrypt = options.encrypt if options is not None else False
+        codec = options.codec if options is not None else DEFAULT_CODEC
         ExtensionStorageDAO.set(
             extension_id,
             key,
-            _encode(value),
+            get_codec(codec).encode(value),
+            codec=codec,
             user_fk=None,
             encrypt=encrypt,
         )
@@ -132,8 +123,7 @@ class PersistentState(CorePersistentState):
         """
         extension_id = _get_extension_id()
         user_id = get_current_user_id("persistent_state")
-        raw = ExtensionStorageDAO.get_value(extension_id, key, user_fk=user_id)
-        return _decode(raw)
+        return ExtensionStorageDAO.get_decoded_value(extension_id, key, user_fk=user_id)
 
     @staticmethod
     @transaction()
@@ -142,19 +132,23 @@ class PersistentState(CorePersistentState):
         Set a value in user-scoped persistent state.
 
         :param key: The key to store.
-        :param value: The value to store (must be JSON-serializable).
+        :param value: The value to store, encoded with `options.codec`
+            (default "json").
         :param options: Optional `PersistentSetOptions`, e.g. `encrypt=True`
-            to store the value encrypted at rest.
+            to store the value encrypted at rest, or `codec="pickle"` to
+            store a value that isn't JSON-serializable.
         :raises ExtensionStorageQuotaExceeded: if this write would exceed the
             extension's configured persistent storage quota.
         """
         extension_id = _get_extension_id()
         user_id = get_current_user_id("persistent_state")
         encrypt = options.encrypt if options is not None else False
+        codec = options.codec if options is not None else DEFAULT_CODEC
         ExtensionStorageDAO.set(
             extension_id,
             key,
-            _encode(value),
+            get_codec(codec).encode(value),
+            codec=codec,
             user_fk=user_id,
             encrypt=encrypt,
         )

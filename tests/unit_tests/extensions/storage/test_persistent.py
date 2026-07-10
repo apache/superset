@@ -68,14 +68,15 @@ def test_persistent_state_raises_without_user(app: Flask) -> None:
 def test_persistent_state_get_returns_value(mock_dao: MagicMock, app: Flask) -> None:
     """PersistentState.get returns decoded value from DAO."""
     ctx = create_context()
-    stored = json.dumps({"theme": "dark"}).encode()
-    mock_dao.get_value.return_value = stored
+    mock_dao.get_decoded_value.return_value = {"theme": "dark"}
 
     with app.app_context(), use_context(ctx):
         set_user(42)
         result = PersistentState.get("prefs")
 
-    mock_dao.get_value.assert_called_once_with("test-org.test-ext", "prefs", user_fk=42)
+    mock_dao.get_decoded_value.assert_called_once_with(
+        "test-org.test-ext", "prefs", user_fk=42
+    )
     assert result == {"theme": "dark"}
 
 
@@ -85,7 +86,7 @@ def test_persistent_state_get_returns_none_when_missing(
 ) -> None:
     """PersistentState.get returns None when key does not exist."""
     ctx = create_context()
-    mock_dao.get_value.return_value = None
+    mock_dao.get_decoded_value.return_value = None
 
     with app.app_context(), use_context(ctx):
         set_user(42)
@@ -111,6 +112,7 @@ def test_persistent_state_set_encodes_value(
         "test-org.test-ext",
         "prefs",
         expected_bytes,
+        codec="json",
         user_fk=42,
         encrypt=False,
     )
@@ -133,6 +135,7 @@ def test_persistent_state_set_with_encrypt_option(
         "test-org.test-ext",
         "token",
         expected_bytes,
+        codec="json",
         user_fk=42,
         encrypt=True,
     )
@@ -156,6 +159,7 @@ def test_shared_accessor_set_with_encrypt_option(
         "test-org.test-ext",
         "shared_token",
         expected_bytes,
+        codec="json",
         user_fk=None,
         encrypt=True,
     )
@@ -182,7 +186,7 @@ def test_persistent_state_remove_deletes_entry(
 def test_shared_accessor_uses_null_user_fk(mock_dao: MagicMock, app: Flask) -> None:
     """SharedPersistentStateAccessor uses user_fk=None for global scope."""
     ctx = create_context()
-    mock_dao.get_value.return_value = json.dumps("shared_value").encode()
+    mock_dao.get_decoded_value.return_value = "shared_value"
 
     accessor = SharedPersistentStateAccessor()
 
@@ -190,7 +194,7 @@ def test_shared_accessor_uses_null_user_fk(mock_dao: MagicMock, app: Flask) -> N
         set_user(42)
         result = accessor.get("config")
 
-    mock_dao.get_value.assert_called_once_with(
+    mock_dao.get_decoded_value.assert_called_once_with(
         "test-org.test-ext", "config", user_fk=None
     )
     assert result == "shared_value"

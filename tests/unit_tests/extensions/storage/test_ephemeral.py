@@ -25,6 +25,8 @@ resolution and delegation to that DAO.
 
 from __future__ import annotations
 
+import base64
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -32,6 +34,7 @@ from flask import Flask
 from flask_babel import Babel
 
 from superset.extensions.context import use_context
+from superset.extensions.storage.codecs import get_codec
 from superset.extensions.storage.ephemeral import EphemeralSetOptions, EphemeralState
 from superset.extensions.storage.ephemeral_dao import (
     ExtensionEphemeralTTLInvalid,
@@ -41,6 +44,12 @@ from tests.unit_tests.extensions.storage.conftest import (
     create_context,
     set_user,
 )
+
+
+def _envelope(value: Any, codec: str = "json") -> dict[str, str]:
+    """Build the cache envelope ExtensionEphemeralDAO stores values as."""
+    encoded = get_codec(codec).encode(value)
+    return {"codec": codec, "value": base64.b64encode(encoded).decode("ascii")}
 
 
 def test_ephemeral_state_raises_without_context(app: Flask) -> None:
@@ -73,7 +82,7 @@ def test_ephemeral_state_get_builds_correct_key(mock_cm: MagicMock, app: Flask) 
     """EphemeralState.get() builds user-scoped key and calls cache.get()."""
     mock_cache = MagicMock()
     mock_cm.extension_ephemeral_state_cache = mock_cache
-    mock_cache.get.return_value = {"data": "test"}
+    mock_cache.get.return_value = _envelope({"data": "test"})
 
     ctx = create_context("my-org", "my-ext")
 
@@ -101,7 +110,29 @@ def test_ephemeral_state_set_builds_correct_key_and_uses_ttl(
         EphemeralState.set("my-key", {"value": 123}, EphemeralSetOptions(ttl=600))
 
     expected_key = "superset-ext:my-org.my-ext:user:42:my-key"
-    mock_cache.set.assert_called_once_with(expected_key, {"value": 123}, timeout=600)
+    mock_cache.set.assert_called_once_with(
+        expected_key, _envelope({"value": 123}), timeout=600
+    )
+
+
+@patch("superset.extensions.storage.ephemeral_dao.cache_manager")
+def test_ephemeral_state_set_uses_given_codec(mock_cm: MagicMock, app: Flask) -> None:
+    """EphemeralState.set() encodes the value with options.codec."""
+    mock_cache = MagicMock()
+    mock_cm.extension_ephemeral_state_cache = mock_cache
+
+    ctx = create_context("my-org", "my-ext")
+
+    with app.app_context(), use_context(ctx):
+        set_user(42)
+        EphemeralState.set(
+            "my-key", {"value": 123}, EphemeralSetOptions(ttl=600, codec="pickle")
+        )
+
+    expected_key = "superset-ext:my-org.my-ext:user:42:my-key"
+    mock_cache.set.assert_called_once_with(
+        expected_key, _envelope({"value": 123}, codec="pickle"), timeout=600
+    )
 
 
 @patch("superset.extensions.storage.ephemeral_dao.cache_manager")
@@ -165,7 +196,7 @@ def test_shared_accessor_builds_shared_key(mock_cm: MagicMock, app: Flask) -> No
     """SharedEphemeralStateAccessor builds key without user scope."""
     mock_cache = MagicMock()
     mock_cm.extension_ephemeral_state_cache = mock_cache
-    mock_cache.get.return_value = "shared-value"
+    mock_cache.get.return_value = _envelope("shared-value")
 
     ctx = create_context("org", "ext")
 
@@ -192,7 +223,9 @@ def test_shared_accessor_set_and_remove(mock_cm: MagicMock, app: Flask) -> None:
         EphemeralState.shared.remove("key")
 
     expected_key = "superset-ext:org.ext:shared:key"
-    mock_cache.set.assert_called_once_with(expected_key, {"shared": True}, timeout=300)
+    mock_cache.set.assert_called_once_with(
+        expected_key, _envelope({"shared": True}), timeout=300
+    )
     mock_cache.delete.assert_called_once_with(expected_key)
 
 
@@ -203,7 +236,7 @@ def test_different_extensions_have_isolated_keys(
     """Different extensions use different key prefixes for isolation."""
     mock_cache = MagicMock()
     mock_cm.extension_ephemeral_state_cache = mock_cache
-    mock_cache.get.side_effect = lambda k: f"value-for-{k}"
+    mock_cache.get.side_effect = lambda k: _envelope(f"value-for-{k}")
 
     ctx1 = create_context("org1", "ext1")
     ctx2 = create_context("org2", "ext2")
@@ -227,6 +260,7 @@ def test_different_users_have_isolated_keys(mock_cm: MagicMock, app: Flask) -> N
     """Different users use different key prefixes for isolation."""
     mock_cache = MagicMock()
     mock_cm.extension_ephemeral_state_cache = mock_cache
+    mock_cache.get.return_value = None
 
     ctx = create_context()
 

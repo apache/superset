@@ -46,10 +46,10 @@ def upgrade() -> None:
         sa.Column("value", sa.LargeBinary(2**24 - 1), nullable=False),
         sa.Column("value_size", sa.Integer(), nullable=False),
         sa.Column(
-            "value_type",
+            "codec",
             sa.String(255),
             nullable=False,
-            server_default="application/json",
+            server_default="json",
         ),
         sa.Column(
             "is_encrypted",

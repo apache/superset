@@ -102,6 +102,39 @@ def test_dao_get_value_returns_none_when_not_found(
     assert result is None
 
 
+# ── get_decoded_value ─────────────────────────────────────────────────────────
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_get_decoded_value_decodes_with_stored_codec(
+    mock_db: MagicMock, app: Flask
+) -> None:
+    """get_decoded_value() decodes the raw bytes using the entry's codec."""
+    entry = MagicMock()
+    entry.is_encrypted = False
+    entry.value = b'{"theme": "dark"}'
+    entry.codec = "json"
+    mock_db.session.query.return_value.filter.return_value.first.return_value = entry
+
+    with app.app_context():
+        result = ExtensionStorageDAO.get_decoded_value("my-ext", "key", user_fk=1)
+
+    assert result == {"theme": "dark"}
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_get_decoded_value_returns_none_when_not_found(
+    mock_db: MagicMock, app: Flask
+) -> None:
+    """get_decoded_value() returns None when no entry exists."""
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
+
+    with app.app_context():
+        result = ExtensionStorageDAO.get_decoded_value("my-ext", "missing", user_fk=1)
+
+    assert result is None
+
+
 @patch("superset.extensions.storage.persistent_dao._enc_type")
 @patch("superset.extensions.storage.persistent_dao.db")
 def test_dao_get_value_decrypts_encrypted_entry(
@@ -177,6 +210,50 @@ def test_dao_set_updates_existing_entry(mock_db: MagicMock, app: Flask) -> None:
     assert existing.value_size == len(b'{"new": true}')
     mock_db.session.add.assert_not_called()
     mock_db.session.flush.assert_called_once()
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_set_defaults_codec_to_json(mock_db: MagicMock, app: Flask) -> None:
+    """set() stores codec="json" on the entry when not specified."""
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
+
+    with app.app_context():
+        ExtensionStorageDAO.set("my-ext", "key", b'{"value": 1}', user_fk=1)
+
+    added_entry = mock_db.session.add.call_args[0][0]
+    assert added_entry.codec == "json"
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_set_stores_given_codec(mock_db: MagicMock, app: Flask) -> None:
+    """set() stores the caller-supplied codec identifier on the entry."""
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
+
+    with app.app_context():
+        ExtensionStorageDAO.set(
+            "my-ext", "key", b"\x80pickled", codec="pickle", user_fk=1
+        )
+
+    added_entry = mock_db.session.add.call_args[0][0]
+    assert added_entry.codec == "pickle"
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_set_updates_codec_on_existing_entry(
+    mock_db: MagicMock, app: Flask
+) -> None:
+    """set() overwrites the stored codec when re-writing an existing key."""
+    existing = MagicMock()
+    existing.value_size = 0
+    existing.codec = "json"
+    mock_db.session.query.return_value.filter.return_value.first.return_value = existing
+
+    with app.app_context():
+        ExtensionStorageDAO.set(
+            "my-ext", "key", b"\x80pickled", codec="pickle", user_fk=1
+        )
+
+    assert existing.codec == "pickle"
 
 
 @patch("superset.extensions.storage.persistent_dao._enc_type")

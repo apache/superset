@@ -64,7 +64,49 @@ test('set calls correct URL with value in body', async () => {
   await store.set('prefs', { theme: 'dark' });
   expect(mockPut).toHaveBeenCalledWith({
     endpoint: '/api/v1/extensions/myorg/myext/storage/persistent/prefs',
-    body: JSON.stringify({ value: { theme: 'dark' }, encrypt: false }),
+    body: JSON.stringify({
+      value: { theme: 'dark' },
+      encrypt: false,
+      codec: 'json',
+    }),
+    headers: { 'Content-Type': 'application/json' },
+  });
+});
+
+test('set passes codec from options', async () => {
+  const store = createPersistentState('myorg.myext');
+  await store.set('prefs', 'sk-...', { codec: 'pickle' });
+  expect(mockPut).toHaveBeenCalledWith({
+    endpoint: '/api/v1/extensions/myorg/myext/storage/persistent/prefs',
+    body: JSON.stringify({
+      value: 'sk-...',
+      encrypt: false,
+      codec: 'pickle',
+    }),
+    headers: { 'Content-Type': 'application/json' },
+  });
+});
+
+test('set auto base64-encodes a Uint8Array value with no codec specified', async () => {
+  const store = createPersistentState('myorg.myext');
+  const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+  await store.set('icon', bytes);
+  const body = JSON.parse(mockPut.mock.calls[0][0].body);
+  expect(body.codec).toBe('base64');
+  expect(body.value).toBe(btoa('\x89PNG'));
+});
+
+test('set respects an explicit codec for a Uint8Array value instead of auto-encoding', async () => {
+  const store = createPersistentState('myorg.myext');
+  const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+  await store.set('icon', bytes, { codec: 'pickle' });
+  expect(mockPut).toHaveBeenCalledWith({
+    endpoint: '/api/v1/extensions/myorg/myext/storage/persistent/icon',
+    body: JSON.stringify({
+      value: bytes,
+      encrypt: false,
+      codec: 'pickle',
+    }),
     headers: { 'Content-Type': 'application/json' },
   });
 });
@@ -119,7 +161,11 @@ test('shared.set appends ?shared=true', async () => {
   expect(mockPut).toHaveBeenCalledWith({
     endpoint:
       '/api/v1/extensions/myorg/myext/storage/persistent/config?shared=true',
-    body: JSON.stringify({ value: { version: 2 }, encrypt: false }),
+    body: JSON.stringify({
+      value: { version: 2 },
+      encrypt: false,
+      codec: 'json',
+    }),
     headers: { 'Content-Type': 'application/json' },
   });
 });

@@ -65,6 +65,8 @@ export interface StorageAccessor {
  */
 export interface EphemeralSetOptions {
   ttl: number;
+  /** Name of the codec used to encode the value, e.g. "json" (default). */
+  codec?: string;
 }
 
 /**
@@ -72,6 +74,8 @@ export interface EphemeralSetOptions {
  */
 export interface PersistentSetOptions {
   encrypt?: boolean;
+  /** Name of the codec used to encode the value, e.g. "json" (default). */
+  codec?: string;
 }
 
 /**

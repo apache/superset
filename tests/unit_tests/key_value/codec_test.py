@@ -23,6 +23,7 @@ from marshmallow import Schema
 from superset.dashboards.permalink.schemas import DashboardPermalinkSchema
 from superset.key_value.exceptions import KeyValueCodecEncodeException
 from superset.key_value.types import (
+    Base64KeyValueCodec,
     JsonKeyValueCodec,
     MarshmallowKeyValueCodec,
     PickleKeyValueCodec,
@@ -120,3 +121,29 @@ def test_pickle_codec(input_: Any, expected_result: Any):
     codec = PickleKeyValueCodec()
     encoded_value = codec.encode(input_)
     assert expected_result == codec.decode(encoded_value)
+
+
+@pytest.mark.parametrize(
+    "input_,expected_result",
+    [
+        ("aGVsbG8gd29ybGQ=", b"hello world"),
+        ("", b""),
+        ("not-valid-base64!!", KeyValueCodecEncodeException()),
+    ],
+)
+def test_base64_codec_encode(input_: Any, expected_result: Any):
+    cm = (
+        pytest.raises(type(expected_result))
+        if isinstance(expected_result, Exception)
+        else nullcontext()
+    )
+    with cm:
+        codec = Base64KeyValueCodec()
+        assert expected_result == codec.encode(input_)
+
+
+def test_base64_codec_round_trips():
+    codec = Base64KeyValueCodec()
+    raw = b"\x00\x01binary\xffdata"
+    encoded_str = codec.decode(raw)
+    assert codec.encode(encoded_str) == raw

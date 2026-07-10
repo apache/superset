@@ -50,9 +50,11 @@ class ExtensionStorage(CoreExtensionStorageEntry, AuditMixinNullable, Model):
     * User scope        — user_fk set, resource_type IS NULL
     * Resource scope    — resource_type + resource_uuid set (user_fk optional)
 
-    The payload is stored as raw bytes (value) with a MIME-type hint
-    (value_type).  When is_encrypted is True the value has been encrypted
-    at the DAO layer using Fernet and must be decrypted before use.
+    The payload is stored as raw bytes (value) alongside the identifier of
+    the codec used to encode it (codec), so the same bytes can be decoded
+    back into a value on read. When is_encrypted is True the value has been
+    encrypted at the DAO layer using Fernet and must be decrypted before
+    decoding.
     """
 
     __tablename__ = "extension_storage"
@@ -102,7 +104,7 @@ class ExtensionStorage(CoreExtensionStorageEntry, AuditMixinNullable, Model):
     # _check_quota() can be computed from this fixed-width column instead of
     # reading (and, once TOASTed, detoasting) every extension's stored blobs.
     value_size = Column(Integer, nullable=False)
-    value_type = Column(String(255), nullable=False, default="application/json")
+    codec = Column(String(255), nullable=False, default="json")
     is_encrypted = Column(Boolean, nullable=False, default=False)
 
     __table_args__ = (

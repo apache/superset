@@ -33,6 +33,7 @@ from flask import g, request
 from flask.wrappers import Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 
+from superset.extensions.storage.codecs import DEFAULT_CODEC, get_codec, SAFE_CODECS
 from superset.extensions.storage.ephemeral_dao import (
     ExtensionEphemeralDAO,
     ExtensionEphemeralTTLInvalid,
@@ -43,7 +44,6 @@ from superset.extensions.storage.persistent_dao import (
     ExtensionStorageQuotaExceeded,
 )
 from superset.extensions.storage.utils import get_extension_or_404, parse_ttl
-from superset.utils import json
 from superset.utils.decorators import transaction
 
 
@@ -116,6 +116,12 @@ class ExtensionStorageRestApi(BaseApi):
                     properties:
                       result:
                         description: The stored value
+                      codec:
+                        type: string
+                        description: Name of the codec 'result' was encoded
+                          with, e.g. "json" (default) or "base64"
+            400:
+              description: Value was stored with a codec unavailable over the API
             404:
               description: Extension not found
         """
@@ -125,9 +131,17 @@ class ExtensionStorageRestApi(BaseApi):
             return self.response_404("Extension not found")
 
         shared = request.args.get("shared", "false").lower() == "true"
-        value = ExtensionEphemeralDAO.get(extension_id, key, shared=shared)
+        raw = ExtensionEphemeralDAO.get_raw(extension_id, key, shared=shared)
+        if raw is None:
+            return self.response(200, result=None)
+        value, codec = raw
+        if codec not in SAFE_CODECS:
+            return self.response_400(
+                f"Value was stored with codec '{codec}', which cannot be "
+                "read over the REST API."
+            )
 
-        return self.response(200, result=value)
+        return self.response(200, result=get_codec(codec).decode(value), codec=codec)
 
     @protect()
     @safe
@@ -175,8 +189,13 @@ class ExtensionStorageRestApi(BaseApi):
                     - ttl
                   properties:
                     value:
-                      description: The value to store (must not exceed MAX_VALUE_SIZE
-                        bytes when JSON-encoded)
+                      description: The value to store (must not exceed
+                        MAX_VALUE_SIZE bytes once encoded with 'codec')
+                    codec:
+                      type: string
+                      description: Name of the codec used to encode 'value',
+                        e.g. "json" (default). Must be one of the codecs
+                        allowed over the REST API.
                     ttl:
                       type: integer
                       description: Time-to-live in seconds (must be a positive
@@ -185,7 +204,7 @@ class ExtensionStorageRestApi(BaseApi):
             200:
               description: Value stored successfully
             400:
-              description: Invalid request body
+              description: Invalid request body, or codec not allowed over the API
             404:
               description: Extension not found
         """
@@ -198,6 +217,12 @@ class ExtensionStorageRestApi(BaseApi):
         if "value" not in body:
             return self.response_400("Request body must contain 'value' field")
 
+        codec = body.get("codec", DEFAULT_CODEC)
+        if codec not in SAFE_CODECS:
+            return self.response_400(
+                f"Codec '{codec}' is not allowed over the REST API."
+            )
+
         value = body["value"]
         ttl, error = parse_ttl(body)
         if error:
@@ -205,7 +230,9 @@ class ExtensionStorageRestApi(BaseApi):
 
         shared = request.args.get("shared", "false").lower() == "true"
         try:
-            ExtensionEphemeralDAO.set(extension_id, key, value, ttl, shared=shared)
+            ExtensionEphemeralDAO.set(
+                extension_id, key, value, ttl, codec=codec, shared=shared
+            )
         except (ExtensionEphemeralTTLInvalid, ExtensionEphemeralValueTooLarge) as ex:
             return self.response_400(ex.message)
 
@@ -307,6 +334,12 @@ class ExtensionStorageRestApi(BaseApi):
                     properties:
                       result:
                         description: The stored value
+                      codec:
+                        type: string
+                        description: Name of the codec 'result' was encoded
+                          with, e.g. "json" (default) or "base64"
+            400:
+              description: Value was stored with a codec unavailable over the API
             404:
               description: Extension not found
         """
@@ -317,10 +350,20 @@ class ExtensionStorageRestApi(BaseApi):
 
         shared = request.args.get("shared", "false").lower() == "true"
         user_fk = None if shared else g.user.id
-        raw = ExtensionStorageDAO.get_value(extension_id, key, user_fk=user_fk)
-        value = json.loads(raw) if raw is not None else None
+        entry = ExtensionStorageDAO.get(extension_id, key, user_fk=user_fk)
+        if entry is None:
+            return self.response(200, result=None)
+        if entry.codec not in SAFE_CODECS:
+            return self.response_400(
+                f"Value was stored with codec '{entry.codec}', which cannot be "
+                "read over the REST API."
+            )
 
-        return self.response(200, result=value)
+        value = ExtensionStorageDAO.get_decoded_value(
+            extension_id, key, user_fk=user_fk
+        )
+
+        return self.response(200, result=value, codec=entry.codec)
 
     @protect()
     @safe
@@ -368,7 +411,12 @@ class ExtensionStorageRestApi(BaseApi):
                     - value
                   properties:
                     value:
-                      description: The value to store (must be JSON-serializable)
+                      description: The value to store
+                    codec:
+                      type: string
+                      description: Name of the codec used to encode 'value',
+                        e.g. "json" (default). Must be one of the codecs
+                        allowed over the REST API.
                     encrypt:
                       type: boolean
                       description: If true, the value is encrypted at rest
@@ -376,7 +424,7 @@ class ExtensionStorageRestApi(BaseApi):
             200:
               description: Value stored successfully
             400:
-              description: Invalid request body
+              description: Invalid request body, or codec not allowed over the API
             404:
               description: Extension not found
             413:
@@ -391,13 +439,24 @@ class ExtensionStorageRestApi(BaseApi):
         if "value" not in body:
             return self.response_400("Request body must contain 'value' field")
 
+        codec = body.get("codec", DEFAULT_CODEC)
+        if codec not in SAFE_CODECS:
+            return self.response_400(
+                f"Codec '{codec}' is not allowed over the REST API."
+            )
+
         encrypt = bool(body.get("encrypt", False))
         shared = request.args.get("shared", "false").lower() == "true"
         user_fk = None if shared else g.user.id
-        value_bytes = json.dumps(body["value"]).encode()
+        value_bytes = get_codec(codec).encode(body["value"])
         try:
             ExtensionStorageDAO.set(
-                extension_id, key, value_bytes, user_fk=user_fk, encrypt=encrypt
+                extension_id,
+                key,
+                value_bytes,
+                codec=codec,
+                user_fk=user_fk,
+                encrypt=encrypt,
             )
         except ExtensionStorageQuotaExceeded as ex:
             return self.response(ex.status, message=ex.message)

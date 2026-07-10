@@ -24,6 +24,7 @@ import type {
   PersistentStorageTier,
 } from '@apache-superset/core/storage';
 import { SupersetClient } from '@superset-ui/core';
+import { resolveSetPayload } from './binaryCodec';
 
 /**
  * Create persistent state (database-backed) bound to an extension ID.
@@ -59,9 +60,14 @@ export function createPersistentState(
       value: T,
       options?: PersistentSetOptions,
     ): Promise<void> {
+      const payload = resolveSetPayload(value, options?.codec);
       await SupersetClient.put({
         endpoint: buildUrl(key, true),
-        body: JSON.stringify({ value, encrypt: options?.encrypt ?? false }),
+        body: JSON.stringify({
+          value: payload.value,
+          encrypt: options?.encrypt ?? false,
+          codec: payload.codec,
+        }),
         headers: { 'Content-Type': 'application/json' },
       });
     },
@@ -80,9 +86,14 @@ export function createPersistentState(
       value: T,
       options?: PersistentSetOptions,
     ): Promise<void> {
+      const payload = resolveSetPayload(value, options?.codec);
       await SupersetClient.put({
         endpoint: buildUrl(key),
-        body: JSON.stringify({ value, encrypt: options?.encrypt ?? false }),
+        body: JSON.stringify({
+          value: payload.value,
+          encrypt: options?.encrypt ?? false,
+          codec: payload.codec,
+        }),
         headers: { 'Content-Type': 'application/json' },
       });
     },

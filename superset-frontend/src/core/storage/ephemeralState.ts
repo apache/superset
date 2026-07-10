@@ -24,6 +24,7 @@ import type {
   JsonValue,
 } from '@apache-superset/core/storage';
 import { SupersetClient } from '@superset-ui/core';
+import { resolveSetPayload } from './binaryCodec';
 
 /**
  * Create ephemeral state (server cache) bound to an extension ID.
@@ -52,9 +53,14 @@ export function createEphemeralState(
       value: T,
       options: EphemeralSetOptions,
     ): Promise<void> {
+      const payload = resolveSetPayload(value, options.codec);
       await SupersetClient.put({
         endpoint: buildUrl(key, true),
-        body: JSON.stringify({ value, ttl: options.ttl }),
+        body: JSON.stringify({
+          value: payload.value,
+          ttl: options.ttl,
+          codec: payload.codec,
+        }),
         headers: { 'Content-Type': 'application/json' },
       });
     },
@@ -73,9 +79,14 @@ export function createEphemeralState(
       value: T,
       options: EphemeralSetOptions,
     ): Promise<void> {
+      const payload = resolveSetPayload(value, options.codec);
       await SupersetClient.put({
         endpoint: buildUrl(key),
-        body: JSON.stringify({ value, ttl: options.ttl }),
+        body: JSON.stringify({
+          value: payload.value,
+          ttl: options.ttl,
+          codec: payload.codec,
+        }),
         headers: { 'Content-Type': 'application/json' },
       });
     },

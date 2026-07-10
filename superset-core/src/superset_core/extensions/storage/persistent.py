@@ -65,6 +65,8 @@ class PersistentSetOptions:
     """
 
     encrypt: bool = False
+    #: Name of the codec used to encode `value`, e.g. "json" (default).
+    codec: str = "json"
 
 
 class PersistentStateAccessor(Protocol):

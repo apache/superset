@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import base64
 import json
 import pickle
 from abc import ABC, abstractmethod
@@ -86,6 +87,25 @@ class PickleKeyValueCodec(KeyValueCodec):
 
     def decode(self, value: bytes) -> dict[Any, Any]:
         return pickle.loads(value)  # noqa: S301
+
+
+class Base64KeyValueCodec(KeyValueCodec):
+    """Codec for binary values transported as a base64 string.
+
+    JSON has no binary type, so a caller that needs to store raw bytes over
+    a JSON transport (e.g. a REST API) encodes them as a base64 string and
+    selects this codec; it decodes that string back to bytes for storage,
+    and re-encodes stored bytes back to a base64 string for the response.
+    """
+
+    def encode(self, value: str) -> bytes:
+        try:
+            return base64.b64decode(value, validate=True)
+        except (ValueError, TypeError) as ex:
+            raise KeyValueCodecEncodeException(str(ex)) from ex
+
+    def decode(self, value: bytes) -> str:
+        return base64.b64encode(value).decode("ascii")
 
 
 class MarshmallowKeyValueCodec(JsonKeyValueCodec):
