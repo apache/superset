@@ -86,6 +86,21 @@ MCP_RBAC_ENABLED = True
 #   MCP_DISABLED_TOOLS = {"extensions.myorg.myext.some_tool"}
 MCP_DISABLED_TOOLS: set[str] = set()
 
+# Pluggable error-capture hook, invoked for system-class MCP tool errors
+# (unexpected exceptions — database down, bugs — not user errors like bad
+# params or permission denials). Lets operators forward failures to an
+# external error tracker (e.g. Sentry) without the OSS repo depending on any
+# particular vendor SDK: FlaskIntegration does not see FastMCP tool
+# execution, since it runs on the asyncio/Starlette stack, not a Flask
+# request. See PRODUCTION.md "Error Tracking" for a Sentry wiring example.
+#
+# Signature: hook(error: Exception, context: dict[str, Any]) -> None
+# ``context`` includes "tool_name", "mcp_call_id", "user_id", "error_type",
+# "sanitized_message", and "duration_ms". Exceptions raised by the hook
+# itself are caught and logged as a warning; they never affect the MCP
+# response.
+MCP_ERROR_HOOK: Callable[[Exception, dict[str, Any]], None] | None = None
+
 # =============================================================================
 # MCP Chart Plugin Filtering
 # =============================================================================
