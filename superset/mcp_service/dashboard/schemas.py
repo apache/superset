@@ -27,6 +27,7 @@ Example usage:
         id=1,
         dashboard_title="Sales Dashboard",
         published=True,
+        editors=[SubjectInfo(id=1, label="admin", type="USER")],
         tags=[TagInfo(id=1, name="sales")],
         charts=[DashboardChartSummary(id=1, slice_name="Sales Chart")]
     )
@@ -66,7 +67,8 @@ Example usage:
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+import re
+from datetime import datetime, timezone
 from typing import Annotated, Any, cast, Dict, List, Literal, TYPE_CHECKING
 
 from pydantic import (
@@ -86,28 +88,34 @@ if TYPE_CHECKING:
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import (
     CreatedByMeMixin,
+    EditedByMeMixin,
     MetadataCacheControl,
-    OwnedByMeMixin,
 )
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.privacy import (
     filter_user_directory_fields,
+    strip_user_directory_fields_from_schema,
     user_can_view_data_model_metadata,
 )
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
-    RoleInfo,
+    serialize_subject_object,
+    SubjectInfo,
     TagInfo,
 )
 from superset.mcp_service.utils import (
     escape_llm_context_delimiters,
     sanitize_for_llm_context,
 )
-from superset.mcp_service.utils.response_utils import humanize_timestamp
+from superset.mcp_service.utils.response_utils import (
+    humanize_timestamp,
+    OmittedFieldsBuilder,
+)
 from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
+from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils.json import loads as json_loads
 
 
@@ -129,9 +137,11 @@ class DashboardError(BaseModel):
     @classmethod
     def create(cls, error: str, error_type: str) -> "DashboardError":
         """Create a standardized DashboardError with timestamp."""
-        from datetime import datetime
-
-        return cls(error=error, error_type=error_type, timestamp=datetime.now())
+        return cls(
+            error=error,
+            error_type=error_type,
+            timestamp=datetime.now(timezone.utc),
+        )
 
 
 def serialize_tag_object(tag: Any) -> TagInfo | None:
@@ -147,20 +157,6 @@ def serialize_tag_object(tag: Any) -> TagInfo | None:
     )
 
 
-def serialize_role_object(role: Any) -> RoleInfo | None:
-    """Serialize a role object to RoleInfo"""
-    if not role:
-        return None
-
-    return RoleInfo(
-        id=getattr(role, "id", None),
-        name=getattr(role, "name", None),
-        permissions=[perm.name for perm in getattr(role, "permissions", [])]
-        if hasattr(role, "permissions")
-        else None,
-    )
-
-
 class DashboardFilter(ColumnOperator):
     """
     Filter object for dashboard listing.
@@ -172,6 +168,7 @@ class DashboardFilter(ColumnOperator):
     col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         "dashboard_title",
         "published",
+        "editor",
         "favorite",
         "created_by_fk",
         "changed_by_fk",
@@ -195,7 +192,7 @@ class DashboardFilter(ColumnOperator):
     )
 
 
-class ListDashboardsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
+class ListDashboardsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
     """Request schema for list_dashboards with clear, unambiguous types."""
 
     filters: Annotated[
@@ -301,6 +298,7 @@ DEFAULT_GET_DASHBOARD_INFO_COLUMNS: List[str] = [
     "created_on",
     "changed_on",
     "uuid",
+    "embedded_uuid",
     "url",
     "created_on_humanized",
     "changed_on_humanized",
@@ -374,6 +372,17 @@ class GetDashboardLayoutRequest(BaseModel):
     ]
 
 
+class GetDashboardDatasetsRequest(BaseModel):
+    """Request schema for get_dashboard_datasets."""
+
+    identifier: Annotated[
+        int | str,
+        Field(
+            description="Dashboard identifier - can be numeric ID, UUID string, or slug"
+        ),
+    ]
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -400,7 +409,7 @@ class DashboardChartSummary(BaseModel):
 
     Contains only the fields needed for LLMs to understand which charts
     are on a dashboard, omitting verbose fields like form_data, tags,
-    owners, and timestamps that bloat the response.
+    editors, and timestamps that bloat the response.
     """
 
     id: int | None = Field(None, description="Chart ID")
@@ -425,10 +434,23 @@ class DashboardInfo(BaseModel):
     created_on: str | datetime | None = None
     changed_on: str | datetime | None = None
     uuid: str | None = None
+    embedded_uuid: str | None = Field(
+        None,
+        description=(
+            "Embedded UUID for this dashboard. This is the UUID required when "
+            "generating guest tokens for embedded dashboards "
+            "(resources[].id in the guest token payload). "
+            "Only present when the dashboard has been configured for embedding "
+            "via the Embed Dashboard UI. Distinct from `uuid` (the internal "
+            "dashboard UUID) — using the wrong one causes 403 errors in guest "
+            "token validation."
+        ),
+    )
     url: str | None = None
     created_on_humanized: str | None = None
     changed_on_humanized: str | None = None
     chart_count: int = 0
+    editors: List[SubjectInfo] = Field(default_factory=list)
     tags: List[TagInfo] = Field(default_factory=list)
     charts: List[DashboardChartSummary] = Field(default_factory=list)
 
@@ -483,7 +505,11 @@ class DashboardInfo(BaseModel):
         ),
     )
 
-    model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
+    model_config = ConfigDict(
+        from_attributes=True,
+        ser_json_timedelta="iso8601",
+        json_schema_extra=strip_user_directory_fields_from_schema,
+    )
 
     @model_serializer(mode="wrap")
     def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:
@@ -598,6 +624,58 @@ class AddChartToDashboardResponse(BaseModel):
         return sanitize_for_llm_context(value, field_path=("error",))
 
 
+class RemoveChartFromDashboardRequest(BaseModel):
+    """Request schema for removing a chart from an existing dashboard."""
+
+    dashboard_id: int = Field(
+        ..., description="ID of the dashboard to remove the chart from"
+    )
+    chart_id: int = Field(
+        ..., description="ID of the chart to remove from the dashboard"
+    )
+
+
+class RemoveChartFromDashboardResponse(BaseModel):
+    """Response schema for removing a chart from a dashboard."""
+
+    dashboard: DashboardInfo | None = Field(
+        None, description="The updated dashboard info, if successful"
+    )
+    dashboard_url: str | None = Field(
+        None, description="URL to view the updated dashboard"
+    )
+    removed_layout_keys: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Layout component IDs that were removed from position_json "
+            "(the CHART components plus any ROW/COLUMN containers that "
+            "became empty as a result)."
+        ),
+    )
+    error: str | None = Field(None, description="Error message, if operation failed")
+    permission_denied: bool = Field(
+        default=False,
+        description=(
+            "True when the operation failed because the current user does not "
+            "have edit rights on the target dashboard. When True, inform the "
+            "user — do NOT attempt a workaround without confirming first."
+        ),
+    )
+
+    @field_validator("error")
+    @classmethod
+    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
+        """Wrap error text before it is exposed to LLM context.
+
+        The error may echo dashboard-controlled text (e.g. the dashboard
+        title), which must be wrapped so the LLM treats it as data, not
+        instructions.
+        """
+        if value is None:
+            return value
+        return sanitize_for_llm_context(value, field_path=("error",))
+
+
 class GenerateDashboardRequest(BaseModel):
     """Request schema for generating a dashboard."""
 
@@ -617,6 +695,48 @@ class GenerateDashboardRequest(BaseModel):
     description: str | None = Field(None, description="Description for the dashboard")
     published: bool = Field(
         default=False, description="Whether to publish the dashboard"
+    )
+    slug: str | None = Field(
+        None,
+        max_length=255,
+        description=(
+            "Optional URL slug for the dashboard. When set, the dashboard "
+            "is reachable at /dashboard/<slug>/ instead of "
+            "/dashboard/<id>/. Must be unique across the instance."
+        ),
+    )
+    position_json: Dict[str, Any] | None = Field(
+        None,
+        description=(
+            "Optional explicit dashboard layout (Superset's position_json "
+            "dict). When set, replaces the auto-generated layout entirely. "
+            "Pass this when you need custom row composition, MARKDOWN "
+            "blocks, HEADER components, or specific chart widths/heights. "
+            "Omit to let the tool auto-generate a packed grid from chart_ids."
+        ),
+    )
+    json_metadata_overrides: Dict[str, Any] | None = Field(
+        None,
+        description=(
+            "Optional overrides applied on top of the default "
+            "json_metadata. Common fields: label_colors (per-series brand "
+            "palette, e.g. {'Electronics': '#4C78A8'}), color_scheme "
+            "(named Superset palette), cross_filters_enabled (bool, "
+            "default False — set True for interactive dashboards), "
+            "shared_label_colors (list of label names for cross-chart "
+            "color consistency). Merged shallowly into the defaults; pass "
+            "only the keys you want to override."
+        ),
+    )
+    css: str | None = Field(
+        None,
+        max_length=50000,
+        description=(
+            "Optional dashboard-level CSS. Useful for hiding chart chrome "
+            "(kebab menus, cross-filter chips) on print-ready dashboards, "
+            "or tweaking padding/typography. Applied as-is to the "
+            "dashboard's css field."
+        ),
     )
     sanitization_warnings: List[str] = Field(
         default_factory=list,
@@ -690,6 +810,224 @@ class GenerateDashboardRequest(BaseModel):
         )
 
 
+class UpdateDashboardRequest(BaseModel):
+    """Request schema for updating an existing dashboard's layout/theme/style.
+
+    All fields are optional; only the fields explicitly passed are applied.
+    Use to retroactively set a custom layout, brand palette, or CSS on a
+    dashboard that was created via ``generate_dashboard`` (or earlier via
+    the REST API) without a full re-create.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    identifier: int | str = Field(
+        ...,
+        description=(
+            "Dashboard ID (integer), UUID, or slug. Same identifier shape "
+            "accepted by ``get_dashboard_info``."
+        ),
+    )
+    dashboard_title: str | None = Field(
+        None,
+        max_length=500,
+        description="Optional new dashboard title.",
+        validation_alias=AliasChoices("dashboard_title", "title", "name"),
+    )
+    description: str | None = Field(
+        None,
+        description="Optional new dashboard description.",
+    )
+    slug: str | None = Field(
+        None,
+        max_length=255,
+        description=("Optional new URL slug. Pass empty string to clear a slug."),
+    )
+    published: bool | None = Field(
+        None,
+        description="Optional published flag.",
+    )
+    position_json: Dict[str, Any] | None = Field(
+        None,
+        description=(
+            "Optional replacement layout (Superset's position_json dict). "
+            "When set, fully replaces the existing layout. Get the current "
+            "layout via ``get_dashboard_info`` first if you want to make "
+            "incremental changes."
+        ),
+    )
+    json_metadata_overrides: Dict[str, Any] | None = Field(
+        None,
+        description=(
+            "Optional overrides applied on top of the existing "
+            "json_metadata. Merged shallowly — pass only the keys you "
+            "want to change (e.g. label_colors, color_scheme, "
+            "cross_filters_enabled)."
+        ),
+    )
+    css: str | None = Field(
+        None,
+        max_length=50000,
+        description=(
+            "Optional new dashboard CSS. Pass empty string to clear existing CSS."
+        ),
+    )
+    tags: List[int] | None = Field(
+        None,
+        description=(
+            "Optional FULL-REPLACEMENT list of tag IDs to associate with the "
+            "dashboard. Discover IDs with ``list_tags``. An empty list clears "
+            "all custom tags. Omit (None) to leave tags unchanged."
+        ),
+    )
+    cross_filters_enabled: bool | None = Field(
+        None,
+        description=(
+            "Optional toggle for dashboard-wide cross filtering. Typed "
+            "convenience for the ``cross_filters_enabled`` json_metadata key."
+        ),
+    )
+    refresh_frequency: int | None = Field(
+        None,
+        ge=0,
+        description=(
+            "Optional auto-refresh interval in seconds (0 = off). Typed "
+            "convenience for the ``refresh_frequency`` json_metadata key."
+        ),
+    )
+    filter_bar_orientation: Literal["VERTICAL", "HORIZONTAL"] | None = Field(
+        None,
+        description=(
+            "Optional native filter bar orientation. Typed convenience for "
+            "the ``filter_bar_orientation`` json_metadata key."
+        ),
+    )
+    sanitization_warnings: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Internal: warnings emitted when user input was altered by "
+            "sanitization. Populated by the ``mode='before'`` validator "
+            "before dashboard_title is rewritten."
+        ),
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _detect_dashboard_title_sanitization(cls, data: Any) -> Any:
+        """Reject empty-after-sanitization titles and warn on partial strip.
+
+        Mirrors the same guard ``GenerateDashboardRequest`` applies so a
+        prompt-injected LLM cannot push XSS payloads through the update
+        path that the create path already rejects. Server-only
+        ``sanitization_warnings`` is reset here so a caller cannot inject
+        warning text.
+        """
+        if not isinstance(data, dict):
+            return data
+        data["sanitization_warnings"] = []
+        # Must match every AliasChoice on ``dashboard_title`` — otherwise
+        # an XSS payload supplied via a different key (e.g. ``name``)
+        # would bypass this ``mode='before'`` guard and slip through to
+        # Pydantic's alias resolution unsanitized.
+        for key in ("dashboard_title", "title", "name"):
+            if key in data:
+                raw = data[key]
+                break
+        else:
+            raw = None
+        if not isinstance(raw, str) or not raw.strip():
+            return data
+        sanitized, was_modified = sanitize_user_input_with_changes(
+            raw, "Dashboard title", max_length=500, allow_empty=True
+        )
+        if was_modified and not sanitized:
+            raise ValueError(
+                "dashboard_title contained only disallowed content "
+                "(HTML/script/URL schemes) and was removed entirely by "
+                "sanitization. Provide a dashboard_title with plain text."
+            )
+        if was_modified:
+            data["sanitization_warnings"].append(
+                "dashboard_title was modified during sanitization to "
+                "remove potentially unsafe content; the stored title "
+                "differs from the input."
+            )
+        return data
+
+    @field_validator("dashboard_title")
+    @classmethod
+    def sanitize_dashboard_title(cls, v: str | None) -> str | None:
+        """Sanitize dashboard title to prevent XSS."""
+        if v is None or v == "":
+            return v
+        return sanitize_user_input(
+            v, "Dashboard title", max_length=500, allow_empty=True
+        )
+
+    @field_validator("slug")
+    @classmethod
+    def normalize_slug(cls, v: str | None) -> str | None:
+        """Normalize the slug to match the REST DashboardPutSchema contract.
+
+        Mirrors ``BaseDashboardSchema.post_load``: strip, replace spaces with
+        hyphens, and drop characters outside ``[\\w-]`` so the tool cannot
+        persist slugs the REST update path would have cleaned.
+
+        Whitespace-only inputs normalize to ``""`` (clears the slug), matching
+        REST schema behavior. Raises ``ValueError`` when a non-whitespace input
+        normalizes to empty (e.g. ``"!!!"``), preventing accidental slug clearing.
+        """
+        if not v:
+            return v
+        stripped = v.strip()
+        if not stripped:
+            return ""  # whitespace-only → same as empty string (clears slug)
+        normalized = re.sub(r"[^\w\-]+", "", stripped.replace(" ", "-"))
+        if not normalized:
+            raise ValueError(
+                "slug contains only characters that are removed during "
+                "normalization; use letters, digits, underscores, or hyphens"
+            )
+        return normalized
+
+
+class UpdateDashboardResponse(BaseModel):
+    """Response schema for ``update_dashboard``.
+
+    Distinct from ``GenerateDashboardResponse`` because the semantics
+    differ: this response reports which fields actually changed on an
+    existing dashboard, rather than describing a newly created one.
+    """
+
+    dashboard: DashboardInfo | None = Field(
+        None, description="The updated dashboard info, if successful"
+    )
+    dashboard_url: str | None = Field(None, description="URL to view the dashboard")
+    error: str | None = Field(None, description="Error message, if update failed")
+    permission_denied: bool = Field(
+        default=False,
+        description=(
+            "True when the user lacks edit rights on the target "
+            "dashboard. When True, ``error`` carries the human-readable "
+            "explanation and the response is otherwise empty."
+        ),
+    )
+    changed_fields: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Names of fields that were actually applied. Empty when the "
+            "request was a no-op or failed before any field was applied."
+        ),
+    )
+    warnings: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Non-fatal advisory messages — for example, that the supplied "
+            "title was altered by sanitization."
+        ),
+    )
+
+
 class GenerateDashboardResponse(BaseModel):
     """Response schema for dashboard generation."""
 
@@ -706,6 +1044,138 @@ class GenerateDashboardResponse(BaseModel):
             "sanitization."
         ),
     )
+
+
+class DuplicateDashboardRequest(BaseModel):
+    """Request schema for duplicating an existing dashboard."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    dashboard_id: Annotated[
+        int | str,
+        Field(
+            description=(
+                "Source dashboard identifier - can be numeric ID, UUID string, or slug"
+            )
+        ),
+    ]
+    dashboard_title: str = Field(
+        ...,
+        description="Title for the new (duplicated) dashboard",
+        validation_alias=AliasChoices("dashboard_title", "title", "name"),
+    )
+    duplicate_slices: bool = Field(
+        default=False,
+        description=(
+            "When true, every chart on the source dashboard is deep-copied "
+            "into a new chart object owned by the caller. When false "
+            "(default), the new dashboard references the same charts as the "
+            "source."
+        ),
+    )
+    sanitization_warnings: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Internal: warnings emitted when user input was altered by "
+            "sanitization. Populated by the ``mode='before'`` validator "
+            "before dashboard_title is rewritten, so the tool can surface "
+            "a notice to the caller instead of silently dropping content."
+        ),
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _detect_dashboard_title_sanitization(cls, data: Any) -> Any:
+        """Reject empty-after-sanitization titles and warn on partial strip.
+
+        Runs before the ``dashboard_title`` field validator rewrites the
+        value. If the caller supplied a title that sanitization would strip
+        entirely (XSS-only content), we raise so the caller gets a clear
+        error instead of a blank-titled dashboard. When the sanitizer only
+        trims part of the title, we record a warning the tool can return
+        alongside the successful result.
+
+        ``sanitization_warnings`` is a server-only field — any value the
+        caller supplied is discarded here so the tool cannot be tricked
+        into echoing attacker-controlled text back through the response.
+        """
+        if not isinstance(data, dict):
+            return data
+        data["sanitization_warnings"] = []
+        for key in ("dashboard_title", "title", "name"):
+            if key in data:
+                raw = data[key]
+                break
+        else:
+            raw = None
+        if not isinstance(raw, str) or not raw.strip():
+            return data
+        sanitized, was_modified = sanitize_user_input_with_changes(
+            raw, "Dashboard title", max_length=500, allow_empty=True
+        )
+        if was_modified and not sanitized:
+            raise ValueError(
+                "dashboard_title contained only disallowed content "
+                "(HTML/script/URL schemes) and was removed entirely by "
+                "sanitization. Provide a dashboard_title with plain text."
+            )
+        if was_modified:
+            data["sanitization_warnings"].append(
+                "dashboard_title was modified during sanitization to "
+                "remove potentially unsafe content; the stored title "
+                "differs from the input."
+            )
+        return data
+
+    @field_validator("dashboard_title")
+    @classmethod
+    def sanitize_dashboard_title(cls, v: str) -> str:
+        """Sanitize dashboard title to prevent XSS."""
+        sanitized = sanitize_user_input(
+            v, "Dashboard title", max_length=500, allow_empty=True
+        )
+        if not sanitized:
+            raise ValueError("dashboard_title cannot be empty")
+        return sanitized
+
+
+class DuplicateDashboardResponse(BaseModel):
+    """Response schema for dashboard duplication."""
+
+    dashboard: DashboardInfo | None = Field(
+        None, description="The newly created dashboard info, if successful"
+    )
+    dashboard_url: str | None = Field(None, description="URL to view the new dashboard")
+    duplicated_slices: bool = Field(
+        default=False,
+        description=(
+            "True when the source dashboard's charts were deep-copied into "
+            "new chart objects; False when the new dashboard references the "
+            "original charts."
+        ),
+    )
+    error: str | None = Field(None, description="Error message, if duplication failed")
+    warnings: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Non-fatal advisory messages about the duplicated dashboard — "
+            "for example, that the supplied title was altered by "
+            "sanitization."
+        ),
+    )
+
+    @field_validator("error")
+    @classmethod
+    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
+        """Wrap error text before it is exposed to LLM context.
+
+        The error may echo dashboard-controlled content such as the source
+        dashboard title — wrap it so the LLM treats it as data, not
+        instructions.
+        """
+        if value is None:
+            return value
+        return sanitize_for_llm_context(value, field_path=("error",))
 
 
 class ChartPosition(BaseModel):
@@ -972,7 +1442,6 @@ def _build_omitted_fields(
     Uses the shared OmittedFieldsBuilder utility so the pattern is consistent
     across all MCP tool serializers.
     """
-    from superset.mcp_service.utils.response_utils import OmittedFieldsBuilder
 
     return (
         OmittedFieldsBuilder()
@@ -1005,7 +1474,6 @@ def serialize_chart_summary(
     """Serialize a chart to a lightweight summary for dashboard context."""
     if not chart:
         return None
-    from superset.mcp_service.utils.url_utils import get_superset_base_url
 
     chart_id = getattr(chart, "id", None)
     chart_url = None
@@ -1112,12 +1580,23 @@ def _sanitize_dashboard_info_for_llm_context(
     return DashboardInfo.model_validate(payload)
 
 
-def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
-    from superset.mcp_service.utils.url_utils import get_superset_base_url
+def _safe_user_label(value: Any) -> str | None:
+    """Coerce a `*_by_name` model attribute to a display string or None.
 
+    The Dashboard model exposes ``created_by_name`` / ``changed_by_name``
+    as plain strings, but some serializer call sites pass through
+    objects (User instances, Mocks in tests) — defensive coercion keeps
+    the response a valid string and avoids leaking ``repr(user)``.
+    """
+    if isinstance(value, str) and value:
+        return value
+    return None
+
+
+def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
     include_data_model_metadata = user_can_view_data_model_metadata()
     base_url = get_superset_base_url()
-    relative_url = dashboard.url  # e.g. "/superset/dashboard/{slug_or_id}/"
+    relative_url = dashboard.url  # e.g. "/dashboard/{slug_or_id}/"
     absolute_url = f"{base_url}{relative_url}" if relative_url else None
     json_metadata_str = getattr(dashboard, "json_metadata", None)
     position_json_str = getattr(dashboard, "position_json", None)
@@ -1137,6 +1616,9 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
             created_on=dashboard.created_on,
             changed_on=dashboard.changed_on,
             uuid=str(dashboard.uuid) if dashboard.uuid else None,
+            embedded_uuid=str(dashboard.embedded[0].uuid)
+            if dashboard.embedded
+            else None,
             url=absolute_url,
             created_on_humanized=dashboard.created_on_humanized,
             changed_on_humanized=dashboard.changed_on_humanized,
@@ -1150,6 +1632,13 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
                 json_metadata_str,
                 position_json_str,
             ),
+            editors=[
+                info
+                for editor in dashboard.editors
+                if (info := serialize_subject_object(editor)) is not None
+            ]
+            if dashboard.editors
+            else [],
             tags=[
                 TagInfo.model_validate(tag, from_attributes=True)
                 for tag in dashboard.tags
@@ -1175,7 +1664,6 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
 
 def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
     """Simple dashboard serializer that safely handles object attributes."""
-    from superset.mcp_service.utils.url_utils import get_superset_base_url
 
     # Construct URL from id/slug (the model's @property isn't available on
     # column-only query tuples returned by DAO.list with select_columns)
@@ -1183,9 +1671,7 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
     slug = getattr(dashboard, "slug", None)
     dashboard_url = None
     if dashboard_id is not None:
-        dashboard_url = (
-            f"{get_superset_base_url()}/superset/dashboard/{slug or dashboard_id}/"
-        )
+        dashboard_url = f"{get_superset_base_url()}/dashboard/{slug or dashboard_id}/"
 
     json_metadata_str = getattr(dashboard, "json_metadata", None)
     position_json_str = getattr(dashboard, "position_json", None)
@@ -1222,6 +1708,13 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
             if getattr(dashboard, "uuid", None)
             else None,
             chart_count=len(getattr(dashboard, "slices", [])),
+            editors=[
+                info
+                for editor in getattr(dashboard, "editors", [])
+                if (info := serialize_subject_object(editor)) is not None
+            ]
+            if getattr(dashboard, "editors", None)
+            else [],
             tags=[
                 TagInfo.model_validate(tag, from_attributes=True)
                 for tag in getattr(dashboard, "tags", [])
@@ -1297,4 +1790,449 @@ def dashboard_layout_serializer(dashboard: "Dashboard") -> DashboardLayout:
             charts=charts,
             has_layout=bool(position_json_str),
         )
+    )
+
+
+# ---------------------------------------------------------------------------
+# manage_native_filters schemas
+# ---------------------------------------------------------------------------
+
+
+class BaseNewFilterSpec(BaseModel):
+    """Common fields shared by all new native filter specs."""
+
+    name: str = Field(..., min_length=1, description="Filter display name")
+    description: str = Field("", description="Optional filter description")
+    scope_chart_ids: List[int] | None = Field(
+        None,
+        description=(
+            "Chart IDs this filter should apply to. When omitted the filter "
+            "applies to all charts on the dashboard. All IDs must belong to "
+            "charts that are on the dashboard."
+        ),
+    )
+
+
+class FilterSelectSpec(BaseNewFilterSpec):
+    """Spec for a new dropdown (filter_select) native filter."""
+
+    filter_type: Literal["filter_select"] = Field(
+        ..., description="Discriminator - must be 'filter_select'"
+    )
+    dataset_id: int = Field(..., description="ID of the dataset to filter on")
+    column: str = Field(
+        ..., min_length=1, description="Name of the dataset column to filter on"
+    )
+    multi_select: bool = Field(
+        True, description="Allow selecting multiple values (default True)"
+    )
+    default_to_first_item: bool = Field(
+        False, description="Default the filter to the first item in the list"
+    )
+    enable_empty_filter: bool = Field(
+        False, description="Require a value before the filter is applied"
+    )
+    sort_ascending: bool | None = Field(
+        None,
+        description=(
+            "Sort filter values ascending (True) or descending (False). "
+            "When omitted, values are not explicitly sorted."
+        ),
+    )
+    search_all_options: bool = Field(
+        False, description="Query the database on search rather than client-side"
+    )
+
+
+class FilterTimeSpec(BaseNewFilterSpec):
+    """Spec for a new time range (filter_time) native filter."""
+
+    filter_type: Literal["filter_time"] = Field(
+        ..., description="Discriminator - must be 'filter_time'"
+    )
+    default_time_range: str | None = Field(
+        None,
+        description=(
+            "Default time range value, e.g. 'Last week', 'Last month', "
+            "'2024-01-01 : 2024-12-31'. When omitted the filter has no default."
+        ),
+    )
+
+
+NewNativeFilterSpec = Annotated[
+    FilterSelectSpec | FilterTimeSpec,
+    Field(discriminator="filter_type"),
+]
+
+
+class NativeFilterUpdateSpec(BaseModel):
+    """Partial update for an existing native filter.
+
+    Only ``id`` is required; any other provided field is merged into the
+    existing filter configuration. Fields that only apply to one filter
+    type (e.g. ``multi_select`` for filter_select, ``default_time_range``
+    for filter_time) are rejected when used on the wrong filter type.
+    """
+
+    id: str = Field(..., min_length=1, description="ID of the filter to update")
+    name: str | None = Field(None, min_length=1, description="New display name")
+    description: str | None = Field(None, description="New description")
+    dataset_id: int | None = Field(
+        None, description="New target dataset ID (filter_select only)"
+    )
+    column: str | None = Field(
+        None, min_length=1, description="New target column name (filter_select only)"
+    )
+    multi_select: bool | None = Field(
+        None, description="Allow multiple values (filter_select only)"
+    )
+    default_to_first_item: bool | None = Field(
+        None, description="Default to first item (filter_select only)"
+    )
+    enable_empty_filter: bool | None = Field(
+        None, description="Require a value (filter_select only)"
+    )
+    sort_ascending: bool | None = Field(
+        None, description="Sort values ascending/descending (filter_select only)"
+    )
+    search_all_options: bool | None = Field(
+        None, description="Search all options in the database (filter_select only)"
+    )
+    default_time_range: str | None = Field(
+        None, description="Default time range (filter_time only)"
+    )
+    scope_chart_ids: List[int] | None = Field(
+        None,
+        description=(
+            "Chart IDs this filter should apply to. Replaces the current "
+            "scope. All IDs must belong to charts on the dashboard."
+        ),
+    )
+
+
+class ManageNativeFiltersRequest(BaseModel):
+    """Request schema for the manage_native_filters tool."""
+
+    dashboard_id: int = Field(..., description="ID of the dashboard to modify")
+    add: List[NewNativeFilterSpec] = Field(
+        default_factory=list,
+        description=(
+            "New filters to create. Supported types: filter_select "
+            "(dropdown) and filter_time (time range). Other filter types "
+            "(numerical range, time column, time grain) are not yet "
+            "supported by this tool."
+        ),
+    )
+    update: List[NativeFilterUpdateSpec] = Field(
+        default_factory=list,
+        description="Partial updates to existing filters, addressed by filter ID",
+    )
+    remove: List[str] = Field(
+        default_factory=list,
+        description="IDs of filters to delete from the dashboard",
+    )
+    reorder: List[str] | None = Field(
+        None,
+        description=(
+            "Complete ordered list of filter IDs defining the new filter "
+            "order. Must include every filter that remains on the dashboard "
+            "(after removals); newly added filters are appended "
+            "automatically and may be omitted."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _require_at_least_one_operation(self) -> "ManageNativeFiltersRequest":
+        """Reject requests that specify no add/update/remove/reorder operation.
+
+        ``reorder`` is checked with ``is None`` (not falsiness) so an explicit
+        empty list still counts as a reorder operation, matching how the tool's
+        payload builder treats ``reorder is not None``.
+        """
+        if (
+            not self.add
+            and not self.update
+            and not self.remove
+            and self.reorder is None
+        ):
+            raise ValueError(
+                "At least one operation (add, update, remove, reorder) is required"
+            )
+        return self
+
+
+class ManageNativeFiltersResponse(BaseModel):
+    """Response schema for the manage_native_filters tool."""
+
+    dashboard_id: int | None = Field(None, description="ID of the dashboard")
+    dashboard_url: str | None = Field(
+        None, description="URL to view the updated dashboard"
+    )
+    added_filter_ids: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Server-generated IDs of the newly created filters, in request order"
+        ),
+    )
+    updated_filter_ids: List[str] = Field(
+        default_factory=list, description="IDs of the filters that were updated"
+    )
+    removed_filter_ids: List[str] = Field(
+        default_factory=list, description="IDs of the filters that were removed"
+    )
+    filters: List[NativeFilterSummary] = Field(
+        default_factory=list,
+        description="Final native filter configuration after the operation, in order",
+    )
+    error: str | None = Field(None, description="Error message, if operation failed")
+    permission_denied: bool = Field(
+        default=False,
+        description=(
+            "True when the operation failed because the current user does "
+            "not have edit rights on the target dashboard."
+        ),
+    )
+
+    @field_validator("error")
+    @classmethod
+    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
+        """Wrap error text before it is exposed to LLM context.
+
+        The error may echo user-supplied filter names or dashboard-controlled
+        metadata - both must be wrapped so the LLM treats them as data, not
+        instructions.
+        """
+        if value is None:
+            return value
+        return sanitize_for_llm_context(value, field_path=("error",))
+
+
+# ---------------------------------------------------------------------------
+# get_dashboard_datasets schemas
+# ---------------------------------------------------------------------------
+
+# Per-dataset caps keep responses small enough for LLM context: wide
+# datasets can have hundreds of columns, which would dwarf the fields an
+# agent actually needs to configure native filters.
+MAX_DASHBOARD_DATASET_COLUMNS: int = 100
+MAX_DASHBOARD_DATASET_METRICS: int = 50
+
+
+class DashboardDatasetColumn(BaseModel):
+    """Lean column representation for dashboard dataset context."""
+
+    column_name: str = Field(..., description="Column name")
+    verbose_name: str | None = Field(None, description="Verbose (display) name")
+    type: str | None = Field(None, description="Column data type")
+    is_dttm: bool | None = Field(None, description="Is datetime column")
+
+
+class DashboardDatasetMetric(BaseModel):
+    """Lean metric representation for dashboard dataset context."""
+
+    metric_name: str = Field(..., description="Saved metric name")
+    verbose_name: str | None = Field(None, description="Verbose (display) name")
+    expression: str | None = Field(None, description="SQL expression")
+
+
+class DashboardDatasetDatabaseInfo(BaseModel):
+    """Database connection summary for a dashboard dataset."""
+
+    id: int | None = Field(None, description="Database ID")
+    name: str | None = Field(None, description="Database name")
+    backend: str | None = Field(None, description="Database backend (engine)")
+
+
+class DashboardDatasetSummary(BaseModel):
+    """A dataset used by a dashboard's charts, with columns and metrics."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: int | None = Field(None, description="Dataset ID")
+    uuid: str | None = Field(None, description="Dataset UUID")
+    table_name: str | None = Field(None, description="Table name")
+    schema_name: str | None = Field(None, description="Schema name", alias="schema")
+    database: DashboardDatasetDatabaseInfo | None = Field(
+        None, description="Database the dataset belongs to"
+    )
+    chart_count: int = Field(
+        0, description="Number of charts on the dashboard using this dataset"
+    )
+    columns: List[DashboardDatasetColumn] = Field(
+        default_factory=list, description="Dataset columns"
+    )
+    metrics: List[DashboardDatasetMetric] = Field(
+        default_factory=list, description="Dataset metrics"
+    )
+    total_column_count: int = Field(
+        0, description="Total number of columns on the dataset"
+    )
+    total_metric_count: int = Field(
+        0, description="Total number of metrics on the dataset"
+    )
+    columns_truncated: bool = Field(
+        False,
+        description=(
+            "True when the columns list was truncated to keep the response small"
+        ),
+    )
+    metrics_truncated: bool = Field(
+        False,
+        description=(
+            "True when the metrics list was truncated to keep the response small"
+        ),
+    )
+
+    @model_serializer(mode="wrap")
+    def _rename_schema_field(self, serializer: Any, info: Any) -> Dict[str, Any]:
+        """Serialize 'schema_name' as 'schema' to match API conventions."""
+        data = serializer(self)
+        if "schema_name" in data:
+            data["schema"] = data.pop("schema_name")
+        return data
+
+
+class DashboardDatasets(BaseModel):
+    """Response schema for get_dashboard_datasets."""
+
+    id: int | None = Field(None, description="Dashboard ID")
+    dashboard_title: str | None = Field(None, description="Dashboard title")
+    uuid: str | None = Field(None, description="Dashboard UUID")
+    dataset_count: int = Field(
+        0, description="Number of accessible datasets used by the dashboard"
+    )
+    inaccessible_dataset_count: int = Field(
+        0,
+        description=(
+            "Number of datasets used by the dashboard that the current user "
+            "cannot access (excluded from 'datasets')"
+        ),
+    )
+    datasets: List[DashboardDatasetSummary] = Field(
+        default_factory=list,
+        description="Datasets used by the dashboard's charts",
+    )
+
+
+def _serialize_dashboard_dataset(
+    datasource: Any, chart_count: int
+) -> DashboardDatasetSummary:
+    """Serialize a datasource to a lean, LLM-safe dataset summary."""
+    all_columns = list(getattr(datasource, "columns", None) or [])
+    all_metrics = list(getattr(datasource, "metrics", None) or [])
+
+    columns = [
+        DashboardDatasetColumn(
+            column_name=escape_llm_context_delimiters(
+                getattr(column, "column_name", None) or ""
+            ),
+            verbose_name=sanitize_for_llm_context(
+                getattr(column, "verbose_name", None),
+                field_path=("columns", str(index), "verbose_name"),
+            ),
+            type=getattr(column, "type", None),
+            is_dttm=getattr(column, "is_dttm", None),
+        )
+        for index, column in enumerate(all_columns[:MAX_DASHBOARD_DATASET_COLUMNS])
+    ]
+    metrics = [
+        DashboardDatasetMetric(
+            metric_name=escape_llm_context_delimiters(
+                getattr(metric, "metric_name", None) or ""
+            ),
+            verbose_name=sanitize_for_llm_context(
+                getattr(metric, "verbose_name", None),
+                field_path=("metrics", str(index), "verbose_name"),
+            ),
+            expression=sanitize_for_llm_context(
+                getattr(metric, "expression", None),
+                field_path=("metrics", str(index), "expression"),
+            ),
+        )
+        for index, metric in enumerate(all_metrics[:MAX_DASHBOARD_DATASET_METRICS])
+    ]
+
+    database = getattr(datasource, "database", None)
+    database_info = (
+        DashboardDatasetDatabaseInfo(
+            id=getattr(database, "id", None),
+            name=escape_llm_context_delimiters(
+                getattr(database, "database_name", None)
+            ),
+            backend=getattr(database, "backend", None),
+        )
+        if database is not None
+        else None
+    )
+
+    dataset_uuid = getattr(datasource, "uuid", None)
+    return DashboardDatasetSummary(
+        id=getattr(datasource, "id", None),
+        uuid=str(dataset_uuid) if dataset_uuid else None,
+        table_name=escape_llm_context_delimiters(
+            getattr(datasource, "table_name", None)
+        ),
+        schema_name=escape_llm_context_delimiters(getattr(datasource, "schema", None)),
+        database=database_info,
+        chart_count=chart_count,
+        columns=columns,
+        metrics=metrics,
+        total_column_count=len(all_columns),
+        total_metric_count=len(all_metrics),
+        columns_truncated=len(all_columns) > MAX_DASHBOARD_DATASET_COLUMNS,
+        metrics_truncated=len(all_metrics) > MAX_DASHBOARD_DATASET_METRICS,
+    )
+
+
+def dashboard_datasets_serializer(dashboard: "Dashboard") -> DashboardDatasets:
+    """Serialize a Dashboard model to the datasets used by its charts.
+
+    Groups the dashboard's charts by datasource (mirroring
+    ``Dashboard.datasets_trimmed_for_slices``) but keeps the full column and
+    metric lists (capped) since native-filter configuration regularly needs
+    columns that no chart references. Datasets the current user cannot
+    access are excluded and only counted.
+    """
+    from superset.mcp_service.auth import has_dataset_access
+
+    slices_by_datasource: Dict[tuple[int, str], List[Any]] = {}
+    for slc in getattr(dashboard, "slices", None) or []:
+        datasource_id = getattr(slc, "datasource_id", None)
+        datasource_type = getattr(slc, "datasource_type", None) or ""
+        if datasource_id is None:
+            continue
+        slices_by_datasource.setdefault((datasource_id, datasource_type), []).append(
+            slc
+        )
+
+    datasets: List[DashboardDatasetSummary] = []
+    inaccessible_count: int = 0
+    for slices in slices_by_datasource.values():
+        datasource = next(
+            (
+                getattr(slc, "datasource", None)
+                for slc in slices
+                if getattr(slc, "datasource", None) is not None
+            ),
+            None,
+        )
+        if datasource is None:
+            continue
+        if not has_dataset_access(datasource):
+            inaccessible_count += 1
+            continue
+        datasets.append(_serialize_dashboard_dataset(datasource, len(slices)))
+
+    datasets.sort(key=lambda dataset: dataset.id or 0)
+
+    return DashboardDatasets(
+        id=dashboard.id,
+        dashboard_title=sanitize_for_llm_context(
+            dashboard.dashboard_title or "Untitled",
+            field_path=("dashboard_title",),
+        ),
+        uuid=str(dashboard.uuid) if dashboard.uuid else None,
+        dataset_count=len(datasets),
+        inaccessible_dataset_count=inaccessible_count,
+        datasets=datasets,
     )

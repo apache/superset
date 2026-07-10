@@ -105,17 +105,33 @@ async def generate_chart(  # noqa: C901
     - Set save_chart=True to permanently save the chart
     - LLM clients MUST display returned chart URL to users
     - Use numeric dataset ID or UUID (NOT schema.table_name format)
-    - MUST include chart_type in config (either 'xy' or 'table')
+    - MUST include chart_type in config (one of: 'xy', 'table', 'pie',
+      'pivot_table', 'mixed_timeseries', 'handlebars', 'big_number')
 
     IMPORTANT: The 'chart_type' field in the config is a DISCRIMINATOR that determines
     which chart configuration schema to use. It MUST be included and MUST match the
     other fields in your configuration:
 
     - Use chart_type='xy' for charts with x and y axes (line, bar, area, scatter)
-      Required fields: x, y
+      Required fields: y (x is optional — defaults to dataset's primary datetime column)
 
     - Use chart_type='table' for tabular visualizations
       Required fields: columns
+
+    - Use chart_type='pie' for pie/donut charts
+      Required fields: dimension, metric
+
+    - Use chart_type='pivot_table' for pivot table visualizations
+      Required fields: rows, metrics
+
+    - Use chart_type='mixed_timeseries' for dual-axis time-series charts
+      Required fields: x, y, y_secondary
+
+    - Use chart_type='handlebars' for custom template-based visualizations
+      Required fields: handlebars_template
+
+    - Use chart_type='big_number' for single KPI metric displays
+      Required fields: metric
 
     Example usage for XY chart:
     ```json
@@ -727,17 +743,18 @@ async def generate_chart(  # noqa: C901
             from superset.models.slice import Slice
 
             # Re-fetch with eager-loaded relationships to avoid detached
-            # instance errors when serialize_chart_object accesses .tags.
-            # The preceding commit may invalidate the session
+            # instance errors when serialize_chart_object accesses .tags
+            # and .editors.  The preceding commit may invalidate the session
             # in multi-tenant environments; on failure, build a minimal
             # chart_data dict from scalar attributes that are already loaded
-            # — relationship fields like tags would trigger lazy-loading on
-            # the same dead session.
+            # — relationship fields (editors, tags) would trigger
+            # lazy-loading on the same dead session.
             try:
                 chart = (
                     ChartDAO.find_by_id(
                         chart.id,
                         query_options=[
+                            joinedload(Slice.editors),
                             joinedload(Slice.tags),
                         ],
                     )

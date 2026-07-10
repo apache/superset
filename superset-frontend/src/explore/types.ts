@@ -41,11 +41,7 @@ export enum ChartStatusType {
 }
 
 export type ChartStatus =
-  | 'loading'
-  | 'rendered'
-  | 'failed'
-  | 'stopped'
-  | 'success';
+  'loading' | 'rendered' | 'failed' | 'stopped' | 'success';
 
 export interface ChartState {
   id: number;
@@ -87,8 +83,7 @@ export interface ExplorePageInitialData {
   metadata?: {
     created_on_humanized: string;
     changed_on_humanized: string;
-    owners: string[];
-    extra_owners?: { id: number; first_name: string; last_name: string }[];
+    editors: string[];
     created_by?: string;
     changed_by?: string;
     color_namespace?: string;

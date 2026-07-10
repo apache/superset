@@ -29,6 +29,7 @@ import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButto
 import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
 import emptyDashboardLayout from 'src/dashboard/fixtures/emptyDashboardLayout';
 import React from 'react';
+import { RENDER_TAB_CONTENT } from '../Tab';
 import TabsComponent from './Tabs';
 
 // Cast to accept partial mock props in tests
@@ -246,7 +247,7 @@ test('Removing a tab', async () => {
   expect(await screen.findByText('Delete dashboard tab?')).toBeInTheDocument();
 
   expect(props.deleteComponent).not.toHaveBeenCalled();
-  userEvent.click(screen.getByRole('button', { name: 'DELETE' }));
+  userEvent.click(screen.getByRole('button', { name: 'Delete' }));
   expect(props.deleteComponent).toHaveBeenCalled();
 });
 
@@ -262,6 +263,57 @@ test('Switching tabs', () => {
   userEvent.click(screen.getAllByRole('tab')[2]);
   expect(props.logEvent).toHaveBeenCalled();
   expect(props.onChangeTab).toHaveBeenCalled();
+});
+
+test('activeTabs hydrated from a permalink selects the matching tab content', () => {
+  // Regression guard for #36132: when a dashboard is opened via a
+  // permalink/anchor (including embedded dashboards), the permalink state is
+  // hydrated into dashboardState.activeTabs. The Tabs component must use that
+  // value to select the matching tab AND render that tab's content panel,
+  // not just highlight the tab header while showing the first tab's content.
+  const props = createProps();
+  props.editMode = false;
+  render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+    initialState: {
+      dashboardState: {
+        activeTabs: ['TAB-YT6eNksV-'],
+      },
+    },
+  });
+
+  // The tab referenced by dashboardState.activeTabs is the selected one
+  const tabs = screen.getAllByRole('tab');
+  expect(tabs[1]).toHaveAttribute('aria-selected', 'true');
+  expect(tabs[0]).toHaveAttribute('aria-selected', 'false');
+
+  // ...and its content panel is the one mounted as visible, while the
+  // default (first) tab's content is not shown
+  const contentCalls = (DashboardComponent as unknown as jest.Mock).mock.calls
+    .map(
+      call =>
+        call[0] as {
+          id: string;
+          renderType: string;
+          isComponentVisible?: boolean;
+        },
+    )
+    .filter(componentProps => componentProps.renderType === RENDER_TAB_CONTENT);
+  expect(
+    contentCalls.some(
+      componentProps =>
+        componentProps.id === 'TAB-YT6eNksV-' &&
+        componentProps.isComponentVisible === true,
+    ),
+  ).toBe(true);
+  expect(
+    contentCalls.some(
+      componentProps =>
+        componentProps.id === 'TAB-AsMaxdYL_t' &&
+        componentProps.isComponentVisible === true,
+    ),
+  ).toBe(false);
 });
 
 test('Call "DashboardComponent.onDropOnTab"', async () => {

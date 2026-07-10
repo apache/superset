@@ -42,16 +42,12 @@ type CustomizationFormInput =
   | Divider;
 
 type ChartCustomizationFormOrSaved =
-  | ChartCustomizationsFormItem
-  | ChartCustomization;
+  ChartCustomizationsFormItem | ChartCustomization;
 
 function isFilterType(
   formInputs: CustomizationFormInput,
 ): formInputs is
-  | NativeFiltersFormItem
-  | NativeFilterDivider
-  | Filter
-  | Divider {
+  NativeFiltersFormItem | NativeFilterDivider | Filter | Divider {
   return (
     'type' in formInputs &&
     (formInputs.type === NativeFilterType.NativeFilter ||
@@ -108,7 +104,7 @@ function transformFormInput(
     excluded: [],
   };
 
-  return {
+  const result: ChartCustomization = {
     id,
     type: ChartCustomizationType.ChartCustomization,
     name: formInputs.name,
@@ -120,6 +116,12 @@ function transformFormInput(
     defaultDataMask: formInputs.defaultDataMask ?? {},
     removed: false,
   };
+
+  if (formInputs.time_grains?.length) {
+    result.time_grains = formInputs.time_grains;
+  }
+
+  return result;
 }
 
 function transformSavedCustomization(

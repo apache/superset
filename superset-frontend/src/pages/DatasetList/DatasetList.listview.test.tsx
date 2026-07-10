@@ -40,8 +40,22 @@ import {
   assertOnlyExpectedCalls,
   API_ENDPOINTS,
   mockDatasetListEndpoints,
+  mockDatasetEditors,
   getDeleteRouteName,
 } from './DatasetList.testHelpers';
+
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    common: {
+      conf: {},
+      feature_flags: {},
+      user_subjects: [1],
+    },
+  })),
+  applicationRoot: jest.fn(() => ''),
+  staticAssetsPrefix: jest.fn(() => ''),
+}));
 
 const mockAddDangerToast = jest.fn();
 const mockAddSuccessToast = jest.fn();
@@ -190,7 +204,7 @@ test('renders all required column headers', async () => {
     within(table).getByRole('columnheader', { name: /Schema/i }),
   ).toBeInTheDocument();
   expect(
-    within(table).getByRole('columnheader', { name: /Owners/i }),
+    within(table).getByRole('columnheader', { name: /Editors/i }),
   ).toBeInTheDocument();
   expect(
     within(table).getByRole('columnheader', { name: /Last modified/i }),
@@ -991,10 +1005,10 @@ test('virtual dataset shows delete, export, edit, and duplicate actions', async 
   expect(duplicateButton).toBeInTheDocument();
 });
 
-test('edit action is enabled for dataset owner', async () => {
+test('edit action is enabled for dataset editor', async () => {
   const dataset = {
     ...mockDatasets[0],
-    owners: [{ id: mockAdminUser.userId, username: 'admin' }],
+    editors: [mockDatasetEditors.admin],
   };
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
@@ -1014,15 +1028,15 @@ test('edit action is enabled for dataset owner', async () => {
   expect(editButton).not.toHaveClass('disabled');
 });
 
-test('edit action is disabled for non-owner', async () => {
+test('edit action is disabled for non-editor', async () => {
   const dataset = {
     ...mockDatasets[0],
-    owners: [{ id: 999, username: 'other_user' }], // Different user
+    editors: [mockDatasetEditors.external],
   };
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
 
-  // Use a non-admin user to test ownership check
+  // Use a non-admin user to test the editor check.
   const regularUser = {
     ...mockAdminUser,
     roles: { Admin: [['can_read', 'Dataset']] },
@@ -1046,7 +1060,7 @@ test('edit action is disabled for non-owner', async () => {
 test('all action buttons are clickable and enabled for admin user', async () => {
   const virtualDataset = {
     ...mockDatasets[1],
-    owners: [{ id: mockAdminUser.userId, username: 'admin' }],
+    editors: [mockDatasetEditors.admin],
   };
 
   mockDatasetListEndpoints({ result: [virtualDataset], count: 1 });
@@ -1237,13 +1251,7 @@ test('delete action gracefully handles 500 internal server error', async () => {
 test('duplicate action shows error toast on 403 forbidden', async () => {
   const virtualDataset = {
     ...mockDatasets[1],
-    owners: [
-      {
-        first_name: mockAdminUser.firstName,
-        last_name: mockAdminUser.lastName,
-        id: mockAdminUser.userId as number,
-      },
-    ],
+    editors: [mockDatasetEditors.admin],
   };
 
   setupErrorTestScenario({
@@ -1295,13 +1303,7 @@ test('duplicate action shows error toast on 403 forbidden', async () => {
 test('duplicate action shows error toast on 500 internal server error', async () => {
   const virtualDataset = {
     ...mockDatasets[1],
-    owners: [
-      {
-        first_name: mockAdminUser.firstName,
-        last_name: mockAdminUser.lastName,
-        id: mockAdminUser.userId as number,
-      },
-    ],
+    editors: [mockDatasetEditors.admin],
   };
 
   setupErrorTestScenario({
@@ -1704,19 +1706,13 @@ test('type filter persists after duplicating a dataset', async () => {
 
 test('edit action shows error toast when dataset fetch fails', async () => {
   const dataset = mockDatasets[0];
-  // Make the dataset owned by admin so edit button is enabled
-  const ownedDataset = {
+  // Make the dataset editable by admin so the edit button is enabled.
+  const editableDataset = {
     ...dataset,
-    owners: [
-      {
-        first_name: mockAdminUser.firstName,
-        last_name: mockAdminUser.lastName,
-        id: mockAdminUser.userId as number,
-      },
-    ],
+    editors: [mockDatasetEditors.admin],
   };
 
-  mockDatasetListEndpoints({ result: [ownedDataset], count: 1 });
+  mockDatasetListEndpoints({ result: [editableDataset], count: 1 });
 
   // Mock SupersetClient.get to fail for the specific dataset endpoint
   jest.spyOn(SupersetClient, 'get').mockImplementation(async request => {
@@ -1736,7 +1732,7 @@ test('edit action shows error toast when dataset fetch fails', async () => {
   });
 
   await waitFor(() => {
-    expect(screen.getByText(ownedDataset.table_name)).toBeInTheDocument();
+    expect(screen.getByText(editableDataset.table_name)).toBeInTheDocument();
   });
 
   const table = screen.getByTestId('listview-table');

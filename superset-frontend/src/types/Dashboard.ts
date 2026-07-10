@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Owner from './Owner';
-import Role from './Role';
+import User from './User';
+import Subject from './Subject';
 
 export interface Dashboard {
   id: number;
@@ -30,12 +30,11 @@ export interface Dashboard {
   json_metadata?: string | null;
   position_json?: string | null;
   changed_by_name: string;
-  changed_by: Owner;
+  changed_by: User;
   changed_on: string;
   charts: string[]; // just chart names, unfortunately...
-  owners: Owner[];
-  extra_owners?: Owner[];
-  roles: Role[];
+  editors?: Subject[];
+  viewers?: Subject[];
   theme?: {
     id: number;
     theme_name: string;

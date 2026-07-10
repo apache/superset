@@ -108,7 +108,16 @@ class UIManifestProcessor:
             "js_manifest": lambda bundle: get_files(bundle, "js"),
             "css_manifest": lambda bundle: get_files(bundle, "css"),
             "assets_prefix": (  # type: ignore
-                self.app.config["STATIC_ASSETS_PREFIX"] if self.app else ""
+                self.app.config.get("STATIC_ASSETS_PREFIX", "") if self.app else ""
+            ),
+            # rstripped APPLICATION_ROOT for templates that build app-rooted
+            # URLs (e.g. spa.html's `<link rel="manifest">`). `/` → ``,
+            # `/superset` → `/superset`, `/superset/` → `/superset` so
+            # `f"{application_root_rstrip}/path"` is single-prefixed.
+            "application_root_rstrip": (  # type: ignore
+                (self.app.config.get("APPLICATION_ROOT") or "").rstrip("/")
+                if self.app
+                else ""
             ),
         }
 
@@ -146,6 +155,31 @@ cache_manager = CacheManager()
 celery_app = celery.Celery()
 csrf = CSRFProtect()
 db = get_sqla_class()()
+
+# make_versioned() MUST be called immediately after db is constructed and before
+# any versioned model class is defined.  Continuum patches the SQLAlchemy
+# metaclass at call time; models constructed before this call are silently skipped.
+from sqlalchemy_continuum import (  # noqa: E402
+    make_versioned,
+    versioning_manager as _continuum_manager,
+)
+
+from superset.versioning.factory import (  # noqa: E402
+    SkipUnmodifiedPlugin,
+    VersioningFlaskPlugin,
+    VersionTransactionFactory,
+)
+
+# Rename the transaction table from "transaction" (SQL reserved word) to
+# "version_transaction" via the custom factory before make_versioned() fires.
+_continuum_manager.transaction_cls = VersionTransactionFactory()
+
+make_versioned(
+    user_cls=None,
+    plugins=[VersioningFlaskPlugin(), SkipUnmodifiedPlugin()],
+    options={"strategy": "validity"},
+)
+
 _event_logger: dict[str, Any] = {}
 encrypted_field_factory = EncryptedFieldFactory()
 event_logger = LocalProxy(lambda: _event_logger.get("event_logger"))

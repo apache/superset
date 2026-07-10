@@ -747,9 +747,11 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
         flask_app.config.get("MCP_AUTH_ENABLED", False)
         or flask_app.config.get("MCP_API_KEY_ENABLED", False)
         or flask_app.config.get("FAB_API_KEY_ENABLED", False)
+        or flask_app.config.get("MCP_EMBEDDED_GUEST_AUTH_ENABLED", False)
     ):
         from superset.mcp_service.mcp_config import (
             create_default_mcp_auth_factory,
+            MCPAuthConfigError,
         )
 
         try:
@@ -758,6 +760,12 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
                 "Auth provider created from default factory: %s",
                 type(auth_provider).__name__ if auth_provider else "None",
             )
+        except MCPAuthConfigError:
+            # A misconfiguration that must fail closed: re-raise so the service
+            # refuses to start rather than falling through to an unauthenticated
+            # server. The message is operator-facing config guidance and carries
+            # no secret material.
+            raise
         except Exception:
             # Do not log the exception — it may contain secrets
             logger.error("Failed to create auth provider from default factory")

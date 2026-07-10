@@ -26,7 +26,7 @@ import { ErrorAlert } from './ErrorAlert';
 import { CustomDocLink, CustomDocLinkProps } from './CustomDocLink';
 
 interface DatabaseErrorExtra {
-  owners?: string[];
+  editors?: string[];
   issue_codes: {
     code: number;
     message: string;
@@ -72,22 +72,22 @@ export function DatabaseErrorMessage({
           idx < arr.length - 1 ? <br key={`br-${issueCode.code}`} /> : null,
         ])}
       </p>
-      {isVisualization && extra.owners && (
+      {isVisualization && extra.editors && (
         <>
           <br />
           <p>
             {tn(
-              'Please reach out to the Chart Owner for assistance.',
-              'Please reach out to the Chart Owners for assistance.',
-              extra.owners.length,
+              'Please reach out to the Chart Editor for assistance.',
+              'Please reach out to the Chart Editors for assistance.',
+              extra.editors.length,
             )}
           </p>
           <p>
             {tn(
-              'Chart Owner: %s',
-              'Chart Owners: %s',
-              extra.owners.length,
-              extra.owners.join(', '),
+              'Chart Editor: %s',
+              'Chart Editors: %s',
+              extra.editors.length,
+              extra.editors.join(', '),
             )}
           </p>
         </>
