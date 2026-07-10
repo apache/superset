@@ -155,6 +155,79 @@ def test_get_samples_calls_raise_for_access_on_both_contexts(
         assert result["total_count"] == 100
 
 
+@patch("superset.common.chart_data_timing.current_app")
+@patch("superset.views.datasource.utils.get_limit_clause")
+def test_get_samples_strips_internal_timing_sentinel(
+    mock_get_limit_clause: MagicMock,
+    mock_timing_app: MagicMock,
+):
+    """
+    get_payload() always injects the internal _chart_data_timing sentinel;
+    the samples endpoint must strip it so it never leaks into the response
+    (only the chart-data endpoint surfaces public timing).
+    """
+    from superset.common.chart_data_timing import TIMING_KEY
+
+    mock_timing_app.config = {
+        "STATS_LOGGER": MagicMock(),
+        "CHART_DATA_INCLUDE_TIMING": False,
+        "CHART_DATA_SLOW_QUERY_THRESHOLD_MS": None,
+    }
+    mock_get_limit_clause.return_value = {"row_offset": 0, "row_limit": 100}
+
+    mock_datasource = MagicMock()
+    mock_datasource.type = "table"
+    mock_datasource.id = 1
+    mock_datasource.columns = []
+
+    mock_samples_context = MagicMock()
+    mock_count_context = MagicMock()
+    mock_samples_context.raise_for_access.return_value = None
+    mock_count_context.raise_for_access.return_value = None
+
+    mock_count_context.get_payload.return_value = {
+        "queries": [{"data": [{"COUNT(*)": 100}], "status": "success"}]
+    }
+    mock_samples_context.get_payload.return_value = {
+        "queries": [
+            {
+                "data": [{"col1": "val1"}],
+                "status": "success",
+                "cache_key": "test_key",
+                TIMING_KEY: {"validate_ms": 1.0, "is_cached": False},
+            }
+        ]
+    }
+
+    with (
+        patch(
+            "superset.views.datasource.utils.DatasourceDAO.get_datasource",
+            return_value=mock_datasource,
+        ),
+        patch(
+            "superset.views.datasource.utils.QueryContextFactory"
+        ) as mock_factory_class,
+    ):
+        mock_factory = MagicMock()
+        mock_factory_class.return_value = mock_factory
+        mock_factory.create.side_effect = [mock_samples_context, mock_count_context]
+
+        from superset.views.datasource.utils import get_samples
+
+        result = get_samples(
+            datasource_type="table",
+            datasource_id=1,
+            force=False,
+            page=1,
+            per_page=100,
+        )
+
+    # The internal sentinel must be gone, and no public timing added (flag off).
+    assert TIMING_KEY not in result
+    assert "timing" not in result
+    assert result["data"] == [{"col1": "val1"}]
+
+
 @patch("superset.views.datasource.utils.get_limit_clause")
 def test_get_samples_count_star_access_denied(mock_get_limit_clause: MagicMock):
     """

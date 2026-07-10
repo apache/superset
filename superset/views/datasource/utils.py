@@ -23,6 +23,7 @@ from flask import current_app as app
 
 from superset.commands.dataset.exceptions import DatasetSamplesFailedError
 from superset.common.chart_data import ChartDataResultType
+from superset.common.chart_data_timing import finalize_timing_payload
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.constants import CacheRegion
@@ -177,6 +178,10 @@ def get_samples(  # pylint: disable=too-many-arguments
             raise DatasetSamplesFailedError(count_star_data.get("error"))
 
         sample_data = samples_instance.get_payload()["queries"][0]
+        # get_payload() always injects the internal timing sentinel; strip it
+        # here since the samples endpoint doesn't go through the chart-data
+        # finalize path.
+        finalize_timing_payload(sample_data)
 
         if sample_data.get("status") == QueryStatus.FAILED:
             QueryCacheManager.delete(count_star_data.get("cache_key"), CacheRegion.DATA)
