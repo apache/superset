@@ -433,6 +433,19 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_csv_export_filename_falls_back_to_slice_id_db_lookup(self):
+        """
+        Chart data API: Test CSV export filename uses DB lookup when slice_name absent
+        """
+        chart = db.session.query(Slice).filter_by(slice_name="Genders").one()
+        self.query_context_payload["result_format"] = "csv"
+        self.query_context_payload["form_data"] = {"slice_id": chart.id}
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 200
+        content_disposition = rv.headers.get("Content-Disposition", "")
+        assert re.search(r"filename=Genders_\d{8}_\d{6}\.csv", content_disposition)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_multi_query_csv_result_format(self):
         """
         Chart data API: Test chart data with multi-query CSV result format

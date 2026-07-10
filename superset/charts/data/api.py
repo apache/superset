@@ -489,33 +489,17 @@ class ChartDataRestApi(ChartRestApi):
             if len(result["queries"]) == 1:
                 # return single query results
                 data = result["queries"][0]["data"]
-                _slice_name = (form_data or {}).get("slice_name")
-                if not _slice_name:
-                    _slice_id = (form_data or {}).get("slice_id")
-                    if _slice_id:
-                        try:
-                            _slice_obj = db.session.get(Slice, int(_slice_id))
-                            if _slice_obj:
-                                _slice_name = _slice_obj.slice_name
-                        except Exception:  # noqa: BLE001
-                            logger.warning(
-                                "Failed to look up chart name for slice_id=%s",
-                                _slice_id,
-                            )
-                _chart_name = (
-                    _slice_name or (form_data or {}).get("viz_type") or "export"
-                )
-                _filename = secure_filename(
-                    f"{_chart_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-                )
+                export_filename = self._build_export_filename(form_data)
 
                 if is_csv_format:
                     return CsvResponse(
-                        data, headers=generate_download_headers("csv", _filename)
+                        data,
+                        headers=generate_download_headers("csv", export_filename),
                     )
 
                 return XlsxResponse(
-                    data, headers=generate_download_headers("xlsx", _filename)
+                    data,
+                    headers=generate_download_headers("xlsx", export_filename),
                 )
 
             # return multi-query results bundled as a zip file
@@ -578,6 +562,30 @@ class ChartDataRestApi(ChartRestApi):
                 add_extra_log_payload(is_cached=is_cached_values[0])
             elif is_cached_values:
                 add_extra_log_payload(is_cached=is_cached_values)
+
+    def _build_export_filename(self, form_data: dict[str, Any] | None) -> str:
+        """Build a sanitized filename for CSV/Excel chart exports.
+
+        Tries slice_name from form_data first, then falls back to a DB lookup
+        by slice_id, then viz_type, then a generic "export" default.
+        """
+        slice_name = (form_data or {}).get("slice_name")
+        if not slice_name:
+            slice_id = (form_data or {}).get("slice_id")
+            if slice_id:
+                try:
+                    slice_obj = db.session.get(Slice, int(slice_id))
+                    if slice_obj:
+                        slice_name = slice_obj.slice_name
+                except Exception:  # noqa: BLE001
+                    logger.warning(
+                        "Failed to look up chart name for slice_id=%s",
+                        slice_id,
+                    )
+        chart_name = slice_name or (form_data or {}).get("viz_type") or "export"
+        return secure_filename(
+            f"{chart_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        )
 
     @event_logger.log_this
     def _get_data_response(
