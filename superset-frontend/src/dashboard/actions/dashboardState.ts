@@ -179,8 +179,8 @@ export function fetchFaveStar(id: number) {
       })
       .catch(error => {
         // A 404 means the favorite status isn't available to this user (a
-        // non-owner viewing a draft dashboard, or a dashboard deleted after
-        // navigation) — swallow it silently instead of alarming them.
+        // non-editor viewing a draft dashboard, or a dashboard deleted after
+        // navigation); swallow it silently instead of alarming them.
         if (error instanceof Response && error.status === 404) {
           return;
         }
@@ -452,8 +452,7 @@ interface DashboardSaveData extends JsonObject {
   certification_details?: string;
   css?: string;
   dashboard_title?: string;
-  owners?: { id: number }[] | number[];
-  roles?: JsonObject[];
+  editors?: { id: number }[] | number[];
   slug?: string | null;
   tags?: JsonObject[];
   metadata?: JsonObject;
@@ -491,8 +490,7 @@ export function saveDashboardRequest(
       certification_details,
       css,
       dashboard_title,
-      owners,
-      roles,
+      editors,
       slug,
       description,
       tags,
@@ -518,14 +516,9 @@ export function saveDashboardRequest(
       }),
       css: css || '',
       dashboard_title: dashboard_title || t('[ untitled dashboard ]'),
-      owners: ensureIsArray(owners as JsonObject[]).map((o: JsonObject) =>
+      editors: ensureIsArray(editors as JsonObject[]).map((o: JsonObject) =>
         hasId(o) ? o.id : o,
       ),
-      roles: !isFeatureEnabled(FeatureFlag.DashboardRbac)
-        ? undefined
-        : ensureIsArray(roles as JsonObject[]).map((r: JsonObject) =>
-            hasId(r) ? r.id : r,
-          ),
       slug: slug || null,
       description: description || null,
       tags: !isFeatureEnabled(FeatureFlag.TaggingSystem)
@@ -678,8 +671,7 @@ export function saveDashboardRequest(
               dashboard_title: cleanedData.dashboard_title,
               slug: cleanedData.slug,
               description: cleanedData.description,
-              owners: cleanedData.owners,
-              roles: cleanedData.roles,
+              editors: cleanedData.editors,
               tags: cleanedData.tags || [],
               theme_id: cleanedData.theme_id,
               json_metadata: safeStringify({

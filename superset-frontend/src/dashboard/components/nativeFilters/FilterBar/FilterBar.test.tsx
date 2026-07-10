@@ -1136,9 +1136,9 @@ test('required filter with a default value auto-applies on load without touching
   });
 
   // The other filter was never touched, and no dispatch was needed for it.
-  expect(
-    updateDataMaskSpy.mock.calls.every(([id]) => id === requiredId),
-  ).toBe(true);
+  expect(updateDataMaskSpy.mock.calls.every(([id]) => id === requiredId)).toBe(
+    true,
+  );
 
   // Nothing is left pending: the default value is already applied, so the
   // Apply button is not blocking on untouched filters.

@@ -30,7 +30,7 @@ from superset.reports.models import (
     ReportScheduleType,
 )
 from superset.utils import json
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.base_tests import subjects_from_users, SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
@@ -176,12 +176,12 @@ class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
         _hard_delete_chart(deleted_id)
 
     @with_feature_flags(SOFT_DELETE=True)
-    def test_deleted_state_list_shows_owner_their_own_deleted(self) -> None:
-        """A non-admin owner can still enumerate their own soft-deleted charts.
+    def test_deleted_state_list_shows_editor_their_deleted(self) -> None:
+        """A non-admin editor can still enumerate their soft-deleted charts.
         Deleted-state scoping mirrors the restore audience, so it must not lock
-        owners out of their own trash."""
+        editors out of their deleted charts."""
         alpha_id = self.get_user(ALPHA_USERNAME).id
-        chart = self.insert_chart("sd_owner_chart", [alpha_id], 1)
+        chart = self.insert_chart("sd_editor_chart", [alpha_id], 1)
         chart_id = chart.id
 
         chart.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
@@ -200,14 +200,14 @@ class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
         _hard_delete_chart(chart_id)
 
     @with_feature_flags(SOFT_DELETE=True)
-    def test_deleted_state_list_hides_non_owned_from_read_access_user(self) -> None:
-        """A read-access non-owner must not enumerate a chart once it is
+    def test_deleted_state_list_hides_non_editor_from_read_access_user(self) -> None:
+        """A read-access non-editor must not enumerate a chart once it is
         soft-deleted.
 
         Gamma is granted ``datasource_access`` to the chart's dataset, so
         ``ChartFilter`` makes the chart visible to gamma while it is live. After
         soft-delete, the deleted-state list is scoped to the restore audience
-        (owners/admins), so gamma — who could never restore it — must not see it
+        (editors/admins), so gamma — who could never restore it — must not see it
         via ``include`` or ``only``.
         """
         admin_id = self.get_user(ADMIN_USERNAME).id
@@ -248,7 +248,7 @@ class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
                 assert rv.status_code == 200
                 ids = [c["id"] for c in json.loads(rv.data)["result"]]
                 assert chart_id not in ids, (
-                    "read-access non-owner must not enumerate a soft-deleted "
+                    "read-access non-editor must not enumerate a soft-deleted "
                     f"chart via chart_deleted_state={value}"
                 )
         finally:
@@ -416,7 +416,7 @@ class TestChartRestore(InsertChartMixin, SupersetTestCase):
 
     @with_feature_flags(SOFT_DELETE=True)
     def test_restore_uses_can_write_permission(self) -> None:
-        """Non-admin owner with ``can_write_Chart`` can hit the restore
+        """Non-admin editor with ``can_write_Chart`` can hit the restore
         endpoint.
 
         Pins the permission contract: ``method_permission_name`` must map
@@ -437,12 +437,12 @@ class TestChartRestore(InsertChartMixin, SupersetTestCase):
         self.login(ALPHA_USERNAME)
         rv = self.client.delete(f"/api/v1/chart/{chart_id}")
         assert rv.status_code == 200, (
-            f"Alpha owner soft-delete failed: {rv.status_code} {rv.data!r}"
+            f"Alpha editor soft-delete failed: {rv.status_code} {rv.data!r}"
         )
 
         rv = self.client.post(f"/api/v1/chart/{chart_uuid}/restore")
         assert rv.status_code == 200, (
-            f"Expected 200 from Alpha owner restore (can_write_Chart), got "
+            f"Expected 200 from Alpha editor restore (can_write_Chart), got "
             f"{rv.status_code}: {rv.data!r}. If 403, "
             "method_permission_name is missing 'restore': 'write'."
         )
@@ -477,7 +477,7 @@ class TestChartRestore(InsertChartMixin, SupersetTestCase):
         dashboard = Dashboard(
             dashboard_title="reattach_test_dashboard",
             slug="slug_reattach_test",
-            owners=[admin],
+            editors=subjects_from_users([admin]),
             published=True,
         )
         dashboard.slices = [chart]
@@ -548,18 +548,18 @@ class TestChartRestore(InsertChartMixin, SupersetTestCase):
         _hard_delete_chart(chart_id)
 
     @with_feature_flags(SOFT_DELETE=True)
-    def test_restore_chart_by_non_admin_owner(self) -> None:
-        """Non-admin owners can restore their own soft-deleted charts.
+    def test_restore_chart_by_non_admin_editor(self) -> None:
+        """Non-admin editors can restore their soft-deleted charts.
 
         The unit-level restore command tests mock security; this
         integration test exercises the FAB security wiring end-to-end
-        so a future change that breaks the owner check on a non-admin
+        so a future change that breaks the editor check on a non-admin
         path can't slip through.
         """
         alpha = self.get_user(ALPHA_USERNAME)
         alpha_id = alpha.id
 
-        chart = self.insert_chart("alpha_owned_chart", [alpha_id], 1)
+        chart = self.insert_chart("alpha_editable_chart", [alpha_id], 1)
         chart_id = chart.id
         chart_uuid = str(chart.uuid)
 

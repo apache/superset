@@ -210,7 +210,7 @@ class LoggerLevel(StrEnum):
 
 class HeaderDataType(TypedDict):
     notification_format: str
-    owners: list[int]
+    editors: list[int]
     notification_type: str
     notification_source: str | None
     chart_id: int | None
@@ -1821,9 +1821,9 @@ def extract_dataframe_dtypes(
                 columns_by_name[column.column_name] = column
 
     generic_types: list[GenericDataType] = []
-    for column in df.columns:
+    for i, column in enumerate(df.columns):
         column_object = columns_by_name.get(str(column))
-        series = df[column]
+        series = df.iloc[:, i]
         inferred_type: str = ""
         if series.isna().all():
             sql_type: Optional[str] = ""
