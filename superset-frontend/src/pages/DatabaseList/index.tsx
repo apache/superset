@@ -70,7 +70,7 @@ import { DatabaseObject } from 'src/features/databases/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
-import type Owner from 'src/types/Owner';
+import type User from 'src/types/User';
 import {
   databaseLabel,
   databaseLabelLower,
@@ -91,7 +91,7 @@ const SEMANTIC_LAYERS_FLAG = 'SEMANTIC_LAYERS' as FeatureFlag;
 type ConnectionItem = DatabaseObject & {
   source_type?: 'database' | 'semantic_layer';
   sl_type?: string;
-  changed_by?: Owner;
+  changed_by?: User;
   changed_on_delta_humanized?: string;
 };
 

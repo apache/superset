@@ -51,9 +51,7 @@ export type JsonPrimitive = string | number | boolean | null;
  * (Ref: https://github.com/microsoft/TypeScript/issues/15300).
  */
 export type StrictJsonValue =
-  | JsonPrimitive
-  | StrictJsonObject
-  | StrictJsonArray;
+  JsonPrimitive | StrictJsonObject | StrictJsonArray;
 export type StrictJsonArray = StrictJsonValue[];
 /**
  * More strict JSON objects that makes sure all values are plain objects.
@@ -79,12 +77,7 @@ export type Mode = RequestInit['mode'];
 export type Redirect = RequestInit['redirect'];
 export type ClientTimeout = number | undefined;
 export type ParseMethod =
-  | 'json'
-  | 'json-bigint'
-  | 'text'
-  | 'raw'
-  | null
-  | undefined;
+  'json' | 'json-bigint' | 'text' | 'raw' | null | undefined;
 export type Signal = RequestInit['signal'];
 export type Stringify = boolean;
 export type Url = string;

@@ -28,6 +28,11 @@ import {
 describe('CategoricalColorScale', () => {
   beforeEach(() => {
     window.featureFlags = {};
+    // the labels color map is a singleton: start every test from a clean
+    // explore-sourced state so dashboard-mode tests cannot leak into others
+    const labelsColorMap = getLabelsColorMap();
+    labelsColorMap.reset();
+    labelsColorMap.source = LabelsColorMapSource.Explore;
   });
 
   test('exists', () => {
@@ -159,9 +164,14 @@ describe('CategoricalColorScale', () => {
           colorSet[color] = 1;
         }
       });
+      // collision avoidance redistributes recycled colors, so counts are
+      // not uniform; every color from the palette is still used and no
+      // color outside the palette appears
       expect(Object.keys(colorSet)).toHaveLength(3);
+      const total = Object.values(colorSet).reduce((sum, n) => sum + n, 0);
+      expect(total).toBe(6);
       ['blue', 'red', 'green'].forEach(color => {
-        expect(colorSet[color]).toBe(2);
+        expect(colorSet[color]).toBeGreaterThanOrEqual(1);
       });
     });
     test('get analogous colors when number of items exceed available colors', () => {
@@ -201,9 +211,6 @@ describe('CategoricalColorScale', () => {
       expect(returnedColor).toBe(expectedColor);
     });
     test('reassigns colliding colors when no sliceId is provided', () => {
-      window.featureFlags = {
-        [FeatureFlag.AvoidColorsCollision]: true,
-      };
       const PALETTE = ['red', 'blue', 'green'];
 
       const chartAScale = new CategoricalColorScale(PALETTE);
@@ -228,13 +235,10 @@ describe('CategoricalColorScale', () => {
         expect(classicCarsColor).not.toBe('red');
       } finally {
         labelsColorMap.reset();
-        labelsColorMap.source = LabelsColorMapSource.Dashboard;
+        labelsColorMap.source = LabelsColorMapSource.Explore;
       }
     });
-    test('conditionally calls getNextAvailableColor', () => {
-      window.featureFlags = {
-        [FeatureFlag.AvoidColorsCollision]: true,
-      };
+    test('calls getNextAvailableColor for new labels with used colors', () => {
       scale.labelsColorMapInstance.source = LabelsColorMapSource.Explore;
 
       scale.getColor('testValue1');
@@ -250,19 +254,12 @@ describe('CategoricalColorScale', () => {
 
       getNextAvailableColorSpy.mockClear();
 
-      window.featureFlags = {
-        [FeatureFlag.AvoidColorsCollision]: false,
-      };
-
+      // existing labels reuse their assigned color without reassignment
       scale.getColor('testValue3');
 
       expect(getNextAvailableColorSpy).not.toHaveBeenCalled();
     });
     test('reassigns non-forced labels when a dashboard-synced label would duplicate their color', () => {
-      window.featureFlags = {
-        [FeatureFlag.AvoidColorsCollision]: true,
-      };
-
       const dashScale = new CategoricalColorScale(['red', 'blue', 'green']);
       const sliceId = 501;
       const colorScheme = 'preset';
@@ -391,11 +388,12 @@ describe('CategoricalColorScale', () => {
 
     test('returns the least used color among all', () => {
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
-      scale.getColor('cat'); // blue
-      scale.getColor('dog'); // red
-      scale.getColor('fish'); // green
-      scale.getColor('puppy'); // blue
-      scale.getColor('teddy'); // red
+      // seed usage directly: getColor would itself redistribute collisions
+      scale.chartLabelsColorMap.set('cat', 'blue');
+      scale.chartLabelsColorMap.set('dog', 'red');
+      scale.chartLabelsColorMap.set('fish', 'green');
+      scale.chartLabelsColorMap.set('puppy', 'blue');
+      scale.chartLabelsColorMap.set('teddy', 'red');
       // All colors used, so the function should return least used
       expect(scale.getNextAvailableColor('darling', 'red')).toBe('green');
     });
@@ -407,13 +405,14 @@ describe('CategoricalColorScale', () => {
         'green',
         'yellow',
       ]);
-      scale.getColor('cat'); // blue
-      scale.getColor('dog'); // red
-      scale.getColor('frog'); // green
-      scale.getColor('fish'); // yellow
-      scale.getColor('goat'); // blue
-      scale.getColor('horse'); // red
-      scale.getColor('pony'); // green
+      // seed usage directly: getColor would itself redistribute collisions
+      scale.chartLabelsColorMap.set('cat', 'blue');
+      scale.chartLabelsColorMap.set('dog', 'red');
+      scale.chartLabelsColorMap.set('frog', 'green');
+      scale.chartLabelsColorMap.set('fish', 'yellow');
+      scale.chartLabelsColorMap.set('goat', 'blue');
+      scale.chartLabelsColorMap.set('horse', 'red');
+      scale.chartLabelsColorMap.set('pony', 'green');
 
       // Yellow is the least used color, so it should be returned.
       expect(scale.getNextAvailableColor('pony', 'blue')).toBe('yellow');
@@ -537,9 +536,6 @@ describe('CategoricalColorScale', () => {
     let labelsColorMap: ReturnType<typeof getLabelsColorMap>;
 
     beforeEach(() => {
-      window.featureFlags = {
-        [FeatureFlag.AvoidColorsCollision]: true,
-      };
       const sentinel = new CategoricalColorScale(['red', 'blue', 'green']);
       labelsColorMap = sentinel.labelsColorMapInstance;
       labelsColorMap.reset();
@@ -549,29 +545,6 @@ describe('CategoricalColorScale', () => {
     afterEach(() => {
       jest.restoreAllMocks();
       labelsColorMap.reset();
-    });
-
-    test('reproduces the bug without the fix: Classic Cars and Trains would both be red', () => {
-      window.featureFlags = {
-        [FeatureFlag.AvoidColorsCollision]: false,
-      };
-
-      const PALETTE = ['red', 'blue', 'green'];
-
-      const chartAScale = new CategoricalColorScale(PALETTE);
-      chartAScale.getColor('Trains', 101, 'testScheme');
-      expect(labelsColorMap.getColorMap().get('Trains')).toBe('red');
-
-      const chartBScale = new CategoricalColorScale(PALETTE);
-      chartBScale.getColor('Classic Cars', 102, 'testScheme');
-      chartBScale.getColor('Trains', 102, 'testScheme');
-
-      const classicCarsColor =
-        chartBScale.chartLabelsColorMap.get('Classic Cars');
-      const trainsColor = chartBScale.chartLabelsColorMap.get('Trains');
-
-      expect(trainsColor).toBe('red');
-      expect(classicCarsColor).toBe('red');
     });
 
     test('fix: Classic Cars is reassigned when Trains locks red from the dashboard', () => {
@@ -612,7 +585,6 @@ describe('CategoricalColorScale', () => {
 
     test('fix: increments analogous color range for dashboard collisions when UseAnalogousColors is enabled', () => {
       window.featureFlags = {
-        [FeatureFlag.AvoidColorsCollision]: true,
         [FeatureFlag.UseAnalogousColors]: true,
       };
 

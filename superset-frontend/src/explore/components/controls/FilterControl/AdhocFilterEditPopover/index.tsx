@@ -229,8 +229,7 @@ function AdhocFilterEditPopover({
       loadLayerOptions(0, 100).then(result => {
         setLayerOptions(result.data);
         const layerFilterScope = propsAdhocFilter?.layerFilterScope as
-          | number[]
-          | undefined;
+          number[] | undefined;
         if (layerFilterScope) {
           const layers = layerFilterScope
             .map(item => result.data.find(option => option.value === item))

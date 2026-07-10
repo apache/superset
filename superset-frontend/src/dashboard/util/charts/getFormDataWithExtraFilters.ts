@@ -459,7 +459,7 @@ export default function getFormDataWithExtraFilters({
 
   let extraData: JsonObject = {};
   const filterIdsAppliedOnChart = Object.entries(activeFilters)
-    .filter(([, activeFilter]) => activeFilter.scope.includes(chart.id))
+    .filter(([, activeFilter]) => activeFilter?.scope?.includes(chart.id))
     .map(([filterId]) => filterId);
 
   if (filterIdsAppliedOnChart.length) {
@@ -474,7 +474,7 @@ export default function getFormDataWithExtraFilters({
     const isDeckMultiChart = chart.form_data?.viz_type === 'deck_multi';
     const hasLayerScopeInActiveFilters =
       passedActiveFilters &&
-      Object.values(passedActiveFilters).some(filter => filter.layerScope);
+      Object.values(passedActiveFilters).some(filter => filter?.layerScope);
 
     if (isDeckMultiChart || hasLayerScopeInActiveFilters) {
       const filterDataMapping = createFilterDataMapping(

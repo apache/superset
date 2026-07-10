@@ -1005,11 +1005,13 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         Chart data API: test query with literal colon characters in query, metrics,
         where clause and filters
         """
+        from tests.integration_tests.base_tests import subjects_from_users
+
         owner = self.get_user("admin")
         table = SqlaTable(
             table_name="virtual_table_1",
             schema=get_example_default_schema(),
-            owners=[owner],
+            editors=subjects_from_users([owner]),
             database=get_example_database(),
             sql="select ':foo' as foo, ':bar:' as bar, state, num from birth_names",
         )

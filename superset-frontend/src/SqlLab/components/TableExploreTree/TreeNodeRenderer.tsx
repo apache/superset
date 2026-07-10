@@ -348,9 +348,9 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
                     <Icons.SortAscendingOutlined
                       iconSize="m"
                       css={css`
-                        color: ${sortedTables[data.id]
-                          ? theme.colorPrimary
-                          : 'inherit'};
+                        color: ${
+                          sortedTables[data.id] ? theme.colorPrimary : 'inherit'
+                        };
                       `}
                     />
                   }
