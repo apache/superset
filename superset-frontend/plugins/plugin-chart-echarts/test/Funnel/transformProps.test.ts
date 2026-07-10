@@ -111,7 +111,9 @@ describe('Funnel transformProps', () => {
       hooks: { onDrillDown, setDataMask },
     });
 
-    const result = transformProps(drillChartProps as EchartsFunnelChartProps);
+    const result = transformProps(
+      drillChartProps as unknown as EchartsFunnelChartProps,
+    );
     const handlers = allEventHandlers(result);
 
     handlers.click({ name: 'Sylvester, 1' });

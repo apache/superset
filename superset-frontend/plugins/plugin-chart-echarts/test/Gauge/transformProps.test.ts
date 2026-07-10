@@ -755,10 +755,14 @@ test('transformProps passes onDrillDown hook through', () => {
     },
     width: 800,
     height: 600,
-    queriesData: [{ colnames: ['country', 'count'], data: [{ country: 'USA', count: 10 }] }],
+    queriesData: [
+      { colnames: ['country', 'count'], data: [{ country: 'USA', count: 10 }] },
+    ],
     theme: supersetTheme,
     hooks: { onDrillDown },
   });
-  const result = transformProps(chartProps as EchartsGaugeChartProps);
+  const result = transformProps(
+    chartProps as unknown as EchartsGaugeChartProps,
+  );
   expect(result.onDrillDown).toBe(onDrillDown);
 });
