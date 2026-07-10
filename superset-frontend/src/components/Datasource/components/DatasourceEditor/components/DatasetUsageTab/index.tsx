@@ -30,7 +30,9 @@ import Table, {
   type TablePaginationConfig,
   type OnChangeFunction,
 } from '@superset-ui/core/components/Table';
-import { FacePile, ModifiedInfo, GenericLink } from 'src/components';
+import { ModifiedInfo, GenericLink } from 'src/components';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
+import type Subject from 'src/types/Subject';
 import { DashboardCrossLinks } from 'src/components/ListView/DashboardCrossLinks';
 
 const FlexRowContainer = styled.div`
@@ -59,11 +61,7 @@ interface Chart {
   certified_by?: string;
   certification_details?: string;
   description?: string;
-  owners: Array<{
-    first_name: string;
-    last_name: string;
-    id: number;
-  }>;
+  editors?: Subject[];
   changed_on_delta_humanized: string;
   changed_on?: string;
   changed_by: {
@@ -244,11 +242,11 @@ const DatasetUsageTab = ({
         width: 300,
       },
       {
-        title: t('Chart owners'),
-        dataIndex: 'owners',
-        key: 'owners',
+        title: t('Chart editors'),
+        dataIndex: 'editors',
+        key: 'editors',
         render: (_: unknown, record: Chart) => (
-          <FacePile users={record.owners} maxCount={3} />
+          <SubjectPile subjects={record.editors || []} maxCount={3} />
         ),
         sorter: false,
         width: 150,
@@ -302,12 +300,10 @@ const DatasetUsageTab = ({
       // Search in chart name
       if (chart.slice_name?.toLowerCase().includes(lowerSearch)) return true;
 
-      // Search in owner names
+      // Search in editor names
       if (
-        chart.owners?.some(
-          owner =>
-            owner.first_name?.toLowerCase().includes(lowerSearch) ||
-            owner.last_name?.toLowerCase().includes(lowerSearch),
+        chart.editors?.some(editor =>
+          editor.label?.toLowerCase().includes(lowerSearch),
         )
       )
         return true;
@@ -327,7 +323,7 @@ const DatasetUsageTab = ({
   return (
     <div ref={tableContainerRef}>
       <Input.Search
-        placeholder={t('Search charts by name, owner, or dashboard')}
+        placeholder={t('Search charts by name, editor, or dashboard')}
         value={searchTerm}
         onChange={e => {
           setSearchTerm(e.target.value);

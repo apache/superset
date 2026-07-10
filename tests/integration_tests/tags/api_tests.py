@@ -40,7 +40,7 @@ from superset.tags.models import (
     user_favorite_tag_table,
 )
 from superset.utils import json
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.base_tests import subjects_from_users, SupersetTestCase
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     ALPHA_USERNAME,
@@ -228,7 +228,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         tags = [
             {"name": "Test custom Tag", "type": "custom"},
             {"name": "type:dashboard", "type": "type"},
-            {"name": "owner:1", "type": "owner"},
+            {"name": "editor:1", "type": "editor"},
             {"name": "Another Tag", "type": "custom"},
             {"name": "favorited_by:1", "type": "favorited_by"},
         ]
@@ -460,8 +460,14 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
             tag_type="custom",
         )
 
+        first_dataset, second_dataset = (
+            db.session.query(SqlaTable).order_by(SqlaTable.id).limit(2).all()
+        )
+
         # Create a chart
-        chart_first_dataset = self.insert_chart("first_chart", [owner.id], 1)
+        chart_first_dataset = self.insert_chart(
+            "first_chart", [owner.id], first_dataset.id
+        )
         first_tag_relation = self.insert_tagged_object(
             tag_id=tag.id,
             object_id=chart_first_dataset.id,
@@ -469,7 +475,9 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         )
 
         # Create another chart and add it to a dashboard
-        chart_second_dataset = self.insert_chart("second_chart", [owner.id], 2)
+        chart_second_dataset = self.insert_chart(
+            "second_chart", [owner.id], second_dataset.id
+        )
         second_tag_relation = self.insert_tagged_object(
             tag_id=tag.id,
             object_id=chart_second_dataset.id,
@@ -501,8 +509,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         assert rv.status_code == 200
         assert rv.json["result"] == []
 
-        # grant access to dataset ID 1
-        first_dataset = db.session.query(SqlaTable).filter(SqlaTable.id == 1).first()
+        # grant access to the first dataset
         self.grant_role_access_to_table(first_dataset, "testing_new_role")
 
         rv = self.client.get(uri)
@@ -511,8 +518,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         assert len(result) == 1
         assert result[0]["id"] == chart_first_dataset.id
 
-        # grant access to dataset ID 2
-        second_dataset = db.session.query(SqlaTable).filter(SqlaTable.id == 2).first()
+        # grant access to the second dataset
         self.grant_role_access_to_table(second_dataset, "testing_new_role")
 
         rv = self.client.get(uri)
@@ -604,6 +610,46 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         )
 
         assert association_row is None
+
+    @pytest.mark.usefixtures("create_tags")
+    def test_get_list_tag_filtered_by_favorite(self):
+        """
+        Tag API: Test get list filtered by the ``tag_is_favorite`` filter
+        returns only the tags the current user has (or has not) favorited.
+        """
+        self.login(ADMIN_USERNAME)
+        # favorite a single tag for the current (admin) user
+        favorited_tag = db.session.query(Tag).first()
+        rv = self.client.post(
+            f"api/v1/tag/{favorited_tag.id}/favorites/", follow_redirects=True
+        )
+        assert rv.status_code == 200
+
+        # value=True returns only the favorited tag
+        query = {
+            "filters": [{"col": "id", "opr": "tag_is_favorite", "value": True}],
+        }
+        uri = f"api/v1/tag/?{parse.urlencode({'q': rison.dumps(query)})}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["count"] == 1
+        assert data["result"][0]["id"] == favorited_tag.id
+
+        # value=False returns every other tag
+        query["filters"][0]["value"] = False
+        uri = f"api/v1/tag/?{parse.urlencode({'q': rison.dumps(query)})}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["count"] == TAGS_FIXTURE_COUNT - 1
+        assert favorited_tag.id not in {tag["id"] for tag in data["result"]}
+
+        # cleanup the favorite association
+        rv = self.client.delete(
+            f"api/v1/tag/{favorited_tag.id}/favorites/", follow_redirects=True
+        )
+        assert rv.status_code == 200
 
     @pytest.mark.usefixtures("create_tags")
     def test_add_tag_not_found(self):
@@ -771,6 +817,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
                 TaggedObject.object_id == dashboard.id,
                 TaggedObject.object_type == ObjectType.dashboard,
                 Tag.type == TagType.custom,
+                Tag.name.in_(tags),
             )
         )
         assert tagged_objects.count() == 2
@@ -782,6 +829,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
                 TaggedObject.object_id == chart.id,
                 TaggedObject.object_type == ObjectType.chart,
                 Tag.type == TagType.custom,
+                Tag.name.in_(tags),
             )
         )
         assert tagged_objects.count() == 2
@@ -879,7 +927,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         db.session.commit()
 
     def test_bulk_create_and_update_skip_inaccessible_objects(self):
-        """A non-owner with the Tag write permission must not create tag
+        """A non-editor with the Tag write permission must not create tag
         relationships on a dashboard they cannot access, via either bulk_create
         or PUT /tag/<id>. The single-object path already enforced this; these two
         paths must too (object is looked up bypassing the access base filter, so
@@ -889,7 +937,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
             dashboard_title="tag_access_victim_dashboard",
             slug="tag-access-victim",
             published=False,
-            owners=[admin],
+            editors=subjects_from_users([admin]),
         )
         db.session.add(victim)
         db.session.commit()

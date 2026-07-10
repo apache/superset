@@ -93,6 +93,9 @@ const bigIntChartDataState = () => {
             data: [
               { name: 'Abigail', count: 228 },
               { name: 'Aaron', count: 123012930123123n },
+              // Exceeds Number.MAX_SAFE_INTEGER, mirroring the BigInt values
+              // that parseResponse produces for large integer columns
+              { name: 'Adah', count: 9007199254740993n },
               { name: 'Adam', count: 454 },
             ],
             applied_filters: [{ column: 'name' }],
@@ -772,6 +775,18 @@ test('renders a filter with a chart containing BigInt values', async () => {
   });
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
+});
+
+test('creates a new filter when a chart contains BigInt values', () => {
+  // Repro for #35087: opening "Add or edit filters" on a dashboard where a
+  // chart queried a BigInt column must not throw
+  // "TypeError: Do not know how to serialize a BigInt"
+  defaultRender(bigIntChartDataState(), props);
+
+  expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
+  expect(screen.getByText(FILTER_NAME_REGEX)).toBeInTheDocument();
+  expect(screen.getByText(DATASET_REGEX)).toBeInTheDocument();
+  expect(screen.getByText(COLUMN_REGEX)).toBeInTheDocument();
 });
 
 test('displays empty state when modal opens with no filters and createNewOnOpen is false', () => {

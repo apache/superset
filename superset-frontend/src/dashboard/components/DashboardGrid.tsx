@@ -28,7 +28,7 @@ import type { LayoutItem } from 'src/dashboard/types';
 import type { DropResult } from 'src/dashboard/components/dnd/dragDroppableConfig';
 import DashboardComponent from '../containers/DashboardComponent';
 import { Droppable } from './dnd/DragDroppable';
-import { GRID_GUTTER_SIZE, GRID_COLUMN_COUNT } from '../util/constants';
+import { GRID_GUTTER_SIZE, GRID_COLUMN_COUNT, BOTTOM_RESIZE_DIRECTION } from '../util/constants';
 import { TAB_TYPE } from '../util/componentTypes';
 
 export interface DashboardGridProps {
@@ -125,6 +125,21 @@ const GridColumnGuide = styled.div`
   `};
 `;
 
+const GridRowGuide = styled.div`
+  ${({ theme }) => css`
+    &.grid-row-guide {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background-color: ${addAlpha(theme.colorPrimary, 0.5)};
+      box-shadow: 0 0 0 1px ${addAlpha(theme.colorPrimary, 0.5)};
+      pointer-events: none;
+      z-index: 10;
+    }
+  `};
+`;
+
 function DashboardGrid({
   depth,
   editMode,
@@ -141,6 +156,7 @@ function DashboardGrid({
   const theme = useTheme();
   const [isResizing, setIsResizing] = useState(false);
   const gridRef = useRef<HTMLDivElement | null>(null);
+  const rowGuideRef = useRef<HTMLDivElement | null>(null);
 
   const setGridRef = useCallback((ref: HTMLDivElement | null): void => {
     gridRef.current = ref;
@@ -148,18 +164,41 @@ function DashboardGrid({
 
   const handleResizeStart = useCallback((): void => {
     setIsResizing(true);
+    if (rowGuideRef.current) {
+      rowGuideRef.current.style.visibility = 'hidden';
+    }
   }, []);
+
+  const getRowGuidePosition = useCallback(
+    (resizeRef: HTMLElement | null): number | null => {
+      if (resizeRef && gridRef.current) {
+        return (
+          resizeRef.getBoundingClientRect().bottom -
+          gridRef.current.getBoundingClientRect().top -
+          2
+        );
+      }
+      return null;
+    },
+    [],
+  );
 
   const handleResize = useCallback(
     (
       _event: MouseEvent | TouchEvent,
-      _direction: string,
-      _elementRef: HTMLElement,
+      direction: string,
+      elementRef: HTMLElement,
       _delta: { width: number; height: number },
     ): void => {
-      // no-op: resize position tracking not implemented
+      if (direction.toLowerCase().includes(BOTTOM_RESIZE_DIRECTION)) {
+        const newTop = getRowGuidePosition(elementRef);
+        if (rowGuideRef.current && newTop !== null) {
+          rowGuideRef.current.style.top = `${newTop}px`;
+          rowGuideRef.current.style.visibility = 'visible';
+        }
+      }
     },
-    [],
+    [getRowGuidePosition],
   );
 
   const handleResizeStop = useCallback(
@@ -177,6 +216,9 @@ function DashboardGrid({
       });
 
       setIsResizing(false);
+      if (rowGuideRef.current) {
+        rowGuideRef.current.style.visibility = 'hidden';
+      }
     },
     [resizeComponent],
   );
@@ -350,6 +392,13 @@ function DashboardGrid({
                   }}
                 />
               ))}
+          {isResizing && (
+            <GridRowGuide
+              ref={rowGuideRef}
+              className="grid-row-guide"
+              style={{ visibility: 'hidden' }}
+            />
+          )}
         </GridContent>
       </div>
     </>

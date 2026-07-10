@@ -1804,8 +1804,14 @@ describe('DatabaseModal', () => {
 
     userEvent.click(screen.getByTestId('sqla-connect-btn'));
 
-    expect(await screen.findByTestId('database-name-input')).toBeVisible();
-    expect(screen.getByTestId('sqlalchemy-uri-input')).toBeVisible();
+    // assert on presence rather than visibility: the SQLAlchemy form mounts
+    // inside an animated tab pane, and rc-motion's animation state in jsdom
+    // is nondeterministic, so toBeVisible flakes while the form is in fact
+    // rendered (see the animated={{ tabPane: true }} Tabs in DatabaseModal)
+    expect(
+      await screen.findByTestId('database-name-input'),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('sqlalchemy-uri-input')).toBeInTheDocument();
   });
 
   test.each([
@@ -2153,6 +2159,71 @@ describe('dbReducer', () => {
       ...databaseFixture,
       masked_encrypted_extra: '{"other":"keep-me"}',
     });
+  });
+
+  test('ExtraInputChange stores a non-negative schema_cache_timeout', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.ExtraInputChange,
+      payload: { name: 'schema_cache_timeout', value: '600' },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      extra: '{"metadata_cache_timeout":{"schema_cache_timeout":600}}',
+    });
+  });
+
+  test('ExtraInputChange clears schema_cache_timeout back to unset on empty input', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.ExtraInputChange,
+      payload: { name: 'schema_cache_timeout', value: '' },
+    };
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        extra: JSON.stringify({
+          metadata_cache_timeout: { schema_cache_timeout: 600 },
+        }),
+      },
+      action,
+    );
+
+    // Empty input drops the key so JSON.stringify omits it, returning the
+    // cache to unset/global default rather than pinning it to 0 (never expire).
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      extra: '{"metadata_cache_timeout":{}}',
+    });
+  });
+
+  test('InputChange stores cache_timeout, allowing -1 (bypass cache)', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.InputChange,
+      payload: { name: 'cache_timeout', value: '-1' },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      cache_timeout: '-1',
+    });
+  });
+
+  test('InputChange clears cache_timeout back to unset on empty input', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.InputChange,
+      payload: { name: 'cache_timeout', value: '' },
+    };
+    const currentState = dbReducer(
+      { ...databaseFixture, cache_timeout: '600' },
+      action,
+    );
+
+    // Number('') is 0, not NaN, so the empty string is mapped to NaN first;
+    // that falls through to undefined and clears back to the global default.
+    expect(currentState?.cache_timeout).toBeUndefined();
+    expect(currentState).toEqual({ ...databaseFixture });
   });
 
   test.each([

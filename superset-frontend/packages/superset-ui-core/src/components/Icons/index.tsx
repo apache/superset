@@ -77,8 +77,7 @@ customIcons.forEach(customIcon => {
 });
 
 export type IconNameType =
-  | keyof typeof antdEnhancedIcons
-  | keyof typeof iconOverrides;
+  keyof typeof antdEnhancedIcons | keyof typeof iconOverrides;
 
 type IconComponentType = Record<IconNameType, IconComponent>;
 

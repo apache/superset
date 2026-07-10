@@ -273,11 +273,7 @@ export function risonFiltersToString(filters: RisonFilter[]): string {
   }
 
   type RisonValue =
-    | string
-    | number
-    | boolean
-    | (string | number)[]
-    | Record<string, unknown>;
+    string | number | boolean | (string | number)[] | Record<string, unknown>;
   const risonObject: Record<string, RisonValue> = {};
   const notObject: Record<string, RisonValue> = {};
 
