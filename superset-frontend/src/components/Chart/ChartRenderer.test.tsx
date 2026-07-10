@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
+import { render, act } from 'spec/helpers/testing-library';
 import {
   ChartMetadata,
   getChartMetadataRegistry,
@@ -36,20 +36,28 @@ interface MockSuperChartProps {
   [key: string]: unknown;
 }
 
+// Captures the props SuperChart was rendered with so the legend-state tests
+// can drive the `hooks` handlers and assert on the persisted values. Must be
+// `mock`-prefixed to satisfy jest's out-of-scope reference rule for factories.
+let mockCapturedSuperChartProps: MockSuperChartProps | null = null;
+
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   SuperChart: ({
     postTransformProps = (x: JsonObject) => x,
     isRefreshing = false,
     ...props
-  }: MockSuperChartProps & { isRefreshing?: boolean }) => (
-    <div
-      data-test="mock-super-chart"
-      data-is-refreshing={isRefreshing ? 'true' : 'false'}
-    >
-      {JSON.stringify(postTransformProps(props).formData)}
-    </div>
-  ),
+  }: MockSuperChartProps & { isRefreshing?: boolean }) => {
+    mockCapturedSuperChartProps = props;
+    return (
+      <div
+        data-test="mock-super-chart"
+        data-is-refreshing={isRefreshing ? 'true' : 'false'}
+      >
+        {JSON.stringify(postTransformProps(props).formData)}
+      </div>
+    );
+  },
 }));
 
 jest.mock(
@@ -422,4 +430,77 @@ test('does not render chart during loading when last data has errors', () => {
 
   const { queryByTestId } = render(<ChartRenderer {...props} />);
   expect(queryByTestId('mock-super-chart')).not.toBeInTheDocument();
+});
+
+// Legend state persistence (sessionStorage) — issue #31741
+type LegendHooks = {
+  onLegendStateChanged: (legendState: JsonObject) => void;
+  onLegendScroll: (legendIndex: number) => void;
+};
+
+beforeEach(() => {
+  sessionStorage.clear();
+  mockCapturedSuperChartProps = null;
+});
+
+test('saves legend state to sessionStorage when the legend state changes', () => {
+  const mockLegendState = { series1: true, series2: false };
+  const legendStateKey = `chart_legend_state_${requiredProps.chartId}`;
+  expect(sessionStorage.getItem(legendStateKey)).toBeNull();
+
+  render(<ChartRenderer {...requiredProps} />);
+
+  expect(mockCapturedSuperChartProps).not.toBeNull();
+  const hooks = mockCapturedSuperChartProps?.hooks as LegendHooks;
+  expect(hooks.onLegendStateChanged).toBeDefined();
+
+  act(() => {
+    hooks.onLegendStateChanged(mockLegendState);
+  });
+
+  expect(JSON.parse(sessionStorage.getItem(legendStateKey) as string)).toEqual(
+    mockLegendState,
+  );
+});
+
+test('saves legend index to sessionStorage when the legend is scrolled', () => {
+  const mockLegendIndex = 5;
+  const legendIndexKey = `chart_legend_index_${requiredProps.chartId}`;
+  expect(sessionStorage.getItem(legendIndexKey)).toBeNull();
+
+  render(<ChartRenderer {...requiredProps} />);
+
+  expect(mockCapturedSuperChartProps).not.toBeNull();
+  const hooks = mockCapturedSuperChartProps?.hooks as LegendHooks;
+  expect(hooks.onLegendScroll).toBeDefined();
+
+  act(() => {
+    hooks.onLegendScroll(mockLegendIndex);
+  });
+
+  expect(JSON.parse(sessionStorage.getItem(legendIndexKey) as string)).toBe(
+    mockLegendIndex,
+  );
+});
+
+test('loads legend state from sessionStorage on mount', () => {
+  const mockLegendState = { series1: true, series2: false };
+  const legendStateKey = `chart_legend_state_${requiredProps.chartId}`;
+  sessionStorage.setItem(legendStateKey, JSON.stringify(mockLegendState));
+
+  render(<ChartRenderer {...requiredProps} />);
+
+  expect(mockCapturedSuperChartProps).not.toBeNull();
+  expect(mockCapturedSuperChartProps?.legendState).toEqual(mockLegendState);
+});
+
+test('loads legend index from sessionStorage on mount', () => {
+  const mockLegendIndex = 10;
+  const legendIndexKey = `chart_legend_index_${requiredProps.chartId}`;
+  sessionStorage.setItem(legendIndexKey, JSON.stringify(mockLegendIndex));
+
+  render(<ChartRenderer {...requiredProps} />);
+
+  expect(mockCapturedSuperChartProps).not.toBeNull();
+  expect(mockCapturedSuperChartProps?.legendIndex).toBe(mockLegendIndex);
 });

@@ -226,10 +226,35 @@ function ChartRendererComponent({
     [source, suppressContextMenu],
   );
 
-  const [state, setState] = useState<ChartRendererState>({
-    inContextMenu: false,
-    legendState: undefined,
-    legendIndex: 0,
+  const [state, setState] = useState<ChartRendererState>(() => {
+    // Restore legend state/index from sessionStorage (per-chart) so a user's
+    // legend selection and scroll position survive re-renders and page changes.
+    let legendState: LegendState | undefined;
+    let legendIndex = 0;
+    try {
+      const storedState = sessionStorage.getItem(
+        `chart_legend_state_${chartId}`,
+      );
+      if (storedState !== null) {
+        legendState = JSON.parse(storedState);
+      }
+      const storedIndex = sessionStorage.getItem(
+        `chart_legend_index_${chartId}`,
+      );
+      if (storedIndex !== null) {
+        legendIndex = JSON.parse(storedIndex);
+      }
+    } catch (error) {
+      logging.warn(
+        '[ChartRenderer] Failed to load legend state from sessionStorage:',
+        error,
+      );
+    }
+    return {
+      inContextMenu: false,
+      legendState,
+      legendIndex,
+    };
   });
 
   const hasQueryResponseChangeRef = useRef(false);
@@ -346,13 +371,38 @@ function ChartRendererComponent({
   const handleLegendStateChanged = useCallback(
     (legendState: LegendState): void => {
       setState(prev => ({ ...prev, legendState }));
+      try {
+        sessionStorage.setItem(
+          `chart_legend_state_${chartId}`,
+          JSON.stringify(legendState),
+        );
+      } catch (error) {
+        logging.warn(
+          '[ChartRenderer] Failed to save legend state to sessionStorage:',
+          error,
+        );
+      }
     },
-    [],
+    [chartId],
   );
 
-  const handleLegendScroll = useCallback((legendIndex: number): void => {
-    setState(prev => ({ ...prev, legendIndex }));
-  }, []);
+  const handleLegendScroll = useCallback(
+    (legendIndex: number): void => {
+      setState(prev => ({ ...prev, legendIndex }));
+      try {
+        sessionStorage.setItem(
+          `chart_legend_index_${chartId}`,
+          JSON.stringify(legendIndex),
+        );
+      } catch (error) {
+        logging.warn(
+          '[ChartRenderer] Failed to save legend index to sessionStorage:',
+          error,
+        );
+      }
+    },
+    [chartId],
+  );
 
   // When viz plugins don't handle `contextmenu` event, fallback handler
   // calls `handleOnContextMenu` with no `filters` param.
