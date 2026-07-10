@@ -854,7 +854,7 @@ function ChartList(props: ChartListProps) {
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
         refreshData={refreshData}
-        userId={userId}
+        user={user}
         loading={loading}
         favoriteStatus={favoriteStatus[chart.id]}
         saveFavoriteStatus={saveFavoriteStatus}
@@ -872,7 +872,7 @@ function ChartList(props: ChartListProps) {
       openChartEditModal,
       refreshData,
       saveFavoriteStatus,
-      userId,
+      user,
       userSettings,
     ],
   );

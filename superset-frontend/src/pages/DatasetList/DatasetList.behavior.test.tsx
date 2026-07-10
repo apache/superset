@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
@@ -37,23 +38,9 @@ import {
 
 jest.mock('src/utils/export');
 
-// Mock bootstrap data so isUserEditorOrAdmin's subject-based check resolves
-// mockAdminUser (userId 1) as a subject editor of the fixtures below.
-jest.mock('src/utils/getBootstrapData', () => {
-  const actual = jest.requireActual('src/utils/getBootstrapData');
-  const { DEFAULT_BOOTSTRAP_DATA } = jest.requireActual('src/constants');
-  return {
-    __esModule: true,
-    ...actual,
-    default: jest.fn(() => ({
-      ...DEFAULT_BOOTSTRAP_DATA,
-      common: {
-        ...DEFAULT_BOOTSTRAP_DATA.common,
-        user_subjects: [1],
-      },
-    })),
-  };
-});
+jest.mock('src/utils/getBootstrapData', () =>
+  mockUserSubjectsBootstrapData([1]),
+);
 
 // Mock withToasts HOC to be a passthrough so we can spy on toast calls
 jest.mock('src/components/MessageToasts/withToasts', () => ({

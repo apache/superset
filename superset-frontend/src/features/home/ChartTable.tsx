@@ -228,7 +228,7 @@ function ChartTable({
               openChartEditModal={openChartEditModal}
               chartFilter={activeTab}
               chart={e}
-              userId={user?.userId}
+              user={user}
               hasPerm={hasPerm}
               showThumbnails={showThumbnails}
               bulkSelectEnabled={bulkSelectEnabled}

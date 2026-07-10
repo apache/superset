@@ -774,6 +774,7 @@ function DashboardList(props: DashboardListProps) {
             : isFeatureEnabled(FeatureFlag.Thumbnails)
         }
         userId={user?.userId}
+        user={user}
         loading={loading}
         openDashboardEditModal={openDashboardEditModal}
         saveFavoriteStatus={saveFavoriteStatus}
@@ -787,7 +788,7 @@ function DashboardList(props: DashboardListProps) {
       favoriteStatus,
       hasPerm,
       loading,
-      user?.userId,
+      user,
       saveFavoriteStatus,
       userKey,
       handleBulkDashboardExport,

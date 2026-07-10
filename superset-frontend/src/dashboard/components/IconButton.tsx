@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { MouseEventHandler } from 'react';
+import { forwardRef, HTMLAttributes, MouseEventHandler } from 'react';
 import { styled, SupersetTheme } from '@apache-superset/core/theme';
 
-interface IconButtonProps {
+interface IconButtonProps extends HTMLAttributes<HTMLDivElement> {
   icon: JSX.Element;
   label?: string;
   onClick: MouseEventHandler<HTMLDivElement>;
@@ -54,29 +54,27 @@ const StyledSpan = styled.span`
   margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
-const IconButton = ({
-  icon,
-  label,
-  onClick,
-  disabled,
-  'data-test': dataTest,
-}: IconButtonProps) => (
-  <StyledDiv
-    tabIndex={0}
-    role="button"
-    isDisabled={disabled}
-    aria-disabled={disabled}
-    data-test={dataTest}
-    onClick={e => {
-      e.preventDefault();
-      if (!disabled) {
-        onClick(e);
-      }
-    }}
-  >
-    {icon}
-    {label && <StyledSpan>{label}</StyledSpan>}
-  </StyledDiv>
+const IconButton = forwardRef<HTMLDivElement, IconButtonProps>(
+  ({ icon, label, onClick, disabled, 'data-test': dataTest, ...rest }, ref) => (
+    <StyledDiv
+      {...rest}
+      ref={ref}
+      tabIndex={0}
+      role="button"
+      isDisabled={disabled}
+      aria-disabled={disabled}
+      data-test={dataTest}
+      onClick={e => {
+        e.preventDefault();
+        if (!disabled) {
+          onClick(e);
+        }
+      }}
+    >
+      {icon}
+      {label && <StyledSpan>{label}</StyledSpan>}
+    </StyledDiv>
+  ),
 );
 
 export default IconButton;
