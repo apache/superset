@@ -16,31 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactElement } from 'react';
-import {
-  render as rtlRender,
-  screen,
-  act,
-  fireEvent,
-} from '@testing-library/react';
-import '@testing-library/jest-dom';
-import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
+import { render, screen, act, fireEvent } from 'spec/helpers/testing-library';
 import { QueryFormData } from '@superset-ui/core';
 import { ChartSource } from 'src/types/ChartSource';
 import { DrillDownHost } from './DrillDownHost';
 import { clearDrillDownState } from './useDrillDownState';
 import type { ChartRendererProps } from '../ChartRenderer';
 
-function render(ui: ReactElement) {
-  return rtlRender(ui, {
-    wrapper: ({ children }) => (
-      <ThemeProvider theme={supersetTheme}>{children}</ThemeProvider>
-    ),
-  });
+// Captures the onDrillDown callback handed to the chart renderer so tests can
+// invoke a drill interaction directly.
+let capturedOnDrillDown:
+  ((filters: unknown, label: string) => void) | undefined;
+
+function CaptureRenderer(
+  props: ChartRendererProps & {
+    onDrillDown?: (filters: unknown, label: string) => void;
+  },
+) {
+  capturedOnDrillDown = props.onDrillDown;
+  return <div data-test="mock-chart-renderer" />;
 }
 
 beforeEach(() => {
   clearDrillDownState();
+  capturedOnDrillDown = undefined;
 });
 
 jest.mock('src/components/Chart/chartAction', () => ({
@@ -53,6 +52,7 @@ jest.mock('src/components/Chart/chartAction', () => ({
 }));
 
 jest.mock('src/explore/exploreUtils', () => ({
+  ...jest.requireActual('src/explore/exploreUtils'),
   getQuerySettings: jest.fn(() => [false]),
 }));
 
@@ -183,17 +183,6 @@ test('returning to the top level clears the cross-filter and re-queries the base
     drilldown_hierarchy: ['country', 'region', 'city'],
   };
 
-  let capturedOnDrillDown:
-    ((filters: unknown, label: string) => void) | undefined;
-  function CaptureRenderer(
-    props: ChartRendererProps & {
-      onDrillDown?: (filters: unknown, label: string) => void;
-    },
-  ) {
-    capturedOnDrillDown = props.onDrillDown;
-    return <div data-test="mock-chart-renderer" />;
-  }
-
   render(
     <DrillDownHost
       ChartRendererComponent={CaptureRenderer as any}
@@ -229,17 +218,6 @@ test('drilling emits a cross-filter for the full accumulated path', () => {
     ...baseFormData,
     drilldown_hierarchy: ['country', 'region', 'city'],
   };
-
-  let capturedOnDrillDown:
-    ((filters: unknown, label: string) => void) | undefined;
-  function CaptureRenderer(
-    props: ChartRendererProps & {
-      onDrillDown?: (filters: unknown, label: string) => void;
-    },
-  ) {
-    capturedOnDrillDown = props.onDrillDown;
-    return <div data-test="mock-chart-renderer" />;
-  }
 
   render(
     <DrillDownHost

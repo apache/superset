@@ -319,8 +319,10 @@ export function useDrillDownState({
 
     // At the deepest level a picked value narrows the chart to that single
     // leaf (matching the breadcrumb selection), rather than showing the full
-    // leaf distribution.
-    const leafFilters = selectedLeafFilters ?? [];
+    // leaf distribution. Only apply the leaf filters while a leaf is actually
+    // selected so that navigating back (resetTo) or drilling deeper never
+    // leaves stale leaf filters in effectiveFormData.
+    const leafFilters = selectedLeaf ? (selectedLeafFilters ?? []) : [];
 
     updated[DEFAULT_ADHOC_FILTERS_FIELD] = [
       ...baseAdhoc,
@@ -329,7 +331,14 @@ export function useDrillDownState({
     ];
 
     return updated as QueryFormData;
-  }, [formData, drillStack, currentDepth, hierarchy, selectedLeafFilters]);
+  }, [
+    formData,
+    drillStack,
+    currentDepth,
+    hierarchy,
+    selectedLeaf,
+    selectedLeafFilters,
+  ]);
 
   // Keep the latest effective form-data reachable from the fetch effect
   // without listing the object itself as a dependency (its identity churns on

@@ -18,6 +18,7 @@
  */
 import { useCallback } from 'react';
 import { css, useTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { DrillDownLevel } from './types';
 
 interface DrillDownBreadcrumbProps {
@@ -98,7 +99,7 @@ export function DrillDownBreadcrumb({
         const isLast = index === drillStack.length - 1 && !selectedLeaf;
         return (
           <span key={`${index}-${level.label}`}>
-            <span css={separatorCss}>›</span>
+            <span css={separatorCss}>{t('›')}</span>
             {isLast ? (
               <span>{level.label}</span>
             ) : (
@@ -115,7 +116,7 @@ export function DrillDownBreadcrumb({
       })}
       {selectedLeaf && (
         <span>
-          <span css={separatorCss}>›</span>
+          <span css={separatorCss}>{t('›')}</span>
           <span>{selectedLeaf}</span>
         </span>
       )}
