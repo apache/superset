@@ -231,3 +231,24 @@ async def test_delete_dashboard_rejects_boolean_identifier(
             await client.call_tool(
                 "delete_dashboard", {"request": {"identifier": True}}
             )
+
+
+@patch(_FIND)
+@pytest.mark.asyncio
+async def test_delete_dashboard_access_denied_on_lookup(
+    mock_find: Mock, mcp_server: object
+) -> None:
+    """Slug/UUID resolution re-checks view access; access-denied surfaces as
+    a structured permission_denied response, not an unhandled error."""
+    from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
+
+    mock_find.side_effect = DashboardAccessDeniedError()
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "delete_dashboard", {"request": {"identifier": "exec-kpis"}}
+        )
+
+    content = result.structured_content
+    assert content["success"] is False
+    assert content["permission_denied"] is True

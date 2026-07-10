@@ -28,6 +28,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset import is_feature_enabled
 from superset.commands.dashboard.exceptions import (
+    DashboardAccessDeniedError,
     DashboardDeleteFailedReportsExistError,
     DashboardForbiddenError,
     DashboardNotFoundError,
@@ -122,6 +123,20 @@ async def delete_dashboard(
 
     try:
         dashboard = _find_dashboard_by_identifier(request.identifier)
+    except DashboardAccessDeniedError:
+        # get_by_id_or_slug re-checks view access and raises access-denied for
+        # dashboards the caller cannot see; surface it as the structured
+        # permission_denied response instead of an unhandled error.
+        await ctx.warning("Access denied resolving dashboard identifier for delete")
+        return DeleteDashboardResponse(
+            success=False,
+            permission_denied=True,
+            error=(
+                "You do not have permission to access this dashboard. "
+                "Ask the user to delete it or grant access; do not retry."
+            ),
+            error_type="Forbidden",
+        )
     except SQLAlchemyError:
         _rollback()
         logger.exception("Dashboard lookup failed during delete_dashboard")
