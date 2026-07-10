@@ -150,6 +150,7 @@ export const ModalTrigger = forwardRef(
           destroyOnHidden={destroyOnHidden}
         >
           <div
+            style={{ display: 'contents' }}
             onKeyDown={e => {
               if (MENU_NAVIGATION_KEYS.has(e.key)) {
                 e.stopPropagation();
