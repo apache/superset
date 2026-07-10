@@ -133,7 +133,7 @@ export const ModalTrigger = forwardRef(
           destroyOnHidden={destroyOnHidden}
         >
           <div
-            onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
+            onKeyDown={e => {
               if (MENU_NAVIGATION_KEYS.has(e.key)) {
                 e.stopPropagation();
               }
