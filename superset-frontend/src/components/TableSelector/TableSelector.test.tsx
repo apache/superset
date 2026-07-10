@@ -42,16 +42,32 @@ const createProps = (props = {}) => ({
   ...props,
 });
 
-const getTableMockFunction = () =>
-  ({
-    count: 4,
-    result: [
-      { label: 'table_a', value: 'table_a' },
-      { label: 'table_b', value: 'table_b' },
-      { label: 'table_c', value: 'table_c' },
-      { label: 'table_d', value: 'table_d' },
-    ],
-  }) as any;
+interface TableResultItem {
+  label: string;
+  value: string;
+}
+
+interface TableApiResponse {
+  count: number;
+  result: TableResultItem[];
+}
+
+const TABLE_RESULTS: TableResultItem[] = [
+  { label: 'table_a', value: 'table_a' },
+  { label: 'table_b', value: 'table_b' },
+  { label: 'table_c', value: 'table_c' },
+  { label: 'table_d', value: 'table_d' },
+];
+
+const getTableMockFunction = (): TableApiResponse => ({
+  count: 4,
+  result: TABLE_RESULTS,
+});
+
+const getTableMockHasMoreFunction = (): TableApiResponse => ({
+  count: 100,
+  result: TABLE_RESULTS,
+});
 
 const databaseApiRoute = 'glob:*/api/v1/database/?*';
 const catalogApiRoute = 'glob:*/api/v1/database/*/catalogs/?*';
@@ -335,4 +351,47 @@ test('TableOption renders correct icons for different table types', () => {
     <TableOption table={materializedViewTable} />,
   );
   expect(mvContainer.querySelector('.anticon')).toBeInTheDocument();
+});
+
+test('shows truncated list warning when hasMore is true', async () => {
+  fetchMock.get(catalogApiRoute, { result: [] });
+  fetchMock.get(schemaApiRoute, { result: ['test_schema'] });
+  fetchMock.get(tablesApiRoute, getTableMockHasMoreFunction());
+
+  const props = createProps();
+  render(<TableSelector {...props} />, { useRedux: true, store });
+
+  // Verify the component mounted
+  await waitFor(
+    () => {
+      expect(
+        screen.getByRole('combobox', {
+          name: 'Select database or type to search databases',
+        }),
+      ).toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
+
+  expect(
+    screen.getByText('Some tables are not shown. Refine your search or try increasing the API page limit.'),
+  ).toBeInTheDocument();
+});
+
+test('does not show truncated list warning when hasMore is false', async () => {
+  fetchMock.get(catalogApiRoute, { result: [] });
+  fetchMock.get(schemaApiRoute, { result: ['test_schema'] });
+  fetchMock.get(tablesApiRoute, getTableMockFunction());
+
+  const props = createProps();
+  render(<TableSelector {...props} />, { useRedux: true, store });
+
+  await waitFor(
+    () => {
+      expect(
+        screen.queryByRole('alert'),
+      ).not.toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
 });

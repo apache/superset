@@ -29,6 +29,7 @@ import { t } from '@apache-superset/core/translation';
 import { SupersetError } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { CertifiedBadge, Select } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/components';
 import { DatabaseSelector, ErrorMessageWithStackTrace } from 'src/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { DatabaseObject } from 'src/components/DatabaseSelector/types';
@@ -335,10 +336,22 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       />
     );
 
+    const hasMoreWarning = data?.hasMore && (
+      <Alert
+        type="warning"
+        showIcon
+        className="table-length"
+        message={t(
+          'Some tables are not shown. Refine your search or try increasing the API page limit.',
+        )}
+      />
+    );
+
     return (
       <>
         <StyledFormLabel>{label}</StyledFormLabel>
         {renderSelectRow(select, refreshLabel)}
+        {hasMoreWarning}
       </>
     );
   }
