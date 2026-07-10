@@ -272,16 +272,15 @@ def _find_dataset_by_id_or_uuid(dataset_id: int | str | None) -> Any | None:
     Shared by callers that resolve a dataset from the ``dataset_id | str | None``
     shape accepted throughout this module; each caller decides its own behavior
     for a missing dataset_id or dataset (raise vs. default vs. None).
+
+    Delegates to ``DatasetDAO.find_by_id_or_uuid`` (also used by the dataset
+    API) instead of reimplementing the id/uuid dispatch here.
     """
     if not dataset_id:
         return None
     from superset.daos.dataset import DatasetDAO
 
-    if isinstance(dataset_id, int) or (
-        isinstance(dataset_id, str) and dataset_id.isdigit()
-    ):
-        return DatasetDAO.find_by_id(int(dataset_id))
-    return DatasetDAO.find_by_id(dataset_id, id_column="uuid")
+    return DatasetDAO.find_by_id_or_uuid(str(dataset_id))
 
 
 def is_column_truly_temporal(
@@ -735,10 +734,16 @@ def _ensure_temporal_adhoc_filter(form_data: Dict[str, Any], column: str) -> Non
 
 def _resolve_default_x_axis(
     config: XYChartConfig, dataset_id: int | str | None
-) -> XYChartConfig:
-    """Resolve x-axis to the dataset's main_dttm_col when x is omitted."""
+) -> tuple[XYChartConfig, Any | None]:
+    """Resolve x-axis to the dataset's main_dttm_col when x is omitted.
+
+    Returns the (possibly updated) config alongside the dataset fetched while
+    resolving the default, if any, so callers can reuse it (e.g. passing it
+    into is_column_truly_temporal) instead of re-querying DatasetDAO for the
+    same dataset_id.
+    """
     if config.x is not None:
-        return config
+        return config, None
 
     if not dataset_id:
         raise ValueError("x-axis column is required when dataset_id is not provided")
@@ -753,7 +758,10 @@ def _resolve_default_x_axis(
         )
     from superset.mcp_service.chart.schemas import ColumnRef
 
-    return config.model_copy(update={"x": ColumnRef(name=dataset.main_dttm_col)})
+    return (
+        config.model_copy(update={"x": ColumnRef(name=dataset.main_dttm_col)}),
+        dataset,
+    )
 
 
 def _add_xy_limits(form_data: Dict[str, Any], config: XYChartConfig) -> None:
@@ -771,14 +779,17 @@ def map_xy_config(  # noqa: C901
         raise ValueError("XY chart must have at least one Y-axis metric")
 
     # Resolve x-axis default: use dataset's main_dttm_col when x is omitted.
-    config = _resolve_default_x_axis(config, dataset_id)
+    config, resolved_dataset = _resolve_default_x_axis(config, dataset_id)
 
     # ``_resolve_default_x_axis`` guarantees x is set.
     if config.x is None or config.x.name is None:
         raise ValueError("XY chart requires an x-axis with a resolvable column name")
 
-    # Check if x-axis column is truly temporal (based on actual SQL type)
-    x_is_temporal = is_column_truly_temporal(config.x.name, dataset_id)
+    # Check if x-axis column is truly temporal (based on actual SQL type).
+    # Reuse the dataset fetched above (if any) to avoid a second DAO lookup.
+    x_is_temporal = is_column_truly_temporal(
+        config.x.name, dataset_id, dataset=resolved_dataset
+    )
 
     # Map chart kind to viz_type - always use the same viz types
     # The temporal vs non-temporal handling is done via form_data configuration

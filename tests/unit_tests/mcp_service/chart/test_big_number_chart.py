@@ -359,9 +359,9 @@ class TestMapBigNumberConfig:
         assert "time_grain_sqla" not in form_data
         assert "start_y_axis_at_zero" not in form_data
 
-    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id_or_uuid")
     def test_total_binds_dataset_main_dttm_col_for_dashboard_filters(
-        self, mock_find_by_id: MagicMock
+        self, mock_find_by_id_or_uuid: MagicMock
     ) -> None:
         """Big Number Total falls back to dataset.main_dttm_col so dashboard
         time-range filters have a column to bind to (regression test for
@@ -369,7 +369,7 @@ class TestMapBigNumberConfig:
         mock_dataset = MagicMock()
         mock_dataset.main_dttm_col = "order_date"
         mock_dataset.columns = []
-        mock_find_by_id.return_value = mock_dataset
+        mock_find_by_id_or_uuid.return_value = mock_dataset
 
         config = BigNumberChartConfig(
             chart_type="big_number",
@@ -382,27 +382,50 @@ class TestMapBigNumberConfig:
         assert len(form_data["adhoc_filters"]) == 1
         assert form_data["adhoc_filters"][0]["subject"] == "order_date"
         assert form_data["adhoc_filters"][0]["operator"] == "TEMPORAL_RANGE"
-        assert all(c.args == (42,) for c in mock_find_by_id.call_args_list)
+        assert all(c.args == ("42",) for c in mock_find_by_id_or_uuid.call_args_list)
         # Regression test: the main_dttm_col fallback and the
         # is_column_truly_temporal guard must share a single dataset lookup
         # rather than each re-querying DatasetDAO for the same dataset_id.
-        mock_find_by_id.assert_called_once_with(42)
+        mock_find_by_id_or_uuid.assert_called_once_with("42")
 
-    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id_or_uuid")
     def test_total_no_dataset_main_dttm_col_skips_temporal_filter(
-        self, mock_find_by_id: MagicMock
+        self, mock_find_by_id_or_uuid: MagicMock
     ) -> None:
         """When the dataset has no temporal column, no TEMPORAL_RANGE filter
         can be added — there's nothing for a dashboard filter to bind to."""
         mock_dataset = MagicMock()
         mock_dataset.main_dttm_col = None
-        mock_find_by_id.return_value = mock_dataset
+        mock_find_by_id_or_uuid.return_value = mock_dataset
 
         config = BigNumberChartConfig(
             chart_type="big_number",
             metric=ColumnRef(name="revenue", aggregate="SUM"),
         )
         form_data = map_big_number_config(config, dataset_id=42)
+
+        assert "adhoc_filters" not in form_data
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_total_non_temporal_column_skips_temporal_filter(
+        self, mock_is_temporal: MagicMock
+    ) -> None:
+        """Mirrors TestMapXYConfig.test_non_temporal_x_axis_no_temporal_filter:
+        when is_column_truly_temporal says an explicit temporal_column isn't
+        really temporal, Big Number Total must not bind a TEMPORAL_RANGE
+        filter to it either.
+        test_total_binds_dataset_main_dttm_col_for_dashboard_filters only
+        exercises the "column not found -> default True" branch (empty
+        columns list); this covers the "found a non-temporal column -> False"
+        branch that actually suppresses the filter."""
+        mock_is_temporal.return_value = False
+
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            temporal_column="year",
+        )
+        form_data = map_big_number_config(config)
 
         assert "adhoc_filters" not in form_data
 
@@ -503,9 +526,9 @@ class TestMapConfigToFormDataBigNumber:
         form_data = map_config_to_form_data(config)
         assert form_data["viz_type"] == "big_number"
 
-    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id_or_uuid")
     def test_dispatch_forwards_dataset_id_for_dashboard_filter_binding(
-        self, mock_find_by_id: MagicMock
+        self, mock_find_by_id_or_uuid: MagicMock
     ) -> None:
         """Regression test for BigNumberChartPlugin.to_form_data() dropping
         dataset_id: the dispatcher must forward it through so the dataset's
@@ -513,7 +536,7 @@ class TestMapConfigToFormDataBigNumber:
         mock_dataset = MagicMock()
         mock_dataset.main_dttm_col = "order_date"
         mock_dataset.columns = []
-        mock_find_by_id.return_value = mock_dataset
+        mock_find_by_id_or_uuid.return_value = mock_dataset
 
         config = BigNumberChartConfig(
             chart_type="big_number",
