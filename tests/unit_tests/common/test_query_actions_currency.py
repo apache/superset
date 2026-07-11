@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -22,6 +23,7 @@ import pytest
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_actions import _detect_currency, _get_drill_detail
 from superset.common.query_object import QueryObject
+from superset.utils.core import QueryObjectFilterClause
 
 
 @pytest.fixture
@@ -312,7 +314,11 @@ def test_get_drill_detail_preserves_applied_filters(
     behavior is not reproduced in this code path); a red run means they are
     dropped.
     """
-    applied_filter = {"col": "region", "op": "==", "val": "USA"}
+    applied_filter: QueryObjectFilterClause = {
+        "col": "region",
+        "op": "==",
+        "val": "USA",
+    }
 
     query_obj = QueryObject(
         columns=["region", "sales"],
@@ -334,7 +340,7 @@ def test_get_drill_detail_preserves_applied_filters(
 
     captured: dict[str, QueryObject] = {}
 
-    def _capture(_ctx: MagicMock, obj: QueryObject, _force: bool) -> dict:
+    def _capture(_ctx: MagicMock, obj: QueryObject, _force: bool) -> dict[str, Any]:
         captured["query_obj"] = obj
         return {}
 
