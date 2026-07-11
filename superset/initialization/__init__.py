@@ -20,6 +20,7 @@ import contextlib
 import logging
 import os
 import sys
+import warnings
 from typing import Any, Callable, TYPE_CHECKING
 
 import wtforms_json
@@ -1301,6 +1302,18 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             )
 
     def configure_logging(self) -> None:
+        # sqlalchemy-redshift's own __init__ still imports pkg_resources (see
+        # superset/db_engine_specs/redshift.py for the full rationale). This
+        # filter used to live in DefaultLoggingConfigurator.configure_logging(),
+        # but LOGGING_CONFIGURATOR is a deployment-replaceable hook -- any
+        # custom configurator skipped it entirely and still hit the warning.
+        # Registering it here, before LOGGING_CONFIGURATOR runs, guarantees
+        # it's installed regardless of which configurator is configured.
+        warnings.filterwarnings(
+            "ignore",
+            message=r"pkg_resources is deprecated as an API",
+        )
+
         self.config["LOGGING_CONFIGURATOR"].configure_logging(
             self.config, self.superset_app.debug
         )

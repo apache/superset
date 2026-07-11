@@ -129,9 +129,9 @@ def test_suppress_third_party_warnings():
         and isinstance(f[3], re.Pattern)
         and f[3].pattern == r"marshmallow\..*"
     ]
-    assert len(marshmallow_filters) >= 1, (
-        "Expected marshmallow DeprecationWarning filter"
-    )
+    assert (
+        len(marshmallow_filters) >= 1
+    ), "Expected marshmallow DeprecationWarning filter"
 
     # Verify google FutureWarning filter is installed
     google_filters = [
@@ -143,6 +143,18 @@ def test_suppress_third_party_warnings():
         and f[3].pattern == r"google\..*"
     ]
     assert len(google_filters) >= 1, "Expected google FutureWarning filter"
+
+    # Verify pkg_resources UserWarning filter is installed (sqlalchemy-redshift
+    # triggers this via a late import on Redshift-backed connections; see
+    # superset/db_engine_specs/redshift.py for the full rationale)
+    pkg_resources_filters = [
+        f
+        for f in warnings.filters
+        if f[0] == "ignore"
+        and isinstance(f[1], re.Pattern)
+        and f[1].pattern == r"pkg_resources is deprecated as an API"
+    ]
+    assert len(pkg_resources_filters) >= 1, "Expected pkg_resources warning filter"
 
 
 def test_create_event_store_returns_none_when_redis_store_fails():

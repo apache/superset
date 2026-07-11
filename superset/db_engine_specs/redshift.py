@@ -48,13 +48,13 @@ from superset.utils import json
 # here, it would silently stop matching.
 #
 # The same filter is also registered unconditionally in
-# DefaultLoggingConfigurator.configure_logging() (superset/utils/
-# logging_configurator.py), which runs before anything else in
-# SupersetAppInitializer.init_app(). That's now the primary suppression
-# point for the web app and celery workers; this one remains as a fallback
-# for standalone scripts that import this module without going through
-# create_app() (filterwarnings() calls are idempotent, so registering it
-# twice is harmless).
+# SupersetAppInitializer.configure_logging() (superset/initialization/
+# __init__.py), before it dispatches to the (deployment-replaceable)
+# LOGGING_CONFIGURATOR. That's now the primary suppression point for the
+# web app and celery workers; this one remains as a fallback for standalone
+# scripts that import this module without going through create_app()
+# (filterwarnings() calls are idempotent, so registering it twice is
+# harmless).
 warnings.filterwarnings(
     "ignore",
     message=r"pkg_resources is deprecated as an API",
