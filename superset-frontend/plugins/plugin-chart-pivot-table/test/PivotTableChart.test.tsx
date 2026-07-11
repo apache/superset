@@ -363,7 +363,7 @@ test('emits drill filters from formatted column headers', () => {
       {
         col: adhocColumn,
         op: 'IN',
-        val: [String(timestamp)],
+        val: [timestamp],
       },
     ],
   });

@@ -3659,7 +3659,7 @@ def test_temporal_epoch_string_filter_is_coerced_for_datetime_bigquery(
 
 
 def test_temporal_non_numeric_string_filter_is_not_coerced() -> None:
-    """Only digit strings (JS epoch ms) are coerced — anything else passes through."""
+    """Non-integer temporal strings pass through without epoch coercion."""
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
     from superset.models.helpers import ExploreMixin
 
