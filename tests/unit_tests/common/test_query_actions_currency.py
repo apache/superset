@@ -19,7 +19,9 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from superset.common.query_actions import _detect_currency
+from superset.common.chart_data import ChartDataResultType
+from superset.common.query_actions import _detect_currency, _get_drill_detail
+from superset.common.query_object import QueryObject
 
 
 @pytest.fixture
@@ -288,3 +290,60 @@ def test_detect_currency_column_config_no_currency_column_returns_none(
     )
 
     assert result is None
+
+
+# Tests for drill-to-detail filter propagation (issue #28562)
+
+
+@patch("superset.common.query_actions._get_full")
+def test_get_drill_detail_preserves_applied_filters(
+    mock_get_full: MagicMock,
+) -> None:
+    """
+    Regression for #28562: 'Drill to Detail by' must carry a chart's applied
+    filters (e.g. the dashboard's native filters) into the drill-to-detail
+    samples query. The drill-detail action rewrites columns/metrics/orderby but
+    must leave ``QueryObject.filter`` untouched so the underlying rows stay
+    scoped to the dashboard's filter selections.
+
+    This exercises the backend drill-detail transformation directly and asserts
+    the incoming filters survive onto the query object that is ultimately
+    executed. A green run means the backend honors the filters (the reported
+    behavior is not reproduced in this code path); a red run means they are
+    dropped.
+    """
+    applied_filter = {"col": "region", "op": "==", "val": "USA"}
+
+    query_obj = QueryObject(
+        columns=["region", "sales"],
+        metrics=["count"],
+        filters=[applied_filter],
+    )
+
+    col_region = MagicMock()
+    col_region.column_name = "region"
+    col_sales = MagicMock()
+    col_sales.column_name = "sales"
+
+    datasource = MagicMock()
+    datasource.columns = [col_region, col_sales]
+
+    query_context = MagicMock()
+    query_context.datasource = datasource
+    query_context.result_type = ChartDataResultType.DRILL_DETAIL
+
+    captured: dict[str, QueryObject] = {}
+
+    def _capture(_ctx: MagicMock, obj: QueryObject, _force: bool) -> dict:
+        captured["query_obj"] = obj
+        return {}
+
+    mock_get_full.side_effect = _capture
+
+    _get_drill_detail(query_context, query_obj)
+
+    executed = captured["query_obj"]
+    assert applied_filter in executed.filter, (
+        "Drill-to-detail dropped the chart's applied filters; the samples query "
+        "would return unfiltered rows (issue #28562)."
+    )
