@@ -469,6 +469,58 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         assert all("birth" in table_name.lower() for table_name in received_tables)
         assert len(result) >= 1  # At least birth_names should be returned
 
+    @pytest.mark.usefixtures("load_birth_names_data")
+    def test_rls_tables_related_api_returns_all_masked_matches(self):
+        """
+        Regression for #29707: the RLS dataset selector's async search must
+        return *every* dataset whose name matches the typed mask, not a
+        truncated subset. The reporter had two "birth" datasets (birth_names
+        and birth_france_by_region) and searching "birth" showed an
+        incomplete list. This exercises the backend ``related/tables``
+        endpoint that feeds that selector to prove whether the search-by-mask
+        lookup is the culprit.
+        """
+        self.login(ADMIN_USERNAME)
+
+        birth_names = self.get_table(name="birth_names")
+        # Create a sibling dataset whose name also contains the "birth" mask,
+        # mirroring the two-dataset scenario from the issue.
+        sibling = SqlaTable(
+            table_name="birth_france_by_region",
+            database=birth_names.database,
+            schema=birth_names.schema,
+        )
+        db.session.add(sibling)
+        db.session.commit()
+
+        try:
+            # Datasets in the metadata DB that match the "birth" mask.
+            expected = {
+                t.name
+                for t in db.session.query(SqlaTable)
+                .filter(SqlaTable.table_name.ilike("%birth%"))
+                .all()
+            }
+            # Both datasets must be present in the ground truth for the
+            # assertion below to be meaningful.
+            bare_names = {name.split(".")[-1] for name in expected}
+            assert "birth_names" in bare_names
+            assert "birth_france_by_region" in bare_names
+
+            params = rison.dumps({"filter": "birth", "page": 0, "page_size": 100})
+            rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            received = {table["text"] for table in data["result"]}
+
+            # The masked search must return *all* matching datasets, and the
+            # advertised count must not under-report them.
+            assert received == expected
+            assert data["count"] == len(expected)
+        finally:
+            db.session.delete(sibling)
+            db.session.commit()
+
     def test_rls_tables_related_api_with_filter_no_matches(self):
         self.login(ADMIN_USERNAME)
         # Test with filter that should match nothing
