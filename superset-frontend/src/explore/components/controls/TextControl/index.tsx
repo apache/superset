@@ -27,6 +27,7 @@ type InputValueType = string | number;
 export interface TextControlProps<T extends InputValueType = InputValueType> {
   name?: string;
   label?: string;
+  ariaLabel?: string;
   description?: string;
   disabled?: boolean;
   isFloat?: boolean;
@@ -48,6 +49,7 @@ const safeStringify = (value?: InputValueType | null) =>
 function TextControl<T extends InputValueType = InputValueType>({
   name,
   label,
+  ariaLabel,
   description,
   disabled,
   isFloat,
@@ -143,7 +145,7 @@ function TextControl<T extends InputValueType = InputValueType>({
         onFocus={onFocus}
         value={displayValue}
         disabled={disabled}
-        aria-label={label}
+        aria-label={ariaLabel ?? label}
       />
     </div>
   );
