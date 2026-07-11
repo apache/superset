@@ -3672,3 +3672,52 @@ def test_temporal_non_numeric_string_filter_is_not_coerced() -> None:
     )
 
     assert value == "2025-12-20"
+
+
+def test_simple_metric_quotes_column_requiring_quoting(database: Database) -> None:
+    """
+    Regression for #30637: a SIMPLE adhoc metric that aggregates a column whose
+    name requires identifier quoting (e.g. it contains a space) must render the
+    column with the dialect's quote characters, otherwise the emitted SQL is
+    invalid for dialects that need quoting.
+
+    This exercises the metric compilation path named in the issue
+    (``adhoc_metric_to_sqla`` -> ``TableColumn.get_sqla_col`` -> ``column()``),
+    asserting the identifier is quoted rather than emitted bare.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.utils.core import AdhocMetricExpressionType
+
+    column_name = "Amount HT"
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="test_table",
+        columns=[TableColumn(column_name=column_name, type="INTEGER")],
+    )
+    columns_by_name = {col.column_name: col for col in table.columns}
+
+    metric: AdhocMetric = {
+        "expressionType": AdhocMetricExpressionType.SIMPLE,
+        "aggregate": "SUM",
+        "column": {"column_name": column_name},
+        "label": "total",
+    }
+
+    sqla_metric = table.adhoc_metric_to_sqla(metric, columns_by_name)
+
+    with database.get_sqla_engine() as engine:
+        dialect = engine.dialect
+
+    rendered = str(
+        sqla_metric.compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+    )
+
+    # The spaced identifier must be quoted (double quotes for the SQLite/ANSI
+    # dialect used here) and must never appear bare.
+    assert f'"{column_name}"' in rendered, (
+        f"Expected quoted identifier in rendered metric SQL, got: {rendered}"
+    )
+    assert f"SUM({column_name})" not in rendered, (
+        f"Column requiring quoting was emitted unquoted: {rendered}"
+    )
