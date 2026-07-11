@@ -82,7 +82,7 @@
     "prune": "rm -rf ./{packages,plugins}/*/{node_modules,lib,esm,tsconfig.tsbuildinfo,package-lock.json} ./.temp_cache",
     "storybook": "cross-env NODE_ENV=development BABEL_ENV=development storybook dev -p 6006",
     "test-storybook": "test-storybook",
-    "test-storybook:ci": "concurrently --kill-others --success first --names \"SB,TEST\" --prefix-colors \"magenta,blue\" \"npx http-server storybook-static --port 6006 --silent\" \"npx wait-on tcp:127.0.0.1:6006 && npm run test-storybook -- --maxWorkers=2\"",
+    "test-storybook:ci": "concurrently --kill-others --success first --names \"SB,TEST\" --prefix-colors \"magenta,blue\" \"python3 -m http.server 6006 --directory storybook-static\" \"npx wait-on tcp:127.0.0.1:6006 && npm run test-storybook -- --maxWorkers=2\"",
     "tdd": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=8192\" jest --watch",
     "test": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=8192\" jest --max-workers=80% --silent",
     "test-loud": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=8192\" jest --max-workers=80%",
@@ -331,7 +331,6 @@
     "fork-ts-checker-webpack-plugin": "^9.1.0",
     "history": "^5.3.0",
     "html-webpack-plugin": "^5.6.7",
-    "http-server": "^14.1.1",
     "imports-loader": "^5.0.0",
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1",
@@ -371,7 +370,6 @@
     "webpack-cli": "^7.0.3",
     "webpack-dev-server": "^5.2.5",
     "webpack-manifest-plugin": "^6.0.1",
-    "webpack-sources": "^3.5.0",
     "webpack-visualizer-plugin2": "^2.0.0"
   },
   "peerDependencies": {
