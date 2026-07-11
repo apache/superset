@@ -461,8 +461,10 @@ export default function PivotTableChart(props: PivotTableProps) {
                       col,
                       op: 'IS NULL',
                     };
-                  const formatter =
-                    typeof col === 'string' ? dateFormatters[col] : undefined;
+                  // Resolve the formatter by the header key/label so adhoc
+                  // temporal groupby columns (where `col` is an object, not a
+                  // string) still get epoch coercion, matching physical columns.
+                  const formatter = dateFormatters[key];
                   return {
                     col,
                     op: 'IN',
@@ -538,8 +540,11 @@ export default function PivotTableChart(props: PivotTableProps) {
                         col,
                         op: 'IS NULL' as const,
                       };
-                    const formatter =
-                      typeof col === 'string' ? dateFormatters[col] : undefined;
+                    // Resolve the formatter by the header key/label so adhoc
+                    // temporal groupby columns (where `col` is an object, not a
+                    // string) still get epoch coercion, matching physical
+                    // columns.
+                    const formatter = dateFormatters[key];
                     return {
                       col,
                       op: 'IN' as const,

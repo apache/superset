@@ -3683,6 +3683,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     target_native_type=col_type,
                     is_list_target=is_list_target,
                     db_engine_spec=db_engine_spec,
+                    db_extra=self.db_extra,
                 )
 
                 # Get ADVANCED_DATA_TYPES from config when needed
