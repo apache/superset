@@ -2005,6 +2005,11 @@ class SqlaTable(
         columns = []
         for col in new_columns:
             old_column = old_columns_by_name.pop(col["column_name"], None)
+            # Some engine specs (e.g. Trino, when expanding nested `ROW` columns)
+            # provide an explicit SQL expression that must be used to select the
+            # physical column, since simply quoting the dotted `column_name` as a
+            # single identifier is not valid syntax for these nested fields.
+            expression = col.get("expression") or ""
             if not old_column:
                 results.added.append(col["column_name"])
                 new_column = TableColumn(
@@ -2017,12 +2022,14 @@ class SqlaTable(
                 if col.get("comment"):
                     new_column.description = col["comment"]
                 db_engine_spec.alter_new_orm_column(new_column)
+                if expression:
+                    new_column.expression = expression
             else:
                 new_column = old_column
                 if new_column.type != col["type"]:
                     results.modified.append(col["column_name"])
                 new_column.type = col["type"]
-                new_column.expression = ""
+                new_column.expression = expression
                 # Set description from comment field if available
                 if col.get("comment"):
                     new_column.description = col["comment"]

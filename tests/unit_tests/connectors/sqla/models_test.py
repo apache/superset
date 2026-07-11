@@ -542,6 +542,72 @@ def test_fetch_metadata_with_comment_field_existing_columns(
     assert columns_by_name["name"].description == "Updated name description"
 
 
+def test_fetch_metadata_sets_expression_for_expanded_nested_columns(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that fetch_metadata uses the `expression` hint provided by the db engine
+    spec (e.g. Trino's expansion of nested `ROW` columns via `expand_rows`) to set
+    the physical `TableColumn.expression`.
+
+    Without this, a nested column like `metadata.uuid` would have no expression,
+    causing SQLAlchemy to render the whole dotted `column_name` as a single quoted
+    identifier (`"metadata.uuid"`), which Trino rejects, instead of the correct
+    per-segment quoting (`"metadata"."uuid"`).
+
+    See: https://github.com/apache/superset/issues/27034
+    """
+    # Mock database
+    database = mocker.MagicMock()
+    database.get_metrics.return_value = []
+
+    # Mock db_engine_spec
+    mock_db_engine_spec = mocker.MagicMock()
+    mock_db_engine_spec.alter_new_orm_column = mocker.MagicMock()
+    database.db_engine_spec = mock_db_engine_spec
+
+    # Create table with a pre-existing (already synced) expanded column, to also
+    # cover the "sync columns from source" (re-fetch) code path
+    table = SqlaTable(table_name="test_table_nested", database=database)
+    table.id = 1
+
+    existing_col = TableColumn(
+        column_name="metadata.uuid",
+        type="VARCHAR",
+        table=table,
+        expression="",
+    )
+    table.columns = [existing_col]
+
+    mock_columns = [
+        {
+            "column_name": "metadata",
+            "type": "ROW",
+        },
+        {
+            "column_name": "metadata.uuid",
+            "type": "VARCHAR",
+            "expression": '"metadata"."uuid"',
+            "query_as": '"metadata"."uuid" AS "metadata.uuid"',
+        },
+    ]
+
+    mock_session = mocker.patch("superset.connectors.sqla.models.db.session")
+    mock_session.query.return_value.filter.return_value.all.return_value = [
+        existing_col
+    ]
+    mocker.patch.object(table, "external_metadata", return_value=mock_columns)
+    mocker.patch(
+        "superset.connectors.sqla.models.config", {"SQLA_TABLE_MUTATOR": lambda x: None}
+    )
+
+    table.fetch_metadata()
+
+    columns_by_name = {col.column_name: col for col in table.columns}
+    assert not columns_by_name["metadata"].expression
+    assert columns_by_name["metadata.uuid"].expression == '"metadata"."uuid"'
+
+
 def test_fetch_metadata_mixed_comment_scenarios(mocker: MockerFixture) -> None:
     """Test fetch_metadata with mix of new/existing columns and with/without
     comments
