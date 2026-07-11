@@ -43,7 +43,7 @@ dependencies = [
     # ``google-auth`` 2.53+ dropped it, so Superset must declare it
     # explicitly to keep fresh ``pip install apache-superset`` working
     # without the ``base.txt`` lock file (#40962).
-    "cachetools>=6.2.1, <7",
+    "cachetools>=7.1.4, <8",
     "celery>=5.6.3, <6.0.0",
     "click>=8.4.0",
     "click-option-group",
