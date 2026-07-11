@@ -149,16 +149,7 @@ export const ModalTrigger = forwardRef(
           draggableConfig={draggableConfig}
           destroyOnHidden={destroyOnHidden}
         >
-          <div
-            style={{ display: 'contents' }}
-            onKeyDown={e => {
-              if (MENU_NAVIGATION_KEYS.has(e.key)) {
-                e.stopPropagation();
-              }
-            }}
-          >
-            {modalBody}
-          </div>
+          {modalBody}
         </Modal>
       </>
     );
