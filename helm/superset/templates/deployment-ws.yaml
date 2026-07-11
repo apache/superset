@@ -44,6 +44,9 @@ spec:
         {{- if .Values.supersetWebsockets.podAnnotations }}
           {{- toYaml .Values.supersetWebsockets.podAnnotations | nindent 8 }}
         {{- end }}
+        {{- with .Values.globalPodAnnotations }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
       labels:
         {{- include "supersetWebsockets.selectorLabels" . | nindent 8 }}
         {{- if .Values.supersetWebsockets.podLabels }}

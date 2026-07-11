@@ -16,30 +16,11 @@
 # under the License.
 """Session-level listeners that drive ``version_changes`` writes.
 
-Two flush events cooperate, plus two post-commit / post-rollback
-cleanups:
-
-- ``before_flush``: for each versioned entity in ``session.dirty``,
-  reads the pre-save scalar state from the DB via raw SQL inside
-  ``session.no_autoflush`` (same idiom as the baseline listener, not
-  Continuum's internal ``units_of_work`` which is a private API), reads
-  the post-save state from the in-memory ORM object, calls the diff
-  engine, and buffers the resulting :class:`ChangeRecord` list on
-  ``session.info``. This must run before the flush because after the
-  flush the DB already reflects the post-state; we can't recover the
-  pre-state from it.
-
-- ``after_flush``: drains the buffer, resolves the current Continuum
-  transaction id via ``versioning_manager.units_of_work``, and bulk-
-  inserts one ``version_changes`` row per record with a monotonic
-  ``sequence`` number. Records accumulated across multiple before_flush
-  calls within one transaction share the same ``transaction_id`` and
-  contiguous sequence numbers.
-
-- ``after_commit`` / ``after_rollback``: clean up session-scoped
-  state (processed-tx set, ``action_kind`` / ``action_meta`` keys, and
-  the pending-records buffer) so a long-lived session doesn't carry any
-  of it into the next transaction.
+The listeners retain each entity's first pre-flush state, force the final
+flush from ``before_commit``, and write one net initial-to-final semantic
+projection for the Continuum transaction. Completion of the outer transaction
+clears all session-scoped state so long-lived sessions cannot leak versioning
+intent.
 
 Scope:
   - Slice, Dashboard, SqlaTable **scalar fields** (via the cached
@@ -51,8 +32,8 @@ Scope:
 Child-collection diffs (dataset ``TableColumn`` / ``SqlMetric``,
 dashboard ``dashboard_slices``) read the pre- and post-state from
 Continuum shadow tables via the helpers in
-:mod:`superset.versioning.changes.shadow_queries`, executed in
-``after_flush`` once Continuum has written its tx-N rows.
+:mod:`superset.versioning.changes.shadow_queries`, executed during commit
+finalization after the explicit final flush has written Continuum's tx-N rows.
 
 ``session.new`` entities are not processed in this listener:
 operation_type=0 transactions (baseline capture and first-save INSERTs)
@@ -67,7 +48,7 @@ from typing import Any
 import sqlalchemy as sa
 from sqlalchemy import event
 from sqlalchemy.exc import OperationalError, ProgrammingError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, SessionTransaction
 
 from superset.versioning.changes.shadow_queries import (
     _dashboard_child_records_for_tx_from_shadows,
@@ -75,7 +56,8 @@ from superset.versioning.changes.shadow_queries import (
 )
 from superset.versioning.changes.state import (
     bulk_insert_records,
-    compute_records_for_entity,
+    capture_initial_state,
+    compute_records_from_state,
 )
 from superset.versioning.changes.table import ENTITY_KIND_BY_CLASS_NAME
 from superset.versioning.diff import (
@@ -86,20 +68,9 @@ from superset.versioning.diff import (
 logger = logging.getLogger(__name__)
 
 
-# Key under which the pending-records buffer is stored on ``session.info``.
-# Using ``session.info`` (SQLAlchemy's user-data dict) avoids the need
-# for a module-level WeakKeyDictionary and keeps buffers naturally scoped
-# to the session's lifetime.
-_BUFFER_KEY = "_version_changes_pending"
-
-# Key for the set of Continuum transaction ids whose change records
-# have already been written in this session. ``after_flush`` can fire
-# more than once for a single transaction (e.g. autoflush triggered by
-# a mid-commit query), and our child-diff path reads snapshot tables
-# that don't care about the buffer state — without this marker we'd
-# re-insert the same child records on the second flush and hit the
-# UNIQUE(transaction_id, entity_kind, entity_id, sequence) constraint.
-_PROCESSED_TXS_KEY = "_version_changes_processed_txs"
+# Keys for transaction-scoped state stored on ``session.info``.
+_INITIAL_STATES_KEY = "_version_changes_initial_states"
+_FINALIZING_KEY = "_version_changes_finalizing"
 
 # Key on ``session.info`` that commands set to declare the high-level
 # action that produced the current transaction. Read once per flush by
@@ -112,8 +83,8 @@ _PROCESSED_TXS_KEY = "_version_changes_processed_txs"
 #     db.session.info[ACTION_KIND_KEY] = ACTION_KIND_RESTORE
 #     db.session.commit()
 #
-# The listener pops the key after stamping, and ``after_commit`` /
-# ``after_rollback`` cleanup pop it again as a safety net, so a
+# The listener pops the key after stamping, and outer-transaction cleanup pops
+# it again as a safety net, so a
 # long-lived session can't accidentally carry the value into the next
 # transaction.
 ACTION_KIND_KEY = "_versioning_action_kind"
@@ -199,29 +170,59 @@ def build_action_headline(
 _REGISTERED_SENTINEL = "_versioning_change_listener_registered"
 
 
-def _process_dirty_entity_into_buffer(
+def _capture_dirty_entity_initial_state(
     session: Session,
     obj: Any,
-    buffer: dict[tuple[str, int], list[ChangeRecord]],
+    initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]],
 ) -> None:
-    """Compute scalar change records for one dirty entity + append to buffer."""
+    """Retain one dirty entity's first database state for this transaction."""
     entity_kind = ENTITY_KIND_BY_CLASS_NAME.get(type(obj).__name__)
     if entity_kind is None:
         return
     entity_id = getattr(obj, "id", None)
     if entity_id is None:
         return
-    try:
-        records = compute_records_for_entity(session, obj)
-    except Exception:  # pylint: disable=broad-except
-        logger.exception(
-            "version_changes: diff failed for %s id=%s",
-            type(obj).__name__,
-            entity_id,
-        )
+    key = (entity_kind, entity_id)
+    if key in initial_states:
         return
-    if records:
-        buffer.setdefault((entity_kind, entity_id), []).extend(records)
+    if (pre_state := capture_initial_state(session, obj)) is not None:
+        initial_states[key] = (obj, pre_state)
+
+
+def _build_scalar_buffer(
+    initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]],
+) -> dict[tuple[str, int], list[ChangeRecord]]:
+    """Build net scalar records from retained initial and final entity states."""
+    buffer: dict[tuple[str, int], list[ChangeRecord]] = {}
+    for key, (obj, pre_state) in initial_states.items():
+        try:
+            records = compute_records_from_state(obj, pre_state)
+        except Exception:  # pylint: disable=broad-except
+            logger.exception(
+                "version_changes: final diff failed for %s id=%s",
+                type(obj).__name__,
+                key[1],
+            )
+            continue
+        if records:
+            buffer[key] = records
+    return buffer
+
+
+def _reset_transaction_state(session: Session) -> None:
+    """Discard versioning intent and retained state after a terminal event."""
+    session.info.pop(ACTION_KIND_KEY, None)
+    session.info.pop(ACTION_META_KEY, None)
+    session.info.pop(_INITIAL_STATES_KEY, None)
+    session.info.pop(_FINALIZING_KEY, None)
+
+
+def _reset_after_outer_transaction(
+    session: Session, transaction: SessionTransaction
+) -> None:
+    """Clear retained state only when the outer transaction has ended."""
+    if transaction.parent is None:
+        _reset_transaction_state(session)
 
 
 def _append_child_records_to_buffer(
@@ -231,8 +232,8 @@ def _append_child_records_to_buffer(
 ) -> None:
     """Compute dataset + dashboard child-collection records + append to buffer.
 
-    Runs in ``after_flush`` so the shadow tables already have the
-    current-tx rows. Reads from Continuum shadow tables
+    Runs during commit finalization after the explicit final flush, so the
+    shadow tables already have the current-tx rows. Reads from Continuum shadow tables
     (``table_columns_version`` / ``sql_metrics_version`` /
     ``dashboard_slices_version`` / ``slices_version``).
     """
@@ -280,17 +281,10 @@ def _inject_action_meta_record(
     """Pop ``ACTION_META_KEY`` and prepend its synthetic headline record
     to the owning entity's buffer (the ``__meta__`` record convention).
 
-    No-op when no command set the key — and, critically, no-op WITHOUT
-    popping when the buffer is empty: the buffer-empty short-circuit in
-    ``flush_change_records`` exists so a multi-flush transaction can
-    deliver its records on a later firing, and a headline-only buffer
-    would defeat it (the first firing would persist just the headline,
-    mark the tx processed, and the later flush's real records would be
-    silently dropped). Leaving the key in place parks the headline until
-    the record-bearing firing. Prepended (not appended) so the headline
-    gets ``sequence`` 0 and renders first. Malformed payloads are logged
-    and dropped — a headline is descriptive enrichment, never worth
-    failing the user's save over.
+    No-op when no command set the key and, critically, does not pop when the
+    final buffer is empty. Prepended rather than appended so the headline gets
+    ``sequence`` 0 and renders first. Malformed payloads are logged and dropped:
+    a headline is descriptive enrichment, never worth failing the user's save.
     """
     if not buffer:
         return
@@ -379,7 +373,7 @@ def _persist_buffered_records(
 
 
 def register_change_record_listener() -> None:  # noqa: C901
-    """Attach the before_flush + after_flush listeners.
+    """Attach transaction-scoped version-change listeners.
 
     Registered from :class:`superset.initialization.SupersetAppInitializer`
     (``init_versioning``) alongside the baseline, dataset-snapshot,
@@ -398,110 +392,42 @@ def register_change_record_listener() -> None:  # noqa: C901
 
     versioned_classes: tuple[type, ...] = (Dashboard, Slice, SqlaTable)
 
-    def compute_change_records(
+    def capture_initial_states(
         session: Session, _flush_context: Any, _instances: Any
     ) -> None:
-        # session.info persists across before_flush/after_flush within
-        # a single transaction. The buffer is keyed on
-        # ``(entity_kind, entity_id)`` so scalar records captured here
-        # and child records captured in after_flush merge
-        # under the same entity without duplication.
-        buffer: dict[tuple[str, int], list[ChangeRecord]] = session.info.setdefault(
-            _BUFFER_KEY, {}
+        initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]] = (
+            session.info.setdefault(_INITIAL_STATES_KEY, {})
         )
         for obj in list(session.dirty):
             if isinstance(obj, versioned_classes):
-                _process_dirty_entity_into_buffer(session, obj, buffer)
+                _capture_dirty_entity_initial_state(session, obj, initial_states)
 
-    def flush_change_records(session: Session, _flush_context: Any) -> None:
-        buffer: dict[tuple[str, int], list[ChangeRecord]] = session.info.setdefault(
-            _BUFFER_KEY, {}
-        )
-
-        tx_id = _current_transaction_id(session)
-        if tx_id is None:
-            session.info[_BUFFER_KEY] = {}
+    def finalize_change_records(session: Session) -> None:
+        if session.in_nested_transaction() or session.info.get(_FINALIZING_KEY):
             return
 
-        # Skip if we've already written records for this tx (after_flush
-        # can fire more than once per commit — e.g. autoflush from a
-        # mid-commit query). Without this guard the child-diff path would
-        # re-read the same shadow rows and re-emit the same records,
-        # tripping the UNIQUE(transaction_id, entity_kind, entity_id,
-        # sequence) constraint on insert.
-        processed: set[int] = session.info.setdefault(_PROCESSED_TXS_KEY, set())
-        if tx_id in processed:
-            # Drop anything buffered after the tx was persisted: records
-            # left here would otherwise survive on the long-lived scoped
-            # session and be inserted under the NEXT transaction's id.
-            session.info[_BUFFER_KEY] = {}
-            return
-
-        # Stamp action_kind eagerly, before the buffer-empty short-
-        # circuit. Restores / imports / clones may flush across multiple
-        # cycles; the FIRST firing for this tx is the one with the
-        # value still on ``session.info``. The helper pops on success
-        # so subsequent firings see ``None`` and short-circuit cleanly.
-        _stamp_action_kind_on_transaction(session, tx_id)
-
-        _append_child_records_to_buffer(session, tx_id, buffer)
-
-        # After the child append and before the emptiness check: the
-        # headline joins whichever firing carries the transaction's real
-        # records (scalar or child), and its peek-don't-pop guard parks
-        # it across record-less firings instead of defeating the
-        # multi-flush short-circuit below.
-        _inject_action_meta_record(session, buffer)
-
-        if not buffer:
-            # Don't mark tx as processed when nothing was inserted. A
-            # later after_flush firing for the same tx may carry the
-            # records — e.g. when an entity's edit lands across two
-            # flushes (a child-only flush followed by a parent-dirty
-            # flush): the parent shadow only lands in the parent-dirty
-            # flush, so the child-diff path can't find a prior tx to
-            # compare against until then.
-            session.info[_BUFFER_KEY] = {}
-            return
-
+        session.info[_FINALIZING_KEY] = True
         try:
-            _persist_buffered_records(session, tx_id, buffer)
+            session.flush()
+            initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]] = (
+                session.info.get(_INITIAL_STATES_KEY, {})
+            )
+            buffer = _build_scalar_buffer(initial_states)
+
+            tx_id = _current_transaction_id(session)
+            if tx_id is None:
+                return
+
+            _stamp_action_kind_on_transaction(session, tx_id)
+            _append_child_records_to_buffer(session, tx_id, buffer)
+            _inject_action_meta_record(session, buffer)
+
+            if buffer:
+                _persist_buffered_records(session, tx_id, buffer)
         finally:
-            session.info[_BUFFER_KEY] = {}
-            processed.add(tx_id)
+            session.info.pop(_FINALIZING_KEY, None)
 
-    def reset_processed_after_commit(session: Session) -> None:
-        # ``_PROCESSED_TXS_KEY`` accumulates Continuum tx ids whose change
-        # records have already been written, to dedup against multiple
-        # ``after_flush`` firings within one transaction. After commit
-        # the tx is closed and its id will never recur on this session
-        # — drop the set so a long-lived session (Celery worker, CLI)
-        # doesn't grow it without bound.
-        session.info.pop(_PROCESSED_TXS_KEY, None)
-        # If a command set the action_kind but no flush fired (e.g. a
-        # save that touched nothing versioned), the value would
-        # otherwise leak into the next transaction. Drop it here as a
-        # belt-and-suspenders cleanup; the
-        # ``_stamp_action_kind_on_transaction`` helper already pops on
-        # the normal path.
-        session.info.pop(ACTION_KIND_KEY, None)
-        session.info.pop(ACTION_META_KEY, None)
-        session.info.pop(_BUFFER_KEY, None)
-
-    def reset_action_kind_after_rollback(session: Session) -> None:
-        # When a command sets ``ACTION_KIND_KEY`` and then an exception
-        # fires before flush (e.g. validation error after the key is
-        # set), the transaction rolls back without the listener ever
-        # popping the key. The next save on the same session would
-        # then inherit the stale value and label an unrelated commit
-        # as "restore" / "import" / "clone". Pop here so a rolled-back
-        # action's intent doesn't leak forward.
-        session.info.pop(ACTION_KIND_KEY, None)
-        session.info.pop(ACTION_META_KEY, None)
-        session.info.pop(_BUFFER_KEY, None)
-
-    event.listen(db.session, "before_flush", compute_change_records)
-    event.listen(db.session, "after_flush", flush_change_records)
-    event.listen(db.session, "after_commit", reset_processed_after_commit)
-    event.listen(db.session, "after_rollback", reset_action_kind_after_rollback)
+    event.listen(db.session, "before_flush", capture_initial_states)
+    event.listen(db.session, "before_commit", finalize_change_records)
+    event.listen(db.session, "after_transaction_end", _reset_after_outer_transaction)
     setattr(db.session, _REGISTERED_SENTINEL, True)

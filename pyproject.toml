@@ -106,7 +106,7 @@ dependencies = [
     "shillelagh[gsheetsapi]>=1.4.4, <2.0",
     "sshtunnel>=0.4.0, <0.5",
     "simplejson>=4.1.1",
-    "slack_sdk>=3.42.0, <4",
+    "slack_sdk>=3.43.0, <4",
     "sqlalchemy>=1.4, <2",
     "sqlalchemy-continuum>=1.6.0, <2.0.0",
     "sqlalchemy-utils>=0.42.1, <0.43", # expanding lowerbound to work with pydoris
@@ -161,7 +161,7 @@ fastmcp = [
     # heuristic that under-counts JSON-heavy MCP responses.
     "tiktoken>=0.13.0,<1.0",
 ]
-firebird = ["sqlalchemy-firebird>=0.7.0, <2.2"]
+firebird = ["sqlalchemy-firebird>=0.8.0, <2.2"]
 firebolt = ["firebolt-sqlalchemy>=1.0.0, <2"]
 gevent = ["gevent>=26.4.0"]
 gsheets = ["shillelagh[gsheetsapi]>=1.4.4, <2"]
@@ -173,7 +173,7 @@ hive = [
     "thrift>=0.23.0, <1.0.0",
     "thrift_sasl>=0.4.3, < 1.0.0",
 ]
-impala = ["impyla>0.16.2, <0.23"]
+impala = ["impyla>=0.24.0, <0.25"]
 kusto = ["sqlalchemy-kusto>=3.1.2, <4"]
 kylin = ["kylinpy>=2.8.4, <2.9"]
 mssql = ["pymssql>=2.3.13, <3"]

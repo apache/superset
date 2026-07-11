@@ -36,10 +36,13 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: {{ include "superset-config" . | sha256sum }}
+        checksum/config: {{ include "superset.config" . | sha256sum }}
         checksum/secrets: {{ tpl (toJson .Values.extraSecretEnv) . | sha256sum }}
         {{- if .Values.supersetCeleryFlower.podAnnotations }}
           {{- toYaml .Values.supersetCeleryFlower.podAnnotations | nindent 8 }}
+        {{- end }}
+        {{- with .Values.globalPodAnnotations }}
+          {{- toYaml . | nindent 8 }}
         {{- end }}
       labels:
         {{- include "supersetCeleryFlower.selectorLabels" . | nindent 8 }}

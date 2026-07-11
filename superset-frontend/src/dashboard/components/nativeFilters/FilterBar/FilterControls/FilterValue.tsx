@@ -31,6 +31,7 @@ import {
   ChartDataResponseResult,
   Behavior,
   DataMask,
+  DatasourceType,
   isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
@@ -147,8 +148,13 @@ const FilterValue: FC<FilterValueProps> = ({
   const [target] = targets || [];
   const {
     datasetId,
+    datasourceType,
     column = {},
-  }: Partial<{ datasetId: number; column: { name?: string } }> = target || {};
+  }: Partial<{
+    datasetId: number;
+    datasourceType: DatasourceType;
+    column: { name?: string };
+  }> = target || {};
   const groupby = column?.name;
   const hasDataSource = !!datasetId;
   const [isLoading, setIsLoading] = useState<boolean>(hasDataSource);
@@ -182,6 +188,7 @@ const FilterValue: FC<FilterValueProps> = ({
     const newFormData = getFormData({
       ...filter,
       datasetId,
+      datasourceType,
       dependencies,
       groupby,
       adhoc_filters: adhocFilters,
