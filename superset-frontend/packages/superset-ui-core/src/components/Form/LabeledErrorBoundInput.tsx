@@ -66,6 +66,8 @@ export const LabeledErrorBoundInput = ({
   get_url,
   description,
   isValidating = false,
+  renderAsTextArea,
+  textAreaCss,
   ...props
 }: LabeledErrorBoundInputProps) => {
   const hasError = !!errorMessage;
@@ -102,12 +104,8 @@ export const LabeledErrorBoundInput = ({
             }
             role="textbox"
           />
-        ) : props.renderAsTextArea ? (
-          <StyledTextArea
-            css={props.textAreaCss}
-            {...props}
-            {...validationMethods}
-          />
+        ) : renderAsTextArea ? (
+          <StyledTextArea css={textAreaCss} {...props} {...validationMethods} />
         ) : (
           <StyledInput {...props} {...validationMethods} />
         )}
