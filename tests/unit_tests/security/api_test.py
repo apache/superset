@@ -66,6 +66,50 @@ def test_csrf_exempt_blueprints_with_api_key(app: Any, app_context: None) -> Non
     assert "ApiKeyApi" in {blueprint.name for blueprint in csrf._exempt_blueprints}
 
 
+def test_security_api_trailing_slash_handled_consistently(client: Any) -> None:
+    """Regression for #29934: sibling ``/api/v1/security/*`` endpoints handle a
+    misspelled (wrong trailing-slash) URL inconsistently.
+
+    Three routes live under the same ``/api/v1/security/`` prefix but are
+    declared with different slash conventions:
+
+      * ``login``       -> ``@expose("/login")``        (no trailing slash, FAB)
+      * ``csrf_token``  -> ``@expose("/csrf_token/")``  (trailing slash, Superset)
+      * ``guest_token`` -> ``@expose("/guest_token/")`` (trailing slash, Superset)
+
+    Because of that mix, a client that gets the slash "wrong" is treated three
+    different ways by Werkzeug routing:
+
+      * ``POST /api/v1/security/login/``  -> 404 (no redirect for the extra slash)
+      * ``GET  /api/v1/security/csrf_token`` -> 308 redirect to the canonical URL
+      * ``POST /api/v1/security/guest_token`` -> 308 redirect to the canonical URL
+
+    A user hitting one misspelled security URL gets a clean redirect while
+    another gets a hard 404, which is exactly the inconsistency reported in the
+    issue. This asserts the *desired* contract — that a trailing-slash
+    misspelling is handled uniformly across the sibling endpoints — so it fails
+    (red) on master where the responses diverge, and would pass once the slash
+    conventions are unified. It does not prescribe which uniform behavior is
+    correct (all-redirect or all-404), only that they agree.
+    """
+    # (method, canonical route, misspelled route)
+    misspelled = [
+        ("post", "/api/v1/security/login/"),
+        ("get", "/api/v1/security/csrf_token"),
+        ("post", "/api/v1/security/guest_token"),
+    ]
+    statuses = {}
+    for method, url in misspelled:
+        response = client.open(url, method=method.upper(), follow_redirects=False)
+        statuses[url] = response.status_code
+
+    # All three siblings should treat a wrong trailing slash the same way.
+    assert len(set(statuses.values())) == 1, (
+        "Inconsistent handling of misspelled (wrong trailing-slash) security "
+        f"URLs: {statuses}"
+    )
+
+
 def test_rls_rule_schema_accepts_dataset_scoped_rule() -> None:
     """A rule with an integer ``dataset`` and a ``clause`` loads unchanged."""
     result = RlsRuleSchema().load({"dataset": 41, "clause": "tenant_id = 1"})
