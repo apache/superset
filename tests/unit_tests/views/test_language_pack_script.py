@@ -102,11 +102,11 @@ def test_spa_template_loads_pack_before_entry_bundle() -> None:
     `t('...')` calls before the translator is configured (issue #35330)."""
     import superset
 
-    template = (
+    template: str = (
         Path(superset.__file__).parent / "templates" / "superset" / "spa.html"
     ).read_text()
 
-    tag_start = template.index('<script src="{{ language_pack_src }}"')
+    tag_start: int = template.index('<script src="{{ language_pack_src }}"')
     entry_start = template.index("js_bundle(assets_prefix, entry)")
     assert tag_start < entry_start
 

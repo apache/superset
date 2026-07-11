@@ -186,7 +186,7 @@ def test_common_bootstrap_payload_preserves_override_pack(
     app_context: None,
 ) -> None:
     """A pack from COMMON_BOOTSTRAP_OVERRIDES_FUNC is passed through."""
-    fake_pack = {"domain": "superset", "locale_data": {"superset": {}}}
+    fake_pack: dict[str, Any] = {"domain": "superset", "locale_data": {"superset": {}}}
     with (
         patch(
             "superset.views.base.cached_common_bootstrap_data",

@@ -953,8 +953,12 @@ class Superset(BaseSupersetView):
             abort(400, "Invalid language pack version")
 
         current_version = get_language_pack_version(lang)
+        if current_version is None:
+            return json_error_response(
+                "Language pack doesn't exist on the server", status=404
+            )
         pack = get_language_pack(lang)
-        if current_version is None or pack is None:
+        if pack is None:
             return json_error_response(
                 "Language pack doesn't exist on the server", status=404
             )
