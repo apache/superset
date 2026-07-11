@@ -26,7 +26,7 @@ from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
 
-PROBLEMATIC_CSV_PREFIXES = "-@+|=%"
+PROBLEMATIC_CSV_PREFIXES: str = "-@+|=%"
 
 
 def _starts_with_formula_prefix(value: str) -> bool:
