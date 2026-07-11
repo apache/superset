@@ -71,6 +71,16 @@ except ImportError:
 
 
 class CustomSnowflakeAuthErrorMeta(type):
+    """
+    Metaclass whose ``__instancecheck__`` matches Snowflake's invalid/expired
+    OAuth access-token error, so ``CustomSnowflakeAuthError`` can be used as the
+    ``oauth2_exception`` that triggers the OAuth2 re-auth dance.
+
+    This is only honored via ``isinstance()`` (the path used by
+    ``BaseEngineSpec.needs_oauth2()``); ``except`` clauses do not call
+    ``__instancecheck__``, so it must not be relied on for exception catching.
+    """
+
     def __instancecheck__(cls, instance: object) -> bool:
         return (
             isinstance(instance, SqlalchemyDatabaseError)
@@ -80,7 +90,7 @@ class CustomSnowflakeAuthErrorMeta(type):
 
 
 class CustomSnowflakeAuthError(DatabaseError, metaclass=CustomSnowflakeAuthErrorMeta):
-    pass
+    """Snowflake OAuth error type matched via the metaclass above (see note there)."""
 
 
 # Regular expressions to catch custom errors
