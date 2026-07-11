@@ -280,8 +280,8 @@ class TestExportDatasetsCommand(SupersetTestCase):
         examples_db = get_example_database()
         with examples_db.get_sqla_engine() as engine:
             with engine.begin() as conn:
-                conn.execute("DROP TABLE IF EXISTS 中文")
-                conn.execute("CREATE TABLE 中文 AS SELECT 2 as col")
+                conn.execute(text("DROP TABLE IF EXISTS 中文"))
+                conn.execute(text("CREATE TABLE 中文 AS SELECT 2 as col"))
         # scope cleanup to the example database so datasets with the same name
         # on other databases are left untouched
         stale = db.session.query(SqlaTable).filter_by(
@@ -309,7 +309,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
         db.session.commit()
         with examples_db.get_sqla_engine() as engine:
             with engine.begin() as conn:
-                conn.execute("DROP TABLE 中文")
+                conn.execute(text("DROP TABLE 中文"))
         db.session.commit()
 
 

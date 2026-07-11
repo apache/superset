@@ -308,7 +308,7 @@ class DorisEngineSpec(MySQLEngineSpec):
         # if not, iterate over existing catalogs and find the current one
         with database.get_sqla_engine() as engine:
             with engine.connect() as conn:
-                for catalog in conn.execute("SHOW CATALOGS"):
+                for catalog in conn.execute(text("SHOW CATALOGS")):
                     if catalog.IsCurrent:
                         return catalog.CatalogName
 
