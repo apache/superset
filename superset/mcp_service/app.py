@@ -133,6 +133,7 @@ Dashboard Management:
 - update_dashboard: Update an existing dashboard's title/description/slug/published/layout/theme/CSS (requires write access; editorship-checked per-instance)
 - duplicate_dashboard: Duplicate an existing dashboard, optionally deep-copying its charts (requires write access)
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
+- delete_dashboard: Delete a dashboard by ID/UUID/slug (requires editor rights — owner or Admin; destructive; does not delete its charts; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
 - manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select and filter_time)
 - remove_chart_from_dashboard: Remove a chart from an existing dashboard (requires write access)
 
@@ -186,6 +187,7 @@ Chart Management:
 - generate_explore_link: Create an interactive explore URL (preferred for exploration)
 - update_chart: Update existing saved chart configuration (requires write access)
 - update_chart_preview: Update cached chart preview without saving (requires write access)
+- delete_chart: Delete a chart by ID/UUID (requires editor rights — owner or Admin; destructive; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
 
 SQL Lab Integration:
 - execute_sql: Execute SQL queries and get results (requires database_id and SQL access)
@@ -718,6 +720,7 @@ from superset.mcp_service.chart import (  # noqa: F401, E402
     resources as chart_resources,
 )
 from superset.mcp_service.chart.tool import (  # noqa: F401, E402
+    delete_chart,
     generate_chart,
     get_chart_data,
     get_chart_info,
@@ -730,6 +733,7 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
 )
 from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     add_chart_to_existing_dashboard,
+    delete_dashboard,
     duplicate_dashboard,
     generate_dashboard,
     get_dashboard_datasets,
