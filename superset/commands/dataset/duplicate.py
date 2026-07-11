@@ -89,8 +89,8 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
                 column_name=c.column_name,
                 verbose_name=c.verbose_name,
                 expression=c.expression,
-                filterable=True,
-                groupby=True,
+                filterable=c.filterable,
+                groupby=c.groupby,
                 is_dttm=c.is_dttm,
                 type=c.type,
                 description=c.description,
@@ -104,6 +104,10 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
                 expression=m.expression,
                 metric_type=m.metric_type,
                 description=m.description,
+                d3format=m.d3format,
+                currency=m.currency,
+                warning_text=m.warning_text,
+                extra=m.extra,
             )
             for m in self._base_model.metrics
         ]
