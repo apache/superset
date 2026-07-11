@@ -241,16 +241,23 @@ def test_csv_upload_schema_not_allowed():
 
 
 @pytest.mark.parametrize("schema", ["", "undefined"])
-def test_upload_with_empty_or_undefined_schema(
-    setup_csv_upload_with_context,
-    schema,
-):
-    upload_db_id, table_name, csv_file, reader = setup_csv_upload_with_context()
+@pytest.mark.usefixtures("setup_csv_upload_with_context")
+def test_upload_with_empty_or_undefined_schema(schema):
+    admin_user = security_manager.find_user(username="admin")
+    upload_database = get_upload_db()
 
-    UploadCommand(
-        upload_db_id,
-        table_name,
-        csv_file,
-        schema,
-        reader,
-    ).run()
+    with override_user(admin_user):
+        UploadCommand(
+            upload_database.id,
+            CSV_UPLOAD_TABLE,
+            create_csv_file(CSV_FILE_1),
+            schema,
+            CSVReader({}),
+        ).run()
+
+    dataset = (
+        db.session.query(SqlaTable)
+        .filter_by(database_id=upload_database.id, table_name=CSV_UPLOAD_TABLE)
+        .one_or_none()
+    )
+    assert dataset is not None
