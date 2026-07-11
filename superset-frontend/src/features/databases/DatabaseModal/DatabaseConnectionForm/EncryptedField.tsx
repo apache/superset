@@ -67,6 +67,14 @@ export const EncryptedField = ({
   const [uploadOption, setUploadOption] = useState<number>(
     CredentialInfoOptions.JsonUpload.valueOf(),
   );
+  // `getValidation` closes over the parent's `db` state as of the last
+  // render, so calling it synchronously right after `onParametersChange`
+  // (which just dispatches a state update) would validate the *previous*
+  // credential value. Instead, remember the uploaded value and validate
+  // once the parameter prop actually reflects it.
+  const [pendingValidationValue, setPendingValidationValue] = useState<
+    string | null
+  >(null);
   const { addDangerToast } = useToasts();
   const isGSheets = db?.engine === Engines.GSheet;
   const showCredentialsInfo = !isEditMode && (!isGSheets || !isPublic);
@@ -131,6 +139,16 @@ export const EncryptedField = ({
       },
     });
   }, []);
+
+  useEffect(() => {
+    if (
+      pendingValidationValue !== null &&
+      paramValue === pendingValidationValue
+    ) {
+      setPendingValidationValue(null);
+      getValidation();
+    }
+  }, [paramValue, pendingValidationValue, getValidation]);
 
   return (
     <CredentialInfoForm>
@@ -234,7 +252,7 @@ export const EncryptedField = ({
                       },
                     });
                     setFileList(info.fileList);
-                    getValidation();
+                    setPendingValidationValue(fileContent);
                   } catch {
                     setFileList([]);
                     addDangerToast(

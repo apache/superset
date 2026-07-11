@@ -17,7 +17,12 @@
  * under the License.
  */
 
-import { render, fireEvent, screen } from 'spec/helpers/testing-library';
+import {
+  render,
+  fireEvent,
+  screen,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { DatabaseObject, ConfigurationMethod } from '../../types';
 import { EncryptedField, encryptedCredentialsMap } from './EncryptedField';
 
@@ -324,6 +329,57 @@ describe('EncryptedField', () => {
       expect(screen.getByRole('textbox')).toBeInTheDocument();
       expect(screen.queryByText('Upload credentials')).not.toBeInTheDocument();
     });
+
+    test('uploading a file does not validate stale state, and validates once the parent commits the new value', async () => {
+      const changeMethods = createMockChangeMethods();
+      const getValidation = jest.fn();
+      const fileContent = '{"type": "service_account"}';
+
+      const { rerender } = render(
+        <EncryptedField
+          {...defaultProps}
+          changeMethods={changeMethods}
+          getValidation={getValidation}
+          db={createMockDb('bigquery', { credentials_info: '' })}
+        />,
+      );
+
+      const file = new File([fileContent], 'creds.json', {
+        type: 'application/json',
+      });
+      const input = document.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+
+      fireEvent.change(input, { target: { files: [file] } });
+
+      await waitFor(() =>
+        expect(changeMethods.onParametersChange).toHaveBeenCalledWith(
+          expect.objectContaining({
+            target: expect.objectContaining({ value: fileContent }),
+          }),
+        ),
+      );
+
+      // The parent hasn't re-rendered with the committed value yet (in the
+      // real app this is the reducer-dispatch/render gap) — validation must
+      // not fire against the stale `db` in the meantime.
+      expect(getValidation).not.toHaveBeenCalled();
+
+      // Once the parent commits the update and re-renders with the new
+      // `db.parameters.credentials_info`, validation should fire exactly
+      // once, against the up-to-date value.
+      rerender(
+        <EncryptedField
+          {...defaultProps}
+          changeMethods={changeMethods}
+          getValidation={getValidation}
+          db={createMockDb('bigquery', { credentials_info: fileContent })}
+        />,
+      );
+
+      await waitFor(() => expect(getValidation).toHaveBeenCalledTimes(1));
+    });
   });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -374,36 +430,34 @@ describe('EncryptedField', () => {
   });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('renderAsTextArea branch', () => {
-    test('renders a textarea element (not a plain input) in edit mode', () => {
-      const props = { ...defaultProps, isEditMode: true };
-      const { container } = render(<EncryptedField {...props} />);
+  test('renderAsTextArea branch: renders a textarea element (not a plain input) in edit mode', () => {
+    const props = { ...defaultProps, isEditMode: true };
+    const { container } = render(<EncryptedField {...props} />);
 
-      // renderAsTextArea causes LabeledErrorBoundInput to render <textarea>
-      expect(container.querySelector('textarea')).toBeInTheDocument();
-      expect(container.querySelector('input')).not.toBeInTheDocument();
-    });
+    // renderAsTextArea causes LabeledErrorBoundInput to render <textarea>
+    expect(container.querySelector('textarea')).toBeInTheDocument();
+    expect(container.querySelector('input')).not.toBeInTheDocument();
+  });
 
-    test('renders a textarea element in copy-paste mode', () => {
-      const props = { ...defaultProps, isEditMode: false };
-      render(<EncryptedField {...props} />);
+  test('renderAsTextArea branch: renders a textarea element in copy-paste mode', () => {
+    const props = { ...defaultProps, isEditMode: false };
+    render(<EncryptedField {...props} />);
 
-      // Switch to copy-paste option to trigger renderAsTextArea branch
-      const select = screen.getByRole('combobox');
-      fireEvent.mouseDown(select);
-      fireEvent.click(screen.getByText('Copy and Paste JSON credentials'));
+    // Switch to copy-paste option to trigger renderAsTextArea branch
+    const select = screen.getByRole('combobox');
+    fireEvent.mouseDown(select);
+    fireEvent.click(screen.getByText('Copy and Paste JSON credentials'));
 
-      expect(screen.getByRole('textbox').tagName).toBe('TEXTAREA');
-    });
+    expect(screen.getByRole('textbox').tagName).toBe('TEXTAREA');
+  });
 
-    test('does not render a textarea when upload option is selected', () => {
-      const props = { ...defaultProps, isEditMode: false, editNewDb: false };
-      render(<EncryptedField {...props} />);
+  test('renderAsTextArea branch: does not render a textarea when upload option is selected', () => {
+    const props = { ...defaultProps, isEditMode: false, editNewDb: false };
+    render(<EncryptedField {...props} />);
 
-      // Default upload option — no textarea should be present
-      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
-      expect(screen.getByText('Upload credentials')).toBeInTheDocument();
-    });
+    // Default upload option — no textarea should be present
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.getByText('Upload credentials')).toBeInTheDocument();
   });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
