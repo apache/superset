@@ -65,6 +65,7 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
             )
         table = SqlaTable(table_name=table_name, owners=owners)
         table.database = database
+        table.catalog = self._base_model.catalog
         table.schema = self._base_model.schema
         table.template_params = self._base_model.template_params
         table.normalize_columns = self._base_model.normalize_columns
