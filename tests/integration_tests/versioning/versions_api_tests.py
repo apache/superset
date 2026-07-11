@@ -28,9 +28,13 @@ The suite runs with ``ENABLE_VERSIONING_CAPTURE=True`` (see
 autouse fixture clears the version tables around each test.
 """
 
+from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
+import sqlalchemy as sa
+from sqlalchemy.engine import Connection
+from sqlalchemy.orm import Session
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable
@@ -43,6 +47,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
+from tests.integration_tests.versioning.conftest import clear_version_tables
 
 # A syntactically valid UUID that matches no entity / version.
 MISSING_UUID = str(uuid4())
@@ -202,6 +207,73 @@ class TestChartVersionsApi(SupersetTestCase):
         finally:
             self.client.put(f"/api/v1/chart/{chart_id}", json={"slice_name": "Girls"})
 
+    def test_parent_baseline_sql_failure_does_not_break_save(self) -> None:
+        """A failed optional parent baseline leaves the save committable."""
+        chart_id = self._girls_chart().id
+        clear_version_tables()
+        self.login(ADMIN_USERNAME)
+
+        def fail_parent_baseline(
+            conn: Connection, *args: object, **kwargs: object
+        ) -> None:
+            conn.execute(
+                sa.text("INSERT INTO __missing_parent_shadow__ (x) VALUES (1)")
+            )
+
+        try:
+            with patch(
+                "superset.versioning.baseline.insertion.insert_baseline_shadow_row",
+                side_effect=fail_parent_baseline,
+            ):
+                rv = self.client.put(
+                    f"/api/v1/chart/{chart_id}",
+                    json={"slice_name": "Girls survives parent baseline failure"},
+                )
+
+            assert rv.status_code == 200, rv.data
+            got = json.loads(self.client.get(f"/api/v1/chart/{chart_id}").data)[
+                "result"
+            ]
+            assert got["slice_name"] == "Girls survives parent baseline failure"
+            baseline_count = db.session.scalar(
+                sa.text(
+                    "SELECT count(*) FROM slices_version "
+                    "WHERE id = :id AND operation_type = 0"
+                ),
+                {"id": chart_id},
+            )
+            assert baseline_count == 0
+            canonical_updates = db.session.scalar(
+                sa.text(
+                    "SELECT count(*) FROM slices_version "
+                    "WHERE id = :id AND operation_type = 1 "
+                    "AND slice_name = :name"
+                ),
+                {
+                    "id": chart_id,
+                    "name": "Girls survives parent baseline failure",
+                },
+            )
+            assert canonical_updates == 1
+            assert (
+                db.session.scalar(sa.text("SELECT count(*) FROM version_transaction"))
+                == 1
+            )
+
+            listing = json.loads(
+                self.client.get(f"/api/v1/chart/{got['uuid']}/versions/").data
+            )
+            assert listing["count"] == 1
+            assert listing["result"][0]["operation_type"] == "update"
+
+            follow_up = self.client.put(
+                f"/api/v1/chart/{chart_id}",
+                json={"slice_name": "Girls session remains usable"},
+            )
+            assert follow_up.status_code == 200, follow_up.data
+        finally:
+            self.client.put(f"/api/v1/chart/{chart_id}", json={"slice_name": "Girls"})
+
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 class TestDashboardVersionsApi(SupersetTestCase):
@@ -301,3 +373,86 @@ class TestDatasetVersionsApi(SupersetTestCase):
         body = json.loads(rv.data.decode("utf-8"))
         assert set(body) >= {"old_version", "new_version", "new_version_uuid"}
         assert body["new_version_uuid"] is not None
+
+    def test_child_baseline_sql_failure_rolls_back_complete_optional_unit(
+        self,
+    ) -> None:
+        """A child failure preserves the save without partial baseline rows."""
+        dataset = self._dataset()
+        dataset_id = dataset.id
+        original = dataset.description
+        clear_version_tables()
+        self.login(ADMIN_USERNAME)
+
+        def fail_children(session: Session, _parent: object, _tx_id: int) -> None:
+            session.connection().execute(
+                sa.text("INSERT INTO __missing_child_shadow__ (x) VALUES (1)")
+            )
+
+        try:
+            with patch.dict(
+                "superset.versioning.baseline.insertion.CHILD_BASELINE_HANDLERS",
+                {"SqlaTable": fail_children},
+            ):
+                rv = self.client.put(
+                    f"/api/v1/dataset/{dataset_id}",
+                    json={"description": "survives child baseline failure"},
+                )
+
+            assert rv.status_code == 200, rv.data
+            got = json.loads(self.client.get(f"/api/v1/dataset/{dataset_id}").data)[
+                "result"
+            ]
+            assert got["description"] == "survives child baseline failure"
+
+            parent_baselines = db.session.scalar(
+                sa.text(
+                    "SELECT count(*) FROM tables_version "
+                    "WHERE id = :id AND operation_type = 0"
+                ),
+                {"id": dataset_id},
+            )
+            child_baselines = db.session.scalar(
+                sa.text(
+                    "SELECT count(*) FROM table_columns_version "
+                    "WHERE table_id = :id AND operation_type = 0"
+                ),
+                {"id": dataset_id},
+            )
+            metric_baselines = db.session.scalar(
+                sa.text(
+                    "SELECT count(*) FROM sql_metrics_version "
+                    "WHERE table_id = :id AND operation_type = 0"
+                ),
+                {"id": dataset_id},
+            )
+            assert parent_baselines == 0
+            assert child_baselines == 0
+            assert metric_baselines == 0
+            canonical_updates = db.session.scalar(
+                sa.text(
+                    "SELECT count(*) FROM tables_version "
+                    "WHERE id = :id AND operation_type = 1 "
+                    "AND description = :description"
+                ),
+                {
+                    "id": dataset_id,
+                    "description": "survives child baseline failure",
+                },
+            )
+            assert canonical_updates == 1
+            assert (
+                db.session.scalar(sa.text("SELECT count(*) FROM version_transaction"))
+                == 1
+            )
+
+            listing = json.loads(
+                self.client.get(f"/api/v1/dataset/{got['uuid']}/versions/").data
+            )
+            assert listing["count"] == 1
+            assert listing["result"][0]["operation_type"] == "update"
+        finally:
+            self.client.put(
+                f"/api/v1/dataset/{dataset_id}",
+                json={"description": original},
+            )
