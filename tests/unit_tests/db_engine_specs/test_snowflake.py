@@ -558,3 +558,58 @@ def test_impersonate_user(mocker: MockerFixture) -> None:
         ),
         {"connect_args": {"authenticator": "oauth"}},
     )
+
+
+def test_custom_snowflake_auth_error_matches_raw_dbapi_exception() -> None:
+    """
+    `BaseEngineSpec.execute()` runs against a bare DBAPI cursor, so the
+    exception it sees is the raw Snowflake error, never wrapped by
+    SQLAlchemy. `CustomSnowflakeAuthError` must still recognize it so the
+    OAuth2 re-auth dance triggers for SQL Lab queries.
+    """
+    from superset.db_engine_specs.snowflake import (
+        CustomSnowflakeAuthError,
+        DatabaseError,
+    )
+
+    raw_error = DatabaseError("250001: Invalid OAuth access token.")
+    assert isinstance(raw_error, CustomSnowflakeAuthError)
+
+
+def test_custom_snowflake_auth_error_matches_sqlalchemy_wrapped_exception() -> None:
+    """
+    Some call sites execute through SQLAlchemy's `Engine`, which wraps the
+    original DBAPI exception in `sqlalchemy.exc.DatabaseError.orig`.
+    `CustomSnowflakeAuthError` must keep matching this shape too.
+    """
+    from sqlalchemy.exc import DatabaseError as SqlalchemyDatabaseError
+
+    from superset.db_engine_specs.snowflake import (
+        CustomSnowflakeAuthError,
+        DatabaseError,
+    )
+
+    wrapped_error = SqlalchemyDatabaseError(
+        statement="SELECT 1",
+        params=None,
+        orig=DatabaseError("250001: Invalid OAuth access token."),
+    )
+    assert isinstance(wrapped_error, CustomSnowflakeAuthError)
+
+
+def test_custom_snowflake_auth_error_does_not_match_unrelated_errors() -> None:
+    """
+    Other Snowflake DB errors, and non-Snowflake exceptions, must not be
+    mistaken for an expired OAuth token.
+    """
+    from superset.db_engine_specs.snowflake import (
+        CustomSnowflakeAuthError,
+        DatabaseError,
+    )
+
+    assert not isinstance(
+        DatabaseError("Object FOO does not exist."), CustomSnowflakeAuthError
+    )
+    assert not isinstance(
+        ValueError("Invalid OAuth access token."), CustomSnowflakeAuthError
+    )
