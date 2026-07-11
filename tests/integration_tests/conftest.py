@@ -409,12 +409,9 @@ def physical_dataset():
 
     yield dataset
 
-    with engine.begin() as conn:
-        conn.execute(
-            text("""
-            DROP TABLE physical_dataset;
-            """)
-        )
+    with example_database.get_sqla_engine() as engine:
+        with engine.begin() as conn:
+            conn.execute(text("DROP TABLE physical_dataset"))
     dataset = db.session.query(SqlaTable).filter_by(table_name="physical_dataset").all()
     for ds in dataset:
         db.session.delete(ds)
