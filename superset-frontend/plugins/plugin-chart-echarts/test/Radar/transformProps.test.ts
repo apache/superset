@@ -204,6 +204,57 @@ describe('legend sorting', () => {
   });
 });
 
+describe('missing (null) values', () => {
+  // Regression for #30270: "Wrong visualization of missing values in radar
+  // charts". A null metric value must NOT be transformed into 0. In
+  // `normalizeArray`, `null / max` coerces the null to 0, so a missing data
+  // point ends up plotted at the center of the radar as if it were a real
+  // zero, instead of being left out (a gap). This test feeds a datum with a
+  // null metric and asserts the null is preserved in the normalized series
+  // value rather than silently becoming 0.
+  const missingValueData = [
+    {
+      data: [
+        {
+          name: 'Series A',
+          'SUM(jp_sales)': 10,
+          'SUM(other_sales)': null,
+          'SUM(eu_sales)': 30,
+        },
+      ],
+    },
+  ];
+
+  const missingValueProps = new ChartProps({
+    formData: {
+      ...formData,
+      // No columnConfig custom bounds so every metric is normalized.
+      columnConfig: {},
+      groupby: ['name'],
+      metrics: ['SUM(jp_sales)', 'SUM(other_sales)', 'SUM(eu_sales)'],
+    },
+    width: 800,
+    height: 600,
+    queriesData: missingValueData,
+    theme: supersetTheme,
+  });
+
+  test('preserves a null metric instead of plotting it as 0', () => {
+    const result = transformProps(missingValueProps as EchartsRadarChartProps);
+    const series = result.echartOptions.series as RadarSeriesOption[];
+    const value = (series[0].data as RadarSeriesData[])[0].value as (
+      | number
+      | null
+    )[];
+
+    // Index 1 corresponds to 'SUM(other_sales)', which was null in the datum.
+    // The correct behavior is to keep the gap (null/undefined) so ECharts does
+    // not draw a point at the center. On master this is 0, so this fails.
+    expect(value[1]).not.toBe(0);
+    expect(value[1] == null).toBe(true);
+  });
+});
+
 describe('radar center positioning', () => {
   const getCenter = (overrides: Partial<EchartsRadarFormData> = {}) => {
     const props = new ChartProps({
