@@ -48,7 +48,7 @@ class QueryDAO(BaseDAO[Query]):
     @staticmethod
     def get_queries_changed_after(last_updated_ms: Union[float, int]) -> list[Query]:
         # UTC date time, same that is stored in the DB.
-        last_updated_dt = datetime.fromtimestamp(
+        last_updated_dt: datetime = datetime.fromtimestamp(
             last_updated_ms / 1000, timezone.utc
         ).replace(tzinfo=None)
 

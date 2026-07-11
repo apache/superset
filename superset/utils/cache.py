@@ -226,7 +226,9 @@ def etag_cache(  # noqa: C901
 
             # Check if the cache is stale. Default the content_changed_time to now
             # if we don't know when it was last modified.
-            content_changed_time = datetime.now(timezone.utc).replace(tzinfo=None)
+            content_changed_time: datetime = datetime.now(timezone.utc).replace(
+                tzinfo=None
+            )
             if get_last_modified:
                 content_changed_time = get_last_modified(*args, **kwargs)
                 if (

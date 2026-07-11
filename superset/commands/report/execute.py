@@ -136,7 +136,7 @@ class BaseReportState:
     ) -> None:
         self._report_schedule = report_schedule
         self._scheduled_dttm = scheduled_dttm
-        self._start_dttm = datetime.now(timezone.utc).replace(tzinfo=None)
+        self._start_dttm: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
         self._execution_id = execution_id
         self._filter_warnings: list[str] = []
 
@@ -524,7 +524,7 @@ class BaseReportState:
         Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
         """
-        start_time = datetime.now(timezone.utc).replace(tzinfo=None)
+        start_time: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
 
         user, _ = resolve_executor_user(self._report_schedule)
 
@@ -741,7 +741,7 @@ class BaseReportState:
                 ReportScheduleCsvFailedError,
             )
 
-        start_time = datetime.now(timezone.utc).replace(tzinfo=None)
+        start_time: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
         user, username = resolve_executor_user(self._report_schedule)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
@@ -808,7 +808,7 @@ class BaseReportState:
         """
         Return data as a Pandas dataframe, to embed in notifications as a table.
         """
-        start_time = datetime.now(timezone.utc).replace(tzinfo=None)
+        start_time: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
 
         url = self._get_url(result_format=ChartDataResultFormat.JSON)
         user, username = resolve_executor_user(self._report_schedule)
@@ -1457,7 +1457,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             )
             user = security_manager.find_user(username)
 
-            start_time = datetime.now(timezone.utc).replace(tzinfo=None)
+            start_time: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
             with override_user(user):
                 # Pre-commit any permalink rows before the state machine's
                 # @transaction() opens. When called inside a transaction,
