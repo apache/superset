@@ -84,6 +84,40 @@ export interface ChartDataResponseResult {
    * or null if multiple currencies are present.
    */
   detected_currency?: string | null;
+  /**
+   * Versioned query lifecycle and bounded source timing in milliseconds.
+   */
+  timing?: {
+    version: 1;
+    query: {
+      cache_key_ms: number;
+      cache_read_ms: number;
+      source_ms: number;
+      cache_write_ms: number | null;
+      cache_write_status: 'succeeded' | 'failed' | 'skipped' | 'not_attempted';
+      materialization_ms: number;
+      total_ms: number;
+      cache_hit: boolean | null;
+    };
+    sources: ChartDataSourceTiming[] | null;
+  };
+}
+
+export interface ChartDataSourceTiming {
+  kind:
+    | 'primary'
+    | 'series_limit'
+    | 'time_offset'
+    | 'annotation'
+    | 'currency_detection';
+  provider: 'sql' | 'semantic' | 'other';
+  origin: 'current' | 'cache';
+  planning_ms: number;
+  execution_ms: number;
+  processing_ms: number;
+  total_ms: number;
+  children: ChartDataSourceTiming[];
+  truncated: boolean;
 }
 
 export interface TimeseriesChartDataResponseResult extends ChartDataResponseResult {

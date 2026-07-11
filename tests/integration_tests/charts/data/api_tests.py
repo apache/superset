@@ -19,6 +19,7 @@ import copy
 import time
 import unittest
 from contextlib import contextmanager
+from dataclasses import replace
 from datetime import datetime
 from io import BytesIO
 from typing import Any, Optional
@@ -30,7 +31,10 @@ from flask import g, Response
 from flask.ctx import AppContext
 
 from superset.charts.data.api import ChartDataRestApi
-from superset.commands.chart.data.get_data_command import ChartDataCommand
+from superset.commands.chart.data.get_data_command import (
+    ChartDataCommand,
+    ChartDataExecutionOptions,
+)
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.constants import CACHE_DISABLED_TIMEOUT
@@ -772,21 +776,31 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             result_format = ChartDataResultFormat.JSON
             result_type = ChartDataResultType.FULL
 
-        cmd_run_val = {
+        command_payload = {
             "query_context": QueryContext(),
             "queries": [{"query": "select * from foo", "is_cached": True}],
         }
+        execution = mock.MagicMock()
+        execution.materialize.return_value = command_payload
+        execution.queries = (
+            mock.MagicMock(
+                payload=command_payload["queries"][0],
+                timing=mock.MagicMock(),
+            ),
+        )
 
         with mock.patch.object(
-            ChartDataCommand, "run", return_value=cmd_run_val
-        ) as patched_run:
+            ChartDataCommand, "execute", return_value=execution
+        ) as patched_execute:
             self.query_context_payload["result_type"] = ChartDataResultType.FULL
             rv = self.post_assert_metric(
                 CHART_DATA_URI, self.query_context_payload, "data"
             )
             assert rv.status_code == 200
             data = json.loads(rv.data.decode("utf-8"))
-            patched_run.assert_called_once_with(force_cached=True)
+            patched_execute.assert_called_once_with(
+                ChartDataExecutionOptions(force_cached=True)
+            )
             assert data == {
                 "result": [{"query": "select * from foo", "is_cached": True}]
             }
@@ -834,8 +848,8 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @mock.patch("superset.charts.data.api.ChartDataCommand.run")
-    def test_chart_data_async_force_refresh(self, mock_run):
+    @mock.patch("superset.charts.data.api.ChartDataCommand.execute")
+    def test_chart_data_async_force_refresh(self, mock_execute):
         """
         Chart data API: Test that force=true skips cache and triggers async job
         """
@@ -847,19 +861,30 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             result_format = ChartDataResultFormat.JSON
             result_type = ChartDataResultType.FULL
 
-        mock_run.return_value = {
+        command_payload = {
             "query_context": QueryContext(),
             "queries": [{"query": "select * from foo", "is_cached": True}],
         }
+        execution = mock.MagicMock()
+        execution.materialize.return_value = command_payload
+        execution.queries = (
+            mock.MagicMock(
+                payload=command_payload["queries"][0],
+                timing=mock.MagicMock(),
+            ),
+        )
+        mock_execute.return_value = execution
 
         # Test without force - should return cached data synchronously
         self.query_context_payload["result_type"] = ChartDataResultType.FULL
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         assert rv.status_code == 200
-        mock_run.assert_called_once_with(force_cached=True)
+        mock_execute.assert_called_once_with(
+            ChartDataExecutionOptions(force_cached=True)
+        )
 
         # Reset the mock
-        mock_run.reset_mock()
+        mock_execute.reset_mock()
 
         # Test with force=true - should skip cache and return async response
         self.query_context_payload["force"] = True
@@ -867,7 +892,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert rv.status_code == 202
         # When force=true, command.run should not be called at all in _run_async
         # since we skip the cache check entirely
-        mock_run.assert_not_called()
+        mock_execute.assert_not_called()
         data = json.loads(rv.data.decode("utf-8"))
         keys = list(data.keys())
         self.assertCountEqual(  # noqa: PT009
@@ -1411,14 +1436,18 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         app._got_first_request = False
         async_query_manager_factory.init_app(app)
         cache_loader.load.return_value = self.query_context_payload
-        orig_run = ChartDataCommand.run
+        orig_execute = ChartDataCommand.execute
 
-        def mock_run(self, **kwargs):
-            assert kwargs["force_cached"] is True  # noqa: E712
+        def mock_execute(
+            self: ChartDataCommand,
+            options: ChartDataExecutionOptions | None = None,
+        ):
+            assert options is not None
+            assert options.force_cached is True
             # override force_cached to get result from DB
-            return orig_run(self, force_cached=False)
+            return orig_execute(self, replace(options, force_cached=False))
 
-        with mock.patch.object(ChartDataCommand, "run", new=mock_run):
+        with mock.patch.object(ChartDataCommand, "execute", new=mock_execute):
             rv = self.get_assert_metric(
                 f"{CHART_DATA_URI}/test-cache-key", "data_from_cache"
             )
@@ -1460,17 +1489,9 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         async_query_manager_factory.init_app(app)
         self.logout()
         cache_loader.load.return_value = self.query_context_payload
-        orig_run = ChartDataCommand.run
-
-        def mock_run(self, **kwargs):
-            assert kwargs["force_cached"] is True  # noqa: E712
-            # override force_cached to get result from DB
-            return orig_run(self, force_cached=False)
-
-        with mock.patch.object(ChartDataCommand, "run", new=mock_run):
-            rv = self.client.get(
-                f"{CHART_DATA_URI}/test-cache-key",
-            )
+        rv = self.client.get(
+            f"{CHART_DATA_URI}/test-cache-key",
+        )
 
         assert rv.status_code == 401
 

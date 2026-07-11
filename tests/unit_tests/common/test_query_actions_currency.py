@@ -19,7 +19,16 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from superset.common.query_actions import _detect_currency
+from superset.common.chart_data_timing import (
+    CacheWriteOutcome,
+    QueryAcquisitionResult,
+    QueryAcquisitionTiming,
+    SourceKind,
+)
+from superset.common.db_query_status import QueryStatus
+from superset.common.query_actions import (
+    _acquire_currency_dependency,
+)
 
 
 @pytest.fixture
@@ -50,241 +59,181 @@ def mock_datasource() -> MagicMock:
     return ds
 
 
-def test_detect_currency_returns_none_when_form_data_is_none(
-    mock_query_obj: MagicMock,
-    mock_datasource: MagicMock,
-) -> None:
-    """Returns None when query context has no form_data."""
-    context = MagicMock()
-    context.form_data = None
-
-    result = _detect_currency(context, mock_query_obj, mock_datasource)
-
-    assert result is None
-
-
-def test_detect_currency_returns_none_when_currency_format_not_dict(
-    mock_query_obj: MagicMock,
-    mock_datasource: MagicMock,
-) -> None:
-    """Returns None when currency_format is not a dict."""
-    context = MagicMock()
-    context.form_data = {"currency_format": "invalid"}
-
-    result = _detect_currency(context, mock_query_obj, mock_datasource)
-
-    assert result is None
-
-
-def test_detect_currency_returns_none_when_symbol_not_auto(
-    mock_query_obj: MagicMock,
-    mock_datasource: MagicMock,
-) -> None:
-    """Returns None when currency_format.symbol is not AUTO."""
-    context = MagicMock()
-    context.form_data = {"currency_format": {"symbol": "USD"}}
-
-    result = _detect_currency(context, mock_query_obj, mock_datasource)
-
-    assert result is None
-
-
-def test_detect_currency_returns_none_when_no_currency_column(
-    mock_query_context: MagicMock,
-    mock_query_obj: MagicMock,
-) -> None:
-    """Returns None when datasource has no currency_code_column."""
-    datasource = MagicMock()
-    datasource.currency_code_column = None
-
-    result = _detect_currency(mock_query_context, mock_query_obj, datasource)
-
-    assert result is None
-
-
-@patch("superset.common.query_actions.detect_currency_from_df")
-def test_detect_currency_uses_dataframe_when_column_present(
-    mock_detect_from_df: MagicMock,
+def test_modern_currency_dependency_is_cache_aware_and_bounded(
     mock_query_context: MagicMock,
     mock_query_obj: MagicMock,
     mock_datasource: MagicMock,
 ) -> None:
-    """Uses detect_currency_from_df when df contains currency column."""
-    df = pd.DataFrame({"currency_code": ["USD", "USD"]})
-    mock_detect_from_df.return_value = "USD"
-
-    result = _detect_currency(mock_query_context, mock_query_obj, mock_datasource, df)
-
-    assert result == "USD"
-    mock_detect_from_df.assert_called_once_with(df, "currency_code")
-
-
-@patch("superset.common.query_actions.detect_currency")
-def test_detect_currency_queries_datasource_when_no_df(
-    mock_detect: MagicMock,
-    mock_query_context: MagicMock,
-    mock_query_obj: MagicMock,
-    mock_datasource: MagicMock,
-) -> None:
-    """Queries datasource when df is None."""
-    mock_detect.return_value = "EUR"
-
-    result = _detect_currency(mock_query_context, mock_query_obj, mock_datasource)
-
-    assert result == "EUR"
-    mock_detect.assert_called_once_with(
-        datasource=mock_datasource,
-        filters=mock_query_obj.filter,
-        granularity=mock_query_obj.granularity,
-        from_dttm=mock_query_obj.from_dttm,
-        to_dttm=mock_query_obj.to_dttm,
-        extras=mock_query_obj.extras,
+    timing = QueryAcquisitionTiming(
+        cache_key_ns=1,
+        cache_read_ns=2,
+        source_ns=3,
+        cache_write_ns=4,
+        cache_write_outcome=CacheWriteOutcome.SUCCEEDED,
+        cache_hit=False,
+        sources=(),
     )
-
-
-@patch("superset.common.query_actions.detect_currency")
-def test_detect_currency_queries_datasource_when_column_not_in_df(
-    mock_detect: MagicMock,
-    mock_query_context: MagicMock,
-    mock_query_obj: MagicMock,
-    mock_datasource: MagicMock,
-) -> None:
-    """Falls back to query when df doesn't have currency column."""
-    df = pd.DataFrame({"other_column": ["value"]})
-    mock_detect.return_value = "GBP"
-
-    result = _detect_currency(mock_query_context, mock_query_obj, mock_datasource, df)
-
-    assert result == "GBP"
-    mock_detect.assert_called_once()
-
-
-# Tests for column_config AUTO detection (Table charts)
-
-
-@pytest.fixture
-def mock_query_context_with_column_config() -> MagicMock:
-    """Create a mock QueryContext with column_config AUTO currency (Table charts)."""
-    context = MagicMock()
-    context.form_data = {
-        "column_config": {
-            "cost": {"currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"}}
-        }
-    }
-    return context
-
-
-@patch("superset.common.query_actions.detect_currency")
-def test_detect_currency_checks_column_config_for_auto(
-    mock_detect: MagicMock,
-    mock_query_context_with_column_config: MagicMock,
-    mock_query_obj: MagicMock,
-    mock_datasource: MagicMock,
-) -> None:
-    """Runs detection when column_config has AUTO currency (Table charts)."""
-    mock_detect.return_value = "USD"
-
-    result = _detect_currency(
-        mock_query_context_with_column_config,
-        mock_query_obj,
-        mock_datasource,
-    )
-
-    assert result == "USD"
-    mock_detect.assert_called_once()
-
-
-@patch("superset.common.query_actions.detect_currency_from_df")
-def test_detect_currency_column_config_uses_dataframe(
-    mock_detect_from_df: MagicMock,
-    mock_query_context_with_column_config: MagicMock,
-    mock_query_obj: MagicMock,
-    mock_datasource: MagicMock,
-) -> None:
-    """Uses dataframe detection when column_config has AUTO and df has currency."""
-    df = pd.DataFrame({"currency_code": ["EUR", "EUR"]})
-    mock_detect_from_df.return_value = "EUR"
-
-    result = _detect_currency(
-        mock_query_context_with_column_config,
-        mock_query_obj,
-        mock_datasource,
-        df,
-    )
-
-    assert result == "EUR"
-    mock_detect_from_df.assert_called_once_with(df, "currency_code")
-
-
-def test_detect_currency_skips_when_no_auto_in_column_config(
-    mock_query_obj: MagicMock,
-    mock_datasource: MagicMock,
-) -> None:
-    """Returns None when column_config has explicit currency (not AUTO)."""
-    context = MagicMock()
-    context.form_data = {
-        "column_config": {"cost": {"currencyFormat": {"symbol": "USD"}}}
-    }
-
-    result = _detect_currency(context, mock_query_obj, mock_datasource)
-
-    assert result is None
-
-
-@patch("superset.common.query_actions.detect_currency")
-def test_detect_currency_works_with_both_top_level_and_column_config(
-    mock_detect: MagicMock,
-    mock_query_obj: MagicMock,
-    mock_datasource: MagicMock,
-) -> None:
-    """Detects when both top-level and column_config have AUTO."""
-    context = MagicMock()
-    context.form_data = {
-        "currency_format": {"symbol": "AUTO"},
-        "column_config": {"cost": {"currencyFormat": {"symbol": "AUTO"}}},
-    }
-    mock_detect.return_value = "JPY"
-
-    result = _detect_currency(context, mock_query_obj, mock_datasource)
-
-    assert result == "JPY"
-    mock_detect.assert_called_once()
-
-
-@patch("superset.common.query_actions.detect_currency")
-def test_detect_currency_top_level_auto_triggers_detection(
-    mock_detect: MagicMock,
-    mock_query_obj: MagicMock,
-    mock_datasource: MagicMock,
-) -> None:
-    """Detects when only top-level currency_format has AUTO."""
-    context = MagicMock()
-    context.form_data = {
-        "currency_format": {"symbol": "AUTO"},
-        "column_config": {
-            "cost": {"currencyFormat": {"symbol": "USD"}}  # explicit, not AUTO
+    primary = QueryAcquisitionResult(
+        payload={
+            "df": pd.DataFrame({"value": [1]}),
+            "status": QueryStatus.SUCCESS,
         },
-    }
-    mock_detect.return_value = "CAD"
+        timing=timing,
+    )
+    dependency = QueryAcquisitionResult(
+        payload={
+            "df": pd.DataFrame({"currency_code": ["USD"]}),
+            "status": QueryStatus.SUCCESS,
+        },
+        timing=timing,
+    )
+    mock_query_obj.datasource = mock_datasource
+    mock_query_obj.annotation_layers = []
+    mock_query_obj.time_offsets = []
+    mock_query_context.get_df_payload_result.return_value = dependency
 
-    result = _detect_currency(context, mock_query_obj, mock_datasource)
-
-    assert result == "CAD"
-    mock_detect.assert_called_once()
-
-
-def test_detect_currency_column_config_no_currency_column_returns_none(
-    mock_query_context_with_column_config: MagicMock,
-    mock_query_obj: MagicMock,
-) -> None:
-    """Returns None when column_config has AUTO but datasource lacks currency column."""
-    datasource = MagicMock()
-    datasource.currency_code_column = None
-
-    result = _detect_currency(
-        mock_query_context_with_column_config,
+    combined, currency, _ = _acquire_currency_dependency(
+        mock_query_context,
         mock_query_obj,
-        datasource,
+        primary,
+        force_cached=True,
     )
 
-    assert result is None
+    hidden_query = mock_query_context.get_df_payload_result.call_args.args[0]
+    assert hidden_query.columns == ["currency_code"]
+    assert hidden_query.row_limit == 2
+    assert hidden_query.metrics == []
+    assert hidden_query.is_timeseries is False
+    assert mock_query_context.get_df_payload_result.call_args.kwargs == {
+        "force_cached": True,
+        "source_kind": SourceKind.CURRENCY_DETECTION,
+    }
+    assert currency == "USD"
+    assert combined.timing.source_ns == 6
+
+
+def test_cache_only_prewarms_currency_without_detecting_value(
+    mock_query_context: MagicMock,
+    mock_query_obj: MagicMock,
+    mock_datasource: MagicMock,
+) -> None:
+    timing = QueryAcquisitionTiming(
+        cache_key_ns=0,
+        cache_read_ns=0,
+        source_ns=0,
+        cache_write_ns=None,
+        cache_write_outcome=CacheWriteOutcome.NOT_ATTEMPTED,
+        cache_hit=True,
+        sources=(),
+    )
+    primary = QueryAcquisitionResult(
+        payload={
+            "df": pd.DataFrame({"value": [1]}),
+            "status": QueryStatus.SUCCESS,
+        },
+        timing=timing,
+    )
+    mock_query_context.get_df_payload_result.return_value = QueryAcquisitionResult(
+        payload={
+            "df": pd.DataFrame({"currency_code": ["USD"]}),
+            "status": QueryStatus.SUCCESS,
+        },
+        timing=timing,
+    )
+    mock_query_obj.datasource = mock_datasource
+    mock_query_obj.annotation_layers = []
+    mock_query_obj.time_offsets = []
+
+    with patch(
+        "superset.common.query_actions.detect_currency_from_df"
+    ) as detect_from_df:
+        _, currency, processing_ns = _acquire_currency_dependency(
+            mock_query_context,
+            mock_query_obj,
+            primary,
+            force_cached=False,
+            detect_value=False,
+        )
+
+    mock_query_context.get_df_payload_result.assert_called_once()
+    detect_from_df.assert_not_called()
+    assert currency is None
+    assert processing_ns == 0
+
+
+def test_currency_dependency_is_not_started_after_primary_failure(
+    mock_query_context: MagicMock,
+    mock_query_obj: MagicMock,
+    mock_datasource: MagicMock,
+) -> None:
+    timing = QueryAcquisitionTiming(
+        cache_key_ns=0,
+        cache_read_ns=0,
+        source_ns=0,
+        cache_write_ns=None,
+        cache_write_outcome=CacheWriteOutcome.NOT_ATTEMPTED,
+        cache_hit=False,
+        sources=(),
+    )
+    primary = QueryAcquisitionResult(
+        payload={"df": pd.DataFrame(), "status": QueryStatus.FAILED},
+        timing=timing,
+    )
+    mock_query_obj.datasource = mock_datasource
+
+    combined, currency, processing_ns = _acquire_currency_dependency(
+        mock_query_context,
+        mock_query_obj,
+        primary,
+        force_cached=False,
+    )
+
+    assert combined is primary
+    assert currency is None
+    assert processing_ns == 0
+    mock_query_context.get_df_payload_result.assert_not_called()
+
+
+def test_failed_currency_dependency_does_not_run_detection(
+    mock_query_context: MagicMock,
+    mock_query_obj: MagicMock,
+    mock_datasource: MagicMock,
+) -> None:
+    timing = QueryAcquisitionTiming(
+        cache_key_ns=0,
+        cache_read_ns=0,
+        source_ns=0,
+        cache_write_ns=None,
+        cache_write_outcome=CacheWriteOutcome.NOT_ATTEMPTED,
+        cache_hit=False,
+        sources=(),
+    )
+    primary = QueryAcquisitionResult(
+        payload={
+            "df": pd.DataFrame({"value": [1]}),
+            "status": QueryStatus.SUCCESS,
+        },
+        timing=timing,
+    )
+    dependency = QueryAcquisitionResult(
+        payload={"df": pd.DataFrame(), "status": QueryStatus.FAILED},
+        timing=timing,
+    )
+    mock_query_obj.datasource = mock_datasource
+    mock_query_obj.annotation_layers = []
+    mock_query_obj.time_offsets = []
+    mock_query_context.get_df_payload_result.return_value = dependency
+
+    with patch(
+        "superset.common.query_actions.detect_currency_from_df"
+    ) as detect_from_df:
+        _, currency, processing_ns = _acquire_currency_dependency(
+            mock_query_context,
+            mock_query_obj,
+            primary,
+            force_cached=False,
+        )
+
+    assert currency is None
+    assert processing_ns == 0
+    detect_from_df.assert_not_called()

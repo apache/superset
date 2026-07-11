@@ -2161,8 +2161,8 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         self.login(ADMIN_USERNAME)
         slc = self.get_slice("Pivot Table v2")
 
-        with mock.patch.object(ChartDataCommand, "run") as mock_run:
-            mock_run.side_effect = ChartDataQueryFailedError(
+        with mock.patch.object(ChartDataCommand, "execute") as mock_execute:
+            mock_execute.side_effect = ChartDataQueryFailedError(
                 _(
                     "Error: %(error)s",
                     error=_("Empty query?"),

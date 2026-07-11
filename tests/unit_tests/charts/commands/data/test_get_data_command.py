@@ -22,7 +22,30 @@ import pytest
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.common.chart_data import ChartDataResultType
+from superset.common.chart_data_timing import (
+    CacheWriteOutcome,
+    QueryAcquisitionTiming,
+    QueryContextExecutionResult,
+    QueryDataResult,
+)
 from superset.common.query_context import QueryContext
+
+
+def set_command_payload(query_context: Mock) -> None:
+    """Translate the legacy fixture shape to the typed command boundary."""
+    payload = query_context.get_payload.return_value
+    timing = QueryAcquisitionTiming(
+        cache_key_ns=0,
+        cache_read_ns=0,
+        source_ns=0,
+        cache_write_ns=None,
+        cache_write_outcome=CacheWriteOutcome.NOT_ATTEMPTED,
+        cache_hit=None,
+        sources=(),
+    ).materialized(0)
+    query_context.get_payload_result.return_value = QueryContextExecutionResult(
+        queries=tuple(QueryDataResult(query, timing) for query in payload["queries"])
+    )
 
 
 def test_query_result_type_allows_validation_error_payload() -> None:
@@ -46,6 +69,7 @@ def test_query_result_type_allows_validation_error_payload() -> None:
         "queries": [{"error": "Missing temporal column", "language": "sql"}]
     }
 
+    set_command_payload(mock_query_context)
     command = ChartDataCommand(mock_query_context)
 
     # Should NOT raise - this is the key assertion for the regression test
@@ -71,6 +95,7 @@ def test_full_result_type_raises_on_error() -> None:
         "queries": [{"error": "Invalid column name"}]
     }
 
+    set_command_payload(mock_query_context)
     command = ChartDataCommand(mock_query_context)
 
     # Should raise exception for data requests
@@ -93,6 +118,7 @@ def test_results_result_type_raises_on_error() -> None:
         "queries": [{"error": "Database connection failed"}]
     }
 
+    set_command_payload(mock_query_context)
     command = ChartDataCommand(mock_query_context)
 
     # Should raise exception for results requests
@@ -115,6 +141,7 @@ def test_query_result_type_returns_successful_query() -> None:
         "queries": [{"query": "SELECT * FROM table", "language": "sql"}]
     }
 
+    set_command_payload(mock_query_context)
     command = ChartDataCommand(mock_query_context)
 
     # Should return query successfully
@@ -138,6 +165,7 @@ def test_full_result_type_returns_successful_data() -> None:
         "queries": [{"data": [{"col1": "value1"}], "colnames": ["col1"]}]
     }
 
+    set_command_payload(mock_query_context)
     command = ChartDataCommand(mock_query_context)
 
     # Should return data successfully
@@ -166,6 +194,7 @@ def test_query_result_type_with_multiple_queries_and_mixed_results() -> None:
         ]
     }
 
+    set_command_payload(mock_query_context)
     command = ChartDataCommand(mock_query_context)
 
     # Should return all queries without raising
@@ -200,6 +229,7 @@ def test_full_result_type_fails_fast_on_first_error_in_multiple_queries() -> Non
         ]
     }
 
+    set_command_payload(mock_query_context)
     command = ChartDataCommand(mock_query_context)
 
     # Should raise on first error without processing remaining queries

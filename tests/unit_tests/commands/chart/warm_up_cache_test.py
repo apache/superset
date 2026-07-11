@@ -14,12 +14,26 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
 
+from superset.commands.chart.data.get_data_command import (
+    ChartDataExecutionMode,
+    ChartDataExecutionOptions,
+)
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
 from superset.models.slice import Slice
+
+
+def set_execute_payload(
+    mock_chart_data_command: Mock,
+    payload: dict[str, Any],
+) -> None:
+    execution = Mock()
+    execution.materialize.return_value = payload
+    mock_chart_data_command.return_value.execute.return_value = execution
 
 
 @pytest.fixture(autouse=True)
@@ -61,9 +75,10 @@ def test_applies_dashboard_filters_to_non_legacy_chart(
             "superset.commands.chart.warm_up_cache.get_form_data",
             return_value=[{"viz_type": "echarts_timeseries_bar"}],
         ):
-            mock_chart_data_command.return_value.run.return_value = {
-                "queries": [{"error": None, "status": "success"}]
-            }
+            set_execute_payload(
+                mock_chart_data_command,
+                {"queries": [{"error": None, "status": "success"}]},
+            )
 
             # Execute with dashboard_id
             result = ChartWarmUpCacheCommand(chart, 42, None).run()
@@ -84,6 +99,9 @@ def test_applies_dashboard_filters_to_non_legacy_chart(
 
             # VALIDATE: Result is correct
             assert result["chart_id"] == 123
+            mock_chart_data_command.return_value.execute.assert_called_once_with(
+                ChartDataExecutionOptions(mode=ChartDataExecutionMode.CACHE_ONLY)
+            )
 
 
 @patch("superset.commands.chart.warm_up_cache.ChartDataCommand")
@@ -108,9 +126,10 @@ def test_no_filters_applied_without_dashboard_id(mock_chart_data_command):
             "superset.commands.chart.warm_up_cache.get_form_data",
             return_value=[{"viz_type": "big_number"}],
         ):
-            mock_chart_data_command.return_value.run.return_value = {
-                "queries": [{"error": None, "status": "success"}]
-            }
+            set_execute_payload(
+                mock_chart_data_command,
+                {"queries": [{"error": None, "status": "success"}]},
+            )
 
             # Execute WITHOUT dashboard_id
             ChartWarmUpCacheCommand(chart, None, None).run()
@@ -146,9 +165,10 @@ def test_extra_filters_parameter_takes_precedence(
             "superset.commands.chart.warm_up_cache.get_form_data",
             return_value=[{"viz_type": "pie"}],
         ):
-            mock_chart_data_command.return_value.run.return_value = {
-                "queries": [{"error": None, "status": "success"}]
-            }
+            set_execute_payload(
+                mock_chart_data_command,
+                {"queries": [{"error": None, "status": "success"}]},
+            )
 
             # Execute with extra_filters parameter
             extra_filters_json = '[{"col": "state", "op": "==", "val": "CA"}]'
@@ -193,12 +213,15 @@ def test_handles_multiple_queries_in_query_context(
             "superset.commands.chart.warm_up_cache.get_form_data",
             return_value=[{"viz_type": "heatmap_v2"}],
         ):
-            mock_chart_data_command.return_value.run.return_value = {
-                "queries": [
-                    {"error": None, "status": "success"},
-                    {"error": None, "status": "success"},
-                ]
-            }
+            set_execute_payload(
+                mock_chart_data_command,
+                {
+                    "queries": [
+                        {"error": None, "status": "success"},
+                        {"error": None, "status": "success"},
+                    ]
+                },
+            )
 
             ChartWarmUpCacheCommand(chart, 42, None).run()
 
@@ -236,9 +259,10 @@ def test_handles_empty_dashboard_filters(
             "superset.commands.chart.warm_up_cache.get_form_data",
             return_value=[{"viz_type": "echarts_area"}],
         ):
-            mock_chart_data_command.return_value.run.return_value = {
-                "queries": [{"error": None, "status": "success"}]
-            }
+            set_execute_payload(
+                mock_chart_data_command,
+                {"queries": [{"error": None, "status": "success"}]},
+            )
 
             ChartWarmUpCacheCommand(chart, 42, None).run()
 
@@ -454,12 +478,15 @@ def test_non_legacy_chart_returns_first_error(mock_chart_data_command):
             "superset.commands.chart.warm_up_cache.get_form_data",
             return_value=[{"viz_type": "echarts_timeseries"}],
         ):
-            mock_chart_data_command.return_value.run.return_value = {
-                "queries": [
-                    {"error": "Database connection failed", "status": "failed"},
-                    {"error": None, "status": "success"},
-                ]
-            }
+            set_execute_payload(
+                mock_chart_data_command,
+                {
+                    "queries": [
+                        {"error": "Database connection failed", "status": "failed"},
+                        {"error": None, "status": "success"},
+                    ]
+                },
+            )
 
             result = ChartWarmUpCacheCommand(chart, None, None).run()
 

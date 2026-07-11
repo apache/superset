@@ -90,15 +90,27 @@ def load_chart_data_into_cache(
     form_data: dict[str, Any],
 ) -> None:
     # pylint: disable=import-outside-toplevel
-    from superset.commands.chart.data.get_data_command import ChartDataCommand
+    from superset.commands.chart.data.get_data_command import (
+        ChartDataCommand,
+        ChartDataExecutionMode,
+        ChartDataExecutionOptions,
+    )
 
     with override_user(_load_user_from_job_metadata(job_metadata), force=False):
         try:
             set_form_data(form_data)
             query_context = _create_query_context_from_form(form_data)
             command = ChartDataCommand(query_context)
-            result = command.run(cache=True)
-            cache_key = result["cache_key"]
+            result = command.execute(
+                ChartDataExecutionOptions(
+                    mode=ChartDataExecutionMode.CACHE_ONLY,
+                    cache_query_context=True,
+                    require_cache_writes=True,
+                )
+            )
+            cache_key = result.cache_key
+            if cache_key is None:
+                raise RuntimeError("Chart query context was not cached")
             result_url = f"/api/v1/chart/data/{cache_key}"
             async_query_manager.update_job(
                 job_metadata,

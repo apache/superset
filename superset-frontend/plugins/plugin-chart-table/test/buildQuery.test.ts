@@ -185,6 +185,7 @@ describe('plugin-chart-table', () => {
         const { queries } = buildQuery(formData);
 
         expect(queries).toHaveLength(2);
+        expect(queries[0].contribution_totals_query_index).toBe(1);
 
         expect(queries[0].post_processing).toEqual([
           {
@@ -217,6 +218,7 @@ describe('plugin-chart-table', () => {
         const { queries } = buildQuery(formData);
 
         expect(queries).toHaveLength(3);
+        expect(queries[0].contribution_totals_query_index).toBe(1);
         expect(queries[1].metrics).toEqual(['sum_sales']);
         expect(queries[2].metrics).toEqual(['count', 'sum_sales']);
       });
@@ -329,6 +331,23 @@ describe('plugin-chart-table', () => {
         searchText: 'A',
         searchColumn: 'category',
       };
+
+      test('points contribution at the producer after the rowcount query', () => {
+        const { queries } = buildQuery({
+          ...baseFormDataWithServerPagination,
+          percent_metrics: ['sum_sales'],
+          percent_metric_calculation: 'all_records',
+        });
+
+        expect(queries).toHaveLength(3);
+        expect(queries[0].contribution_totals_query_index).toBe(2);
+        expect(queries[1].is_rowcount).toBe(true);
+        expect(queries[2]).toMatchObject({
+          columns: [],
+          metrics: ['sum_sales'],
+          post_processing: [],
+        });
+      });
 
       test('includes search filter in query payload when server pagination is enabled', () => {
         const { queries } = buildQuery(baseFormDataWithServerPagination, {

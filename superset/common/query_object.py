@@ -85,6 +85,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     applied_time_extras: dict[str, str]
     apply_fetch_values_predicate: bool
     columns: list[Column]
+    contribution_totals_query_index: int | None
     datasource: BaseDatasource | None
     extras: dict[str, Any]
     filter: list[QueryObjectFilterClause]
@@ -117,6 +118,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         applied_time_extras: dict[str, str] | None = None,
         apply_fetch_values_predicate: bool = False,
         columns: list[Column] | None = None,
+        contribution_totals_query_index: int | None = None,
         datasource: BaseDatasource | None = None,
         extras: dict[str, Any] | None = None,
         filters: list[QueryObjectFilterClause] | None = None,
@@ -141,6 +143,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self.applied_time_extras = applied_time_extras or {}
         self.apply_fetch_values_predicate = apply_fetch_values_predicate or False
         self.columns = columns or []
+        self.contribution_totals_query_index = contribution_totals_query_index
         self.datasource = datasource
         self.extras = extras or {}
         self.filter = filters or []

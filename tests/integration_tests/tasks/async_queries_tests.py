@@ -27,7 +27,11 @@ from superset.async_events.cache_backend import (
     RedisCacheBackend,
     RedisSentinelCacheBackend,
 )
-from superset.commands.chart.data.get_data_command import ChartDataCommand
+from superset.commands.chart.data.get_data_command import (
+    ChartDataCommand,
+    ChartDataExecutionMode,
+    ChartDataExecutionOptions,
+)
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.exceptions import SupersetException
 from superset.extensions import async_query_manager, security_manager
@@ -89,7 +93,9 @@ class TestAsyncQueries(SupersetTestCase):
         ]
     )
     @mock.patch.object(
-        ChartDataCommand, "run", side_effect=ChartDataQueryFailedError("Error: foo")
+        ChartDataCommand,
+        "execute",
+        side_effect=ChartDataQueryFailedError("Error: foo"),
     )
     @mock.patch.object(async_query_manager, "update_job")
     def test_load_chart_data_into_cache_error(
@@ -114,7 +120,13 @@ class TestAsyncQueries(SupersetTestCase):
         with pytest.raises(ChartDataQueryFailedError):
             load_chart_data_into_cache(job_metadata, query_context)
 
-        mock_run_command.assert_called_once_with(cache=True)
+        mock_run_command.assert_called_once_with(
+            ChartDataExecutionOptions(
+                mode=ChartDataExecutionMode.CACHE_ONLY,
+                cache_query_context=True,
+                require_cache_writes=True,
+            )
+        )
         errors = [{"message": "Error: foo"}]
         mock_update_job.assert_called_once_with(job_metadata, "error", errors=errors)
 
@@ -124,7 +136,7 @@ class TestAsyncQueries(SupersetTestCase):
             ("RedisSentinelCacheBackend", mock.Mock(spec=RedisSentinelCacheBackend)),
         ]
     )
-    @mock.patch.object(ChartDataCommand, "run")
+    @mock.patch.object(ChartDataCommand, "execute")
     @mock.patch.object(async_query_manager, "update_job")
     def test_soft_timeout_load_chart_data_into_cache(
         self, cache_type, cache_backend, mock_update_job, mock_run_command
@@ -241,10 +253,9 @@ class TestAsyncQueries(SupersetTestCase):
             ("RedisSentinelCacheBackend", mock.Mock(spec=RedisSentinelCacheBackend)),
         ]
     )
-    @mock.patch.object(ChartDataCommand, "run")
     @mock.patch.object(async_query_manager, "update_job")
     def test_soft_timeout_load_explore_json_into_cache(
-        self, cache_type, cache_backend, mock_update_job, mock_run_command
+        self, cache_type, cache_backend, mock_update_job
     ):
         from superset.tasks.async_queries import load_explore_json_into_cache
 

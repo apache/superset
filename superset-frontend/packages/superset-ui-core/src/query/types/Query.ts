@@ -133,6 +133,9 @@ export interface QueryObject
   /** Number of rows to skip */
   row_offset?: number;
 
+  /** Query index that supplies all-record contribution totals */
+  contribution_totals_query_index?: number;
+
   /** The column to which direct temporal filters (forthcoming) */
   time_column?: string;
 

@@ -22,6 +22,7 @@ from typing import Any, ClassVar, TYPE_CHECKING
 import pandas as pd
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.chart_data_timing import SourceKind
 from superset.common.query_context_processor import QueryContextProcessor
 from superset.common.query_object import QueryObject
 from superset.explorables.base import Explorable
@@ -29,6 +30,10 @@ from superset.models.slice import Slice
 from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
+    from superset.common.chart_data_timing import (
+        QueryAcquisitionResult,
+        QueryContextExecutionResult,
+    )
     from superset.models.helpers import QueryResult
 
 
@@ -98,6 +103,19 @@ class QueryContext:
         """Returns the query results with both metadata and data"""
         return self._processor.get_payload(cache_query_context, force_cached)
 
+    def get_payload_result(
+        self,
+        cache_query_context: bool | None = False,
+        force_cached: bool = False,
+        materialize: bool = True,
+    ) -> QueryContextExecutionResult:
+        """Execute queries with timing retained in a typed sidecar."""
+        return self._processor.get_payload_result(
+            cache_query_context,
+            force_cached,
+            materialize,
+        )
+
     def get_cache_timeout(self) -> int | None:
         """
         Get the cache timeout for this query context.
@@ -129,6 +147,19 @@ class QueryContext:
         return self._processor.get_df_payload(
             query_obj=query_obj,
             force_cached=force_cached,
+        )
+
+    def get_df_payload_result(
+        self,
+        query_obj: QueryObject,
+        force_cached: bool | None = False,
+        source_kind: SourceKind = SourceKind.PRIMARY,
+    ) -> QueryAcquisitionResult:
+        """Acquire a dataframe with timing kept outside the payload."""
+        return self._processor.get_df_payload_result(
+            query_obj=query_obj,
+            force_cached=force_cached,
+            source_kind=source_kind,
         )
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:

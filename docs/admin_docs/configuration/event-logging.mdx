@@ -60,3 +60,84 @@ STATS_LOGGER = StatsdStatsLogger(host='localhost', port=8125, prefix='superset')
 
 Note that it’s also possible to implement your own logger by deriving
 `superset.stats_logger.BaseStatsLogger`.
+
+### Chart Data Timing
+
+Superset records query timing separately from chart API request timing. Query metrics
+use the `chart_data.query` prefix:
+
+| Metric                                        | Description                              |
+| --------------------------------------------- | ---------------------------------------- |
+| `chart_data.query.cache_key_ms`                | Validation and cache-key planning        |
+| `chart_data.query.cache_read_ms`               | Data-cache lookup                        |
+| `chart_data.query.source_ms`                   | Source acquisition on a cache miss       |
+| `chart_data.query.cache_write_ms`              | Data-cache write, when attempted          |
+| `chart_data.query.materialization_ms`          | Post-processing and response conversion  |
+| `chart_data.query.total_ms`                    | Total time attributable to the query     |
+| `chart_data.source.<kind>.total_ms`            | Current-execution source operation timing |
+
+Set `CHART_DATA_INCLUDE_TIMING = True` to include a versioned timing object on each
+query returned by `/api/v1/chart/data`:
+
+```json
+{
+  "version": 1,
+  "query": {
+    "cache_key_ms": 1.2,
+    "cache_read_ms": 0.8,
+    "source_ms": 25.4,
+    "cache_write_ms": 1.1,
+    "cache_write_status": "succeeded",
+    "materialization_ms": 2.3,
+    "total_ms": 30.8,
+    "cache_hit": false
+  },
+  "sources": [
+    {
+      "kind": "primary",
+      "provider": "sql",
+      "origin": "current",
+      "planning_ms": 3.1,
+      "execution_ms": 20.0,
+      "processing_ms": 2.0,
+      "total_ms": 25.4,
+      "children": [],
+      "truncated": false
+    }
+  ]
+}
+```
+
+`sources` is `null` when an older cache entry has no source trace. Traces replayed
+from the cache use `origin: "cache"`; source metrics are emitted only for
+`origin: "current"`. Traces are bounded and contain no SQL, result data, labels, or
+resource identifiers. A source node's `total_ms` includes its children, while its
+planning, execution, and processing phases exclude child-source time. Consequently,
+the phase values and child totals do not double-count one another.
+
+`cache_write_status` distinguishes a successful write from a failed write, a
+configuration-driven skip, and a write that was not attempted. It is response
+metadata rather than a numeric `STATS_LOGGER` timing metric.
+
+Request-level metrics use the fixed names `chart-context`, `chart-authorize`,
+`chart-query`, `chart-client`, `chart-serialize`, `chart-enqueue`, and `chart-total`.
+Set `CHART_DATA_INCLUDE_SERVER_TIMING = True` to expose measured phases through the
+`Server-Timing` header on successful JSON chart-data responses. Error and file export
+responses do not include this header.
+
+### Slow Query Logging
+
+To log slow chart queries, set `CHART_DATA_SLOW_QUERY_THRESHOLD_MS` in your `superset_config.py`:
+
+```python
+# Log WARNING when chart queries exceed 5 seconds
+CHART_DATA_SLOW_QUERY_THRESHOLD_MS = 5000
+```
+
+When a query exceeds the threshold, a WARNING log is emitted with its timing breakdown:
+
+```
+WARNING: Slow chart query: total=6200ms cache_key=5ms cache_read=10ms source=6000ms cache_write=5ms cache_write_status=succeeded materialization=180ms cache_hit=False
+```
+
+Set to `None` (default) to disable slow query logging.

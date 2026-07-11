@@ -70,6 +70,12 @@ from sqlalchemy_utils import UUIDType
 
 from superset import db, is_feature_enabled
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
+from superset.common.chart_data_timing import (
+    source_phase,
+    source_timing,
+    SourceKind,
+    SourceProvider,
+)
 from superset.common.db_query_status import QueryStatus
 from superset.common.utils import dataframe_utils
 from superset.common.utils.time_range_utils import (
@@ -149,6 +155,7 @@ class ValidationResultDict(TypedDict):
 
 
 if TYPE_CHECKING:
+    from superset.common.chart_data_timing import SourceTiming
     from superset.common.query_object import QueryObject
     from superset.connectors.sqla.models import SqlMetric, TableColumn
     from superset.db_engine_specs import BaseEngineSpec
@@ -1007,6 +1014,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         errors: Optional[list[dict[str, Any]]] = None,
         from_dttm: Optional[datetime] = None,
         to_dttm: Optional[datetime] = None,
+        source_trace: Optional[tuple[SourceTiming, ...]] = None,
     ) -> None:
         self.df = df
         self.query = query
@@ -1019,6 +1027,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         self.errors = errors or []
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
+        self.source_trace = source_trace
         self.sql_rowcount = len(self.df.index) if not self.df.empty else 0
 
 
@@ -1118,6 +1127,7 @@ class QueryStringExtended(NamedTuple):
     labels_expected: list[str]
     prequeries: list[str]
     sql: str
+    deferred: bool = False
 
 
 class SqlaQuery(NamedTuple):
@@ -1129,6 +1139,7 @@ class SqlaQuery(NamedTuple):
     labels_expected: list[str]
     prequeries: list[str]
     sqla_query: Select
+    deferred: bool = False
 
 
 class ExploreMixin:  # pylint: disable=too-many-public-methods
@@ -1440,12 +1451,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         self,
         query_obj: QueryObjectDict,
         mutate: bool = True,
+        defer_source_queries: bool = False,
     ) -> QueryStringExtended:
         # Filter out keys that aren't parameters to get_sqla_query
         filtered_query_obj = {
             k: v for k, v in query_obj.items() if k in SQLA_QUERY_KEYS
         }
-        sqlaq = self.get_sqla_query(**cast(Any, filtered_query_obj))
+        sqlaq = self.get_sqla_query(
+            **cast(Any, filtered_query_obj),
+            defer_source_queries=defer_source_queries,
+        )
         sql = self.database.compile_sqla_query(
             sqlaq.sqla_query,
             catalog=self.catalog,
@@ -1463,6 +1478,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             labels_expected=sqlaq.labels_expected,
             prequeries=sqlaq.prequeries,
             sql=sql,
+            deferred=sqlaq.deferred,
         )
 
     def _normalize_prequery_result_type(
@@ -1586,7 +1602,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         datasource types (Query, SqlaTable, etc.).
         """
         qry_start_dttm = datetime.now()
-        query_str_ext = self.get_query_str_extended(query_obj)
+        with source_phase("planning"):
+            query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
 
         self._raise_for_disallowed_sql(sql)
@@ -1619,12 +1636,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return df
 
         try:
-            df = self.database.get_df(
-                sql,
-                self.catalog,
-                self.schema,
-                mutator=assign_column_label,
-            )
+            with source_phase("execution"):
+                df = self.database.get_df(
+                    sql,
+                    self.catalog,
+                    self.schema,
+                    mutator=assign_column_label,
+                )
         except Exception as ex:  # pylint: disable=broad-except
             # Re-raise SupersetErrorException (includes OAuth2RedirectError)
             # to bubble up to API layer
@@ -1790,7 +1808,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         df = result.df
         if not df.empty:
             # Normalize datetime columns and metrics
-            df = self.normalize_df(df, query_object)
+            with source_phase("processing"):
+                df = self.normalize_df(df, query_object)
 
             # Process time offsets if requested
             if query_object.time_offsets:
@@ -1806,7 +1825,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             # Execute post-processing operations
             try:
-                df = query_object.exec_post_processing(df)
+                with source_phase("processing"):
+                    df = query_object.exec_post_processing(df)
             except InvalidPostProcessingError as ex:
                 raise QueryObjectValidationError(ex.message) from ex
 
@@ -1843,8 +1863,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # pylint: disable=import-outside-toplevel
         from superset.common.utils.query_cache_manager import QueryCacheManager
 
-        # ensure query_object is immutable
-        query_object_clone = copy.copy(query_object)
         queries: list[str] = []
         cache_keys: list[str | None] = []
         offset_dfs: dict[str, pd.DataFrame] = {}
@@ -1864,6 +1882,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         join_keys = [col for col in df.columns if col not in metric_names]
 
         for offset in query_object.time_offsets:
+            # Each offset must start from the original request state.
+            query_object_clone = copy.copy(query_object)
             try:
                 original_offset = offset
                 is_date_range_offset = self.is_valid_date_range(offset)
@@ -2068,27 +2088,33 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 query_object_clone_dct["row_offset"] = 0
 
             # Call the unified query method on the datasource
-            result = self.query(query_object_clone_dct)
+            with source_timing(SourceKind.TIME_OFFSET, SourceProvider.SQL):
+                result = self.query(query_object_clone_dct)
 
-            queries.append(result.query)
-            cache_keys.append(None)
+                if result.status == QueryStatus.FAILED:
+                    raise QueryObjectValidationError(
+                        result.error_message or _("Time comparison query failed")
+                    )
 
-            offset_metrics_df = result.df
-            if offset_metrics_df.empty:
-                offset_metrics_df = pd.DataFrame(
-                    {
-                        col: [np.nan]
-                        for col in join_keys + list(metrics_mapping.values())
-                    }
-                )
-            else:
-                # 1. normalize df, set dttm column
-                offset_metrics_df = self.normalize_df(
-                    offset_metrics_df, query_object_clone
-                )
+                queries.append(result.query)
+                cache_keys.append(None)
 
-                # 2. rename extra query columns
-                offset_metrics_df = offset_metrics_df.rename(columns=metrics_mapping)
+                with source_phase("processing"):
+                    offset_metrics_df = result.df
+                    if offset_metrics_df.empty:
+                        offset_metrics_df = pd.DataFrame(
+                            {
+                                col: [np.nan]
+                                for col in join_keys + list(metrics_mapping.values())
+                            }
+                        )
+                    else:
+                        offset_metrics_df = self.normalize_df(
+                            offset_metrics_df, query_object_clone
+                        )
+                        offset_metrics_df = offset_metrics_df.rename(
+                            columns=metrics_mapping
+                        )
 
             # cache df and query if caching is enabled
             if cache_key and cache_timeout_fn:
@@ -2760,8 +2786,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return values
 
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
-        query_str_ext = self.get_query_str_extended(query_obj)
-        all_queries = query_str_ext.prequeries + [query_str_ext.sql]
+        query_str_ext = self.get_query_str_extended(
+            query_obj, defer_source_queries=True
+        )
+        all_queries = list(query_str_ext.prequeries)
+        if query_str_ext.deferred:
+            all_queries.append(
+                "-- Main query is compiled after the series-limit prequery executes"
+            )
+        else:
+            all_queries.append(query_str_ext.sql)
         return ";\n\n".join(all_queries) + ";"
 
     def _get_series_orderby(
@@ -2850,6 +2884,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         groupby_exprs: dict[str, Any],
         columns_by_name: dict[str, "TableColumn"],
     ) -> ColumnElement:
+        if df.empty:
+            return sa.false()
         groups = []
         for _unused, row in df.iterrows():
             group = []
@@ -3268,6 +3304,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         timeseries_limit: Optional[int] = None,
         timeseries_limit_metric: Optional[Metric] = None,
         time_shift: Optional[str] = None,
+        defer_source_queries: bool = False,
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
         if granularity not in self.dttm_cols and granularity is not None:
@@ -3317,6 +3354,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         template_kwargs["applied_filters"] = applied_template_filters
         template_processor = self.get_template_processor(**template_kwargs)
         prequeries: list[str] = []
+        deferred = False
         orderby = orderby or []
         need_groupby = bool(metrics is not None or groupby)
         metrics = metrics or []
@@ -4063,16 +4101,34 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     "order_desc": True,
                 }
 
-                result = self.query(prequery_obj)
-                prequeries.append(result.query)
-                dimensions = [
-                    c
-                    for c in result.df.columns
-                    if c not in metrics and c in groupby_series_columns
-                ]
-                top_groups = self._get_top_groups(
-                    result.df, dimensions, groupby_series_columns, columns_by_name
-                )
+                if defer_source_queries:
+                    prequery = self.get_query_str_extended(
+                        prequery_obj,
+                        mutate=False,
+                        defer_source_queries=True,
+                    )
+                    prequeries.extend([*prequery.prequeries, prequery.sql])
+                    top_groups = sa.false()
+                    deferred = True
+                else:
+                    with source_timing(SourceKind.SERIES_LIMIT, SourceProvider.SQL):
+                        result = self.query(prequery_obj)
+                    if result.status == QueryStatus.FAILED:
+                        raise QueryObjectValidationError(
+                            result.error_message or _("Series limit query failed")
+                        )
+                    prequeries.append(result.query)
+                    dimensions = [
+                        c
+                        for c in result.df.columns
+                        if c not in metrics and c in groupby_series_columns
+                    ]
+                    top_groups = self._get_top_groups(
+                        result.df,
+                        dimensions,
+                        groupby_series_columns,
+                        columns_by_name,
+                    )
 
                 if group_others_when_limit_reached:
                     # Apply Others grouping using the refactored method
@@ -4146,4 +4202,5 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             labels_expected=labels_expected,
             sqla_query=qry,
             prequeries=prequeries,
+            deferred=deferred,
         )

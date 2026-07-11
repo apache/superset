@@ -27,6 +27,12 @@ from marshmallow.validate import Length, Range
 from marshmallow_union import Union
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.chart_data_timing import (
+    CacheWriteOutcome,
+    SourceKind,
+    SourceOrigin,
+    SourceProvider,
+)
 from superset.db_engine_specs.base import builtin_time_grains
 from superset.subjects.schemas import SubjectResponseSchema
 from superset.tags.models import TagType
@@ -1404,6 +1410,19 @@ class ChartDataQueryObjectSchema(Schema):
         metadata={"description": "Columns which to select in the query."},
         allow_none=True,
     )
+    contribution_totals_query_index = fields.Integer(
+        metadata={
+            "description": "Index of the query that supplies all-record totals "
+            "for contribution post-processing."
+        },
+        allow_none=True,
+        validate=Range(
+            min=0,
+            error=(
+                "`contribution_totals_query_index` must be greater than or equal to 0"
+            ),
+        ),
+    )
     orderby = fields.List(
         fields.Tuple(
             (
@@ -1542,6 +1561,47 @@ class AnnotationDataSchema(Schema):
     )
 
 
+class ChartDataSourceTimingSchema(Schema):
+    """Schema for one bounded source timing node."""
+
+    kind = fields.Enum(SourceKind, by_value=True, required=True)
+    provider = fields.Enum(SourceProvider, by_value=True, required=True)
+    origin = fields.Enum(SourceOrigin, by_value=True, required=True)
+    planning_ms = fields.Float(required=True)
+    execution_ms = fields.Float(required=True)
+    processing_ms = fields.Float(required=True)
+    total_ms = fields.Float(required=True)
+    children = fields.List(
+        fields.Nested(lambda: ChartDataSourceTimingSchema()), required=True
+    )
+    truncated = fields.Boolean(required=True)
+
+
+class ChartDataQueryTimingSchema(Schema):
+    """Schema for cache, source, and materialization phases."""
+
+    cache_key_ms = fields.Float(required=True)
+    cache_read_ms = fields.Float(required=True)
+    source_ms = fields.Float(required=True)
+    cache_write_ms = fields.Float(required=True, allow_none=True)
+    cache_write_status = fields.Enum(CacheWriteOutcome, by_value=True, required=True)
+    materialization_ms = fields.Float(required=True)
+    total_ms = fields.Float(required=True)
+    cache_hit = fields.Boolean(required=True, allow_none=True)
+
+
+class ChartDataTimingSchema(Schema):
+    """Schema for the versioned query and source timing breakdown."""
+
+    version = fields.Integer(required=True, validate=validate.Equal(1))
+    query = fields.Nested(ChartDataQueryTimingSchema, required=True)
+    sources = fields.List(
+        fields.Nested(ChartDataSourceTimingSchema),
+        required=True,
+        allow_none=True,
+    )
+
+
 class ChartDataResponseResult(Schema):
     annotation_data = fields.List(
         fields.Dict(
@@ -1651,6 +1711,14 @@ class ChartDataResponseResult(Schema):
     )
     warning = fields.String(
         metadata={"description": "Warning message when results were truncated"},
+        allow_none=True,
+    )
+    timing = fields.Nested(
+        ChartDataTimingSchema,
+        metadata={
+            "description": "Versioned query lifecycle and bounded source timing "
+            "breakdown in milliseconds."
+        },
         allow_none=True,
     )
 
