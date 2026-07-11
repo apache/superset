@@ -82,10 +82,18 @@ class CustomSnowflakeAuthErrorMeta(type):
     """
 
     def __instancecheck__(cls, instance: object) -> bool:
-        return (
-            isinstance(instance, SqlalchemyDatabaseError)
-            and isinstance(cast(SqlalchemyDatabaseError, instance).orig, DatabaseError)
-            and "Invalid OAuth access token" in str(instance)
+        """
+        Match Snowflake's invalid/expired OAuth token error, whether it arrives
+        wrapped by SQLAlchemy (e.g. ``Engine``-based execution) or as the raw
+        DBAPI exception — ``BaseEngineSpec.execute()`` runs against a bare
+        cursor and never wraps it, so both shapes must be handled here.
+        """
+        orig = instance
+        if isinstance(instance, SqlalchemyDatabaseError):
+            orig = cast(SqlalchemyDatabaseError, instance).orig
+
+        return isinstance(orig, DatabaseError) and "Invalid OAuth access token" in str(
+            orig
         )
 
 
@@ -277,7 +285,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         """
         Modify URL and/or engine kwargs to impersonate a different user.
         """
-        connect_args = engine_kwargs.setdefault("connect_args", {})
+        connect_args: dict[str, Any] = engine_kwargs.setdefault("connect_args", {})
 
         # When test_connection is executed (i.e., when validate_default_parameters is
         # set to True in connect_args), authentication via OAuth is not performed.
@@ -318,7 +326,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         # (e.g., `prompt` as used in BaseEngineSpec.get_oauth2_authorization_uri)
         # will cause an error.
         # https://docs.snowflake.com/user-guide/oauth-custom#query-parameters
-        params = {
+        params: dict[str, str] = {
             "scope": config["scope"],
             "response_type": "code",
             "state": encode_oauth2_state(state),
