@@ -25,6 +25,7 @@ import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy.engine.url import make_url
 
+from superset.app import SupersetApp
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.superset_typing import OAuth2ClientConfig
 from superset.utils import json
@@ -466,7 +467,7 @@ def test_get_oauth2_token(
     """
     from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 
-    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    requests: mock.MagicMock = mocker.patch("superset.db_engine_specs.base.requests")
     requests.post().json.return_value = {
         "access_token": "access-token",
         "expires_in": 3600,
@@ -495,69 +496,98 @@ def test_get_oauth2_token(
     )
 
 
-def test_impersonate_user(mocker: MockerFixture) -> None:
+def test_impersonate_user(app: SupersetApp, mocker: MockerFixture) -> None:
     """
     Test that Snowflake supports user impersonation.
+
+    Impersonation only applies within a request context (see
+    ``test_impersonate_user_outside_request_context`` below for the
+    background-execution case), so these assertions run inside one.
     """
     from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
     from superset.models.core import Database
 
-    database = Database(sqlalchemy_uri="snowflake://abc")
+    database: Database = Database(sqlalchemy_uri="snowflake://abc")
 
     mocker.patch(
         "superset.db_engine_specs.snowflake.SnowflakeEngineSpec.is_oauth2_enabled",
         return_value=True,
     )
 
-    assert SnowflakeEngineSpec.impersonate_user(
-        database=database,
-        username=None,
-        user_token=None,
-        url=make_url("snowflake://user:pass@account/database_name/default"),
-        engine_kwargs={
-            "connect_args": {
-                "validate_default_parameters": True,
+    with app.test_request_context("/some/place/"):
+        assert SnowflakeEngineSpec.impersonate_user(
+            database=database,
+            username=None,
+            user_token=None,
+            url=make_url("snowflake://user:pass@account/database_name/default"),
+            engine_kwargs={
+                "connect_args": {
+                    "validate_default_parameters": True,
+                },
             },
-        },
-    ) == (
-        make_url("snowflake://user:pass@account/database_name/default"),
-        {"connect_args": {"validate_default_parameters": True}},
-    )
+        ) == (
+            make_url("snowflake://user:pass@account/database_name/default"),
+            {"connect_args": {"validate_default_parameters": True}},
+        )
 
+        assert SnowflakeEngineSpec.impersonate_user(
+            database=database,
+            username=None,
+            user_token=None,
+            url=make_url("snowflake://user:pass@account/database_name/default"),
+            engine_kwargs={},
+        ) == (
+            make_url(
+                "snowflake://user:pass@account/database_name/default?authenticator=oauth"
+            ),
+            {"connect_args": {"authenticator": "oauth"}},
+        )
+
+        mocker.patch(
+            "superset.db_engine_specs.snowflake.is_feature_enabled",
+            return_value=True,
+        )
+
+        mocker.patch(
+            "superset.security_manager.find_user",
+            return_value=mocker.MagicMock(email="impersonated_user@example.com"),
+        )
+        assert SnowflakeEngineSpec.impersonate_user(
+            database=database,
+            username="impersonated_user",
+            user_token="test_token",  # noqa: S106
+            url=make_url("snowflake://user:pass@account/database_name/default"),
+            engine_kwargs={},
+        ) == (
+            make_url(
+                "snowflake://impersonated_user:pass@account/database_name/default?authenticator=oauth&token=test_token"
+            ),
+            {"connect_args": {"authenticator": "oauth"}},
+        )
+
+
+def test_impersonate_user_outside_request_context(mocker: MockerFixture) -> None:
+    """
+    Background executions (alerts/reports) have no per-user token, so OAuth
+    impersonation must not engage outside a request context — even when
+    ``database.is_oauth2_enabled()`` returns True because of a
+    database-level OAuth2 client config, which (unlike the app-config-based
+    check) isn't itself request-context-aware.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    database: Database = Database(sqlalchemy_uri="snowflake://abc")
+    mocker.patch.object(Database, "is_oauth2_enabled", return_value=True)
+
+    url = make_url("snowflake://user:pass@account/database_name/default")
     assert SnowflakeEngineSpec.impersonate_user(
         database=database,
         username=None,
-        user_token=None,
-        url=make_url("snowflake://user:pass@account/database_name/default"),
-        engine_kwargs={},
-    ) == (
-        make_url(
-            "snowflake://user:pass@account/database_name/default?authenticator=oauth"
-        ),
-        {"connect_args": {"authenticator": "oauth"}},
-    )
-
-    mocker.patch(
-        "superset.db_engine_specs.snowflake.is_feature_enabled",
-        return_value=True,
-    )
-
-    mocker.patch(
-        "superset.security_manager.find_user",
-        return_value=mocker.MagicMock(email="impersonated_user@example.com"),
-    )
-    assert SnowflakeEngineSpec.impersonate_user(
-        database=database,
-        username="impersonated_user",
         user_token="test_token",  # noqa: S106
-        url=make_url("snowflake://user:pass@account/database_name/default"),
+        url=url,
         engine_kwargs={},
-    ) == (
-        make_url(
-            "snowflake://impersonated_user:pass@account/database_name/default?authenticator=oauth&token=test_token"
-        ),
-        {"connect_args": {"authenticator": "oauth"}},
-    )
+    ) == (url, {"connect_args": {}})
 
 
 def test_custom_snowflake_auth_error_matches_raw_dbapi_exception() -> None:
@@ -572,7 +602,7 @@ def test_custom_snowflake_auth_error_matches_raw_dbapi_exception() -> None:
         DatabaseError,
     )
 
-    raw_error = DatabaseError("250001: Invalid OAuth access token.")
+    raw_error: Exception = DatabaseError("250001: Invalid OAuth access token.")
     assert isinstance(raw_error, CustomSnowflakeAuthError)
 
 
@@ -589,7 +619,7 @@ def test_custom_snowflake_auth_error_matches_sqlalchemy_wrapped_exception() -> N
         DatabaseError,
     )
 
-    wrapped_error = SqlalchemyDatabaseError(
+    wrapped_error: SqlalchemyDatabaseError = SqlalchemyDatabaseError(
         statement="SELECT 1",
         params=None,
         orig=DatabaseError("250001: Invalid OAuth access token."),
