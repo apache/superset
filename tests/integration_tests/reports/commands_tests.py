@@ -806,6 +806,45 @@ def test_email_chart_report_schedule(
 
 
 @pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_email_chart"
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_email_chart_report_schedule_single_log_per_execution(
+    screenshot_mock,
+    email_mock,
+    create_report_email_chart,
+):
+    """
+    ExecuteReport Command: a single execution should produce a single log row.
+
+    Regression for #29857: the Alerts & Reports execution log shows duplicated
+    entries for a single execution. Each execution transitions through the
+    WORKING state and then a terminal state (SUCCESS/ERROR), and every
+    transition writes a ReportExecutionLog row sharing the same execution
+    ``uuid``. As a result one execution surfaces as two rows in the log view
+    (the "trigger" row and the "result" row). This test asserts that one
+    execution -- identified by its execution uuid -- yields exactly one log row.
+    """
+    screenshot_mock.return_value = SCREENSHOT_FILE
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID, create_report_email_chart.id, datetime.utcnow()
+        ).run()
+
+        db.session.commit()
+        logs = (
+            db.session.query(ReportExecutionLog)
+            .filter(ReportExecutionLog.uuid == TEST_ID)
+            .all()
+        )
+        # A single execution (one uuid) must map to a single log entry, not one
+        # row per intermediate state transition.
+        assert len(logs) == 1
+
+
+@pytest.mark.usefixtures(
     "load_birth_names_dashboard_with_slices", "create_report_email_chart_alpha_owner"
 )
 @patch("superset.reports.notifications.email.send_email_smtp")
