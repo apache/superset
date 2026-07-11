@@ -141,7 +141,7 @@ d1 = [
 databend = ["databend-sqlalchemy>=0.5.5, <1.0"]
 databricks = [
     "databricks-sql-connector==4.2.6",
-    "databricks-sqlalchemy==1.0.5",
+    "databricks-sqlalchemy==2.0.10",
 ]
 db2 = ["ibm-db-sa>0.3.8, <=0.4.4"]
 denodo = ["denodo-sqlalchemy>=2.0.5,<2.1.0"]
