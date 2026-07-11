@@ -603,7 +603,9 @@ def test_fetch_metadata_sets_expression_for_expanded_nested_columns(
 
     table.fetch_metadata()
 
-    columns_by_name = {col.column_name: col for col in table.columns}
+    columns_by_name: dict[str, TableColumn] = {
+        col.column_name: col for col in table.columns
+    }
     assert len(table.columns) == len(mock_columns)
     assert not columns_by_name["metadata"].expression
     assert columns_by_name["metadata.uuid"].expression == '"metadata"."uuid"'
