@@ -579,7 +579,7 @@ def test_fetch_metadata_sets_expression_for_expanded_nested_columns(
     )
     table.columns = [existing_col]
 
-    mock_columns = [
+    mock_columns: list[dict[str, str]] = [
         {
             "column_name": "metadata",
             "type": "ROW",
@@ -603,6 +603,23 @@ def test_fetch_metadata_sets_expression_for_expanded_nested_columns(
 
     table.fetch_metadata()
 
+    columns_by_name = {col.column_name: col for col in table.columns}
+    assert len(table.columns) == len(mock_columns)
+    assert not columns_by_name["metadata"].expression
+    assert columns_by_name["metadata.uuid"].expression == '"metadata"."uuid"'
+
+    # Re-run fetch_metadata a second time to simulate re-syncing columns from
+    # source. The previously synced physical column now carries a truthy
+    # `expression`, which must not cause it to be duplicated in `self.columns`.
+    mock_session_2 = mocker.patch("superset.connectors.sqla.models.db.session")
+    mock_session_2.query.return_value.filter.return_value.all.return_value = list(
+        table.columns
+    )
+    mocker.patch.object(table, "external_metadata", return_value=mock_columns)
+
+    table.fetch_metadata()
+
+    assert len(table.columns) == len(mock_columns)
     columns_by_name = {col.column_name: col for col in table.columns}
     assert not columns_by_name["metadata"].expression
     assert columns_by_name["metadata.uuid"].expression == '"metadata"."uuid"'

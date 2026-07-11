@@ -2009,7 +2009,7 @@ class SqlaTable(
             # provide an explicit SQL expression that must be used to select the
             # physical column, since simply quoting the dotted `column_name` as a
             # single identifier is not valid syntax for these nested fields.
-            expression = col.get("expression") or ""
+            expression: str = col.get("expression") or ""
             if not old_column:
                 results.added.append(col["column_name"])
                 new_column = TableColumn(
@@ -2039,8 +2039,13 @@ class SqlaTable(
             if not any_date_col and new_column.is_temporal:
                 any_date_col = col["column_name"]
 
-        # add back calculated (virtual) columns
-        columns.extend([col for col in old_columns if col.expression])
+        # Add back calculated (virtual) columns, i.e. those that weren't matched
+        # against `new_columns` above and are thus still present in
+        # `old_columns_by_name`. Columns that were matched are already appended to
+        # `columns` in the loop above, and re-adding them here (e.g. via `old_columns`)
+        # would duplicate any synced physical column that also carries a truthy
+        # `expression`, such as Trino's expanded nested `ROW` fields.
+        columns.extend([col for col in old_columns_by_name.values() if col.expression])
         self.columns = columns
 
         if not self.main_dttm_col:
