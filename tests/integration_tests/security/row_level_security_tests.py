@@ -494,13 +494,17 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         db.session.commit()
 
         try:
-            # Datasets in the metadata DB that match the "birth" mask.
-            expected = {
+            # Datasets in the metadata DB that match the "birth" mask. Keep a
+            # sorted list rather than a set so datasets that render the same
+            # display name (same table/schema across databases) are not
+            # collapsed, which would let the multiplicity disagree with the
+            # API's row count below.
+            expected = sorted(
                 t.name
                 for t in db.session.query(SqlaTable)
                 .filter(SqlaTable.table_name.ilike("%birth%"))
                 .all()
-            }
+            )
             # Both datasets must be present in the ground truth for the
             # assertion below to be meaningful.
             bare_names = {name.split(".")[-1] for name in expected}
@@ -511,10 +515,10 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
             rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
             assert rv.status_code == 200
             data = json.loads(rv.data.decode("utf-8"))
-            received = {table["text"] for table in data["result"]}
+            received = sorted(table["text"] for table in data["result"])
 
-            # The masked search must return *all* matching datasets, and the
-            # advertised count must not under-report them.
+            # The masked search must return *all* matching datasets (preserving
+            # multiplicity), and the advertised count must not under-report them.
             assert received == expected
             assert data["count"] == len(expected)
         finally:
