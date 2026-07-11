@@ -3686,7 +3686,6 @@ def test_simple_metric_quotes_column_requiring_quoting(database: Database) -> No
     asserting the identifier is quoted rather than emitted bare.
     """
     from superset.connectors.sqla.models import SqlaTable, TableColumn
-    from superset.utils.core import AdhocMetricExpressionType
 
     column_name = "Amount HT"
     table = SqlaTable(
@@ -3698,7 +3697,7 @@ def test_simple_metric_quotes_column_requiring_quoting(database: Database) -> No
     columns_by_name = {col.column_name: col for col in table.columns}
 
     metric: AdhocMetric = {
-        "expressionType": AdhocMetricExpressionType.SIMPLE,
+        "expressionType": "SIMPLE",
         "aggregate": "SUM",
         "column": {"column_name": column_name},
         "label": "total",
