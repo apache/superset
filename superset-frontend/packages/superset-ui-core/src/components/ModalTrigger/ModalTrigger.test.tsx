@@ -78,19 +78,19 @@ test('should render a modal after click', async () => {
 
 test('stops propagation of navigation keys to parent elements', async () => {
   const handleParentKeyDown = jest.fn();
-  
+
   render(
     <div onKeyDown={handleParentKeyDown}>
       <ModalTrigger
         triggerNode={<span>Trigger</span>}
         modalBody={<input data-test="modal-input" />}
       />
-    </div>
+    </div>,
   );
 
   await userEvent.click(screen.getByText('Trigger'));
   const input = await screen.findByTestId('modal-input');
-  
+
   const blockedKeys = [
     'ArrowLeft',
     'ArrowRight',
