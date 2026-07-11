@@ -18,8 +18,8 @@
  */
 import { FunctionComponent, useState, useRef, ChangeEvent } from 'react';
 
-import SchemaForm, { FormProps } from '@rjsf/core';
-import { FormValidation } from '@rjsf/utils';
+import SchemaForm from '@rjsf/core';
+import { type FormValidation } from '@rjsf/utils';
 import validator from '@rjsf/validator-ajv8';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
@@ -74,10 +74,13 @@ const getValidationRules = () => scheduledQueriesConf?.VALIDATION || [];
 
 const getValidator = () => {
   const rules: any = getValidationRules();
-  return (formData: Record<string, any>, errors: FormValidation) => {
+  return (
+    formData: Record<string, any> | undefined,
+    errors: FormValidation,
+  ) => {
     rules.forEach((rule: any) => {
       const test = validators[rule.name as keyof typeof validators];
-      const args = rule.arguments.map((name: string) => formData[name]);
+      const args = rule.arguments.map((name: string) => formData?.[name]);
       const container = rule.container || rule.arguments.slice(-1)[0];
       if (!test(args[0], args[1])) {
         errors[container]?.addError(rule.message);
@@ -157,7 +160,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
   const onScheduleSubmit = ({
     formData,
   }: {
-    formData?: Omit<FormProps<Record<string, any>>, 'schema'>;
+    formData?: Record<string, any>;
   }) => {
     const query = {
       label,
