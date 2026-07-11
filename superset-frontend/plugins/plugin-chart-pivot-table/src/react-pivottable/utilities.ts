@@ -384,11 +384,13 @@ const fmtNonString =
     typeof x === 'string' ? x : formatter(x as number);
 
 /*
- * Passthrough "aggregator" for the multi-query pivot. Because the database
- * already computed every rollup level (one query per level), each cell receives
- * exactly one record per metric, whose value we store verbatim rather than
- * re-aggregating. This is what makes non-additive totals correct. See SIP.md.
- * Currency tracking mirrors the real aggregators for AUTO-mode detection.
+ * Passthrough "aggregator" for the rollup pivot. Because the database already
+ * computed every rollup level (via a single GROUPING SETS query where the
+ * engine supports it, or one query per level as a fallback otherwise), each
+ * cell receives exactly one record per metric, whose value we store verbatim
+ * rather than re-aggregating. This is what makes non-additive totals correct.
+ * See SIP.md. Currency tracking mirrors the real aggregators for AUTO-mode
+ * detection.
  */
 const cellValue =
   (formatter: Formatter = usFmt) =>
@@ -1116,15 +1118,17 @@ class PivotData {
 
   processRecord(record: PivotRecord): void {
     // this code is called in a tight loop.
-    // Each record is tagged (in PivotTableChart) with `rows`/`columns`: the
-    // dimension labels of the rollup level that produced it. The database has
-    // already aggregated that level, so we place the value into exactly one
-    // slot and store it verbatim (no re-aggregation). A key shorter than the
-    // full dimension list identifies a subtotal level. Records without tags
-    // (e.g. direct unit-test construction) fall back to the full dimension
-    // lists, i.e. they are treated as leaf rows.
-    const recordRows = (record.rows as unknown as string[]) ?? null;
-    const recordColumns = (record.columns as unknown as string[]) ?? null;
+    // Each record is tagged (in PivotTableChart) with `__rows`/`__columns`:
+    // the dimension labels of the rollup level that produced it. The database
+    // has already aggregated that level, so we place the value into exactly
+    // one slot and store it verbatim (no re-aggregation). A key shorter than
+    // the full dimension list identifies a subtotal level. Records without
+    // tags (e.g. direct unit-test construction) fall back to the full
+    // dimension lists, i.e. they are treated as leaf rows. The `__` prefix
+    // keeps these rollup tags from colliding with a real dataset column
+    // named `rows`/`columns`.
+    const recordRows = (record.__rows as unknown as string[]) ?? null;
+    const recordColumns = (record.__columns as unknown as string[]) ?? null;
     const levelRows = recordRows ?? (this.props.rows as string[]);
     const levelColumns = recordColumns ?? (this.props.cols as string[]);
 

@@ -96,6 +96,11 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     supports_dynamic_schema = True
     supports_cross_catalog_queries = False
+    # Explicitly opt out (overriding the inherited PrestoEngineSpec value):
+    # Hive/Spark's GROUPING SETS + GROUPING() marker semantics have not been
+    # verified against this query pattern, so fall back to one query per
+    # rollup level instead of assuming native support.
+    supports_grouping_sets = False
 
     metadata = {
         "description": (

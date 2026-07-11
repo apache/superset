@@ -166,7 +166,11 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
 
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
-    supports_grouping_sets = True
+    # Not set here: GROUPING SETS support is opted in per-concrete-engine
+    # (``PrestoEngineSpec``, ``TrinoEngineSpec``) rather than on this shared
+    # base, since Hive-family descendants (``HiveEngineSpec``, ``SparkEngineSpec``,
+    # ``DatabricksHiveEngineSpec``) have not been verified against this query
+    # pattern and should not silently inherit it.
     # Presto/Trino don't reliably support IS true/false on computed boolean
     # expressions (e.g. columns defined as `(expiration = 1) AS expiration`),
     # which raises a query error. Use = true/false instead.
@@ -915,6 +919,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
     engine = "presto"
     engine_name = "Presto"
     allows_alias_to_source_column = False
+    supports_grouping_sets = True
 
     metadata = {
         "description": "Presto is a distributed SQL query engine for big data.",

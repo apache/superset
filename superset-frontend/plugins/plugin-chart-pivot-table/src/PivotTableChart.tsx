@@ -365,8 +365,10 @@ export default function PivotTableChart(props: PivotTableProps) {
               // Mark currency column for per-cell currency detection in aggregators
               __currencyColumn: currencyCodeColumn,
               // The level this record belongs to (used by PivotData placement).
-              rows: levelRows,
-              columns: levelCols,
+              // Namespaced with a `__` prefix (like `__metricKey` below) so it
+              // can't collide with a real dataset column named `rows`/`columns`.
+              __rows: levelRows,
+              __columns: levelCols,
               // Identify the metric pseudo-dimension so PivotData can feed the
               // metric-collapsed totals (the opposite "Total" axis + corner).
               __metricKey: METRIC_KEY,

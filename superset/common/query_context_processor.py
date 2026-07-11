@@ -62,6 +62,7 @@ from superset.viz import viz_types
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
+    from superset.db_engine_specs.base import BaseEngineSpec
 
 logger = logging.getLogger(__name__)
 
@@ -267,7 +268,9 @@ class QueryContextProcessor:
         return self._qc_datasource.get_query_result(query_object)
 
     def _supports_grouping_sets(self) -> bool:
-        engine_spec = getattr(self._qc_datasource, "db_engine_spec", None)
+        engine_spec: BaseEngineSpec | None = getattr(
+            self._qc_datasource, "db_engine_spec", None
+        )
         return bool(engine_spec and engine_spec.supports_grouping_sets)
 
     def _grouping_sets_fallback(self, query_object: QueryObject) -> QueryResult:
@@ -276,7 +279,7 @@ class QueryContextProcessor:
         query per rollup level and concatenate, tagging each level's rows with
         the same per-column markers the native path emits.
         """
-        levels = query_object.grouping_sets
+        levels: list[list[str]] = query_object.grouping_sets
         # Use the same label derivation as the native path (physical column name
         # or adhoc column label) so both column kinds are represented and each
         # label maps back to its own column, in the same order as the source
