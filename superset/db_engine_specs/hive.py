@@ -270,13 +270,15 @@ class HiveEngineSpec(PrestoEngineSpec):
                             LOCATION :location
                             """
                         ),
-                        location=upload_to_s3(
-                            filename=file.name,
-                            upload_prefix=app.config[
-                                "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"
-                            ](database, g.user, table.schema),
-                            table=table,
-                        ),
+                        {
+                            "location": upload_to_s3(
+                                filename=file.name,
+                                upload_prefix=app.config[
+                                    "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"
+                                ](database, g.user, table.schema),
+                                table=table,
+                            ),
+                        },
                     )
 
     @classmethod
