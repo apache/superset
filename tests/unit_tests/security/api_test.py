@@ -92,7 +92,7 @@ def test_security_api_trailing_slash_handled_consistently(client: Any) -> None:
     conventions are unified. It does not prescribe which uniform behavior is
     correct (all-redirect or all-404), only that they agree.
     """
-    # (method, canonical route, misspelled route)
+    # (method, misspelled URL)
     misspelled = [
         ("post", "/api/v1/security/login/"),
         ("get", "/api/v1/security/csrf_token"),
