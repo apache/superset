@@ -309,19 +309,19 @@ def test_datetime_to_epoch_dst_transition():
     # 2023-03-12: Spring forward (2 AM becomes 3 AM, gap of 1 hour)
     eastern = pytz.timezone("US/Eastern")
 
-    # Create datetime before DST transition
-    dt_before_dst = eastern.localize(datetime(2023, 3, 12, 1, 59, 59), is_dst=True)
+    # Create datetime before DST transition (still EST, standard time)
+    dt_before_dst = eastern.localize(datetime(2023, 3, 12, 1, 59, 59), is_dst=False)
     result_before = datetime_to_epoch(dt_before_dst)
 
-    # Create datetime after DST transition
-    dt_after_dst = eastern.localize(datetime(2023, 3, 12, 3, 0, 1), is_dst=False)
+    # Create datetime after DST transition (now EDT, daylight time)
+    dt_after_dst = eastern.localize(datetime(2023, 3, 12, 3, 0, 1), is_dst=True)
     result_after = datetime_to_epoch(dt_after_dst)
 
-    # The difference should be only 2 seconds, not 1 hour + 2 seconds
+    # The difference should be exactly 2 seconds, not 1 hour + 2 seconds
     # (because of the DST jump, 1:59:59 EST -> 3:00:01 EDT)
     diff_ms = result_after - result_before
     expected_diff = 2000  # 2 seconds
-    assert abs(diff_ms - expected_diff) < 100, (
+    assert diff_ms == expected_diff, (
         f"DST transition handled incorrectly. Diff: {diff_ms}ms"
     )
 
