@@ -243,8 +243,8 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     }
 
     # OAuth 2.0 support
-    supports_oauth2 = True
-    oauth2_exception = CustomSnowflakeAuthError
+    supports_oauth2: bool = True
+    oauth2_exception: type[Exception] = CustomSnowflakeAuthError
 
     @classmethod
     def is_oauth2_enabled(cls) -> bool:
@@ -289,8 +289,16 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
 
         # When test_connection is executed (i.e., when validate_default_parameters is
         # set to True in connect_args), authentication via OAuth is not performed.
+        #
+        # ``database.is_oauth2_enabled()`` returns True for a database-level OAuth2
+        # client (``encrypted_extra.oauth2_client_info``) regardless of request
+        # context, unlike the app-config-based check in ``is_oauth2_enabled()``
+        # above. Background executions (alerts/reports) have no per-user token, so
+        # ``has_request_context()`` must be checked explicitly here too, or OAuth
+        # gets switched on with no token to send.
         if (
             not connect_args.get("validate_default_parameters", False)
+            and has_request_context()
             and database.is_oauth2_enabled()
         ):
             url = url.update_query_dict({"authenticator": "oauth"})
