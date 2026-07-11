@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from '@superset-ui/core/spec';
+import { render, screen, userEvent, fireEvent } from '@superset-ui/core/spec';
 
 import { ModalTrigger } from '.';
 
@@ -74,4 +74,43 @@ test('should render a modal after click', async () => {
   render(<ModalTrigger {...mockedProps} />);
   await userEvent.click(screen.getByRole('button'));
   expect(screen.getByRole('dialog')).toBeInTheDocument();
+});
+
+test('stops propagation of navigation keys to parent elements', async () => {
+  const handleParentKeyDown = jest.fn();
+  
+  render(
+    <div onKeyDown={handleParentKeyDown}>
+      <ModalTrigger
+        triggerNode={<span>Trigger</span>}
+        modalBody={<input data-test="modal-input" />}
+      />
+    </div>
+  );
+
+  await userEvent.click(screen.getByText('Trigger'));
+  const input = await screen.findByTestId('modal-input');
+  
+  const blockedKeys = [
+    'ArrowLeft',
+    'ArrowRight',
+    'ArrowUp',
+    'ArrowDown',
+    'Home',
+    'End',
+  ];
+
+  for (const key of blockedKeys) {
+    handleParentKeyDown.mockClear();
+    fireEvent.keyDown(input, { key });
+    expect(handleParentKeyDown).not.toHaveBeenCalled();
+  }
+
+  const allowedKeys = ['Escape', 'Tab'];
+
+  for (const key of allowedKeys) {
+    handleParentKeyDown.mockClear();
+    fireEvent.keyDown(input, { key });
+    expect(handleParentKeyDown).toHaveBeenCalled();
+  }
 });
