@@ -265,7 +265,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
 
         In Snowflake, a catalog is called a "database".
         """
-        with inspector.bind.connect() as conn:
+        with inspector.engine.connect() as conn:
             return {
                 catalog
                 for (catalog,) in conn.execute(
