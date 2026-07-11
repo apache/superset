@@ -10,7 +10,6 @@ updates:
 
   - package-ecosystem: "npm"
     ignore:
-      - dependency-name: "@rjsf/*"
       # TODO: remove below entries until React >= 19.0.0
       - dependency-name: "react-icons"
       # JSDOM v30 doesn't play well with Jest v30
@@ -41,6 +40,23 @@ updates:
     labels:
       - npm
       - dependabot
+    groups:
+      rjsf:
+        patterns:
+          - "@rjsf/*"
+      typescript-eslint:
+        patterns:
+          - "@typescript-eslint/*"
+          - "typescript-eslint"
+      babel:
+        patterns:
+          - "@babel/*"
+      deckgl:
+        patterns:
+          - "@deck.gl/*"
+      lumagl:
+        patterns:
+          - "@luma.gl/*"
     open-pull-requests-limit: 30
     versioning-strategy: increase
     cooldown:
