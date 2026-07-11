@@ -1103,7 +1103,9 @@ test('dashboard switching resets tab and filter selections', async () => {
     count: 2,
   };
   fetchMock.removeRoute(dashboardEndpoint);
-  fetchMock.get(dashboardEndpoint, dashboardOptions, { name: dashboardEndpoint });
+  fetchMock.get(dashboardEndpoint, dashboardOptions, {
+    name: dashboardEndpoint,
+  });
   fetchMock.removeRoute(reportDashboardEndpoint);
   fetchMock.get(reportDashboardEndpoint, dashboardOptions, {
     name: reportDashboardEndpoint,
