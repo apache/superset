@@ -28,11 +28,11 @@ export const anomalyDetectionOperator: PostProcessingFactory<
   const xAxisLabel = getXAxisLabel(formData);
   if (formData.anomalyDetectionEnabled && xAxisLabel) {
     const method: string = formData.anomalyDetectionMethod || 'zscore';
-    // Prophet requires a temporal x-axis; skip if not time-based
+    // Prophet requires a temporal x-axis; skip if no temporal indicator present
     if (
       method === 'prophet' &&
       !formData.granularity_sqla &&
-      !formData.x_axis
+      !formData.time_grain_sqla
     ) {
       return undefined;
     }

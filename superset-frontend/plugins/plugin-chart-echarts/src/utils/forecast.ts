@@ -38,14 +38,15 @@ const forecastSuffixRegex = new RegExp(
 export const extractForecastSeriesContext = (
   seriesName: OptionName,
 ): ForecastSeriesContext => {
-  const name = seriesName as string;
+  const name = String(seriesName ?? '');
 
-  // Check for anomaly suffix first, then resolve nested forecast suffix
+  // Check for anomaly suffix first; preserve the stripped name as-is so that
+  // nested series (e.g. metric__yhat__anomaly vs metric__anomaly) stay distinct
+  // in tooltip aggregation and don't overwrite each other.
   if (name.endsWith(ForecastSeriesEnum.Anomaly)) {
     const stripped = name.slice(0, -ForecastSeriesEnum.Anomaly.length);
-    const forecastMatch = forecastSuffixRegex.exec(stripped);
     return {
-      name: forecastMatch ? forecastMatch[1] : stripped,
+      name: stripped,
       type: ForecastSeriesEnum.Anomaly,
     };
   }
@@ -149,7 +150,7 @@ export const formatForecastTooltipSeries = ({
   }
   if (typeof anomaly === 'number') {
     if (value) value += ' ';
-    value += `⚠ anomaly`;
+    value += t('⚠ anomaly');
   }
   return [name, value];
 };
