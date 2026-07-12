@@ -376,7 +376,7 @@ export function transformSeries(
   return {
     ...series,
     ...(Array.isArray(data)
-      ? colorByPrimaryAxis
+      ? colorByPrimaryAxis && !isAnomaly
         ? {
             data: applyColorByPrimaryAxis(
               series,
@@ -394,7 +394,7 @@ export function transformSeries(
     queryIndex,
     yAxisIndex,
     name: forecastSeries.name,
-    ...(colorByPrimaryAxis ? {} : { itemStyle }),
+    ...(colorByPrimaryAxis && !isAnomaly ? {} : { itemStyle }),
     // @ts-ignore
     type: plotType,
     // Cap bar width so a single data point doesn't stretch across the
