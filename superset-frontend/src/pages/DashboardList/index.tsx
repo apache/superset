@@ -773,7 +773,6 @@ function DashboardList(props: DashboardListProps) {
             ? userKey.thumbnails
             : isFeatureEnabled(FeatureFlag.Thumbnails)
         }
-        userId={user?.userId}
         user={user}
         loading={loading}
         openDashboardEditModal={openDashboardEditModal}

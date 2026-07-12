@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import rison from 'rison';
 import { ComponentType } from 'react';
+import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
 import {
   setupMocks,
   renderDatasetList,

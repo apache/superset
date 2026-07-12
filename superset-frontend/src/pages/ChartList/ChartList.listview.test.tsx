@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
 import fetchMock from 'fetch-mock';
+import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
 import { screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { isFeatureEnabled } from '@superset-ui/core';
