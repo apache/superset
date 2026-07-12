@@ -359,15 +359,15 @@ def test_import_soft_deleted_chart_ignore_permissions_restores_in_place(
     assert chart.deleted_at is None
 
 
-def test_import_soft_deleted_chart_non_overwrite_restores_for_owner(
+def test_import_soft_deleted_chart_non_overwrite_restores_for_editor(
     mocker: MockerFixture,
     session_with_data: Session,
 ) -> None:
     """
     Non-overwrite re-import of a soft-deleted UUID is implicitly a
     restore-and-update: the user is bringing the chart back by uploading
-    it again. The same ownership rule as the overwrite path applies, so
-    an owner (or admin) succeeds without setting overwrite=True.
+    it again. The same editorship rule as the overwrite path applies, so
+    an editor (or admin) succeeds without setting overwrite=True.
     """
     mocker.patch.object(security_manager, "can_access", return_value=True)
     mocker.patch.object(security_manager, "can_access_chart", return_value=True)
@@ -393,13 +393,13 @@ def test_import_soft_deleted_chart_non_overwrite_restores_for_owner(
     assert chart.deleted_at is None
 
 
-def test_import_soft_deleted_chart_non_overwrite_raises_for_non_owner(
+def test_import_soft_deleted_chart_non_overwrite_raises_for_non_editor(
     mocker: MockerFixture,
     session_with_data: Session,
 ) -> None:
     """
     Non-overwrite re-import that would resurrect a soft-deleted chart
-    must respect ownership: a non-owner without admin role cannot
+    must respect editorship: a non-editor without admin role cannot
     restore-via-import. Mirrors the explicit /restore endpoint's check.
     """
     mocker.patch.object(security_manager, "can_access", return_value=True)
@@ -407,7 +407,7 @@ def test_import_soft_deleted_chart_non_overwrite_raises_for_non_owner(
 
     _soft_delete_existing_chart(session_with_data)
 
-    non_owner = User(
+    non_editor = User(
         first_name="Bob",
         last_name="Roe",
         email="bob@example.org",
@@ -415,7 +415,7 @@ def test_import_soft_deleted_chart_non_overwrite_raises_for_non_owner(
         roles=[Role(name="Gamma")],
     )
 
-    with override_user(non_owner):
+    with override_user(non_editor):
         with pytest.raises(ImportFailedError) as excinfo:
             import_chart(chart_config, overwrite=False)
     assert "permissions to restore" in str(excinfo.value)

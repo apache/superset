@@ -37,7 +37,7 @@ dataset_find_by_id = "superset.daos.dataset.DatasetDAO.find_by_id"
 query_find_by_id = "superset.daos.query.QueryDAO.find_by_id"
 chart_find_by_id = "superset.daos.chart.ChartDAO.find_by_id"
 is_admin = "superset.security.SupersetSecurityManager.is_admin"
-is_owner = "superset.security.SupersetSecurityManager.is_owner"
+is_editor = "superset.security.SupersetSecurityManager.is_editor"
 can_access_datasource = (
     "superset.security.SupersetSecurityManager.can_access_datasource"
 )
@@ -170,7 +170,7 @@ def test_saved_chart_is_admin(mocker: MockerFixture) -> None:
         )
 
 
-def test_saved_chart_is_owner(mocker: MockerFixture) -> None:
+def test_saved_chart_is_editor(mocker: MockerFixture) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.explore.utils import check_access as check_chart_access
     from superset.models.slice import Slice
@@ -178,7 +178,7 @@ def test_saved_chart_is_owner(mocker: MockerFixture) -> None:
     mocker.patch(dataset_find_by_id, return_value=SqlaTable())
     mocker.patch(can_access_datasource, return_value=True)
     mocker.patch(is_admin, return_value=False)
-    mocker.patch(is_owner, return_value=True)
+    mocker.patch(is_editor, return_value=True)
     mocker.patch(chart_find_by_id, return_value=Slice())
 
     with override_user(User()):
@@ -197,7 +197,7 @@ def test_saved_chart_has_access(mocker: MockerFixture) -> None:
     mocker.patch(dataset_find_by_id, return_value=SqlaTable())
     mocker.patch(can_access_datasource, return_value=True)
     mocker.patch(is_admin, return_value=False)
-    mocker.patch(is_owner, return_value=False)
+    mocker.patch(is_editor, return_value=False)
     mocker.patch(can_access, return_value=True)
     mocker.patch(chart_find_by_id, return_value=Slice())
 
@@ -218,7 +218,7 @@ def test_saved_chart_no_access(mocker: MockerFixture) -> None:
         mocker.patch(dataset_find_by_id, return_value=SqlaTable())
         mocker.patch(can_access_datasource, return_value=True)
         mocker.patch(is_admin, return_value=False)
-        mocker.patch(is_owner, return_value=False)
+        mocker.patch(is_editor, return_value=False)
         mocker.patch(can_access, return_value=False)
         mocker.patch(chart_find_by_id, return_value=Slice())
 
@@ -237,7 +237,7 @@ def test_dataset_has_access(mocker: MockerFixture) -> None:
     mocker.patch(dataset_find_by_id, return_value=SqlaTable())
     mocker.patch(can_access_datasource, return_value=True)
     mocker.patch(is_admin, return_value=False)
-    mocker.patch(is_owner, return_value=False)
+    mocker.patch(is_editor, return_value=False)
     mocker.patch(can_access, return_value=True)
     assert (
         check_datasource_access(  # noqa: E712
@@ -255,7 +255,7 @@ def test_query_has_access(mocker: MockerFixture) -> None:
     mocker.patch(query_find_by_id, return_value=Query())
     mocker.patch(raise_for_access, return_value=True)
     mocker.patch(is_admin, return_value=False)
-    mocker.patch(is_owner, return_value=False)
+    mocker.patch(is_editor, return_value=False)
     mocker.patch(can_access, return_value=True)
     assert (
         check_datasource_access(  # noqa: E712
@@ -280,7 +280,7 @@ def test_query_no_access(mocker: MockerFixture, client) -> None:
     )
     mocker.patch(query_datasources_by_name, return_value=[SqlaTable()])
     mocker.patch(is_admin, return_value=False)
-    mocker.patch(is_owner, return_value=False)
+    mocker.patch(is_editor, return_value=False)
     mocker.patch(can_access, return_value=False)
 
     with raises(SupersetSecurityException):

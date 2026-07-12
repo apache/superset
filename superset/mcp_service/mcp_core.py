@@ -172,7 +172,7 @@ class ModelListCore(BaseCore, Generic[L]):
         logger: logging.Logger | None = None,
         all_columns: List[str] | None = None,
         sortable_columns: List[str] | None = None,
-        owner_filter_column: str = "owner",
+        editor_filter_column: str = "editor",
         deleted_state_filter: type | None = None,
     ) -> None:
         super().__init__(logger)
@@ -193,7 +193,7 @@ class ModelListCore(BaseCore, Generic[L]):
         self._sortable_columns = filter_user_directory_columns(
             sortable_columns if sortable_columns else []
         )
-        self._owner_filter_column = owner_filter_column
+        self._editor_filter_column = editor_filter_column
         # A BaseDeletedStateFilter subclass (e.g. ChartDeletedStateFilter).
         # The FAB filter owns the restore-audience scoping — only owners and
         # admins may enumerate soft-deleted rows — so reusing it here keeps
@@ -255,18 +255,18 @@ class ModelListCore(BaseCore, Generic[L]):
         self,
         filters: Any,
         created_by_me: bool,
-        owned_by_me: bool,
+        edited_by_me: bool,
         user: Any,
     ) -> Any:
-        """Translate created_by_me/owned_by_me flags into ColumnOperator filters.
+        """Translate created_by_me/edited_by_me flags into ColumnOperator filters.
 
         Validates authentication and injects the current user's ID in one step,
         so no placeholder value ever reaches the DAO layer.
 
         When both flags are set, a single combined OR filter is used so results
-        include items where the user is either the creator or an owner.
+        include items where the user is either the creator or an editor.
         """
-        if not (created_by_me or owned_by_me):
+        if not (created_by_me or edited_by_me):
             return filters
 
         if not user or not getattr(user, "is_authenticated", False):
@@ -274,15 +274,15 @@ class ModelListCore(BaseCore, Generic[L]):
 
         user_id: int = user.id
         extra: ColumnOperator
-        if created_by_me and owned_by_me:
+        if created_by_me and edited_by_me:
             extra = ColumnOperator(
-                col="created_by_fk_or_owner", opr="eq", value=user_id
+                col="created_by_fk_or_editor", opr="eq", value=user_id
             )
         elif created_by_me:
             extra = ColumnOperator(col="created_by_fk", opr="eq", value=user_id)
         else:
             extra = ColumnOperator(
-                col=self._owner_filter_column, opr="eq", value=user_id
+                col=self._editor_filter_column, opr="eq", value=user_id
             )
 
         if filters is None:
@@ -350,7 +350,7 @@ class ModelListCore(BaseCore, Generic[L]):
         page: int = 0,
         page_size: int = 10,
         created_by_me: bool = False,
-        owned_by_me: bool = False,
+        edited_by_me: bool = False,
         deleted_state: str | None = None,
     ) -> L:
         # Clamp page_size to MAX_PAGE_SIZE as defense-in-depth
@@ -361,7 +361,7 @@ class ModelListCore(BaseCore, Generic[L]):
         filters_applied = filters if isinstance(filters, list) else []
 
         filters = self._prepend_self_lookup_filters(
-            filters, created_by_me, owned_by_me, get_current_user()
+            filters, created_by_me, edited_by_me, get_current_user()
         )
 
         # Parse select_columns using generic utility (accepts JSON, list, or CSV)

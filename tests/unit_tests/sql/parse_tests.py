@@ -439,6 +439,40 @@ WHERE
     )
 
 
+def test_format_oracle_group_by_keeps_explicit_expressions() -> None:
+    """
+    Test that formatting Oracle SQL doesn't rewrite ``GROUP BY`` to ordinals.
+
+    Oracle doesn't support positional grouping (``GROUP BY 1, 2``) and fails
+    with ``ORA-00979: not a GROUP BY expression``. sqlglot < 27.21.0 rewrote
+    ``GROUP BY`` expressions that matched aliased projections into ordinals
+    when generating Oracle SQL, breaking chart queries.
+
+    Regression test for https://github.com/apache/superset/issues/35414,
+    fixed by upgrading sqlglot.
+    """
+    sql = (
+        "SELECT TRUNC(CAST(order_date AS DATE), 'MONTH') AS __timestamp, "
+        'region AS region, SUM(sales) AS "SUM(sales)" '
+        "FROM orders "
+        "GROUP BY TRUNC(CAST(order_date AS DATE), 'MONTH'), region "
+        'ORDER BY "SUM(sales)" DESC'
+    )
+    formatted = SQLStatement(sql, engine="oracle").format()
+
+    # pretty-formatting puts each `GROUP BY` item on its own line
+    group_by_clause = formatted.split("GROUP BY")[1].split("ORDER BY")[0]
+    group_by_items = [
+        line.strip().rstrip(",") for line in group_by_clause.strip().splitlines()
+    ]
+    assert group_by_items == [
+        "TRUNC(CAST(order_date AS DATE), 'MONTH')",
+        "region",
+    ]
+    # no item should have been replaced by a positional reference
+    assert not any(item.isdigit() for item in group_by_items)
+
+
 def test_split_no_dialect() -> None:
     """
     Test the statement split when the engine has no corresponding dialect.
@@ -1306,6 +1340,33 @@ def test_with_clause_containing_union_all_is_not_mutating_oracle() -> None:
     SELECT * FROM SET2
     """
     assert not SQLScript(sql, "oracle").has_mutation()
+
+
+@pytest.mark.parametrize("engine", ["clickhouse", "clickhousedb"])
+def test_clickhouse_parametric_aggregate_parses_and_is_read_only(engine: str) -> None:
+    """
+    Regression for #37285: ClickHouse parametric aggregate functions use a
+    double pair of parentheses — ``groupConcat(', ')(part_name)`` — where the
+    first list holds the aggregate's parameters and the second its arguments.
+
+    Older sqlglot versions choked on the second parenthesized list, so SQL
+    Lab either mangled the query sent to the database or, with DDL/DML
+    disallowed, refused to run it because it "could not be parsed to confirm
+    it is a read-only query". The sqlglot bump to >=30 fixed the parsing;
+    pinning the reporter's verbatim query guards against a future
+    dialect-specific regression. Both ClickHouse engine specs are exercised
+    since each resolves the sqlglot dialect independently.
+    """
+    sql = """
+    select
+      groupConcat(', ')(part_name) as concatenated
+    from system.parts
+    """
+    script = SQLScript(sql, engine)  # Must not raise.
+    assert not script.has_mutation(), (
+        f"Parametric aggregate misclassified as mutating on {engine!r}; "
+        "this would block the query on connections without DDL/DML allowed."
+    )
 
 
 def test_get_settings() -> None:

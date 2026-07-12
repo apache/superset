@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-08 12:27-0700\n"
+"POT-Creation-Date: 2026-06-23 03:46-0700\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -31,6 +31,33 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
+
+#, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a new "
+"dataset over this table, or use a different table name."
+msgstr ""
+
+#, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or "
+"upload to a different table name."
+msgstr ""
+
+msgid ""
+"Cannot delete a database whose only remaining datasets are soft-deleted. "
+"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
+"permanently once a purge capability ships, or remove the underlying rows "
+"out-of-band, before deleting the database."
+msgstr ""
+
+msgid ""
+"Dataset cannot be restored because another active dataset already references "
+"the same physical table (same database, catalog, schema, and table name). "
+"Delete the duplicate or rename the table before restoring."
+msgstr ""
 
 msgid ""
 "\n"
@@ -890,6 +917,9 @@ msgstr ""
 "Es requereix una data quan s'utilitza un desplaçament de data "
 "personalitzat"
 
+msgid "A description for your dashboard"
+msgstr ""
+
 #, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
@@ -921,17 +951,22 @@ msgstr ""
 "Una llista de noms de domini que poden incrustar aquest dashboard. Deixar"
 " aquest camp buit permetrà incrustar des de qualsevol domini."
 
+msgid "A list of subjects who can alter the chart. Searchable by name."
+msgstr ""
+"Una llista de subjectes que poden modificar el gràfic. Es pot cercar per "
+"nom."
+
+msgid "A list of subjects who can view the chart. Searchable by name."
+msgstr ""
+"Una llista de subjectes que poden visualitzar el gràfic. Es pot cercar "
+"per nom."
+
 msgid "A list of tags that have been applied to this chart."
 msgstr "Una llista d'etiquetes que s'han aplicat a aquest gràfic."
 
 #, fuzzy
 msgid "A list of tags that have been applied to this dashboard."
 msgstr "Una llista d'etiquetes que s'han aplicat a aquest gràfic."
-
-msgid "A list of users who can alter the chart. Searchable by name or username."
-msgstr ""
-"Una llista d'usuaris que poden modificar el gràfic. Cercable per nom o "
-"nom d'usuari."
 
 msgid "A map of the world, that can indicate values in different countries."
 msgstr "Un mapa del món que pot indicar valors en diferents països."
@@ -945,6 +980,11 @@ msgstr ""
 
 msgid "A metric to use for color"
 msgstr "Una mètrica a utilitzar per al color"
+
+msgid ""
+"A multiplier applied to the point radius. Use this to uniformly scale all"
+" points."
+msgstr ""
 
 msgid "A new chart and dashboard will be created."
 msgstr "Es crearà un nou gràfic i dashboard."
@@ -1075,9 +1115,8 @@ msgstr "Treballant"
 msgid "About"
 msgstr "Sobre"
 
-#, fuzzy
-msgid "Access & ownership"
-msgstr "Token d'accés"
+msgid "Access"
+msgstr "Accés"
 
 msgid "Access token"
 msgstr "Token d'accés"
@@ -1785,12 +1824,6 @@ msgid "An error occurred while fetching %s info: %s"
 msgstr "S'ha produït un error mentre es recuperava informació de %s: %s"
 
 #, fuzzy, python-format
-msgid "An error occurred while fetching %s owner values: %s"
-msgstr ""
-"S'ha produït un error mentre es recuperaven els valors dels propietaris: "
-"%s"
-
-#, fuzzy, python-format
 msgid "An error occurred while fetching %s related data"
 msgstr ""
 "S'ha produït un error mentre es recuperaven dades relacionades amb el "
@@ -1820,10 +1853,14 @@ msgid "An error occurred while fetching available views"
 msgstr "S'ha produït un error mentre es recuperaven les plantilles CSS disponibles"
 
 #, python-format
-msgid "An error occurred while fetching chart owners values: %s"
+msgid "An error occurred while fetching chart editor values: %s"
+msgstr "S'ha produït un error en obtenir els valors dels editors del gràfic: %s"
+
+#, python-format
+msgid "An error occurred while fetching chart viewer values: %s"
 msgstr ""
-"S'ha produït un error mentre es recuperaven els valors dels propietaris "
-"del gràfic: %s"
+"S'ha produït un error en obtenir els valors dels visualitzadors del "
+"gràfic: %s"
 
 #, fuzzy
 msgid "An error occurred while fetching connections"
@@ -1834,10 +1871,14 @@ msgid "An error occurred while fetching created by values: %s"
 msgstr "S'ha produït un error mentre es recuperaven els valors de l'esquema: %s"
 
 #, python-format
-msgid "An error occurred while fetching dashboard owner values: %s"
+msgid "An error occurred while fetching dashboard editor values: %s"
+msgstr "S'ha produït un error en obtenir els valors dels editors del tauler: %s"
+
+#, python-format
+msgid "An error occurred while fetching dashboard viewer values: %s"
 msgstr ""
-"S'ha produït un error mentre es recuperaven els valors del propietari del"
-" dashboard: %s"
+"S'ha produït un error en obtenir els valors dels visualitzadors del "
+"tauler: %s"
 
 msgid "An error occurred while fetching dashboards"
 msgstr "S'ha produït un error mentre es recuperaven els dashboards"
@@ -1865,19 +1906,23 @@ msgstr ""
 "dades del conjunt de dades: %s"
 
 #, python-format
+msgid "An error occurred while fetching dataset editor values: %s"
+msgstr ""
+"S'ha produït un error en obtenir els valors dels editors del conjunt de "
+"dades: %s"
+
+#, python-format
 msgid "An error occurred while fetching dataset related data: %s"
 msgstr ""
 "S'ha produït un error mentre es recuperaven dades relacionades amb el "
 "conjunt de dades: %s"
 
+#, python-format
+msgid "An error occurred while fetching editor values: %s"
+msgstr "S'ha produït un error en obtenir els valors dels editors: %s"
+
 msgid "An error occurred while fetching function names."
 msgstr "S'ha produït un error mentre es recuperaven els noms de funcions."
-
-#, python-format
-msgid "An error occurred while fetching owners values: %s"
-msgstr ""
-"S'ha produït un error mentre es recuperaven els valors dels propietaris: "
-"%s"
 
 #, python-format
 msgid "An error occurred while fetching schema values: %s"
@@ -1894,19 +1939,9 @@ msgstr "S'ha produït un error mentre es recuperaven els valors de l'esquema: %s
 msgid "An error occurred while fetching tab state"
 msgstr "S'ha produït un error mentre es recuperava l'estat de la pestanya"
 
-msgid "An error occurred while fetching table metadata"
-msgstr "S'ha produït un error mentre es recuperaven les metadades de la taula"
-
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr "S'ha produït un error mentre es recuperaven les metadades de la taula"
-
-msgid ""
-"An error occurred while fetching table metadata. Please contact your "
-"administrator."
-msgstr ""
-"S'ha produït un error mentre es recuperaven les metadades de la taula. Si"
-" us plau, contacta el teu administrador."
 
 #, fuzzy
 msgid "An error occurred while fetching the configuration schema"
@@ -1945,6 +1980,11 @@ msgstr "S'ha produït un error mentre es carregava l'SQL"
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "S'ha produït un error mentre s'importava %s: %s"
+
+msgid ""
+"An error occurred while loading SQL Lab. This may be caused by a "
+"corrupted query state."
+msgstr ""
 
 msgid "An error occurred while loading dashboard information."
 msgstr "S'ha produït un error mentre es carregava la informació del dashboard."
@@ -3246,6 +3286,12 @@ msgstr "Gràfic %(id)s no trobat"
 msgid "Chart Data: %s"
 msgstr "Dades del Gràfic: %s"
 
+#, python-format
+msgid "Chart Editor: %s"
+msgid_plural "Chart Editors: %s"
+msgstr[0] "Editor del gràfic: %s"
+msgstr[1] "Editors del gràfic: %s"
+
 msgid "Chart ID"
 msgstr "ID del Gràfic"
 
@@ -3254,12 +3300,6 @@ msgstr "Opcions del Gràfic"
 
 msgid "Chart Orientation"
 msgstr "Orientació del Gràfic"
-
-#, python-format
-msgid "Chart Owner: %s"
-msgid_plural "Chart Owners: %s"
-msgstr[0] "Propietari del Gràfic: %s"
-msgstr[1] "Propietaris del Gràfic: %s"
 
 msgid "Chart Source"
 msgstr "Font del Gràfic"
@@ -3311,6 +3351,9 @@ msgstr "El valor del filtre és obligatori"
 msgid "Chart does not exist"
 msgstr "El gràfic no existeix"
 
+msgid "Chart editors"
+msgstr "Editors del gràfic"
+
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr ""
 "El gràfic no té cap context de consulta desat. Si us plau, desa el gràfic"
@@ -3334,9 +3377,6 @@ msgstr "Gràfic no trobat"
 
 msgid "Chart options"
 msgstr "Opcions del gràfic"
-
-msgid "Chart owners"
-msgstr "Propietaris del gràfic"
 
 msgid "Chart parameters are invalid."
 msgstr "Els paràmetres del gràfic són invàlids."
@@ -3830,9 +3870,6 @@ msgstr ""
 msgid "Column Configuration"
 msgstr "Configuració de Columna"
 
-msgid "Column Formatting"
-msgstr "Format de Columna"
-
 msgid "Column Settings"
 msgstr "Configuració de Columna"
 
@@ -3975,6 +4012,9 @@ msgstr ""
 "Límits d'interval separats per comes, p.ex. 2,4,5 per als intervals 0-2, "
 "2-4 i 4-5. L'últim número ha de coincidir amb el valor proporcionat per a"
 " MAX."
+
+msgid "Common (unit per pixel at zoom 0)"
+msgstr ""
 
 msgid "Comparator option"
 msgstr "Opció de comparador"
@@ -4281,6 +4321,9 @@ msgstr "No s'han pogut recuperar tots els gràfics desats"
 
 msgid "Could not find viz object"
 msgstr "No s'ha pogut trobar l'objecte de visualització"
+
+msgid "Could not load SQL Lab"
+msgstr ""
 
 msgid "Could not load database driver"
 msgstr "No s'ha pogut carregar el controlador de base de dades"
@@ -4961,6 +5004,9 @@ msgstr "El conjunt de dades no s'ha pogut crear."
 
 msgid "Dataset could not be duplicated."
 msgstr "El conjunt de dades no s'ha pogut duplicar."
+
+msgid "Dataset could not be restored."
+msgstr ""
 
 msgid "Dataset could not be updated."
 msgstr "El conjunt de dades no s'ha pogut actualitzar."
@@ -6247,11 +6293,30 @@ msgstr "Editar rang de temps"
 msgid "Edit user"
 msgstr "Editar usuari"
 
+msgid "Editable"
+msgstr "Editable"
+
 msgid "Edited"
 msgstr "Editat"
 
 msgid "Editing 1 filter:"
 msgstr "Editant 1 filtre:"
+
+msgid "Editor"
+msgstr "Editor"
+
+msgid "Editors"
+msgstr "Editors"
+
+msgid "Editors is a list of subjects who can alter the dashboard."
+msgstr "Els editors són una llista de subjectes que poden modificar el tauler."
+
+msgid ""
+"Editors is a list of subjects who can alter the dashboard. Searchable by "
+"name."
+msgstr ""
+"Els editors són una llista de subjectes que poden modificar el tauler. Es"
+" pot cercar per nom."
 
 msgid "Either the database is spelled incorrectly or does not exist."
 msgstr "O bé la base de dades està mal escrita o no existeix."
@@ -6756,8 +6821,8 @@ msgstr "Pujada d'Excel"
 msgid "Exclude selected values"
 msgstr "Excloure valors seleccionats"
 
-msgid "Excluded roles"
-msgstr "Rols exclosos"
+msgid "Excluded subjects"
+msgstr "Subjectes exclosos"
 
 msgid "Executed SQL"
 msgstr "SQL Executat"
@@ -7419,10 +7484,11 @@ msgstr ""
 "Per més informació sobre els objectes que estan en context en l'àmbit "
 "d'aquesta funció, refereix-te al"
 
+#, fuzzy
 msgid ""
-"For regular filters, these are the roles this filter will be applied to. "
-"For base filters, these are the roles that the filter DOES NOT apply to, "
-"e.g. Admin if admin should see all data."
+"For regular filters, these are the subjects (users, roles, groups) this "
+"filter will be applied to. For base filters, these are the subjects that "
+"the filter DOES NOT apply to, e.g. Admin if admin should see all data."
 msgstr ""
 "Per filtres regulars, aquests són els rols als quals s'aplicarà aquest "
 "filtre. Per filtres base, aquests són els rols als quals el filtre NO "
@@ -7546,9 +7612,6 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "CSV formatat adjunt al correu electrònic"
-
-msgid "Formatted date"
-msgstr "Data formatada"
 
 msgid "Formatted value"
 msgstr "Valor formatat"
@@ -8499,9 +8562,6 @@ msgstr ""
 "Les claus només es mostren una vegada en el moment de la creació. "
 "Guardeu-les de manera segura."
 
-msgid "Keys for table"
-msgstr "Claus per taula"
-
 msgid "Kilometers"
 msgstr "Quilòmetres"
 
@@ -9039,11 +9099,8 @@ msgstr ""
 msgid "Manage"
 msgstr "Gestionar"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
-# ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Manage dashboard owners and access permissions"
-msgstr "Gestiona els propietaris del tauler i els permisos d'accés"
+msgid "Manage dashboard editors and access permissions"
+msgstr "Gestiona els editors del tauler i els permisos d'accés"
 
 msgid "Manage email report"
 msgstr "Gestionar informe per correu electrònic"
@@ -9607,11 +9664,9 @@ msgstr "Multiplicador"
 # sr_Latn]
 #, fuzzy
 msgid ""
-"Must be a chart owner to overwrite this chart. Save as a new chart "
+"Must be a chart editor to overwrite this chart. Save as a new chart "
 "instead."
-msgstr ""
-"Heu de ser propietari del gràfic per sobreescriure'l. Deseu-lo com a "
-"gràfic nou."
+msgstr "Heu de ser editor del gràfic per sobreescriure aquest gràfic. Deseu-lo com a gràfic nou."
 
 msgid "Must be unique"
 msgstr "Ha de ser únic"
@@ -10332,6 +10387,12 @@ msgstr "Obrir pestanya de Font de Dades"
 msgid "Open SQL Lab in a new tab"
 msgstr "Executar consulta en una nova pestanya"
 
+msgid "Open chart in new tab"
+msgstr ""
+
+msgid "Open dashboard in new tab"
+msgstr ""
+
 msgid "Open in SQL Lab"
 msgstr "Obrir al SQL Lab"
 
@@ -10417,9 +10478,6 @@ msgstr "Orientació de l'arbre"
 
 msgid "Original"
 msgstr "Original"
-
-msgid "Original table column order"
-msgstr "Ordre original de columnes de taula"
 
 msgid "Original value"
 msgstr "Valor original"
@@ -10509,25 +10567,6 @@ msgstr "Sobreescriure text a l'editor amb una consulta sobre aquesta taula"
 msgid "Owned Created or Favored"
 msgstr "Propietat Creat o Favorit"
 
-msgid "Owner"
-msgstr "Propietari"
-
-msgid "Owners"
-msgstr "Propietaris"
-
-msgid "Owners are invalid"
-msgstr "Els propietaris no són vàlids"
-
-msgid "Owners is a list of users who can alter the dashboard."
-msgstr "Propietaris és una llista d'usuaris que poden alterar el dashboard."
-
-msgid ""
-"Owners is a list of users who can alter the dashboard. Searchable by name"
-" or username."
-msgstr ""
-"Propietaris és una llista d'usuaris que poden alterar el dashboard. "
-"Cercable per nom o nom d'usuari."
-
 msgid "PDF download failed, please refresh and try again."
 msgstr "La descàrrega PDF ha fallat, si us plau actualitza i torna-ho a provar."
 
@@ -10604,6 +10643,10 @@ msgstr "Contrasenya"
 
 msgid "Password is required"
 msgstr "La contrasenya és obligatòria"
+
+#, python-format
+msgid "Password must be at least %(min_length)s characters long."
+msgstr ""
 
 #, fuzzy
 msgid "Password:"
@@ -10919,11 +10962,10 @@ msgstr "Si us plau torna a introduir la contrasenya."
 msgid "Please re-export your file and try importing again"
 msgstr "Si us plau torna a exportar el teu arxiu i prova d'importar de nou"
 
-#, fuzzy
-msgid "Please reach out to the Chart Owner for assistance."
-msgid_plural "Please reach out to the Chart Owners for assistance."
-msgstr[0] "Si us plau contacta amb el Propietari del Gràfic per assistència."
-msgstr[1] "Si us plau contacta amb els Propietaris del Gràfic per assistència."
+msgid "Please reach out to the Chart Editor for assistance."
+msgid_plural "Please reach out to the Chart Editors for assistance."
+msgstr[0] "Contacteu amb l'editor del gràfic per obtenir ajuda."
+msgstr[1] "Contacteu amb els editors del gràfic per obtenir ajuda."
 
 msgid "Please save your chart first, then try creating a new email report."
 msgstr ""
@@ -10984,6 +11026,9 @@ msgstr "Escala del Radi del Punt"
 
 msgid "Point Radius Unit"
 msgstr "Unitat del Radi del Punt"
+
+msgid "Point Radius Units"
+msgstr ""
 
 msgid "Point Size"
 msgstr "Mida del Punt"
@@ -11452,6 +11497,9 @@ msgstr "Quantitat relativa"
 msgid "Reload"
 msgstr "Recarregar"
 
+msgid "Reload SQL Lab"
+msgstr ""
+
 msgid "Remove"
 msgstr "Eliminar"
 
@@ -11481,9 +11529,6 @@ msgstr "Eliminar element"
 
 msgid "Remove query from log"
 msgstr "Eliminar consulta del registre"
-
-msgid "Remove table preview"
-msgstr "Eliminar vista prèvia de taula"
 
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
@@ -11575,6 +11620,9 @@ msgstr "L'informe està actiu"
 msgid "Report name"
 msgstr "Nom de l'informe"
 
+msgid "Report not yet run"
+msgstr ""
+
 msgid "Report schedule client error"
 msgstr "Error del client de programació d'informe"
 
@@ -11627,6 +11675,10 @@ msgstr "Els valors de control obligatoris han estat eliminats"
 msgid "Resample"
 msgstr "Remostreig"
 
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
+
 msgid "Resample method should be in "
 msgstr "El mètode de remostreig hauria de ser a "
 
@@ -11674,11 +11726,8 @@ msgstr "El recurs ja té un informe adjunt."
 msgid "Resource was not found."
 msgstr "No s'ha trobat el recurs."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
-msgid "Resource was removed before ownership could be verified"
-msgstr "El recurs s'ha eliminat abans que es pogués verificar la propietat"
+msgid "Resource was removed before editorship could be verified"
+msgstr "El recurs s'ha eliminat abans que es pogués verificar el permís d'edició"
 
 msgid "Restore filter"
 msgstr "Restaurar Filtre"
@@ -11784,24 +11833,6 @@ msgstr "El nom del rol és obligatori"
 
 msgid "Roles"
 msgstr "Rols"
-
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks. If no roles are "
-"defined, regular access permissions apply."
-msgstr ""
-"Rols és una llista que defineix l'accés al dashboard. Concedir a un rol "
-"accés a un dashboard ometrà les comprovacions a nivell de dataset. Si no "
-"es defineixen rols, s'apliquen els permisos d'accés regulars."
-
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks.If no roles are "
-"defined, regular access permissions apply."
-msgstr ""
-"Rols és una llista que defineix l'accés al dashboard. Concedir a un rol "
-"accés a un dashboard ometrà les comprovacions a nivell de dataset. Si no "
-"es defineixen rols, s'apliquen els permisos d'accés regulars."
 
 msgid "Rolling Function"
 msgstr "Funció de Finestra Mòbil"
@@ -12282,9 +12313,8 @@ msgstr "Cercar per text de consulta"
 msgid "Search calculated columns by name"
 msgstr "Columnes calculades"
 
-#, fuzzy
-msgid "Search charts by name, owner, or dashboard"
-msgstr "No hi ha gràfics afegits a aquest dashboard"
+msgid "Search charts by name, editor, or dashboard"
+msgstr "Cerca gràfics per nom, editor o tauler"
 
 msgid "Search columns"
 msgstr "Cercar columnes"
@@ -12297,6 +12327,9 @@ msgstr "Cercar columnes"
 msgid "Search columns..."
 msgstr "Cercar columnes"
 
+msgid "Search editors"
+msgstr "Cerca editors"
+
 msgid "Search in filters"
 msgstr "Cercar en filtres"
 
@@ -12305,16 +12338,11 @@ msgid "Search metrics by key or label"
 msgstr "Cercar Mètriques i Columnes"
 
 #, fuzzy
-msgid "Search owners"
-msgstr "Seleccionar propietaris"
-
-#, fuzzy
-msgid "Search roles"
-msgstr "Cercar columnes"
-
-#, fuzzy
 msgid "Search tags"
 msgstr "Seleccionar Etiquetes"
+
+msgid "Search viewers"
+msgstr "Cerca visualitzadors"
 
 msgid "Search..."
 msgstr "Cercar..."
@@ -12601,6 +12629,9 @@ msgstr "Seleccionar una dimensió"
 msgid "Select dimension values"
 msgstr "Seleccionar una dimensió"
 
+msgid "Select editors"
+msgstr "Selecciona editors"
+
 msgid "Select file"
 msgstr "Seleccionar arxiu"
 
@@ -12676,9 +12707,6 @@ msgstr "Seleccionar o escriure símbol de moneda"
 
 msgid "Select or type dataset name"
 msgstr "Seleccionar o escriure nom del dataset"
-
-msgid "Select owners"
-msgstr "Seleccionar propietaris"
 
 msgid "Select page size"
 msgstr "Seleccionar mida de pàgina"
@@ -13900,6 +13928,9 @@ msgstr "Carrers"
 msgid "Streets (Carto)"
 msgstr "Gràfic d'Arbre"
 
+msgid "Streets (OSM)"
+msgstr ""
+
 msgid "Strength to pull the graph toward center"
 msgstr "Força per atreure el gràfic cap al centre"
 
@@ -13939,6 +13970,18 @@ msgstr "Categoria"
 
 msgid "Subdomain"
 msgstr "Subdomini"
+
+msgid "Subject"
+msgstr "Subjecte"
+
+msgid "Subject type"
+msgstr "Tipus de subjecte"
+
+msgid "Subjects"
+msgstr "Subjectes"
+
+msgid "Subjects are invalid"
+msgstr "Els subjectes no són vàlids"
 
 msgid "Submit"
 msgstr "Enviar"
@@ -14399,6 +14442,9 @@ msgstr ""
 "GLOBAL_TASK_FRAMEWORK=True als indicadors de funcionalitat per utilitzar "
 "@task. Vegeu https://superset.apache.org/docs/configuration/async-"
 "queries-celery per als detalls de configuració."
+
+msgid "The SSH server host key could not be verified against the expected key."
+msgstr ""
 
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
@@ -15096,6 +15142,11 @@ msgstr ""
 "columna numèrica o `Auto`, que escala el punt basat en el clúster més "
 "gran"
 
+msgid ""
+"The radius of point features, in the units specified below. The final "
+"rendered size is this value multiplied by Point Radius Scale."
+msgstr ""
+
 msgid "The report has been created"
 msgstr "L'informe s'ha creat"
 
@@ -15311,6 +15362,11 @@ msgstr "Mida de Font del Subtítol"
 #, fuzzy
 msgid "The unit for label size"
 msgstr "La unitat per a la mida de l'etiqueta"
+
+msgid ""
+"The unit for point radius. Use \"pixels\" for consistent screen-space "
+"sizing regardless of zoom level."
+msgstr ""
 
 msgid "The unit of measure for the specified point radius"
 msgstr "La unitat de mesura per al radi de punt especificat"
@@ -16052,6 +16108,9 @@ msgstr ""
 "Aquesta pàgina està destinada a ser incrustada en un iframe, però sembla "
 "que no és el cas."
 
+msgid "This password is too common; please choose a less guessable one."
+msgstr ""
+
 msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
@@ -16416,6 +16475,18 @@ msgstr "Per obtenir una URL llegible per al teu dashboard"
 #, fuzzy
 msgid "Token Request URI"
 msgstr "URI de sol·licitud de testimoni"
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
 
 #, fuzzy
 msgid "Tool Panel"
@@ -17311,10 +17382,6 @@ msgstr "Veure com a taula"
 msgid "View in SQL Lab"
 msgstr "Veure a SQL Lab"
 
-#, python-format
-msgid "View keys & indexes (%s)"
-msgstr "Veure claus i índexs (%s)"
-
 msgid "View query"
 msgstr "Veure consulta"
 
@@ -17328,6 +17395,21 @@ msgstr "Visualitzat"
 #, python-format
 msgid "Viewed %s"
 msgstr "Visualitzat %s"
+
+msgid "Viewer"
+msgstr "Visualitzador"
+
+msgid "Viewers"
+msgstr "Visualitzadors"
+
+msgid ""
+"Viewers is a list of subjects who can view the dashboard. If no viewers "
+"are defined, the dashboard is accessible to all users with appropriate "
+"datasource permissions."
+msgstr ""
+"Els visualitzadors són una llista de subjectes que poden visualitzar el "
+"tauler. Si no se’n defineix cap, el tauler és accessible per a tots els "
+"usuaris amb permisos adequats de font de dades."
 
 msgid "Viewport"
 msgstr "Viewport"
@@ -18263,6 +18345,9 @@ msgstr "No tens permisos per editar aquest dashboard."
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "No tens permisos suficients per editar el gràfic"
 
+msgid "You don't have access to one or more of the referenced datasources."
+msgstr ""
+
 msgid "You don't have access to this chart."
 msgstr "No tens accés a aquest gràfic."
 
@@ -18341,28 +18426,31 @@ msgstr ""
 "completament accions posteriors. Pots desar el teu estat actual per "
 "reiniciar l'historial."
 
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"You must be a %s owner in order to edit. Please reach out to a %s owner "
-"to request modifications or edit access."
-msgstr ""
-"Has de ser propietari del dataset per poder editar. Si us plau contacta "
-"amb un propietari del dataset per sol·licitar modificacions o accés "
-"d'edició."
+"You must be a %s editor in order to edit. Please reach out to a %s editor"
+" to request modifications or edit access."
+msgstr "Heu de ser editor de %s per poder editar. Contacteu amb un editor de %s per sol·licitar modificacions o accés d'edició."
 
 msgid ""
-"You must be a dataset owner in order to edit. Please reach out to a "
-"dataset owner to request modifications or edit access."
+"You must be a dataset editor in order to edit. Please reach out to a "
+"dataset editor to request modifications or edit access."
+msgstr "Heu de ser editor del conjunt de dades per poder editar. Contacteu amb un editor del conjunt de dades per sol·licitar modificacions o accés d'edició."
+
+msgid "You must change your password before continuing."
 msgstr ""
-"Has de ser propietari del dataset per poder editar. Si us plau contacta "
-"amb un propietari del dataset per sol·licitar modificacions o accés "
-"d'edició."
 
 msgid "You must pick a name for the new dashboard"
 msgstr "Has de triar un nom per al nou dashboard"
 
 msgid "You must run the query successfully first"
 msgstr "Primer has d'executar la consulta amb èxit"
+
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"'all_database_access' or 'all_datasource_access' permission"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18451,6 +18539,9 @@ msgstr "La teva consulta s'ha actualitzat"
 
 msgid "Your report could not be deleted"
 msgstr "El teu informe no s'ha pogut eliminar"
+
+msgid "Your session has ended. Please sign in again."
+msgstr ""
 
 #, fuzzy
 msgid "Your user information"
@@ -18560,6 +18651,9 @@ msgstr "`row_offset` ha de ser major o igual a 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "`width` ha de ser major o igual a 0"
 
+msgid "`window` must be between 1 and 10000"
+msgstr ""
+
 #, fuzzy
 msgid "a few seconds"
 msgstr "5 segons"
@@ -18591,6 +18685,9 @@ msgstr "anotació"
 msgid "annotation_layer"
 msgstr "capa_anotació"
 
+msgid "apple"
+msgstr ""
+
 msgid "asfreq"
 msgstr "asfreq"
 
@@ -18606,6 +18703,9 @@ msgstr "fons"
 #, fuzzy
 msgid "background color"
 msgstr "Color de Fons"
+
+msgid "banana"
+msgstr ""
 
 msgid "basis"
 msgstr "base"
@@ -18887,6 +18987,9 @@ msgstr "p. ex., CI/CD Pipeline, Analytics Script"
 
 msgid "edit mode"
 msgstr "mode d'edició"
+
+msgid "editors"
+msgstr "editors"
 
 msgid "email subject"
 msgstr "assumpte del correu"
@@ -19234,9 +19337,6 @@ msgstr "Original"
 
 msgid "overall"
 msgstr "general"
-
-msgid "owners"
-msgstr "propietaris"
 
 msgid "p-value precision"
 msgstr "precisió del valor p"
