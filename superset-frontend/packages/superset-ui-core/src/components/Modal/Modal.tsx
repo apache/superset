@@ -120,8 +120,8 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
         right: 0;
         display: flex;
         justify-content: center;
-        // Keep the close button clickable when modal body content uses
-        // position: sticky with elevated z-index (e.g. DatabaseModal header).
+        /* Keep the close button clickable when modal body content uses */
+        /* position: sticky with elevated z-index (e.g. DatabaseModal header). */
         z-index: ${theme.zIndexPopupBase + 1};
       }
 

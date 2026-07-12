@@ -124,7 +124,7 @@ const StyledContent = styled.div<{
 }>`
   grid-column: 2;
   grid-row: 2;
-  // @z-index-above-dashboard-header (100) + 1 = 101
+  /* @z-index-above-dashboard-header (100) + 1 = 101 */
   ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 101;`}
 `;
 
@@ -327,7 +327,7 @@ const StyledDashboardContent = styled.div<{
       box-sizing: border-box;
       overflow-y: visible;
 
-      // transitionable traits to show filter relevance
+      /* transitionable traits to show filter relevance */
       transition:
         opacity ${theme.motionDurationMid} ease-in-out,
         border-color ${theme.motionDurationMid} ease-in-out,
