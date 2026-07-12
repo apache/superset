@@ -284,7 +284,7 @@ class QueryContextProcessor:
         # or adhoc column label) so both column kinds are represented and each
         # label maps back to its own column, in the same order as the source
         # list.
-        all_labels = [get_column_name(col) for col in query_object.columns]
+        all_labels: list[str] = [get_column_name(col) for col in query_object.columns]
         label_to_column = dict(zip(all_labels, query_object.columns, strict=True))
 
         frames: list[pd.DataFrame] = []

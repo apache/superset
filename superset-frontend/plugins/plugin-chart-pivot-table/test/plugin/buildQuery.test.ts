@@ -17,9 +17,19 @@
  * under the License.
  */
 
-import { TimeGranularity } from '@superset-ui/core';
+import {
+  QueryFormColumn,
+  QueryFormMetric,
+  QueryObject,
+  TimeGranularity,
+} from '@superset-ui/core';
 import buildQuery from '../../src/plugin/buildQuery';
 import { PivotTableQueryFormData } from '../../src/types';
+
+// buildQuery attaches `grouping_sets` (one entry per rollup level) to the
+// query object; it is not part of the base QueryObject type, so narrow to a
+// local type instead of casting through `any`.
+type GroupingSetsQuery = QueryObject & { grouping_sets: QueryFormColumn[][] };
 
 const formData: PivotTableQueryFormData = {
   groupbyRows: ['row1', 'row2'],
@@ -65,7 +75,7 @@ test('additive metrics use the fast-path: a single full-detail query', () => {
         column: { column_name: 'num' },
         label: 'sum_num',
       },
-    ] as any,
+    ] as QueryFormMetric[],
   });
   expect(queries).toHaveLength(1);
   // The single leaf query carries all dimensions (2 rows + 2 cols).
@@ -81,9 +91,9 @@ test('non-additive metrics emit a single GROUPING SETS query with all levels', (
   // The single query selects the full set of dimensions ...
   expect(query.columns).toHaveLength(4);
   // ... and requests every rollup level via grouping_sets (grand total = []).
-  expect((query as any).grouping_sets).toHaveLength(9);
-  expect((query as any).grouping_sets[0]).toEqual([]);
-  expect((query as any).grouping_sets[8]).toHaveLength(4);
+  expect((query as GroupingSetsQuery).grouping_sets).toHaveLength(9);
+  expect((query as GroupingSetsQuery).grouping_sets[0]).toEqual([]);
+  expect((query as GroupingSetsQuery).grouping_sets[8]).toHaveLength(4);
 });
 
 test('should build groupby with series in form data', () => {

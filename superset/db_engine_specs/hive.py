@@ -100,7 +100,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     # Hive/Spark's GROUPING SETS + GROUPING() marker semantics have not been
     # verified against this query pattern, so fall back to one query per
     # rollup level instead of assuming native support.
-    supports_grouping_sets = False
+    supports_grouping_sets: bool = False
 
     metadata = {
         "description": (

@@ -30,6 +30,7 @@ remaining integration; see SIP.md.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Final
 
 import pandas as pd
 from sqlalchemy import func, tuple_
@@ -37,7 +38,7 @@ from sqlalchemy.sql.elements import ColumnElement
 
 # Suffix for the per-column GROUPING() marker columns added to a GROUPING SETS
 # query. Chosen to be unlikely to collide with a real metric/column label.
-GROUPING_MARKER_SUFFIX = "__superset_grouping"
+GROUPING_MARKER_SUFFIX: Final = "__superset_grouping"
 
 
 def grouping_marker_label(column_label: str) -> str:
