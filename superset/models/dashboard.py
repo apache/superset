@@ -52,6 +52,11 @@ from superset.models.helpers import (
 )
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
+from superset.subjects.models import (
+    dashboard_editors,
+    dashboard_viewers,
+    Subject,
+)
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_dashboard_digest
@@ -66,11 +71,18 @@ def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) 
     if dashboard_id is None:
         return
 
+    from superset.subjects.utils import get_user_subject
+
     session = sqla.inspect(target).session  # pylint: disable=disallowed-name
     new_user = session.query(User).filter_by(id=target.id).first()
 
     # copy template dashboard to user
     template = session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
+    editors = []
+    if new_user:
+        subj = get_user_subject(new_user.id)
+        if subj:
+            editors.append(subj)
     dashboard = Dashboard(
         dashboard_title=template.dashboard_title,
         position_json=template.position_json,
@@ -78,7 +90,7 @@ def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) 
         css=template.css,
         json_metadata=template.json_metadata,
         slices=template.slices,
-        owners=[new_user],
+        editors=editors,
     )
     session.add(dashboard)
 
@@ -111,46 +123,37 @@ dashboard_slices = Table(
 )
 
 
-dashboard_user = Table(
-    "dashboard_user",
-    metadata,
-    Column(
-        "user_id",
-        Integer,
-        ForeignKey("ab_user.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-    Column(
-        "dashboard_id",
-        Integer,
-        ForeignKey("dashboards.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-)
-
-
-DashboardRoles = Table(
-    "dashboard_roles",
-    metadata,
-    Column(
-        "dashboard_id",
-        Integer,
-        ForeignKey("dashboards.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-    Column(
-        "role_id",
-        Integer,
-        ForeignKey("ab_role.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-)
-
-
 class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExportMixin):
     """The dashboard object!"""
 
     __tablename__ = "dashboards"
+    # SPIKE (full-Continuum): ``slices`` removed from
+    # the exclude list so Continuum auto-creates an association version table
+    # for ``dashboard_slices`` and ``Reverter(relations=["slices"])`` can
+    # restore chart membership. Owners / roles / editors / viewers stay
+    # excluded — access metadata, not user-authored content (ADR-005).
+    # Audit columns (changed_on/created_on/changed_by_fk/created_by_fk) are
+    # auto-bumped by AuditMixin on every save; excluding them lets Continuum's
+    # is_modified() return False on no-op saves (e.g. owners-only edits) so we
+    # don't create empty version rows. version_transaction.user_id /
+    # issued_at preserve "who/when" without per-row duplication.
+    # deleted_at is deletion-state metadata (SoftDeleteMixin), not user-authored
+    # content: it is tracked by soft delete, not by content versioning. It is also
+    # absent from the Continuum shadow table, so leaving it in would make every
+    # capture INSERT fail once soft delete is applied to dashboards.
+    __versioned__: dict[str, Any] = {
+        "exclude": [
+            "owners",
+            "roles",
+            "editors",
+            "viewers",
+            "changed_on",
+            "created_on",
+            "changed_by_fk",
+            "created_by_fk",
+            "deleted_at",
+        ]
+    }
     id = Column(Integer, primary_key=True)
     dashboard_title = Column(String(500))
     position_json = Column(utils.MediumText())
@@ -170,11 +173,6 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
     slug = Column(String(255))
     slices: list[Slice] = relationship(
         Slice, secondary=dashboard_slices, backref="dashboards"
-    )
-    owners = relationship(
-        security_manager.user_model,
-        secondary=dashboard_user,
-        passive_deletes=True,
     )
     tags = relationship(
         "Tag",
@@ -199,7 +197,17 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
     published = Column(Boolean, default=False)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)
-    roles = relationship(security_manager.role_model, secondary=DashboardRoles)
+    editors = relationship(
+        Subject,
+        secondary=dashboard_editors,
+        passive_deletes=True,
+    )
+    viewers = relationship(
+        Subject,
+        secondary=dashboard_viewers,
+        passive_deletes=True,
+    )
+
     embedded = relationship(
         "EmbeddedDashboard",
         back_populates="dashboard",
@@ -432,7 +440,7 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
                 .filter_by(id=dashboard_id)
                 .first()
             )
-            # remove ids and relations (like owners, created by, slices, ...)
+            # remove ids and relations (like editors, created by, slices, ...)
             copied_dashboard = dashboard.copy()
             for slc in dashboard.slices:
                 datasource_ids.add((slc.datasource_id, slc.datasource_type))

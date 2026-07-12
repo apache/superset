@@ -85,7 +85,7 @@ async def restore_dashboard(
     cover trashed dashboards). Only dashboards that were soft-deleted (moved
     to trash while the ``SOFT_DELETE`` feature flag was enabled) can be
     restored; permanently deleted dashboards are unrecoverable. The caller
-    must own the dashboard (or be an Admin).
+    must be an editor of the dashboard (owners and Admins qualify).
 
     Example:
     ```json

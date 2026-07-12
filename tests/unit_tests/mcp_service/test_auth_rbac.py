@@ -478,3 +478,69 @@ def test_scope_execute_sql_query_requires_write_scope(app_context) -> None:
             assert check_tool_permission(func) is False
         with _patch_token_scopes(["superset:write"]):
             assert check_tool_permission(func) is True
+
+
+# ---------------------------------------------------------------------------
+# User/Role tools must request a permission FAB actually registers.
+#
+# FAB's security API views (UserApi, RoleApi) register only
+# can_get/can_info/can_post/can_put/can_delete — never can_read. Superset's
+# own ModelRestApi subclasses remap methods onto read/write, which is why
+# "can_read on Chart" exists while "can_read on User" cannot. A tool that
+# demands can_read on User/Role is therefore dead for every principal,
+# including Admin (fails closed).
+# ---------------------------------------------------------------------------
+
+# The full set of permissions FAB registers on its security API views.
+_FAB_SECURITY_VIEW_PERMISSIONS = {
+    "can_get",
+    "can_info",
+    "can_post",
+    "can_put",
+    "can_delete",
+}
+
+
+def _fab_security_view_can_access(permission_str: str, view_name: str) -> bool:
+    """Simulate can_access for a user holding every permission FAB actually
+    registers on the User/Role security views (i.e. a stock Admin)."""
+    return permission_str in _FAB_SECURITY_VIEW_PERMISSIONS
+
+
+@pytest.mark.parametrize(
+    "module_path,func_name",
+    [
+        ("superset.mcp_service.user.tool.list_users", "list_users"),
+        ("superset.mcp_service.user.tool.get_user_info", "get_user_info"),
+        ("superset.mcp_service.role.tool.list_roles", "list_roles"),
+        ("superset.mcp_service.role.tool.get_role_info", "get_role_info"),
+    ],
+)
+def test_user_role_tools_usable_by_stock_admin(
+    app_context, module_path: str, func_name: str
+) -> None:
+    """A stock Admin (holding exactly the FAB-registered permissions on the
+    User/Role views) must be able to use the user/role tools."""
+    import importlib
+
+    func = getattr(importlib.import_module(module_path), func_name)
+    g.user = MagicMock(username="admin")
+
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(side_effect=_fab_security_view_can_access)
+    with patch("superset.mcp_service.auth.security_manager", mock_sm):
+        assert check_tool_permission(func) is True, (
+            f"{func_name} requests can_"
+            f"{getattr(func, METHOD_PERMISSION_ATTR, 'read')} on "
+            f"{getattr(func, CLASS_PERMISSION_ATTR, None)}, which FAB never "
+            "registers on its security views — the tool is dead even for Admin"
+        )
+
+
+def test_get_method_permission_is_scope_mapped(app_context) -> None:
+    """The 'get' method permission must be in _METHOD_TO_REQUIRED_SCOPE:
+    unmapped method permissions are denied for scoped tokens (fail closed),
+    which would leave the user/role tools dead for scoped-JWT deployments."""
+    from superset.mcp_service.auth import _METHOD_TO_REQUIRED_SCOPE
+
+    assert _METHOD_TO_REQUIRED_SCOPE.get("get") == "superset:read"

@@ -82,7 +82,8 @@ async def restore_chart(
     Identify the chart by numeric ID or UUID string (NOT chart name). Only
     charts that were soft-deleted (moved to trash while the ``SOFT_DELETE``
     feature flag was enabled) can be restored; permanently deleted charts are
-    unrecoverable. The caller must own the chart (or be an Admin).
+    unrecoverable. The caller must be an editor of the chart (owners and
+    Admins qualify).
 
     Example:
     ```json
