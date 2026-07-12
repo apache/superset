@@ -22,7 +22,7 @@ import logging
 import os
 import re
 from datetime import datetime
-from typing import Any, Callable, cast
+from typing import Any, Callable, cast, Optional
 from urllib import parse
 
 from flask import (
@@ -952,18 +952,18 @@ class Superset(BaseSupersetView):
         if not re.match(r"^[0-9a-f]{12}$", version):
             abort(400, "Invalid language pack version")
 
-        current_version = get_language_pack_version(lang)
+        current_version: Optional[str] = get_language_pack_version(lang)
         if current_version is None:
             return json_error_response(
                 "Language pack doesn't exist on the server", status=404
             )
-        pack = get_language_pack(lang)
+        pack: Optional[dict[str, Any]] = get_language_pack(lang)
         if pack is None:
             return json_error_response(
                 "Language pack doesn't exist on the server", status=404
             )
 
-        response = Response(
+        response: Response = Response(
             f"window.__SUPERSET_LANGUAGE_PACK__ = {json.dumps(pack)};",
             mimetype="application/javascript; charset=utf-8",
         )

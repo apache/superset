@@ -177,7 +177,7 @@ def test_common_bootstrap_payload_does_not_embed_language_pack(
         patch("superset.views.base.utils.get_user_id", return_value=1),
         patch("superset.views.base.get_locale", return_value="fr"),
     ):
-        payload = common_bootstrap_payload()
+        payload: dict[str, Any] = common_bootstrap_payload()
 
     assert payload["language_pack"] is None
 
@@ -195,7 +195,7 @@ def test_common_bootstrap_payload_preserves_override_pack(
         patch("superset.views.base.utils.get_user_id", return_value=1),
         patch("superset.views.base.get_locale", return_value="fr"),
     ):
-        payload = common_bootstrap_payload()
+        payload: dict[str, Any] = common_bootstrap_payload()
 
     assert payload["language_pack"] == fake_pack
 

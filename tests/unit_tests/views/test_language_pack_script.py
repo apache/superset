@@ -107,9 +107,9 @@ def test_spa_template_loads_pack_before_entry_bundle() -> None:
     ).read_text()
 
     tag_start: int = template.index('<script src="{{ language_pack_src }}"')
-    entry_start = template.index("js_bundle(assets_prefix, entry)")
+    entry_start: int = template.index("js_bundle(assets_prefix, entry)")
     assert tag_start < entry_start
 
-    script_tag = template[tag_start : template.index(">", tag_start)]
+    script_tag: str = template[tag_start : template.index(">", tag_start)]
     assert "async" not in script_tag
     assert "defer" not in script_tag
