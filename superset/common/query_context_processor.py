@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import copy
+import logging
 import re
 import time
 from contextvars import ContextVar
@@ -84,6 +85,8 @@ from superset.viz import viz_types
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
+
+logger = logging.getLogger(__name__)
 
 _annotation_chart_stack: ContextVar[tuple[int, ...]] = ContextVar(
     "chart_data_annotation_stack", default=()
@@ -539,8 +542,11 @@ class QueryContextProcessor:
                 and self._producer_metrics_match(candidate, query)
             ]
             if len(matching) > 1:
-                raise QueryObjectValidationError(
-                    _("Multiple totals queries match a contribution query")
+                logger.warning(
+                    "Multiple totals queries match contribution query %d; "
+                    "using producer %d",
+                    idx,
+                    matching[0],
                 )
             if matching:
                 plan[idx] = matching[0]

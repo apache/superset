@@ -700,7 +700,7 @@ def test_contribution_totals_are_reused_without_mutating_queries() -> None:
     assert "contribution_totals" not in main_query.post_processing[0]["options"]
 
 
-def test_ambiguous_contribution_totals_are_rejected() -> None:
+def test_legacy_contribution_uses_first_equivalent_totals_query() -> None:
     datasource = MagicMock()
     main_query = QueryObject(
         datasource=datasource,
@@ -714,11 +714,35 @@ def test_ambiguous_contribution_totals_are_rejected() -> None:
     query_context.queries = [main_query, totals_query_1, totals_query_2]
     processor = QueryContextProcessor(query_context)
 
-    with pytest.raises(
-        QueryObjectValidationError,
-        match="Multiple totals queries match",
-    ):
-        processor._contribution_plan()
+    with patch("superset.common.query_context_processor.logger.warning") as warning:
+        plan = processor._contribution_plan()
+
+    assert plan == {0: 1}
+    warning.assert_called_once_with(
+        "Multiple totals queries match contribution query %d; using producer %d",
+        0,
+        1,
+    )
+
+
+def test_contribution_totals_require_matching_time_shift() -> None:
+    datasource = MagicMock()
+    main_query = QueryObject(
+        datasource=datasource,
+        columns=["region"],
+        metrics=["sales"],
+        time_shift="1 year",
+        post_processing=[{"operation": "contribution", "options": {}}],
+    )
+    unshifted_totals = QueryObject(
+        datasource=datasource,
+        columns=[],
+        metrics=["sales"],
+    )
+    query_context = MagicMock()
+    query_context.queries = [main_query, unshifted_totals]
+
+    assert QueryContextProcessor(query_context)._contribution_plan() == {}
 
 
 def test_explicit_contribution_producer_resolves_legacy_ambiguity() -> None:
