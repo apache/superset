@@ -88,7 +88,7 @@ class CustomSnowflakeAuthErrorMeta(type):
         DBAPI exception — ``BaseEngineSpec.execute()`` runs against a bare
         cursor and never wraps it, so both shapes must be handled here.
         """
-        orig = instance
+        orig: object = instance
         if isinstance(instance, SqlalchemyDatabaseError):
             orig = cast(SqlalchemyDatabaseError, instance).orig
 
@@ -604,7 +604,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         # such as in SQL Lab or dashboards.
         # Therefore, when using OAuth authentication, the key-pair authentication
         # settings are not loaded, and the connection is established using OAuth only.
-        connect_args = params.get("connect_args") or {}
+        connect_args: dict[str, Any] = params.get("connect_args") or {}
         if connect_args.get("authenticator") == "oauth":
             return
 
