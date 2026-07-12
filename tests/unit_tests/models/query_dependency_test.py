@@ -24,7 +24,7 @@ from superset.common.db_query_status import QueryStatus
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.exceptions import QueryObjectValidationError
-from superset.models.helpers import ExploreMixin, QueryResult
+from superset.models.helpers import ExploreMixin, QueryResult, QueryStringExtended
 from superset.superset_typing import QueryObjectDict
 
 
@@ -61,6 +61,29 @@ def test_extra_cache_key_rendering_defers_source_queries() -> None:
 
     assert result == ["user-key"]
     assert get_sqla_query.call_args.kwargs["defer_source_queries"] is True
+
+
+def test_query_preview_returns_prequeries_and_executable_main_query() -> None:
+    datasource = ExploreMixin()
+    query: QueryObjectDict = {"columns": ["region"], "metrics": ["sales"]}
+    compiled = QueryStringExtended(
+        applied_template_filters=[],
+        applied_filter_columns=[],
+        rejected_filter_columns=[],
+        labels_expected=[],
+        prequeries=["SELECT top_groups"],
+        sql="SELECT main_query",
+    )
+
+    with patch.object(
+        datasource,
+        "get_query_str_extended",
+        return_value=compiled,
+    ) as get_query_str_extended:
+        result = datasource.get_query_str(query)
+
+    assert result == "SELECT top_groups;\n\nSELECT main_query;"
+    get_query_str_extended.assert_called_once_with(query)
 
 
 def test_failed_time_offset_query_is_not_converted_to_nan() -> None:

@@ -2818,16 +2818,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return values
 
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
-        query_str_ext = self.get_query_str_extended(
-            query_obj, defer_source_queries=True
-        )
-        all_queries = list(query_str_ext.prequeries)
-        if query_str_ext.deferred:
-            all_queries.append(
-                "-- Main query is compiled after the series-limit prequery executes"
-            )
-        else:
-            all_queries.append(query_str_ext.sql)
+        query_str_ext = self.get_query_str_extended(query_obj)
+        all_queries = query_str_ext.prequeries + [query_str_ext.sql]
         return ";\n\n".join(all_queries) + ";"
 
     def _get_series_orderby(
