@@ -78,6 +78,21 @@ def test_script_rejects_malformed_lang_and_version(client: Any) -> None:
     assert client.get("/language_pack/fr/not-a-hash!/script.js").status_code == 400
 
 
+def test_script_accepts_script_subtag_locale(client: Any) -> None:
+    """Script-subtag locales Superset ships (e.g. sr_Latn) must not be
+    rejected by the language-code validation."""
+    with (
+        patch(
+            "superset.views.core.get_language_pack_version",
+            return_value=FAKE_VERSION,
+        ),
+        patch("superset.views.core.get_language_pack", return_value=FAKE_PACK),
+    ):
+        response = client.get(f"/language_pack/sr_Latn/{FAKE_VERSION}/script.js")
+
+    assert response.status_code == 200
+
+
 def test_script_serves_only_the_requested_locale(client: Any) -> None:
     """The endpoint resolves exactly one pack: the locale in the URL."""
     with (

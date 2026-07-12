@@ -130,6 +130,11 @@ PARAMETER_MISSING_ERR = __(
 
 SqlResults = dict[str, Any]
 
+# Matches the locale codes Superset actually ships: a 2-3 letter language
+# subtag, optionally followed by a 2-letter region subtag ("pt_BR") or a
+# 4-letter script subtag ("sr_Latn").
+LANGUAGE_CODE_RE = re.compile(r"^[a-z]{2,3}(_[A-Z]{2}|_[A-Z][a-z]{3})?$")
+
 
 class Superset(BaseSupersetView):
     """The base views for Superset!"""
@@ -920,7 +925,7 @@ class Superset(BaseSupersetView):
     @expose("/language_pack/<lang>/")
     def language_pack(self, lang: str) -> FlaskResponse:
         # Only allow expected language formats like "en", "pt_BR", etc.
-        if not re.match(r"^[a-z]{2,3}(_[A-Z]{2})?$", lang):
+        if not LANGUAGE_CODE_RE.match(lang):
             abort(400, "Invalid language code")
 
         base_dir = os.path.join(os.path.dirname(__file__), "..", "translations")
@@ -947,7 +952,7 @@ class Superset(BaseSupersetView):
         and must load for anonymous principals (login page, embedded).
         """
         # Only allow expected language formats like "en", "pt_BR", etc.
-        if not re.match(r"^[a-z]{2,3}(_[A-Z]{2})?$", lang):
+        if not LANGUAGE_CODE_RE.match(lang):
             abort(400, "Invalid language code")
         if not re.match(r"^[0-9a-f]{12}$", version):
             abort(400, "Invalid language pack version")

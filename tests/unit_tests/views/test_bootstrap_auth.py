@@ -218,7 +218,9 @@ def test_common_bootstrap_payload_does_not_mutate_memoized_dict(
     assert "language_pack" not in cached
 
 
-def _language_pack_context(locale: str, payload_extra: dict[str, Any]) -> Any:
+def _language_pack_context(
+    locale: str, payload_extra: dict[str, Any]
+) -> dict[str, Any]:
     from superset.views.base import get_language_pack_template_context
 
     with (
