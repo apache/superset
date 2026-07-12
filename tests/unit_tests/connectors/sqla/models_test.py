@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from unittest.mock import MagicMock
+
 import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
@@ -558,7 +560,7 @@ def test_fetch_metadata_sets_expression_for_expanded_nested_columns(
     See: https://github.com/apache/superset/issues/27034
     """
     # Mock database
-    database = mocker.MagicMock()
+    database: MagicMock = mocker.MagicMock()
     database.get_metrics.return_value = []
 
     # Mock db_engine_spec
@@ -592,7 +594,7 @@ def test_fetch_metadata_sets_expression_for_expanded_nested_columns(
         },
     ]
 
-    mock_session = mocker.patch("superset.connectors.sqla.models.db.session")
+    mock_session: MagicMock = mocker.patch("superset.connectors.sqla.models.db.session")
     mock_session.query.return_value.filter.return_value.all.return_value = [
         existing_col
     ]
