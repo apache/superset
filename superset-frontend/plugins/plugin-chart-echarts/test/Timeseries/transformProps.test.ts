@@ -938,6 +938,46 @@ describe('legend sorting', () => {
   });
 });
 
+test('honors user-selected plain legend type for top orientation when space allows (#39540)', () => {
+  // Regression test for issue #39540: switching the legend type control from
+  // scroll to plain must reach the rendered ECharts config. Horizontal legends
+  // were once unconditionally forced to scroll; scroll should be a fallback
+  // reserved for legends that do not fit the available space.
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      legendType: LegendType.Plain,
+      legendOrientation: LegendOrientation.Top,
+      showLegend: true,
+    },
+  });
+
+  const { legend } = transformProps(chartProps).echartOptions as {
+    legend: { show?: boolean; type?: LegendType };
+  };
+
+  expect(legend.show).toBe(true);
+  expect(legend.type).toBe(LegendType.Plain);
+});
+
+test('honors user-selected plain legend type for bottom orientation when space allows (#39540)', () => {
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      legendType: LegendType.Plain,
+      legendOrientation: LegendOrientation.Bottom,
+      showLegend: true,
+    },
+  });
+
+  const { legend } = transformProps(chartProps).echartOptions as {
+    legend: { show?: boolean; type?: LegendType };
+  };
+
+  expect(legend.show).toBe(true);
+  expect(legend.type).toBe(LegendType.Plain);
+});
+
 const timeCompareFormData: SqlaFormData = {
   colorScheme: 'bnbColors',
   datasource: '3__table',
@@ -968,11 +1008,9 @@ test('should apply dashed line style to time comparison series with single metri
   const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
   const mainSeries = series.find(s => s.name === 'sum__num') as
-    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
-    | undefined;
+    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
   const comparisonSeries = series.find(s => s.name === '1 week ago') as
-    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
-    | undefined;
+    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
 
   expect(mainSeries).toBeDefined();
   expect(comparisonSeries).toBeDefined();
@@ -1013,13 +1051,11 @@ test('should apply dashed line style to time comparison series with metric__offs
   const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
   const mainSeries = series.find(s => s.name === 'sum__num') as
-    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
-    | undefined;
+    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
   const comparisonSeries = series.find(
     s => s.name === 'sum__num__1 week ago',
   ) as
-    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
-    | undefined;
+    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
 
   expect(mainSeries).toBeDefined();
   expect(comparisonSeries).toBeDefined();
@@ -1051,8 +1087,7 @@ test('should apply connectNulls to time comparison series', () => {
   const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
   const comparisonSeries = series.find(s => s.name === '1 week ago') as
-    | (SeriesOption & { connectNulls?: boolean })
-    | undefined;
+    (SeriesOption & { connectNulls?: boolean }) | undefined;
 
   expect(comparisonSeries).toBeDefined();
   expect(comparisonSeries?.connectNulls).toBe(true);
@@ -1444,7 +1479,7 @@ test('x-axis formatter deduplicates consecutive identical labels for coarse time
   const chartProps = createTestChartProps({
     formData: {
       granularity_sqla: 'ds',
-      time_grain_sqla: TimeGranularity.YEAR,
+      timeGrainSqla: TimeGranularity.YEAR,
       xAxisTimeFormat: '%Y',
     },
     queriesData: [
@@ -1471,6 +1506,30 @@ test('x-axis formatter deduplicates consecutive identical labels for coarse time
   expect(label2).toBe('2004');
   expect(label3).toBe('2005');
   expect(label4).toBe('');
+});
+
+test('x-axis does not force showMaxLabel when no time grain is set', () => {
+  const data = [
+    { __timestamp: Date.UTC(2003, 0, 6), sales: 100 },
+    { __timestamp: Date.UTC(2004, 5, 15), sales: 200 },
+    { __timestamp: Date.UTC(2005, 4, 31), sales: 300 },
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      granularity_sqla: 'ds',
+      timeGrainSqla: undefined,
+    },
+    queriesData: [
+      createTestQueryData(data, {
+        colnames: ['__timestamp', 'sales'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      }),
+    ],
+  });
+
+  const xAxisResult = transformProps(chartProps).echartOptions.xAxis as any;
+  expect(xAxisResult.axisLabel.showMaxLabel).not.toBe(true);
 });
 
 test('numeric x coltype routes through the number formatter (not the time formatter)', () => {
@@ -1540,9 +1599,54 @@ test('xAxisForceCategorical forces Category axis regardless of Numeric coltype',
   });
 
   const { echartOptions } = transformProps(chartProps);
-  const xAxis = echartOptions.xAxis as { type: string };
+  const xAxis = echartOptions.xAxis as {
+    triggerEvent?: boolean;
+    type: string;
+  };
 
   expect(xAxis.type).toBe(AxisType.Category);
+  expect(xAxis.triggerEvent).toBe(true);
+});
+
+test('temporal x coltype forced categorical yields a Category axis with date labels', () => {
+  // Issue #28204: with a temporal x-axis (e.g. weekly grain) the default Time
+  // scale places ticks at "nice" intervals that don't line up with the buckets.
+  // Forcing categorical maps each bucket to a discrete, tick-aligned category
+  // while still formatting the labels as dates rather than raw timestamps.
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['metric'],
+      granularity_sqla: 'ds',
+      x_axis: '__timestamp',
+      xAxisForceCategorical: true,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          { __timestamp: ts1, metric: 10 },
+          { __timestamp: ts2, metric: 20 },
+        ],
+        {
+          colnames: ['__timestamp', 'metric'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+        },
+      ),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as {
+    type: string;
+    axisLabel: { formatter: (v: Date) => string };
+  };
+
+  expect(xAxis.type).toBe(AxisType.Category);
+  const label = xAxis.axisLabel.formatter(new Date(ts1));
+  expect(typeof label).toBe('string');
+  expect(label).not.toMatch(/NaN/);
+  expect(label).not.toBe(String(ts1));
 });
 
 test('temporal x coltype wires the time formatter and Time axis', () => {
@@ -1632,4 +1736,101 @@ test('should assign distinct dash patterns for multiple time offsets consistentl
 
   // must be different patterns
   expect(symbol1).not.toEqual(symbol2);
+});
+
+describe('Tooltip with long labels', () => {
+  test('should use axisValue for tooltip when available (richTooltip)', () => {
+    const longLabelData: ChartDataResponseResult[] = [
+      createTestQueryData([
+        {
+          'This is a very long category name that would normally be truncated': 100,
+          __timestamp: 599616000000,
+        },
+        {
+          'Another extremely long category name for testing purposes': 200,
+          __timestamp: 599916000000,
+        },
+      ]),
+    ];
+
+    const chartProps = createTestChartProps({
+      formData: {
+        richTooltip: true,
+      },
+      queriesData: longLabelData,
+    });
+
+    const transformedProps = transformProps(chartProps);
+
+    // Get the tooltip formatter function
+    const tooltipFormatter = (transformedProps.echartOptions as any).tooltip
+      .formatter;
+
+    // Simulate params from ECharts with axisValue containing full label
+    // Use distinct values for axisValue and seriesName to verify axisValue is used
+    const mockParams = [
+      {
+        axisValue:
+          'This is a very long category name that would normally be truncated',
+        value: [599616000000, 100],
+        seriesName: 'Some Series Name',
+      },
+    ];
+
+    // Call the formatter and check it uses the full label from axisValue
+    const result = tooltipFormatter(mockParams);
+    expect(result).toContain(
+      'This is a very long category name that would normally be truncated',
+    );
+  });
+
+  test('should fallback to value when axisValue is not available', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        richTooltip: true,
+      },
+    });
+
+    const transformedProps = transformProps(chartProps);
+
+    const tooltipFormatter = (transformedProps.echartOptions as any).tooltip
+      .formatter;
+
+    // Simulate params without axisValue
+    const mockParams = [
+      {
+        value: [599616000000, 1],
+        seriesName: 'San Francisco',
+      },
+    ];
+
+    // Should fall back to the x-value (value[xIndex]) and render it in the title
+    const result = tooltipFormatter(mockParams);
+    expect(typeof result).toBe('string');
+    expect(result).toContain('599616000000');
+  });
+
+  test('should handle item tooltips correctly', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        richTooltip: false,
+      },
+    });
+
+    const transformedProps = transformProps(chartProps);
+
+    const tooltipFormatter = (transformedProps.echartOptions as any).tooltip
+      .formatter;
+
+    // For item tooltips, params is a single object
+    const mockParams = {
+      value: [599616000000, 1],
+      seriesName: 'San Francisco',
+    };
+
+    // The item-tooltip x-value (value[xIndex]) should appear in the title
+    const result = tooltipFormatter(mockParams);
+    expect(typeof result).toBe('string');
+    expect(result).toContain('599616000000');
+  });
 });

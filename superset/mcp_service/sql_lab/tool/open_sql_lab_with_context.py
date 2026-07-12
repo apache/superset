@@ -37,7 +37,7 @@ from superset.mcp_service.utils.url_utils import get_superset_base_url
 
 logger = logging.getLogger(__name__)
 
-SQL_LAB_QUERY_PARAMS_TO_SANITIZE = frozenset({"sql", "title"})
+SQL_LAB_QUERY_PARAMS_TO_SANITIZE = frozenset({"sql", "name"})
 
 
 def _sanitize_sql_lab_url_for_llm_context(url: str) -> str:
@@ -94,6 +94,8 @@ def open_sql_lab_with_context(
     """Generate SQL Lab URL with pre-populated sql and context.
 
     Pass the sql parameter to pre-fill the editor. Returns URL for direct navigation.
+    The URL scheme matches the configured instance URL (HTTPS in production/staging,
+    HTTP in local development).
     """
     try:
         from superset.daos.database import DatabaseDAO
@@ -128,7 +130,10 @@ def open_sql_lab_with_context(
             params["sql"] = request.sql
 
         if request.title:
-            params["title"] = request.title
+            # SQL Lab's PopEditorTab reads `name` from query string to set the
+            # tab label; keep the MCP-facing field as `title` (more natural for
+            # LLMs) but emit `name` on the URL.
+            params["name"] = request.title
 
         if request.dataset_in_context:
             # Add dataset context as a comment in the SQL if no SQL provided

@@ -17,9 +17,10 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import URI from 'urijs';
-import { pick } from 'lodash';
+import { pick } from 'lodash-es';
 import { useComponentDidUpdate } from '@superset-ui/core';
 import { Skeleton } from '@superset-ui/core/components';
 import useEffectEvent from 'src/hooks/useEffectEvent';
@@ -49,7 +50,7 @@ const PopEditorTab: React.FC<{ children?: React.ReactNode }> = ({
     ({ sqlLab: { tabHistory } }) => tabHistory.slice(-1)[0],
   );
   const [updatedUrl, setUpdatedUrl] = useState<string>(SQL_LAB_URL);
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   useComponentDidUpdate(() => {
     setQueryEditorId(assigned => assigned ?? activeQueryEditorId);
     if (activeQueryEditorId) {

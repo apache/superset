@@ -83,6 +83,9 @@ categories:
     - name: Clark.de
       url: https://clark.de/
 
+    - name: Cover Genius
+      url: https://covergenius.com/
+
     - name: EnquiryLabs
       url: https://www.enquirylabs.co.uk
 
@@ -91,6 +94,10 @@ categories:
 
     - name: KarrotPay
       url: https://www.daangnpay.com/
+
+    - name: NICE Actimize
+      url: https://www.niceactimize.com/
+      contributors: ["@stevensuting"]
 
     - name: Remita
       url: https://remita.net
@@ -111,9 +118,6 @@ categories:
     - name: Xendit
       url: https://xendit.co/
       contributors: ["@LieAlbertTriAdrian"]
-
-    - name: Cover Genius
-      url: https://covergenius.com/
 
   Gaming:
     - name: Popoko VM Games Studio
@@ -296,7 +300,6 @@ categories:
       logo: hifadih.png
       contributors: ["@saintLaurent00"]
 
-    # Logo approved by @anmol-hpe on behalf of HPE
     - name: HPE
       url: https://www.hpe.com/in/en/home.html
       logo: hpe.png
@@ -396,6 +399,10 @@ categories:
       url: https://www.techaudit.info
       contributors: ["@ETselikov"]
 
+    - name: Tech Solution
+      url: https://www.tech-solution.com.ar/
+      contributors: ["@danteGiuliano", "@LeandroVallejos", "@McJaben", "@xJeree", "@zeo-return-null"]
+
     - name: Tenable
       url: https://www.tenable.com
       contributors: ["@dflionis"]
@@ -424,6 +431,10 @@ categories:
       url: https://userguiding.com/
       logo: userguiding.svg
       contributors: ["@tzercin"]
+
+    - name: Value Ad
+      url: https://bestpair.info/
+      contributors: ["@stevensuting"]
 
     - name: Virtuoso QA
       url: https://www.virtuosoqa.com
@@ -509,10 +520,6 @@ categories:
       url: https://www.sunbird.org/
       contributors: ["@eksteporg"]
 
-    - name: The GRAPH Network
-      url: https://thegraphnetwork.org/
-      contributors: ["@fccoelho"]
-
     - name: Udemy
       url: https://www.udemy.com/
       contributors: ["@sungjuly"]
@@ -521,7 +528,24 @@ categories:
       url: https://www.vipkid.com.cn/
       contributors: ["@illpanda"]
 
-    - name: WikiMedia Foundation
+  Social Organization:
+    - name: Living Goods
+      url: https://www.livinggoods.org
+      contributors: ["@chelule"]
+
+    - name: One Acre Fund
+      url: https://oneacrefund.org/
+      contributors: ["@stevensuting"]
+
+    - name: Quest Alliance
+      url: https://www.questalliance.net/
+      contributors: ["@stevensuting"]
+
+    - name: The GRAPH Network
+      url: https://thegraphnetwork.org/
+      contributors: ["@fccoelho"]
+
+    - name: Wikimedia Foundation
       url: https://wikimediafoundation.org
       contributors: ["@vg"]
 
@@ -533,6 +557,10 @@ categories:
     - name: DouroECI
       url: https://www.douroeci.com/
       contributors: ["@nunohelibeires"]
+
+    - name: Rogow
+      url: https://rogow.com.br/
+      contributors: ["@nilmonto"]
 
     - name: Safaricom
       url: https://www.safaricom.co.ke/
@@ -546,11 +574,10 @@ categories:
       url: https://wattbewerb.de/
       contributors: ["@wattbewerb"]
 
-    - name: Rogow
-      url: https://rogow.com.br/
-      contributors: ["@nilmonto"]
-
   Healthcare:
+    - name: 2070Health
+      url: https://2070health.com/
+
     - name: Amino
       url: https://amino.com
       contributors: ["@shkr"]
@@ -562,10 +589,6 @@ categories:
     - name: Care
       url: https://www.getcare.io/
       contributors: ["@alandao2021"]
-
-    - name: Living Goods
-      url: https://www.livinggoods.org
-      contributors: ["@chelule"]
 
     - name: Maieutical Labs
       url: https://maieuticallabs.it
@@ -585,10 +608,10 @@ categories:
     - name: WeSure
       url: https://www.wesure.cn/
 
-    - name: 2070Health
-      url: https://2070health.com/
-
   HR / Staffing:
+    - name: bluquist
+      url: https://bluquist.com/
+
     - name: Swile
       url: https://www.swile.co/
       contributors: ["@PaoloTerzi"]
@@ -596,20 +619,37 @@ categories:
     - name: Symmetrics
       url: https://www.symmetrics.fyi
 
-    - name: bluquist
-      url: https://bluquist.com/
+  Government / Public authority:
+    - name: Centre Régional Auvergnat de l'Information Géographique (France)
+      url: https://www.craig.fr/
+      logo: craig.png
 
-  Government:
     - name: City of Ann Arbor, MI
       url: https://www.a2gov.org/
       contributors: ["@sfirke"]
 
-    - name: RIS3 Strategy of CZ, MIT CR
-      url: https://www.ris3.cz/
-      contributors: ["@RIS3CZ"]
+    - name: Métropole Européenne de Lille (France)
+      url: https://data.lillemetropole.fr/accueil/
+      logo: mel.jpg
 
     - name: NRLM - Sarathi, India
       url: https://pib.gov.in/PressReleasePage.aspx?PRID=1999586
+
+    - name: Région Bretagne (France)
+      url: https://geobretagne.fr/
+      logo: geobretagne.svg
+
+    - name: Région Hauts-de-France (France)
+      url: https://www.geo2france.fr/
+      logo: geo2france.png
+
+    - name: Rennes Métropole (France)
+      url: https://metropole.rennes.fr/
+      logo: rennes-ville-metropole_noir.svg
+
+    - name: RIS3 Strategy of CZ, MIT CR
+      url: https://www.ris3.cz/
+      contributors: ["@RIS3CZ"]
 
   Mobile Software:
     - name: VLMedia
@@ -662,6 +702,10 @@ categories:
       url: https://automattic.com/
       contributors: ["@Khrol", "@Usiel"]
 
+    - name: CamptoCamp
+      url: https://camptocamp.com/
+      logo: camptocamp.svg
+
     - name: Dropbox
       url: https://www.dropbox.com/
       contributors: ["@bkyryliuk"]
@@ -669,6 +713,10 @@ categories:
     - name: Flowbird
       url: https://flowbird.com
       contributors: ["@EmmanuelCbd"]
+
+    - name: geOrchestra
+      url: https://www.georchestra.org
+      logo: georchestra.svg
 
     - name: GEOTAB
       url: https://www.geotab.com
@@ -686,6 +734,10 @@ categories:
       url: https://www.increff.com/
       contributors: ["@ishansinghania"]
 
+    - name: jDev
+      url: https://jdev.fr/
+      logo: jDev.svg
+
     - name: Let's Roam
       url: https://www.letsroam.com/
 
@@ -695,6 +747,11 @@ categories:
     - name: Onebeat
       url: https://1beat.com/
       contributors: ["@GuyAttia"]
+
+    - name: pi-Geosolutions
+      url: https://www.pi-geosolutions.fr/
+      logo: pi-Geosolutions.png
+      contributors: ["@jeanpommier"]
 
     - name: X
       url: https://x.com/

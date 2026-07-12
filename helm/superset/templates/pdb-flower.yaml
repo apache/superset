@@ -27,13 +27,7 @@ kind: PodDisruptionBudget
 metadata:
   name: {{ include "superset.fullname" $ }}-flower-pdb
   labels:
-    app: {{ template "superset.name" $ }}-flower
-    chart: {{ template "superset.chart" $ }}
-    release: {{ $.Release.Name }}
-    heritage: {{ $.Release.Service }}
-    {{- if $.Values.extraLabels }}
-      {{- toYaml $.Values.extraLabels | nindent 4 }}
-    {{- end }}
+    {{- include "superset.componentLabels" (dict "component" "flower" "root" $) | nindent 4 }}
 spec:
   {{- if .minAvailable }}
   minAvailable: {{ .minAvailable }}

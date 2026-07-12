@@ -1,0 +1,31 @@
+---
+title: StarRocks
+sidebar_label: StarRocks
+description: "StarRocks is a high-performance analytical database for real-time analytics."
+hide_title: true
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+import { DatabasePage } from '@site/src/components/databases';
+
+export const databaseInfo = {"engine":"starrocks","engine_name":"StarRocks","module":"starrocks","documentation":{"description":"StarRocks is a high-performance analytical database for real-time analytics.","logo":"starrocks.png","homepage_url":"https://www.starrocks.io/","pypi_packages":["mysqlclient","starrocks"],"connection_string":"starrocks://{username}:{password}@{host}:{port}/{catalog}.{database}","default_port":9030,"parameters":{"username":"Database username","password":"Database password","host":"StarRocks FE host","database":"Database name","port":"Query port (default 9030)","catalog":"Catalog name"},"host_examples":[{"platform":"Localhost","host":"localhost or 127.0.0.1"},{"platform":"Docker on Linux","host":"172.18.0.1"},{"platform":"Docker on macOS","host":"docker.for.mac.host.internal"},{"platform":"On-premise","host":"IP address or hostname"}],"drivers":[{"name":"mysqlclient","pypi_package":"mysqlclient","connection_string":"mysql://{username}:{password}@{host}/{database}","is_recommended":true,"notes":"Recommended driver. May fail with caching_sha2_password auth."},{"name":"mysql-connector-python","pypi_package":"mysql-connector-python","connection_string":"mysql+mysqlconnector://{username}:{password}@{host}/{database}","is_recommended":false,"notes":"Required for newer MySQL databases using caching_sha2_password authentication."},{"name":"starrocks","pypi_package":"starrocks","connection_string":"starrocks://{username}:{password}@{host}:{port}/{catalog}.{database}","is_recommended":true},{"name":"mysqlclient","pypi_package":"mysqlclient","connection_string":"mysql://{username}:{password}@{host}:{port}/{database}","is_recommended":false,"notes":"MySQL-compatible driver for StarRocks."},{"name":"PyMySQL","pypi_package":"pymysql","connection_string":"mysql+pymysql://{username}:{password}@{host}:{port}/{database}","is_recommended":false,"notes":"Pure Python MySQL driver, no compilation required."}],"categories":["ANALYTICAL_DATABASES","OPEN_SOURCE"],"compatible_databases":[{"name":"CelerData","description":"CelerData is a fully-managed cloud analytics service built on StarRocks. It provides instant elasticity, automatic scaling, and enterprise features.","logo":"celerdata.png","homepage_url":"https://celerdata.com/","categories":["ANALYTICAL_DATABASES","CLOUD_DATA_WAREHOUSES","HOSTED_OPEN_SOURCE"],"pypi_packages":["starrocks"],"connection_string":"starrocks://{username}:{password}@{host}:{port}/{catalog}.{database}","parameters":{"username":"CelerData username","password":"CelerData password","host":"CelerData cluster endpoint","port":"Query port (default 9030)","catalog":"Catalog name","database":"Database name"},"docs_url":"https://docs.celerdata.com/"}],"custom_errors":[{"regex_name":"CONNECTION_ACCESS_DENIED_REGEX","message_template":"Either the username \"%(username)s\" or the password is incorrect.","error_type":"CONNECTION_ACCESS_DENIED_ERROR","category":"Authentication","description":"Access denied","issue_codes":[1014,1015],"invalid_fields":["username","password"]},{"regex_name":"CONNECTION_UNKNOWN_DATABASE_REGEX","message_template":"Unable to connect to database \"%(database)s\".","error_type":"CONNECTION_UNKNOWN_DATABASE_ERROR","category":"Connection","description":"Unknown database","issue_codes":[1015],"invalid_fields":["database"]}]},"time_grains":{"SECOND":true,"FIVE_SECONDS":false,"THIRTY_SECONDS":false,"MINUTE":true,"FIVE_MINUTES":false,"TEN_MINUTES":false,"FIFTEEN_MINUTES":false,"THIRTY_MINUTES":false,"HALF_HOUR":false,"HOUR":true,"SIX_HOURS":false,"DAY":true,"WEEK":true,"WEEK_STARTING_SUNDAY":false,"WEEK_STARTING_MONDAY":true,"WEEK_ENDING_SATURDAY":false,"WEEK_ENDING_SUNDAY":false,"MONTH":true,"QUARTER":true,"QUARTER_YEAR":false,"YEAR":true},"score":89,"max_score":201,"joins":true,"subqueries":true,"supports_dynamic_schema":true,"supports_catalog":true,"supports_dynamic_catalog":true,"ssh_tunneling":true,"supports_file_upload":true,"query_cancelation":true,"query_cost_estimation":false,"sql_validation":false,"user_impersonation":true};
+
+<DatabasePage name="StarRocks" database={databaseInfo} />

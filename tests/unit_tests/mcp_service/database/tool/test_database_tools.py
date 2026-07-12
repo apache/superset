@@ -97,7 +97,7 @@ def create_mock_database(
     database.created_by_name = "admin"
     database.created_by = None
     database.created_on = None
-    database.owners = []
+    database.editors = []
     return database
 
 
@@ -336,3 +336,45 @@ async def test_get_database_info_not_found(mock_find, mcp_server):
             "get_database_info", {"request": {"identifier": 999}}
         )
         assert result.data["error_type"] == "not_found"
+
+
+@patch("superset.daos.database.DatabaseDAO.list")
+@pytest.mark.asyncio
+async def test_list_databases_does_not_expose_sensitive_credential_columns(
+    mock_list, mcp_server
+) -> None:
+    """Sensitive credential columns cannot be surfaced via select_columns."""
+    database = create_mock_database()
+    database._mapping = {
+        "id": database.id,
+        "database_name": database.database_name,
+    }
+    mock_list.return_value = ([database], 1)
+
+    async with Client(mcp_server) as client:
+        request = ListDatabasesRequest(
+            page=1,
+            page_size=10,
+            select_columns=[
+                "id",
+                "database_name",
+                "password",
+                "sqlalchemy_uri",
+                "encrypted_extra",
+                "server_cert",
+            ],
+        )
+        result = await client.call_tool(
+            "list_databases", {"request": request.model_dump()}
+        )
+
+    data = json.loads(result.content[0].text)
+    assert data["columns_requested"] == ["id", "database_name"]
+    assert data["columns_loaded"] == ["id", "database_name"]
+    sensitive = {"password", "sqlalchemy_uri", "encrypted_extra", "server_cert"}
+    assert not sensitive.intersection(data.get("columns_available", []))
+    for row in data.get("databases", []):
+        assert not sensitive.intersection(row.keys())
+    # Verify the exploit path: DAO must never receive sensitive column names.
+    dao_columns = mock_list.call_args.kwargs["columns"]
+    assert not sensitive.intersection(dao_columns)

@@ -26,6 +26,7 @@ from typing import Any, Dict, List, TYPE_CHECKING
 from fastmcp import Context
 from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
@@ -34,6 +35,7 @@ if TYPE_CHECKING:
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
+from superset.mcp_service import guest_scope
 from superset.mcp_service.chart.chart_helpers import (
     build_query_context_from_form_data,
     build_query_dicts_from_form_data,
@@ -58,8 +60,186 @@ from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
+from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
+
+_GENERIC_TYPE_MAP: dict[int, str] = {
+    GenericDataType.NUMERIC: "numeric",
+    GenericDataType.STRING: "string",
+    GenericDataType.TEMPORAL: "temporal",
+    GenericDataType.BOOLEAN: "boolean",
+}
+
+# Maps Superset viz_type strings to canonical categories so we can
+# avoid recommending a chart type the user already has.
+_VIZ_CATEGORY: dict[str, str] = {
+    "echarts_timeseries_line": "line",
+    "echarts_timeseries_smooth": "line",
+    "echarts_timeseries_step": "line",
+    "echarts_timeseries": "line",
+    "echarts_timeseries_bar": "bar",
+    "echarts_area": "area",
+    "echarts_timeseries_scatter": "scatter",
+    "mixed_timeseries": "line",
+    "table": "table",
+    "pie": "pie",
+    "big_number": "kpi",
+    "big_number_total": "kpi",
+    "pop_kpi": "kpi",
+    "dist_bar": "bar",
+    "line": "line",
+    "area": "area",
+    "scatter": "scatter",
+    "bubble": "bubble",
+    "treemap_v2": "treemap",
+    "sunburst_v2": "treemap",
+    "heatmap_v2": "heatmap",
+    "gauge_chart": "gauge",
+    "funnel": "funnel",
+    "histogram": "histogram",
+    "histogram_v2": "histogram",
+    "box_plot": "box_plot",
+    "world_map": "map",
+    "pivot_table_v2": "table",
+}
+
+_MAX_RECOMMENDATIONS = 4
+
+
+def _coerce_row_limit(value: Any, default: int) -> int:
+    """Coerce a row_limit (which may arrive as a str from chart.params) to int,
+    falling back to ``default`` when it is missing or non-numeric — downstream
+    apply_max_row_limit compares it against an int."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _recommend_visualizations(
+    viz_type: str,
+    columns: list[DataColumn],
+    row_count: int,
+) -> list[str]:
+    """Suggest visualization types based on column types,
+    cardinality, and the chart's current viz_type.
+    """
+    if not columns:
+        return ["table"]
+
+    current_category = _VIZ_CATEGORY.get(viz_type, viz_type)
+    candidates = _build_candidates(columns, row_count)
+
+    if not candidates:
+        candidates = ["table", "bar chart"]
+
+    return _filter_candidates(candidates, current_category)
+
+
+def _build_candidates(
+    columns: list[DataColumn],
+    row_count: int,
+) -> list[str]:
+    """Build candidate visualization list from column metadata."""
+    temporal = [c for c in columns if c.data_type == "temporal"]
+    numeric = [c for c in columns if c.data_type == "numeric"]
+    categorical = [c for c in columns if c.data_type in ("string", "boolean")]
+
+    if temporal and numeric:
+        return _candidates_temporal_numeric(numeric, row_count)
+    if categorical and numeric:
+        return _candidates_categorical_numeric(numeric, categorical)
+    if len(numeric) >= 2:
+        return _candidates_multi_numeric(numeric, categorical)
+    if len(numeric) == 1 and not temporal and not categorical:
+        return _candidates_single_numeric(numeric[0], row_count)
+    return []
+
+
+def _candidates_temporal_numeric(
+    numeric: list[DataColumn], row_count: int
+) -> list[str]:
+    # Few data points are better as a bar chart than a line
+    if row_count < 5:
+        candidates = ["bar chart", "table"]
+    else:
+        candidates = ["line chart", "area chart", "bar chart"]
+        if len(numeric) > 1:
+            candidates.append("multi-line chart")
+    return candidates
+
+
+def _candidates_categorical_numeric(
+    numeric: list[DataColumn],
+    categorical: list[DataColumn],
+) -> list[str]:
+    candidates = ["bar chart"]
+    if len(numeric) == 1 and categorical[0].unique_count <= 10:
+        candidates.append("pie chart")
+    if len(numeric) >= 2:
+        candidates.append("scatter plot")
+        candidates.append("heatmap")
+    if any(c.unique_count > 5 for c in categorical):
+        candidates.append("treemap")
+    return candidates
+
+
+def _candidates_single_numeric(col: DataColumn, row_count: int) -> list[str]:
+    candidates = ["big number / KPI", "gauge chart"]
+    if row_count > 20 and col.unique_count > 10:
+        candidates.insert(0, "histogram")
+    return candidates
+
+
+def _candidates_multi_numeric(
+    numeric: list[DataColumn],
+    categorical: list[DataColumn],
+) -> list[str]:
+    candidates = ["scatter plot"]
+    if len(numeric) >= 3:
+        candidates.append("bubble chart")
+    if categorical:
+        candidates.append("heatmap")
+    return candidates
+
+
+# Maps each candidate string to a canonical category for dedup
+# against the current viz_type.
+_CANDIDATE_CATEGORY: dict[str, str] = {
+    "line chart": "line",
+    "multi-line chart": "line",
+    "area chart": "area",
+    "bar chart": "bar",
+    "scatter plot": "scatter",
+    "bubble chart": "bubble",
+    "pie chart": "pie",
+    "treemap": "treemap",
+    "heatmap": "heatmap",
+    "big number / KPI": "kpi",
+    "gauge chart": "gauge",
+    "histogram": "histogram",
+    "table": "table",
+}
+
+
+def _filter_candidates(
+    candidates: list[str],
+    current_category: str,
+) -> list[str]:
+    """Deduplicate, exclude the current viz category, and cap."""
+    seen: set[str] = set()
+    result: list[str] = []
+    for c in candidates:
+        if c in seen:
+            continue
+        if _CANDIDATE_CATEGORY.get(c) == current_category:
+            continue
+        seen.add(c)
+        result.append(c)
+        if len(result) >= _MAX_RECOMMENDATIONS:
+            break
+    return result
 
 
 def _sanitize_chart_data_for_llm_context(chart_data: ChartData) -> ChartData:
@@ -182,7 +362,21 @@ async def get_chart_data(  # noqa: C901
                 # Build query context entirely from cached form_data
                 return await _query_from_form_data(cached_form_data_dict, request, ctx)
 
-        # Find the chart by identifier
+        # Find the chart by identifier.
+        # Eagerly load the dataset's metrics relationship so Excel export
+        # (which may run after the request-scoped session is detached) can
+        # access dataset.metrics without triggering a lazy load. See
+        # apache/superset#39206 for the analogous database eager-load fix.
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.slice import Slice
+
+        chart_query_options = [
+            subqueryload(Slice.table).subqueryload(SqlaTable.metrics),
+        ]
+
+        # Guest-scoped by ChartFilter; guest_dashboard_id authorizes the data
+        # query (None for non-guests).
+        guest_dashboard_id: int | None = None
         with event_logger.log_context(action="mcp.get_chart_data.chart_lookup"):
             await ctx.debug("Looking up chart: identifier=%s" % (request.identifier,))
             if request.identifier is None:
@@ -190,7 +384,11 @@ async def get_chart_data(  # noqa: C901
                     error="Chart identifier is required",
                     error_type="ValidationError",
                 )
-            chart = find_chart_by_identifier(request.identifier)
+            chart = find_chart_by_identifier(
+                request.identifier, query_options=chart_query_options
+            )
+            if chart is not None:
+                guest_dashboard_id = guest_scope.guest_dashboard_id(chart)
 
         if not chart:
             await ctx.warning("Chart not found: identifier=%s" % (request.identifier,))
@@ -213,21 +411,23 @@ async def get_chart_data(  # noqa: C901
         )
         logger.info("Getting data for chart %s: %s", chart.id, chart.slice_name)
 
-        # Validate the chart's dataset is accessible before retrieving data
-        validation_result = validate_chart_dataset(chart, check_access=True)
-        if not validation_result.is_valid:
-            await ctx.warning(
-                "Chart found but dataset is not accessible: %s"
-                % (validation_result.error,)
-            )
-            return ChartError(
-                error=validation_result.error
-                or "Chart's dataset is not accessible. Dataset may have been deleted.",
-                error_type="DatasetNotAccessible",
-            )
-        # Log any warnings (e.g., virtual dataset warnings)
-        for warning in validation_result.warnings:
-            await ctx.warning("Dataset warning: %s" % (warning,))
+        # Skip the dataset RBAC pre-check for guests (see guest_scope.is_guest_read).
+        if not guest_scope.is_guest_read():
+            validation_result = validate_chart_dataset(chart, check_access=True)
+            if not validation_result.is_valid:
+                await ctx.warning(
+                    "Chart found but dataset is not accessible: %s"
+                    % (validation_result.error,)
+                )
+                return ChartError(
+                    error=validation_result.error
+                    or "Chart's dataset is not accessible. "
+                    "Dataset may have been deleted.",
+                    error_type="DatasetNotAccessible",
+                )
+            # Log any warnings (e.g., virtual dataset warnings)
+            for warning in validation_result.warnings:
+                await ctx.warning("Dataset warning: %s" % (warning,))
 
         start_time = time.time()
 
@@ -326,10 +526,11 @@ async def get_chart_data(  # noqa: C901
                 from superset.common.query_context_factory import QueryContextFactory
 
                 factory = QueryContextFactory()
-                row_limit = (
-                    request.limit
-                    or form_data.get("row_limit")
-                    or current_app.config["ROW_LIMIT"]
+                # row_limit from chart.params may be a str; coerce for
+                # apply_max_row_limit's int comparison.
+                row_limit = _coerce_row_limit(
+                    request.limit or form_data.get("row_limit"),
+                    current_app.config["ROW_LIMIT"],
                 )
 
                 # Handle different chart types that have different form_data
@@ -340,30 +541,9 @@ async def get_chart_data(  # noqa: C901
                 # groupby-like fields (entity, series, columns):
                 #   world_map, treemap_v2, sunburst_v2, gauge_chart
                 # Bubble charts use x/y/size as separate metric fields.
+                # Deck.gl charts (deck_arc, deck_scatter, etc.) use spatial
+                # column configs (lat/lon, geohash, etc.) instead.
                 viz_type = chart.viz_type or ""
-
-                # Deck.gl chart types store spatial data (lat/lon)
-                # rather than traditional metrics/groupby. They
-                # require a saved query_context to retrieve data.
-                # Match by prefix to cover all current and future
-                # deck.gl viz types (deck_arc, deck_scatter, etc.).
-                if viz_type.startswith("deck_"):
-                    await ctx.warning(
-                        "Chart %s is a deck.gl visualization (%s) with no "
-                        "saved query_context. Data retrieval requires "
-                        "re-saving the chart in Superset." % (chart.id, viz_type)
-                    )
-                    return ChartError(
-                        error=(
-                            f"Chart {chart.id} is a deck.gl visualization "
-                            f"(type: {viz_type}) with no saved query_context. "
-                            f"Deck.gl charts use spatial data (lat/lon) that "
-                            f"cannot be reconstructed from form_data alone. "
-                            f"Please open this chart in Superset and re-save "
-                            f"it to generate a query_context."
-                        ),
-                        error_type="MissingQueryContext",
-                    )
 
                 fallback_queries = build_query_dicts_from_form_data(
                     form_data,
@@ -443,6 +623,11 @@ async def get_chart_data(  # noqa: C901
                 )
             )
 
+            # For an embedded guest, attach the dashboard context so
+            # raise_for_access authorizes the data query.
+            if guest_dashboard_id is not None:
+                guest_scope.authorize_query(query_context, guest_dashboard_id, chart)
+
             # Execute the query
             with event_logger.log_context(action="mcp.get_chart_data.query_execution"):
                 command = ChartDataCommand(query_context)
@@ -484,8 +669,9 @@ async def get_chart_data(  # noqa: C901
                 )
 
             # Create rich column metadata
+            coltypes = query_result.get("coltypes", [])
             columns = []
-            for col_name in raw_columns:
+            for idx, col_name in enumerate(raw_columns):
                 # Sample some values for metadata
                 sample_values = [
                     row.get(col_name)
@@ -493,13 +679,16 @@ async def get_chart_data(  # noqa: C901
                     if row.get(col_name) is not None
                 ]
 
-                # Infer data type
+                # Use SQL-derived GenericDataType when available,
+                # fall back to Python isinstance heuristic
                 data_type = "string"
-                if sample_values:
-                    if all(isinstance(v, (int, float)) for v in sample_values):
-                        data_type = "numeric"
-                    elif all(isinstance(v, bool) for v in sample_values):
+                if coltypes:
+                    data_type = _GENERIC_TYPE_MAP.get(coltypes[idx], "string")
+                elif sample_values:
+                    if all(isinstance(v, bool) for v in sample_values):
                         data_type = "boolean"
+                    elif all(isinstance(v, (int, float)) for v in sample_values):
+                        data_type = "numeric"
 
                 columns.append(
                     DataColumn(
@@ -542,13 +731,11 @@ async def get_chart_data(  # noqa: C901
             else:
                 insights.append("Fresh data retrieved from database")
 
-            recommended_visualizations = []
-            if any(
-                "time" in col.lower() or "date" in col.lower() for col in raw_columns
-            ):
-                recommended_visualizations.extend(["line chart", "time series"])
-            if len(raw_columns) <= 3:
-                recommended_visualizations.extend(["bar chart", "scatter plot"])
+            recommended_visualizations = _recommend_visualizations(
+                viz_type=chart.viz_type or "unknown",
+                columns=columns,
+                row_count=len(data),
+            )
 
             # Performance metadata with cache awareness
             execution_time = int((time.time() - start_time) * 1000)

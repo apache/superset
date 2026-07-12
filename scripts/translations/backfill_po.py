@@ -1,0 +1,847 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""Backfill missing translations in a .po file using Claude AI.
+
+For each untranslated (empty msgstr) entry in the target language, the script
+sends the English source string along with all available translations in other
+languages to Claude as context, then writes the AI-generated translation back
+into the .po file marked as #, fuzzy for human review.
+
+Usage:
+  # Build the translation index first (one-time or when .po files change)
+  python scripts/translations/build_translation_index.py
+
+  # Backfill French translations
+  python scripts/translations/backfill_po.py --lang fr
+
+  # Dry run (print what would be translated without writing)
+  python scripts/translations/backfill_po.py --lang de --dry-run
+
+  # Limit to 100 entries and use a specific model
+  python scripts/translations/backfill_po.py --lang es --limit 100 \
+    --model claude-opus-4-6
+
+Options:
+  --lang LANG        ISO language code to backfill (required)
+  --batch-size N     Number of strings per Claude request (default: 50)
+  --limit N          Stop after translating N entries (default: unlimited)
+  --min-context N    Skip entries with fewer than N existing translations across
+                     reference languages (default: 0 — translate everything)
+  --model MODEL      Claude model ID (default: claude-sonnet-4-6)
+  --index PATH       Path to translation_index.json (default: auto-detect)
+  --dry-run          Print translations without writing to .po file
+  --no-fuzzy         Do not mark generated translations as fuzzy (default: mark fuzzy)
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
+
+try:
+    import polib  # type: ignore[import-untyped]
+except ImportError:
+    print("polib is required. Run: pip install polib", file=sys.stderr)
+    sys.exit(1)
+
+TRANSLATIONS_DIR = Path(__file__).parent.parent.parent / "superset" / "translations"
+DEFAULT_INDEX = TRANSLATIONS_DIR / "translation_index.json"
+DEFAULT_MODEL = "claude-sonnet-4-6"
+DEFAULT_BATCH_SIZE = 50
+
+_ASF_LICENSE_HEADER = """\
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""
+
+# Language names for the prompt, keyed by ISO code
+LANGUAGE_NAMES: dict[str, str] = {
+    "ar": "Arabic",
+    "ca": "Catalan",
+    "cs": "Czech",
+    "de": "German",
+    "es": "Spanish",
+    "fa": "Persian (Farsi)",
+    "fi": "Finnish",
+    "fr": "French",
+    "it": "Italian",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "lv": "Latvian",
+    "mi": "Māori",
+    "nl": "Dutch",
+    "pl": "Polish",
+    "pt": "Portuguese",
+    "pt_BR": "Brazilian Portuguese",
+    "ro": "Romanian",
+    "ru": "Russian",
+    "sk": "Slovak",
+    "sl": "Slovenian",
+    "sr": "Serbian",
+    "sr_Latn": "Serbian (Latin script)",
+    "th": "Thai",
+    "tr": "Turkish",
+    "uk": "Ukrainian",
+    "zh": "Chinese (Simplified)",
+    "zh_TW": "Chinese (Traditional)",
+}
+
+
+def _ensure_license_header(po_path: Path, *, dry_run: bool = False) -> None:
+    """Prepend the ASF license header to the .po file if it is missing."""
+    content = po_path.read_text(encoding="utf-8")
+    if "Licensed to the Apache Software Foundation" not in content:
+        if dry_run:
+            print(
+                f"[dry-run] Would add ASF license header to {po_path}", file=sys.stderr
+            )
+        else:
+            po_path.write_text(_ASF_LICENSE_HEADER + content, encoding="utf-8")
+            print(f"Added ASF license header to {po_path}", file=sys.stderr)
+
+
+def _lang_name(code: str) -> str:
+    """Return a human-readable language name for an ISO language code."""
+    return LANGUAGE_NAMES.get(code, code)
+
+
+def _plural_key(msgid: str, msgid_plural: str) -> str:
+    """Build the translation index key used for pluralized entries."""
+    return f"{msgid}\x00{msgid_plural}"
+
+
+def _is_missing(entry: polib.POEntry) -> bool:
+    """Return True for entries that need a translation."""
+    if entry.obsolete:
+        return False
+    if entry.msgid_plural:
+        return not any(v for v in entry.msgstr_plural.values())
+    return not entry.msgstr
+
+
+# Canonical registry of msgids that must never be machine-translated: literal
+# tokens compared against source (SQL keywords, confirmation words), enum values
+# (d3 interpolation modes), icon names (e.g. "bolt" -> the ⚡ Explore control
+# icon), API field names, code constants, and example placeholders. Translating
+# them can break icon lookups, enum matching, or API contracts, or is simply
+# meaningless (proper nouns, example values). apply_do_not_translate.py stamps
+# these msgids in messages.pot with a `#. do-not-translate`
+# extracted comment that propagates to every catalog on `pybabel update`.
+DO_NOT_TRANSLATE_REGISTRY: Path = TRANSLATIONS_DIR / "do-not-translate.txt"
+
+
+def _load_do_not_translate(path: Path = DO_NOT_TRANSLATE_REGISTRY) -> frozenset[str]:
+    """Load the do-not-translate msgids (skips comment/blank lines).
+
+    Lines are stripped before the blank/comment checks, matching the parsing in
+    apply_do_not_translate.py, so trailing whitespace or an indented comment
+    never yields a msgid that fails to match a catalog entry.
+    """
+    if not path.exists():
+        return frozenset()
+    return frozenset(
+        stripped
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if (stripped := line.strip()) and not stripped.startswith("#")
+    )
+
+
+DO_NOT_TRANSLATE: frozenset[str] = _load_do_not_translate()
+
+# An explicit do-not-translate marker on an entry, matched in either the
+# extracted comment (`#. do-not-translate`, the standard propagated
+# from the .pot) or a translator comment (e.g. the ru catalog's legacy
+# "# Не переводить"). Honored so a human's deliberate decision is never
+# overridden even if a msgid is missing from the registry.
+_DO_NOT_TRANSLATE_COMMENT: re.Pattern[str] = re.compile(
+    r"не\s+переводить|do[\s-]?not[\s-]?translate|don'?t\s+translate",
+    re.IGNORECASE,
+)
+
+
+def _is_do_not_translate(entry: polib.POEntry) -> bool:
+    """Return True if an entry must be left for a human (never machine-filled).
+
+    Either its msgid is in the do-not-translate registry, or the entry carries
+    an explicit do-not-translate marker in its extracted or translator comment.
+    """
+    if entry.msgid in DO_NOT_TRANSLATE:
+        return True
+    return any(
+        comment and _DO_NOT_TRANSLATE_COMMENT.search(comment)
+        for comment in (entry.comment, entry.tcomment)
+    )
+
+
+def _context_langs(
+    item: dict[str, Any], index: dict[str, Any], target_lang: str
+) -> list[str]:
+    """Return sorted list of language codes that have translations for this entry."""
+    key = item["index_key"]
+    if key not in index:
+        return []
+    return sorted(
+        lang for lang, val in index[key].items() if lang != target_lang and val
+    )
+
+
+def _context_count(
+    item: dict[str, Any], index: dict[str, Any], target_lang: str
+) -> int:
+    """Return the number of other-language translations available for this entry."""
+    return len(_context_langs(item, index, target_lang))
+
+
+def _render_item(
+    i: int,
+    item: dict[str, Any],
+    index: dict[str, Any],
+    target_lang: str,
+    reference_langs_sorted: list[str],
+) -> list[str]:
+    """Render one batch entry as prompt lines."""
+    lines: list[str] = []
+    ctx = _context_count(item, index, target_lang)
+    if ctx == 0:
+        lines.append(
+            f"--- [{i}] (no reference translations — translate conservatively) ---"
+        )
+    else:
+        plural = "s" if ctx != 1 else ""
+        lines.append(f"--- [{i}] ({ctx} reference translation{plural}) ---")
+    lines.append(f"English: {json.dumps(item['msgid'], ensure_ascii=False)}")
+    if item.get("msgid_plural"):
+        plural_json = json.dumps(item["msgid_plural"], ensure_ascii=False)
+        lines.append(f"English plural: {plural_json}")
+    key = item["index_key"]
+    if key in index and reference_langs_sorted:
+        for lang in reference_langs_sorted:
+            val = index[key].get(lang)
+            if val is None:
+                continue
+            if isinstance(val, dict):
+                forms = "; ".join(
+                    f"[{k}] {json.dumps(v, ensure_ascii=False)}" for k, v in val.items()
+                )
+                lines.append(f"{_lang_name(lang)}: {forms}")
+            else:
+                lines.append(
+                    f"{_lang_name(lang)}: {json.dumps(val, ensure_ascii=False)}"
+                )
+    lines.append("")
+    return lines
+
+
+def build_prompt(
+    target_lang: str,
+    batch: list[dict[str, Any]],
+    index: dict[str, Any],
+) -> str:
+    """Build the Claude prompt for a batch of entries."""
+    lang_name = _lang_name(target_lang)
+
+    # Collect which other languages actually have translations for this batch
+    reference_langs: set[str] = set()
+    for item in batch:
+        key = item["index_key"]
+        if key in index:
+            reference_langs.update(
+                lang for lang, val in index[key].items() if lang != target_lang and val
+            )
+    reference_langs_sorted = sorted(reference_langs)
+
+    lines: list[str] = [
+        "You are a professional translator specializing in software UI strings.",
+        f"Translate the following English strings into {lang_name} ({target_lang}).",
+        "",
+        "Rules:",
+        "- Preserve all format placeholders exactly: %(name)s, {name}, %s, %d, etc.",
+        "- Preserve HTML tags if present.",
+        "- Keep the same tone and register as the reference translations.",
+        "- For plural forms, provide translations for all plural forms"
+        " required by the language.",
+        "- Return ONLY a JSON object mapping each numeric index (as a string)"
+        " to its translation.",
+        "- Do not add any explanation, preamble, or markdown fences.",
+        "",
+        "Important: Many strings are short fragments or single words that are"
+        " ambiguous in English (e.g. 'Scale' could mean a measurement scale,"
+        " to scale an image, or fish scales). Use the translations in other"
+        " languages as your primary signal for which meaning is intended —"
+        " they collectively disambiguate the intended sense. When no"
+        " other-language translations are available for an entry, translate"
+        " conservatively based on the most common meaning in a data"
+        " visualization UI context.",
+        "",
+    ]
+
+    if reference_langs_sorted:
+        lines.append(
+            f"Reference translations are provided per string where available "
+            f"({', '.join(_lang_name(lc) for lc in reference_langs_sorted)})."
+        )
+        lines.append("")
+
+    lines.append("Strings to translate:")
+    lines.append("")
+
+    for i, item in enumerate(batch):
+        lines.extend(_render_item(i, item, index, target_lang, reference_langs_sorted))
+
+    # Add guidance on plural form counts per language whenever ANY entry in
+    # the batch is plural — batches mix singular and plural in .po order, so
+    # gating on the first entry would silently drop the guidance whenever
+    # the plural entries happen to land after a singular one.
+    if any(item.get("msgid_plural") for item in batch):
+        lines.append(
+            "Note: provide ALL plural forms required by the target language "
+            "(e.g. French needs 2, Russian needs 3, Arabic needs 6)."
+        )
+        lines.append("")
+
+    lines.append(
+        'Expected output format: {"0": "<translation>", "1": "<translation>", ...}'
+    )
+    lines.append("(keys are the numeric indices of the strings above)")
+
+    return "\n".join(lines)
+
+
+def parse_response(text: str, batch_size: int) -> dict[int, str]:
+    """Parse the JSON object from Claude's response."""
+    # Strip any accidental markdown fences
+    text = re.sub(r"^```[^\n]*\n", "", text.strip())
+    text = re.sub(r"\n```$", "", text)
+    try:
+        raw = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"Could not parse response as JSON: {exc}\n\nResponse:\n{text}"
+        ) from exc
+    # _process_batches only catches ValueError/RuntimeError, so a non-object
+    # response (list, scalar, null) must surface as ValueError rather than
+    # bubbling up an AttributeError from .items() and aborting the whole run.
+    if not isinstance(raw, dict):
+        raise ValueError(
+            f"Expected a JSON object mapping indices to translations, "
+            f"got {type(raw).__name__}.\n\nResponse:\n{text}"
+        )
+    # Preserve dict/list values as JSON strings so plural responses (where
+    # v is a dict of plural forms) can be re-parsed downstream by
+    # _apply_translation's json.loads. str(v) on a dict produces Python
+    # repr ({'0': 'x'}) which is not valid JSON.
+    return {
+        int(k): (
+            json.dumps(v, ensure_ascii=False) if isinstance(v, (dict, list)) else str(v)
+        )
+        for k, v in raw.items()
+        if str(k).isdigit()
+    }
+
+
+def translate_batch(
+    model: str,
+    target_lang: str,
+    batch: list[dict[str, Any]],
+    index: dict[str, Any],
+) -> dict[int, str]:
+    """Send a batch of strings to Claude via `claude -p`.
+
+    Returns a dict mapping batch index to translated string.
+    """
+    claude_bin = shutil.which("claude")
+    if not claude_bin:
+        raise RuntimeError(
+            "claude CLI not found. Install Claude Code or add it to PATH."
+        )
+    prompt = build_prompt(target_lang, batch, index)
+    # Pipe the prompt over stdin rather than passing it as argv: a single batch
+    # with many reference languages can grow into the tens of KB and approach
+    # ARG_MAX on some platforms.
+    # claude_bin is resolved via shutil.which — not user-controlled input
+    result = subprocess.run(  # noqa: S603
+        [claude_bin, "--model", model, "-p"],
+        input=prompt,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"claude exited with code {result.returncode}:\n{result.stderr}"
+        )
+    return parse_response(result.stdout.strip(), len(batch))
+
+
+def _translate_single_plaintext(
+    model: str,
+    target_lang: str,
+    item: dict[str, Any],
+    index: dict[str, Any],
+) -> str | None:
+    """Translate a single entry with a plain-text prompt (no JSON envelope).
+
+    Fallback for an entry whose JSON batch response cannot be parsed — typically
+    because the source string contains literal double-quotes that the model
+    echoes back unescaped, corrupting the surrounding JSON. Asking for a bare
+    string sidesteps the JSON contract entirely. Returns the translation text,
+    or None if the CLI call fails.
+    """
+    claude_bin = shutil.which("claude")
+    if not claude_bin:
+        raise RuntimeError(
+            "claude CLI not found. Install Claude Code or add it to PATH."
+        )
+    lines = [
+        "You are a professional translator specializing in software UI strings.",
+        f"Translate the following English string into {_lang_name(target_lang)} "
+        f"({target_lang}).",
+        "Return ONLY the translation as plain text — no surrounding quotes, no "
+        "JSON, no markdown fences, no explanation.",
+        "Preserve all format placeholders exactly (%(name)s, {name}, %s, %d), any "
+        "HTML tags, and any inner quotation marks.",
+        "",
+        f"English: {item['msgid']}",
+    ]
+    if item.get("msgid_plural"):
+        lines.append(f"English plural: {item['msgid_plural']}")
+    refs = index.get(item["index_key"], {})
+    ref_lines = [
+        f"{_lang_name(lang)}: {val}"
+        for lang, val in sorted(refs.items())
+        if lang != target_lang and isinstance(val, str) and val
+    ]
+    if ref_lines:
+        lines.append("")
+        lines.append("Reference translations in other languages:")
+        lines.extend(ref_lines)
+    prompt = "\n".join(lines)
+    # claude_bin is resolved via shutil.which — not user-controlled input
+    result = subprocess.run(  # noqa: S603
+        [claude_bin, "--model", model, "-p"],
+        input=prompt,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return None
+    text = result.stdout.strip()
+    # Strip accidental markdown fences or wrapping quotes the model may add.
+    text = re.sub(r"^```[^\n]*\n?", "", text)
+    text = re.sub(r"\n?```$", "", text).strip()
+    if len(text) >= 2 and text[0] == '"' and text[-1] == '"':
+        text = text[1:-1]
+    return text or None
+
+
+def _resilient_translate(
+    model: str,
+    target_lang: str,
+    batch: list[dict[str, Any]],
+    index: dict[str, Any],
+) -> dict[int, str]:
+    """Translate a batch, isolating entries that break the JSON response contract.
+
+    ``translate_batch`` sends the whole batch in one request and parses a single
+    JSON object back. A source string containing literal double-quotes can make
+    the model emit unescaped quotes, so ``json.loads`` fails and the ENTIRE batch
+    would be lost. To salvage the rest, on a parse failure (ValueError) we bisect
+    the batch and recurse; a lone entry that still fails falls back to a
+    plain-text prompt via ``_translate_single_plaintext``. Returned keys are
+    positions within ``batch``. RuntimeError (CLI failure) is left to propagate
+    to the caller, preserving the existing per-batch failure handling.
+    """
+    try:
+        return translate_batch(model, target_lang, batch, index)
+    except ValueError:
+        if len(batch) == 1:
+            text = _translate_single_plaintext(model, target_lang, batch[0], index)
+            return {0: text} if text else {}
+        mid = len(batch) // 2
+        left = _resilient_translate(model, target_lang, batch[:mid], index)
+        right = _resilient_translate(model, target_lang, batch[mid:], index)
+        return {**left, **{k + mid: v for k, v in right.items()}}
+
+
+def _apply_plural_translation(entry: polib.POEntry, translation: str) -> None:
+    """Distribute a model response across the entry's plural forms.
+
+    Model may return a JSON dict ({"0": "form0", "1": "form1"}), a JSON list
+    (["form0", "form1"], also valid since plural forms are ordered), a JSON
+    scalar (a single translation that fills every form), or a plain non-JSON
+    string (older models that ignore the JSON instruction).
+    """
+    try:
+        plural_value = json.loads(translation)
+    except (json.JSONDecodeError, ValueError):
+        for k in entry.msgstr_plural:
+            entry.msgstr_plural[k] = translation
+        return
+
+    if isinstance(plural_value, dict):
+        entry.msgstr_plural = {int(k): str(v) for k, v in plural_value.items()}
+        return
+
+    if isinstance(plural_value, list) and plural_value:
+        # Distribute list items across plural form indices in order; if the
+        # model returned fewer forms than the language requires, repeat the
+        # last form rather than leaving slots blank.
+        forms = [str(v) for v in plural_value]
+        for k in sorted(entry.msgstr_plural):
+            entry.msgstr_plural[k] = forms[k] if k < len(forms) else forms[-1]
+        return
+
+    # Scalar (or empty list) — broadcast to every form.
+    fill = str(plural_value) if plural_value not in (None, []) else translation
+    for k in entry.msgstr_plural:
+        entry.msgstr_plural[k] = fill
+
+
+def _apply_translation(
+    entry: polib.POEntry,
+    translation: str,
+    item: dict[str, Any],
+    model: str,
+    mark_fuzzy: bool,
+) -> None:
+    """Write a translation string into a POEntry and add attribution."""
+    if entry.msgid_plural:
+        _apply_plural_translation(entry, translation)
+    else:
+        entry.msgstr = translation
+
+    if mark_fuzzy and "fuzzy" not in entry.flags:
+        entry.flags.append("fuzzy")
+
+    refs = item["context_langs"]
+    refs_tag = f" [refs: {', '.join(refs)}]" if refs else " [no refs]"
+    attribution = f"Machine-translated via backfill_po.py ({model}){refs_tag}"
+    if entry.tcomment:
+        if attribution not in entry.tcomment:
+            entry.tcomment = f"{entry.tcomment}\n{attribution}"
+    else:
+        entry.tcomment = attribution
+
+
+def _build_batch_items(
+    entries: list[polib.POEntry],
+    index: dict[str, Any],
+    lang: str,
+) -> list[dict[str, Any]]:
+    """Convert a list of POEntries into the dict format used by translate_batch."""
+    items: list[dict[str, Any]] = []
+    for entry in entries:
+        if entry.msgid_plural:
+            item: dict[str, Any] = {
+                "msgid": entry.msgid,
+                "msgid_plural": entry.msgid_plural,
+                "index_key": _plural_key(entry.msgid, entry.msgid_plural),
+                "is_plural": True,
+            }
+        else:
+            item = {
+                "msgid": entry.msgid,
+                "index_key": entry.msgid,
+                "is_plural": False,
+            }
+        item["context_langs"] = _context_langs(item, index, lang)
+        item["context_count"] = len(item["context_langs"])
+        items.append(item)
+    return items
+
+
+def _process_batches(
+    missing: list[polib.POEntry],
+    index: dict[str, Any],
+    lang: str,
+    batch_size: int,
+    model: str,
+    dry_run: bool,
+    mark_fuzzy: bool,
+    cat: polib.POFile | None = None,
+    po_path: Path | None = None,
+) -> tuple[int, int]:
+    """Translate missing entries in batches. Returns (translated, failed) counts.
+
+    When ``cat`` and ``po_path`` are provided and ``dry_run`` is False, the
+    catalog is saved to disk after each batch that produced at least one
+    successful translation. This means a crash mid-run only loses the in-flight
+    batch rather than every batch translated so far.
+    """
+    translated_count = 0
+    failed_count = 0
+    for batch_start in range(0, len(missing), batch_size):
+        batch_entries = missing[batch_start : batch_start + batch_size]
+        batch_items = _build_batch_items(batch_entries, index, lang)
+        end = min(batch_start + batch_size, len(missing))
+        print(
+            f"  Translating entries {batch_start + 1}–{end} of {len(missing)} …",
+            file=sys.stderr,
+        )
+        try:
+            translations = _resilient_translate(model, lang, batch_items, index)
+        except (ValueError, RuntimeError) as exc:
+            print(f"  ERROR in batch starting at {batch_start}: {exc}", file=sys.stderr)
+            failed_count += len(batch_entries)
+            continue
+        batch_applied = 0
+        for i, entry in enumerate(batch_entries):
+            translation = translations.get(i)
+            if translation is None:
+                print(
+                    f"  WARNING: no translation returned for index {i} "
+                    f"(msgid: {entry.msgid[:60]!r})",
+                    file=sys.stderr,
+                )
+                failed_count += 1
+                continue
+            if dry_run:
+                ctx = batch_items[i]["context_count"]
+                ctx_tag = f" [ctx:{ctx}]" if ctx < 3 else ""
+                print(
+                    f"  [{lang}]{ctx_tag} {entry.msgid[:60]!r} → {translation[:60]!r}"
+                )
+            else:
+                _apply_translation(
+                    entry, translation, batch_items[i], model, mark_fuzzy
+                )
+                batch_applied += 1
+            translated_count += 1
+        if (
+            not dry_run
+            and batch_applied > 0
+            and cat is not None
+            and po_path is not None
+        ):
+            cat.save()
+            print(
+                f"  Saved {po_path} ({batch_applied} entry(ies) in this batch).",
+                file=sys.stderr,
+            )
+    return translated_count, failed_count
+
+
+def backfill(
+    lang: str,
+    *,
+    batch_size: int = DEFAULT_BATCH_SIZE,
+    limit: int | None = None,
+    min_context: int = 0,
+    model: str = DEFAULT_MODEL,
+    index_path: Path = DEFAULT_INDEX,
+    dry_run: bool = False,
+    mark_fuzzy: bool = True,
+) -> None:
+    """Backfill missing translations in the target language's .po file."""
+    # Defense against path traversal: ``lang`` lands in a filesystem path
+    # without further sanitization, so reject anything that isn't an
+    # ISO 639-1/639-2 code with an optional ISO 3166 region (e.g. ``pt_BR``).
+    if not re.fullmatch(r"[a-z]{2,3}(_[A-Z]{2})?", lang):
+        print(
+            f"Invalid language code: {lang!r} "
+            "(expected ISO 639 code, optionally with _<REGION>, e.g. 'fr' or 'pt_BR')",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    po_path = TRANSLATIONS_DIR / lang / "LC_MESSAGES" / "messages.po"
+    if not po_path.exists():
+        print(f"No .po file found for language '{lang}': {po_path}", file=sys.stderr)
+        sys.exit(1)
+    if not index_path.exists():
+        print(
+            f"Translation index not found at {index_path}.\n"
+            "Run: python scripts/translations/build_translation_index.py",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    print("Loading translation index …", file=sys.stderr)
+    with open(index_path, encoding="utf-8") as f:
+        index: dict[str, Any] = json.load(f)
+
+    _ensure_license_header(po_path, dry_run=dry_run)
+
+    print(f"Loading {po_path} …", file=sys.stderr)
+    cat = polib.pofile(str(po_path))
+
+    missing: list[polib.POEntry] = [e for e in cat if e.msgid and _is_missing(e)]
+    print(f"Found {len(missing)} untranslated entries for '{lang}'.", file=sys.stderr)
+
+    skipped_dnt: list[polib.POEntry] = [e for e in missing if _is_do_not_translate(e)]
+    if skipped_dnt:
+        missing = [e for e in missing if not _is_do_not_translate(e)]
+        print(
+            f"Skipping {len(skipped_dnt)} do-not-translate entries (literal "
+            f"tokens / translator-marked); they are left untranslated.",
+            file=sys.stderr,
+        )
+
+    if min_context > 0:
+        before = len(missing)
+        missing = [
+            e
+            for e in missing
+            if _context_count(
+                {
+                    "index_key": (
+                        _plural_key(e.msgid, e.msgid_plural)
+                        if e.msgid_plural
+                        else e.msgid
+                    )
+                },
+                index,
+                lang,
+            )
+            >= min_context
+        ]
+        skipped = before - len(missing)
+        print(
+            f"Skipping {skipped} entries with fewer than {min_context} reference "
+            f"translation(s) (use --min-context 0 to include them).",
+            file=sys.stderr,
+        )
+
+    if limit is not None:
+        missing = missing[:limit]
+        print(f"Limiting to {limit} entries.", file=sys.stderr)
+
+    if not missing:
+        print("Nothing to do.", file=sys.stderr)
+        return
+
+    translated_count, failed_count = _process_batches(
+        missing,
+        index,
+        lang,
+        batch_size,
+        model,
+        dry_run,
+        mark_fuzzy,
+        cat=cat,
+        po_path=po_path,
+    )
+
+    print(
+        f"\nDone. Translated: {translated_count}, Failed/skipped: {failed_count}.",
+        file=sys.stderr,
+    )
+    if not dry_run and translated_count > 0:
+        print(
+            f"Translations written to {po_path} (marked #, fuzzy for review).",
+            file=sys.stderr,
+        )
+
+
+def main() -> None:
+    """Parse CLI arguments and run translation backfill."""
+    parser = argparse.ArgumentParser(
+        description="Backfill missing .po translations using Claude AI",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__,
+    )
+    parser.add_argument(
+        "--lang", required=True, help="ISO language code (e.g. fr, de, ja)"
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=DEFAULT_BATCH_SIZE,
+        help=f"Strings per Claude request (default: {DEFAULT_BATCH_SIZE})",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Maximum number of entries to translate (default: unlimited)",
+    )
+    parser.add_argument(
+        "--model",
+        default=DEFAULT_MODEL,
+        help=f"Claude model ID (default: {DEFAULT_MODEL})",
+    )
+    parser.add_argument(
+        "--index",
+        type=Path,
+        default=DEFAULT_INDEX,
+        help=f"Path to translation_index.json (default: {DEFAULT_INDEX})",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print translations without modifying the .po file",
+    )
+    parser.add_argument(
+        "--min-context",
+        type=int,
+        default=0,
+        metavar="N",
+        help=(
+            "Skip entries with fewer than N reference translations in other languages "
+            "(default: 0 = translate everything). Strings with low context are more "
+            "likely to be ambiguous single words or fragments — set to e.g. 2 to only "
+            "translate strings that have been confirmed in at least 2 other languages."
+        ),
+    )
+    parser.add_argument(
+        "--no-fuzzy",
+        dest="mark_fuzzy",
+        action="store_false",
+        default=True,
+        help=(
+            "Do not mark generated translations as #, fuzzy. "
+            "WARNING: fuzzy entries are excluded from compiled .mo files. "
+            "Removing this flag causes AI-generated translations to be served "
+            "to end users without human review — only use after you have "
+            "manually verified the .po file."
+        ),
+    )
+    args = parser.parse_args()
+
+    backfill(
+        lang=args.lang,
+        batch_size=args.batch_size,
+        limit=args.limit,
+        min_context=args.min_context,
+        model=args.model,
+        index_path=args.index,
+        dry_run=args.dry_run,
+        mark_fuzzy=args.mark_fuzzy,
+    )
+
+
+if __name__ == "__main__":
+    main()

@@ -59,7 +59,7 @@ import {
   sections,
 } from '@superset-ui/chart-controls';
 import { useSelector } from 'react-redux';
-import { kebabCase, isEqual } from 'lodash';
+import { kebabCase, isEqual } from 'lodash-es';
 
 import {
   Collapse,
@@ -152,8 +152,8 @@ const Styles = styled.div`
   display: flex;
   flex-direction: column;
 
-  // Resizable add overflow-y: auto as a style to this div
-  // To override it, we need to use !important
+  /* Resizable adds overflow-y: auto as a style to this div */
+  /* To override it, we need to use !important */
   overflow: visible !important;
 
   #controlSections {
@@ -166,7 +166,7 @@ const Styles = styled.div`
     flex: 1 1 100%;
   }
 
-  // Ensure Ant Design tabs allow content to expand
+  /* Ensure Ant Design tabs allow content to expand */
   .ant-tabs-content {
     overflow: visible;
     height: auto;
@@ -182,7 +182,7 @@ const Styles = styled.div`
     height: auto;
   }
 
-  // Ensure collapse components can expand
+  /* Ensure collapse components can expand */
   .ant-collapse-content {
     overflow: visible;
   }
@@ -630,10 +630,17 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             line-height: 1.3;
           `}
         >
-          {label}
+          {typeof label === 'function' ? (label as () => ReactNode)() : label}
         </span>{' '}
         {description && (
-          <Tooltip id={sectionId} title={description}>
+          <Tooltip
+            id={sectionId}
+            title={
+              typeof description === 'function'
+                ? (description as () => ReactNode)()
+                : description
+            }
+          >
             <Icons.InfoCircleOutlined css={iconStyles} />
           </Tooltip>
         )}

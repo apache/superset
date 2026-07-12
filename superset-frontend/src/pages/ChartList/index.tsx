@@ -29,15 +29,17 @@ import {
 import { css, styled } from '@apache-superset/core/theme';
 import { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
-import { uniqBy } from 'lodash';
+import { uniqBy } from 'lodash-es';
 import { useSelector } from 'react-redux';
 import {
   createErrorHandler,
   createFetchRelated,
-  createFetchOwners,
+  createFetchEditors,
+  createFetchViewers,
   handleChartDelete,
 } from 'src/views/CRUD/utils';
-import { OWNER_OPTION_FILTER_PROPS } from 'src/features/owners/OwnerSelectLabel';
+import { SUBJECT_OPTION_FILTER_PROPS } from 'src/features/subjects/SubjectSelectLabel';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import {
   useChartEditModal,
   useFavoriteStatus,
@@ -54,7 +56,6 @@ import {
   type LabeledValue,
 } from '@superset-ui/core/components';
 import {
-  FacePile,
   ImportModal as ImportModelsModal,
   ModifiedInfo,
   GenericLink,
@@ -95,6 +96,7 @@ const FlexRowContainer = styled.div`
     text-overflow: ellipsis;
     white-space: nowrap;
     line-height: 1.2;
+    min-width: 0;
   }
 
   svg {
@@ -475,15 +477,30 @@ function ChartList(props: ChartListProps) {
       {
         Cell: ({
           row: {
-            original: { owners = [] },
+            original: { editors = [] },
           },
-        }: any) => <FacePile users={owners} />,
-        Header: t('Owners'),
-        accessor: 'owners',
+        }: any) => <SubjectPile subjects={editors} />,
+        Header: t('Editors'),
+        accessor: 'editors',
         disableSortBy: true,
         size: 'xl',
-        id: 'owners',
+        id: 'editors',
       },
+      ...(isFeatureEnabled(FeatureFlag.EnableViewers)
+        ? [
+            {
+              Cell: ({
+                row: {
+                  original: { viewers = [] },
+                },
+              }: any) => <SubjectPile subjects={viewers} />,
+              Header: t('Viewers'),
+              accessor: 'viewers',
+              disableSortBy: true,
+              id: 'viewers',
+            },
+          ]
+        : []),
       {
         Cell: ({
           row: {
@@ -494,9 +511,9 @@ function ChartList(props: ChartListProps) {
           },
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
-        accessor: 'last_saved_at',
+        accessor: 'changed_on_delta_humanized',
         size: 'xl',
-        id: 'last_saved_at',
+        id: 'changed_on_delta_humanized',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -522,6 +539,7 @@ function ChartList(props: ChartListProps) {
                   placement="bottom"
                 >
                   <span
+                    data-test="chart-row-edit"
                     role="button"
                     tabIndex={0}
                     className="action-button"
@@ -538,6 +556,7 @@ function ChartList(props: ChartListProps) {
                   placement="bottom"
                 >
                   <span
+                    data-test="chart-row-export"
                     role="button"
                     tabIndex={0}
                     className="action-button"
@@ -565,6 +584,7 @@ function ChartList(props: ChartListProps) {
                       placement="bottom"
                     >
                       <span
+                        data-test="chart-row-delete"
                         role="button"
                         tabIndex={0}
                         className="action-button"
@@ -683,28 +703,55 @@ function ChartList(props: ChartListProps) {
           ]
         : []),
       {
-        Header: t('Owner'),
-        key: 'owner',
-        id: 'owners',
+        Header: t('Editor'),
+        key: 'editor',
+        id: 'editors',
         input: 'select',
         operator: FilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
-        fetchSelects: createFetchOwners(
+        fetchSelects: createFetchEditors(
           'chart',
           createErrorHandler(errMsg =>
             addDangerToast(
               t(
-                'An error occurred while fetching chart owners values: %s',
+                'An error occurred while fetching chart editor values: %s',
                 errMsg,
               ),
             ),
           ),
           props.user,
         ),
-        optionFilterProps: OWNER_OPTION_FILTER_PROPS,
+        optionFilterProps: SUBJECT_OPTION_FILTER_PROPS,
         paginate: true,
         popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
+      ...(isFeatureEnabled(FeatureFlag.EnableViewers)
+        ? [
+            {
+              Header: t('Viewer'),
+              key: 'viewer',
+              id: 'viewers',
+              input: 'select',
+              operator: FilterOperator.RelationManyMany,
+              unfilteredLabel: t('All'),
+              fetchSelects: createFetchViewers(
+                'chart',
+                createErrorHandler(errMsg =>
+                  addDangerToast(
+                    t(
+                      'An error occurred while fetching chart viewer values: %s',
+                      errMsg,
+                    ),
+                  ),
+                ),
+                props.user,
+              ),
+              optionFilterProps: SUBJECT_OPTION_FILTER_PROPS,
+              paginate: true,
+              popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+            },
+          ]
+        : []),
       {
         Header: t('Dashboard'),
         key: 'dashboards',

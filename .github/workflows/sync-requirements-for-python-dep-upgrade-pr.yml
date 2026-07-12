@@ -1,0 +1,60 @@
+name: Sync requirements for Python dependency PRs
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  sync-python-dep-requirements:
+    # This action is limited for (1) PRs authored by Dependabot and (2) upstream repo due to write back to remote
+    if: github.repository == 'apache/superset' && github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.head.repo.fork == false
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Fetch Dependabot metadata
+        id: dependabot-metadata
+        shell: bash
+        env:
+          BRANCH_NAME: ${{ github.head_ref }}
+        run: |
+          # Get current branch name, extract the package ecosystem and return as GHA step output
+          packageEcosystem=$(echo "$BRANCH_NAME" | cut -d'/' -f2)
+          echo "package-ecosystem=$packageEcosystem" >> $GITHUB_OUTPUT
+
+      # zizmor: ignore[artipacked] - required persisted credentials to push synced requirement changes back to remote
+      - name: Checkout source code
+        if: ${{ steps.dependabot-metadata.outputs.package-ecosystem == 'pip' }}
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: true
+
+      # Authenticate the Docker daemon so the python:slim pull in
+      # uv-pip-compile.sh uses our (much higher) authenticated rate limit
+      # instead of the shared-runner anonymous one.
+      - name: Login to Docker Hub
+        if: ${{ steps.dependabot-metadata.outputs.package-ecosystem == 'pip' }}
+        continue-on-error: true
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Sync requirements in containerized environment
+        if: ${{ steps.dependabot-metadata.outputs.package-ecosystem == 'pip' }}
+        run: ./scripts/uv-pip-compile.sh
+
+      - name: Push changes to remote PRs
+        if: ${{ steps.dependabot-metadata.outputs.package-ecosystem == 'pip' }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add requirements
+          git diff --cached --quiet && exit 0
+          git commit --signoff --message "build(deps): sync pinned requirements for Dependabot pip PRs"
+          git push origin "HEAD:refs/heads/${GITHUB_EVENT_PULL_REQUEST_HEAD_REF}"
+        env:
+          GITHUB_EVENT_PULL_REQUEST_HEAD_REF: ${{ github.event.pull_request.head.ref }}

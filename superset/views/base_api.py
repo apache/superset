@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import Any, Callable, cast
+from typing import Any, Callable, cast, Optional
 
 from flask import request, Response
 from flask_appbuilder import Model, ModelRestApi
@@ -29,6 +29,7 @@ from flask_appbuilder.api import (
     rison as parse_rison,
     safe,
 )
+from flask_appbuilder.const import API_FILTERS_RIS_KEY
 from flask_appbuilder.models.filters import BaseFilter, Filters
 from flask_appbuilder.models.sqla.filters import FilterStartsWith
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -222,6 +223,29 @@ class BaseSupersetApiMixin:
             f"{self.__class__.__name__}.{func_name}.{action}"
         )
 
+    def log_rejected_field_access(self, func_name: str, column_name: str) -> None:
+        """Emit a security log event when a related/distinct field is rejected.
+
+        The allowlist check itself blocks the request; this records the attempt
+        in the structured log (alongside the existing statsd counter) so that
+        rejected field access is visible to security monitoring and forensics,
+        with the caller's identity, the endpoint, and the attempted value.
+        """
+        # Sanitize the user-supplied column name to a single, bounded token so
+        # it cannot inject newlines or forge extra key=value tokens in the log
+        # line. Restrict to a safe character set (column names are alphanumeric
+        # plus ``_-.``) and replace anything else with ``?``.
+        sanitized_column = "".join(
+            ch if (ch.isalnum() or ch in "_-.") else "?" for ch in str(column_name)
+        )[:200]
+        logger.warning(
+            "Rejected disallowed field access: user_id=%s endpoint=%s.%s column=%s",
+            get_user_id(),
+            self.__class__.__name__,
+            func_name,
+            sanitized_column,
+        )
+
     def timing_stats(self, action: str, func_name: str, value: float) -> None:
         """
         Proxy function for statsd.incr to impose a key structure for REST API's
@@ -330,7 +354,7 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         }
     """
 
-    extra_fields_rel_fields: dict[str, list[str]] = {"owners": ["email", "active"]}
+    extra_fields_rel_fields: dict[str, list[str]] = {}
     """
     Declare extra fields for the representation of the Model object::
 
@@ -376,6 +400,35 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         if self.add_columns is None and not self.add_model_schema:
             self.add_columns = [model_id]
         super()._init_properties()
+
+    def _handle_filters_args(self, rison_args: dict[str, Any]) -> Filters:
+        """
+        Build a request-scoped ``Filters`` instance from Rison-encoded args.
+
+        Overrides :meth:`flask_appbuilder.api.ModelRestApi._handle_filters_args`,
+        which mutates ``self._filters`` (a single instance shared across
+        requests on the same API view). Under concurrent traffic that shared
+        state can leak filters from one request into another — e.g. two
+        parallel ``GET /api/v1/<resource>/`` calls filtering by different
+        values can return mixed results.
+
+        Returning a fresh ``Filters`` per call keeps each request isolated.
+        Applies to every subclass of ``BaseSupersetModelRestApi``
+        (datasets, charts, dashboards, saved queries, queries, databases,
+        etc.) — see issue #33828 for the original report on the dataset
+        endpoint.
+
+        :param rison_args: Arguments parsed from the API request's
+            Rison-encoded ``q`` parameter.
+        :returns: A request-scoped ``Filters`` instance joined with the
+            API's base filters.
+        """
+        filters = self.datamodel.get_filters(
+            search_columns=self.search_columns,
+            search_filters=self.search_filters,
+        )
+        filters.rest_add_filters(rison_args.get(API_FILTERS_RIS_KEY, []))
+        return filters.get_joined_filters(self._base_filters)
 
     def _get_related_filter(
         self, datamodel: SQLAInterface, column_name: str, value: str
@@ -536,6 +589,14 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         self.send_stats_metrics(response, self.delete.__name__, duration)
         return response
 
+    def ensure_access_list_write_access(self, column_name: str) -> Optional[Response]:
+        """Restrict access-list related fields to users with write access."""
+        if column_name in {"editors", "viewers"} and not security_manager.can_access(
+            "can_write", self.class_permission_name
+        ):
+            return self.response_403()
+        return None
+
     @expose("/related/<column_name>", methods=("GET",))
     @protect()
     @safe
@@ -570,13 +631,18 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
         """
+        if response := self.ensure_access_list_write_access(column_name):
+            return response
         if column_name not in self.allowed_rel_fields:
             self.incr_stats("error", self.related.__name__)
+            self.log_rejected_field_access(self.related.__name__, column_name)
             return self.response_404()
         args = kwargs.get("rison", {})
 
@@ -655,7 +721,8 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
               $ref: '#/components/responses/500'
         """
         if column_name not in self.allowed_distinct_fields:
-            self.incr_stats("error", self.related.__name__)
+            self.incr_stats("error", self.distinct.__name__)
+            self.log_rejected_field_access(self.distinct.__name__, column_name)
             return self.response_404()
         args = kwargs.get("rison", {})
         # handle pagination

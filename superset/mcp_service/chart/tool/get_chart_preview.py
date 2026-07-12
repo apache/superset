@@ -59,6 +59,7 @@ from superset.mcp_service.utils.oauth2_utils import (
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
+from superset.superset_typing import Column, Metric
 
 logger = logging.getLogger(__name__)
 
@@ -116,7 +117,7 @@ def _sanitize_chart_preview_for_llm_context(
     """Wrap chart preview read-path descriptive fields before LLM exposure."""
     payload = chart_preview.model_dump(mode="python")
 
-    for field_name in ("chart_name", "chart_description", "ascii_chart", "table_data"):
+    for field_name in ("chart_name", "chart_description"):
         payload[field_name] = sanitize_for_llm_context(
             payload.get(field_name),
             field_path=(field_name,),
@@ -148,20 +149,87 @@ class ChartLike(Protocol):
     uuid: Any
 
 
-def _build_query_columns(form_data: Dict[str, Any]) -> list[str]:
-    """Build query columns list from form_data, including both x_axis and groupby."""
-    x_axis_config = form_data.get("x_axis")
-    groupby_columns: list[str] = form_data.get("groupby") or []
+def _build_query_columns(form_data: Dict[str, Any]) -> list[Column]:
+    """Build query columns list from form_data, including both x_axis and groupby.
 
-    columns = groupby_columns.copy()
+    Handles chart-type-specific keys:
+    - Standard charts: ``groupby`` + ``x_axis``
+    - Pivot tables: ``groupbyColumns`` + ``groupbyRows`` (when ``groupby`` is absent)
+    - Mixed timeseries: ``groupby_b`` (secondary groupby)
+    """
+    x_axis_config: Column | None = form_data.get("x_axis")
+    groupby_columns: list[Column] = form_data.get("groupby") or []
+
+    # Pivot tables store dimensions under groupbyColumns / groupbyRows
+    if not groupby_columns:
+        pivot_rows: list[Column] = form_data.get("groupbyRows") or []
+        pivot_cols: list[Column] = form_data.get("groupbyColumns") or []
+        groupby_columns = list(pivot_rows) + list(pivot_cols)
+
+    # Mixed timeseries stores secondary groupby under groupby_b
+    groupby_b: list[Column] = form_data.get("groupby_b") or []
+    for col in groupby_b:
+        if col not in groupby_columns:
+            groupby_columns.append(col)
+
+    # Deduplicate while preserving order
+    seen: set[str] = set()
+    columns: list[Column] = []
+
+    def _add_unique(col: Column) -> None:
+        key = col if isinstance(col, str) else col.get("label", str(col))
+        if key not in seen:
+            columns.append(col)
+            seen.add(key)
+
     if x_axis_config and isinstance(x_axis_config, str):
-        if x_axis_config not in columns:
-            columns.insert(0, x_axis_config)
+        _add_unique(x_axis_config)
     elif x_axis_config and isinstance(x_axis_config, dict):
         col_name = x_axis_config.get("column_name")
-        if col_name and col_name not in columns:
-            columns.insert(0, col_name)
+        if col_name and isinstance(col_name, str):
+            _add_unique(col_name)
+
+    for col in groupby_columns:
+        _add_unique(col)
+
     return columns
+
+
+def _build_query_metrics(form_data: Dict[str, Any]) -> list[Metric]:
+    """Extract metrics from form_data, handling chart-type variations.
+
+    Handles:
+    - ``metrics`` (plural) — most chart types
+    - ``metric`` (singular) — Pie charts
+    - ``metrics_b`` — secondary y-axis in Mixed Timeseries charts
+    """
+    metrics: list[Metric] = list(form_data.get("metrics") or [])
+    if not metrics:
+        singular: Metric | None = form_data.get("metric")
+        if singular:
+            metrics = [singular]
+
+    # Mixed timeseries stores the second y-axis metrics under metrics_b
+    metrics_b: list[Metric] = form_data.get("metrics_b") or []
+    for m in metrics_b:
+        if m not in metrics:
+            metrics.append(m)
+
+    return metrics
+
+
+def _build_chart_description(chart: ChartLike) -> str:
+    """Build a human-readable chart description, with hints for special chart types."""
+    base = (
+        f"Preview of {chart.viz_type or 'chart'}: "
+        f"{chart.slice_name or f'Chart {chart.id}'}"
+    )
+    if chart.viz_type == "handlebars":
+        base += (
+            ". Note: Handlebars charts use browser-side template rendering; "
+            "this preview shows the raw underlying data, not the rendered template"
+        )
+    return base
 
 
 class PreviewFormatStrategy:
@@ -174,6 +242,14 @@ class PreviewFormatStrategy:
     def generate(self) -> ChartPreview | ChartError:
         """Generate preview in the specific format."""
         raise NotImplementedError
+
+    def _authorize_guest_query(self, query_context: Any) -> None:
+        """For a guest, attach the dashboard context so raise_for_access
+        authorizes the preview query."""
+        from superset.mcp_service import guest_scope
+
+        if (dashboard_id := guest_scope.guest_dashboard_id(self.chart)) is not None:
+            guest_scope.authorize_query(query_context, dashboard_id, self.chart)
 
 
 class URLPreviewStrategy(PreviewFormatStrategy):
@@ -224,6 +300,7 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                 force=False,
             )
 
+            self._authorize_guest_query(query_context)
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
@@ -285,6 +362,7 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                 force=False,
             )
 
+            self._authorize_guest_query(query_context)
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
@@ -376,6 +454,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             )
 
             # Execute the query
+            self._authorize_guest_query(query_context)
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
@@ -1175,9 +1254,11 @@ async def _get_chart_preview_internal(  # noqa: C901
         logger.info("Generating preview for chart %s", getattr(chart, "id", "NO_ID"))
         logger.info("Chart datasource_id: %s", getattr(chart, "datasource_id", "NONE"))
 
-        # Validate the chart's dataset is accessible before generating preview
-        # Skip validation for transient charts (no ID) - different data sources
-        if getattr(chart, "id", None) is not None:
+        # Skip the dataset pre-check for transient charts (no ID) and for guests
+        # (authorized via the dashboard context, not dataset RBAC).
+        from superset.mcp_service import guest_scope
+
+        if getattr(chart, "id", None) is not None and not guest_scope.is_guest_read():
             validation_result = validate_chart_dataset(chart, check_access=True)
             if not validation_result.is_valid:
                 await ctx.warning(
@@ -1304,29 +1385,10 @@ async def _get_chart_preview_internal(  # noqa: C901
             chart_type=chart.viz_type or "unknown",
             explore_url=f"{get_superset_base_url()}/explore/?slice_id={chart.id}",
             content=content,
-            chart_description=(
-                f"Preview of {chart.viz_type or 'chart'}: "
-                f"{chart.slice_name or f'Chart {chart.id}'}"
-            ),
+            chart_description=_build_chart_description(chart),
             accessibility=accessibility,
             performance=performance,
         )
-
-        # Add format-specific fields for backward compatibility
-        if isinstance(content, ASCIIPreview):
-            result.format = "ascii"
-            result.ascii_chart = content.ascii_content
-            result.width = content.width
-            result.height = content.height
-        elif isinstance(content, TablePreview):
-            result.format = "table"
-            result.table_data = content.table_data
-        elif isinstance(content, VegaLitePreview):
-            result.format = "vega_lite"
-        elif isinstance(content, URLPreview):
-            result.format = "url"
-            result.width = content.width
-            result.height = content.height
 
         return _sanitize_chart_preview_for_llm_context(result)
 
@@ -1383,6 +1445,10 @@ async def get_chart_preview(
     """Get chart preview by ID or UUID.
 
     Returns preview URL or formatted content (ascii, table, vega_lite).
+
+    When format includes 'url', the returned preview_url uses the same scheme
+    as the configured instance URL (HTTPS in production/staging, HTTP in local
+    development).
     """
     await ctx.info(
         "Starting chart preview generation: identifier=%s, format=%s, width=%s, "
@@ -1412,7 +1478,7 @@ async def get_chart_preview(
                 "has_preview_url=%s"
                 % (
                     getattr(result, "chart_id", None),
-                    result.format,
+                    getattr(result.content, "type", None),
                     bool(getattr(result, "preview_url", None)),
                 )
             )

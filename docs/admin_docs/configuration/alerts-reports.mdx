@@ -36,9 +36,9 @@ Screenshots will be taken but no messages actually sent as long as `ALERT_REPORT
 #### In your `Dockerfile`
 
 You'll need to extend the Superset image to include a headless browser. Your options include:
-- Use Playwright with Chrome: this is the recommended approach as of version 4.1.x or greater. A working example of a Dockerfile that installs these tools is provided under "Building your own production Docker image" on the [Docker Builds](/admin-docs/installation/docker-builds#building-your-own-production-docker-image) page. Read the code comments there as you'll also need to change a feature flag in your config.
-- Use Firefox: you'll need to install geckodriver and Firefox.
-- Use Chrome without Playwright: you'll need to install Chrome and set the value of `WEBDRIVER_TYPE` to `"chrome"` in your `superset_config.py`.
+- Use Playwright with Chromium: this is the recommended approach as of version 4.1.x or greater. Playwright always uses Chromium — the `WEBDRIVER_TYPE` config setting has no effect when Playwright is active. A working example of a Dockerfile that installs these tools is provided under "Building your own production Docker image" on the [Docker Builds](/admin-docs/installation/docker-builds#building-your-own-production-docker-image) page. Enable the `PLAYWRIGHT_REPORTS_AND_THUMBNAILS` feature flag in your config to activate it.
+- Use Firefox (Selenium): you'll need to install geckodriver and Firefox. Set `WEBDRIVER_TYPE` to `"firefox"` in your `superset_config.py`.
+- Use Chrome (Selenium): you'll need to install Chrome. Set `WEBDRIVER_TYPE` to `"chrome"` in your `superset_config.py`.
 
 In Superset versions &lt;=4.0x, users installed Firefox or Chrome and that was documented here.
 
@@ -80,6 +80,21 @@ SLACK_CACHE_TIMEOUT = int(timedelta(days=2).total_seconds())
 # Default: 2
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 5
 ```
+
+#### Slack Enterprise Grid (org-scoped tokens)
+
+On a Slack Enterprise Grid org, an org-scoped token spans multiple workspaces, so
+workspace-scoped methods such as `conversations.list` require a `team_id` to
+indicate which workspace to target. Set `SLACK_TEAM_ID` to your workspace (team)
+ID so Superset can list channels and deliver reports:
+
+```python
+# The workspace (team) ID to target, e.g. "T01234567"
+SLACK_TEAM_ID = "T01234567"
+```
+
+This defaults to `None` and only needs to be set when using an org-scoped token;
+it is accepted but ignored for standard workspace-level tokens.
 
 ### Webhook integration
 
@@ -160,7 +175,7 @@ When enabled, Superset rejects webhook configurations that use `http://` URLs.
 
 #### Retry Behavior
 
-Superset automatically retries webhook deliveries on `429 Too Many Requests` and `5xx` server errors using exponential backoff.
+Superset automatically retries webhook deliveries on `429 Too Many Requests` and `5xx` server errors using exponential backoff. Retries are bounded to roughly 120 seconds of cumulative wall-clock time (worst case ~210 seconds, because the bound is checked against the time elapsed before each attempt, so the final request can begin just under the limit and still run its full request timeout), after which the delivery is abandoned.
 
 ### Kubernetes-specific
 
@@ -272,8 +287,10 @@ to specify on behalf of which username to render the dashboards. In general, das
 are not accessible to unauthorized requests, that is why the worker needs to take over credentials
 of an existing user to take a snapshot.
 
-By default, Alerts and Reports are executed as the owner of the alert/report object. To use a fixed user account,
-just change the config as follows (`admin` in this example):
+By default, Alerts and Reports are executed as a physical user represented by the alert/report editors
+(giving priority to the last modifier, then the creator, then the first direct user editor, then a
+deterministic user from editor roles or groups). To use a fixed user account, just change the config
+as follows (`admin` in this example):
 
 ```python
 from superset.tasks.types import FixedExecutor

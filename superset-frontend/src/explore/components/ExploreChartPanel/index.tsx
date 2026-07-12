@@ -307,7 +307,7 @@ const ExploreChartPanel = ({
         css={css`
           min-height: 0;
           flex: 1;
-          overflow: auto;
+          overflow: hidden;
         `}
         ref={chartPanelRef}
       >
@@ -560,6 +560,7 @@ const ExploreChartPanel = ({
           errorMessage={errorMessage}
           setForceQuery={actions.setForceQuery}
           canDownload={canDownload}
+          queriesResponse={chart.queriesResponse}
         />
       </Split>
       {showDatasetModal && (

@@ -26,9 +26,10 @@ import { DynamicPluginProvider } from 'src/components';
 import { EmbeddedUiConfigProvider } from 'src/components/UiConfigContext';
 import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';
-import { type ThemeStorage, ThemeMode } from '@apache-superset/core/theme';
+import { type ThemeStorage } from '@apache-superset/core/theme';
 import { store } from 'src/views/store';
 import querystring from 'query-string';
+import { getInitialThemeMode } from './getInitialThemeMode';
 
 /**
  * In-memory implementation of ThemeStorage interface for embedded contexts.
@@ -52,7 +53,7 @@ class ThemeMemoryStorageAdapter implements ThemeStorage {
 
 const themeController = new ThemeController({
   storage: new ThemeMemoryStorageAdapter(),
-  initialMode: ThemeMode.DEFAULT,
+  initialMode: getInitialThemeMode(),
 });
 
 export const getThemeController = (): ThemeController => themeController;

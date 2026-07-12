@@ -94,7 +94,7 @@ def _mock_chart(id: int = 10, slice_name: str = "Test Chart") -> Mock:
     chart.slice_name = slice_name
     chart.uuid = f"chart-uuid-{id}"
     chart.tags = []
-    chart.owners = []
+    chart.editors = []
     chart.viz_type = "table"
     chart.datasource_name = None
     chart.description = None
@@ -119,9 +119,8 @@ def _mock_dashboard(
     dashboard.changed_by_name = "test_user"
     dashboard.uuid = f"dashboard-uuid-{id}"
     dashboard.slices = slices or []
-    dashboard.owners = []
+    dashboard.editors = []
     dashboard.tags = []
-    dashboard.roles = []
     dashboard.position_json = "{}"
     dashboard.json_metadata = None
     dashboard.css = None
@@ -155,11 +154,11 @@ async def test_dashboard_not_found(mock_find_by_id: Mock, mcp_server: object) ->
     assert "not found" in (result.structured_content["error"] or "").lower()
 
 
-@patch("superset.security_manager.raise_for_ownership")
+@patch("superset.security_manager.raise_for_editorship")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_permission_denied(
-    mock_find_by_id: Mock, mock_raise_for_ownership: Mock, mcp_server: object
+    mock_find_by_id: Mock, mock_raise_for_editorship: Mock, mcp_server: object
 ) -> None:
     """Returns permission_denied=True and an actionable error when the user
     cannot edit the dashboard.
@@ -174,7 +173,7 @@ async def test_permission_denied(
 
     dashboard = _mock_dashboard(id=1, title="Sales Dashboard")
     mock_find_by_id.return_value = dashboard
-    mock_raise_for_ownership.side_effect = SupersetSecurityException(
+    mock_raise_for_editorship.side_effect = SupersetSecurityException(
         SupersetError(
             message="Changing this Dashboard is forbidden",
             error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
@@ -201,19 +200,19 @@ async def test_permission_denied(
 
 
 @patch("superset.db.session.get")
-@patch("superset.security_manager.raise_for_ownership")
+@patch("superset.security_manager.raise_for_editorship")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_chart_not_found(
     mock_find_by_id: Mock,
-    mock_raise_for_ownership: Mock,
+    mock_raise_for_editorship: Mock,
     mock_session_get: Mock,
     mcp_server: object,
 ) -> None:
     """Returns an error when the requested chart does not exist."""
     dashboard = _mock_dashboard()
     mock_find_by_id.return_value = dashboard
-    mock_raise_for_ownership.return_value = None
+    mock_raise_for_editorship.return_value = None
     mock_session_get.return_value = None  # chart not found
 
     async with Client(mcp_server) as client:
@@ -229,12 +228,12 @@ async def test_chart_not_found(
 
 
 @patch("superset.db.session.get")
-@patch("superset.security_manager.raise_for_ownership")
+@patch("superset.security_manager.raise_for_editorship")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_chart_already_in_dashboard(
     mock_find_by_id: Mock,
-    mock_raise_for_ownership: Mock,
+    mock_raise_for_editorship: Mock,
     mock_session_get: Mock,
     mcp_server: object,
 ) -> None:
@@ -242,7 +241,7 @@ async def test_chart_already_in_dashboard(
     chart = _mock_chart(id=10)
     dashboard = _mock_dashboard(slices=[chart])
     mock_find_by_id.return_value = dashboard
-    mock_raise_for_ownership.return_value = None
+    mock_raise_for_editorship.return_value = None
     mock_session_get.return_value = chart
 
     async with Client(mcp_server) as client:
@@ -259,12 +258,12 @@ async def test_chart_already_in_dashboard(
 
 @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
 @patch("superset.db.session.get")
-@patch("superset.security_manager.raise_for_ownership")
+@patch("superset.security_manager.raise_for_editorship")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_successful_add(
     mock_find_by_id: Mock,
-    mock_raise_for_ownership: Mock,
+    mock_raise_for_editorship: Mock,
     mock_session_get: Mock,
     mock_update_cmd_cls: Mock,
     mcp_server: object,
@@ -275,7 +274,7 @@ async def test_successful_add(
     updated_dashboard = _mock_dashboard(id=1, slices=[chart])
 
     mock_find_by_id.side_effect = [dashboard, updated_dashboard]
-    mock_raise_for_ownership.return_value = None
+    mock_raise_for_editorship.return_value = None
     mock_session_get.return_value = chart
 
     mock_update_cmd = Mock()
@@ -292,6 +291,59 @@ async def test_successful_add(
     assert content["error"] is None
     assert content["permission_denied"] is False
     assert content["dashboard_url"] is not None
-    assert "/superset/dashboard/1/" in content["dashboard_url"]
+    assert content["dashboard_url"].endswith("/dashboard/1/")
+    assert "/superset/superset/dashboard/" not in content["dashboard_url"]
     assert content["position"] is not None
     assert "chart_key" in content["position"]
+
+
+def test_empty_target_tab_rejected_by_schema() -> None:
+    """Empty string target_tab is rejected at schema layer, not as 'Tab not found'."""
+    from pydantic import ValidationError
+
+    from superset.mcp_service.dashboard.schemas import AddChartToDashboardRequest
+
+    with pytest.raises(ValidationError):
+        AddChartToDashboardRequest(dashboard_id=1, chart_id=10, target_tab="")
+
+    # None is valid (tab omitted)
+    req = AddChartToDashboardRequest(dashboard_id=1, chart_id=10, target_tab=None)
+    assert req.target_tab is None
+
+
+def test_add_chart_response_error_is_sanitized_for_llm_context() -> None:
+    """Error field wraps user-supplied target_tab and dashboard tab labels.
+
+    The error string echoes user-provided input (target_tab) and
+    dashboard-controlled tab labels.  Both must be wrapped in
+    UNTRUSTED-CONTENT delimiters so the LLM treats them as data, not
+    instructions.
+    """
+    from superset.mcp_service.dashboard.schemas import AddChartToDashboardResponse
+    from superset.mcp_service.utils.sanitization import (
+        LLM_CONTEXT_CLOSE_DELIMITER,
+        LLM_CONTEXT_OPEN_DELIMITER,
+    )
+
+    raw_error = (
+        "Tab 'malicious tab <script>alert(1)</script>' not found in dashboard 42. "
+        "Available tabs: Sales (TAB-abc), <b>Marketing</b> (TAB-xyz)."
+    )
+    response = AddChartToDashboardResponse(
+        dashboard=None,
+        dashboard_url=None,
+        position=None,
+        error=raw_error,
+    )
+
+    assert response.error is not None
+    assert LLM_CONTEXT_OPEN_DELIMITER in response.error
+    assert LLM_CONTEXT_CLOSE_DELIMITER in response.error
+    # Core text is still present inside the wrapper
+    assert "not found" in response.error
+    assert "Available tabs" in response.error
+    # None error is passed through unchanged
+    empty_response = AddChartToDashboardResponse(
+        dashboard=None, dashboard_url=None, position=None, error=None
+    )
+    assert empty_response.error is None

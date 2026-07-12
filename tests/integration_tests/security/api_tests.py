@@ -30,6 +30,7 @@ from superset.utils import json
 from tests.conftest import with_config
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
+from tests.integration_tests.test_app import app
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -349,6 +350,33 @@ class TestSecurityRolesApi(SupersetTestCase):
         )
         self.assert403(response)
 
+    def test_show_roles_unexpected_error_returns_generic_message(self):
+        """
+        Security API: an unexpected error in role listing returns a generic 500
+        body (no raw exception text) and is logged server-side.
+        """
+        from unittest.mock import patch
+
+        self.login(ADMIN_USERNAME)
+        error_detail = "raw-driver-detail-should-not-leak"
+        # Patch a symbol used only inside get_list's query construction so the
+        # failure happens within the handler's try/except, not in the @protect()
+        # auth check (which also touches db.session.query).
+        with (
+            patch(
+                "superset.security.api.selectinload",
+                side_effect=Exception(error_detail),
+            ),
+            patch("superset.security.api.logger") as mock_logger,
+        ):
+            response = self.client.get(self.show_uri)
+
+        assert response.status_code == 500
+        body = response.data.decode("utf-8")
+        assert error_detail not in body
+        assert "An unexpected error occurred" in body
+        mock_logger.exception.assert_called_once()
+
     def test_show_roles_admin(self):
         """
         Security API: Admin should be able to show roles with permissions and users
@@ -402,3 +430,42 @@ class TestSecurityRolesApi(SupersetTestCase):
         assert sorted(role2_api["user_ids"]) == role2_expected["user_ids"]
         assert sorted(role2_api["permission_ids"]) == role2_expected["permission_ids"]
         assert role2_api["group_ids"] == role2_expected["group_ids"]
+
+
+class TestLogoutSessionInvalidation(SupersetTestCase):
+    """Regression for #24713: a session cookie captured pre-logout must not grant
+    access after the user logs out. The original report describes copying the
+    session cookie out, calling /logout/, and successfully reusing the cookie in
+    a second browser to bypass authentication."""
+
+    def test_session_cookie_invalidated_after_logout(self):
+        self.login(ADMIN_USERNAME)
+
+        resp_authed = self.client.get("api/v1/dashboard/", follow_redirects=False)
+        assert resp_authed.status_code == 200, (
+            f"Login did not yield an authenticated session "
+            f"(got {resp_authed.status_code})"
+        )
+
+        # Werkzeug 2.3+ exposes the test client's cookies on `_cookies` as a
+        # mapping keyed by (domain, path, key). Snapshot the session cookie
+        # value — this is what a malicious actor would copy out of a browser.
+        captured = None
+        for cookie in self.client._cookies.values():
+            if cookie.key == "session":
+                captured = cookie.value
+                break
+        assert captured, "expected a session cookie after login"
+
+        self.client.get("/logout/", follow_redirects=True)
+
+        # Replay the captured cookie in a fresh client (simulates importing
+        # the cookie into a second browser).
+        replay_client = app.test_client()
+        replay_client.set_cookie("session", captured, domain="localhost")
+
+        resp_replay = replay_client.get("api/v1/dashboard/", follow_redirects=False)
+        assert resp_replay.status_code != 200, (
+            f"Captured session cookie was still accepted after logout "
+            f"(status={resp_replay.status_code}); see issue #24713"
+        )

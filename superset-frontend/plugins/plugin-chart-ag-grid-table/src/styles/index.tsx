@@ -74,7 +74,6 @@ export const FilterIconWrapper = styled.div<{ isFilterActive?: boolean }>`
 
   padding: 3px 4px;
   overflow: hidden;
-  cursor: pointer;
   border-radius: 4px;
 
   ${({ isFilterActive }) =>
@@ -417,6 +416,12 @@ export const StyledChartContainer = styled.div<{
 
       &::placeholder {
         color: ${theme.colorTextQuaternary};
+      }
+    }
+
+    .ag-header-center {
+      .ag-header-cell-label {
+        justify-content: center;
       }
     }
   `}
