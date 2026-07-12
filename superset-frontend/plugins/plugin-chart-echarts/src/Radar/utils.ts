@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { NumberFormatter, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { NumberFormatter } from '@superset-ui/core';
 
 /*
  function for finding the max metric values among all series data for Radar Chart
