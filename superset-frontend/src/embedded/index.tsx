@@ -32,8 +32,9 @@ import {
 } from '@apache-superset/core/theme';
 import Switchboard from '@superset-ui/switchboard';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
+import initPreamble from 'src/preamble';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import setupClient from 'src/setup/setupClient';
-import setupPlugins from 'src/setup/setupPlugins';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { store, USER_LOADED } from 'src/views/store';
 import { Loading } from '@superset-ui/core/components';
@@ -41,16 +42,36 @@ import { ErrorBoundary } from 'src/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import {
   EmbeddedContextProviders,
   getThemeController,
 } from './EmbeddedContextProviders';
 import { embeddedApi } from './api';
 import { getDataMaskChangeTrigger } from './utils';
+import { validateMessageEvent } from './originValidation';
 
-setupPlugins();
-setupCodeOverrides({ embedded: true });
+// Defer plugin setup until after the language pack loads to prevent t() calls in
+// plugin control panel configs from being cached in English before translations are ready.
+// Dynamic imports (webpackMode: "eager") keep modules in the same bundle chunk but defer
+// their evaluation until after initPreamble() resolves, so module-level t() calls in plugin
+// control panels and setup code run only after translations are available.
+const pluginsReady = initPreamble()
+  .catch(err => {
+    logging.warn(
+      'Preamble initialization failed, loading plugins without translations.',
+      err,
+    );
+  })
+  .then(async () => {
+    const [{ default: setupPlugins }, { default: setupCodeOverrides }] =
+      await Promise.all([
+        import(/* webpackMode: "eager" */ 'src/setup/setupPlugins'),
+        import(/* webpackMode: "eager" */ 'src/setup/setupCodeOverrides'),
+      ]);
+    setupPlugins();
+    setupCodeOverrides({ embedded: true });
+    setupAGGridModules();
+  });
 
 const debugMode = process.env.WEBPACK_MODE === 'development';
 const bootstrapData = getBootstrapData();
@@ -125,8 +146,6 @@ const EmbeddedApp = () => (
 
 const appMountPoint = document.getElementById('app')!;
 
-const MESSAGE_TYPE = '__embedded_comms__';
-
 function showFailureMessage(message: string) {
   appMountPoint.innerHTML = message;
 }
@@ -138,17 +157,6 @@ if (!window.parent || window.parent === window) {
     ),
   );
 }
-
-// if the page is embedded in an origin that hasn't
-// been authorized by the curator, we forbid access entirely.
-// todo: check the referrer on the route serving this page instead
-// const ALLOW_ORIGINS = ['http://127.0.0.1:9001', 'http://localhost:9001'];
-// const parentOrigin = new URL(document.referrer).origin;
-// if (!ALLOW_ORIGINS.includes(parentOrigin)) {
-//   throw new Error(
-//     `[superset] iframe parent ${parentOrigin} is not in the list of allowed origins`,
-//   );
-// }
 
 let displayedUnauthorizedToast = false;
 let root: Root | null = null;
@@ -184,32 +192,34 @@ function start() {
     method: 'GET',
     endpoint: '/api/v1/me/roles/',
   });
-  return getMeWithRole().then(
-    ({ result }) => {
-      // fill in some missing bootstrap data
-      // (because at pageload, we don't have any auth yet)
-      // this allows the frontend's permissions checks to work.
-      bootstrapData.user = result;
-      store.dispatch({
-        type: USER_LOADED,
-        user: result,
-      });
-      if (!root) {
-        root = createRoot(appMountPoint);
-      }
-      root.render(<EmbeddedApp />);
-    },
-    err => {
-      // something is most likely wrong with the guest token; reset the guard
-      // so a rehandshake with a valid token can retry.
-      logging.error(err);
-      showFailureMessage(
-        t(
-          'Something went wrong with embedded authentication. Check the dev console for details.',
-        ),
-      );
-      started = false;
-    },
+  return pluginsReady.then(() =>
+    getMeWithRole().then(
+      ({ result }) => {
+        // fill in some missing bootstrap data
+        // (because at pageload, we don't have any auth yet)
+        // this allows the frontend's permissions checks to work.
+        bootstrapData.user = result;
+        store.dispatch({
+          type: USER_LOADED,
+          user: result,
+        });
+        if (!root) {
+          root = createRoot(appMountPoint);
+        }
+        root.render(<EmbeddedApp />);
+      },
+      err => {
+        // something is most likely wrong with the guest token; reset the guard
+        // so a rehandshake with a valid token can retry.
+        logging.error(err);
+        showFailureMessage(
+          t(
+            'Something went wrong with embedded authentication. Check the dev console for details.',
+          ),
+        );
+        started = false;
+      },
+    ),
   );
 }
 
@@ -225,21 +235,9 @@ function setupGuestClient(guestToken: string) {
   });
 }
 
-function validateMessageEvent(event: MessageEvent) {
-  // if (!ALLOW_ORIGINS.includes(event.origin)) {
-  //   throw new Error('Message origin is not in the allowed list');
-  // }
-
-  if (typeof event.data !== 'object' || event.data.type !== MESSAGE_TYPE) {
-    throw new Error(`Message type does not match type used for embedded comms`);
-  }
-}
-
 window.addEventListener('message', function embeddedPageInitializer(event) {
-  try {
-    validateMessageEvent(event);
-  } catch (err) {
-    log('ignoring message unrelated to embedded comms', err, event);
+  if (!validateMessageEvent(event, bootstrapData.embedded?.allowed_domains)) {
+    log('ignoring message unrelated to embedded comms', event);
     return;
   }
 

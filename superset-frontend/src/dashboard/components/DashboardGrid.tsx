@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PureComponent, Fragment } from 'react';
-import { withTheme } from '@emotion/react';
+import { Fragment, useCallback, useRef, useState } from 'react';
 import classNames from 'classnames';
 import { addAlpha } from '@superset-ui/core';
-import { css, styled, type SupersetTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { EmptyState } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { navigateTo } from 'src/utils/navigationUtils';
@@ -29,7 +28,7 @@ import type { LayoutItem } from 'src/dashboard/types';
 import type { DropResult } from 'src/dashboard/components/dnd/dragDroppableConfig';
 import DashboardComponent from '../containers/DashboardComponent';
 import { Droppable } from './dnd/DragDroppable';
-import { GRID_GUTTER_SIZE, GRID_COLUMN_COUNT } from '../util/constants';
+import { GRID_GUTTER_SIZE, GRID_COLUMN_COUNT, BOTTOM_RESIZE_DIRECTION } from '../util/constants';
 import { TAB_TYPE } from '../util/componentTypes';
 
 export interface DashboardGridProps {
@@ -48,11 +47,6 @@ export interface DashboardGridProps {
   setEditMode?: (editMode: boolean) => void;
   width: number;
   dashboardId?: number;
-  theme: SupersetTheme;
-}
-
-interface DashboardGridState {
-  isResizing: boolean;
 }
 
 interface DropProps {
@@ -131,261 +125,284 @@ const GridColumnGuide = styled.div`
   `};
 `;
 
-class DashboardGrid extends PureComponent<
-  DashboardGridProps,
-  DashboardGridState
-> {
-  grid: HTMLDivElement | null;
-
-  constructor(props: DashboardGridProps) {
-    super(props);
-    this.state = {
-      isResizing: false,
-    };
-    this.grid = null;
-    this.handleResizeStart = this.handleResizeStart.bind(this);
-    this.handleResize = this.handleResize.bind(this);
-    this.handleResizeStop = this.handleResizeStop.bind(this);
-    this.handleTopDropTargetDrop = this.handleTopDropTargetDrop.bind(this);
-    this.getRowGuidePosition = this.getRowGuidePosition.bind(this);
-    this.setGridRef = this.setGridRef.bind(this);
-    this.handleChangeTab = this.handleChangeTab.bind(this);
-  }
-
-  getRowGuidePosition(resizeRef: HTMLElement | null): number | null {
-    if (resizeRef && this.grid) {
-      return (
-        resizeRef.getBoundingClientRect().bottom -
-        this.grid.getBoundingClientRect().top -
-        2
-      );
+const GridRowGuide = styled.div`
+  ${({ theme }) => css`
+    &.grid-row-guide {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background-color: ${addAlpha(theme.colorPrimary, 0.5)};
+      box-shadow: 0 0 0 1px ${addAlpha(theme.colorPrimary, 0.5)};
+      pointer-events: none;
+      z-index: 10;
     }
-    return null;
-  }
+  `};
+`;
 
-  setGridRef(ref: HTMLDivElement | null): void {
-    this.grid = ref;
-  }
+function DashboardGrid({
+  depth,
+  editMode,
+  canEdit,
+  gridComponent,
+  handleComponentDrop,
+  isComponentVisible,
+  resizeComponent,
+  setDirectPathToChild,
+  setEditMode,
+  width,
+  dashboardId,
+}: DashboardGridProps) {
+  const theme = useTheme();
+  const [isResizing, setIsResizing] = useState(false);
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  const rowGuideRef = useRef<HTMLDivElement | null>(null);
 
-  handleResizeStart(): void {
-    this.setState(() => ({
-      isResizing: true,
-    }));
-  }
+  const setGridRef = useCallback((ref: HTMLDivElement | null): void => {
+    gridRef.current = ref;
+  }, []);
 
-  handleResize(
-    _event: MouseEvent | TouchEvent,
-    _direction: string,
-    _elementRef: HTMLElement,
-    _delta: { width: number; height: number },
-  ): void {
-    // no-op: resize position is tracked via getRowGuidePosition
-  }
+  const handleResizeStart = useCallback((): void => {
+    setIsResizing(true);
+    if (rowGuideRef.current) {
+      rowGuideRef.current.style.visibility = 'hidden';
+    }
+  }, []);
 
-  handleResizeStop(
-    _event: MouseEvent | TouchEvent,
-    _direction: string,
-    _elementRef: HTMLElement,
-    delta: { width: number; height: number },
-    id: string,
-  ): void {
-    this.props.resizeComponent({
-      id,
-      width: delta.width,
-      height: delta.height,
-    });
+  const getRowGuidePosition = useCallback(
+    (resizeRef: HTMLElement | null): number | null => {
+      if (resizeRef && gridRef.current) {
+        return (
+          resizeRef.getBoundingClientRect().bottom -
+          gridRef.current.getBoundingClientRect().top -
+          2
+        );
+      }
+      return null;
+    },
+    [],
+  );
 
-    this.setState(() => ({
-      isResizing: false,
-    }));
-  }
+  const handleResize = useCallback(
+    (
+      _event: MouseEvent | TouchEvent,
+      direction: string,
+      elementRef: HTMLElement,
+      _delta: { width: number; height: number },
+    ): void => {
+      if (direction.toLowerCase().includes(BOTTOM_RESIZE_DIRECTION)) {
+        const newTop = getRowGuidePosition(elementRef);
+        if (rowGuideRef.current && newTop !== null) {
+          rowGuideRef.current.style.top = `${newTop}px`;
+          rowGuideRef.current.style.visibility = 'visible';
+        }
+      }
+    },
+    [getRowGuidePosition],
+  );
 
-  handleTopDropTargetDrop(dropResult: DropResult): void {
-    if (dropResult?.destination) {
-      this.props.handleComponentDrop({
-        ...dropResult,
-        destination: {
-          ...dropResult.destination,
-          // force appending as the first child if top drop target
-          index: 0,
-        },
+  const handleResizeStop = useCallback(
+    (
+      _event: MouseEvent | TouchEvent,
+      _direction: string,
+      _elementRef: HTMLElement,
+      delta: { width: number; height: number },
+      id: string,
+    ): void => {
+      resizeComponent({
+        id,
+        width: delta.width,
+        height: delta.height,
       });
-    }
-  }
 
-  handleChangeTab({ pathToTabIndex }: { pathToTabIndex: string[] }): void {
-    this.props.setDirectPathToChild(pathToTabIndex);
-  }
+      setIsResizing(false);
+      if (rowGuideRef.current) {
+        rowGuideRef.current.style.visibility = 'hidden';
+      }
+    },
+    [resizeComponent],
+  );
 
-  render() {
-    const {
-      gridComponent,
-      handleComponentDrop,
-      depth,
-      width,
-      isComponentVisible,
-      editMode,
-      canEdit,
-      setEditMode,
-      dashboardId,
-      theme,
-    } = this.props;
-    const columnPlusGutterWidth =
-      (width + GRID_GUTTER_SIZE) / GRID_COLUMN_COUNT;
+  const handleTopDropTargetDrop = useCallback(
+    (dropResult: DropResult): void => {
+      if (dropResult?.destination) {
+        handleComponentDrop({
+          ...dropResult,
+          destination: {
+            ...dropResult.destination,
+            // force appending as the first child if top drop target
+            index: 0,
+          },
+        });
+      }
+    },
+    [handleComponentDrop],
+  );
 
-    const columnWidth = columnPlusGutterWidth - GRID_GUTTER_SIZE;
-    const { isResizing } = this.state;
+  const handleChangeTab = useCallback(
+    ({ pathToTabIndex }: { pathToTabIndex: string[] }): void => {
+      setDirectPathToChild(pathToTabIndex);
+    },
+    [setDirectPathToChild],
+  );
 
-    const shouldDisplayEmptyState = gridComponent?.children?.length === 0;
-    const shouldDisplayTopLevelTabEmptyState =
-      shouldDisplayEmptyState && gridComponent?.type === TAB_TYPE;
+  const columnPlusGutterWidth = (width + GRID_GUTTER_SIZE) / GRID_COLUMN_COUNT;
 
-    const dashboardEmptyState = editMode && (
-      <EmptyState
-        title={t('Drag and drop components and charts to the dashboard')}
-        description={t(
-          'You can create a new chart or use existing ones from the panel on the right',
-        )}
-        size="large"
-        buttonText={
-          <>
-            <Icons.PlusOutlined iconSize="m" color={theme.colorPrimary} />
-            {t('Create a new chart')}
-          </>
-        }
-        buttonAction={() => {
-          navigateTo(`/chart/add?dashboard_id=${dashboardId}`, {
-            newWindow: true,
-          });
-        }}
-        image="chart.svg"
-      />
-    );
+  const columnWidth = columnPlusGutterWidth - GRID_GUTTER_SIZE;
 
-    const topLevelTabEmptyState = editMode ? (
-      <EmptyState
-        title={t('Drag and drop components to this tab')}
-        size="large"
-        description={t(
-          `You can create a new chart or use existing ones from the panel on the right`,
-        )}
-        buttonText={
-          <>
-            <Icons.PlusOutlined iconSize="m" color={theme.colorPrimary} />
-            {t('Create a new chart')}
-          </>
-        }
-        buttonAction={() => {
-          navigateTo(`/chart/add?dashboard_id=${dashboardId}`, {
-            newWindow: true,
-          });
-        }}
-        image="chart.svg"
-      />
-    ) : (
-      <EmptyState
-        title={t('There are no components added to this tab')}
-        size="large"
-        description={
-          canEdit && t('You can add the components in the edit mode.')
-        }
-        buttonText={canEdit ? t('Edit the dashboard') : undefined}
-        buttonAction={
-          canEdit
-            ? () => {
-                setEditMode?.(true);
-              }
-            : undefined
-        }
-        image="chart.svg"
-      />
-    );
+  const shouldDisplayEmptyState = gridComponent?.children?.length === 0;
+  const shouldDisplayTopLevelTabEmptyState =
+    shouldDisplayEmptyState && gridComponent?.type === TAB_TYPE;
 
-    return width < 100 ? null : (
-      <>
-        {shouldDisplayEmptyState && (
-          <DashboardEmptyStateContainer>
-            {shouldDisplayTopLevelTabEmptyState
-              ? topLevelTabEmptyState
-              : dashboardEmptyState}
-          </DashboardEmptyStateContainer>
-        )}
-        <div className="dashboard-grid" ref={this.setGridRef}>
-          <GridContent
-            className="grid-content"
-            data-test="grid-content"
-            editMode={editMode}
-          >
-            {/* make the area above components droppable */}
-            {editMode && (
-              <Droppable
-                component={gridComponent}
-                depth={depth}
-                parentComponent={null}
-                index={0}
-                orientation="column"
-                onDrop={this.handleTopDropTargetDrop}
-                className={classNames({
-                  'empty-droptarget': true,
-                  'empty-droptarget--full':
-                    gridComponent?.children?.length === 0,
-                })}
-                editMode
-                dropToChild={gridComponent?.children?.length === 0}
-              >
-                {renderDraggableContent}
-              </Droppable>
-            )}
-            {gridComponent?.children?.map((id, index) => (
-              <Fragment key={id}>
-                <DashboardComponent
-                  id={id}
-                  parentId={gridComponent.id}
-                  depth={depth + 1}
-                  index={index}
-                  availableColumnCount={GRID_COLUMN_COUNT}
-                  columnWidth={columnWidth}
-                  isComponentVisible={isComponentVisible}
-                  onResizeStart={this.handleResizeStart}
-                  onResize={this.handleResize}
-                  onResizeStop={this.handleResizeStop}
-                  onChangeTab={this.handleChangeTab}
+  const dashboardEmptyState = editMode && (
+    <EmptyState
+      title={t('Drag and drop components and charts to the dashboard')}
+      description={t(
+        'You can create a new chart or use existing ones from the panel on the right',
+      )}
+      size="large"
+      buttonText={
+        <>
+          <Icons.PlusOutlined iconSize="m" color={theme.colorPrimary} />
+          {t('Create a new chart')}
+        </>
+      }
+      buttonAction={() => {
+        navigateTo(`/chart/add?dashboard_id=${dashboardId}`, {
+          newWindow: true,
+        });
+      }}
+      image="chart.svg"
+    />
+  );
+
+  const topLevelTabEmptyState = editMode ? (
+    <EmptyState
+      title={t('Drag and drop components to this tab')}
+      size="large"
+      description={t(
+        `You can create a new chart or use existing ones from the panel on the right`,
+      )}
+      buttonText={
+        <>
+          <Icons.PlusOutlined iconSize="m" color={theme.colorPrimary} />
+          {t('Create a new chart')}
+        </>
+      }
+      buttonAction={() => {
+        navigateTo(`/chart/add?dashboard_id=${dashboardId}`, {
+          newWindow: true,
+        });
+      }}
+      image="chart.svg"
+    />
+  ) : (
+    <EmptyState
+      title={t('There are no components added to this tab')}
+      size="large"
+      description={canEdit && t('You can add the components in the edit mode.')}
+      buttonText={canEdit ? t('Edit the dashboard') : undefined}
+      buttonAction={
+        canEdit
+          ? () => {
+              setEditMode?.(true);
+            }
+          : undefined
+      }
+      image="chart.svg"
+    />
+  );
+
+  return width < 100 ? null : (
+    <>
+      {shouldDisplayEmptyState && (
+        <DashboardEmptyStateContainer>
+          {shouldDisplayTopLevelTabEmptyState
+            ? topLevelTabEmptyState
+            : dashboardEmptyState}
+        </DashboardEmptyStateContainer>
+      )}
+      <div className="dashboard-grid" ref={setGridRef}>
+        <GridContent
+          className="grid-content"
+          data-test="grid-content"
+          editMode={editMode}
+        >
+          {/* make the area above components droppable */}
+          {editMode && (
+            <Droppable
+              component={gridComponent}
+              depth={depth}
+              parentComponent={null}
+              index={0}
+              orientation="column"
+              onDrop={handleTopDropTargetDrop}
+              className={classNames({
+                'empty-droptarget': true,
+                'empty-droptarget--full': gridComponent?.children?.length === 0,
+              })}
+              editMode
+              dropToChild={gridComponent?.children?.length === 0}
+            >
+              {renderDraggableContent}
+            </Droppable>
+          )}
+          {gridComponent?.children?.map((id, index) => (
+            <Fragment key={id}>
+              <DashboardComponent
+                id={id}
+                parentId={gridComponent.id}
+                depth={depth + 1}
+                index={index}
+                availableColumnCount={GRID_COLUMN_COUNT}
+                columnWidth={columnWidth}
+                isComponentVisible={isComponentVisible}
+                onResizeStart={handleResizeStart}
+                onResize={handleResize}
+                onResizeStop={handleResizeStop}
+                onChangeTab={handleChangeTab}
+              />
+              {/* make the area below components droppable */}
+              {editMode && (
+                <Droppable
+                  component={gridComponent}
+                  depth={depth}
+                  parentComponent={null}
+                  index={index + 1}
+                  orientation="column"
+                  onDrop={handleComponentDrop}
+                  className="empty-droptarget"
+                  editMode
+                >
+                  {renderDraggableContent}
+                </Droppable>
+              )}
+            </Fragment>
+          ))}
+          {isResizing &&
+            Array(GRID_COLUMN_COUNT)
+              .fill(null)
+              .map((_, i) => (
+                <GridColumnGuide
+                  key={`grid-column-${i}`}
+                  className="grid-column-guide"
+                  style={{
+                    left: i * GRID_GUTTER_SIZE + i * columnWidth,
+                    width: columnWidth,
+                  }}
                 />
-                {/* make the area below components droppable */}
-                {editMode && (
-                  <Droppable
-                    component={gridComponent}
-                    depth={depth}
-                    parentComponent={null}
-                    index={index + 1}
-                    orientation="column"
-                    onDrop={handleComponentDrop}
-                    className="empty-droptarget"
-                    editMode
-                  >
-                    {renderDraggableContent}
-                  </Droppable>
-                )}
-              </Fragment>
-            ))}
-            {isResizing &&
-              Array(GRID_COLUMN_COUNT)
-                .fill(null)
-                .map((_, i) => (
-                  <GridColumnGuide
-                    key={`grid-column-${i}`}
-                    className="grid-column-guide"
-                    style={{
-                      left: i * GRID_GUTTER_SIZE + i * columnWidth,
-                      width: columnWidth,
-                    }}
-                  />
-                ))}
-          </GridContent>
-        </div>
-      </>
-    );
-  }
+              ))}
+          {isResizing && (
+            <GridRowGuide
+              ref={rowGuideRef}
+              className="grid-row-guide"
+              style={{ visibility: 'hidden' }}
+            />
+          )}
+        </GridContent>
+      </div>
+    </>
+  );
 }
 
-export default withTheme(DashboardGrid);
+export default DashboardGrid;

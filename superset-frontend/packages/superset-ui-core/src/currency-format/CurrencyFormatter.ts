@@ -18,10 +18,19 @@
  */
 
 import { ExtensibleFunction } from '../models';
-import { getNumberFormatter, NumberFormats } from '../number-format';
+// Import from the concrete modules rather than the `number-format` barrel to
+// avoid a circular dependency (the barrel pulls in getSmallNumberFormatter,
+// which imports CurrencyFormatter).
+import { getNumberFormatter } from '../number-format/NumberFormatterRegistrySingleton';
+import NumberFormats from '../number-format/NumberFormats';
 import { Currency } from '../query';
 import { RowData, RowDataValue } from './types';
 import { AUTO_CURRENCY_SYMBOL, ISO_4217_REGEX } from './CurrencyFormats';
+import { getCurrencyLocale } from './currencyLocale';
+import {
+  resolveSymbolPosition,
+  formatWithSymbolPosition,
+} from './symbolPosition';
 
 /* eslint-disable @typescript-eslint/no-unsafe-declaration-merging */
 
@@ -86,7 +95,7 @@ class CurrencyFormatter extends ExtensibleFunction {
     );
     this.d3Format = config.d3Format || NumberFormats.SMART_NUMBER;
     this.currency = config.currency;
-    this.locale = config.locale || 'en-US';
+    this.locale = config.locale || getCurrencyLocale();
   }
 
   hasValidCurrency() {
@@ -124,13 +133,16 @@ class CurrencyFormatter extends ExtensibleFunction {
           try {
             const symbol = getCurrencySymbol({ symbol: normalizedCurrency });
             if (symbol) {
-              if (this.currency.symbolPosition === 'prefix') {
-                return `${symbol} ${normalizedValue}`;
-              } else if (this.currency.symbolPosition === 'suffix') {
-                return `${normalizedValue} ${symbol}`;
-              }
-              // Unknown symbolPosition - default to suffix
-              return `${normalizedValue} ${symbol}`;
+              const position = resolveSymbolPosition(
+                normalizedCurrency,
+                this.currency.symbolPosition,
+                this.locale,
+              );
+              return formatWithSymbolPosition(
+                symbol,
+                normalizedValue,
+                position,
+              );
             }
           } catch {
             // Invalid currency code - return value without currency symbol
@@ -143,13 +155,15 @@ class CurrencyFormatter extends ExtensibleFunction {
 
     try {
       const symbol = getCurrencySymbol(this.currency);
-      if (this.currency.symbolPosition === 'prefix') {
-        return `${symbol} ${normalizedValue}`;
-      } else if (this.currency.symbolPosition === 'suffix') {
-        return `${normalizedValue} ${symbol}`;
+      if (!symbol) {
+        return formattedValue;
       }
-      // Unknown symbolPosition - default to suffix
-      return `${normalizedValue} ${symbol}`;
+      const position = resolveSymbolPosition(
+        this.currency.symbol,
+        this.currency.symbolPosition,
+        this.locale,
+      );
+      return formatWithSymbolPosition(symbol, normalizedValue, position);
     } catch {
       // Invalid currency code - return value without currency symbol
       return formattedValue;

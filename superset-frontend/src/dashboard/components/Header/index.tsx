@@ -38,8 +38,7 @@ import {
 } from '@superset-ui/core/components';
 import { findPermission } from 'src/utils/findPermission';
 import { safeStringify } from 'src/utils/safeStringify';
-import Role from 'src/types/Role';
-import Owner from 'src/types/Owner';
+import Subject from 'src/types/Subject';
 import { DashboardLayout, RootState } from 'src/dashboard/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { AlertObject } from 'src/features/alerts/types';
@@ -101,11 +100,11 @@ import { RefreshButton } from '../RefreshButton';
 
 type DashboardPropertiesUpdate = {
   slug?: string;
+  description?: string;
   jsonMetadata?: string;
   certifiedBy?: string;
   certificationDetails?: string;
-  owners?: Owner[];
-  roles?: Role[];
+  editors?: Subject[];
   tags?: TagType[];
   theme?: { id: number; theme_name: string; json_data: string } | null;
   css?: string;
@@ -122,10 +121,10 @@ type DashboardInfoState = RootState['dashboardInfo'] & {
   dash_share_perm?: boolean;
   is_managed_externally?: boolean;
   slug?: string;
+  description?: string;
   last_modified_time?: number;
   certified_by?: string;
   certification_details?: string;
-  roles?: Role[];
   tags?: TagType[];
   metadata: RootState['dashboardInfo']['metadata'] & {
     timed_refresh_immune_slices?: number[];
@@ -439,9 +438,9 @@ const Header = (): JSX.Element => {
       css: customCss,
       dashboard_title: dashboardTitle,
       last_modified_time: actualLastModifiedTime,
-      owners: dashboardInfo.owners,
-      roles: dashboardInfo.roles,
+      editors: dashboardInfo.editors,
       slug,
+      description: dashboardInfo.description,
       tags: (dashboardInfo.tags || []).filter(
         item => item.type === TagTypeEnum.Custom || !item.type,
       ),
@@ -465,7 +464,9 @@ const Header = (): JSX.Element => {
     if (positionJSONLength >= limit) {
       boundActionCreators.addDangerToast(
         t(
-          'Your dashboard is too large. Please reduce its size before saving it.',
+          'Your dashboard is too large to save: the serialized layout length is %s but the limit is %s. Reduce the dashboard size (for example, split it into multiple dashboards) or raise the SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting.',
+          positionJSONLength.toLocaleString(),
+          limit.toLocaleString(),
         ),
       );
     } else {
@@ -488,8 +489,7 @@ const Header = (): JSX.Element => {
     dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_POSITION_DATA_LIMIT,
     dashboardInfo.id,
     dashboardInfo.metadata,
-    dashboardInfo.owners,
-    dashboardInfo.roles,
+    dashboardInfo.editors,
     dashboardInfo.tags,
     dashboardTitle,
     layout,
@@ -497,6 +497,7 @@ const Header = (): JSX.Element => {
     shouldPersistRefreshFrequency,
     slug,
     themeId,
+    dashboardInfo.description,
   ]);
 
   const {
@@ -555,11 +556,11 @@ const Header = (): JSX.Element => {
     (updates: DashboardPropertiesUpdate) => {
       boundActionCreators.dashboardInfoChanged({
         slug: updates.slug,
+        description: updates.description,
         metadata: JSON.parse(updates.jsonMetadata || '{}'),
         certified_by: updates.certifiedBy,
         certification_details: updates.certificationDetails,
-        owners: updates.owners,
-        roles: updates.roles,
+        editors: updates.editors,
         tags: updates.tags,
         // Conditional spread: omit `theme` key entirely when undefined
         // to prevent the reducer from overwriting the existing theme.
@@ -749,7 +750,7 @@ const Header = (): JSX.Element => {
         ) : (
           <div css={actionButtonsStyle}>
             {NavExtension && <NavExtension />}
-            {userCanEdit && (
+            {userCanEdit && !isEmbedded && (
               <Button
                 buttonStyle="secondary"
                 onClick={handleEnterEditMode}
@@ -776,6 +777,7 @@ const Header = (): JSX.Element => {
       handleCtrlZ,
       handleEnterEditMode,
       hasUnsavedChanges,
+      isEmbedded,
       overwriteDashboard,
       redoLength,
       undoLength,
@@ -867,7 +869,6 @@ const Header = (): JSX.Element => {
       )}
 
       <ReportModal
-        userId={user.userId}
         show={showingReportModal}
         onHide={hideReportModal}
         userEmail={user.email}

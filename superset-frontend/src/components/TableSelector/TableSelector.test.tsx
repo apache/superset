@@ -42,9 +42,9 @@ const createProps = (props = {}) => ({
   ...props,
 });
 
-const getTableMockFunction = () =>
+const getTableMockFunction = (count = 4) =>
   ({
-    count: 4,
+    count,
     result: [
       { label: 'table_a', value: 'table_a' },
       { label: 'table_b', value: 'table_b' },
@@ -80,6 +80,35 @@ afterEach(async () => {
   fetchMock.clearHistory().removeRoutes();
   // Wait for any pending effects to complete
   await new Promise(resolve => setTimeout(resolve, 0));
+});
+
+test('shows a helper message when some tables are not shown', async () => {
+  fetchMock.get(catalogApiRoute, { result: [] });
+  fetchMock.get(schemaApiRoute, { result: ['test_schema'] });
+  fetchMock.get(tablesApiRoute, getTableMockFunction(5));
+
+  const props = createProps();
+  render(<TableSelector {...props} />, { useRedux: true, store });
+
+  expect(
+    await screen.findByText('Some tables are not shown. Refine your search.'),
+  ).toBeInTheDocument();
+});
+
+test('does not show the helper message when table search is read-only', async () => {
+  fetchMock.get(catalogApiRoute, { result: [] });
+  fetchMock.get(schemaApiRoute, { result: ['test_schema'] });
+  fetchMock.get(tablesApiRoute, getTableMockFunction(5));
+
+  const props = createProps({ readOnly: true });
+  render(<TableSelector {...props} />, { useRedux: true, store });
+
+  await waitFor(() => {
+    expect(fetchMock.callHistory.called(tablesApiRoute)).toBe(true);
+  });
+  expect(
+    screen.queryByText('Some tables are not shown. Refine your search.'),
+  ).not.toBeInTheDocument();
 });
 
 test('renders with default props', async () => {
@@ -205,10 +234,10 @@ test('table select retain value if not in SQL Lab mode', async () => {
   );
 }, 15000);
 
-test('renders disabled without schema', async () => {
+test('renders disabled without schema or helper message', async () => {
   fetchMock.get(catalogApiRoute, { result: [] });
   fetchMock.get(schemaApiRoute, { result: [] });
-  fetchMock.get(tablesApiRoute, getTableMockFunction());
+  fetchMock.get(tablesApiRoute, getTableMockFunction(5));
 
   const props = createProps();
   render(<TableSelector {...props} schema={undefined} />, {
@@ -221,6 +250,9 @@ test('renders disabled without schema', async () => {
   await waitFor(() => {
     expect(tableSelect).toBeDisabled();
   });
+  expect(
+    screen.queryByText('Some tables are not shown. Refine your search.'),
+  ).not.toBeInTheDocument();
 });
 
 test('table multi select retain all the values selected', async () => {

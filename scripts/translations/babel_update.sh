@@ -55,10 +55,29 @@ msgcat --sort-by-msgid --no-wrap --no-location superset/translations/messages.po
 cat $LICENSE_TMP superset/translations/messages.pot > messages.pot.tmp \
   && mv messages.pot.tmp superset/translations/messages.pot
 
+# Stamp do-not-translate msgids (superset/translations/do-not-translate.txt) with
+# a `#. do-not-translate` extracted comment. Extracted comments
+# propagate from the .pot into every catalog on the `pybabel update` below, so
+# the do-not-translate status stays consistent across all languages.
+# Fail fast: without this guard the script would continue past a marker-stamping
+# failure and `pybabel update` would publish catalogs missing the markers.
+python scripts/translations/apply_do_not_translate.py superset/translations/messages.pot || exit 1
+
+# --no-fuzzy-matching: when a *new* source string is added, Babel's fuzzy
+# matcher otherwise guesses a "close" existing translation and marks it
+# `#, fuzzy` in every language catalog. Those guesses are (a) usually wrong
+# (e.g. a new "valuename" string mapped onto an unrelated "table name"
+# translation) and (b) counted by check_translation_regression.py as a
+# regression, so every PR that merely adds a translatable string failed the
+# babel-extract check. Disabling fuzzy matching means new strings land as
+# cleanly untranslated (empty msgstr) instead — accurate, and no spurious
+# regression. Renames likewise drop the stale translation rather than
+# stranding a wrong guess; the string is re-translated by the community.
 pybabel update \
   -i superset/translations/messages.pot \
   -d superset/translations \
-  --ignore-obsolete
+  --ignore-obsolete \
+  --no-fuzzy-matching
 
 # Chop off last blankline from po/pot files, see https://github.com/python-babel/babel/issues/799
 for file in $( find superset/translations/** );

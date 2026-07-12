@@ -22,7 +22,7 @@ Unit tests for get_chart_preview MCP tool
 import importlib
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -43,6 +43,7 @@ from superset.mcp_service.chart.tool.get_chart_preview import (
     _build_query_metrics,
     _sanitize_chart_preview_for_llm_context,
     ASCIIPreviewStrategy,
+    PreviewFormatStrategy,
     TablePreviewStrategy,
 )
 from superset.mcp_service.utils import sanitize_for_llm_context
@@ -274,13 +275,8 @@ class TestGetChartPreview:
             "performance",
         ]
 
-        # Additional fields that may be present for backward compatibility
+        # Versioning fields
         _ = [
-            "format",
-            "ascii_chart",
-            "table_data",
-            "width",
-            "height",
             "schema_version",
             "api_version",
         ]
@@ -756,10 +752,6 @@ class TestChartPreviewSanitization:
                 high_contrast_available=False,
             ),
             performance=PerformanceMetadata(query_duration_ms=8, cache_status="miss"),
-            format="ascii",
-            ascii_chart="North > South",
-            width=20,
-            height=5,
         )
 
         result = _sanitize_chart_preview_for_llm_context(preview)
@@ -770,7 +762,6 @@ class TestChartPreviewSanitization:
             "Preview of line: Regional Trend"
         )
         assert result.content.ascii_content == sanitize_for_llm_context("North > South")
-        assert result.ascii_chart == sanitize_for_llm_context("North > South")
         assert result.accessibility.alt_text == sanitize_for_llm_context(
             "Preview of Regional Trend"
         )
@@ -876,16 +867,11 @@ class TestChartPreviewSanitization:
                 high_contrast_available=False,
             ),
             performance=PerformanceMetadata(query_duration_ms=9, cache_status="miss"),
-            format="table",
-            table_data="Customer | Revenue\nAcme | 100",
         )
 
         result = _sanitize_chart_preview_for_llm_context(preview)
 
         assert result.content.table_data == sanitize_for_llm_context(
-            "Customer | Revenue\nAcme | 100"
-        )
-        assert result.table_data == sanitize_for_llm_context(
             "Customer | Revenue\nAcme | 100"
         )
         assert result.content.row_count == 1
@@ -1267,3 +1253,36 @@ class TestDetachedInstanceError:
         data = json.loads(response.content[0].text)
         assert data["error_type"] == "InternalError"
         assert "session" in data["error"].lower() or "retry" in data["error"].lower()
+
+
+def _guest_strategy() -> PreviewFormatStrategy:
+    chart = MagicMock()
+    return PreviewFormatStrategy(chart, GetChartPreviewRequest(identifier=1))
+
+
+def test_authorize_guest_query_attaches_dashboard_context() -> None:
+    """For a guest, the preview query is pinned to the token's dashboard so
+    raise_for_access can authorize it."""
+    strategy = _guest_strategy()
+    query_context = MagicMock()
+
+    with (
+        patch("superset.mcp_service.guest_scope.guest_dashboard_id", return_value=6),
+        patch("superset.mcp_service.guest_scope.authorize_query") as mock_authorize,
+    ):
+        strategy._authorize_guest_query(query_context)
+
+    mock_authorize.assert_called_once_with(query_context, 6, strategy.chart)
+
+
+def test_authorize_guest_query_noop_for_non_guest() -> None:
+    """A non-guest has no dashboard id, so nothing is attached."""
+    strategy = _guest_strategy()
+
+    with (
+        patch("superset.mcp_service.guest_scope.guest_dashboard_id", return_value=None),
+        patch("superset.mcp_service.guest_scope.authorize_query") as mock_authorize,
+    ):
+        strategy._authorize_guest_query(MagicMock())
+
+    mock_authorize.assert_not_called()

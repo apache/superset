@@ -18,7 +18,7 @@
  */
 import { useEffect, useMemo, useRef } from 'react';
 import { useStore } from 'react-redux';
-import { useAppDispatch } from 'src/views/store';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { t } from '@apache-superset/core/translation';
 import { getExtensionsRegistry } from '@superset-ui/core';
 
@@ -52,6 +52,14 @@ const getHelperText = (value: string) =>
   value.length > 30 && {
     detail: value,
   };
+
+// Names that aren't simple identifiers (spaces, punctuation, leading digits)
+// must be double-quoted to be valid SQL, with embedded quotes doubled.
+const SIMPLE_IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const quoteIdentifier = (identifier: string) =>
+  SIMPLE_IDENTIFIER_RE.test(identifier)
+    ? identifier
+    : `"${identifier.replace(/"/g, '""')}"`;
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -197,7 +205,7 @@ export function useKeywords(
     () =>
       allCachedTables.map(({ value, label, schema: tableSchema }) => ({
         name: label,
-        value,
+        value: quoteIdentifier(value),
         schema: tableSchema,
         score: TABLE_AUTOCOMPLETE_SCORE,
         meta: 'table',

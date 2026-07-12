@@ -23,7 +23,6 @@ from uuid import uuid4
 import pytest
 from flask.ctx import AppContext
 from flask_appbuilder.security.sqla.models import User
-from flask_sqlalchemy import BaseQuery
 from freezegun import freeze_time
 from slack_sdk.errors import (
     BotUserAccessError,
@@ -35,7 +34,14 @@ from slack_sdk.errors import (
     SlackRequestError,
     SlackTokenRotationError,
 )
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, text
+
+try:
+    # Flask-SQLAlchemy 3.x (required by SQLAlchemy 2.0)
+    from flask_sqlalchemy.query import Query as BaseQuery
+except ImportError:  # pragma: no cover
+    # Flask-SQLAlchemy 2.x
+    from flask_sqlalchemy import BaseQuery
 
 from superset import db
 from superset.commands.report.exceptions import (
@@ -91,6 +97,7 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_data,  # noqa: F401
 )
 from tests.integration_tests.reports.utils import (
+    _subjects_for_users,
     cleanup_report_schedule,
     create_report_notification,
     CSV_FILE,
@@ -172,14 +179,17 @@ def assert_log(state: str, error_message: Optional[str] = None):
 def create_test_table_context(database: Database):
     with database.get_sqla_engine() as engine:
         engine.execute(
-            "CREATE TABLE IF NOT EXISTS test_table AS SELECT 1 as first, 2 as second"
+            text("""
+            CREATE TABLE IF NOT EXISTS test_table AS
+            SELECT 1 as first, 2 as second
+            """)
         )
-        engine.execute("INSERT INTO test_table (first, second) VALUES (1, 2)")
-        engine.execute("INSERT INTO test_table (first, second) VALUES (3, 4)")
+        engine.execute(text("INSERT INTO test_table (first, second) VALUES (1, 2)"))
+        engine.execute(text("INSERT INTO test_table (first, second) VALUES (3, 4)"))
 
     yield db.session
     with database.get_sqla_engine() as engine:
-        engine.execute("DROP TABLE test_table")
+        engine.execute(text("DROP TABLE test_table"))
 
 
 @pytest.fixture
@@ -209,10 +219,11 @@ def create_report_email_chart_with_cc_and_bcc():
 
 @pytest.fixture
 def create_report_email_chart_alpha_owner(get_user):
-    owners = [get_user("alpha")]
+    alpha = get_user("alpha")
+    editors = _subjects_for_users([alpha])
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
-        email_target="target@email.com", chart=chart, owners=owners
+        email_target="target@email.com", chart=chart, editors=editors
     )
     yield report_schedule
 
@@ -773,11 +784,11 @@ def test_email_chart_report_schedule_alpha_owner(
 ):
     """
     ExecuteReport Command: Test chart email report schedule with screenshot
-    executed as the chart owner
+    executed as the chart editor
     """
     config_key = "ALERT_REPORTS_EXECUTORS"
     original_config_value = app.config[config_key]
-    app.config[config_key] = [ExecutorType.OWNER]
+    app.config[config_key] = [ExecutorType.EDITOR]
 
     # setup screenshot mock
     username = ""
@@ -1902,7 +1913,7 @@ def test_email_dashboard_report_fails_uncaught_exception(
 
     assert_log(ReportState.ERROR, error_message="Uncaught exception")
     assert (
-        '<a href="http://0.0.0.0:8080/superset/dashboard/'
+        '<a href="http://0.0.0.0:8080/dashboard/'
         f"{create_report_email_dashboard.dashboard.uuid}/"
         '?force=false">Call to action</a>' in email_mock.call_args[0][2]
     )
@@ -1975,11 +1986,13 @@ def test_slack_chart_alert_no_attachment(email_mock, create_alert_email_chart):
     "load_birth_names_dashboard_with_slices",
     "create_report_slack_chart",
 )
+@patch("superset.commands.report.execute.get_channels_with_search")
 @patch("superset.utils.slack.WebClient")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_slack_token_callable_chart_report(
     screenshot_mock,
     slack_client_mock_class,
+    get_channels_with_search_mock,
     create_report_slack_chart,
 ):
     """
@@ -1990,9 +2003,20 @@ def test_slack_token_callable_chart_report(
     channel_name = notification_targets[0]
     channel_id = "channel_id"
     slack_client_mock_class.return_value = Mock()
+    # should_use_v2_api() probes via conversations_list(); a non-erroring return
+    # is enough — it doesn't read the response body. The v2 upgrade then resolves
+    # channel names through get_channels_with_search, which we mock directly.
     slack_client_mock_class.return_value.conversations_list.return_value = {
         "channels": [{"id": channel_id, "name": channel_name}]
     }
+    get_channels_with_search_mock.return_value = [
+        {
+            "id": channel_id,
+            "name": channel_name,
+            "is_member": True,
+            "is_private": False,
+        }
+    ]
 
     slack_token_mock = Mock(return_value="cool_code")
     with patch.dict("flask.current_app.config", {"SLACK_API_TOKEN": slack_token_mock}):
@@ -2004,7 +2028,11 @@ def test_slack_token_callable_chart_report(
                 TEST_ID, create_report_slack_chart.id, datetime.utcnow()
             ).run()
             slack_token_mock.assert_called()
-            slack_client_mock_class.assert_called_with(token="cool_code", proxy=None)  # noqa: S106
+            slack_client_mock_class.assert_called_with(
+                token="cool_code",  # noqa: S106
+                proxy=None,
+                timeout=30,
+            )
             assert_log(ReportState.SUCCESS)
 
 

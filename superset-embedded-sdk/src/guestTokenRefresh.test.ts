@@ -22,23 +22,25 @@ import {
   getGuestTokenRefreshTiming,
   MIN_REFRESH_WAIT_MS,
   DEFAULT_TOKEN_EXP_MS,
+  DEFAULT_TOKEN_REFRESH_RETRY_MS,
 } from "./guestTokenRefresh";
+import { afterAll, beforeAll, it, expect, describe, vi } from "vitest";
 
 describe("guest token refresh", () => {
   beforeAll(() => {
-    jest.useFakeTimers();
-    jest.setSystemTime(new Date("2022-03-03 01:00"));
-    jest.spyOn(global, "setTimeout");
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2022-03-03 01:00"));
+    vi.spyOn(globalThis, "setTimeout");
   });
 
   afterAll(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   function makeFakeJWT(claims: any) {
     // not a valid jwt, but close enough for this code
     const tokenifiedClaims = Buffer.from(JSON.stringify(claims)).toString(
-      "base64"
+      "base64",
     );
     return `abc.${tokenifiedClaims}.xyz`;
   }
@@ -92,5 +94,12 @@ describe("guest token refresh", () => {
 
     expect(timing).toBeGreaterThan(MIN_REFRESH_WAIT_MS);
     expect(timing).toBe(DEFAULT_TOKEN_EXP_MS - REFRESH_TIMING_BUFFER_MS);
+  });
+
+  it("exposes a positive retry delay for failed token refreshes", () => {
+    // The refresh loop reschedules itself after this delay when a fetch
+    // fails or times out, so it must be a sane positive value.
+    expect(DEFAULT_TOKEN_REFRESH_RETRY_MS).toBe(10000);
+    expect(DEFAULT_TOKEN_REFRESH_RETRY_MS).toBeGreaterThan(0);
   });
 });

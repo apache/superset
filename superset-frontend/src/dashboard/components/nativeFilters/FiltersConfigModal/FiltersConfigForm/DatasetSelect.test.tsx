@@ -265,3 +265,48 @@ test('returns total count from API when data is filtered', async () => {
   expect(result.data).toHaveLength(2);
   expect(result.data.find(item => item.value === 2)).toBeUndefined();
 });
+
+test('does not exclude semantic views that share dataset IDs', async () => {
+  supersetGetCache.clear();
+  fetchMock.clearHistory().removeRoutes();
+
+  const originalFeatureFlags = window.featureFlags;
+  window.featureFlags = {
+    ...originalFeatureFlags,
+    SEMANTIC_LAYERS: true,
+  };
+
+  try {
+    fetchMock.get('glob:*/api/v1/datasource/*', {
+      result: [
+        {
+          id: 7,
+          table_name: 'orders_dataset',
+          kind: 'physical',
+          database: { database_name: 'examples' },
+          schema: 'public',
+        },
+        {
+          id: 7,
+          table_name: 'orders_semantic_view',
+          kind: 'semantic_view',
+          database: { database_name: 'semantic_layer' },
+          schema: null,
+        },
+      ],
+      count: 2,
+    });
+
+    const result = await loadDatasetOptions('', 0, 100, [7]);
+
+    expect(result.totalCount).toBe(2);
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0]).toMatchObject({
+      value: 'sv:7',
+      kind: 'semantic_view',
+      table_name: 'orders_semantic_view',
+    });
+  } finally {
+    window.featureFlags = originalFeatureFlags;
+  }
+});

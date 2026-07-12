@@ -51,6 +51,7 @@ import {
   NotificationFormats,
 } from 'src/features/reports/types';
 import { reportSelector } from 'src/views/CRUD/hooks';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { StyledInputContainer } from 'src/features/alerts/AlertReportModal';
 import { CreationMethod } from './HeaderReportDropdown';
 import {
@@ -74,7 +75,6 @@ interface ReportProps {
   onHide: () => {};
   addDangerToast: (msg: string) => void;
   show: boolean;
-  userId: number;
   userEmail: string;
   ccEmail: string;
   bccEmail: string;
@@ -112,7 +112,6 @@ function ReportModal({
   show = false,
   dashboardId,
   chart,
-  userId,
   userEmail,
   ccEmail,
   bccEmail,
@@ -127,6 +126,7 @@ function ReportModal({
   const defaultNotificationFormat = isTextBasedChart
     ? NotificationFormats.Text
     : NotificationFormats.PNG;
+  const currentUserSubjectId = getBootstrapData()?.common?.user_subject_id;
   const entityName = dashboardName || chartName;
   const initialState: ReportObjectState = useMemo(
     () => ({
@@ -196,12 +196,14 @@ function ReportModal({
     setCurrentReport({ isSubmitting: true, error: undefined });
     try {
       if (isEditMode && currentReport.id) {
-        // Edit path: include all fields, PUT endpoint accepts recipients/owners directly
+        // Edit path: include all fields, PUT endpoint accepts recipients/editors directly
         await dispatch(
           editReport(currentReport.id, {
             ...commonFields,
             creation_method: creationMethod,
-            owners: [userId],
+            ...(currentUserSubjectId === undefined
+              ? {}
+              : { editors: [currentUserSubjectId] }),
             recipients: [
               {
                 recipient_config_json: {
@@ -215,7 +217,7 @@ function ReportModal({
           } as ReportObject),
         );
       } else {
-        // Subscribe path: creation_method, owners, and recipients are set server-side.
+        // Subscribe path: creation_method, editors, and recipients are set server-side.
         await dispatch(subscribeReport(commonFields as ReportObject));
       }
       onHide();
@@ -296,11 +298,12 @@ function ReportModal({
         <Input
           type="number"
           name="custom_width"
-          value={currentReport?.custom_width || ''}
+          value={currentReport?.custom_width ?? ''}
           placeholder={t('Input custom width in pixels')}
           onChange={(event: ChangeEvent<HTMLInputElement>) => {
+            const parsedWidth = parseInt(event.target.value, 10);
             setCurrentReport({
-              custom_width: parseInt(event.target.value, 10) || null,
+              custom_width: Number.isNaN(parsedWidth) ? null : parsedWidth,
             });
           }}
         />

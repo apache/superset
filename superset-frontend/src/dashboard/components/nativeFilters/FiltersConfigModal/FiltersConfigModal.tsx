@@ -17,7 +17,7 @@
  * under the License.
  */
 import { memo, useEffect, useCallback, useMemo, useState, useRef } from 'react';
-import { uniq, debounce } from 'lodash';
+import { uniq, debounce } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { ChartCustomizationType, NativeFilterType } from '@superset-ui/core';
 import { styled, css, useTheme } from '@apache-superset/core/theme';
@@ -57,6 +57,7 @@ import {
   isFilterId,
   isChartCustomizationId,
   transformDividerId,
+  isDivider,
 } from './utils';
 import { ConfigModalContent } from './ConfigModalContent';
 import ConfigModalSidebar from './ConfigModalSidebar';
@@ -470,9 +471,20 @@ function FiltersConfigModal({
     [modalSaveLogic, setSaveAlertVisible],
   );
 
-  const handleValuesChange = useMemo(
-    () => debouncedHandleErroredItems,
-    [debouncedHandleErroredItems],
+  const handleValuesChange = useCallback(
+    (changedValues: Partial<NativeFiltersForm>) => {
+      debouncedHandleErroredItems();
+      // DividerConfigForm doesn't call handleModifyItem on change the way
+      // FiltersConfigForm does, so detect divider field changes here and mark
+      // the divider as modified so canSave becomes true and the save payload
+      // includes the updated divider values.
+      Object.keys(changedValues?.filters ?? {}).forEach(id => {
+        if (isDivider(id)) {
+          handleModifyItem(id);
+        }
+      });
+    },
+    [debouncedHandleErroredItems, handleModifyItem],
   );
 
   const handleActiveFilterPanelChange = useCallback(

@@ -189,6 +189,11 @@ Try out Superset's [quickstart](https://superset.apache.org/docs/quickstart/) gu
 - [Join our community's Slack](http://bit.ly/join-superset-slack)
   and please read our [Slack Community Guidelines](https://github.com/apache/superset/blob/master/CODE_OF_CONDUCT.md#slack-community-guidelines)
 - [Join our dev@superset.apache.org Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org). To join, simply send an email to [dev-subscribe@superset.apache.org](mailto:dev-subscribe@superset.apache.org)
+- Follow us on social media:
+  [X](https://x.com/apachesuperset) |
+  [LinkedIn](https://www.linkedin.com/company/apache-superset) |
+  [Bluesky](https://bsky.app/profile/apachesuperset.bsky.social) |
+  [Reddit](https://reddit.com/r/apache-superset)
 - If you want to help troubleshoot GitHub Issues involving the numerous database drivers that Superset supports, please consider adding your name and the databases you have access to on the [Superset Database Familiarity Rolodex](https://docs.google.com/spreadsheets/d/1U1qxiLvOX0kBTUGME1AHHi6Ywel6ECF8xk_Qy-V9R8c/edit#gid=0)
 - Join Superset's Town Hall and [Operational Model](https://preset.io/blog/the-superset-operational-model-wants-you/) recurring meetings. Meeting info is available on the [Superset Community Calendar](https://superset.apache.org/community)
 
@@ -242,16 +247,13 @@ Understanding the Superset Points of View
 
 - [Superset API](https://superset.apache.org/docs/rest-api)
 
-## Repo Activity
-
-<a href="https://next.ossinsight.io/widgets/official/compose-last-28-days-stats?repo_id=39464018" target="_blank" align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://next.ossinsight.io/widgets/official/compose-last-28-days-stats/thumbnail.png?repo_id=39464018&image_size=auto&color_scheme=dark" width="655" height="auto" />
-    <img alt="Performance Stats of apache/superset - Last 28 days" src="https://next.ossinsight.io/widgets/official/compose-last-28-days-stats/thumbnail.png?repo_id=39464018&image_size=auto&color_scheme=light" width="655" height="auto" />
-  </picture>
-</a>
-
-<!-- Made with [OSS Insight](https://ossinsight.io/) -->
+<!--
+  The OSS Insight "Repo Activity" widget (https://next.ossinsight.io/) was
+  intentionally removed. This README is rendered on the ASF-hosted website
+  (superset.apache.org), so its contents are subject to ASF's third-party
+  content and CSP rules. OSS Insight has no Data Processing Agreement (DPA)
+  with the ASF, so we cannot embed its images/widgets here. Do not re-add it.
+-->
 
 <!-- telemetry/analytics pixel: -->
 <img referrerpolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=bc1c90cd-bc04-4e11-8c7b-289fb2839492" />

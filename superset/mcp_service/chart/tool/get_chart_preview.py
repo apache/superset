@@ -117,7 +117,7 @@ def _sanitize_chart_preview_for_llm_context(
     """Wrap chart preview read-path descriptive fields before LLM exposure."""
     payload = chart_preview.model_dump(mode="python")
 
-    for field_name in ("chart_name", "chart_description", "ascii_chart", "table_data"):
+    for field_name in ("chart_name", "chart_description"):
         payload[field_name] = sanitize_for_llm_context(
             payload.get(field_name),
             field_path=(field_name,),
@@ -243,6 +243,14 @@ class PreviewFormatStrategy:
         """Generate preview in the specific format."""
         raise NotImplementedError
 
+    def _authorize_guest_query(self, query_context: Any) -> None:
+        """For a guest, attach the dashboard context so raise_for_access
+        authorizes the preview query."""
+        from superset.mcp_service import guest_scope
+
+        if (dashboard_id := guest_scope.guest_dashboard_id(self.chart)) is not None:
+            guest_scope.authorize_query(query_context, dashboard_id, self.chart)
+
 
 class URLPreviewStrategy(PreviewFormatStrategy):
     """Generate URL-based preview with explore link."""
@@ -292,6 +300,7 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                 force=False,
             )
 
+            self._authorize_guest_query(query_context)
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
@@ -353,6 +362,7 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                 force=False,
             )
 
+            self._authorize_guest_query(query_context)
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
@@ -444,6 +454,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             )
 
             # Execute the query
+            self._authorize_guest_query(query_context)
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
@@ -1243,9 +1254,11 @@ async def _get_chart_preview_internal(  # noqa: C901
         logger.info("Generating preview for chart %s", getattr(chart, "id", "NO_ID"))
         logger.info("Chart datasource_id: %s", getattr(chart, "datasource_id", "NONE"))
 
-        # Validate the chart's dataset is accessible before generating preview
-        # Skip validation for transient charts (no ID) - different data sources
-        if getattr(chart, "id", None) is not None:
+        # Skip the dataset pre-check for transient charts (no ID) and for guests
+        # (authorized via the dashboard context, not dataset RBAC).
+        from superset.mcp_service import guest_scope
+
+        if getattr(chart, "id", None) is not None and not guest_scope.is_guest_read():
             validation_result = validate_chart_dataset(chart, check_access=True)
             if not validation_result.is_valid:
                 await ctx.warning(
@@ -1377,22 +1390,6 @@ async def _get_chart_preview_internal(  # noqa: C901
             performance=performance,
         )
 
-        # Add format-specific fields for backward compatibility
-        if isinstance(content, ASCIIPreview):
-            result.format = "ascii"
-            result.ascii_chart = content.ascii_content
-            result.width = content.width
-            result.height = content.height
-        elif isinstance(content, TablePreview):
-            result.format = "table"
-            result.table_data = content.table_data
-        elif isinstance(content, VegaLitePreview):
-            result.format = "vega_lite"
-        elif isinstance(content, URLPreview):
-            result.format = "url"
-            result.width = content.width
-            result.height = content.height
-
         return _sanitize_chart_preview_for_llm_context(result)
 
     except SQLAlchemyError as e:
@@ -1448,6 +1445,10 @@ async def get_chart_preview(
     """Get chart preview by ID or UUID.
 
     Returns preview URL or formatted content (ascii, table, vega_lite).
+
+    When format includes 'url', the returned preview_url uses the same scheme
+    as the configured instance URL (HTTPS in production/staging, HTTP in local
+    development).
     """
     await ctx.info(
         "Starting chart preview generation: identifier=%s, format=%s, width=%s, "
@@ -1477,7 +1478,7 @@ async def get_chart_preview(
                 "has_preview_url=%s"
                 % (
                     getattr(result, "chart_id", None),
-                    result.format,
+                    getattr(result.content, "type", None),
                     bool(getattr(result, "preview_url", None)),
                 )
             )

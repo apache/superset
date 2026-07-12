@@ -43,6 +43,7 @@ from superset.mcp_service.auth import (
     _get_app_context_manager,
     get_user_from_request,
     is_tool_visible_to_current_user,
+    MCPNoAuthSourceError,
     MCPPermissionDeniedError,
 )
 from superset.mcp_service.constants import (
@@ -188,10 +189,15 @@ def _sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
     """Remove sensitive fields from params before logging."""
     if not isinstance(params, dict):
         return params
-    return {
-        k: "[REDACTED]" if k.lower() in _SENSITIVE_PARAM_KEYS else v
-        for k, v in params.items()
-    }
+    result: dict[str, Any] = {}
+    for k, v in params.items():
+        if k.lower() in _SENSITIVE_PARAM_KEYS:
+            result[k] = "[REDACTED]"
+        elif k == "arguments" and isinstance(v, dict):
+            result[k] = _sanitize_params(v)
+        else:
+            result[k] = v
+    return result
 
 
 class LoggingMiddleware(Middleware):
@@ -204,7 +210,16 @@ class LoggingMiddleware(Middleware):
     Tool calls are handled in on_call_tool() which wraps execution to capture
     duration_ms. Non-tool messages (resource reads, prompts, etc.) are handled
     in on_message().
+
+    When tool search is enabled (progressive discovery), the MCP client calls
+    ``call_tool`` proxies instead of individual tools.  This middleware resolves
+    the underlying tool name from ``call_tool`` arguments so that analytics
+    queries can filter by the actual tool (stored as ``mcp_tool`` in the curated
+    payload).
     """
+
+    #: Proxy name used by FastMCP tool-search transforms.
+    _CALL_TOOL_PROXY = "call_tool"
 
     def _is_error_response(self, result: ToolResult) -> bool:
         """Check if a tool result contains an error schema response.
@@ -244,6 +259,28 @@ class LoggingMiddleware(Middleware):
             dataset_id = params.get("dataset_id")
         return agent_id, user_id, dashboard_id, slice_id, dataset_id, params
 
+    @staticmethod
+    def _resolve_tool_name(tool_name: str | None, params: Any) -> str | None:
+        """Resolve the underlying tool name from call_tool proxy arguments.
+
+        When tool search is enabled, the MCP client uses the ``call_tool``
+        proxy and passes the real tool name as the ``name`` argument.  This
+        helper extracts that value so we can log which tool was actually
+        executed rather than just ``"call_tool"``.
+
+        Returns:
+            The resolved tool name if *tool_name* is the call_tool proxy and
+            ``params["name"]`` is a non-empty string, otherwise ``None``.
+        """
+        if (
+            tool_name == LoggingMiddleware._CALL_TOOL_PROXY
+            and isinstance(params, dict)
+            and isinstance(params.get("name"), str)
+            and params["name"]
+        ):
+            return params["name"]
+        return None
+
     async def on_call_tool(
         self,
         context: MiddlewareContext,
@@ -254,11 +291,13 @@ class LoggingMiddleware(Middleware):
             self._extract_context_info(context)
         )
         tool_name = getattr(context.message, "name", None)
+        mcp_tool = self._resolve_tool_name(tool_name, params)
 
         mcp_call_id = secrets.token_hex(16)
         _mcp_call_id_var.set(mcp_call_id)
         start_time = time.time()
         success = False
+        error_type: str | None = None
         try:
             result = await call_next(context)
             success = not self._is_error_response(result)
@@ -270,11 +309,27 @@ class LoggingMiddleware(Middleware):
                     structured_content=result.structured_content,
                 )
             return result
-        except Exception:
+        except Exception as exc:
+            error_type = type(exc).__name__
             success = False
             raise
         finally:
             duration_ms = int((time.time() - start_time) * 1000)
+            payload: dict[str, Any] = {
+                "mcp_call_id": mcp_call_id,
+                "tool": tool_name,
+                "agent_id": agent_id,
+                "params": _sanitize_params(params),
+                "method": context.method,
+                "dashboard_id": dashboard_id,
+                "slice_id": slice_id,
+                "dataset_id": dataset_id,
+                "success": success,
+            }
+            if mcp_tool is not None:
+                payload["mcp_tool"] = mcp_tool
+            if error_type is not None:
+                payload["error_type"] = error_type
             if has_app_context():
                 event_logger.log(
                     user_id=user_id,
@@ -283,22 +338,18 @@ class LoggingMiddleware(Middleware):
                     duration_ms=duration_ms,
                     slice_id=slice_id,
                     referrer=None,
-                    curated_payload={
-                        "mcp_call_id": mcp_call_id,
-                        "tool": tool_name,
-                        "agent_id": agent_id,
-                        "params": _sanitize_params(params),
-                        "method": context.method,
-                        "dashboard_id": dashboard_id,
-                        "slice_id": slice_id,
-                        "dataset_id": dataset_id,
-                        "success": success,
-                    },
+                    curated_payload=payload,
                 )
+            extra_parts = []
+            if mcp_tool is not None:
+                extra_parts.append(f"mcp_tool={mcp_tool}")
+            if error_type is not None:
+                extra_parts.append(f"error_type={error_type}")
+            extra = (", " + ", ".join(extra_parts)) if extra_parts else ""
             logger.info(
                 "MCP tool call: tool=%s, agent_id=%s, user_id=%s, method=%s, "
                 "dashboard_id=%s, slice_id=%s, dataset_id=%s, duration_ms=%s, "
-                "success=%s, mcp_call_id=%s",
+                "success=%s, mcp_call_id=%s%s",
                 tool_name,
                 agent_id,
                 user_id,
@@ -309,6 +360,7 @@ class LoggingMiddleware(Middleware):
                 duration_ms,
                 success,
                 mcp_call_id,
+                extra,
             )
 
     async def on_message(
@@ -388,7 +440,14 @@ class StructuredContentStripperMiddleware(Middleware):
         context: MiddlewareContext[mt.ListToolsRequest],
         call_next: CallNext[mt.ListToolsRequest, Sequence[Tool]],
     ) -> Sequence[Tool]:
-        tools = await call_next(context)
+        try:
+            tools = await call_next(context)
+        except Exception:
+            # ToolError raised by inner middleware (e.g. GlobalErrorHandlerMiddleware)
+            # cannot be encoded by the MCP SDK in a tools/list response — it expects a
+            # list, not an error object — causing "encoding without a string argument".
+            # Return an empty list; GlobalErrorHandlerMiddleware already logged it.
+            return []
         return [
             t.model_copy(update={"output_schema": None})
             if t.output_schema is not None
@@ -453,7 +512,7 @@ class RBACToolVisibilityMiddleware(Middleware):
                 try:
                     user = get_user_from_request()
                 except ValueError as exc:
-                    if "No authenticated user found" in str(exc):
+                    if isinstance(exc, MCPNoAuthSourceError):
                         # No auth source configured at all → fail open.
                         # No log: this is expected in dev/internal deployments.
                         return tools
@@ -574,6 +633,11 @@ class GlobalErrorHandlerMiddleware(Middleware):
         elif isinstance(error, HTTPException):
             # HTTP errors from screenshot endpoints or API calls
             raise ToolError(f"Service error in {tool_name}: {error.detail}") from error
+        elif isinstance(error, MCPPermissionDeniedError):
+            # MCP RBAC permission denied — convert to structured ToolError.
+            # Must come before the generic PermissionError branch because
+            # MCPPermissionDeniedError inherits from PermissionError.
+            raise ToolError(str(error)) from error
         elif isinstance(error, PermissionError):
             # Permission/authorization errors
             raise ToolError(
@@ -590,9 +654,6 @@ class GlobalErrorHandlerMiddleware(Middleware):
             raise ToolError(
                 f"Invalid request for {tool_name}: {_sanitize_error_for_logging(error)}"
             ) from error
-        elif isinstance(error, MCPPermissionDeniedError):
-            # MCP RBAC permission denied — convert to structured ToolError
-            raise ToolError(str(error)) from error
         elif isinstance(error, (ForbiddenError, SupersetSecurityException)):
             # Superset access denied — agent tried a tool it can't use
             raise ToolError(
@@ -995,6 +1056,7 @@ class FieldPermissionsMiddleware(Middleware):
         "get_dashboard_info": "dashboard",
         "generate_dashboard": "dashboard",
         "add_chart_to_existing_dashboard": "dashboard",
+        "remove_chart_from_dashboard": "dashboard",
     }
 
     async def on_call_tool(

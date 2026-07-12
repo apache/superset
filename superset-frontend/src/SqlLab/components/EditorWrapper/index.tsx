@@ -18,7 +18,7 @@
  */
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
-import { useAppDispatch } from 'src/views/store';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { usePrevious } from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Global } from '@emotion/react';
@@ -347,11 +347,6 @@ const EditorWrapper = ({
           // Use !important because Ace Editor applies extra CSS at the last second
           // when opening the autocomplete.
           width: ${theme.sizeUnit * 130}px !important;
-        }
-
-        .ace_completion-highlight {
-          color: ${theme.colorPrimaryText} !important;
-          background-color: ${theme.colorPrimaryBgHover};
         }
 
         .ace_tooltip {
