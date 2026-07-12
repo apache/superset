@@ -41,7 +41,6 @@ from superset.utils.cache import set_and_log_cache, set_and_log_cache_with_outco
 from superset.utils.core import error_msg_from_exception, get_stacktrace
 
 logger = logging.getLogger(__name__)
-QUERY_CACHE_VERSION = 2
 
 _cache: dict[CacheRegion, Cache] = {
     CacheRegion.DEFAULT: cache_manager.cache,
@@ -203,7 +202,6 @@ class QueryCacheManager:
             self.cache_write_outcome = CacheWriteOutcome.NOT_ATTEMPTED
             return self.cache_write_outcome
         value = {
-            "query_cache_version": QUERY_CACHE_VERSION,
             "df": self.df,
             "query": self.query,
             "applied_template_filters": self.applied_template_filters,

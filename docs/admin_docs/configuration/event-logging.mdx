@@ -76,6 +76,10 @@ use the `chart_data.query` prefix:
 | `chart_data.query.total_ms`                    | Total time attributable to the query     |
 | `chart_data.source.<kind>.total_ms`            | Current-execution source operation timing |
 
+`materialization_ms` ends after query post-processing and response conversion.
+Chart-level client processing is measured separately as the `chart-client` request
+phase.
+
 Set `CHART_DATA_INCLUDE_TIMING = True` to include a versioned timing object on each
 query returned by `/api/v1/chart/data`:
 

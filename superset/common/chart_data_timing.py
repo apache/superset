@@ -252,15 +252,6 @@ class QueryTiming:
     cache_hit: bool | None
     sources: tuple[SourceTiming, ...] | None
 
-    def with_additional_materialization(self, duration_ns: int) -> QueryTiming:
-        """Attribute downstream work owned by this query exactly once."""
-        duration_ns = max(0, duration_ns)
-        return replace(
-            self,
-            materialization_ns=self.materialization_ns + duration_ns,
-            total_ns=self.total_ns + duration_ns,
-        )
-
     def as_public_dict(self) -> dict[str, Any]:
         """Return the versioned chart-data API representation."""
         return {
