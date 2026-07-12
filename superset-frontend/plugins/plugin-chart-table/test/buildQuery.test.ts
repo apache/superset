@@ -218,9 +218,9 @@ describe('plugin-chart-table', () => {
         const { queries } = buildQuery(formData);
 
         expect(queries).toHaveLength(3);
-        expect(queries[0].contribution_totals_query_index).toBe(1);
-        expect(queries[1].metrics).toEqual(['sum_sales']);
-        expect(queries[2].metrics).toEqual(['count', 'sum_sales']);
+        expect(queries[0].contribution_totals_query_index).toBe(2);
+        expect(queries[1].metrics).toEqual(['count', 'sum_sales']);
+        expect(queries[2].metrics).toEqual(['sum_sales']);
       });
 
       test('should handle empty percent_metrics in all_records mode', () => {
@@ -343,6 +343,46 @@ describe('plugin-chart-table', () => {
         expect(queries[0].contribution_totals_query_index).toBe(2);
         expect(queries[1].is_rowcount).toBe(true);
         expect(queries[2]).toMatchObject({
+          columns: [],
+          metrics: ['sum_sales'],
+          post_processing: [],
+        });
+      });
+
+      test('omits rowcount and points contribution at the producer for downloads', () => {
+        const { queries } = buildQuery({
+          ...baseFormDataWithServerPagination,
+          percent_metrics: ['sum_sales'],
+          percent_metric_calculation: 'all_records',
+          result_format: 'csv',
+        });
+
+        expect(queries).toHaveLength(2);
+        expect(queries[0].contribution_totals_query_index).toBe(1);
+        expect(queries.some(query => query.is_rowcount)).toBe(false);
+        expect(queries[1]).toMatchObject({
+          columns: [],
+          metrics: ['sum_sales'],
+          post_processing: [],
+        });
+      });
+
+      test('orders rowcount and display totals before contribution producer', () => {
+        const { queries } = buildQuery({
+          ...baseFormDataWithServerPagination,
+          percent_metrics: ['sum_sales'],
+          percent_metric_calculation: 'all_records',
+          show_totals: true,
+        });
+
+        expect(queries).toHaveLength(4);
+        expect(queries[0].contribution_totals_query_index).toBe(3);
+        expect(queries[1].is_rowcount).toBe(true);
+        expect(queries[2]).toMatchObject({
+          columns: [],
+          metrics: ['count', 'sum_sales'],
+        });
+        expect(queries[3]).toMatchObject({
           columns: [],
           metrics: ['sum_sales'],
           post_processing: [],
