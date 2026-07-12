@@ -21,7 +21,11 @@ from typing import Any, cast, Optional, Union
 from flask import g
 
 from superset.commands.base import BaseCommand
-from superset.commands.chart.data.get_data_command import ChartDataCommand
+from superset.commands.chart.data.get_data_command import (
+    ChartDataCommand,
+    ChartDataExecutionMode,
+    ChartDataExecutionOptions,
+)
 from superset.commands.chart.exceptions import (
     ChartAccessDeniedError,
     ChartInvalidError,
@@ -96,7 +100,10 @@ class ChartWarmUpCacheCommand(BaseCommand):
         query_context.force = True
         command = ChartDataCommand(query_context)
         command.validate()
-        payload = command.run()
+        execution = command.execute(
+            ChartDataExecutionOptions(mode=ChartDataExecutionMode.CACHE_ONLY)
+        )
+        payload = execution.materialize()
 
         # Report the first error.
         for query_result in cast(list[dict[str, Any]], payload["queries"]):

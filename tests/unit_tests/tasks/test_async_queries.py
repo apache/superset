@@ -168,7 +168,7 @@ def test_load_chart_data_into_cache_preserves_oauth2_redirect_error(
     mock_security_manager: mock.MagicMock,
 ) -> None:
     """
-    OAuth2RedirectError raised by ``ChartDataCommand.run`` must reach the async
+    OAuth2RedirectError raised by ``ChartDataCommand.execute`` must reach the async
     job's errors list as a structured SIP-40 envelope (with ``error_type`` and
     the OAuth2 ``extra`` payload) instead of being flattened to a plain
     message, so dashboard charts can render the OAuth2 banner when
@@ -183,7 +183,7 @@ def test_load_chart_data_into_cache_preserves_oauth2_redirect_error(
     mock_async_query_manager.STATUS_ERROR = "error"
     mock_query_context_schema_cls.return_value.load.return_value = mock.MagicMock()
 
-    mock_command_cls.return_value.run.side_effect = OAuth2RedirectError(
+    mock_command_cls.return_value.execute.side_effect = OAuth2RedirectError(
         url="https://accounts.example.com/o/oauth2/v2/auth?...",
         tab_id="tab-123",
         redirect_uri="https://superset.example.com/oauth2/redirect",

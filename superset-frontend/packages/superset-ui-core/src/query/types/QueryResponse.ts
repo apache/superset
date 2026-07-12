@@ -85,22 +85,39 @@ export interface ChartDataResponseResult {
    */
   detected_currency?: string | null;
   /**
-   * Query lifecycle timing breakdown in milliseconds.
+   * Versioned query lifecycle and bounded source timing in milliseconds.
    */
   timing?: {
-    /** Query object validation time */
-    validate_ms: number;
-    /** Cache lookup time */
-    cache_lookup_ms: number;
-    /** Database execution time (null when served from cache) */
-    db_execution_ms: number | null;
-    /** Result processing and serialization time */
-    result_processing_ms: number;
-    /** Total request time */
-    total_ms: number;
-    /** Whether the result was served from cache */
-    is_cached: boolean;
+    version: 1;
+    query: {
+      cache_key_ms: number;
+      cache_read_ms: number;
+      source_ms: number;
+      cache_write_ms: number | null;
+      cache_write_status: 'succeeded' | 'failed' | 'skipped' | 'not_attempted';
+      materialization_ms: number;
+      total_ms: number;
+      cache_hit: boolean | null;
+    };
+    sources: ChartDataSourceTiming[] | null;
   };
+}
+
+export interface ChartDataSourceTiming {
+  kind:
+    | 'primary'
+    | 'series_limit'
+    | 'time_offset'
+    | 'annotation'
+    | 'currency_detection';
+  provider: 'sql' | 'semantic' | 'other';
+  origin: 'current' | 'cache';
+  planning_ms: number;
+  execution_ms: number;
+  processing_ms: number;
+  total_ms: number;
+  children: ChartDataSourceTiming[];
+  truncated: boolean;
 }
 
 export interface TimeseriesChartDataResponseResult extends ChartDataResponseResult {

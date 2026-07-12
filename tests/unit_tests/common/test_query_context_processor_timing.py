@@ -14,531 +14,798 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import copy
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 
-from superset.commands.chart.data.get_data_command import ChartDataCommand
+from superset.commands.chart.data.get_data_command import (
+    ChartDataCommand,
+    ChartDataExecutionMode,
+    ChartDataExecutionOptions,
+)
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.common.chart_data import ChartDataResultType
 from superset.common.chart_data_timing import (
-    finalize_timing_payload,
-    RESULT_PROCESSING_START_KEY,
-    TIMING_KEY,
-    TIMING_START_KEY,
+    CacheWriteOutcome,
+    ChartDataExecutionResult,
+    combine_acquisition_timings,
+    deserialize_source_trace,
+    MAX_SOURCE_TRACE_NODES,
+    project_query_timing,
+    QueryAcquisitionResult,
+    QueryAcquisitionTiming,
+    QueryContextExecutionResult,
+    QueryDataResult,
+    QueryTiming,
+    serialize_source_trace,
+    source_timing,
+    SourceKind,
+    SourceOrigin,
+    SourceProvider,
+    SourceTiming,
+    SourceTimingCollector,
 )
 from superset.common.db_query_status import QueryStatus
-from superset.common.query_actions import _get_full
+from superset.common.query_actions import AcquiredQuery
 from superset.common.query_context_processor import QueryContextProcessor
+from superset.common.query_object import QueryObject
+from superset.exceptions import QueryObjectValidationError
 
 
-@pytest.fixture
-def mock_query_obj() -> MagicMock:
-    query_obj = MagicMock()
-    query_obj.columns = ["col1"]
-    query_obj.column_names = ["col1"]
-    query_obj.metrics = []
-    query_obj.metric_names = []
-    query_obj.from_dttm = None
-    query_obj.to_dttm = None
-    query_obj.annotation_layers = []
-    return query_obj
+def query_timing(
+    *,
+    cache_hit: bool | None = False,
+    cache_write_outcome: CacheWriteOutcome = CacheWriteOutcome.SUCCEEDED,
+    sources: tuple[SourceTiming, ...] | None = (),
+) -> QueryTiming:
+    return QueryAcquisitionTiming(
+        cache_key_ns=1_000_000,
+        cache_read_ns=2_000_000,
+        source_ns=3_000_000,
+        cache_write_ns=4_000_000,
+        cache_write_outcome=cache_write_outcome,
+        cache_hit=cache_hit,
+        sources=sources,
+    ).materialized(5_000_000)
 
 
-@pytest.fixture
-def processor_with_cache() -> QueryContextProcessor:
-    """Create a processor with a mocked cache that returns a loaded result."""
-    mock_qc = MagicMock()
-    mock_qc.force = False
-
-    processor = QueryContextProcessor.__new__(QueryContextProcessor)
-    processor._query_context = mock_qc
-    processor._qc_datasource = MagicMock()
-    processor._qc_datasource.uid = "test_uid"
-    processor._qc_datasource.column_names = ["col1"]
-    return processor
+def source_trace(origin: SourceOrigin = SourceOrigin.CURRENT) -> SourceTiming:
+    return SourceTiming(
+        kind=SourceKind.PRIMARY,
+        provider=SourceProvider.SQL,
+        origin=origin,
+        planning_ns=1_000_000,
+        execution_ns=2_000_000,
+        processing_ns=3_000_000,
+        total_ns=6_000_000,
+    )
 
 
-def finalize_payload(
-    payload: dict[str, Any],
-    include_timing: bool = True,
-    slow_query_threshold_ms: int | None = None,
-) -> None:
-    with patch("superset.common.chart_data_timing.current_app") as mock_app:
-        mock_app.config = {
-            "STATS_LOGGER": MagicMock(),
-            "CHART_DATA_INCLUDE_TIMING": include_timing,
-            "CHART_DATA_SLOW_QUERY_THRESHOLD_MS": slow_query_threshold_ms,
-        }
-        finalize_timing_payload(payload)
+def acquired_query(
+    query: QueryObject,
+    df: pd.DataFrame,
+    status: QueryStatus = QueryStatus.SUCCESS,
+) -> AcquiredQuery:
+    return AcquiredQuery(
+        query_obj=query,
+        acquisition=QueryAcquisitionResult(
+            payload={"df": df, "status": status},
+            timing=QueryAcquisitionTiming(
+                cache_key_ns=0,
+                cache_read_ns=0,
+                source_ns=0,
+                cache_write_ns=None,
+                cache_write_outcome=CacheWriteOutcome.NOT_ATTEMPTED,
+                cache_hit=None,
+                sources=(),
+            ),
+        ),
+        detected_currency=None,
+        currency_processing_ns=0,
+    )
 
 
-def internal_timing(is_cached: bool = False) -> dict[str, Any]:
-    return {
-        TIMING_START_KEY: 1.0,
-        RESULT_PROCESSING_START_KEY: 2.0,
-        "validate_ms": 1.0,
-        "cache_lookup_ms": 2.0,
-        "db_execution_ms": None,
-        "is_cached": is_cached,
+def test_source_trace_cache_round_trip_marks_historical_origin() -> None:
+    cached = serialize_source_trace((source_trace(),))
+
+    parsed = deserialize_source_trace(cached)
+
+    assert parsed is not None
+    assert parsed[0].origin == SourceOrigin.CACHE
+    assert parsed[0].execution_ns == 2_000_000
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        None,
+        {},
+        {"version": 0, "sources": []},
+        {"version": 2, "sources": [{"kind": "primary"}]},
+        {"version": 2, "sources": "not-a-list"},
+    ],
+)
+def test_source_trace_ignores_old_or_malformed_values(value: Any) -> None:
+    assert deserialize_source_trace(value) is None
+
+
+def test_source_trace_is_bounded() -> None:
+    collector = SourceTimingCollector()
+    token = collector.activate()
+    try:
+        with collector.source(SourceKind.PRIMARY, SourceProvider.SQL):
+            for _ in range(MAX_SOURCE_TRACE_NODES + 5):
+                with source_timing(SourceKind.TIME_OFFSET, SourceProvider.SQL):
+                    pass
+    finally:
+        SourceTimingCollector.deactivate(token)
+
+    trace = collector.snapshot()
+    assert len(trace) == 1
+    assert trace[0].truncated is True
+    assert len(trace[0].children) == MAX_SOURCE_TRACE_NODES - 1
+
+
+def test_source_trace_root_overflow_marks_last_retained_root() -> None:
+    collector = SourceTimingCollector()
+    for _ in range(MAX_SOURCE_TRACE_NODES + 1):
+        with collector.source(SourceKind.PRIMARY, SourceProvider.SQL):
+            pass
+
+    trace = collector.snapshot()
+
+    assert len(trace) == MAX_SOURCE_TRACE_NODES
+    assert trace[-1].truncated is True
+
+
+def test_deserializer_retains_budget_limited_roots() -> None:
+    root = source_trace().as_cache_value()
+    cached = {
+        "version": 2,
+        "sources": [root for _ in range(MAX_SOURCE_TRACE_NODES + 1)],
+    }
+
+    trace = deserialize_source_trace(cached)
+
+    assert trace is not None
+    assert len(trace) == MAX_SOURCE_TRACE_NODES
+    assert trace[-1].truncated is True
+
+
+def test_deserializer_rejects_malformed_nested_source() -> None:
+    child = source_trace().as_cache_value()
+    child["kind"] = "invalid"
+    root = source_trace().as_cache_value()
+    root["children"] = [child]
+
+    assert deserialize_source_trace({"version": 2, "sources": [root]}) is None
+
+
+def test_source_phases_exclude_nested_source_time() -> None:
+    class Clock:
+        value = 0
+
+        def __call__(self) -> int:
+            return self.value
+
+        def advance(self, duration: int) -> None:
+            self.value += duration
+
+    clock = Clock()
+    collector = SourceTimingCollector(clock)
+
+    with collector.source(SourceKind.PRIMARY, SourceProvider.SQL):
+        with collector.phase("execution"):
+            clock.advance(10)
+            with collector.source(SourceKind.TIME_OFFSET, SourceProvider.SQL):
+                with collector.phase("execution"):
+                    clock.advance(4)
+            clock.advance(6)
+
+    root = collector.snapshot()[0]
+    assert root.total_ns == 20
+    assert root.execution_ns == 16
+    assert root.children[0].total_ns == 4
+    assert root.children[0].execution_ns == 4
+    assert (
+        root.planning_ns
+        + root.execution_ns
+        + root.processing_ns
+        + sum(child.total_ns for child in root.children)
+        <= root.total_ns
+    )
+
+
+def test_refused_child_does_not_leak_phases_to_parent() -> None:
+    class Clock:
+        value = 0
+
+        def __call__(self) -> int:
+            return self.value
+
+        def advance(self, duration: int) -> None:
+            self.value += duration
+
+    clock = Clock()
+    collector = SourceTimingCollector(clock)
+
+    with collector.source(SourceKind.PRIMARY, SourceProvider.SQL):
+        with collector.phase("execution"):
+            clock.advance(10)
+            collector._node_count = MAX_SOURCE_TRACE_NODES  # noqa: SLF001
+            with collector.source(SourceKind.TIME_OFFSET, SourceProvider.SQL):
+                with collector.phase("processing"):
+                    clock.advance(4)
+            clock.advance(6)
+
+    root = collector.snapshot()[0]
+    assert root.total_ns == 20
+    assert root.execution_ns == 16
+    assert root.children == ()
+    assert root.truncated is True
+
+
+def test_attached_source_trace_respects_outer_depth() -> None:
+    def add_nested_sources(collector: SourceTimingCollector, depth: int) -> None:
+        with collector.source(SourceKind.PRIMARY, SourceProvider.SQL):
+            if depth > 1:
+                add_nested_sources(collector, depth - 1)
+
+    nested = SourceTimingCollector()
+    add_nested_sources(nested, 8)
+
+    outer = SourceTimingCollector()
+    with outer.source(SourceKind.PRIMARY, SourceProvider.SQL):
+        with outer.source(SourceKind.ANNOTATION, SourceProvider.OTHER):
+            outer.attach(nested.snapshot())
+
+    trace = outer.snapshot()
+    node = trace[0]
+    depth = 1
+    while node.children:
+        node = node.children[0]
+        depth += 1
+
+    assert depth == 8
+    assert node.truncated is True
+
+
+def test_public_projection_is_explicit_and_versioned() -> None:
+    payload: dict[str, Any] = {"data": []}
+    timing = query_timing(sources=(source_trace(),))
+
+    with patch("superset.common.chart_data_timing.current_app") as app:
+        app.config = {"CHART_DATA_INCLUDE_TIMING": True}
+        project_query_timing(payload, timing)
+
+    assert payload["timing"] == {
+        "version": 1,
+        "query": {
+            "cache_key_ms": 1.0,
+            "cache_read_ms": 2.0,
+            "source_ms": 3.0,
+            "cache_write_ms": 4.0,
+            "cache_write_status": "succeeded",
+            "materialization_ms": 5.0,
+            "total_ms": 15.0,
+            "cache_hit": False,
+        },
+        "sources": [
+            {
+                "kind": "primary",
+                "provider": "sql",
+                "origin": "current",
+                "planning_ms": 1.0,
+                "execution_ms": 2.0,
+                "processing_ms": 3.0,
+                "total_ms": 6.0,
+                "children": [],
+                "truncated": False,
+            }
+        ],
     }
 
 
-@patch(
-    "superset.common.query_context_processor.QueryCacheManager",
-)
-def test_timing_present_in_payload(
-    mock_cache_cls: MagicMock,
-    processor_with_cache: QueryContextProcessor,
-    mock_query_obj: MagicMock,
+def test_query_total_uses_wall_clock_acquisition_not_phase_sum() -> None:
+    acquisition = QueryAcquisitionTiming(
+        cache_key_ns=1,
+        cache_read_ns=2,
+        source_ns=3,
+        cache_write_ns=4,
+        cache_write_outcome=CacheWriteOutcome.SUCCEEDED,
+        cache_hit=False,
+        sources=(),
+        elapsed_ns=20,
+    )
+
+    timing = acquisition.materialized(5)
+
+    assert acquisition.total_ns == 20
+    assert timing.total_ns == 25
+
+
+def test_current_dependency_trace_survives_missing_historical_trace() -> None:
+    cached = QueryAcquisitionTiming(
+        cache_key_ns=0,
+        cache_read_ns=1,
+        source_ns=0,
+        cache_write_ns=None,
+        cache_write_outcome=CacheWriteOutcome.NOT_ATTEMPTED,
+        cache_hit=True,
+        sources=None,
+    )
+    current_source = source_trace()
+    dependency = QueryAcquisitionTiming(
+        cache_key_ns=0,
+        cache_read_ns=1,
+        source_ns=5,
+        cache_write_ns=1,
+        cache_write_outcome=CacheWriteOutcome.SUCCEEDED,
+        cache_hit=False,
+        sources=(current_source,),
+    )
+
+    combined = combine_acquisition_timings(cached, dependency)
+
+    assert combined.sources == (current_source,)
+    assert combined.cache_hit is False
+
+
+@patch("superset.common.query_context_processor.QueryCacheManager")
+def test_dataframe_acquisition_returns_timing_outside_payload(
+    cache_manager: MagicMock,
 ) -> None:
-    """Timing dict is included in finalized query result."""
-    cache = MagicMock()
-    cache.is_loaded = True
-    cache.is_cached = True
-    cache.df = pd.DataFrame({"col1": [1, 2]})
-    cache.cache_dttm = None
-    cache.queried_dttm = None
-    cache.applied_template_filters = []
-    cache.applied_filter_columns = []
-    cache.rejected_filter_columns = []
-    cache.annotation_data = {}
-    cache.error_message = None
-    cache.query = ""
-    cache.status = "success"
-    cache.stacktrace = None
-    cache.sql_rowcount = 2
-    cache.bq_memory_limited = False
-    cache.bq_memory_limited_row_count = 0
-    mock_cache_cls.get.return_value = cache
-
-    with patch.object(processor_with_cache, "query_cache_key", return_value="key"):
-        with patch.object(processor_with_cache, "get_cache_timeout", return_value=300):
-            result = processor_with_cache.get_df_payload(mock_query_obj)
-
-    finalize_payload(result)
-    assert "timing" in result
-    assert TIMING_KEY not in result
-    timing = result["timing"]
-    assert "validate_ms" in timing
-    assert "cache_lookup_ms" in timing
-    assert "result_processing_ms" in timing
-    assert "total_ms" in timing
-    assert "is_cached" in timing
-
-
-@patch(
-    "superset.common.query_context_processor.QueryCacheManager",
-)
-def test_timing_omitted_when_config_disabled(
-    mock_cache_cls: MagicMock,
-    processor_with_cache: QueryContextProcessor,
-    mock_query_obj: MagicMock,
-) -> None:
-    """Timing dict is excluded from response when CHART_DATA_INCLUDE_TIMING is False."""
-    cache = MagicMock()
-    cache.is_loaded = True
-    cache.is_cached = True
-    cache.df = pd.DataFrame({"col1": [1]})
-    cache.cache_dttm = None
-    cache.queried_dttm = None
-    cache.applied_template_filters = []
-    cache.applied_filter_columns = []
-    cache.rejected_filter_columns = []
-    cache.annotation_data = {}
-    cache.error_message = None
-    cache.query = ""
-    cache.status = "success"
-    cache.stacktrace = None
-    cache.sql_rowcount = 1
-    cache.bq_memory_limited = False
-    cache.bq_memory_limited_row_count = 0
-    mock_cache_cls.get.return_value = cache
-
-    with patch.object(processor_with_cache, "query_cache_key", return_value="key"):
-        with patch.object(processor_with_cache, "get_cache_timeout", return_value=300):
-            result = processor_with_cache.get_df_payload(mock_query_obj)
-
-    finalize_payload(result, include_timing=False)
-    assert "timing" not in result
-    assert TIMING_KEY not in result
-
-
-@patch(
-    "superset.common.query_context_processor.QueryCacheManager",
-)
-def test_timing_values_are_non_negative(
-    mock_cache_cls: MagicMock,
-    processor_with_cache: QueryContextProcessor,
-    mock_query_obj: MagicMock,
-) -> None:
-    """All timing values are non-negative numbers."""
-    cache = MagicMock()
-    cache.is_loaded = True
-    cache.is_cached = True
-    cache.df = pd.DataFrame({"col1": [1]})
-    cache.cache_dttm = None
-    cache.queried_dttm = None
-    cache.applied_template_filters = []
-    cache.applied_filter_columns = []
-    cache.rejected_filter_columns = []
-    cache.annotation_data = {}
-    cache.error_message = None
-    cache.query = ""
-    cache.status = "success"
-    cache.stacktrace = None
-    cache.sql_rowcount = 1
-    cache.bq_memory_limited = False
-    cache.bq_memory_limited_row_count = 0
-    mock_cache_cls.get.return_value = cache
-
-    with patch.object(processor_with_cache, "query_cache_key", return_value="key"):
-        with patch.object(processor_with_cache, "get_cache_timeout", return_value=300):
-            result = processor_with_cache.get_df_payload(mock_query_obj)
-
-    finalize_payload(result)
-    timing = result["timing"]
-    for key, value in timing.items():
-        if isinstance(value, (int, float)) and not isinstance(value, bool):
-            assert value >= 0, f"timing[{key!r}] should be >= 0, got {value}"
-
-
-@patch(
-    "superset.common.query_context_processor.QueryCacheManager",
-)
-def test_timing_no_db_execution_on_cache_hit(
-    mock_cache_cls: MagicMock,
-    processor_with_cache: QueryContextProcessor,
-    mock_query_obj: MagicMock,
-) -> None:
-    """db_execution_ms is None when the result is served from cache."""
-    cache = MagicMock()
-    cache.is_loaded = True
-    cache.is_cached = True
-    cache.df = pd.DataFrame({"col1": [1]})
-    cache.cache_dttm = None
-    cache.queried_dttm = None
-    cache.applied_template_filters = []
-    cache.applied_filter_columns = []
-    cache.rejected_filter_columns = []
-    cache.annotation_data = {}
-    cache.error_message = None
-    cache.query = ""
-    cache.status = "success"
-    cache.stacktrace = None
-    cache.sql_rowcount = 1
-    cache.bq_memory_limited = False
-    cache.bq_memory_limited_row_count = 0
-    mock_cache_cls.get.return_value = cache
-
-    with patch.object(processor_with_cache, "query_cache_key", return_value="key"):
-        with patch.object(processor_with_cache, "get_cache_timeout", return_value=300):
-            result = processor_with_cache.get_df_payload(mock_query_obj)
-
-    finalize_payload(result)
-    assert result["timing"]["db_execution_ms"] is None
-    assert result["timing"]["is_cached"] is True
-
-
-@patch(
-    "superset.common.query_context_processor.QueryCacheManager",
-)
-def test_timing_has_db_execution_on_cache_miss(
-    mock_cache_cls: MagicMock,
-    processor_with_cache: QueryContextProcessor,
-    mock_query_obj: MagicMock,
-) -> None:
-    """db_execution_ms is present when the query is executed against the database."""
-    cache = MagicMock()
-    cache.is_loaded = False
-    cache.is_cached = None
-    cache.df = pd.DataFrame({"col1": [1]})
-    cache.cache_dttm = None
-    cache.queried_dttm = None
-    cache.applied_template_filters = []
-    cache.applied_filter_columns = []
-    cache.rejected_filter_columns = []
-    cache.annotation_data = {}
-    cache.error_message = None
-    cache.query = ""
-    cache.status = "success"
-    cache.stacktrace = None
-    cache.sql_rowcount = 1
-    cache.bq_memory_limited = False
-    cache.bq_memory_limited_row_count = 0
-    mock_cache_cls.get.return_value = cache
-
-    processor = cast(Any, processor_with_cache)
-    processor._qc_datasource.column_names = ["col1"]
-    processor.get_query_result = MagicMock()
-    processor.get_annotation_data = MagicMock(return_value={})
-
-    with patch.object(processor_with_cache, "query_cache_key", return_value="key"):
-        with patch.object(processor_with_cache, "get_cache_timeout", return_value=300):
-            result = processor_with_cache.get_df_payload(mock_query_obj)
-
-    finalize_payload(result)
-    assert "db_execution_ms" in result["timing"]
-    assert result["timing"]["db_execution_ms"] >= 0
-    assert result["is_cached"] is None
-    assert result["timing"]["is_cached"] is False
-
-
-@patch(
-    "superset.common.query_context_processor.QueryCacheManager",
-)
-def test_timing_treats_invalidated_stale_cache_as_miss(
-    mock_cache_cls: MagicMock,
-    processor_with_cache: QueryContextProcessor,
-    mock_query_obj: MagicMock,
-) -> None:
-    """A stale cached payload reloaded from source should not report a cache hit."""
-    cache = MagicMock()
-    cache.is_loaded = True
-    cache.is_cached = True
-    cache.df = pd.DataFrame({"col1": [1]})
-    cache.cache_dttm = "2024-01-01T00:00:00"
-    cache.queried_dttm = "2024-01-01T00:00:00"
-    cache.applied_template_filters = []
-    cache.applied_filter_columns = []
-    cache.rejected_filter_columns = []
-    cache.annotation_data = {}
-    cache.error_message = None
-    cache.query = ""
-    cache.status = "success"
-    cache.stacktrace = None
-    cache.sql_rowcount = 1
-    cache.bq_memory_limited = False
-    cache.bq_memory_limited_row_count = 0
-    mock_cache_cls.get.return_value = cache
-
-    mock_query_obj.filter = [{"col": "col1", "op": "IN", "val": ["value1"]}]
-    processor = cast(Any, processor_with_cache)
-    processor._qc_datasource.column_names = ["col1"]
-    processor.get_query_result = MagicMock()
-    processor.get_annotation_data = MagicMock(return_value={})
-
-    with patch.object(processor_with_cache, "query_cache_key", return_value="key"):
-        with patch.object(processor_with_cache, "get_cache_timeout", return_value=300):
-            result = processor_with_cache.get_df_payload(mock_query_obj)
-
-    finalize_payload(result)
-    assert cache.set_query_result.called
-    assert result["cached_dttm"] is None
-    assert result["is_cached"] is None
-    assert result["timing"]["db_execution_ms"] is not None
-    assert result["timing"]["is_cached"] is False
-
-
-@patch(
-    "superset.common.query_context_processor.QueryCacheManager",
-)
-@patch("superset.common.chart_data_timing.logger")
-def test_slow_query_logging(
-    mock_logger: MagicMock,
-    mock_cache_cls: MagicMock,
-    processor_with_cache: QueryContextProcessor,
-    mock_query_obj: MagicMock,
-) -> None:
-    """WARNING log is emitted when total_ms exceeds the configured threshold."""
-    cache = MagicMock()
-    cache.is_loaded = True
-    cache.is_cached = True
-    cache.df = pd.DataFrame({"col1": [1]})
-    cache.cache_dttm = None
-    cache.queried_dttm = None
-    cache.applied_template_filters = []
-    cache.applied_filter_columns = []
-    cache.rejected_filter_columns = []
-    cache.annotation_data = {}
-    cache.error_message = None
-    cache.query = ""
-    cache.status = "success"
-    cache.stacktrace = None
-    cache.sql_rowcount = 1
-    cache.bq_memory_limited = False
-    cache.bq_memory_limited_row_count = 0
-    mock_cache_cls.get.return_value = cache
-
-    with patch.object(processor_with_cache, "query_cache_key", return_value="key"):
-        with patch.object(processor_with_cache, "get_cache_timeout", return_value=300):
-            result = processor_with_cache.get_df_payload(mock_query_obj)
-
-    # Set threshold to 0 so any query triggers slow logging.
-    finalize_payload(result, slow_query_threshold_ms=0)
-
-    mock_logger.warning.assert_called_once()
-    call_args = mock_logger.warning.call_args[0]
-    assert "Slow chart query" in call_args[0]
-    # On cache hit, db_execution should be "cached" not a number
-    assert "cached" in call_args
-
-
-def results_payload() -> dict[str, Any]:
-    """Build the minimal successful get_df_payload result used by RESULTS tests."""
-    return {
-        "df": pd.DataFrame({"col1": [1]}),
-        "status": QueryStatus.SUCCESS,
-        "rowcount": 1,
-        "sql_rowcount": 1,
-        "applied_filter_columns": [],
-        "rejected_filter_columns": [],
-    }
-
-
-def test_results_payload_omits_timing_when_disabled() -> None:
     query_context = MagicMock()
-    query_context.result_type = ChartDataResultType.RESULTS
-    query_context.result_format = "json"
-    query_context.get_df_payload.return_value = {
-        **results_payload(),
-        TIMING_KEY: internal_timing(),
-    }
-    query_context.get_data.return_value = [{"col1": 1}]
+    query_context.force = False
+    datasource = MagicMock()
+    datasource.type = "table"
+    datasource.uid = "1__table"
+    datasource.column_names = ["value"]
+    processor = QueryContextProcessor(query_context)
+    processor._qc_datasource = datasource
 
-    query_obj = MagicMock()
-    query_obj.result_type = ChartDataResultType.RESULTS
-    query_obj.applied_time_extras = {}
+    cache = MagicMock()
+    cache.is_loaded = True
+    cache.is_cached = True
+    cache.has_applied_filter_columns = True
+    cache.source_trace = (source_trace(SourceOrigin.CACHE),)
+    cache.df = pd.DataFrame({"value": [1]})
+    cache.cache_dttm = None
+    cache.queried_dttm = None
+    cache.applied_template_filters = []
+    cache.applied_filter_columns = []
+    cache.rejected_filter_columns = []
+    cache.annotation_data = {}
+    cache.error_message = None
+    cache.query = "SELECT value"
+    cache.status = "success"
+    cache.stacktrace = None
+    cache.sql_rowcount = 1
+    cache.bq_memory_limited = False
+    cache.bq_memory_limited_row_count = 0
+    cache_manager.get.return_value = cache
+
+    query = MagicMock()
+    query.columns = ["value"]
+    query.column_names = ["value"]
+    query.metrics = []
+    query.metric_names = []
+    query.filter = []
+    query.from_dttm = None
+    query.to_dttm = None
+    query.annotation_layers = []
 
     with (
-        patch(
-            "superset.common.query_actions.extract_dataframe_dtypes", return_value=[0]
-        ),
-        patch(
-            "superset.common.query_actions.get_time_filter_status",
-            return_value=([], []),
-        ),
-        patch("superset.common.query_actions._detect_currency", return_value=None),
+        patch.object(processor, "query_cache_key", return_value="cache-key"),
+        patch.object(processor, "get_cache_timeout", return_value=300),
     ):
-        result = _get_full(query_context, query_obj)
+        result = processor.get_df_payload_result(query)
 
-    with patch("superset.common.chart_data_timing.time.perf_counter", return_value=3.0):
-        finalize_payload(result, include_timing=False)
-
-    assert "timing" not in result
-    assert TIMING_KEY not in result
-
-
-def test_results_payload_finalizes_timing_when_enabled() -> None:
-    query_context = MagicMock()
-    query_context.result_type = ChartDataResultType.RESULTS
-    query_context.result_format = "json"
-    query_context.get_df_payload.return_value = {
-        **results_payload(),
-        TIMING_KEY: internal_timing(is_cached=True),
-        "is_cached": True,
-    }
-    query_context.get_data.return_value = [{"col1": 1}]
-
-    query_obj = MagicMock()
-    query_obj.result_type = ChartDataResultType.RESULTS
-    query_obj.applied_time_extras = {}
-
-    with (
-        patch(
-            "superset.common.query_actions.extract_dataframe_dtypes", return_value=[0]
-        ),
-        patch(
-            "superset.common.query_actions.get_time_filter_status",
-            return_value=([], []),
-        ),
-        patch("superset.common.query_actions._detect_currency", return_value=None),
-    ):
-        result = _get_full(query_context, query_obj)
-
-    with patch("superset.common.chart_data_timing.time.perf_counter", return_value=3.0):
-        finalize_payload(result)
-
-    assert TIMING_KEY not in result
-    assert result["timing"]["validate_ms"] == 1.0
-    assert result["timing"]["cache_lookup_ms"] == 2.0
-    assert result["timing"]["db_execution_ms"] is None
-    assert result["timing"]["result_processing_ms"] == 1000.0
-    assert result["timing"]["total_ms"] == 2000.0
-    assert result["timing"]["is_cached"] is True
+    assert "timing" not in result.payload
+    assert all(not key.startswith("_chart_data") for key in result.payload)
+    assert result.timing.cache_hit is True
+    assert result.timing.sources is not None
+    assert result.timing.sources[0].origin == SourceOrigin.CACHE
 
 
-def test_chart_data_command_finalizes_timing_by_default() -> None:
+def test_command_run_preserves_legacy_payload_without_timing() -> None:
     query_context = MagicMock()
     query_context.result_type = ChartDataResultType.FULL
-    query_context.get_payload.return_value = {
-        "queries": [
-            {
-                TIMING_KEY: internal_timing(is_cached=True),
-                "is_cached": True,
-            },
-        ],
-    }
+    query_context.get_payload_result.return_value = QueryContextExecutionResult(
+        queries=(QueryDataResult({"data": []}, query_timing()),)
+    )
 
-    command = ChartDataCommand(query_context)
+    with patch("superset.commands.chart.data.get_data_command.emit_query_timing"):
+        result = ChartDataCommand(query_context).run()
 
-    with (
-        patch("superset.common.chart_data_timing.time.perf_counter", return_value=3.0),
-        patch("superset.common.chart_data_timing.current_app") as mock_app,
-    ):
-        mock_app.config = {
-            "STATS_LOGGER": MagicMock(),
-            "CHART_DATA_INCLUDE_TIMING": True,
-            "CHART_DATA_SLOW_QUERY_THRESHOLD_MS": None,
-        }
-        result = command.run()
-
-    query = result["queries"][0]
-    assert TIMING_KEY not in query
-    assert query["timing"]["result_processing_ms"] == 1000.0
-    assert query["timing"]["total_ms"] == 2000.0
-    assert query["timing"]["is_cached"] is True
+    assert result["queries"] == [{"data": []}]
+    assert "timing" not in result["queries"][0]
 
 
-def test_chart_data_command_can_defer_timing_finalization() -> None:
-    query_context = MagicMock()
-    query_context.result_type = ChartDataResultType.POST_PROCESSED
-    query_context.get_payload.return_value = {
-        "queries": [
-            {
-                TIMING_KEY: internal_timing(),
-                "is_cached": True,
-            },
-        ],
-    }
+def test_nested_chart_commands_emit_telemetry_only_from_outer_owner() -> None:
+    inner_context = MagicMock()
+    inner_context.result_type = ChartDataResultType.FULL
+    inner_context.get_payload_result.return_value = QueryContextExecutionResult(
+        queries=(QueryDataResult({"data": ["inner"]}, query_timing()),)
+    )
 
-    command = ChartDataCommand(query_context)
-    result = command.run(defer_timing=True)
+    outer_context = MagicMock()
+    outer_context.result_type = ChartDataResultType.FULL
+    outer_timing = query_timing()
 
-    query = result["queries"][0]
-    assert TIMING_KEY in query
-    assert "timing" not in query
+    def execute_outer(**kwargs: Any) -> QueryContextExecutionResult:
+        ChartDataCommand(inner_context).execute()
+        return QueryContextExecutionResult(
+            queries=(QueryDataResult({"data": ["outer"]}, outer_timing),)
+        )
+
+    outer_context.get_payload_result.side_effect = execute_outer
+
+    with patch(
+        "superset.commands.chart.data.get_data_command.emit_query_timing"
+    ) as emit:
+        ChartDataCommand(outer_context).execute()
+
+    emit.assert_called_once_with(outer_timing)
 
 
-def test_chart_data_command_finalizes_timing_before_raising_when_deferred() -> None:
+def test_failed_chart_command_emits_completed_query_timing() -> None:
+    timing = query_timing()
     query_context = MagicMock()
     query_context.result_type = ChartDataResultType.FULL
-    query_context.get_payload.return_value = {
-        "queries": [
-            {
-                TIMING_KEY: internal_timing(),
-                "error": "bad query",
-                "is_cached": None,
-            },
-        ],
-    }
-
-    command = ChartDataCommand(query_context)
+    query_context.get_payload_result.return_value = QueryContextExecutionResult(
+        queries=(QueryDataResult({"error": "database error"}, timing),)
+    )
 
     with (
-        patch("superset.common.chart_data_timing.time.perf_counter", return_value=3.0),
-        patch("superset.common.chart_data_timing.current_app") as mock_app,
+        patch(
+            "superset.commands.chart.data.get_data_command.emit_query_timing"
+        ) as emit,
+        pytest.raises(ChartDataQueryFailedError),
     ):
-        mock_app.config = {
-            "STATS_LOGGER": MagicMock(),
-            "CHART_DATA_INCLUDE_TIMING": True,
-            "CHART_DATA_SLOW_QUERY_THRESHOLD_MS": None,
-        }
-        with pytest.raises(ChartDataQueryFailedError):
-            command.run(defer_timing=True)
+        ChartDataCommand(query_context).execute()
 
-    query = query_context.get_payload.return_value["queries"][0]
-    assert TIMING_KEY not in query
-    assert query["timing"]["is_cached"] is False
+    emit.assert_called_once_with(timing)
+
+
+def test_chart_command_converts_query_validation_failure() -> None:
+    query_context = MagicMock()
+    query_context.get_payload_result.side_effect = QueryObjectValidationError(
+        "invalid contribution plan"
+    )
+
+    with pytest.raises(ChartDataQueryFailedError, match="invalid contribution plan"):
+        ChartDataCommand(query_context).execute()
+
+
+def test_cache_only_rejects_failed_query_cache_write() -> None:
+    query_context = MagicMock()
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.get_payload_result.return_value = QueryContextExecutionResult(
+        queries=(
+            QueryDataResult(
+                {"status": "success"},
+                query_timing(cache_write_outcome=CacheWriteOutcome.FAILED),
+            ),
+        ),
+        cache_key="qc-key",
+        context_cache_write_outcome=CacheWriteOutcome.SUCCEEDED,
+    )
+
+    with pytest.raises(ChartDataQueryFailedError):
+        ChartDataCommand(query_context).execute(
+            ChartDataExecutionOptions(mode=ChartDataExecutionMode.CACHE_ONLY)
+        )
+
+    query_context.get_payload_result.assert_called_once_with(
+        cache_query_context=False,
+        force_cached=False,
+        materialize=False,
+    )
+
+
+def test_cache_only_allows_configuration_skips_for_warmup() -> None:
+    query_context = MagicMock()
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.get_payload_result.return_value = QueryContextExecutionResult(
+        queries=(
+            QueryDataResult(
+                {"status": "success"},
+                query_timing(
+                    cache_hit=False,
+                    cache_write_outcome=CacheWriteOutcome.SKIPPED,
+                ),
+            ),
+        ),
+    )
+
+    ChartDataCommand(query_context).execute(
+        ChartDataExecutionOptions(mode=ChartDataExecutionMode.CACHE_ONLY)
+    )
+
+
+def test_strict_cache_only_requires_data_and_context_cache() -> None:
+    query_context = MagicMock()
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.get_payload_result.return_value = QueryContextExecutionResult(
+        queries=(
+            QueryDataResult(
+                {"status": "success"},
+                query_timing(
+                    cache_hit=False,
+                    cache_write_outcome=CacheWriteOutcome.SKIPPED,
+                ),
+            ),
+        ),
+        context_cache_write_outcome=CacheWriteOutcome.SUCCEEDED,
+    )
+
+    with pytest.raises(ChartDataQueryFailedError):
+        ChartDataCommand(query_context).execute(
+            ChartDataExecutionOptions(
+                mode=ChartDataExecutionMode.CACHE_ONLY,
+                cache_query_context=True,
+                require_cache_writes=True,
+            )
+        )
+
+    query_context.get_payload_result.assert_called_once_with(
+        cache_query_context=True,
+        force_cached=False,
+        materialize=False,
+    )
+
+
+def test_strict_cache_only_requires_context_cache_after_data_hit() -> None:
+    query_context = MagicMock()
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.get_payload_result.return_value = QueryContextExecutionResult(
+        queries=(
+            QueryDataResult(
+                {"status": "success"},
+                query_timing(
+                    cache_hit=True,
+                    cache_write_outcome=CacheWriteOutcome.NOT_ATTEMPTED,
+                ),
+            ),
+        ),
+        context_cache_write_outcome=CacheWriteOutcome.SKIPPED,
+    )
+
+    with pytest.raises(ChartDataQueryFailedError):
+        ChartDataCommand(query_context).execute(
+            ChartDataExecutionOptions(
+                mode=ChartDataExecutionMode.CACHE_ONLY,
+                cache_query_context=True,
+                require_cache_writes=True,
+            )
+        )
+
+
+def test_execution_result_materializes_without_sidecar() -> None:
+    query_context = cast(Any, object())
+    execution = ChartDataExecutionResult(
+        query_context=query_context,
+        queries=(QueryDataResult({"data": [1]}, query_timing()),),
+        cache_key="qc-key",
+    )
+
+    assert execution.materialize() == {
+        "query_context": query_context,
+        "queries": [{"data": [1]}],
+        "cache_key": "qc-key",
+    }
+
+
+def test_execution_result_materialization_does_not_mutate_sidecar_payload() -> None:
+    query_context = cast(Any, object())
+    payload = {"data": [1]}
+    execution = ChartDataExecutionResult(
+        query_context=query_context,
+        queries=(QueryDataResult(payload, query_timing()),),
+    )
+
+    first = execution.materialize()
+    first["queries"][0]["timing"] = {"version": 1}
+    first["queries"][0]["rowcount"] = 1
+
+    assert execution.materialize()["queries"] == [{"data": [1]}]
+    assert payload == {"data": [1]}
+
+
+def test_annotation_cycle_is_rejected_before_nested_execution() -> None:
+    chart = MagicMock()
+    chart.id = 42
+    annotation = {"value": 42, "name": "recursive"}
+
+    with (
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+        patch(
+            "superset.common.query_context_processor._annotation_chart_stack"
+        ) as annotation_stack,
+    ):
+        annotation_stack.get.return_value = (42,)
+        with pytest.raises(
+            QueryObjectValidationError,
+            match="Circular chart annotation dependency",
+        ):
+            QueryContextProcessor.get_viz_annotation_data(annotation, force=False)
+
+
+def test_contribution_totals_are_reused_without_mutating_queries() -> None:
+    datasource = MagicMock()
+    main_query = QueryObject(
+        datasource=datasource,
+        columns=["region"],
+        metrics=["sales"],
+        row_limit=100,
+        post_processing=[{"operation": "contribution", "options": {}}],
+    )
+    totals_query = QueryObject(
+        datasource=datasource,
+        columns=[],
+        metrics=["sales"],
+        row_limit=100,
+    )
+    query_context = MagicMock()
+    query_context.queries = [main_query, totals_query]
+    query_context.result_type = ChartDataResultType.FULL
+    processor = QueryContextProcessor(query_context)
+    observed_queries: list[tuple[list[Any], int | None]] = []
+
+    def acquire(
+        result_type: ChartDataResultType,
+        context: MagicMock,
+        query: QueryObject,
+        force_cached: bool,
+        **kwargs: Any,
+    ) -> AcquiredQuery:
+        observed_queries.append((copy.deepcopy(query.post_processing), query.row_limit))
+        value = 100.0 if not query.columns else 1.0
+        return acquired_query(query, pd.DataFrame({"sales": [value]}))
+
+    completed = QueryDataResult({"status": "success"}, query_timing())
+    with (
+        patch(
+            "superset.common.query_context_processor.acquire_query_data",
+            side_effect=acquire,
+        ),
+        patch(
+            "superset.common.query_context_processor.materialize_acquired_query",
+            return_value=completed,
+        ),
+        patch(
+            "superset.common.query_context_processor.cache_acquired_query",
+            return_value=completed,
+        ),
+    ):
+        materialized = processor._execute_query_plan(False, True)
+        materialized_queries = list(observed_queries)
+        observed_queries.clear()
+        cached = processor._execute_query_plan(False, False)
+
+    assert len(materialized) == len(cached) == 2
+    assert observed_queries == materialized_queries
+    assert observed_queries[0] == ([], None)
+    assert observed_queries[1][0][0]["options"]["contribution_totals"] == {
+        "sales": 100.0
+    }
+    assert totals_query.row_limit == 100
+    assert "contribution_totals" not in main_query.post_processing[0]["options"]
+
+
+def test_ambiguous_contribution_totals_are_rejected() -> None:
+    datasource = MagicMock()
+    main_query = QueryObject(
+        datasource=datasource,
+        columns=["region"],
+        metrics=["sales"],
+        post_processing=[{"operation": "contribution", "options": {}}],
+    )
+    totals_query_1 = QueryObject(datasource=datasource, columns=[], metrics=["sales"])
+    totals_query_2 = QueryObject(datasource=datasource, columns=[], metrics=["sales"])
+    query_context = MagicMock()
+    query_context.queries = [main_query, totals_query_1, totals_query_2]
+    processor = QueryContextProcessor(query_context)
+
+    with pytest.raises(
+        QueryObjectValidationError,
+        match="Multiple totals queries match",
+    ):
+        processor._contribution_plan()
+
+
+def test_explicit_contribution_producer_resolves_legacy_ambiguity() -> None:
+    datasource = MagicMock()
+    main_query = QueryObject(
+        datasource=datasource,
+        columns=["region"],
+        metrics=["count", "sales"],
+        contribution_totals_query_index=2,
+        post_processing=[
+            {
+                "operation": "contribution",
+                "options": {"columns": ["sales"]},
+            }
+        ],
+    )
+    totals_queries = [
+        QueryObject(datasource=datasource, columns=[], metrics=["sales"]),
+        QueryObject(datasource=datasource, columns=[], metrics=["sales"]),
+    ]
+    query_context = MagicMock()
+    query_context.queries = [main_query, *totals_queries]
+
+    assert QueryContextProcessor(query_context)._contribution_plan() == {0: 2}
+
+
+def test_explicit_contribution_producer_must_match_consumer_filters() -> None:
+    datasource = MagicMock()
+    main_query = QueryObject(
+        datasource=datasource,
+        columns=["region"],
+        metrics=["sales"],
+        filters=[{"col": "region", "op": "==", "val": "north"}],
+        contribution_totals_query_index=1,
+        post_processing=[{"operation": "contribution", "options": {}}],
+    )
+    totals_query = QueryObject(
+        datasource=datasource,
+        columns=[],
+        metrics=["sales"],
+        filters=[{"col": "region", "op": "==", "val": "south"}],
+    )
+    query_context = MagicMock()
+    query_context.queries = [main_query, totals_query]
+
+    with pytest.raises(
+        QueryObjectValidationError,
+        match="does not match its consumer",
+    ):
+        QueryContextProcessor(query_context)._contribution_plan()
+
+
+def test_failed_contribution_producer_skips_dependent_query() -> None:
+    datasource = MagicMock()
+    main_query = QueryObject(
+        datasource=datasource,
+        columns=["region"],
+        metrics=["sales"],
+        contribution_totals_query_index=1,
+        post_processing=[{"operation": "contribution", "options": {}}],
+    )
+    totals_query = QueryObject(datasource=datasource, columns=[], metrics=["sales"])
+    query_context = MagicMock()
+    query_context.queries = [main_query, totals_query]
+    query_context.result_type = ChartDataResultType.FULL
+    processor = QueryContextProcessor(query_context)
+    completed = QueryDataResult({"status": "failed"}, query_timing())
+
+    with (
+        patch(
+            "superset.common.query_context_processor.acquire_query_data",
+            return_value=acquired_query(
+                totals_query,
+                pd.DataFrame({"sales": []}),
+                QueryStatus.FAILED,
+            ),
+        ) as acquire,
+        patch(
+            "superset.common.query_context_processor.cache_acquired_query",
+            return_value=completed,
+        ),
+    ):
+        result = processor._execute_query_plan(False, False)
+
+    acquire.assert_called_once()
+    assert result[0].payload == {
+        "error": "Contribution totals query failed",
+        "status": QueryStatus.FAILED,
+    }
+    assert result[1] == completed

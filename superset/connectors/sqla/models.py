@@ -1909,6 +1909,8 @@ class SqlaTable(
         groupby_exprs: dict[str, Any],
         columns_by_name: dict[str, TableColumn],
     ) -> ColumnElement:
+        if df.empty:
+            return sa.false()
         groups = []
         for _unused, row in df.iterrows():
             group = []
@@ -2186,7 +2188,10 @@ class SqlaTable(
             filtered_query_obj = {
                 k: v for k, v in query_obj.items() if k in SQLA_QUERY_KEYS
             }
-            sqla_query = self.get_sqla_query(**cast(Any, filtered_query_obj))
+            sqla_query = self.get_sqla_query(
+                **cast(Any, filtered_query_obj),
+                defer_source_queries=True,
+            )
             extra_cache_keys += sqla_query.extra_cache_keys
 
         # For virtual datasets, include RLS predicates in the cache key
@@ -2202,7 +2207,7 @@ class SqlaTable(
             # Add each predicate as a separate cache key component
             extra_cache_keys.extend(rls_predicates)
 
-        return list(set(extra_cache_keys))
+        return list(dict.fromkeys(extra_cache_keys))
 
     @property
     def quote_identifier(self) -> Callable[[str], str]:

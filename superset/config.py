@@ -1342,6 +1342,10 @@ DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 # logging but omitted from the API response.
 CHART_DATA_INCLUDE_TIMING: bool = False
 
+# Include request-level phase durations in the Server-Timing header for successful
+# JSON responses from /api/v1/chart/data. File and error responses never expose it.
+CHART_DATA_INCLUDE_SERVER_TIMING: bool = False
+
 # Slow chart data query threshold in milliseconds.
 # When set, queries exceeding this threshold are logged at WARNING level
 # with per-phase timing breakdown. Set to None to disable.

@@ -375,7 +375,11 @@ def cache_warmup(
 
     if not strategy.uses_webdriver:
         # pylint: disable=import-outside-toplevel
-        from superset.commands.chart.data.get_data_command import ChartDataCommand
+        from superset.commands.chart.data.get_data_command import (
+            ChartDataCommand,
+            ChartDataExecutionMode,
+            ChartDataExecutionOptions,
+        )
         from superset.utils.core import override_user
 
         with override_user(user, force=False):
@@ -389,7 +393,11 @@ def cache_warmup(
                     logger.info("Warming up cache for %s", task_name)
                     command: Any = ChartDataCommand(task.query_context)
                     command.validate()
-                    command.run(cache=True)
+                    command.execute(
+                        ChartDataExecutionOptions(
+                            mode=ChartDataExecutionMode.CACHE_ONLY
+                        )
+                    )
                     results["success"].append(task_name)
                 except Exception:  # noqa: BLE001
                     logger.exception("Error warming up cache for %s", task_name)

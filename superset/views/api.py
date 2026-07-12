@@ -30,7 +30,6 @@ from superset.commands.chart.exceptions import (
     TimeRangeAmbiguousError,
     TimeRangeParseFailError,
 )
-from superset.common.chart_data_timing import finalize_timing_payload
 from superset.daos.chart import ChartDAO
 from superset.legacy import update_time_range
 from superset.superset_typing import FlaskResponse
@@ -75,11 +74,6 @@ class Api(BaseSupersetView):
         query_context.raise_for_access()
         result = query_context.get_payload()
         payload_json = result["queries"]
-        # Strip the internal timing sentinel (and surface public timing when
-        # CHART_DATA_INCLUDE_TIMING is enabled); get_payload() always injects
-        # it, but only the chart-data path finalizes it otherwise.
-        for query in payload_json:
-            finalize_timing_payload(query)
         return self.json_response(payload_json)
 
     @event_logger.log_this

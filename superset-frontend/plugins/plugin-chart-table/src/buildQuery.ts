@@ -322,6 +322,7 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
     });
 
     const extraQueries: QueryObject[] = [];
+    let contributionTotalsExtraIndex: number | undefined;
 
     const calculationMode = formData.percent_metric_calculation || 'row_limit';
 
@@ -330,6 +331,7 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
       percentMetrics &&
       percentMetrics.length > 0
     ) {
+      contributionTotalsExtraIndex = extraQueries.length;
       extraQueries.push({
         ...queryObject,
         columns: [],
@@ -369,6 +371,15 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
       queryObject.columns = [
         ...new Set([...queryObject.columns, ...interactiveGroupBy]),
       ];
+    }
+
+    if (contributionTotalsExtraIndex !== undefined) {
+      const queryPrefixLength = formData.server_pagination ? 2 : 1;
+      queryObject = {
+        ...queryObject,
+        contribution_totals_query_index:
+          queryPrefixLength + contributionTotalsExtraIndex,
+      };
     }
 
     // Now since row limit control is always visible even
