@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
@@ -23,6 +24,7 @@ import pytest
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import DTTM_ALIAS
 from superset.utils.pandas_postprocessing import anomaly_detection
+from superset.utils.pandas_postprocessing.anomaly import _parse_seasonality
 
 anomaly_df = pd.DataFrame(
     {
@@ -334,3 +336,48 @@ def test_anomaly_detection_skips_null_columns_from_forecast():
     # Bounds still skipped
     assert "metric__yhat_lower__anomaly" not in result.columns
     assert "metric__yhat_upper__anomaly" not in result.columns
+
+
+def test_parse_seasonality():
+    assert _parse_seasonality(None) == "auto"
+    assert _parse_seasonality(True) is True
+    assert _parse_seasonality(False) is False
+    assert _parse_seasonality(4) == 4
+    assert _parse_seasonality(0) == 0
+
+
+def test_anomaly_detection_prophet_mocked():
+    """Cover the Prophet detection path without requiring the prophet package."""
+    dates = pd.date_range("2020-01-01", periods=20, freq="D")
+    values = [1.0] * 20
+    values[10] = 100.0
+    df = pd.DataFrame({DTTM_ALIAS: dates, "metric": values})
+
+    # is_anomaly: True only at index 10
+    mock_anomaly = pd.Series([False] * 20, dtype=bool)
+    mock_anomaly.iloc[10] = True
+
+    with patch(
+        "superset.utils.pandas_postprocessing.anomaly._detect_anomalies_prophet",
+        return_value=mock_anomaly,
+    ) as mock_fn:
+        result = anomaly_detection(
+            df=df,
+            method="prophet",
+            confidence_interval=0.8,
+        )
+
+    mock_fn.assert_called_once()
+    assert "metric__anomaly" in result.columns
+    assert result["metric__anomaly"].iloc[10] == 100.0
+    assert result["metric__anomaly"].iloc[0] != result["metric__anomaly"].iloc[0]  # NaN
+
+
+def test_anomaly_detection_prophet_not_installed():
+    """Cover the ModuleNotFoundError branch in _detect_anomalies_prophet."""
+    dates = pd.date_range("2020-01-01", periods=20, freq="D")
+    df = pd.DataFrame({DTTM_ALIAS: dates, "metric": [float(i) for i in range(20)]})
+
+    with patch.dict("sys.modules", {"prophet": None}):
+        with pytest.raises(InvalidPostProcessingError, match="prophet"):
+            anomaly_detection(df=df, method="prophet", confidence_interval=0.8)

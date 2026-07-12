@@ -123,9 +123,9 @@ interface _PostProcessingProphet {
     time_grain: TimeGranularity | undefined;
     periods: number;
     confidence_interval: number;
-    yearly_seasonality?: boolean | number;
-    weekly_seasonality?: boolean | number;
-    daily_seasonality?: boolean | number;
+    yearly_seasonality?: boolean | number | null;
+    weekly_seasonality?: boolean | number | null;
+    daily_seasonality?: boolean | number | null;
   };
 }
 export type PostProcessingProphet =
@@ -134,19 +134,18 @@ export type PostProcessingProphet =
 interface _PostProcessingAnomalyDetection {
   operation: 'anomaly_detection';
   options: {
-    method: string;
+    method: 'zscore' | 'mad' | 'prophet';
     rolling_window?: number;
     sensitivity?: number;
     index?: string;
     confidence_interval?: number;
-    yearly_seasonality?: boolean | number;
-    weekly_seasonality?: boolean | number;
-    daily_seasonality?: boolean | number;
+    yearly_seasonality?: boolean | number | null;
+    weekly_seasonality?: boolean | number | null;
+    daily_seasonality?: boolean | number | null;
   };
 }
 export type PostProcessingAnomalyDetection =
-  | _PostProcessingAnomalyDetection
-  | DefaultPostProcessing;
+  _PostProcessingAnomalyDetection | DefaultPostProcessing;
 
 interface _PostProcessingDiff {
   operation: 'diff';

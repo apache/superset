@@ -54,7 +54,7 @@ describe('extractForecastSeriesContext', () => {
       type: ForecastSeriesEnum.Anomaly,
     });
     expect(extractForecastSeriesContext('metric__yhat__anomaly')).toEqual({
-      name: 'metric',
+      name: 'metric__yhat',
       type: ForecastSeriesEnum.Anomaly,
     });
   });
