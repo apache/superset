@@ -149,6 +149,7 @@ def load_configs(
         prefix = file_name.split("/")[0]
         schema = schemas.get(f"{prefix}/")
         if schema:
+            config = None
             try:
                 config = load_yaml(file_name, content)
 
@@ -230,7 +231,21 @@ def load_configs(
                     prefix,
                     exc.messages,
                 )
-                logger.debug("Config content that failed validation: %s", config)
+                # Mask sensitive data before logging out for debug
+                if config:
+                    redacted_config = json.redact_sensitive(
+                        config,
+                        {
+                            "$.password",
+                            "$.ssh_tunnel.password",
+                            "$.ssh_tunnel.private_key",
+                            "$.ssh_tunnel.private_key_password",
+                            "$.masked_encrypted_extra",
+                        },
+                    )
+                    logger.debug(
+                        "Config content that failed validation: %s.", redacted_config
+                    )
                 exc.messages = {file_name: exc.messages}
                 exceptions.append(exc)
 
