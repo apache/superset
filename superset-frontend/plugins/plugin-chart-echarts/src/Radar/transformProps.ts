@@ -254,14 +254,27 @@ export default function transformProps(
     {},
   );
 
-  const normalizeArray = (arr: number[], decimals = 10, seriesName: string) =>
+  const normalizeArray = (
+    arr: (number | null)[],
+    decimals = 10,
+    seriesName: string,
+  ): (number | null)[] =>
     arr.map((value, index) => {
       const metricLabel = metricLabels[index];
       if (metricsWithCustomBounds.has(metricLabel)) {
         return value;
       }
 
-      const max = Math.max(...arr);
+      // Preserve missing (null/undefined) metric values so they render as a
+      // gap. Dividing null/undefined by max coerces it to 0, which would plot
+      // the point at the center of the radar as if it were a real zero.
+      if (value == null || !Number.isFinite(value)) {
+        return null;
+      }
+
+      const max = Math.max(
+        ...arr.filter((v): v is number => v != null && Number.isFinite(v)),
+      );
       const normalizedValue = Number((value / max).toFixed(decimals));
 
       denormalizedSeriesValues[seriesName][String(normalizedValue)] = value;
@@ -276,7 +289,11 @@ export default function transformProps(
 
       return {
         ...series,
-        value: normalizeArray(series.value as number[], 10, seriesName),
+        value: normalizeArray(
+          series.value as (number | null)[],
+          10,
+          seriesName,
+        ),
       };
     }
     return series;
