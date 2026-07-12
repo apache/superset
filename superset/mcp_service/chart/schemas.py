@@ -2727,3 +2727,49 @@ class ChartFiltersInfo(BaseModel):
 
 # Rebuild ChartInfo so Pydantic can resolve the ChartFiltersInfo forward reference.
 ChartInfo.model_rebuild()
+
+
+class DeleteChartRequest(BaseModel):
+    """Request schema for delete_chart."""
+
+    identifier: int | str = Field(
+        ...,
+        description=(
+            "Chart identifier - numeric ID or UUID string (charts have no slug)."
+        ),
+    )
+
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so identifier=true would coerce to
+        chart ID 1 and delete the wrong object; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID or UUID string")
+        return value
+
+
+class DeleteChartResponse(BaseModel):
+    """Result of a delete_chart operation."""
+
+    success: bool = Field(description="Whether the chart was deleted")
+    deleted_id: int | None = Field(None, description="ID of the deleted chart")
+    deleted_name: str | None = Field(None, description="Name of the deleted chart")
+    soft_deleted: bool = Field(
+        False,
+        description=(
+            "True when the chart was soft-deleted (moved to trash, because the "
+            "SOFT_DELETE feature flag is enabled) and can be restored by an "
+            "owner or Admin. False means the delete was permanent."
+        ),
+    )
+    message: str | None = Field(None, description="Human-readable outcome message")
+    error: str | None = Field(None, description="Error message if the delete failed")
+    error_type: str | None = Field(None, description="Type of error if failed")
+    permission_denied: bool = Field(
+        False,
+        description=(
+            "True when the caller lacks permission to delete the chart (do not "
+            "retry; ask the user)."
+        ),
+    )
