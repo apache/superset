@@ -50,7 +50,7 @@ cattrs==25.1.1
     # via requests-cache
 celery==5.6.3
     # via apache-superset (pyproject.toml)
-certifi==2023.5.7
+certifi==2026.2.25
     # via
     #   requests
     #   selenium
@@ -359,7 +359,7 @@ referencing==0.36.2
     # via
     #   jsonschema
     #   jsonschema-specifications
-requests==2.30.0
+requests==2.31.0
     # via
     #   -r requirements/base.in
     #   requests-cache
