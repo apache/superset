@@ -44,7 +44,6 @@ module.exports = {
     '@babel/preset-typescript',
   ],
   plugins: [
-    'lodash',
     '@babel/plugin-syntax-dynamic-import',
     '@babel/plugin-transform-export-namespace-from',
     ['@babel/plugin-transform-class-properties', { loose: true }],
@@ -107,7 +106,13 @@ module.exports = {
         [
           'babel-plugin-jsx-remove-data-test-id',
           {
-            attributes: 'data-test',
+            // The plugin matches attribute names exactly (no prefix match),
+            // so each data-test* attribute must be listed explicitly.
+            attributes: [
+              'data-test',
+              'data-test-drag-source-id',
+              'data-test-drop-target-id',
+            ],
           },
         ],
       ],

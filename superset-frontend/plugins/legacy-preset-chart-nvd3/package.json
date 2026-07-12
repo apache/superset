@@ -34,15 +34,16 @@
     "fast-safe-stringify": "^2.1.1",
     "lodash": "^4.18.1",
     "nvd3-fork": "^2.0.5",
-    "dompurify": "^3.4.9",
+    "dompurify": "^3.4.11",
     "prop-types": "^15.8.1",
-    "urijs": "^1.19.11"
+    "urijs": "^1.19.11",
+    "lodash-es": "^4.18.1"
   },
   "peerDependencies": {
     "@apache-superset/core": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "dayjs": "^1.11.21",
-    "react": "^18.2.0"
+    "react": "^18.3.0"
   }
 }

@@ -202,7 +202,7 @@ test('renders all required column headers', async () => {
     'Type',
     'Dataset',
     'On dashboards',
-    'Owners',
+    'Editors',
     'Last modified',
     'Actions',
   ];
@@ -328,15 +328,17 @@ test('displays chart data correctly in table rows', async () => {
     within(chartRow).getByText(testChart.dashboards[0].dashboard_title),
   ).toBeInTheDocument();
 
-  // Check owners display - find avatar group within the row
+  // Check editors display - find avatar group within the row
   const avatarGroup = chartRow.querySelector(
     '.ant-avatar-group',
   ) as HTMLElement;
   expect(avatarGroup).toBeInTheDocument();
 
-  // Test owner initials for mockCharts[0] (we know it has owners)
-  const ownerInitials = `${testChart.owners[0].first_name[0]}${testChart.owners[0].last_name[0]}`;
-  expect(within(avatarGroup).getByText(ownerInitials)).toBeInTheDocument();
+  // Test editor initials for mockCharts[0] (we know it has editors)
+  const editorLabel = testChart.editors[0].label;
+  const parts = editorLabel.split(' ');
+  const editorInitials = parts.map((p: string) => p[0]).join('');
+  expect(within(avatarGroup).getByText(editorInitials)).toBeInTheDocument();
 
   // Check last modified time within the specific row
   expect(
@@ -564,7 +566,7 @@ test('renders dashboard crosslinks as navigable links', async () => {
       within(crosslinks).getByRole('link', {
         name: new RegExp(dashboard.dashboard_title),
       }),
-    ).toHaveAttribute('href', `/superset/dashboard/${dashboard.id}`);
+    ).toHaveAttribute('href', `/dashboard/${dashboard.id}`);
   });
 });
 
@@ -604,7 +606,7 @@ test('shows tag column when TAGGING_SYSTEM is enabled', async () => {
 
   // Tag should be a link to all_entities page
   const tagLink = within(tag).getByRole('link');
-  expect(tagLink).toHaveAttribute('href', '/superset/all_entities/?id=1');
+  expect(tagLink).toHaveAttribute('href', '/all_entities/?id=1');
   expect(tagLink).toHaveAttribute('target', '_blank');
 });
 

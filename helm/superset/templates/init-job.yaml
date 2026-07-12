@@ -24,13 +24,7 @@ metadata:
   name: {{ template "superset.fullname" . }}-init-db
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "superset.name" . }}
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
-    {{- if .Values.extraLabels }}
-      {{- toYaml .Values.extraLabels | nindent 4 }}
-    {{- end }}
+    {{- include "superset.componentLabels" (dict "component" "init" "root" .) | nindent 4 }}
   {{- if .Values.init.jobAnnotations }}
   annotations: {{- toYaml .Values.init.jobAnnotations | nindent 4 }}
   {{- end }}
@@ -41,16 +35,19 @@ spec:
       {{- if .Values.init.podAnnotations }}
       annotations: {{- toYaml .Values.init.podAnnotations | nindent 8 }}
       {{- end }}
-      {{- if or .Values.extraLabels .Values.init.podLabels }}
       labels:
+        {{- include "superset.componentSelectorLabels" (dict "component" "init" "root" .) | nindent 8 }}
+        job: {{ template "superset.fullname" . }}-init-db
         {{- if .Values.extraLabels }}
           {{- toYaml .Values.extraLabels | nindent 8 }}
         {{- end }}
         {{- if .Values.init.podLabels }}
           {{- toYaml .Values.init.podLabels | nindent 8 }}
         {{- end }}
-      {{- end }}
     spec:
+      {{- if .Values.init.additionalPodSpec }}
+      {{- tpl (toYaml .Values.init.additionalPodSpec) . | nindent 6 }}
+      {{- end }}
       {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
       serviceAccountName: {{ template "superset.serviceAccountName" . }}
       {{- end }}
@@ -104,7 +101,7 @@ spec:
         command: {{  tpl (toJson .Values.init.command) . }}
         resources: {{- toYaml .Values.init.resources | nindent 10 }}
       {{- if .Values.init.extraContainers }}
-          {{- toYaml .Values.init.extraContainers | nindent 6 }}
+          {{- tpl (toYaml .Values.init.extraContainers) . | nindent 6 }}
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}

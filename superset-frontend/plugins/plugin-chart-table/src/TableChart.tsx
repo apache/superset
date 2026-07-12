@@ -58,7 +58,7 @@ import {
   useTheme,
   SupersetTheme,
 } from '@apache-superset/core/theme';
-import { t, tn } from '@apache-superset/core/translation';
+import { t } from '@apache-superset/core/translation';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
   Input,
@@ -75,7 +75,7 @@ import {
   PlusCircleOutlined,
   TableOutlined,
 } from '@ant-design/icons';
-import { isEmpty, debounce, isEqual } from 'lodash';
+import { isEmpty, debounce, isEqual } from 'lodash-es';
 import {
   ColorFormatters,
   getTextColorForBackground,
@@ -107,6 +107,25 @@ interface TableSize {
   width: number;
   height: number;
 }
+
+const getCrossFilterValue = (
+  value: DataRecordValue,
+  column: DataColumnMeta | undefined,
+): DataRecordValue => {
+  const input = value instanceof DateWithFormatter ? value.input : value;
+  if (
+    column?.dataType === GenericDataType.Temporal &&
+    typeof input === 'string' &&
+    input.trim() !== '' &&
+    Number.isFinite(Number(input))
+  ) {
+    return Number(input);
+  }
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+  return value;
+};
 
 const ACTION_KEYS = {
   enter: 'Enter',
@@ -254,12 +273,13 @@ function SearchInput({
   inputRef,
 }: SearchInputProps) {
   return (
-    <Space direction="horizontal" size={4} className="dt-global-filter">
-      {t('Search')}
+    <Space direction="vertical" size={4} className="dt-global-filter">
+      <span aria-hidden="true">{t('Search')}</span>
       <Input
-        aria-label={t('Search %s records', count)}
-        placeholder={tn('%s record', '%s records...', count, count)}
+        aria-label={t('Search records')}
+        placeholder={t('Search records')}
         value={value}
+        size="small"
         onChange={onChange}
         onBlur={onBlur}
         ref={inputRef}
@@ -276,18 +296,18 @@ function SelectPageSize({
   const { Option } = Select;
 
   return (
-    <span className="dt-select-page-size">
+    <Space direction="vertical" size={4} className="dt-select-page-size">
       <VisuallyHidden htmlFor="pageSizeSelect">
         {t('Select page size')}
       </VisuallyHidden>
-      {t('Show')}{' '}
+      {t('Entries per page')}
       <Select<number>
         id="pageSizeSelect"
         value={current}
         onChange={value => onChange(value)}
         size="small"
         css={(theme: SupersetTheme) => css`
-          width: ${theme.sizeUnit * 18}px;
+          width: ${theme.sizeUnit * 30}px;
         `}
         aria-label={t('Show entries per page')}
       >
@@ -301,9 +321,8 @@ function SelectPageSize({
             </Option>
           );
         })}
-      </Select>{' '}
-      {t('entries per page')}
-    </span>
+      </Select>
+    </Space>
   );
 }
 
@@ -533,6 +552,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     // so that cross-filters work on the receiving chart
                     const resolvedCol = columnLabelToNameMap[col] ?? col;
                     const val = ensureIsArray(updatedFilters?.[col]);
+                    const column = columnsMeta.find(
+                      columnMeta => columnMeta.key === col,
+                    );
                     if (
                       !val.length ||
                       val[0] === null ||
@@ -546,9 +568,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     return {
                       col: resolvedCol,
                       op: 'IN' as const,
-                      val: val.map(el =>
-                        el instanceof Date ? el.getTime() : el!,
-                      ),
+                      val: val.map(el => getCrossFilterValue(el!, column)),
                       grain: resolvedCol === DTTM_ALIAS ? timeGrain : undefined,
                     };
                   }),
@@ -571,6 +591,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       timestampFormatter,
       timeGrain,
       columnLabelToNameMap,
+      columnsMeta,
     ],
   );
 
@@ -952,6 +973,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       i: number,
     ): ColumnWithLooseAccessor<D> & {
       columnKey: string;
+      columnLabel: string;
     } => {
       const {
         key,
@@ -1040,6 +1062,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         // typing is incorrect in current version of `@types/react-table`
         // so we ask TS not to check.
         columnKey: key,
+        columnLabel: label,
         accessor: ((datum: D) => datum[key]) as never,
         Cell: ({ value, row }: { value: DataRecordValue; row: Row<D> }) => {
           const [isHtml, text] = formatColumnValue(column, value, row.original);
@@ -1135,13 +1158,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
-            font-weight: ${color
-              ? `${theme.fontWeightBold}`
-              : `${theme.fontWeightNormal}`};
+            font-weight: ${
+              color ? `${theme.fontWeightBold}` : `${theme.fontWeightNormal}`
+            };
             background: ${backgroundColor || undefined};
-            padding-left: ${column.isChildColumn
-              ? `${theme.sizeUnit * 5}px`
-              : `${theme.sizeUnit}px`};
+            padding-left: ${
+              column.isChildColumn
+                ? `${theme.sizeUnit * 5}px`
+                : `${theme.sizeUnit}px`
+            };
           `;
 
           const cellBarStyles = css`
@@ -1149,10 +1174,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             height: 100%;
             display: block;
             top: 0;
-            ${valueRange &&
-            typeof value === 'number' &&
-            valueRangeFlag &&
-            `
+            ${
+              valueRange &&
+              typeof value === 'number' &&
+              valueRangeFlag &&
+              `
                 width: ${`${cellWidth({
                   value: value as number,
                   valueRange,
@@ -1171,15 +1197,18 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     theme,
                   })
                 };
-              `}
+              `
+            }
           `;
 
           let arrowStyles = css`
-            color: ${basicColorFormatters &&
-            basicColorFormatters[row.index][originKey]?.arrowColor ===
-              ColorSchemeEnum.Green
-              ? theme.colorSuccess
-              : theme.colorError};
+            color: ${
+              basicColorFormatters &&
+              basicColorFormatters[row.index][originKey]?.arrowColor ===
+                ColorSchemeEnum.Green
+                ? theme.colorSuccess
+                : theme.colorError
+            };
             margin-right: ${theme.sizeUnit}px;
           `;
 
@@ -1188,10 +1217,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             basicColorColumnFormatters?.length > 0
           ) {
             arrowStyles = css`
-              color: ${basicColorColumnFormatters[row.index][column.key]
-                ?.arrowColor === ColorSchemeEnum.Green
-                ? theme.colorSuccess
-                : theme.colorError};
+              color: ${
+                basicColorColumnFormatters[row.index][column.key]
+                  ?.arrowColor === ColorSchemeEnum.Green
+                  ? theme.colorSuccess
+                  : theme.colorError
+              };
               margin-right: ${theme.sizeUnit}px;
             `;
           }
@@ -1204,8 +1235,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             onClick:
               emitCrossFilters && !valueRange && !isMetric
                 ? () => {
+                    const isFilterable = columnsMeta.find(
+                      (cm: DataColumnMeta) => cm.key === key,
+                    )?.isFilterable;
                     // allow selecting text in a cell
-                    if (!getSelectedText()) {
+                    if (!getSelectedText() && isFilterable !== false) {
                       toggleFilter(key, value);
                     }
                   }
@@ -1304,7 +1338,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 col.toggleSortBy();
               }
             }}
-            role="columnheader button"
             onClick={onClick}
             data-column-name={col.id}
             {...(allowRearrangeColumns && {
@@ -1446,13 +1479,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       columns as unknown as ColumnWithLooseAccessor &
         {
           columnKey: string;
+          columnLabel: string;
           sortType?: string;
         }[]
     )
       .filter(col => col?.sortType === 'alphanumeric')
       .map(column => ({
         value: column.columnKey,
-        label: column.columnKey,
+        label: column.columnLabel,
       }));
 
     if (!isEqual(options, searchOptions)) {
