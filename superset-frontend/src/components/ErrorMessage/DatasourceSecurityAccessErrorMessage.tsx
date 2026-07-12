@@ -46,6 +46,7 @@ export function DatasourceSecurityAccessErrorMessage({
   error,
   source,
   closable,
+  compact,
 }: ErrorMessageComponentProps<DatasourceSecurityAccessExtra | null>) {
   const { extra, level, message } = error;
   const isVisualization = ['dashboard', 'explore'].includes(source || '');
@@ -62,6 +63,7 @@ export function DatasourceSecurityAccessErrorMessage({
         message={message}
         type={level}
         closable={closable}
+        compact={compact}
       />
     );
   }
@@ -151,6 +153,7 @@ export function DatasourceSecurityAccessErrorMessage({
       descriptionPre={false}
       type={level}
       closable={closable}
+      compact={compact}
     />
   );
 }

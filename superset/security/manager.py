@@ -1824,6 +1824,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 "link": self.get_datasource_access_link(datasource),
                 "datasource": datasource.data["id"],
                 "datasource_name": datasource.data["name"],
+                # Owner display names give the viewer someone to contact for
+                # access; sorted for a deterministic payload.
+                "owners": sorted(
+                    str(owner) for owner in getattr(datasource, "owners", []) or []
+                ),
             },
         )
 
@@ -1871,8 +1876,20 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: The access URL
         """
 
+        # Build display names from the raw parts: Table.__str__ URL-encodes
+        # each segment, and the renderer encodes the whole value again, so
+        # using it here would double-encode. Sorted for deterministic links.
         return _render_permission_instructions_link(
-            table_names=",".join(str(table) for table in tables),
+            table_names=",".join(
+                sorted(
+                    ".".join(
+                        part
+                        for part in (table.catalog, table.schema, table.table)
+                        if part
+                    )
+                    for table in tables
+                )
+            ),
         )
 
     def get_user_datasources(self) -> list["BaseDatasource"]:

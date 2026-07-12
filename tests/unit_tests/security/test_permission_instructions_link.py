@@ -138,3 +138,44 @@ def test_get_table_access_link_joins_table_names() -> None:
     assert out.startswith("https://acme.example.com/req?tables=")
     assert "public.sales" in out
     assert "public.users" in out
+
+
+def test_datasource_error_object_includes_sorted_owner_names() -> None:
+    ds = MagicMock()
+    ds.data = {"id": 12, "name": "Quarterly Sales"}
+    owner_b, owner_a = MagicMock(), MagicMock()
+    owner_b.__str__.return_value = "Zoe Chen"  # type: ignore[attr-defined]
+    owner_a.__str__.return_value = "Amir Patel"  # type: ignore[attr-defined]
+    ds.owners = [owner_b, owner_a]
+    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
+    with (
+        patch(f"{MANAGER}.get_conf", return_value={"PERMISSION_INSTRUCTIONS_LINK": ""}),
+        patch(f"{MANAGER}.g") as g_mock,
+    ):
+        g_mock.user.is_anonymous = False
+        g_mock.user.username = "alice"
+        error = sm.get_datasource_access_error_object(ds)
+    assert error.extra is not None
+    assert error.extra["owners"] == ["Amir Patel", "Zoe Chen"]
+
+
+def test_table_access_link_is_single_encoded_and_sorted() -> None:
+    """Table.__str__ URL-encodes parts; the link must not encode twice, and
+    set iteration must not leak nondeterministic ordering into the URL."""
+    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
+    with (
+        patch(
+            f"{MANAGER}.get_conf",
+            return_value={
+                "PERMISSION_INSTRUCTIONS_LINK": (
+                    "https://acme.example.com/req?tables={table_names}"
+                )
+            },
+        ),
+        patch(f"{MANAGER}.g") as g_mock,
+    ):
+        g_mock.user.is_anonymous = False
+        g_mock.user.username = "alice"
+        out = sm.get_table_access_link({Table("my table", "public")})
+    # single-encoded space (%20), not double-encoded (%2520)
+    assert out == "https://acme.example.com/req?tables=public.my%20table"
