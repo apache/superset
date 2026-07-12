@@ -492,6 +492,57 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         assert data["count"] > 0
         assert len(result) > 0
 
+    def test_rls_subjects_related_api_honors_filter_31466(self):
+        """
+        Regression for #31466: with more than 100 roles the RLS picker could
+        not see or select roles beyond the first (default) page of 100 because
+        the ``related/roles`` endpoint silently ignored the search ``filter``
+        term. The RLS subject/role picker now lives at ``related/subjects``,
+        and this test asserts the search term actually narrows the result to
+        matching subjects, so any role remains reachable by name regardless of
+        how many roles exist.
+        """
+        self.login(ADMIN_USERNAME)
+
+        # A role label that cannot collide with the built-in roles/subjects
+        # (Admin, Public, Alpha, Gamma, sql_lab, ...).
+        unique_marker = "zzz_rls_31466"
+        role_name = f"{unique_marker}_special_role"
+        role = security_manager.add_role(role_name)
+        db.session.commit()
+        subject = _subject_for_role(role)
+        db.session.commit()
+
+        # Ensure ROLE-type subjects are visible in the RLS picker (the scenario
+        # from #31466, where roles drive RLS). This is what the original
+        # ``related/roles`` endpoint used to serve unconditionally.
+        original_types = self.app.config.get("SUBJECTS_RELATED_TYPES_RLS")
+        self.app.config["SUBJECTS_RELATED_TYPES_RLS"] = [SubjectType.ROLE]
+        try:
+            params = rison.dumps({"filter": unique_marker, "page": 0, "page_size": 100})
+            rv = self.client.get(
+                f"/api/v1/rowlevelsecurity/related/subjects?q={params}"
+            )
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            received = {r["text"] for r in data["result"]}
+
+            # The role must be findable via the search term ...
+            assert role_name in received
+            # ... and the filter must narrow the result to matching subjects
+            # only. If the search term were ignored (the #31466 bug), other
+            # roles that do not contain the marker would leak through and this
+            # assertion would fail.
+            assert all(unique_marker in text for text in received), (
+                "related/subjects ignored the filter term and returned "
+                f"non-matching subjects: {sorted(received)}"
+            )
+        finally:
+            self.app.config["SUBJECTS_RELATED_TYPES_RLS"] = original_types
+            db.session.delete(subject)
+            db.session.delete(role)
+            db.session.commit()
+
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     @mock.patch(
