@@ -96,7 +96,16 @@ async def restore_chart(
     """
     await ctx.info("Restoring chart: identifier=%s" % (request.identifier,))
 
-    chart = _find_chart_for_restore(request.identifier)
+    try:
+        chart = _find_chart_for_restore(request.identifier)
+    except SQLAlchemyError:
+        _rollback()
+        logger.exception("Chart lookup failed during restore_chart")
+        return RestoreChartResponse(
+            success=False,
+            error="Chart lookup failed due to a database error.",
+            error_type="LookupFailed",
+        )
     if not chart:
         safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
         msg = f"No chart found with identifier: {safe_id}."
@@ -149,6 +158,12 @@ async def restore_chart(
         await ctx.error("Chart restore failed: %s: %s" % (type(ex).__name__, ex))
         return RestoreChartResponse(
             success=False,
-            error=f"Chart restore failed: {ex}",
+            # Raw SQLAlchemy text can leak SQL or connection details; command
+            # and validation messages are user-facing by design.
+            error=(
+                "Chart restore failed due to a database error."
+                if isinstance(ex, SQLAlchemyError)
+                else f"Chart restore failed: {ex}"
+            ),
             error_type=type(ex).__name__,
         )

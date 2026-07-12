@@ -98,7 +98,16 @@ async def restore_dashboard(
     """
     await ctx.info("Restoring dashboard: identifier=%s" % (request.identifier,))
 
-    dashboard = _find_dashboard_for_restore(request.identifier)
+    try:
+        dashboard = _find_dashboard_for_restore(request.identifier)
+    except SQLAlchemyError:
+        _rollback()
+        logger.exception("Dashboard lookup failed during restore_dashboard")
+        return RestoreDashboardResponse(
+            success=False,
+            error="Dashboard lookup failed due to a database error.",
+            error_type="LookupFailed",
+        )
     if not dashboard:
         safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
         msg = f"No dashboard found with identifier: {safe_id}."
@@ -157,6 +166,12 @@ async def restore_dashboard(
         await ctx.error("Dashboard restore failed: %s: %s" % (type(ex).__name__, ex))
         return RestoreDashboardResponse(
             success=False,
-            error=f"Dashboard restore failed: {ex}",
+            # Raw SQLAlchemy text can leak SQL or connection details; command
+            # and validation messages are user-facing by design.
+            error=(
+                "Dashboard restore failed due to a database error."
+                if isinstance(ex, SQLAlchemyError)
+                else f"Dashboard restore failed: {ex}"
+            ),
             error_type=type(ex).__name__,
         )
