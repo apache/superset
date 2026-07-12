@@ -78,7 +78,7 @@ def set_and_log_cache_with_outcome(
     try:
         dttm = datetime.utcnow().isoformat().split(".")[0]
         value = {**cache_value, "dttm": dttm}
-        if not cache_instance.set(cache_key, value, timeout=timeout):
+        if cache_instance.set(cache_key, value, timeout=timeout) is False:
             logger.warning("Cache backend rejected key %s", cache_key)
             return CacheWriteOutcome.FAILED
     except Exception as ex:  # pylint: disable=broad-except

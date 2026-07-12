@@ -74,6 +74,13 @@ def test_set_and_log_cache_reports_backend_outcome(mocker: MockerFixture) -> Non
     )
     assert set_and_log_cache(cache, "key", {"value": 1}) is True
 
+    cache.set.return_value = None
+    assert (
+        set_and_log_cache_with_outcome(cache, "key", {"value": 1})
+        == CacheWriteOutcome.SUCCEEDED
+    )
+    assert set_and_log_cache(cache, "key", {"value": 1}) is True
+
     cache.set.return_value = False
     assert (
         set_and_log_cache_with_outcome(cache, "key", {"value": 1})
