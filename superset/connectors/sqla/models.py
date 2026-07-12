@@ -1522,7 +1522,7 @@ class SqlaTable(
             # it is still referenced by ``main_dttm_col`` (#30510). When the column
             # is not present on the dataset, fall back to the legacy behavior of
             # trusting ``main_dttm_col``.
-            main_dttm_column = next(
+            main_dttm_column: TableColumn | None = next(
                 (c for c in self.columns if c.column_name == self.main_dttm_col),
                 None,
             )
