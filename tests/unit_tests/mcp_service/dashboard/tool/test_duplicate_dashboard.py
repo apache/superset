@@ -108,7 +108,7 @@ def _mock_chart(id: int = 10, slice_name: str = "Test Chart") -> Mock:
     chart.slice_name = slice_name
     chart.uuid = f"chart-uuid-{id}"
     chart.tags = []
-    chart.owners = []
+    chart.editors = []
     chart.viz_type = "table"
     chart.datasource_name = None
     chart.description = None
@@ -133,9 +133,8 @@ def _mock_dashboard(
     dashboard.changed_on = None
     dashboard.uuid = f"dashboard-uuid-{id}"
     dashboard.slices = slices or []
-    dashboard.owners = []
+    dashboard.editors = []
     dashboard.tags = []
-    dashboard.roles = []
     dashboard.position_json = position_json or json.dumps(SOURCE_POSITIONS)
     dashboard.json_metadata = json_metadata
     dashboard.css = None
@@ -187,7 +186,7 @@ async def test_duplicate_referencing_same_charts(
     # Response text is wrapped in LLM-context delimiters (prompt-injection
     # defense), matching the standard dashboard serializers.
     assert content["dashboard"]["dashboard_title"] == _wrapped("Staging Copy")
-    assert "/superset/dashboard/2/" in content["dashboard_url"]
+    assert "/dashboard/2/" in content["dashboard_url"]
 
     # The copy data contract must mirror what the frontend "Save as" sends:
     # required json_metadata containing the source's metadata + positions.
@@ -237,7 +236,7 @@ async def test_duplicate_with_duplicate_slices(
     assert content["error"] is None
     assert content["duplicated_slices"] is True
     assert content["dashboard"]["id"] == 3
-    assert "/superset/dashboard/3/" in content["dashboard_url"]
+    assert "/dashboard/3/" in content["dashboard_url"]
 
     _, cmd_data = mock_copy_cmd_cls.call_args.args
     assert cmd_data["duplicate_slices"] is True
@@ -357,7 +356,7 @@ async def test_copy_forbidden(
     mcp_server: object,
 ) -> None:
     """Returns an error when the copy command raises DashboardForbiddenError
-    (e.g. DASHBOARD_RBAC requires ownership of the source)."""
+    (e.g. the user lacks permission to duplicate the source)."""
     from superset.commands.dashboard.exceptions import DashboardForbiddenError
 
     mock_get_by_id_or_slug.return_value = _mock_dashboard(id=1)
@@ -449,7 +448,7 @@ async def test_refetch_failure_rolls_back_and_returns_minimal_response(
     assert content["error"] is None
     assert content["dashboard"]["id"] == 7
     assert content["dashboard"]["dashboard_title"] == _wrapped("Copy")
-    assert "/superset/dashboard/7/" in content["dashboard_url"]
+    assert "/dashboard/7/" in content["dashboard_url"]
 
 
 @patch("superset.commands.dashboard.copy.CopyDashboardCommand")

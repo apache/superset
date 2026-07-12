@@ -55,10 +55,9 @@ def _mock_dashboard(
     id: int = 1,
     title: str = "Test Dashboard",
     slug: str | None = None,
-    owners: list[Any] | None = None,
+    editors: list[Any] | None = None,
     slices: list[Any] | None = None,
     tags: list[Any] | None = None,
-    roles: list[Any] | None = None,
 ) -> MagicMock:
     """Create a mock Dashboard ORM object."""
     dashboard = MagicMock()
@@ -81,10 +80,9 @@ def _mock_dashboard(
     dashboard.is_managed_externally = False
     dashboard.external_url = None
     dashboard.uuid = None
-    dashboard.owners = owners or []
+    dashboard.editors = editors or []
     dashboard.slices = slices or []
     dashboard.tags = tags or []
-    dashboard.roles = roles or []
     return dashboard
 
 
@@ -263,7 +261,7 @@ class TestSerializeDashboardObject:
         # Verify no heavy fields
         assert not hasattr(result.charts[0], "form_data")
         assert not hasattr(result.charts[0], "tags")
-        assert not hasattr(result.charts[0], "owners")
+        assert not hasattr(result.charts[0], "editors")
 
     @patch("superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata")
     @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")

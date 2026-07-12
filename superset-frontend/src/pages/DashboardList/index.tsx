@@ -29,11 +29,14 @@ import { Link } from 'react-router-dom';
 import rison from 'rison';
 import {
   createFetchRelated,
-  createFetchOwners,
+  createFetchEditors,
+  createFetchViewers,
   createErrorHandler,
   handleDashboardDelete,
 } from 'src/views/CRUD/utils';
-import { OWNER_OPTION_FILTER_PROPS } from 'src/features/owners/OwnerSelectLabel';
+import Subject from 'src/types/Subject';
+import { SUBJECT_OPTION_FILTER_PROPS } from 'src/features/subjects/SubjectSelectLabel';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import {
   CertifiedBadge,
@@ -46,7 +49,6 @@ import {
   Tooltip,
 } from '@superset-ui/core/components';
 import {
-  FacePile,
   TagType,
   TagsList,
   ModifiedInfo,
@@ -60,7 +62,6 @@ import {
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
-import Owner from 'src/types/Owner';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Icons } from '@superset-ui/core/components/Icons';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
@@ -112,7 +113,11 @@ export interface Dashboard {
   id: number;
   published: boolean;
   url: string;
-  owners: Owner[];
+  changed_on_utc?: string;
+  description?: string;
+  thumbnail_url?: string | null;
+  editors?: Subject[];
+  viewers?: Subject[];
   tags: TagType[];
   created_by: object;
 }
@@ -151,10 +156,10 @@ const DASHBOARD_COLUMNS_TO_FETCH = [
   'changed_by.first_name',
   'changed_by.last_name',
   'changed_on_delta_humanized',
-  'owners',
-  'owners.id',
-  'owners.first_name',
-  'owners.last_name',
+  'editors.id',
+  'editors.label',
+  'editors.img',
+  'editors.type',
   'tags.id',
   'tags.name',
   'tags.type',
@@ -162,6 +167,9 @@ const DASHBOARD_COLUMNS_TO_FETCH = [
   'certified_by',
   'certification_details',
   'changed_on',
+  ...(isFeatureEnabled(FeatureFlag.EnableViewers)
+    ? ['viewers.id', 'viewers.label', 'viewers.img', 'viewers.type']
+    : []),
 ];
 
 function DashboardList(props: DashboardListProps) {
@@ -267,7 +275,8 @@ function DashboardList(props: DashboardListProps) {
                 url = '',
                 certified_by: certifiedBy = '',
                 certification_details: certificationDetails = '',
-                owners,
+                editors,
+                viewers,
                 tags,
               } = json.result;
               return {
@@ -282,7 +291,8 @@ function DashboardList(props: DashboardListProps) {
                 url,
                 certified_by: certifiedBy,
                 certification_details: certificationDetails,
-                owners,
+                editors,
+                viewers,
                 tags,
               };
             }
@@ -431,14 +441,29 @@ function DashboardList(props: DashboardListProps) {
       {
         Cell: ({
           row: {
-            original: { owners = [] },
+            original: { editors = [] },
           },
-        }: any) => <FacePile users={owners} />,
-        Header: t('Owners'),
-        accessor: 'owners',
+        }: any) => <SubjectPile subjects={editors} />,
+        Header: t('Editors'),
+        accessor: 'editors',
         disableSortBy: true,
-        id: 'owners',
+        id: 'editors',
       },
+      ...(isFeatureEnabled(FeatureFlag.EnableViewers)
+        ? [
+            {
+              Cell: ({
+                row: {
+                  original: { viewers = [] },
+                },
+              }: any) => <SubjectPile subjects={viewers} />,
+              Header: t('Viewers'),
+              accessor: 'viewers',
+              disableSortBy: true,
+              id: 'viewers',
+            },
+          ]
+        : []),
       {
         Cell: ({
           row: {
@@ -614,28 +639,55 @@ function DashboardList(props: DashboardListProps) {
           ]
         : []),
       {
-        Header: t('Owner'),
-        key: 'owner',
-        id: 'owners',
+        Header: t('Editor'),
+        key: 'editor',
+        id: 'editors',
         input: 'select',
         operator: FilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
-        fetchSelects: createFetchOwners(
+        fetchSelects: createFetchEditors(
           'dashboard',
           createErrorHandler(errMsg =>
             addDangerToast(
               t(
-                'An error occurred while fetching dashboard owner values: %s',
+                'An error occurred while fetching dashboard editor values: %s',
                 errMsg,
               ),
             ),
           ),
           user,
         ),
-        optionFilterProps: OWNER_OPTION_FILTER_PROPS,
+        optionFilterProps: SUBJECT_OPTION_FILTER_PROPS,
         paginate: true,
         popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
+      ...(isFeatureEnabled(FeatureFlag.EnableViewers)
+        ? [
+            {
+              Header: t('Viewer'),
+              key: 'viewer',
+              id: 'viewers',
+              input: 'select',
+              operator: FilterOperator.RelationManyMany,
+              unfilteredLabel: t('All'),
+              fetchSelects: createFetchViewers(
+                'dashboard',
+                createErrorHandler(errMsg =>
+                  addDangerToast(
+                    t(
+                      'An error occurred while fetching dashboard viewer values: %s',
+                      errMsg,
+                    ),
+                  ),
+                ),
+                user,
+              ),
+              optionFilterProps: SUBJECT_OPTION_FILTER_PROPS,
+              paginate: true,
+              popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+            },
+          ]
+        : []),
       ...(user?.userId ? [favoritesFilter] : []),
       {
         Header: t('Certified'),

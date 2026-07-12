@@ -60,7 +60,7 @@ const BarWrapper = styled.div<{ width: number }>`
     margin: 0;
   }
   &.open {
-    width: ${({ width }) => width}px; // arbitrary...
+    width: ${({ width }) => width}px; /* arbitrary... */
   }
 `;
 

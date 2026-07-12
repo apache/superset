@@ -97,7 +97,7 @@ def create_mock_database(
     database.created_by_name = "admin"
     database.created_by = None
     database.created_on = None
-    database.owners = []
+    database.editors = []
     return database
 
 

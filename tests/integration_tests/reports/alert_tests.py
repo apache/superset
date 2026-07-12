@@ -24,41 +24,57 @@ import pytest
 from flask.ctx import AppContext
 from pytest_mock import MockerFixture
 
+from superset import db
 from superset.commands.report.exceptions import AlertQueryError
 from superset.reports.models import ReportCreationMethod, ReportScheduleType
+from superset.subjects.models import Subject
+from superset.subjects.types import SubjectType
 from superset.tasks.types import ExecutorType, FixedExecutor
 from superset.utils.database import get_example_database
 from tests.integration_tests.test_app import app
 
 
+def _get_user_subjects(users):
+    """Convert a list of User objects to their corresponding Subject objects."""
+    return [
+        subject
+        for user in users
+        if (
+            subject := db.session.query(Subject)
+            .filter_by(user_id=user.id, type=SubjectType.USER)
+            .first()
+        )
+    ]
+
+
 @pytest.mark.parametrize(
-    "owner_names,creator_name,config,expected_result",
+    "editor_names,creator_name,config,expected_result",
     [
         (["gamma"], None, [FixedExecutor("admin")], "admin"),
-        (["gamma"], None, [ExecutorType.OWNER], "gamma"),
+        (["gamma"], None, [ExecutorType.EDITOR], "gamma"),
         (
             ["alpha", "gamma"],
             "gamma",
-            [ExecutorType.CREATOR_OWNER],
+            [ExecutorType.CREATOR_EDITOR],
             "gamma",
         ),
         (
             ["alpha", "gamma"],
             "alpha",
-            [ExecutorType.CREATOR_OWNER],
+            [ExecutorType.CREATOR_EDITOR],
             "alpha",
         ),
         (
             ["alpha", "gamma"],
             "admin",
-            [ExecutorType.CREATOR_OWNER],
+            [ExecutorType.CREATOR_EDITOR],
             AlertQueryError(),
         ),
         (["gamma"], None, [ExecutorType.CURRENT_USER], AlertQueryError()),
     ],
 )
 def test_execute_query_as_report_executor(
-    owner_names: list[str],
+    editor_names: list[str],
     creator_name: Optional[str],
     config: list[ExecutorType],
     expected_result: Union[tuple[ExecutorType, str], Exception],
@@ -71,10 +87,11 @@ def test_execute_query_as_report_executor(
 
     original_config = app.config["ALERT_REPORTS_EXECUTORS"]
     app.config["ALERT_REPORTS_EXECUTORS"] = config
-    owners = [get_user(owner_name) for owner_name in owner_names]
+    users = [get_user(name) for name in editor_names]
+    editors = _get_user_subjects(users)
     report_schedule = ReportSchedule(
         created_by=get_user(creator_name) if creator_name else None,
-        owners=owners,
+        editors=editors,
         type=ReportScheduleType.ALERT,
         description="description",
         crontab="0 9 * * *",
@@ -118,9 +135,10 @@ def test_execute_query_mutate_query_enabled(
     mock_limited_sql = mocker.patch.object(mock_database, "apply_limit_to_sql")
     mock_mutate_call = mocker.patch.object(mock_database, "mutate_sql_based_on_config")
 
+    admin_user = get_user("admin")
     report_schedule = ReportSchedule(
-        created_by=get_user("admin"),
-        owners=[get_user("admin")],
+        created_by=admin_user,
+        editors=_get_user_subjects([admin_user]),
         type=ReportScheduleType.ALERT,
         description="description",
         crontab="0 9 * * *",
@@ -155,9 +173,10 @@ def test_execute_query_mutate_query_disabled(
     mocker.patch("superset.commands.report.alert.override_user")
     mock_database = mocker.MagicMock()
 
+    admin_user = get_user("admin")
     report_schedule = ReportSchedule(
-        created_by=get_user("admin"),
-        owners=[get_user("admin")],
+        created_by=admin_user,
+        editors=_get_user_subjects([admin_user]),
         type=ReportScheduleType.ALERT,
         description="description",
         crontab="0 9 * * *",
@@ -282,13 +301,14 @@ def test_get_alert_metadata_from_object(
     from superset.commands.report.alert import AlertCommand
     from superset.reports.models import ReportSchedule
 
-    app.config["ALERT_REPORTS_EXECUTORS"] = [ExecutorType.OWNER]
+    app.config["ALERT_REPORTS_EXECUTORS"] = [ExecutorType.EDITOR]
 
     mock_database = mocker.MagicMock()
     mock_exec_id = uuid.uuid4()
+    admin_user = get_user("admin")
     report_schedule = ReportSchedule(
-        created_by=get_user("admin"),
-        owners=[get_user("admin")],
+        created_by=admin_user,
+        editors=_get_user_subjects([admin_user]),
         type=ReportScheduleType.ALERT,
         description="description",
         crontab="0 9 * * *",

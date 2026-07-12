@@ -51,8 +51,7 @@ export type QueryFormColumn = PhysicalColumn | AdhocColumn;
  * Format: [metric/column, is_ascending].
  */
 export type QueryFormOrderBy =
-  | [QueryFormColumn | QueryFormMetric | {}, boolean]
-  | [];
+  [QueryFormColumn | QueryFormMetric | {}, boolean] | [];
 
 export interface FormDataResidual {
   [key: string]: any;

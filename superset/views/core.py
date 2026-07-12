@@ -491,6 +491,10 @@ class Superset(BaseSupersetView):
                     datasource_id,
                 )
 
+        # Enforce per-datasource access before rendering its metadata.
+        if datasource:
+            security_manager.raise_for_access(datasource=datasource)
+
         datasource_name = datasource.name if datasource else _("[Missing Dataset]")
         viz_type = form_data.get("viz_type")
         if not viz_type and datasource and datasource.default_endpoint:
@@ -511,7 +515,7 @@ class Superset(BaseSupersetView):
 
         # slc perms
         slice_add_perm = security_manager.can_access("can_write", "Chart")
-        slice_overwrite_perm = security_manager.is_owner(slc) if slc else False
+        slice_overwrite_perm = security_manager.is_editor(slc) if slc else False
         if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
             slice_download_perm = security_manager.can_access(
                 "can_export_data", "Superset"
@@ -570,9 +574,6 @@ class Superset(BaseSupersetView):
         except (SupersetException, SQLAlchemyError):
             datasource_data = dummy_datasource_data
 
-        if datasource:
-            datasource_data["owners"] = datasource.owners_data
-
         bootstrap_data = {
             "can_add": slice_add_perm,
             "datasource": sanitize_datasource_data(datasource_data),
@@ -625,7 +626,14 @@ class Superset(BaseSupersetView):
         if action == "saveas":
             if "slice_id" in form_data:
                 form_data.pop("slice_id")  # don't save old slice_id
-            slc = Slice(owners=[g.user] if g.user else [])
+            from superset.subjects.utils import get_user_subject
+
+            editors = []
+            if g.user:
+                subj = get_user_subject(g.user.id)
+                if subj:
+                    editors.append(subj)
+            slc = Slice(editors=editors)
 
         utils.remove_extra_adhoc_filters(form_data)
 
@@ -661,7 +669,7 @@ class Superset(BaseSupersetView):
                 .one(),
             )
             # check edit dashboard permissions
-            dash_overwrite_perm = security_manager.is_owner(dash)
+            dash_overwrite_perm = security_manager.is_editor(dash)
             if not dash_overwrite_perm:
                 return json_error_response(
                     _("You don't have the rights to alter this dashboard"),
@@ -677,9 +685,16 @@ class Superset(BaseSupersetView):
                     status=403,
                 )
 
+            from superset.subjects.utils import get_user_subject
+
+            editors = []
+            if g.user:
+                subj = get_user_subject(g.user.id)
+                if subj:
+                    editors.append(subj)
             dash = Dashboard(
                 dashboard_title=request.args.get("new_dashboard_name"),
-                owners=[g.user] if g.user else [],
+                editors=editors,
             )
 
         if dash and slc not in dash.slices:
@@ -813,7 +828,7 @@ class Superset(BaseSupersetView):
             dashboard_id=dashboard.id,
             dashboard_version="v2",
             dash_edit_perm=(
-                security_manager.is_owner(dashboard)
+                security_manager.is_editor(dashboard)
                 and security_manager.can_access("can_write", "Dashboard")
             ),
             edit_mode=(
