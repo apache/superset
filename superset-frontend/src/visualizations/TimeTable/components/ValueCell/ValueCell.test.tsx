@@ -35,19 +35,13 @@ const mockEntries = [
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ValueCell', () => {
   test('should render simple value without special column type', () => {
-const { value, errorMsg } = calculateCellValue(
-  'sales',
-  mockColumn,
-  mockEntries,
-);
+    const { value, errorMsg } = calculateCellValue(
+      'sales',
+      mockColumn,
+      mockEntries,
+    );
 
-render(
-  <ValueCell
-    value={value}
-    errorMsg={errorMsg}
-    column={mockColumn}
-  />,
-);
+    render(<ValueCell value={value} errorMsg={errorMsg} column={mockColumn} />);
 
     expect(screen.getByText('300.00')).toBeInTheDocument();
   });
@@ -60,19 +54,13 @@ render(
       timeLag: 1,
     };
 
-const { value, errorMsg } = calculateCellValue(
-  'sales',
-  timeColumn,
-  mockEntries,
-);
+    const { value, errorMsg } = calculateCellValue(
+      'sales',
+      timeColumn,
+      mockEntries,
+    );
 
-render(
-  <ValueCell
-    value={value}
-    errorMsg={errorMsg}
-    column={timeColumn}
-  />,
-);
+    render(<ValueCell value={value} errorMsg={errorMsg} column={timeColumn} />);
 
     expect(screen.getByText('100.00')).toBeInTheDocument();
   });
@@ -85,19 +73,13 @@ render(
       timeLag: 1,
     };
 
-const { value, errorMsg } = calculateCellValue(
-  'sales',
-  timeColumn,
-  mockEntries,
-);
+    const { value, errorMsg } = calculateCellValue(
+      'sales',
+      timeColumn,
+      mockEntries,
+    );
 
-render(
-  <ValueCell
-    value={value}
-    errorMsg={errorMsg}
-    column={timeColumn}
-  />,
-);
+    render(<ValueCell value={value} errorMsg={errorMsg} column={timeColumn} />);
 
     expect(screen.getByText('1.50')).toBeInTheDocument();
   });
@@ -110,19 +92,13 @@ render(
       timeLag: 1,
     };
 
-const { value, errorMsg } = calculateCellValue(
-  'sales',
-  timeColumn,
-  mockEntries,
-);
+    const { value, errorMsg } = calculateCellValue(
+      'sales',
+      timeColumn,
+      mockEntries,
+    );
 
-render(
-  <ValueCell
-    value={value}
-    errorMsg={errorMsg}
-    column={timeColumn}
-  />,
-);
+    render(<ValueCell value={value} errorMsg={errorMsg} column={timeColumn} />);
 
     expect(screen.getByText('0.50')).toBeInTheDocument();
   });
@@ -133,19 +109,15 @@ render(
       colType: 'contrib',
     };
 
-const { value, errorMsg } = calculateCellValue(
-  'sales',
-  contribColumn,
-  mockEntries,
-);
+    const { value, errorMsg } = calculateCellValue(
+      'sales',
+      contribColumn,
+      mockEntries,
+    );
 
-render(
-  <ValueCell
-    value={value}
-    errorMsg={errorMsg}
-    column={contribColumn}
-  />,
-);
+    render(
+      <ValueCell value={value} errorMsg={errorMsg} column={contribColumn} />,
+    );
 
     expect(screen.getByText('0.91')).toBeInTheDocument();
   });
@@ -157,19 +129,13 @@ render(
       timeLag: 2,
     };
 
-const { value, errorMsg } = calculateCellValue(
-  'sales',
-  avgColumn,
-  mockEntries,
-);
+    const { value, errorMsg } = calculateCellValue(
+      'sales',
+      avgColumn,
+      mockEntries,
+    );
 
-render(
-  <ValueCell
-    value={value}
-    errorMsg={errorMsg}
-    column={avgColumn}
-  />,
-);
+    render(<ValueCell value={value} errorMsg={errorMsg} column={avgColumn} />);
 
     expect(screen.getByText('250.00')).toBeInTheDocument();
   });
@@ -181,19 +147,13 @@ render(
       timeLag: 10,
     };
 
-const { value, errorMsg } = calculateCellValue(
-  'sales',
-  timeColumn,
-  mockEntries,
-);
+    const { value, errorMsg } = calculateCellValue(
+      'sales',
+      timeColumn,
+      mockEntries,
+    );
 
-render(
-  <ValueCell
-    value={value}
-    errorMsg={errorMsg}
-    column={timeColumn}
-  />,
-);
+    render(<ValueCell value={value} errorMsg={errorMsg} column={timeColumn} />);
 
     expect(
       screen.getByText(/The time lag set at 10 is too large/),
@@ -208,19 +168,13 @@ render(
       timeLag: -1,
     };
 
-const { value, errorMsg } = calculateCellValue(
-  'sales',
-  timeColumn,
-  mockEntries,
-);
+    const { value, errorMsg } = calculateCellValue(
+      'sales',
+      timeColumn,
+      mockEntries,
+    );
 
-render(
-  <ValueCell
-    value={value}
-    errorMsg={errorMsg}
-    column={timeColumn}
-  />,
-);
+    render(<ValueCell value={value} errorMsg={errorMsg} column={timeColumn} />);
 
     expect(screen.getByText('200.00')).toBeInTheDocument();
   });
@@ -238,19 +192,13 @@ render(
       { time: '2023-01-01', sales: 100 },
     ];
 
-const { value, errorMsg } = calculateCellValue(
-  'sales',
-  avgColumn,
-  entriesWithNulls,
-);
+    const { value, errorMsg } = calculateCellValue(
+      'sales',
+      avgColumn,
+      entriesWithNulls,
+    );
 
-render(
-  <ValueCell
-    value={value}
-    errorMsg={errorMsg}
-    column={avgColumn}
-  />,
-);
+    render(<ValueCell value={value} errorMsg={errorMsg} column={avgColumn} />);
     expect(screen.getByText('200.00')).toBeInTheDocument();
   });
 
@@ -260,24 +208,18 @@ render(
       bounds: [0, 1000] as [number, number],
     };
 
-const { value, errorMsg } = calculateCellValue(
-  'sales',
-  columnWithBounds,
-  mockEntries,
-);
+    const { value, errorMsg } = calculateCellValue(
+      'sales',
+      columnWithBounds,
+      mockEntries,
+    );
 
-const { container } = render(
-  <ValueCell
-    value={value}
-    errorMsg={errorMsg}
-    column={columnWithBounds}
-  />,
-);
+    const { container } = render(
+      <ValueCell value={value} errorMsg={errorMsg} column={columnWithBounds} />,
+    );
 
-const span = container.querySelector(
-  `span[data-value="${value}"]`,
-);
+    const span = container.querySelector(`span[data-value="${value}"]`);
 
-expect(span).toBeInTheDocument();
+    expect(span).toBeInTheDocument();
   });
 });
