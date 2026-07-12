@@ -230,6 +230,7 @@ export const EncryptedField = ({
               beforeUpload={() => false}
               onRemove={() => {
                 setFileList([]);
+                setPendingValidationValue(null);
                 changeMethods.onParametersChange({
                   target: {
                     name: encryptedField,
@@ -262,6 +263,7 @@ export const EncryptedField = ({
                     );
                   }
                 } else {
+                  setPendingValidationValue(null);
                   changeMethods.onParametersChange({
                     target: {
                       name: encryptedField,

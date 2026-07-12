@@ -380,6 +380,59 @@ describe('EncryptedField', () => {
 
       await waitFor(() => expect(getValidation).toHaveBeenCalledTimes(1));
     });
+
+    test('removing an upload before the parent commits clears the pending validation', async () => {
+      const changeMethods = createMockChangeMethods();
+      const getValidation = jest.fn();
+      const fileContent = '{"type": "service_account"}';
+
+      const { container, rerender } = render(
+        <EncryptedField
+          {...defaultProps}
+          changeMethods={changeMethods}
+          getValidation={getValidation}
+          db={createMockDb('bigquery', { credentials_info: '' })}
+        />,
+      );
+
+      const file = new File([fileContent], 'creds.json', {
+        type: 'application/json',
+      });
+      const input = document.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+      fireEvent.change(input, { target: { files: [file] } });
+
+      await waitFor(() =>
+        expect(changeMethods.onParametersChange).toHaveBeenCalledWith(
+          expect.objectContaining({
+            target: expect.objectContaining({ value: fileContent }),
+          }),
+        ),
+      );
+
+      // Remove the upload before the parent has committed/re-rendered with
+      // the uploaded content — this must clear the pending validation, not
+      // just leave it dangling.
+      const removeButton = container.querySelector(
+        '[aria-label="delete"]',
+      ) as HTMLElement;
+      fireEvent.click(removeButton);
+
+      // Even if some later, unrelated render happens to carry the same
+      // content the removed upload had (e.g. stale props echoed back), the
+      // cleared pending state must not fire a validation for it.
+      rerender(
+        <EncryptedField
+          {...defaultProps}
+          changeMethods={changeMethods}
+          getValidation={getValidation}
+          db={createMockDb('bigquery', { credentials_info: fileContent })}
+        />,
+      );
+
+      expect(getValidation).not.toHaveBeenCalled();
+    });
   });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
