@@ -63,7 +63,7 @@ repos:
     hooks:
       - id: prettier-frontend
         name: prettier (frontend)
-        entry: bash -c 'cd superset-frontend && for file in "$@"; do npx prettier --write "${file#superset-frontend/}"; done'
+        entry: bash -c 'cd superset-frontend && files=(); for f in "$@"; do files+=("${f#superset-frontend/}"); done; npx prettier --write -- "${files[@]}"' --
         language: system
         pass_filenames: true
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx|css|scss|sass|json)$
