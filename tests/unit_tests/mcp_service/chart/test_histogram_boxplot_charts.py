@@ -284,3 +284,32 @@ class TestPluginRegistry:
         error = plugin.pre_validate({"chart_type": "box_plot"})
         assert error is not None
         assert "metrics" in error.message
+
+
+class TestDimensionFieldsRejectSavedMetrics:
+    """Dimension-position fields must reject metric-style refs."""
+
+    def test_histogram_groupby_rejects_saved_metric(self) -> None:
+        with pytest.raises(ValidationError):
+            HistogramChartConfig(
+                chart_type="histogram",
+                column={"name": "x"},
+                groupby=[{"name": "revenue", "saved_metric": True}],
+            )
+
+    def test_box_plot_distribute_across_rejects_saved_metric(self) -> None:
+        with pytest.raises(ValidationError):
+            BoxPlotChartConfig(
+                chart_type="box_plot",
+                metrics=[{"name": "x", "aggregate": "AVG"}],
+                distribute_across=[{"name": "revenue", "saved_metric": True}],
+            )
+
+    def test_box_plot_dimensions_rejects_saved_metric(self) -> None:
+        with pytest.raises(ValidationError):
+            BoxPlotChartConfig(
+                chart_type="box_plot",
+                metrics=[{"name": "x", "aggregate": "AVG"}],
+                distribute_across=[{"name": "day"}],
+                dimensions=[{"name": "revenue", "saved_metric": True}],
+            )

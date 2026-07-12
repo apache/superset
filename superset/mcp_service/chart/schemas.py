@@ -1881,6 +1881,11 @@ class HistogramChartConfig(UnknownFieldCheckMixin):
             )
         for i, col in enumerate(self.groupby or []):
             _reject_sql_expression_on_dimension(col, f"groupby[{i}]")
+            if col.saved_metric:
+                raise ValueError(
+                    f"groupby[{i}] cannot use saved_metric=True; "
+                    "saved metrics are not dimensions"
+                )
         return self
 
 
@@ -1943,8 +1948,18 @@ class BoxPlotChartConfig(UnknownFieldCheckMixin):
             )
         for i, col in enumerate(self.distribute_across):
             _reject_sql_expression_on_dimension(col, f"distribute_across[{i}]")
+            if col.saved_metric:
+                raise ValueError(
+                    f"distribute_across[{i}] cannot use saved_metric=True; "
+                    "saved metrics belong in the 'metrics' field"
+                )
         for i, col in enumerate(self.dimensions or []):
             _reject_sql_expression_on_dimension(col, f"dimensions[{i}]")
+            if col.saved_metric:
+                raise ValueError(
+                    f"dimensions[{i}] cannot use saved_metric=True; "
+                    "saved metrics belong in the 'metrics' field"
+                )
         return self
 
 
