@@ -23,7 +23,7 @@ from unittest import mock
 
 import pytest
 from pytest_mock import MockerFixture
-from sqlalchemy.engine.url import make_url
+from sqlalchemy.engine.url import make_url, URL
 
 from superset.app import SupersetApp
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -580,7 +580,7 @@ def test_impersonate_user_outside_request_context(mocker: MockerFixture) -> None
     database: Database = Database(sqlalchemy_uri="snowflake://abc")
     mocker.patch.object(Database, "is_oauth2_enabled", return_value=True)
 
-    url = make_url("snowflake://user:pass@account/database_name/default")
+    url: URL = make_url("snowflake://user:pass@account/database_name/default")
     assert SnowflakeEngineSpec.impersonate_user(
         database=database,
         username=None,
