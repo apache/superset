@@ -67,19 +67,9 @@ import SyncDashboardState, {
   getDashboardContextLocalStorage,
 } from '../components/SyncDashboardState';
 import { AutoRefreshProvider } from '../contexts/AutoRefreshContext';
-import { Filter, PartialFilters, SupersetApiError } from '@superset-ui/core';
+import { SupersetApiError } from '@superset-ui/core';
 import { RoutePaths } from 'src/views/routePaths';
-import {
-  parseRisonFilters,
-  risonFiltersToExtraFormDataFilters,
-  getRisonFilterParam,
-  prettifyRisonFilterUrl,
-  injectRisonFiltersIntelligently,
-  updateUrlWithUnmatchedFilters,
-  RISON_UNMATCHED_DATAMASK_ID,
-} from '../util/risonFilters';
 
-type NativeFilterConfigEntry = Partial<Filter> & { id: string };
 
 export const DashboardPageIdContext = createContext('');
 
