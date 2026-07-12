@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { NumberFormatter } from '@superset-ui/core';
+import { NumberFormatter, t } from '@superset-ui/core';
 
 /*
  function for finding the max metric values among all series data for Radar Chart
@@ -77,7 +77,7 @@ export const renderNormalizedTooltip = (
       // through the formatter, which would render a misleading "NaN".
       value:
         originalValue == null
-          ? 'N/A'
+          ? t('N/A')
           : formatter
             ? formatter(originalValue)
             : originalValue,
