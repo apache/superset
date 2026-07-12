@@ -34,6 +34,16 @@ from superset.exceptions import SupersetErrorException, SupersetErrorsException
 # fixtures are imported from conftest.py
 
 
+def _passthrough_mutator(sql: str, **kwargs: Any) -> str:
+    """SQL mutator stand-in that returns the SQL unchanged."""
+    return sql
+
+
+def _prefixing_mutator(sql: str, **kwargs: Any) -> str:
+    """SQL mutator stand-in that prepends a marker comment."""
+    return f"-- mutated\n{sql}"
+
+
 # =============================================================================
 # Query Retrieval Tests
 # =============================================================================
@@ -282,7 +292,7 @@ def test_prepare_statement_blocks_single_statement(
     """Test statement block preparation for single statement."""
     from superset.sql.execution.celery_task import _prepare_statement_blocks
 
-    mock_database.mutate_sql_based_on_config = lambda sql, **kw: sql
+    mock_database.mutate_sql_based_on_config = _passthrough_mutator
     sql = "SELECT * FROM users"
 
     script, blocks = _prepare_statement_blocks(
@@ -298,7 +308,7 @@ def test_prepare_statement_blocks_multiple_statements(
     """Test statement block preparation for multiple statements."""
     from superset.sql.execution.celery_task import _prepare_statement_blocks
 
-    mock_database.mutate_sql_based_on_config = lambda sql, **kw: sql
+    mock_database.mutate_sql_based_on_config = _passthrough_mutator
     sql = "SELECT * FROM users; SELECT * FROM orders;"
 
     script, blocks = _prepare_statement_blocks(
@@ -315,7 +325,7 @@ def test_prepare_statement_blocks_run_as_one(
     from superset.sql.execution.celery_task import _prepare_statement_blocks
 
     mock_database.db_engine_spec.run_multiple_statements_as_one = True
-    mock_database.mutate_sql_based_on_config = lambda sql, **kw: sql
+    mock_database.mutate_sql_based_on_config = _passthrough_mutator
     sql = "SELECT * FROM users; SELECT * FROM orders;"
 
     script, blocks = _prepare_statement_blocks(
@@ -339,7 +349,7 @@ def test_prepare_statement_blocks_mutates_before_split_when_configured(
     mutate_mock = mocker.patch.object(
         mock_database,
         "mutate_sql_based_on_config",
-        side_effect=lambda sql, **kw: f"-- mutated\n{sql}",
+        side_effect=_prefixing_mutator,
     )
     sql = "SELECT * FROM users; SELECT * FROM orders;"
 
@@ -350,6 +360,55 @@ def test_prepare_statement_blocks_mutates_before_split_when_configured(
     assert len(blocks) == 2
     assert "mutated" in blocks[0]
     mutate_mock.assert_called_once_with(mocker.ANY, is_split=False)
+
+
+def test_prepare_statement_blocks_skips_pre_split_mutation_when_configured(
+    app_context: None, mock_database: MagicMock, mocker: MockerFixture
+) -> None:
+    """
+    `MUTATE_AFTER_SPLIT=True` means the mutator should see each already-split
+    statement instead, so `_prepare_statement_blocks` must not mutate the
+    whole, un-split query up front.
+    """
+    from superset.sql.execution.celery_task import _prepare_statement_blocks
+
+    mocker.patch.dict(current_app.config, {"MUTATE_AFTER_SPLIT": True})
+    mutate_mock = mocker.patch.object(
+        mock_database,
+        "mutate_sql_based_on_config",
+        side_effect=_prefixing_mutator,
+    )
+    sql = "SELECT * FROM users; SELECT * FROM orders;"
+
+    _, blocks = _prepare_statement_blocks(
+        sql, mock_database.db_engine_spec, mock_database
+    )
+
+    assert len(blocks) == 2
+    assert "mutated" not in blocks[0]
+    mutate_mock.assert_not_called()
+
+
+def test_prepare_statement_blocks_raises_when_mutator_strips_all_statements(
+    app_context: None, mock_database: MagicMock, mocker: MockerFixture
+) -> None:
+    """
+    A `SQL_QUERY_MUTATOR` that strips a query down to nothing (e.g. only
+    comments/whitespace) must raise a clean error instead of silently
+    producing an empty block list.
+    """
+    from superset.sql.execution.celery_task import _prepare_statement_blocks
+
+    mocker.patch.dict(current_app.config, {"MUTATE_AFTER_SPLIT": False})
+    mocker.patch.object(
+        mock_database,
+        "mutate_sql_based_on_config",
+        side_effect=lambda sql, **kw: "-- just a comment",
+    )
+    sql = "SELECT * FROM users"
+
+    with pytest.raises(SupersetErrorException):
+        _prepare_statement_blocks(sql, mock_database.db_engine_spec, mock_database)
 
 
 # =============================================================================
@@ -402,6 +461,52 @@ def test_finalize_successful_query(
         payload["statements"][0]["executed_sql"]
         == "SELECT * FROM users WHERE rls_filter"
     )
+
+
+def test_finalize_successful_query_statement_count_mismatch(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_query: MagicMock,
+    mock_result_set: MagicMock,
+    mock_database: MagicMock,
+) -> None:
+    """
+    A `SQL_QUERY_MUTATOR` that changes the number of statements (e.g. by
+    prepending a statement when run on the whole, un-split query) must not
+    crash finalization when `original_script`'s statement count no longer
+    matches `execution_results`.
+    """
+    from superset.sql.execution.celery_task import _finalize_successful_query
+    from superset.sql.parse import SQLScript
+
+    mocker.patch("superset.results_backend_use_msgpack", False)
+    mocker.patch("superset.dataframe.df_to_records", return_value=[{"id": 1}])
+    payload: dict[str, Any] = {}
+
+    # Only one statement in the un-mutated original...
+    original_script = SQLScript(
+        "SELECT * FROM users", mock_database.db_engine_spec.engine
+    )
+    # ...but the mutator turned it into two.
+    execution_results = [
+        ("SET ROLE 'bob'", None, 1.0, 0),
+        ("SELECT * FROM users", mock_result_set, 10.5, 2),
+    ]
+
+    _finalize_successful_query(
+        mock_query,
+        original_script,
+        execution_results,  # type: ignore[arg-type]
+        payload,
+        11.5,
+    )
+
+    assert mock_query.rows == 2
+    assert payload["status"] == QueryStatusEnum.SUCCESS
+    assert len(payload["statements"]) == 2
+    # Falls back to labeling each result with its own executed SQL.
+    assert payload["statements"][0]["original_sql"] == "SET ROLE 'bob'"
+    assert payload["statements"][1]["original_sql"] == "SELECT * FROM users"
 
 
 def test_finalize_successful_query_with_msgpack(

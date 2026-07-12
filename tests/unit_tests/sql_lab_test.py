@@ -25,6 +25,7 @@ import pytest
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
 
+from superset.app import SupersetApp
 from superset.common.db_query_status import QueryStatus
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.errors import ErrorLevel, SupersetErrorType
@@ -194,7 +195,7 @@ def test_execute_sql_statement_within_payload_limit(mocker: MockerFixture, app) 
 
 
 def test_execute_sql_statements_mutates_before_split_by_default(
-    mocker: MockerFixture, app
+    mocker: MockerFixture, app: SupersetApp
 ) -> None:
     """
     With the default `MUTATE_AFTER_SPLIT=False`, `execute_sql_statements` should
@@ -252,6 +253,46 @@ def test_execute_sql_statements_mutates_before_split_by_default(
     # `MUTATE_AFTER_SPLIT=False`, since `is_split=True` won't match the config).
     assert all(value is True for value in is_split_values[1:])
     assert len(is_split_values) == 3
+
+
+def test_execute_sql_statements_raises_when_mutator_strips_all_statements(
+    mocker: MockerFixture, app: SupersetApp
+) -> None:
+    """
+    A `SQL_QUERY_MUTATOR` that strips a query down to nothing (e.g. only
+    comments/whitespace) must raise a clean error instead of silently
+    producing an empty block list.
+    """
+    query = mocker.MagicMock()
+    query.limit = 1
+    query.database = mocker.MagicMock()
+    query.database.cache_timeout = 100
+    query.status = "RUNNING"
+    query.select_as_cta = False
+    query.database.allow_run_async = True
+    query.database.db_engine_spec.engine = "sqlite"
+    query.database.db_engine_spec.run_multiple_statements_as_one = False
+    query.database.db_engine_spec.allows_sql_comments = True
+
+    mocker.patch.object(
+        query.database,
+        "mutate_sql_based_on_config",
+        side_effect=lambda sql, **kw: "-- just a comment",
+    )
+
+    mocker.patch("superset.sql_lab.get_query", return_value=query)
+    mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
+
+    with pytest.raises(SupersetErrorException):
+        execute_sql_statements(
+            query_id=1,
+            rendered_query="SELECT 1;",
+            return_results=True,
+            store_results=True,
+            start_time=None,
+            expand_data=False,
+            log_params={},
+        )
 
 
 @freeze_time("2021-04-01T00:00:00Z")

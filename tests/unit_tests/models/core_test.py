@@ -262,6 +262,11 @@ def test_table_column_database() -> None:
     assert TableColumn(database=database).database is database
 
 
+def _prefixing_sql_query_mutator(sql: str, **kwargs: Any) -> str:
+    """`SQL_QUERY_MUTATOR` stand-in that prepends a marker comment."""
+    return f"-- mutated\n{sql}"
+
+
 @pytest.mark.parametrize(
     "is_split,mutate_after_split,expect_mutated",
     [
@@ -290,7 +295,7 @@ def test_mutate_sql_based_on_config_respects_is_split(
     mocker.patch.dict(
         current_app.config,
         {
-            "SQL_QUERY_MUTATOR": lambda sql, **kwargs: f"-- mutated\n{sql}",
+            "SQL_QUERY_MUTATOR": _prefixing_sql_query_mutator,
             "MUTATE_AFTER_SPLIT": mutate_after_split,
         },
     )

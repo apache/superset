@@ -487,11 +487,26 @@ def execute_sql_statements(  # noqa: C901
             # split below (and the per-block mutation call further down, which is a
             # no-op here since its `is_split=True` no longer matches the config)
             # operate on the already-mutated SQL.
-            mutated_sql = database.mutate_sql_based_on_config(
+            mutated_sql: str = database.mutate_sql_based_on_config(
                 parsed_script.format(comments=db_engine_spec.allows_sql_comments),
                 is_split=False,
             )
             parsed_script = SQLScript(mutated_sql, engine=db_engine_spec.engine)
+            if not parsed_script.statements:
+                # A `SQL_QUERY_MUTATOR` that strips a query down to nothing
+                # (e.g. only comments/whitespace) would otherwise leave us with
+                # an empty `blocks` list, skipping the execution loop below and
+                # surfacing a confusing error instead of a clean one.
+                raise SupersetErrorException(
+                    SupersetError(
+                        message=__(
+                            "The SQL query mutator removed all executable "
+                            "statements from this query."
+                        ),
+                        error_type=SupersetErrorType.INVALID_SQL_ERROR,
+                        level=ErrorLevel.ERROR,
+                    )
+                )
         blocks = [
             statement.format(comments=db_engine_spec.allows_sql_comments)
             for statement in parsed_script.statements
