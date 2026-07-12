@@ -41,7 +41,7 @@ from superset.exceptions import (
 from superset.explorables.base import Explorable
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
-from superset.superset_typing import AdhocColumn, AdhocMetric
+from superset.superset_typing import AdhocColumn, AdhocMetric, Column
 from superset.utils import csv, excel
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
@@ -285,17 +285,26 @@ class QueryContextProcessor:
         # label maps back to its own column, in the same order as the source
         # list.
         all_labels: list[str] = [get_column_name(col) for col in query_object.columns]
-        label_to_column = dict(zip(all_labels, query_object.columns, strict=True))
+        label_to_column: dict[str, Column] = dict(
+            zip(all_labels, query_object.columns, strict=True)
+        )
 
         frames: list[pd.DataFrame] = []
         result: QueryResult | None = None
         for level in levels:
-            level_labels = set(level)
+            level_labels: set[str] = set(level)
             sub_query = copy.copy(query_object)
             sub_query.grouping_sets = []
             sub_query.columns = [
                 label_to_column[label] for label in all_labels if label in level_labels
             ]
+            # A GROUPING SETS query computes a bounded set of rollup levels, so
+            # the native path never applies row_limit to it (see the
+            # `use_grouping_sets` check in models/helpers.py). Match that here:
+            # limiting each level's fallback sub-query independently would
+            # truncate subtotal/grand-total rows and diverge from the native
+            # result shape.
+            sub_query.row_limit = None
             result = self._qc_datasource.get_query_result(sub_query)
             level_df = result.df.copy()
             for label in all_labels:

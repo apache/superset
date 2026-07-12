@@ -100,11 +100,11 @@ def split_grouping_sets_result(
     :param groupby_columns: every groupby column that has a marker
     :return: one DataFrame per level, in ``levels`` order
     """
-    markers = [grouping_marker_label(col) for col in groupby_columns]
+    markers: list[str] = [grouping_marker_label(col) for col in groupby_columns]
     results: list[pd.DataFrame] = []
     for level in levels:
-        grouped = set(level)
-        mask = pd.Series(True, index=df.index)
+        grouped: set[str] = set(level)
+        mask: pd.Series = pd.Series(True, index=df.index)
         for col in groupby_columns:
             expected = 0 if col in grouped else 1
             mask &= df[grouping_marker_label(col)] == expected

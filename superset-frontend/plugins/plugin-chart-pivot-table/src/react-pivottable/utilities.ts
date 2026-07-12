@@ -413,7 +413,11 @@ const cellValue =
     getCurrencies() {
       return Array.from(this.currencySet);
     },
-    format: fmtNonString(formatter),
+    // A DB-computed rollup value can legitimately be null (e.g. AVG over an
+    // empty group, or a 0/0 ratio). Render it as a blank cell instead of the
+    // literal "null" string that the shared formatter would otherwise produce.
+    format: (x: string | number | null) =>
+      x === null ? '' : fmtNonString(formatter)(x),
     numInputs: typeof attr !== 'undefined' ? 0 : 1,
   });
 

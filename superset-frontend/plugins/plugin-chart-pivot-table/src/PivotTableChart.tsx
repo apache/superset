@@ -356,24 +356,27 @@ export default function PivotTableChart(props: PivotTableProps) {
             ? [...levelCols, METRIC_KEY]
             : [METRIC_KEY, ...levelCols];
         }
+        // A DB-computed value can legitimately be null (e.g. AVG over an
+        // empty group, or a 0/0 ratio); keep the record so its row/column key
+        // still gets placed and renders as a blank cell (see `cellValue`'s
+        // formatter in react-pivottable/utilities.ts), instead of dropping
+        // the group from the pivot entirely.
         return query.data.flatMap((record: DataRecord) =>
-          metricNames
-            .map((name: string) => ({
-              ...record,
-              [METRIC_KEY]: name,
-              value: record[name],
-              // Mark currency column for per-cell currency detection in aggregators
-              __currencyColumn: currencyCodeColumn,
-              // The level this record belongs to (used by PivotData placement).
-              // Namespaced with a `__` prefix (like `__metricKey` below) so it
-              // can't collide with a real dataset column named `rows`/`columns`.
-              __rows: levelRows,
-              __columns: levelCols,
-              // Identify the metric pseudo-dimension so PivotData can feed the
-              // metric-collapsed totals (the opposite "Total" axis + corner).
-              __metricKey: METRIC_KEY,
-            }))
-            .filter(r => r.value !== null),
+          metricNames.map((name: string) => ({
+            ...record,
+            [METRIC_KEY]: name,
+            value: record[name],
+            // Mark currency column for per-cell currency detection in aggregators
+            __currencyColumn: currencyCodeColumn,
+            // The level this record belongs to (used by PivotData placement).
+            // Namespaced with a `__` prefix (like `__metricKey` below) so it
+            // can't collide with a real dataset column named `rows`/`columns`.
+            __rows: levelRows,
+            __columns: levelCols,
+            // Identify the metric pseudo-dimension so PivotData can feed the
+            // metric-collapsed totals (the opposite "Total" axis + corner).
+            __metricKey: METRIC_KEY,
+          })),
         );
       }),
     [data, metricNames, currencyCodeColumn, metricsLayout, combineMetric],

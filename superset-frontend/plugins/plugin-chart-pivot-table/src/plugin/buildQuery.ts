@@ -90,7 +90,12 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
   const groupingSets = additive
     ? undefined
     : buildGroupbyCombinations(formData).map(level =>
-        [...level.rows, ...level.columns].map(getColumnLabel),
+        // A dimension placed on both axes (a valid, if unusual, config) would
+        // otherwise appear twice in the same level, producing a duplicate
+        // column in the GROUPING SETS tuple sent to the database.
+        Array.from(
+          new Set([...level.rows, ...level.columns].map(getColumnLabel)),
+        ),
       );
 
   return buildQueryContext(formData, baseQueryObject => {

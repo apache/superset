@@ -283,7 +283,7 @@ test('isAdditiveMetric: non-additive aggregates, SQL, and saved metrics are not 
     } as any),
   ).toBe(false);
   // saved-metric reference: aggregate unknown from form data -> non-additive
-  expect(isAdditiveMetric('count' as any)).toBe(false);
+  expect(isAdditiveMetric('count')).toBe(false);
 });
 
 test('allMetricsAdditive: all additive vs any non-additive vs empty', () => {
