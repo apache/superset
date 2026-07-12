@@ -62,24 +62,29 @@ export function formatLabel({
   params: CallbackDataParams;
   labelType: EchartsRadarLabelType;
   numberFormatter: NumberFormatter;
-  getDenormalizedSeriesValue: (seriesName: string, value: string) => number;
+  getDenormalizedSeriesValue: (
+    seriesName: string,
+    value: string,
+  ) => number | null;
   metricsWithCustomBounds: Set<string>;
   metricLabels: string[];
 }): string {
   const { name = '', value, dimensionIndex = 0 } = params;
   const metricLabel = metricLabels[dimensionIndex];
 
-  const formattedValue = numberFormatter(
-    metricsWithCustomBounds.has(metricLabel)
-      ? (value as number)
-      : (getDenormalizedSeriesValue(name, String(value)) as number),
-  );
+  const rawValue = metricsWithCustomBounds.has(metricLabel)
+    ? (value as number | null)
+    : getDenormalizedSeriesValue(name, String(value));
+
+  // A missing metric is preserved as null so it renders as a gap; skip
+  // formatting it into a misleading "NaN" label.
+  const formattedValue = rawValue == null ? '' : numberFormatter(rawValue);
 
   switch (labelType) {
     case EchartsRadarLabelType.Value:
       return formattedValue;
     case EchartsRadarLabelType.KeyValue:
-      return `${name}: ${formattedValue}`;
+      return formattedValue ? `${name}: ${formattedValue}` : name;
     default:
       return name;
   }
@@ -134,9 +139,20 @@ export default function transformProps(
   const getDenormalizedSeriesValue = (
     seriesName: string,
     normalizedValue: string,
-  ): number =>
-    denormalizedSeriesValues?.[seriesName]?.[normalizedValue] ??
-    Number(normalizedValue);
+  ): number | null => {
+    const seriesMap = denormalizedSeriesValues?.[seriesName];
+    // A missing metric is recorded explicitly as `null`, so use
+    // `hasOwnProperty` rather than `??`/`?.` to distinguish "recorded as
+    // null" from "never recorded" (which falls back to parsing the raw
+    // normalized value).
+    if (
+      seriesMap &&
+      Object.prototype.hasOwnProperty.call(seriesMap, normalizedValue)
+    ) {
+      return seriesMap[normalizedValue];
+    }
+    return Number(normalizedValue);
+  };
 
   const metricLabels = metrics.map(getMetricLabel);
 
@@ -268,7 +284,11 @@ export default function transformProps(
       // Preserve missing (null/undefined) metric values so they render as a
       // gap. Dividing null/undefined by max coerces it to 0, which would plot
       // the point at the center of the radar as if it were a real zero.
+      // Explicitly record the denormalized entry as null (rather than
+      // leaving it unset) so downstream label/tooltip lookups can tell a
+      // recorded gap apart from an unrecorded value and skip formatting it.
       if (value == null || !Number.isFinite(value)) {
+        denormalizedSeriesValues[seriesName][String(null)] = null;
         return null;
       }
 
@@ -373,7 +393,7 @@ export default function transformProps(
     params: CallbackDataParams & {
       color: string;
       name: string;
-      value: number[];
+      value: (number | null)[];
     },
   ) =>
     renderNormalizedTooltip(
