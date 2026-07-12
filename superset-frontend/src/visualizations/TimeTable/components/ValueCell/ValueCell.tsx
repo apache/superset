@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactElement} from 'react';
+import { ReactElement } from 'react';
 import { colorFromBounds } from '../../utils';
 import FormattedNumber from '../FormattedNumber';
 import type { ColumnConfig } from '../../types';
@@ -35,8 +35,7 @@ const ValueCell = ({
   errorMsg,
   column,
 }: ValueCellProps): ReactElement => {
-
-const color = colorFromBounds(value, column.bounds);
+  const color = colorFromBounds(value, column.bounds);
 
   return (
     <span
