@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { TimeGranularity } from '@superset-ui/core';
+import { QueryFormMetric, TimeGranularity } from '@superset-ui/core';
 import buildGroupbyCombinations, {
   isAdditiveMetric,
   allMetricsAdditive,
@@ -246,7 +246,7 @@ test('isAdditiveMetric: SIMPLE metrics with additive aggregates are additive', (
       aggregate: 'SUM',
       column: { column_name: 'num' },
       label: 'sum_num',
-    } as any),
+    } as QueryFormMetric),
   ).toBe(true);
   expect(
     isAdditiveMetric({
@@ -254,7 +254,7 @@ test('isAdditiveMetric: SIMPLE metrics with additive aggregates are additive', (
       aggregate: 'COUNT',
       column: { column_name: 'num' },
       label: 'count_num',
-    } as any),
+    } as QueryFormMetric),
   ).toBe(true);
 });
 
@@ -265,7 +265,7 @@ test('isAdditiveMetric: non-additive aggregates, SQL, and saved metrics are not 
       aggregate: 'AVG',
       column: { column_name: 'num' },
       label: 'avg_num',
-    } as any),
+    } as QueryFormMetric),
   ).toBe(false);
   expect(
     isAdditiveMetric({
@@ -273,14 +273,14 @@ test('isAdditiveMetric: non-additive aggregates, SQL, and saved metrics are not 
       aggregate: 'COUNT_DISTINCT',
       column: { column_name: 'name' },
       label: 'distinct_names',
-    } as any),
+    } as QueryFormMetric),
   ).toBe(false);
   expect(
     isAdditiveMetric({
       expressionType: 'SQL',
       sqlExpression: 'SUM(a) / SUM(b)',
       label: 'ratio',
-    } as any),
+    } as QueryFormMetric),
   ).toBe(false);
   // saved-metric reference: aggregate unknown from form data -> non-additive
   expect(isAdditiveMetric('count')).toBe(false);
@@ -292,12 +292,12 @@ test('allMetricsAdditive: all additive vs any non-additive vs empty', () => {
     aggregate: 'SUM',
     column: { column_name: 'a' },
     label: 'a',
-  } as any;
+  } as QueryFormMetric;
   const ratio = {
     expressionType: 'SQL',
     sqlExpression: 'SUM(a)/SUM(b)',
     label: 'r',
-  } as any;
+  } as QueryFormMetric;
   expect(allMetricsAdditive([sum, sum])).toBe(true);
   expect(allMetricsAdditive([sum, ratio])).toBe(false);
   expect(allMetricsAdditive([])).toBe(false);
@@ -366,12 +366,17 @@ test('pruning: empty column dims keep the [] (leaf) level regardless of rowTotal
 
 test('additiveReducerFor maps aggregates to reducers', () => {
   const mk = (aggregate: string) =>
-    ({ expressionType: 'SIMPLE', aggregate, label: aggregate }) as any;
+    ({
+      expressionType: 'SIMPLE',
+      aggregate,
+      label: aggregate,
+    }) as QueryFormMetric;
   expect(additiveReducerFor(mk('SUM'))).toBe('sum');
   expect(additiveReducerFor(mk('COUNT'))).toBe('sum');
   expect(additiveReducerFor(mk('MIN'))).toBe('min');
   expect(additiveReducerFor(mk('MAX'))).toBe('max');
-  expect(additiveReducerFor('saved_metric' as any)).toBe('sum');
+  // saved-metric reference is a plain string, no cast needed
+  expect(additiveReducerFor('saved_metric')).toBe('sum');
 });
 
 const LEAF = [

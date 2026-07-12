@@ -2205,3 +2205,54 @@ def test_grouping_sets_fallback_handles_adhoc_and_physical_columns() -> None:
     assert captured_columns[1] == [adhoc_col]
     # Grand total level has no groupby columns.
     assert captured_columns[2] == []
+
+
+def test_grouping_sets_fallback_applies_row_offset_once_globally() -> None:
+    """
+    The native GROUPING SETS path applies `row_offset` exactly once, to the
+    combined multi-level result (see the unconditional `qry.offset()` call in
+    `models/helpers.py`). The fallback must match that: it must not apply the
+    same offset independently to every per-level subquery, since that would
+    apply it once per level (and can drop an entire low-row-count level, e.g.
+    a single grand-total row, outright).
+    """
+    from datetime import timedelta
+
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import QueryResult
+
+    mock_datasource = MagicMock()
+
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["state"],
+        grouping_sets=[["state"], []],
+        row_offset=1,
+    )
+
+    processor = QueryContextProcessor(MagicMock())
+    processor._qc_datasource = mock_datasource
+
+    captured_offsets: list[int] = []
+
+    # Each level returns 2 rows regardless of the (should-be-ignored) offset,
+    # emulating a real datasource that would otherwise apply row_offset itself.
+    def fake_get_query_result(sub_query: QueryObject) -> QueryResult:
+        captured_offsets.append(sub_query.row_offset)
+        return QueryResult(
+            df=pd.DataFrame({"state": ["CA", "NY"]})
+            if sub_query.columns
+            else pd.DataFrame({"state": ["total"]}),
+            query="SELECT 1",
+            duration=timedelta(seconds=0),
+        )
+
+    mock_datasource.get_query_result.side_effect = fake_get_query_result
+
+    result = processor._grouping_sets_fallback(query_obj)
+
+    # Each per-level subquery must run unoffset...
+    assert captured_offsets == [0, 0]
+    # ...and the requested offset is applied exactly once, to the combined
+    # result: 2 + 1 = 3 total rows in, minus an offset of 1 = 2 rows out.
+    assert len(result.df) == 2

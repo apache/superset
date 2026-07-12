@@ -303,8 +303,15 @@ class QueryContextProcessor:
             # `use_grouping_sets` check in models/helpers.py). Match that here:
             # limiting each level's fallback sub-query independently would
             # truncate subtotal/grand-total rows and diverge from the native
-            # result shape.
+            # result shape. The native path applies `row_offset` exactly once,
+            # to the combined multi-level result (see the unconditional
+            # `qry.offset()` call in models/helpers.py). Applying the same
+            # offset to each per-level sub-query independently would apply it
+            # once per level instead of once overall, and can silently drop
+            # low-row-count levels (e.g. the single grand-total row) entirely.
+            # Zero it here and apply it once after concatenation instead.
             sub_query.row_limit = None
+            sub_query.row_offset = 0
             result = self._qc_datasource.get_query_result(sub_query)
             level_df = result.df.copy()
             for label in all_labels:
@@ -317,6 +324,8 @@ class QueryContextProcessor:
             return self._qc_datasource.get_query_result(query_object)
 
         result.df = pd.concat(frames, ignore_index=True) if frames else result.df
+        if query_object.row_offset:
+            result.df = result.df.iloc[query_object.row_offset :].reset_index(drop=True)
         return result
 
     def get_data(

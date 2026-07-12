@@ -106,9 +106,9 @@ def split_grouping_sets_result(
         grouped: set[str] = set(level)
         mask: pd.Series = pd.Series(True, index=df.index)
         for col in groupby_columns:
-            expected = 0 if col in grouped else 1
+            expected: int = 0 if col in grouped else 1
             mask &= df[grouping_marker_label(col)] == expected
-        level_df = (
+        level_df: pd.DataFrame = (
             df[mask]
             .drop(columns=[m for m in markers if m in df.columns])
             .reset_index(drop=True)
