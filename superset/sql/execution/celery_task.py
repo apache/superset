@@ -27,7 +27,7 @@ import dataclasses
 import logging
 import traceback
 import uuid
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import msgpack
 from celery.exceptions import SoftTimeLimitExceeded
@@ -56,6 +56,9 @@ from superset.utils import json
 from superset.utils.core import override_user, zlib_compress
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import stats_timing
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
 
@@ -125,6 +128,7 @@ def _serialize_payload(payload: dict[Any, Any]) -> bytes:
 def _prepare_statement_blocks(
     rendered_query: str,
     db_engine_spec: Any,
+    database: Database,
 ) -> tuple[SQLScript, list[str]]:
     """
     Parse SQL and build statement blocks for execution.
@@ -139,6 +143,19 @@ def _prepare_statement_blocks(
     if db_engine_spec.run_multiple_statements_as_one:
         blocks = [parsed_script.format(comments=db_engine_spec.allows_sql_comments)]
     else:
+        if not app.config["MUTATE_AFTER_SPLIT"]:
+            # `MUTATE_AFTER_SPLIT=False` means the mutator should see the whole,
+            # un-split query, but this engine executes statements individually.
+            # Mutate the whole block up front and re-parse it, so the per-statement
+            # split below (and the later per-statement mutation call in
+            # `execute_sql_with_cursor`, which is a no-op here since its
+            # `is_split=True` no longer matches the config) operate on the
+            # already-mutated SQL.
+            mutated_sql = database.mutate_sql_based_on_config(
+                parsed_script.format(comments=db_engine_spec.allows_sql_comments),
+                is_split=False,
+            )
+            parsed_script = SQLScript(mutated_sql, engine=db_engine_spec.engine)
         blocks = [
             statement.format(comments=db_engine_spec.allows_sql_comments)
             for statement in parsed_script.statements
@@ -423,7 +440,9 @@ def _execute_sql_statements(
     original_script = SQLScript(query.sql, engine=db_engine_spec.engine)
 
     # Parse transformed SQL (with RLS, limits, etc.)
-    parsed_script, blocks = _prepare_statement_blocks(rendered_query, db_engine_spec)
+    parsed_script, blocks = _prepare_statement_blocks(
+        rendered_query, db_engine_spec, database
+    )
 
     with database.get_raw_connection(
         catalog=query.catalog,

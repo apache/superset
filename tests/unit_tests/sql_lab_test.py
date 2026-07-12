@@ -193,6 +193,67 @@ def test_execute_sql_statement_within_payload_limit(mocker: MockerFixture, app) 
         )
 
 
+def test_execute_sql_statements_mutates_before_split_by_default(
+    mocker: MockerFixture, app
+) -> None:
+    """
+    With the default `MUTATE_AFTER_SPLIT=False`, `execute_sql_statements` should
+    mutate the whole, un-split query once before splitting it into individual
+    statement blocks, for engines that execute statements individually rather
+    than as one. Regression guard for issue #30169.
+    """
+    query = mocker.MagicMock()
+    query.limit = 1
+    query.database = mocker.MagicMock()
+    query.database.cache_timeout = 100
+    query.status = "RUNNING"
+    query.select_as_cta = False
+    query.database.allow_run_async = True
+    query.database.db_engine_spec.engine = "sqlite"
+    query.database.db_engine_spec.run_multiple_statements_as_one = False
+    query.database.db_engine_spec.allows_sql_comments = True
+
+    mutate_mock = mocker.patch.object(
+        query.database,
+        "mutate_sql_based_on_config",
+        side_effect=lambda sql, **kw: sql,
+    )
+
+    mocker.patch("superset.sql_lab.get_query", return_value=query)
+    mocker.patch("sys.getsizeof", return_value=10000000)
+    mocker.patch(
+        "superset.sql_lab._serialize_payload",
+        side_effect=lambda payload, use_msgpack: "serialized_payload",
+    )
+    mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
+    mocker.patch("superset.sql_lab.results_backend", return_value=True)
+
+    execute_sql_statements(
+        query_id=1,
+        rendered_query="SELECT 1; SELECT 2;",
+        return_results=True,
+        store_results=True,
+        start_time=None,
+        expand_data=False,
+        log_params={},
+    )
+
+    is_split_values = [
+        call.kwargs.get("is_split") for call in mutate_mock.call_args_list
+    ]
+    # The mutator is called once on the whole, un-split query before splitting...
+    assert is_split_values[0] is False
+    first_call_sql = mutate_mock.call_args_list[0].args[0]
+    assert "1" in first_call_sql
+    assert "2" in first_call_sql
+    # Both statements are present in a single, un-split call.
+    assert first_call_sql.count("SELECT") == 2
+    # ...and once again per already-split statement (a no-op when
+    # `MUTATE_AFTER_SPLIT=False`, since `is_split=True` won't match the config).
+    assert all(value is True for value in is_split_values[1:])
+    assert len(is_split_values) == 3
+
+
 @freeze_time("2021-04-01T00:00:00Z")
 def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
     """

@@ -480,6 +480,18 @@ def execute_sql_statements(  # noqa: C901
     if db_engine_spec.run_multiple_statements_as_one:
         blocks = [parsed_script.format(comments=db_engine_spec.allows_sql_comments)]
     else:
+        if not app.config["MUTATE_AFTER_SPLIT"]:
+            # `MUTATE_AFTER_SPLIT=False` means the mutator should see the whole,
+            # un-split query, but this engine executes statements individually.
+            # Mutate the whole block up front and re-parse it, so the per-statement
+            # split below (and the per-block mutation call further down, which is a
+            # no-op here since its `is_split=True` no longer matches the config)
+            # operate on the already-mutated SQL.
+            mutated_sql = database.mutate_sql_based_on_config(
+                parsed_script.format(comments=db_engine_spec.allows_sql_comments),
+                is_split=False,
+            )
+            parsed_script = SQLScript(mutated_sql, engine=db_engine_spec.engine)
         blocks = [
             statement.format(comments=db_engine_spec.allows_sql_comments)
             for statement in parsed_script.statements

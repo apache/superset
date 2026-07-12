@@ -282,9 +282,12 @@ def test_prepare_statement_blocks_single_statement(
     """Test statement block preparation for single statement."""
     from superset.sql.execution.celery_task import _prepare_statement_blocks
 
+    mock_database.mutate_sql_based_on_config = lambda sql, **kw: sql
     sql = "SELECT * FROM users"
 
-    script, blocks = _prepare_statement_blocks(sql, mock_database.db_engine_spec)
+    script, blocks = _prepare_statement_blocks(
+        sql, mock_database.db_engine_spec, mock_database
+    )
 
     assert len(blocks) == 1
 
@@ -295,9 +298,12 @@ def test_prepare_statement_blocks_multiple_statements(
     """Test statement block preparation for multiple statements."""
     from superset.sql.execution.celery_task import _prepare_statement_blocks
 
+    mock_database.mutate_sql_based_on_config = lambda sql, **kw: sql
     sql = "SELECT * FROM users; SELECT * FROM orders;"
 
-    script, blocks = _prepare_statement_blocks(sql, mock_database.db_engine_spec)
+    script, blocks = _prepare_statement_blocks(
+        sql, mock_database.db_engine_spec, mock_database
+    )
 
     assert len(blocks) == 2
 
@@ -309,11 +315,41 @@ def test_prepare_statement_blocks_run_as_one(
     from superset.sql.execution.celery_task import _prepare_statement_blocks
 
     mock_database.db_engine_spec.run_multiple_statements_as_one = True
+    mock_database.mutate_sql_based_on_config = lambda sql, **kw: sql
     sql = "SELECT * FROM users; SELECT * FROM orders;"
 
-    script, blocks = _prepare_statement_blocks(sql, mock_database.db_engine_spec)
+    script, blocks = _prepare_statement_blocks(
+        sql, mock_database.db_engine_spec, mock_database
+    )
 
     assert len(blocks) == 1
+
+
+def test_prepare_statement_blocks_mutates_before_split_when_configured(
+    app_context: None, mock_database: MagicMock, mocker: MockerFixture
+) -> None:
+    """
+    `MUTATE_AFTER_SPLIT=False` should mutate the whole, un-split query before
+    it gets broken into per-statement blocks, for engines that execute
+    statements individually. Regression guard for issue #30169.
+    """
+    from superset.sql.execution.celery_task import _prepare_statement_blocks
+
+    mocker.patch.dict(current_app.config, {"MUTATE_AFTER_SPLIT": False})
+    mutate_mock = mocker.patch.object(
+        mock_database,
+        "mutate_sql_based_on_config",
+        side_effect=lambda sql, **kw: f"-- mutated\n{sql}",
+    )
+    sql = "SELECT * FROM users; SELECT * FROM orders;"
+
+    _, blocks = _prepare_statement_blocks(
+        sql, mock_database.db_engine_spec, mock_database
+    )
+
+    assert len(blocks) == 2
+    assert "mutated" in blocks[0]
+    mutate_mock.assert_called_once_with(mocker.ANY, is_split=False)
 
 
 # =============================================================================
