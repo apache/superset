@@ -564,7 +564,7 @@ def test_fetch_metadata_sets_expression_for_expanded_nested_columns(
     database.get_metrics.return_value = []
 
     # Mock db_engine_spec
-    mock_db_engine_spec = mocker.MagicMock()
+    mock_db_engine_spec: MagicMock = mocker.MagicMock()
     mock_db_engine_spec.alter_new_orm_column = mocker.MagicMock()
     database.db_engine_spec = mock_db_engine_spec
 
