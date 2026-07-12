@@ -33,7 +33,7 @@ const forecastSuffixRegex = new RegExp(
 export const extractForecastSeriesContext = (
   seriesName: OptionName,
 ): ForecastSeriesContext => {
-  const name = seriesName as string;
+  const name = String(seriesName ?? '');
 
   // Check for anomaly suffix first; preserve the stripped name as-is so that
   // nested series (e.g. metric__yhat__anomaly vs metric__anomaly) stay distinct
