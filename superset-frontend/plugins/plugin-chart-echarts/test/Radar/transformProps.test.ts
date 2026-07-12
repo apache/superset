@@ -243,8 +243,7 @@ describe('missing (null) values', () => {
     const result = transformProps(missingValueProps as EchartsRadarChartProps);
     const series = result.echartOptions.series as RadarSeriesOption[];
     const value = (series[0].data as RadarSeriesData[])[0].value as (
-      | number
-      | null
+      number | null
     )[];
 
     // Index 1 corresponds to 'SUM(other_sales)', which was null in the datum.
