@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from .delete_chart import delete_chart
 from .generate_chart import generate_chart
 from .get_chart_data import get_chart_data
 from .get_chart_info import get_chart_info
@@ -28,6 +29,7 @@ from .update_chart_preview import update_chart_preview
 __all__ = [
     "list_charts",
     "get_chart_info",
+    "delete_chart",
     "get_chart_sql",
     "generate_chart",
     "update_chart",

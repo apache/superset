@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-08 12:27-0700\n"
+"POT-Creation-Date: 2026-06-23 03:46-0700\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -907,6 +907,9 @@ msgstr "Kei te tīari kē tētahi pātengi raraunga me te ingoa ōrite."
 msgid "A date is required when using custom date shift"
 msgstr "E hiahiatia ana he rā ina whakamahi i te neke rā ritenga"
 
+msgid "A description for your dashboard"
+msgstr ""
+
 #, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
@@ -937,17 +940,22 @@ msgstr ""
 "He rārangi ingoa rohe ka taea e tēnei papatohu te tāmau. Mēnā ka waiho "
 "kau tēnei āpure ka whakāetia te tāmau mai i tētahi rohe."
 
+msgid "A list of subjects who can alter the chart. Searchable by name."
+msgstr ""
+"He rārangi kaupapa ka taea te whakatika i te kauwhata. Ka taea te rapu mā"
+" te ingoa."
+
+msgid "A list of subjects who can view the chart. Searchable by name."
+msgstr ""
+"He rārangi kaupapa ka taea te tiro i te kauwhata. Ka taea te rapu mā te "
+"ingoa."
+
 msgid "A list of tags that have been applied to this chart."
 msgstr "He rārangi tohu kua whakahaeretia ki tēnei kauwhata."
 
 #, fuzzy
 msgid "A list of tags that have been applied to this dashboard."
 msgstr "He rārangi tohu kua whakahaeretia ki tēnei kauwhata."
-
-msgid "A list of users who can alter the chart. Searchable by name or username."
-msgstr ""
-"He rārangi kaiwhakamahi ka taea te whakarereke i te kauwhata. Ka taea te "
-"rapu mā te ingoa, mā te ingoa kaiwhakamahi rānei."
 
 msgid "A map of the world, that can indicate values in different countries."
 msgstr "He mahere o te ao, ka taea te tohu i ngā uara i ngā whenua rerekē."
@@ -961,6 +969,11 @@ msgstr ""
 
 msgid "A metric to use for color"
 msgstr "He ine hei whakamahi mō te tae"
+
+msgid ""
+"A multiplier applied to the point radius. Use this to uniformly scale all"
+" points."
+msgstr ""
 
 msgid "A new chart and dashboard will be created."
 msgstr "Ka hangaia he kauwhata me te papatohu hou."
@@ -1085,9 +1098,8 @@ msgstr "E Mahi Ana"
 msgid "About"
 msgstr "Mō"
 
-#, fuzzy
-msgid "Access & ownership"
-msgstr "Tohu urunga"
+msgid "Access"
+msgstr "Urunga"
 
 msgid "Access token"
 msgstr "Tohu urunga"
@@ -1798,10 +1810,6 @@ msgid "An error occurred while fetching %s info: %s"
 msgstr "I puta he hapa i te tikitanga o ngā mōhiohio %s: %s"
 
 #, fuzzy, python-format
-msgid "An error occurred while fetching %s owner values: %s"
-msgstr "I puta he hapa i te tikitanga o ngā uara rangatira: %s"
-
-#, fuzzy, python-format
 msgid "An error occurred while fetching %s related data"
 msgstr "I puta he hapa i te tikitanga o ngā raraunga hāngai rārangi raraunga"
 
@@ -1829,8 +1837,12 @@ msgid "An error occurred while fetching available views"
 msgstr "I puta he hapa i te tikitanga o ngā tauira CSS wātea"
 
 #, python-format
-msgid "An error occurred while fetching chart owners values: %s"
-msgstr "I puta he hapa i te tikitanga o ngā uara rangatira kauwhata: %s"
+msgid "An error occurred while fetching chart editor values: %s"
+msgstr "I puta he hapa i te tiki uara kaiwhakatika kauwhata: %s"
+
+#, python-format
+msgid "An error occurred while fetching chart viewer values: %s"
+msgstr "I puta he hapa i te tiki uara kaitiro kauwhata: %s"
 
 #, fuzzy
 msgid "An error occurred while fetching connections"
@@ -1841,8 +1853,12 @@ msgid "An error occurred while fetching created by values: %s"
 msgstr "I puta he hapa i te tikitanga o ngā uara hanga: %s"
 
 #, python-format
-msgid "An error occurred while fetching dashboard owner values: %s"
-msgstr "I puta he hapa i te tikitanga o ngā uara rangatira papatohu: %s"
+msgid "An error occurred while fetching dashboard editor values: %s"
+msgstr "I puta he hapa i te tiki uara kaiwhakatika papatohu: %s"
+
+#, python-format
+msgid "An error occurred while fetching dashboard viewer values: %s"
+msgstr "I puta he hapa i te tiki uara kaitiro papatohu: %s"
 
 msgid "An error occurred while fetching dashboards"
 msgstr "I puta he hapa i te tikitanga o ngā papatohu"
@@ -1866,15 +1882,19 @@ msgstr ""
 "%s"
 
 #, python-format
+msgid "An error occurred while fetching dataset editor values: %s"
+msgstr "I puta he hapa i te tiki uara kaiwhakatika huinga raraunga: %s"
+
+#, python-format
 msgid "An error occurred while fetching dataset related data: %s"
 msgstr "I puta he hapa i te tikitanga o ngā raraunga hāngai rārangi raraunga: %s"
 
+#, python-format
+msgid "An error occurred while fetching editor values: %s"
+msgstr "I puta he hapa i te tiki uara kaiwhakatika: %s"
+
 msgid "An error occurred while fetching function names."
 msgstr "I puta he hapa i te tikitanga o ngā ingoa taumahi."
-
-#, python-format
-msgid "An error occurred while fetching owners values: %s"
-msgstr "I puta he hapa i te tikitanga o ngā uara rangatira: %s"
 
 #, python-format
 msgid "An error occurred while fetching schema values: %s"
@@ -1891,19 +1911,9 @@ msgstr "I puta he hapa i te tikitanga o ngā uara hanga: %s"
 msgid "An error occurred while fetching tab state"
 msgstr "I puta he hapa i te tikitanga o te tūnga ripa"
 
-msgid "An error occurred while fetching table metadata"
-msgstr "I puta he hapa i te tikitanga o te metadata ripanga"
-
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr "I puta he hapa i te tikitanga o te metadata ripanga"
-
-msgid ""
-"An error occurred while fetching table metadata. Please contact your "
-"administrator."
-msgstr ""
-"I puta he hapa i te tikitanga o te metadata ripanga. Tēnā whakapā atu ki "
-"tō kaiwhakahaere."
 
 #, fuzzy
 msgid "An error occurred while fetching the configuration schema"
@@ -1942,6 +1952,11 @@ msgstr "I puta he hapa i te utanga o te SQL"
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "I puta he hapa i te kawemaitanga o %s: %s"
+
+msgid ""
+"An error occurred while loading SQL Lab. This may be caused by a "
+"corrupted query state."
+msgstr ""
 
 msgid "An error occurred while loading dashboard information."
 msgstr "I puta he hapa i te utanga o ngā mōhiohio papatohu."
@@ -3228,6 +3243,12 @@ msgstr "Kāore i kitea te kauwhata %(id)s"
 msgid "Chart Data: %s"
 msgstr "Raraunga Kauwhata: %s"
 
+#, python-format
+msgid "Chart Editor: %s"
+msgid_plural "Chart Editors: %s"
+msgstr[0] "Kaiwhakatika kauwhata: %s"
+msgstr[1] "Ngā kaiwhakatika kauwhata: %s"
+
 msgid "Chart ID"
 msgstr "ID Kauwhata"
 
@@ -3236,12 +3257,6 @@ msgstr "Kōwhiringa Kauwhata"
 
 msgid "Chart Orientation"
 msgstr "Ahunga Kauwhata"
-
-#, python-format
-msgid "Chart Owner: %s"
-msgid_plural "Chart Owners: %s"
-msgstr[0] "Rangatira Kauwhata: %s"
-msgstr[1] "Rangatira Kauwhata: %s"
 
 msgid "Chart Source"
 msgstr "Puna Kauwhata"
@@ -3293,6 +3308,9 @@ msgstr "E hiahiatia ana te uara tātari"
 msgid "Chart does not exist"
 msgstr "Karekau te kauwhata"
 
+msgid "Chart editors"
+msgstr "Ngā kaiwhakatika kauwhata"
+
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr ""
 "Karekau he horopaki pātai kua tiakina i te kauwhata. Tēnā tiakihia anō te"
@@ -3316,9 +3334,6 @@ msgstr "Kāore i kitea te kauwhata"
 
 msgid "Chart options"
 msgstr "Kōwhiringa kauwhata"
-
-msgid "Chart owners"
-msgstr "Rangatira kauwhata"
 
 msgid "Chart parameters are invalid."
 msgstr "He muhu ngā tawhā kauwhata."
@@ -3810,9 +3825,6 @@ msgstr ""
 msgid "Column Configuration"
 msgstr "Whirihora Tīwae"
 
-msgid "Column Formatting"
-msgstr "Hōputu Tīwae"
-
 msgid "Column Settings"
 msgstr "Tautuhinga Tīwae"
 
@@ -3954,6 +3966,9 @@ msgid ""
 msgstr ""
 "Rohe wā māmā-wehea, hei tauira 2,4,5 mō ngā wā 0-2, 2-4 me 4-5. Me ōrite "
 "te tau whakamutunga ki te uara kua whakaratohia mō te MAX."
+
+msgid "Common (unit per pixel at zoom 0)"
+msgstr ""
 
 msgid "Comparator option"
 msgstr "Kōwhiringa whakatairite"
@@ -4260,6 +4275,9 @@ msgstr "Kāore i taea te tiki i ngā kauwhata katoa kua tiakina"
 
 msgid "Could not find viz object"
 msgstr "Kāore i kitea te ahanoa viz"
+
+msgid "Could not load SQL Lab"
+msgstr ""
 
 msgid "Could not load database driver"
 msgstr "Kāore i taea te uta i te taraiwa pātengi raraunga"
@@ -6195,11 +6213,30 @@ msgstr "Whakatika awhe wā"
 msgid "Edit user"
 msgstr "Whakatika kaiwhakamahi"
 
+msgid "Editable"
+msgstr "Ka taea te whakatika"
+
 msgid "Edited"
 msgstr "Kua Whakatikahia"
 
 msgid "Editing 1 filter:"
 msgstr "E whakatika ana i te 1 tātari:"
+
+msgid "Editor"
+msgstr "Kaiwhakatika"
+
+msgid "Editors"
+msgstr "Ngā kaiwhakatika"
+
+msgid "Editors is a list of subjects who can alter the dashboard."
+msgstr "Ko ngā kaiwhakatika he rārangi kaupapa ka taea te whakatika i te papatohu."
+
+msgid ""
+"Editors is a list of subjects who can alter the dashboard. Searchable by "
+"name."
+msgstr ""
+"Ko ngā kaiwhakatika he rārangi kaupapa ka taea te whakatika i te "
+"papatohu. Ka taea te rapu mā te ingoa."
 
 msgid "Either the database is spelled incorrectly or does not exist."
 msgstr "Kua hē te pūwaea o te pātengi raraunga, karekau pea rānei."
@@ -6702,8 +6739,8 @@ msgstr "Tukuake Excel"
 msgid "Exclude selected values"
 msgstr "Whakakorehia ngā uara kua tīpakohia"
 
-msgid "Excluded roles"
-msgstr "Tūranga kua whakakorehia"
+msgid "Excluded subjects"
+msgstr "Ngā kaupapa kua aukatia"
 
 msgid "Executed SQL"
 msgstr "SQL kua whakatutukia"
@@ -7360,10 +7397,11 @@ msgstr ""
 "Mō ētahi mōhiohio atu mō ngā ahanoa kei roto i te horopaki i te korahi o "
 "tēnei taumahi, tirohia te"
 
+#, fuzzy
 msgid ""
-"For regular filters, these are the roles this filter will be applied to. "
-"For base filters, these are the roles that the filter DOES NOT apply to, "
-"e.g. Admin if admin should see all data."
+"For regular filters, these are the subjects (users, roles, groups) this "
+"filter will be applied to. For base filters, these are the subjects that "
+"the filter DOES NOT apply to, e.g. Admin if admin should see all data."
 msgstr ""
 "Mō ngā tātari auau, ko ēnei ngā tūranga ka whakahaeretia ki reira tēnei "
 "tātari. Mō ngā tātari pūtake, ko ēnei ngā tūranga KAREKAU e pā ana te "
@@ -7488,9 +7526,6 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "CSV kua hōputuhia kua tāpiritia ki te īmēra"
-
-msgid "Formatted date"
-msgstr "Rā kua hōputuhia"
 
 msgid "Formatted value"
 msgstr "Uara kua hōputuhia"
@@ -8441,9 +8476,6 @@ msgstr "Pokatata papatuhi"
 msgid "Keys are shown only once at creation. Store them securely."
 msgstr "Ko ngā kī ka whakaatuhia kotahi noa iho i te waihanga. Tiakina haumaru."
 
-msgid "Keys for table"
-msgstr "Kī mō te ripanga"
-
 msgid "Kilometers"
 msgstr "Kiromita"
 
@@ -8982,11 +9014,8 @@ msgstr "Tono hē. E tūmanakohia ana ngā tākupu slice_id, table_name me db_nam
 msgid "Manage"
 msgstr "Whakahaere"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
-# ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Manage dashboard owners and access permissions"
-msgstr "Whakahaere i ngā kaipupuri papa mahi me ngā whakaaetanga uru"
+msgid "Manage dashboard editors and access permissions"
+msgstr "Whakahaere i ngā kaiwhakatika papatohu me ngā whakaaetanga urunga"
 
 msgid "Manage email report"
 msgstr "Whakahaere pūrongo īmēra"
@@ -9547,11 +9576,9 @@ msgstr "Kaiwhakarea"
 # sr_Latn]
 #, fuzzy
 msgid ""
-"Must be a chart owner to overwrite this chart. Save as a new chart "
+"Must be a chart editor to overwrite this chart. Save as a new chart "
 "instead."
-msgstr ""
-"Me noho hei kaipupuri tūtohi hei takahi i tēnei tūtohi. Tiakina hei "
-"tūtohi hou kē."
+msgstr "Me noho koe hei kaiwhakatika tūtohi kia taea ai te tuhirua i tēnei tūtohi. Tiakina kē hei tūtohi hōu."
 
 msgid "Must be unique"
 msgstr "Me ahurei"
@@ -10263,6 +10290,12 @@ msgstr "Huaki ripa Puna Raraunga"
 msgid "Open SQL Lab in a new tab"
 msgstr "Whakahaere pātai i tētahi ripa hou"
 
+msgid "Open chart in new tab"
+msgstr ""
+
+msgid "Open dashboard in new tab"
+msgstr ""
+
 msgid "Open in SQL Lab"
 msgstr "Huaki i SQL Lab"
 
@@ -10350,9 +10383,6 @@ msgstr "Ahunga o te rākau"
 msgid "Original"
 msgstr "Taketake"
 
-msgid "Original table column order"
-msgstr "Raupapa tīwae ripanga taketake"
-
 msgid "Original value"
 msgstr "Uara taketake"
 
@@ -10430,27 +10460,6 @@ msgstr "Rangatira"
 
 msgid "Owned Created or Favored"
 msgstr "He muhu ngā rangatira"
-
-msgid "Owner"
-msgstr ""
-"He rārangi kaiwhakamahi ngā Rangatira ka taea te whakarereke i te "
-"papatohu."
-
-msgid "Owners"
-msgstr ""
-"He rārangi kaiwhakamahi ngā Rangatira ka taea te whakarereke i te "
-"papatohu. Ka taea te rapu mā te ingoa, mā te ingoa kaiwhakamahi rānei."
-
-msgid "Owners are invalid"
-msgstr "I rahua te tikiake PDF, tēnā whakahouhia, ā, whakamātauhia anō."
-
-msgid "Owners is a list of users who can alter the dashboard."
-msgstr "Roa whārangi"
-
-msgid ""
-"Owners is a list of users who can alter the dashboard. Searchable by name"
-" or username."
-msgstr "Ripanga Whakamātau-t Takirua"
 
 msgid "PDF download failed, please refresh and try again."
 msgstr "Tikanga tauira-anō Pandas"
@@ -10530,6 +10539,10 @@ msgstr "Whakapiri Kī Matawhā ki konei"
 
 msgid "Password is required"
 msgstr "Whakapiri ihirangi o te kōnae JSON taipitopito ratonga ki konei"
+
+#, python-format
+msgid "Password must be at least %(min_length)s characters long."
+msgstr ""
 
 #, fuzzy
 msgid "Password:"
@@ -10857,10 +10870,10 @@ msgstr "Tēnā tāuru anō te kupuhipa."
 msgid "Please re-export your file and try importing again"
 msgstr "Tēnā kaweatu-anō tō kōnae, ā, whakamātauhia anō te kawemai"
 
-msgid "Please reach out to the Chart Owner for assistance."
-msgid_plural "Please reach out to the Chart Owners for assistance."
-msgstr[0] "Tēnā whakapā atu ki te Rangatira Kauwhata mō te āwhina."
-msgstr[1] "Tēnā whakapā atu ki ngā Rangatira Kauwhata mō te āwhina."
+msgid "Please reach out to the Chart Editor for assistance."
+msgid_plural "Please reach out to the Chart Editors for assistance."
+msgstr[0] "Tēnā whakapā atu ki te kaiwhakatika kauwhata mō te āwhina."
+msgstr[1] "Tēnā whakapā atu ki ngā kaiwhakatika kauwhata mō te āwhina."
 
 msgid "Please save your chart first, then try creating a new email report."
 msgstr ""
@@ -10922,6 +10935,9 @@ msgstr "Tauine Pūtoro Tohu"
 
 msgid "Point Radius Unit"
 msgstr "Waeine Pūtoro Tohu"
+
+msgid "Point Radius Units"
+msgstr ""
 
 msgid "Point Size"
 msgstr "Rahi Tohu"
@@ -11393,6 +11409,9 @@ msgstr "Rahinga tata"
 msgid "Reload"
 msgstr "Uta-anō"
 
+msgid "Reload SQL Lab"
+msgstr ""
+
 msgid "Remove"
 msgstr "Tango"
 
@@ -11422,9 +11441,6 @@ msgstr "Tango mea"
 
 msgid "Remove query from log"
 msgstr "Tango pātai mai i te rārangi"
-
-msgid "Remove table preview"
-msgstr "Tango arokite ripanga"
 
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
@@ -11522,6 +11538,9 @@ msgstr "Kei te hohe te pūrongo"
 msgid "Report name"
 msgstr "Ingoa pūrongo"
 
+msgid "Report not yet run"
+msgstr ""
+
 msgid "Report schedule client error"
 msgstr "Hapa kiritaki hōtaka pūrongo"
 
@@ -11574,6 +11593,10 @@ msgstr "Kua tangohia ngā uara whakahaere e hiahiatia ana"
 msgid "Resample"
 msgstr "Tauira-anō"
 
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
+
 msgid "Resample method should be in "
 msgstr "Me noho te tikanga tauira-anō i"
 
@@ -11621,13 +11644,8 @@ msgstr "Kua tāpiritia kētia he pūrongo ki te rauemi."
 msgid "Resource was not found."
 msgstr "Kāore i kitea te rauemi."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
-msgid "Resource was removed before ownership could be verified"
-msgstr ""
-"I tangohia te rauemi i mua i te taenga ki te whakamōtika i te "
-"rangatiratanga"
+msgid "Resource was removed before editorship could be verified"
+msgstr "I tangohia te rauemi i mua i te manatoko i te mana whakatika"
 
 msgid "Restore filter"
 msgstr "Whakaora tātari"
@@ -11733,26 +11751,6 @@ msgstr "E hiahiatia ana te ingoa tūranga"
 
 msgid "Roles"
 msgstr "Tūranga"
-
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks. If no roles are "
-"defined, regular access permissions apply."
-msgstr ""
-"He rārangi te Tūranga e tautuhi ana i te urunga ki te papatohu. Mā te "
-"tuku i te urunga tūranga ki tētahi papatohu ka poke i ngā tirotiro "
-"taumata rārangi raraunga. Mēnā karekau he tūranga kua tautuhia, ka pā ngā"
-" mōtika urunga auau."
-
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks.If no roles are "
-"defined, regular access permissions apply."
-msgstr ""
-"He rārangi te Tūranga e tautuhi ana i te urunga ki te papatohu. Mā te "
-"tuku i te urunga tūranga ki tētahi papatohu ka poke i ngā tirotiro "
-"taumata rārangi raraunga. Mēnā karekau he tūranga kua tautuhia, ka pā ngā"
-" mōtika urunga auau."
 
 msgid "Rolling Function"
 msgstr "Taumahi Takahuri"
@@ -12238,9 +12236,8 @@ msgstr "Rapu mā te kupu pātai"
 msgid "Search calculated columns by name"
 msgstr "Tīwae tatau"
 
-#, fuzzy
-msgid "Search charts by name, owner, or dashboard"
-msgstr "Kāore he kauwhata kua tāpiritia ki tēnei papatohu"
+msgid "Search charts by name, editor, or dashboard"
+msgstr "Rapua ngā kauwhata mā te ingoa, kaiwhakatika, papatohu rānei"
 
 msgid "Search columns"
 msgstr "Rapu tīwae"
@@ -12253,6 +12250,9 @@ msgstr "Rapu tīwae"
 msgid "Search columns..."
 msgstr "Rapu tīwae"
 
+msgid "Search editors"
+msgstr "Rapua ngā kaiwhakatika"
+
 msgid "Search in filters"
 msgstr "Rapu i ngā tātari"
 
@@ -12261,16 +12261,11 @@ msgid "Search metrics by key or label"
 msgstr "Rapu Ine me ngā Tīwae"
 
 #, fuzzy
-msgid "Search owners"
-msgstr "Tīpakohia rangatira"
-
-#, fuzzy
-msgid "Search roles"
-msgstr "Rapu tīwae"
-
-#, fuzzy
 msgid "Search tags"
 msgstr "Tīpako Tohu"
+
+msgid "Search viewers"
+msgstr "Rapua ngā kaitiro"
 
 msgid "Search..."
 msgstr "Rapu..."
@@ -12550,6 +12545,9 @@ msgstr "Tīpakohia tētahi āhuahanga"
 msgid "Select dimension values"
 msgstr "Tīpakohia tētahi āhuahanga"
 
+msgid "Select editors"
+msgstr "Tīpakohia ngā kaiwhakatika"
+
 msgid "Select file"
 msgstr "Tīpakohia kōnae"
 
@@ -12626,9 +12624,6 @@ msgstr "Tīpakohia, pato rānei i te tohu moni"
 
 msgid "Select or type dataset name"
 msgstr "Tīpakohia, pato rānei i te ingoa rārangi raraunga"
-
-msgid "Select owners"
-msgstr "Tīpakohia rangatira"
 
 msgid "Select page size"
 msgstr "Tīpakohia rahi whārangi"
@@ -13843,6 +13838,9 @@ msgstr "Tiriti"
 msgid "Streets (Carto)"
 msgstr "Kauwhata Rākau"
 
+msgid "Streets (OSM)"
+msgstr ""
+
 msgid "Strength to pull the graph toward center"
 msgstr "Kaha hei tō i te kauwhata ki te pokapū"
 
@@ -13882,6 +13880,18 @@ msgstr "Kāwai"
 
 msgid "Subdomain"
 msgstr "Rohe-iti"
+
+msgid "Subject"
+msgstr "Kaupapa"
+
+msgid "Subject type"
+msgstr "Momo kaupapa"
+
+msgid "Subjects"
+msgstr "Ngā kaupapa"
+
+msgid "Subjects are invalid"
+msgstr "Kāore i te tika ngā kaupapa"
 
 msgid "Submit"
 msgstr "Tuku"
@@ -14344,6 +14354,9 @@ msgstr ""
 "GLOBAL_TASK_FRAMEWORK=True i roto i ō tohu āhuatanga ki te whakamahi i "
 "@task. Tirohia https://superset.apache.org/docs/configuration/async-"
 "queries-celery mō ngā taipitopito whirihora."
+
+msgid "The SSH server host key could not be verified against the expected key."
+msgstr ""
 
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
@@ -15021,6 +15034,11 @@ msgstr ""
 "Te pūtoro o ngā tohu takitahi (kāore i roto i tētahi rāpaki). He tīwae "
 "tau, `Auto` rānei, ka tauine i te tohu i runga i te rāpaki nui rawa"
 
+msgid ""
+"The radius of point features, in the units specified below. The final "
+"rendered size is this value multiplied by Point Radius Scale."
+msgstr ""
+
 msgid "The report has been created"
 msgstr "Kua hangaia te pūrongo"
 
@@ -15233,6 +15251,11 @@ msgstr "Rahi Momotuhi Taitara-iti"
 #, fuzzy
 msgid "The unit for label size"
 msgstr "Ko te ine mō te rahi tapanga"
+
+msgid ""
+"The unit for point radius. Use \"pixels\" for consistent screen-space "
+"sizing regardless of zoom level."
+msgstr ""
 
 msgid "The unit of measure for the specified point radius"
 msgstr "Te waeine ine mō te pūtoro tohu kua tohua"
@@ -15974,6 +15997,9 @@ msgstr ""
 "Kua whakaritea tēnei whārangi hei tāmau i tētahi iframe, engari e rite "
 "ana kāore tērā te take."
 
+msgid "This password is too common; please choose a less guessable one."
+msgstr ""
+
 msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
@@ -16331,6 +16357,18 @@ msgstr "Hei whiwhi i tētahi URL ka taea te pānui mō tō papatohu"
 #, fuzzy
 msgid "Token Request URI"
 msgstr "URI Tono Mōkihi"
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
 
 #, fuzzy
 msgid "Tool Panel"
@@ -17228,10 +17266,6 @@ msgstr "Tirohia hei ripanga"
 msgid "View in SQL Lab"
 msgstr "Tirohia i SQL Lab"
 
-#, python-format
-msgid "View keys & indexes (%s)"
-msgstr "Tirohia ngā kī me ngā kuputohu (%s)"
-
 msgid "View query"
 msgstr "Tirohia pātai"
 
@@ -17245,6 +17279,21 @@ msgstr "Kua Tirohia"
 #, python-format
 msgid "Viewed %s"
 msgstr "Kua Tirohia %s"
+
+msgid "Viewer"
+msgstr "Kaitiro"
+
+msgid "Viewers"
+msgstr "Ngā kaitiro"
+
+msgid ""
+"Viewers is a list of subjects who can view the dashboard. If no viewers "
+"are defined, the dashboard is accessible to all users with appropriate "
+"datasource permissions."
+msgstr ""
+"Ko ngā kaitiro he rārangi kaupapa ka taea te tiro i te papatohu. Ki te "
+"kore he kaitiro kua tautuhia, ka wātea te papatohu ki ngā kaiwhakamahi "
+"katoa whai whakaaetanga puna raraunga tika."
 
 msgid "Viewport"
 msgstr "Tirohanga"
@@ -18170,6 +18219,9 @@ msgstr "Karekau ō mōtika ki te whakatika i tēnei papatohu."
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "Karekau ō mōtika nui rawa ki te whakatika i te kauwhata"
 
+msgid "You don't have access to one or more of the referenced datasources."
+msgstr ""
+
 msgid "You don't have access to this chart."
 msgstr "Karekau ō urunga ki tēnei kauwhata."
 
@@ -18248,28 +18300,31 @@ msgstr ""
 " wete katoa i ngā mahi e whai ake nei. Ka taea e koe te tiaki i tō tūnga "
 "o nāianei hei tautuhi anō i te hītori."
 
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"You must be a %s owner in order to edit. Please reach out to a %s owner "
-"to request modifications or edit access."
-msgstr ""
-"Me noho koe hei rangatira rārangi raraunga hei whakatika. Tēnā whakapā "
-"atu ki tētahi rangatira rārangi raraunga hei tono i ngā whakarereke, i te"
-" urunga whakatika rānei."
+"You must be a %s editor in order to edit. Please reach out to a %s editor"
+" to request modifications or edit access."
+msgstr "Me noho koe hei kaiwhakatika %s kia taea ai te whakatika. Tēnā whakapā atu ki tētahi kaiwhakatika %s ki te tono whakarerekētanga, uru whakatika rānei."
 
 msgid ""
-"You must be a dataset owner in order to edit. Please reach out to a "
-"dataset owner to request modifications or edit access."
+"You must be a dataset editor in order to edit. Please reach out to a "
+"dataset editor to request modifications or edit access."
+msgstr "Me noho koe hei kaiwhakatika huinga raraunga kia taea ai te whakatika. Tēnā whakapā atu ki tētahi kaiwhakatika huinga raraunga ki te tono whakarerekētanga, uru whakatika rānei."
+
+msgid "You must change your password before continuing."
 msgstr ""
-"Me noho koe hei rangatira rārangi raraunga hei whakatika. Tēnā whakapā "
-"atu ki tētahi rangatira rārangi raraunga hei tono i ngā whakarereke, i te"
-" urunga whakatika rānei."
 
 msgid "You must pick a name for the new dashboard"
 msgstr "Me kōwhiri koe i tētahi ingoa mō te papatohu hou"
 
 msgid "You must run the query successfully first"
 msgstr "Me whakahaere angitu koe i te pātai i te tuatahi"
+
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"'all_database_access' or 'all_datasource_access' permission"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18354,6 +18409,9 @@ msgstr "Kua whakahouhia tō pātai"
 
 msgid "Your report could not be deleted"
 msgstr "Kāore i taea te muku i tō pūrongo"
+
+msgid "Your session has ended. Please sign in again."
+msgstr ""
 
 #, fuzzy
 msgid "Your user information"
@@ -18461,6 +18519,9 @@ msgstr "Me rahi ake, ōrite rānei te `row_offset` ki te 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "Me rahi ake, ōrite rānei te `width` ki te 0"
 
+msgid "`window` must be between 1 and 10000"
+msgstr ""
+
 #, fuzzy
 msgid "a few seconds"
 msgstr "hēkona"
@@ -18492,6 +18553,9 @@ msgstr "tohu"
 msgid "annotation_layer"
 msgstr "papa_tohu"
 
+msgid "apple"
+msgstr ""
+
 msgid "asfreq"
 msgstr "asfreq"
 
@@ -18507,6 +18571,9 @@ msgstr "papamuri"
 #, fuzzy
 msgid "background color"
 msgstr "Tae Papamuri"
+
+msgid "banana"
+msgstr ""
 
 msgid "basis"
 msgstr "pūtake"
@@ -18790,6 +18857,9 @@ msgstr "hei tauira, CI/CD Pipeline, Tuhinga Tātaritanga"
 
 msgid "edit mode"
 msgstr "aratau whakatika"
+
+msgid "editors"
+msgstr "ngā kaiwhakatika"
 
 msgid "email subject"
 msgstr "kaupapa īmēra"
@@ -19136,9 +19206,6 @@ msgstr "Taketake"
 
 msgid "overall"
 msgstr "katoa"
-
-msgid "owners"
-msgstr "rangatira"
 
 msgid "p-value precision"
 msgstr "tika uara-p"

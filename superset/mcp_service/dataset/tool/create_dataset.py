@@ -42,6 +42,7 @@ from superset.mcp_service.dataset.schemas import (
     DatasetInfo,
     serialize_dataset_object,
 )
+from superset.subjects.utils import get_or_create_user_subject
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +66,49 @@ def _classify_invalid_error(exc: DatasetInvalidError) -> DatasetError:
     # Other DatasetInvalidError sub-types are returned as generic ValidationError.
     # Add explicit branches here when callers need to distinguish them.
     return DatasetError.create(error=str(messages), error_type="ValidationError")
+
+
+def _format_table_name(schema: str | None, table_name: str) -> str:
+    return f"{schema}.{table_name}" if schema else table_name
+
+
+def _resolve_editor_subject_ids(
+    editor_user_ids: list[int] | None,
+) -> tuple[list[int] | None, DatasetError | None]:
+    if editor_user_ids is None:
+        return None, None
+
+    editor_subject_ids = []
+    for user_id in editor_user_ids:
+        subject = get_or_create_user_subject(user_id)
+        if subject is None:
+            return None, DatasetError.create(
+                error=f"User not found: {user_id}",
+                error_type="ValidationError",
+            )
+        editor_subject_ids.append(subject.id)
+    return editor_subject_ids, None
+
+
+def _build_dataset_properties(
+    request: CreateDatasetRequest,
+) -> tuple[dict[str, object] | None, DatasetError | None]:
+    dataset_properties: dict[str, object] = {
+        "database": request.database_id,
+        "table_name": request.table_name,
+    }
+    if request.schema_ is not None:
+        dataset_properties["schema"] = request.schema_
+    if request.catalog is not None:
+        dataset_properties["catalog"] = request.catalog
+
+    editor_subject_ids, error = _resolve_editor_subject_ids(request.editors)
+    if error is not None:
+        return None, error
+    if editor_subject_ids is not None:
+        dataset_properties["editors"] = editor_subject_ids
+
+    return dataset_properties, None
 
 
 @tool(
@@ -96,7 +140,7 @@ async def create_dataset(
       databases without schema namespaces (e.g. SQLite).
     - catalog: Catalog where the table lives. Omit for databases without catalog
       support.
-    - owners: List of user IDs to set as owners (defaults to calling user)
+    - editors: List of user IDs to set as editors (defaults to calling user)
 
     Example:
     ```json
@@ -112,24 +156,18 @@ async def create_dataset(
     """
     schema = request.schema_
     table_name = request.table_name
-    catalog = request.catalog
+    table_label = _format_table_name(schema, table_name)
 
     await ctx.info(
         "Registering physical table as dataset: database_id=%s, table=%s"
-        % (request.database_id, f"{schema}.{table_name}" if schema else table_name)
+        % (request.database_id, table_label)
     )
 
     try:
-        dataset_properties: dict[str, object] = {
-            "database": request.database_id,
-            "table_name": table_name,
-        }
-        if schema is not None:
-            dataset_properties["schema"] = schema
-        if catalog is not None:
-            dataset_properties["catalog"] = catalog
-        if request.owners is not None:
-            dataset_properties["owners"] = request.owners
+        dataset_properties, error = _build_dataset_properties(request)
+        if error is not None:
+            return error
+        assert dataset_properties is not None
 
         with event_logger.log_context(action="mcp.create_dataset.create"):
             dataset = CreateDatasetCommand(dataset_properties).run()
@@ -145,7 +183,7 @@ async def create_dataset(
             "Dataset registered: id=%s, table=%s"
             % (
                 dataset.id,
-                f"{schema}.{table_name}" if schema else table_name,
+                table_label,
             )
         )
         return result

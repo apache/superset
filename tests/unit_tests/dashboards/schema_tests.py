@@ -30,7 +30,7 @@ from superset.dashboards.schemas import (
 )
 
 GUEST_RESTRICTED_FIELDS = [
-    "owners",
+    "editors",
     "database",
     "sql",
     "select_star",
@@ -45,7 +45,7 @@ def _dataset_payload() -> dict[str, Any]:
     return {
         "id": 1,
         "database": {"id": 1, "name": "test_db"},
-        "owners": [{"id": 1}],
+        "editors": [{"id": 1, "label": "Admin", "type": 1}],
         "sql": "SELECT 1",
         "select_star": "SELECT * FROM t",
         "perm": "[db].[table]",

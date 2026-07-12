@@ -79,6 +79,7 @@ FRONTEND_CONF_KEYS = (
     "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT",
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT",
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE",
+    "SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS",
     "ENABLE_JAVASCRIPT_CONTROLS",
     "DEFAULT_SQLLAB_LIMIT",
     "DEFAULT_VIZ_TYPE",
@@ -432,6 +433,7 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
         "theme": {
             "default": default_theme,
             "dark": dark_theme,
+            "defaultMode": app.config["THEME_DEFAULT_MODE"],
             "enableUiThemeAdministration": enable_ui_admin,
         }
     }
@@ -458,6 +460,33 @@ def get_default_spinner_svg() -> str | None:
             return f.read().strip()
     except (OSError, UnicodeDecodeError) as e:
         logger.warning("Could not load default spinner SVG: %s", e)
+        return None
+
+
+def _get_user_subjects(user_id: int | None) -> list[int]:
+    """Return subject IDs for the current user, or empty list."""
+    if user_id is None:
+        return []
+    try:
+        from superset.subjects.utils import get_user_subject_ids
+
+        return get_user_subject_ids(user_id)
+    except Exception:
+        logger.warning("Could not load current user subject IDs", exc_info=True)
+        return []
+
+
+def _get_user_subject_id(user_id: int | None) -> int | None:
+    """Return the USER-type subject ID for the current user."""
+    if user_id is None:
+        return None
+    try:
+        from superset.subjects.utils import get_user_subject
+
+        subject = get_user_subject(user_id)
+        return subject.id if subject else None
+    except Exception:
+        logger.warning("Could not load current user subject ID", exc_info=True)
         return None
 
 
@@ -525,8 +554,9 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         frontend_config["AUTH_USER_REGISTRATION_ROLE"] = app.config[
             "AUTH_USER_REGISTRATION_ROLE"
         ]
-    if should_show_recaptcha:
-        frontend_config["RECAPTCHA_PUBLIC_KEY"] = app.config["RECAPTCHA_PUBLIC_KEY"]
+    recaptcha_public_key = app.config.get("RECAPTCHA_PUBLIC_KEY")
+    if should_show_recaptcha and recaptcha_public_key:
+        frontend_config["RECAPTCHA_PUBLIC_KEY"] = recaptcha_public_key
 
     frontend_config["AUTH_TYPE"] = auth_type
     if auth_type == AUTH_OAUTH:
@@ -566,6 +596,8 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         ],
         "menu_data": menu_data(g.user),
         "pdf_compression_level": app.config["PDF_COMPRESSION_LEVEL"],
+        "user_subject_id": _get_user_subject_id(user_id),
+        "user_subjects": _get_user_subjects(user_id),
     }
 
     bootstrap_data.update(app.config["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
@@ -771,21 +803,27 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             models.Database.id == self.model.database_id,
         )
         access_filter = get_dataset_access_filters(self.model)
-        # Owners keep sight of their own soft-deleted rows regardless of
-        # datasource grants: ``raise_for_access`` counts ownership as
-        # datasource access, and the restore audience is owners/admins.
+        # Editors keep sight of their own soft-deleted rows regardless of
+        # datasource grants: ``raise_for_access`` counts editorship as
+        # datasource access, and the restore audience is editors/admins.
         # The leg is inert for live rows (``deleted_at IS NULL`` fails it)
         # and only ever matters when a deleted-state rison filter has opted
         # the request in to seeing soft-deleted rows — without that session
         # bypass, no soft-deleted row reaches this query at all.
         deleted_at = getattr(self.model, "deleted_at", None)
-        owners = getattr(self.model, "owners", None)
-        if deleted_at is not None and owners is not None:
-            owned_trash = and_(
-                deleted_at.is_not(None),
-                owners.any(security_manager.user_model.id == utils.get_user_id()),
+        editors = getattr(self.model, "editors", None)
+        user_id = utils.get_user_id()
+        if deleted_at is not None and editors is not None and user_id:
+            from superset.subjects.models import Subject  # noqa: PLC0415
+            from superset.subjects.utils import (  # noqa: PLC0415
+                get_user_subject_ids_subquery,
             )
-            return query.filter(or_(access_filter, owned_trash))
+
+            editable_trash = and_(
+                deleted_at.is_not(None),
+                editors.any(Subject.id.in_(get_user_subject_ids_subquery(user_id))),
+            )
+            return query.filter(or_(access_filter, editable_trash))
         return query.filter(access_filter)
 
 

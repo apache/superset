@@ -45,6 +45,10 @@ _DEFAULT_LIST_ROLES_REQUEST = ListRolesRequest()
 @tool(
     tags=["core"],
     class_permission_name="Role",
+    # FAB's security API views register can_get/can_info/... — never
+    # can_read — so the default "read" method permission can never be
+    # granted on User/Role, not even to Admin.
+    method_permission_name="get",
     annotations=ToolAnnotations(
         title="List roles",
         readOnlyHint=True,

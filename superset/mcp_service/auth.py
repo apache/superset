@@ -114,6 +114,10 @@ class MCPNoAuthSourceError(ValueError):
 # scope. When introducing a new method permission, add it here.
 _METHOD_TO_REQUIRED_SCOPE = {
     "read": "superset:read",
+    # "get" is the read-class permission FAB registers on its security API
+    # views (User/Role) — those views have no can_read, so tools targeting
+    # them declare method_permission_name="get".
+    "get": "superset:read",
     "write": "superset:write",
     "delete": "superset:write",
     # SQL execution (execute_sql, get_chart_sql) runs arbitrary queries and is
@@ -236,32 +240,80 @@ def _log_scope_denial(
         )
 
 
-# Guest deny-list default (when MCP_GUEST_DENIED_TOOLS is unset); blocks tools
-# with no RBAC class that would otherwise fall open. Sync with mcp_config.py.
-_DEFAULT_GUEST_DENIED_TOOLS: frozenset[str] = frozenset(
-    {"find_users", "get_instance_info"}
+# Default-deny allow-list for embedded guests: a guest may call only these tools,
+# regardless of MCP_RBAC_ENABLED or how the guest role (PUBLIC_ROLE_LIKE) is
+# configured. Everything else is denied, including newly added tools until listed
+# here. Sync with mcp_config.py.
+_DEFAULT_GUEST_ALLOWED_TOOLS: frozenset[str] = frozenset(
+    {
+        # Dashboard structure, scoped to the token's embedded dashboards.
+        "get_dashboard_info",
+        "get_dashboard_layout",
+        "list_dashboards",
+        # Chart read + data, scoped by ChartFilter; data-model fields redacted.
+        "list_charts",
+        "get_chart_info",
+        "get_chart_data",
+        "get_chart_preview",
+    }
 )
 
 
-def _tool_denied_for_guest(func: Callable[..., Any]) -> bool:
-    """True when the current user is a guest and ``func`` is on the guest
-    deny-list — barring enumeration tools (user listing, instance metadata) that
-    may declare no RBAC class. ``isinstance`` (not ``is_guest_user``) keeps this
-    cheap and off the feature-flag path."""
-    if not isinstance(getattr(g, "user", None), GuestUser):
-        return False
-    denied = current_app.config.get("MCP_GUEST_DENIED_TOOLS")
-    # A str would make ``in`` do substring matching and corrupt the decision;
-    # require a real collection, else fall back to the default.
-    if not isinstance(denied, (set, frozenset, list, tuple)):
-        if denied is not None:
+def _guest_allowed_tools() -> frozenset[str]:
+    """The tool allow-list for embedded guests (``MCP_GUEST_ALLOWED_TOOLS`` or the
+    default). A str config is rejected — it would make ``in`` do substring
+    matching — and falls back to the safe default."""
+    allowed = current_app.config.get("MCP_GUEST_ALLOWED_TOOLS")
+    if not isinstance(allowed, (set, frozenset, list, tuple)):
+        if allowed is not None:
             logger.warning(
-                "MCP_GUEST_DENIED_TOOLS must be a set/list of tool names, got %s; "
-                "using the default deny-list",
-                type(denied).__name__,
+                "MCP_GUEST_ALLOWED_TOOLS must be a set/list of tool names, got %s; "
+                "using the default allow-list",
+                type(allowed).__name__,
             )
-        denied = _DEFAULT_GUEST_DENIED_TOOLS
-    return getattr(func, "__name__", None) in denied
+        return _DEFAULT_GUEST_ALLOWED_TOOLS
+    return frozenset(allowed)
+
+
+def _default_restricted_tool_policy(user: Any) -> frozenset[str] | None:
+    """Map a principal to its MCP tool allow-list, or None when the principal is
+    not allow-list-restricted (RBAC governs instead). Embedded guests are the
+    built-in restricted principal; override ``MCP_RESTRICTED_TOOL_POLICY`` to add
+    others (e.g. a future embedded principal type)."""
+    if isinstance(user, GuestUser):
+        return _guest_allowed_tools()
+    return None
+
+
+def _tool_denied_for_principal(func: Callable[..., Any]) -> bool:
+    """True when the current principal is allow-list-restricted and ``func`` is
+    not on its allow-list. Default-deny for restricted principals (embedded guests
+    by default), holds even with MCP_RBAC_ENABLED off; unrestricted principals are
+    governed by RBAC and never blocked here."""
+    policy = (
+        current_app.config.get("MCP_RESTRICTED_TOOL_POLICY")
+        or _default_restricted_tool_policy
+    )
+    if not callable(policy):
+        # A misconfigured (non-callable) policy must not crash every tool call:
+        # fall back to the built-in default, same as MCP_GUEST_ALLOWED_TOOLS.
+        logger.warning(
+            "MCP_RESTRICTED_TOOL_POLICY is not callable (%s); using the default policy",
+            type(policy).__name__,
+        )
+        policy = _default_restricted_tool_policy
+    allowed = policy(getattr(g, "user", None))
+    if allowed is None:
+        return False
+    if not isinstance(allowed, (set, frozenset, list, tuple)):
+        # A misbehaving custom policy must not open the surface: fail closed.
+        logger.warning(
+            "MCP_RESTRICTED_TOOL_POLICY returned %s, expected a set/list or None; "
+            "denying all tools for this principal",
+            type(allowed).__name__,
+        )
+        return True
+    return getattr(func, "__name__", None) not in allowed
 
 
 def check_tool_permission(  # noqa: C901
@@ -285,18 +337,18 @@ def check_tool_permission(  # noqa: C901
         True if user has permission or no permission is required.
     """
     try:
-        # Embedded guests are barred from sensitive enumeration tools regardless
-        # of RBAC config (the deny-list is a guest restriction, not a FAB
-        # permission, so it must hold even when MCP_RBAC_ENABLED is False).
-        if _tool_denied_for_guest(func):
+        # Restricted principals (embedded guests by default) are default-deny:
+        # only allow-listed tools pass, enforced regardless of RBAC config (holds
+        # even when MCP_RBAC_ENABLED is False).
+        if _tool_denied_for_principal(func):
             if log_denial:
                 logger.warning(
-                    "Tool %s denied for embedded guest (MCP_GUEST_DENIED_TOOLS)",
+                    "Tool %s denied for restricted principal (not allow-listed)",
                     func.__name__,
                 )
             else:
                 logger.debug(
-                    "Tool %s hidden for embedded guest (MCP_GUEST_DENIED_TOOLS)",
+                    "Tool %s hidden for restricted principal (not allow-listed)",
                     func.__name__,
                 )
             return False
@@ -402,10 +454,10 @@ def is_tool_visible_to_current_user(tool: Any) -> bool:
         if tool_func is None:
             return True
 
-        # Hide guest-denied tools from tools/list regardless of RBAC config
-        # (enforced again at call time in check_tool_permission, including for
-        # permission-less tools).
-        if _tool_denied_for_guest(tool_func):
+        # Hide non-allow-listed tools from restricted principals in tools/list
+        # regardless of RBAC config (enforced again at call time in
+        # check_tool_permission, including for permission-less tools).
+        if _tool_denied_for_principal(tool_func):
             return False
 
         if not current_app.config.get("MCP_RBAC_ENABLED", True):
@@ -602,7 +654,7 @@ def _load_api_key_user_by_username(username: str) -> User:
     """Load a user by username after transport-layer API key validation."""
     user_with_rels = load_user_with_relationships(username=username)
     if user_with_rels is None:
-        raise PermissionError(f"API key owner '{username}' not found in database.")
+        raise PermissionError(f"API key user '{username}' not found in database.")
     return user_with_rels
 
 
