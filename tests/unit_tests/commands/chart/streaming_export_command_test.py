@@ -22,6 +22,7 @@ from pytest_mock import MockerFixture
 from superset.commands.chart.data.streaming_export_command import (
     StreamingCSVExportCommand,
 )
+from superset.exceptions import QueryObjectValidationError
 
 
 def _setup_chart_mocks(
@@ -37,7 +38,7 @@ def _setup_chart_mocks(
 
     query_context = mocker.MagicMock()
     datasource = mocker.MagicMock()
-    datasource.get_query_str.return_value = sql
+    datasource.get_query_str_extended.return_value.sql = sql
     datasource.database = mocker.MagicMock()
     datasource.catalog = catalog
     datasource.schema = schema
@@ -46,6 +47,38 @@ def _setup_chart_mocks(
     mock_session.merge.return_value = datasource.database
 
     return mock_db, query_context, datasource
+
+
+def test_streaming_export_compiles_executable_query(mocker: MockerFixture) -> None:
+    """Streaming must not execute the deferred View Query representation."""
+    _, query_context, datasource = _setup_chart_mocks(
+        mocker, sql="SELECT * FROM executable_query"
+    )
+    query = query_context.queries[0]
+    query.to_dict.return_value = {"series_limit": 10}
+    datasource.get_query_str.return_value = (
+        "-- Main query is compiled after the series-limit prequery executes;"
+    )
+
+    sql, _, _, _ = StreamingCSVExportCommand(query_context)._get_sql_and_database()
+
+    assert sql == "SELECT * FROM executable_query"
+    datasource.get_query_str_extended.assert_called_once_with({"series_limit": 10})
+    datasource.get_query_str.assert_not_called()
+
+
+def test_streaming_export_rejects_non_sql_datasource(
+    mocker: MockerFixture,
+) -> None:
+    """Fail before streaming when a datasource cannot compile executable SQL."""
+    _, query_context, datasource = _setup_chart_mocks(mocker)
+    datasource.get_query_str_extended = None
+
+    with pytest.raises(
+        QueryObjectValidationError,
+        match="Streaming CSV export requires a SQL datasource",
+    ):
+        StreamingCSVExportCommand(query_context)._get_sql_and_database()
 
 
 def test_streaming_csv_export_command_init(mocker: MockerFixture) -> None:

@@ -20,7 +20,10 @@ from __future__ import annotations
 
 from typing import Any, TYPE_CHECKING
 
+from flask_babel import gettext as _
+
 from superset.commands.streaming_export.base import BaseStreamingCSVExportCommand
+from superset.exceptions import QueryObjectValidationError
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -66,8 +69,13 @@ class StreamingCSVExportCommand(BaseStreamingCSVExportCommand):
         # Note: datasource should already be attached to a session from query_context
         datasource = self._query_context.datasource
         query_obj = self._query_context.queries[0]
-        sql_query = datasource.get_query_str(query_obj.to_dict())
+        get_query_str_extended = getattr(datasource, "get_query_str_extended", None)
         database = getattr(datasource, "database", None)
+        if not callable(get_query_str_extended) or database is None:
+            raise QueryObjectValidationError(
+                _("Streaming CSV export requires a SQL datasource")
+            )
+        sql_query = get_query_str_extended(query_obj.to_dict()).sql
         catalog = getattr(datasource, "catalog", None)
         schema = getattr(datasource, "schema", None)
 
