@@ -20,15 +20,16 @@ on:
   pull_request:
     types: [labeled, unlabeled]
 
-permissions:
-  actions: write
-  pull-requests: read
+permissions: {}
 
 jobs:
   cancel-on-hold:
     name: Cancel CI runs when hold label applied
     if: github.event.action == 'labeled' && startsWith(github.event.label.name, 'hold')
     runs-on: ubuntu-24.04
+    permissions:
+      actions: write
+      pull-requests: read
     steps:
       - name: Cancel in-progress workflow runs
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
@@ -69,6 +70,9 @@ jobs:
     name: Re-run CI when hold label removed
     if: github.event.action == 'unlabeled' && startsWith(github.event.label.name, 'hold')
     runs-on: ubuntu-24.04
+    permissions:
+      actions: write
+      pull-requests: read
     steps:
       - name: Re-trigger cancelled workflow runs
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
