@@ -568,10 +568,10 @@ def test_fetch_metadata_sets_expression_for_expanded_nested_columns(
 
     # Create table with a pre-existing (already synced) expanded column, to also
     # cover the "sync columns from source" (re-fetch) code path
-    table = SqlaTable(table_name="test_table_nested", database=database)
+    table: SqlaTable = SqlaTable(table_name="test_table_nested", database=database)
     table.id = 1
 
-    existing_col = TableColumn(
+    existing_col: TableColumn = TableColumn(
         column_name="metadata.uuid",
         type="VARCHAR",
         table=table,
