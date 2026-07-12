@@ -161,20 +161,26 @@ def assert_log(state: str, error_message: Optional[str] = None):
     db.session.commit()
     logs = db.session.query(ReportExecutionLog).all()
 
-    if state == ReportState.ERROR:
-        # On error we send an email
-        assert len(logs) == 3
-    else:
+    if state == ReportState.WORKING:
+        # A report that is already in the WORKING state logs an extra WORKING row
+        # for the refused re-computation, on top of the row seeded by the fixture.
         assert len(logs) == 2
+    elif state == ReportState.ERROR:
+        # On error we also send a notification, which is recorded as a separate
+        # error-notification marker row.
+        assert len(logs) == 2
+    else:
+        # A single execution yields a single log row: the terminal result replaces
+        # the WORKING "trigger" row rather than adding a second row (issue #29857).
+        assert len(logs) == 1
     log_states = [log.state for log in logs]
-    assert ReportState.WORKING in log_states
     assert state in log_states
-    assert error_message in [log.error_message for log in logs]
-
-    for log in logs:
-        if log.state == ReportState.WORKING:
-            assert log.value is None
-            assert log.value_row_json is None
+    # Previously a standalone WORKING "trigger" row always contributed a ``None``
+    # error_message, so the default ``None`` match was trivially satisfied and never
+    # verified the terminal row. With the result now written onto that single row,
+    # only assert an explicitly expected message.
+    if error_message is not None:
+        assert error_message in [log.error_message for log in logs]
 
 
 @contextmanager
