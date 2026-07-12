@@ -7,7 +7,6 @@
 .codecov.yml
 .eslintrc
 .eslintignore
-.stylelintrc.json
 .stylelintignore
 .flake8
 .nvmrc

@@ -152,7 +152,7 @@ const Styles = styled.div`
   display: flex;
   flex-direction: column;
 
-  /* Resizable add overflow-y: auto as a style to this div */
+  /* Resizable adds overflow-y: auto as a style to this div */
   /* To override it, we need to use !important */
   overflow: visible !important;
 
