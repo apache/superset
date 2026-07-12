@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import copy
+from contextlib import contextmanager
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
@@ -411,6 +412,152 @@ def test_dataframe_acquisition_returns_timing_outside_payload(
     assert result.timing.sources[0].origin == SourceOrigin.CACHE
 
 
+@patch("superset.common.query_context_processor.QueryCacheManager")
+def test_cache_write_timer_starts_after_result_loading(
+    cache_manager: MagicMock,
+) -> None:
+    events: list[str] = []
+    clock_value = 0
+
+    def clock() -> int:
+        nonlocal clock_value
+        clock_value += 1
+        events.append("clock")
+        return clock_value
+
+    query_context = MagicMock()
+    query_context.force = False
+    datasource = MagicMock()
+    datasource.type = "table"
+    datasource.uid = "1__table"
+    datasource.column_names = ["value"]
+    processor = QueryContextProcessor(query_context)
+    processor._qc_datasource = datasource
+
+    cache = MagicMock()
+    cache.is_loaded = False
+    cache.is_cached = None
+    cache.status = None
+    cache.source_trace = None
+    cache.df = pd.DataFrame()
+    cache.bq_memory_limited = False
+    cache.bq_memory_limited_row_count = 0
+
+    def load_result(*args: Any, **kwargs: Any) -> None:
+        events.append("load")
+        cache.is_loaded = True
+        cache.status = QueryStatus.SUCCESS
+        cache.df = pd.DataFrame({"value": [1]})
+        cache.cache_dttm = None
+        cache.queried_dttm = None
+        cache.applied_template_filters = []
+        cache.applied_filter_columns = []
+        cache.rejected_filter_columns = []
+        cache.annotation_data = {}
+        cache.error_message = None
+        cache.query = "SELECT value"
+        cache.stacktrace = None
+        cache.sql_rowcount = 1
+
+    def write_result(*args: Any, **kwargs: Any) -> CacheWriteOutcome:
+        events.append("write")
+        return CacheWriteOutcome.SUCCEEDED
+
+    cache.load_query_result.side_effect = load_result
+    cache.write_query_result_with_outcome.side_effect = write_result
+    cache_manager.get.return_value = cache
+
+    query = MagicMock()
+    query.columns = ["value"]
+    query.column_names = ["value"]
+    query.metrics = []
+    query.metric_names = []
+    query.filter = []
+    query.from_dttm = None
+    query.to_dttm = None
+    query.annotation_layers = []
+    query_result = MagicMock(status=QueryStatus.SUCCESS)
+
+    with (
+        patch.object(processor, "query_cache_key", return_value="cache-key"),
+        patch.object(processor, "get_cache_timeout", return_value=300),
+        patch.object(processor, "get_query_result", return_value=query_result),
+        patch(
+            "superset.common.query_context_processor.time.perf_counter_ns",
+            side_effect=clock,
+        ),
+    ):
+        result = processor.get_df_payload_result(query)
+
+    load_idx = events.index("load")
+    write_idx = events.index("write")
+    assert events[load_idx + 1 : write_idx] == ["clock"]
+    assert events[write_idx + 1] == "clock"
+    assert result.timing.cache_write_ns == 1
+    assert result.timing.cache_write_outcome == CacheWriteOutcome.SUCCEEDED
+
+
+@patch("superset.common.query_context_processor.QueryCacheManager")
+def test_failed_result_loading_does_not_attempt_cache_write(
+    cache_manager: MagicMock,
+) -> None:
+    query_context = MagicMock()
+    query_context.force = False
+    datasource = MagicMock()
+    datasource.type = "table"
+    datasource.uid = "1__table"
+    datasource.column_names = ["value"]
+    processor = QueryContextProcessor(query_context)
+    processor._qc_datasource = datasource
+
+    cache = MagicMock()
+    cache.is_loaded = False
+    cache.is_cached = None
+    cache.status = None
+    cache.source_trace = None
+    cache.df = pd.DataFrame()
+    cache.cache_dttm = None
+    cache.queried_dttm = None
+    cache.applied_template_filters = []
+    cache.applied_filter_columns = []
+    cache.rejected_filter_columns = []
+    cache.annotation_data = {}
+    cache.error_message = "failed"
+    cache.query = ""
+    cache.stacktrace = None
+    cache.sql_rowcount = None
+    cache.bq_memory_limited = False
+    cache.bq_memory_limited_row_count = 0
+
+    def fail_loading(*args: Any, **kwargs: Any) -> None:
+        cache.status = QueryStatus.FAILED
+        cache.is_loaded = False
+
+    cache.load_query_result.side_effect = fail_loading
+    cache_manager.get.return_value = cache
+
+    query = MagicMock()
+    query.columns = ["value"]
+    query.column_names = ["value"]
+    query.metrics = []
+    query.metric_names = []
+    query.filter = []
+    query.from_dttm = None
+    query.to_dttm = None
+    query.annotation_layers = []
+
+    with (
+        patch.object(processor, "query_cache_key", return_value="cache-key"),
+        patch.object(processor, "get_cache_timeout", return_value=300),
+        patch.object(processor, "get_query_result", return_value=MagicMock()),
+    ):
+        result = processor.get_df_payload_result(query)
+
+    cache.write_query_result_with_outcome.assert_not_called()
+    assert result.timing.cache_write_ns is None
+    assert result.timing.cache_write_outcome == CacheWriteOutcome.NOT_ATTEMPTED
+
+
 def test_command_run_preserves_legacy_payload_without_timing() -> None:
     query_context = MagicMock()
     query_context.result_type = ChartDataResultType.FULL
@@ -638,6 +785,98 @@ def test_annotation_cycle_is_rejected_before_nested_execution() -> None:
             QueryContextProcessor.get_viz_annotation_data(annotation, force=False)
 
 
+def test_native_annotation_records_planning_execution_and_processing() -> None:
+    phases: list[str] = []
+
+    @contextmanager
+    def record_phase(phase: str):
+        phases.append(phase)
+        yield
+
+    annotation = MagicMock(
+        start_dttm="start",
+        end_dttm="end",
+        short_descr="short",
+        long_descr="long",
+        json_metadata="{}",
+    )
+    layer_object = MagicMock(id=7, annotation=[annotation])
+    query = MagicMock(
+        annotation_layers=[{"sourceType": "NATIVE", "value": 7, "name": "events"}]
+    )
+
+    with (
+        patch(
+            "superset.common.query_context_processor.AnnotationLayerDAO.find_by_ids",
+            return_value=[layer_object],
+        ),
+        patch(
+            "superset.common.query_context_processor.source_phase",
+            side_effect=record_phase,
+        ),
+    ):
+        result = QueryContextProcessor.get_native_annotation_data(query)
+
+    assert phases == ["planning", "execution", "processing"]
+    assert result["events"]["records"] == [
+        {
+            "start_dttm": "start",
+            "end_dttm": "end",
+            "short_descr": "short",
+            "long_descr": "long",
+            "json_metadata": "{}",
+        }
+    ]
+
+
+def test_legacy_chart_annotation_records_all_source_phases() -> None:
+    phases: list[str] = []
+
+    @contextmanager
+    def record_phase(phase: str):
+        phases.append(phase)
+        yield
+
+    chart = MagicMock()
+    chart.id = 8
+    chart.viz_type = "legacy"
+    chart.datasource.type = "table"
+    chart.datasource.id = 3
+    chart.form_data = {"viz_type": "legacy"}
+    payload = {"data": {"records": [{"value": 1}]}}
+    viz = MagicMock()
+    viz.get_payload.return_value = payload
+
+    with (
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+        patch(
+            "superset.common.query_context_processor.viz_types",
+            {"legacy": object()},
+        ),
+        patch("superset.common.query_context_processor.get_viz", return_value=viz),
+        patch(
+            "superset.common.query_context_processor.source_phase",
+            side_effect=record_phase,
+        ),
+    ):
+        result = QueryContextProcessor.get_viz_annotation_data(
+            {"value": 8, "name": "legacy", "overrides": {}},
+            force=False,
+        )
+
+    assert phases == [
+        "execution",
+        "planning",
+        "planning",
+        "execution",
+        "processing",
+    ]
+    assert result == payload["data"]
+
+
 def test_contribution_totals_are_reused_without_mutating_queries() -> None:
     datasource = MagicMock()
     main_query = QueryObject(
@@ -833,3 +1072,92 @@ def test_failed_contribution_producer_skips_dependent_query() -> None:
         "status": QueryStatus.FAILED,
     }
     assert result[1] == completed
+
+
+def test_query_only_contribution_plan_does_not_acquire_dataframes() -> None:
+    datasource = MagicMock()
+    main_query = QueryObject(
+        datasource=datasource,
+        columns=["region"],
+        metrics=["sales"],
+        contribution_totals_query_index=1,
+        post_processing=[{"operation": "contribution", "options": {}}],
+    )
+    totals_query = QueryObject(datasource=datasource, columns=[], metrics=["sales"])
+    query_context = MagicMock()
+    query_context.queries = [main_query, totals_query]
+    query_context.result_type = ChartDataResultType.QUERY
+    processor = QueryContextProcessor(query_context)
+    metadata_results = [
+        QueryDataResult({"query": "SELECT main"}, query_timing()),
+        QueryDataResult({"query": "SELECT totals"}, query_timing()),
+    ]
+
+    with (
+        patch("superset.common.query_context_processor.acquire_query_data") as acquire,
+        patch(
+            "superset.common.query_context_processor.get_query_results_with_timing",
+            side_effect=metadata_results,
+        ) as render,
+    ):
+        result = processor._execute_query_plan(False, True)
+
+    acquire.assert_not_called()
+    assert render.call_count == 2
+    assert result == tuple(metadata_results)
+
+
+def test_mixed_contribution_plan_separates_dependency_and_response_modes() -> None:
+    datasource = MagicMock()
+    main_query = QueryObject(
+        datasource=datasource,
+        columns=["region"],
+        metrics=["sales"],
+        result_type=ChartDataResultType.FULL,
+        contribution_totals_query_index=1,
+        post_processing=[{"operation": "contribution", "options": {}}],
+    )
+    totals_query = QueryObject(datasource=datasource, columns=[], metrics=["sales"])
+    query_context = MagicMock()
+    query_context.queries = [main_query, totals_query]
+    query_context.result_type = ChartDataResultType.QUERY
+    processor = QueryContextProcessor(query_context)
+    rendered_main = QueryDataResult({"status": "success"}, query_timing())
+    rendered_totals = QueryDataResult({"query": "SELECT totals"}, query_timing())
+
+    def acquire(
+        result_type: ChartDataResultType,
+        context: MagicMock,
+        query: QueryObject,
+        force_cached: bool,
+        **kwargs: Any,
+    ) -> AcquiredQuery:
+        assert result_type == ChartDataResultType.FULL
+        value = 100.0 if not query.columns else 1.0
+        return acquired_query(query, pd.DataFrame({"sales": [value]}))
+
+    with (
+        patch(
+            "superset.common.query_context_processor.acquire_query_data",
+            side_effect=acquire,
+        ) as acquire_data,
+        patch(
+            "superset.common.query_context_processor.materialize_acquired_query",
+            return_value=rendered_main,
+        ) as materialize,
+        patch(
+            "superset.common.query_context_processor.get_query_results_with_timing",
+            return_value=rendered_totals,
+        ) as render_metadata,
+    ):
+        result = processor._execute_query_plan(False, True)
+
+    assert acquire_data.call_count == 2
+    materialize.assert_called_once()
+    render_metadata.assert_called_once_with(
+        ChartDataResultType.QUERY,
+        query_context,
+        totals_query,
+        False,
+    )
+    assert result == (rendered_main, rendered_totals)

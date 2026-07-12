@@ -63,6 +63,12 @@ _DATA_RESULT_TYPES = {
 }
 
 
+def is_data_result_type(result_type: ChartDataResultType) -> bool:
+    """Return whether a result type requires dataframe acquisition."""
+
+    return result_type in _DATA_RESULT_TYPES
+
+
 @dataclass(frozen=True)
 class AcquiredQuery:
     """Prepared query and its cache-aware dataframe acquisition."""
@@ -280,7 +286,7 @@ def acquire_query_data(
         prepared = _prepare_samples_query(query_context, query_obj)
     elif result_type == ChartDataResultType.DRILL_DETAIL:
         prepared = _prepare_drill_detail_query(query_context, query_obj)
-    elif result_type not in _DATA_RESULT_TYPES:
+    elif not is_data_result_type(result_type):
         return None
 
     acquisition, detected_currency, currency_processing_ns = (
