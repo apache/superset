@@ -250,7 +250,7 @@ def json_to_dict(json_str: str) -> dict[Any, Any]:
     return {}
 
 
-UUID_NATIVE_TYPE_RE = re.compile(r"\buuid\b", re.IGNORECASE)
+UUID_NATIVE_TYPE_RE: re.Pattern[str] = re.compile(r"\buuid\b", re.IGNORECASE)
 
 
 def is_uuid_native_type(native_type: Optional[str]) -> bool:
