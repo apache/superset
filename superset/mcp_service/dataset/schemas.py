@@ -628,8 +628,10 @@ class MetricCurrency(BaseModel):
     symbol: str | None = Field(
         None, description="ISO 4217 currency code (e.g. 'USD', 'EUR')."
     )
-    symbolPosition: Literal["prefix", "suffix"] | None = Field(  # noqa: N815
-        None, description="Where to render the symbol relative to the value."
+    symbolPosition: str | None = Field(  # noqa: N815
+        None,
+        description="Where to render the symbol relative to the value "
+        "(typically 'prefix' or 'suffix').",
     )
 
 
@@ -698,6 +700,11 @@ class UpdateDatasetMetricRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_updates(self) -> "UpdateDatasetMetricRequest":
+        """Require at least one updatable property and reject empty/invalid values.
+
+        Guards against no-op requests, empty ``metric_name``/``expression``, and
+        malformed ``extra`` JSON before the update reaches the command layer.
+        """
         provided = self.model_fields_set & UPDATABLE_METRIC_FIELDS
         if not provided:
             raise ValueError(
@@ -726,6 +733,9 @@ class DatasetMetricDetail(SqlMetricInfo):
         None, description="Currency formatting configuration"
     )
     warning_text: str | None = Field(None, description="Warning text")
+    extra: str | None = Field(
+        None, description="JSON-encoded string with extra metric metadata"
+    )
 
 
 class UpdateDatasetMetricResponse(BaseModel):

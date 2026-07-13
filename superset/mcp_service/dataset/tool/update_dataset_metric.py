@@ -24,6 +24,7 @@ from typing import Any
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset import security_manager
 from superset.extensions import event_logger
 from superset.mcp_service.dataset.schemas import (
     DatasetMetricDetail,
@@ -77,6 +78,12 @@ def _metric_not_found_message(metrics: list[Any], identifier: int | str) -> str:
 
 
 def _serialize_metric(metric: Any) -> DatasetMetricDetail:
+    """Build a ``DatasetMetricDetail`` from a ``SqlMetric`` model.
+
+    Returns the metric's identifiers (id, uuid) and all updatable properties,
+    wrapping free-text fields in LLM-context sanitization the same way the
+    dataset read path does.
+    """
     currency = getattr(metric, "currency", None)
     return DatasetMetricDetail(
         id=getattr(metric, "id", None),
@@ -103,6 +110,10 @@ def _serialize_metric(metric: Any) -> DatasetMetricDetail:
             getattr(metric, "warning_text", None),
             field_path=("metric", "warning_text"),
         ),
+        extra=sanitize_for_llm_context(
+            getattr(metric, "extra", None),
+            field_path=("metric", "extra"),
+        ),
     )
 
 
@@ -118,7 +129,7 @@ def _serialize_metric(metric: Any) -> DatasetMetricDetail:
         destructiveHint=True,
     ),
 )
-async def update_dataset_metric(
+async def update_dataset_metric(  # noqa: C901
     request: UpdateDatasetMetricRequest, ctx: Context
 ) -> UpdateDatasetMetricResponse:
     """Update a saved metric on a dataset.
@@ -164,6 +175,7 @@ async def update_dataset_metric(
         )
         from superset.commands.dataset.update import UpdateDatasetCommand
         from superset.connectors.sqla.models import SqlaTable
+        from superset.exceptions import SupersetSecurityException
         from superset.mcp_service.dataset.dataset_utils import resolve_dataset
         from superset.mcp_service.utils.url_utils import get_superset_base_url
 
@@ -182,6 +194,22 @@ async def update_dataset_metric(
                     f"No dataset found with identifier: {request.dataset_id}."
                     " Use list_datasets to get valid dataset IDs."
                 ),
+            )
+
+        # Enforce editorship before touching the metric list. Otherwise a caller
+        # with read access but not edit rights could distinguish "metric exists"
+        # from "metric not found" and enumerate metric names via the not-found
+        # suggestions. UpdateDatasetCommand re-checks this, but only after the
+        # lookup below would have already leaked that information.
+        try:
+            security_manager.raise_for_editorship(dataset)
+        except SupersetSecurityException:
+            await ctx.warning(
+                "Dataset metric update forbidden: dataset_id=%s" % (dataset.id,)
+            )
+            return UpdateDatasetMetricResponse(
+                error="You must be an owner of this dataset (or an Admin) "
+                "to update its metrics.",
             )
 
         metrics = list(dataset.metrics)

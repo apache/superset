@@ -39,6 +39,7 @@ def _wrapped(value: str) -> str:
 
 @pytest.fixture
 def mcp_server() -> FastMCP:
+    """Provide the shared FastMCP app instance for the in-process test client."""
     return mcp
 
 
@@ -55,12 +56,27 @@ def mock_auth() -> Iterator[MagicMock]:
         yield mock_get_user
 
 
+@pytest.fixture(autouse=True)
+def allow_ownership() -> Iterator[MagicMock]:
+    """Let ownership checks pass by default; override to simulate a non-owner.
+
+    Patches the security manager class method (rather than the module-level
+    proxy) so it resolves without an app context, as in CI.
+    """
+    with patch(
+        "superset.security.SupersetSecurityManager.raise_for_editorship",
+        return_value=None,
+    ) as mock_raise:
+        yield mock_raise
+
+
 def make_metric(
     metric_id: int = 10,
     metric_name: str = "count",
     uuid: str = "a1b2c3d4-5678-90ab-cdef-1234567890ab",
     **overrides: Any,
 ) -> SimpleNamespace:
+    """Build a stand-in SqlMetric with all serialized attributes populated."""
     metric = SimpleNamespace(
         id=metric_id,
         uuid=uuid,
@@ -81,6 +97,7 @@ def make_metric(
 def make_dataset(
     dataset_id: int = 1, metrics: list[SimpleNamespace] | None = None
 ) -> MagicMock:
+    """Build a stand-in SqlaTable exposing an id, table_name, and metrics."""
     dataset = MagicMock()
     dataset.id = dataset_id
     dataset.table_name = "my_table"
@@ -153,7 +170,7 @@ def test_request_updates_dumps_nested_currency() -> None:
 
 
 @pytest.mark.asyncio
-async def test_update_dataset_metric_success(mcp_server) -> None:
+async def test_update_dataset_metric_success(mcp_server: FastMCP) -> None:
     """Happy path: only the target metric is changed, others sent as stubs."""
     target = make_metric(metric_id=10, metric_name="count")
     other = make_metric(
@@ -225,7 +242,50 @@ async def test_update_dataset_metric_success(mcp_server) -> None:
 
 
 @pytest.mark.asyncio
-async def test_update_dataset_metric_by_id_and_uuid(mcp_server) -> None:
+async def test_update_dataset_metric_returns_extra(mcp_server: FastMCP) -> None:
+    """`extra` is an updatable property, so it is echoed back in the response."""
+    dataset = make_dataset(dataset_id=1, metrics=[make_metric(metric_id=10)])
+    updated = make_dataset(
+        dataset_id=1,
+        metrics=[make_metric(metric_id=10, extra='{"warning_markdown": "note"}')],
+    )
+    mock_command = MagicMock()
+    mock_command.run.return_value = updated
+
+    with (
+        patch(
+            "superset.daos.dataset.DatasetDAO.find_by_id",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.commands.dataset.update.UpdateDatasetCommand",
+            return_value=mock_command,
+        ),
+        patch(
+            "superset.mcp_service.utils.url_utils.get_superset_base_url",
+            return_value="http://localhost:8088",
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_dataset_metric",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metric": 10,
+                        "extra": '{"warning_markdown": "note"}',
+                    }
+                },
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["error"] is None
+    assert data["updated_properties"] == ["extra"]
+    assert data["metric"]["extra"] == _wrapped('{"warning_markdown": "note"}')
+
+
+@pytest.mark.asyncio
+async def test_update_dataset_metric_by_id_and_uuid(mcp_server: FastMCP) -> None:
     """The metric can be addressed by numeric ID (also as string) or UUID."""
     target = make_metric(metric_id=10, metric_name="count")
     dataset = make_dataset(dataset_id=1, metrics=[target])
@@ -267,7 +327,9 @@ async def test_update_dataset_metric_by_id_and_uuid(mcp_server) -> None:
 
 
 @pytest.mark.asyncio
-async def test_update_dataset_metric_not_found_suggests_names(mcp_server) -> None:
+async def test_update_dataset_metric_not_found_suggests_names(
+    mcp_server: FastMCP,
+) -> None:
     dataset = make_dataset(
         dataset_id=1, metrics=[make_metric(metric_id=10, metric_name="sum_revenue")]
     )
@@ -295,7 +357,9 @@ async def test_update_dataset_metric_not_found_suggests_names(mcp_server) -> Non
 
 
 @pytest.mark.asyncio
-async def test_update_dataset_metric_not_found_escapes_names(mcp_server) -> None:
+async def test_update_dataset_metric_not_found_escapes_names(
+    mcp_server: FastMCP,
+) -> None:
     """Metric names in the not-found error are escaped like the success path."""
     from superset.mcp_service.utils.sanitization import (
         LLM_CONTEXT_ESCAPED_OPEN_DELIMITER,
@@ -329,7 +393,7 @@ async def test_update_dataset_metric_not_found_escapes_names(mcp_server) -> None
 
 
 @pytest.mark.asyncio
-async def test_update_dataset_metric_dataset_not_found(mcp_server) -> None:
+async def test_update_dataset_metric_dataset_not_found(mcp_server: FastMCP) -> None:
     with patch(
         "superset.daos.dataset.DatasetDAO.find_by_id",
         return_value=None,
@@ -352,12 +416,22 @@ async def test_update_dataset_metric_dataset_not_found(mcp_server) -> None:
 
 
 @pytest.mark.asyncio
-async def test_update_dataset_metric_forbidden(mcp_server) -> None:
-    from superset.commands.dataset.exceptions import DatasetForbiddenError
+async def test_update_dataset_metric_forbidden_non_owner(
+    mcp_server: FastMCP, allow_ownership: MagicMock
+) -> None:
+    """A non-owner is rejected before the metric list is inspected, so the
+    error cannot be used to enumerate metric names."""
+    from superset.exceptions import SupersetSecurityException
 
-    dataset = make_dataset()
+    allow_ownership.side_effect = SupersetSecurityException(
+        MagicMock(message="not an owner")
+    )
+
+    dataset = make_dataset(
+        dataset_id=1,
+        metrics=[make_metric(metric_id=10, metric_name="secret_metric")],
+    )
     mock_command = MagicMock()
-    mock_command.run.side_effect = DatasetForbiddenError()
 
     with (
         patch(
@@ -367,7 +441,7 @@ async def test_update_dataset_metric_forbidden(mcp_server) -> None:
         patch(
             "superset.commands.dataset.update.UpdateDatasetCommand",
             return_value=mock_command,
-        ),
+        ) as command_cls,
     ):
         async with Client(mcp_server) as client:
             result = await client.call_tool(
@@ -375,7 +449,7 @@ async def test_update_dataset_metric_forbidden(mcp_server) -> None:
                 {
                     "request": {
                         "dataset_id": 1,
-                        "metric": "count",
+                        "metric": "does_not_exist",
                         "expression": "COUNT(1)",
                     }
                 },
@@ -384,10 +458,13 @@ async def test_update_dataset_metric_forbidden(mcp_server) -> None:
 
     assert data["metric"] is None
     assert "owner" in data["error"]
+    # No metric names leak, and the command is never constructed/run.
+    assert "secret_metric" not in data["error"]
+    command_cls.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_update_dataset_metric_invalid_error(mcp_server) -> None:
+async def test_update_dataset_metric_invalid_error(mcp_server: FastMCP) -> None:
     """Validation failures (e.g. duplicate name) surface as error responses."""
     from superset.commands.dataset.exceptions import (
         DatasetInvalidError,
@@ -429,7 +506,7 @@ async def test_update_dataset_metric_invalid_error(mcp_server) -> None:
 
 
 @pytest.mark.asyncio
-async def test_update_dataset_metric_update_failed(mcp_server) -> None:
+async def test_update_dataset_metric_update_failed(mcp_server: FastMCP) -> None:
     """A persistence failure surfaces as a "Failed to update" error response."""
     from superset.commands.dataset.exceptions import DatasetUpdateFailedError
 
