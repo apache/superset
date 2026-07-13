@@ -430,3 +430,13 @@ def test_denormalize_name(name: str, expected_result: str):
     from superset.db_engine_specs.mssql import MssqlEngineSpec as spec  # noqa: N813
 
     assert spec.denormalize_name(mssql.dialect(), name) == expected_result
+
+
+def test_identifier_quote_uses_square_brackets() -> None:
+    """SQL Server quotes identifiers with square brackets."""
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    assert MssqlEngineSpec.get_public_information()["identifier_quote"] == {
+        "start": "[",
+        "end": "]",
+    }

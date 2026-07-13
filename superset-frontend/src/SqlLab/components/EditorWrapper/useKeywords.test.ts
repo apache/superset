@@ -211,13 +211,13 @@ test('quotes table identifiers that require quoting in the inserted value', asyn
 });
 
 test.each([
-  ['mysql', '`COVID Vaccines`'],
-  ['mariadb', '`COVID Vaccines`'],
-  ['mssql', '[COVID Vaccines]'],
-  ['postgresql', '"COVID Vaccines"'],
+  ['mysql', { start: '`', end: '`' }, '`COVID Vaccines`'],
+  ['mariadb', { start: '`', end: '`' }, '`COVID Vaccines`'],
+  ['mssql', { start: '[', end: ']' }, '[COVID Vaccines]'],
+  ['postgresql', { start: '"', end: '"' }, '"COVID Vaccines"'],
 ])(
-  'quotes table identifiers using dialect-specific characters for %s',
-  async (backend, expectedValue) => {
+  'quotes table identifiers using the engine-provided quote characters for %s',
+  async (_dialect, identifierQuote, expectedValue) => {
     const dbFunctionNamesApiRoute = `glob:*/api/v1/database/${expectDbId}/function_names/`;
     fetchMock.get(dbFunctionNamesApiRoute, fakeFunctionNamesApiResult);
 
@@ -226,7 +226,11 @@ test.each([
         ...initialState,
         sqlLab: {
           ...initialState.sqlLab,
-          databases: { [expectDbId]: { backend } },
+          databases: {
+            [expectDbId]: {
+              engine_information: { identifier_quote: identifierQuote },
+            },
+          },
         },
       },
       reducers,
