@@ -260,7 +260,6 @@ msgid_plural ""
 "%(firstSuggestions)s or %(lastSuggestion)s instead of "
 "\"%(undefinedParameter)s\"?"
 msgstr[0] "「%(undefinedParameter)s」の代わりに「%(suggestion)s」を使用しますか？"
-msgstr[1] "「%(undefinedParameter)s」の代わりに「%(firstSuggestions)s」または「%(lastSuggestion)s」を使用しますか？"
 
 #, python-format
 msgid ""
