@@ -329,6 +329,26 @@ various options in this section, refer to the
 Lastly, save your chart as Tutorial Resample and add it to the Tutorial Dashboard. Go to the
 tutorial dashboard to see the four charts side by side and compare the different outputs.
 
+### Drilling into data
+
+Superset offers three distinct "drill" interactions. They are independent, each gated by its own
+feature flag, and can be enabled in any combination:
+
+- **Drill to detail** (`DRILL_TO_DETAIL`): right-click a data point and choose **Drill to detail**
+  to open a modal listing the individual rows that make up that point. It answers "what records are
+  behind this value?" without changing the chart.
+- **Drill by** (`DRILL_BY`): right-click a data point and choose **Drill by** to open a modal that
+  re-groups the chart by a different dimension, scoped to the clicked value. It answers "how does
+  this value break down by another column?" and leaves the original chart untouched.
+- **Drill-down hierarchy** (`DRILL_DOWN`, off by default): configure an ordered **Drill-down
+  hierarchy** in the chart's control panel, then left-click a data point on a dashboard chart to
+  descend to the next level of that hierarchy *in place*. A breadcrumb above the chart lets you
+  step back up, and each level emits a cross-filter for the accumulated path so the rest of the
+  dashboard follows along. It answers "let me navigate this dimension hierarchy by clicking."
+
+Drill to detail and Drill by are context-menu actions that open modals; the drill-down hierarchy is
+an in-place, click-to-navigate interaction on the dashboard itself.
+
 ### SQL Lab Tips
 
 **Schema and table browser**: The left-side table browser uses a collapsible treeview — click a schema to expand its tables, and click a table to see its columns and sample data inline. This makes navigating large schemas much faster than the previous flat list.
