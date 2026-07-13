@@ -20,6 +20,7 @@
 import { Page, Locator } from '@playwright/test';
 import { Table } from '../components/core';
 import { BulkSelect } from '../components/ListView';
+import { gotoWithRetry } from '../helpers/navigation';
 import { URL } from '../utils/urls';
 
 /**
@@ -52,7 +53,7 @@ export class ChartListPage {
    * (ListviewsDefaultCardView feature flag may enable card view).
    */
   async goto(): Promise<void> {
-    await this.page.goto(`${URL.CHART_LIST}?viewMode=table`);
+    await gotoWithRetry(this.page, `${URL.CHART_LIST}?viewMode=table`);
   }
 
   /**
