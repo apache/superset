@@ -1799,3 +1799,69 @@ describe('Tooltip with long labels', () => {
     expect(result).toContain('599616000000');
   });
 });
+
+describe('Tooltip time grain wiring', () => {
+  test('dashboard-level extraFormData time grain overrides the chart-level grain in the tooltip', () => {
+    const ts = Date.UTC(2021, 0, 7);
+    const chartProps = createTestChartProps({
+      formData: {
+        granularity_sqla: 'ds',
+        richTooltip: false,
+        // The chart itself is configured with a Day grain...
+        timeGrainSqla: TimeGranularity.DAY,
+        // ...but a dashboard-level filter/override resolves to Month.
+        extraFormData: { time_grain_sqla: TimeGranularity.MONTH },
+      },
+      queriesData: [
+        createTestQueryData([{ __timestamp: ts, sales: 100 }], {
+          colnames: ['__timestamp', 'sales'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+        }),
+      ],
+    });
+
+    const transformedProps = transformProps(chartProps);
+    const tooltipFormatter = (transformedProps.echartOptions as any).tooltip
+      .formatter;
+
+    const result = tooltipFormatter({
+      value: [ts, 100],
+      seriesName: 'sales',
+    });
+
+    // Month grain (the dashboard override) should win, so the tooltip title
+    // reads "Jan 2021" rather than the Day-grain "2021-01-07".
+    expect(result).toContain('Jan');
+    expect(result).toContain('2021');
+    expect(result).not.toContain('2021-01-07');
+  });
+
+  test('chart-level time grain drives the tooltip when there is no dashboard override', () => {
+    const ts = Date.UTC(2021, 0, 7);
+    const chartProps = createTestChartProps({
+      formData: {
+        granularity_sqla: 'ds',
+        richTooltip: false,
+        timeGrainSqla: TimeGranularity.YEAR,
+      },
+      queriesData: [
+        createTestQueryData([{ __timestamp: ts, sales: 100 }], {
+          colnames: ['__timestamp', 'sales'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+        }),
+      ],
+    });
+
+    const transformedProps = transformProps(chartProps);
+    const tooltipFormatter = (transformedProps.echartOptions as any).tooltip
+      .formatter;
+
+    const result = tooltipFormatter({
+      value: [ts, 100],
+      seriesName: 'sales',
+    });
+
+    expect(result).toContain('2021');
+    expect(result).not.toContain('2021-01-07');
+  });
+});

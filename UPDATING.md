@@ -94,7 +94,7 @@ Alternatively, perform a fresh install. This is a one-time migration; subsequent
 
 ### Time-series tooltips follow the selected time grain
 
-Tooltips on the Time-series and Mixed Time-series ECharts plugins now respect the chart's time grain (and any dashboard-level time-grain override delivered via `extra_form_data`) when no explicit tooltip time format is set. Tooltips read grain-appropriate labels such as `Jan 2021` (month), `2021 Q1` (quarter), `2021` (year), and weekly date ranges, matching the behavior already applied to the x-axis. Charts that pin an explicit tooltip time format are unaffected — the explicit format always wins.
+Tooltips on the Time-series and Mixed Time-series ECharts plugins now respect the chart's time grain (and any dashboard-level time-grain override delivered via `extra_form_data`) when the tooltip time format is left on Adaptive formatting (the default). Tooltips read grain-appropriate labels such as `Jan 2021` (month), `2021 Q1` (quarter), `2021` (year), and weekly date ranges, becoming grain-aware like the x-axis, though the two are formatted independently and their labels may not always match exactly. Only a custom, explicitly-set tooltip time format (a d3 format string) is unaffected — that always wins over the grain.
 
 ### Pivot table First/Last aggregations follow data order
 
