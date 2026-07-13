@@ -188,7 +188,7 @@ const StyledSqlEditor = styled.div`
     }
 
     .SouthPane {
-      & .ant-tabs-tabpane {
+      & .ant-tabs-content {
         margin: 0 ${theme.sizeUnit * 4}px;
         & .ant-tabs {
           margin: 0 ${theme.sizeUnit * -4}px;
