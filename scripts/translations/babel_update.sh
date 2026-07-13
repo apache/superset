@@ -106,7 +106,7 @@ paths = ["superset/translations/messages.pot"] + sorted(
     glob.glob("superset/translations/*/LC_MESSAGES/messages.po")
 )
 for path in paths:
-    lines = open(path).readlines()
+    lines = open(path, encoding="utf-8").readlines()
     changed = False
     for i, line in enumerate(lines):
         if line in TARGETS and i > 0 and lines[i - 1].startswith("#,"):
@@ -118,7 +118,7 @@ for path in paths:
                 lines[i - 1] = "#, " + ", ".join(tokens) + "\n"
                 changed = True
     if changed:
-        open(path, "w").writelines(lines)
+        open(path, "w", encoding="utf-8").writelines(lines)
 PYEOF
 
 cd $CURRENT_DIR
