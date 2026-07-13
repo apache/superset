@@ -54,7 +54,7 @@ restores that list so this file cannot leak middleware into other tests.
 """
 
 import contextlib
-from collections.abc import AsyncIterator, Mapping
+from collections.abc import AsyncIterator, Iterator, Mapping
 from typing import Any
 from unittest.mock import Mock, patch
 
@@ -70,6 +70,17 @@ from superset.mcp_service.server import build_middleware_list
 from superset.utils import json
 
 ASGIMessage = Mapping[str, Any]
+
+
+@pytest.fixture(autouse=True)
+def mock_auth() -> Iterator[Mock]:
+    """Make authentication deterministic for list and call requests."""
+    with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
+        mock_user = Mock()
+        mock_user.id = 1
+        mock_user.username = "admin"
+        mock_get_user.return_value = mock_user
+        yield mock_get_user
 
 
 @contextlib.asynccontextmanager
@@ -204,19 +215,13 @@ async def test_tools_call_health_check_over_real_asgi_transport() -> None:
     ``health_check`` is ``@tool(protect=True)`` by default (auth wraps every
     tool unless ``protect=False`` is explicit), so authentication is mocked
     the same way every other MCP tool test does it: patching
-    ``get_user_from_request``. That function is called directly from
-    ``_setup_user_context()`` regardless of how the request arrived (in
-    -process client vs. real HTTP transport), so the same mock works
-    unmodified here.
+    ``get_user_from_request`` via the module-level autouse fixture. That function
+    is called directly from ``_setup_user_context()`` regardless of how the
+    request arrived (in-process client vs. real HTTP transport), so the same
+    mock works unmodified here.
     """
-    with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-        mock_user = Mock()
-        mock_user.id = 1
-        mock_user.username = "admin"
-        mock_get_user.return_value = mock_user
-
-        async with _real_asgi_client() as client:
-            result = await client.call_tool("health_check", {})
+    async with _real_asgi_client() as client:
+        result = await client.call_tool("health_check", {})
 
     data = json.loads(result.content[0].text)
     assert data["status"] == "healthy"
