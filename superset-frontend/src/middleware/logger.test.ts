@@ -164,6 +164,9 @@ describe('logger middleware', () => {
   test.each([
     ['/dashboard/123/embedded/', 'embedded_dashboard'],
     ['/embedded/abc-def-uuid/', 'embedded_dashboard'],
+    // React Router also matches these routes without a trailing slash
+    ['/dashboard/123/embedded', 'embedded_dashboard'],
+    ['/embedded/abc-def-uuid', 'embedded_dashboard'],
     ['/dashboard/123/', 'dashboard'],
     // slug is literally "embedded" - must not be treated as embedded
     ['/dashboard/embedded/', 'dashboard'],
