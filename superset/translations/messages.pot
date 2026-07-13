@@ -210,6 +210,10 @@ msgid "%(label)s file"
 msgstr ""
 
 #, python-format
+msgid "%(name)s.%(extension)s"
+msgstr ""
+
+#, python-format
 msgid "%(name)s.csv"
 msgstr ""
 
@@ -892,6 +896,9 @@ msgid "A timeout occurred while generating a csv."
 msgstr ""
 
 msgid "A timeout occurred while generating a dataframe."
+msgstr ""
+
+msgid "A timeout occurred while generating an xlsx."
 msgstr ""
 
 msgid "A timeout occurred while taking a screenshot."
@@ -5819,6 +5826,9 @@ msgstr ""
 msgid "Examples"
 msgstr ""
 
+msgid "Excel (XLSX) attached in email"
+msgstr ""
+
 msgid "Excel Export"
 msgstr ""
 
@@ -9987,6 +9997,9 @@ msgstr ""
 msgid "Report Schedule execution failed when generating a screenshot."
 msgstr ""
 
+msgid "Report Schedule execution failed when generating an xlsx."
+msgstr ""
+
 msgid "Report Schedule execution got an unexpected error."
 msgstr ""
 
@@ -11160,6 +11173,9 @@ msgid "Semantic views"
 msgstr ""
 
 msgid "Send as CSV"
+msgstr ""
+
+msgid "Send as Excel"
 msgstr ""
 
 msgid "Send as PDF"
