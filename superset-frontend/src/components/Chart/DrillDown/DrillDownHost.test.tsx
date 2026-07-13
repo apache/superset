@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen, act, fireEvent } from 'spec/helpers/testing-library';
-import { QueryFormData } from '@superset-ui/core';
+import { FeatureFlag, QueryFormData } from '@superset-ui/core';
 import { ChartSource } from 'src/types/ChartSource';
 import { DrillDownHost } from './DrillDownHost';
 import { clearDrillDownState } from './useDrillDownState';
@@ -38,6 +38,10 @@ function CaptureRenderer(
 }
 
 beforeEach(() => {
+  // @ts-ignore
+  global.featureFlags = {
+    [FeatureFlag.DrillDown]: true,
+  };
   clearDrillDownState();
   capturedOnDrillDown = undefined;
 });
@@ -154,6 +158,29 @@ test('onDrillDown is provided when hierarchy exists', () => {
   );
 
   expect(screen.getByTestId('has-on-drill-down')).toHaveTextContent('yes');
+});
+
+test('drill-down is gated off when the DRILL_DOWN feature flag is disabled', () => {
+  // @ts-ignore
+  global.featureFlags = {
+    [FeatureFlag.DrillDown]: false,
+  };
+  const formDataWithHierarchy: QueryFormData = {
+    ...baseFormData,
+    drilldown_hierarchy: ['country', 'region', 'city'],
+  };
+
+  render(
+    <DrillDownHost
+      ChartRendererComponent={MockChartRenderer as any}
+      {...baseRendererProps}
+      formData={formDataWithHierarchy}
+    />,
+  );
+
+  // No drill host wrapper and no onDrillDown hook when the flag is off.
+  expect(screen.queryByTestId('drill-down-host')).not.toBeInTheDocument();
+  expect(screen.getByTestId('has-on-drill-down')).toHaveTextContent('no');
 });
 
 test('DrillDownHost renders with drilldown_hierarchy field', () => {

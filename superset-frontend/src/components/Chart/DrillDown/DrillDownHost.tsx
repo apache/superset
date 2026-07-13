@@ -28,6 +28,8 @@ import {
   QueryData,
   QueryFormData,
   BinaryQueryObjectFilterClause,
+  FeatureFlag,
+  isFeatureEnabled,
 } from '@superset-ui/core';
 import { css } from '@apache-superset/core/theme';
 import { ChartSource } from 'src/types/ChartSource';
@@ -101,11 +103,14 @@ export function DrillDownHost({
     baseQueriesResponse: queriesResponse,
   });
 
-  // Drill-down is a dashboard interaction. In Explore the control panel and the
-  // rendered chart would disagree (and clicks there mean something else), so
-  // only enable it when rendered inside a dashboard.
+  // Drill-down is a dashboard interaction gated behind the DRILL_DOWN feature
+  // flag. In Explore the control panel and the rendered chart would disagree
+  // (and clicks there mean something else), so only enable it when rendered
+  // inside a dashboard.
   const drillEnabled =
-    hasHierarchy && rendererProps.source === ChartSource.Dashboard;
+    isFeatureEnabled(FeatureFlag.DrillDown) &&
+    hasHierarchy &&
+    rendererProps.source === ChartSource.Dashboard;
 
   const onDrillDown = useMemo<OnDrillDownHook | undefined>(() => {
     if (!drillEnabled) {

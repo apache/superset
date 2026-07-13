@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '../types';
 import { dndGroupByControl } from '../shared-controls/dndControls';
 
@@ -62,6 +63,9 @@ export const drilldownHierarchySection: ControlPanelSectionConfig = {
           // Configures click behavior only and does not affect the base query,
           // so editing it re-renders without marking the chart stale.
           renderTrigger: true,
+          // Dark-launched: only expose the control when the DRILL_DOWN feature
+          // flag is enabled.
+          visibility: () => isFeatureEnabled(FeatureFlag.DrillDown),
         },
       },
     ],
