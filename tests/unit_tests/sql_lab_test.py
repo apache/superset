@@ -282,6 +282,7 @@ def test_execute_sql_statements_raises_when_mutator_strips_all_statements(
 
     mocker.patch("superset.sql_lab.get_query", return_value=query)
     mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
+    mocker.patch("superset.sql_lab.results_backend", return_value=True)
 
     with pytest.raises(SupersetErrorException):
         execute_sql_statements(
