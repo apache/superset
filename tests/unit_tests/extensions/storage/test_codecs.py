@@ -28,7 +28,7 @@ from superset.extensions.storage.codecs import (
     UnknownCodecError,
 )
 from superset.key_value.types import (
-    Base64KeyValueCodec,
+    BinaryKeyValueCodec,
     JsonKeyValueCodec,
     PickleKeyValueCodec,
 )
@@ -74,21 +74,21 @@ def test_json_is_a_safe_codec() -> None:
     assert "json" in SAFE_CODECS
 
 
-def test_base64_is_a_safe_codec() -> None:
-    """'base64' is included in SAFE_CODECS — it carries binary data as a
-    base64 string, with no code-execution risk on decode."""
-    assert "base64" in SAFE_CODECS
+def test_binary_is_a_safe_codec() -> None:
+    """'binary' is included in SAFE_CODECS — it stores raw bytes as-is,
+    with no code-execution risk on decode."""
+    assert "binary" in SAFE_CODECS
 
 
-def test_get_codec_returns_base64_codec() -> None:
-    """'base64' resolves to a Base64KeyValueCodec instance."""
-    assert isinstance(get_codec("base64"), Base64KeyValueCodec)
+def test_get_codec_returns_binary_codec() -> None:
+    """'binary' resolves to a BinaryKeyValueCodec instance."""
+    assert isinstance(get_codec("binary"), BinaryKeyValueCodec)
 
 
-def test_base64_round_trips_through_registry() -> None:
-    """A base64 string encoded via the registry's codec decodes back to the
-    same base64 string, with the raw bytes preserved in between."""
-    codec = get_codec("base64")
+def test_binary_round_trips_through_registry() -> None:
+    """Raw bytes encoded via the registry's binary codec decode back
+    unchanged."""
+    codec = get_codec("binary")
     raw = b"binary\x00data"
-    encoded_str = codec.decode(raw)
-    assert codec.encode(encoded_str) == raw
+    assert codec.encode(raw) == raw
+    assert codec.decode(raw) == raw

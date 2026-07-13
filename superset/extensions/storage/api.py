@@ -27,13 +27,19 @@ to access shared state visible to all users.
 
 from __future__ import annotations
 
+import base64
 from typing import Any
 
 from flask import g, request
 from flask.wrappers import Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 
-from superset.extensions.storage.codecs import DEFAULT_CODEC, get_codec, SAFE_CODECS
+from superset.extensions.storage.codecs import (
+    BYTES_CODECS,
+    DEFAULT_CODEC,
+    get_codec,
+    SAFE_CODECS,
+)
 from superset.extensions.storage.ephemeral_dao import (
     ExtensionEphemeralDAO,
     ExtensionEphemeralTTLInvalid,
@@ -48,6 +54,32 @@ from superset.extensions.storage.persistent_dao import (
 )
 from superset.extensions.storage.utils import get_extension_or_404, parse_ttl
 from superset.utils.decorators import transaction
+
+
+def _decoded_result_for_wire(codec: str, decoded: Any) -> Any:
+    """Convert a codec-decoded value into its JSON wire representation.
+
+    JSON has no byte type, so a `BYTES_CODECS` value (raw `bytes`) is
+    base64-encoded to a string for the response; every other codec's
+    decoded value is already JSON-representable as-is.
+    """
+    if codec in BYTES_CODECS:
+        return base64.b64encode(decoded).decode("ascii")
+    return decoded
+
+
+def _wire_value_for_codec(codec: str, value: Any) -> Any:
+    """Convert a request body's JSON `value` into a codec's input type.
+
+    JSON has no byte type, so a `BYTES_CODECS` value arrives as a base64
+    string and must be base64-decoded to bytes before it is handed to the
+    codec's `encode`; every other codec takes the JSON value as-is.
+
+    :raises ValueError: if `value` is not a valid base64 string.
+    """
+    if codec in BYTES_CODECS:
+        return base64.b64decode(value, validate=True)
+    return value
 
 
 class ExtensionStorageRestApi(BaseApi):
@@ -122,7 +154,7 @@ class ExtensionStorageRestApi(BaseApi):
                       codec:
                         type: string
                         description: Name of the codec 'result' was encoded
-                          with, e.g. "json" (default) or "base64"
+                          with, e.g. "json" (default) or "binary"
             400:
               description: Value was stored with a codec unavailable over the API
             404:
@@ -144,7 +176,8 @@ class ExtensionStorageRestApi(BaseApi):
                 "read over the REST API."
             )
 
-        return self.response(200, result=get_codec(codec).decode(value), codec=codec)
+        result = _decoded_result_for_wire(codec, get_codec(codec).decode(value))
+        return self.response(200, result=result, codec=codec)
 
     @protect()
     @safe
@@ -226,7 +259,12 @@ class ExtensionStorageRestApi(BaseApi):
                 f"Codec '{codec}' is not allowed over the REST API."
             )
 
-        value = body["value"]
+        try:
+            value = _wire_value_for_codec(codec, body["value"])
+        except (ValueError, TypeError):
+            return self.response_400(
+                f"Value must be a valid base64 string for codec '{codec}'."
+            )
         ttl, error = parse_ttl(body)
         if error:
             return self.response_400(error)
@@ -407,7 +445,9 @@ class ExtensionStorageRestApi(BaseApi):
             {
                 "key": entry.key,
                 "value": (
-                    get_codec(entry.codec).decode(entry.value)
+                    _decoded_result_for_wire(
+                        entry.codec, get_codec(entry.codec).decode(entry.value)
+                    )
                     if entry.codec in SAFE_CODECS and entry.value is not None
                     else None
                 ),
@@ -466,7 +506,7 @@ class ExtensionStorageRestApi(BaseApi):
                       codec:
                         type: string
                         description: Name of the codec 'result' was encoded
-                          with, e.g. "json" (default) or "base64"
+                          with, e.g. "json" (default) or "binary"
             400:
               description: Value was stored with a codec unavailable over the API
             404:
@@ -492,7 +532,9 @@ class ExtensionStorageRestApi(BaseApi):
             extension_id, key, user_fk=user_fk
         )
 
-        return self.response(200, result=value, codec=entry.codec)
+        return self.response(
+            200, result=_decoded_result_for_wire(entry.codec, value), codec=entry.codec
+        )
 
     @protect()
     @safe
@@ -578,7 +620,13 @@ class ExtensionStorageRestApi(BaseApi):
         encrypt = bool(body.get("encrypt", False))
         shared = request.args.get("shared", "false").lower() == "true"
         user_fk = None if shared else g.user.id
-        value_bytes = get_codec(codec).encode(body["value"])
+        try:
+            wire_value = _wire_value_for_codec(codec, body["value"])
+        except (ValueError, TypeError):
+            return self.response_400(
+                f"Value must be a valid base64 string for codec '{codec}'."
+            )
+        value_bytes = get_codec(codec).encode(wire_value)
         try:
             ExtensionStorageDAO.set(
                 extension_id,

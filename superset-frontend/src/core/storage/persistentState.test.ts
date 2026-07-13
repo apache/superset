@@ -92,7 +92,7 @@ test('set auto base64-encodes a Uint8Array value with no codec specified', async
   const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
   await store.set('icon', bytes);
   const body = JSON.parse(mockPut.mock.calls[0][0].body);
-  expect(body.codec).toBe('base64');
+  expect(body.codec).toBe('binary');
   expect(body.value).toBe(btoa('\x89PNG'));
 });
 

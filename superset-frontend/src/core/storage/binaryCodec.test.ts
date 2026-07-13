@@ -39,7 +39,7 @@ test('resolveSetPayload auto base64-encodes a Uint8Array when no codec is given'
   const bytes = new Uint8Array([1, 2, 3]);
   expect(resolveSetPayload(bytes, undefined)).toEqual({
     value: bytesToBase64(bytes),
-    codec: 'base64',
+    codec: 'binary',
   });
 });
 
@@ -47,7 +47,7 @@ test('resolveSetPayload auto base64-encodes an ArrayBuffer when no codec is give
   const bytes = new Uint8Array([1, 2, 3]);
   expect(resolveSetPayload(bytes.buffer, undefined)).toEqual({
     value: bytesToBase64(bytes),
-    codec: 'base64',
+    codec: 'binary',
   });
 });
 
@@ -69,8 +69,8 @@ test('resolveSetPayload respects an explicit codec for a non-binary value', () =
 test('resolveSetPayload does not double-encode when the caller already base64-encoded a binary value', () => {
   const bytes = new Uint8Array([1, 2, 3]);
   const preEncoded = bytesToBase64(bytes);
-  expect(resolveSetPayload(preEncoded, 'base64')).toEqual({
+  expect(resolveSetPayload(preEncoded, 'binary')).toEqual({
     value: preEncoded,
-    codec: 'base64',
+    codec: 'binary',
   });
 });

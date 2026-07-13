@@ -40,10 +40,10 @@ function isBinaryValue(value: unknown): value is Uint8Array | ArrayBuffer {
  * with the "json" codec too, alongside objects and arrays.
  *
  * Binary values (Uint8Array/ArrayBuffer) are the one case JSON cannot
- * represent, so they're base64-encoded instead.
+ * represent, so they're stored with the "binary" codec instead.
  */
-function inferDefaultCodec(value: unknown): 'json' | 'base64' {
-  return isBinaryValue(value) ? 'base64' : 'json';
+function inferDefaultCodec(value: unknown): 'json' | 'binary' {
+  return isBinaryValue(value) ? 'binary' : 'json';
 }
 
 /**
@@ -52,8 +52,12 @@ function inferDefaultCodec(value: unknown): 'json' | 'base64' {
  * If the caller explicitly set `options.codec`, it is always respected
  * as-is and `value` is passed through untouched -- the caller is
  * responsible for encoding it correctly (e.g. base64-encoding it
- * themselves before calling `set()`). Auto base64-encoding only happens
- * when no codec was specified and `value` is binary.
+ * themselves before calling `set()`, if the chosen codec is "binary").
+ * Auto base64-encoding only happens when no codec was specified and
+ * `value` is binary.
+ *
+ * base64 itself is not a codec -- it's how a "binary" codec's raw bytes
+ * are carried inside a JSON request body, since JSON has no byte type.
  */
 export function resolveSetPayload<T>(
   value: T,
@@ -64,7 +68,7 @@ export function resolveSetPayload<T>(
   }
   if (isBinaryValue(value)) {
     const bytes = value instanceof ArrayBuffer ? new Uint8Array(value) : value;
-    return { value: bytesToBase64(bytes), codec: 'base64' };
+    return { value: bytesToBase64(bytes), codec: 'binary' };
   }
   return { value, codec: inferDefaultCodec(value) };
 }

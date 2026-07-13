@@ -110,7 +110,7 @@ export interface PersistentListOptions {
 export interface PersistentListEntry<T = JsonValue> {
   key: string;
   value: T | null;
-  /** Name of the codec `value` was encoded with, e.g. "json" or "base64". */
+  /** Name of the codec `value` was encoded with, e.g. "json" or "binary". */
   codec: string;
 }
 

@@ -30,7 +30,7 @@ defining new ones, since the encode/decode logic (JSON, pickle) is identical.
 from __future__ import annotations
 
 from superset.key_value.types import (
-    Base64KeyValueCodec,
+    BinaryKeyValueCodec,
     JsonKeyValueCodec,
     KeyValueCodec,
     PickleKeyValueCodec,
@@ -43,12 +43,18 @@ DEFAULT_CODEC = "json"
 #: API). Excludes "pickle", since decoding a pickle stream can execute
 #: arbitrary code — that codec is only available to backend extension code
 #: calling the DAO directly.
-SAFE_CODECS = frozenset({"json", "base64"})
+SAFE_CODECS = frozenset({"json", "binary"})
+
+#: Codec identifiers whose value is raw bytes rather than a native JSON
+#: value. JSON has no byte type, so the REST layer base64-decodes/-encodes
+#: the wire value around any codec in this set, before/after it reaches the
+#: codec's own `encode`/`decode`.
+BYTES_CODECS = frozenset({"binary"})
 
 _CODECS: dict[str, KeyValueCodec] = {
     "json": JsonKeyValueCodec(),
     "pickle": PickleKeyValueCodec(),
-    "base64": Base64KeyValueCodec(),
+    "binary": BinaryKeyValueCodec(),
 }
 
 
