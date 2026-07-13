@@ -1026,6 +1026,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
             data-test="open-datasource-tab"
             role="button"
             tabIndex={0}
+            aria-label={t('Open Datasource tab')}
           >
             <span role="button" tabIndex={0} className="action-button">
               <Tooltip title={t('Open Datasource tab')}>
