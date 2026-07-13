@@ -175,7 +175,7 @@ _REGISTERED_SENTINEL = "_versioning_change_listener_registered"
 #: the write path historically logged-and-swallowed with no counter. Each
 #: ``_incr_capture_error(stage)`` emits ``<prefix>.<stage>.error`` so a
 #: systematic capture regression is alertable rather than log-grep-only.
-_CAPTURE_METRIC_PREFIX = "superset.versioning.capture"
+_CAPTURE_METRIC_PREFIX: str = "superset.versioning.capture"
 
 
 def _incr_capture_error(stage: str) -> None:

@@ -68,15 +68,15 @@ from superset.versioning.api_helpers import (
     resolve_endpoint_path_entity,
 )
 
-_DEFAULT_PAGE_SIZE = 25
-_MAX_PAGE_SIZE = 200
+_DEFAULT_PAGE_SIZE: int = 25
+_MAX_PAGE_SIZE: int = 200
 _VALID_INCLUDE_VALUES: frozenset[str] = frozenset({"self", "related", "all"})
 
 
 # Upper bound on the ``q`` search string. The search is a substring scan over
 # the (already-capped) materialized record set, so this is a cheap-DoS guard,
 # not a correctness limit.
-_MAX_Q_LENGTH = 1024
+_MAX_Q_LENGTH: int = 1024
 
 
 class ActivityParamsError(ValueError):

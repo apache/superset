@@ -52,7 +52,7 @@ def row_within_any_window(row: dict[str, Any], windows: list[Window]) -> bool:
     :func:`intersect_windows`."""
     if not windows:
         return False
-    tx_id = row["transaction_id"]
+    tx_id: int = row["transaction_id"]
     return any(w.contains(tx_id) for w in windows)
 
 
@@ -90,7 +90,7 @@ def union_windows(windows: list[Window]) -> list[Window]:
     """
     if not windows:
         return []
-    sorted_windows = sorted(windows, key=lambda w: w.start_tx)
+    sorted_windows: list[Window] = sorted(windows, key=lambda w: w.start_tx)
     out: list[Window] = [sorted_windows[0]]
     for current in sorted_windows[1:]:
         prev = out[-1]

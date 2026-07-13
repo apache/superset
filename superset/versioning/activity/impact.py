@@ -101,7 +101,7 @@ def batch_chart_counts(
     if m2m_tbl is None:
         return {}
 
-    dataset_ids = {dataset_id for dataset_id, _ in pairs}
+    dataset_ids: set[int] = {dataset_id for dataset_id, _ in pairs}
     # Bound both validity windows to the transaction range the page-set
     # needs. Both the attachment (m2m) and the chart→dataset (slice) window
     # must straddle a requested target_tx, so a row whose window starts
@@ -109,7 +109,7 @@ def batch_chart_counts(
     # never contribute a match. Without this the join multiplies every
     # attachment row by the full slice version history — an unbounded cross
     # product on dashboards with long-lived, frequently-edited charts.
-    target_txs = {target_tx for _, target_tx in pairs}
+    target_txs: set[int] = {target_tx for _, target_tx in pairs}
     min_tx, max_tx = min(target_txs), max(target_txs)
     # Chunk the datasource_id IN-clause to stay under SQLite's bind-variable
     # floor (a dashboard pointing at very many datasets can exceed it).

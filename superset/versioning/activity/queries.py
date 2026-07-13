@@ -540,7 +540,7 @@ def _merge_result_into_heap(
 # related entities to <= n_kinds * (_MAX_FETCHED_RECORDS + 1) per request.
 # When a kind exhausts its budget the response is flagged ``truncated`` and
 # the returned stream is clamped to a clean total-order cut.
-_MAX_FETCHED_RECORDS = 5000
+_MAX_FETCHED_RECORDS: int = 5000
 
 
 def mark_first_tracked_saves(records: list[dict[str, Any]]) -> None:
@@ -828,7 +828,7 @@ def check_entity_tombstones(
     return result
 
 
-_TOMBSTONE = {"deleted": True, "deletion_state": None}
+_TOMBSTONE: dict[str, Any] = {"deleted": True, "deletion_state": None}
 
 
 def _tombstone_states_for_kind(

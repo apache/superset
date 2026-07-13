@@ -90,7 +90,7 @@ from superset.versioning.api_helpers import (
     resolve_endpoint_path_entity,
 )
 
-__all__ = [
+__all__: list[str] = [
     "ActivityParamsError",
     "EntityWindows",
     "PathEntityResponseError",

@@ -159,9 +159,11 @@ class PerfValidationTests(SupersetTestCase):
              accumulator value.
           3. Compute p50 / p95 of the per-save overhead.
 
-        This matches the measurement intent of SC-004 (how much does
-        versioning cost per save) without the fragility of toggling
-        Continuum mid-test.
+        The pass/fail gate uses full save latency, which includes both
+        Continuum's class-level listeners and Superset's listeners attached
+        to ``db.session``. The wrapped Continuum listeners remain a useful
+        diagnostic component without letting unmeasured listeners create a
+        false pass.
         """
         self.login(ADMIN_USERNAME)
 
@@ -169,7 +171,7 @@ class PerfValidationTests(SupersetTestCase):
         assert chart is not None
 
         # Per-save accumulator incremented by the wrapped listeners.
-        acc = [0.0]
+        acc: list[float] = [0.0]
 
         def wrap_listener(original: Any) -> Any:
             def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -193,8 +195,8 @@ class PerfValidationTests(SupersetTestCase):
             sa.event.listen(session_target, event_name, wrapped)
             attached.append((event_name, wrapped))
 
-        iterations = 100
-        warmup = 5
+        iterations: int = 100
+        warmup: int = 5
         try:
             # Warmup (first baseline INSERT, JIT, cache warming).
             for i in range(warmup):
@@ -238,9 +240,9 @@ class PerfValidationTests(SupersetTestCase):
             f"max={overhead['max']:.2f}ms"
         )
 
-        assert overhead["p95"] < SAVE_OVERHEAD_P95_MAX_MS, (
-            f"SC-004 failed: version-capture p95 overhead "
-            f"{overhead['p95']:.2f}ms >= {SAVE_OVERHEAD_P95_MAX_MS}ms"
+        assert total["p95"] < SAVE_OVERHEAD_P95_MAX_MS, (
+            f"SC-004 failed: full save p95 "
+            f"{total['p95']:.2f}ms >= {SAVE_OVERHEAD_P95_MAX_MS}ms"
         )
 
     # ---- T045: Activity-view perf validation -----------------------------
@@ -279,7 +281,7 @@ class PerfValidationTests(SupersetTestCase):
             .filter(Dashboard.dashboard_title.like("USA Births%"))
             .first()
         )
-        dataset = (
+        dataset: SqlaTable | None = (
             db.session.query(SqlaTable)
             .filter(SqlaTable.table_name == "birth_names")
             .first()
@@ -360,7 +362,7 @@ class PerfValidationTests(SupersetTestCase):
         chart = db.session.query(Slice).first()
         assert chart is not None
 
-        acc = [0.0]
+        acc: list[float] = [0.0]
 
         def wrap_listener(original: Any) -> Any:
             def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -381,17 +383,20 @@ class PerfValidationTests(SupersetTestCase):
             sa.event.listen(session_target, event_name, wrapped)
             attached.append((event_name, wrapped))
 
-        iterations = 50
-        warmup = 3
+        iterations: int = 50
+        warmup: int = 3
         try:
             for i in range(warmup):
                 _save_chart_once(chart, f"av_warm_{i}")
                 acc[0] = 0.0
 
+            total_timings: list[float] = []
             overhead_timings: list[float] = []
             for i in range(iterations):
                 acc[0] = 0.0
+                t0: float = time.perf_counter()
                 _save_chart_once(chart, f"av_run_{i}")
+                total_timings.append(time.perf_counter() - t0)
                 overhead_timings.append(acc[0])
         finally:
             for event_name, wrapped in attached:
@@ -402,15 +407,17 @@ class PerfValidationTests(SupersetTestCase):
                     wrapped.__wrapped__,
                 )
 
-        overhead = _timings_ms(overhead_timings)
+        total: dict[str, float] = _timings_ms(total_timings)
+        overhead: dict[str, float] = _timings_ms(overhead_timings)
         print(
-            f"\n[AV-SC-003] save-path overhead with activity-view in scope: "
-            f"p50={overhead['p50']:.2f}ms  p95={overhead['p95']:.2f}ms  "
-            f"max={overhead['max']:.2f}ms"
+            f"\n[AV-SC-003] full save with activity-view in scope: "
+            f"p50={total['p50']:.2f}ms  p95={total['p95']:.2f}ms  "
+            f"max={total['max']:.2f}ms; "
+            f"Continuum component p95={overhead['p95']:.2f}ms"
         )
-        assert overhead["p95"] < SAVE_OVERHEAD_P95_MAX_MS, (
-            f"AV-SC-003 failed: save-path p95 overhead "
-            f"{overhead['p95']:.2f}ms >= {SAVE_OVERHEAD_P95_MAX_MS}ms — "
+        assert total["p95"] < SAVE_OVERHEAD_P95_MAX_MS, (
+            f"AV-SC-003 failed: full save p95 "
+            f"{total['p95']:.2f}ms >= {SAVE_OVERHEAD_P95_MAX_MS}ms — "
             f"the activity-view branch has regressed sc-103156's SC-004 "
             f"budget; check for a new save-path read coupling."
         )

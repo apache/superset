@@ -81,7 +81,10 @@ class TestDashboardActivityView(SupersetTestCase):
     """T017–T026 — ``GET /api/v1/dashboard/<uuid>/activity/`` (US1)."""
 
     @pytest.fixture(autouse=True)
-    def _load_data(self, load_birth_names_dashboard_with_slices):  # noqa: PT004, F811
+    def _load_data(  # noqa: PT004, F811
+        self,
+        load_birth_names_dashboard_with_slices: Any,  # noqa: F811
+    ) -> None:
         pass
 
     def _activity(self, dashboard_uuid: str, **query: Any) -> Any:

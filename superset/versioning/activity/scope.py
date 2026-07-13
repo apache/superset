@@ -63,8 +63,8 @@ def resolve_scope(
     (SQLite/MySQL reuse ``max(id)+1``). ``None`` means the entity has no
     tracked history yet, so the self stream contributes nothing.
     """
-    want_self = include in ("all", "self")
-    want_related = include in ("all", "related")
+    want_self: bool = include in ("all", "self")
+    want_related: bool = include in ("all", "related")
 
     scope: list[EntityWindows] = []
     if want_self and self_start_tx is not None:
@@ -85,7 +85,7 @@ def _resolve_related_scope(
     history.
     """
     if path_kind == "Dashboard":
-        related = _resolve_dashboard_scope(path_id)
+        related: list[EntityWindows] = _resolve_dashboard_scope(path_id)
     elif path_kind == "Slice":
         related = _resolve_chart_scope(path_id)
     else:

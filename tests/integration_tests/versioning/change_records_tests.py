@@ -126,7 +126,10 @@ class TestChartChangeRecords(SupersetTestCase):
     """Change-record capture for chart (Slice) saves."""
 
     @pytest.fixture(autouse=True)
-    def _load_data(self, load_birth_names_dashboard_with_slices):  # noqa: F811, PT004
+    def _load_data(  # noqa: F811, PT004
+        self,
+        load_birth_names_dashboard_with_slices: Any,  # noqa: F811
+    ) -> None:
         pass
 
     def test_single_scalar_edit_produces_one_change_record(self) -> None:
