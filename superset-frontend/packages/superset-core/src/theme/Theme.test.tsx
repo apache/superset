@@ -17,6 +17,7 @@
  * under the License.
  */
 import { theme as antdThemeImport } from 'antd';
+import tinycolor from 'tinycolor2';
 import { Theme } from './Theme';
 import { AnyThemeConfig, ThemeAlgorithm } from './types';
 
@@ -908,4 +909,35 @@ test('colorLink is preserved in setConfig when explicitly set', () => {
 
   expect(theme.theme.colorPrimary).toBe('#f759ab');
   expect(theme.theme.colorLink).toBe('#ff0000');
+});
+
+test('WCAG 1.4.3 — default link tokens meet 4.5:1 contrast on the default background', () => {
+  // No caller config at all: tokens come purely from Ant Design's defaults,
+  // where colorLink lands at #1677ff (~4.32:1 on white). Theme.setConfig
+  // sanitizes the link tokens in this path so the resulting theme delivers a
+  // WCAG-compliant link color out of the box.
+  const theme = Theme.fromConfig();
+  const bg = theme.theme.colorBgContainer;
+
+  expect(
+    tinycolor.readability(theme.theme.colorLink, bg),
+  ).toBeGreaterThanOrEqual(4.5);
+  expect(
+    tinycolor.readability(theme.theme.colorLinkHover, bg),
+  ).toBeGreaterThanOrEqual(4.5);
+  expect(
+    tinycolor.readability(theme.theme.colorLinkActive, bg),
+  ).toBeGreaterThanOrEqual(4.5);
+});
+
+test('WCAG 1.4.3 — explicit brand colorPrimary is left untouched', () => {
+  // When a deployment hard-codes a brand colorPrimary, that intent wins over
+  // the WCAG nudge: the link tokens keep the exact brand value the operator
+  // picked. WCAG compliance for operator-customized themes is the operator's
+  // responsibility — the sanitizer only covers the default theme path.
+  const theme = Theme.fromConfig();
+  theme.setConfig({ token: { colorPrimary: '#f759ab' } });
+
+  expect(theme.theme.colorPrimary).toBe('#f759ab');
+  expect(theme.theme.colorLink).toBe('#f759ab');
 });
