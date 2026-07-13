@@ -724,3 +724,28 @@ class TestTruncateOversizedResponse:
         assert len(result["native_filters"]) == 30
         assert any("charts" in n and "30" in n for n in notes)
         assert any("native_filters" in n and "30" in n for n in notes)
+
+    def test_custom_max_list_items_below_phase_four_survives_phase_four(self) -> None:
+        """A max_list_items below Phase 4's hardcoded 10 should not be widened.
+
+        Phase 2 truncates ``charts`` to 5 first; the response is still over
+        budget because of the oversized ``form_data`` dict, so truncation
+        proceeds to Phase 4, whose ``_truncate_lists(..., max_items=10)``
+        call only shrinks lists larger than 10 — it must leave the
+        already-smaller 5-item list untouched rather than re-expanding it.
+        """
+        response: dict[str, Any] = {
+            "id": 1,
+            "charts": [{"id": i, "slice_name": f"chart_{i}"} for i in range(300)],
+            "form_data": {f"key_{i}": f"val_{i}" for i in range(50)},
+        }
+        result: Any
+        was_truncated: bool
+        notes: list[str]
+        result, was_truncated, notes = truncate_oversized_response(
+            response, 200, max_list_items=5
+        )
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert len(result["charts"]) == 5
+        assert any("form_data" in n for n in notes)

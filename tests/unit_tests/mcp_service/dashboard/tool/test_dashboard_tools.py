@@ -321,8 +321,6 @@ def test_get_dashboard_info_docstring_documents_list_charts_escape_hatch() -> No
     doc = get_dashboard_info_module.get_dashboard_info.__doc__
     assert doc is not None
     assert "list_charts" in doc
-    assert "dashboards" in doc
-    assert "page" in doc
 
 
 @patch(

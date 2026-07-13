@@ -471,9 +471,6 @@ INFO_TOOLS = frozenset(
 
 # Maximum character length for string fields before truncation
 _MAX_STRING_CHARS = 500
-# Maximum items to keep in list fields before truncation (configurable via
-# MCP_RESPONSE_SIZE_CONFIG["max_list_items"])
-_MAX_LIST_ITEMS: int = DEFAULT_MAX_LIST_ITEMS
 # Maximum keys to keep when summarizing large dict fields
 _MAX_DICT_KEYS = 20
 
@@ -541,6 +538,7 @@ def _truncate_lists(data: Dict[str, Any], notes: List[str], max_items: int) -> b
     metadata is communicated through the *notes* list and top-level response
     fields ``_response_truncated`` / ``_truncation_notes``.
     """
+    max_items = max(1, max_items)
     changed = False
     for key, value in data.items():
         if isinstance(value, list) and len(value) > max_items:
@@ -604,7 +602,8 @@ def _is_under_limit(data: Dict[str, Any], token_limit: int) -> bool:
 def truncate_oversized_response(
     response: ToolResponse,
     token_limit: int,
-    max_list_items: int = _MAX_LIST_ITEMS,
+    # Configurable via MCP_RESPONSE_SIZE_CONFIG["max_list_items"]
+    max_list_items: int = DEFAULT_MAX_LIST_ITEMS,
 ) -> tuple[ToolResponse, bool, list[str]]:
     """
     Dynamically truncate large fields in a response to fit within the token limit.

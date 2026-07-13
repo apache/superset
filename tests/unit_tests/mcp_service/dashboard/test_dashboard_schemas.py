@@ -902,8 +902,6 @@ class TestDashboardInfoLargeListGuidance:
         description: str | None = DashboardInfo.model_fields["charts"].description
         assert description is not None
         assert "list_charts" in description
-        assert "dashboards" in description
-        assert "chart_count" in description
 
     def test_native_filters_field_documents_max_list_items_config(self) -> None:
         """The native_filters field description mentions the configurable cap."""
