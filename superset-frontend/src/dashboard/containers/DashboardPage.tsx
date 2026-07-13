@@ -70,7 +70,6 @@ import { AutoRefreshProvider } from '../contexts/AutoRefreshContext';
 import { SupersetApiError } from '@superset-ui/core';
 import { RoutePaths } from 'src/views/routePaths';
 
-
 export const DashboardPageIdContext = createContext('');
 
 const DashboardBuilder = lazy(
