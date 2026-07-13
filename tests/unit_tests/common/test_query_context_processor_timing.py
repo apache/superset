@@ -50,7 +50,7 @@ from superset.common.chart_data_timing import (
     SourceTimingCollector,
 )
 from superset.common.db_query_status import QueryStatus
-from superset.common.query_actions import AcquiredQuery
+from superset.common.query_actions import _metadata_result, AcquiredQuery
 from superset.common.query_context_processor import QueryContextProcessor
 from superset.common.query_object import QueryObject
 from superset.exceptions import QueryObjectValidationError
@@ -355,6 +355,24 @@ def test_current_dependency_trace_survives_missing_historical_trace() -> None:
     assert combined.cache_hit is False
 
 
+def test_metadata_result_records_nested_source_timing() -> None:
+    def render() -> dict[str, Any]:
+        with source_timing(SourceKind.SERIES_LIMIT, SourceProvider.SQL):
+            sum(range(100))
+        return {"query": "SELECT executable"}
+
+    result = _metadata_result(render)
+
+    assert result.payload == {"query": "SELECT executable"}
+    assert result.timing.sources
+    assert result.timing.sources[0].kind == SourceKind.SERIES_LIMIT
+    assert result.timing.source_ns > 0
+    assert (
+        result.timing.source_ns + result.timing.materialization_ns
+        == result.timing.total_ns
+    )
+
+
 @patch("superset.common.query_context_processor.QueryCacheManager")
 def test_dataframe_acquisition_returns_timing_outside_payload(
     cache_manager: MagicMock,
@@ -560,6 +578,7 @@ def test_failed_result_loading_does_not_attempt_cache_write(
 
 def test_command_run_preserves_legacy_payload_without_timing() -> None:
     query_context = MagicMock()
+    query_context.queries = [MagicMock(result_type=None)]
     query_context.result_type = ChartDataResultType.FULL
     query_context.get_payload_result.return_value = QueryContextExecutionResult(
         queries=(QueryDataResult({"data": []}, query_timing()),)
@@ -574,12 +593,14 @@ def test_command_run_preserves_legacy_payload_without_timing() -> None:
 
 def test_nested_chart_commands_emit_telemetry_only_from_outer_owner() -> None:
     inner_context = MagicMock()
+    inner_context.queries = [MagicMock(result_type=None)]
     inner_context.result_type = ChartDataResultType.FULL
     inner_context.get_payload_result.return_value = QueryContextExecutionResult(
         queries=(QueryDataResult({"data": ["inner"]}, query_timing()),)
     )
 
     outer_context = MagicMock()
+    outer_context.queries = [MagicMock(result_type=None)]
     outer_context.result_type = ChartDataResultType.FULL
     outer_timing = query_timing()
 
@@ -602,6 +623,7 @@ def test_nested_chart_commands_emit_telemetry_only_from_outer_owner() -> None:
 def test_failed_chart_command_emits_completed_query_timing() -> None:
     timing = query_timing()
     query_context = MagicMock()
+    query_context.queries = [MagicMock(result_type=None)]
     query_context.result_type = ChartDataResultType.FULL
     query_context.get_payload_result.return_value = QueryContextExecutionResult(
         queries=(QueryDataResult({"error": "database error"}, timing),)
@@ -630,6 +652,7 @@ def test_chart_command_converts_query_validation_failure() -> None:
 
 def test_cache_only_rejects_failed_query_cache_write() -> None:
     query_context = MagicMock()
+    query_context.queries = [MagicMock(result_type=None)]
     query_context.result_type = ChartDataResultType.FULL
     query_context.get_payload_result.return_value = QueryContextExecutionResult(
         queries=(
@@ -656,6 +679,7 @@ def test_cache_only_rejects_failed_query_cache_write() -> None:
 
 def test_cache_only_allows_configuration_skips_for_warmup() -> None:
     query_context = MagicMock()
+    query_context.queries = [MagicMock(result_type=None)]
     query_context.result_type = ChartDataResultType.FULL
     query_context.get_payload_result.return_value = QueryContextExecutionResult(
         queries=(
@@ -676,6 +700,7 @@ def test_cache_only_allows_configuration_skips_for_warmup() -> None:
 
 def test_strict_cache_only_requires_data_and_context_cache() -> None:
     query_context = MagicMock()
+    query_context.queries = [MagicMock(result_type=None)]
     query_context.result_type = ChartDataResultType.FULL
     query_context.get_payload_result.return_value = QueryContextExecutionResult(
         queries=(
@@ -706,8 +731,62 @@ def test_strict_cache_only_requires_data_and_context_cache() -> None:
     )
 
 
+def test_strict_cache_only_rejects_unknown_cache_state() -> None:
+    query_context = MagicMock()
+    query_context.queries = [MagicMock(result_type=None)]
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.get_payload_result.return_value = QueryContextExecutionResult(
+        queries=(
+            QueryDataResult(
+                {"status": "success"},
+                query_timing(
+                    cache_hit=None,
+                    cache_write_outcome=CacheWriteOutcome.NOT_ATTEMPTED,
+                ),
+            ),
+        ),
+        context_cache_write_outcome=CacheWriteOutcome.SUCCEEDED,
+    )
+
+    with pytest.raises(ChartDataQueryFailedError):
+        ChartDataCommand(query_context).execute(
+            ChartDataExecutionOptions(
+                mode=ChartDataExecutionMode.CACHE_ONLY,
+                cache_query_context=True,
+                require_cache_writes=True,
+            )
+        )
+
+
+def test_strict_cache_only_accepts_data_hit_and_context_write() -> None:
+    query_context = MagicMock()
+    query_context.queries = [MagicMock(result_type=None)]
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.get_payload_result.return_value = QueryContextExecutionResult(
+        queries=(
+            QueryDataResult(
+                {"status": "success"},
+                query_timing(
+                    cache_hit=True,
+                    cache_write_outcome=CacheWriteOutcome.NOT_ATTEMPTED,
+                ),
+            ),
+        ),
+        context_cache_write_outcome=CacheWriteOutcome.SUCCEEDED,
+    )
+
+    ChartDataCommand(query_context).execute(
+        ChartDataExecutionOptions(
+            mode=ChartDataExecutionMode.CACHE_ONLY,
+            cache_query_context=True,
+            require_cache_writes=True,
+        )
+    )
+
+
 def test_strict_cache_only_requires_context_cache_after_data_hit() -> None:
     query_context = MagicMock()
+    query_context.queries = [MagicMock(result_type=None)]
     query_context.result_type = ChartDataResultType.FULL
     query_context.get_payload_result.return_value = QueryContextExecutionResult(
         queries=(

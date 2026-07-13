@@ -136,7 +136,9 @@ def get_results(query_object: QueryObject) -> QueryResult:
     main_result = _coerce_empty_result(main_result, main_query)
 
     with source_phase("processing"):
-        main_df = stringify_extension_columns(main_result.results).to_pandas()
+        main_df: pd.DataFrame = stringify_extension_columns(
+            main_result.results
+        ).to_pandas()
 
     # Collect all requests (SQL queries, HTTP requests, etc.) for troubleshooting
     all_requests = list(main_result.requests)

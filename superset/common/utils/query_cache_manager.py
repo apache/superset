@@ -82,7 +82,7 @@ class QueryCacheManager:
         self.annotation_data = {} if annotation_data is None else annotation_data
         self.applied_template_filters = applied_template_filters or []
         self.applied_filter_columns = applied_filter_columns or []
-        self.has_applied_filter_columns = applied_filter_columns is not None
+        self.has_applied_filter_columns: bool = applied_filter_columns is not None
         self.rejected_filter_columns = rejected_filter_columns or []
         self.status = status
         self.error_message = error_message
@@ -94,10 +94,34 @@ class QueryCacheManager:
         self.cache_value = cache_value
         self.sql_rowcount = sql_rowcount
         self.queried_dttm = queried_dttm
-        self.source_trace = source_trace
-        self.cache_write_outcome = CacheWriteOutcome.NOT_ATTEMPTED
+        self.source_trace: tuple[SourceTiming, ...] | None = source_trace
+        self.cache_write_outcome: CacheWriteOutcome = CacheWriteOutcome.NOT_ATTEMPTED
         self.bq_memory_limited: bool = False
         self.bq_memory_limited_row_count: int = 0
+
+    def discard_loaded_value(self) -> None:
+        """Clear every field derived from a loaded cache or source result."""
+
+        self.df = DataFrame()
+        self.query = ""
+        self.annotation_data = {}
+        self.applied_template_filters = []
+        self.applied_filter_columns = []
+        self.has_applied_filter_columns = False
+        self.rejected_filter_columns = []
+        self.status = None
+        self.error_message = None
+        self.is_loaded = False
+        self.stacktrace = None
+        self.is_cached = None
+        self.cache_dttm = None
+        self.cache_value = None
+        self.sql_rowcount = None
+        self.queried_dttm = None
+        self.source_trace = None
+        self.cache_write_outcome = CacheWriteOutcome.NOT_ATTEMPTED
+        self.bq_memory_limited = False
+        self.bq_memory_limited_row_count = 0
 
     # pylint: disable=too-many-arguments
     def set_query_result(
@@ -201,7 +225,7 @@ class QueryCacheManager:
         if not self.is_loaded or not key or self.status == QueryStatus.FAILED:
             self.cache_write_outcome = CacheWriteOutcome.NOT_ATTEMPTED
             return self.cache_write_outcome
-        value = {
+        value: dict[str, Any] = {
             "df": self.df,
             "query": self.query,
             "applied_template_filters": self.applied_template_filters,
@@ -240,7 +264,8 @@ class QueryCacheManager:
         if not key or not _cache[region] or force_query:
             return query_cache
 
-        if cache_value := _cache[region].get(key):
+        cache_value: dict[str, Any] | None = _cache[region].get(key)
+        if cache_value:
             logger.debug("Cache key: %s", key)
             # Log cache hit for debugging
             logger.debug("CACHE GET - Key: %s, Region: %s", key, region)

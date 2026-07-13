@@ -37,7 +37,7 @@ MAX_SOURCE_TRACE_NODES = 64
 
 SourcePhase = Literal["planning", "execution", "processing"]
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class SourceKind(str, Enum):
@@ -74,7 +74,7 @@ class CacheWriteOutcome(str, Enum):
     NOT_ATTEMPTED = "not_attempted"
 
 
-_CACHE_WRITE_OUTCOME_PRIORITY = {
+_CACHE_WRITE_OUTCOME_PRIORITY: dict[CacheWriteOutcome, int] = {
     CacheWriteOutcome.NOT_ATTEMPTED: 0,
     CacheWriteOutcome.SUCCEEDED: 1,
     CacheWriteOutcome.SKIPPED: 2,

@@ -33,6 +33,7 @@ from superset.common.chart_data_timing import (
     ChartDataExecutionResult,
     emit_query_timing,
 )
+from superset.common.query_actions import get_effective_result_type
 from superset.common.query_context import QueryContext
 from superset.exceptions import CacheLoadError, QueryObjectValidationError
 
@@ -98,10 +99,13 @@ class ChartDataCommand(BaseCommand):
                     emit_query_timing(query.timing)
 
             # Query-only errors remain in the payload for the View Query modal.
-            for query in result.queries:
+            for query_obj, query in zip(
+                self._query_context.queries, result.queries, strict=True
+            ):
+                result_type = get_effective_result_type(self._query_context, query_obj)
                 if (
                     query.payload.get("error")
-                    and self._query_context.result_type != ChartDataResultType.QUERY
+                    and result_type != ChartDataResultType.QUERY
                 ):
                     raise ChartDataQueryFailedError(
                         _("Error: %(error)s", error=query.payload["error"])
@@ -112,7 +116,7 @@ class ChartDataCommand(BaseCommand):
                     query.timing.cache_write_outcome == CacheWriteOutcome.FAILED
                     or (
                         options.require_cache_writes
-                        and query.timing.cache_hit is False
+                        and query.timing.cache_hit is not True
                         and query.timing.cache_write_outcome
                         != CacheWriteOutcome.SUCCEEDED
                     )

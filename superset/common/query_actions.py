@@ -26,12 +26,14 @@ from flask_babel import _
 
 from superset.common.chart_data import ChartDataResultType
 from superset.common.chart_data_timing import (
+    active_source_collector,
     CacheWriteOutcome,
     combine_acquisition_timings,
     QueryAcquisitionResult,
     QueryAcquisitionTiming,
     QueryDataResult,
     SourceKind,
+    SourceTimingCollector,
 )
 from superset.common.db_query_status import QueryStatus
 from superset.exceptions import QueryObjectValidationError, SupersetParseError
@@ -54,19 +56,30 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_DATA_RESULT_TYPES = {
-    ChartDataResultType.FULL,
-    ChartDataResultType.RESULTS,
-    ChartDataResultType.POST_PROCESSED,
-    ChartDataResultType.SAMPLES,
-    ChartDataResultType.DRILL_DETAIL,
-}
+_DATA_RESULT_TYPES: frozenset[ChartDataResultType] = frozenset(
+    {
+        ChartDataResultType.FULL,
+        ChartDataResultType.RESULTS,
+        ChartDataResultType.POST_PROCESSED,
+        ChartDataResultType.SAMPLES,
+        ChartDataResultType.DRILL_DETAIL,
+    }
+)
 
 
 def is_data_result_type(result_type: ChartDataResultType) -> bool:
     """Return whether a result type requires dataframe acquisition."""
 
     return result_type in _DATA_RESULT_TYPES
+
+
+def get_effective_result_type(
+    query_context: QueryContext,
+    query_obj: QueryObject,
+) -> ChartDataResultType:
+    """Resolve a query-level result override against its context default."""
+
+    return query_obj.result_type or query_context.result_type
 
 
 @dataclass(frozen=True)
@@ -205,7 +218,7 @@ def _materialize_full(
     """Materialize one acquired dataframe and complete its timing sidecar."""
     materialization_start_ns = time.perf_counter_ns()
     datasource = _get_datasource(query_context, query_obj)
-    result_type = query_obj.result_type or query_context.result_type
+    result_type = get_effective_result_type(query_context, query_obj)
     payload = acquisition.payload
     df = payload["df"]
     status = payload["status"]
@@ -256,18 +269,33 @@ def _materialize_full(
     )
 
 
-def _metadata_result(payload: dict[str, Any]) -> QueryDataResult:
+def _metadata_result(render: Callable[[], dict[str, Any]]) -> QueryDataResult:
+    """Render metadata while retaining datasource work in the timing sidecar."""
+
+    start_ns = time.perf_counter_ns()
+    parent_collector = active_source_collector()
+    collector = SourceTimingCollector()
+    token = collector.activate()
+    try:
+        payload = render()
+    finally:
+        SourceTimingCollector.deactivate(token)
+    elapsed_ns = max(0, time.perf_counter_ns() - start_ns)
+    sources = collector.snapshot()
+    if parent_collector is not None:
+        parent_collector.attach(sources)
+    source_ns = min(elapsed_ns, sum(source.total_ns for source in sources))
     return QueryDataResult(
         payload=payload,
         timing=QueryAcquisitionTiming(
             cache_key_ns=0,
             cache_read_ns=0,
-            source_ns=0,
+            source_ns=source_ns,
             cache_write_ns=None,
             cache_write_outcome=CacheWriteOutcome.NOT_ATTEMPTED,
             cache_hit=None,
-            sources=(),
-        ).materialized(0),
+            sources=sources,
+        ).materialized(elapsed_ns - source_ns),
     )
 
 
@@ -419,7 +447,9 @@ def get_query_results_with_timing(
     ):
         return materialize_acquired_query(query_context, acquired)
     if result_func := _result_type_functions.get(result_type):
-        return _metadata_result(result_func(query_context, query_obj, force_cached))
+        return _metadata_result(
+            lambda: result_func(query_context, query_obj, force_cached)
+        )
     raise QueryObjectValidationError(
         _("Invalid result type: %(result_type)s", result_type=result_type)
     )
@@ -441,7 +471,7 @@ def get_query_results_cache_only(
         return cache_acquired_query(acquired)
 
     if result_func := _result_type_functions.get(result_type):
-        return _metadata_result(result_func(query_context, query_obj, False))
+        return _metadata_result(lambda: result_func(query_context, query_obj, False))
     raise QueryObjectValidationError(
         _("Invalid result type: %(result_type)s", result_type=result_type)
     )

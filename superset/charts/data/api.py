@@ -61,6 +61,10 @@ from superset.common.chart_data_timing import (
     ChartDataExecutionResult,
     project_query_timing,
 )
+from superset.common.query_actions import (
+    get_effective_result_type,
+    is_data_result_type,
+)
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.daos.exceptions import DatasourceNotFound
@@ -81,6 +85,15 @@ if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
 
 logger = logging.getLogger(__name__)
+
+
+def _supports_async_execution(query_context: QueryContext) -> bool:
+    """Return whether every query can be fulfilled through the data cache."""
+
+    return bool(query_context.queries) and all(
+        is_data_result_type(get_effective_result_type(query_context, query))
+        for query in query_context.queries
+    )
 
 
 class ChartDataRestApi(ChartRestApi):
@@ -252,6 +265,7 @@ class ChartDataRestApi(ChartRestApi):
             is_feature_enabled("GLOBAL_ASYNC_QUERIES")
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL
+            and _supports_async_execution(query_context)
             and cache_timeout != CACHE_DISABLED_TIMEOUT
         )
         if use_async:
@@ -359,6 +373,7 @@ class ChartDataRestApi(ChartRestApi):
             is_feature_enabled("GLOBAL_ASYNC_QUERIES")
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL
+            and _supports_async_execution(query_context)
             and cache_timeout != CACHE_DISABLED_TIMEOUT
         )
         if use_async:

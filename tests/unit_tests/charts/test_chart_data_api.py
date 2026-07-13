@@ -22,7 +22,10 @@ from unittest.mock import MagicMock, patch
 
 from flask import Flask, g, Response
 
-from superset.charts.data.api import ChartDataRestApi
+from superset.charts.data.api import (
+    _supports_async_execution,
+    ChartDataRestApi,
+)
 from superset.charts.data.dashboard_filter_context import (
     apply_dashboard_filter_context,
 )
@@ -309,6 +312,20 @@ def test_chart_response_projects_timing_without_mutating_execution() -> None:
     assert payload["result"][0]["timing"]["version"] == 1
     assert payload["result"][0]["timing"]["query"]["total_ms"] == 10.0
     assert "timing" not in execution.queries[0].payload
+
+
+def test_async_execution_requires_nonempty_data_backed_queries() -> None:
+    query_context = MagicMock()
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.queries = []
+
+    assert _supports_async_execution(query_context) is False
+
+    query_context.queries = [MagicMock(result_type=None)]
+    assert _supports_async_execution(query_context) is True
+
+    query_context.queries.append(MagicMock(result_type=ChartDataResultType.QUERY))
+    assert _supports_async_execution(query_context) is False
 
 
 def test_async_cache_lookup_uses_typed_execution_options() -> None:

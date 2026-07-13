@@ -23,9 +23,16 @@ import pandas as pd
 import pytest
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-from superset.common.chart_data_timing import CacheWriteOutcome
+from superset.common.chart_data_timing import (
+    CacheWriteOutcome,
+    SourceKind,
+    SourceOrigin,
+    SourceProvider,
+    SourceTiming,
+)
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_context_processor import QueryContextProcessor
+from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.utils.core import GenericDataType
 
 
@@ -1360,7 +1367,60 @@ def test_force_cached_normalizes_totals_query_row_limit():
     mock_query_context.get_query_result.assert_not_called()
 
 
-def test_get_df_payload_invalidates_cache_missing_applied_filter_columns():
+def test_query_cache_manager_discards_every_loaded_value() -> None:
+    source = SourceTiming(
+        kind=SourceKind.PRIMARY,
+        provider=SourceProvider.SQL,
+        origin=SourceOrigin.CACHE,
+        total_ns=1,
+    )
+    cache = QueryCacheManager(
+        df=pd.DataFrame({"stale": [1]}),
+        query="SELECT stale",
+        annotation_data={"stale": [1]},
+        applied_template_filters=["stale"],
+        applied_filter_columns=["stale"],
+        rejected_filter_columns=["stale"],
+        status=QueryStatus.SUCCESS,
+        error_message="stale error",
+        is_loaded=True,
+        stacktrace="stale trace",
+        is_cached=True,
+        cache_dttm="2024-01-01T00:00:00",
+        cache_value={"stale": True},
+        sql_rowcount=1,
+        queried_dttm="2024-01-01T00:00:00",
+        source_trace=(source,),
+    )
+    cache.cache_write_outcome = CacheWriteOutcome.SUCCEEDED
+    cache.bq_memory_limited = True
+    cache.bq_memory_limited_row_count = 1
+
+    cache.discard_loaded_value()
+
+    assert cache.df.empty
+    assert cache.query == ""
+    assert cache.annotation_data == {}
+    assert cache.applied_template_filters == []
+    assert cache.applied_filter_columns == []
+    assert cache.has_applied_filter_columns is False
+    assert cache.rejected_filter_columns == []
+    assert cache.status is None
+    assert cache.error_message is None
+    assert cache.is_loaded is False
+    assert cache.stacktrace is None
+    assert cache.is_cached is None
+    assert cache.cache_dttm is None
+    assert cache.cache_value is None
+    assert cache.sql_rowcount is None
+    assert cache.queried_dttm is None
+    assert cache.source_trace is None
+    assert cache.cache_write_outcome == CacheWriteOutcome.NOT_ATTEMPTED
+    assert cache.bq_memory_limited is False
+    assert cache.bq_memory_limited_row_count == 0
+
+
+def test_get_df_payload_invalidates_all_stale_cache_data() -> None:
     """
     Test that get_df_payload invalidates cache when cache is loaded but missing
     applied_filter_columns and query has filters.
@@ -1382,40 +1442,29 @@ def test_get_df_payload_invalidates_cache_missing_applied_filter_columns():
     # Create query object with filters (note: `filters` kwarg, not `filter`)
     query_obj = QueryObject(
         datasource=mock_datasource,
-        columns=["col1"],
+        columns=["missing"],
         filters=[{"col": "col1", "op": "IN", "val": ["value1"]}],
     )
 
-    # Simple cache class that tracks is_loaded changes
-    class MockCache:
-        def __init__(self):
-            self.is_loaded = True
-            self.applied_filter_columns = []  # Empty = missing
-            self.has_applied_filter_columns = False
-            self.source_trace = None
-            self.df = pd.DataFrame()
-            self.query = ""
-            self.status = "success"
-            self.cache_dttm = "2024-01-01T00:00:00"
-            self.queried_dttm = "2024-01-01T00:00:00"
-            self.stacktrace = None
-            self.error_message = None
-            self.is_cached = True
-            self.sql_rowcount = 0
-            self.cache_value = None
-            self.cache_timeout = 3600
-            self.datasource_uid = "test_datasource"
-            self.applied_template_filters = []
-            self.rejected_filter_columns = []
-            self.annotation_data = {}
-            self.bq_memory_limited = False
-            self.bq_memory_limited_row_count = 0
-            self.load_query_result = MagicMock()
-            self.write_query_result_with_outcome = MagicMock(
-                return_value=CacheWriteOutcome.SUCCEEDED
-            )
-
-    mock_cache = MockCache()
+    mock_cache = QueryCacheManager(
+        df=pd.DataFrame({"stale": [1]}),
+        query="SELECT stale",
+        annotation_data={"stale": [1]},
+        applied_template_filters=["stale"],
+        rejected_filter_columns=["stale"],
+        status=QueryStatus.SUCCESS,
+        error_message="stale error",
+        is_loaded=True,
+        stacktrace="stale trace",
+        is_cached=True,
+        cache_dttm="2024-01-01T00:00:00",
+        cache_value={"stale": True},
+        sql_rowcount=1,
+        queried_dttm="2024-01-01T00:00:00",
+    )
+    mock_cache.has_applied_filter_columns = False
+    mock_cache.bq_memory_limited = True
+    mock_cache.bq_memory_limited_row_count = 1
 
     with patch(
         "superset.common.query_context_processor.QueryCacheManager"
@@ -1427,16 +1476,18 @@ def test_get_df_payload_invalidates_cache_missing_applied_filter_columns():
             with patch.object(processor, "query_cache_key", return_value="key"):
                 with patch.object(processor, "get_cache_timeout", return_value=3600):
                     # Call get_df_payload - should invalidate cache
-                    processor.get_df_payload(query_obj, force_cached=False)
+                    result = processor.get_df_payload(query_obj, force_cached=False)
 
-    # Verify cache was invalidated
-    assert mock_cache.is_loaded is False, (
-        "Cache should be inv when no applied_filter_columns and query has filters"
-    )
-    assert mock_cache.is_cached is None
-    assert mock_cache.cache_dttm is None
-    assert mock_cache.cache_value is None
-    assert mock_cache.queried_dttm is None
+    assert result["status"] == QueryStatus.FAILED
+    assert "missing" in result["error"]
+    assert result["query"] == ""
+    assert result["rowcount"] == 0
+    assert result["annotation_data"] == {}
+    assert result["applied_template_filters"] == []
+    assert result["rejected_filter_columns"] == []
+    assert result["sql_rowcount"] is None
+    assert result["stacktrace"] is None
+    assert result["warning"] is None
 
 
 def test_get_df_payload_bq_memory_limited_warning() -> None:

@@ -47,6 +47,7 @@ from superset.common.query_actions import (
     acquire_query_data,
     AcquiredQuery,
     cache_acquired_query,
+    get_effective_result_type,
     get_query_results_cache_only,
     get_query_results_with_timing,
     is_data_result_type,
@@ -155,11 +156,7 @@ class QueryContextProcessor:
             and query_obj.filter
             and len(query_obj.filter) > 0
         ):
-            cache.is_loaded = False
-            cache.is_cached = None
-            cache.cache_dttm = None
-            cache.cache_value = None
-            cache.queried_dttm = None
+            cache.discard_loaded_value()
 
         source_ns = 0
         cache_write_ns: int | None = None
@@ -448,7 +445,7 @@ class QueryContextProcessor:
 
         contribution_plan = self._contribution_plan()
         requested_result_types = {
-            query_idx: query.result_type or self._query_context.result_type
+            query_idx: get_effective_result_type(self._query_context, query)
             for query_idx, query in enumerate(self._query_context.queries)
         }
         (

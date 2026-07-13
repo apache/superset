@@ -31,9 +31,16 @@ from superset.common.chart_data_timing import (
 from superset.common.query_context import QueryContext
 
 
-def set_command_payload(query_context: Mock) -> None:
+def set_command_payload(
+    query_context: Mock,
+    result_types: list[ChartDataResultType | None] | None = None,
+) -> None:
     """Translate the legacy fixture shape to the typed command boundary."""
     payload = query_context.get_payload.return_value
+    effective_result_types = result_types or [None] * len(payload["queries"])
+    query_context.queries = [
+        Mock(result_type=result_type) for result_type in effective_result_types
+    ]
     timing = QueryAcquisitionTiming(
         cache_key_ns=0,
         cache_read_ns=0,
@@ -237,6 +244,33 @@ def test_full_result_type_fails_fast_on_first_error_in_multiple_queries() -> Non
         command.run()
 
     assert "First query failed" in str(exc_info.value)
+
+
+def test_mixed_query_result_type_preserves_metadata_error() -> None:
+    """A query-level metadata override controls its own error contract."""
+    mock_query_context = Mock(spec=QueryContext)
+    mock_query_context.result_type = ChartDataResultType.FULL
+    mock_query_context.get_payload.return_value = {
+        "queries": [{"error": "Missing temporal column", "language": "sql"}]
+    }
+    set_command_payload(mock_query_context, [ChartDataResultType.QUERY])
+
+    result = ChartDataCommand(mock_query_context).run()
+
+    assert result["queries"][0]["error"] == "Missing temporal column"
+
+
+def test_mixed_data_result_type_raises_under_metadata_context() -> None:
+    """A query-level data override must not inherit metadata error suppression."""
+    mock_query_context = Mock(spec=QueryContext)
+    mock_query_context.result_type = ChartDataResultType.QUERY
+    mock_query_context.get_payload.return_value = {
+        "queries": [{"error": "Database connection failed"}]
+    }
+    set_command_payload(mock_query_context, [ChartDataResultType.FULL])
+
+    with pytest.raises(ChartDataQueryFailedError, match="Database connection failed"):
+        ChartDataCommand(mock_query_context).run()
 
 
 def test_get_query_catches_parsing_error() -> None:
