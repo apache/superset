@@ -42,7 +42,7 @@
     "tscw-config": "^1.1.2",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.62.1",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.10"
   },
   "engines": {
     "node": "^24.16.0",
