@@ -55,6 +55,52 @@ from superset.sql.parse import SQLScript
 logger = logging.getLogger(__name__)
 
 
+async def _validate_non_destructive_sql(
+    request: ExecuteSqlRequest,
+    ctx: Context,
+    database: Any,
+    sql_preview: str,
+) -> ExecuteSqlResponse | None:
+    """Return an error response when SQL cannot safely be executed."""
+    with event_logger.log_context(action="mcp.execute_sql.ddl_check"):
+        try:
+            sql_to_check = request.sql
+            if request.template_params:
+                from superset.jinja_context import get_template_processor
+
+                tp = get_template_processor(database=database)
+                sql_to_check = tp.process_template(
+                    request.sql, **request.template_params
+                )
+
+            script = SQLScript(sql_to_check, database.db_engine_spec.engine)
+            if script.has_destructive():
+                await ctx.error("Destructive DDL blocked: sql_preview=%r" % sql_preview)
+                return ExecuteSqlResponse(
+                    success=False,
+                    error=(
+                        "Destructive DDL statements (DROP, TRUNCATE, ALTER) "
+                        "are not allowed through MCP. Use the Superset SQL "
+                        "Lab UI for administrative database operations."
+                    ),
+                    error_type=SupersetErrorType.DML_NOT_ALLOWED_ERROR.value,
+                )
+        except Exception as parse_err:
+            await ctx.error(
+                "DDL pre-check failed to parse SQL, blocking query: %s" % str(parse_err)
+            )
+            return ExecuteSqlResponse(
+                success=False,
+                error=(
+                    "SQL could not be parsed for security validation. "
+                    "Please check your SQL syntax and try again."
+                ),
+                error_type=SupersetErrorType.INVALID_SQL_ERROR.value,
+            )
+
+    return None
+
+
 @tool(
     tags=["mutate"],
     class_permission_name="SQLLab",
@@ -122,44 +168,11 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
         # Fail-closed: if parsing fails, block the query rather than
         # allowing potentially destructive SQL to bypass the check.
         # Render Jinja2 templates first so templated SQL can be parsed.
-        with event_logger.log_context(action="mcp.execute_sql.ddl_check"):
-            try:
-                sql_to_check = request.sql
-                if request.template_params:
-                    from superset.jinja_context import get_template_processor
-
-                    tp = get_template_processor(database=database)
-                    sql_to_check = tp.process_template(
-                        request.sql, **request.template_params
-                    )
-
-                script = SQLScript(sql_to_check, database.db_engine_spec.engine)
-                if script.has_destructive():
-                    await ctx.error(
-                        "Destructive DDL blocked: sql_preview=%r" % sql_preview
-                    )
-                    return ExecuteSqlResponse(
-                        success=False,
-                        error=(
-                            "Destructive DDL statements (DROP, TRUNCATE, ALTER) "
-                            "are not allowed through MCP. Use the Superset SQL "
-                            "Lab UI for administrative database operations."
-                        ),
-                        error_type=SupersetErrorType.DML_NOT_ALLOWED_ERROR.value,
-                    )
-            except Exception as parse_err:
-                await ctx.error(
-                    "DDL pre-check failed to parse SQL, blocking query: %s"
-                    % str(parse_err)
-                )
-                return ExecuteSqlResponse(
-                    success=False,
-                    error=(
-                        "SQL could not be parsed for security validation. "
-                        "Please check your SQL syntax and try again."
-                    ),
-                    error_type=SupersetErrorType.INVALID_SQL_ERROR.value,
-                )
+        validation_error = await _validate_non_destructive_sql(
+            request, ctx, database, sql_preview
+        )
+        if validation_error is not None:
+            return validation_error
 
         # 3. Build QueryOptions and execute query
         cache_opts = CacheOptions(force_refresh=True) if request.force_refresh else None
