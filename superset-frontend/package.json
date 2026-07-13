@@ -365,7 +365,7 @@
     "swc-loader": "^0.2.7",
     "ts-jest": "^29.4.11",
     "tscw-config": "^1.1.2",
-    "tsx": "^4.22.5",
+    "tsx": "^4.23.0",
     "typescript": "5.4.5",
     "unzipper": "^0.12.5",
     "vm-browserify": "^1.1.2",
