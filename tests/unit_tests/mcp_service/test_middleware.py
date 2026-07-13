@@ -476,6 +476,25 @@ class TestCreateResponseSizeGuardMiddleware:
         assert middleware is not None
         assert middleware.max_list_items == DEFAULT_MAX_LIST_ITEMS
 
+    def test_falls_back_to_default_when_max_list_items_is_non_numeric(self) -> None:
+        """A non-numeric config value (e.g. a typo in superset_config.py)
+        should fall back to the default instead of raising ValueError and
+        aborting middleware initialization.
+        """
+        mock_config = {"enabled": True, "max_list_items": "many"}
+
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_config
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            middleware = create_response_size_guard_middleware()
+
+        assert middleware is not None
+        assert middleware.max_list_items == DEFAULT_MAX_LIST_ITEMS
+
     def test_handles_exception_gracefully(self) -> None:
         """Should return None on expected configuration exceptions."""
         with patch(

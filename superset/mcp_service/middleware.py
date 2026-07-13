@@ -1426,6 +1426,27 @@ class ResponseSizeGuardMiddleware(Middleware):
         return response
 
 
+def _safe_int_config(config: Dict[str, Any], key: str, default: int) -> int:
+    """Best-effort int coercion for MCP_RESPONSE_SIZE_CONFIG values.
+
+    Falls back to ``default`` (with a warning log) when the configured value
+    can't be converted to an int, so a malformed ``superset_config.py``
+    setting doesn't crash middleware initialization.
+    """
+    value = config.get(key, default)
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        logger.warning(
+            "Invalid %s in MCP_RESPONSE_SIZE_CONFIG: %r is not a valid integer; "
+            "falling back to default %d",
+            key,
+            value,
+            default,
+        )
+        return default
+
+
 def create_response_size_guard_middleware() -> ResponseSizeGuardMiddleware | None:
     """
     Factory function to create ResponseSizeGuardMiddleware from config.
@@ -1451,17 +1472,17 @@ def create_response_size_guard_middleware() -> ResponseSizeGuardMiddleware | Non
             logger.info("Response size guard is disabled")
             return None
 
-        max_list_items = config.get("max_list_items", DEFAULT_MAX_LIST_ITEMS)
-        if max_list_items is None:
-            max_list_items = DEFAULT_MAX_LIST_ITEMS
+        max_list_items: int = _safe_int_config(
+            config, "max_list_items", DEFAULT_MAX_LIST_ITEMS
+        )
 
         middleware = ResponseSizeGuardMiddleware(
-            token_limit=int(config.get("token_limit", DEFAULT_TOKEN_LIMIT)),
-            warn_threshold_pct=int(
-                config.get("warn_threshold_pct", DEFAULT_WARN_THRESHOLD_PCT)
+            token_limit=_safe_int_config(config, "token_limit", DEFAULT_TOKEN_LIMIT),
+            warn_threshold_pct=_safe_int_config(
+                config, "warn_threshold_pct", DEFAULT_WARN_THRESHOLD_PCT
             ),
             excluded_tools=config.get("excluded_tools"),
-            max_list_items=int(max_list_items),
+            max_list_items=max_list_items,
         )
 
         logger.info(

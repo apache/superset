@@ -678,6 +678,17 @@ class TestTruncateOversizedResponse:
         assert result["id"] == 1  # Scalar fields preserved
         assert len(notes) > 0
 
+    @staticmethod
+    def _build_large_dashboard_response() -> dict[str, Any]:
+        """A dashboard with 463 charts and 48 native_filters, shared by the
+        default- and custom-max_list_items regression tests below."""
+        return {
+            "id": 1,
+            "dashboard_title": "x" * 2000,  # forces Phase 2 to trigger
+            "charts": [{"id": i, "slice_name": f"chart_{i}"} for i in range(463)],
+            "native_filters": [{"id": i, "name": f"filter_{i}"} for i in range(48)],
+        }
+
     def test_large_dashboard_respects_default_max_list_items(self) -> None:
         """Regression test for the Medialab large-dashboard report.
 
@@ -686,12 +697,7 @@ class TestTruncateOversizedResponse:
         of 100, while charts (463 items) is truncated to 100 — a clear
         improvement over the old flat 30-item cap, which truncated both.
         """
-        response: dict[str, Any] = {
-            "id": 1,
-            "dashboard_title": "x" * 2000,  # forces Phase 2 to trigger
-            "charts": [{"id": i, "slice_name": f"chart_{i}"} for i in range(463)],
-            "native_filters": [{"id": i, "name": f"filter_{i}"} for i in range(48)],
-        }
+        response = self._build_large_dashboard_response()
         result, was_truncated, notes = truncate_oversized_response(response, 3000)
         assert was_truncated is True
         assert isinstance(result, dict)
@@ -702,12 +708,7 @@ class TestTruncateOversizedResponse:
 
     def test_large_dashboard_respects_custom_max_list_items(self) -> None:
         """A custom max_list_items below both list sizes should truncate both fields."""
-        response: dict[str, Any] = {
-            "id": 1,
-            "dashboard_title": "x" * 2000,
-            "charts": [{"id": i, "slice_name": f"chart_{i}"} for i in range(463)],
-            "native_filters": [{"id": i, "name": f"filter_{i}"} for i in range(48)],
-        }
+        response = self._build_large_dashboard_response()
         result, was_truncated, notes = truncate_oversized_response(
             response, 3000, max_list_items=30
         )
