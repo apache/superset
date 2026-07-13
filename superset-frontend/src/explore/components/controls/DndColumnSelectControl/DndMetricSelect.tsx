@@ -287,14 +287,26 @@ const DndMetricSelect = (props: any) => {
 
   const moveLabel = useCallback(
     (dragIndex: number, hoverIndex: number) => {
+      if (
+        dragIndex === hoverIndex ||
+        dragIndex < 0 ||
+        hoverIndex < 0 ||
+        dragIndex >= value.length ||
+        hoverIndex >= value.length
+      ) {
+        return;
+      }
       const newValues = [...value];
-      [newValues[hoverIndex], newValues[dragIndex]] = [
-        newValues[dragIndex],
-        newValues[hoverIndex],
-      ];
+      const [moved] = newValues.splice(dragIndex, 1);
+      newValues.splice(hoverIndex, 0, moved);
       setValue(newValues);
+      // Commit the freshly reordered array here rather than in handleDropLabel.
+      // resolveDragEnd fires the reorder callback and the drop-commit in the
+      // same synchronous tick, so a drop-commit that closes over `value` would
+      // re-commit the stale pre-drag order and revert the reorder on reload.
+      handleChange(newValues);
     },
-    [value],
+    [handleChange, value],
   );
 
   const newSavedMetricOptions = useMemo(
@@ -312,10 +324,10 @@ const DndMetricSelect = (props: any) => {
     [props.savedMetrics, props.value],
   );
 
-  const handleDropLabel = useCallback(
-    () => onChange(multi ? value : value[0]),
-    [multi, onChange, value],
-  );
+  // moveLabel already commits the reordered array via handleChange. The drop
+  // event is a no-op so it cannot re-commit the stale pre-drag `value` that its
+  // closure would otherwise capture (see resolveDragEnd + moveLabel above).
+  const handleDropLabel = useCallback(() => {}, []);
 
   const valueRenderer = useCallback(
     (option: ValueType, index: number) => (
