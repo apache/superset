@@ -38,6 +38,12 @@ def set_execute_payload(
     mock_chart_data_command.return_value.execute.return_value = execution
 
 
+def assert_cache_only_execution(mock_chart_data_command: Mock) -> None:
+    mock_chart_data_command.return_value.execute.assert_called_once_with(
+        ChartDataExecutionOptions(mode=ChartDataExecutionMode.CACHE_ONLY)
+    )
+
+
 @pytest.fixture(autouse=True)
 def mock_security_manager():
     with patch("superset.commands.chart.warm_up_cache.security_manager"):
@@ -101,9 +107,7 @@ def test_applies_dashboard_filters_to_non_legacy_chart(
 
             # VALIDATE: Result is correct
             assert result["chart_id"] == 123
-            mock_chart_data_command.return_value.execute.assert_called_once_with(
-                ChartDataExecutionOptions(mode=ChartDataExecutionMode.CACHE_ONLY)
-            )
+            assert_cache_only_execution(mock_chart_data_command)
 
 
 @patch("superset.commands.chart.warm_up_cache.ChartDataCommand")
@@ -141,6 +145,7 @@ def test_no_filters_applied_without_dashboard_id(mock_chart_data_command):
             assert mock_query.filter == [
                 {"col": "existing", "op": "==", "val": "filter"}
             ], "Existing filters should be unchanged"
+            assert_cache_only_execution(mock_chart_data_command)
 
 
 @patch("superset.commands.chart.warm_up_cache.get_dashboard_extra_filters")
@@ -182,6 +187,7 @@ def test_extra_filters_parameter_takes_precedence(
             # VALIDATE: extra_filters were parsed and applied
             assert len(mock_query.filter) == 1
             assert mock_query.filter[0] == {"col": "state", "op": "==", "val": "CA"}
+            assert_cache_only_execution(mock_chart_data_command)
 
 
 @patch("superset.commands.chart.warm_up_cache.get_dashboard_extra_filters")
@@ -232,6 +238,7 @@ def test_handles_multiple_queries_in_query_context(
             assert len(mock_query2.filter) == 1, "Filter should be added to query 2"
             assert mock_query1.filter[0]["col"] == "country"
             assert mock_query2.filter[0]["col"] == "country"
+            assert_cache_only_execution(mock_chart_data_command)
 
 
 @patch("superset.commands.chart.warm_up_cache.get_dashboard_extra_filters")
@@ -275,6 +282,7 @@ def test_handles_empty_dashboard_filters(
             assert mock_get_dashboard_filters.called, (
                 "Should still call get_dashboard_extra_filters"
             )
+            assert_cache_only_execution(mock_chart_data_command)
 
 
 @patch("superset.commands.chart.warm_up_cache.ChartDataCommand")
@@ -495,6 +503,7 @@ def test_non_legacy_chart_returns_first_error(mock_chart_data_command):
             assert result["chart_id"] == 132
             assert result["viz_error"] == "Database connection failed"
             assert result["viz_status"] == "failed"
+            assert_cache_only_execution(mock_chart_data_command)
 
 
 @patch("superset.commands.chart.warm_up_cache.db")

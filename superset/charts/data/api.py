@@ -636,12 +636,7 @@ class ChartDataRestApi(ChartRestApi):
         except ChartDataQueryFailedError as exc:
             return self.response_400(message=exc.message)
 
-            # Log is_cached if extra payload callback is provided
-        if add_extra_log_payload:
-            is_cached_values = [
-                query.payload.get("is_cached") for query in result.queries
-            ]
-            add_extra_log_payload(is_cached=is_cached_values)
+        self._log_is_cached(result, add_extra_log_payload)
 
         return self._send_chart_response(
             result,

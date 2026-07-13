@@ -251,7 +251,9 @@ def test_extract_export_filename_all_special_falls_back_to_none() -> None:
     assert _extract_filename("***") is None
 
 
-def _chart_execution_result() -> ChartDataExecutionResult:
+def _chart_execution_result(
+    cache_values: tuple[bool | None, ...] = (False,),
+) -> ChartDataExecutionResult:
     query_context = MagicMock()
     query_context.result_type = ChartDataResultType.FULL
     query_context.result_format = ChartDataResultFormat.JSON
@@ -268,8 +270,9 @@ def _chart_execution_result() -> ChartDataExecutionResult:
     )
     return ChartDataExecutionResult(
         query_context=query_context,
-        queries=(
-            QueryDataResult({"data": [{"value": 1}], "is_cached": False}, timing),
+        queries=tuple(
+            QueryDataResult({"data": [{"value": 1}], "is_cached": is_cached}, timing)
+            for is_cached in cache_values
         ),
     )
 
@@ -312,6 +315,26 @@ def test_chart_response_projects_timing_without_mutating_execution() -> None:
     assert payload["result"][0]["timing"]["version"] == 1
     assert payload["result"][0]["timing"]["query"]["total_ms"] == 10.0
     assert "timing" not in execution.queries[0].payload
+
+
+def test_log_is_cached_uses_scalar_for_single_query() -> None:
+    add_extra_log_payload = MagicMock()
+
+    ChartDataRestApi._log_is_cached(
+        MagicMock(), _chart_execution_result((True,)), add_extra_log_payload
+    )
+
+    add_extra_log_payload.assert_called_once_with(is_cached=True)
+
+
+def test_log_is_cached_uses_list_for_multiple_queries() -> None:
+    add_extra_log_payload = MagicMock()
+
+    ChartDataRestApi._log_is_cached(
+        MagicMock(), _chart_execution_result((False, True)), add_extra_log_payload
+    )
+
+    add_extra_log_payload.assert_called_once_with(is_cached=[False, True])
 
 
 def test_async_execution_requires_nonempty_data_backed_queries() -> None:
