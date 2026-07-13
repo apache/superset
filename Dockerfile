@@ -29,7 +29,7 @@ ARG BUILD_TRANSLATIONS="false"
 ######################################################################
 # superset-node-ci used as a base for building frontend assets and CI
 ######################################################################
-FROM --platform=${BUILDPLATFORM} node:22-trixie-slim AS superset-node-ci
+FROM --platform=${BUILDPLATFORM} node:24-trixie-slim AS superset-node-ci
 ARG BUILD_TRANSLATIONS
 ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
@@ -120,7 +120,7 @@ RUN useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash 
 # Some bash scripts needed throughout the layers
 COPY --chmod=755 docker/*.sh /app/docker/
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+RUN pip install --no-cache-dir --upgrade uv
 
 # Using uv as it's faster/simpler than pip
 RUN uv venv /app/.venv
@@ -141,7 +141,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 COPY superset/translations/ /app/translations_mo/
 RUN if [ "${BUILD_TRANSLATIONS}" = "true" ]; then \
-        pybabel compile -d /app/translations_mo | true; \
+        pybabel compile --use-fuzzy -d /app/translations_mo || true; \
     fi; \
     rm -f /app/translations_mo/*/*/*.[po,json]
 

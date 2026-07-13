@@ -130,6 +130,10 @@ export function getRelatedChartsForChartCustomization(
   }
 
   const targetDatasetId = String(dataset);
+  // ``datasourceType`` disambiguates between independent ID spaces (e.g.
+  // table ``1`` vs semantic view ``1``). When absent on either side we fall
+  // back to ID-only matching so legacy customizations keep working.
+  const targetDatasourceType = targets?.[0]?.datasourceType;
 
   return Object.values(slices)
     .filter(slice => {
@@ -138,8 +142,17 @@ export function getRelatedChartsForChartCustomization(
 
       const sliceDatasetParts = String(sliceDataset).split('__');
       const sliceDatasetId = sliceDatasetParts[0];
+      const sliceDatasourceType = sliceDatasetParts[1];
 
-      return sliceDatasetId === targetDatasetId;
+      if (sliceDatasetId !== targetDatasetId) return false;
+      if (
+        targetDatasourceType &&
+        sliceDatasourceType &&
+        targetDatasourceType !== sliceDatasourceType
+      ) {
+        return false;
+      }
+      return true;
     })
     .map(slice => slice.slice_id);
 }

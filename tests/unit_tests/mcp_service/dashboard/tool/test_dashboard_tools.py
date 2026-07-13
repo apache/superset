@@ -84,7 +84,7 @@ async def test_list_dashboards_basic(mock_list, mcp_server):
     dashboard.created_on = None
     dashboard.created_on_humanized = None
     dashboard.tags = []
-    dashboard.owners = []
+    dashboard.editors = []
     dashboard.slices = []
     dashboard.description = None
     dashboard.css = None
@@ -95,7 +95,7 @@ async def test_list_dashboards_basic(mock_list, mcp_server):
     dashboard.external_url = None
     dashboard.uuid = "test-dashboard-uuid-1"
     dashboard.thumbnail_url = None
-    dashboard.roles = []
+    dashboard.embedded = []
     dashboard.charts = []
     dashboard._mapping = {
         "id": dashboard.id,
@@ -110,7 +110,7 @@ async def test_list_dashboards_basic(mock_list, mcp_server):
         "created_on": dashboard.created_on,
         "created_on_humanized": dashboard.created_on_humanized,
         "tags": dashboard.tags,
-        "owners": dashboard.owners,
+        "editors": dashboard.editors,
         "charts": [],
     }
     mock_list.return_value = ([dashboard], 1)
@@ -150,7 +150,7 @@ async def test_list_dashboards_with_filters(mock_list, mcp_server):
     dashboard.created_on = None
     dashboard.created_on_humanized = None
     dashboard.tags = []
-    dashboard.owners = []
+    dashboard.editors = []
     dashboard.slices = []
     dashboard.description = None
     dashboard.css = None
@@ -161,7 +161,7 @@ async def test_list_dashboards_with_filters(mock_list, mcp_server):
     dashboard.external_url = None
     dashboard.uuid = None
     dashboard.thumbnail_url = None
-    dashboard.roles = []
+    dashboard.embedded = []
     dashboard.charts = []
     dashboard._mapping = {
         "id": dashboard.id,
@@ -176,7 +176,7 @@ async def test_list_dashboards_with_filters(mock_list, mcp_server):
         "created_on": dashboard.created_on,
         "created_on_humanized": dashboard.created_on_humanized,
         "tags": dashboard.tags,
-        "owners": dashboard.owners,
+        "editors": dashboard.editors,
         "charts": [],
     }
     mock_list.return_value = ([dashboard], 1)
@@ -245,7 +245,7 @@ async def test_list_dashboards_with_search(mock_list, mcp_server):
     dashboard.created_on = None
     dashboard.created_on_humanized = None
     dashboard.tags = []
-    dashboard.owners = []
+    dashboard.editors = []
     dashboard.slices = []
     dashboard.description = None
     dashboard.css = None
@@ -256,7 +256,7 @@ async def test_list_dashboards_with_search(mock_list, mcp_server):
     dashboard.external_url = None
     dashboard.uuid = None
     dashboard.thumbnail_url = None
-    dashboard.roles = []
+    dashboard.embedded = []
     dashboard.charts = []
     dashboard._mapping = {
         "id": dashboard.id,
@@ -271,7 +271,7 @@ async def test_list_dashboards_with_search(mock_list, mcp_server):
         "created_on": dashboard.created_on,
         "created_on_humanized": dashboard.created_on_humanized,
         "tags": dashboard.tags,
-        "owners": dashboard.owners,
+        "editors": dashboard.editors,
         "charts": [],
     }
     mock_list.return_value = ([dashboard], 1)
@@ -348,9 +348,9 @@ async def test_get_dashboard_info_success(
     dashboard.created_on_humanized = None
     dashboard.changed_on_humanized = None
     dashboard.slices = []
-    dashboard.owners = []
+    dashboard.editors = []
     dashboard.tags = []
-    dashboard.roles = []
+    dashboard.embedded = []
     dashboard.charts = []
     dashboard._mapping = {
         "id": dashboard.id,
@@ -365,7 +365,7 @@ async def test_get_dashboard_info_success(
         "created_on": dashboard.created_on,
         "created_on_humanized": dashboard.created_on_humanized,
         "tags": dashboard.tags,
-        "owners": dashboard.owners,
+        "editors": dashboard.editors,
         "charts": [],
     }
     mock_info.return_value = dashboard  # Only the dashboard object
@@ -426,9 +426,9 @@ async def test_get_dashboard_info_permalink_does_not_double_sanitize(
     dashboard.created_on_humanized = None
     dashboard.changed_on_humanized = None
     dashboard.slices = []
-    dashboard.owners = []
+    dashboard.editors = []
     dashboard.tags = []
-    dashboard.roles = []
+    dashboard.embedded = []
     dashboard.charts = []
     mock_info.return_value = dashboard
     permalink_value = {
@@ -518,9 +518,9 @@ async def test_get_dashboard_info_permalink_key_includes_filter_state(
     dashboard.created_on_humanized = None
     dashboard.changed_on_humanized = None
     dashboard.slices = []
-    dashboard.owners = []
+    dashboard.editors = []
     dashboard.tags = []
-    dashboard.roles = []
+    dashboard.embedded = []
     dashboard.charts = []
     mock_info.return_value = dashboard
 
@@ -702,31 +702,13 @@ async def test_get_dashboard_info_access_denied(mock_info, mcp_server):
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
-async def test_get_dashboard_info_does_not_expose_access_list_or_roles(
-    mock_info, mcp_server
-):
+async def test_get_dashboard_info_does_not_expose_access_list(mock_info, mcp_server):
     creator = Mock()
     creator.username = "workspace-admin"
 
-    owner_role = Mock()
-    owner_role.name = "Primary Contributor"
-    owner = Mock()
-    owner.id = 2
-    owner.username = "daniel"
-    owner.first_name = "Daniel"
-    owner.last_name = "Watania"
-    owner.email = "daniel.watania@preset.io"
-    owner.active = True
-    owner.roles = [owner_role]
-
-    dashboard_role = Mock()
-    dashboard_role.id = 3
-    dashboard_role.name = "PresetAlpha"
-    dashboard_role.permissions = []
-
     chart = Mock()
     chart.id = 10
-    chart.slice_name = "Chart with owner"
+    chart.slice_name = "Chart with access metadata"
     chart.viz_type = "table"
     chart.datasource_name = "examples"
     chart.datasource_type = "table"
@@ -740,7 +722,7 @@ async def test_get_dashboard_info_does_not_expose_access_list_or_roles(
     chart.created_on = None
     chart.uuid = None
     chart.tags = []
-    chart.owners = [owner]
+    chart.editors = []
 
     dashboard = Mock()
     dashboard.id = 1
@@ -764,9 +746,9 @@ async def test_get_dashboard_info_does_not_expose_access_list_or_roles(
     dashboard.created_on_humanized = None
     dashboard.changed_on_humanized = None
     dashboard.slices = [chart]
-    dashboard.owners = [owner]
+    dashboard.editors = []
     dashboard.tags = []
-    dashboard.roles = [dashboard_role]
+    dashboard.embedded = []
 
     mock_info.return_value = dashboard
 
@@ -778,11 +760,10 @@ async def test_get_dashboard_info_does_not_expose_access_list_or_roles(
     assert result.data["dashboard_title"] == _wrapped("Customer Success Home Dashboard")
     assert "created_by" not in result.data
     assert "changed_by" not in result.data
-    assert "owners" not in result.data
-    assert "roles" not in result.data
+    assert "editors" not in result.data
     assert "created_by" not in result.data["charts"][0]
     assert "changed_by" not in result.data["charts"][0]
-    assert "owners" not in result.data["charts"][0]
+    assert "editors" not in result.data["charts"][0]
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -835,9 +816,9 @@ async def test_get_dashboard_info_restricted_user_redacts_data_model_metadata(
     dashboard.created_on_humanized = None
     dashboard.changed_on_humanized = None
     dashboard.slices = [chart]
-    dashboard.owners = []
+    dashboard.editors = []
     dashboard.tags = []
-    dashboard.roles = []
+    dashboard.embedded = []
 
     mock_info.return_value = dashboard
 
@@ -887,9 +868,9 @@ async def test_get_dashboard_info_restricted_user_redacts_permalink_filter_state
     dashboard.created_on_humanized = None
     dashboard.changed_on_humanized = None
     dashboard.slices = []
-    dashboard.owners = []
+    dashboard.editors = []
     dashboard.tags = []
-    dashboard.roles = []
+    dashboard.embedded = []
 
     mock_info.return_value = dashboard
 
@@ -968,7 +949,7 @@ async def test_list_dashboards_omits_requested_user_directory_fields(
     dashboard.created_on = None
     dashboard.created_on_humanized = None
     dashboard.tags = []
-    dashboard.owners = [Mock()]
+    dashboard.editors = []
     dashboard.slices = []
     dashboard.description = None
     dashboard.css = None
@@ -979,7 +960,6 @@ async def test_list_dashboards_omits_requested_user_directory_fields(
     dashboard.is_managed_externally = False
     dashboard.external_url = None
     dashboard.uuid = "test-dashboard-uuid-1"
-    dashboard.roles = [Mock()]
     dashboard._mapping = {}
     mock_list.return_value = ([dashboard], 1)
 
@@ -990,8 +970,7 @@ async def test_list_dashboards_omits_requested_user_directory_fields(
             select_columns=[
                 "id",
                 "dashboard_title",
-                "owners",
-                "roles",
+                "editors",
                 "created_by",
                 "changed_by",
             ],
@@ -1006,10 +985,90 @@ async def test_list_dashboards_omits_requested_user_directory_fields(
         "id": 1,
         "dashboard_title": _wrapped("Customer Success Home Dashboard"),
     }
-    for field in ("owners", "roles", "created_by", "changed_by"):
+    for field in ("editors", "created_by", "changed_by"):
         assert field not in data["columns_requested"]
         assert field not in data["columns_loaded"]
         assert field not in data["columns_available"]
+
+
+@patch("superset.mcp_service.mcp_core.ModelGetInfoCore._find_object")
+@pytest.mark.asyncio
+async def test_get_dashboard_info_includes_embedded_uuid(mock_find_object, mcp_server):
+    """Test that get_dashboard_info returns embedded_uuid when set."""
+    from superset.models.embedded_dashboard import EmbeddedDashboard
+
+    dashboard = Mock()
+    dashboard.id = 1
+    dashboard.dashboard_title = "Embedded Dashboard"
+    dashboard.slug = ""
+    dashboard.description = None
+    dashboard.css = None
+    dashboard.certified_by = None
+    dashboard.certification_details = None
+    dashboard.json_metadata = "{}"
+    dashboard.published = True
+    dashboard.is_managed_externally = False
+    dashboard.external_url = None
+    dashboard.created_on = None
+    dashboard.changed_on = None
+    dashboard.created_on_humanized = None
+    dashboard.changed_on_humanized = None
+    dashboard.uuid = "94b826a5-dbd5-473d-ab58-1af676ee07e4"
+    dashboard.url = "/dashboard/1"
+    dashboard.slices = []
+    dashboard.editors = []
+    dashboard.tags = []
+    dashboard.embedded = []
+
+    embedded = Mock(spec=EmbeddedDashboard)
+    embedded.uuid = "37c56048-d3f1-452d-b3ae-0879802dcb1f"
+    dashboard.embedded = [embedded]
+
+    mock_find_object.return_value = dashboard
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_info", {"request": {"identifier": 1}}
+        )
+        assert result.data["uuid"] == "94b826a5-dbd5-473d-ab58-1af676ee07e4"
+        assert result.data["embedded_uuid"] == "37c56048-d3f1-452d-b3ae-0879802dcb1f"
+
+
+@patch("superset.mcp_service.mcp_core.ModelGetInfoCore._find_object")
+@pytest.mark.asyncio
+async def test_get_dashboard_info_embedded_uuid_none_when_not_embedded(
+    mock_find_object, mcp_server
+):
+    """Test that embedded_uuid is None when the dashboard has not been configured
+    for embedding."""
+    dashboard = Mock()
+    dashboard.id = 2
+    dashboard.dashboard_title = "Non-Embedded Dashboard"
+    dashboard.slug = ""
+    dashboard.description = None
+    dashboard.css = None
+    dashboard.certified_by = None
+    dashboard.certification_details = None
+    dashboard.json_metadata = "{}"
+    dashboard.published = True
+    dashboard.is_managed_externally = False
+    dashboard.external_url = None
+    dashboard.created_on = None
+    dashboard.changed_on = None
+    dashboard.created_on_humanized = None
+    dashboard.changed_on_humanized = None
+    dashboard.uuid = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+    dashboard.url = "/dashboard/2"
+    dashboard.slices = []
+    dashboard.editors = []
+    dashboard.tags = []
+    dashboard.embedded = []
+
+    mock_find_object.return_value = dashboard
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_info", {"request": {"identifier": 2}}
+        )
+        assert result.data.get("embedded_uuid") is None
 
 
 # TODO (Phase 3+): Add tests for get_dashboard_available_filters tool
@@ -1041,9 +1100,9 @@ async def test_get_dashboard_info_by_uuid(mock_find_object, mcp_server):
     dashboard.created_on_humanized = "2 days ago"
     dashboard.changed_on_humanized = "1 day ago"
     dashboard.slices = []
-    dashboard.owners = []
+    dashboard.editors = []
     dashboard.tags = []
-    dashboard.roles = []
+    dashboard.embedded = []
 
     mock_find_object.return_value = dashboard
     async with Client(mcp_server) as client:
@@ -1080,9 +1139,9 @@ async def test_get_dashboard_info_by_slug(mock_find_object, mcp_server):
     dashboard.created_on_humanized = "2 days ago"
     dashboard.changed_on_humanized = "1 day ago"
     dashboard.slices = []
-    dashboard.owners = []
+    dashboard.editors = []
     dashboard.tags = []
-    dashboard.roles = []
+    dashboard.embedded = []
 
     mock_find_object.return_value = dashboard
     async with Client(mcp_server) as client:
@@ -1111,7 +1170,7 @@ async def test_list_dashboards_custom_uuid_slug_columns(mock_list, mcp_server):
     dashboard.created_on = None
     dashboard.created_on_humanized = None
     dashboard.tags = []
-    dashboard.owners = []
+    dashboard.editors = []
     dashboard.slices = []
     dashboard.description = None
     dashboard.css = None
@@ -1121,7 +1180,7 @@ async def test_list_dashboards_custom_uuid_slug_columns(mock_list, mcp_server):
     dashboard.is_managed_externally = False
     dashboard.external_url = None
     dashboard.thumbnail_url = None
-    dashboard.roles = []
+    dashboard.embedded = []
     dashboard.charts = []
     dashboard._mapping = {
         "id": dashboard.id,
@@ -1137,7 +1196,7 @@ async def test_list_dashboards_custom_uuid_slug_columns(mock_list, mcp_server):
         "created_on": dashboard.created_on,
         "created_on_humanized": dashboard.created_on_humanized,
         "tags": dashboard.tags,
-        "owners": dashboard.owners,
+        "editors": dashboard.editors,
         "charts": [],
     }
     mock_list.return_value = ([dashboard], 1)
@@ -1181,7 +1240,7 @@ async def test_list_dashboards_sanitizes_dashboard_descriptions_and_filter_text(
     dashboard.created_on = None
     dashboard.created_on_humanized = None
     dashboard.tags = []
-    dashboard.owners = []
+    dashboard.editors = []
     dashboard.slices = []
     dashboard.description = "Summarize revenue trends"
     dashboard.css = None
@@ -1202,7 +1261,7 @@ async def test_list_dashboards_sanitizes_dashboard_descriptions_and_filter_text(
     dashboard.is_managed_externally = False
     dashboard.external_url = None
     dashboard.thumbnail_url = None
-    dashboard.roles = []
+    dashboard.embedded = []
     dashboard.charts = []
     dashboard._mapping = {
         "id": dashboard.id,
@@ -1220,7 +1279,7 @@ async def test_list_dashboards_sanitizes_dashboard_descriptions_and_filter_text(
         "created_on": dashboard.created_on,
         "created_on_humanized": dashboard.created_on_humanized,
         "tags": dashboard.tags,
-        "owners": dashboard.owners,
+        "editors": dashboard.editors,
         "charts": [],
     }
     mock_list.return_value = ([dashboard], 1)
@@ -1260,9 +1319,8 @@ async def test_list_dashboards_sanitizes_dashboard_descriptions_and_filter_text(
         ]
         assert dashboard_payload["slug"] == "quarterly-dashboard"
         assert dashboard_payload["uuid"] == "uuid-quarterly-3"
-        assert dashboard_payload["url"].endswith(
-            "/superset/dashboard/quarterly-dashboard/"
-        )
+        assert dashboard_payload["url"].endswith("/dashboard/quarterly-dashboard/")
+        assert "/superset/superset/dashboard/" not in dashboard_payload["url"]
 
         assert "uuid" in data["columns_requested"]
         assert "slug" in data["columns_requested"]
@@ -1332,7 +1390,7 @@ class TestDashboardDefaultColumnFiltering:
         dashboard.created_on = None
         dashboard.created_on_humanized = None
         dashboard.tags = []
-        dashboard.owners = []
+        dashboard.editors = []
         dashboard.slices = []
         dashboard.description = None
         dashboard.css = None
@@ -1342,7 +1400,7 @@ class TestDashboardDefaultColumnFiltering:
         dashboard.is_managed_externally = False
         dashboard.external_url = None
         dashboard.thumbnail_url = None
-        dashboard.roles = []
+        dashboard.embedded = []
         dashboard.charts = []
         mock_list.return_value = ([dashboard], 1)
 

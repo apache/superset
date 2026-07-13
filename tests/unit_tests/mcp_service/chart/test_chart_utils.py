@@ -49,7 +49,7 @@ from superset.mcp_service.chart.schemas import (
     TableChartConfig,
     XYChartConfig,
 )
-from superset.utils.core import FilterOperator, GenericDataType
+from superset.utils.core import ColumnSpec, FilterOperator, GenericDataType
 
 
 class TestGetTableChartTypeLabel:
@@ -932,14 +932,14 @@ class TestMapConfigToFormData:
         "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
         return_value=True,
     )
-    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id_or_uuid")
     def test_map_xy_config_x_none_defaults_to_main_dttm_col(
-        self, mock_find_by_id: Any, mock_is_temporal: Any
+        self, mock_find_by_id_or_uuid: Any, mock_is_temporal: Any
     ) -> None:
         """When x is None, map_xy_config resolves it from dataset.main_dttm_col."""
         mock_dataset = MagicMock()
         mock_dataset.main_dttm_col = "order_date"
-        mock_find_by_id.return_value = mock_dataset
+        mock_find_by_id_or_uuid.return_value = mock_dataset
 
         config = XYChartConfig(
             chart_type="xy",
@@ -951,7 +951,47 @@ class TestMapConfigToFormData:
         result = map_xy_config(config, dataset_id=42)
 
         assert result["x_axis"] == "order_date"
-        mock_find_by_id.assert_called_once_with(42)
+        mock_find_by_id_or_uuid.assert_called_once_with("42")
+
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id_or_uuid")
+    def test_map_xy_config_x_none_reuses_dataset_for_temporal_check(
+        self, mock_find_by_id_or_uuid: Any
+    ) -> None:
+        """The main_dttm_col fallback and the is_column_truly_temporal guard
+        must share a single dataset lookup rather than each re-querying
+        DatasetDAO for the same dataset_id (mirrors the dedup fix applied to
+        map_big_number_config's _resolve_big_number_temporal_column)."""
+
+        mock_column = MagicMock()
+        mock_column.column_name = "order_date"
+        mock_column.type = "TIMESTAMP"
+
+        mock_db_engine_spec = MagicMock()
+        mock_db_engine_spec.get_column_spec.return_value = ColumnSpec(
+            sqla_type=MagicMock(),
+            generic_type=GenericDataType.TEMPORAL,
+            is_dttm=False,
+        )
+        mock_database = MagicMock()
+        mock_database.db_engine_spec = mock_db_engine_spec
+
+        mock_dataset = MagicMock()
+        mock_dataset.main_dttm_col = "order_date"
+        mock_dataset.columns = [mock_column]
+        mock_dataset.database = mock_database
+        mock_find_by_id_or_uuid.return_value = mock_dataset
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=None,
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="bar",
+        )
+
+        result = map_xy_config(config, dataset_id=42)
+
+        assert result["x_axis"] == "order_date"
+        mock_find_by_id_or_uuid.assert_called_once_with("42")
 
     def test_map_xy_config_x_none_no_dataset_id_raises(self) -> None:
         """When x is None and no dataset_id, raise ValueError."""
@@ -965,14 +1005,14 @@ class TestMapConfigToFormData:
         with pytest.raises(ValueError, match="x-axis column is required"):
             map_xy_config(config, dataset_id=None)
 
-    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id_or_uuid")
     def test_map_xy_config_x_none_no_main_dttm_col_raises(
-        self, mock_find_by_id: Any
+        self, mock_find_by_id_or_uuid: Any
     ) -> None:
         """When x is None and dataset has no main_dttm_col, raise ValueError."""
         mock_dataset = MagicMock()
         mock_dataset.main_dttm_col = None
-        mock_find_by_id.return_value = mock_dataset
+        mock_find_by_id_or_uuid.return_value = mock_dataset
 
         config = XYChartConfig(
             chart_type="xy",
@@ -1116,7 +1156,7 @@ class TestGenerateChartName:
 
     def test_unsupported_config_type(self) -> None:
         """Unsupported config type returns generic name."""
-        result = generate_chart_name("invalid_config")  # type: ignore
+        result = generate_chart_name("invalid_config")
         assert result == "Chart"
 
     def test_custom_labels_used(self) -> None:
@@ -1176,13 +1216,25 @@ class TestGenerateExploreLink:
         self, mock_command, mock_get_base_url
     ) -> None:
         """Test generate_explore_link creates form_data_key when dataset exists"""
+        from superset.explore.permalink.exceptions import (
+            ExplorePermalinkCreateFailedError,
+        )
+
         mock_get_base_url.return_value = "http://localhost:9001"
         mock_command.return_value.run.return_value = "test_form_data_key"
 
-        # Mock dataset exists
+        # Mock dataset exists; force the durable-permalink path to fail so the
+        # function falls back to the ephemeral form_data_key.
         mock_dataset = type("Dataset", (), {"id": 123})()
-        with patch(
-            "superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_dataset
+        with (
+            patch(
+                "superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_dataset
+            ),
+            patch(
+                "superset.commands.explore.permalink.create."
+                "CreateExplorePermalinkCommand.run",
+                side_effect=ExplorePermalinkCreateFailedError("permalink unavailable"),
+            ),
         ):
             result = generate_explore_link(123, {"viz_type": "table"})
 
@@ -1190,6 +1242,36 @@ class TestGenerateExploreLink:
             result == "http://localhost:9001/explore/?form_data_key=test_form_data_key"
         )
         mock_command.assert_called_once()
+
+    @patch("superset.mcp_service.chart.chart_utils.get_superset_base_url")
+    @patch("superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand")
+    def test_generate_explore_link_prefer_permalink_false(
+        self, mock_command, mock_get_base_url
+    ) -> None:
+        """prefer_permalink=False skips the permalink path and returns a
+        form_data_key URL, so preview callers that re-parse the key keep working."""
+        mock_get_base_url.return_value = "http://localhost:9001"
+        mock_command.return_value.run.return_value = "test_form_data_key"
+
+        mock_dataset = type("Dataset", (), {"id": 123})()
+        with (
+            patch(
+                "superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_dataset
+            ),
+            patch(
+                "superset.commands.explore.permalink.create."
+                "CreateExplorePermalinkCommand.run"
+            ) as mock_permalink,
+        ):
+            result = generate_explore_link(
+                123, {"viz_type": "table"}, prefer_permalink=False
+            )
+
+        assert (
+            result == "http://localhost:9001/explore/?form_data_key=test_form_data_key"
+        )
+        mock_command.assert_called_once()
+        mock_permalink.assert_not_called()
 
     @patch("superset.mcp_service.chart.chart_utils.get_superset_base_url")
     def test_generate_explore_link_exception_handling(self, mock_get_base_url) -> None:
@@ -1341,10 +1423,6 @@ class TestIsColumnTrulyTemporal:
         generic_type: GenericDataType,
     ):
         """Helper to create a mock dataset with proper db_engine_spec"""
-        from unittest.mock import MagicMock
-
-        from superset.utils.core import ColumnSpec
-
         mock_column = MagicMock()
         mock_column.column_name = column_name
         mock_column.type = column_type
@@ -1372,7 +1450,7 @@ class TestIsColumnTrulyTemporal:
     @patch("superset.daos.dataset.DatasetDAO")
     def test_returns_true_when_dataset_not_found(self, mock_dao) -> None:
         """Test returns True when dataset is not found"""
-        mock_dao.find_by_id.return_value = None
+        mock_dao.find_by_id_or_uuid.return_value = None
         result = is_column_truly_temporal("year", 123)
         assert result is True
 
@@ -1382,7 +1460,7 @@ class TestIsColumnTrulyTemporal:
         mock_dataset = self._create_mock_dataset(
             "year", "BIGINT", GenericDataType.NUMERIC
         )
-        mock_dao.find_by_id.return_value = mock_dataset
+        mock_dao.find_by_id_or_uuid.return_value = mock_dataset
 
         result = is_column_truly_temporal("year", 123)
         assert result is False
@@ -1393,7 +1471,7 @@ class TestIsColumnTrulyTemporal:
         mock_dataset = self._create_mock_dataset(
             "month", "INTEGER", GenericDataType.NUMERIC
         )
-        mock_dao.find_by_id.return_value = mock_dataset
+        mock_dao.find_by_id_or_uuid.return_value = mock_dataset
 
         result = is_column_truly_temporal("month", 123)
         assert result is False
@@ -1404,7 +1482,7 @@ class TestIsColumnTrulyTemporal:
         mock_dataset = self._create_mock_dataset(
             "created_at", "TIMESTAMP", GenericDataType.TEMPORAL
         )
-        mock_dao.find_by_id.return_value = mock_dataset
+        mock_dao.find_by_id_or_uuid.return_value = mock_dataset
 
         result = is_column_truly_temporal("created_at", 123)
         assert result is True
@@ -1415,7 +1493,7 @@ class TestIsColumnTrulyTemporal:
         mock_dataset = self._create_mock_dataset(
             "order_date", "DATE", GenericDataType.TEMPORAL
         )
-        mock_dao.find_by_id.return_value = mock_dataset
+        mock_dao.find_by_id_or_uuid.return_value = mock_dataset
 
         result = is_column_truly_temporal("order_date", 123)
         assert result is True
@@ -1426,7 +1504,7 @@ class TestIsColumnTrulyTemporal:
         mock_dataset = self._create_mock_dataset(
             "Year", "BIGINT", GenericDataType.NUMERIC
         )
-        mock_dao.find_by_id.return_value = mock_dataset
+        mock_dao.find_by_id_or_uuid.return_value = mock_dataset
 
         result = is_column_truly_temporal("year", 123)
         assert result is False
@@ -1434,14 +1512,14 @@ class TestIsColumnTrulyTemporal:
     @patch("superset.daos.dataset.DatasetDAO")
     def test_returns_true_on_value_error(self, mock_dao) -> None:
         """Test returns True (default) when ValueError occurs"""
-        mock_dao.find_by_id.side_effect = ValueError("Invalid ID")
+        mock_dao.find_by_id_or_uuid.side_effect = ValueError("Invalid ID")
         result = is_column_truly_temporal("year", 123)
         assert result is True
 
     @patch("superset.daos.dataset.DatasetDAO")
     def test_returns_true_on_attribute_error(self, mock_dao) -> None:
         """Test returns True (default) when AttributeError occurs"""
-        mock_dao.find_by_id.side_effect = AttributeError("Missing attribute")
+        mock_dao.find_by_id_or_uuid.side_effect = AttributeError("Missing attribute")
         result = is_column_truly_temporal("year", 123)
         assert result is True
 
@@ -1451,11 +1529,11 @@ class TestIsColumnTrulyTemporal:
         mock_dataset = self._create_mock_dataset(
             "year", "BIGINT", GenericDataType.NUMERIC
         )
-        mock_dao.find_by_id.return_value = mock_dataset
+        mock_dao.find_by_id_or_uuid.return_value = mock_dataset
 
         result = is_column_truly_temporal("year", "abc-123-uuid")
         assert result is False
-        mock_dao.find_by_id.assert_called_with("abc-123-uuid", id_column="uuid")
+        mock_dao.find_by_id_or_uuid.assert_called_with("abc-123-uuid")
 
     @patch("superset.daos.dataset.DatasetDAO")
     def test_falls_back_to_is_dttm_when_no_column_spec(self, mock_dao) -> None:
@@ -1476,7 +1554,7 @@ class TestIsColumnTrulyTemporal:
         mock_dataset = MagicMock()
         mock_dataset.columns = [mock_column]
         mock_dataset.database = mock_database
-        mock_dao.find_by_id.return_value = mock_dataset
+        mock_dao.find_by_id_or_uuid.return_value = mock_dataset
 
         result = is_column_truly_temporal("year", 123)
         assert result is False
@@ -1493,7 +1571,7 @@ class TestIsColumnTrulyTemporal:
 
         mock_dataset = MagicMock()
         mock_dataset.columns = [mock_column]
-        mock_dao.find_by_id.return_value = mock_dataset
+        mock_dao.find_by_id_or_uuid.return_value = mock_dataset
 
         result = is_column_truly_temporal("year", 123)
         assert result is True
@@ -2113,7 +2191,7 @@ class TestDatasetValidatorSkipsSqlMetrics:
 
     def test_normalize_column_names_skips_sql_metric_dicts(self) -> None:
         """A SQL-metric ColumnRef dumps to {name: None, sql_expression: ...};
-        _get_canonical_column_name(None, ...) would crash without the guard."""
+        get_canonical_column_name(None, ...) would crash without the guard."""
         from superset.mcp_service.chart.validation.dataset_validator import (
             DatasetValidator,
         )

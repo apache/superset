@@ -18,7 +18,7 @@
  */
 import { SyntheticEvent } from 'react';
 import domToImage from 'dom-to-image-more';
-import { kebabCase } from 'lodash';
+import { kebabCase } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
@@ -260,7 +260,6 @@ const createEnhancedClone = (
   processCloneForVisibility(clone);
 
   const cleanup = () => {
-    styleCache.delete?.(originalElement);
     if (tempContainer.parentElement) {
       tempContainer.parentElement.removeChild(tempContainer);
     }

@@ -24,7 +24,7 @@ import {
   addDangerToast,
   addSuccessToast,
 } from 'src/components/MessageToasts/actions';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import { Dispatch, AnyAction } from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
 import { ReportObject, ReportCreationMethod } from 'src/features/reports/types';

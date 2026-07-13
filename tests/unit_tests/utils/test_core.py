@@ -32,6 +32,7 @@ from superset.utils.core import (
     cast_to_boolean,
     check_is_safe_zip,
     DateColumn,
+    extract_dataframe_dtypes,
     FilterOperator,
     generic_find_constraint_name,
     generic_find_fk_constraint_name,
@@ -50,6 +51,7 @@ from superset.utils.core import (
     QueryObjectFilterClause,
     QuerySource,
     remove_extra_adhoc_filters,
+    sanitize_cookie_token,
     sanitize_svg_content,
     sanitize_url,
 )
@@ -659,8 +661,29 @@ def test_get_datasource_full_name():
         (None, None),
         ("https://mysuperset.com/abc", None),
         ("https://mysuperset.com/superset/dashboard/", QuerySource.DASHBOARD),
+        ("https://mysuperset.com/dashboard/1/", QuerySource.DASHBOARD),
+        ("https://mysuperset.com/myapp/dashboard/1/", QuerySource.DASHBOARD),
         ("https://mysuperset.com/explore/", QuerySource.CHART),
+        ("https://mysuperset.com/myapp/explore/", QuerySource.CHART),
         ("https://mysuperset.com/sqllab/", QuerySource.SQL_LAB),
+        ("https://mysuperset.com/myapp/sqllab/", QuerySource.SQL_LAB),
+        # Matching is path-scoped: a query-string payload embedding another
+        # route segment must not win over (or fabricate) an attribution.
+        ("https://mysuperset.com/explore/?next=/dashboard/1/", QuerySource.CHART),
+        ("https://mysuperset.com/?next=/dashboard/1/", None),
+        # Substring match is slash-bounded: a sibling route that merely shares
+        # the leading token (`/dashboardx/`, `/explorer/`) must NOT match. Pins
+        # the trailing `/` in the `"/dashboard/" in path` checks against a
+        # future loosening to a prefix/startswith compare.
+        ("https://mysuperset.com/dashboardx/", None),
+        ("https://mysuperset.com/explorer/", None),
+        ("https://mysuperset.com/sqllab_extra/", None),
+        # The bare token without a trailing slash is also not a match — the
+        # canonical routes always carry the trailing slash.
+        ("https://mysuperset.com/dashboard", None),
+        # Referer is client-controlled: a malformed URL (unclosed IPv6
+        # bracket makes urlparse raise ValueError) must yield None, not 500.
+        ("http://[/explore/", None),
     ],
 )
 def test_get_query_source_from_request(
@@ -694,8 +717,9 @@ def test_get_user_agent(mocker: MockerFixture, app_context: None) -> None:
 
 @with_config(
     {
-        "USER_AGENT_FUNC": lambda database,
-        source: f"{database.database_name} {source.name}"
+        "USER_AGENT_FUNC": lambda database, source: (
+            f"{database.database_name} {source.name}"
+        )
     }
 )
 def test_get_user_agent_custom(mocker: MockerFixture, app_context: None) -> None:
@@ -1818,3 +1842,40 @@ def test_send_email_smtp_strips_crlf_from_subject() -> None:
     assert "\r" not in subject
     assert "\n" not in subject
     assert subject == "Hello Bcc: attacker@example.com"
+
+
+@pytest.mark.parametrize(
+    "token",
+    [
+        "abc123",
+        "A_b-C_9",
+        "x" * 128,
+    ],
+)
+def test_sanitize_cookie_token_accepts_valid(token: str) -> None:
+    assert sanitize_cookie_token(token) == token
+
+
+@pytest.mark.parametrize(
+    "token",
+    [
+        None,
+        "",
+        "x" * 129,
+        "has space",
+        "semi;colon",
+        "new\nline",
+        "equals=sign",
+        "comma,value",
+        "unicode✓",
+    ],
+)
+def test_sanitize_cookie_token_rejects_invalid(token: Optional[str]) -> None:
+    assert sanitize_cookie_token(token) is None
+
+
+def test_extract_dataframe_dtypes_with_duplicate_columns() -> None:
+    """extract_dataframe_dtypes should not crash on duplicate column names."""
+    df = pd.DataFrame([[1, 2, 3]], columns=["a", "b", "a"])
+    result = extract_dataframe_dtypes(df)
+    assert len(result) == 3

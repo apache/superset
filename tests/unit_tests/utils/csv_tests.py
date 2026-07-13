@@ -16,6 +16,9 @@
 # under the License.
 
 
+from typing import Any
+from unittest import mock
+
 import pandas as pd
 import pyarrow as pa
 import pytest  # noqa: F401
@@ -25,6 +28,7 @@ from superset.utils import csv, json
 from superset.utils.core import GenericDataType
 from superset.utils.csv import (
     df_to_escaped_csv,
+    get_chart_csv_data,
     get_chart_dataframe,
 )
 
@@ -63,6 +67,9 @@ def test_escape_value():
     result = csv.escape_value(" =10+2")
     assert result == "' =10+2"
 
+    result = csv.escape_value('  ""=10+2')
+    assert result == '\'  ""=10+2'
+
     # A leading tab or carriage return followed by a dangerous char was already
     # handled by \s{1,} in the pre-existing regex. The cases below test the
     # new behavior: tab/CR alone (not followed by a dangerous char) are now
@@ -75,20 +82,33 @@ def test_escape_value():
     assert result == "'\rfoo"
 
 
-def fake_get_chart_csv_data_none(chart_url, auth_cookies=None):
+def fake_get_chart_csv_data_none(
+    chart_url: str,
+    auth_cookies: dict[str, str] | None = None,
+    timeout: float | None = None,
+) -> bytes | None:
+    """Return ``None`` to mock a fetch that yields no payload."""
     return None
 
 
-def fake_get_chart_csv_data_empty(chart_url, auth_cookies=None):
-    # Return JSON with empty data so that the resulting DataFrame is empty
-    fake_result = {
+def fake_get_chart_csv_data_empty(
+    chart_url: str,
+    auth_cookies: dict[str, str] | None = None,
+    timeout: float | None = None,
+) -> bytes | None:
+    """Return an encoded empty-result payload for dataframe-empty scenarios."""
+    fake_result: dict[str, Any] = {
         "result": [{"data": {}, "coltypes": [], "colnames": [], "indexnames": []}]
     }
     return json.dumps(fake_result).encode("utf-8")
 
 
-def fake_get_chart_csv_data_valid(chart_url, auth_cookies=None):
-    # Return JSON with non-temporal data and valid indexnames so that they are used.
+def fake_get_chart_csv_data_valid(
+    chart_url: str,
+    auth_cookies: dict[str, str] | None = None,
+    timeout: float | None = None,
+) -> bytes | None:
+    """Return a non-temporal payload used to verify dataframe construction."""
     fake_result = {
         "result": [
             {
@@ -103,7 +123,11 @@ def fake_get_chart_csv_data_valid(chart_url, auth_cookies=None):
     return json.dumps(fake_result).encode("utf-8")
 
 
-def fake_get_chart_csv_data_temporal(chart_url, auth_cookies=None):
+def fake_get_chart_csv_data_temporal(
+    chart_url: str,
+    auth_cookies: dict[str, str] | None = None,
+    timeout: float | None = None,
+) -> bytes | None:
     """
     Return JSON with a temporal column and valid indexnames
     so that a MultiIndex is built.
@@ -122,8 +146,12 @@ def fake_get_chart_csv_data_temporal(chart_url, auth_cookies=None):
     return json.dumps(fake_result).encode("utf-8")
 
 
-def fake_get_chart_csv_data_hierarchical(chart_url, auth_cookies=None):
-    # Return JSON with hierarchical column (list-based) and matching index names.
+def fake_get_chart_csv_data_hierarchical(
+    chart_url: str,
+    auth_cookies: dict[str, str] | None = None,
+    timeout: float | None = None,
+) -> bytes | None:
+    """Return hierarchical-column mock data for MultiIndex assertions."""
     fake_result = {
         "result": [
             {
@@ -138,7 +166,11 @@ def fake_get_chart_csv_data_hierarchical(chart_url, auth_cookies=None):
     return json.dumps(fake_result).encode("utf-8")
 
 
-def fake_get_chart_csv_data_with_na_values(chart_url, auth_cookies=None):
+def fake_get_chart_csv_data_with_na_values(
+    chart_url: str,
+    auth_cookies: dict[str, str] | None = None,
+    timeout: float | None = None,
+) -> bytes | None:
     # Return JSON with data containing "NA" string value that will be treated as null
     fake_result = {
         "result": [
@@ -220,6 +252,29 @@ def test_df_to_escaped_csv_preserves_numeric_columns():
     # Safe string is untouched; numeric values (including negatives) are not
     # escaped or quoted.
     assert rows[2] == ["safe", "-20"]
+
+
+def test_df_to_escaped_csv_non_default_index():
+    """
+    String cells are escaped against the correct rows even when the DataFrame
+    has a non-default index, such as the flattened MultiIndex produced by
+    pivot_table_v2 post-processing. A positional/label mismatch would otherwise
+    create phantom rows and corrupt the output.
+    """
+    df = pd.DataFrame(
+        data={"metric": ["=SUM(1+1)", "safe"]},
+        index=["boy Edward", "girl Mary"],
+    )
+
+    escaped_csv_str = df_to_escaped_csv(df, encoding="utf8", index=True)
+
+    rows = [row.split(",") for row in escaped_csv_str.strip().split("\n")]
+
+    # Header + exactly two data rows (no duplicated/phantom rows).
+    assert len(rows) == 3
+    # The index labels are preserved and the dangerous cell is escaped in place.
+    assert rows[1] == ["boy Edward", "'=SUM(1+1)"]
+    assert rows[2] == ["girl Mary", "safe"]
 
 
 def test_get_chart_dataframe_returns_none_when_no_content(
@@ -357,3 +412,41 @@ def test_get_chart_dataframe_preserves_na_string_values(
     last_name_values = df[("last_name",)].values
     assert last_name_values[0] == "Smith"
     assert last_name_values[1] == "NA"
+
+
+def test_get_chart_csv_data_passes_timeout_to_opener(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The timeout argument must reach the urllib opener's open() call."""
+    # Without a timeout the request blocks forever when the webserver is
+    # unreachable, wedging the report schedule in WORKING (issue #40047).
+    mock_response = mock.Mock()
+    mock_response.read.return_value = b"data"
+    mock_response.getcode.return_value = 200
+    mock_opener = mock.Mock()
+    mock_opener.open.return_value = mock_response
+    mock_opener.addheaders = []
+    monkeypatch.setattr(
+        "urllib.request.build_opener", mock.Mock(return_value=mock_opener)
+    )
+
+    get_chart_csv_data("http://dummy-url", auth_cookies={"session": "x"}, timeout=42)
+
+    mock_opener.open.assert_called_once_with("http://dummy-url", timeout=42)
+
+
+def test_get_chart_dataframe_forwards_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    """get_chart_dataframe must forward its timeout down to get_chart_csv_data."""
+    captured: dict[str, float | None] = {}
+
+    def fake(
+        chart_url: str,
+        auth_cookies: dict[str, str] | None = None,
+        timeout: float | None = None,
+    ) -> bytes | None:
+        captured["timeout"] = timeout
+        return None
+
+    monkeypatch.setattr(csv, "get_chart_csv_data", fake)
+    get_chart_dataframe("http://dummy-url", timeout=99)
+    assert captured["timeout"] == 99
