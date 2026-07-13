@@ -26,7 +26,6 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.mcp_core import ModelListCore
-from superset.mcp_service.privacy import USER_DIRECTORY_FIELDS
 from superset.mcp_service.rls.schemas import (
     ALL_RLS_COLUMNS,
     DEFAULT_RLS_COLUMNS,
@@ -59,12 +58,22 @@ async def list_rls_filters(
 ) -> RlsFilterList | RlsFilterError:
     """List row level security filters. Requires admin access.
 
-    Returns RLS filter metadata including name, filter type, tables, roles, and clause.
+    Returns RLS filter metadata including name, filter type, tables, subjects, and clause.
 
     Sortable columns for order_column: id, name, filter_type, changed_on
     """
     if ctx is None:
         raise RuntimeError("FastMCP context is required for list_rls_filters")
+
+    from superset import security_manager
+
+    # An RLS clause exposes tables/columns and roles; deny guests explicitly so
+    # it holds even with MCP_RBAC_ENABLED off.
+    if security_manager.is_guest_user():
+        return RlsFilterError(
+            error="RLS filters are not available to embedded guests.",
+            error_type="Forbidden",
+        )
 
     request = request or _DEFAULT_LIST_RLS_FILTERS_REQUEST.model_copy(deep=True)
 
@@ -93,21 +102,11 @@ async def list_rls_filters(
             logger=logger,
         )
 
-        # Strip USER_DIRECTORY_FIELDS (e.g. 'roles') before handing off to
-        # run_tool, which would raise ValueError if all requested columns are
-        # privacy-filtered. Roles are restored in the model_dump context below.
-        run_select_columns: list[str] | None = None
-        if request.select_columns:
-            filtered = [
-                c for c in request.select_columns if c not in USER_DIRECTORY_FIELDS
-            ]
-            run_select_columns = filtered or None
-
         with event_logger.log_context(action="mcp.list_rls_filters.query"):
             result = list_tool.run_tool(
                 filters=request.filters,
                 search=request.search,
-                select_columns=run_select_columns,
+                select_columns=request.select_columns,
                 order_column=request.order_column,
                 order_direction=request.order_direction,
                 page=max(request.page - 1, 0),
@@ -119,11 +118,6 @@ async def list_rls_filters(
             % (len(result.rls_filters), result.total_count)
         )
 
-        # Build column selection using ALL_RLS_COLUMNS as the source of truth,
-        # bypassing the USER_DIRECTORY_FIELDS privacy filter applied by
-        # ModelListCore. 'roles' in an RLS filter is which roles the filter
-        # applies to — core filter data — not user-directory metadata (like
-        # dashboard.roles, which exposes who has access to the resource).
         if request.select_columns:
             columns_to_filter = [
                 c for c in request.select_columns if c in ALL_RLS_COLUMNS

@@ -122,7 +122,7 @@ const StyledContainer = styled.div`
 
     /* The following extra ampersands (&&&&) are used to boost selector specificity */
 
-    &&&& .ant-steps-item-tail {
+    &&&& .ant-steps-item-rail {
       display: none;
     }
 
@@ -322,47 +322,51 @@ export const ChartCreation = ({
   return (
     <StyledContainer>
       <h3>{t('Create a new chart')}</h3>
-      <Steps direction="vertical" size="small">
-        <Steps.Step
-          title={
-            <StyledStepTitle>
-              {t('Choose a %s', datasetLabelLower())}
-            </StyledStepTitle>
-          }
-          status={datasource?.value ? 'finish' : 'process'}
-          description={
-            <StyledStepDescription className="dataset">
-              <AsyncSelect
-                autoFocus
-                ariaLabel={datasetLabel()}
-                name="select-datasource"
-                onChange={changeDatasource}
-                options={loadDatasources}
-                optionFilterProps={['id', 'table_name']}
-                placeholder={t('Choose a %s', datasetLabelLower())}
-                showSearch
-                value={datasource}
-              />
-              {datasetHelpText}
-            </StyledStepDescription>
-          }
-        />
-        <Steps.Step
-          title={<StyledStepTitle>{t('Choose chart type')}</StyledStepTitle>}
-          status={vizType ? 'finish' : 'process'}
-          description={
-            <StyledStepDescription>
-              <VizTypeGallery
-                denyList={denyList}
-                className="viz-gallery"
-                onChange={changeVizType}
-                onDoubleClick={onVizTypeDoubleClick}
-                selectedViz={vizType}
-              />
-            </StyledStepDescription>
-          }
-        />
-      </Steps>
+      <Steps
+        direction="vertical"
+        size="small"
+        items={[
+          {
+            title: (
+              <StyledStepTitle>
+                {t('Choose a %s', datasetLabelLower())}
+              </StyledStepTitle>
+            ),
+            status: datasource?.value ? 'finish' : 'process',
+            description: (
+              <StyledStepDescription className="dataset">
+                <AsyncSelect
+                  autoFocus
+                  ariaLabel={datasetLabel()}
+                  name="select-datasource"
+                  onChange={changeDatasource}
+                  options={loadDatasources}
+                  optionFilterProps={['id', 'table_name']}
+                  placeholder={t('Choose a %s', datasetLabelLower())}
+                  showSearch
+                  value={datasource}
+                />
+                {datasetHelpText}
+              </StyledStepDescription>
+            ),
+          },
+          {
+            title: <StyledStepTitle>{t('Choose chart type')}</StyledStepTitle>,
+            status: vizType ? 'finish' : 'process',
+            description: (
+              <StyledStepDescription>
+                <VizTypeGallery
+                  denyList={denyList}
+                  className="viz-gallery"
+                  onChange={changeVizType}
+                  onDoubleClick={onVizTypeDoubleClick}
+                  selectedViz={vizType}
+                />
+              </StyledStepDescription>
+            ),
+          },
+        ]}
+      />
       <div className="footer">
         {isButtonDisabled && (
           <span>

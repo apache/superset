@@ -7,6 +7,7 @@
 .codecov.yml
 .eslintrc
 .eslintignore
+.stylelintignore
 .flake8
 .nvmrc
 .prettierrc

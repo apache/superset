@@ -65,15 +65,15 @@ const SouthPane = styled.div`
       height: 100%;
     }
 
-    .ant-tabs-content-holder {
+    .ant-tabs-body-holder {
+      height: 100%;
+    }
+
+    .ant-tabs-body {
       height: 100%;
     }
 
     .ant-tabs-content {
-      height: 100%;
-    }
-
-    .ant-tabs-tabpane {
       height: 100%;
       position: relative;
 

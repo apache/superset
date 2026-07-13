@@ -86,6 +86,7 @@ import {
   MAX_TAG_COUNT,
   TOKEN_SEPARATORS,
   DEFAULT_SORT_COMPARATOR,
+  DROPDOWN_BUILTIN_PLACEMENTS,
 } from './constants';
 
 const Error = ({ error }: { error: string }) => (
@@ -152,6 +153,7 @@ const AsyncSelect = forwardRef(
     ref: ForwardedRef<AsyncSelectRef>,
   ) => {
     const isSingleMode = mode === 'single';
+    const shouldShowSearch = allowNewOptions ? true : Boolean(showSearch);
     const [selectValue, setSelectValue] = useState(value);
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(loading);
@@ -693,7 +695,14 @@ const AsyncSelect = forwardRef(
           setSelectValue(value);
         }
       } else {
-        const token = tokenSeparators.find(token => pastedText.includes(token));
+        // antd v6 widened `tokenSeparators` to `string[] | (input => string[])`;
+        // Superset always uses the array form.
+        const separators = Array.isArray(tokenSeparators)
+          ? tokenSeparators
+          : [];
+        const token = separators.find((token: string) =>
+          pastedText.includes(token),
+        );
         const array = token
           ? uniq(
               pastedText
@@ -746,7 +755,10 @@ const AsyncSelect = forwardRef(
             ) => number
           }
           getPopupContainer={
-            getPopupContainer || (triggerNode => triggerNode.parentNode)
+            getPopupContainer ||
+            ((triggerNode: HTMLElement) =>
+              (triggerNode?.closest('.ant-modal-content') as HTMLElement) ||
+              (triggerNode.parentNode as HTMLElement))
           }
           headerPosition={headerPosition}
           labelInValue
@@ -767,7 +779,7 @@ const AsyncSelect = forwardRef(
           // surface, but the underlying input accepts it and we rely on that.
           onPaste={onPaste}
           onPopupScroll={handlePagination}
-          onSearch={showSearch ? handleOnSearch : undefined}
+          onSearch={shouldShowSearch ? handleOnSearch : undefined}
           onSelect={
             handleOnSelect as unknown as (
               value: unknown,
@@ -778,10 +790,15 @@ const AsyncSelect = forwardRef(
           options={fullSelectOptions}
           optionRender={option => <Space>{option.label || option.value}</Space>}
           placeholder={placeholder}
-          showSearch={allowNewOptions ? true : showSearch}
+          showSearch={shouldShowSearch}
           tokenSeparators={tokenSeparators}
+          builtinPlacements={DROPDOWN_BUILTIN_PLACEMENTS}
           value={selectValue}
-          suffixIcon={getSuffixIcon(isLoading, showSearch, isDropdownVisible)}
+          suffixIcon={getSuffixIcon(
+            isLoading,
+            shouldShowSearch,
+            isDropdownVisible,
+          )}
           menuItemSelectedIcon={
             invertSelection ? (
               <StyledStopOutlined iconSize="m" aria-label="stop" />

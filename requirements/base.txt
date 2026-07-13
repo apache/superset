@@ -44,11 +44,11 @@ cachelib==0.13.0
     # via
     #   flask-caching
     #   flask-session
-cachetools==6.2.1
+cachetools==7.1.4
     # via apache-superset (pyproject.toml)
 cattrs==25.1.1
     # via requests-cache
-celery==5.5.2
+celery==5.6.3
     # via apache-superset (pyproject.toml)
 certifi==2026.5.20
     # via
@@ -86,7 +86,7 @@ cron-descriptor==1.4.5
     # via apache-superset (pyproject.toml)
 croniter==6.2.2
     # via apache-superset (pyproject.toml)
-cryptography==48.0.1
+cryptography==49.0.0
     # via
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
@@ -175,7 +175,7 @@ h11==0.16.0
     # via wsproto
 hashids==1.3.1
     # via apache-superset (pyproject.toml)
-holidays==0.82
+holidays==0.100
     # via apache-superset (pyproject.toml)
 humanize==4.12.3
     # via apache-superset (pyproject.toml)
@@ -207,7 +207,7 @@ jsonschema-specifications==2025.4.1
     # via
     #   jsonschema
     #   openapi-schema-validator
-kombu==5.5.3
+kombu==5.6.2
     # via celery
 limits==5.1.0
     # via flask-limiter
@@ -272,6 +272,7 @@ packaging==25.0
     #   apispec
     #   deprecation
     #   gunicorn
+    #   kombu
     #   limits
     #   shillelagh
 pandas==2.1.4
@@ -323,7 +324,7 @@ pyjwt==2.13.0
     #   redis
 pynacl==1.6.2
     # via paramiko
-pyopenssl==26.2.0
+pyopenssl==26.3.0
     # via
     #   -r requirements/base.in
     #   shillelagh
@@ -389,7 +390,7 @@ six==1.17.0
     #   python-dateutil
     #   rfc3339-validator
     #   wtforms-json
-slack-sdk==3.42.0
+slack-sdk==3.43.0
     # via apache-superset (pyproject.toml)
 sniffio==1.3.1
     # via trio
@@ -404,13 +405,16 @@ sqlalchemy==1.4.54
     #   flask-sqlalchemy
     #   marshmallow-sqlalchemy
     #   shillelagh
+    #   sqlalchemy-continuum
     #   sqlalchemy-utils
+sqlalchemy-continuum==1.6.0
+    # via apache-superset (pyproject.toml)
 sqlalchemy-utils==0.42.1
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
     #   flask-appbuilder
-sqlglot==30.8.0
+sqlglot==30.12.0
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
@@ -444,6 +448,8 @@ tzdata==2025.2
     # via
     #   kombu
     #   pandas
+tzlocal==5.4.4
+    # via celery
 url-normalize==2.2.1
     # via requests-cache
 urllib3==2.7.0

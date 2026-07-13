@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-import re
 import urllib.request
 from typing import Any, Optional, Union
 from urllib.error import URLError
@@ -27,18 +26,37 @@ from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
 
-negative_number_re = re.compile(r"^-[0-9.]+$")
+PROBLEMATIC_CSV_PREFIXES: str = "-@+|=%"
 
-# This regex will match if the string starts with:
-#
-#     1. one of -, @, +, |, =, %, a tab, or a carriage return
-#     2. two double quotes immediately followed by one of -, @, +, |, =, %
-#     3. one or more spaces immediately followed by one of -, @, +, |, =, %
-#
-# A leading tab or carriage return is treated as dangerous on its own because
-# some spreadsheet software trims that leading whitespace and then evaluates
-# the remaining cell content as a formula.
-problematic_chars_re = re.compile(r'^(?:"{2}|\s{1,})(?=[\-@+|=%])|^[\-@+|=%\t\r]')
+
+def _starts_with_formula_prefix(value: str) -> bool:
+    first = value[0]
+    if first in PROBLEMATIC_CSV_PREFIXES:
+        return True
+    if first == '"' and len(value) > 2:
+        return value[1] == '"' and value[2] in PROBLEMATIC_CSV_PREFIXES
+    return False
+
+
+def _starts_like_spreadsheet_formula(value: str) -> bool:
+    # A leading tab or carriage return is treated as dangerous on its own
+    # because some spreadsheet software trims that leading whitespace and
+    # then evaluates the remaining cell content as a formula.
+    first = value[0]
+    if first in ("\t", "\r"):
+        return True
+    if first.isspace():
+        stripped = value.lstrip()
+        return bool(stripped) and _starts_with_formula_prefix(stripped)
+    return _starts_with_formula_prefix(value)
+
+
+def _is_negative_number(value: str) -> bool:
+    return (
+        len(value) > 1
+        and value[0] == "-"
+        and all("0" <= character <= "9" or character == "." for character in value[1:])
+    )
 
 
 def escape_value(value: str) -> str:
@@ -47,10 +65,10 @@ def escape_value(value: str) -> str:
 
     http://georgemauer.net/2017/10/07/csv-injection.html
     """
-    needs_escaping = problematic_chars_re.match(value) is not None
-    is_negative_number = negative_number_re.match(value) is not None
+    if not value:
+        return value
 
-    if needs_escaping and not is_negative_number:
+    if _starts_like_spreadsheet_formula(value) and not _is_negative_number(value):
         # Escape pipe to be extra safe as this
         # can lead to remote code execution
         value = value.replace("|", "\\|")
