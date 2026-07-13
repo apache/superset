@@ -18,6 +18,7 @@
 
 import importlib
 import logging
+from collections.abc import Iterator
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -121,7 +122,7 @@ def mock_auth():
 
 
 @pytest.fixture(autouse=True)
-def _allow_data_model_metadata():
+def _allow_data_model_metadata() -> Iterator[None]:
     """Keep database tests in the normal metadata-allowed path by default."""
     with (
         patch.object(

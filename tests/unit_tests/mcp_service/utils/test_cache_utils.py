@@ -22,6 +22,7 @@ Unit tests for MCP service cache utilities.
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from superset.mcp_service.common.cache_schemas import CacheStatus
 from superset.mcp_service.utils.cache_utils import (
     apply_cache_control_to_query_context,
     get_cache_key_info,
@@ -38,7 +39,7 @@ def test_get_cache_status_from_result_reads_from_queries_list() -> None:
     """Should pull cache_hit from the first entry of a 'queries' list."""
     result: dict[str, Any] = {"queries": [{"is_cached": True}]}
 
-    status = get_cache_status_from_result(result)
+    status: CacheStatus = get_cache_status_from_result(result)
 
     assert status.cache_hit is True
     assert status.cache_type == "query"
@@ -84,7 +85,7 @@ def test_get_cache_status_from_result_reflects_force_refresh_flag() -> None:
 
 def test_get_cache_status_from_result_parses_iso_string_cache_age() -> None:
     """Should compute cache_age_seconds from an ISO-formatted cache_dttm string."""
-    cache_dt = datetime.now(timezone.utc) - timedelta(seconds=120)
+    cache_dt: datetime = datetime.now(timezone.utc) - timedelta(seconds=120)
     result: dict[str, Any] = {
         "is_cached": True,
         "cache_dttm": cache_dt.isoformat(),
@@ -147,7 +148,9 @@ def test_get_cache_status_from_result_no_cache_dttm_leaves_age_none() -> None:
 
 def test_apply_cache_control_sets_force_when_cache_disabled() -> None:
     """Should set force=True on the query context when use_cache is False."""
-    ctx = apply_cache_control_to_query_context({"queries": []}, use_cache=False)
+    ctx: dict[str, Any] = apply_cache_control_to_query_context(
+        {"queries": []}, use_cache=False
+    )
 
     assert ctx["force"] is True
 
@@ -247,7 +250,7 @@ def test_get_cache_key_info_returns_none_for_empty_string() -> None:
 
 def test_get_cache_key_info_returns_short_keys_unchanged() -> None:
     """Should return short cache keys unmodified."""
-    key = "short_cache_key"
+    key: str = "short_cache_key"
     assert get_cache_key_info(key) == key
 
 

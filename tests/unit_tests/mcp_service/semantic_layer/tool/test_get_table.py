@@ -436,8 +436,10 @@ async def test_get_table_unknown_filter_operator_passes_through(
             )
         data = json.loads(result.content[0].text)
 
-        create_kwargs = mock_factory_cls.return_value.create.call_args.kwargs
-        forwarded_filters = create_kwargs["queries"][0]["filters"]
+        create_kwargs: dict[str, Any] = (
+            mock_factory_cls.return_value.create.call_args.kwargs
+        )
+        forwarded_filters: list[dict[str, Any]] = create_kwargs["queries"][0]["filters"]
 
     assert data["success"] is True
     assert {"col": "region", "op": "TOTALLY_BOGUS_OP", "val": "x"} in forwarded_filters
@@ -485,8 +487,10 @@ async def test_get_table_unicode_filter_value_passes_through(
             )
         data = json.loads(result.content[0].text)
 
-        create_kwargs = mock_factory_cls.return_value.create.call_args.kwargs
-        forwarded_filters = create_kwargs["queries"][0]["filters"]
+        create_kwargs: dict[str, Any] = (
+            mock_factory_cls.return_value.create.call_args.kwargs
+        )
+        forwarded_filters: list[dict[str, Any]] = create_kwargs["queries"][0]["filters"]
 
     assert data["success"] is True
     assert {"col": "region", "op": "==", "val": unicode_val} in forwarded_filters
