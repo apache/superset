@@ -104,6 +104,12 @@
         "default": false,
         "lifecycle": "development",
         "description": "Enables the tagging system for organizing assets"
+      },
+      {
+        "name": "VERSION_HISTORY",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enables the version history panel on Explore and Dashboard pages"
       }
     ],
     "testing": [

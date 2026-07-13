@@ -1098,12 +1098,14 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
             aria-disabled={isChartVersionPreviewActive}
             css={css`
               height: 100%;
-              ${isChartVersionPreviewActive
-                ? `
+              ${
+                isChartVersionPreviewActive
+                  ? `
                   pointer-events: none;
                   opacity: 0.5;
                 `
-                : ''}
+                  : ''
+              }
             `}
             {...(isChartVersionPreviewActive ? { inert: '' } : {})}
           >
@@ -1166,12 +1168,14 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
             aria-disabled={isChartVersionPreviewActive}
             css={css`
               height: 100%;
-              ${isChartVersionPreviewActive
-                ? `
+              ${
+                isChartVersionPreviewActive
+                  ? `
                   pointer-events: none;
                   opacity: 0.5;
                 `
-                : ''}
+                  : ''
+              }
             `}
             // inert blocks keyboard focus too; React 18 needs the spread form
             {...(isChartVersionPreviewActive ? { inert: '' } : {})}
