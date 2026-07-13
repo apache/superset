@@ -143,17 +143,21 @@ describe('logger middleware', () => {
   });
 
   const getSourceForPath = (href: string): string | undefined => {
-    const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
-      ...window.location,
-      href,
-    } as Location);
+    const originalHref = window.location.href;
+    Object.defineProperty(window, 'location', {
+      value: { href },
+      writable: true,
+    });
     try {
       (logger as Function)(mockStore)(next)(action);
       jest.advanceTimersByTime(2000);
       const { events } = postStub.mock.calls[0][0].postPayload;
       return events[0].source;
     } finally {
-      locationSpy.mockRestore();
+      Object.defineProperty(window, 'location', {
+        value: { href: originalHref },
+        writable: true,
+      });
     }
   };
 
