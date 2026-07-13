@@ -247,8 +247,8 @@ const wsConnect = (): void => {
 };
 
 export const init = (appConfig?: AppConfig) => {
-  if (!isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) return;
   if (pollingTimeoutId) clearTimeout(pollingTimeoutId);
+  if (!isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) return;
 
   listenersByJobId = new Map();
   retriesByJobId = new Map();

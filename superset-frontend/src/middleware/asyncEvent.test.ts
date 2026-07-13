@@ -174,6 +174,10 @@ describe('asyncEvent middleware', () => {
     });
 
     test('backs off exponentially when polling requests keep failing', async () => {
+      // stop the real-timer polling loop started by beforeEach before
+      // switching to fake timers, so all polls run on the fake clock
+      mockedIsFeatureEnabled.mockReturnValueOnce(false);
+      asyncEvent.init(config);
       jest.useFakeTimers();
       try {
         fetchMock.clearHistory().removeRoutes();
@@ -214,6 +218,10 @@ describe('asyncEvent middleware', () => {
     });
 
     test('resumes the configured polling delay after a successful poll', async () => {
+      // stop the real-timer polling loop started by beforeEach before
+      // switching to fake timers, so all polls run on the fake clock
+      mockedIsFeatureEnabled.mockReturnValueOnce(false);
+      asyncEvent.init(config);
       jest.useFakeTimers();
       try {
         fetchMock.clearHistory().removeRoutes();
