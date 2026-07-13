@@ -58,11 +58,9 @@ function TextControl<T extends InputValueType = InputValueType>({
   onFocus,
   placeholder,
   value,
-  controlId,
   renderTrigger,
   validationErrors,
   hovered,
-  showHeader,
 }: TextControlProps<T>) {
   const [localValue, setLocalValue] = useState<string>(safeStringify(value));
   const prevValueRef = useRef<T | null | undefined>(value);
@@ -126,7 +124,6 @@ function TextControl<T extends InputValueType = InputValueType>({
     displayValue = safeStringify(value);
   }
 
-  // Note: controlId and showHeader props are not used by ControlHeader
   return (
     <div>
       <ControlHeader
