@@ -258,6 +258,54 @@ describe('asyncEvent middleware', () => {
       }
     });
 
+    test('caps the polling backoff delay at 60 seconds', async () => {
+      const MAX_ERROR_POLLING_DELAY_MS = 60000;
+      // stop the real-timer polling loop started by beforeEach before
+      // switching to fake timers, so all polls run on the fake clock
+      mockedIsFeatureEnabled.mockReturnValueOnce(false);
+      asyncEvent.init(config);
+      jest.useFakeTimers();
+      try {
+        fetchMock.clearHistory().removeRoutes();
+        fetchMock.get(EVENTS_ENDPOINT, { status: 403 });
+        asyncEvent.init(config);
+        asyncEvent.waitForAsyncData(asyncPendingEvent).catch(() => {});
+
+        // first poll fires after the configured delay and fails
+        await jest.advanceTimersByTimeAsync(
+          config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(1);
+
+        // walk the uncapped backoff: after failure N the next delay is
+        // 2^N times the configured delay, which stays below the cap through
+        // failure 10 (50ms * 2^10 = 51.2s)
+        for (let failures = 1; failures <= 10; failures += 1) {
+          await jest.advanceTimersByTimeAsync(
+            config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY * 2 ** failures,
+          );
+          expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(
+            failures + 1,
+          );
+        }
+
+        // after failure 11 the uncapped delay would be 102.4s, so the cap
+        // takes over: no poll just before the 60s mark...
+        await jest.advanceTimersByTimeAsync(MAX_ERROR_POLLING_DELAY_MS - 1);
+        expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(11);
+
+        // ...and the next poll fires exactly at 60s
+        await jest.advanceTimersByTimeAsync(1);
+        expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(12);
+
+        // additional failures remain capped at 60s
+        await jest.advanceTimersByTimeAsync(MAX_ERROR_POLLING_DELAY_MS);
+        expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(13);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
     // Regression guard for the motivating CodeQL case: a job_id that collides
     // with a built-in Object property (e.g. "__proto__"/"constructor") must be
     // routed through the Map-based registries without triggering prototype
