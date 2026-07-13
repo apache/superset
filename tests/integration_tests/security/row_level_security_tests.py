@@ -469,6 +469,62 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         assert all("birth" in table_name.lower() for table_name in received_tables)
         assert len(result) >= 1  # At least birth_names should be returned
 
+    @pytest.mark.usefixtures("load_birth_names_data")
+    def test_rls_tables_related_api_returns_all_masked_matches(self):
+        """
+        Regression for #29707: the RLS dataset selector's async search must
+        return *every* dataset whose name matches the typed mask, not a
+        truncated subset. The reporter had two "birth" datasets (birth_names
+        and birth_france_by_region) and searching "birth" showed an
+        incomplete list. This exercises the backend ``related/tables``
+        endpoint that feeds that selector to prove whether the search-by-mask
+        lookup is the culprit.
+        """
+        self.login(ADMIN_USERNAME)
+
+        birth_names = self.get_table(name="birth_names")
+        # Create a sibling dataset whose name also contains the "birth" mask,
+        # mirroring the two-dataset scenario from the issue.
+        sibling = SqlaTable(
+            table_name="birth_france_by_region",
+            database=birth_names.database,
+            schema=birth_names.schema,
+        )
+        db.session.add(sibling)
+        db.session.commit()
+
+        try:
+            # Datasets in the metadata DB that match the "birth" mask. Keep a
+            # sorted list rather than a set so datasets that render the same
+            # display name (same table/schema across databases) are not
+            # collapsed, which would let the multiplicity disagree with the
+            # API's row count below.
+            expected = sorted(
+                t.name
+                for t in db.session.query(SqlaTable)
+                .filter(SqlaTable.table_name.ilike("%birth%"))
+                .all()
+            )
+            # Both datasets must be present in the ground truth for the
+            # assertion below to be meaningful.
+            bare_names = {name.split(".")[-1] for name in expected}
+            assert "birth_names" in bare_names
+            assert "birth_france_by_region" in bare_names
+
+            params = rison.dumps({"filter": "birth", "page": 0, "page_size": 100})
+            rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            received = sorted(table["text"] for table in data["result"])
+
+            # The masked search must return *all* matching datasets (preserving
+            # multiplicity), and the advertised count must not under-report them.
+            assert received == expected
+            assert data["count"] == len(expected)
+        finally:
+            db.session.delete(sibling)
+            db.session.commit()
+
     def test_rls_tables_related_api_with_filter_no_matches(self):
         self.login(ADMIN_USERNAME)
         # Test with filter that should match nothing
@@ -491,6 +547,57 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
 
         assert data["count"] > 0
         assert len(result) > 0
+
+    def test_rls_subjects_related_api_honors_filter_31466(self):
+        """
+        Regression for #31466: with more than 100 roles the RLS picker could
+        not see or select roles beyond the first (default) page of 100 because
+        the ``related/roles`` endpoint silently ignored the search ``filter``
+        term. The RLS subject/role picker now lives at ``related/subjects``,
+        and this test asserts the search term actually narrows the result to
+        matching subjects, so any role remains reachable by name regardless of
+        how many roles exist.
+        """
+        self.login(ADMIN_USERNAME)
+
+        # A role label that cannot collide with the built-in roles/subjects
+        # (Admin, Public, Alpha, Gamma, sql_lab, ...).
+        unique_marker = "zzz_rls_31466"
+        role_name = f"{unique_marker}_special_role"
+        role = security_manager.add_role(role_name)
+        db.session.commit()
+        subject = _subject_for_role(role)
+        db.session.commit()
+
+        # Ensure ROLE-type subjects are visible in the RLS picker (the scenario
+        # from #31466, where roles drive RLS). This is what the original
+        # ``related/roles`` endpoint used to serve unconditionally.
+        original_types = self.app.config.get("SUBJECTS_RELATED_TYPES_RLS")
+        self.app.config["SUBJECTS_RELATED_TYPES_RLS"] = [SubjectType.ROLE]
+        try:
+            params = rison.dumps({"filter": unique_marker, "page": 0, "page_size": 100})
+            rv = self.client.get(
+                f"/api/v1/rowlevelsecurity/related/subjects?q={params}"
+            )
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            received = {r["text"] for r in data["result"]}
+
+            # The role must be findable via the search term ...
+            assert role_name in received
+            # ... and the filter must narrow the result to matching subjects
+            # only. If the search term were ignored (the #31466 bug), other
+            # roles that do not contain the marker would leak through and this
+            # assertion would fail.
+            assert all(unique_marker in text for text in received), (
+                "related/subjects ignored the filter term and returned "
+                f"non-matching subjects: {sorted(received)}"
+            )
+        finally:
+            self.app.config["SUBJECTS_RELATED_TYPES_RLS"] = original_types
+            db.session.delete(subject)
+            db.session.delete(role)
+            db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("load_energy_table_with_slice")

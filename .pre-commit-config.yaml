@@ -81,6 +81,12 @@ repos:
         language: system
         pass_filenames: true
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
+      - id: stylelint-frontend
+        name: stylelint (frontend css-in-js)
+        entry: ./scripts/stylelint.sh
+        language: system
+        pass_filenames: true
+        files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
       - id: eslint-docs
         name: eslint (docs)
         entry: bash -c 'cd docs && FILES=$(printf "%s\n" "$@" | sed "s|^docs/||" | tr "\n" " ") && yarn eslint --fix --quiet $FILES'

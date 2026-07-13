@@ -38,7 +38,7 @@ export const GlobalStyles = () => {
     <Global
       key={`global-${theme.colorLink}`}
       styles={css`
-        // SPA
+        /* SPA */
         html {
           color-scheme: ${isDark ? 'dark' : 'light'};
         }
@@ -93,7 +93,7 @@ export const GlobalStyles = () => {
           }
         }
 
-        // Overriding bootstrap styles
+        /* Overriding bootstrap styles */
         #app {
           flex: 1 1 auto;
           position: relative;
@@ -105,8 +105,8 @@ export const GlobalStyles = () => {
           cursor: pointer;
         }
 
-        // Override geostyler CSS that hides AntD ColorPicker alpha input
-        // See: https://github.com/apache/superset/issues/34721
+        /* Override geostyler CSS that hides AntD ColorPicker alpha input */
+        /* See: https://github.com/apache/superset/issues/34721 */
         .ant-color-picker .ant-color-picker-alpha-input {
           display: block;
         }

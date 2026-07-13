@@ -16,25 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { SerializedStyles } from '@emotion/react';
-
-export type { FormProps, FormInstance, FormItemProps } from 'antd/es/form';
-export type { SerializedStyles };
-
-export interface LabeledErrorBoundInputProps {
-  label?: string;
-  validationMethods:
-    { onBlur: (value: any) => void } | { onChange: (value: any) => void };
-  errorMessage?: string | null;
-  helpText?: string;
-  required?: boolean;
-  hasTooltip?: boolean;
-  tooltipText?: string | null;
-  id?: string;
-  classname?: string;
-  visibilityToggle?: boolean;
-  isValidating?: boolean;
-  renderAsTextArea?: boolean;
-  textAreaCss?: SerializedStyles;
-  [x: string]: any;
-}
+module.exports = {
+  customSyntax: 'postcss-styled-syntax',
+  rules: {
+    'property-no-unknown': true,
+    'unit-no-unknown': true,
+    'function-no-unknown': true,
+    'color-no-invalid-hex': true,
+    'named-grid-areas-no-invalid': true,
+    'string-no-newline': true,
+    'no-invalid-double-slash-comments': true,
+    'declaration-block-no-duplicate-properties': [
+      true,
+      { ignore: ['consecutive-duplicates-with-different-values'] },
+    ],
+  },
+};
