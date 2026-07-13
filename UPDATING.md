@@ -83,7 +83,7 @@ The thumbnail endpoint redirects to the current digest URL regardless of whether
 
 Re-importing an existing dashboard previously overwrote only the dashboard itself; its related charts, datasets, and databases were never updated (the importer hardcoded `overwrite=False` for them). They can now be overwritten as part of the import.
 
-A new `overwrite_all` form field controls this. On the `/api/v1/dashboard/import/` endpoint, when `overwrite=true` and `overwrite_all` is omitted, `overwrite_all` defaults to `true`, so related charts, datasets, and databases are overwritten along with the dashboard. Callers that want to overwrite only the dashboard (the previous behavior) must explicitly pass `overwrite_all=false`. The import modal in the UI exposes this as an "also overwrite all assets" checkbox. Note that the CLI `superset import-dashboards` and the `ImportDashboardsCommand` default `overwrite_all` to `false`.
+A new `overwrite_all` form field controls this, and defaults to `false` everywhere, so existing behavior is preserved: passing `overwrite=true` alone still overwrites only the dashboard, exactly as before. To also overwrite the related charts, datasets, and databases on the `/api/v1/dashboard/import/` endpoint, pass `overwrite_all=true` explicitly. The import modal in the UI exposes this as an "also overwrite all assets" checkbox, and the CLI `superset import-dashboards` and the `ImportDashboardsCommand` likewise default `overwrite_all` to `false`.
 
 ### Tagging fix for `create_all`-bootstrapped schemas
 
