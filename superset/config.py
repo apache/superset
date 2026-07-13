@@ -515,7 +515,7 @@ class D3TimeFormat(TypedDict, total=False):
 
 D3_TIME_FORMAT: D3TimeFormat = {}
 
-CURRENCIES = ["USD", "EUR", "GBP", "INR", "MXN", "JPY", "CNY"]
+CURRENCIES = ["USD", "EUR", "GBP", "INR", "MXN", "JPY", "CNY", "KHR"]
 
 # ---------------------------------------------------
 # Feature flags
@@ -940,7 +940,7 @@ THEME_DEFAULT: Theme = {
         "colorInfo": "#66bcfe",
         # Fonts
         "fontUrls": [],
-        "fontFamily": "Inter, Helvetica, Arial, sans-serif",
+        "fontFamily": "Inter, Helvetica, Arial, 'Kantumruy Pro', sans-serif",
         "fontFamilyCode": "'IBM Plex Mono', 'Courier New', monospace",
         # Extra tokens
         "transitionTiming": 0.3,

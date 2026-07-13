@@ -501,7 +501,7 @@ test('Theme base theme integration works with real-world Superset base theme con
       colorWarning: '#fcc700',
       colorSuccess: '#5ac189',
       colorInfo: '#66bcfe',
-      fontFamily: "'Inter', Helvetica, Arial",
+      fontFamily: "Inter, Helvetica, Arial, 'Kantumruy Pro', sans-serif",
       fontFamilyCode: "'IBM Plex Mono', 'Courier New', monospace",
     },
   };
@@ -519,14 +519,18 @@ test('Theme base theme integration works with real-world Superset base theme con
   // Test light mode
   const lightTheme = Theme.fromConfig(themeDefault, supersetBaseTheme);
   expect(lightTheme.theme.colorPrimary).toBe('#2893B3');
-  expect(lightTheme.theme.fontFamily).toBe("'Inter', Helvetica, Arial");
+  expect(lightTheme.theme.fontFamily).toBe(
+    "Inter, Helvetica, Arial, 'Kantumruy Pro', sans-serif",
+  );
 
   // Test dark mode
   const darkTheme = Theme.fromConfig(themeDark, {
     ...supersetBaseTheme,
     algorithm: antdThemeImport.darkAlgorithm,
   });
-  expect(darkTheme.theme.fontFamily).toBe("'Inter', Helvetica, Arial");
+  expect(darkTheme.theme.fontFamily).toBe(
+    "Inter, Helvetica, Arial, 'Kantumruy Pro', sans-serif",
+  );
 
   const darkSerialized = darkTheme.toSerializedConfig();
   expect(darkSerialized.algorithm).toBe(ThemeAlgorithm.DARK);
