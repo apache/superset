@@ -124,7 +124,7 @@ const StyledContent = styled.div<{
 }>`
   grid-column: 2;
   grid-row: 2;
-  // @z-index-above-dashboard-header (100) + 1 = 101
+  /* @z-index-above-dashboard-header (100) + 1 = 101 */
   ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 101;`}
 `;
 
@@ -141,8 +141,9 @@ const DashboardContentWrapper = styled.div`
       & .dashboard-component-tabs {
         box-shadow: 0 ${theme.sizeUnit}px ${theme.sizeUnit}px 0
           ${addAlpha(theme.colorBorderSecondary, 0.1)};
-        padding-left: ${theme.sizeUnit *
-        2}px; /* note this is added to tab-level padding, to match header */
+        padding-left: ${
+          theme.sizeUnit * 2
+        }px; /* note this is added to tab-level padding, to match header */
       }
 
       .dropdown-toggle.btn.btn-primary .caret {
@@ -295,12 +296,14 @@ const StyledDashboardContent = styled.div<{
       margin: ${theme.sizeUnit * 4}px;
       margin-left: ${marginLeft}px;
 
-      ${editMode &&
-      `
+      ${
+        editMode &&
+        `
       max-width: calc(100% - ${
         BUILDER_SIDEPANEL_WIDTH + theme.sizeUnit * 16
       }px);
-    `}
+    `
+      }
 
       /* this is the ParentSize wrapper */
     & > div:first-of-type {
@@ -324,7 +327,7 @@ const StyledDashboardContent = styled.div<{
       box-sizing: border-box;
       overflow-y: visible;
 
-      // transitionable traits to show filter relevance
+      /* transitionable traits to show filter relevance */
       transition:
         opacity ${theme.motionDurationMid} ease-in-out,
         border-color ${theme.motionDurationMid} ease-in-out,
@@ -337,8 +340,10 @@ const StyledDashboardContent = styled.div<{
       }
 
       &.fade-out {
-        box-shadow: ${theme.dashboardTileBoxShadow ??
-        `0 0 0 1px ${addAlpha(theme.colorBorder, 0.5)}`};
+        box-shadow: ${
+          theme.dashboardTileBoxShadow ??
+          `0 0 0 1px ${addAlpha(theme.colorBorder, 0.5)}`
+        };
       }
 
       & .missing-chart-container {

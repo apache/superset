@@ -28,6 +28,33 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
+#, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a new "
+"dataset over this table, or use a different table name."
+msgstr ""
+
+#, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or "
+"upload to a different table name."
+msgstr ""
+
+msgid ""
+"Cannot delete a database whose only remaining datasets are soft-deleted. "
+"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
+"permanently once a purge capability ships, or remove the underlying rows "
+"out-of-band, before deleting the database."
+msgstr ""
+
+msgid ""
+"Dataset cannot be restored because another active dataset already references "
+"the same physical table (same database, catalog, schema, and table name). "
+"Delete the duplicate or rename the table before restoring."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -278,17 +305,17 @@ msgstr "\"%s\" é agora o tema escuro do sistema"
 msgid "\"%s\" is now the system default theme"
 msgstr "\"%s\" é agora o tema predefinido do sistema"
 
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% calculation"
 msgstr "Escolha um tipo de visualização"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, es,
 # fa, ja, lv, mi, ru, sk, sl, sr, sr_Latn, tr, uk]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of parent"
 msgstr "% do pai"
 
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of total"
 msgstr "Mostrar Tabela"
 
@@ -4759,6 +4786,9 @@ msgstr "Modificado pela última vez"
 msgid "Chart could not be created."
 msgstr "Não foi possível gravar a sua query"
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "Não foi possível gravar a sua query"
 
@@ -7204,6 +7234,9 @@ msgstr "Não foi possível gravar a sua query"
 msgid "Dataset could not be duplicated."
 msgstr "Não foi possível gravar a sua query"
 
+msgid "Dataset could not be restored."
+msgstr ""
+
 msgid "Dataset could not be updated."
 msgstr "Não foi possível gravar a sua query"
 
@@ -7832,14 +7865,14 @@ msgstr "Eliminar"
 #, python-format
 msgid "Deleted %(num)d annotation"
 msgid_plural "Deleted %(num)d annotations"
-msgstr[0] "Selecione uma camada de anotação"
-msgstr[1] "Selecione uma camada de anotação"
+msgstr[0] "Eliminada %(num)d anotação"
+msgstr[1] "Eliminadas %(num)d anotações"
 
 #, python-format
 msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
-msgstr[0] "Selecione uma camada de anotação"
-msgstr[1] "Selecione uma camada de anotação"
+msgstr[0] "Eliminada %(num)d camada de anotação"
+msgstr[1] "Eliminadas %(num)d camadas de anotação"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
@@ -7847,12 +7880,8 @@ msgstr[1] "Selecione uma camada de anotação"
 #, fuzzy, python-format
 msgid "Deleted %(num)d chart"
 msgid_plural "Deleted %(num)d charts"
-msgstr[0] ""
-"Eliminado %(num)d gráfico\n"
-"Eliminados %(num)d gráficos"
-msgstr[1] ""
-"Eliminado %(num)d gráfico\n"
-"Eliminados %(num)d gráficos"
+msgstr[0] "Eliminado %(num)d gráfico"
+msgstr[1] "Eliminados %(num)d gráficos"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
@@ -7866,14 +7895,14 @@ msgstr[1] "Eliminados %(num)d modelos CSS"
 #, python-format
 msgid "Deleted %(num)d dashboard"
 msgid_plural "Deleted %(num)d dashboards"
-msgstr[0] "Por favor selecione um dashboard"
-msgstr[1] "Por favor selecione um dashboard"
+msgstr[0] "Eliminado %(num)d dashboard"
+msgstr[1] "Eliminados %(num)d dashboards"
 
 #, python-format
 msgid "Deleted %(num)d dataset"
 msgid_plural "Deleted %(num)d datasets"
-msgstr[0] "Selecione uma base de dados"
-msgstr[1] "Selecione uma base de dados"
+msgstr[0] "Eliminado %(num)d conjunto de dados"
+msgstr[1] "Eliminados %(num)d conjuntos de dados"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
@@ -7912,8 +7941,8 @@ msgstr[1] "Eliminadas %(num)d vistas semânticas"
 #, fuzzy, python-format
 msgid "Deleted %(num)d theme"
 msgid_plural "Deleted %(num)d themes"
-msgstr[0] "Selecione uma base de dados"
-msgstr[1] "Selecione uma base de dados"
+msgstr[0] "Eliminado %(num)d tema"
+msgstr[1] "Eliminados %(num)d temas"
 
 #, fuzzy, python-format
 msgid "Deleted %s"
@@ -21413,6 +21442,11 @@ msgstr ""
 "estiver associado a mais do que uma categoria, apenas a primeira será "
 "utilizada."
 
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -21547,6 +21581,11 @@ msgstr ""
 
 msgid "The dashboard has been saved"
 msgstr "Dashboard gravado com sucesso."
+
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
+msgstr ""
 
 msgid "The data source seems to have been deleted"
 msgstr "Esta origem de dados parece ter sido excluída"

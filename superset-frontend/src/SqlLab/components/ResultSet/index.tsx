@@ -44,6 +44,8 @@ import {
   FilterableTable,
   ErrorMessageWithStackTrace,
 } from 'src/components';
+import type { GridThemeOverrides } from 'src/components/GridTable/types';
+import { buildResultsGridThemeOverrides } from './buildResultsGridThemeOverrides';
 import { nanoid } from 'nanoid';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -106,14 +108,12 @@ export interface ResultSetProps {
   csv?: boolean;
   database?: Record<string, any>;
   displayLimit: number;
-  height?: number;
   queryId: string;
   search?: boolean;
   showSql?: boolean;
   showSqlInline?: boolean;
   visualize?: boolean;
   defaultQueryLimit: number;
-  useFixedHeight?: boolean;
 }
 
 const ResultContainer = styled.div`
@@ -138,7 +138,6 @@ const ResultlessStyles = styled.div`
 // but wrapping text too so text doesn't overflow
 const MonospaceDiv = styled.div`
   font-family: ${({ theme }) => theme.fontFamilyCode};
-  white-space: pre;
   word-break: break-word;
   overflow-x: auto;
   white-space: pre-wrap;
@@ -164,14 +163,12 @@ const ResultSet = ({
   csv = true,
   database = {},
   displayLimit,
-  height,
   queryId,
   search = true,
   showSql = false,
   showSqlInline = false,
   visualize = true,
   defaultQueryLimit,
-  useFixedHeight = false,
 }: ResultSetProps) => {
   const streamingThreshold = useSelector(
     (state: SqlLabRootState) =>
@@ -214,6 +211,12 @@ const ResultSet = ({
     extensionsRegistry.get('sqleditor.extension.resultTable') ??
     FilterableTable;
   const theme = useTheme();
+
+  const resultsGridThemeOverrides = useMemo<GridThemeOverrides | undefined>(
+    () => buildResultsGridThemeOverrides(theme),
+    [theme],
+  );
+
   const [searchText, setSearchText] = useState('');
   const [cachedData, setCachedData] = useState<Record<string, unknown>[]>([]);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
@@ -708,6 +711,7 @@ const ResultSet = ({
         filterText: searchText,
         expandedColumns,
         allowHTML,
+        themeOverrides: resultsGridThemeOverrides,
       };
 
       return (
@@ -765,22 +769,18 @@ const ResultSet = ({
                 />
               )}
             </div>
-            {useFixedHeight && height !== undefined ? (
-              <ResultTable {...tableProps} height={height} />
-            ) : (
-              <div
-                css={css`
-                  flex: 1 1 auto;
-                  padding-bottom: ${theme.sizeUnit * 3}px;
-                `}
-              >
-                <AutoSizer disableWidth>
-                  {({ height: autoHeight }) => (
-                    <ResultTable {...tableProps} height={autoHeight} />
-                  )}
-                </AutoSizer>
-              </div>
-            )}
+            <div
+              css={css`
+                flex: 1 1 auto;
+                padding-bottom: ${theme.sizeUnit * 3}px;
+              `}
+            >
+              <AutoSizer disableWidth>
+                {({ height: autoHeight }) => (
+                  <ResultTable {...tableProps} height={autoHeight} />
+                )}
+              </AutoSizer>
+            </div>
           </ResultContainer>
           <StreamingExportModal
             visible={showStreamingModal}
