@@ -737,11 +737,14 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
             return default_catalog
 
         with database.get_sqla_engine() as engine:
-            catalogs = {catalog for (catalog,) in engine.execute(text("SHOW CATALOGS"))}
-            if len(catalogs) == 1:
-                return catalogs.pop()
+            with engine.connect() as conn:
+                catalogs = {
+                    catalog for (catalog,) in conn.execute(text("SHOW CATALOGS"))
+                }
+                if len(catalogs) == 1:
+                    return catalogs.pop()
 
-            return engine.execute(text("SELECT current_catalog()")).scalar()
+                return conn.execute(text("SELECT current_catalog()")).scalar()
 
     @classmethod
     def get_prequeries(
@@ -765,7 +768,8 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         database: Database,
         inspector: Inspector,
     ) -> set[str]:
-        return {catalog for (catalog,) in inspector.bind.execute(text("SHOW CATALOGS"))}
+        with inspector.engine.connect() as conn:
+            return {catalog for (catalog,) in conn.execute(text("SHOW CATALOGS"))}
 
 
 class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
@@ -939,7 +943,8 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
         database: Database,
         inspector: Inspector,
     ) -> set[str]:
-        return {catalog for (catalog,) in inspector.bind.execute(text("SHOW CATALOGS"))}
+        with inspector.engine.connect() as conn:
+            return {catalog for (catalog,) in conn.execute(text("SHOW CATALOGS"))}
 
     @classmethod
     def adjust_engine_params(
