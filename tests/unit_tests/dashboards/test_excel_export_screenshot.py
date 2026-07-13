@@ -161,6 +161,4 @@ def test_render_chart_image_propagates_soft_time_limit() -> None:
         ),
         pytest.raises(SoftTimeLimitExceeded),
     ):
-        render_chart_image(
-            chart, dashboard_id=7, active_data_mask={}, user=MagicMock()
-        )
+        render_chart_image(chart, dashboard_id=7, active_data_mask={}, user=MagicMock())
