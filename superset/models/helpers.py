@@ -3886,7 +3886,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     }:
                         # Native UUID columns report GenericDataType.STRING but
                         # reject LIKE/ILIKE without a cast (see issue #41795)
-                        needs_string_cast_for_like = (
+                        needs_string_cast_for_like: bool = (
                             target_generic_type != GenericDataType.STRING
                             or is_uuid_native_type(col_type)
                         )

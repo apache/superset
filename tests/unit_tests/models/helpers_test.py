@@ -3761,7 +3761,7 @@ def test_like_filter_on_uuid_column_casts_to_string(
         is_timeseries=False,
         orderby=[],
     )
-    whereclause = result.sqla_query.whereclause
+    whereclause: ColumnElement = result.sqla_query.whereclause
     assert any(isinstance(node, Cast) for node in iterate(whereclause)), (
         f"Expected a Cast node in the filter expression: {whereclause}"
     )
