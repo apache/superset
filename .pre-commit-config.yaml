@@ -31,9 +31,10 @@ repos:
             types-simplejson,
             types-python-dateutil,
             types-requests,
-            # types-redis 4.6.0.5 is failing mypy
-            # because of https://github.com/python/typeshed/pull/10531
-            types-redis==4.6.0.4,
+            # types-redis is unmaintained (frozen at the 4.6.0.x API
+            # surface) now that redis-py ships its own bundled types
+            # (py.typed, since 4.6+/5.x); keeping it installed shadows
+            # those accurate, up-to-date inline types with a stale stub.
             types-pytz,
             types-croniter,
             types-PyYAML,
