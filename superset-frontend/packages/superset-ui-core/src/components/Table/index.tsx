@@ -293,6 +293,7 @@ export function Table<RecordType extends object>(
     onRow,
     allowHTML = false,
     childrenColumnName,
+    expandable: expandableProp,
     ...rest
   } = props;
 
@@ -425,6 +426,7 @@ export function Table<RecordType extends object>(
     bordered,
     expandable: {
       childrenColumnName,
+      ...expandableProp,
     },
   };
 
