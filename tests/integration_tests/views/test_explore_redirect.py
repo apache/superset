@@ -305,15 +305,15 @@ class TestExploreRedirect(SupersetTestCase):
         the ``applicationRoot()`` and ``DIRECT_DOM_NAV_SANCTIONED`` patterns
         from the frontend L2 scanners.
         """
-        pattern = re.compile(r"\bget_explore_redirect_url\(")
+        # Exclude the definition site by shape, not by path. Skipping
+        # `views/utils.py` wholesale (where the helper is defined) would also
+        # hide a genuine new *call* added inside that same module — the exact
+        # thing this scan exists to catch. The lookbehind drops only the
+        # `def get_explore_redirect_url(` line itself.
+        pattern = re.compile(r"(?<!def )\bget_explore_redirect_url\(")
         callers: set[str] = set()
         for path in (REPO_ROOT / "superset").rglob("*.py"):
             text = path.read_text(encoding="utf-8")
-            # Skip the helper's own definition site.
-            if path.name == "utils.py" and path.parent.name == "views":
-                # `views/utils.py` contains the `def` and an internal docstring
-                # `f"...({CreateFormDataCommand...".` reference; not a caller.
-                continue
             if pattern.search(text):
                 callers.add(str(path.relative_to(REPO_ROOT)).replace("\\", "/"))
         assert callers == {
