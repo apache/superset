@@ -105,7 +105,7 @@ async def list_charts(
 
     Valid filter columns for ``filters[].col``:
         ``slice_name``, ``viz_type``, ``datasource_name``,
-        ``created_by_fk``, ``changed_by_fk``
+        ``created_by_fk``, ``changed_by_fk``, ``dashboards``
 
     Sortable columns for ``order_column``:
         ``id``, ``slice_name``, ``viz_type``, ``description``,
