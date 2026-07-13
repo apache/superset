@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback } from 'react';
+import { ReactNode } from 'react';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
+import { Breadcrumb } from '@superset-ui/core/components';
 import { DrillDownLevel } from './types';
 
 interface DrillDownBreadcrumbProps {
@@ -46,80 +47,66 @@ export function DrillDownBreadcrumb({
 }: DrillDownBreadcrumbProps) {
   const theme = useTheme();
 
-  const handleClick = useCallback(
-    (depth: number) => (e: React.MouseEvent) => {
-      e.preventDefault();
-      onJumpTo(depth);
-    },
-    [onJumpTo],
-  );
-
   if (drillStack.length === 0 && !selectedLeaf) {
     return null;
   }
 
-  const separatorCss = css`
-    color: ${theme.colorTextTertiary};
-    margin: 0 ${theme.sizeUnit / 2}px;
-  `;
-
-  // Native <button> reset to render as an inline link — keeps built-in
-  // keyboard/focus a11y without hand-rolled role/tabIndex/onKeyDown.
   const linkCss = css`
     cursor: pointer;
     color: ${theme.colorPrimary};
-    background: none;
-    border: none;
-    padding: 0;
-    font: inherit;
-    line-height: inherit;
     &:hover {
       text-decoration: underline;
     }
   `;
 
+  // Render a navigable segment as a keyboard-operable element (role/tabIndex
+  // + Enter/Space) since antd's Breadcrumb items are otherwise inert text.
+  const clickable = (label: string, depth: number): { title: ReactNode } => ({
+    title: (
+      <span
+        role="button"
+        tabIndex={0}
+        onClick={() => onJumpTo(depth)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onJumpTo(depth);
+          }
+        }}
+        css={linkCss}
+      >
+        {label}
+      </span>
+    ),
+  });
+
+  // Build the breadcrumb trail: the hierarchy root, every drilled level, and
+  // the picked leaf (if any). The deepest shown level (last drilled level with
+  // no leaf, or the leaf itself) is inert.
+  const items: { title: ReactNode }[] = [clickable(hierarchy[0] ?? '', 0)];
+  drillStack.forEach((level, index) => {
+    const isLast = index === drillStack.length - 1 && !selectedLeaf;
+    items.push(
+      isLast
+        ? { title: <span>{level.label}</span> }
+        : clickable(level.label, index + 1),
+    );
+  });
+  if (selectedLeaf) {
+    items.push({ title: <span>{selectedLeaf}</span> });
+  }
+
   return (
-    <div
+    <Breadcrumb
       data-test="drill-down-breadcrumb"
+      separator={t('›')}
+      items={items}
       css={css`
         padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
         background: ${theme.colorBgContainer};
         border-bottom: 1px solid ${theme.colorBorderSecondary};
         font-size: ${theme.fontSizeSM}px;
-        display: flex;
-        align-items: center;
-        gap: ${theme.sizeUnit}px;
-        flex-wrap: wrap;
       `}
-    >
-      <button type="button" onClick={handleClick(0)} css={linkCss}>
-        {hierarchy[0] ?? ''}
-      </button>
-      {drillStack.map((level, index) => {
-        const isLast = index === drillStack.length - 1 && !selectedLeaf;
-        return (
-          <span key={`${index}-${level.label}`}>
-            <span css={separatorCss}>{t('›')}</span>
-            {isLast ? (
-              <span>{level.label}</span>
-            ) : (
-              <button
-                type="button"
-                onClick={handleClick(index + 1)}
-                css={linkCss}
-              >
-                {level.label}
-              </button>
-            )}
-          </span>
-        );
-      })}
-      {selectedLeaf && (
-        <span>
-          <span css={separatorCss}>{t('›')}</span>
-          <span>{selectedLeaf}</span>
-        </span>
-      )}
-    </div>
+    />
   );
 }

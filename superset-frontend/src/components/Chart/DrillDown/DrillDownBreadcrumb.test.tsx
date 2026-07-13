@@ -81,7 +81,7 @@ test('clicking a breadcrumb segment calls onJumpTo with correct depth', () => {
   expect(onJumpTo).toHaveBeenCalledWith(1);
 });
 
-test('clickable breadcrumb segments are native buttons (keyboard accessible)', () => {
+test('clickable breadcrumb segments are keyboard accessible', () => {
   render(
     <DrillDownBreadcrumb
       hierarchy={hierarchy}
@@ -90,10 +90,12 @@ test('clickable breadcrumb segments are native buttons (keyboard accessible)', (
     />,
   );
 
-  // Clickable segments render as a native <button>, which the browser makes
-  // operable via Enter/Space and focusable without hand-rolled a11y handlers.
-  expect(screen.getByText('country').tagName).toBe('BUTTON');
-  expect(screen.getByText('USA').tagName).toBe('BUTTON');
+  // Clickable segments expose role="button" and are focusable via tabIndex so
+  // they remain operable by keyboard (Enter/Space) without a native <button>.
+  const root = screen.getByText('country');
+  expect(root).toHaveAttribute('role', 'button');
+  expect(root).toHaveAttribute('tabindex', '0');
+  expect(screen.getByText('USA')).toHaveAttribute('role', 'button');
 });
 
 test('selectedLeaf is rendered as non-clickable text', () => {
