@@ -118,7 +118,6 @@ interface MatrixifyGridRendererProps {
 function MatrixifyGridRenderer({
   formData,
   datasource,
-  width,
   height,
   hooks,
 }: MatrixifyGridRendererProps) {
@@ -249,7 +248,7 @@ function MatrixifyGridRenderer({
                     {/* Row cells for this column group */}
                     {row
                       .slice(colGroup.startIdx, colGroup.endIdx)
-                      .map((cell, colIdx) =>
+                      .map(cell =>
                         cell ? (
                           <MatrixifyGridCell
                             key={cell.id}

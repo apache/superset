@@ -128,7 +128,9 @@ test('CalHeatMap tags tips per instance without removing other mounted calendars
     timeFormatter: String,
   });
 
-  expect(document.querySelectorAll(`.${CALENDAR_TOOLTIP_CLASS}`)).toHaveLength(4);
+  expect(document.querySelectorAll(`.${CALENDAR_TOOLTIP_CLASS}`)).toHaveLength(
+    4,
+  );
   expect(document.querySelectorAll(`.${firstClassName}`)).toHaveLength(2);
   expect(document.querySelectorAll(`.${secondClassName}`)).toHaveLength(2);
 

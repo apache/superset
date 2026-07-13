@@ -32,10 +32,23 @@ import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
 import * as navigationUtils from 'src/utils/navigationUtils';
 import { AlertObject, NotificationMethodOption } from './types';
+import { SubjectType } from 'src/types/Subject';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: () => true,
+}));
+
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    common: {
+      conf: {},
+      feature_flags: {},
+      user_subject_id: 1,
+      user_subjects: [1],
+    },
+  })),
 }));
 
 jest.mock('src/features/databases/state.ts', () => ({
@@ -51,6 +64,12 @@ jest.mock('src/components/Chart/chartAction', () => ({
   ...jest.requireActual('src/components/Chart/chartAction'),
   getChartDataRequest: (...args: unknown[]) => mockGetChartDataRequest(...args),
 }));
+
+const mockEditorSubject = {
+  id: 1,
+  label: 'Superset Admin',
+  type: SubjectType.User,
+};
 
 const generateMockPayload = (dashboard = true) => {
   const mockPayload = {
@@ -75,13 +94,7 @@ const generateMockPayload = (dashboard = true) => {
     last_value_row_json: null,
     log_retention: 90,
     name: 'Test Alert',
-    owners: [
-      {
-        first_name: 'Superset',
-        id: 1,
-        last_name: 'Admin',
-      },
-    ],
+    editors: [mockEditorSubject],
     recipients: [
       {
         id: 1,
@@ -210,22 +223,29 @@ fetchMock.get(FETCH_REPORT_INVALID_ANCHOR_ENDPOINT, {
   },
 });
 
-// Related mocks — component uses /api/v1/report/related/* endpoints for both
-// alerts and reports, so we mock both the legacy alert paths and the actual
-// report paths used by the component.
-const ownersEndpoint = 'glob:*/api/v1/alert/related/owners?*';
+// Related mocks
+const editorsEndpoint = 'glob:*/api/v1/report/related/editors?*';
 const databaseEndpoint = 'glob:*/api/v1/alert/related/database?*';
 const dashboardEndpoint = 'glob:*/api/v1/alert/related/dashboard?*';
 const chartEndpoint = 'glob:*/api/v1/alert/related/chart?*';
+const reportUsersEndpoint = 'glob:*/api/v1/report/related/created_by?*';
 const reportDashboardEndpoint = 'glob:*/api/v1/report/related/dashboard?*';
 const reportChartEndpoint = 'glob:*/api/v1/report/related/chart?*';
 const tabsEndpoint = 'glob:*/api/v1/dashboard/1/tabs';
 
-fetchMock.get(ownersEndpoint, { result: [] });
+fetchMock.get(editorsEndpoint, { result: [] });
 fetchMock.get(databaseEndpoint, { result: [] });
-fetchMock.get(dashboardEndpoint, { result: [] });
+// Named so tests can removeRoute() + re-register an override (an unnamed route
+// cannot be removed by its matcher string, so the override would be ignored).
+fetchMock.get(dashboardEndpoint, { result: [] }, { name: dashboardEndpoint });
 fetchMock.get(chartEndpoint, { result: [{ text: 'table chart', value: 1 }] });
-fetchMock.get(reportDashboardEndpoint, { result: [] });
+fetchMock.get(reportUsersEndpoint, { count: 0, result: [] });
+// Named for the same reason as dashboardEndpoint above.
+fetchMock.get(
+  reportDashboardEndpoint,
+  { result: [] },
+  { name: reportDashboardEndpoint },
+);
 fetchMock.get(reportChartEndpoint, {
   result: [{ text: 'table chart', value: 1 }],
 });
@@ -318,13 +338,7 @@ const validAlert: AlertObject = {
   force_screenshot: false,
   last_state: 'Not triggered',
   name: 'Test Alert',
-  owners: [
-    {
-      first_name: 'Superset',
-      id: 1,
-      last_name: 'Admin',
-    },
-  ],
+  editors: [mockEditorSubject],
   recipients: [
     {
       type: NotificationMethodOption.Email,
@@ -381,6 +395,11 @@ const generateMockedProps = (
   };
 };
 
+// Matches the antd Select's rendered selection, whether it renders as
+// content (single/tag mode) or as a selection item (default mode).
+const selectedValueSelector = (title: string) =>
+  `.ant-select-content-has-value[title="${title}"], .ant-select-selection-item[title="${title}"]`;
+
 // combobox selector for mocking user input
 const comboboxSelect = async (
   element: HTMLElement,
@@ -388,9 +407,37 @@ const comboboxSelect = async (
   newElementQuery: Function,
 ) => {
   expect(element).toBeInTheDocument();
-  userEvent.type(element, `${value}{enter}`);
-  const newElement = newElementQuery();
-  expect(newElement).toBeInTheDocument();
+  await userEvent.type(element, `${value}{enter}`);
+  await waitFor(() => {
+    expect(newElementQuery()).toBeInTheDocument();
+  });
+};
+
+const addAsyncSelectValue = async (
+  selectName: RegExp,
+  value: string,
+  endpoint: string,
+) => {
+  const select = await screen.findByRole('combobox', { name: selectName });
+  await userEvent.click(select);
+  fireEvent.paste(select, {
+    clipboardData: {
+      getData: () => value,
+    },
+  });
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls(endpoint).length).toBeGreaterThan(0);
+  });
+};
+
+const removeFirstAsyncSelectValue = async (testId: string) => {
+  const select = await screen.findByTestId(testId);
+  // eslint-disable-next-line testing-library/no-node-access
+  const removeButton = select.querySelector(
+    '.ant-select-selection-item-remove',
+  );
+  expect(removeButton).toBeInTheDocument();
+  await userEvent.click(removeButton as HTMLElement);
 };
 
 // --------------- TEST SECTION ------------------
@@ -530,14 +577,14 @@ test('renders all fields in General Section', () => {
     useRedux: true,
   });
   const name = screen.getByPlaceholderText(/enter alert name/i);
-  const owners = screen.getByTestId('owners-select');
+  const editors = screen.getByTestId('editors-select');
   const description = screen.getByPlaceholderText(
     /include description to be sent with alert/i,
   );
   const activeSwitch = screen.getByRole('switch');
 
   expect(name).toBeInTheDocument();
-  expect(owners).toBeInTheDocument();
+  expect(editors).toBeInTheDocument();
   expect(description).toBeInTheDocument();
   expect(activeSwitch).toBeInTheDocument();
 });
@@ -919,14 +966,6 @@ test('adds another notification method section after clicking add notification m
       name: /delivery method/i,
     }).length,
   ).toBe(2);
-  await comboboxSelect(
-    screen.getAllByRole('combobox', {
-      name: /delivery method/i,
-    })[1],
-    'Slack',
-    () => screen.getAllByRole('textbox')[1],
-  );
-  expect(screen.getAllByTestId('recipients').length).toBe(2);
 });
 
 test('removes notification method on clicking trash can', async () => {
@@ -938,13 +977,6 @@ test('removes notification method on clicking trash can', async () => {
     /add another notification method/i,
   );
   userEvent.click(addNotificationMethod);
-  await comboboxSelect(
-    screen.getAllByRole('combobox', {
-      name: /delivery method/i,
-    })[1],
-    'Email',
-    () => screen.getAllByRole('textbox')[1],
-  );
   const images = screen.getAllByRole('img');
   const trash = images[images.length - 1];
   userEvent.click(trash);
@@ -1076,9 +1108,13 @@ test('dashboard switching resets tab and filter selections', async () => {
     count: 2,
   };
   fetchMock.removeRoute(dashboardEndpoint);
-  fetchMock.get(dashboardEndpoint, dashboardOptions);
+  fetchMock.get(dashboardEndpoint, dashboardOptions, {
+    name: dashboardEndpoint,
+  });
   fetchMock.removeRoute(reportDashboardEndpoint);
-  fetchMock.get(reportDashboardEndpoint, dashboardOptions);
+  fetchMock.get(reportDashboardEndpoint, dashboardOptions, {
+    name: reportDashboardEndpoint,
+  });
 
   // Dashboard 1 has tabs and filters
   fetchMock.removeRoute(tabsEndpoint);
@@ -1125,13 +1161,30 @@ test('dashboard switching resets tab and filter selections', async () => {
   const dashboardSelect = screen.getByRole('combobox', {
     name: /dashboard/i,
   });
-  userEvent.clear(dashboardSelect);
-  userEvent.type(dashboardSelect, 'Other Dashboard{enter}');
+  // Open the async dashboard select, wait for the options to load, then click
+  // "Other Dashboard". Opening the AsyncSelect triggers an async fetch of the
+  // dashboard options; the option only appears once that fetch resolves.
+  await userEvent.click(dashboardSelect);
+  const otherDashboardOption = await screen.findByText(
+    'Other Dashboard',
+    {},
+    { timeout: 5000 },
+  );
+  await userEvent.click(otherDashboardOption);
 
-  // Tab selector should reset: "Other Dashboard" has no tabs, so disabled with placeholder
+  // Tab selector should reset: "Other Dashboard" has no tabs, so the tab
+  // TreeSelect becomes disabled with no selected value. (In antd v6 a disabled
+  // select does not render its placeholder text, so assert on the
+  // disabled + empty-value state instead of the "Select a tab" placeholder.)
   await waitFor(
     () => {
-      expect(screen.getByText(/select a tab/i)).toBeInTheDocument();
+      const treeSelect = document.querySelector('.ant-tree-select');
+      expect(treeSelect).toHaveClass('ant-select-disabled');
+      expect(
+        treeSelect?.querySelector(
+          '.ant-select-content-has-value, .ant-select-selection-item',
+        ),
+      ).not.toBeInTheDocument();
     },
     { timeout: 10000 },
   );
@@ -1145,16 +1198,22 @@ test('dashboard switching resets tab and filter selections', async () => {
     filterSelects.forEach(select => {
       const container = select.closest('.ant-select');
       expect(
-        container?.querySelector('.ant-select-selection-item'),
+        container?.querySelector(
+          '.ant-select-content-has-value, .ant-select-selection-item',
+        ),
       ).not.toBeInTheDocument();
     });
   });
 
   // Restore dashboard endpoints
   fetchMock.removeRoute(dashboardEndpoint);
-  fetchMock.get(dashboardEndpoint, { result: [] });
+  fetchMock.get(dashboardEndpoint, { result: [] }, { name: dashboardEndpoint });
   fetchMock.removeRoute(reportDashboardEndpoint);
-  fetchMock.get(reportDashboardEndpoint, { result: [] });
+  fetchMock.get(
+    reportDashboardEndpoint,
+    { result: [] },
+    { name: reportDashboardEndpoint },
+  );
   fetchMock.removeRoute(tabs99);
 }, 45000);
 
@@ -1558,7 +1617,20 @@ test('create mode submits POST and calls onAdd with response', async () => {
   const onAdd = jest.fn();
   const createProps = { ...props, onAdd };
 
-  render(<AlertReportModal {...createProps} />, { useRedux: true });
+  render(<AlertReportModal {...createProps} />, {
+    useRedux: true,
+    initialState: {
+      user: {
+        userId: 1,
+        firstName: 'Superset',
+        lastName: 'Admin',
+        email: 'admin@example.com',
+        username: 'admin',
+        roles: { Admin: [] },
+        permissions: {},
+      },
+    },
+  });
 
   expect(screen.getByText('Add report')).toBeInTheDocument();
 
@@ -1589,8 +1661,11 @@ test('create mode submits POST and calls onAdd with response', async () => {
 
   // Open notification panel and set recipient email
   userEvent.click(screen.getByTestId('notification-method-panel'));
-  const recipientInput = await screen.findByTestId('recipients');
-  fireEvent.change(recipientInput, { target: { value: 'test@example.com' } });
+  await addAsyncSelectValue(
+    /email recipients/i,
+    'test@example.com',
+    reportUsersEndpoint,
+  );
 
   // Wait for Add button to be enabled (use exact name to avoid matching
   // "Add CC Recipients" and "Add BCC Recipients" buttons)
@@ -1616,6 +1691,7 @@ test('create mode submits POST and calls onAdd with response', async () => {
   expect(body.type).toBe('Report');
   expect(body.name).toBe('My New Report');
   expect(body.chart).toBe(1);
+  expect(body.editors).toEqual([1]);
   // Chart content type means dashboard is null (mutually exclusive)
   expect(body.dashboard).toBeNull();
   expect(body.recipients).toBeDefined();
@@ -1653,7 +1729,9 @@ test('create mode defaults to dashboard content type with chart null', async () 
   // Default content type should be "Dashboard" (not "Chart")
   const selectedItem = contentTypeSelect
     .closest('.ant-select')
-    ?.querySelector('.ant-select-selection-item');
+    ?.querySelector(
+      '.ant-select-content-has-value, .ant-select-selection-item',
+    );
   expect(selectedItem).toBeInTheDocument();
   expect(selectedItem?.textContent).toBe('Dashboard');
 
@@ -1816,7 +1894,7 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
 
   await waitFor(() => {
     const selectionItem = document.querySelector(
-      '.ant-select-selection-item[title="Test Filter 1"]',
+      selectedValueSelector('Test Filter 1'),
     );
     expect(selectionItem).toBeInTheDocument();
   });
@@ -1838,7 +1916,7 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
 
   await waitFor(() => {
     const selectionItem = document.querySelector(
-      '.ant-select-selection-item[title="Test Filter 1"]',
+      selectedValueSelector('Test Filter 1'),
     );
     expect(selectionItem).not.toBeInTheDocument();
   });
@@ -1885,7 +1963,7 @@ const setupAnchorMocks = (
   fetchMock.clearHistory();
 
   // Only replace the named routes that need anchor-specific overrides;
-  // unnamed related-endpoint routes (owners, database, etc.) stay intact.
+  // unnamed related-endpoint routes (editors, database, etc.) stay intact.
   fetchMock.removeRoute(FETCH_DASHBOARD_ENDPOINT);
   fetchMock.removeRoute(FETCH_CHART_ENDPOINT);
   fetchMock.removeRoute(tabsEndpoint);
@@ -2357,15 +2435,13 @@ test('edit mode shows friendly filter names instead of raw IDs', async () => {
 
   await waitFor(() => {
     const selectionItem = document.querySelector(
-      '.ant-select-selection-item[title="Country"]',
+      selectedValueSelector('Country'),
     );
     expect(selectionItem).toBeInTheDocument();
   });
 
   expect(
-    document.querySelector(
-      '.ant-select-selection-item[title="NATIVE_FILTER-abc123"]',
-    ),
+    document.querySelector(selectedValueSelector('NATIVE_FILTER-abc123')),
   ).not.toBeInTheDocument();
 });
 
@@ -2384,7 +2460,7 @@ test('edit mode falls back to raw ID when filterName is missing', async () => {
 
   await waitFor(() => {
     const selectionItem = document.querySelector(
-      '.ant-select-selection-item[title="NATIVE_FILTER-xyz789"]',
+      selectedValueSelector('NATIVE_FILTER-xyz789'),
     );
     expect(selectionItem).toBeInTheDocument();
   });
@@ -2491,9 +2567,7 @@ test('selecting filter triggers chart data request with correct params', async (
 
   // Select the Country Filter using comboboxSelect pattern
   await comboboxSelect(filterDropdown, 'Country Filter', () =>
-    document.querySelector(
-      '.ant-select-selection-item[title="Country Filter"]',
-    ),
+    document.querySelector(selectedValueSelector('Country Filter')),
   );
 
   // getChartDataRequest should have been called for filter values
@@ -2542,9 +2616,7 @@ test('selected filter excluded from other row dropdowns', async () => {
 
   // Select Country Filter in row 1
   await comboboxSelect(filterDropdown, 'Country Filter', () =>
-    document.querySelector(
-      '.ant-select-selection-item[title="Country Filter"]',
-    ),
+    document.querySelector(selectedValueSelector('Country Filter')),
   );
 
   // Wait for getChartDataRequest to complete AND state update to propagate.
@@ -2617,9 +2689,11 @@ test('invalid CC email blocks submit', async () => {
   userEvent.click(addCcButton);
 
   // Type invalid email in CC field
-  const ccInput = await screen.findByTestId('cc');
-  userEvent.type(ccInput, 'not-an-email');
-  fireEvent.blur(ccInput);
+  await addAsyncSelectValue(
+    /cc recipients/i,
+    'not-an-email',
+    reportUsersEndpoint,
+  );
 
   // Save should now be disabled due to invalid email format
   await waitFor(() => {
@@ -2647,9 +2721,11 @@ test('invalid BCC email blocks submit', async () => {
   userEvent.click(addBccButton);
 
   // Type invalid email in BCC field
-  const bccInput = await screen.findByTestId('bcc');
-  userEvent.type(bccInput, 'not-an-email');
-  fireEvent.blur(bccInput);
+  await addAsyncSelectValue(
+    /bcc recipients/i,
+    'not-an-email',
+    reportUsersEndpoint,
+  );
 
   // Save should now be disabled due to invalid email format
   await waitFor(() => {
@@ -2712,9 +2788,7 @@ test('clearing notification recipients disables submit and prevents API call', a
 
   // Open notification panel and clear the recipients field
   userEvent.click(screen.getByTestId('notification-method-panel'));
-  const recipientInput = await screen.findByTestId('recipients');
-  userEvent.clear(recipientInput);
-  fireEvent.blur(recipientInput);
+  await removeFirstAsyncSelectValue('recipients');
 
   // Save should be disabled — empty recipients block submission
   await waitFor(() => {

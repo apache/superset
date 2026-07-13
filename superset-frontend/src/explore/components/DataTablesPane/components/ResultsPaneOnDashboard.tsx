@@ -31,11 +31,11 @@ const Wrapper = styled.div`
     height: 100%;
   }
 
-  .ant-tabs-content {
+  .ant-tabs-body {
     height: 100%;
   }
 
-  .ant-tabs-tabpane {
+  .ant-tabs-content {
     display: flex;
     flex-direction: column;
   }

@@ -60,7 +60,6 @@ export const SamplesPane = ({
   queryFormData,
   queryForce,
   setForceQuery,
-  isVisible,
   canDownload,
 }: SamplesPaneProps) => {
   const [filterText, setFilterText] = useState('');

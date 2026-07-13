@@ -271,7 +271,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     defaultAlignPN: alignPositiveNegative,
     showCellBars,
     colorPositiveNegative,
-    totals,
     columnColorFormatters,
     allowRearrangeColumns,
     basicColorFormatters,
@@ -448,10 +447,18 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     />
   );
 
+  const columnsForKeys = isUsingTimeComparison
+    ? (filteredColumns as InputColumn[])
+    : (columns as InputColumn[]);
+  const descriptionsKey = columnsForKeys
+    .map(col => `${col.key}:${col.description ?? ''}`)
+    .join('|');
+
   return (
     <StyledChartContainer height={height}>
       <AgGridDataTable
         gridHeight={gridHeight}
+        key={descriptionsKey}
         data={data || []}
         colDefsFromProps={colDefs}
         includeSearch={!!includeSearch}

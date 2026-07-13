@@ -223,11 +223,13 @@ test('AgGridTableChart renders with totals', async () => {
     expect(grid).toBeInTheDocument();
   });
 
-  const pinnedRows = document.querySelectorAll('.ag-floating-bottom .ag-row');
+  const pinnedRows = document.querySelectorAll(
+    '.ag-grid-pinned-bottom-rows .ag-row',
+  );
   expect(pinnedRows.length).toBeGreaterThan(0);
 
   const dataRows = document.querySelectorAll(
-    '.ag-body-viewport .ag-row:not(.ag-row-pinned)',
+    '.ag-grid-viewport .ag-row:not(.ag-row-pinned)',
   );
   expect(dataRows.length).toBe(3);
 });
@@ -252,9 +254,7 @@ test('AgGridTableChart handles empty data', async () => {
     expect(grid).toBeInTheDocument();
   });
 
-  const dataRows = document.querySelectorAll(
-    '.ag-center-cols-container .ag-row',
-  );
+  const dataRows = document.querySelectorAll('.ag-grid-viewport .ag-row');
   expect(dataRows.length).toBe(0);
 
   const headerCells = document.querySelectorAll('.ag-header-cell');
@@ -696,7 +696,9 @@ test('AgGridTableChart pins no summary row when totals come back empty', async (
     expect(document.querySelector('.ag-container')).toBeInTheDocument();
   });
 
-  const pinnedRows = document.querySelectorAll('.ag-floating-bottom .ag-row');
+  const pinnedRows = document.querySelectorAll(
+    '.ag-grid-pinned-bottom-rows .ag-row',
+  );
   expect(pinnedRows.length).toBe(0);
 });
 
@@ -726,7 +728,9 @@ test('AgGridTableChart pins no summary row when totals are absent', async () => 
     expect(document.querySelector('.ag-container')).toBeInTheDocument();
   });
 
-  const pinnedRows = document.querySelectorAll('.ag-floating-bottom .ag-row');
+  const pinnedRows = document.querySelectorAll(
+    '.ag-grid-pinned-bottom-rows .ag-row',
+  );
   expect(pinnedRows.length).toBe(0);
 });
 

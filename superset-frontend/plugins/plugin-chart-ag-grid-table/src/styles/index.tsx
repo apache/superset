@@ -74,7 +74,6 @@ export const FilterIconWrapper = styled.div<{ isFilterActive?: boolean }>`
 
   padding: 3px 4px;
   overflow: hidden;
-  cursor: pointer;
   border-radius: 4px;
 
   ${({ isFilterActive }) =>
@@ -379,7 +378,7 @@ export const StyledChartContainer = styled.div<{
       margin-right: ${theme.sizeUnit * 2}px;
     }
 
-    .ant-popover-inner {
+    .ant-popover-container {
       padding: 0px;
     }
 
