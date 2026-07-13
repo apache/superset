@@ -19,6 +19,7 @@
 
 import { expect, Locator, Page } from '@playwright/test';
 import { Button, Select } from '../components/core';
+import { gotoWithRetry } from '../helpers/navigation';
 
 /**
  * Chart Creation Page object for the "Create a new chart" wizard.
@@ -74,7 +75,7 @@ export class ChartCreationPage {
    * Navigate to the chart creation page
    */
   async goto(): Promise<void> {
-    await this.page.goto('chart/add');
+    await gotoWithRetry(this.page, 'chart/add');
   }
 
   /**
