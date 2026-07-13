@@ -273,7 +273,6 @@ def _metadata_result(render: Callable[[], dict[str, Any]]) -> QueryDataResult:
     """Render metadata while retaining datasource work in the timing sidecar."""
 
     start_ns = time.perf_counter_ns()
-    parent_collector = active_source_collector()
     collector = SourceTimingCollector()
     token = collector.activate()
     try:
@@ -282,7 +281,7 @@ def _metadata_result(render: Callable[[], dict[str, Any]]) -> QueryDataResult:
         SourceTimingCollector.deactivate(token)
     elapsed_ns = max(0, time.perf_counter_ns() - start_ns)
     sources = collector.snapshot()
-    if parent_collector is not None:
+    if (parent_collector := active_source_collector()) is not None:
         parent_collector.attach(sources)
     source_ns = min(elapsed_ns, sum(source.total_ns for source in sources))
     return QueryDataResult(
