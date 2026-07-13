@@ -16,22 +16,74 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { CSSProperties } from 'react';
 import { forwardRef } from 'react';
 import { Tooltip as AntdTooltip } from 'antd';
 import type { TooltipRef } from 'antd/es/tooltip';
 
 import type { TooltipProps, TooltipPlacement } from './types';
+import { resolveGlossaryString } from '@superset-ui/core';
+
+const TOOLTIP_SEPARATOR_STYLE: CSSProperties = {
+  margin: '8px 0',
+  border: 'none',
+  borderTop: '1px solid rgba(255, 255, 255, 0.2)',
+};
 
 export const Tooltip = forwardRef<TooltipRef, TooltipProps>(
-  ({ overlayStyle, ...props }, ref) => (
-    <AntdTooltip
+  ({
+  overlayStyle,
+  title,
+  children,
+  ...props
+}, ref) => {
+  if (typeof title !== 'string') {
+    return (
+      <AntdTooltip
+        title={title}
+        styles={{
+          body: { overflow: 'hidden', textOverflow: 'ellipsis' },
+          root: overlayStyle ?? {},
+        }}
+        {...props}
+      >
+        {children}
+      </AntdTooltip>
+    );
+  }
+
+  const [glossaryUrl, description] = resolveGlossaryString(title);
+  const wrappedChildren = glossaryUrl ? (
+    <a href={glossaryUrl} target="_blank" rel="noopener noreferrer">
+      {children}
+    </a>
+  ) : (
+    children
+  );
+
+  const wrappedDescription = glossaryUrl ? (
+    <>
+      {description}
+      <hr style={TOOLTIP_SEPARATOR_STYLE} />
+      <em>Click to Learn More</em>
+    </>
+  ) : (
+    description
+  );
+
+  return (
+      <AntdTooltip
+      title={wrappedDescription}
       ref={ref}
-      styles={{
-        body: { overflow: 'hidden', textOverflow: 'ellipsis' },
-        root: overlayStyle ?? {},
-      }}
-      {...props}
-    />
-  ),
-);
+        styles={{
+          body: { overflow: 'hidden', textOverflow: 'ellipsis' },
+          root: overlayStyle ?? {},
+        }}
+        {...props}
+      >
+      {wrappedChildren}
+    </AntdTooltip>
+  );
+});
+
 export type { TooltipProps, TooltipPlacement };
