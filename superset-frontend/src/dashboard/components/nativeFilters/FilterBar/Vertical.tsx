@@ -266,6 +266,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
           className={cx({ open: !filtersOpen })}
           onClick={openFiltersBar}
           role="button"
+          tabIndex={0}
           offset={offset}
         >
           <Icons.VerticalAlignTopOutlined

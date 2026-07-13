@@ -175,7 +175,7 @@ const List = ({
         />
       ))}
       {availableFilters.length > rows.length && (
-        <AddFilter role="button" onClick={onAdd}>
+        <AddFilter role="button" tabIndex={0} onClick={onAdd}>
           <Icons.PlusOutlined iconSize="xs" />
           {t('Add filter')}
         </AddFilter>
