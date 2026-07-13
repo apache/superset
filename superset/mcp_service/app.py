@@ -156,6 +156,7 @@ Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
 - create_virtual_dataset: Save a SQL query as a virtual dataset for charting (requires write access)
+- update_dataset_metric: Update a saved metric on a dataset — expression, name, verbose_name, format (requires dataset ownership)
 - query_dataset: Query a dataset using its semantic layer (saved metrics, dimensions, filters) without needing a saved chart
 
 Chart Management:
@@ -415,7 +416,8 @@ Input format:
 {_instance_info_role_bullet}- ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
   charts, or dashboards). SQL execution is a separate permission — see execute_sql below.
 - Write tools (generate_chart, generate_dashboard, update_chart, create_virtual_dataset,
-  save_sql_query, add_chart_to_existing_dashboard, update_chart_preview) require write
+  update_dataset_metric, save_sql_query, add_chart_to_existing_dashboard,
+  update_chart_preview) require write
   permissions. These tools are only listed for users who have the necessary access.
   If a write tool does not appear in the tool list, the current user lacks write access.
 - execute_sql requires SQL Lab access (execute_sql_query permission), which is separate
@@ -688,6 +690,7 @@ from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
     get_dataset_info,
     list_datasets,
     query_dataset,
+    update_dataset_metric,
 )
 from superset.mcp_service.explore.tool import (  # noqa: F401, E402
     generate_explore_link,
