@@ -752,6 +752,75 @@ describe('NotificationMethod', () => {
     ).toBeInTheDocument();
   });
 
+  test('fetches Slack channels lazily with pagination for SlackV2', async () => {
+    window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
+    const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+      json: {
+        count: 1,
+        result: [
+          { id: 'C123', name: 'general', is_private: false, is_member: true },
+        ],
+      },
+    } as unknown as JsonResponse);
+
+    render(
+      <NotificationMethod
+        setting={{ ...mockSettingSlackV2, recipients: '' }}
+        index={0}
+        onUpdate={mockOnUpdate}
+        onRemove={mockOnRemove}
+        onInputChange={mockOnInputChange}
+        email_subject={mockEmailSubject}
+        defaultSubject={mockDefaultSubject}
+        setErrorSubject={mockSetErrorSubject}
+      />,
+    );
+
+    fireEvent.click(await screen.findByTestId('recipients-load-options'));
+
+    expect(await screen.findByText('general')).toBeInTheDocument();
+
+    const slackEndpoint = getSpy.mock.calls
+      .map(([arg]) => (arg as { endpoint: string }).endpoint)
+      .find(endpoint => endpoint.includes('/report/slack_channels/'));
+    expect(slackEndpoint).toBeDefined();
+    expect(rison.decode(slackEndpoint!.split('?q=')[1])).toMatchObject({
+      search_string: '',
+      types: ['public_channel', 'private_channel'],
+      page: 0,
+      page_size: 25,
+    });
+  });
+
+  test('allows entering a Slack channel id directly for SlackV2', async () => {
+    window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
+    jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+      json: { count: 0, result: [] },
+    } as unknown as JsonResponse);
+
+    render(
+      <NotificationMethod
+        setting={{ ...mockSettingSlackV2, recipients: '' }}
+        index={0}
+        onUpdate={mockOnUpdate}
+        onRemove={mockOnRemove}
+        onInputChange={mockOnInputChange}
+        email_subject={mockEmailSubject}
+        defaultSubject={mockDefaultSubject}
+        setErrorSubject={mockSetErrorSubject}
+      />,
+    );
+
+    fireEvent.change(await screen.findByTestId('recipients'), {
+      target: { value: 'C0123456789' },
+    });
+
+    expect(mockOnUpdate).toHaveBeenCalledWith(
+      0,
+      expect.objectContaining({ recipients: 'C0123456789' }),
+    );
+  });
+
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('RefreshLabel functionality', () => {
     test('should call updateSlackOptions with force true when RefreshLabel is clicked', async () => {
