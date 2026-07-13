@@ -341,6 +341,7 @@ export const ChartCreation = ({
                 optionFilterProps={['id', 'table_name']}
                 placeholder={t('Choose a %s', datasetLabelLower())}
                 showSearch
+                oneLine
                 value={datasource}
               />
               {datasetHelpText}
