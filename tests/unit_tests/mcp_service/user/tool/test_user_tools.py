@@ -154,7 +154,7 @@ class TestListUsersRequestPagination:
 
 
 @patch("superset.daos.user.UserDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_users_basic(mock_list, mcp_server):
     """Basic user listing returns expected fields."""
     user = create_mock_user()
@@ -174,7 +174,7 @@ async def test_list_users_basic(mock_list, mcp_server):
 
 
 @patch("superset.daos.user.UserDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_users_with_request(mock_list, mcp_server):
     """list_users accepts an explicit request object."""
     user = create_mock_user(username="alice")
@@ -190,7 +190,7 @@ async def test_list_users_with_request(mock_list, mcp_server):
 
 
 @patch("superset.daos.user.UserDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_users_with_search(mock_list, mcp_server):
     """list_users passes search to the DAO."""
     user = create_mock_user(username="alice")
@@ -205,7 +205,7 @@ async def test_list_users_with_search(mock_list, mcp_server):
 
 
 @patch("superset.daos.user.UserDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_users_with_filter(mock_list, mcp_server):
     """list_users accepts column filters."""
     user = create_mock_user(active=True)
@@ -222,7 +222,7 @@ async def test_list_users_with_filter(mock_list, mcp_server):
 
 
 @patch("superset.daos.user.UserDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_users_includes_email_when_allowed_and_requested(
     mock_list, mcp_server
 ):
@@ -246,7 +246,7 @@ async def test_list_users_includes_email_when_allowed_and_requested(
 
 
 @patch("superset.daos.user.UserDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_users_redacts_email_when_denied(mock_list, mcp_server):
     """email is null when caller lacks metadata access, even when explicitly
     requested."""
@@ -269,7 +269,7 @@ async def test_list_users_redacts_email_when_denied(mock_list, mcp_server):
 
 
 @patch("superset.daos.user.UserDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_users_select_columns_filters_output(mock_list, mcp_server):
     """select_columns controls which fields appear in each user dict."""
     user = create_mock_user()
@@ -289,7 +289,7 @@ async def test_list_users_select_columns_filters_output(mock_list, mcp_server):
 
 
 @patch("superset.daos.user.UserDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_users_empty_result(mock_list, mcp_server):
     """list_users handles empty results gracefully."""
     mock_list.return_value = ([], 0)
@@ -303,7 +303,7 @@ async def test_list_users_empty_result(mock_list, mcp_server):
     assert data["total_count"] == 0
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_users_search_and_filters_mutually_exclusive(mcp_server):
     """search and filters cannot be used together — raises ToolError."""
     with pytest.raises(ToolError):
@@ -319,7 +319,7 @@ async def test_list_users_search_and_filters_mutually_exclusive(mcp_server):
             )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_users_invalid_page_size_surfaces_as_tool_error(
     mcp_server: FastMCP,
 ) -> None:
@@ -331,7 +331,7 @@ async def test_list_users_invalid_page_size_surfaces_as_tool_error(
 
 
 @patch("superset.daos.user.UserDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_users_page_beyond_last_page_returns_empty(
     mock_list: MagicMock, mcp_server: FastMCP
 ) -> None:
@@ -358,7 +358,7 @@ async def test_list_users_page_beyond_last_page_returns_empty(
 
 
 @patch("superset.daos.user.UserDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_user_info_success(mock_find, mcp_server):
     """get_user_info returns user details for a known ID."""
     user = create_mock_user(user_id=1, username="admin")
@@ -373,7 +373,7 @@ async def test_get_user_info_success(mock_find, mcp_server):
 
 
 @patch("superset.daos.user.UserDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_user_info_not_found(mock_find, mcp_server):
     """get_user_info returns a not_found error for unknown IDs."""
     mock_find.return_value = None
@@ -388,7 +388,7 @@ async def test_get_user_info_not_found(mock_find, mcp_server):
 
 
 @patch("superset.daos.user.UserDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_user_info_includes_sensitive_when_allowed(mock_find, mcp_server):
     """email and roles are included when caller has metadata access."""
     user = create_mock_user(email="alice@example.com", roles=["Alpha"])
@@ -404,7 +404,7 @@ async def test_get_user_info_includes_sensitive_when_allowed(mock_find, mcp_serv
 
 
 @patch("superset.daos.user.UserDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_user_info_redacts_sensitive_when_denied(mock_find, mcp_server):
     """email and roles are redacted when caller lacks metadata access."""
     user = create_mock_user(email="alice@example.com", roles=["Alpha"])
@@ -426,7 +426,7 @@ async def test_get_user_info_redacts_sensitive_when_denied(mock_find, mcp_server
 
 
 @patch("superset.daos.user.UserDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_user_info_always_returns_basic_fields_without_metadata_access(
     mock_find, mcp_server
 ):
@@ -456,7 +456,7 @@ async def test_get_user_info_always_returns_basic_fields_without_metadata_access
 
 
 @patch("superset.daos.user.UserDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_users_user_controlled_fields_are_wrapped_in_untrusted_content(
     mock_list, mcp_server
 ):
@@ -487,7 +487,7 @@ async def test_list_users_user_controlled_fields_are_wrapped_in_untrusted_conten
 
 
 @patch("superset.daos.user.UserDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_user_info_user_controlled_fields_are_wrapped_in_untrusted_content(
     mock_find, mcp_server
 ):

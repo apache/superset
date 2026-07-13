@@ -92,7 +92,7 @@ class TestRlsColumnFilterSchema:
 
 
 @patch("superset.daos.security.RLSDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_rls_filters_basic(mock_list, mcp_server):
     rls_filter = create_mock_rls_filter()
     mock_list.return_value = ([rls_filter], 1)
@@ -108,7 +108,7 @@ async def test_list_rls_filters_basic(mock_list, mcp_server):
 
 
 @patch("superset.daos.security.RLSDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_rls_filters_with_request(mock_list, mcp_server):
     rls_filter = create_mock_rls_filter()
     mock_list.return_value = ([rls_filter], 1)
@@ -124,7 +124,7 @@ async def test_list_rls_filters_with_request(mock_list, mcp_server):
 
 
 @patch("superset.daos.security.RLSDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_rls_filters_with_search(mock_list, mcp_server):
     rls_filter = create_mock_rls_filter(name="user_filter")
     mock_list.return_value = ([rls_filter], 1)
@@ -139,7 +139,7 @@ async def test_list_rls_filters_with_search(mock_list, mcp_server):
 
 
 @patch("superset.daos.security.RLSDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_rls_filters_returns_tables_and_subjects(mock_list, mcp_server):
     rls_filter = create_mock_rls_filter()
     mock_list.return_value = ([rls_filter], 1)
@@ -162,7 +162,7 @@ async def test_list_rls_filters_returns_tables_and_subjects(mock_list, mcp_serve
 
 
 @patch("superset.daos.security.RLSDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_rls_filters_empty(mock_list, mcp_server):
     mock_list.return_value = ([], 0)
 
@@ -174,7 +174,7 @@ async def test_list_rls_filters_empty(mock_list, mcp_server):
 
 
 @patch("superset.daos.security.RLSDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_rls_filter_info_basic(mock_find, mcp_server):
     rls_filter = create_mock_rls_filter()
     mock_find.return_value = rls_filter
@@ -191,7 +191,7 @@ async def test_get_rls_filter_info_basic(mock_find, mcp_server):
 
 
 @patch("superset.daos.security.RLSDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_rls_filter_info_not_found(mock_find, mcp_server):
     mock_find.return_value = None
 
@@ -204,7 +204,7 @@ async def test_get_rls_filter_info_not_found(mock_find, mcp_server):
 
 
 @patch("superset.daos.security.RLSDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_rls_filter_info_includes_tables_and_subjects(mock_find, mcp_server):
     rls_filter = create_mock_rls_filter()
     mock_find.return_value = rls_filter
@@ -227,7 +227,7 @@ def test_list_rls_filters_request_rejects_search_and_filters():
 
 
 @patch("superset.daos.security.RLSDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_rls_filters_subjects_only_select_columns(mock_list, mcp_server):
     """select_columns=['subjects'] returns only subject data."""
     rls_filter = create_mock_rls_filter()
@@ -248,7 +248,7 @@ async def test_list_rls_filters_subjects_only_select_columns(mock_list, mcp_serv
         assert item["subjects"][0]["label"] == "Alpha"
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_rls_filters_guest_denied(mcp_server):
     """An embedded guest is denied listing RLS filters, even with RBAC off."""
     from superset.extensions import security_manager
@@ -261,7 +261,7 @@ async def test_list_rls_filters_guest_denied(mcp_server):
             assert "guest" in data["error"].lower()
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_rls_filter_info_guest_denied(mcp_server):
     """An embedded guest is denied RLS filter details, even with RBAC off."""
     from superset.extensions import security_manager
@@ -309,7 +309,7 @@ class TestListRlsFiltersRequestPagination:
         assert request.page_size == MAX_PAGE_SIZE
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_rls_filters_invalid_page_size_surfaces_as_tool_error(
     mcp_server: FastMCP,
 ) -> None:
@@ -321,7 +321,7 @@ async def test_list_rls_filters_invalid_page_size_surfaces_as_tool_error(
 
 
 @patch("superset.daos.security.RLSDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_rls_filters_page_beyond_last_page_returns_empty(
     mock_list: MagicMock, mcp_server: FastMCP
 ) -> None:

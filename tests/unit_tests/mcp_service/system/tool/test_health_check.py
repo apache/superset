@@ -94,7 +94,7 @@ def test_health_check_response_with_uptime():
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_health_check_success_via_client(mcp_server: FastMCP) -> None:
     """Happy path: tool returns a healthy status with real system info."""
     with patch.object(
@@ -114,7 +114,7 @@ async def test_health_check_success_via_client(mcp_server: FastMCP) -> None:
     assert data["uptime_seconds"] >= 0
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_health_check_uses_configured_app_name(
     mcp_server: FastMCP, app: Flask
 ) -> None:
@@ -140,7 +140,7 @@ async def test_health_check_uses_configured_app_name(
     assert data["service"] == "Acme Analytics MCP Service"
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_health_check_returns_error_status_when_version_metadata_raises(
     mcp_server: FastMCP,
 ) -> None:
@@ -170,7 +170,7 @@ async def test_health_check_returns_error_status_when_version_metadata_raises(
     assert data["timestamp"] is not None
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_health_check_returns_error_status_when_log_context_raises(
     mcp_server: FastMCP,
 ) -> None:

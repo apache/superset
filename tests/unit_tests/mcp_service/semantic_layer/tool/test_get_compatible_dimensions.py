@@ -111,7 +111,7 @@ def _access_denied_exc(message: str = "Access denied") -> SupersetSecurityExcept
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_compatible_dimensions_builtin_happy_path(
     mcp_server: FastMCP,
 ) -> None:
@@ -132,7 +132,7 @@ async def test_get_compatible_dimensions_builtin_happy_path(
     assert names == {"region", "category"}
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_compatible_dimensions_builtin_unknown_selection(
     mcp_server: FastMCP,
 ) -> None:
@@ -159,7 +159,7 @@ async def test_get_compatible_dimensions_builtin_unknown_selection(
     assert "Unknown dimension: 'bogus_dim'" in data["error"]
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_compatible_dimensions_external_happy_path(
     mcp_server: FastMCP,
 ) -> None:
@@ -183,7 +183,7 @@ async def test_get_compatible_dimensions_external_happy_path(
     mock_view.get_compatible_dimensions.assert_called_once_with(["bookings"], [])
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_compatible_dimensions_mutual_exclusion_validation(
     mcp_server: FastMCP,
 ) -> None:
@@ -199,7 +199,7 @@ async def test_get_compatible_dimensions_mutual_exclusion_validation(
     assert data["error_type"] == "ValidationError"
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_compatible_dimensions_requires_one_source(
     mcp_server: FastMCP,
 ) -> None:
@@ -212,7 +212,7 @@ async def test_get_compatible_dimensions_requires_one_source(
     assert data["error_type"] == "ValidationError"
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_compatible_dimensions_privacy_check(mcp_server: FastMCP) -> None:
     """Errors when the user lacks data-model metadata access."""
     with patch.object(
@@ -230,7 +230,7 @@ async def test_get_compatible_dimensions_privacy_check(mcp_server: FastMCP) -> N
     assert data["error_type"] == "DataModelMetadataRestricted"
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_compatible_dimensions_external_access_denied(
     mcp_server: FastMCP,
 ) -> None:
@@ -252,7 +252,7 @@ async def test_get_compatible_dimensions_external_access_denied(
     assert data["error_type"] == "AccessDenied"
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_compatible_dimensions_not_found(mcp_server: FastMCP) -> None:
     """Returns NotFound when the dataset doesn't exist."""
     with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=None):
@@ -266,7 +266,7 @@ async def test_get_compatible_dimensions_not_found(mcp_server: FastMCP) -> None:
     assert data["error_type"] == "NotFound"
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_compatible_dimensions_external_not_found(
     mcp_server: FastMCP,
 ) -> None:
@@ -285,7 +285,7 @@ async def test_get_compatible_dimensions_external_not_found(
     assert data["error_type"] == "NotFound"
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_compatible_dimensions_builtin_empty_selection(
     mcp_server: FastMCP,
 ) -> None:
@@ -316,7 +316,7 @@ async def test_get_compatible_dimensions_builtin_empty_selection(
     assert names == {"region", "category"}
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_compatible_dimensions_external_empty_selection(
     mcp_server: FastMCP,
 ) -> None:
@@ -346,7 +346,7 @@ async def test_get_compatible_dimensions_external_empty_selection(
     mock_view.get_compatible_dimensions.assert_called_once_with([], [])
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_compatible_dimensions_unicode_unknown_selection_validation_error(
     mcp_server: FastMCP,
 ) -> None:

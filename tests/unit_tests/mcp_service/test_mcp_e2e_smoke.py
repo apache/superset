@@ -189,7 +189,7 @@ async def _real_asgi_client() -> AsyncIterator[Client]:
         mcp.middleware[:] = original_middleware
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_tools_list_over_real_asgi_transport() -> None:
     """``tools/list`` round-trips over the real ASGI app + JSON-RPC wire protocol.
 
@@ -208,7 +208,7 @@ async def test_tools_list_over_real_asgi_transport() -> None:
     assert "health_check" in tool_names
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_tools_call_health_check_over_real_asgi_transport() -> None:
     """A real ``tools/call`` for ``health_check`` over the real ASGI transport.
 

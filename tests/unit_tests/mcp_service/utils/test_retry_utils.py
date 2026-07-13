@@ -170,7 +170,7 @@ def test_retry_on_exception_max_attempts_zero_raises_runtime_error() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_async_retry_on_exception_succeeds_first_try() -> None:
     """Should await the wrapped coroutine once when it succeeds immediately."""
     mock_func = AsyncMock(return_value="ok")
@@ -182,7 +182,7 @@ async def test_async_retry_on_exception_succeeds_first_try() -> None:
     assert mock_func.await_count == 1
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_async_retry_on_exception_retries_then_succeeds() -> None:
     """Should retry a failing coroutine on retryable exceptions until success."""
     mock_func = AsyncMock(side_effect=[ConnectionError("fail"), "ok"])
@@ -198,7 +198,7 @@ async def test_async_retry_on_exception_retries_then_succeeds() -> None:
     mock_sleep.assert_awaited_once()
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_async_retry_on_exception_exhausts_retries_and_raises() -> None:
     """Should raise the last retryable exception once max_attempts is reached."""
     mock_func = AsyncMock(side_effect=ConnectionError("nope"))
@@ -213,7 +213,7 @@ async def test_async_retry_on_exception_exhausts_retries_and_raises() -> None:
     assert mock_func.await_count == 2
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_async_retry_on_exception_non_retryable_fails_immediately() -> None:
     """Should not retry exceptions outside the configured retryable tuple."""
     mock_func = AsyncMock(side_effect=ValueError("bad"))
@@ -341,7 +341,7 @@ def test_retry_database_operation_does_not_retry_non_retryable_exceptions() -> N
     assert func.call_count == 1
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_async_retry_database_operation_success() -> None:
     """Should await the coroutine and return its result."""
     func = AsyncMock(return_value="ok")
@@ -352,7 +352,7 @@ async def test_async_retry_database_operation_success() -> None:
     func.assert_awaited_once()
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_async_retry_database_operation_retries_on_timeout_error() -> None:
     """Should retry an async database operation on sqlalchemy TimeoutError."""
     from sqlalchemy.exc import TimeoutError as SATimeoutError

@@ -179,7 +179,7 @@ async def _assert_tool_rejected_without_permission(
         app.config.pop("MCP_RBAC_ENABLED", None)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("tool_name", "request_payload", "method_permission_name", "class_permission_name"),
     _MUTATING_TOOLS,
@@ -206,7 +206,7 @@ async def test_mutating_tool_rejects_unauthorized_caller(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_authorized_caller_is_not_blocked_by_rbac_gate(
     mcp_server: object, app: Any
 ) -> None:
