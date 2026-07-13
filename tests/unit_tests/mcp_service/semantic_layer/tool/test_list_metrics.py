@@ -160,7 +160,7 @@ def _patched_dataset_search(
 @pytest.mark.asyncio()
 async def test_list_metrics_builtin_happy_path(mcp_server: FastMCP) -> None:
     """list_metrics returns builtin metrics when only datasets exist."""
-    mock_ds = _make_dataset(42)
+    mock_ds: MagicMock = _make_dataset(42)
 
     with _patched_dataset_lookup(mock_ds):
         async with Client(mcp_server) as client:

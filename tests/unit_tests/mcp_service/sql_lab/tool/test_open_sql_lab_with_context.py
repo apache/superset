@@ -105,7 +105,7 @@ class TestOpenSqlLabWithContext:
     def test_sanitizes_direct_sql_and_title_in_url_and_response(self) -> None:
         mod, saved_modules = _get_tool_module()
         try:
-            request = OpenSqlLabRequest(
+            request: OpenSqlLabRequest = OpenSqlLabRequest(
                 database_id=7,
                 schema="analytics",
                 sql="SELECT * FROM users LIMIT 10",
@@ -159,7 +159,7 @@ class TestOpenSqlLabWithContext:
     def test_sanitizes_generated_dataset_context_sql(self) -> None:
         mod, saved_modules = _get_tool_module()
         try:
-            request = OpenSqlLabRequest(
+            request: OpenSqlLabRequest = OpenSqlLabRequest(
                 database_id=12,
                 schema="public",
                 dataset_in_context="orders",
@@ -203,7 +203,7 @@ class TestOpenSqlLabWithContext:
     def test_sanitizes_dataset_context_without_schema(self) -> None:
         mod, saved_modules = _get_tool_module()
         try:
-            request = OpenSqlLabRequest(
+            request: OpenSqlLabRequest = OpenSqlLabRequest(
                 database_id=12,
                 dataset_in_context="orders",
             )
@@ -276,7 +276,7 @@ class TestOpenSqlLabWithContext:
         """Whitespace-only titles must not produce a blank-looking tab label."""
         mod, saved_modules = _get_tool_module()
         try:
-            request = OpenSqlLabRequest(
+            request: OpenSqlLabRequest = OpenSqlLabRequest(
                 database_id=7,
                 sql="SELECT 1",
                 title="   ",
@@ -307,7 +307,7 @@ class TestOpenSqlLabWithContext:
     def test_sanitizes_error_and_keeps_empty_url_for_missing_database(self) -> None:
         mod, saved_modules = _get_tool_module()
         try:
-            request = OpenSqlLabRequest(
+            request: OpenSqlLabRequest = OpenSqlLabRequest(
                 database_id=404,
                 schema="analytics",
                 title="Missing database",
@@ -343,7 +343,9 @@ class TestOpenSqlLabWithContext:
         a structured not-found error rather than a raw crash."""
         mod, saved_modules = _get_tool_module()
         try:
-            request = OpenSqlLabRequest(database_id=999999999, sql="SELECT 1")
+            request: OpenSqlLabRequest = OpenSqlLabRequest(
+                database_id=999999999, sql="SELECT 1"
+            )
 
             with (
                 patch(
@@ -382,7 +384,7 @@ class TestOpenSqlLabWithContext:
         """
         mod, saved_modules = _get_tool_module()
         try:
-            request = OpenSqlLabRequest(
+            request: OpenSqlLabRequest = OpenSqlLabRequest(
                 database_id=42,
                 schema="restricted_schema",
                 title="Query I cannot access",
@@ -419,7 +421,9 @@ class TestOpenSqlLabWithContext:
         surface a structured error instead of propagating a raw exception."""
         mod, saved_modules = _get_tool_module()
         try:
-            request = OpenSqlLabRequest(database_id=7, sql="SELECT 1")
+            request: OpenSqlLabRequest = OpenSqlLabRequest(
+                database_id=7, sql="SELECT 1"
+            )
 
             with (
                 patch(

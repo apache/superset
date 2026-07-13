@@ -19,6 +19,7 @@
 
 import importlib
 from collections.abc import Iterator
+from types import ModuleType
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -32,7 +33,7 @@ from superset.utils import json
 # Import the submodule directly so ``patch.object`` targets the module (not the
 # ``health_check`` function that ``tool/__init__.py`` re-exports onto the
 # package).
-health_check_module = importlib.import_module(
+health_check_module: ModuleType = importlib.import_module(
     "superset.mcp_service.system.tool.health_check"
 )
 
