@@ -92,7 +92,14 @@ const originalRevokeObjectURL = window.URL.revokeObjectURL;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Reset the implementation each test: clearAllMocks resets call history but
+  // not mockReturnValue, so an override in one test would otherwise leak.
+  (isFeatureEnabled as jest.Mock).mockReturnValue(false);
 });
+
+// "Export Images to Excel" is gated on the webdriver screenshot feature flags.
+const enableWebDriverScreenshot = () =>
+  (isFeatureEnabled as jest.Mock).mockReturnValue(true);
 
 afterEach(() => {
   window.URL.createObjectURL = originalCreateObjectURL;
@@ -100,6 +107,7 @@ afterEach(() => {
 });
 
 test('Should render all menu items', () => {
+  enableWebDriverScreenshot();
   render(<MenuWrapper />, {
     useRedux: true,
   });
@@ -113,6 +121,15 @@ test('Should render all menu items', () => {
   expect(screen.getByText('Export Images to Excel')).toBeInTheDocument();
   expect(screen.getByText('Export YAML')).toBeInTheDocument();
   expect(screen.getByText('Export as Example')).toBeInTheDocument();
+});
+
+test('Export Images to Excel is hidden when the webdriver is not enabled', () => {
+  // Default: webdriver screenshot flags off. Image export needs the webdriver,
+  // so only the data export is offered.
+  render(<MenuWrapper />, { useRedux: true });
+
+  expect(screen.getByText('Export Data to Excel')).toBeInTheDocument();
+  expect(screen.queryByText('Export Images to Excel')).not.toBeInTheDocument();
 });
 
 test('Excel export items are hidden when userCanExport is false', () => {
@@ -143,6 +160,7 @@ test('Export Data to Excel posts mode "data" and shows a pending toast', async (
 });
 
 test('Export Images to Excel posts mode "images" and shows a pending toast', async () => {
+  enableWebDriverScreenshot();
   mockSupersetClient.post.mockResolvedValue({} as never);
 
   render(<MenuWrapper />, { useRedux: true });

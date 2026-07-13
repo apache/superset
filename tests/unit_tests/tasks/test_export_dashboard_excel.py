@@ -83,7 +83,7 @@ def mocks() -> Iterator[dict[str, Any]]:
                 "render_chart_image",
                 "s3",
                 "email",
-                "cache_manager",
+                "ReleaseDistributedLock",
             )
         }
         user = mock.MagicMock()
@@ -110,7 +110,6 @@ def mocks() -> Iterator[dict[str, Any]]:
 def _run(
     job_id: str = "job-1",
     mode: str = "data",
-    inflight_key: str | None = None,
 ) -> None:
     from superset.tasks.export_dashboard_excel import export_dashboard_excel
 
@@ -120,7 +119,6 @@ def _run(
         active_data_mask={},
         job_id=job_id,
         mode=mode,
-        inflight_key=inflight_key,
     )
 
 
@@ -203,25 +201,45 @@ def test_chart_query_error_grouped_as_general_export_continues(
     assert kwargs["errored"] == {mocks["email"].ERROR_GENERAL: ["10 - Boom"]}
 
 
-def test_chart_timeout_grouped_as_timeout_export_continues(
+def test_chart_timeout_aborts_export_and_sends_failure_email(
     mocks: dict[str, Any],
 ) -> None:
-    # A soft-timeout raised while a single chart runs is caught distinctly,
-    # grouped under the timeout reason, and does not abort the whole export.
+    # A soft timeout raised while a chart runs must abort the whole export
+    # (propagate to the outer handler) rather than being recorded per-chart and
+    # letting the task run on until the hard limit kills the worker — which would
+    # skip cleanup, leak temp files, and never send a failure email.
     mocks["get_charts_in_layout_order"].return_value = [
-        _chart(10, "Slow"),
-        _chart(20, "Ok"),
+        _chart(10, "Ok"),
+        _chart(20, "Slow"),
     ]
     mocks["ChartDataCommand"].return_value.run.side_effect = [
-        SoftTimeLimitExceeded(),
         {"queries": [{"colnames": ["a"], "data": [{"a": 1}]}]},
+        SoftTimeLimitExceeded(),
     ]
 
-    _run()
+    with pytest.raises(SoftTimeLimitExceeded):
+        _run("job-timeout")
 
-    mocks["s3"].upload_file_to_s3.assert_called_once()
-    _, kwargs = mocks["email"].build_success_email.call_args
-    assert kwargs["errored"] == {mocks["email"].ERROR_TIMEOUT: ["10 - Slow"]}
+    mocks["s3"].upload_file_to_s3.assert_not_called()
+    mocks["email"].build_success_email.assert_not_called()
+    mocks["email"].build_failure_email.assert_called_once()
+    assert _no_temp_files_left("job-timeout")
+
+
+def test_image_render_timeout_aborts_export(mocks: dict[str, Any]) -> None:
+    # In image mode a soft timeout during a chart render must also propagate and
+    # abort the export rather than being swallowed as a per-chart render failure.
+    mocks["get_charts_in_layout_order"].return_value = [
+        _chart(10, "Line", viz_type="line"),
+    ]
+    mocks["render_chart_image"].side_effect = SoftTimeLimitExceeded()
+
+    with pytest.raises(SoftTimeLimitExceeded):
+        _run("job-img-timeout", mode="images")
+
+    mocks["email"].build_success_email.assert_not_called()
+    mocks["email"].build_failure_email.assert_called_once()
+    assert _no_temp_files_left("job-img-timeout")
 
 
 def test_all_charts_skipped_writes_summary(mocks: dict[str, Any]) -> None:
@@ -350,20 +368,23 @@ def test_images_mode_none_render_is_skipped(mocks: dict[str, Any]) -> None:
     assert "Export Summary" in uploaded["sheets"]
 
 
-def test_inflight_lock_cleared_on_success(mocks: dict[str, Any]) -> None:
+def test_inflight_lock_released_on_success(mocks: dict[str, Any]) -> None:
     mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
     mocks["ChartDataCommand"].return_value.run.return_value = {
         "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
     }
 
-    _run(inflight_key="excel-export-inflight:2:1")
+    _run()
 
-    mocks["cache_manager"].cache.delete.assert_called_once_with(
-        "excel-export-inflight:2:1"
+    # The distributed lock is released for this user+dashboard when the task
+    # settles (namespace + params match what the API acquired).
+    mocks["ReleaseDistributedLock"].assert_called_once_with(
+        "excel_export", {"user_id": 2, "dashboard_id": 1}
     )
+    mocks["ReleaseDistributedLock"].return_value.run.assert_called_once_with()
 
 
-def test_inflight_lock_cleared_on_failure(mocks: dict[str, Any]) -> None:
+def test_inflight_lock_released_on_failure(mocks: dict[str, Any]) -> None:
     mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
     mocks["ChartDataCommand"].return_value.run.return_value = {
         "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
@@ -371,9 +392,10 @@ def test_inflight_lock_cleared_on_failure(mocks: dict[str, Any]) -> None:
     mocks["s3"].upload_file_to_s3.side_effect = RuntimeError("s3 down")
 
     with pytest.raises(RuntimeError):
-        _run("job-fail", inflight_key="excel-export-inflight:2:1")
+        _run("job-fail")
 
     # The lock is freed in ``finally`` even when the export fails.
-    mocks["cache_manager"].cache.delete.assert_called_once_with(
-        "excel-export-inflight:2:1"
+    mocks["ReleaseDistributedLock"].assert_called_once_with(
+        "excel_export", {"user_id": 2, "dashboard_id": 1}
     )
+    mocks["ReleaseDistributedLock"].return_value.run.assert_called_once_with()

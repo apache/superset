@@ -244,11 +244,19 @@ export const useDownloadMenuItems = (
             label: t('Export Data to Excel'),
             onClick: () => onExportXlsx('data'),
           },
-          {
-            key: 'export-xlsx-images',
-            label: t('Export Images to Excel'),
-            onClick: () => onExportXlsx('images'),
-          },
+          // Image export renders charts through the headless webdriver, so only
+          // offer it where that infrastructure is available (same signal as the
+          // PDF/PNG image downloads above); otherwise non-table charts would
+          // silently come back empty.
+          ...(isWebDriverScreenshotEnabled
+            ? [
+                {
+                  key: 'export-xlsx-images',
+                  label: t('Export Images to Excel'),
+                  onClick: () => onExportXlsx('images'),
+                },
+              ]
+            : []),
         ]
       : []),
     {

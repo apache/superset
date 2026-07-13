@@ -89,16 +89,13 @@ def test_success_email_groups_errors_by_reason() -> None:
         ttl_seconds=86400,
         errored={
             email.ERROR_NO_QUERY_CONTEXT: ["10 - NoContext"],
-            email.ERROR_TIMEOUT: ["20 - Slow"],
             email.ERROR_GENERAL: ["30 - Boom"],
         },
     )
     # Each reason renders its own labelled section with the right chart.
     assert "no saved query context" in html
-    assert "timed out" in html
     assert "an error occurred" in html
     assert "<li>10 - NoContext</li>" in html
-    assert "<li>20 - Slow</li>" in html
     assert "<li>30 - Boom</li>" in html
 
 
@@ -109,11 +106,11 @@ def test_success_email_omits_empty_reason_groups() -> None:
         requested_at=REQUESTED,
         expires_at=EXPIRES,
         ttl_seconds=86400,
-        errored={email.ERROR_TIMEOUT: ["20 - Slow"]},
+        errored={email.ERROR_GENERAL: ["30 - Boom"]},
     )
-    assert "timed out" in html
+    assert "an error occurred" in html
     assert "no saved query context" not in html
-    assert "<li>20 - Slow</li>" in html
+    assert "<li>30 - Boom</li>" in html
 
 
 def test_success_email_escapes_title() -> None:

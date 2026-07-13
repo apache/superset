@@ -43,7 +43,6 @@ _BUTTON_STYLE = (
 # The task classifies each omitted chart under one of these; the email renders a
 # separate, labelled section per non-empty group with its own remediation text.
 ERROR_NO_QUERY_CONTEXT = "no-query-context"
-ERROR_TIMEOUT = "timeout"
 ERROR_GENERAL = "general-exception"
 
 
@@ -97,17 +96,13 @@ def _errored_section(errored: dict[str, list[str]]) -> str:
             "The following charts were omitted because they have no saved query "
             "context. To include them, open each chart in Explore and re-save."
         ),
-        ERROR_TIMEOUT: __(
-            "The following charts were omitted because they timed out before "
-            "their data could be exported:"
-        ),
         ERROR_GENERAL: __(
             "The following charts were omitted because an error occurred while "
             "exporting them:"
         ),
     }
     fallback = __("The following charts could not be exported:")
-    ordered = [ERROR_NO_QUERY_CONTEXT, ERROR_TIMEOUT, ERROR_GENERAL]
+    ordered = [ERROR_NO_QUERY_CONTEXT, ERROR_GENERAL]
     reasons = ordered + [reason for reason in errored if reason not in ordered]
     sections = []
     for reason in reasons:

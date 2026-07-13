@@ -29,6 +29,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app
 
 from superset.charts.data.dashboard_filter_context import (
@@ -89,6 +90,10 @@ def render_chart_image(
             thumb_size=window_size,
         )
         return screenshot.get_screenshot(user=user)
+    except SoftTimeLimitExceeded:
+        # A soft timeout aborts the whole export; don't let the broad handler
+        # below turn it into a ``None`` (a per-chart "could not render") result.
+        raise
     except Exception:  # pylint: disable=broad-except
         logger.exception(
             "Failed to render image for chart %s in dashboard %s",

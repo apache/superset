@@ -20,6 +20,12 @@ From a dashboard, open the **... (actions) → Download** submenu and choose
 `can_export` permission. You'll see a confirmation that the export is being
 prepared; the workbook arrives by email when it's ready.
 
+A second option, **Export Images to Excel**, embeds each non-table chart as a
+rendered image (tables stay tabular) instead of exporting raw data. Because it
+renders charts through the headless webdriver, this option only appears when the
+webdriver screenshot feature flags are enabled (see the prerequisites below);
+which viz types stay tabular is controlled by `EXCEL_EXPORT_TABLE_VIZ_TYPES`.
+
 Notes on the generated workbook:
 
 - One worksheet per chart, named `{chart_id} - {chart title}` (truncated to
@@ -36,14 +42,24 @@ Notes on the generated workbook:
 
 This feature is **disabled by default**. It requires:
 
-1. **An S3 bucket.** Set `EXCEL_EXPORT_S3_BUCKET`. Until it is set, the export
+1. **The `boto3` dependency.** It is not installed by default; install it with
+   `pip install apache-superset[excel-export]`. Without it, exports fail and the
+   user receives a failure email.
+2. **An S3 bucket.** Set `EXCEL_EXPORT_S3_BUCKET`. Until it is set, the export
    endpoint returns `501` and the menu action surfaces a "not configured"
    message.
-2. **A running Celery worker.** The export runs as a Celery task. If no worker
+3. **A running Celery worker.** The export runs as a Celery task. If no worker
    is running, the request is accepted but nothing is produced.
-3. **A configured SMTP transport.** The download link is delivered by email
+4. **A configured SMTP transport.** The download link is delivered by email
    using the same settings as alerts & reports (`SMTP_*`,
    `EMAIL_REPORTS_SUBJECT_PREFIX`).
+
+**Export Images to Excel** additionally requires a working headless webdriver —
+the same infrastructure scheduled reports and thumbnails use (`WEBDRIVER_*`,
+plus the `ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS` and
+`ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT` feature flags). The menu option
+is hidden when those flags are off; if the webdriver is unreachable, image
+charts come back empty even though the data export path still works.
 
 Deployments that override `CELERY_CONFIG` must add
 `"superset.tasks.export_dashboard_excel"` to the `imports` tuple, or the task
@@ -57,6 +73,7 @@ will not register.
 | `EXCEL_EXPORT_S3_KEY_PREFIX` | `"dashboard-exports/"` | Key prefix: `{prefix}{dashboard_id}/{job_id}.xlsx`. |
 | `EXCEL_EXPORT_LINK_TTL_SECONDS` | `86400` | Lifetime of the pre-signed download URL (24h). |
 | `EXCEL_EXPORT_S3_CLIENT_KWARGS` | `{}` | Extra kwargs for `boto3.client("s3", ...)` — e.g. `region_name`, or `endpoint_url` for MinIO/LocalStack. |
+| `EXCEL_EXPORT_TABLE_VIZ_TYPES` | `None` | Viz types kept tabular in **Export Images to Excel** mode; every other type is embedded as an image. `None` uses the built-in default (`table`, `pivot_table`, `pivot_table_v2`). |
 
 Credentials and region resolve through the standard boto3 chain (environment
 variables, shared config, or instance role) unless overridden via
@@ -76,5 +93,7 @@ variables, shared config, or instance role) unless overridden via
 - **Embedded dashboards / guest tokens are not supported** in this version,
   because guest users have no email address to deliver the link to. Logged-in
   users viewing an embedded dashboard can still use the export.
-- Chart images and visual styling are not exported — data only.
+- The default **Export Data to Excel** mode exports data only (no visual
+  styling). Use **Export Images to Excel** to embed rendered chart images, which
+  requires the webdriver infrastructure described in the prerequisites.
 - Scheduled/automated exports are not part of this feature.

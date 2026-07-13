@@ -16,7 +16,10 @@
 # under the License.
 from __future__ import annotations
 
+import sys
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from superset.utils import s3
 
@@ -52,6 +55,27 @@ def test_client_kwargs_passthrough(
     mock_client_fn.assert_called_once_with(
         "s3", endpoint_url="http://minio:9000", region_name="us-east-1"
     )
+
+
+def test_importing_module_does_not_require_boto3() -> None:
+    # Regression: importing this module (which app startup does via the dashboard
+    # API) must not require boto3, since it is only an optional install.
+    import importlib
+
+    with patch.dict(sys.modules, {"boto3": None}):
+        importlib.reload(s3)
+    # Reload again with boto3 available so later tests see the normal module.
+    importlib.reload(s3)
+
+
+def test_get_s3_client_missing_boto3_raises_actionable_error() -> None:
+    # Simulate a production install without boto3: the lazy import fails and we
+    # surface an install hint instead of a bare ModuleNotFoundError.
+    with (
+        patch.dict(sys.modules, {"boto3": None}),
+        pytest.raises(ImportError, match="excel-export"),
+    ):
+        s3._get_s3_client()
 
 
 @patch("boto3.client")

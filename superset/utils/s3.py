@@ -37,8 +37,15 @@ def _get_s3_client() -> Any:
     """Build an S3 client using operator-provided client kwargs (if any)."""
     # boto3 is imported lazily so that importing this module (which happens at
     # app startup via the dashboard API) does not require boto3 to be installed.
-    # The dependency is only needed when an export actually runs.
-    import boto3  # pylint: disable=import-outside-toplevel
+    # The dependency is only needed when an export actually runs; if it is
+    # missing, surface an actionable install hint rather than a bare ImportError.
+    try:
+        import boto3  # pylint: disable=import-outside-toplevel
+    except ImportError as ex:
+        raise ImportError(
+            "boto3 is required for dashboard Excel export but is not installed. "
+            "Install it with `pip install apache-superset[excel-export]`."
+        ) from ex
 
     client_kwargs: dict[str, Any] = current_app.config.get(
         "EXCEL_EXPORT_S3_CLIENT_KWARGS", {}

@@ -45,11 +45,12 @@ from superset.charts.data.dashboard_filter_context import (
 )
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.commands.chart.data.get_data_command import ChartDataCommand
+from superset.commands.distributed_lock.release import ReleaseDistributedLock
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.dashboards.excel_export import email
 from superset.dashboards.excel_export.layout import get_charts_in_layout_order
 from superset.dashboards.excel_export.screenshot import render_chart_image
-from superset.extensions import cache_manager, celery_app
+from superset.extensions import celery_app
 from superset.utils import json, s3
 from superset.utils.core import override_user
 from superset.utils.excel_streaming import StreamingXlsxWriter
@@ -68,11 +69,22 @@ TABLE_VIZ_TYPES = {"table", "pivot_table_v2", "pivot_table"}
 
 EXPORT_SOFT_TIME_LIMIT = 600
 EXPORT_HARD_TIME_LIMIT = 660
-# TTL for the per-user+dashboard in-flight lock set by the API before enqueue.
-# It outlives the hard time limit so a worker killed at that limit (which skips
-# the ``finally`` cleanup) cannot hold the lock forever; the delete in
+
+# Namespace + TTL for the per-user+dashboard in-flight lock the API acquires
+# before enqueue and this task releases when it settles. The lock uses the
+# shared, atomic DistributedLock backend (Redis when configured, the metadata
+# DB otherwise) so it actually synchronizes across the web server and workers —
+# unlike a plain cache, which is a no-op under the default ``NullCache``.
+# The TTL outlives the hard time limit so a worker killed at that limit (which
+# skips the ``finally`` release) cannot hold the lock forever; the release in
 # ``finally`` is the fast path that frees it as soon as the task settles.
-EXPORT_INFLIGHT_CACHE_TTL = EXPORT_HARD_TIME_LIMIT + 60
+EXPORT_LOCK_NAMESPACE = "excel_export"
+EXPORT_LOCK_TTL_SECONDS = EXPORT_HARD_TIME_LIMIT + 60
+
+
+def export_lock_params(user_id: int, dashboard_id: int) -> dict[str, int]:
+    """Key parameters identifying the per-user+dashboard in-flight lock."""
+    return {"user_id": user_id, "dashboard_id": dashboard_id}
 
 
 class _ChartSkippedError(Exception):
@@ -198,10 +210,13 @@ def _build_workbook(
                 else:
                     _write_chart_sheets(writer, chart, dashboard.id, active_data_mask)
             except SoftTimeLimitExceeded:
-                logger.warning(
-                    "Chart %s timed out in dashboard export %s", chart.id, job_id
-                )
-                errored.setdefault(email.ERROR_TIMEOUT, []).append(label)
+                # A soft timeout is a task-level signal, not a per-chart failure:
+                # let it propagate so the outer handler emails a failure and runs
+                # cleanup, rather than continuing until the hard limit kills the
+                # worker (which would skip cleanup, leak temp files, and hold the
+                # in-flight lock until its TTL). ``except Exception`` below would
+                # otherwise swallow it, since it subclasses ``Exception``.
+                raise
             except _ChartSkippedError:
                 logger.warning(
                     "Skipping chart %s in dashboard export %s (could not render)",
@@ -255,7 +270,6 @@ def export_dashboard_excel(
     active_data_mask: dict[str, Any],
     job_id: str,
     mode: str = EXPORT_MODE_DATA,
-    inflight_key: str | None = None,
 ) -> None:
     """
     Export a dashboard's charts to an ``.xlsx`` and email a download link.
@@ -266,8 +280,6 @@ def export_dashboard_excel(
     :param job_id: Correlation id, also the Celery task id and S3 object name
     :param mode: ``"data"`` streams every chart's tabular result; ``"images"``
         embeds non-table charts as rendered images and keeps tables tabular
-    :param inflight_key: Cache key of the per-user+dashboard throttle lock, freed
-        when the task settles (the lock's TTL is the backstop)
     """
     # pylint: disable=import-outside-toplevel
     from superset.models.dashboard import Dashboard
@@ -333,13 +345,17 @@ def export_dashboard_excel(
         _send_failure_email(user, dashboard_title, requested_at)
         raise
     finally:
-        if inflight_key:
-            try:
-                cache_manager.cache.delete(inflight_key)
-            except Exception:  # pylint: disable=broad-except
-                # Best-effort: the lock's TTL is the backstop if this fails.
-                logger.exception(
-                    "Failed to clear in-flight export lock %s", inflight_key
-                )
+        try:
+            ReleaseDistributedLock(
+                EXPORT_LOCK_NAMESPACE,
+                export_lock_params(user_id, dashboard_id),
+            ).run()
+        except Exception:  # pylint: disable=broad-except
+            # Best-effort: the lock's TTL is the backstop if this fails.
+            logger.exception(
+                "Failed to release in-flight export lock for user %s dashboard %s",
+                user_id,
+                dashboard_id,
+            )
         if tmp_path and os.path.exists(tmp_path):
             os.remove(tmp_path)

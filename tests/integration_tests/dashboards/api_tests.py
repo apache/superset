@@ -31,6 +31,7 @@ import yaml
 from freezegun import freeze_time
 from sqlalchemy import and_
 from superset import db, security_manager  # noqa: F401
+from superset.exceptions import LockAlreadyHeldException
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
@@ -3302,8 +3303,9 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @patch("superset.dashboards.api.AcquireDistributedLock")
     @patch("superset.dashboards.api.export_dashboard_excel")
-    def test_export_xlsx_202_enqueues_task(self, mock_task):
+    def test_export_xlsx_202_enqueues_task(self, mock_task, mock_acquire):
         """Dashboard API: export_xlsx enqueues the task and returns 202 + job_id."""
         self.login(ADMIN_USERNAME)
         dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
@@ -3315,6 +3317,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         body = json.loads(rv.data.decode("utf-8"))
         job_id = body["job_id"]
         assert job_id
+        # The in-flight lock is acquired before the task is enqueued.
+        mock_acquire.return_value.run.assert_called_once()
         mock_task.apply_async.assert_called_once()
         _, kwargs = mock_task.apply_async.call_args
         assert kwargs["task_id"] == job_id
@@ -3322,14 +3326,14 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
-    @patch("superset.dashboards.api.cache_manager")
+    @patch("superset.dashboards.api.AcquireDistributedLock")
     @patch("superset.dashboards.api.export_dashboard_excel")
     def test_export_xlsx_202_when_export_already_in_progress(
-        self, mock_task, mock_cache_manager
+        self, mock_task, mock_acquire
     ):
         """Dashboard API: export_xlsx does not enqueue a second concurrent export."""
-        # An in-flight lock is already present for this user+dashboard.
-        mock_cache_manager.cache.get.return_value = "existing-job-id"
+        # An in-flight lock is already held for this user+dashboard.
+        mock_acquire.return_value.run.side_effect = LockAlreadyHeldException("held")
         self.login(ADMIN_USERNAME)
         dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
         rv = self.client.post(
@@ -3339,7 +3343,6 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert rv.status_code == 202
         assert "already in progress" in rv.data.decode("utf-8")
         mock_task.apply_async.assert_not_called()
-        mock_cache_manager.cache.set.assert_not_called()
 
     @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
     @patch("superset.dashboards.api.export_dashboard_excel")

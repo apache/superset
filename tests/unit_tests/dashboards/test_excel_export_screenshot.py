@@ -19,6 +19,9 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
+from celery.exceptions import SoftTimeLimitExceeded
+
 from superset.charts.data.dashboard_filter_context import DashboardFilterContext
 from superset.dashboards.excel_export import screenshot as screenshot_module
 from superset.dashboards.excel_export.screenshot import render_chart_image
@@ -144,3 +147,20 @@ def test_render_chart_image_returns_none_on_exception() -> None:
         )
 
     assert result is None
+
+
+def test_render_chart_image_propagates_soft_time_limit() -> None:
+    # A soft timeout must abort the export, not be swallowed into a ``None``
+    # result (which the caller would mis-report as a per-chart render failure).
+    chart = _chart()
+
+    with (
+        patch(
+            f"{MODULE}.get_dashboard_filter_context",
+            side_effect=SoftTimeLimitExceeded(),
+        ),
+        pytest.raises(SoftTimeLimitExceeded),
+    ):
+        render_chart_image(
+            chart, dashboard_id=7, active_data_mask={}, user=MagicMock()
+        )

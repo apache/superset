@@ -83,6 +83,8 @@ from superset.commands.dashboard.update import (
     UpdateDashboardNativeFiltersCommand,
 )
 from superset.commands.database.exceptions import DatasetValidationError
+from superset.commands.distributed_lock.acquire import AcquireDistributedLock
+from superset.commands.distributed_lock.release import ReleaseDistributedLock
 from superset.commands.exceptions import TagForbiddenError
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
@@ -127,10 +129,11 @@ from superset.dashboards.schemas import (
     thumbnail_query_schema,
 )
 from superset.exceptions import (
+    LockAlreadyHeldException,
     ScreenshotImageNotAvailableException,
     SupersetSecurityException,
 )
-from superset.extensions import cache_manager, event_logger, security_manager
+from superset.extensions import event_logger, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.security.guest_token import GuestUser
@@ -141,7 +144,9 @@ from superset.subjects.filters import (
 )
 from superset.tasks.export_dashboard_excel import (
     export_dashboard_excel,
-    EXPORT_INFLIGHT_CACHE_TTL,
+    EXPORT_LOCK_NAMESPACE,
+    export_lock_params,
+    EXPORT_LOCK_TTL_SECONDS,
 )
 from superset.tasks.thumbnails import (
     cache_dashboard_screenshot,
@@ -1664,28 +1669,42 @@ class DashboardRestApi(
         if not dashboard.slices:
             return self.response_400(message="Dashboard has no charts to export.")
 
-        # Throttle: one concurrent export per user+dashboard. The lock is set
-        # here and cleared by the task; its TTL guards against a lost cleanup.
-        inflight_key = f"excel-export-inflight:{g.user.id}:{dashboard.id}"
-        if cache_manager.cache.get(inflight_key):
+        # Throttle: one concurrent export per user+dashboard. Acquire a shared,
+        # atomic distributed lock (Redis when configured, the metadata DB
+        # otherwise) so the guard works across the web server and workers and is
+        # not a no-op under the default cache. The task releases it when it
+        # settles; the TTL is the backstop if that release is ever lost.
+        lock_params = export_lock_params(g.user.id, dashboard.id)
+        try:
+            AcquireDistributedLock(
+                EXPORT_LOCK_NAMESPACE,
+                lock_params,
+                ttl_seconds=EXPORT_LOCK_TTL_SECONDS,
+            ).run()
+        except LockAlreadyHeldException:
             return self.response(
                 202,
                 message="An Excel export for this dashboard is already in progress.",
             )
 
         job_id = str(uuid.uuid4())
-        cache_manager.cache.set(inflight_key, job_id, timeout=EXPORT_INFLIGHT_CACHE_TTL)
-        export_dashboard_excel.apply_async(
-            kwargs={
-                "dashboard_id": dashboard.id,
-                "user_id": g.user.id,
-                "active_data_mask": payload.get("active_data_mask", {}),
-                "job_id": job_id,
-                "mode": payload.get("mode", "data"),
-                "inflight_key": inflight_key,
-            },
-            task_id=job_id,
-        )
+        try:
+            export_dashboard_excel.apply_async(
+                kwargs={
+                    "dashboard_id": dashboard.id,
+                    "user_id": g.user.id,
+                    "active_data_mask": payload.get("active_data_mask", {}),
+                    "job_id": job_id,
+                    "mode": payload.get("mode", "data"),
+                },
+                task_id=job_id,
+            )
+        except Exception:
+            # If enqueuing fails (e.g. broker down) the task will never run to
+            # release the lock, so free it now rather than block exports until
+            # the TTL expires.
+            ReleaseDistributedLock(EXPORT_LOCK_NAMESPACE, lock_params).run()
+            raise
         return self.response(202, job_id=job_id)
 
     @expose("/<pk>/cache_dashboard_screenshot/", methods=("POST",))
