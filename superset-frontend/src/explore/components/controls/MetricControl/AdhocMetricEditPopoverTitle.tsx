@@ -64,7 +64,10 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
   const handleMouseOver = useCallback(() => setIsHovered(true), []);
   const handleMouseOut = useCallback(() => setIsHovered(false), []);
   const handleClick = useCallback(() => setIsEditMode(true), []);
-  const handleBlur = useCallback(() => setIsEditMode(false), []);
+  const handleBlur = useCallback(() => {
+    setIsHovered(false);
+    setIsEditMode(false);
+  }, []);
 
   const handleKeyPress = useCallback(
     (ev: KeyboardEvent<HTMLInputElement>) => {

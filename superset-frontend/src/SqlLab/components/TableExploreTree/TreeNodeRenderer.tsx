@@ -238,8 +238,6 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
       {identifier === 'schema' && (
         <div
           className="side-action-container"
-          role="menu"
-          tabIndex={0}
           onClick={e => e.stopPropagation()}
         >
           {pinnedSchemas.has(schema) && (
@@ -307,8 +305,6 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
           return (
             <div
               className="side-action-container"
-              role="menu"
-              tabIndex={0}
               onClick={e => e.stopPropagation()}
             >
               {isPinned && (
