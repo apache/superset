@@ -329,7 +329,7 @@ describe('RoleListEditModal', () => {
 
   test('fires warning toast when hydration returns zero rows but IDs were expected', async () => {
     const mockGet = SupersetClient.get as jest.Mock;
-    mockGet.mockImplementation(({ endpoint }) =>
+    mockGet.mockImplementation(() =>
       Promise.resolve({ json: { count: 0, result: [] } }),
     );
 

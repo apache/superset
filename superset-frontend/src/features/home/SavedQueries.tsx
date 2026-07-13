@@ -88,7 +88,6 @@ export const CardStyles = styled.div`
     display: inline-block;
     width: 100%;
     height: 179px;
-    background-repeat: no-repeat;
     vertical-align: middle;
   }
 `;

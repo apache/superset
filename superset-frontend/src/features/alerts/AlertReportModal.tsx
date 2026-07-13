@@ -1154,7 +1154,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             );
           }
         })
-        .catch(e => {
+        .catch(() => {
           addDangerToast(t('There was an error retrieving dashboard tabs.'));
         });
     }

@@ -79,6 +79,7 @@ FRONTEND_CONF_KEYS = (
     "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT",
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT",
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE",
+    "SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS",
     "ENABLE_JAVASCRIPT_CONTROLS",
     "DEFAULT_SQLLAB_LIMIT",
     "DEFAULT_VIZ_TYPE",
@@ -432,6 +433,7 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
         "theme": {
             "default": default_theme,
             "dark": dark_theme,
+            "defaultMode": app.config["THEME_DEFAULT_MODE"],
             "enableUiThemeAdministration": enable_ui_admin,
         }
     }
@@ -552,8 +554,9 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         frontend_config["AUTH_USER_REGISTRATION_ROLE"] = app.config[
             "AUTH_USER_REGISTRATION_ROLE"
         ]
-    if should_show_recaptcha:
-        frontend_config["RECAPTCHA_PUBLIC_KEY"] = app.config["RECAPTCHA_PUBLIC_KEY"]
+    recaptcha_public_key = app.config.get("RECAPTCHA_PUBLIC_KEY")
+    if should_show_recaptcha and recaptcha_public_key:
+        frontend_config["RECAPTCHA_PUBLIC_KEY"] = recaptcha_public_key
 
     frontend_config["AUTH_TYPE"] = auth_type
     if auth_type == AUTH_OAUTH:

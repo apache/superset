@@ -88,6 +88,14 @@ TESTING = True
 TALISMAN_ENABLED = False
 WTF_CSRF_ENABLED = False
 
+# Production ships entity-version capture OFF (see ``config.py``); the test
+# suite turns it ON so the capture pipeline (Continuum shadow rows + baseline
+# + ``version_changes``) is actually exercised. The dark/kill-switch contract
+# is proven separately by
+# ``tests/integration_tests/versioning/capture_disabled_tests.py``, which
+# detaches the listeners within the test.
+ENABLE_VERSIONING_CAPTURE = True
+
 FAB_ROLES = {"TestRole": [["Security", "menu_access"], ["List Users", "menu_access"]]}
 
 PUBLIC_ROLE_LIKE = "Gamma"
