@@ -19,8 +19,11 @@
 
 from __future__ import annotations
 
+import ast
 import importlib
+import inspect
 from collections.abc import Generator
+from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
@@ -833,18 +836,57 @@ async def test_query_dataset_metadata_access_denied_nonexistent_dataset(
     assert data["error_type"] != "NotFound"
 
 
+def test_query_dataset_decorator_order_matches_convention() -> None:
+    """``@requires_data_model_metadata_access`` must be the innermost decorator
+    (closest to ``async def``), matching every other data-model-restricted tool
+    (list_datasets, get_dataset_info, list_databases, get_database_info, etc.).
+
+    This is checked via AST inspection of the source rather than the runtime
+    marker on the registered tool, because FastMCP's current registration
+    pipeline (``create_tool_decorator`` -> ``mcp_auth_hook`` -> ``Tool.from_function``)
+    happens to preserve the exact same callable object as ``tool.fn`` regardless
+    of decorator order in this version, so a dynamic ``tools/list`` assertion
+    does not distinguish the two orderings (see the tests below, and PR #41925
+    discussion). This structural check fails on the pre-fix ordering and is the
+    part of this change that actually catches a regression.
+    """
+    source_path = inspect.getsourcefile(query_dataset_module)
+    assert source_path is not None
+    tree = ast.parse(Path(source_path).read_text())
+
+    func_def = next(
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.AsyncFunctionDef) and node.name == "query_dataset"
+    )
+
+    def _decorator_name(node: ast.expr) -> str:
+        target = node.func if isinstance(node, ast.Call) else node
+        return target.id if isinstance(target, ast.Name) else ast.dump(target)
+
+    decorator_names = [_decorator_name(d) for d in func_def.decorator_list]
+
+    assert decorator_names[-1] == "requires_data_model_metadata_access", (
+        "requires_data_model_metadata_access must be the innermost decorator "
+        "(the one closest to the function definition), matching "
+        "list_datasets/get_dataset_info/list_databases/etc. "
+        f"Found decorator order (outer to inner): {decorator_names}"
+    )
+
+
 @pytest.mark.asyncio
 async def test_query_dataset_registered_tool_requires_metadata_access(
     mcp_server: FastMCP,
 ) -> None:
-    """The tool object FastMCP actually registers must carry the data-model
-    metadata marker.
+    """The tool object FastMCP actually registers carries the data-model
+    metadata marker, so ``is_tool_visible_to_current_user`` can hide it from
+    restricted users at ``tools/list`` time.
 
-    Regression test for a decorator-order bug: ``@requires_data_model_metadata_access``
-    must be applied *below* ``@tool(...)`` so it marks the callable that ``@tool``
-    registers. Checking the module-level ``query_dataset`` name is not sufficient
-    to catch this class of bug, since that name is rebound by whichever decorator
-    runs last regardless of registration order.
+    Note: this assertion holds regardless of decorator order in the current
+    FastMCP registration pipeline (see
+    ``test_query_dataset_decorator_order_matches_convention`` for the check
+    that actually distinguishes the two orderings). It's kept here as a
+    documentation/coverage test for the desired end state.
     """
     tool = await mcp_server.get_tool("query_dataset")
     assert tool is not None
@@ -855,8 +897,13 @@ async def test_query_dataset_registered_tool_requires_metadata_access(
 async def test_query_dataset_hidden_from_tools_list_when_metadata_restricted(
     mcp_server: FastMCP, app: Any
 ) -> None:
-    """query_dataset must be hidden from tools/list for metadata-restricted users,
-    mirroring list_datasets and get_dataset_info."""
+    """query_dataset is hidden from tools/list for metadata-restricted users,
+    mirroring list_datasets and get_dataset_info.
+
+    Note: like the test above, this passes regardless of decorator order in
+    the current FastMCP version — see
+    ``test_query_dataset_decorator_order_matches_convention``.
+    """
     from flask import g
 
     tool = await mcp_server.get_tool("query_dataset")
