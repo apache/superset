@@ -37,8 +37,10 @@ import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiPostChart, apiPutChart } from '../../helpers/api/chart';
 import { apiPostDashboard } from '../../helpers/api/dashboard';
 import { getDatasetByName } from '../../helpers/api/dataset';
+import { extractIdFromResponse } from '../../helpers/api/assertions';
 import { TIMEOUT } from '../../utils/constants';
 import { DashboardPage } from '../../pages/DashboardPage';
+import { buildDashboardPositionJson } from './dashboard-test-helpers';
 
 const DATASET_NAME = 'birth_names';
 
@@ -101,51 +103,14 @@ testWithAssets(
         params: JSON.stringify(spec.params),
       });
       expect(resp.ok()).toBe(true);
-      const body = await resp.json();
-      const chartId: number = body.result?.id ?? body.id;
-      if (!chartId) {
-        throw new Error(
-          `Chart creation for ${spec.viz_type} returned no id: ${JSON.stringify(body)}`,
-        );
-      }
+      const chartId = await extractIdFromResponse(resp);
       testAssets.trackChart(chartId);
       charts.push({ id: chartId, sliceName });
     }
     const chartIds = charts.map(chart => chart.id);
 
     // Lay all charts out in a single row.
-    const chartKeys = chartIds.map(id => `CHART-${id}`);
-    const positionJson: Record<string, unknown> = {
-      DASHBOARD_VERSION_KEY: 'v2',
-      ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['GRID_ID'] },
-      GRID_ID: {
-        type: 'GRID',
-        id: 'GRID_ID',
-        children: ['ROW-1'],
-        parents: ['ROOT_ID'],
-      },
-      'ROW-1': {
-        type: 'ROW',
-        id: 'ROW-1',
-        children: chartKeys,
-        parents: ['ROOT_ID', 'GRID_ID'],
-        meta: { background: 'BACKGROUND_TRANSPARENT' },
-      },
-    };
-    chartIds.forEach((chartId, index) => {
-      positionJson[chartKeys[index]] = {
-        type: 'CHART',
-        id: chartKeys[index],
-        children: [],
-        parents: ['ROOT_ID', 'GRID_ID', 'ROW-1'],
-        meta: {
-          chartId,
-          width: 4,
-          height: 50,
-          sliceName: charts[index].sliceName,
-        },
-      };
-    });
+    const positionJson = buildDashboardPositionJson(charts);
 
     const dashResp = await apiPostDashboard(page, {
       dashboard_title: `load_smoke_${uniqueSuffix}`,
@@ -153,8 +118,7 @@ testWithAssets(
       position_json: JSON.stringify(positionJson),
     });
     expect(dashResp.ok()).toBe(true);
-    const dashBody = await dashResp.json();
-    const dashboardId: number = dashBody.result?.id ?? dashBody.id;
+    const dashboardId = await extractIdFromResponse(dashResp);
     testAssets.trackDashboard(dashboardId);
 
     // Associate every chart with the dashboard so they actually render.
@@ -162,15 +126,31 @@ testWithAssets(
       await apiPutChart(page, chartId, { dashboards: [dashboardId] });
     }
 
-    // Record the real chart-data round-trips the dashboard makes on load.
-    const chartDataStatuses: number[] = [];
+    // Record the real chart-data round-trips the dashboard makes on load,
+    // keyed by the chart each one queried for. The chart-data POST carries its
+    // slice id in the encoded `form_data={"slice_id":<id>}` query param (see
+    // chartAction.ts), so parsing it lets us prove every chart queried — not
+    // just that some chart did.
+    const chartDataStatusBySliceId = new Map<number, number>();
     page.on('response', response => {
       const request = response.request();
       if (
-        request.method() === 'POST' &&
-        response.url().includes('/api/v1/chart/data')
+        request.method() !== 'POST' ||
+        !response.url().includes('/api/v1/chart/data')
       ) {
-        chartDataStatuses.push(response.status());
+        return;
+      }
+      const formData = new URL(response.url()).searchParams.get('form_data');
+      if (!formData) {
+        return;
+      }
+      try {
+        const sliceId = JSON.parse(formData).slice_id;
+        if (typeof sliceId === 'number') {
+          chartDataStatusBySliceId.set(sliceId, response.status());
+        }
+      } catch {
+        // Not a slice-id form_data payload; ignore.
       }
     });
 
@@ -178,15 +158,22 @@ testWithAssets(
     await dashboard.gotoById(dashboardId);
     await dashboard.waitForLoad();
 
-    // Every chart grid component must reach its rendered state.
-    const renderedCount = await dashboard.waitForAllChartsRendered();
-    expect(renderedCount).toBe(chartIds.length);
+    // Each expected chart must reach its rendered state; a chart that never
+    // renders makes this time out and fail rather than passing silently.
+    await dashboard.waitForAllChartsRendered(chartIds);
 
-    // The render came from real backend queries, and all of them succeeded.
-    expect(chartDataStatuses.length).toBeGreaterThan(0);
-    expect(
-      chartDataStatuses.every(status => status === 200),
-      `all /api/v1/chart/data responses should be 200, got [${chartDataStatuses}]`,
-    ).toBe(true);
+    // The render came from real backend queries: every chart issued its own
+    // chart-data POST and each one succeeded.
+    for (const chartId of chartIds) {
+      const status = chartDataStatusBySliceId.get(chartId);
+      expect(
+        status,
+        `chart ${chartId} should have issued a /api/v1/chart/data POST`,
+      ).toBeDefined();
+      expect(
+        status,
+        `chart ${chartId}'s /api/v1/chart/data response should be 200`,
+      ).toBe(200);
+    }
   },
 );

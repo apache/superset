@@ -145,36 +145,30 @@ export class DashboardPage {
   }
 
   /**
-   * Wait for every chart on the dashboard to finish rendering and return how
-   * many charts rendered.
+   * Wait for every expected chart on the dashboard to finish rendering.
    *
-   * A chart's `#chart-id-<id>` element only becomes visible once the chart has
-   * fetched its data and rendered (the same signal the legacy Cypress
-   * `waitForChartLoad` helper relied on). The chart set is derived from the
-   * dashboard itself via the `[data-test="chart-grid-component"]` holders, so
-   * this adapts to any dashboard without hard-coding chart names or counts.
+   * A chart's `#chart-id-<id>` element is rendered by `ChartRenderer` only in
+   * the non-loading, non-failed branch of `Chart` (a loading chart shows a
+   * spinner instead; a failed chart early-returns an error container), so its
+   * visibility is a genuine "this chart rendered" signal — the same one the
+   * legacy Cypress `waitForChartLoad` helper relied on.
+   *
+   * The expected chart IDs are passed in rather than discovered from the DOM:
+   * waiting on each specific `#chart-id-<id>` means a chart that never renders
+   * makes this call time out and fail the test, and it avoids the partial-count
+   * race of snapshotting `holders.count()` after only the first holder attaches.
    */
-  async waitForAllChartsRendered(options?: {
-    timeout?: number;
-  }): Promise<number> {
+  async waitForAllChartsRendered(
+    expectedChartIds: number[],
+    options?: { timeout?: number },
+  ): Promise<void> {
     // Charts issue real backend queries; allow generous time for slow viz types.
     const timeout = options?.timeout ?? TIMEOUT.API_RESPONSE * 2;
-    const holders = this.page.locator('[data-test="chart-grid-component"]');
-    await holders.first().waitFor({ state: 'attached', timeout });
-
-    const count = await holders.count();
-    for (let i = 0; i < count; i += 1) {
-      const chartId = await holders.nth(i).getAttribute('data-test-chart-id');
-      if (!chartId) {
-        throw new Error(
-          `Chart holder ${i} is missing its data-test-chart-id attribute`,
-        );
-      }
+    for (const chartId of expectedChartIds) {
       await this.page
         .locator(`#chart-id-${chartId}`)
         .waitFor({ state: 'visible', timeout });
     }
-    return count;
   }
 
   /**
