@@ -173,6 +173,83 @@ describe('asyncEvent middleware', () => {
       expect(fetchMock.callHistory.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
     });
 
+    test('backs off exponentially when polling requests keep failing', async () => {
+      jest.useFakeTimers();
+      try {
+        fetchMock.clearHistory().removeRoutes();
+        fetchMock.get(EVENTS_ENDPOINT, { status: 403 });
+        asyncEvent.init(config);
+        asyncEvent.waitForAsyncData(asyncPendingEvent).catch(() => {});
+
+        // first poll fires after the configured delay and fails
+        await jest.advanceTimersByTimeAsync(
+          config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(1);
+
+        // next poll is delayed by 2x the configured delay, so nothing yet
+        await jest.advanceTimersByTimeAsync(
+          config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(1);
+
+        await jest.advanceTimersByTimeAsync(
+          config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(2);
+
+        // after the second failure the delay grows to 4x
+        await jest.advanceTimersByTimeAsync(
+          3 * config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(2);
+
+        await jest.advanceTimersByTimeAsync(
+          config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(3);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    test('resumes the configured polling delay after a successful poll', async () => {
+      jest.useFakeTimers();
+      try {
+        fetchMock.clearHistory().removeRoutes();
+        fetchMock.get(EVENTS_ENDPOINT, { status: 403 });
+        asyncEvent.init(config);
+        asyncEvent.waitForAsyncData(asyncPendingEvent).catch(() => {});
+
+        // two failed polls: 1x delay, then 2x delay
+        await jest.advanceTimersByTimeAsync(
+          3 * config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(2);
+
+        // subsequent polls succeed, resetting the backoff
+        fetchMock.clearHistory().removeRoutes();
+        fetchMock.get(EVENTS_ENDPOINT, {
+          status: 200,
+          body: { result: [] },
+        });
+
+        // third poll fires 4x delay after the second failure and succeeds
+        await jest.advanceTimersByTimeAsync(
+          4 * config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(1);
+
+        // polling is back to the configured delay
+        await jest.advanceTimersByTimeAsync(
+          config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(2);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
     // Regression guard for the motivating CodeQL case: a job_id that collides
     // with a built-in Object property (e.g. "__proto__"/"constructor") must be
     // routed through the Map-based registries without triggering prototype

@@ -58,6 +58,9 @@ const LOCALSTORAGE_KEY = 'last_async_event_id';
 const POLLING_URL = '/api/v1/async_event/';
 const MAX_RETRIES = 6;
 const RETRY_DELAY = 100;
+// Cap for the exponential backoff applied when polling requests fail
+// repeatedly (e.g. expired session, server or network errors)
+const MAX_ERROR_POLLING_DELAY_MS = 60000;
 
 let config: AppConfig;
 let transport: string;
@@ -66,6 +69,7 @@ let pollingTimeoutId: number;
 let listenersByJobId: Map<string, ListenerFn>;
 let retriesByJobId: Map<string, number>;
 let lastReceivedEventId: string | null | undefined;
+let consecutivePollingErrorCount = 0;
 
 const addListener = (id: string, fn: ListenerFn) => {
   listenersByJobId.set(id, fn);
@@ -170,19 +174,30 @@ export const processEvents = async (events: AsyncEvent[]) => {
   });
 };
 
+const getPollingDelay = () => {
+  if (!consecutivePollingErrorCount) return pollingDelayMs;
+  const backoffDelayMs = pollingDelayMs * 2 ** consecutivePollingErrorCount;
+  return Math.max(
+    pollingDelayMs,
+    Math.min(backoffDelayMs, MAX_ERROR_POLLING_DELAY_MS),
+  );
+};
+
 const loadEventsFromApi = async () => {
   const eventArgs = lastReceivedEventId ? { last_id: lastReceivedEventId } : {};
   if (listenersByJobId.size) {
     try {
       const { result: events } = await fetchEvents(eventArgs);
+      consecutivePollingErrorCount = 0;
       if (events?.length) await processEvents(events);
     } catch (err) {
+      consecutivePollingErrorCount += 1;
       logging.warn(err);
     }
   }
 
   if (transport === TRANSPORT_POLLING) {
-    pollingTimeoutId = window.setTimeout(loadEventsFromApi, pollingDelayMs);
+    pollingTimeoutId = window.setTimeout(loadEventsFromApi, getPollingDelay());
   }
 };
 
@@ -238,6 +253,7 @@ export const init = (appConfig?: AppConfig) => {
   listenersByJobId = new Map();
   retriesByJobId = new Map();
   lastReceivedEventId = null;
+  consecutivePollingErrorCount = 0;
 
   config = appConfig || getBootstrapData().common.conf;
   transport = config.GLOBAL_ASYNC_QUERIES_TRANSPORT || TRANSPORT_POLLING;
