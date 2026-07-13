@@ -3491,6 +3491,7 @@ def test_map_query_object_shifts_time_offset_via_temporal_range_filter(
     main_query, offset_query = queries[0], queries[1]
 
     def time_filter_bounds(query: SemanticQuery) -> tuple[datetime, datetime]:
+        assert query.filters is not None
         gte = next(
             f.value
             for f in query.filters
@@ -3505,6 +3506,8 @@ def test_map_query_object_shifts_time_offset_via_temporal_range_filter(
             and f.column.name == "order_date"
             and f.operator == Operator.LESS_THAN
         )
+        assert isinstance(gte, datetime)
+        assert isinstance(lt, datetime)
         return gte, lt
 
     main_gte, main_lt = time_filter_bounds(main_query)
