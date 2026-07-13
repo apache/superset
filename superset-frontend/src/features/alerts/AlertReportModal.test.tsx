@@ -395,6 +395,11 @@ const generateMockedProps = (
   };
 };
 
+// Matches the antd Select's rendered selection, whether it renders as
+// content (single/tag mode) or as a selection item (default mode).
+const selectedValueSelector = (title: string) =>
+  `.ant-select-content-has-value[title="${title}"], .ant-select-selection-item[title="${title}"]`;
+
 // combobox selector for mocking user input
 const comboboxSelect = async (
   element: HTMLElement,
@@ -1889,7 +1894,7 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
 
   await waitFor(() => {
     const selectionItem = document.querySelector(
-      '.ant-select-content-has-value[title="Test Filter 1"], .ant-select-selection-item[title="Test Filter 1"]',
+      selectedValueSelector('Test Filter 1'),
     );
     expect(selectionItem).toBeInTheDocument();
   });
@@ -1911,7 +1916,7 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
 
   await waitFor(() => {
     const selectionItem = document.querySelector(
-      '.ant-select-content-has-value[title="Test Filter 1"], .ant-select-selection-item[title="Test Filter 1"]',
+      selectedValueSelector('Test Filter 1'),
     );
     expect(selectionItem).not.toBeInTheDocument();
   });
@@ -2430,15 +2435,13 @@ test('edit mode shows friendly filter names instead of raw IDs', async () => {
 
   await waitFor(() => {
     const selectionItem = document.querySelector(
-      '.ant-select-content-has-value[title="Country"], .ant-select-selection-item[title="Country"]',
+      selectedValueSelector('Country'),
     );
     expect(selectionItem).toBeInTheDocument();
   });
 
   expect(
-    document.querySelector(
-      '.ant-select-content-has-value[title="NATIVE_FILTER-abc123"], .ant-select-selection-item[title="NATIVE_FILTER-abc123"]',
-    ),
+    document.querySelector(selectedValueSelector('NATIVE_FILTER-abc123')),
   ).not.toBeInTheDocument();
 });
 
@@ -2457,7 +2460,7 @@ test('edit mode falls back to raw ID when filterName is missing', async () => {
 
   await waitFor(() => {
     const selectionItem = document.querySelector(
-      '.ant-select-content-has-value[title="NATIVE_FILTER-xyz789"], .ant-select-selection-item[title="NATIVE_FILTER-xyz789"]',
+      selectedValueSelector('NATIVE_FILTER-xyz789'),
     );
     expect(selectionItem).toBeInTheDocument();
   });
@@ -2564,9 +2567,7 @@ test('selecting filter triggers chart data request with correct params', async (
 
   // Select the Country Filter using comboboxSelect pattern
   await comboboxSelect(filterDropdown, 'Country Filter', () =>
-    document.querySelector(
-      '.ant-select-content-has-value[title="Country Filter"], .ant-select-selection-item[title="Country Filter"]',
-    ),
+    document.querySelector(selectedValueSelector('Country Filter')),
   );
 
   // getChartDataRequest should have been called for filter values
@@ -2615,9 +2616,7 @@ test('selected filter excluded from other row dropdowns', async () => {
 
   // Select Country Filter in row 1
   await comboboxSelect(filterDropdown, 'Country Filter', () =>
-    document.querySelector(
-      '.ant-select-content-has-value[title="Country Filter"], .ant-select-selection-item[title="Country Filter"]',
-    ),
+    document.querySelector(selectedValueSelector('Country Filter')),
   );
 
   // Wait for getChartDataRequest to complete AND state update to propagate.
