@@ -100,33 +100,42 @@ export const DropdownContainer = forwardRef(
     // without letting it linger once the rAF callback has settled. Cleared by
     // the rAF callback before calling setRecalculating(false).
     const hadContentAtLastChangeRef = useRef(false);
-    // Guards rAF callbacks from firing after the component unmounts.
     // Stores the pending confirmation rAF handle so it can be cancelled when a
-    // newer item-set change supersedes it, or on unmount.
+    // newer item-count change supersedes it, or on unmount.
     const rafIdRef = useRef(0);
-    // Bumped on every item-set change. A scheduled rAF captures the version at
+    // Bumped on every item-count change. A scheduled rAF captures the version at
     // schedule time and ignores itself if a newer change has superseded it, so
     // a stale frame can never clobber a newer item set's state.
     const confirmVersionRef = useRef(0);
-    // The items.length the layout effect last observed, used to detect a new
-    // item set (additions/removals) on any measurement path, not just the reset.
+    // The item count the layout effect last observed, used to detect an
+    // additions/removals change on any measurement path, not just the reset.
+    // (Same-length reorders/replacements are out of scope; the reported bug is
+    // driven by items being added/removed, e.g. a prepended cross-filter chip.)
     const prevItemsLengthRef = useRef(items.length);
-    useEffect(
-      () => () => {
-        // Cancel a queued confirmation frame on unmount so it can never fire
-        // after the component is gone (no post-unmount state update).
-        if (rafIdRef.current) {
-          cancelAnimationFrame(rafIdRef.current);
-          rafIdRef.current = 0;
-        }
-      },
-      [],
-    );
     // Persists the inner container element for the rAF confirmation callback.
     // Updated each time the layout effect finds a valid container so the rAF
     // does not need to re-derive it through ref.current, which may be null by
     // the time the callback fires in certain timing / test scenarios.
     const containerRef = useRef<Element | null>(null);
+    // Cancel a pending confirmation frame on unmount. This is a *layout* cleanup
+    // on purpose: it runs synchronously during the commit phase, before the
+    // browser paints, and therefore before any queued requestAnimationFrame
+    // callback (which runs pre-paint). A passive (useEffect) cleanup can run
+    // after paint, which would let a queued frame fire post-unmount and call
+    // setState. We also clear the confirmation refs and drop the cached
+    // container so the callback would no-op even if it somehow still ran.
+    useLayoutEffect(
+      () => () => {
+        if (rafIdRef.current) {
+          cancelAnimationFrame(rafIdRef.current);
+          rafIdRef.current = 0;
+        }
+        pendingConfirmForLengthRef.current = -1;
+        confirmationScheduledRef.current = false;
+        containerRef.current = null;
+      },
+      [],
+    );
 
     // callback to update item widths so that the useLayoutEffect runs whenever
     // width of any of the child changes

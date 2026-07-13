@@ -454,10 +454,15 @@ test('unmounting during a pending confirmation frame does not error', async () =
     );
   });
 
-  // Unmount before the frame fires, then fire any queued frame. The unmount
-  // cleanup cancels the pending frame, so nothing runs and no state update or
-  // console error escapes after unmount.
+  // A confirmation frame must actually be queued here, otherwise the unmount
+  // assertions below would pass vacuously.
+  expect(rafQueue).toHaveLength(1);
+
+  // Unmount before the frame fires. The layout cleanup cancels the queued frame
+  // synchronously, so it is removed from the queue and can never run
+  // post-unmount; flushing afterwards is a no-op and emits no error.
   unmount();
+  expect(rafQueue).toHaveLength(0);
   containerRight = BAR_WIDTH;
   await act(async () => {
     flushRAF();
