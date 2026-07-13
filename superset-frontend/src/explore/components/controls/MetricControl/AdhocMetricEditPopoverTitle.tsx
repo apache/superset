@@ -115,6 +115,7 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
         data-test="AdhocMetricEditTitle#trigger"
         onMouseOver={handleMouseOver}
         onMouseOut={handleMouseOut}
+        onFocus={handleMouseOver}
         onClick={handleClick}
         onBlur={handleBlur}
         role="button"

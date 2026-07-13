@@ -350,6 +350,7 @@ export const OptionControlLabel = ({
         role="button"
         data-test="remove-control-button"
         onClick={onRemove}
+        tabIndex={0}
       >
         <Icons.CloseOutlined
           iconSize="m"
