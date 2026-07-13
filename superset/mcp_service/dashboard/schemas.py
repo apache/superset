@@ -880,6 +880,15 @@ class UpdateDashboardRequest(BaseModel):
             "all custom tags. Omit (None) to leave tags unchanged."
         ),
     )
+    owners: List[int] | None = Field(
+        None,
+        description=(
+            "Optional FULL-REPLACEMENT list of owner user IDs for the "
+            "dashboard. Discover IDs with ``list_users``. An empty list clears "
+            "all owners. Omit (None) to leave owners unchanged. Editorship is "
+            "still enforced: only current owners or an Admin may change owners."
+        ),
+    )
     cross_filters_enabled: bool | None = Field(
         None,
         description=(

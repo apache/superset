@@ -137,6 +137,64 @@ class TestUpdateDashboard:
         changed = set(payload.get("changed_fields") or [])
         assert {"position_json", "json_metadata", "css"} <= changed
 
+    @patch("superset.security_manager.get_user_by_id")
+    @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_update_owners_replaces_list(
+        self,
+        mock_session: Mock,
+        mock_get: Mock,
+        mock_get_user: Mock,
+        mcp_server: object,
+    ) -> None:
+        dash = _mock_dashboard(id=42)
+        dash.owners = []
+        mock_get.return_value = dash
+        # Every requested ID resolves to a distinct user.
+        mock_get_user.side_effect = lambda uid: Mock(id=uid)
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_dashboard",
+                {"request": {"identifier": 42, "owners": [5, 9]}},
+            )
+
+        # owners relationship fully replaced with the resolved users
+        assert [u.id for u in dash.owners] == [5, 9]
+        assert mock_session.commit.call_count >= 1
+        payload = json.loads(result.content[0].text)
+        assert "owners" in set(payload.get("changed_fields") or [])
+
+    @patch("superset.security_manager.get_user_by_id")
+    @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_update_owners_unknown_id_errors(
+        self,
+        mock_session: Mock,
+        mock_get: Mock,
+        mock_get_user: Mock,
+        mcp_server: object,
+    ) -> None:
+        dash = _mock_dashboard(id=42)
+        dash.owners = []
+        mock_get.return_value = dash
+        # ID 5 resolves; 999 does not -> validation error, no mutation.
+        mock_get_user.side_effect = lambda uid: Mock(id=uid) if uid == 5 else None
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_dashboard",
+                {"request": {"identifier": 42, "owners": [5, 999]}},
+            )
+
+        payload = json.loads(result.content[0].text)
+        assert payload.get("error_type") == "OwnersNotFound"
+        assert "999" in (payload.get("error") or "")
+        assert dash.owners == []
+        mock_session.commit.assert_not_called()
+
     @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
     @patch("superset.extensions.db.session")
     @pytest.mark.asyncio

@@ -153,6 +153,30 @@ def _collect_metadata_overrides(request: UpdateDashboardRequest) -> dict[str, An
     return overrides
 
 
+def _resolve_owners(owner_ids: list[int]) -> tuple[list[Any], list[int]]:
+    """Resolve owner user IDs to user objects.
+
+    Returns ``(users, missing_ids)``, deduplicating IDs while preserving the
+    caller's order. ``security_manager`` is imported lazily for the same
+    app-context reason as ``_find_and_authorize_dashboard``.
+    """
+    from superset import security_manager
+
+    users: list[Any] = []
+    missing: list[int] = []
+    seen: set[int] = set()
+    for uid in owner_ids:
+        if uid in seen:
+            continue
+        seen.add(uid)
+        user = security_manager.get_user_by_id(uid)
+        if user is None:
+            missing.append(uid)
+        else:
+            users.append(user)
+    return users, missing
+
+
 def _apply_field_updates(dashboard: Any, request: UpdateDashboardRequest) -> list[str]:
     """Apply each explicitly-passed field to the dashboard.
 
@@ -202,6 +226,14 @@ def _apply_field_updates(dashboard: Any, request: UpdateDashboardRequest) -> lis
 
         update_tags(ObjectType.dashboard, dashboard.id, dashboard.tags, request.tags)
         changed.append("tags")
+
+    if request.owners is not None:
+        # Full replacement of owners (empty list clears them). IDs are
+        # validated up front in _validate_update_request, so resolving here
+        # only maps the already-verified IDs to user objects.
+        users, _missing = _resolve_owners(request.owners)
+        dashboard.owners = users
+        changed.append("owners")
 
     return changed
 
@@ -260,6 +292,20 @@ def _validate_update_request(
                 error_type="DatabaseError",
             )
 
+    # A non-empty owners list must reference existing users. An empty list is
+    # a valid "clear all owners" request and needs no lookup.
+    if request.owners:
+        _users, missing = _resolve_owners(request.owners)
+        if missing:
+            return DashboardError(
+                error=(
+                    "Unknown owner user IDs: "
+                    + ", ".join(str(m) for m in missing)
+                    + ". Find valid IDs with list_users."
+                ),
+                error_type="OwnersNotFound",
+            )
+
     return None
 
 
@@ -287,6 +333,8 @@ def update_dashboard(
       - Update ``dashboard_title``, ``description``, ``slug``, ``published``
       - Replace the dashboard's ``tags`` (FULL list of IDs; find them with
         ``list_tags``)
+      - Replace the dashboard's ``owners`` (FULL list of user IDs; find them
+        with ``list_users``). Requires editorship (owner or Admin).
       - Toggle ``cross_filters_enabled``, ``refresh_frequency``, or
         ``filter_bar_orientation`` via typed fields (no need to hand-build
         ``json_metadata_overrides``)
