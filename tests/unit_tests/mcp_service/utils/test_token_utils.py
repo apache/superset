@@ -697,7 +697,10 @@ class TestTruncateOversizedResponse:
         of 100, while charts (463 items) is truncated to 100 — a clear
         improvement over the old flat 30-item cap, which truncated both.
         """
-        response = self._build_large_dashboard_response()
+        response: dict[str, Any] = self._build_large_dashboard_response()
+        result: Any
+        was_truncated: bool
+        notes: list[str]
         result, was_truncated, notes = truncate_oversized_response(response, 3000)
         assert was_truncated is True
         assert isinstance(result, dict)
@@ -708,7 +711,10 @@ class TestTruncateOversizedResponse:
 
     def test_large_dashboard_respects_custom_max_list_items(self) -> None:
         """A custom max_list_items below both list sizes should truncate both fields."""
-        response = self._build_large_dashboard_response()
+        response: dict[str, Any] = self._build_large_dashboard_response()
+        result: Any
+        was_truncated: bool
+        notes: list[str]
         result, was_truncated, notes = truncate_oversized_response(
             response, 3000, max_list_items=30
         )
