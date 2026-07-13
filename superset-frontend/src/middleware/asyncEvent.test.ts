@@ -306,6 +306,104 @@ describe('asyncEvent middleware', () => {
       }
     });
 
+    test('does not start a second loop when re-initialized during an in-flight poll', async () => {
+      // stop the real-timer polling loop started by beforeEach before
+      // switching to fake timers, so all polls run on the fake clock
+      mockedIsFeatureEnabled.mockReturnValueOnce(false);
+      asyncEvent.init(config);
+      jest.useFakeTimers();
+      try {
+        fetchMock.clearHistory().removeRoutes();
+        let resolveFetch: (response: any) => void = () => {};
+        fetchMock.get(
+          EVENTS_ENDPOINT,
+          new Promise(resolve => {
+            resolveFetch = resolve;
+          }),
+        );
+        asyncEvent.init(config);
+        asyncEvent.waitForAsyncData(asyncPendingEvent).catch(() => {});
+
+        // first poll fires and stays in-flight
+        await jest.advanceTimersByTimeAsync(
+          config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(1);
+
+        // re-init while that fetch is pending, then let it resolve; the
+        // stale invocation must not schedule a second loop
+        asyncEvent.init(config);
+        asyncEvent.waitForAsyncData(asyncPendingEvent).catch(() => {});
+        resolveFetch({ status: 200, body: { result: [] } });
+        await jest.advanceTimersByTimeAsync(0);
+
+        fetchMock.clearHistory().removeRoutes();
+        fetchMock.get(EVENTS_ENDPOINT, {
+          status: 200,
+          body: { result: [] },
+        });
+
+        // exactly one poll per delay from here on
+        await jest.advanceTimersByTimeAsync(
+          config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(1);
+
+        await jest.advanceTimersByTimeAsync(
+          config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(2);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    test('does not resume polling when re-initialized with the feature disabled during an in-flight poll', async () => {
+      // stop the real-timer polling loop started by beforeEach before
+      // switching to fake timers, so all polls run on the fake clock
+      mockedIsFeatureEnabled.mockReturnValueOnce(false);
+      asyncEvent.init(config);
+      jest.useFakeTimers();
+      try {
+        fetchMock.clearHistory().removeRoutes();
+        let resolveFetch: (response: any) => void = () => {};
+        fetchMock.get(
+          EVENTS_ENDPOINT,
+          new Promise(resolve => {
+            resolveFetch = resolve;
+          }),
+        );
+        asyncEvent.init(config);
+        asyncEvent.waitForAsyncData(asyncPendingEvent).catch(() => {});
+
+        // first poll fires and stays in-flight
+        await jest.advanceTimersByTimeAsync(
+          config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(1);
+
+        // disable the feature and re-init while the fetch is pending; the
+        // stale invocation must not restart the stopped loop when it resumes
+        mockedIsFeatureEnabled.mockReturnValueOnce(false);
+        asyncEvent.init(config);
+        resolveFetch({ status: 200, body: { result: [] } });
+        await jest.advanceTimersByTimeAsync(0);
+
+        fetchMock.clearHistory().removeRoutes();
+        fetchMock.get(EVENTS_ENDPOINT, {
+          status: 200,
+          body: { result: [] },
+        });
+
+        await jest.advanceTimersByTimeAsync(
+          10 * config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(0);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
     // Regression guard for the motivating CodeQL case: a job_id that collides
     // with a built-in Object property (e.g. "__proto__"/"constructor") must be
     // routed through the Map-based registries without triggering prototype

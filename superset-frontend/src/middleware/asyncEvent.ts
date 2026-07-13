@@ -70,6 +70,10 @@ let listenersByJobId: Map<string, ListenerFn>;
 let retriesByJobId: Map<string, number>;
 let lastReceivedEventId: string | null | undefined;
 let consecutivePollingErrorCount = 0;
+// Incremented on every init() so polling invocations that are already
+// awaiting a fetch when re-init happens can detect they are stale and
+// stop, instead of mutating fresh state or scheduling a second loop
+let pollingGeneration = 0;
 
 const addListener = (id: string, fn: ListenerFn) => {
   listenersByJobId.set(id, fn);
@@ -184,18 +188,22 @@ const getPollingDelay = () => {
 };
 
 const loadEventsFromApi = async () => {
+  const generation = pollingGeneration;
   const eventArgs = lastReceivedEventId ? { last_id: lastReceivedEventId } : {};
   if (listenersByJobId.size) {
     try {
       const { result: events } = await fetchEvents(eventArgs);
+      if (generation !== pollingGeneration) return;
       consecutivePollingErrorCount = 0;
       if (events?.length) await processEvents(events);
     } catch (err) {
+      if (generation !== pollingGeneration) return;
       consecutivePollingErrorCount += 1;
       logging.warn(err);
     }
   }
 
+  if (generation !== pollingGeneration) return;
   if (transport === TRANSPORT_POLLING) {
     pollingTimeoutId = window.setTimeout(loadEventsFromApi, getPollingDelay());
   }
@@ -247,6 +255,7 @@ const wsConnect = (): void => {
 };
 
 export const init = (appConfig?: AppConfig) => {
+  pollingGeneration += 1;
   if (pollingTimeoutId) clearTimeout(pollingTimeoutId);
   if (!isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) return;
 
