@@ -51,7 +51,7 @@ def _make_model(
     model.name = "test_schedule"
     model.crontab = "0 9 * * *"
     model.last_state = "noop"
-    model.owners = []
+    model.editors = []
     return model
 
 
@@ -65,7 +65,7 @@ def _setup_mocks(mocker: MockerFixture, model: Mock) -> None:
         return_value=True,
     )
     mocker.patch(
-        "superset.commands.report.update.security_manager.raise_for_ownership",
+        "superset.commands.report.update.security_manager.raise_for_editorship",
     )
     mocker.patch(
         "superset.commands.report.update.DatabaseDAO.find_by_id",
@@ -79,10 +79,8 @@ def _setup_mocks(mocker: MockerFixture, model: Mock) -> None:
         UpdateReportScheduleCommand,
         "validate_report_frequency",
     )
-    mocker.patch.object(
-        UpdateReportScheduleCommand,
-        "compute_owners",
-        return_value=[],
+    mocker.patch(
+        "superset.commands.report.update.compute_subjects",
     )
 
 
@@ -424,15 +422,15 @@ def test_deactivation_from_non_working_does_not_reset(mocker: MockerFixture) -> 
     assert "last_state" not in cmd._properties
 
 
-# --- Ownership check ---
+# --- Editorship check ---
 
 
-def test_ownership_check_raises_forbidden(mocker: MockerFixture) -> None:
-    """Non-owner should get ReportScheduleForbiddenError."""
+def test_editorship_check_raises_forbidden(mocker: MockerFixture) -> None:
+    """Non-editor should get ReportScheduleForbiddenError."""
     model = _make_model(mocker, model_type=ReportScheduleType.REPORT, database_id=None)
     _setup_mocks(mocker, model)
     mocker.patch(
-        "superset.commands.report.update.security_manager.raise_for_ownership",
+        "superset.commands.report.update.security_manager.raise_for_editorship",
         side_effect=SupersetSecurityException(
             SupersetError(
                 message="Forbidden",
@@ -445,6 +443,43 @@ def test_ownership_check_raises_forbidden(mocker: MockerFixture) -> None:
     cmd = UpdateReportScheduleCommand(model_id=1, data={})
     with pytest.raises(ReportScheduleForbiddenError):
         cmd.validate()
+
+
+# --- Dashboard extra (activeTabs) validation on update ---
+
+
+def test_update_rejects_invalid_active_tab_ids(mocker: MockerFixture) -> None:
+    """On PUT, activeTabs must be validated against the model's dashboard layout.
+
+    The dashboard is not in the payload, so validation must fall back to the
+    existing model's dashboard; tab ids absent from position_json are rejected.
+    """
+    model = _make_model(mocker, model_type=ReportScheduleType.REPORT, database_id=None)
+    model.dashboard.position_json = '{"TAB-valid": {}}'
+    _setup_mocks(mocker, model)
+
+    cmd = UpdateReportScheduleCommand(
+        model_id=1,
+        data={"extra": {"dashboard": {"activeTabs": ["TAB-missing"]}}},
+    )
+    with pytest.raises(ReportScheduleInvalidError) as exc_info:
+        cmd.validate()
+    messages = _get_validation_messages(exc_info)
+    assert "extra" in messages
+    assert "invalid tab ids" in messages["extra"].lower()
+
+
+def test_update_accepts_valid_active_tab_ids(mocker: MockerFixture) -> None:
+    """A tab id present in the model dashboard's position_json passes validation."""
+    model = _make_model(mocker, model_type=ReportScheduleType.REPORT, database_id=None)
+    model.dashboard.position_json = '{"TAB-valid": {}}'
+    _setup_mocks(mocker, model)
+
+    cmd = UpdateReportScheduleCommand(
+        model_id=1,
+        data={"extra": {"dashboard": {"activeTabs": ["TAB-valid"]}}},
+    )
+    cmd.validate()  # should not raise
 
 
 # --- Database not found for alert ---

@@ -18,8 +18,11 @@
  */
 import { AnyAction, Reducer } from 'redux';
 // eslint-disable-next-line import/named
-import undoable, { StateWithHistory } from 'redux-undo';
-import { UNDO_LIMIT } from '../util/constants';
+import undoable, {
+  ActionCreators as UndoActionCreators,
+  StateWithHistory,
+} from 'redux-undo';
+import { DASHBOARD_ROOT_ID, UNDO_LIMIT } from '../util/constants';
 import {
   UPDATE_COMPONENTS,
   DELETE_COMPONENT,
@@ -97,7 +100,7 @@ const layoutOnlyReducer: Reducer<DashboardLayout, AnyAction> = (
   return dashboardLayout(state || {}, action);
 };
 
-const undoableReducer: Reducer<
+const baseUndoableReducer: Reducer<
   StateWithHistory<DashboardLayout>,
   AnyAction
 > = undoable(layoutOnlyReducer, {
@@ -106,5 +109,54 @@ const undoableReducer: Reducer<
   limit: UNDO_LIMIT + 2,
   ignoreInitialState: true,
 });
+
+/*
+ * A valid dashboard layout always contains the root component. Undo/redo must
+ * never leave `present` without it: a rootless layout renders the dashboard
+ * with no components and throws
+ * `TypeError: Cannot read properties of undefined (reading 'type')`. Such a
+ * state can arise whenever a rootless or empty layout reaches the undo history —
+ * e.g. an empty or partial hydration, or a tracked layout action dispatched
+ * before the dashboard has hydrated.
+ */
+const isValidLayout = (layout?: DashboardLayout): boolean =>
+  Boolean(layout && layout[DASHBOARD_ROOT_ID]);
+
+/*
+ * Wraps the redux-undo reducer to keep the dashboard layout undo history sound:
+ *
+ * 1. Hydration establishes the baseline for the dashboard being opened. It is
+ *    not a user edit and must never be undoable, so the history is reset on
+ *    every HYDRATE_DASHBOARD. Doing this in the reducer — rather than relying
+ *    solely on a follow-up clearDashboardHistory() dispatch from the page
+ *    component — guarantees the Undo control starts disabled and that no layout
+ *    from a previously edited dashboard lingers in the stack after navigation.
+ * 2. As defense in depth, undo/redo is never allowed to replace a valid layout
+ *    with an invalid (rootless) one. Such a transition is rejected and the
+ *    current valid layout is kept, so clicking Undo can never crash the
+ *    dashboard. History is left untouched on rejection so callers that inspect
+ *    it (e.g. undoLayoutAction) don't misread an emptied stack as a clean,
+ *    fully-reverted dashboard and silently drop the unsaved-changes guard.
+ */
+const undoableReducer: Reducer<StateWithHistory<DashboardLayout>, AnyAction> = (
+  state,
+  action,
+) => {
+  const nextState = baseUndoableReducer(state, action);
+
+  if (action.type === HYDRATE_DASHBOARD) {
+    return baseUndoableReducer(nextState, UndoActionCreators.clearHistory());
+  }
+
+  if (
+    state &&
+    isValidLayout(state.present) &&
+    !isValidLayout(nextState.present)
+  ) {
+    return state;
+  }
+
+  return nextState;
+};
 
 export default undoableReducer;

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { isNil } from 'lodash';
+import { isNil } from 'lodash-es';
 
 export default function extent<T = number | string | Date | undefined | null>(
   values: T[],

@@ -20,6 +20,7 @@ from unittest.mock import patch
 
 import pytest
 import yaml
+from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db, security_manager
@@ -40,7 +41,7 @@ from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.utils.core import get_example_default_schema, override_user
 from superset.utils.database import get_example_database
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.base_tests import SupersetTestCase, user_is_editor
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -273,6 +274,42 @@ class TestExportDatasetsCommand(SupersetTestCase):
             f"datasets/examples/energy_usage_{example_dataset.id}.yaml",
         ]
 
+    @patch("superset.security.manager.g")
+    def test_export_dataset_command_unicode_chars(self, mock_g) -> None:
+        mock_g.user = security_manager.find_user("admin")
+        examples_db = get_example_database()
+        with examples_db.get_sqla_engine() as engine:
+            engine.execute("DROP TABLE IF EXISTS 中文")
+            engine.execute("CREATE TABLE 中文 AS SELECT 2 as col")
+        # scope cleanup to the example database so datasets with the same name
+        # on other databases are left untouched
+        stale = db.session.query(SqlaTable).filter_by(
+            table_name="中文", database_id=examples_db.id
+        )
+        if stale.count():
+            stale.delete()
+        with override_user(security_manager.find_user("admin")):
+            example_dataset = CreateDatasetCommand(
+                {
+                    "table_name": "中文",
+                    "database": examples_db.id,
+                }
+            ).run()
+
+        command = ExportDatasetsCommand([example_dataset.id], export_related=False)
+        contents = dict(command.run())
+
+        path = f"datasets/examples/{example_dataset.id}.yaml"
+        assert path in set(contents.keys())
+        yaml_content = contents[path]()
+        assert "table_name: 中文" in yaml_content
+
+        db.session.delete(example_dataset)
+        db.session.commit()
+        with examples_db.get_sqla_engine() as engine:
+            engine.execute("DROP TABLE 中文")
+        db.session.commit()
+
 
 class TestImportDatasetsCommand(SupersetTestCase):
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -388,8 +425,9 @@ class TestImportDatasetsCommand(SupersetTestCase):
             == '{"certification": {"certified_by": "Data Platform Team", "details": "This table is the source of truth."}, "warning_markdown": "This is a warning."}'  # noqa: E501
         )
 
-        # user should be included as one of the owners
-        assert dataset.owners == [admin]
+        # user should be included as one of the editors
+        assert len(dataset.editors) == 1
+        assert user_is_editor(admin, dataset)
 
         # database is also imported
         assert str(dataset.database.uuid) == "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89"
@@ -563,11 +601,10 @@ def _get_table_from_list_by_name(name: str, tables: list[Any]):
 
 
 class TestCreateDatasetCommand(SupersetTestCase):
-    @patch("superset.commands.utils.g")
-    def test_database_not_found(self, mock_g):
-        mock_g.user = security_manager.find_user("admin")
+    def test_database_not_found(self):
         with self.assertRaises(DatasetInvalidError):  # noqa: PT027
-            CreateDatasetCommand({"table_name": "table", "database": 9999}).run()
+            with override_user(security_manager.find_user("admin")):
+                CreateDatasetCommand({"table_name": "table", "database": 9999}).run()
 
     @patch("superset.models.core.Database.get_table")
     def test_get_table_from_database_error(self, get_table_mock):
@@ -581,9 +618,9 @@ class TestCreateDatasetCommand(SupersetTestCase):
     def test_create_dataset_command(self):
         examples_db = get_example_database()
         with examples_db.get_sqla_engine() as engine:
-            engine.execute("DROP TABLE IF EXISTS test_create_dataset_command")
+            engine.execute(text("DROP TABLE IF EXISTS test_create_dataset_command"))
             engine.execute(
-                "CREATE TABLE test_create_dataset_command AS SELECT 2 as col"
+                text("CREATE TABLE test_create_dataset_command AS SELECT 2 as col")
             )
 
         with override_user(security_manager.find_user("admin")):
@@ -599,11 +636,13 @@ class TestCreateDatasetCommand(SupersetTestCase):
                 .one()
             )
             assert table == fetched_table
-            assert [owner.username for owner in table.owners] == ["admin"]
+            assert len(table.editors) == 1
+            assert user_is_editor(security_manager.find_user("admin"), table)
 
         db.session.delete(table)
+        db.session.commit()
         with examples_db.get_sqla_engine() as engine:
-            engine.execute("DROP TABLE test_create_dataset_command")
+            engine.execute(text("DROP TABLE test_create_dataset_command"))
         db.session.commit()
 
     def test_create_dataset_command_not_allowed(self):

@@ -88,13 +88,13 @@ describe('logger middleware', () => {
     expect(next.mock.calls.length).toBe(1);
   });
 
-  test('should POST an event to /superset/log/ when called', () => {
+  test('should POST an event to /log/ when called', () => {
     (logger as Function)(mockStore)(next)(action);
     expect(next.mock.calls.length).toBe(0);
 
     jest.advanceTimersByTime(2000);
     expect(postStub.mock.calls.length).toBe(1);
-    expect(postStub.mock.calls[0][0].endpoint).toMatch('/superset/log/');
+    expect(postStub.mock.calls[0][0].endpoint).toMatch('/log/');
   });
 
   test('should include ts, start_offset, event_name, impression_id, source, and source_id in every event', () => {
@@ -137,6 +137,31 @@ describe('logger middleware', () => {
     }
   });
 
+  const getSourceForPath = (href: string): string | undefined => {
+    const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+      ...window.location,
+      href,
+    } as Location);
+    try {
+      (logger as Function)(mockStore)(next)(action);
+      jest.advanceTimersByTime(2000);
+      const { events } = postStub.mock.calls[0][0].postPayload;
+      return events[0].source;
+    } finally {
+      locationSpy.mockRestore();
+    }
+  };
+
+  test.each([
+    ['/dashboard/123/embedded/', 'embedded_dashboard'],
+    ['/embedded/abc-def-uuid/', 'embedded_dashboard'],
+    ['/dashboard/123/', 'dashboard'],
+    // slug is literally "embedded" - must not be treated as embedded
+    ['/dashboard/embedded/', 'dashboard'],
+  ])('classifies %s as source "%s"', (path, expectedSource) => {
+    expect(getSourceForPath(`http://localhost${path}`)).toBe(expectedSource);
+  });
+
   test('should debounce a few log requests to one', () => {
     (logger as Function)(mockStore)(next)(action);
     (logger as Function)(mockStore)(next)(action);
@@ -160,7 +185,7 @@ describe('logger middleware', () => {
 
     expect(beaconMock.mock.calls.length).toBe(1);
     const endpoint = beaconMock.mock.calls[0][0];
-    expect(endpoint).toMatch('/superset/log/');
+    expect(endpoint).toMatch('/log/');
   });
 
   test('should pass a guest token to sendBeacon if present', () => {
