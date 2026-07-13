@@ -261,17 +261,17 @@ msgid "\"%s\" is now the system default theme"
 msgstr "„%s” је сада подразумевана системска тема"
 
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
-#, no-python-format, python-format
+#, no-python-format
 msgid "% calculation"
 msgstr "прорачун"
 
 # fa, fr, ja, lv, mi, ru, sk, sl, uk]
-#, no-python-format, python-format
+#, no-python-format
 msgid "% of parent"
 msgstr "% од родитеља"
 
 # fa, fr, ja, lv, mi, ru, sk, sl, uk]
-#, no-python-format, python-format
+#, no-python-format
 msgid "% of total"
 msgstr "% од укупног"
 
@@ -335,13 +335,9 @@ msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgid_plural ""
 "%(firstSuggestions)s or %(lastSuggestion)s instead of "
 "\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s уместо „%(undefinedParameter)s?“"
-msgstr[1] ""
-"%(firstSuggestions)s или %(lastSuggestion)s уместо "
-"„%(undefinedParameter)s“?"
-msgstr[2] ""
-"%(firstSuggestions)s или %(lastSuggestion)s уместо "
-"„%(undefinedParameter)s“?"
+msgstr[0] "%(firstSuggestions)s %(lastSuggestion)s уместо „%(undefinedParameter)s“?"
+msgstr[1] "%(firstSuggestions)s или %(lastSuggestion)s уместо „%(undefinedParameter)s“?"
+msgstr[2] "%(firstSuggestions)s или %(lastSuggestion)s уместо „%(undefinedParameter)s“?"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
