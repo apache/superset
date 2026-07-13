@@ -20,7 +20,7 @@
 import { t } from '@apache-superset/core/translation';
 import { ColDef } from '@superset-ui/core/components/ThemedAgGridReact';
 import { useCallback, useMemo } from 'react';
-import { DataRecord, DataRecordValue, JsonObject } from '@superset-ui/core';
+import { DataRecordValue, JsonObject } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { useTheme } from '@apache-superset/core/theme';
 import { ColorFormatters } from '@superset-ui/chart-controls';
@@ -61,7 +61,6 @@ type UseColDefsProps = {
   defaultAlignPN: boolean;
   showCellBars: boolean;
   colorPositiveNegative: boolean;
-  totals: DataRecord | undefined;
   columnColorFormatters: ColorFormatters;
   allowRearrangeColumns?: boolean;
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
@@ -227,7 +226,6 @@ export const useColDefs = ({
   defaultAlignPN,
   showCellBars,
   colorPositiveNegative,
-  totals,
   columnColorFormatters,
   allowRearrangeColumns,
   basicColorFormatters,

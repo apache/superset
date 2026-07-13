@@ -183,7 +183,6 @@ function ChartRendererComponent({
   onFilterMenuClose = () => BLANK,
   initialValues = BLANK,
   setControlValue = () => {},
-  triggerRender = false,
   ...restProps
 }: ChartRendererProps): JSX.Element | null {
   const {
