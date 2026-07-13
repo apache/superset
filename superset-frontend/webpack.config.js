@@ -178,6 +178,11 @@ const plugins = [
         eager: true,
         requiredVersion: packageConfig.dependencies.react,
       },
+      'react/jsx-runtime': {
+        singleton: true,
+        eager: true,
+        requiredVersion: packageConfig.dependencies.react,
+      },
       'react-dom': {
         singleton: true,
         eager: true,
