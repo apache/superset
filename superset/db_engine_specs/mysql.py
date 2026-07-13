@@ -80,6 +80,10 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
     engine_name = "MySQL"
     max_column_name_length = 64
 
+    # MySQL/MariaDB quote identifiers with backticks rather than ANSI double quotes.
+    identifier_quote_start = "`"
+    identifier_quote_end = "`"
+
     default_driver = "mysqldb"
     sqlalchemy_uri_placeholder = (
         "mysql://user:password@host:port/dbname[?key=value&key=value...]"

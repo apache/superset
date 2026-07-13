@@ -53,6 +53,11 @@ class MssqlEngineSpec(BaseEngineSpec):
     engine = "mssql"
     engine_name = "Microsoft SQL Server"
 
+    # SQL Server quotes identifiers with square brackets; only the closing bracket
+    # needs escaping (by doubling).
+    identifier_quote_start = "["
+    identifier_quote_end = "]"
+
     metadata = {
         "description": (
             "Microsoft SQL Server is a relational database management system."

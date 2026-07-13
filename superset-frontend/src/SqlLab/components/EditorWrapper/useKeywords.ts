@@ -55,25 +55,21 @@ const getHelperText = (value: string) =>
   };
 
 // Names that aren't simple identifiers (spaces, punctuation, leading digits)
-// must be quoted to be valid SQL. Most engines use ANSI double quotes, but a
-// few use dialect-specific characters: MySQL/MariaDB use backticks and SQL
-// Server uses square brackets. Embedded quote characters are escaped by
-// doubling (for brackets, only the closing bracket needs escaping).
+// must be quoted to be valid SQL. The quote characters are dialect-specific
+// (e.g. ANSI double quotes, MySQL/MariaDB backticks, SQL Server square brackets)
+// and are provided by the backend's database engine spec via `engine_information`
+// so the mapping isn't duplicated here. Embedded quote characters are escaped by
+// doubling the closing character.
+type IdentifierQuote = { start: string; end: string };
+const ANSI_QUOTE: IdentifierQuote = { start: '"', end: '"' };
 const SIMPLE_IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
-const quoteIdentifier = (identifier: string, backend?: string) => {
-  if (SIMPLE_IDENTIFIER_RE.test(identifier)) {
-    return identifier;
-  }
-  switch (backend) {
-    case 'mysql':
-    case 'mariadb':
-      return `\`${identifier.replace(/`/g, '``')}\``;
-    case 'mssql':
-      return `[${identifier.replace(/]/g, ']]')}]`;
-    default:
-      return `"${identifier.replace(/"/g, '""')}"`;
-  }
-};
+const quoteIdentifier = (
+  identifier: string,
+  { start, end }: IdentifierQuote = ANSI_QUOTE,
+) =>
+  SIMPLE_IDENTIFIER_RE.test(identifier)
+    ? identifier
+    : `${start}${identifier.split(end).join(`${end}${end}`)}${end}`;
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -120,9 +116,14 @@ export function useKeywords(
   const store = useStore();
   const apiState = store.getState()[api.reducerPath];
 
-  // Active database engine, used to pick dialect-specific identifier quoting.
-  const backend = useSelector<SqlLabRootState, string | undefined>(
-    ({ sqlLab }) => sqlLab?.databases?.[dbId ?? '']?.backend,
+  // Dialect-specific identifier quote characters, provided by the backend's
+  // database engine spec, used to quote non-simple identifiers on insert.
+  const identifierQuote = useSelector<
+    SqlLabRootState,
+    IdentifierQuote | undefined
+  >(
+    ({ sqlLab }) =>
+      sqlLab?.databases?.[dbId ?? '']?.engine_information?.identifier_quote,
   );
 
   // Normalize catalog for comparison (null/undefined both mean "no catalog")
@@ -224,7 +225,7 @@ export function useKeywords(
     () =>
       allCachedTables.map(({ value, label, schema: tableSchema }) => ({
         name: label,
-        value: quoteIdentifier(value, backend),
+        value: quoteIdentifier(value, identifierQuote),
         schema: tableSchema,
         score: TABLE_AUTOCOMPLETE_SCORE,
         meta: 'table',
@@ -233,7 +234,7 @@ export function useKeywords(
         },
         ...getHelperText(value),
       })),
-    [allCachedTables, backend, insertMatch],
+    [allCachedTables, identifierQuote, insertMatch],
   );
 
   const columnKeywords = useMemo(
