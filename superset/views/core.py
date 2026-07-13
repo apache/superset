@@ -729,7 +729,7 @@ class Superset(BaseSupersetView):
         encoded `logs.json` column associated with the `explore_json` action.
         """
         slice_id = request.args.get("slice_id")
-        dashboard_id = request.args.get("dashboard_id")
+        dashboard_id = request.args.get("dashboard_id", type=int)
         table_name = request.args.get("table_name")
         db_name = request.args.get("db_name")
         extra_filters = request.args.get("extra_filters")

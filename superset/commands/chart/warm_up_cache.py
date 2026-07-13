@@ -16,7 +16,7 @@
 # under the License.
 
 
-from typing import Any, cast, Optional, Union
+from typing import Any, cast
 
 from flask import g
 
@@ -31,6 +31,7 @@ from superset.commands.chart.exceptions import (
     ChartInvalidError,
     WarmUpCacheChartNotFoundError,
 )
+from superset.common.chart_data_timing import ChartDataExecutionResult
 from superset.common.db_query_status import QueryStatus
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db, security_manager
@@ -44,10 +45,10 @@ from superset.viz import viz_types
 class ChartWarmUpCacheCommand(BaseCommand):
     def __init__(
         self,
-        chart_or_id: Union[int, Slice],
-        dashboard_id: Optional[int],
-        extra_filters: Optional[str],
-    ):
+        chart_or_id: int | Slice,
+        dashboard_id: int | None,
+        extra_filters: str | None,
+    ) -> None:
         self._chart_or_id = chart_or_id
         self._dashboard_id = dashboard_id
         self._extra_filters = extra_filters
@@ -100,15 +101,14 @@ class ChartWarmUpCacheCommand(BaseCommand):
         query_context.force = True
         command = ChartDataCommand(query_context)
         command.validate()
-        execution = command.execute(
+        execution: ChartDataExecutionResult = command.execute(
             ChartDataExecutionOptions(mode=ChartDataExecutionMode.CACHE_ONLY)
         )
-        payload = execution.materialize()
 
         # Report the first error.
-        for query_result in cast(list[dict[str, Any]], payload["queries"]):
-            error = query_result.get("error")
-            status = query_result.get("status")
+        for query_result in execution.queries:
+            error = query_result.payload.get("error")
+            status = query_result.payload.get("status")
             if error is not None:
                 return error, status
 

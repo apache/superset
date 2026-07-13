@@ -32,7 +32,9 @@ def set_execute_payload(
     payload: dict[str, Any],
 ) -> None:
     execution = Mock()
-    execution.materialize.return_value = payload
+    execution.queries = tuple(
+        Mock(payload=query_payload) for query_payload in payload["queries"]
+    )
     mock_chart_data_command.return_value.execute.return_value = execution
 
 
