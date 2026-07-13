@@ -23,6 +23,7 @@
  * filter and a Time grain Display Control, deletes the control via the config
  * modal, then applies and asserts it stays gone.
  */
+import { Page } from '@playwright/test';
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiPost, apiPut } from '../../helpers/api/requests';
 import { apiPostDashboard } from '../../helpers/api/dashboard';
@@ -35,7 +36,7 @@ const DATASET_NAME = 'birth_names';
 const FILTER_COLUMN = 'gender';
 const TEMPORAL_COLUMN = 'ds';
 
-async function findDatasetIdByName(page: any, name: string): Promise<number> {
+async function findDatasetIdByName(page: Page, name: string): Promise<number> {
   const rison = `(filters:!((col:table_name,opr:eq,value:'${name}')))`;
   const resp = await page.request.get(`api/v1/dataset/?q=${rison}`);
   const body = await resp.json();
@@ -46,7 +47,7 @@ async function findDatasetIdByName(page: any, name: string): Promise<number> {
 }
 
 testWithAssets(
-  'Deleted Display Control must not reappear after Apply Filters (before)',
+  'Deleted Display Control must not reappear after Apply Filters',
   async ({ page, testAssets }, testInfo) => {
     testInfo.setTimeout(90000);
     const shot = (n: string) =>
