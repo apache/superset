@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { handleKeyboardActivation } from '../../utils';
 import {
   forwardRef,
   ForwardedRef,
@@ -126,7 +127,13 @@ export const ModalTrigger = forwardRef(
           </Button>
         )}
         {!isButton && (
-          <div data-test="span-modal-trigger" onClick={open} role="button">
+          <div
+            data-test="span-modal-trigger"
+            onClick={open}
+            onKeyDown={handleKeyboardActivation(open)}
+            role="button"
+            tabIndex={0}
+          >
             {triggerNode}
           </div>
         )}

@@ -22,6 +22,7 @@ import {
   SupersetClient,
   isFeatureEnabled,
   FeatureFlag,
+  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
 import {
@@ -869,6 +870,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                       tabIndex={0}
                       className="action-button"
                       onClick={() => handleSemanticViewDelete(original)}
+                      onKeyDown={handleKeyboardActivation(() =>
+                        handleSemanticViewDelete(original),
+                      )}
                     >
                       <Icons.DeleteOutlined iconSize="l" />
                     </span>
@@ -886,6 +890,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                       tabIndex={0}
                       className="action-button"
                       onClick={() => setSvCurrentlyEditing(original)}
+                      onKeyDown={handleKeyboardActivation(() =>
+                        setSvCurrentlyEditing(original),
+                      )}
                     >
                       <Icons.EditOutlined iconSize="l" />
                     </span>
@@ -932,6 +939,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     tabIndex={0}
                     className={`action-button ${allowEdit ? '' : 'disabled'}`}
                     onClick={allowEdit ? handleEdit : undefined}
+                    onKeyDown={
+                      allowEdit
+                        ? handleKeyboardActivation(handleEdit)
+                        : undefined
+                    }
                   >
                     <Icons.EditOutlined iconSize="l" />
                   </span>
@@ -949,6 +961,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     tabIndex={0}
                     className="action-button"
                     onClick={handleExport}
+                    onKeyDown={handleKeyboardActivation(handleExport)}
                   >
                     <Icons.UploadOutlined iconSize="l" />
                   </span>
@@ -966,6 +979,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     tabIndex={0}
                     className="action-button"
                     onClick={handleDuplicate}
+                    onKeyDown={handleKeyboardActivation(handleDuplicate)}
                   >
                     <Icons.CopyOutlined iconSize="l" />
                   </span>
@@ -983,6 +997,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     tabIndex={0}
                     className="action-button"
                     onClick={handleDelete}
+                    onKeyDown={handleKeyboardActivation(handleDelete)}
                   >
                     <Icons.DeleteOutlined iconSize="l" />
                   </span>

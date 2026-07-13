@@ -28,6 +28,7 @@ import {
   isDefined,
   ContextMenuFilters,
   AdhocFilter,
+  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { css, useTheme } from '@apache-superset/core/theme';
@@ -565,6 +566,7 @@ export default function DrillByModal({
                 role="button"
                 tabIndex={0}
                 onClick={route.onClick}
+                onKeyDown={handleKeyboardActivation(route.onClick)}
                 css={css`
                   cursor: pointer;
                 `}

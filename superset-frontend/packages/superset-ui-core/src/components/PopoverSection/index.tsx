@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { handleKeyboardActivation } from '../../utils';
 import { MouseEventHandler, ReactNode } from 'react';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -48,6 +49,7 @@ export default function PopoverSection({
         role="button"
         tabIndex={0}
         onClick={onSelect}
+        onKeyDown={onSelect ? handleKeyboardActivation(onSelect) : undefined}
         css={css`
           display: flex;
           align-items: center;

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { handleKeyboardActivation } from '@superset-ui/core';
 import { ReactNode, FC, memo } from 'react';
 
 import { getFilterBarTestId } from '../utils';
@@ -32,6 +33,7 @@ export const FilterConfigurationLink: FC<FCBProps> = ({
   <div
     {...getFilterBarTestId('create-filter')}
     onClick={onClick}
+    onKeyDown={handleKeyboardActivation(onClick)}
     role="button"
     tabIndex={0}
   >

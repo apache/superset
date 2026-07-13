@@ -19,6 +19,7 @@
  * under the License.
  */
 
+import { handleKeyboardActivation } from '@superset-ui/core';
 import { useRef, useState, useEffect } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons';
@@ -201,17 +202,35 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
   const menuContent = (
     <MenuContainer>
       {shouldShowAsc && (
-        <div onClick={() => applySort('asc')} className="menu-item">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => applySort('asc')}
+          onKeyDown={handleKeyboardActivation(() => applySort('asc'))}
+          className="menu-item"
+        >
           <ArrowUpOutlined /> {t('Sort Ascending')}
         </div>
       )}
       {shouldShowDesc && (
-        <div onClick={() => applySort('desc')} className="menu-item">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => applySort('desc')}
+          onKeyDown={handleKeyboardActivation(() => applySort('desc'))}
+          className="menu-item"
+        >
           <ArrowDownOutlined /> {t('Sort Descending')}
         </div>
       )}
       {currentSort && currentSort?.colId === colId && (
-        <div onClick={clearSort} className="menu-item">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={clearSort}
+          onKeyDown={handleKeyboardActivation(clearSort)}
+          className="menu-item"
+        >
           <span style={{ fontSize: 16 }}>↻</span> {t('Clear Sort')}
         </div>
       )}
@@ -247,7 +266,13 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
           isOpen={isMenuVisible}
           onClose={() => setMenuVisible(false)}
         >
-          <div className="three-dots-menu" onClick={handleMenuClick}>
+          <div
+            role="button"
+            tabIndex={0}
+            className="three-dots-menu"
+            onClick={handleMenuClick}
+            onKeyDown={handleKeyboardActivation(handleMenuClick)}
+          >
             <KebabMenu />
           </div>
         </CustomPopover>

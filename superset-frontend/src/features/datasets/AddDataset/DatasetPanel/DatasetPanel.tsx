@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { handleKeyboardActivation } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
 import { styled } from '@apache-superset/core/theme';
@@ -235,6 +236,11 @@ const renderExistingDatasetAlert = (dataset?: DatasetObject) => (
               openInNewTab(stripAppRoot(dataset.explore_url));
             }
           }}
+          onKeyDown={handleKeyboardActivation(() => {
+            if (dataset?.explore_url) {
+              openInNewTab(stripAppRoot(dataset.explore_url));
+            }
+          })}
           tabIndex={0}
           className="view-dataset-button"
         >

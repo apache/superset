@@ -26,7 +26,7 @@ import {
   useMemo,
   useEffect,
 } from 'react';
-import { safeHtmlSpan } from '@superset-ui/core';
+import { safeHtmlSpan, handleKeyboardActivation } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { supersetTheme } from '@apache-superset/core/theme';
 import PropTypes from 'prop-types';
@@ -172,6 +172,9 @@ function displayHeaderCell(
         tabIndex={0}
         className="toggle"
         onClick={onArrowClick || undefined}
+        onKeyDown={
+          onArrowClick ? handleKeyboardActivation(onArrowClick) : undefined
+        }
       >
         {ArrowIcon}
       </span>
@@ -1046,6 +1049,7 @@ export function TableRenderer(props: TableRendererProps) {
                 onClick={e => {
                   e.stopPropagation();
                 }}
+                onKeyDown={e => e.stopPropagation()}
                 aria-label={
                   activeSortColumn === i
                     ? `Sorted by ${columnName} ${sortingOrder[i] === 'asc' ? 'ascending' : 'descending'}`
