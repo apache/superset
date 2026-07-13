@@ -51,6 +51,8 @@ from typing import Any
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
+from superset.models.helpers import SoftDeleteMixin
+
 logger = logging.getLogger(__name__)
 
 
@@ -136,7 +138,7 @@ def cascade_hard_delete(
         raise ValueError("cutoff is required when enforce_window=True")
 
     model = type(entity)
-    table = model.__table__
+    table = _model_table(model)
     entity_id = entity.id
     uuid = entity_uuid(entity)
     entity_type = _USER_FACING_TYPE.get(table.name, table.name)
@@ -193,21 +195,30 @@ _USER_FACING_TYPE = {
 }
 
 
-def _delete_m2m_joins(session: Session, model: type, entity_id: int) -> int:
+def _model_table(model: type[SoftDeleteMixin]) -> sa.Table:
+    """Return the mapped table for a registered soft-delete model."""
+    return model.__table__  # type: ignore[attr-defined]
+
+
+def _delete_m2m_joins(
+    session: Session, model: type[SoftDeleteMixin], entity_id: int
+) -> int:
     """Hard-delete every M:N join / association row the entity owns (C14).
 
     Returns the number of ``dashboard_slices`` rows removed (recorded in the
     audit entry for chart purges — they may belong to live dashboards).
     """
     # pylint: disable=import-outside-toplevel
-    from superset.connectors.sqla.models import SqlaTable, sqlatable_user
-    from superset.models.dashboard import (
-        Dashboard,
-        dashboard_slices,
-        dashboard_user,
-        DashboardRoles,
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.dashboard import Dashboard, dashboard_slices
+    from superset.models.slice import Slice
+    from superset.subjects.models import (
+        chart_editors,
+        chart_viewers,
+        dashboard_editors,
+        dashboard_viewers,
+        sqlatable_editors,
     )
-    from superset.models.slice import Slice, slice_user
     from superset.tags.models import ObjectType, TaggedObject
 
     removed_dashboard_slices = 0
@@ -217,13 +228,11 @@ def _delete_m2m_joins(session: Session, model: type, entity_id: int) -> int:
                 dashboard_slices.c.dashboard_id == entity_id
             )
         )
-        session.execute(
-            sa.delete(dashboard_user).where(dashboard_user.c.dashboard_id == entity_id)
-        )
-        session.execute(
-            sa.delete(DashboardRoles).where(DashboardRoles.c.dashboard_id == entity_id)
-        )
-        _delete_tags(session, TaggedObject, ObjectType.dashboard, entity_id)
+        for association in (dashboard_editors, dashboard_viewers):
+            session.execute(
+                sa.delete(association).where(association.c.dashboard_id == entity_id)
+            )
+        _delete_tags(session, TaggedObject.__table__, ObjectType.dashboard, entity_id)
     elif model is Slice:
         # Every dashboard_slices row pointing at this chart, including those
         # owned by live dashboards (the live dashboard survives, minus this
@@ -231,30 +240,37 @@ def _delete_m2m_joins(session: Session, model: type, entity_id: int) -> int:
         removed_dashboard_slices = session.execute(
             sa.delete(dashboard_slices).where(dashboard_slices.c.slice_id == entity_id)
         ).rowcount
-        session.execute(sa.delete(slice_user).where(slice_user.c.slice_id == entity_id))
-        _delete_tags(session, TaggedObject, ObjectType.chart, entity_id)
+        for association in (chart_editors, chart_viewers):
+            session.execute(
+                sa.delete(association).where(association.c.chart_id == entity_id)
+            )
+        _delete_tags(session, TaggedObject.__table__, ObjectType.chart, entity_id)
     elif model is SqlaTable:
         session.execute(
-            sa.delete(sqlatable_user).where(sqlatable_user.c.table_id == entity_id)
+            sa.delete(sqlatable_editors).where(
+                sqlatable_editors.c.table_id == entity_id
+            )
         )
-        _delete_tags(session, TaggedObject, ObjectType.dataset, entity_id)
+        _delete_tags(session, TaggedObject.__table__, ObjectType.dataset, entity_id)
     return removed_dashboard_slices
 
 
 def _delete_tags(
-    session: Session, tagged_object: type, object_type: Any, entity_id: int
+    session: Session, tagged_object: sa.Table, object_type: Any, entity_id: int
 ) -> None:
     """Remove the entity's ``tagged_object`` rows (the ``after_delete`` tag
     cleanup Core bulk-delete skips — C14/C20)."""
     session.execute(
-        sa.delete(tagged_object.__table__).where(
-            tagged_object.object_id == entity_id,
-            tagged_object.object_type == object_type,
+        sa.delete(tagged_object).where(
+            tagged_object.c.object_id == entity_id,
+            tagged_object.c.object_type == object_type,
         )
     )
 
 
-def _delete_owned_children(session: Session, model: type, entity_id: int) -> None:
+def _delete_owned_children(
+    session: Session, model: type[SoftDeleteMixin], entity_id: int
+) -> None:
     """Hard-delete a dataset's owned children (columns + metrics) — C18.
 
     These ``delete-orphan`` children have no independent existence. Charts
@@ -304,7 +320,10 @@ def _cleanup_dataset_permission(session: Session, entity: Any) -> None:
 
 
 def _entity_version_targets(
-    model: type, metadata: sa.MetaData, parent_shadow: sa.Table, entity_id: int
+    model: type[SoftDeleteMixin],
+    metadata: sa.MetaData,
+    parent_shadow: sa.Table,
+    entity_id: int,
 ) -> list[tuple[sa.Table, Any]]:
     """The ``(shadow_table, row_predicate)`` pairs that make up *this* entity's
     own version history: the parent shadow keyed by ``id``, plus — per type —
@@ -426,6 +445,5 @@ def _sweep_orphan_transactions(
                 .distinct()
             )
         )
-    orphaned = tx_ids - still_referenced
-    if orphaned:
+    if orphaned := tx_ids - still_referenced:
         session.execute(sa.delete(tx).where(tx.c.id.in_(orphaned)))

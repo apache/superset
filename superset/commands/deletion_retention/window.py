@@ -47,8 +47,7 @@ def resolve_retention_window() -> int:
     rejected (logged) and the fallback is used rather than crashing the
     scheduled task.
     """
-    shared = get_shared_value(SharedKey.SOFT_DELETE_RETENTION_DAYS)
-    if shared is not None:
+    if (shared := get_shared_value(SharedKey.SOFT_DELETE_RETENTION_DAYS)) is not None:
         if isinstance(shared, bool) or not isinstance(shared, int) or shared < 0:
             logger.warning(
                 "deletion_retention: ignoring malformed shared retention value %r; "

@@ -37,6 +37,7 @@ import logging
 from datetime import datetime
 from typing import Any, Optional
 
+from flask_appbuilder import Model
 from sqlalchemy import Column, DateTime, Integer, String, Text
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -61,7 +62,7 @@ TRIGGER_FORCE = "force"
 ACTOR_SYSTEM = "system"
 
 
-class PurgeAuditLog(db.Model):
+class PurgeAuditLog(Model):
     """Immutable, content-free record of a purge (FR-PURGE-012)."""
 
     __tablename__ = "purge_audit_log"

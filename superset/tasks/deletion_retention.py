@@ -59,6 +59,16 @@ _PURGE_DELETE_CHUNK = 500
 _BATCH = _PURGE_DELETE_CHUNK
 
 
+def _model_table(model: type[SoftDeleteMixin]) -> sa.Table:
+    """Return the mapped table for a registered soft-delete model."""
+    return model.__table__  # type: ignore[attr-defined]
+
+
+def _model_name(model: type[SoftDeleteMixin]) -> str:
+    """Return the mapped table name for a registered soft-delete model."""
+    return model.__tablename__  # type: ignore[attr-defined]
+
+
 def _soft_delete_models() -> list[type[SoftDeleteMixin]]:
     """The registered ``SoftDeleteMixin`` subclasses (dashboards, charts,
     datasets), in a stable order."""
@@ -72,7 +82,7 @@ def _iter_eligible_ids(
     AND deleted_at < cutoff`` — querying with the visibility-filter bypass so
     soft-deleted rows are visible. Windowed by an ``id`` watermark so memory
     and lock-hold stay bounded on a large first run."""
-    table = model.__table__
+    table = _model_table(model)
     after_id = 0
     while True:
         with skip_visibility_filter(db.session, model):
@@ -108,7 +118,7 @@ def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
     failures = 0
 
     for model in _soft_delete_models():
-        entity_type = model.__tablename__
+        entity_type = _model_name(model)
         purged_n, would_n, failed_n = _purge_model(model, cutoff, dry_run)
         if would_n:
             would_purge[entity_type] = would_n
@@ -141,7 +151,7 @@ def _purge_model(
     """Process one model's eligible rows. Returns ``(purged, would_purge,
     failures)``. A single entity's cascade failure is rolled back, logged, and
     counted — it never aborts the batch (FR-PURGE-010)."""
-    entity_type = model.__tablename__
+    entity_type = _model_name(model)
     purged = would = failures = 0
     for id_batch in _iter_eligible_ids(model, cutoff, _BATCH):
         if dry_run:
@@ -172,7 +182,7 @@ def _purge_one(model: type[SoftDeleteMixin], entity_id: int, cutoff: datetime) -
     record_id = audit.write_ahead(
         trigger=audit.TRIGGER_RETENTION,
         actor=audit.ACTOR_SYSTEM,
-        entity_type=model.__tablename__,
+        entity_type=_model_name(model),
         entity_uuid=entity_uuid(entity),
     )
     with suspend_version_capture():

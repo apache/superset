@@ -69,7 +69,7 @@ class ForcePurgeCommand:
             logger.info("force_purge: no entity for uuid=%s (no-op)", self._uuid)
             return {"purged": False, "reason": "not_found", "uuid": self._uuid}
 
-        entity_type = entity.__tablename__
+        entity_type = type(entity).__tablename__  # type: ignore[attr-defined]
         record_id = audit.write_ahead(
             trigger=audit.TRIGGER_FORCE,
             actor=self._actor,

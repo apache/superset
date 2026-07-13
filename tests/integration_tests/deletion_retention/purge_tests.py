@@ -24,6 +24,7 @@ guarantee under FK enforcement OFF, and the version-tables-absent no-op.
 
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import patch
 
 import sqlalchemy as sa
@@ -38,7 +39,7 @@ from superset.tasks.deletion_retention import _purge_impl
 from ._base import DeletionRetentionTestBase
 
 
-def _purge(window: int = 30, dry_run: bool = False) -> dict:
+def _purge(window: int = 30, dry_run: bool = False) -> dict[str, Any]:
     return _purge_impl(window, dry_run)
 
 

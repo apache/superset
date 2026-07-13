@@ -32,8 +32,7 @@ export interface ToastContent {
  */
 export function getSoftDeleteRetentionDays(): number {
   const conf = getBootstrapData()?.common?.conf as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
   const days = Number(conf?.SUPERSET_SOFT_DELETE_RETENTION_DAYS);
   return Number.isFinite(days) && days > 0 ? days : 0;
 }

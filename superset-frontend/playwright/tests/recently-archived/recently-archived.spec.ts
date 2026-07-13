@@ -184,7 +184,7 @@ test('restoring an already-restored row surfaces an error without crashing', asy
   const name = `e2e_stale_${Date.now()}`;
   const id = await TYPES[0].create(page, name);
   // Capture the uuid before soft-delete (a soft-deleted GET returns 404).
-  const uuid = (await (await apiGetDashboard(page, id)).json()).result.uuid;
+  const { uuid } = (await (await apiGetDashboard(page, id)).json()).result;
   expect((await apiDeleteDashboard(page, id)).ok()).toBeTruthy();
 
   await openArchive(page, 'Dashboard', name);
