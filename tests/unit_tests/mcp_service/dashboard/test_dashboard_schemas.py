@@ -32,6 +32,7 @@ from superset.mcp_service.dashboard.schemas import (
     _extract_native_filters,
     _safe_user_label,
     dashboard_serializer,
+    DashboardInfo,
     GenerateDashboardRequest,
     serialize_chart_summary,
     serialize_dashboard_object,
@@ -836,3 +837,29 @@ class TestSafeUserLabel:
         """Numbers and other non-string scalars also coerce to None
         rather than being str-cast and silently leaking the value."""
         assert _safe_user_label(42) is None
+
+
+class TestDashboardInfoLargeListGuidance:
+    """DashboardInfo documents how agents can retrieve charts/native_filters
+    beyond the response-size guard's list-item cap.
+
+    Regression test for the Medialab large-dashboard report: with the old
+    hardcoded 30-item cap and no documented escape hatch, agents had no way
+    to retrieve the rest of a dashboard's charts. These field descriptions
+    are the "documented, agent-usable way to access items beyond the cap"
+    called for by the story's acceptance criteria.
+    """
+
+    def test_charts_field_documents_list_charts_escape_hatch(self) -> None:
+        """The charts field description points to list_charts pagination."""
+        description: str | None = DashboardInfo.model_fields["charts"].description
+        assert description is not None
+        assert "list_charts" in description
+
+    def test_native_filters_field_documents_max_list_items_config(self) -> None:
+        """The native_filters field description mentions the configurable cap."""
+        description: str | None = DashboardInfo.model_fields[
+            "native_filters"
+        ].description
+        assert description is not None
+        assert "max_list_items" in description

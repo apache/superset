@@ -46,6 +46,7 @@ from superset.mcp_service.auth import (
     MCPPermissionDeniedError,
 )
 from superset.mcp_service.constants import (
+    DEFAULT_MAX_LIST_ITEMS,
     DEFAULT_TOKEN_LIMIT,
     DEFAULT_WARN_THRESHOLD_PCT,
 )
@@ -1172,6 +1173,7 @@ class ResponseSizeGuardMiddleware(Middleware):
     - enabled: Toggle the guard on/off (default: True)
     - token_limit: Maximum estimated tokens per response (default: 25,000)
     - warn_threshold_pct: Log warnings above this % of limit (default: 80%)
+    - max_list_items: Cap for list fields during dynamic truncation (default: 100)
     - excluded_tools: Tools to skip checking
     """
 
@@ -1180,6 +1182,7 @@ class ResponseSizeGuardMiddleware(Middleware):
         token_limit: int = DEFAULT_TOKEN_LIMIT,
         warn_threshold_pct: int = DEFAULT_WARN_THRESHOLD_PCT,
         excluded_tools: list[str] | str | None = None,
+        max_list_items: int = DEFAULT_MAX_LIST_ITEMS,
     ) -> None:
         self.token_limit = token_limit
         self.warn_threshold_pct = warn_threshold_pct
@@ -1187,6 +1190,7 @@ class ResponseSizeGuardMiddleware(Middleware):
         if isinstance(excluded_tools, str):
             excluded_tools = [excluded_tools]
         self.excluded_tools = set(excluded_tools or [])
+        self.max_list_items = max(1, max_list_items)
 
     @staticmethod
     def _extract_payload_from_tool_result(
@@ -1271,7 +1275,9 @@ class ResponseSizeGuardMiddleware(Middleware):
 
         try:
             truncated, was_truncated, notes = truncate_oversized_response(
-                truncation_target, self.token_limit
+                truncation_target,
+                self.token_limit,
+                max_list_items=self.max_list_items,
             )
         except (MemoryError, RecursionError) as trunc_error:
             logger.warning(
@@ -1421,6 +1427,27 @@ class ResponseSizeGuardMiddleware(Middleware):
         return response
 
 
+def _safe_int_config(config: Dict[str, Any], key: str, default: int) -> int:
+    """Best-effort int coercion for MCP_RESPONSE_SIZE_CONFIG values.
+
+    Falls back to ``default`` (with a warning log) when the configured value
+    can't be converted to an int, so a malformed ``superset_config.py``
+    setting doesn't crash middleware initialization.
+    """
+    value = config.get(key, default)
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        logger.warning(
+            "Invalid %s in MCP_RESPONSE_SIZE_CONFIG: %r is not a valid integer; "
+            "falling back to default %d",
+            key,
+            value,
+            default,
+        )
+        return default
+
+
 def create_response_size_guard_middleware() -> ResponseSizeGuardMiddleware | None:
     """
     Factory function to create ResponseSizeGuardMiddleware from config.
@@ -1446,12 +1473,17 @@ def create_response_size_guard_middleware() -> ResponseSizeGuardMiddleware | Non
             logger.info("Response size guard is disabled")
             return None
 
+        max_list_items: int = _safe_int_config(
+            config, "max_list_items", DEFAULT_MAX_LIST_ITEMS
+        )
+
         middleware = ResponseSizeGuardMiddleware(
-            token_limit=int(config.get("token_limit", DEFAULT_TOKEN_LIMIT)),
-            warn_threshold_pct=int(
-                config.get("warn_threshold_pct", DEFAULT_WARN_THRESHOLD_PCT)
+            token_limit=_safe_int_config(config, "token_limit", DEFAULT_TOKEN_LIMIT),
+            warn_threshold_pct=_safe_int_config(
+                config, "warn_threshold_pct", DEFAULT_WARN_THRESHOLD_PCT
             ),
             excluded_tools=config.get("excluded_tools"),
+            max_list_items=max_list_items,
         )
 
         logger.info(
