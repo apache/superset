@@ -143,7 +143,7 @@ async def test_query_dataset_success(mcp_server: FastMCP) -> None:
     with (
         patch.object(
             query_dataset_module,
-            "_resolve_dataset",
+            "resolve_dataset",
             return_value=dataset,
         ),
         patch(
@@ -183,7 +183,7 @@ async def test_query_dataset_not_found(mcp_server: FastMCP) -> None:
     """Dataset ID that doesn't exist returns error."""
     with patch.object(
         query_dataset_module,
-        "_resolve_dataset",
+        "resolve_dataset",
         return_value=None,
     ):
         async with Client(mcp_server) as client:
@@ -209,7 +209,7 @@ async def test_query_dataset_invalid_metric(mcp_server: FastMCP) -> None:
 
     with patch.object(
         query_dataset_module,
-        "_resolve_dataset",
+        "resolve_dataset",
         return_value=dataset,
     ):
         async with Client(mcp_server) as client:
@@ -237,7 +237,7 @@ async def test_query_dataset_invalid_column(mcp_server: FastMCP) -> None:
 
     with patch.object(
         query_dataset_module,
-        "_resolve_dataset",
+        "resolve_dataset",
         return_value=dataset,
     ):
         async with Client(mcp_server) as client:
@@ -290,7 +290,7 @@ async def test_query_dataset_with_time_range(mcp_server: FastMCP) -> None:
     with (
         patch.object(
             query_dataset_module,
-            "_resolve_dataset",
+            "resolve_dataset",
             return_value=dataset,
         ),
         patch(
@@ -342,7 +342,7 @@ async def test_query_dataset_time_range_no_temporal_column(mcp_server: FastMCP) 
 
     with patch.object(
         query_dataset_module,
-        "_resolve_dataset",
+        "resolve_dataset",
         return_value=dataset,
     ):
         async with Client(mcp_server) as client:
@@ -376,7 +376,7 @@ async def test_query_dataset_with_filters(mcp_server: FastMCP) -> None:
     with (
         patch.object(
             query_dataset_module,
-            "_resolve_dataset",
+            "resolve_dataset",
             return_value=dataset,
         ),
         patch(
@@ -433,7 +433,7 @@ async def test_query_dataset_empty_results(mcp_server: FastMCP) -> None:
     with (
         patch.object(
             query_dataset_module,
-            "_resolve_dataset",
+            "resolve_dataset",
             return_value=dataset,
         ),
         patch(
@@ -474,7 +474,7 @@ async def test_query_dataset_by_uuid(mcp_server: FastMCP) -> None:
     with (
         patch.object(
             query_dataset_module,
-            "_resolve_dataset",
+            "resolve_dataset",
             return_value=dataset,
         ) as mock_resolve,
         patch(
@@ -520,7 +520,7 @@ async def test_query_dataset_permission_denied(mcp_server: FastMCP) -> None:
     with (
         patch.object(
             query_dataset_module,
-            "_resolve_dataset",
+            "resolve_dataset",
             return_value=dataset,
         ),
         patch(
@@ -567,7 +567,7 @@ async def test_query_dataset_order_by_valid(mcp_server: FastMCP) -> None:
     with (
         patch.object(
             query_dataset_module,
-            "_resolve_dataset",
+            "resolve_dataset",
             return_value=dataset,
         ),
         patch(
@@ -611,7 +611,7 @@ async def test_query_dataset_order_by_invalid(mcp_server: FastMCP) -> None:
 
     with patch.object(
         query_dataset_module,
-        "_resolve_dataset",
+        "resolve_dataset",
         return_value=dataset,
     ):
         async with Client(mcp_server) as client:
@@ -645,7 +645,7 @@ async def test_query_dataset_time_column_override(mcp_server: FastMCP) -> None:
     with (
         patch.object(
             query_dataset_module,
-            "_resolve_dataset",
+            "resolve_dataset",
             return_value=dataset,
         ),
         patch(
@@ -689,7 +689,7 @@ async def test_query_dataset_non_dttm_time_column_warns(mcp_server: FastMCP) -> 
     with (
         patch.object(
             query_dataset_module,
-            "_resolve_dataset",
+            "resolve_dataset",
             return_value=dataset,
         ),
         patch(
@@ -729,7 +729,7 @@ async def test_query_dataset_invalid_filter_column(mcp_server: FastMCP) -> None:
 
     with patch.object(
         query_dataset_module,
-        "_resolve_dataset",
+        "resolve_dataset",
         return_value=dataset,
     ):
         async with Client(mcp_server) as client:
@@ -769,7 +769,7 @@ async def test_query_dataset_metadata_access_denied_no_suggestions(
     with (
         patch.object(
             query_dataset_module,
-            "_resolve_dataset",
+            "resolve_dataset",
             return_value=dataset,
         ),
         patch.object(
