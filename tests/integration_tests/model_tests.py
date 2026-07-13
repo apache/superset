@@ -527,7 +527,7 @@ class TestSqlaTableModel(SupersetTestCase):
         self.query_with_expr_helper(is_timeseries=False)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_get_query_str_defers_series_limit_source_query(self):
+    def test_get_query_str_returns_executable_series_limit_query(self):
         tbl = self.get_table(name="birth_names")
         spec = tbl.database.db_engine_spec
         old_allows_joins = spec.allows_joins
@@ -548,14 +548,17 @@ class TestSqlaTableModel(SupersetTestCase):
         }
 
         try:
-            with mock.patch.object(tbl, "query") as source_query:
+            with mock.patch.object(tbl, "query", wraps=tbl.query) as source_query:
                 sql = tbl.get_query_str(query_obj)
         finally:
             spec.allows_joins = old_allows_joins
             spec.allows_subqueries = old_allows_subqueries
 
-        source_query.assert_not_called()
-        assert "Main query is compiled after the series-limit prequery" in sql
+        source_query.assert_called_once()
+        statements = sql.removesuffix(";").split(";\n\n")
+        assert len(statements) == 2
+        assert all("SELECT" in statement.upper() for statement in statements)
+        assert "Main query is compiled after the series-limit prequery" not in sql
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_failed_series_limit_prequery_stops_main_query(self):
