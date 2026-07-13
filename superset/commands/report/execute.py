@@ -753,6 +753,8 @@ class BaseReportState:
                 self._execution_id,
             )
             raise ReportScheduleCsvTimeout() from ex
+        except ReportScheduleExecutorNotFoundError:
+            raise
         except Exception as ex:
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.exception(
@@ -779,6 +781,8 @@ class BaseReportState:
                 self._execution_id,
             )
             raise ReportScheduleXlsxTimeout() from ex
+        except ReportScheduleExecutorNotFoundError:
+            raise
         except Exception as ex:
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.exception(
