@@ -240,15 +240,15 @@ msgstr "\"%s\" es ahora el tema oscuro del sistema"
 msgid "\"%s\" is now the system default theme"
 msgstr "\"%s\" es ahora el tema predeterminado del sistema"
 
-#, python-format
+#, no-python-format
 msgid "% calculation"
 msgstr "% del cálculo"
 
-#, python-format
+#, no-python-format
 msgid "% of parent"
 msgstr "% del primario"
 
-#, python-format
+#, no-python-format
 msgid "% of total"
 msgstr "% del total"
 
@@ -399,7 +399,7 @@ msgstr "%s columna(s)"
 #, python-format
 msgid "%s day ago"
 msgid_plural "%s days ago"
-msgstr[0] "Hace 1 día"
+msgstr[0] "Hace %s día"
 msgstr[1] "Hace %s días"
 
 #, fuzzy, python-format
@@ -1372,7 +1372,7 @@ msgstr "Añadido"
 #, python-format
 msgid "Added 1 new column to the virtual dataset"
 msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Se ha añadido 1 nueva columna al conjunto de datos virtual"
+msgstr[0] "Se ha añadido %s nueva columna al conjunto de datos virtual"
 msgstr[1] "Se han añadido %s nuevas columnas al conjunto de datos virtual"
 
 #, fuzzy, python-format
@@ -9516,7 +9516,7 @@ msgstr "%s modificado"
 #, python-format
 msgid "Modified 1 column in the virtual dataset"
 msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Se ha modificado 1 columna en el conjunto de datos virtual"
+msgstr[0] "Se ha modificado %s columna en el conjunto de datos virtual"
 msgstr[1] "Se han modificado %s columnas en el conjunto de datos virtual"
 
 msgid "Modified by"
@@ -11465,7 +11465,7 @@ msgstr "Eliminar consulta del registro"
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
 msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Se ha eliminado 1 columna del conjunto de datos virtual"
+msgstr[0] "Se ha eliminado %s columna del conjunto de datos virtual"
 msgstr[1] "Se han eliminado %s columnas del conjunto de datos virtual"
 
 msgid "Rename tab"
