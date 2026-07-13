@@ -165,6 +165,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
         from superset.charts.data.api import ChartDataRestApi
+        from superset.csp_allowlist.api import CSPAllowlistRestApi
         from superset.css_templates.api import CssTemplateRestApi
         from superset.dashboards.api import DashboardRestApi
         from superset.dashboards.filter_state.api import DashboardFilterStateRestApi
@@ -255,6 +256,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(CacheRestApi)
         appbuilder.add_api(ChartRestApi)
         appbuilder.add_api(ChartDataRestApi)
+        appbuilder.add_api(CSPAllowlistRestApi)
         appbuilder.add_api(CssTemplateRestApi)
         appbuilder.add_api(ThemeRestApi)
         appbuilder.add_api(CurrentUserRestApi)
@@ -1264,6 +1266,18 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         # Flask-Compress
         Compress(self.superset_app)
+
+        # Runtime CSP allowlist merge. Registered BEFORE Talisman so that, since
+        # Flask runs after_request callbacks in reverse registration order, this
+        # runs AFTER Talisman has set the CSP header and can widen it with the
+        # operator-curated allowlist. Inert unless CSP_RUNTIME_ALLOWLIST is on.
+        from flask import Response
+
+        @self.superset_app.after_request
+        def merge_runtime_csp_allowlist(response: Response) -> Response:
+            from superset.security.csp import apply_runtime_csp_allowlist
+
+            return apply_runtime_csp_allowlist(response)
 
         # Talisman
         talisman_enabled = self.config["TALISMAN_ENABLED"]
