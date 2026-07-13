@@ -239,7 +239,7 @@ def _language_pack_context(
 def test_language_pack_template_context_versioned_src_for_non_english(
     app_context: None,
 ) -> None:
-    context = _language_pack_context("fr", {})
+    context: dict[str, Any] = _language_pack_context("fr", {})
     assert context == {
         "language_pack_src": "/language_pack/fr/abc123def456/script.js",
         "language_pack_inline": False,
@@ -249,7 +249,7 @@ def test_language_pack_template_context_versioned_src_for_non_english(
 def test_language_pack_template_context_none_for_english(
     app_context: None,
 ) -> None:
-    context = _language_pack_context("en", {})
+    context: dict[str, Any] = _language_pack_context("en", {})
     assert context == {"language_pack_src": None, "language_pack_inline": False}
 
 
@@ -257,5 +257,7 @@ def test_language_pack_template_context_inline_for_override_pack(
     app_context: None,
 ) -> None:
     """An operator-supplied pack suppresses the script tag; spa.html inlines."""
-    context = _language_pack_context("fr", {"language_pack": {"domain": "superset"}})
+    context: dict[str, Any] = _language_pack_context(
+        "fr", {"language_pack": {"domain": "superset"}}
+    )
     assert context == {"language_pack_src": None, "language_pack_inline": True}

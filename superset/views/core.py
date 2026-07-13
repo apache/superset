@@ -133,7 +133,9 @@ SqlResults = dict[str, Any]
 # Matches the locale codes Superset actually ships: a 2-3 letter language
 # subtag, optionally followed by a 2-letter region subtag ("pt_BR") or a
 # 4-letter script subtag ("sr_Latn").
-LANGUAGE_CODE_RE = re.compile(r"^[a-z]{2,3}(_[A-Z]{2}|_[A-Z][a-z]{3})?$")
+LANGUAGE_CODE_RE: re.Pattern[str] = re.compile(
+    r"^[a-z]{2,3}(_[A-Z]{2}|_[A-Z][a-z]{3})?$"
+)
 
 
 class Superset(BaseSupersetView):
