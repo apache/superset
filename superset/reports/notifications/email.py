@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from email.utils import make_msgid, parseaddr
 from io import BytesIO
-from typing import Optional
+from typing import IO, Optional
 from zipfile import BadZipFile, ZipFile
 
 import nh3
@@ -68,6 +68,7 @@ ALLOWED_ATTRIBUTES = {
     "acronym": {"title"},
     **ALLOWED_TABLE_ATTRIBUTES,
 }
+ZIP_LOCAL_FILE_HEADER = b"PK\x03\x04"
 
 
 @dataclass
@@ -93,7 +94,7 @@ def _get_xlsx_attachment_extension(content: bytes) -> str:
             if files and all(name.lower().endswith(".xlsx") for name in files):
                 for name in files:
                     with zip_file.open(name) as xlsx_file:
-                        if not _is_xlsx_zipfile(xlsx_file.read()):
+                        if not _has_zip_signature(xlsx_file):
                             return "xlsx"
                 return "zip"
     except BadZipFile:
@@ -106,12 +107,8 @@ def _is_xlsx_zip(names: list[str]) -> bool:
     return "[Content_Types].xml" in names and "xl/workbook.xml" in names
 
 
-def _is_xlsx_zipfile(content: bytes) -> bool:
-    try:
-        with ZipFile(BytesIO(content)) as zip_file:
-            return _is_xlsx_zip(zip_file.namelist())
-    except BadZipFile:
-        return False
+def _has_zip_signature(content: IO[bytes]) -> bool:
+    return content.read(len(ZIP_LOCAL_FILE_HEADER)) == ZIP_LOCAL_FILE_HEADER
 
 
 class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-methods

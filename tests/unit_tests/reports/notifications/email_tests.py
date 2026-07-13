@@ -16,6 +16,7 @@
 # under the License.
 from datetime import datetime
 from typing import TYPE_CHECKING
+from zipfile import ZipExtFile
 
 import pandas as pd
 import pytest
@@ -207,6 +208,32 @@ def test_get_xlsx_attachment_extension_for_invalid_xlsx_zip_content() -> None:
     archive = create_zip({"query_1.xlsx": b"xlsx-response"}).getvalue()
 
     assert _get_xlsx_attachment_extension(archive) == "xlsx"
+
+
+def test_get_xlsx_attachment_extension_reads_nested_zip_signatures_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Nested XLSX detection should not read each workbook into memory."""
+    from superset.reports.notifications.email import (
+        _get_xlsx_attachment_extension,
+    )
+    from superset.utils import excel
+    from superset.utils.core import create_zip
+
+    read_sizes: list[int] = []
+    original_read = ZipExtFile.read
+
+    def read_signature(self: ZipExtFile, n: int = -1) -> bytes:
+        read_sizes.append(n)
+        return original_read(self, n)
+
+    monkeypatch.setattr(ZipExtFile, "read", read_signature)
+
+    xlsx = excel.df_to_excel(pd.DataFrame({"value": [1, 2]}), index=False)
+    archive = create_zip({"query_1.xlsx": xlsx, "query_2.xlsx": xlsx}).getvalue()
+
+    assert _get_xlsx_attachment_extension(archive) == "zip"
+    assert read_sizes == [4, 4]
 
 
 @pytest.mark.parametrize(

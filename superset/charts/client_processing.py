@@ -310,6 +310,33 @@ post_processors = {
 }
 
 
+def _is_default_index_column(series: pd.Series) -> bool:
+    return series.tolist() == list(range(len(series)))
+
+
+def _read_excel_for_client_processing(
+    data: bytes,
+    form_data: dict[str, Any],
+) -> pd.DataFrame:
+    df = pd.read_excel(BytesIO(data))
+    if len(df.columns) == 0:
+        return df
+
+    first_column = df.columns[0]
+    expected_columns = {
+        *get_column_names(form_data.get("columns")),
+        *get_metric_names(form_data.get("metrics")),
+    }
+
+    if first_column in expected_columns:
+        return df
+
+    if _is_default_index_column(df.iloc[:, 0]):
+        return df.iloc[:, 1:].reset_index(drop=True)
+
+    return df.set_index(first_column)
+
+
 @event_logger.log_this
 def apply_client_processing(  # noqa: C901
     result: dict[Any, Any],
@@ -358,12 +385,7 @@ def apply_client_processing(  # noqa: C901
                 decimal=decimal,
             )
         elif query["result_format"] == ChartDataResultFormat.XLSX:
-            read_excel_kwargs = (
-                {"index_col": 0}
-                if current_app.config["EXCEL_EXPORT"].get("index", True)
-                else {}
-            )
-            df = pd.read_excel(BytesIO(data), **read_excel_kwargs)
+            df = _read_excel_for_client_processing(data, form_data)
 
         # convert all columns to verbose (label) name
         if datasource:
@@ -414,7 +436,10 @@ def apply_client_processing(  # noqa: C901
             excel.apply_column_types(processed_df, query["coltypes"])
             query["data"] = excel.df_to_excel(
                 processed_df,
-                **current_app.config["EXCEL_EXPORT"],
+                **{
+                    **current_app.config["EXCEL_EXPORT"],
+                    "index": show_default_index,
+                },
             )
 
     return result

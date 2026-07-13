@@ -941,6 +941,10 @@ class BaseReportState:
                 xlsx_data = self._get_xlsx_data()
                 if not xlsx_data:
                     error_text = "Unexpected missing xlsx file"
+            elif self._report_schedule.report_format == ReportDataFormat.XLSX:
+                raise ReportScheduleXlsxFailedError(
+                    "XLSX reports are only supported for chart schedules"
+                )
             if error_text:
                 return NotificationContent(
                     name=sanitize_title(self._report_schedule.name),

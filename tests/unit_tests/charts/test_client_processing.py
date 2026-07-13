@@ -2890,6 +2890,12 @@ def test_apply_client_processing_xlsx_format_without_index() -> None:
     _assert_xlsx_client_processing(index=False)
 
 
+@with_config({"EXCEL_EXPORT": {}})
+def test_apply_client_processing_xlsx_format_without_index_default_config() -> None:
+    """XLSX post-processing derives omitted index from the payload."""
+    _assert_xlsx_client_processing(index=False)
+
+
 @with_config({"CSV_EXPORT": {"sep": ";", "decimal": ","}})
 def test_apply_client_processing_csv_format_custom_delimiter():
     """

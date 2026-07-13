@@ -2077,6 +2077,22 @@ def test_get_notification_content_csv_format(mock_ff, mocker: MockerFixture) -> 
 
 
 @patch("superset.commands.report.execute.feature_flag_manager")
+def test_get_notification_content_xlsx_rejects_dashboard(
+    mock_ff, mocker: MockerFixture
+) -> None:
+    mock_ff.is_feature_enabled.return_value = False
+    state = _make_notification_state(
+        mocker, report_format=ReportDataFormat.XLSX, has_chart=False
+    )
+
+    with pytest.raises(
+        ReportScheduleXlsxFailedError,
+        match="XLSX reports are only supported for chart schedules",
+    ):
+        state._get_notification_content()
+
+
+@patch("superset.commands.report.execute.feature_flag_manager")
 def test_get_notification_content_text_format(mock_ff, mocker: MockerFixture) -> None:
     import pandas as pd
 
