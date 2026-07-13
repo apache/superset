@@ -37,6 +37,10 @@ import { EchartsHandler, EventHandlers } from '../types';
 import Echart from '../components/Echart';
 import { OrientationType, TimeseriesChartTransformedProps } from './types';
 import { formatSeriesName } from '../utils/series';
+import {
+  buildTimeseriesDrillFilters,
+  getCategoryAxisValue as resolveCategoryAxisValue,
+} from './drillFilters';
 import { ExtraControls } from '../components/ExtraControls';
 
 const TIMER_DURATION = 300;
@@ -228,25 +232,10 @@ export default function EchartsTimeseries({
   // Determine if X-axis can be used for cross-filtering (categorical axis without dimensions)
   const canCrossFilterByXAxis =
     !hasDimensions && xAxis.type === AxisType.Category;
-  const categoryAxisValueIndex =
-    formData.orientation === OrientationType.Horizontal ? 1 : 0;
   const getCategoryAxisValue = useCallback(
-    (data: unknown, name: unknown) => {
-      if (Array.isArray(data)) {
-        const categoryAxisValue = data[categoryAxisValueIndex];
-        if (
-          typeof categoryAxisValue === 'string' ||
-          typeof categoryAxisValue === 'number'
-        ) {
-          return categoryAxisValue;
-        }
-      }
-      if (typeof name === 'string' || typeof name === 'number') {
-        return name;
-      }
-      return undefined;
-    },
-    [categoryAxisValueIndex],
+    (data: unknown, name: unknown) =>
+      resolveCategoryAxisValue(data, name, formData.orientation),
+    [formData.orientation],
   );
 
   const eventHandlers: EventHandlers = {
@@ -260,51 +249,21 @@ export default function EchartsTimeseries({
           clearTimeout(clickTimer.current);
         }
         clickTimer.current = setTimeout(() => {
-          const drillFilters: BinaryQueryObjectFilterClause[] = [];
           // Timeseries-family charts are always x-axis driven: the hierarchy
           // advances along the x-axis column, and any groupby is only a series
-          // breakdown. So drill on the clicked x-axis category value, never on
-          // the series dimension. Guard on componentType === 'series' so clicks
-          // on axis labels don't trigger a drill.
-          if (
-            xAxis.type === AxisType.Category &&
-            props.componentType === 'series'
-          ) {
-            // Orientation-aware category value (horizontal bars hold it at a
-            // different index); also falls back to the event name.
-            const categoryAxisValue = getCategoryAxisValue(
-              props.data,
-              props.name,
-            );
-            if (categoryAxisValue != null) {
-              drillFilters.push({
-                col: xAxis.label,
-                op: '==',
-                val: categoryAxisValue,
-                // Format the label the same way the groupby drill path does
-                // so the breadcrumb and cross-filter show formatted values
-                // (dates/decimals) rather than raw ones.
-                formattedVal: formatSeriesName(categoryAxisValue, {
-                  timeFormatter: getTimeFormatter(formData.dateFormat),
-                  numberFormatter: getNumberFormatter(formData.numberFormat),
-                  coltype: coltypeMapping?.[xAxis.label],
-                }),
-              });
-            }
-          } else if (props.componentType === 'series' && props.name != null) {
-            // Non-category (e.g. time) x-axis: use the event name.
-            // Null check so zero-like labels (e.g. 0) still drill.
-            drillFilters.push({
-              col: xAxis.label,
-              op: '==',
-              val: props.name,
-              formattedVal: formatSeriesName(props.name, {
-                timeFormatter: getTimeFormatter(formData.dateFormat),
-                numberFormatter: getNumberFormatter(formData.numberFormat),
-                coltype: coltypeMapping?.[xAxis.label],
-              }),
-            });
-          }
+          // breakdown. So drill on the clicked x-axis value, never the series
+          // dimension. Non-series clicks (e.g. axis labels) yield no filters.
+          const drillFilters = buildTimeseriesDrillFilters({
+            componentType: props.componentType,
+            data: props.data,
+            name: props.name,
+            xAxisType: xAxis.type,
+            xAxisLabel: xAxis.label,
+            orientation: formData.orientation,
+            dateFormat: formData.dateFormat,
+            numberFormat: formData.numberFormat,
+            coltype: coltypeMapping?.[xAxis.label],
+          });
           // Cross-filter is emitted by the DrillDownHost with the full
           // accumulated drill path; here we only report the click upward.
           if (drillFilters.length > 0) {
