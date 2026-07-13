@@ -64,7 +64,7 @@ async def _validate_non_destructive_sql(
     """Return an error response when SQL cannot safely be executed."""
     with event_logger.log_context(action="mcp.execute_sql.ddl_check"):
         try:
-            sql_to_check = request.sql
+            sql_to_check: str = request.sql
             if request.template_params:
                 from superset.jinja_context import get_template_processor
 
@@ -168,9 +168,9 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
         # Fail-closed: if parsing fails, block the query rather than
         # allowing potentially destructive SQL to bypass the check.
         # Render Jinja2 templates first so templated SQL can be parsed.
-        validation_error = await _validate_non_destructive_sql(
-            request, ctx, database, sql_preview
-        )
+        validation_error: (
+            ExecuteSqlResponse | None
+        ) = await _validate_non_destructive_sql(request, ctx, database, sql_preview)
         if validation_error is not None:
             return validation_error
 
