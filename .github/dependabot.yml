@@ -49,6 +49,11 @@ updates:
   - package-ecosystem: "pip"
     directory: "/"
     open-pull-requests-limit: 10
+    ignore:
+      # syntaqlite 0.5.0+ imports enum.StrEnum unconditionally (Python 3.11+)
+      # while still declaring requires-python>=3.10, breaking the Python 3.10 CI
+      # leg. Hold at <0.5.0 until Superset drops Python 3.10. See #41952.
+      - dependency-name: "syntaqlite"
     # Bump the lower bound to the new version, not just widen the upper
     # bound. Without this, a `sqlglot>=28.10.0, <29` constraint upgraded
     # to `<30` would keep the stale lower bound forever, dragging

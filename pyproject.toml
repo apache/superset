@@ -199,7 +199,10 @@ risingwave = ["sqlalchemy-risingwave"]
 shillelagh = ["shillelagh[all]>=1.4.4, <2"]
 singlestore = ["sqlalchemy-singlestoredb>=1.2.1, <2"]
 snowflake = ["snowflake-sqlalchemy>=1.10.2, <2"]
-sqlite = ["syntaqlite>=0.6.0,<0.7.0"]
+# Pin below 0.5.0: syntaqlite 0.5.0+ imports StrEnum unconditionally
+# (added in Python 3.11) while still declaring requires-python>=3.10, so it
+# breaks on the 3.10 CI leg. Do not bump until Superset drops Python 3.10.
+sqlite = ["syntaqlite>=0.1.0,<0.5.0"]
 spark = [
     "pyhive[hive]>=0.6.5;python_version<'3.11'",
     "pyhive[hive_pure_sasl]>=0.7",
@@ -244,7 +247,8 @@ development = [
     "ruff",
     "sqloxide",
     "statsd",
-    "syntaqlite>=0.6.0,<0.7.0",
+    # See the note on the `sqlite` extra above: keep below 0.5.0 for Python 3.10.
+    "syntaqlite>=0.4.2,<0.5.0",
 ]
 
 [project.urls]
