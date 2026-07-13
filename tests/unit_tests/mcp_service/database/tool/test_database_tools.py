@@ -21,7 +21,7 @@ import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
-from fastmcp import Client
+from fastmcp import Client, FastMCP
 from fastmcp.exceptions import ToolError
 from pydantic import ValidationError
 
@@ -121,7 +121,7 @@ def mock_auth():
 
 
 @pytest.fixture(autouse=True)
-def allow_data_model_metadata():
+def _allow_data_model_metadata():
     """Keep database tests in the normal metadata-allowed path by default."""
     with (
         patch.object(
@@ -138,7 +138,7 @@ def allow_data_model_metadata():
         yield
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_databases_without_request_returns_structured_privacy_error(
     mcp_server,
 ) -> None:
@@ -156,7 +156,7 @@ async def test_list_databases_without_request_returns_structured_privacy_error(
 
 
 @patch("superset.daos.database.DatabaseDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_databases_basic(mock_list, mcp_server):
     """Test basic database listing functionality."""
     database = create_mock_database()
@@ -181,7 +181,7 @@ async def test_list_databases_basic(mock_list, mcp_server):
 
 
 @patch("superset.daos.database.DatabaseDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_databases_with_search(mock_list, mcp_server):
     """Test database listing with search functionality."""
     database = create_mock_database(database_name="production_db")
@@ -203,7 +203,7 @@ async def test_list_databases_with_search(mock_list, mcp_server):
 
 
 @patch("superset.daos.database.DatabaseDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_databases_with_filters(mock_list, mcp_server):
     """Test database listing with filters."""
     database = create_mock_database(expose_in_sqllab=True)
@@ -231,7 +231,7 @@ async def test_list_databases_with_filters(mock_list, mcp_server):
 
 
 @patch("superset.daos.database.DatabaseDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_databases_does_not_expose_user_directory_fields(
     mock_list, mcp_server
 ) -> None:
@@ -297,7 +297,7 @@ def test_database_request_accepts_created_by_me() -> None:
 
 
 @patch("superset.daos.database.DatabaseDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_databases_api_error(mock_list, mcp_server):
     """Test error handling when DAO raises an exception."""
     mock_list.side_effect = ToolError("Database error")
@@ -309,7 +309,7 @@ async def test_list_databases_api_error(mock_list, mcp_server):
 
 
 @patch("superset.daos.database.DatabaseDAO.find_by_id")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_database_info_basic(mock_find, mcp_server):
     """Test basic get database info functionality."""
     database = create_mock_database()
@@ -328,7 +328,7 @@ async def test_get_database_info_basic(mock_find, mcp_server):
 
 
 @patch("superset.daos.database.DatabaseDAO.find_by_id")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_database_info_not_found(mock_find, mcp_server):
     """Test get database info when database does not exist."""
     mock_find.return_value = None
@@ -340,7 +340,7 @@ async def test_get_database_info_not_found(mock_find, mcp_server):
 
 
 @patch("superset.daos.database.DatabaseDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_databases_does_not_expose_sensitive_credential_columns(
     mock_list, mcp_server
 ) -> None:
@@ -390,32 +390,34 @@ class TestListDatabasesRequestPagination:
     """Schema-level pagination boundary tests — ``page`` is PositiveInt and
     ``page_size`` is constrained to (0, MAX_PAGE_SIZE]."""
 
-    def test_page_zero_rejected(self):
+    def test_page_zero_rejected(self) -> None:
         with pytest.raises(ValidationError, match="greater than 0"):
             ListDatabasesRequest(page=0)
 
-    def test_negative_page_rejected(self):
+    def test_negative_page_rejected(self) -> None:
         with pytest.raises(ValidationError, match="greater than 0"):
             ListDatabasesRequest(page=-1)
 
-    def test_page_size_zero_rejected(self):
+    def test_page_size_zero_rejected(self) -> None:
         with pytest.raises(ValidationError, match="greater than 0"):
             ListDatabasesRequest(page_size=0)
 
-    def test_page_size_over_max_rejected(self):
+    def test_page_size_over_max_rejected(self) -> None:
         with pytest.raises(
             ValidationError,
             match=f"less than or equal to {MAX_PAGE_SIZE}",
         ):
             ListDatabasesRequest(page_size=MAX_PAGE_SIZE + 1)
 
-    def test_page_size_at_max_accepted(self):
+    def test_page_size_at_max_accepted(self) -> None:
         request = ListDatabasesRequest(page_size=MAX_PAGE_SIZE)
         assert request.page_size == MAX_PAGE_SIZE
 
 
-@pytest.mark.asyncio
-async def test_list_databases_invalid_page_size_surfaces_as_tool_error(mcp_server):
+@pytest.mark.asyncio()
+async def test_list_databases_invalid_page_size_surfaces_as_tool_error(
+    mcp_server: FastMCP,
+) -> None:
     """page_size=0 is rejected before the tool body runs, surfacing as a
     structured ToolError rather than a raw 500."""
     async with Client(mcp_server) as client:
@@ -424,10 +426,10 @@ async def test_list_databases_invalid_page_size_surfaces_as_tool_error(mcp_serve
 
 
 @patch("superset.daos.database.DatabaseDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_databases_page_beyond_last_page_returns_empty(
-    mock_list, mcp_server
-):
+    mock_list: MagicMock, mcp_server: FastMCP
+) -> None:
     """A page far past the last page returns an empty list, not an error."""
     # DAO's offset lands past all rows; total_count still reflects the full set.
     mock_list.return_value = ([], 2)

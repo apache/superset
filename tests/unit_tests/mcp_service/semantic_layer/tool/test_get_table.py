@@ -22,6 +22,7 @@ from __future__ import annotations
 import importlib
 from collections.abc import Generator
 from types import ModuleType
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -115,7 +116,7 @@ def _access_denied_exc(message: str = "Access denied") -> SupersetSecurityExcept
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_builtin_happy_path(mcp_server: FastMCP) -> None:
     """get_table returns tabular data for a built-in dataset."""
     mock_ds = _make_dataset(42)
@@ -160,7 +161,7 @@ async def test_get_table_builtin_happy_path(mcp_server: FastMCP) -> None:
     assert data["dataset_id"] == 42
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_requires_one_source(mcp_server: FastMCP) -> None:
     """get_table errors when neither dataset_id nor view_id is provided."""
     async with Client(mcp_server) as client:
@@ -171,7 +172,7 @@ async def test_get_table_requires_one_source(mcp_server: FastMCP) -> None:
     assert data["error_type"] == "ValidationError"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_mutual_exclusion_validation(mcp_server: FastMCP) -> None:
     """get_table errors when both dataset_id and view_id are provided."""
     async with Client(mcp_server) as client:
@@ -184,7 +185,7 @@ async def test_get_table_mutual_exclusion_validation(mcp_server: FastMCP) -> Non
     assert data["error_type"] == "ValidationError"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_privacy_check(mcp_server: FastMCP) -> None:
     """get_table errors when the user lacks data-model metadata access."""
     with patch.object(
@@ -200,7 +201,7 @@ async def test_get_table_privacy_check(mcp_server: FastMCP) -> None:
     assert data["error_type"] == "DataModelMetadataRestricted"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_unknown_metric_validation_error(mcp_server: FastMCP) -> None:
     """get_table errors when a requested metric doesn't exist on the dataset."""
     mock_ds = _make_dataset(42)
@@ -218,7 +219,7 @@ async def test_get_table_unknown_metric_validation_error(mcp_server: FastMCP) ->
     assert "Valid metrics: revenue" in data["error"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_time_column_not_dttm_validation_error(
     mcp_server: FastMCP,
 ) -> None:
@@ -244,7 +245,7 @@ async def test_get_table_time_column_not_dttm_validation_error(
     assert "not marked as a datetime column" in data["message"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_external_view_access_denied(mcp_server: FastMCP) -> None:
     """get_table returns AccessDenied when raise_for_access rejects the view."""
     mock_view = _make_view(5)
@@ -265,7 +266,7 @@ async def test_get_table_external_view_access_denied(mcp_server: FastMCP) -> Non
     assert data["error_type"] == "AccessDenied"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_external_time_range_without_dttm_validation_error(
     mcp_server: FastMCP,
 ) -> None:
@@ -299,7 +300,7 @@ async def test_get_table_external_time_range_without_dttm_validation_error(
     assert "no datetime dimension" in data["message"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_dataset_not_found(mcp_server: FastMCP) -> None:
     """get_table returns NotFound when dataset_id doesn't resolve to a dataset."""
     with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=None):
@@ -315,7 +316,7 @@ async def test_get_table_dataset_not_found(mcp_server: FastMCP) -> None:
     assert "999999" in data["message"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_view_not_found(mcp_server: FastMCP) -> None:
     """get_table returns NotFound when view_id doesn't resolve to a view."""
     with patch(
@@ -334,7 +335,7 @@ async def test_get_table_view_not_found(mcp_server: FastMCP) -> None:
     assert "999999" in data["message"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_invalid_filter_column_validation_error(
     mcp_server: FastMCP,
 ) -> None:
@@ -360,7 +361,7 @@ async def test_get_table_invalid_filter_column_validation_error(
     assert "Unknown filter column: 'bogus_col'" in data["error"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_invalid_order_by_validation_error(
     mcp_server: FastMCP,
 ) -> None:
@@ -386,7 +387,7 @@ async def test_get_table_invalid_order_by_validation_error(
     assert "Unknown order_by: 'bogus_order_col'" in data["error"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_unknown_filter_operator_passes_through(
     mcp_server: FastMCP,
 ) -> None:
@@ -398,7 +399,7 @@ async def test_get_table_unknown_filter_operator_passes_through(
     interpreting/rejecting them.
     """
     mock_ds = _make_dataset(42)
-    query_result = {
+    query_result: dict[str, Any] = {
         "queries": [
             {
                 "data": [{"region": "west", "revenue": 100}],
@@ -442,13 +443,13 @@ async def test_get_table_unknown_filter_operator_passes_through(
     assert {"col": "region", "op": "TOTALLY_BOGUS_OP", "val": "x"} in forwarded_filters
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_unicode_filter_value_passes_through(
     mcp_server: FastMCP,
 ) -> None:
     """Unicode filter values are forwarded to the query layer unmodified."""
     mock_ds = _make_dataset(42)
-    query_result = {
+    query_result: dict[str, Any] = {
         "queries": [
             {
                 "data": [{"region": "west", "revenue": 100}],
@@ -457,7 +458,7 @@ async def test_get_table_unicode_filter_value_passes_through(
             }
         ]
     }
-    unicode_val = "日本語 café €"
+    unicode_val: str = "日本語 café €"
 
     with (
         patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds),
@@ -491,7 +492,7 @@ async def test_get_table_unicode_filter_value_passes_through(
     assert {"col": "region", "op": "==", "val": unicode_val} in forwarded_filters
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_builtin_time_range_without_configured_dttm_validation_error(
     mcp_server: FastMCP,
 ) -> None:

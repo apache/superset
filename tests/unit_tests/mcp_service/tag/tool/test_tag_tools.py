@@ -19,7 +19,7 @@ import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
-from fastmcp import Client
+from fastmcp import Client, FastMCP
 from fastmcp.exceptions import ToolError
 from pydantic import ValidationError
 
@@ -86,7 +86,7 @@ def mock_auth():
 
 
 @patch("superset.daos.tag.TagDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_tags_basic(mock_list, mcp_server):
     """Test basic tag listing functionality."""
     tag = create_mock_tag()
@@ -103,7 +103,7 @@ async def test_list_tags_basic(mock_list, mcp_server):
 
 
 @patch("superset.daos.tag.TagDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_tags_without_request(mock_list, mcp_server):
     """Test listing tags with no request payload uses defaults."""
     tag = create_mock_tag()
@@ -115,7 +115,7 @@ async def test_list_tags_without_request(mock_list, mcp_server):
 
 
 @patch("superset.daos.tag.TagDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_tags_with_search(mock_list, mcp_server):
     """Test tag listing with search functionality."""
     tag = create_mock_tag(name="sales")
@@ -128,7 +128,7 @@ async def test_list_tags_with_search(mock_list, mcp_server):
 
 
 @patch("superset.daos.tag.TagDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_tags_with_filters(mock_list, mcp_server):
     """Test tag listing with column filters."""
     tag = create_mock_tag(type_name="custom")
@@ -145,7 +145,7 @@ async def test_list_tags_with_filters(mock_list, mcp_server):
 
 
 @patch("superset.daos.tag.TagDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_tags_empty_results(mock_list, mcp_server):
     """Test tag listing with no results."""
     mock_list.return_value = ([], 0)
@@ -158,7 +158,7 @@ async def test_list_tags_empty_results(mock_list, mcp_server):
 
 
 @patch("superset.daos.tag.TagDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_tags_api_error(mock_list, mcp_server):
     """Test error handling when DAO raises an exception."""
     mock_list.side_effect = ToolError("Tag DAO error")
@@ -179,7 +179,7 @@ def test_list_tags_search_and_filters_mutually_exclusive():
 
 
 @patch("superset.daos.tag.TagDAO.find_by_id")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_tag_info_basic(mock_find, mcp_server):
     """Test basic get tag info functionality."""
     tag = create_mock_tag()
@@ -195,7 +195,7 @@ async def test_get_tag_info_basic(mock_find, mcp_server):
 
 
 @patch("superset.daos.tag.TagDAO.find_by_id")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_tag_info_sanitizes_user_controlled_fields(mock_find, mcp_server):
     """name and description are wrapped in UNTRUSTED-CONTENT for LLM data boundary."""
     tag = create_mock_tag()
@@ -210,7 +210,7 @@ async def test_get_tag_info_sanitizes_user_controlled_fields(mock_find, mcp_serv
 
 
 @patch("superset.daos.tag.TagDAO.find_by_id")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_tag_info_not_found(mock_find, mcp_server):
     """Test get tag info when tag does not exist."""
     mock_find.return_value = None
@@ -223,7 +223,7 @@ async def test_get_tag_info_not_found(mock_find, mcp_server):
 
 
 @patch("superset.daos.tag.TagDAO.find_by_id")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_tag_info_serializes_type_name(mock_find, mcp_server):
     """Test that the tag type enum is serialized as its name string."""
     tag = create_mock_tag(type_name="editor")
@@ -235,7 +235,7 @@ async def test_get_tag_info_serializes_type_name(mock_find, mcp_server):
 
 
 @patch("superset.daos.tag.TagDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_tags_select_columns_filters_response(mock_list, mcp_server):
     """select_columns restricts the fields returned in each tag object."""
     tag = create_mock_tag()
@@ -253,7 +253,7 @@ async def test_list_tags_select_columns_filters_response(mock_list, mcp_server):
 
 
 @patch("superset.daos.tag.TagDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_tags_default_columns_are_id_name_type(mock_list, mcp_server):
     """Default response includes id, name, type but not description or timestamps."""
     tag = create_mock_tag()
@@ -278,32 +278,34 @@ class TestListTagsRequestPagination:
     """Schema-level pagination boundary tests — ``page`` is PositiveInt and
     ``page_size`` is constrained to (0, MAX_PAGE_SIZE]."""
 
-    def test_page_zero_rejected(self):
+    def test_page_zero_rejected(self) -> None:
         with pytest.raises(ValidationError, match="greater than 0"):
             ListTagsRequest(page=0)
 
-    def test_negative_page_rejected(self):
+    def test_negative_page_rejected(self) -> None:
         with pytest.raises(ValidationError, match="greater than 0"):
             ListTagsRequest(page=-1)
 
-    def test_page_size_zero_rejected(self):
+    def test_page_size_zero_rejected(self) -> None:
         with pytest.raises(ValidationError, match="greater than 0"):
             ListTagsRequest(page_size=0)
 
-    def test_page_size_over_max_rejected(self):
+    def test_page_size_over_max_rejected(self) -> None:
         with pytest.raises(
             ValidationError,
             match=f"less than or equal to {MAX_PAGE_SIZE}",
         ):
             ListTagsRequest(page_size=MAX_PAGE_SIZE + 1)
 
-    def test_page_size_at_max_accepted(self):
+    def test_page_size_at_max_accepted(self) -> None:
         request = ListTagsRequest(page_size=MAX_PAGE_SIZE)
         assert request.page_size == MAX_PAGE_SIZE
 
 
-@pytest.mark.asyncio
-async def test_list_tags_invalid_page_size_surfaces_as_tool_error(mcp_server):
+@pytest.mark.asyncio()
+async def test_list_tags_invalid_page_size_surfaces_as_tool_error(
+    mcp_server: FastMCP,
+) -> None:
     """page_size=0 is rejected before the tool body runs, surfacing as a
     structured ToolError rather than a raw 500."""
     async with Client(mcp_server) as client:
@@ -312,8 +314,10 @@ async def test_list_tags_invalid_page_size_surfaces_as_tool_error(mcp_server):
 
 
 @patch("superset.daos.tag.TagDAO.list")
-@pytest.mark.asyncio
-async def test_list_tags_page_beyond_last_page_returns_empty(mock_list, mcp_server):
+@pytest.mark.asyncio()
+async def test_list_tags_page_beyond_last_page_returns_empty(
+    mock_list: MagicMock, mcp_server: FastMCP
+) -> None:
     """A page far past the last page returns an empty list, not an error."""
     # DAO's offset lands past all rows; total_count still reflects the full set.
     mock_list.return_value = ([], 3)

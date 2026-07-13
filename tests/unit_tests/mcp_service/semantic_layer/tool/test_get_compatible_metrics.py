@@ -22,6 +22,7 @@ from __future__ import annotations
 import importlib
 from collections.abc import Generator
 from types import ModuleType
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -105,7 +106,7 @@ def _access_denied_exc(message: str = "Access denied") -> SupersetSecurityExcept
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_compatible_metrics_builtin_happy_path(mcp_server: FastMCP) -> None:
     """Builtin datasets return all metrics for a valid dimension selection."""
     mock_ds = _make_dataset(42)
@@ -124,7 +125,7 @@ async def test_get_compatible_metrics_builtin_happy_path(mcp_server: FastMCP) ->
     assert names == {"count", "revenue"}
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_compatible_metrics_builtin_excludes_selected_metrics(
     mcp_server: FastMCP,
 ) -> None:
@@ -148,7 +149,7 @@ async def test_get_compatible_metrics_builtin_excludes_selected_metrics(
     assert names == {"revenue"}
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_compatible_metrics_builtin_unknown_selection(
     mcp_server: FastMCP,
 ) -> None:
@@ -175,7 +176,7 @@ async def test_get_compatible_metrics_builtin_unknown_selection(
     assert "Unknown dimension: 'bogus_dim'" in data["error"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_compatible_metrics_external_happy_path(mcp_server: FastMCP) -> None:
     """External views delegate to view.get_compatible_metrics()."""
     mock_view = _make_view(5)
@@ -197,7 +198,7 @@ async def test_get_compatible_metrics_external_happy_path(mcp_server: FastMCP) -
     mock_view.get_compatible_metrics.assert_called_once_with([], ["country_name"])
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_compatible_metrics_mutual_exclusion_validation(
     mcp_server: FastMCP,
 ) -> None:
@@ -213,7 +214,7 @@ async def test_get_compatible_metrics_mutual_exclusion_validation(
     assert data["error_type"] == "ValidationError"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_compatible_metrics_requires_one_source(
     mcp_server: FastMCP,
 ) -> None:
@@ -226,7 +227,7 @@ async def test_get_compatible_metrics_requires_one_source(
     assert data["error_type"] == "ValidationError"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_compatible_metrics_privacy_check(mcp_server: FastMCP) -> None:
     """Errors when the user lacks data-model metadata access."""
     with patch.object(
@@ -244,7 +245,7 @@ async def test_get_compatible_metrics_privacy_check(mcp_server: FastMCP) -> None
     assert data["error_type"] == "DataModelMetadataRestricted"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_compatible_metrics_external_access_denied(
     mcp_server: FastMCP,
 ) -> None:
@@ -266,7 +267,7 @@ async def test_get_compatible_metrics_external_access_denied(
     assert data["error_type"] == "AccessDenied"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_compatible_metrics_not_found(mcp_server: FastMCP) -> None:
     """Returns NotFound when the dataset doesn't exist."""
     with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=None):
@@ -280,7 +281,7 @@ async def test_get_compatible_metrics_not_found(mcp_server: FastMCP) -> None:
     assert data["error_type"] == "NotFound"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_compatible_metrics_builtin_empty_selection(
     mcp_server: FastMCP,
 ) -> None:
@@ -290,7 +291,7 @@ async def test_get_compatible_metrics_builtin_empty_selection(
     (nothing picked yet), so it must return all dataset metrics rather than
     a validation failure.
     """
-    mock_ds = _make_dataset(42)
+    mock_ds: MagicMock = _make_dataset(42)
 
     with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds):
         async with Client(mcp_server) as client:
@@ -304,19 +305,19 @@ async def test_get_compatible_metrics_builtin_empty_selection(
                     }
                 },
             )
-        data = json.loads(result.content[0].text)
+        data: dict[str, Any] = json.loads(result.content[0].text)
 
     assert data["success"] is True
-    names = {m["name"] for m in data["compatible_metrics"]}
+    names: set[str] = {m["name"] for m in data["compatible_metrics"]}
     assert names == {"count", "revenue"}
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_compatible_metrics_external_empty_selection(
     mcp_server: FastMCP,
 ) -> None:
     """External views handle an explicitly empty selection without error."""
-    mock_view = _make_view(5)
+    mock_view: MagicMock = _make_view(5)
     mock_view.get_compatible_metrics = MagicMock(return_value=[])
 
     with patch(
@@ -341,12 +342,12 @@ async def test_get_compatible_metrics_external_empty_selection(
     mock_view.get_compatible_metrics.assert_called_once_with([], [])
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_compatible_metrics_unicode_unknown_selection_validation_error(
     mcp_server: FastMCP,
 ) -> None:
     """Unicode/special-character names in an unknown selection surface cleanly."""
-    mock_ds = _make_dataset(42)
+    mock_ds: MagicMock = _make_dataset(42)
 
     with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds):
         async with Client(mcp_server) as client:

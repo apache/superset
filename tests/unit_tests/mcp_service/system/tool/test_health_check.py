@@ -18,10 +18,12 @@
 """Tests for health_check MCP tool."""
 
 import importlib
-from unittest.mock import Mock, patch
+from collections.abc import Iterator
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-from fastmcp import Client
+from fastmcp import Client, FastMCP
+from flask import Flask
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.system.schemas import HealthCheckResponse
@@ -36,12 +38,12 @@ health_check_module = importlib.import_module(
 
 
 @pytest.fixture
-def mcp_server():
+def mcp_server() -> FastMCP:
     return mcp
 
 
 @pytest.fixture(autouse=True)
-def mock_auth():
+def mock_auth() -> Iterator[MagicMock]:
     """Mock authentication for all tests."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
         mock_user = Mock()
@@ -91,8 +93,8 @@ def test_health_check_response_with_uptime():
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
-async def test_health_check_success_via_client(mcp_server):
+@pytest.mark.asyncio()
+async def test_health_check_success_via_client(mcp_server: FastMCP) -> None:
     """Happy path: tool returns a healthy status with real system info."""
     with patch.object(
         health_check_module,
@@ -111,9 +113,13 @@ async def test_health_check_success_via_client(mcp_server):
     assert data["uptime_seconds"] >= 0
 
 
-@pytest.mark.asyncio
-async def test_health_check_uses_configured_app_name(mcp_server, app):
+@pytest.mark.asyncio()
+async def test_health_check_uses_configured_app_name(
+    mcp_server: FastMCP, app: Flask
+) -> None:
     """service name is derived from the APP_NAME config, not hardcoded."""
+    had_app_name = "APP_NAME" in app.config
+    original_app_name = app.config.get("APP_NAME")
     app.config["APP_NAME"] = "Acme Analytics"
     try:
         with patch.object(
@@ -124,16 +130,19 @@ async def test_health_check_uses_configured_app_name(mcp_server, app):
             async with Client(mcp_server) as client:
                 result = await client.call_tool("health_check", {})
     finally:
-        app.config.pop("APP_NAME", None)
+        if had_app_name:
+            app.config["APP_NAME"] = original_app_name
+        else:
+            app.config.pop("APP_NAME", None)
 
     data = json.loads(result.content[0].text)
     assert data["service"] == "Acme Analytics MCP Service"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_health_check_returns_error_status_when_version_metadata_raises(
-    mcp_server,
-):
+    mcp_server: FastMCP,
+) -> None:
     """The except branch returns a degraded response instead of raising.
 
     get_version_metadata() is called inside the try block; when it raises,
@@ -160,8 +169,10 @@ async def test_health_check_returns_error_status_when_version_metadata_raises(
     assert data["timestamp"] is not None
 
 
-@pytest.mark.asyncio
-async def test_health_check_returns_error_status_when_log_context_raises(mcp_server):
+@pytest.mark.asyncio()
+async def test_health_check_returns_error_status_when_log_context_raises(
+    mcp_server: FastMCP,
+) -> None:
     """A failure inside the event_logger.log_context block also degrades gracefully."""
     with patch.object(
         health_check_module.event_logger,

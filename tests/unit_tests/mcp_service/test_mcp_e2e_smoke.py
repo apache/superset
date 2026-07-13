@@ -89,6 +89,7 @@ async def _run_asgi_lifespan(app: Starlette) -> AsyncIterator[None]:
     startup_complete = anyio.Event()
     shutdown_complete = anyio.Event()
     startup_failure: list[str] = []
+    shutdown_failure: list[str] = []
 
     async def receive() -> ASGIMessage:
         return await receive_stream.receive()
@@ -102,7 +103,9 @@ async def _run_asgi_lifespan(app: Starlette) -> AsyncIterator[None]:
         elif message["type"] == "lifespan.shutdown.complete":
             shutdown_complete.set()
         elif message["type"] == "lifespan.shutdown.failed":
+            shutdown_failure.append(message.get("message", "shutdown failed"))
             shutdown_complete.set()
+
     async with anyio.create_task_group() as task_group:
         task_group.start_soon(
             app, {"type": "lifespan", "asgi": {"version": "3.0"}}, receive, send
@@ -116,6 +119,10 @@ async def _run_asgi_lifespan(app: Starlette) -> AsyncIterator[None]:
         finally:
             await send_stream.send({"type": "lifespan.shutdown"})
             await shutdown_complete.wait()
+            if shutdown_failure:
+                raise RuntimeError(
+                    f"ASGI app failed to shut down: {shutdown_failure[0]}"
+                )
 
 
 @contextlib.asynccontextmanager
@@ -164,12 +171,14 @@ async def _real_asgi_client() -> AsyncIterator[Client]:
             async with Client(transport) as client:
                 yield client
     finally:
-        # Restore the shared FastMCP singleton's middleware list so this
-        # file cannot leak state into other mcp_service tests.
+        # Restore the shared FastMCP singleton's middleware list in place
+        # (not by reassignment) so this file cannot leak state into other
+        # mcp_service tests, even if something else holds a reference to
+        # the original list object.
         mcp.middleware[:] = original_middleware
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_tools_list_over_real_asgi_transport() -> None:
     """``tools/list`` round-trips over the real ASGI app + JSON-RPC wire protocol.
 
@@ -188,7 +197,7 @@ async def test_tools_list_over_real_asgi_transport() -> None:
     assert "health_check" in tool_names
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_tools_call_health_check_over_real_asgi_transport() -> None:
     """A real ``tools/call`` for ``health_check`` over the real ASGI transport.
 
