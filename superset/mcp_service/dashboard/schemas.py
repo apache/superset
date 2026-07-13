@@ -360,7 +360,20 @@ class DashboardInfo(BaseModel):
     owners: List[UserInfo] = Field(default_factory=list)
     tags: List[TagInfo] = Field(default_factory=list)
     roles: List[RoleInfo] = Field(default_factory=list)
-    charts: List[DashboardChartSummary] = Field(default_factory=list)
+    charts: List[DashboardChartSummary] = Field(
+        default_factory=list,
+        description=(
+            "Charts on this dashboard. May be capped below chart_count "
+            "(cap: MCP_RESPONSE_SIZE_CONFIG['max_list_items']) when the full "
+            "response would exceed the token budget. "
+            "Compare len(charts) to chart_count to detect this. For "
+            "dashboards with more charts than the cap, call list_charts "
+            "with filters=[{'col': 'dashboards', 'opr': 'eq', "
+            "'value': <this dashboard's id>}] and page through with "
+            "page/page_size to retrieve the complete list regardless of "
+            "size."
+        ),
+    )
 
     # Structured filter information extracted from json_metadata
     native_filters: List[NativeFilterSummary] = Field(
@@ -368,7 +381,9 @@ class DashboardInfo(BaseModel):
         description=(
             "Native filters configured on this dashboard. Extracted from "
             "json_metadata for LLM consumption — includes filter name, type, "
-            "and target columns."
+            "and target columns. Subject to the same max_list_items cap as "
+            "charts, though dashboards rarely have enough native filters to "
+            "hit it."
         ),
     )
     cross_filters_enabled: bool | None = Field(

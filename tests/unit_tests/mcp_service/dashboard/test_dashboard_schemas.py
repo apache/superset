@@ -30,6 +30,7 @@ from pydantic import ValidationError
 from superset.mcp_service.dashboard.schemas import (
     _extract_cross_filters_enabled,
     _extract_native_filters,
+    DashboardInfo,
     GenerateDashboardRequest,
     serialize_dashboard_object,
 )
@@ -403,3 +404,30 @@ class TestGenerateDashboardRequestTitleSanitization:
         assert len(req.sanitization_warnings) == 1
         assert "dashboard_title" in req.sanitization_warnings[0]
         assert "injected" not in req.sanitization_warnings[0]
+
+
+class TestDashboardInfoLargeListGuidance:
+    """DashboardInfo documents how agents can retrieve charts/native_filters
+    beyond the response-size guard's list-item cap.
+
+    Regression test for the Medialab large-dashboard report: with the old
+    hardcoded 30-item cap and no documented escape hatch, agents had no way
+    to retrieve the rest of a dashboard's charts. These field descriptions
+    are the "documented, agent-usable way to access items beyond the cap"
+    called for by the story's acceptance criteria.
+    """
+
+    def test_charts_field_documents_list_charts_escape_hatch(self) -> None:
+        """The charts field description points to list_charts pagination."""
+        description: str | None = DashboardInfo.model_fields["charts"].description
+        assert description is not None
+        assert "list_charts" in description
+
+    def test_native_filters_field_documents_max_list_items_config(self) -> None:
+        """The native_filters field description mentions the configurable cap."""
+        description: str | None = DashboardInfo.model_fields[
+            "native_filters"
+        ].description
+        assert description is not None
+        assert "max_list_items" in description
+

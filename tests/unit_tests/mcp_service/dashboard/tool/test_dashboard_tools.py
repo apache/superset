@@ -20,6 +20,7 @@ Unit tests for MCP dashboard tools (list_dashboards, get_dashboard_info)
 """
 
 import logging
+from importlib import import_module
 from unittest.mock import Mock, patch
 
 import pytest
@@ -34,6 +35,9 @@ from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+get_dashboard_info_module = import_module(
+    "superset.mcp_service.dashboard.tool.get_dashboard_info"
+)
 
 
 @pytest.fixture
@@ -286,6 +290,20 @@ async def test_list_dashboards_with_simple_filters(mock_list, mcp_server):
         )
         data = json.loads(result.content[0].text)
         assert "count" in data
+
+
+def test_get_dashboard_info_docstring_documents_list_charts_escape_hatch() -> None:
+    """The tool docstring tells agents how to page past the charts cap.
+
+    Regression test for the Medialab large-dashboard report: agents calling
+    get_dashboard_info on a dashboard with more charts than the response-size
+    guard's cap need a documented way to retrieve the rest. This is surfaced
+    to the LLM via the tool's docstring (in addition to the charts field
+    description on DashboardInfo).
+    """
+    doc = get_dashboard_info_module.get_dashboard_info.__doc__
+    assert doc is not None
+    assert "list_charts" in doc
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
