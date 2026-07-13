@@ -281,7 +281,14 @@ export default function EchartsTimeseries({
                 col: xAxis.label,
                 op: '==',
                 val: categoryAxisValue,
-                formattedVal: String(categoryAxisValue),
+                // Format the label the same way the groupby drill path does
+                // so the breadcrumb and cross-filter show formatted values
+                // (dates/decimals) rather than raw ones.
+                formattedVal: formatSeriesName(categoryAxisValue, {
+                  timeFormatter: getTimeFormatter(formData.dateFormat),
+                  numberFormatter: getNumberFormatter(formData.numberFormat),
+                  coltype: coltypeMapping?.[xAxis.label],
+                }),
               });
             }
           } else if (props.componentType === 'series' && props.name != null) {
@@ -291,7 +298,11 @@ export default function EchartsTimeseries({
               col: xAxis.label,
               op: '==',
               val: props.name,
-              formattedVal: String(props.name),
+              formattedVal: formatSeriesName(props.name, {
+                timeFormatter: getTimeFormatter(formData.dateFormat),
+                numberFormatter: getNumberFormatter(formData.numberFormat),
+                coltype: coltypeMapping?.[xAxis.label],
+              }),
             });
           }
           // Cross-filter is emitted by the DrillDownHost with the full
