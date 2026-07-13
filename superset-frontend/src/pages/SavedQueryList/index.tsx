@@ -62,7 +62,7 @@ import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
 import { Icons } from '@superset-ui/core/components/Icons';
 import copyTextToClipboard from 'src/utils/copy';
-import type Owner from 'src/types/Owner';
+import type User from 'src/types/User';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
 import { findPermission } from 'src/utils/findPermission';
@@ -95,8 +95,8 @@ interface SavedQueryListProps {
 type SavedQueryCellProps = {
   row: {
     original: SavedQueryObject & {
-      changed_by?: Owner | null;
-      created_by?: Owner | null;
+      changed_by?: User | null;
+      created_by?: User | null;
     };
   };
 };
@@ -541,8 +541,9 @@ function SavedQueryList({
         key: 'search',
         input: 'search',
         operator: FilterOperator.AllText,
-        toolTipDescription:
+        toolTipDescription: t(
           'Searches all text fields: Name, Description, Database & Schema',
+        ),
       },
       {
         Header: t('Database'),

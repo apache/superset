@@ -59,6 +59,7 @@ from superset.constants import (
 from superset.jinja_context import BaseTemplateProcessor
 from superset.key_value.types import JsonKeyValueCodec
 from superset.stats_logger import DummyStatsLogger
+from superset.subjects.types import SubjectType
 from superset.superset_typing import CacheConfig
 from superset.tasks.types import ExecutorType
 from superset.themes.types import Theme
@@ -223,6 +224,20 @@ SUPERSET_WEBSERVER_TIMEOUT = int(timedelta(minutes=1).total_seconds())
 # please check PR #9886
 SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT = 0
 SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE = None
+
+# Manual dashboard refresh can stagger chart data requests across this many
+# milliseconds so they do not all hit the backend at the same instant. This
+# defaults to 0, which preserves the original behavior where every chart
+# request fires at the same time when the user clicks the Refresh dashboard
+# button. Set a positive value to opt in to staggering; the frontend then
+# uses the larger of this value and the dashboard's stagger_time metadata,
+# which itself defaults to 5000 ms when it is not set explicitly. A dashboard
+# with stagger_refresh set to false in its metadata skips staggering on the
+# manual refresh path entirely, even when this value is positive.
+# If the backend does not provide this value at all (an older backend that
+# predates the key, or it is set to None), the frontend falls back to a
+# built-in default of 5000 ms.
+SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS: int = 0
 
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
 CUSTOM_SECURITY_MANAGER = None
@@ -430,6 +445,9 @@ APP_ICON = "/static/assets/images/superset-logo-horiz.png"
 # (THEME_DEFAULT["token"]["brandLogoHref"]); see sync_theme_logo_href below.
 LOGO_TARGET_PATH = None
 
+# When True, hide the navbar logo.
+HIDE_NAVBAR_LOGO: bool = False
+
 # Specify tooltip that should appear when hovering over the App Icon/Logo
 # NOTE: This variable is deprecated and not used in the new theme system.
 LOGO_TOOLTIP = ""
@@ -520,6 +538,12 @@ LANGUAGES = {
     "uk": {"flag": "ua", "name": "Ukrainian"},
     "mi": {"flag": "nz", "name": "Māori"},
     "ro": {"flag": "ro", "name": "Romanian"},
+    "ar": {"flag": "sa", "name": "Arabic"},
+    "ca": {"flag": "es", "name": "Catalan"},
+    "fa": {"flag": "ir", "name": "Persian"},
+    "fi": {"flag": "fi", "name": "Finnish"},
+    "th": {"flag": "th", "name": "Thai"},
+    "tr": {"flag": "tr", "name": "Turkish"},
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
@@ -702,9 +726,15 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: testing
     # @docs: https://superset.apache.org/docs/configuration/alerts-reports
     "ALERT_REPORTS": False,
-    # Enables Slack V2 integration for Alerts and Reports
+    # Enables Slack V2 integration for Alerts and Reports.
+    # Defaults to True; the legacy Slack v1 path is deprecated and will be removed
+    # in the next major release. Operators must grant the Slack bot both the
+    # `channels:read` and `groups:read` scopes so existing v1 recipients can be
+    # auto-upgraded on their next send. Without those scopes, file uploads fail
+    # (Slack retired the `files.upload` endpoint in 2025) and only text-only
+    # `chat_postMessage` sends will continue to work via the legacy path.
     # @lifecycle: testing
-    "ALERT_REPORT_SLACK_V2": False,
+    "ALERT_REPORT_SLACK_V2": True,
     # Enables webhook integration for Alerts and Reports
     # @lifecycle: testing
     "ALERT_REPORT_WEBHOOK": False,
@@ -806,11 +836,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: stable
     # @category: runtime_config
     "CSS_TEMPLATES": True,
-    # Role-based access control for dashboards
-    # @lifecycle: stable
-    # @category: runtime_config
-    # @docs: https://superset.apache.org/docs/using-superset/creating-your-first-dashboard
-    "DASHBOARD_RBAC": False,
+    # Subject-based viewer access control for dashboards and charts.
+    # When enabled, resources can have explicit viewer Subject assignments.
+    # @lifecycle: testing
+    # @category: security
+    "ENABLE_VIEWERS": False,
     # Supports simultaneous data and dashboard virtualization for backend performance
     # @lifecycle: stable
     # @category: runtime_config
@@ -896,9 +926,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # These flags default to True and will be removed in a future major
     # release. Set to True in your config to avoid unexpected changes.
     # -----------------------------------------------------------------
-    # Avoid color collisions in charts by using distinct colors
-    # @lifecycle: deprecated
-    "AVOID_COLORS_COLLISION": True,
     # Enable drill-to-detail functionality in charts
     # @lifecycle: deprecated
     "DRILL_TO_DETAIL": True,
@@ -1119,6 +1146,9 @@ def sync_theme_logo_href(
 # Enable UI-based theme administration for admins
 ENABLE_UI_THEME_ADMINISTRATION = True  # Allows admins to set system themes via UI
 
+# Default theme mode for sessions without a saved user preference.
+THEME_DEFAULT_MODE: Literal["default", "dark", "system"] = "system"
+
 # Maximum number of font URLs allowed per theme.
 THEME_FONTS_MAX_URLS: int = 15
 
@@ -1149,17 +1179,20 @@ THEME_FONT_URL_ALLOWED_DOMAINS: list[str] = [
 EXTRA_SEQUENTIAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
 # User used to execute cache warmup tasks
-# By default, the cache is warmed up using the primary owner. To fall back to using
-# a fixed user (admin in this example), use the following configuration:
+# By default, the cache is warmed up using a physical user represented by the
+# editors (giving priority to the last modifier, then the creator, then the first
+# direct user editor, then a deterministic user from editor role/group subjects).
+# To fall back to using a fixed user (admin in this example), use the following
+# configuration:
 #
 # from superset.tasks.types import ExecutorType, FixedExecutor
 #
-# CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER, FixedExecutor("admin")]
+# CACHE_WARMUP_EXECUTORS = [ExecutorType.EDITOR, FixedExecutor("admin")]
 #
 # NOTE: The `cache-warmup` Celery task no longer consults CACHE_WARMUP_EXECUTORS.
 # It authenticates as the single user configured via SUPERSET_CACHE_WARMUP_USER
 # (defined below). This setting is retained for other executor-based code paths.
-CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER]
+CACHE_WARMUP_EXECUTORS = [ExecutorType.EDITOR]
 
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
@@ -1207,6 +1240,35 @@ THUMBNAIL_COMPUTING_CACHE_TTL = int(timedelta(seconds=360).total_seconds())
 # Celery task. Intentionally defaults to None so operators pick a dedicated
 # least-privilege user rather than inadvertently running warmup as "admin".
 SUPERSET_CACHE_WARMUP_USER: str | None = None
+# To warm up native filter option queries, use the `native_filter_options` strategy.
+# This strategy pre-populates the cache for Value-type native filter dropdowns by
+# executing the same chart-data queries the UI sends when a user opens a filter.
+#
+# Cache entries are warmed under SUPERSET_CACHE_WARMUP_USER. Without the shared
+# cache key optimization (not included in this PR), entries are scoped to the
+# warm-up user's normal cache partition. Users with different role sets may still
+# experience cache misses on first load.
+#
+# Example Celery beat configuration:
+#
+#     beat_schedule = {
+#         "cache-warmup-native-filters": {
+#             "task": "cache-warmup",
+#             "schedule": crontab(minute=0, hour=3),  # daily at 03:00
+#             "kwargs": {
+#                 "strategy_name": "native_filter_options",
+#                 "dashboard_ids": [1, 2, 3],
+#             },
+#         },
+#     }
+#
+# Requirements:
+# - SUPERSET_CACHE_WARMUP_USER must be set to a user with access to the
+#   dashboards and datasets referenced by the native filters.
+# - DATA_CACHE_CONFIG must be configured (Redis recommended).
+# - Celery beat must be running.
+# - Cascade/dependent filters and search-term variants are not warmed in this
+#   version; only base option queries are supported.
 
 # Time before selenium times out after trying to locate an element on the page and wait
 # for that element to load for a screenshot.
@@ -1314,7 +1376,11 @@ CORS_OPTIONS: dict[Any, Any] = {
     "origins": [
         "https://tile.openstreetmap.org",
         "https://tile.osm.ch",
-    ]
+    ],
+    # Make the entity-version-history `ETag` header readable by cross-origin
+    # browser clients. Without this, `fetch()` callers cannot read the header
+    # even when CORS is otherwise permissive.
+    "expose_headers": ["ETag"],
 }
 
 # Sanitizes the HTML content used in markdowns to allow its rendering in a safe manner.
@@ -1494,6 +1560,21 @@ DATETIME_FORMAT_DETECTION_SAMPLE_SIZE = 1000
 # The limit for the Superset Meta DB when the feature flag ENABLE_SUPERSET_META_DB is on
 SUPERSET_META_DB_LIMIT: int | None = 1000
 
+# Master switch for entity-version-history capture. Ships defaulted ``False``
+# so the versioning infrastructure (schema + Continuum wiring) lands inert:
+# no save writes shadow rows or a ``version_transaction``/``version_changes``
+# record, while the /versions/ endpoints stay available read-only (returning
+# empty). Set to ``True`` in ``superset_config.py`` (or via the env var of the
+# same name) to enable the before-flush listeners that drive capture.
+# Capture is activated by flipping this default to on once validated in
+# production. It is an operational escape hatch — for use when a
+# versioning-induced regression needs a 30-second recovery instead of
+# revert-and-redeploy — not a feature flag, and remains as the permanent
+# kill-switch.
+ENABLE_VERSIONING_CAPTURE: bool = utils.parse_boolean_string(
+    os.environ.get("ENABLE_VERSIONING_CAPTURE", "false")
+)
+
 # Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None
 SQLLAB_SCHEDULE_WARNING_MESSAGE = None
@@ -1526,7 +1607,7 @@ DASHBOARD_AUTO_REFRESH_INTERVALS = [
 
 # Performance optimization: Return only custom tags in dashboard list API
 # When enabled, filters out implicit tags (owner, type, favorited_by) at SQL JOIN level
-# Reduces response payload and query time for dashboards with many owners
+# Reduces response payload and query time for dashboards with many editors
 DASHBOARD_LIST_CUSTOM_TAGS_ONLY: bool = False
 
 # This is used as a workaround for the alerts & reports scheduler task to get the time
@@ -2150,7 +2231,7 @@ def EMAIL_HEADER_MUTATOR(  # pylint: disable=invalid-name,unused-argument  # noq
 
 
 # Define a list of usernames to be excluded from all dropdown lists of users
-# Owners, filters for created_by, etc.
+# Editors, filters for created_by, etc.
 # The users can also be excluded by overriding the get_exclude_users_from_lists method
 # in security manager
 EXCLUDE_USERS_FROM_LISTS: list[str] | None = None
@@ -2175,25 +2256,27 @@ MACHINE_AUTH_PROVIDER_CLASS = "superset.utils.machine_auth.MachineAuthProvider"
 ALERT_REPORTS_CRON_WINDOW_SIZE = 59
 ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 # Which user to attempt to execute Alerts/Reports as. By default,
-# execute as the primary owner of the alert/report (giving priority to the last
-# modifier and then the creator if either is contained within the list of owners,
-# otherwise the first owner will be used).
+# execute as a physical user represented by the alert/report editors (giving
+# priority to the last modifier and then the creator if either is an editor,
+# otherwise the first direct user editor, then a deterministic user from editor
+# role/group subjects). Editor resolution checks both direct user-type subjects
+# and indirect membership through role/group subjects.
 #
-# To first try to execute as the creator in the owners list (if present), then fall
-# back to the creator, then the last modifier in the owners list (if present), then the
-# last modifier, then an owner and finally the "admin" user, set as follows:
+# To first try to execute as the creator if they're an editor (directly or via
+# role/group), then fall back to the creator, then the last modifier if they're an
+# editor, then the last modifier, then any editor, and finally the "admin" user:
 #
 # from superset.tasks.types import ExecutorType, FixedExecutor
 #
 # ALERT_REPORTS_EXECUTORS = [
-#     ExecutorType.CREATOR_OWNER,
+#     ExecutorType.CREATOR_EDITOR,
 #     ExecutorType.CREATOR,
-#     ExecutorType.MODIFIER_OWNER,
+#     ExecutorType.MODIFIER_EDITOR,
 #     ExecutorType.MODIFIER,
-#     ExecutorType.OWNER,
+#     ExecutorType.EDITOR,
 #     FixedExecutor("admin"),
 # ]
-ALERT_REPORTS_EXECUTORS: list[ExecutorType] = [ExecutorType.OWNER]
+ALERT_REPORTS_EXECUTORS: list[ExecutorType] = [ExecutorType.EDITOR]
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
 ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
@@ -2751,8 +2834,8 @@ ENVIRONMENT_TAG_CONFIG = {
 
 
 # Extra related query filters make it possible to limit which objects are shown
-# in the UI. For examples, to only show "admin" or users starting with the letter "b" in
-# the "Owners" dropdowns, you could add the following in your config:
+# in the UI. For example, to only show "admin" or users starting with the letter "b"
+# in subject dropdowns, you could add the following in your config:
 # def user_filter(query: Query, *args, *kwargs):
 #     from superset import security_manager
 #
@@ -2765,14 +2848,35 @@ ENVIRONMENT_TAG_CONFIG = {
 #
 #  EXTRA_RELATED_QUERY_FILTERS = {"user": user_filter}
 #
-# Similarly, to restrict the roles in the "Roles" dropdown you can provide a custom
-# filter callback for the "role" key.
+# Similarly, to restrict the roles or groups in their respective dropdowns you can
+# provide custom filter callbacks for the "role" and "group" keys.
 class ExtraRelatedQueryFilters(TypedDict, total=False):
     role: Callable[[Query], Query]
     user: Callable[[Query], Query]
+    group: Callable[[Query], Query]
 
 
 EXTRA_RELATED_QUERY_FILTERS: ExtraRelatedQueryFilters = {}
+
+# When True, viewers of a dashboard/chart bypass dataset-level RBAC checks.
+# Only effective when ENABLE_VIEWERS is on.
+VIEWER_PROMISCUOUS_MODE = False
+
+# Default Subject types shown in editor/viewer/subject pickers.
+# Entity-specific SUBJECTS_RELATED_TYPES_* settings can replace this default.
+# None = show all types (USER, ROLE, GROUP).
+SUBJECTS_RELATED_TYPES: list[SubjectType] | None = [
+    SubjectType.USER,
+    SubjectType.GROUP,
+]
+
+# Per-entity overrides for the default SUBJECTS_RELATED_TYPES picker behavior.
+# When set, the entity-specific list completely replaces the global default.
+# None = inherit global behavior.
+SUBJECTS_RELATED_TYPES_DASHBOARDS: list[SubjectType] | None = None
+SUBJECTS_RELATED_TYPES_CHARTS: list[SubjectType] | None = None
+SUBJECTS_RELATED_TYPES_RLS: list[SubjectType] | None = None
+SUBJECTS_RELATED_TYPES_ALERT_REPORTS: list[SubjectType] | None = None
 
 
 # Extra dynamic query filters make it possible to limit which objects are shown
@@ -2809,9 +2913,9 @@ class ExtraAccessQueryFilters(TypedDict, total=False):
 EXTRA_ACCESS_QUERY_FILTERS: ExtraAccessQueryFilters = {}
 # Bypass raise_for_access for specific assets. Return True to skip checks.
 EXTRA_RAISE_FOR_ACCESS_BYPASS: Callable[..., bool] | None = None
-# Resolve extra owners for a resource. Also used for ownership checks and
-# to skip auto-adding the current user to owners on create.
-EXTRA_OWNERS_RESOLVER: Callable[..., list[Any]] | None = None
+# Resolve additional editor subjects for a resource. Also used for editorship
+# checks and lockout-prevention logic.
+EXTRA_EDITORS_RESOLVER: Callable[..., list[Any]] | None = None
 # Post-create hook for charts/dashboards. Receives (model, asset_type).
 AFTER_ASSET_CREATE: Callable[[Any, str], None] | None = None
 

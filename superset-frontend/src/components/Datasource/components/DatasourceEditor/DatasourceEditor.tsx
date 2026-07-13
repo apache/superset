@@ -20,14 +20,13 @@ import { sanitizeUrl } from '@braintree/sanitize-url';
 import rison from 'rison';
 import {
   useCallback,
-  ReactNode,
+  type ReactNode,
   useState,
   useEffect,
   useRef,
   useMemo,
 } from 'react';
 import { connect, ConnectedProps } from 'react-redux';
-import type { JsonObject } from '@superset-ui/core';
 import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
 import { Radio } from '@superset-ui/core/components/Radio';
@@ -56,7 +55,6 @@ import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
 import {
-  AsyncSelect,
   Badge,
   Button,
   Card,
@@ -85,12 +83,11 @@ import {
 import Mousetrap from 'mousetrap';
 import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
 import { makeUrl, openInNewTab } from 'src/utils/navigationUtils';
-import {
-  OwnerSelectLabel,
-  OWNER_TEXT_LABEL_PROP,
-  OWNER_EMAIL_PROP,
-  OWNER_OPTION_FILTER_PROPS,
-} from 'src/features/owners/OwnerSelectLabel';
+import Subject from 'src/types/Subject';
+import SubjectPicker, {
+  normalizeSubjectsToPickerValues,
+  type SubjectPickerValue,
+} from 'src/features/subjects/SubjectPicker';
 import { DatabaseSelector } from '../../../DatabaseSelector';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import CollectionTable from '../CollectionTable';
@@ -115,16 +112,6 @@ import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
 const extensionsRegistry = getExtensionsRegistry();
 
 // Type definitions
-
-interface Owner {
-  id?: number;
-  value?: number;
-  label?: ReactNode;
-  first_name?: string;
-  last_name?: string;
-  email?: string;
-  [key: string]: unknown;
-}
 
 interface Currency {
   symbol?: string;
@@ -189,7 +176,7 @@ interface DatasourceObject {
   sql?: string;
   columns: Column[];
   metrics?: Metric[];
-  owners: Owner[];
+  editors: SubjectPickerValue[];
   main_dttm_col?: string;
   currency_code_column?: string;
   filter_select_enabled?: boolean;
@@ -258,7 +245,7 @@ interface ChartUsageData {
   certified_by?: string;
   certification_details?: string;
   description?: string;
-  owners?: Owner[];
+  editors?: Subject[];
   changed_on_delta_humanized?: string;
   changed_on?: string;
   changed_by?: {
@@ -289,9 +276,7 @@ interface CollectionTabTitleProps {
 
 interface ColumnCollectionTableProps {
   columns: Column[];
-  datasource: DatasourceObject;
   onColumnsChange: (columns: Column[]) => void;
-  onDatasourceChange: (datasource: DatasourceObject) => void;
   editableColumnName?: boolean;
   showExpression?: boolean;
   allowAddItem?: boolean;
@@ -312,9 +297,9 @@ interface FormContainerProps {
   children: ReactNode;
 }
 
-interface OwnersSelectorProps {
+interface EditorsSelectorProps {
   datasource: DatasourceObject;
-  onChange: (owners: Owner[]) => void;
+  onChange: (editors: SubjectPickerValue[]) => void;
 }
 
 const DatasourceContainer = styled.div`
@@ -506,9 +491,7 @@ function FormContainer({ children }: FormContainerProps): JSX.Element {
 
 function ColumnCollectionTable({
   columns,
-  datasource,
   onColumnsChange,
-  onDatasourceChange,
   editableColumnName = false,
   showExpression = false,
   allowAddItem = false,
@@ -778,48 +761,18 @@ function StackedField({ label, formElement }: StackedFieldProps): JSX.Element {
   );
 }
 
-function OwnersSelector({
+function EditorsSelector({
   datasource,
   onChange,
-}: OwnersSelectorProps): JSX.Element {
-  const loadOptions = useCallback(
-    (
-      search = '',
-      page: number,
-      pageSize: number,
-    ): Promise<{ data: Owner[]; totalCount: number }> => {
-      const query = rison.encode({ filter: search, page, page_size: pageSize });
-      return SupersetClient.get({
-        endpoint: `/api/v1/dataset/related/owners?q=${query}`,
-      }).then(response => ({
-        data: (response.json.result as Array<JsonObject>)
-          .filter(item => item.extra.active)
-          .map(item => ({
-            value: item.value as number,
-            label: OwnerSelectLabel({
-              name: item.text as string,
-              email: item.extra?.email as string | undefined,
-            }),
-            [OWNER_TEXT_LABEL_PROP]: item.text as string,
-            [OWNER_EMAIL_PROP]: (item.extra?.email as string) ?? '',
-          })),
-        totalCount: response.json.count,
-      }));
-    },
-    [],
-  );
-
+}: EditorsSelectorProps): JSX.Element {
   return (
-    <AsyncSelect
-      ariaLabel={t('Select owners')}
-      mode="multiple"
-      name="owners"
-      value={datasource.owners as { value: number; label: string }[]}
-      options={loadOptions}
-      onChange={value => onChange(value as Owner[])}
-      header={<FormLabel>{t('Owners')}</FormLabel>}
+    <SubjectPicker
+      relatedUrl="/api/v1/dataset/related/editors"
+      ariaLabel={t('Select editors')}
+      value={datasource.editors}
+      onChange={value => onChange(value)}
+      header={<FormLabel>{t('Editors')}</FormLabel>}
       allowClear
-      optionFilterProps={OWNER_OPTION_FILTER_PROPS}
     />
   );
 }
@@ -895,21 +848,10 @@ function DatasourceEditor({
     fetchUsageData: null,
   });
 
-  // Initialize datasource state with transformed owners and metrics
+  // Initialize datasource state with transformed editors and metrics
   const [datasource, setDatasource] = useState<DatasourceObject>(() => ({
     ...propsDatasource,
-    owners: propsDatasource.owners.map(owner => {
-      const ownerName = owner.label || `${owner.first_name} ${owner.last_name}`;
-      return {
-        value: owner.value || owner.id,
-        label: OwnerSelectLabel({
-          name: typeof ownerName === 'string' ? ownerName : '',
-          email: owner.email,
-        }),
-        [OWNER_TEXT_LABEL_PROP]: typeof ownerName === 'string' ? ownerName : '',
-        [OWNER_EMAIL_PROP]: owner.email ?? '',
-      };
-    }),
+    editors: normalizeSubjectsToPickerValues(propsDatasource.editors || []),
     metrics: propsDatasource.metrics?.map(metric => {
       const {
         certified_by: certifiedByMetric,
@@ -1333,9 +1275,9 @@ function DatasourceEditor({
             'certified_by',
             'certification_details',
             'description',
-            'owners.first_name',
-            'owners.last_name',
-            'owners.id',
+            'editors.id',
+            'editors.label',
+            'editors.type',
             'changed_on_delta_humanized',
             'changed_on',
             'changed_by.first_name',
@@ -1740,10 +1682,10 @@ function DatasourceEditor({
             }
           />
         )}
-        <OwnersSelector
+        <EditorsSelector
           datasource={datasource}
-          onChange={newOwners => {
-            onDatasourceChange({ ...datasource, owners: newOwners });
+          onChange={newEditors => {
+            onDatasourceChange({ ...datasource, editors: newEditors });
           }}
         />
       </Fieldset>
@@ -2470,9 +2412,7 @@ function DatasourceEditor({
               columns={databaseColumns}
               filterTerm={columnSearchTerm}
               filterFields={['column_name']}
-              datasource={datasource}
               onColumnsChange={cols => setColumns({ databaseColumns: cols })}
-              onDatasourceChange={onDatasourceChange}
             />
             {metadataLoading && <Loading />}
           </StyledTableTabWrapper>
@@ -2511,8 +2451,6 @@ function DatasourceEditor({
                     'as the alias in the SQL query.',
                 ),
               }}
-              onDatasourceChange={onDatasourceChange}
-              datasource={datasource}
               editableColumnName
               showExpression
               allowAddItem
@@ -2598,7 +2536,6 @@ function DatasourceEditor({
       isEditMode,
       datasource,
       setColumns,
-      onDatasourceChange,
       metadataLoading,
       calculatedColumns,
       columnSearchTerm,

@@ -168,7 +168,7 @@ function UsersList({ user }: UsersListProps) {
           .then(() => {
             deletedUserNames.push(user.username);
           })
-          .catch(err => {
+          .catch(() => {
             addDangerToast(t('Error deleting %s', user.username));
           }),
       ),

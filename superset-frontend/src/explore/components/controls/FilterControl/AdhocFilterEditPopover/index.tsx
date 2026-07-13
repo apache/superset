@@ -170,7 +170,7 @@ function AdhocFilterEditPopover({
             .filter((item: { sliceIndex: number }) => item.sliceIndex !== -1)
             .map(
               ({
-                sliceIndex,
+                sliceIndex: _sliceIndex,
                 ...item
               }: {
                 sliceIndex: number;
@@ -229,8 +229,7 @@ function AdhocFilterEditPopover({
       loadLayerOptions(0, 100).then(result => {
         setLayerOptions(result.data);
         const layerFilterScope = propsAdhocFilter?.layerFilterScope as
-          | number[]
-          | undefined;
+          number[] | undefined;
         if (layerFilterScope) {
           const layers = layerFilterScope
             .map(item => result.data.find(option => option.value === item))

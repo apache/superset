@@ -33,6 +33,7 @@ import {
 import Switchboard from '@superset-ui/switchboard';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import initPreamble from 'src/preamble';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import setupClient from 'src/setup/setupClient';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { store, USER_LOADED } from 'src/views/store';
@@ -69,6 +70,7 @@ const pluginsReady = initPreamble()
       ]);
     setupPlugins();
     setupCodeOverrides({ embedded: true });
+    setupAGGridModules();
   });
 
 const debugMode = process.env.WEBPACK_MODE === 'development';

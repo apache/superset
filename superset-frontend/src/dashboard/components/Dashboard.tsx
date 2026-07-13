@@ -53,9 +53,7 @@ import type {
 } from '../types';
 
 type RelatedChartsFilter =
-  | AppliedNativeFilterType
-  | AppliedCrossFilterType
-  | Filter;
+  AppliedNativeFilterType | AppliedCrossFilterType | Filter;
 
 interface DashboardActions {
   addSliceToDashboard: (id: number, component: LayoutItem | undefined) => void;
@@ -114,12 +112,8 @@ function Dashboard({
   slices,
   activeFilters,
   chartConfiguration,
-  datasources,
   ownDataCharts,
   layout,
-  impressionId,
-  timeout = 60,
-  userId = '',
   children,
 }: DashboardProps): JSX.Element {
   const context = useContext(PluginContext) as PluginContextType;

@@ -52,7 +52,7 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_data,  # noqa: F401
 )
 
-from .base_tests import DEFAULT_PASSWORD, SupersetTestCase
+from .base_tests import DEFAULT_PASSWORD, subjects_from_users, SupersetTestCase
 
 
 class TestDashboard(SupersetTestCase):
@@ -176,7 +176,7 @@ class TestDashboard(SupersetTestCase):
         self.grant_public_access_to_table(table)
 
         dash = db.session.query(Dashboard).filter_by(slug="births").first()
-        dash.owners = [security_manager.find_user("admin")]
+        dash.editors = subjects_from_users([security_manager.find_user("admin")])
         dash.created_by = security_manager.find_user("admin")
         db.session.commit()
 
@@ -272,7 +272,7 @@ class TestDashboard(SupersetTestCase):
         dash = Dashboard()
         dash.dashboard_title = "My Dashboard"
         dash.slug = my_dash_slug
-        dash.owners = [user]
+        dash.editors = subjects_from_users([user])
 
         hidden_dash = Dashboard()
         hidden_dash.dashboard_title = "Not My Dashboard"
@@ -301,7 +301,7 @@ class TestDashboard(SupersetTestCase):
         dash = Dashboard()
         dash.dashboard_title = "My Dashboard"
         dash.slug = slug
-        dash.owners = [admin_user]
+        dash.editors = subjects_from_users([admin_user])
         dash.published = False
         db.session.add(dash)
         db.session.commit()

@@ -1432,4 +1432,133 @@ describe('plugin-chart-ag-grid-table', () => {
       expect(query.extras?.where || undefined).toBeUndefined();
     });
   });
+
+  describe('buildQuery - raw records summary totals', () => {
+    const rawFormData: TableChartFormData = {
+      viz_type: VizType.Table,
+      datasource: '11__table',
+      query_mode: QueryMode.Raw,
+      all_columns: ['name', 'num'],
+      show_totals: true,
+    };
+
+    test('drops summary columns missing from the raw selection', () => {
+      // Own state can outlive a datasource or column-selection change; a
+      // persisted name absent from all_columns must never reach a SUM metric.
+      const { queries } = buildQuery(rawFormData, {
+        ownState: { rawSummaryColumns: ['num', 'ghost_col'] },
+      });
+
+      expect(queries).toHaveLength(2);
+      expect(queries[1].metrics).toEqual([
+        {
+          expressionType: 'SIMPLE',
+          aggregate: 'SUM',
+          column: { column_name: 'num' },
+          label: 'num',
+        },
+      ]);
+    });
+
+    test('keeps calculated dataset columns in the totals metrics', () => {
+      // Calculated columns are dataset-backed and resolve server-side from
+      // the column name alone (standard SIMPLE adhoc-metric resolution); the
+      // selection intersection must not assume physical columns only.
+      const { queries } = buildQuery(
+        { ...rawFormData, all_columns: ['name', 'num', 'boys_ratio_calc'] },
+        { ownState: { rawSummaryColumns: ['num', 'boys_ratio_calc'] } },
+      );
+
+      expect(queries).toHaveLength(2);
+      expect(queries[1].metrics).toEqual([
+        {
+          expressionType: 'SIMPLE',
+          aggregate: 'SUM',
+          column: { column_name: 'num' },
+          label: 'num',
+        },
+        {
+          expressionType: 'SIMPLE',
+          aggregate: 'SUM',
+          column: { column_name: 'boys_ratio_calc' },
+          label: 'boys_ratio_calc',
+        },
+      ]);
+    });
+
+    test('adds no totals query when every primed column left the selection', () => {
+      const { queries } = buildQuery(rawFormData, {
+        ownState: { rawSummaryColumns: ['ghost_col'] },
+      });
+
+      expect(queries).toHaveLength(1);
+    });
+
+    test('adds a SUM totals query when summary columns are primed', () => {
+      const { queries } = buildQuery(rawFormData, {
+        ownState: { rawSummaryColumns: ['num'] },
+      });
+
+      expect(queries).toHaveLength(2);
+      expect(queries[1]).toEqual(
+        expect.objectContaining({
+          columns: [],
+          row_limit: 0,
+          row_offset: 0,
+          metrics: [
+            {
+              expressionType: 'SIMPLE',
+              aggregate: 'SUM',
+              column: { column_name: 'num' },
+              label: 'num',
+            },
+          ],
+        }),
+      );
+      expect(queries[1].orderby).toBeUndefined();
+    });
+
+    test('adds no totals query without primed summary columns', () => {
+      const { queries } = buildQuery(rawFormData, { ownState: {} });
+      expect(queries).toHaveLength(1);
+    });
+
+    test('adds no totals query when show_totals is off', () => {
+      const { queries } = buildQuery(
+        { ...rawFormData, show_totals: false },
+        { ownState: { rawSummaryColumns: ['num'] } },
+      );
+      expect(queries).toHaveLength(1);
+    });
+
+    test('keeps the totals query last with server pagination', () => {
+      const { queries } = buildQuery(
+        { ...rawFormData, server_pagination: true },
+        { ownState: { rawSummaryColumns: ['num'] } },
+      );
+
+      expect(queries).toHaveLength(3);
+      expect(queries[1].is_rowcount).toBe(true);
+      expect(queries[2].columns).toEqual([]);
+      expect(queries[2].row_limit).toBe(0);
+    });
+
+    test('keeps aggregate-mode totals metrics untouched', () => {
+      const { queries } = buildQuery(
+        {
+          viz_type: VizType.Table,
+          datasource: '11__table',
+          query_mode: QueryMode.Aggregate,
+          groupby: ['state'],
+          metrics: ['count'],
+          show_totals: true,
+        },
+        { ownState: {} },
+      );
+
+      expect(queries).toHaveLength(2);
+      expect(queries[1].columns).toEqual([]);
+      expect(queries[1].metrics).toEqual(['count']);
+    });
+  });
 });

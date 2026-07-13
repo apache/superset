@@ -354,7 +354,7 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         }
     """
 
-    extra_fields_rel_fields: dict[str, list[str]] = {"owners": ["email", "active"]}
+    extra_fields_rel_fields: dict[str, list[str]] = {}
     """
     Declare extra fields for the representation of the Model object::
 
@@ -589,9 +589,9 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         self.send_stats_metrics(response, self.delete.__name__, duration)
         return response
 
-    def ensure_owners_write_access(self, column_name: str) -> Optional[Response]:
-        """Restrict the owners related field to users with write access."""
-        if column_name == "owners" and not security_manager.can_access(
+    def ensure_access_list_write_access(self, column_name: str) -> Optional[Response]:
+        """Restrict access-list related fields to users with write access."""
+        if column_name in {"editors", "viewers"} and not security_manager.can_access(
             "can_write", self.class_permission_name
         ):
             return self.response_403()
@@ -638,7 +638,7 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if response := self.ensure_owners_write_access(column_name):
+        if response := self.ensure_access_list_write_access(column_name):
             return response
         if column_name not in self.allowed_rel_fields:
             self.incr_stats("error", self.related.__name__)
