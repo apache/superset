@@ -20,7 +20,8 @@ export { useItemStateManager } from './useItemStateManager';
 export type { ItemStateManager } from './useItemStateManager';
 export {
   useFilterOperations,
-  filterSupportsDependencies,
+  filterCanBeDependencyParent,
+  filterCanHaveDependencies,
 } from './useFilterOperations';
 export type {
   FilterOperations,

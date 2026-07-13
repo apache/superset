@@ -93,7 +93,7 @@ import {
 } from 'src/dashboard/components/nativeFilters/utils';
 import { DatasetSelectLabel } from 'src/features/datasets/DatasetSelectLabel';
 import {
-  filterSupportsDependencies,
+  filterCanHaveDependencies,
   getFiltersConfigModalTestId,
 } from '../FiltersConfigModal';
 import { FilterRemoval, NativeFiltersForm } from '../types';
@@ -448,7 +448,7 @@ const FiltersConfigForm = (
     formFilter?.filterType,
   );
 
-  const canDependOnOtherFilters = filterSupportsDependencies(
+  const canDependOnOtherFilters = filterCanHaveDependencies(
     formFilter?.filterType,
   );
 

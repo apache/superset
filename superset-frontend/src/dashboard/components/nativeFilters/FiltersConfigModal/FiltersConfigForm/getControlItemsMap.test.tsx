@@ -482,6 +482,24 @@ test('plugin column-picker control (isColumnSelect) falls back to no options whe
   expect(screen.queryAllByRole('option')).toHaveLength(0);
 });
 
+test('plugin column-picker control (isColumnSelect) keeps existing value when fetch rejects', async () => {
+  mockCachedSupersetGet.mockRejectedValue(new Error('boom'));
+  const props = renderColumnPicker(
+    {},
+    {
+      filterToEdit: {
+        ...filterMock,
+        controlValues: { myPluginColumn: 'stale_col' },
+      },
+    },
+  );
+  await waitFor(() => expect(mockCachedSupersetGet).toHaveBeenCalled());
+  expect(setNativeFilterFieldValues).not.toHaveBeenCalled();
+  expect(props.forceUpdate).not.toHaveBeenCalled();
+  expect(props.formChanged).not.toHaveBeenCalled();
+  expect(await screen.findByText('stale_col')).toBeInTheDocument();
+});
+
 test('plugin column-picker control (isColumnSelect) onChange resets defaultDataMask and notifies change', async () => {
   const fetchPromise = Promise.resolve({
     response: {} as Response,

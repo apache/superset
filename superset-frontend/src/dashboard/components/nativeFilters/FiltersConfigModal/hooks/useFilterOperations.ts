@@ -30,7 +30,8 @@ import { NativeFiltersForm } from '../types';
 import { generateFilterId, hasCircularDependency } from '../utils';
 import type { ItemStateManager } from './useItemStateManager';
 
-export function filterSupportsDependencies(
+/** Whether a filter can be selected as a cascade dependency parent for other filters. */
+export function filterCanBeDependencyParent(
   filterType: string | undefined,
 ): boolean {
   if (!filterType) return false;
@@ -38,6 +39,15 @@ export function filterSupportsDependencies(
   if (metadata?.supportsCascadeDependencies !== undefined) {
     return metadata.supportsCascadeDependencies;
   }
+  return metadata?.behaviors?.includes(Behavior.NativeFilter) ?? false;
+}
+
+/** Whether a filter can itself depend on other filters (be a cascade child). */
+export function filterCanHaveDependencies(
+  filterType: string | undefined,
+): boolean {
+  if (!filterType) return false;
+  const metadata = getChartMetadataRegistry().get(filterType);
   return metadata?.behaviors?.includes(Behavior.NativeFilter) ?? false;
 }
 
@@ -159,7 +169,7 @@ export function useFilterOperations({
       return (
         component &&
         'filterType' in component &&
-        filterSupportsDependencies(component.filterType)
+        filterCanBeDependencyParent(component.filterType)
       );
     },
     [filterConfigMap, form, filterState.removedItems],

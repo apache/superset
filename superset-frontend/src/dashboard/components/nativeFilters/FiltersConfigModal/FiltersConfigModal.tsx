@@ -49,7 +49,8 @@ import {
   useFilterOperations,
   useCustomizationOperations,
   useModalSaveLogic,
-  filterSupportsDependencies,
+  filterCanBeDependencyParent,
+  filterCanHaveDependencies,
 } from './hooks';
 import {
   getFilterIds,
@@ -62,7 +63,7 @@ import {
 import { ConfigModalContent } from './ConfigModalContent';
 import ConfigModalSidebar from './ConfigModalSidebar';
 
-export { filterSupportsDependencies };
+export { filterCanBeDependencyParent, filterCanHaveDependencies };
 
 const StyledModalBody = styled(BaseModalBody)`
   .filters-list {

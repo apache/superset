@@ -20,7 +20,7 @@ import {
   BaseControlConfig,
   CustomControlItem,
 } from '@superset-ui/chart-controls';
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode, useState, useEffect, useRef } from 'react';
 import rison from 'rison';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import {
@@ -137,6 +137,12 @@ function DatasetColumnSelect({
     fetchedColumns: string[];
   }>({ fetchedColumns: [] });
 
+  // Read via ref inside the async handlers below so a value change that
+  // happens while the request is in flight is validated against the
+  // current value, not the one captured when the effect started.
+  const valueRef = useRef(value);
+  valueRef.current = value;
+
   const loading = !!(datasetId && loadedForId !== datasetId);
   const options = loadedForId === datasetId ? fetchedColumns : [];
 
@@ -160,16 +166,18 @@ function DatasetColumnSelect({
           .map((col: { column_name: string }) => col.column_name)
           .filter(Boolean);
         setFetchState({ loadedForId: datasetId, fetchedColumns: columnNames });
-        if (value && !columnNames.includes(value)) {
+        if (valueRef.current && !columnNames.includes(valueRef.current)) {
           onChange?.(null);
         }
       })
       .catch(() => {
         if (cancelled) return;
-        setFetchState({ loadedForId: datasetId, fetchedColumns: [] });
-        if (value) {
-          onChange?.(null);
-        }
+        // A failed fetch tells us nothing about the value's validity —
+        // only clear it when a successful response says so.
+        setFetchState({
+          loadedForId: datasetId,
+          fetchedColumns: valueRef.current ? [valueRef.current] : [],
+        });
       });
     return () => {
       cancelled = true;
@@ -357,6 +365,7 @@ export default function getControlItemsMap({
                   <ControlLabel
                     label={controlItem.config.label}
                     description={controlItem.config.description}
+                    fallbackLabel={controlItem.name}
                   />
                 </Checkbox>
               </StyledRowFormItem>
@@ -385,6 +394,7 @@ export default function getControlItemsMap({
             <ControlLabel
               label={controlItem.config?.label}
               description={controlItem.config?.description}
+              fallbackLabel={controlItem.name}
             />
           }
           rules={[
