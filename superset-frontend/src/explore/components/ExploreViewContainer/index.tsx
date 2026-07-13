@@ -893,8 +893,11 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
           setForceQuery: props.actions.setForceQuery,
           postChartFormData: props.actions.postChartFormData,
           updateQueryFormData: props.actions.updateQueryFormData,
-          setControlValue: (controlName: string, value: any, chartId: number) =>
-            props.actions.setControlValue(controlName, value),
+          setControlValue: (
+            controlName: string,
+            value: any,
+            _chartId: number,
+          ) => props.actions.setControlValue(controlName, value),
         }}
         can_overwrite={props.can_overwrite}
         can_download={props.can_download}
@@ -1023,6 +1026,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
             data-test="open-datasource-tab"
             role="button"
             tabIndex={0}
+            aria-label={t('Open Datasource tab')}
           >
             <span role="button" tabIndex={0} className="action-button">
               <Tooltip title={t('Open Datasource tab')}>

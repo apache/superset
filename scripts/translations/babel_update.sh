@@ -92,4 +92,33 @@ do
   fi
 done
 
+# A few UI labels ("% calculation" etc.) parse as accidentally-valid
+# %-format directives (a space flag plus a conversion character), so
+# babel auto-flags them python-format on every write and msgfmt then
+# fatals on their translations. The app never %-formats them; strip the
+# flag AFTER the update pass (babel re-adds it during the update, so
+# this must run last). Line-targeted so canonical wrapping is untouched.
+python3 - <<'PYEOF'
+import glob
+
+TARGETS = {'msgid "% calculation"\n', 'msgid "% of parent"\n', 'msgid "% of total"\n'}
+paths = ["superset/translations/messages.pot"] + sorted(
+    glob.glob("superset/translations/*/LC_MESSAGES/messages.po")
+)
+for path in paths:
+    lines = open(path, encoding="utf-8").readlines()
+    changed = False
+    for i, line in enumerate(lines):
+        if line in TARGETS and i > 0 and lines[i - 1].startswith("#,"):
+            tokens = [t.strip() for t in lines[i - 1][2:].split(",")]
+            if "python-format" in tokens:
+                tokens = [t for t in tokens if t != "python-format"]
+                if "no-python-format" not in tokens:
+                    tokens.append("no-python-format")
+                lines[i - 1] = "#, " + ", ".join(tokens) + "\n"
+                changed = True
+    if changed:
+        open(path, "w", encoding="utf-8").writelines(lines)
+PYEOF
+
 cd $CURRENT_DIR

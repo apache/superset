@@ -378,7 +378,7 @@ export const StyledChartContainer = styled.div<{
       margin-right: ${theme.sizeUnit * 2}px;
     }
 
-    .ant-popover-inner {
+    .ant-popover-container {
       padding: 0px;
     }
 

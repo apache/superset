@@ -35,6 +35,7 @@ from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
+from superset.mcp_service.dataset.dataset_utils import resolve_dataset
 from superset.mcp_service.dataset.schemas import (
     DatasetError,
     QueryDatasetFilter,
@@ -46,39 +47,12 @@ from superset.mcp_service.privacy import (
     requires_data_model_metadata_access,
     user_can_view_data_model_metadata,
 )
-from superset.mcp_service.utils import _is_uuid
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
 from superset.mcp_service.utils.query_utils import validate_names
 from superset.mcp_service.utils.response_utils import format_data_columns
 
 logger = logging.getLogger(__name__)
-
-
-def _resolve_dataset(identifier: int | str, eager_options: list[Any]) -> Any | None:
-    """Resolve a dataset by int ID or UUID string.
-
-    Replicates the identifier resolution logic from ModelGetInfoCore._find_object().
-    """
-    from superset.daos.dataset import DatasetDAO
-
-    opts = eager_options or None
-
-    if isinstance(identifier, int):
-        return DatasetDAO.find_by_id(identifier, query_options=opts)
-
-    # Try parsing as int
-    try:
-        id_val = int(identifier)
-        return DatasetDAO.find_by_id(id_val, query_options=opts)
-    except (ValueError, TypeError):
-        pass
-
-    # Try UUID
-    if _is_uuid(str(identifier)):
-        return DatasetDAO.find_by_id(identifier, id_column="uuid", query_options=opts)
-
-    return None
 
 
 _NO_SAVED_METRICS_HINT = (
@@ -170,7 +144,7 @@ async def query_dataset(  # noqa: C901
         ]
 
         with event_logger.log_context(action="mcp.query_dataset.lookup"):
-            dataset = _resolve_dataset(request.dataset_id, eager_options)
+            dataset = resolve_dataset(request.dataset_id, eager_options)
 
         if dataset is None:
             await ctx.error("Dataset not found: identifier=%s" % (request.dataset_id,))

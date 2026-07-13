@@ -241,15 +241,15 @@ msgstr "\"%s\" este acum tema întunecată a sistemului"
 msgid "\"%s\" is now the system default theme"
 msgstr "\"%s\" este acum tema implicită a sistemului"
 
-#, python-format
+#, no-python-format
 msgid "% calculation"
 msgstr "% calcul"
 
-#, python-format
+#, no-python-format
 msgid "% of parent"
 msgstr ""
 
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of total"
 msgstr "Afișează total"
 
@@ -304,15 +304,9 @@ msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgid_plural ""
 "%(firstSuggestions)s or %(lastSuggestion)s instead of "
 "\"%(undefinedParameter)s\"?"
-msgstr[0] ""
-"%(firstSuggestions)s sau %(lastSuggestion)s în loc de "
-"\"%(undefinedParameter)s\"?"
-msgstr[1] ""
-"%(firstSuggestions)s sau %(lastSuggestion)s în loc de "
-"\"%(undefinedParameter)s\"?"
-msgstr[2] ""
-"%(firstSuggestions)s sau %(lastSuggestion)s în loc de "
-"\"%(undefinedParameter)s\"?"
+msgstr[0] "%(lastSuggestion)s în loc de \"%(undefinedParameter)s\"?"
+msgstr[1] "%(firstSuggestions)s sau %(lastSuggestion)s în loc de \"%(undefinedParameter)s\"?"
+msgstr[2] "%(firstSuggestions)s sau %(lastSuggestion)s în loc de \"%(undefinedParameter)s\"?"
 
 #, python-format
 msgid ""
