@@ -165,7 +165,7 @@ def _make_notification(xlsx: bytes) -> "EmailNotification":
         header_data={
             "notification_format": "XLSX",
             "notification_type": "Report",
-            "owners": [1],
+            "editors": [1],
             "notification_source": None,
             "chart_id": None,
             "dashboard_id": None,
@@ -197,8 +197,8 @@ def test_get_xlsx_attachment_extension_for_xlsx_content() -> None:
     assert _get_xlsx_attachment_extension(xlsx) == "xlsx"
 
 
-def test_get_xlsx_attachment_extension_for_zip_content() -> None:
-    """A ZIP without workbook metadata is identified as ZIP."""
+def test_get_xlsx_attachment_extension_for_invalid_xlsx_zip_content() -> None:
+    """A ZIP with invalid XLSX entries is not identified as a report archive."""
     from superset.reports.notifications.email import (
         _get_xlsx_attachment_extension,
     )
@@ -206,7 +206,7 @@ def test_get_xlsx_attachment_extension_for_zip_content() -> None:
 
     archive = create_zip({"query_1.xlsx": b"xlsx-response"}).getvalue()
 
-    assert _get_xlsx_attachment_extension(archive) == "zip"
+    assert _get_xlsx_attachment_extension(archive) == "xlsx"
 
 
 @pytest.mark.parametrize(

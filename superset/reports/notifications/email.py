@@ -85,13 +85,33 @@ def _get_xlsx_attachment_extension(content: bytes) -> str:
     """
     try:
         with ZipFile(BytesIO(content)) as zip_file:
-            names = set(zip_file.namelist())
+            names = zip_file.namelist()
+            if _is_xlsx_zip(names):
+                return "xlsx"
+
+            files = [name for name in names if not name.endswith("/")]
+            if files and all(name.lower().endswith(".xlsx") for name in files):
+                for name in files:
+                    with zip_file.open(name) as xlsx_file:
+                        if not _is_xlsx_zipfile(xlsx_file.read()):
+                            return "xlsx"
+                return "zip"
     except BadZipFile:
         return "xlsx"
 
-    if "[Content_Types].xml" in names and "xl/workbook.xml" in names:
-        return "xlsx"
-    return "zip"
+    return "xlsx"
+
+
+def _is_xlsx_zip(names: list[str]) -> bool:
+    return "[Content_Types].xml" in names and "xl/workbook.xml" in names
+
+
+def _is_xlsx_zipfile(content: bytes) -> bool:
+    try:
+        with ZipFile(BytesIO(content)) as zip_file:
+            return _is_xlsx_zip(zip_file.namelist())
+    except BadZipFile:
+        return False
 
 
 class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-methods
