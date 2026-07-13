@@ -243,6 +243,11 @@ function start() {
       // plugin setup instead of chaining off this rejected promise and leaving
       // the dashboard stuck in a failed state.
       logging.error(err);
+      showFailureMessage(
+        t(
+          'Something went wrong loading the dashboard. Check the dev console for details.',
+        ),
+      );
       pluginsReady = schedulePlugins();
       started = false;
     },

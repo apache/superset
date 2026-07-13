@@ -187,6 +187,10 @@ describe('embedded/index.tsx', () => {
     await flush();
     expect(mockLogging.error).toHaveBeenCalled();
     expect(mockGetMeWithRole).not.toHaveBeenCalled();
+    // The user gets a visible failure message rather than a blank #app.
+    expect(document.getElementById('app')!.innerHTML).toContain(
+      'Something went wrong loading the dashboard',
+    );
 
     // Second guest token retries: plugin setup now succeeds and the user loads.
     mockSwitchboard.handler!({ guestToken: 'token-2' });
