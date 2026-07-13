@@ -136,7 +136,7 @@ const logMessageQueue = new DebouncedMessageQueue<LogEventData>({
 // `/embedded/:uuid/`. Matching these specific shapes avoids false positives
 // for regular dashboards (e.g. a dashboard whose slug is "embedded").
 const EMBEDDED_ROUTE_REGEX =
-  /\/dashboard\/[^/]+\/embedded\/|\/embedded\/[^/]+\//;
+  /\/dashboard\/[^/]+\/embedded\/?|\/embedded\/[^/]+\/?/;
 
 let lastEventId: string | number = 0;
 
