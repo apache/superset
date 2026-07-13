@@ -1251,7 +1251,7 @@ def test_get_csv_data_posts_prepared_chart_data_payload(
         return_value=b"csv-data",
     )
 
-    assert report_state._get_csv_data() == b"csv-data"
+    assert report_state._get_data(ChartDataResultFormat.CSV) == b"csv-data"
 
     get_url_path.assert_called_once_with("ChartDataRestApi.data")
     post_chart_data.assert_called_once()
@@ -1313,7 +1313,7 @@ def test_get_csv_data_keeps_screenshot_fallback_without_query_context(
     )
     post_chart_data = mocker.patch.object(report_state, "_post_chart_data")
 
-    assert report_state._get_csv_data() == b"csv-data"
+    assert report_state._get_data(ChartDataResultFormat.CSV) == b"csv-data"
 
     update_query_context.assert_called_once()
     refresh.assert_called_once_with(report_state._report_schedule.chart)
@@ -1486,7 +1486,7 @@ def test_get_data_xlsx_wraps_soft_time_limit_as_xlsx_timeout(
     app.config.update({"ALERT_REPORTS_CSV_REQUEST_TIMEOUT": 60})
     report_state = _executor_report_state(mocker)
     # Non-None query context so _get_data skips the screenshot fallback and
-    # reaches the get_chart_csv_data call this test drives to time out.
+    # reaches the _post_chart_data call this test drives to time out.
     report_state._report_schedule.chart.query_context = '{"mock": "qc"}'
 
     mocker.patch(
@@ -1494,8 +1494,9 @@ def test_get_data_xlsx_wraps_soft_time_limit_as_xlsx_timeout(
         return_value=(mocker.MagicMock(), "executor"),
     )
     mocker.patch("superset.commands.report.execute.machine_auth_provider_factory")
-    mocker.patch(
-        "superset.commands.report.execute.get_chart_csv_data",
+    mocker.patch.object(
+        report_state,
+        "_post_chart_data",
         side_effect=SoftTimeLimitExceeded(),
     )
 
