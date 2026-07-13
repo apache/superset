@@ -166,10 +166,9 @@ function DatasetColumnSelect({
       })
       .catch(() => {
         if (cancelled) return;
+        // keep the saved value on a transient fetch failure; only clear
+        // on a confirmed miss from a successful response
         setFetchState({ loadedForId: datasetId, fetchedColumns: [] });
-        if (value) {
-          onChange?.(null);
-        }
       });
     return () => {
       cancelled = true;
