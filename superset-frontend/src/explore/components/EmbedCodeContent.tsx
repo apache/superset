@@ -143,6 +143,7 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
             defaultValue={height}
             name="height"
             onChange={handleInputChange}
+            aria-label={t('Chart height')}
           />
         </div>
         <div>
@@ -153,6 +154,7 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
             name="width"
             onChange={handleInputChange}
             id="embed-width"
+            aria-label={t('Chart width')}
           />
         </div>
       </Space>

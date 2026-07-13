@@ -51,4 +51,10 @@ describe('EmbedCodeButton', () => {
       }),
     ).toBeVisible();
   });
+
+  test('height and width inputs have accessible names', async () => {
+    render(<EmbedCodeContent formData={mockFormData} />, { useRedux: true });
+    expect(await screen.findByLabelText('Chart height')).toBeVisible();
+    expect(await screen.findByLabelText('Chart width')).toBeVisible();
+  });
 });
