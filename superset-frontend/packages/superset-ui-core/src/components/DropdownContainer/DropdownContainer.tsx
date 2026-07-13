@@ -82,20 +82,22 @@ export const DropdownContainer = forwardRef(
     const [recalculating, setRecalculating] = useState(false);
 
     // One-shot confirmation pass: when the layout effect settles on "nothing
-    // overflows" right after an item-set-change reset, the geometry may still
-    // be mid-reflow. These refs coordinate a single rAF follow-up measurement
-    // per item-set change so a transiently-bad "fits" verdict cannot latch.
+    // overflows" right after an item-count change, the geometry may still be
+    // mid-reflow. These refs coordinate a single rAF follow-up measurement per
+    // item-count change so a transiently-bad "fits" verdict cannot latch.
     //
     // pendingConfirmForLengthRef: holds the items.length for which a
-    // confirmation is pending (-1 = none pending). Set in the reset (else)
-    // branch; cleared by the rAF callback after it settles.
+    // confirmation is pending (-1 = none pending). Armed by the item-count-change
+    // detection block (see the layout effect below, ~L270 — covers both the
+    // reset path and a fit->overflow change with no reset); cleared by the rAF
+    // callback after it settles.
     const pendingConfirmForLengthRef = useRef(-1);
     // confirmationScheduledRef: true once the rAF has been requested for the
     // current pending length, preventing a second rAF on the setItemsWidth
     // re-run that follows the first provisional measurement.
     const confirmationScheduledRef = useRef(false);
     // hadContentAtLastChangeRef: true when the trigger was showing at the
-    // moment the most recent item-set change was detected. Keeps the trigger
+    // moment the most recent item-count change was detected. Keeps the trigger
     // mounted across the entire confirmation window (not just one render cycle)
     // without letting it linger once the rAF callback has settled. Cleared by
     // the rAF callback before calling setRecalculating(false).
