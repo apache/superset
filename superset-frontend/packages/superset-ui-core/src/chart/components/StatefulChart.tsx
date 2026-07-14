@@ -300,7 +300,7 @@ export default function StatefulChart(props: StatefulChartProps) {
         queryContext = { queries: [queryContext] };
       }
       const endpoint = useLegacyApi
-        ? '/superset/explore_json/'
+        ? '/explore_json/'
         : '/api/v1/chart/data';
 
       const requestConfig: RequestConfig = {
