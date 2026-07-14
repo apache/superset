@@ -173,9 +173,10 @@ def test_upgrade_strips_both_fields(engine) -> None:
     # has nothing to write and the data is left unchanged.
     with engine.begin() as conn:
         upgrade_session = Session(bind=conn)
-        with patch.object(migration, "op") as mock_op, patch.object(
-            migration, "db"
-        ) as mock_db:
+        with (
+            patch.object(migration, "op") as mock_op,
+            patch.object(migration, "db") as mock_db,
+        ):
             mock_op.get_bind.return_value = conn
             mock_db.Session.return_value = upgrade_session
             migration.upgrade()
