@@ -18,7 +18,7 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2026-06-23 03:46-0700\n"
-"PO-Revision-Date: 2026-07-09 14:29+0100\n"
+"PO-Revision-Date: 2026-07-14 17:53+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language-Team: Russian <>\n"
 "Language: ru\n"
@@ -1674,7 +1674,7 @@ msgid "An error occurred while fetching semantic layer types"
 msgstr "Произошла ошибка при получении типов слоев аннотаций"
 
 msgid "An error occurred while fetching semantic layers"
-msgstr "Произошла ошибка при извлечении слоев аннотаций: %s"
+msgstr "Произошла ошибка при извлечении слоев аннотаций"
 
 msgid "An error occurred while fetching tab state"
 msgstr "Произошла ошибка при получении состояния вкладки"
@@ -1735,7 +1735,7 @@ msgstr "Произошла ошибка при удалении журналов
 
 #, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
-msgstr "Произошла ошибка при обновлении схемы конфигурации: %s"
+msgstr "Произошла ошибка при обновлении схемы конфигурации"
 
 msgid "An error occurred while removing query. Please contact your administrator."
 msgstr "Произошла ошибка при удалении запроса. Пожалуйста, свяжитесь с администратором."
