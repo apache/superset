@@ -35,11 +35,6 @@ const Wrapper = styled.div`
     height: 100%;
   }
 
-  .ant-tabs-tabpane {
-    display: flex;
-    flex-direction: column;
-  }
-
   .table-condensed {
     overflow: auto;
   }
