@@ -5467,7 +5467,7 @@ msgid "Dimension selection"
 msgstr "Sélection de la dimension"
 
 msgid "Dimension to use on x-axis."
-msgstr "Dimension à utiliser sur l’axe des abscisses."
+msgstr "Dimension à utiliser sur l’axe X."
 
 msgid "Dimension to use on y-axis."
 msgstr "Dimension à utiliser sur l’axe des ordonnées."
@@ -10983,8 +10983,8 @@ msgid ""
 "will be applied to columns and the width may overflow into an horizontal "
 "scroll."
 msgstr ""
-"Réduit le nombre de points de repère de l’axe des abscisses à afficher. "
-"Si la valeur est définie à True, l’axe des abscisses ne débordera pas et "
+"Réduit le nombre de points de repère de l’axe X à afficher. "
+"Si la valeur est définie à True, l’axe X ne débordera pas et "
 "des étiquettes pourraient être manquantes. Si elle est fausse, une "
 "largeur minimale sera appliquée aux colonnes et la largeur pourrait "
 "déborder dans un défilement horizontal."
@@ -12796,7 +12796,7 @@ msgid "Show Values"
 msgstr "Afficher les valeurs"
 
 msgid "Show X-axis"
-msgstr "Afficher l’axe des abscisses"
+msgstr "Afficher l’axe X"
 
 msgid "Show Y-axis"
 msgstr "Afficher l’axe des ordonnées"
@@ -12872,7 +12872,7 @@ msgid "Show less columns"
 msgstr "Afficher moins de colonne"
 
 msgid "Show min/max axis labels"
-msgstr "Étiquette de l’axe des abscisses"
+msgstr "Afficher min/max des axes"
 
 msgid "Show minor ticks on axes."
 msgstr "Afficher les graduations secondaires sur les axes."
@@ -13932,14 +13932,14 @@ msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr "Il manque à l'URL les paramètres dataset_id ou slice_id."
 
 msgid "The X-axis is not on the filters list"
-msgstr "L’axe des absisses ne figure pas dans la liste des filtres"
+msgstr "L’axe X ne figure pas dans la liste des filtres"
 
 msgid ""
 "The X-axis is not on the filters list which will prevent it from being "
 "used in time range filters in dashboards. Would you like to add it to the"
 " filters list?"
 msgstr ""
-"L'axe des abscisses ne figure pas dans la liste des filtres, ce qui "
+"L'axe X ne figure pas dans la liste des filtres, ce qui "
 "l'empêchera d'être utilisé dans les filtres de plage de temps dans les "
 "tableaux de bord. Voulez-vous l'ajouter à la liste des filtres?"
 
@@ -17445,28 +17445,28 @@ msgid "Write a handlebars template to render the data"
 msgstr "Écrire un modèle handlebar pour afficher les données"
 
 msgid "X Axis"
-msgstr "Axe des abscisses"
+msgstr "Axe X"
 
 msgid "X Axis Bounds"
-msgstr "Limite de l'axe des abscisses"
+msgstr "Limite de l'axe X"
 
 msgid "X Axis Format"
-msgstr "Format de l'axe des abscisses"
+msgstr "Format de l'axe X"
 
 msgid "X Axis Label"
-msgstr "Étiquette de l’axe des abscisses"
+msgstr "Étiquette de l’axe X"
 
 msgid "X Axis Label Interval"
-msgstr "Intervalle des labels en abscisse"
+msgstr "Intervalle des labels de l'axe X"
 
 msgid "X Axis Number Format"
-msgstr "Format de nombre de l'axe des abscisses"
+msgstr "Format de nombre de l'axe X"
 
 msgid "X Axis Title"
 msgstr "Titre de l’axe des absisses"
 
 msgid "X Axis Title Margin"
-msgstr "Marge du titre de l'axe des abscisses"
+msgstr "Marge du titre de l'axe X"
 
 msgid "X Log Scale"
 msgstr "Échelle logarithmique X"
@@ -17481,13 +17481,13 @@ msgid "X bounds"
 msgstr "Limites X"
 
 msgid "X-Axis Sort Ascending"
-msgstr "Tri croissant sur l'axe des abscisses"
+msgstr "Tri croissant sur l'axe X"
 
 msgid "X-Axis Sort By"
-msgstr "Axe des abscisses – Trier par"
+msgstr "Axe X – Trier par"
 
 msgid "X-axis"
-msgstr "Axe des abscisses"
+msgstr "Axe X"
 
 msgid "X-scale interval"
 msgstr "Intervalle XScale"
