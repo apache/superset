@@ -75,7 +75,7 @@ let consecutivePollingErrorCount = 0;
 // stop, instead of mutating fresh state or scheduling a second loop
 let pollingGeneration = 0;
 
-const addListener = (id: string, fn: any) => {
+const addListener = (id: string, fn: ListenerFn) => {
   listenersByJobId[id] = fn;
 };
 
@@ -150,11 +150,10 @@ export const waitForAsyncData = async (
           break;
         }
         default: {
-          logging.warn('received event with status', asyncEvent.status);
-          // Non-terminal status: drop this (stale) job listener but keep the
-          // abort handler so an unmount/supersede can still reject the pending
-          // promise (full cleanup here would leave it hanging on abort).
-          removeListener(jobId);
+          // Non-terminal status (e.g., 'pending', 'running'): keep the listener
+          // registered so it can receive the eventual terminal event ('done', 'error').
+          // Only cleanup happens on terminal states or abort.
+          logging.info('received non-terminal event with status', asyncEvent.status);
         }
       }
     };
