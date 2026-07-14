@@ -287,8 +287,6 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   );
 
   const [useSlackV1, setUseSlackV1] = useState<boolean>(false);
-  const [isSlackChannelsLoading, setIsSlackChannelsLoading] =
-    useState<boolean>(true);
 
   const onMethodChange = (selected: {
     label: string;
@@ -426,7 +424,6 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       } finally {
         if (!cancelled) {
           setMethodOptionsLoading(false);
-          setIsSlackChannelsLoading(false);
         }
       }
     };
@@ -435,7 +432,6 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       resolveSavedRecipients();
     } else {
       setMethodOptionsLoading(false);
-      setIsSlackChannelsLoading(false);
     }
 
     return () => {
@@ -695,7 +691,6 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                       <RefreshLabel
                         onClick={onRefreshSlackChannels}
                         tooltipContent={t('Force refresh Slack channels list')}
-                        disabled={isSlackChannelsLoading}
                       />
                     </div>
                   )}

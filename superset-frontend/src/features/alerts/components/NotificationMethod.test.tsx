@@ -821,6 +821,77 @@ describe('NotificationMethod', () => {
     );
   });
 
+  test('resolves saved SlackV2 channel ids on mount via exact match', async () => {
+    window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
+    const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+      json: {
+        count: 1,
+        result: [
+          { id: 'C123', name: 'general', is_private: false, is_member: true },
+        ],
+      },
+    } as unknown as JsonResponse);
+
+    render(
+      <NotificationMethod
+        setting={{ ...mockSettingSlackV2, recipients: 'C123' }}
+        index={0}
+        onUpdate={mockOnUpdate}
+        onRemove={mockOnRemove}
+        onInputChange={mockOnInputChange}
+        email_subject={mockEmailSubject}
+        defaultSubject={mockDefaultSubject}
+        setErrorSubject={mockSetErrorSubject}
+      />,
+    );
+
+    await waitFor(() => {
+      const slackEndpoint = getSpy.mock.calls
+        .map(([arg]) => (arg as { endpoint: string }).endpoint)
+        .find(endpoint => endpoint.includes('/report/slack_channels/'));
+      expect(slackEndpoint).toBeDefined();
+      expect(rison.decode(slackEndpoint!.split('?q=')[1])).toMatchObject({
+        exact_match: true,
+        search_string: 'C123',
+      });
+    });
+  });
+
+  test('force refresh triggers a cache-busting fetch for SlackV2', async () => {
+    window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
+    const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+      json: { count: 0, result: [] },
+    } as unknown as JsonResponse);
+
+    render(
+      <NotificationMethod
+        setting={{ ...mockSettingSlackV2, recipients: '' }}
+        index={0}
+        onUpdate={mockOnUpdate}
+        onRemove={mockOnRemove}
+        onInputChange={mockOnInputChange}
+        email_subject={mockEmailSubject}
+        defaultSubject={mockDefaultSubject}
+        setErrorSubject={mockSetErrorSubject}
+      />,
+    );
+
+    userEvent.click(await screen.findByLabelText('sync'));
+    fireEvent.click(await screen.findByTestId('recipients-load-options'));
+
+    await waitFor(() => {
+      const forced = getSpy.mock.calls
+        .map(([arg]) => (arg as { endpoint: string }).endpoint)
+        .filter(endpoint => endpoint.includes('/report/slack_channels/'))
+        .some(
+          endpoint =>
+            (rison.decode(endpoint.split('?q=')[1]) as { force?: boolean })
+              .force === true,
+        );
+      expect(forced).toBe(true);
+    });
+  });
+
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('RefreshLabel functionality', () => {
     test('should call updateSlackOptions with force true when RefreshLabel is clicked', async () => {
