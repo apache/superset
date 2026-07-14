@@ -1772,7 +1772,7 @@ msgstr ""
 msgid "An error occurred while fetching %s related data"
 msgstr ""
 "Une erreur s'est produite lors de la récupération de %s données relatives"
-" à l'ensemble de données"
+" au jeu de donnés"
 
 #, python-format
 msgid "An error occurred while fetching %s values: %s"
@@ -2988,7 +2988,7 @@ msgid "Captcha"
 msgstr "Captcha"
 
 msgid "Cartodiagram"
-msgstr "Diagramme cartographique"
+msgstr "Diagramme cartographique"est
 
 msgid "Catalog"
 msgstr "Catalogue"
@@ -3135,15 +3135,13 @@ msgstr "Modifier ce rapport est interdit"
 
 #, fuzzy
 msgid "Changing this semantic layer is forbidden"
-msgstr "Modifier ce graphique est interdit"
+msgstr "Modifier cette couche sémantique est interdit"
 
-#, fuzzy
 msgid "Changing this semantic view is forbidden"
-msgstr "Modifier cet ensemble de données est interdit"
+msgstr "Modifier cette vue sémantique est interdit"
 
-#, fuzzy
 msgid "Changing this task is forbidden"
-msgstr "Modifier cet ensemble de données est interdit"
+msgstr "Modifier cette tâche est interdit"
 
 msgid "Character to interpret as decimal point"
 msgstr "Caractère à interpréter comme un point décimal"
@@ -3221,10 +3219,10 @@ msgstr "Le graphique n'a pas pu être mis à jour."
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Chart customization to control deck.gl layer visibility"
-msgstr "Personnalisation du graphe pour contrôler la couche de visibilité deck.gl"
+msgstr "Personnalisation du graphique pour contrôler la couche de visibilité deck.gl"
 
 msgid "Chart customization value is required"
-msgstr "La valeur de personnalisation du graphe est obligatoire"
+msgstr "La valeur de personnalisation du graphique est obligatoire"
 
 msgid "Chart does not exist"
 msgstr "Le graphique n'existe pas"
@@ -3388,7 +3386,7 @@ msgid ""
 "Choose layers to hide from all deck.gl Multiple Layer charts in this "
 "dashboard."
 msgstr ""
-"Choisir les calques à masquer de tous graphes avec des calques multiples "
+"Choisir les calques à masquer de tous graphiques avec des calques multiples "
 "dans ce tableau de bord."
 
 msgid "Choose notification method and recipients."
@@ -4444,7 +4442,7 @@ msgid ""
 " and legend."
 msgstr ""
 "Personnaliser le label affiché pour les valeurs décroissantes dans l"
-"'info-bulle du graphe et la légende."
+"'info-bulle du graphique et la légende."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -4453,7 +4451,7 @@ msgid ""
 " and legend."
 msgstr ""
 "Personnaliser le label affiché pour les valeurs croissantes dans l'info-"
-"bulle du graphe et la légende."
+"bulle du graphique et la légende."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -4462,7 +4460,7 @@ msgid ""
 "legend, and chart axis."
 msgstr ""
 "Personnaliser le label affiché pour les valeurs totales dans l'info-bulle"
-" du graphe, la légende et les axes du graphe."
+" du graphique, la légende et les axes du graphique."
 
 msgid "Customize tooltips template"
 msgstr "Personnaliser les templates d'infobulles"
@@ -7276,7 +7274,7 @@ msgstr ""
 "Formater les mesures ou les colonnes avec les symboles monétaires comme "
 "préfixes ou suffixes. Choisir un symbol manuellement ou utiliser "
 "'Détection automatique' pour appliquer the bon symbole en fonction de la "
-"colonne de l'ensemble de données qui contient le code monétaire. Quand "
+"colonne du jeu de données qui contient le code monétaire. Quand "
 "plusieurs monnaies sont présentes, un format numérique neutre sera "
 "utilisé."
 
@@ -12238,7 +12236,7 @@ msgid ""
 msgstr ""
 "Sélectionner les couches dans l'ordre dont vous voulez les empiler. La "
 "1ère sélectionnée apparaît à la base. Les couches permets de combiner "
-"plusieurs visualisations sur une carte. Chaque couche est un graphe "
+"plusieurs visualisations sur une carte. Chaque couche est un graphique "
 "deck.gl enregistré (comme scatter plots, polygons or les arcs) qui "
 "affichent différents données. Empiler les pour révéler des patterns et "
 "des relations entre vos données."
@@ -12392,10 +12390,10 @@ msgid ""
 " currencies, charts will fall back to neutral numeric formatting."
 msgstr ""
 "Sélectionner la colonne qui contient les codes monétaires tels que USD, "
-"EUR, GBP, etc. Utilisé dans la construction des graphes quand la "
+"EUR, GBP, etc. Utilisé dans la construction des graphiques quand la "
 "'Détection automatique' du format monétaire est activé. Si cette colonne "
 "n'est pas définie or si la mesure du graphique contient plusieurs codes "
-"monétaires, les graphes utiliseront un format numérique neutre par "
+"monétaires, les graphiques utiliseront un format numérique neutre par "
 "défaut."
 
 msgid "Select the fixed color"
@@ -12669,7 +12667,7 @@ msgid ""
 " as the time column when building charts that require a time dimension "
 "and used in dashboard level time filters."
 msgstr ""
-"Défini la colonne temporelle par défaut sur cet ensemble de données. "
+"Défini la colonne temporelle par défaut sur ce jeu de données. "
 "Sélectionné automatiquement en tant que colonne temporelle pendant la "
 "création de graphiques qui nécessitent une dimension temporelle et est "
 "utilisée dans les filtres temporels au niveau du tableau de bord"
@@ -13974,7 +13972,7 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 msgid "The chart is still loading. Please wait a moment and try again."
-msgstr "Le graphe est toujours en chargement. Merci de patienter et de réessayer."
+msgstr "Le graphique est toujours en chargement. Merci de patienter et de réessayer."
 
 msgid ""
 "The classic. Great for showing how much of a company each investor gets, "
@@ -17356,7 +17354,7 @@ msgid "Whether to populate autocomplete filters options"
 msgstr "Remplir ou non les options des filtres d'autocomplétion"
 
 msgid "Whether to show as Nightingale chart."
-msgstr "Afficher en tant que graphe Nightingale"
+msgstr "Afficher en tant que graphique Nightingale"
 
 msgid ""
 "Whether to show extra controls or not. Extra controls include things like"
