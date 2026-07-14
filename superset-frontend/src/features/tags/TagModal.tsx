@@ -312,8 +312,9 @@ const TagModal: FC<TagModalProps> = ({
         </Flex>
 
         <Flex vertical gap={theme.sizeUnit}>
-          <FormLabel>{t('Description')}</FormLabel>
+          <FormLabel htmlFor="tag-description">{t('Description')}</FormLabel>
           <Input
+            id="tag-description"
             className="tag-input"
             onChange={handleDescriptionChange}
             placeholder={t('Add description of your tag')}
