@@ -17,7 +17,14 @@
  * under the License.
  */
 
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { t } from '@apache-superset/core/translation';
 import {
   BinaryQueryObjectFilterClause,
@@ -208,6 +215,9 @@ export default function DrillByModal({
 
   const { displayModeToggle, drillByDisplayMode } = useDisplayModeToggle();
   const [chartDataResult, setChartDataResult] = useState<QueryData[]>();
+  // Guards against out-of-order responses from concurrent chart data
+  // requests: only the latest request is allowed to update state.
+  const latestRequestId = useRef(0);
 
   const [currentFormData, setCurrentFormData] = useState(formData);
   const [usedGroupbyColumns, setUsedGroupbyColumns] = useState<Column[]>(
@@ -398,7 +408,9 @@ export default function DrillByModal({
     [handleDownload],
   );
 
-  const handleReload = useCallback(() => {
+  const loadChartData = useCallback(() => {
+    const requestId = latestRequestId.current + 1;
+    latestRequestId.current = requestId;
     setChartDataResult(undefined);
     setIsChartDataLoading(true);
     const [useLegacyApi] = getQuerySettings(drilledFormData);
@@ -409,13 +421,22 @@ export default function DrillByModal({
         handleChartDataResponse(response, json, useLegacyApi),
       )
       .then(queriesResponse => {
+        // Ignore responses from superseded requests.
+        if (latestRequestId.current !== requestId) {
+          return;
+        }
         setChartDataResult(queriesResponse);
       })
       .catch(() => {
+        if (latestRequestId.current !== requestId) {
+          return;
+        }
         addDangerToast(t('Failed to load chart data.'));
       })
       .finally(() => {
-        setIsChartDataLoading(false);
+        if (latestRequestId.current === requestId) {
+          setIsChartDataLoading(false);
+        }
       });
   }, [addDangerToast, drilledFormData]);
 
@@ -425,7 +446,7 @@ export default function DrillByModal({
     canDownload,
     handleDownloadCSV,
     handleDownloadXLSX,
-    handleReload,
+    loadChartData,
   );
 
   useEffect(() => {
@@ -491,26 +512,9 @@ export default function DrillByModal({
 
   useEffect(() => {
     if (drilledFormData) {
-      const [useLegacyApi] = getQuerySettings(drilledFormData);
-      setIsChartDataLoading(true);
-      setChartDataResult(undefined);
-      getChartDataRequest({
-        formData: drilledFormData,
-      })
-        .then(({ response, json }) =>
-          handleChartDataResponse(response, json, useLegacyApi),
-        )
-        .then(queriesResponse => {
-          setChartDataResult(queriesResponse);
-        })
-        .catch(() => {
-          addDangerToast(t('Failed to load chart data.'));
-        })
-        .finally(() => {
-          setIsChartDataLoading(false);
-        });
+      loadChartData();
     }
-  }, [addDangerToast, drilledFormData]);
+  }, [drilledFormData, loadChartData]);
   const { metadataBar } = useDatasetMetadataBar({ dataset });
 
   return (

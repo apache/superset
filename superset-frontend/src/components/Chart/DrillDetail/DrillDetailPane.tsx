@@ -248,12 +248,11 @@ export default function DrillDetailPane({
       if (dashboardId) {
         payload.form_data = { dashboardId };
       }
+      // postForm submits a hidden browser form to trigger a file download and
+      // cannot observe backend HTTP errors, so there is no meaningful download
+      // failure to catch here (matching the shared exportChart download flow).
       SupersetClient.postForm(ensureAppRoot('/api/v1/chart/data'), {
         form_data: safeStringify(payload),
-      }).catch(error => {
-        addDangerToast(
-          t('Failed to generate download: %s', error.message || error),
-        );
       });
     },
     [

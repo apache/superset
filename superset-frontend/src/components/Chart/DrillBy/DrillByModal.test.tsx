@@ -21,6 +21,7 @@ import { useState } from 'react';
 import fetchMock from 'fetch-mock';
 import { omit, omitBy } from 'lodash';
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -627,5 +628,78 @@ describe('Table view with pagination', () => {
         formData: expect.objectContaining({ slice_id: 0 }),
       }),
     );
+  });
+});
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('Concurrent chart data requests', () => {
+  const resultBody = (label: string) => ({
+    result: [
+      {
+        data: [{ state: label, sum__num: 1 }],
+        colnames: ['state', 'sum__num'],
+        coltypes: [1, 0],
+      },
+    ],
+  });
+
+  test('only the latest request updates the results when responses resolve out of order', async () => {
+    // Capture the resolver for each in-flight chart data request so we can
+    // control the order in which they settle.
+    const responseResolvers: ((body: object) => void)[] = [];
+    fetchMock.removeRoute(CHART_DATA_ENDPOINT);
+    fetchMock.post(
+      CHART_DATA_ENDPOINT,
+      () =>
+        new Promise<object>(resolve => {
+          responseResolvers.push(resolve);
+        }),
+      { name: CHART_DATA_ENDPOINT },
+    );
+
+    await renderModal({
+      column: { column_name: 'state', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    // Resolve the initial auto-fetch (request #0) and switch to table view.
+    await waitFor(() => expect(responseResolvers).toHaveLength(1));
+    await act(async () => {
+      responseResolvers[0](resultBody('INITIAL'));
+    });
+
+    const tableRadio = await screen.findByRole('radio', { name: /table/i });
+    userEvent.click(tableRadio);
+    expect(await screen.findByText('INITIAL')).toBeInTheDocument();
+
+    // Trigger a reload (request #1); the table is replaced by the spinner
+    // while the request is in flight, but the breadcrumbs remain clickable.
+    userEvent.click(screen.getByRole('button', { name: 'Reload' }));
+    await waitFor(() => expect(responseResolvers).toHaveLength(2));
+
+    // While the reload is still in flight, navigate via a breadcrumb, which
+    // changes the form data and issues another request (#2).
+    userEvent.click(screen.getByText('gender (boy)'));
+    await waitFor(() => expect(responseResolvers).toHaveLength(3));
+
+    // The latest request (#2) resolves first with fresh data.
+    await act(async () => {
+      responseResolvers[2](resultBody('FRESH'));
+    });
+    expect(await screen.findByText('FRESH')).toBeInTheDocument();
+
+    // The earlier, now-stale request (#1) resolves last and must be ignored.
+    await act(async () => {
+      responseResolvers[1](resultBody('STALE'));
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument(),
+    );
+    expect(screen.getByText('FRESH')).toBeInTheDocument();
+    expect(screen.queryByText('STALE')).not.toBeInTheDocument();
   });
 });

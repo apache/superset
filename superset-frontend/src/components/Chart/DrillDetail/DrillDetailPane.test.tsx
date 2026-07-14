@@ -46,8 +46,7 @@ const setup = (overrides: Record<string, any> = {}) => {
 const waitForRender = (overrides: Record<string, any> = {}) =>
   waitFor(() => setup(overrides));
 
-const SAMPLES_ENDPOINT =
-  'end:/datasource/samples?force=false&datasource_type=table&datasource_id=7&per_page=50&page=1';
+const SAMPLES_ENDPOINT = 'glob:*/datasource/samples*';
 
 const DATASET_ENDPOINT = 'glob:*/api/v1/dataset/*';
 
@@ -250,6 +249,31 @@ describe('download actions', () => {
     const body = postFormSpy.mock.calls[0][1] as { form_data: string };
     const payload = JSON.parse(body.form_data);
     expect(payload.result_format).toBe('xlsx');
+    postFormSpy.mockRestore();
+  });
+
+  test('does not show a download error toast when postForm rejects', async () => {
+    // postForm submits a hidden browser form and cannot observe backend HTTP
+    // errors, so there should be no misleading "Failed to generate download"
+    // toast wired to its rejection.
+    fetchWithData();
+    const rejection = Promise.reject(new Error('boom'));
+    // Attach a handler here so the intentionally uncaught rejection in the
+    // component does not surface as an unhandled rejection in the test env.
+    rejection.catch(() => {});
+    const postFormSpy = jest
+      .spyOn(SupersetClient, 'postForm')
+      .mockReturnValue(rejection);
+    renderWithDownloadPermission();
+
+    await clickDownloadItem('Export to CSV');
+
+    expect(postFormSpy).toHaveBeenCalledTimes(1);
+    // Give the rejected promise microtask a chance to settle before asserting.
+    await Promise.resolve();
+    expect(
+      screen.queryByText(/Failed to generate download/),
+    ).not.toBeInTheDocument();
     postFormSpy.mockRestore();
   });
 });
