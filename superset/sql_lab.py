@@ -478,7 +478,23 @@ def execute_sql_statements(  # noqa: C901
     # statements if they're run separately (especially when using `NullPool`), so we run
     # the query as a single block.
     if db_engine_spec.run_multiple_statements_as_one:
-        blocks = [parsed_script.format(comments=db_engine_spec.allows_sql_comments)]
+        if app.config["MUTATE_AFTER_SPLIT"]:
+            # These engines never actually execute statements individually, so the
+            # per-block mutation call further down (whose `is_split` is always
+            # `False` here) would never fire. Mutate each statement here, before
+            # joining them into the single block this engine requires, so
+            # `MUTATE_AFTER_SPLIT=True` still applies the mutator per statement.
+            blocks = [
+                ";\n".join(
+                    database.mutate_sql_based_on_config(
+                        statement.format(comments=db_engine_spec.allows_sql_comments),
+                        is_split=True,
+                    )
+                    for statement in parsed_script.statements
+                )
+            ]
+        else:
+            blocks = [parsed_script.format(comments=db_engine_spec.allows_sql_comments)]
     else:
         if not app.config["MUTATE_AFTER_SPLIT"]:
             # `MUTATE_AFTER_SPLIT=False` means the mutator should see the whole,

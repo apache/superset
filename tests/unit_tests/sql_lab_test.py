@@ -255,6 +255,69 @@ def test_execute_sql_statements_mutates_before_split_by_default(
     assert len(is_split_values) == 3
 
 
+def test_execute_sql_statements_mutates_per_statement_when_run_as_one(
+    mocker: MockerFixture, app: SupersetApp
+) -> None:
+    """
+    Engines that always run statements as a single block (e.g. BigQuery, Kusto)
+    never see `is_split=True` in the per-block mutation call further down, so with
+    `MUTATE_AFTER_SPLIT=True` the mutator must instead be applied to each
+    statement up front, before they're joined into that single block.
+    """
+    mocker.patch.dict(app.config, {"MUTATE_AFTER_SPLIT": True})
+
+    query = mocker.MagicMock()
+    query.limit = 1
+    query.database = mocker.MagicMock()
+    query.database.cache_timeout = 100
+    query.status = "RUNNING"
+    query.select_as_cta = False
+    query.database.allow_run_async = True
+    query.database.db_engine_spec.engine = "bigquery"
+    query.database.db_engine_spec.run_multiple_statements_as_one = True
+    query.database.db_engine_spec.allows_sql_comments = True
+
+    mutate_mock = mocker.patch.object(
+        query.database,
+        "mutate_sql_based_on_config",
+        side_effect=lambda sql, **kw: sql,
+    )
+
+    mocker.patch("superset.sql_lab.get_query", return_value=query)
+    mocker.patch("sys.getsizeof", return_value=10000000)
+    mocker.patch(
+        "superset.sql_lab._serialize_payload",
+        side_effect=lambda payload, use_msgpack: "serialized_payload",
+    )
+    mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
+    mocker.patch("superset.sql_lab.results_backend", return_value=True)
+
+    execute_sql_statements(
+        query_id=1,
+        rendered_query="SELECT 1; SELECT 2;",
+        return_results=True,
+        store_results=True,
+        start_time=None,
+        expand_data=False,
+        log_params={},
+    )
+
+    is_split_values = [
+        call.kwargs.get("is_split") for call in mutate_mock.call_args_list
+    ]
+    # Mutated once per statement before joining into the single block...
+    assert is_split_values[0] is True
+    assert is_split_values[1] is True
+    first_call_sql = mutate_mock.call_args_list[0].args[0]
+    second_call_sql = mutate_mock.call_args_list[1].args[0]
+    assert "1" in first_call_sql
+    assert "2" in second_call_sql
+    # ...and the later per-block call is a no-op (`is_split=False` never matches
+    # `MUTATE_AFTER_SPLIT=True`), so the mutator isn't applied a second time.
+    assert is_split_values[2] is False
+    assert len(is_split_values) == 3
+
+
 def test_execute_sql_statements_raises_when_mutator_strips_all_statements(
     mocker: MockerFixture, app: SupersetApp
 ) -> None:

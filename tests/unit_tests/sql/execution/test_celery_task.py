@@ -389,6 +389,38 @@ def test_prepare_statement_blocks_skips_pre_split_mutation_when_configured(
     mutate_mock.assert_not_called()
 
 
+def test_prepare_statement_blocks_mutates_per_statement_when_run_as_one(
+    app_context: None, mock_database: MagicMock, mocker: MockerFixture
+) -> None:
+    """
+    Engines that always run statements as a single block (e.g. BigQuery, Kusto)
+    never see `is_split=True` in the per-block mutation call, so with
+    `MUTATE_AFTER_SPLIT=True` the mutator must instead be applied to each
+    statement here, before they're joined into that single block.
+    """
+    from superset.sql.execution.celery_task import _prepare_statement_blocks
+
+    mocker.patch.dict(current_app.config, {"MUTATE_AFTER_SPLIT": True})
+    mock_database.db_engine_spec.run_multiple_statements_as_one = True
+    mutate_mock = mocker.patch.object(
+        mock_database,
+        "mutate_sql_based_on_config",
+        side_effect=_prefixing_mutator,
+    )
+    sql = "SELECT * FROM users; SELECT * FROM orders;"
+
+    _, blocks = _prepare_statement_blocks(
+        sql, mock_database.db_engine_spec, mock_database
+    )
+
+    assert len(blocks) == 1
+    assert blocks[0].count("mutated") == 2
+    is_split_values = [
+        call.kwargs.get("is_split") for call in mutate_mock.call_args_list
+    ]
+    assert is_split_values == [True, True]
+
+
 def test_prepare_statement_blocks_raises_when_mutator_strips_all_statements(
     app_context: None, mock_database: MagicMock, mocker: MockerFixture
 ) -> None:
