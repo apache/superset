@@ -148,6 +148,7 @@ class TestUpdateDashboard:
         mock_get_user: Mock,
         mcp_server: object,
     ) -> None:
+        """Owners are fully replaced with the resolved users."""
         dash = _mock_dashboard(id=42)
         dash.owners = []
         mock_get.return_value = dash
@@ -177,6 +178,7 @@ class TestUpdateDashboard:
         mock_get_user: Mock,
         mcp_server: object,
     ) -> None:
+        """An unknown owner ID returns OwnersNotFound with no mutation."""
         dash = _mock_dashboard(id=42)
         dash.owners = []
         mock_get.return_value = dash
@@ -194,6 +196,59 @@ class TestUpdateDashboard:
         assert "999" in (payload.get("error") or "")
         assert dash.owners == []
         mock_session.commit.assert_not_called()
+
+    @patch("superset.security_manager.get_user_by_id")
+    @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_update_owners_empty_list_clears(
+        self,
+        mock_session: Mock,
+        mock_get: Mock,
+        mock_get_user: Mock,
+        mcp_server: object,
+    ) -> None:
+        """An empty owners list clears all owners without any user lookup."""
+        dash = _mock_dashboard(id=42)
+        dash.owners = [Mock(id=1)]
+        mock_get.return_value = dash
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_dashboard",
+                {"request": {"identifier": 42, "owners": []}},
+            )
+
+        assert dash.owners == []
+        mock_get_user.assert_not_called()
+        assert mock_session.commit.call_count >= 1
+        payload = json.loads(result.content[0].text)
+        assert "owners" in set(payload.get("changed_fields") or [])
+
+    @patch("superset.security_manager.get_user_by_id")
+    @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_update_owners_deduplicates(
+        self,
+        mock_session: Mock,
+        mock_get: Mock,
+        mock_get_user: Mock,
+        mcp_server: object,
+    ) -> None:
+        """Duplicate owner IDs collapse to one, preserving first-seen order."""
+        dash = _mock_dashboard(id=42)
+        dash.owners = []
+        mock_get.return_value = dash
+        mock_get_user.side_effect = lambda uid: Mock(id=uid)
+
+        async with Client(mcp_server) as client:
+            await client.call_tool(
+                "update_dashboard",
+                {"request": {"identifier": 42, "owners": [5, 5, 9]}},
+            )
+
+        assert [u.id for u in dash.owners] == [5, 9]
 
     @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
     @patch("superset.extensions.db.session")

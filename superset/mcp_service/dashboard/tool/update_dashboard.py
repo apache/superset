@@ -231,8 +231,9 @@ def _apply_field_updates(dashboard: Any, request: UpdateDashboardRequest) -> lis
         # Full replacement of owners (empty list clears them). IDs are
         # validated up front in _validate_update_request, so resolving here
         # only maps the already-verified IDs to user objects.
-        users, _missing = _resolve_owners(request.owners)
-        dashboard.owners = users
+        owner_users: list[Any]
+        owner_users, _missing = _resolve_owners(request.owners)
+        dashboard.owners = owner_users
         changed.append("owners")
 
     return changed
@@ -293,14 +294,24 @@ def _validate_update_request(
             )
 
     # A non-empty owners list must reference existing users. An empty list is
-    # a valid "clear all owners" request and needs no lookup.
+    # a valid "clear all owners" request and needs no lookup. Owner resolution
+    # queries the DB before the tool's main SQLAlchemyError wrapper, so guard it
+    # here to return the same structured DatabaseError as the other validations.
     if request.owners:
-        _users, missing = _resolve_owners(request.owners)
-        if missing:
+        missing_owner_ids: list[int]
+        try:
+            _users, missing_owner_ids = _resolve_owners(request.owners)
+        except SQLAlchemyError:
+            logger.warning("Database error during owner validation", exc_info=True)
+            return DashboardError(
+                error="Failed to validate owners due to a database error.",
+                error_type="DatabaseError",
+            )
+        if missing_owner_ids:
             return DashboardError(
                 error=(
                     "Unknown owner user IDs: "
-                    + ", ".join(str(m) for m in missing)
+                    + ", ".join(str(m) for m in missing_owner_ids)
                     + ". Find valid IDs with list_users."
                 ),
                 error_type="OwnersNotFound",
