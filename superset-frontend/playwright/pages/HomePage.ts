@@ -17,13 +17,35 @@
  * under the License.
  */
 
-// Specific modal implementations
-export { ChartPropertiesModal } from './ChartPropertiesModal';
-export { ConfirmDialog } from './ConfirmDialog';
-export { DeleteConfirmationModal } from './DeleteConfirmationModal';
-export { DuplicateDatasetModal } from './DuplicateDatasetModal';
-export { EditDatasetModal } from './EditDatasetModal';
-export { ImportDatasetModal } from './ImportDatasetModal';
-export { NativeFiltersConfigModal } from './NativeFiltersConfigModal';
-export { SaveDatasetModal } from './SaveDatasetModal';
-export { SaveQueryModal } from './SaveQueryModal';
+import { Locator, Page } from '@playwright/test';
+import { gotoWithRetry } from '../helpers/navigation';
+import { URL } from '../utils/urls';
+
+/**
+ * Home/welcome page object.
+ */
+export class HomePage {
+  private readonly page: Page;
+
+  private static readonly SECTION_NAMES = {
+    RECENTS: 'Recents',
+  } as const;
+
+  constructor(page: Page) {
+    this.page = page;
+  }
+
+  /**
+   * Navigates to the Home/welcome page.
+   */
+  async goto(): Promise<void> {
+    await gotoWithRetry(this.page, URL.WELCOME);
+  }
+
+  /**
+   * Gets the Recents content section.
+   */
+  getRecentsSection(): Locator {
+    return this.page.getByText(HomePage.SECTION_NAMES.RECENTS, { exact: true });
+  }
+}
