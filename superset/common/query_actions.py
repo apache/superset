@@ -274,11 +274,8 @@ def _metadata_result(render: Callable[[], dict[str, Any]]) -> QueryDataResult:
 
     start_ns = time.perf_counter_ns()
     collector = SourceTimingCollector()
-    token = collector.activate()
-    try:
+    with collector.activated():
         payload = render()
-    finally:
-        SourceTimingCollector.deactivate(token)
     elapsed_ns = max(0, time.perf_counter_ns() - start_ns)
     sources = collector.snapshot()
     if (parent_collector := active_source_collector()) is not None:

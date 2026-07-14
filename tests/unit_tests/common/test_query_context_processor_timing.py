@@ -30,6 +30,7 @@ from superset.commands.chart.data.get_data_command import (
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.common.chart_data import ChartDataResultType
 from superset.common.chart_data_timing import (
+    active_source_collector,
     CacheWriteOutcome,
     ChartDataExecutionResult,
     combine_acquisition_timings,
@@ -54,6 +55,17 @@ from superset.common.query_actions import _metadata_result, AcquiredQuery
 from superset.common.query_context_processor import QueryContextProcessor
 from superset.common.query_object import QueryObject
 from superset.exceptions import QueryObjectValidationError
+
+
+class _ManualClock:
+    def __init__(self) -> None:
+        self.value = 0
+
+    def __call__(self) -> int:
+        return self.value
+
+    def advance(self, duration: int) -> None:
+        self.value += duration
 
 
 def query_timing(
@@ -135,14 +147,11 @@ def test_source_trace_ignores_old_or_malformed_values(value: Any) -> None:
 
 def test_source_trace_is_bounded() -> None:
     collector = SourceTimingCollector()
-    token = collector.activate()
-    try:
+    with collector.activated():
         with collector.source(SourceKind.PRIMARY, SourceProvider.SQL):
             for _ in range(MAX_SOURCE_TRACE_NODES + 5):
                 with source_timing(SourceKind.TIME_OFFSET, SourceProvider.SQL):
                     pass
-    finally:
-        SourceTimingCollector.deactivate(token)
 
     trace = collector.snapshot()
     assert len(trace) == 1
@@ -186,16 +195,7 @@ def test_deserializer_rejects_malformed_nested_source() -> None:
 
 
 def test_source_phases_exclude_nested_source_time() -> None:
-    class Clock:
-        value = 0
-
-        def __call__(self) -> int:
-            return self.value
-
-        def advance(self, duration: int) -> None:
-            self.value += duration
-
-    clock = Clock()
+    clock = _ManualClock()
     collector = SourceTimingCollector(clock)
 
     with collector.source(SourceKind.PRIMARY, SourceProvider.SQL):
@@ -220,17 +220,98 @@ def test_source_phases_exclude_nested_source_time() -> None:
     )
 
 
+def test_source_phases_exclude_separately_collected_child_time() -> None:
+    clock = _ManualClock()
+    outer = SourceTimingCollector(clock)
+    inner = SourceTimingCollector(clock)
+
+    with (
+        outer.activated(),
+        outer.source(SourceKind.PRIMARY, SourceProvider.SQL),
+        outer.phase("execution"),
+    ):
+        clock.advance(10)
+        with (
+            inner.activated(),
+            inner.source(SourceKind.ANNOTATION, SourceProvider.OTHER),
+            inner.phase("execution"),
+        ):
+            clock.advance(4)
+        outer.attach(inner.snapshot())
+        clock.advance(6)
+
+    root = outer.snapshot()[0]
+    assert root.total_ns == 20
+    assert root.execution_ns == 16
+    assert root.children[0].total_ns == 4
+    assert deserialize_source_trace(serialize_source_trace((root,))) is not None
+
+
+def test_nested_collector_exception_restores_outer_phase() -> None:
+    clock = _ManualClock()
+    outer = SourceTimingCollector(clock)
+    inner = SourceTimingCollector(clock)
+
+    def fail_from_nested_source() -> None:
+        with (
+            inner.activated(),
+            inner.source(SourceKind.ANNOTATION, SourceProvider.OTHER),
+        ):
+            clock.advance(4)
+            raise RuntimeError("nested failure")
+
+    with (
+        outer.activated(),
+        outer.source(SourceKind.PRIMARY, SourceProvider.SQL),
+        outer.phase("execution"),
+    ):
+        clock.advance(10)
+        with pytest.raises(RuntimeError, match="nested failure"):
+            fail_from_nested_source()
+        outer.attach(inner.snapshot())
+        clock.advance(6)
+
+    root = outer.snapshot()[0]
+    assert root.execution_ns == 16
+    assert root.children[0].total_ns == 4
+    assert active_source_collector() is None
+
+
+def test_root_source_pauses_all_active_ancestor_collectors() -> None:
+    clock = _ManualClock()
+    outer = SourceTimingCollector(clock)
+    intermediate = SourceTimingCollector(clock)
+    inner = SourceTimingCollector(clock)
+
+    with (
+        outer.activated(),
+        outer.source(SourceKind.PRIMARY, SourceProvider.SQL),
+        outer.phase("execution"),
+    ):
+        clock.advance(10)
+        with intermediate.activated(), inner.activated():
+            with inner.source(SourceKind.TIME_OFFSET, SourceProvider.SQL):
+                clock.advance(4)
+        outer.attach(inner.snapshot())
+        clock.advance(6)
+
+    root = outer.snapshot()[0]
+    assert root.total_ns == 20
+    assert root.execution_ns == 16
+    assert root.children[0].total_ns == 4
+
+
+def test_cached_source_trace_is_not_attached_to_current_parent() -> None:
+    collector = SourceTimingCollector()
+
+    with collector.source(SourceKind.PRIMARY, SourceProvider.SQL):
+        collector.attach((source_trace(SourceOrigin.CACHE),))
+
+    assert collector.snapshot()[0].children == ()
+
+
 def test_refused_child_does_not_leak_phases_to_parent() -> None:
-    class Clock:
-        value = 0
-
-        def __call__(self) -> int:
-            return self.value
-
-        def advance(self, duration: int) -> None:
-            self.value += duration
-
-    clock = Clock()
+    clock = _ManualClock()
     collector = SourceTimingCollector(clock)
 
     with collector.source(SourceKind.PRIMARY, SourceProvider.SQL):
@@ -371,6 +452,34 @@ def test_metadata_result_records_nested_source_timing() -> None:
         result.timing.source_ns + result.timing.materialization_ns
         == result.timing.total_ns
     )
+
+
+def test_nested_metadata_source_preserves_outer_accounting() -> None:
+    outer = SourceTimingCollector()
+
+    def render() -> dict[str, Any]:
+        with source_timing(SourceKind.SERIES_LIMIT, SourceProvider.SQL):
+            sum(range(100))
+        return {"query": "SELECT executable"}
+
+    with (
+        outer.activated(),
+        outer.source(SourceKind.PRIMARY, SourceProvider.SQL),
+        outer.phase("execution"),
+    ):
+        result = _metadata_result(render)
+
+    root = outer.snapshot()[0]
+    accounted_ns = (
+        root.planning_ns
+        + root.execution_ns
+        + root.processing_ns
+        + sum(child.total_ns for child in root.children)
+    )
+    assert result.timing.sources
+    assert root.children == result.timing.sources
+    assert accounted_ns <= root.total_ns
+    assert deserialize_source_trace(serialize_source_trace((root,))) is not None
 
 
 @patch("superset.common.query_context_processor.QueryCacheManager")
@@ -1136,6 +1245,50 @@ def test_failed_contribution_producer_skips_dependent_query() -> None:
                 totals_query,
                 pd.DataFrame({"sales": []}),
                 QueryStatus.FAILED,
+            ),
+        ) as acquire,
+        patch(
+            "superset.common.query_context_processor.cache_acquired_query",
+            return_value=completed,
+        ),
+    ):
+        result = processor._execute_query_plan(False, False)
+
+    acquire.assert_called_once()
+    assert result[0].payload == {
+        "error": "Contribution totals query failed",
+        "status": QueryStatus.FAILED,
+    }
+    assert result[1] == completed
+
+
+def test_incomplete_contribution_totals_skip_dependent_query() -> None:
+    datasource = MagicMock()
+    main_query = QueryObject(
+        datasource=datasource,
+        columns=["region"],
+        metrics=["sales", "profit"],
+        contribution_totals_query_index=1,
+        post_processing=[
+            {
+                "operation": "contribution",
+                "options": {"columns": ["sales", "profit"]},
+            }
+        ],
+    )
+    totals_query = QueryObject(datasource=datasource, columns=[], metrics=["sales"])
+    query_context = MagicMock()
+    query_context.queries = [main_query, totals_query]
+    query_context.result_type = ChartDataResultType.FULL
+    processor = QueryContextProcessor(query_context)
+    completed = QueryDataResult({"status": "success"}, query_timing())
+
+    with (
+        patch(
+            "superset.common.query_context_processor.acquire_query_data",
+            return_value=acquired_query(
+                totals_query,
+                pd.DataFrame({"sales": [100.0]}),
             ),
         ) as acquire,
         patch(

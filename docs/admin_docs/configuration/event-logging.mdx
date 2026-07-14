@@ -114,10 +114,13 @@ query returned by `/api/v1/chart/data`:
 
 `sources` is `null` when an older cache entry has no source trace. Traces replayed
 from the cache use `origin: "cache"`; source metrics are emitted only for
-`origin: "current"`. Traces are bounded and contain no SQL, result data, labels, or
-resource identifiers. A source node's `total_ms` includes its children, while its
-planning, execution, and processing phases exclude child-source time. Consequently,
-the phase values and child totals do not double-count one another.
+`origin: "current"`. A historical cache trace remains a top-level root for the
+acquisition that read it; it is not attached below a source from the current
+execution because child durations are additive. Traces are bounded and contain no
+SQL, result data, labels, or resource identifiers. A source node's `total_ms`
+includes its children, while its planning, execution, and processing phases exclude
+child-source time.
+Consequently, the phase values and child totals do not double-count one another.
 
 `cache_write_status` distinguishes a successful write from a failed write, a
 configuration-driven skip, and a write that was not attempted. It is response

@@ -168,9 +168,11 @@ class QueryContextProcessor:
             source_start_ns = time.perf_counter_ns()
             parent_collector = active_source_collector()
             collector = SourceTimingCollector()
-            token = collector.activate()
             try:
-                with collector.source(source_kind, self._source_provider()):
+                with (
+                    collector.activated(),
+                    collector.source(source_kind, self._source_provider()),
+                ):
                     if invalid_columns := [
                         col
                         for col in get_column_names_from_columns(query_obj.columns)
@@ -197,7 +199,6 @@ class QueryContextProcessor:
                 cache.error_message = str(ex)
                 cache.status = QueryStatus.FAILED
             finally:
-                SourceTimingCollector.deactivate(token)
                 source_ns = max(0, time.perf_counter_ns() - source_start_ns)
 
             sources = collector.snapshot()
@@ -325,9 +326,9 @@ class QueryContextProcessor:
         return max(0, time.perf_counter_ns() - cache_write_start_ns), outcome
 
     def _source_provider(self) -> SourceProvider:
-        if self._qc_datasource.type == "semantic_view":
+        if self._qc_datasource.type == DatasourceType.SEMANTIC_VIEW:
             return SourceProvider.SEMANTIC
-        if self._qc_datasource.type in {"table", "query"}:
+        if self._qc_datasource.type in {DatasourceType.TABLE, DatasourceType.QUERY}:
             return SourceProvider.SQL
         return SourceProvider.OTHER
 

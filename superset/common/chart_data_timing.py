@@ -20,7 +20,7 @@ import logging
 import time
 from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
-from contextvars import ContextVar, Token
+from contextvars import ContextVar
 from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import Any, Literal, TYPE_CHECKING
@@ -388,6 +388,7 @@ class SourceTimingCollector:
         self._roots: list[SourceTiming] = []
         self._stack: list[_MutableSourceTiming | None] = []
         self._phases: list[_MutableSourcePhase] = []
+        self._activation_parents: list[SourceTimingCollector | None] = []
         self._node_count = 0
 
     def _pause_active_phases(self) -> list[_MutableSourcePhase]:
@@ -417,14 +418,34 @@ class SourceTimingCollector:
         elif self._roots:
             self._roots[-1] = replace(self._roots[-1], truncated=True)
 
-    def activate(self) -> Token[SourceTimingCollector | None]:
-        """Make this collector available to nested datasource helpers."""
-        return _active_source_collector.set(self)
+    def _outer_collectors(self) -> Iterator[SourceTimingCollector]:
+        """Yield active ancestors, including collectors without source frames."""
 
-    @staticmethod
-    def deactivate(token: Token[SourceTimingCollector | None]) -> None:
-        """Restore the previous collector."""
-        _active_source_collector.reset(token)
+        seen = {id(self)}
+        collector = self._activation_parents[-1] if self._activation_parents else None
+        while collector is not None and id(collector) not in seen:
+            yield collector
+            seen.add(id(collector))
+            collector = (
+                collector._activation_parents[-1]  # noqa: SLF001
+                if collector._activation_parents  # noqa: SLF001
+                else None
+            )
+
+    @contextmanager
+    def activated(self) -> Iterator[None]:
+        """Expose this collector and restore the previous collector on exit."""
+
+        parent = _active_source_collector.get()
+        self._activation_parents.append(parent)
+        token = _active_source_collector.set(self)
+        try:
+            yield
+        finally:
+            _active_source_collector.reset(token)
+            popped = self._activation_parents.pop()
+            if popped is not parent:
+                raise RuntimeError("Source timing collectors exited out of order")
 
     @contextmanager
     def source(
@@ -433,8 +454,17 @@ class SourceTimingCollector:
         provider: SourceProvider,
     ) -> Iterator[None]:
         """Capture one source node and attach it to the active parent."""
+        is_root = not self._stack
         parent = next((node for node in reversed(self._stack) if node), None)
         paused = self._pause_active_phases()
+        outer_paused = (
+            [
+                (collector, collector._pause_active_phases())
+                for collector in self._outer_collectors()
+            ]
+            if is_root
+            else []
+        )
         refused = bool(
             (self._stack and self._stack[-1] is None)
             or self._node_count >= MAX_SOURCE_TRACE_NODES
@@ -448,6 +478,8 @@ class SourceTimingCollector:
             finally:
                 self._stack.pop()
                 self._resume_phases(paused)
+                for collector, phases in reversed(outer_paused):
+                    collector._resume_phases(phases)
             return
 
         node = _MutableSourceTiming(kind, provider, self._clock())
@@ -473,6 +505,8 @@ class SourceTimingCollector:
             else:
                 parent.children.append(snapshot)
             self._resume_phases(paused)
+            for collector, phases in reversed(outer_paused):
+                collector._resume_phases(phases)
 
     @contextmanager
     def phase(self, phase: SourcePhase) -> Iterator[None]:
@@ -501,7 +535,7 @@ class SourceTimingCollector:
         return bound_source_trace(tuple(self._roots))
 
     def attach(self, sources: tuple[SourceTiming, ...]) -> None:
-        """Attach traces collected by a nested execution to the active node."""
+        """Attach current nested traces; historical cache traces are not additive."""
         if not self._stack or self._stack[-1] is None:
             return
         parent = self._stack[-1]
@@ -509,6 +543,8 @@ class SourceTimingCollector:
         remaining_nodes = [MAX_SOURCE_TRACE_NODES - self._node_count]
         remaining_depth = MAX_SOURCE_TRACE_DEPTH - len(self._stack)
         for source in sources:
+            if source.origin != SourceOrigin.CURRENT:
+                continue
             bounded = _bounded_source_copy(
                 source,
                 remaining_depth=remaining_depth,
