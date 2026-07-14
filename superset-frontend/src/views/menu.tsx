@@ -29,8 +29,9 @@ import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import createCache from '@emotion/cache';
 import { ThemeProvider } from '@apache-superset/core/theme';
 import { theme } from '@apache-superset/core/theme';
-import Menu from 'src/features/home/Menu';
+import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import initPreamble from 'src/preamble';
 import { setupStore } from './store';
 import querystring from 'query-string';
 
@@ -44,28 +45,43 @@ const emotionCache = createCache({
   key: 'menu',
 });
 
-const app = (
-  <CacheProvider value={emotionCache}>
-    <ThemeProvider theme={theme}>
-      <Provider store={store}>
-        <BrowserRouter>
-          <QueryParamProvider
-            adapter={ReactRouter5Adapter}
-            options={{
-              searchStringToObject: querystring.parse,
-              objectToSearchString: (object: Record<string, any>) =>
-                querystring.stringify(object, { encode: false }),
-            }}
-          >
-            <Menu data={menu} />
-          </QueryParamProvider>
-        </BrowserRouter>
-      </Provider>
-    </ThemeProvider>
-  </CacheProvider>
-);
-
 const menuMountPoint = document.getElementById('app-menu');
 if (menuMountPoint) {
-  createRoot(menuMountPoint).render(app);
+  (async () => {
+    try {
+      await initPreamble();
+    } finally {
+      // Defer Menu import until after initPreamble() resolves so that module-level
+      // t() calls in Menu's dependency tree (e.g. commonMenuData.ts) run only after
+      // translations are loaded. webpackMode: "eager" keeps the module in this bundle
+      // chunk but defers evaluation until the import() expression is awaited.
+      // The import/render runs in finally so the menu always renders, falling back
+      // to English if the language pack failed to load.
+      const { default: Menu } = await import(
+        /* webpackMode: "eager" */ 'src/features/home/Menu'
+      );
+      createRoot(menuMountPoint).render(
+        <CacheProvider value={emotionCache}>
+          <ThemeProvider theme={theme}>
+            <Provider store={store}>
+              <BrowserRouter>
+                <QueryParamProvider
+                  adapter={ReactRouter5Adapter}
+                  options={{
+                    searchStringToObject: querystring.parse,
+                    objectToSearchString: (object: Record<string, any>) =>
+                      querystring.stringify(object, { encode: false }),
+                  }}
+                >
+                  <Menu data={menu} />
+                </QueryParamProvider>
+              </BrowserRouter>
+            </Provider>
+          </ThemeProvider>
+        </CacheProvider>,
+      );
+    }
+  })().catch(err => {
+    logging.error('Unhandled error during menu initialization', err);
+  });
 }

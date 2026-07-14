@@ -43,7 +43,7 @@ import {
   Popover,
   Icons,
 } from '@superset-ui/core/components';
-import { debounce } from 'lodash';
+import { debounce } from 'lodash-es';
 import { FixedSizeList as List } from 'react-window';
 import { InputRef } from 'antd';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
@@ -330,7 +330,8 @@ export const DrillBySubmenu = ({
         root: {
           paddingLeft: 0,
         },
-        body: {
+        // antd v6 renamed the inner content slot `body` -> `container`
+        container: {
           padding: theme.sizeUnit * 2,
           boxShadow: theme.boxShadow,
           borderRadius: theme.borderRadius,

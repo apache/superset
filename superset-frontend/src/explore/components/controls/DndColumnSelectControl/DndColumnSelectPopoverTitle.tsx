@@ -94,6 +94,7 @@ export const DndColumnSelectPopoverTitle = ({
         data-test="AdhocMetricEditTitle#trigger"
         onMouseOver={onMouseOver}
         onMouseOut={onMouseOut}
+        onFocus={onMouseOver}
         onClick={onClick}
         onBlur={onBlur}
         role="button"

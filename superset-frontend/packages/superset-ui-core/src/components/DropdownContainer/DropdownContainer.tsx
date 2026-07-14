@@ -19,7 +19,7 @@
 import {
   cloneElement,
   forwardRef,
-  RefObject,
+  ForwardedRef,
   useEffect,
   useImperativeHandle,
   useLayoutEffect,
@@ -54,7 +54,7 @@ export const DropdownContainer = forwardRef(
       forceRender,
       style,
     }: DropdownContainerProps,
-    outerRef: RefObject<DropdownRef>,
+    outerRef: ForwardedRef<DropdownRef>,
   ) => {
     const theme = useTheme();
     const { ref, width = 0 } = useResizeDetector<HTMLDivElement>();
@@ -338,9 +338,9 @@ export const DropdownContainer = forwardRef(
           <>
             <Global
               styles={css`
-                .ant-popover-inner {
-                  // Some OS versions only show the scroll when hovering.
-                  // These settings will make the scroll always visible.
+                .ant-popover-container {
+                  /* Some OS versions only show the scroll when hovering. */
+                  /* These settings will make the scroll always visible. */
                   ::-webkit-scrollbar {
                     -webkit-appearance: none;
                     width: 14px;
@@ -361,7 +361,8 @@ export const DropdownContainer = forwardRef(
 
             <Popover
               styles={{
-                body: {
+                // antd v6 renamed the inner content slot `body` -> `container`
+                container: {
                   maxHeight: `${MAX_HEIGHT}px`,
                   overflow: showOverflow ? 'auto' : 'visible',
                 },

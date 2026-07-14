@@ -110,7 +110,7 @@
     "react-loadable": "^5.5.0",
     "tinycolor2": "*",
     "lodash": "^4.18.1",
-    "antd": "^5.26.0",
+    "antd": "^6.0.0",
     "jed": "^1.1.1"
   },
   "scripts": {
@@ -120,5 +120,8 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "dependencies": {
+    "lodash-es": "^4.18.1"
   }
 }

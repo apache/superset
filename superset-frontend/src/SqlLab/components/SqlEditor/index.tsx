@@ -49,7 +49,7 @@ import type {
   CursorPosition,
 } from 'src/SqlLab/types';
 import type { DatabaseObject } from 'src/features/databases/types';
-import { debounce, isEmpty } from 'lodash';
+import { debounce, isEmpty } from 'lodash-es';
 import Mousetrap from 'mousetrap';
 import {
   Button,
@@ -188,7 +188,7 @@ const StyledSqlEditor = styled.div`
     }
 
     .SouthPane {
-      & .ant-tabs-tabpane {
+      & .ant-tabs-content {
         margin: 0 ${theme.sizeUnit * 4}px;
         & .ant-tabs {
           margin: 0 ${theme.sizeUnit * -4}px;
@@ -891,7 +891,7 @@ const SqlEditor: FC<Props> = ({
     callback(currentSQL.current);
   };
   const renderCopyQueryButton = () => (
-    <Button type="primary">{t('COPY QUERY')}</Button>
+    <Button type="primary">{t('Copy query')}</Button>
   );
 
   const renderDatasetWarning = () => (

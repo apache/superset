@@ -61,7 +61,7 @@ from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import Mapper, Session, validates, with_loader_criteria
+from sqlalchemy.orm import Mapped, Mapper, Session, validates, with_loader_criteria
 from sqlalchemy.orm.session import ORMExecuteState
 from sqlalchemy.sql.elements import ColumnElement, Grouping, literal_column, TextClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
@@ -102,6 +102,7 @@ from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
 from superset.sql.parse import sanitize_clause, SQLScript, SQLStatement
 from superset.superset_typing import (
+    AdhocColumn,
     AdhocMetric,
     Column as ColumnTyping,
     FilterValue,
@@ -269,6 +270,53 @@ class UUIDMixin:  # pylint: disable=too-few-public-methods
     uuid = sa.Column(
         UUIDType(binary=True), primary_key=False, unique=True, default=uuid.uuid4
     )
+
+    @validates("uuid")
+    def _coerce_uuid(self, key: str, value: Any) -> Any:  # noqa: ARG002
+        """Coerce well-formed UUID strings to ``uuid.UUID`` on assignment;
+        pass everything else through untouched.
+
+        **Why coerce.** ``UUIDType`` only converts at SQL bind / SQL
+        result time. Importers and ad-hoc construction
+        (``SqlMetric(uuid="…string…")``) leave the in-memory attribute
+        as a ``str`` until the next DB round-trip refreshes it. With
+        SQLAlchemy-Continuum versioning attached to a child mapper
+        (``TableColumn`` / ``SqlMetric``), the post-INSERT attribute-
+        expire behaviour changes enough that the refresh doesn't happen
+        before the caller reads the attribute — breaking equality
+        assertions like ``test_import_dataset``'s
+        ``metric.uuid == uuid.UUID(...)`` because str ≠ UUID. Coercing
+        defensively here makes the in-memory attribute always a UUID
+        regardless of provenance.
+
+        **Why the non-UUID-string escape hatch.** Tightening this
+        validator to raise on non-UUID strings would break a small set
+        of existing unit tests that use human-readable placeholder
+        strings as fixture uuids (e.g.
+        ``test_dashboard_schemas.py``'s ``"dashboard-uuid-7"`` and
+        analogous placeholders in importer tests). The fixtures use
+        these placeholders for legibility — they're only ever compared
+        by string equality, never written to a real database. Letting
+        them through unchanged keeps the fixtures working at the cost
+        of deferring "real" UUID malformation to the SQL bind layer,
+        which raises a clearer "invalid input syntax for type uuid"
+        error keyed to the actual column.
+
+        **Tightening path** (if amin M1 is ever revisited): replace
+        the ``return value`` in the ``except`` branch with
+        ``raise ValueError(f"Invalid UUID: {value!r}")``, then run the
+        unit test suite and migrate any remaining placeholder fixtures
+        to ``uuid.uuid4()`` (use
+        ``rg '''SqlMetric\\(uuid="[^"]*"|"dashboard-uuid|"slice-uuid'''``
+        to find them). The full migration touches ~5–10 fixture files
+        and is non-breaking outside tests.
+        """
+        if isinstance(value, str):
+            try:
+                return uuid.UUID(value)
+            except ValueError:
+                return value
+        return value
 
     @property
     def short_uuid(self) -> str:
@@ -551,15 +599,28 @@ class ImportExportMixin(UUIDMixin):
         self.params = json.dumps(params)
 
     def reset_ownership(self) -> None:
-        """object will belong to the user the current user"""
-        # make sure the object doesn't have relations to a user
-        # it will be filled by appbuilder on save
-        self.created_by = None
-        self.changed_by = None
-        # flask global context might not exist (in cli or tests for example)
-        self.owners = []
-        if g and hasattr(g, "user"):
-            self.owners = [g.user]
+        """object will belong to the current user"""
+        from superset.subjects.utils import get_user_subject
+
+        # Reset the audit pointers. When a Flask request context is
+        # available we explicitly stamp the current user, otherwise we
+        # leave the attributes unset so Flask-AppBuilder's column
+        # defaults fill them in on save. An explicit assignment is
+        # required because once the ``created_by`` / ``changed_by``
+        # relationships are configured (which happens eagerly on models
+        # registered with SQLAlchemy-Continuum), setting them to
+        # ``None`` propagates to the FK column and suppresses the
+        # ``default=`` callable.
+        self.editors = []
+        if g and hasattr(g, "user") and g.user:
+            self.created_by = g.user
+            self.changed_by = g.user
+            user_subject = get_user_subject(g.user.id)
+            if user_subject:
+                self.editors = [user_subject]
+        else:
+            self.created_by = None
+            self.changed_by = None
 
     @property
     def params_dict(self) -> dict[Any, Any]:
@@ -588,7 +649,7 @@ class AuditMixinNullable(AuditMixin):
     )
 
     @declared_attr
-    def created_by_fk(self) -> sa.Column:  # pylint: disable=arguments-renamed
+    def created_by_fk(self) -> Mapped[Optional[int]]:  # pylint: disable=arguments-renamed
         return sa.Column(
             sa.Integer,
             sa.ForeignKey("ab_user.id"),
@@ -597,7 +658,7 @@ class AuditMixinNullable(AuditMixin):
         )
 
     @declared_attr
-    def changed_by_fk(self) -> sa.Column:  # pylint: disable=arguments-renamed
+    def changed_by_fk(self) -> Mapped[Optional[int]]:  # pylint: disable=arguments-renamed
         return sa.Column(
             sa.Integer,
             sa.ForeignKey("ab_user.id"),
@@ -757,7 +818,7 @@ def _collect_bypass_classes(execute_state: ORMExecuteState) -> frozenset[type]:
 
     Per-query: ``execution_options[SKIP_VISIBILITY_FILTER_CLASSES]`` — set
     by ``BaseDAO.find_by_id(skip_visibility_filter=True)``,
-    ``find_existing_for_import``, ``raise_for_ownership``, etc., for
+    ``find_existing_for_import``, ``raise_for_editorship``, etc., for
     narrow one-statement bypass.
 
     Per-session: ``session.info[SKIP_VISIBILITY_FILTER_CLASSES]`` — set by
@@ -798,8 +859,17 @@ def _should_attach_soft_delete_criteria(execute_state: ORMExecuteState) -> bool:
     relationship-load event closes that gap. The resulting WHERE
     clause may have ``deleted_at IS NULL`` twice when propagation
     DOES work — harmless redundancy, idempotent SQL.
+
+    Gated by the temporary ``SOFT_DELETE`` rollout flag: while it is
+    off, no criteria are attached, so soft-deleted rows (which the delete path
+    does not create while the flag is off) are not filtered. The flag and this
+    gate are removed once soft delete is stable.
     """
-    return execute_state.is_select and not execute_state.is_column_load
+    return (
+        execute_state.is_select
+        and not execute_state.is_column_load
+        and is_feature_enabled("SOFT_DELETE")
+    )
 
 
 def _all_soft_delete_subclasses() -> list[type[SoftDeleteMixin]]:
@@ -981,6 +1051,7 @@ class ExtraJSONMixin:
         self,
         _: str,
         value: Optional[dict[str, Any]],
+        **kwargs: Any,
     ) -> Any:
         if value is None:
             return "{}"
@@ -1091,10 +1162,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         raise NotImplementedError()
 
     @property
-    def owners_data(self) -> list[Any]:
-        raise NotImplementedError()
-
-    @property
     def metrics(self) -> list[Any]:
         return []
 
@@ -1178,6 +1245,31 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # for datasources of type query
         return []
 
+    def _resolve_denylist_schema(self, sql: str) -> Optional[str]:
+        """
+        Resolve the effective default schema for ``DISALLOWED_SQL_TABLES``
+        checks, memoized per datasource instance.
+
+        An explicit datasource schema always wins. Otherwise the schema is
+        resolved through the query-aware ``get_default_schema_for_query`` (not
+        the static ``get_default_schema``) so the value matches what the engine
+        uses at runtime -- honoring dynamic-schema engines and URI/connect-arg
+        schema rules -- exactly like the SQL Lab / executor denylist gate.
+
+        The result is cached on the instance so adhoc-expression validation,
+        which runs once per selected column/metric/order-by, resolves the schema
+        at most once instead of issuing a fallback inspector round-trip per
+        expression.
+        """
+        if self.schema:
+            return self.schema
+        if not hasattr(self, "_denylist_default_schema"):
+            catalog = self.catalog or self.database.get_default_catalog()
+            self._denylist_default_schema = self.database.resolve_query_default_schema(
+                sql, None, catalog
+            )
+        return self._denylist_default_schema
+
     def _process_sql_expression(  # pylint: disable=too-many-arguments
         self,
         expression: Optional[str],
@@ -1227,24 +1319,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     disallowed_functions
                 ):
                     raise SupersetDisallowedSQLFunctionException(disallowed_functions)
-                if disallowed_tables and parsed.check_tables_present(disallowed_tables):
+                if disallowed_tables:
                     # Report only the tables actually found in the expression,
                     # mirroring the canonical execution-time gate in
                     # `superset.sql_lab._validate_query` so the user-facing
-                    # error doesn't echo the operator's full denylist.
-                    present_tables = {
-                        table.table.lower()
-                        for statement in parsed.statements
-                        for table in statement.tables
-                    }
-                    found_tables = {
-                        table
-                        for table in disallowed_tables
-                        if table.lower() in present_tables
-                    }
-                    raise SupersetDisallowedSQLTableException(
-                        found_tables or disallowed_tables
+                    # error doesn't echo the operator's full denylist. Honors
+                    # schema-qualified denylist entries (e.g.
+                    # ``information_schema.tables``) and resolves unqualified
+                    # references against the same runtime schema the SQL Lab /
+                    # executor gate resolves them to (via the query-aware
+                    # resolver, not the static inspector default), so both
+                    # surfaces enforce the denylist consistently.
+                    effective_schema = self._resolve_denylist_schema(sql_to_check)
+                    found_tables = parsed.get_disallowed_tables(
+                        disallowed_tables, effective_schema
                     )
+                    if found_tables:
+                        raise SupersetDisallowedSQLTableException(found_tables)
         return expression
 
     def _process_select_expression(
@@ -1471,19 +1562,21 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             disallowed_functions
         ):
             raise SupersetDisallowedSQLFunctionException(disallowed_functions)
-        if disallowed_tables and parsed_script.check_tables_present(disallowed_tables):
+        if disallowed_tables:
             # Report only the tables actually found in the query, mirroring the
             # canonical execution-time gate so the user-facing error doesn't
-            # echo the operator's full denylist.
-            present_tables = {
-                table.table.lower()
-                for statement in parsed_script.statements
-                for table in statement.tables
-            }
-            found_tables = {
-                table for table in disallowed_tables if table.lower() in present_tables
-            }
-            raise SupersetDisallowedSQLTableException(found_tables or disallowed_tables)
+            # echo the operator's full denylist. Honors schema-qualified
+            # denylist entries (e.g. ``information_schema.tables``) and resolves
+            # unqualified references against the same runtime schema the SQL Lab
+            # / executor gate resolves them to (via the query-aware resolver,
+            # not the static inspector default), so both surfaces enforce the
+            # denylist consistently.
+            effective_schema = self._resolve_denylist_schema(sql)
+            found_tables = parsed_script.get_disallowed_tables(
+                disallowed_tables, effective_schema
+            )
+            if found_tables:
+                raise SupersetDisallowedSQLTableException(found_tables)
 
     def query(self, query_obj: QueryObjectDict) -> QueryResult:
         """
@@ -2275,10 +2368,26 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             time_grain
         )
 
-        if join_column_producer and not time_grain:
-            raise QueryObjectValidationError(
-                _("Time Grain must be specified when using Time Shift.")
+        if not time_grain:
+            has_temporal_join_key = any(
+                pd.api.types.is_datetime64_any_dtype(df[key])
+                for key in join_keys
+                if key in df.columns
             )
+            if has_temporal_join_key:
+                has_relative_offset = any(
+                    not (
+                        self.is_valid_date_range(offset)
+                        and feature_flag_manager.is_feature_enabled(
+                            "DATE_RANGE_TIMESHIFTS_ENABLED"
+                        )
+                    )
+                    for offset in offset_dfs
+                )
+                if has_relative_offset:
+                    raise QueryObjectValidationError(
+                        _("Time Grain must be specified when using Time Comparison.")
+                    )
 
         for offset, offset_df in offset_dfs.items():
             is_date_range_offset = self.is_valid_date_range(
@@ -2550,16 +2659,26 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         label = utils.get_metric_name(metric)
 
         if expression_type == utils.AdhocMetricExpressionType.SIMPLE:
+            aggregate: Any = metric.get("aggregate")
+            if (
+                not isinstance(aggregate, str)
+                or aggregate not in self.sqla_aggregations
+            ):
+                raise QueryObjectValidationError(_("Adhoc metric aggregate is invalid"))
             metric_column = metric.get("column") or {}
             column_name = cast(str, metric_column.get("column_name"))
             sqla_column = sa.column(column_name)
-            sqla_metric = self.sqla_aggregations[metric["aggregate"]](sqla_column)
+            sqla_metric = self.sqla_aggregations[aggregate](sqla_column)
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
-            expression = metric.get("sqlExpression")
+            expression: Any = metric.get("sqlExpression")
+            if not isinstance(expression, str) or not expression.strip():
+                raise QueryObjectValidationError(
+                    _("Adhoc metric SQL expression is invalid")
+                )
 
             if not processed:
                 expression = self._process_select_expression(
-                    expression=metric["sqlExpression"],
+                    expression=expression,
                     database_id=self.database_id,
                     engine=self.database.backend,
                     schema=self.schema,
@@ -2591,21 +2710,50 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if values is None:
             return None
 
+        temporal_comparison_operators: set[utils.FilterOperator] = {
+            utils.FilterOperator.EQUALS,
+            utils.FilterOperator.NOT_EQUALS,
+            utils.FilterOperator.IN,
+            utils.FilterOperator.NOT_IN,
+            utils.FilterOperator.GREATER_THAN,
+            utils.FilterOperator.LESS_THAN,
+            utils.FilterOperator.GREATER_THAN_OR_EQUALS,
+            utils.FilterOperator.LESS_THAN_OR_EQUALS,
+        }
+
+        def handle_temporal_value(value: FilterValue) -> FilterValue | ColumnElement:
+            if (
+                operator not in temporal_comparison_operators
+                or target_generic_type != utils.GenericDataType.TEMPORAL
+                or target_native_type is None
+                or db_engine_spec is None
+            ):
+                return value
+
+            if isinstance(value, (float, int)) and not isinstance(value, bool):
+                epoch_ms: float = value
+            elif isinstance(value, str) and re.fullmatch(r"[+-]?\d+", value):
+                epoch_ms = int(value)
+            else:
+                return value
+
+            try:
+                dttm = datetime.fromtimestamp(epoch_ms / 1000, tz=timezone.utc).replace(
+                    tzinfo=None
+                )
+            except (OverflowError, OSError, ValueError):
+                return value
+
+            temporal_sql = db_engine_spec.convert_dttm(
+                target_type=target_native_type,
+                dttm=dttm,
+                db_extra=db_extra,
+            )
+            return literal_column(temporal_sql) if temporal_sql is not None else value
+
         def handle_single_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
             if operator == utils.FilterOperator.TEMPORAL_RANGE:
                 return value
-            if (
-                isinstance(value, (float, int))
-                and target_generic_type == utils.GenericDataType.TEMPORAL
-                and target_native_type is not None
-                and db_engine_spec is not None
-            ):
-                value = db_engine_spec.convert_dttm(
-                    target_type=target_native_type,
-                    dttm=datetime.utcfromtimestamp(value / 1000),
-                    db_extra=db_extra,
-                )
-                value = literal_column(value)
             if isinstance(value, str):
                 value = value.strip("\t\n")
 
@@ -2626,6 +2774,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     return None
                 if value == EMPTY_STRING:
                     return ""
+                value = handle_temporal_value(value)
+            elif value is not None:
+                value = handle_temporal_value(value)
             if target_generic_type == utils.GenericDataType.BOOLEAN:
                 return utils.cast_to_boolean(value)
             return value
@@ -2718,7 +2869,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def adhoc_column_to_sqla(
         self,
-        col: "AdhocColumn",  # type: ignore  # noqa: F821
+        col: AdhocColumn,
         force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> tuple[ColumnElement, Optional[GenericDataType]]:
@@ -2778,7 +2929,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 condition = condition_factory(expr.name, expr)
 
                 # Create CASE expression: condition true -> original, else "Others"
-                case_expr = sa.case([(condition, expr)], else_=sa.literal("Others"))
+                case_expr = sa.case((condition, expr), else_=sa.literal("Others"))
                 case_expr = self.make_sqla_column_compatible(case_expr, expr.name)
                 modified_select_exprs.append(case_expr)
             else:
@@ -2793,7 +2944,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
                 # Create CASE expression for groupby
                 case_expr = sa.case(
-                    [(condition, gby_expr)],
+                    (condition, gby_expr),
                     else_=sa.literal("Others"),
                 )
                 # Don't apply make_sqla_column_compatible to GROUP BY expressions.
@@ -2865,6 +3016,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 time_col, label=label, template_processor=template_processor
             )
         )
+
+        # Honor the dataset "Hour Offset". Result timestamps are displayed shifted
+        # by +offset hours (see normalize_df / DateColumn in superset.utils.core),
+        # but the time filter compares the raw stored values. Shifting the filter
+        # bounds by -offset keeps the filter consistent with what is displayed;
+        # otherwise a date selection lands on the wrong calendar day (#104810).
+        if offset_hours := getattr(self, "offset", 0) or 0:
+            if start_dttm is not None:
+                start_dttm = start_dttm - timedelta(hours=offset_hours)
+            if end_dttm is not None:
+                end_dttm = end_dttm - timedelta(hours=offset_hours)
 
         l = []  # noqa: E741
         if start_dttm:
@@ -2962,6 +3124,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # Process template
             tp = self.get_template_processor()
             processed_expression = self._process_expression_template(expression, tp)
+
+            # Apply the same parsing policy used for stored adhoc column and
+            # metric expressions (single statement, no set operations, and no
+            # sub-queries unless ALLOW_ADHOC_SUBQUERY is enabled), so expression
+            # validation follows one policy across the query pipeline. Imported
+            # locally to avoid a circular import with the connectors package.
+            from superset.connectors.sqla.models import validate_stored_expression
+
+            validate_stored_expression(
+                self.database, self.catalog, self.schema or "", processed_expression
+            )
 
             # Build validation query
             tbl, cte = self.get_from_clause(tp)
@@ -3236,6 +3409,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # use the key of the ColumnClause for the expected label
         metrics_exprs_by_label = {m.key: m for m in metrics_exprs}
         metrics_exprs_by_expr = {str(m): m for m in metrics_exprs}
+        adhoc_columns_by_label: dict[str, AdhocColumn] = {}
+        for selected in columns:
+            if not utils.is_adhoc_column(selected):
+                continue
+            selected_label = selected.get("label")
+            if isinstance(selected_label, str) and selected_label:
+                adhoc_columns_by_label[selected_label] = selected
 
         # Since orderby may use adhoc metrics, too; we need to process them first
         orderby_exprs: list[ColumnElement] = []
@@ -3267,6 +3447,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             elif col in metrics_exprs_by_label:
                 col = metrics_exprs_by_label[col]
                 need_groupby = True
+            elif isinstance(col, str) and col in adhoc_columns_by_label:
+                col, _unused = self.adhoc_column_to_sqla(
+                    col=adhoc_columns_by_label[col],
+                    template_processor=template_processor,
+                )
             elif col in metrics_by_name:
                 col = metrics_by_name[col].get_sqla_col(
                     template_processor=template_processor
@@ -3276,21 +3461,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 col = self.convert_tbl_column_to_sqla_col(
                     columns_by_name[col], template_processor=template_processor
                 )
-            elif isinstance(col, str) and columns:
-                # Check if this is a label reference to an adhoc column
-                adhoc_col = next(
-                    (
-                        c
-                        for c in columns
-                        if utils.is_adhoc_column(c) and c.get("label") == col
-                    ),
-                    None,
-                )
-                if adhoc_col:
-                    col, _unused = self.adhoc_column_to_sqla(
-                        col=adhoc_col,
-                        template_processor=template_processor,
-                    )
 
             if isinstance(col, ColumnElement):
                 orderby_exprs.append(col)
@@ -3350,6 +3520,29 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 select_exprs.append(outer)
         elif columns:
             for selected in columns:
+                # Resolve a known column directly to its ``TableColumn`` so that
+                # multi-part identifiers (e.g. a BigQuery STRUCT field registered
+                # with a dotted ``column_name`` such as ``a.b.c``) are quoted per
+                # segment, matching the chart/groupby selection path above.
+                # Without this, a registered string column falls through to the
+                # ``quote()`` + ``_process_select_expression`` (sqlglot
+                # ``sanitize_clause``) path below, which re-serializes the merged
+                # identifier into a table-qualified form that no longer matches
+                # ``quoted_columns_by_name`` and is emitted via ``literal_column``
+                # as a single quoted name — breaking drill to detail / samples
+                # queries on nested columns (SC-111745).
+                # The guard fires for every registered physical column, not only
+                # dotted ones; that is intentional — for a plain name like ``id``
+                # the resolved column produces SQL identical to the fallback path.
+                if isinstance(selected, str) and selected in columns_by_name:
+                    select_exprs.append(
+                        self.convert_tbl_column_to_sqla_col(
+                            columns_by_name[selected],
+                            label=selected,
+                            template_processor=template_processor,
+                        )
+                    )
+                    continue
                 if is_adhoc_column(selected):
                     _sql = selected["sqlExpression"]
                     _column_label = selected["label"]
@@ -3574,6 +3767,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     target_native_type=col_type,
                     is_list_target=is_list_target,
                     db_engine_spec=db_engine_spec,
+                    db_extra=self.db_extra,
                 )
 
                 # Get ADVANCED_DATA_TYPES from config when needed

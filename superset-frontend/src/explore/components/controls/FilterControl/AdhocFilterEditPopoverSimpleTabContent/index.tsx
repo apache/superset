@@ -57,7 +57,7 @@ import { useDefaultTimeFilter } from '../../DateFilterControl/utils';
 import { Clauses, ExpressionTypes } from '../types';
 
 const SelectWithLabel = styled(Select)<{ labelText: string }>`
-  .ant-select-selector::after {
+  .ant-select-content::after {
     content: ${({ labelText }) => labelText || '\\A0'};
     display: inline-block;
     white-space: nowrap;
@@ -83,10 +83,7 @@ export interface MetricColumnType {
 }
 
 export type ColumnType =
-  | ColumnMeta
-  | SimpleExpressionType
-  | SQLExpressionType
-  | MetricColumnType;
+  ColumnMeta | SimpleExpressionType | SQLExpressionType | MetricColumnType;
 
 export interface Props {
   adhocFilter: AdhocFilter;

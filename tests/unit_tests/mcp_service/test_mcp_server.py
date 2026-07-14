@@ -209,3 +209,32 @@ def test_create_auth_provider_propagates_auth_config_error() -> None:
     ):
         with pytest.raises(MCPAuthConfigError):
             _create_auth_provider(flask_app)
+
+
+def test_create_auth_provider_fails_closed_on_insecure_guest_secret() -> None:
+    """Guest-only deployment with an insecure GUEST_TOKEN_JWT_SECRET must abort.
+
+    When only MCP_EMBEDDED_GUEST_AUTH_ENABLED is on and the default factory
+    raises MCPAuthConfigError (insecure default guest secret), _create_auth_provider
+    must re-raise it — otherwise the server would boot with no authentication.
+    """
+    from superset.mcp_service.mcp_config import MCPAuthConfigError
+    from superset.mcp_service.server import _create_auth_provider
+
+    flask_app = MagicMock()
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": None,
+        "MCP_AUTH_ENABLED": False,
+        "MCP_API_KEY_ENABLED": False,
+        "FAB_API_KEY_ENABLED": False,
+        "MCP_EMBEDDED_GUEST_AUTH_ENABLED": True,
+    }.get(key, default)
+
+    with patch(
+        "superset.mcp_service.mcp_config.create_default_mcp_auth_factory",
+        side_effect=MCPAuthConfigError(
+            "GUEST_TOKEN_JWT_SECRET is the insecure default"
+        ),
+    ):
+        with pytest.raises(MCPAuthConfigError):
+            _create_auth_provider(flask_app)
