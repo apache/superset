@@ -30,7 +30,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pydantic import BaseModel
 
-from superset.mcp_service.mcp_core import _slugify, ModelGetInfoCore
+from superset.mcp_service.mcp_core import (
+    _slugify,
+    ModelGetInfoCore,
+    ModelListCore,
+)
 
 
 class _FakeOutput(BaseModel):
@@ -328,3 +332,54 @@ def test_deleted_state_bound_filter_delegates_bound_value() -> None:
 
     assert bound.apply("query", None) == "filtered-query"
     inner.apply.assert_called_once_with("query", "only")
+
+
+def _build_list_core(
+    deleted_state_filter: type | None = None,
+) -> "ModelListCore[Any]":
+    """Minimal ModelListCore for exercising _build_deleted_state_filter."""
+    from unittest.mock import MagicMock
+
+    from pydantic import BaseModel
+
+    class _Out(BaseModel):
+        pass
+
+    return ModelListCore(
+        dao_class=MagicMock(),
+        output_schema=_Out,
+        item_serializer=lambda obj, cols: None,
+        filter_type=_Out,
+        default_columns=["id"],
+        search_columns=[],
+        list_field_name="items",
+        output_list_schema=_Out,
+        deleted_state_filter=deleted_state_filter,
+    )
+
+
+def test_build_deleted_state_filter_none_short_circuits() -> None:
+    """deleted_state=None must engage no filter or bypass machinery."""
+    core = _build_list_core()
+    assert core._build_deleted_state_filter(None) is None
+
+
+def test_build_deleted_state_filter_rejects_invalid_value() -> None:
+    """The core re-validates defensively even though the request schemas
+    bound the value with Literal — a non-schema caller must still be
+    rejected before any visibility bypass engages."""
+    import pytest
+
+    core = _build_list_core()
+    with pytest.raises(ValueError, match="include.*only|'include' or 'only'"):
+        core._build_deleted_state_filter("everything")
+
+
+def test_build_deleted_state_filter_rejects_unconfigured_resource() -> None:
+    """Resources without a configured deleted-state filter reject the
+    parameter instead of silently returning live rows."""
+    import pytest
+
+    core = _build_list_core(deleted_state_filter=None)
+    with pytest.raises(ValueError, match="not supported"):
+        core._build_deleted_state_filter("only")

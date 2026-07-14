@@ -130,3 +130,47 @@ async def test_list_dashboards_deleted_state_serializes_deleted_at(
     assert data["dashboards"][0]["id"] == 1
     assert data["dashboards"][0]["deleted_at"] is not None
     assert "deleted_at" in data["columns_loaded"]
+
+
+@patch(_DAO_LIST)
+@pytest.mark.asyncio
+async def test_list_dashboards_default_has_no_deleted_state_filter(
+    mock_list: Mock, mcp_server: object
+) -> None:
+    mock_list.return_value = ([], 0)
+
+    async with Client(mcp_server) as client:
+        await client.call_tool("list_dashboards", {})
+
+    kwargs = mock_list.call_args.kwargs
+    assert not kwargs.get("custom_filters")
+
+
+@patch(_BYPASS)
+@patch(_DAO_LIST)
+@pytest.mark.asyncio
+async def test_list_dashboards_no_deleted_state_no_visibility_bypass(
+    mock_list: Mock, mock_bypass: MagicMock, mcp_server: object
+) -> None:
+    mock_list.return_value = ([], 0)
+
+    async with Client(mcp_server) as client:
+        await client.call_tool("list_dashboards", {})
+
+    mock_bypass.assert_not_called()
+
+
+@patch(_DAO_LIST)
+@pytest.mark.asyncio
+async def test_list_dashboards_deleted_state_invalid_value_rejected(
+    mock_list: Mock, mcp_server: object
+) -> None:
+    from fastmcp.exceptions import ToolError
+
+    mock_list.return_value = ([], 0)
+
+    async with Client(mcp_server) as client:
+        with pytest.raises(ToolError):
+            await client.call_tool(
+                "list_dashboards", {"request": {"deleted_state": "everything"}}
+            )
