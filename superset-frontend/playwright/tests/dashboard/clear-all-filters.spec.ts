@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import type { Request } from '@playwright/test';
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiPost, apiPut } from '../../helpers/api/requests';
 import { apiPostDashboard } from '../../helpers/api/dashboard';
@@ -148,23 +149,10 @@ testWithAssets(
     await dashboardPage.gotoById(dashboardId);
     await dashboardPage.waitForLoad({ timeout: TIMEOUT.SLOW_TEST });
     await dashboardPage.waitForChartsToLoad();
+    const filterBar = dashboardPage.getFilterBar();
 
     // The Gender select should be visible in the filter bar
-    const filterCombobox = page
-      .locator('[data-test="form-item-value"]')
-      .first()
-      .locator('[role="combobox"]');
-    await filterCombobox.click();
-    await page
-      .locator('.ant-select-item-option', { hasText: /^boy$/ })
-      .first()
-      .click();
-    // Close the dropdown
-    await page.keyboard.press('Escape');
-
-    const applyBtn = page.locator(
-      '[data-test="filter-bar__apply-button"], [data-test="filterbar-action-buttons"] button[type="submit"]',
-    );
+    await filterBar.selectOption('boy');
 
     // Wait for chart data to come back after Apply
     const firstApplyResponse = page.waitForResponse(
@@ -173,21 +161,20 @@ testWithAssets(
         r.request().method() === 'POST',
       { timeout: 10_000 },
     );
-    await applyBtn.first().click();
+    await filterBar.apply();
     await firstApplyResponse;
     await dashboardPage.waitForChartsToLoad();
 
     // Now track POST /api/v1/chart/data requests around Clear All
     const postsAfterClearAll: string[] = [];
-    const handler = (req: any) => {
+    const handler = (req: Request) => {
       if (req.url().includes('/api/v1/chart/data') && req.method() === 'POST') {
         postsAfterClearAll.push(req.url());
       }
     };
     page.on('request', handler);
 
-    const clearBtn = page.locator('[data-test="filter-bar__clear-button"]');
-    await clearBtn.click();
+    await filterBar.clearAll();
 
     // Allow time for any debounced reload to fire if the bug is present
     await page.waitForTimeout(2000);
@@ -209,7 +196,7 @@ testWithAssets(
         r.request().method() === 'POST',
       { timeout: 10_000 },
     );
-    await applyBtn.first().click();
+    await filterBar.apply();
     await applyAfterClearPromise;
   },
 );

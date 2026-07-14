@@ -19,6 +19,7 @@
 
 import { Page, Download, Locator } from '@playwright/test';
 import { Menu } from '../components/core';
+import { DashboardFilterBar } from '../components/dashboard';
 import { NativeFiltersConfigModal } from '../components/modals';
 import { gotoWithRetry } from '../helpers/navigation';
 import { TIMEOUT } from '../utils/constants';
@@ -28,6 +29,7 @@ import { TIMEOUT } from '../utils/constants';
  */
 export class DashboardPage {
   private readonly page: Page;
+  private readonly filterBar: DashboardFilterBar;
 
   private static readonly SELECTORS = {
     DASHBOARD_HEADER: '[data-test="dashboard-header-container"]',
@@ -35,12 +37,11 @@ export class DashboardPage {
     // The header-actions-menu is the data-test for the dropdown menu content
     HEADER_ACTIONS_MENU: '[data-test="header-actions-menu"]',
     FILTER_BAR_SETTINGS: '[data-test="filterbar-orientation-icon"]',
-    APPLY_FILTERS_BUTTON:
-      '[data-test="filter-bar__apply-button"], [data-test="filterbar-action-buttons"] button[type="submit"]',
   } as const;
 
   constructor(page: Page) {
     this.page = page;
+    this.filterBar = new DashboardFilterBar(page);
   }
 
   /**
@@ -117,6 +118,13 @@ export class DashboardPage {
   }
 
   /**
+   * Gets the dashboard native-filter bar component.
+   */
+  getFilterBar(): DashboardFilterBar {
+    return this.filterBar;
+  }
+
+  /**
    * Opens the native filters and Display Controls configuration modal.
    */
   async openNativeFiltersConfigModal(): Promise<NativeFiltersConfigModal> {
@@ -134,14 +142,7 @@ export class DashboardPage {
    * Applies pending native filter changes when the Apply button is enabled.
    */
   async applyFiltersIfEnabled(): Promise<void> {
-    const applyButton = this.page
-      .locator(DashboardPage.SELECTORS.APPLY_FILTERS_BUTTON)
-      .first();
-    if (!(await applyButton.isEnabled().catch(() => false))) {
-      return;
-    }
-
-    await applyButton.click();
+    await this.filterBar.applyIfEnabled();
   }
 
   /**
