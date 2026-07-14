@@ -1764,6 +1764,14 @@ class DeckGLMultiLayer(BaseViz):
             if not viz_class:
                 continue  # skip unknown viz types
 
+            # Each child layer runs against its own datasource, so apply the
+            # same datasource access check per layer; skip any layer the current
+            # user cannot access.
+            try:
+                security_manager.raise_for_access(datasource=slc.datasource)
+            except SupersetSecurityException:
+                continue
+
             viz_instance = viz_class(datasource=slc.datasource, form_data=form_data)
             payload = viz_instance.get_payload()
             if payload:
