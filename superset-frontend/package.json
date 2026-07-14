@@ -301,7 +301,7 @@
     "@types/tinycolor2": "^1.4.3",
     "@types/unzipper": "^0.10.11",
     "@typescript-eslint/eslint-plugin": "^8.62.1",
-    "@typescript-eslint/parser": "^8.62.1",
+    "@typescript-eslint/parser": "^8.63.0",
     "babel-jest": "^30.4.1",
     "babel-loader": "^10.1.1",
     "babel-plugin-dynamic-import-node": "^2.3.3",
