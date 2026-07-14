@@ -23,10 +23,10 @@
  * filter and a Time grain Display Control, deletes the control via the config
  * modal, then applies and asserts it stays gone.
  */
-import { Page } from '@playwright/test';
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiPost, apiPut } from '../../helpers/api/requests';
 import { apiPostDashboard } from '../../helpers/api/dashboard';
+import { getDatasetByName } from '../../helpers/api/dataset';
 import { DashboardPage } from '../../pages/DashboardPage';
 
 // Record video regardless of pass/fail (before/after clips).
@@ -35,16 +35,6 @@ testWithAssets.use({ video: 'on' });
 const DATASET_NAME = 'birth_names';
 const FILTER_COLUMN = 'gender';
 const TEMPORAL_COLUMN = 'ds';
-
-async function findDatasetIdByName(page: Page, name: string): Promise<number> {
-  const rison = `(filters:!((col:table_name,opr:eq,value:'${name}')))`;
-  const resp = await page.request.get(`api/v1/dataset/?q=${rison}`);
-  const body = await resp.json();
-  if (!body.result?.length) {
-    throw new Error(`Dataset ${name} not found`);
-  }
-  return body.result[0].id;
-}
 
 testWithAssets(
   'Deleted Display Control must not reappear after Apply Filters',
@@ -56,7 +46,11 @@ testWithAssets(
         fullPage: false,
       });
 
-    const datasetId = await findDatasetIdByName(page, DATASET_NAME);
+    const dataset = await getDatasetByName(page, DATASET_NAME);
+    if (!dataset) {
+      throw new Error(`Dataset ${DATASET_NAME} not found`);
+    }
+    const datasetId = dataset.id;
 
     // 1. Seed a chart the filter + control can target.
     const chartParams = {
@@ -183,47 +177,31 @@ testWithAssets(
     await dashboardPage.waitForChartsToLoad({ timeout: 8000 }).catch(() => {});
 
     // Both the Gender filter and the Time grain Display Control should render.
-    const displayControlsHeader = page.locator('text=Display controls').first();
-    await expect(displayControlsHeader).toBeVisible();
-    const timeGrainControl = page.locator('text=Time grain').first();
-    await expect(timeGrainControl).toBeVisible();
+    await expect(dashboardPage.getDisplayControlsHeader()).toBeVisible();
+    await expect(dashboardPage.getDisplayControl('Time grain')).toBeVisible();
     // eslint-disable-next-line no-console
     console.log('STEP 1: Display control "Time grain" is present in the bar.');
     await shot('01-initial-bar');
 
     // 4. Open the filters config modal via the settings gear.
-    await page.locator('[data-test="filterbar-orientation-icon"]').click();
-    await page.locator('text=Add or edit filters and controls').first().click();
-    await expect(
-      page.locator('[data-test="native-filter-modal-save-button"]'),
-    ).toBeVisible();
+    const modal = await dashboardPage.openNativeFiltersConfigModal();
     await shot('02-modal-open');
 
     // 5. Delete the "Time grain" Display Control in the modal sidebar.
-    const modal = page.locator('.ant-modal-content');
-    const controlRow = modal.getByText('Time grain', { exact: false }).first();
-    await controlRow.hover();
-    // Trash icon in the same sidebar row.
-    const rowContainer = controlRow.locator(
-      'xpath=ancestor::*[@role="tab"][1]',
-    );
-    await rowContainer.locator('.anticon-delete, [aria-label]').last().click();
-    await expect(modal.getByText('(Removed)').first()).toBeVisible();
+    await modal.removeDisplayControl('Time grain');
+    await expect(modal.getRemovedMarker()).toBeVisible();
     // eslint-disable-next-line no-console
     console.log('STEP 2: Display control marked (Removed) in modal.');
     await shot('03-modal-removed');
 
     // 6. Save the modal.
-    await page.locator('[data-test="native-filter-modal-save-button"]').click();
-    await expect(
-      page.locator('[data-test="native-filter-modal-save-button"]'),
-    ).toBeHidden({ timeout: 20000 });
+    await modal.clickSave();
+    await modal.waitForHidden({ timeout: 20000 });
     await dashboardPage.waitForChartsToLoad({ timeout: 8000 }).catch(() => {});
     await shot('04-after-save');
 
-    const goneAfterSave = await page
-      .locator('text=Time grain')
-      .first()
+    const goneAfterSave = await dashboardPage
+      .getDisplayControl('Time grain')
       .isVisible()
       .catch(() => false);
     // eslint-disable-next-line no-console
@@ -232,21 +210,13 @@ testWithAssets(
     );
 
     // 7. Click Apply Filters.
-    const applyBtn = page
-      .locator(
-        '[data-test="filter-bar__apply-button"], [data-test="filterbar-action-buttons"] button[type="submit"]',
-      )
-      .first();
-    if (await applyBtn.isEnabled().catch(() => false)) {
-      await applyBtn.click();
-    }
+    await dashboardPage.applyFiltersIfEnabled();
     await dashboardPage.waitForChartsToLoad({ timeout: 8000 }).catch(() => {});
     await page.waitForTimeout(1500);
     await shot('05-after-apply');
 
-    const reappeared = await page
-      .locator('text=Time grain')
-      .first()
+    const reappeared = await dashboardPage
+      .getDisplayControl('Time grain')
       .isVisible()
       .catch(() => false);
     // eslint-disable-next-line no-console
@@ -256,7 +226,7 @@ testWithAssets(
 
     // The deleted Display Control must stay gone.
     await expect(
-      page.locator('text=Time grain'),
+      dashboardPage.getDisplayControl('Time grain'),
       'Deleted Display Control must not reappear after Apply Filters',
     ).toHaveCount(0);
   },

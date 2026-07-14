@@ -235,15 +235,15 @@ msgstr "\"%s\" اکنون تم تاریک سیستم است"
 msgid "\"%s\" is now the system default theme"
 msgstr "\"%s\" اکنون تم پیش‌فرض سیستم است"
 
-#, python-format
+#, no-python-format
 msgid "% calculation"
 msgstr "% محاسبه"
 
-#, python-format
+#, no-python-format
 msgid "% of parent"
 msgstr "% از والد"
 
-#, python-format
+#, no-python-format
 msgid "% of total"
 msgstr "% از کل"
 
@@ -17783,10 +17783,8 @@ msgid ""
 msgid_plural ""
 "We’re having trouble loading these results. Queries are set to timeout "
 "after %s seconds."
-msgstr[0] ""
-"در بارگذاری این نتایج مشکلی پیش آمده است. درخواست‌ها بعد از %s ثانیه زمان"
-" تمام می‌شوند."
-msgstr[1] ""
+msgstr[0] "در بارگذاری این نتایج مشکلی پیش آمده است. درخواست‌ها بعد از %s ثانیه زمان تمام می‌شوند."
+msgstr[1] "در بارگذاری این نتایج مشکلی پیش آمده است. درخواست‌ها بعد از %s ثانیه زمان تمام می‌شوند."
 
 #, python-format
 msgid ""
@@ -17795,10 +17793,8 @@ msgid ""
 msgid_plural ""
 "We’re having trouble loading this visualization. Queries are set to "
 "timeout after %s seconds."
-msgstr[0] ""
-"در بارگذاری این تصویرسازی مشکلی پیش آمده است. درخواست‌ها بعد از %s ثانیه "
-"زمان تمام می‌شوند."
-msgstr[1] ""
+msgstr[0] "در بارگذاری این تصویرسازی مشکلی پیش آمده است. درخواست‌ها بعد از %s ثانیه زمان تمام می‌شوند."
+msgstr[1] "در بارگذاری این تصویرسازی مشکلی پیش آمده است. درخواست‌ها بعد از %s ثانیه زمان تمام می‌شوند."
 
 msgid "What should be shown as the label"
 msgstr "چه چیزی باید به عنوان برچسب نمایش داده شود"
