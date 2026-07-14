@@ -37,6 +37,11 @@ const ChartCreation = lazy(
     import(/* webpackChunkName: "ChartCreation" */ 'src/pages/ChartCreation'),
 );
 
+const AnalyticsList = lazy(
+  () =>
+    import(/* webpackChunkName: "AnalyticsList" */ 'src/pages/AnalyticsList'),
+);
+
 const AnnotationLayerList = lazy(
   () =>
     import(
@@ -218,6 +223,87 @@ export const routes: Routes = [
   { path: RoutePaths.QUERY_HISTORY, Component: QueryHistoryList },
   { path: RoutePaths.ALERTS, Component: AlertReportList },
   {
+    path: '/redirect/',
+    Component: RedirectWarning,
+  },
+  {
+    path: '/login/',
+    Component: Login,
+  },
+  {
+    path: '/register/activation/:activationHash',
+    Component: Register,
+  },
+  {
+    path: '/register/',
+    Component: Register,
+  },
+  {
+    path: '/logout/',
+    Component: Login,
+  },
+  {
+    path: '/superset/welcome/',
+    Component: Home,
+  },
+  {
+    path: '/superset/file-handler',
+    Component: FileHandler,
+  },
+  {
+    path: '/dashboard/list/',
+    Component: DashboardList,
+  },
+  {
+    path: '/superset/dashboard/:idOrSlug/',
+    Component: Dashboard,
+  },
+  {
+    path: '/chart/add',
+    Component: ChartCreation,
+  },
+  {
+    path: '/chart/list/',
+    Component: ChartList,
+  },
+  {
+    path: '/tablemodelview/list/',
+    Component: DatasetList,
+  },
+  {
+    path: '/databaseview/list/',
+    Component: DatabaseList,
+  },
+  {
+    path: '/savedqueryview/list/',
+    Component: SavedQueryList,
+  },
+  {
+    path: '/csstemplatemodelview/list/',
+    Component: CssTemplateList,
+  },
+  {
+    path: '/theme/list/',
+    Component: ThemeList,
+  },
+  {
+    path: '/annotationlayer/list/',
+    Component: AnnotationLayerList,
+  },
+  {
+    path: '/annotationlayer/:annotationLayerId/annotation/',
+    Component: AnnotationList,
+  },
+  {
+    path: '/sqllab/history/',
+    Component: QueryHistoryList,
+  },
+  {
+    path: '/alert/list/',
+    Component: AlertReportList,
+    props: { isReportEnabled: true },
+  },
+  {
     path: RoutePaths.REPORTS,
     Component: AlertReportList,
     props: { isReportEnabled: true },
@@ -243,6 +329,13 @@ export const routes: Routes = [
 if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
   routes.push({ path: RoutePaths.ALL_ENTITIES, Component: AllEntities });
   routes.push({ path: RoutePaths.TAGS, Component: Tags });
+}
+
+if (isFeatureEnabled('FOLDERS' as FeatureFlag)) {
+  routes.push({
+    path: '/analytics/:folderUuid?/',
+    Component: AnalyticsList,
+  });
 }
 
 const user = getBootstrapData()?.user;

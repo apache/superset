@@ -648,6 +648,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Allow metrics and columns to be grouped into folders in the chart builder
     # @lifecycle: development
     "DATASET_FOLDERS": False,
+    # Enable the folder-based analytics view (replaces Charts/Dashboards nav)
+    # @lifecycle: development
+    "FOLDERS": False,
     # Enable support for date range timeshifts (e.g., "2015-01-03 : 2015-01-04")
     # in addition to relative timeshifts (e.g., "1 day ago")
     # @lifecycle: development
@@ -2852,6 +2855,10 @@ EXTRA_RAISE_FOR_ACCESS_BYPASS: Callable[..., bool] | None = None
 EXTRA_OWNERS_RESOLVER: Callable[..., list[Any]] | None = None
 # Post-create hook for charts/dashboards. Receives (model, asset_type).
 AFTER_ASSET_CREATE: Callable[[Any, str], None] | None = None
+# When True, folder viewers/editors can access all charts and datasources on a
+# dashboard that is in their folder, even if those charts are not individually
+# in any folder. Disabled by default.
+FOLDER_DASHBOARD_TRANSITIVE_ACCESS: bool = False
 
 
 # The migrations that add catalog permissions might take a considerably long time
