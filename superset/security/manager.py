@@ -5124,7 +5124,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 "/roles",
                 "/users",
                 "/groups",
-                "registrations",
+                "/registrations",
             ]:
                 self.appbuilder.baseviews.remove(view)
 
