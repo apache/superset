@@ -470,7 +470,7 @@ function Chart({
               role="button"
               tabIndex={0}
               onClick={onQuery}
-              onKeyDown={handleKeyboardActivation(onQuery)}
+              onKeyDown={handleKeyboardActivation(() => onQuery?.())}
             >
               {t('click here')}
             </span>
