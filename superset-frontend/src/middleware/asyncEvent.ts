@@ -58,6 +58,9 @@ const LOCALSTORAGE_KEY = 'last_async_event_id';
 const POLLING_URL = '/api/v1/async_event/';
 const MAX_RETRIES = 6;
 const RETRY_DELAY = 100;
+// Cap for the exponential backoff applied when polling requests fail
+// repeatedly (e.g. expired session, server or network errors)
+const MAX_ERROR_POLLING_DELAY_MS = 60000;
 
 let config: AppConfig;
 let transport: string;
@@ -66,6 +69,11 @@ let pollingTimeoutId: number;
 let listenersByJobId: Record<string, ListenerFn>;
 let retriesByJobId: Record<string, number>;
 let lastReceivedEventId: string | null | undefined;
+let consecutivePollingErrorCount = 0;
+// Incremented on every init() so polling invocations that are already
+// awaiting a fetch when re-init happens can detect they are stale and
+// stop, instead of mutating fresh state or scheduling a second loop
+let pollingGeneration = 0;
 
 const addListener = (id: string, fn: any) => {
   listenersByJobId[id] = fn;
@@ -166,19 +174,34 @@ export const processEvents = async (events: AsyncEvent[]) => {
   });
 };
 
+const getPollingDelay = () => {
+  if (!consecutivePollingErrorCount) return pollingDelayMs;
+  const backoffDelayMs = pollingDelayMs * 2 ** consecutivePollingErrorCount;
+  return Math.max(
+    pollingDelayMs,
+    Math.min(backoffDelayMs, MAX_ERROR_POLLING_DELAY_MS),
+  );
+};
+
 const loadEventsFromApi = async () => {
+  const generation = pollingGeneration;
   const eventArgs = lastReceivedEventId ? { last_id: lastReceivedEventId } : {};
   if (Object.keys(listenersByJobId).length) {
     try {
       const { result: events } = await fetchEvents(eventArgs);
+      if (generation !== pollingGeneration) return;
+      consecutivePollingErrorCount = 0;
       if (events?.length) await processEvents(events);
     } catch (err) {
+      if (generation !== pollingGeneration) return;
+      consecutivePollingErrorCount += 1;
       logging.warn(err);
     }
   }
 
+  if (generation !== pollingGeneration) return;
   if (transport === TRANSPORT_POLLING) {
-    pollingTimeoutId = window.setTimeout(loadEventsFromApi, pollingDelayMs);
+    pollingTimeoutId = window.setTimeout(loadEventsFromApi, getPollingDelay());
   }
 };
 
@@ -228,12 +251,14 @@ const wsConnect = (): void => {
 };
 
 export const init = (appConfig?: AppConfig) => {
-  if (!isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) return;
+  pollingGeneration += 1;
   if (pollingTimeoutId) clearTimeout(pollingTimeoutId);
+  if (!isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) return;
 
   listenersByJobId = {};
   retriesByJobId = {};
   lastReceivedEventId = null;
+  consecutivePollingErrorCount = 0;
 
   config = appConfig || getBootstrapData().common.conf;
   transport = config.GLOBAL_ASYNC_QUERIES_TRANSPORT || TRANSPORT_POLLING;

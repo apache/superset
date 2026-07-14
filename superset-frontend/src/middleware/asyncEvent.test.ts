@@ -170,6 +170,239 @@ describe('asyncEvent middleware', () => {
       expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(1);
       expect(fetchMock.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
     });
+
+    test('backs off exponentially when polling requests keep failing', async () => {
+      // stop the real-timer polling loop started by beforeEach before
+      // switching to fake timers, so all polls run on the fake clock
+      mockedIsFeatureEnabled.mockReturnValueOnce(false);
+      asyncEvent.init(config);
+      jest.useFakeTimers();
+      try {
+        fetchMock.reset();
+        fetchMock.get(EVENTS_ENDPOINT, { status: 403 });
+        asyncEvent.init(config);
+        asyncEvent.waitForAsyncData(asyncPendingEvent).catch(() => {});
+
+        // first poll fires after the configured delay and fails
+        await jest.advanceTimersByTimeAsync(
+          config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(1);
+
+        // next poll is delayed by 2x the configured delay, so nothing yet
+        await jest.advanceTimersByTimeAsync(
+          config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(1);
+
+        await jest.advanceTimersByTimeAsync(
+          config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(2);
+
+        // after the second failure the delay grows to 4x
+        await jest.advanceTimersByTimeAsync(
+          3 * config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(2);
+
+        await jest.advanceTimersByTimeAsync(
+          config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(3);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    test('resumes the configured polling delay after a successful poll', async () => {
+      // stop the real-timer polling loop started by beforeEach before
+      // switching to fake timers, so all polls run on the fake clock
+      mockedIsFeatureEnabled.mockReturnValueOnce(false);
+      asyncEvent.init(config);
+      jest.useFakeTimers();
+      try {
+        fetchMock.reset();
+        fetchMock.get(EVENTS_ENDPOINT, { status: 403 });
+        asyncEvent.init(config);
+        asyncEvent.waitForAsyncData(asyncPendingEvent).catch(() => {});
+
+        // two failed polls: 1x delay, then 2x delay
+        await jest.advanceTimersByTimeAsync(
+          3 * config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(2);
+
+        // subsequent polls succeed, resetting the backoff
+        fetchMock.reset();
+        fetchMock.get(EVENTS_ENDPOINT, {
+          status: 200,
+          body: { result: [] },
+        });
+
+        // third poll fires 4x delay after the second failure and succeeds
+        await jest.advanceTimersByTimeAsync(
+          4 * config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(1);
+
+        // polling is back to the configured delay
+        await jest.advanceTimersByTimeAsync(
+          config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(2);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    test('caps the polling backoff delay at 60 seconds', async () => {
+      const MAX_ERROR_POLLING_DELAY_MS = 60000;
+      // stop the real-timer polling loop started by beforeEach before
+      // switching to fake timers, so all polls run on the fake clock
+      mockedIsFeatureEnabled.mockReturnValueOnce(false);
+      asyncEvent.init(config);
+      jest.useFakeTimers();
+      try {
+        fetchMock.reset();
+        fetchMock.get(EVENTS_ENDPOINT, { status: 403 });
+        asyncEvent.init(config);
+        asyncEvent.waitForAsyncData(asyncPendingEvent).catch(() => {});
+
+        // first poll fires after the configured delay and fails
+        await jest.advanceTimersByTimeAsync(
+          config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(1);
+
+        // walk the uncapped backoff: after failure N the next delay is
+        // 2^N times the configured delay, which stays below the cap through
+        // failure 10 (50ms * 2^10 = 51.2s)
+        for (let failures = 1; failures <= 10; failures += 1) {
+          // Sequential by design: each fake-timer advance must resolve before
+          // the next poll-count assertion. (eslint 8.x on 6.0 flags this;
+          // apache/master's newer eslint does not — the code is identical.)
+          // eslint-disable-next-line no-await-in-loop
+          await jest.advanceTimersByTimeAsync(
+            config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY * 2 ** failures,
+          );
+          expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(failures + 1);
+        }
+
+        // after failure 11 the uncapped delay would be 102.4s, so the cap
+        // takes over: no poll just before the 60s mark...
+        await jest.advanceTimersByTimeAsync(MAX_ERROR_POLLING_DELAY_MS - 1);
+        expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(11);
+
+        // ...and the next poll fires exactly at 60s
+        await jest.advanceTimersByTimeAsync(1);
+        expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(12);
+
+        // additional failures remain capped at 60s
+        await jest.advanceTimersByTimeAsync(MAX_ERROR_POLLING_DELAY_MS);
+        expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(13);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    test('does not start a second loop when re-initialized during an in-flight poll', async () => {
+      // stop the real-timer polling loop started by beforeEach before
+      // switching to fake timers, so all polls run on the fake clock
+      mockedIsFeatureEnabled.mockReturnValueOnce(false);
+      asyncEvent.init(config);
+      jest.useFakeTimers();
+      try {
+        fetchMock.reset();
+        let resolveFetch: (response: any) => void = () => {};
+        fetchMock.get(
+          EVENTS_ENDPOINT,
+          new Promise(resolve => {
+            resolveFetch = resolve;
+          }),
+        );
+        asyncEvent.init(config);
+        asyncEvent.waitForAsyncData(asyncPendingEvent).catch(() => {});
+
+        // first poll fires and stays in-flight
+        await jest.advanceTimersByTimeAsync(
+          config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(1);
+
+        // re-init while that fetch is pending, then let it resolve; the
+        // stale invocation must not schedule a second loop
+        asyncEvent.init(config);
+        asyncEvent.waitForAsyncData(asyncPendingEvent).catch(() => {});
+        resolveFetch({ status: 200, body: { result: [] } });
+        await jest.advanceTimersByTimeAsync(0);
+
+        fetchMock.reset();
+        fetchMock.get(EVENTS_ENDPOINT, {
+          status: 200,
+          body: { result: [] },
+        });
+
+        // exactly one poll per delay from here on
+        await jest.advanceTimersByTimeAsync(
+          config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(1);
+
+        await jest.advanceTimersByTimeAsync(
+          config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(2);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    test('does not resume polling when re-initialized with the feature disabled during an in-flight poll', async () => {
+      // stop the real-timer polling loop started by beforeEach before
+      // switching to fake timers, so all polls run on the fake clock
+      mockedIsFeatureEnabled.mockReturnValueOnce(false);
+      asyncEvent.init(config);
+      jest.useFakeTimers();
+      try {
+        fetchMock.reset();
+        let resolveFetch: (response: any) => void = () => {};
+        fetchMock.get(
+          EVENTS_ENDPOINT,
+          new Promise(resolve => {
+            resolveFetch = resolve;
+          }),
+        );
+        asyncEvent.init(config);
+        asyncEvent.waitForAsyncData(asyncPendingEvent).catch(() => {});
+
+        // first poll fires and stays in-flight
+        await jest.advanceTimersByTimeAsync(
+          config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(1);
+
+        // disable the feature and re-init while the fetch is pending; the
+        // stale invocation must not restart the stopped loop when it resumes
+        mockedIsFeatureEnabled.mockReturnValueOnce(false);
+        asyncEvent.init(config);
+        resolveFetch({ status: 200, body: { result: [] } });
+        await jest.advanceTimersByTimeAsync(0);
+
+        fetchMock.reset();
+        fetchMock.get(EVENTS_ENDPOINT, {
+          status: 200,
+          body: { result: [] },
+        });
+
+        await jest.advanceTimersByTimeAsync(
+          10 * config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY,
+        );
+        expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(0);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
   });
 
   describe('ws transport', () => {
