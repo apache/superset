@@ -137,7 +137,9 @@ async def test_restore_dashboard_success_by_uuid(
     content = result.structured_content
     assert content["success"] is True
     assert content["restored_id"] == 1
-    mock_find.assert_called_once_with(str(_UUID), skip_visibility_filter=True)
+    mock_find.assert_called_once_with(
+        str(_UUID), skip_base_filter=True, skip_visibility_filter=True
+    )
     mock_command.assert_called_once_with(str(_UUID))
 
 
@@ -183,3 +185,52 @@ async def test_restore_dashboard_restore_failed(
     assert content["success"] is False
     assert content["permission_denied"] is False
     assert content["error_type"] == "DashboardRestoreFailedError"
+
+
+@patch(_COMMAND)
+@patch(_FIND)
+@pytest.mark.asyncio
+async def test_restore_dashboard_sqlalchemy_error_is_generic(
+    mock_find: Mock, mock_command: Mock, mcp_server: object
+) -> None:
+    """Raw SQLAlchemy text (SQL, connection details) must not reach the client."""
+    from sqlalchemy.exc import OperationalError
+
+    mock_find.return_value = _mock_dashboard(1, "Sales Dashboard")
+    mock_command.return_value.run.side_effect = OperationalError(
+        "UPDATE dashboards SET deleted_at = NULL", {}, Exception("secret-host")
+    )
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "restore_dashboard", {"request": {"identifier": 1}}
+        )
+
+    content = result.structured_content
+    assert content["success"] is False
+    assert content["error"] == "Dashboard restore failed due to a database error."
+    assert "secret-host" not in (content["error"] or "")
+
+
+@patch(_COMMAND)
+@patch(_FIND)
+@pytest.mark.asyncio
+async def test_restore_dashboard_slug_conflict(
+    mock_find: Mock, mock_command: Mock, mcp_server: object
+) -> None:
+    """The dashboard-specific slug-conflict rule surfaces its user-facing
+    message and error type so the agent can explain the rename requirement."""
+    from superset.commands.dashboard.exceptions import DashboardSlugConflictError
+
+    mock_find.return_value = _mock_dashboard(1, "Sales Dashboard")
+    mock_command.return_value.run.side_effect = DashboardSlugConflictError()
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "restore_dashboard", {"request": {"identifier": 1}}
+        )
+
+    content = result.structured_content
+    assert content["success"] is False
+    assert content["error_type"] == "DashboardSlugConflictError"
+    assert "slug" in (content["error"] or "").lower()

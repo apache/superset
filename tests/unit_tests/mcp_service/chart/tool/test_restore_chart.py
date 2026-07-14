@@ -135,7 +135,9 @@ async def test_restore_chart_success_by_uuid(
     content = result.structured_content
     assert content["success"] is True
     assert content["restored_id"] == 10
-    mock_find.assert_called_once_with(str(_UUID), skip_visibility_filter=True)
+    mock_find.assert_called_once_with(
+        str(_UUID), skip_base_filter=True, skip_visibility_filter=True
+    )
     mock_command.assert_called_once_with(str(_UUID))
 
 
@@ -206,3 +208,25 @@ async def test_restore_chart_sqlalchemy_error_is_generic(
     assert content["success"] is False
     assert content["error"] == "Chart restore failed due to a database error."
     assert "secret-host" not in (content["error"] or "")
+
+
+@patch(_FIND)
+@pytest.mark.asyncio
+async def test_restore_chart_lookup_db_error_is_structured(
+    mock_find: Mock, mcp_server: object
+) -> None:
+    """DB failures during identifier resolution return LookupFailed instead
+    of escaping the tool."""
+    from sqlalchemy.exc import OperationalError
+
+    mock_find.side_effect = OperationalError("SELECT ...", {}, Exception("down"))
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "restore_chart", {"request": {"identifier": 10}}
+        )
+
+    content = result.structured_content
+    assert content["success"] is False
+    assert content["error_type"] == "LookupFailed"
+    assert "down" not in (content["error"] or "")

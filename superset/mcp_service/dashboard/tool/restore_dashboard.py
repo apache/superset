@@ -47,13 +47,21 @@ logger = logging.getLogger(__name__)
 def _find_dashboard_for_restore(identifier: int | str) -> Any | None:
     """Resolve a dashboard by numeric ID or UUID, including soft-deleted rows.
 
-    ``skip_visibility_filter`` is the only bypass — the DAO ``base_filter``
-    stays in effect, so rows the user cannot see in the live UI stay hidden.
-    Ownership is then enforced by ``RestoreDashboardCommand``.
+    Both bypasses mirror ``BaseRestoreCommand.validate``'s own lookup:
+    ``skip_visibility_filter`` unhides the soft-deleted row, and
+    ``skip_base_filter`` keeps an editor's own trash reachable even when the
+    entity's RBAC base_filter has no editorship leg (a lost grant must not
+    hide a row from the one audience that can restore it). The restore
+    audience is enforced by ``RestoreDashboardCommand`` via
+    ``raise_for_editorship``.
     """
     from superset.daos.dashboard import DashboardDAO
 
-    return DashboardDAO.find_by_id_or_uuid(str(identifier), skip_visibility_filter=True)
+    return DashboardDAO.find_by_id_or_uuid(
+        str(identifier),
+        skip_base_filter=True,
+        skip_visibility_filter=True,
+    )
 
 
 def _rollback() -> None:
