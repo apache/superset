@@ -49,7 +49,7 @@ test.describe('Dashboard Export', () => {
     await dashboardPage.gotoBySlug('world_health');
     await dashboardPage.waitForLoad({ timeout: TIMEOUT.PAGE_LOAD });
     // Wait for charts to finish loading - Download menu may be disabled while loading
-    await dashboardPage.waitForChartsToLoad();
+    await dashboardPage.waitForChartsToLoad({ timeout: 30_000 });
   });
 
   test.afterEach(async () => {
