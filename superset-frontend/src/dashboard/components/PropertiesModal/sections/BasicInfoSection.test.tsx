@@ -21,14 +21,15 @@ import { Form } from '@superset-ui/core/components';
 import BasicInfoSection from './BasicInfoSection';
 
 const defaultProps = {
-  form: {} as any,
-  isLoading: false,
+  form: {
+    getFieldValue: jest.fn(() => 'Test Dashboard'),
+  } as any,
   validationStatus: {
     basic: { hasErrors: false, errors: [], name: 'Basic' },
   },
 };
 
-test('renders name and slug fields', () => {
+test('renders name, description and slug fields', () => {
   render(
     <Form>
       <BasicInfoSection {...defaultProps} />
@@ -37,6 +38,7 @@ test('renders name and slug fields', () => {
 
   expect(screen.getByTestId('dashboard-name-field')).toBeInTheDocument();
   expect(screen.getByTestId('dashboard-slug-field')).toBeInTheDocument();
+  expect(screen.getByTestId('dashboard-description-field')).toBeInTheDocument();
   expect(screen.getByTestId('dashboard-title-input')).toBeInTheDocument();
 });
 
@@ -48,16 +50,6 @@ test('shows required asterisk for name field', () => {
   );
 
   expect(screen.getByText('*')).toBeInTheDocument();
-});
-
-test('disables inputs when loading', () => {
-  render(
-    <Form>
-      <BasicInfoSection {...defaultProps} isLoading />
-    </Form>,
-  );
-
-  expect(screen.getByTestId('dashboard-title-input')).toBeDisabled();
 });
 
 test('shows error message when name is empty and has validation errors', () => {

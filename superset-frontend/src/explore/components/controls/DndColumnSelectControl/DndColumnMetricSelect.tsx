@@ -17,10 +17,9 @@
  * under the License.
  */
 import { useCallback, useMemo, useState } from 'react';
+import { t } from '@apache-superset/core/translation';
 import {
   AdhocColumn,
-  tn,
-  t,
   isAdhocColumn,
   Metric,
   ensureIsArray,
@@ -28,8 +27,10 @@ import {
   QueryFormMetric,
   QueryFormData,
 } from '@superset-ui/core';
+import { tn } from '@apache-superset/core/translation';
 import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
-import { isString } from 'lodash';
+import { arrayMove } from '@dnd-kit/sortable';
+import { isString } from 'lodash-es';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import OptionWrapper from 'src/explore/components/controls/DndColumnSelectControl/OptionWrapper';
 import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/types';
@@ -38,6 +39,7 @@ import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetr
 import MetricDefinitionValue from 'src/explore/components/controls/MetricControl/MetricDefinitionValue';
 import ColumnSelectPopoverTrigger from './ColumnSelectPopoverTrigger';
 import { DndControlProps } from './types';
+import { datasetLabelLower } from 'src/features/semanticLayers/label';
 
 const AGGREGATED_DECK_GL_CHART_TYPES = [
   'deck_screengrid',
@@ -128,6 +130,16 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
     disabledTabs,
     formData,
   } = props;
+
+  // Semantic views do not support arbitrary SQL expressions as dimensions.
+  // Merge 'sqlExpression' into disabledTabs so the Custom SQL tab is hidden.
+  const effectiveDisabledTabs = useMemo(
+    () =>
+      String(datasource?.type) === 'semantic_view'
+        ? new Set([...(disabledTabs ?? []), 'sqlExpression'])
+        : disabledTabs,
+    [datasource?.type, disabledTabs],
+  );
 
   const [newColumnPopoverVisible, setNewColumnPopoverVisible] = useState(false);
 
@@ -257,11 +269,9 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
 
   const onShiftOptions = useCallback(
     (dragIndex: number, hoverIndex: number) => {
-      const newValues = [...coercedValue];
-      [newValues[hoverIndex], newValues[dragIndex]] = [
-        newValues[dragIndex],
-        newValues[hoverIndex],
-      ];
+      // @dnd-kit fires the reorder once at drag-end with the final indices, so
+      // this must be a full arrayMove, not an adjacent swap.
+      const newValues = arrayMove(coercedValue, dragIndex, hoverIndex);
       onChange(multi ? newValues : newValues[0]);
     },
     [onChange, coercedValue, multi],
@@ -303,7 +313,7 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
               }}
               editedColumn={column}
               isTemporal={isTemporal}
-              disabledTabs={disabledTabs}
+              disabledTabs={effectiveDisabledTabs}
             >
               <OptionWrapper
                 key={`column-${idx}`}
@@ -326,14 +336,18 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
             typeof item === 'object' &&
             'error_text' in item &&
             item.error_text)
-            ? t('This metric might be incompatible with current dataset')
+            ? t(
+                'This metric might be incompatible with current %s',
+                datasetLabelLower(),
+              )
             : undefined;
 
         return (
           <MetricDefinitionValue
             key={`metric-${idx}`}
             index={idx}
-            option={item}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            option={item as any}
             onMetricEdit={(changedMetric: Metric | AdhocMetric) => {
               const newValues = [...coercedValue];
               if (changedMetric instanceof AdhocMetric) {
@@ -344,10 +358,14 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
               onChange(multi ? newValues : newValues[0]);
             }}
             onRemoveMetric={onClickClose}
-            columns={columns}
-            savedMetrics={savedMetrics}
-            savedMetricsOptions={savedMetrics}
-            datasource={datasource}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            columns={columns as any}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            savedMetrics={savedMetrics as any}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            savedMetricsOptions={savedMetrics as any}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            datasource={datasource as any}
             onMoveLabel={onShiftOptions}
             onDropLabel={() => {}}
             type={`${DndItemType.AdhocMetricOption}_${name}_${label}`}
@@ -435,7 +453,7 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
         togglePopover={toggleColumnPopover}
         closePopover={closeColumnPopover}
         isTemporal={false}
-        disabledTabs={disabledTabs}
+        disabledTabs={effectiveDisabledTabs}
         metrics={savedMetrics}
         selectedMetrics={selectedMetrics}
       >

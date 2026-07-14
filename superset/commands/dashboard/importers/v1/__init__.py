@@ -47,6 +47,7 @@ from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.extensions import feature_flag_manager
 from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.dashboard import Dashboard, dashboard_slices
+from superset.models.slice import Slice
 from superset.themes.schemas import ImportV1ThemeSchema
 
 logger = logging.getLogger(__name__)
@@ -157,13 +158,28 @@ class ImportDashboardsCommand(ImportModelsCommand):
                         )
 
         # store the existing relationship between dashboards and charts
-        existing_relationships = db.session.execute(
-            select([dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id])
-        ).fetchall()
+        # (only used when overwrite=False to avoid inserting duplicates)
+        existing_relationships: set[tuple[int, int]] = set()
+        if not overwrite:
+            existing_relationships = set(
+                db.session.execute(
+                    select(dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id)
+                ).fetchall()
+            )
 
         # import dashboards
+        #
+        # Dashboard → charts associations go through the ORM relationship
+        # (``dashboard.slices = [...]``) rather than Core
+        # ``delete()``/``insert()`` on the ``dashboard_slices`` table.
+        # Bulk DML via Core would emit a malformed INSERT into
+        # ``dashboard_slices_version`` (missing the composite-PK columns)
+        # because SQLAlchemy-Continuum's M2M tracker can't see per-row
+        # column values when the DELETE/INSERT goes through the Core
+        # layer. The same pattern is applied in
+        # ``superset/commands/importers/v1/assets.py`` and the spike's
+        # ``DatasetDAO.update_columns`` rewrite.
         dashboards: list[Dashboard] = []
-        dashboard_chart_ids: list[tuple[int, int]] = []
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
                 config = update_id_refs(config, chart_ids, dataset_info)
@@ -177,12 +193,43 @@ class ImportDashboardsCommand(ImportModelsCommand):
                     del config["theme_uuid"]
                 dashboard = import_dashboard(config, overwrite=overwrite)
                 dashboards.append(dashboard)
+
+                # Resolve the dashboard's chart membership from the imported
+                # position_json and apply it to the ORM relationship.
+                target_chart_ids: list[int] = []
                 for uuid in find_chart_uuids(config["position"]):
                     if uuid not in chart_ids:
-                        break
+                        continue
                     chart_id = chart_ids[uuid]
-                    if (dashboard.id, chart_id) not in existing_relationships:
-                        dashboard_chart_ids.append((dashboard.id, chart_id))
+                    if (
+                        overwrite
+                        or (dashboard.id, chart_id) not in existing_relationships
+                    ):
+                        target_chart_ids.append(chart_id)
+
+                if overwrite:
+                    # Replace the dashboard's chart membership entirely.
+                    dashboard.slices = (
+                        db.session.query(Slice)
+                        .filter(Slice.id.in_(target_chart_ids))
+                        .all()
+                        if target_chart_ids
+                        else []
+                    )
+                    # Flush eagerly so the M2M rows land in
+                    # ``dashboard_slices`` before any subsequent
+                    # autoflush fires an inner-flush event handler
+                    # that would reset the relationship change.
+                    db.session.flush()
+                elif target_chart_ids:
+                    # Append only the new associations to existing ones.
+                    new_slices = (
+                        db.session.query(Slice)
+                        .filter(Slice.id.in_(target_chart_ids))
+                        .all()
+                    )
+                    dashboard.slices = list(dashboard.slices) + new_slices
+                    db.session.flush()
 
                 # Handle tags using import_tag function
                 if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
@@ -195,13 +242,6 @@ class ImportDashboardsCommand(ImportModelsCommand):
                             "dashboard",
                             db.session,
                         )
-
-        # set ref in the dashboard_slices table
-        values = [
-            {"dashboard_id": dashboard_id, "slice_id": chart_id}
-            for (dashboard_id, chart_id) in dashboard_chart_ids
-        ]
-        db.session.execute(dashboard_slices.insert(), values)
 
         # Migrate any filter-box charts to native dashboard filters.
         for dashboard in dashboards:

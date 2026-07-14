@@ -18,13 +18,13 @@
  */
 import { FC, PropsWithChildren, useEffect, useState } from 'react';
 
-import { css, styled } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/theme';
 import { Constants } from '@superset-ui/core/components';
 import { RootState } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';
 import { useDragDropManager } from 'react-dnd';
 import classNames from 'classnames';
-import { debounce } from 'lodash';
+import { debounce } from 'lodash-es';
 
 const StyledDiv = styled.div`
   ${({ theme }) => css`

@@ -17,7 +17,9 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useState, MouseEvent } from 'react';
-import { isFeatureEnabled, FeatureFlag, styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
@@ -25,12 +27,24 @@ import {
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import {
-  SamplesPane,
-  TableControlsWrapper,
-  useResultsPane,
-} from './components';
+import { SamplesPane, useResultsPane } from './components';
 import { DataTablesPaneProps, ResultTypes } from './types';
+
+/**
+ * A mixed chart can be reconfigured to return fewer result panes than before
+ * (e.g. dropping a query), which removes the corresponding results tab. If the
+ * selected tab was one of those, the active key goes stale and the data panel
+ * renders blank until the user reselects a valid tab. Returns the first
+ * results tab to fall back to in that case, otherwise undefined.
+ */
+export const getStaleResultsTabFallback = (
+  activeTabKey: string,
+  resultsTabKeys: string[],
+): string | undefined =>
+  activeTabKey.startsWith(ResultTypes.Results) &&
+  !resultsTabKeys.includes(activeTabKey)
+    ? ResultTypes.Results
+    : undefined;
 
 const StyledDiv = styled.div`
   ${() => `
@@ -51,15 +65,15 @@ const SouthPane = styled.div`
       height: 100%;
     }
 
-    .ant-tabs-content-holder {
+    .ant-tabs-body-holder {
+      height: 100%;
+    }
+
+    .ant-tabs-body {
       height: 100%;
     }
 
     .ant-tabs-content {
-      height: 100%;
-    }
-
-    .ant-tabs-tabpane {
       height: 100%;
       position: relative;
 
@@ -89,6 +103,7 @@ export const DataTablesPane = ({
   errorMessage,
   setForceQuery,
   canDownload,
+  queriesResponse,
 }: DataTablesPaneProps) => {
   const [activeTabKey, setActiveTabKey] = useState<string>(ResultTypes.Results);
   const [isRequest, setIsRequest] = useState<Record<ResultTypes, boolean>>({
@@ -112,6 +127,10 @@ export const DataTablesPane = ({
         results: false,
         samples: false,
       });
+    }
+
+    if (panelOpen && chartStatus === 'loading') {
+      setIsRequest(prev => ({ ...prev, results: false }));
     }
 
     if (
@@ -162,7 +181,7 @@ export const DataTablesPane = ({
       <Icons.DownOutlined aria-label={t('Expand data panel')} />
     );
     return (
-      <TableControlsWrapper>
+      <div>
         {panelOpen ? (
           <span
             role="button"
@@ -180,7 +199,7 @@ export const DataTablesPane = ({
             {caretIcon}
           </span>
         )}
-      </TableControlsWrapper>
+      </div>
     );
   }, [handleCollapseChange, panelOpen]);
 
@@ -191,13 +210,29 @@ export const DataTablesPane = ({
     ownState,
     isRequest: isRequest.results,
     setForceQuery,
-    isVisible: ResultTypes.Results === activeTabKey,
     canDownload,
-  }).map((pane, idx) => ({
-    key: idx === 0 ? ResultTypes.Results : `${ResultTypes.Results} ${idx + 1}`,
-    label: idx === 0 ? t('Results') : t('Results %s', idx + 1),
-    children: pane,
-  }));
+    queriesResponse,
+  }).map((pane, idx) => {
+    const tabKey =
+      idx === 0 ? ResultTypes.Results : `${ResultTypes.Results} ${idx + 1}`;
+
+    return {
+      key: tabKey,
+      label: idx === 0 ? t('Results') : t('Results %s', idx + 1),
+      children: activeTabKey === tabKey ? pane : null,
+    };
+  });
+
+  const resultsTabFallback = getStaleResultsTabFallback(
+    activeTabKey,
+    queryResultsPanes.map(({ key }) => key),
+  );
+
+  useEffect(() => {
+    if (resultsTabFallback) {
+      setActiveTabKey(resultsTabFallback);
+    }
+  }, [resultsTabFallback]);
 
   const tabItems = [
     ...queryResultsPanes,
@@ -208,6 +243,7 @@ export const DataTablesPane = ({
         <StyledDiv>
           <SamplesPane
             datasource={datasource}
+            queryFormData={queryFormData}
             queryForce={queryForce}
             isRequest={isRequest.samples}
             setForceQuery={setForceQuery}

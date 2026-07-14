@@ -30,13 +30,20 @@ from superset.commands.chart.exceptions import (
     ChartInvalidError,
     ChartNotFoundError,
     ChartUpdateFailedError,
+    DashboardsForbiddenError,
     DashboardsNotFoundValidationError,
     DatasourceTypeUpdateRequiredValidationError,
 )
-from superset.commands.utils import get_datasource_by_id, update_tags, validate_tags
+from superset.commands.utils import (
+    compute_subjects,
+    get_datasource_by_id,
+    update_tags,
+    validate_tags,
+)
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
 from superset.exceptions import SupersetSecurityException
+from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.tags.models import ObjectType
 from superset.utils.decorators import on_error, transaction
@@ -71,14 +78,42 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
 
         return ChartDAO.update(self._model, self._properties)
 
+    def _validate_new_dashboard_access(
+        self, requested_dashboards: list[Dashboard], exceptions: list[ValidationError]
+    ) -> None:
+        """
+        Validate user has editorship of any NEW dashboard relationships.
+        Existing relationships are preserved to maintain chart editorship rights.
+        """
+        if not self._model:
+            return
+
+        existing_dashboard_ids = {d.id for d in self._model.dashboards}
+        requested_dashboard_ids = {d.id for d in requested_dashboards}
+
+        if new_dashboard_ids := requested_dashboard_ids - existing_dashboard_ids:
+            # For NEW dashboard relationships, verify user has editorship
+            accessible_dashboards = DashboardDAO.find_by_ids(list(new_dashboard_ids))
+            unauthorized_dashboard_ids = new_dashboard_ids - {
+                d.id for d in accessible_dashboards
+            }
+
+            if unauthorized_dashboard_ids:
+                exceptions.append(DashboardsNotFoundValidationError())
+
+            # Additional editorship check - must match CreateChartCommand behavior
+            for dash in accessible_dashboards:
+                if not security_manager.is_editor(dash):
+                    raise DashboardsForbiddenError()
+
     def validate(self) -> None:  # noqa: C901
         exceptions: list[ValidationError] = []
         dashboard_ids = self._properties.get("dashboards")
-        owner_ids: Optional[list[int]] = self._properties.get("owners")
         tag_ids: Optional[list[int]] = self._properties.get("tags")
 
         # Validate if datasource_id is provided datasource_type is required
         datasource_id = self._properties.get("datasource_id")
+        datasource_type = ""
         if datasource_id is not None:
             datasource_type = self._properties.get("datasource_type", "")
             if not datasource_type:
@@ -89,20 +124,22 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         if not self._model:
             raise ChartNotFoundError()
 
-        # Check and update ownership; when only updating query context we ignore
-        # ownership so the update can be performed by report workers
+        # Check and update editorship; when only updating query context we relax
+        # editorship so report workers can save context. We still require chart
+        # access so users cannot rewrite query context for charts they cannot access.
         if not is_query_context_update(self._properties):
             try:
-                security_manager.raise_for_ownership(self._model)
-                owners = self.compute_owners(
-                    self._model.owners,
-                    owner_ids,
-                )
-                self._properties["owners"] = owners
+                security_manager.raise_for_editorship(self._model)
+                compute_subjects(self._model, self._properties, exceptions)
             except SupersetSecurityException as ex:
                 raise ChartForbiddenError() from ex
             except ValidationError as ex:
                 exceptions.append(ex)
+        else:
+            try:
+                security_manager.raise_for_access(chart=self._model)
+            except SupersetSecurityException as ex:
+                raise ChartForbiddenError() from ex
 
         # validate tags
         try:
@@ -115,17 +152,24 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
             try:
                 datasource = get_datasource_by_id(datasource_id, datasource_type)
                 self._properties["datasource_name"] = datasource.name
+                security_manager.raise_for_access(datasource=datasource)
+            except SupersetSecurityException as ex:
+                raise ChartForbiddenError() from ex
             except ValidationError as ex:
                 exceptions.append(ex)
 
         # Validate/Populate dashboards only if it's a list
         if dashboard_ids is not None:
+            # First, verify all requested dashboards exist
             dashboards = DashboardDAO.find_by_ids(
                 dashboard_ids,
                 skip_base_filter=True,
             )
             if len(dashboards) != len(dashboard_ids):
                 exceptions.append(DashboardsNotFoundValidationError())
+            else:
+                # Then, validate user has access to any NEW dashboard relationships
+                self._validate_new_dashboard_access(dashboards, exceptions)
             self._properties["dashboards"] = dashboards
 
         if exceptions:

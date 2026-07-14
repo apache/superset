@@ -17,16 +17,16 @@
  * under the License.
  */
 
+import { t } from '@apache-superset/core/translation';
 import {
   ContributionType,
   ensureIsArray,
-  GenericDataType,
   getColumnLabel,
   getMetricLabel,
   QueryFormColumn,
   QueryFormMetric,
-  t,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   ControlPanelState,
   ControlState,
@@ -218,14 +218,36 @@ export const xAxisForceCategoricalControl = {
     label: () => t('Force categorical'),
     default: false,
     description: t('Treat values as categorical.'),
-    initialValue: (control: ControlState, state: ControlPanelState | null) =>
-      state?.form_data?.x_axis_sort !== undefined || control.value,
+    initialValue: (control: ControlState, state: ControlPanelState | null) => {
+      // Check if x-axis is numeric - only numeric columns should have
+      // their categorical behavior influenced by x_axis_sort setting
+      const isNumericXAxis = checkColumnType(
+        getColumnLabel(state?.controls?.x_axis?.value as QueryFormColumn),
+        state?.controls?.datasource?.datasource,
+        [GenericDataType.Numeric],
+      );
+
+      // Non-numeric columns (temporal, text) should not be forced categorical
+      // based on x_axis_sort - just use the control's existing value
+      if (!isNumericXAxis) {
+        return control.value;
+      }
+
+      // For numeric columns, force categorical if x_axis_sort is defined
+      // (user wants to sort) or use the control's existing value
+      return state?.form_data?.x_axis_sort !== undefined || control.value;
+    },
     renderTrigger: true,
+    // Expose the toggle for numeric and temporal x-axes. Temporal columns
+    // default to a continuous time scale, where ECharts places ticks at "nice"
+    // intervals that don't align with the actual buckets (e.g. weekly grain
+    // markers landing between month ticks). Treating the axis as categorical
+    // lets each bucket map to a discrete, tick-aligned category.
     visibility: ({ controls }: { controls: ControlStateMapping }) =>
       checkColumnType(
         getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
         controls?.datasource?.datasource,
-        [GenericDataType.Numeric],
+        [GenericDataType.Numeric, GenericDataType.Temporal],
       ),
     shouldMapStateToProps: () => true,
   },

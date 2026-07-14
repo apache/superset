@@ -2,6 +2,8 @@ name: 🎪 Superset Showtime
 
 # Ultra-simple: just sync on any PR state change
 on:
+  # zizmor: ignore[dangerous-triggers] - required to react to PR label changes; PR code is
+  # only checked out and built after the maintainer-authorization gate (write/admin actors)
   pull_request_target:
     types: [labeled, unlabeled, synchronize, closed]
 
@@ -9,11 +11,11 @@ on:
   workflow_dispatch:
     inputs:
       pr_number:
-        description: 'PR number to sync'
+        description: "PR number to sync"
         required: true
         type: number
       sha:
-        description: 'Specific SHA to deploy (optional, defaults to latest)'
+        description: "Specific SHA to deploy (optional, defaults to latest)"
         required: false
         type: string
 
@@ -37,7 +39,7 @@ jobs:
     steps:
       - name: Security Check - Authorize Maintainers Only
         id: auth
-        uses: actions/github-script@v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -61,17 +63,8 @@ jobs:
             console.log(`📊 Permission level for ${actor}: ${permission.permission}`);
             const authorized = ['write', 'admin'].includes(permission.permission);
 
-            if (!authorized) {
-              console.log(`🚨 Unauthorized user ${actor} - skipping all operations`);
-              core.setOutput('authorized', 'false');
-              return;
-            }
-
-            console.log(`✅ Authorized maintainer: ${actor}`);
-            core.setOutput('authorized', 'true');
-
-            // If this is a synchronize event, check if Showtime is active and set blocked label
-            if (context.eventName === 'pull_request_target' && context.payload.action === 'synchronize') {
+            // If this is a synchronize event from unauthorized user, check if Showtime is active and set blocked label
+            if (!authorized && context.eventName === 'pull_request_target' && context.payload.action === 'synchronize') {
               console.log(`🔒 Synchronize event detected - checking if Showtime is active`);
 
               // Check if PR has any circus tent labels (Showtime is in use)
@@ -99,13 +92,24 @@ jobs:
               }
             }
 
+            if (!authorized) {
+              console.log(`🚨 Unauthorized user ${actor} - skipping all operations`);
+              core.setOutput('authorized', 'false');
+              return;
+            }
+
+            console.log(`✅ Authorized maintainer: ${actor}`);
+            core.setOutput('authorized', 'true');
+
       - name: Install Superset Showtime
         if: steps.auth.outputs.authorized == 'true'
         run: |
-          echo "::notice::Maintainer ${{ github.actor }} triggered deploy for PR ${{ github.event.pull_request.number || github.event.inputs.pr_number }}"
+          echo "::notice::Maintainer $GITHUB_ACTOR triggered deploy for PR ${PULL_REQUEST_NUMBER}"
           pip install --upgrade superset-showtime
           showtime version
 
+        env:
+          PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number || github.event.inputs.pr_number }}
       - name: Check what actions are needed
         if: steps.auth.outputs.authorized == 'true'
         id: check
@@ -113,12 +117,14 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_PR_NUMBER: ${{ github.event.inputs.pr_number }}
+          INPUT_SHA: ${{ github.event.inputs.sha }}
         run: |
           # Bulletproof PR number extraction
           if [[ -n "${{ github.event.pull_request.number }}" ]]; then
             PR_NUM="${{ github.event.pull_request.number }}"
-          elif [[ -n "${{ github.event.inputs.pr_number }}" ]]; then
-            PR_NUM="${{ github.event.inputs.pr_number }}"
+          elif [[ -n "${INPUT_PR_NUMBER}" ]]; then
+            PR_NUM="${INPUT_PR_NUMBER}"
           else
             echo "❌ No PR number found in event or inputs"
             exit 1
@@ -127,8 +133,8 @@ jobs:
           echo "Using PR number: $PR_NUM"
 
           # Run sync check-only with optional SHA override
-          if [[ -n "${{ github.event.inputs.sha }}" ]]; then
-            OUTPUT=$(python -m showtime sync $PR_NUM --check-only --sha "${{ github.event.inputs.sha }}")
+          if [[ -n "${INPUT_SHA}" ]]; then
+            OUTPUT=$(python -m showtime sync $PR_NUM --check-only --sha "${INPUT_SHA}")
           else
             OUTPUT=$(python -m showtime sync $PR_NUM --check-only)
           fi
@@ -147,10 +153,14 @@ jobs:
 
       - name: Checkout PR code (only if build needed)
         if: steps.auth.outputs.authorized == 'true' && steps.check.outputs.build_needed == 'true'
-        uses: actions/checkout@v5
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ steps.check.outputs.target_sha }}
           persist-credentials: false
+          # Building fork PR code is Showtime's purpose: deploys are gated on the
+          # maintainer-authorization step above (write/admin actors only), so this
+          # checkout is an explicit, authorized opt-in rather than an automatic one.
+          allow-unsafe-pr-checkout: true
 
       - name: Setup Docker Environment (only if build needed)
         if: steps.auth.outputs.authorized == 'true' && steps.check.outputs.build_needed == 'true'
@@ -169,9 +179,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          CHECK_PR_NUMBER: ${{ steps.check.outputs.pr_number }}
+          CHECK_TARGET_SHA: ${{ steps.check.outputs.target_sha }}
         run: |
-          PR_NUM="${{ steps.check.outputs.pr_number }}"
-          TARGET_SHA="${{ steps.check.outputs.target_sha }}"
+          PR_NUM="$CHECK_PR_NUMBER"
+          TARGET_SHA="$CHECK_TARGET_SHA"
           if [[ -n "$TARGET_SHA" ]]; then
             python -m showtime sync $PR_NUM --sha "$TARGET_SHA"
           else

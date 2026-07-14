@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import {
   COMMON_ERR_MESSAGES,
   JsonObject,
   SupersetClientResponse,
-  t,
   SupersetError,
   ErrorTypeEnum,
   isProbablyHTML,
@@ -46,10 +46,7 @@ interface TimeoutError {
 }
 
 type ErrorType =
-  | SupersetClientResponse
-  | TimeoutError
-  | { response: Response }
-  | string;
+  SupersetClientResponse | TimeoutError | { response: Response } | string;
 
 type ErrorTextSource = 'dashboard' | 'chart' | 'query' | 'dataset' | 'database';
 
@@ -162,10 +159,7 @@ export function parseErrorJson(responseJson: JsonObject): ClientErrorObject {
 
 export function getClientErrorObject(
   response:
-    | SupersetClientResponse
-    | TimeoutError
-    | { response: Response }
-    | string,
+    SupersetClientResponse | TimeoutError | { response: Response } | string,
 ): Promise<ClientErrorObject> {
   // takes a SupersetClientResponse as input, attempts to read response as Json
   // if possible, and returns a Promise that resolves to a plain object with

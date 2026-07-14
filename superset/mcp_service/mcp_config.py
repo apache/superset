@@ -1,0 +1,734 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""Default MCP service configuration"""
+
+import logging
+import secrets
+from collections.abc import Callable
+from typing import Any, Dict, Optional, Sequence
+
+from fastmcp.server.auth.providers.jwt import JWTVerifier
+from flask import Flask
+
+from superset.constants import CHANGE_ME_GUEST_TOKEN_JWT_SECRET
+from superset.mcp_service.composite_token_verifier import CompositeTokenVerifier
+from superset.mcp_service.constants import (
+    DEFAULT_MAX_LIST_ITEMS,
+    DEFAULT_TOKEN_LIMIT,
+    DEFAULT_WARN_THRESHOLD_PCT,
+)
+from superset.mcp_service.guest_token_verifier import GuestTokenVerifier
+from superset.mcp_service.jwt_verifier import DetailedJWTVerifier, MCPJWTVerifier
+
+logger = logging.getLogger(__name__)
+
+
+class MCPAuthConfigError(ValueError):
+    """Raised when MCP auth is enabled but configured in an unusable state.
+
+    Distinct from the generic build errors (e.g. malformed key material) that
+    the auth bootstrap intentionally swallows: a configuration error of this
+    kind must propagate so the MCP service fails to start rather than silently
+    coming up without the protection the operator asked for.
+    """
+
+
+# MCP Service Configuration
+# Note: MCP_DEV_USERNAME MUST be configured in superset_config.py
+# There is no default value - the service will fail if not set
+SUPERSET_WEBSERVER_ADDRESS = "http://localhost:9001"
+
+# WebDriver Configuration for screenshots
+WEBDRIVER_BASEURL = "http://localhost:9001/"
+WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
+
+# MCP Service Host/Port
+MCP_SERVICE_HOST = "localhost"
+MCP_SERVICE_PORT = 5008
+
+# Bug-report support contact surfaced by the generate_bug_report tool. Each
+# deployment should override this in superset_config.py to point users at the
+# right channel (e.g. an internal support address, a vendor support team).
+# When unset, the tool falls back to a neutral default that points at the
+# user's Superset administrator and the Apache Superset issue tracker.
+MCP_BUG_REPORT_CONTACT: str | None = None
+
+# MCP Debug mode - shows suppressed initialization output in stdio mode
+MCP_DEBUG = False
+
+# MCP RBAC - when True, tools with class_permission_name are checked
+# against the FAB security_manager before execution.
+MCP_RBAC_ENABLED = True
+
+# MCP Disabled Tools - a set of tool names to remove from the MCP server at
+# startup. Disabled tools are silently omitted from tool discovery, so AI
+# clients never see them. Use this when a Superset-provided tool conflicts with
+# a custom tool added via an extension and you want to suppress the built-in
+# version.
+#
+# Example:
+#   MCP_DISABLED_TOOLS = {"execute_sql", "health_check"}
+#
+# Extension-prefixed tools can also be disabled using their full name:
+#   MCP_DISABLED_TOOLS = {"extensions.myorg.myext.some_tool"}
+MCP_DISABLED_TOOLS: set[str] = set()
+
+# =============================================================================
+# MCP Chart Plugin Filtering
+# =============================================================================
+#
+# Overview:
+# ---------
+# These two settings let operators enable/disable individual chart type plugins
+# at runtime without a code deploy.
+#
+# Use cases:
+#   - Emergency kill switch: add "handlebars" to MCP_DISABLED_CHART_PLUGINS and
+#     restart to immediately hide it from all callers.
+#   - Dynamic per-request control (A/B test, gradual rollout): set
+#     MCP_CHART_PLUGIN_ENABLED_FUNC to an in-process predicate that can vary
+#     by user, request header, or any other context available at call time.
+#
+# Priority:
+#   MCP_CHART_PLUGIN_ENABLED_FUNC takes precedence over MCP_DISABLED_CHART_PLUGINS.
+#   When the callable is set, the deny-list is ignored entirely.
+#
+# MCP_CHART_PLUGIN_ENABLED_FUNC contract:
+#   - Called as enabled_func(chart_type: str) -> bool for every registry lookup.
+#   - Must be cheap and in-process: consult already-loaded feature flags or
+#     request-local context (e.g. Flask g). Do NOT perform network I/O per call.
+#   - On exception, the registry fails CLOSED (plugin hidden) and logs a warning.
+#   - Example (Harness / Split via pre-fetched flags in g):
+#       from flask import g
+#       def MCP_CHART_PLUGIN_ENABLED_FUNC(chart_type: str) -> bool:
+#           flags = getattr(g, "feature_flags", {})
+#           return flags.get(f"mcp_chart_{chart_type}", True)
+# =============================================================================
+
+# Chart types in this set are hidden from all registry lookups.
+# Use frozenset to avoid accidental mutation.
+MCP_DISABLED_CHART_PLUGINS: frozenset[str] = frozenset()
+
+# Dynamic per-call predicate. When set, overrides MCP_DISABLED_CHART_PLUGINS.
+# Signature: (chart_type: str) -> bool
+MCP_CHART_PLUGIN_ENABLED_FUNC: Callable[[str], bool] | None = None
+
+# MCP JWT Debug Errors - controls server-side JWT debug logging.
+# When False (default), uses the default JWTVerifier with minimal logging.
+# When True, uses DetailedJWTVerifier with tiered logging:
+#   - WARNING level: generic failure categories only (e.g. "Issuer mismatch")
+#   - DEBUG level: detailed claim values for troubleshooting
+#   - Secrets (e.g. HS256 keys) are NEVER logged at any level
+# HTTP responses ALWAYS return generic errors regardless of this setting,
+# per RFC 6750 Section 3.1. This flag NEVER affects client-facing output.
+MCP_JWT_DEBUG_ERRORS = False
+
+# MCP API Key Authentication - controls whether FAB API keys are accepted by
+# the MCP transport. When None (default), falls back to FAB_API_KEY_ENABLED.
+# Set explicitly to True/False to control MCP transport behavior independently
+# of the FAB REST API setting. When FAB_API_KEY_ENABLED=True and this is None,
+# Superset logs a startup warning to make the implicit enablement visible.
+MCP_API_KEY_ENABLED: bool | None = None
+
+# URL surfaced to users when an API key is rejected, pointing them at the
+# place to create or rotate a key. Defaults to the FAB user profile page;
+# deployments that manage keys elsewhere can override this to point at their
+# own key-management UI without forking the auth code.
+MCP_API_KEY_CREATE_URL = "/profile/"
+
+# Accept Superset embedded guest tokens on the MCP transport (opt-in, default
+# False). Requires the EMBEDDED_SUPERSET flag and the shared core
+# GUEST_TOKEN_JWT_* config. See SECURITY.md "Embedded Guest Authentication".
+MCP_EMBEDDED_GUEST_AUTH_ENABLED: bool = False
+
+# The only tools an embedded guest may call (default-deny, regardless of RBAC).
+# Guest data is further scoped to the token's dashboards by the chart/dashboard
+# filters and redacted by the data-model privacy gate. Sync with
+# _DEFAULT_GUEST_ALLOWED_TOOLS in auth.py.
+MCP_GUEST_ALLOWED_TOOLS: set[str] = {
+    "get_dashboard_info",
+    "get_dashboard_layout",
+    "list_dashboards",
+    "list_charts",
+    "get_chart_info",
+    "get_chart_data",
+    "get_chart_preview",
+}
+
+# Hook to restrict which MCP tools a principal may call, independent of RBAC.
+# Given the current user, return an allow-list (only these tools are callable) or
+# None if the principal is not restricted. Defaults to restricting embedded guests
+# to MCP_GUEST_ALLOWED_TOOLS; set a callable to add other restricted principals.
+MCP_RESTRICTED_TOOL_POLICY: Callable[[Any], frozenset[str] | None] | None = None
+
+
+# Session configuration for local development
+MCP_SESSION_CONFIG = {
+    "SESSION_COOKIE_HTTPONLY": True,
+    "SESSION_COOKIE_SECURE": False,
+    "SESSION_COOKIE_SAMESITE": "Lax",
+    "SESSION_COOKIE_NAME": "superset_session",
+    "PERMANENT_SESSION_LIFETIME": 86400,
+}
+
+# CSRF Protection
+MCP_CSRF_CONFIG = {
+    "WTF_CSRF_ENABLED": True,
+    "WTF_CSRF_TIME_LIMIT": None,
+}
+
+# FastMCP Factory Configuration
+MCP_FACTORY_CONFIG = {
+    "name": None,  # Will derive from APP_NAME in app.py
+    "branding": None,  # Will derive from APP_NAME in app.py
+    "instructions": None,  # Will use default from app.py (parameterized with branding)
+    "auth": None,  # No authentication by default
+    "lifespan": None,  # No custom lifespan
+    "tools": None,  # Auto-discover tools
+    "include_tags": None,  # Include all tags
+    "exclude_tags": None,  # Exclude no tags
+    "config": None,  # No additional config
+}
+
+# =============================================================================
+# MCP Storage and Caching Configuration
+# =============================================================================
+#
+# Overview:
+# ---------
+# MCP caching uses FastMCP's ResponseCachingMiddleware to cache tool responses.
+# By default, caching is DISABLED. When enabled, it can use either:
+#   1. In-memory store (default) - no additional configuration needed
+#   2. Redis store - requires MCP_STORE_CONFIG to be enabled
+#
+# Configuration Flow:
+# -------------------
+# - MCP_CACHE_CONFIG controls whether caching is enabled and its TTL settings
+# - MCP_STORE_CONFIG controls the Redis store (optional)
+#
+# Scenarios:
+# ----------
+# 1. Caching disabled (default):
+#    MCP_CACHE_CONFIG["enabled"] = False
+#    → No caching, MCP_STORE_CONFIG is ignored
+#
+# 2. Caching with in-memory store:
+#    MCP_CACHE_CONFIG["enabled"] = True
+#    MCP_STORE_CONFIG["enabled"] = False (or not configured)
+#    → Caching uses FastMCP's default in-memory store, no Prefix wrapper used
+#
+# 3. Caching with Redis store:
+#    MCP_CACHE_CONFIG["enabled"] = True
+#    MCP_STORE_CONFIG["enabled"] = True
+#    MCP_STORE_CONFIG["CACHE_REDIS_URL"] = "redis://..."
+#    → Caching uses Redis with PrefixKeysWrapper
+#
+# Redis Store Details:
+# --------------------
+# When MCP_STORE_CONFIG is enabled, it creates a RedisStore wrapped with
+# PrefixKeysWrapper (configurable via WRAPPER_TYPE). The wrapper prepends a
+# prefix to all keys, allowing multiple features to share the same Redis
+# instance with isolated key namespaces. The prefix comes from the consumer
+# (e.g., MCP_CACHE_CONFIG["CACHE_KEY_PREFIX"] for caching).
+#
+# Advanced Usage:
+# ---------------
+# The store factory (get_mcp_store) can be used independently for custom
+# purposes like auth token storage or event logging. Import and call:
+#
+#   from superset.mcp_service.storage import get_mcp_store
+#   my_store = get_mcp_store(prefix="my_feature_v1_")
+#
+# Currently, the store is only used by the caching layer when enabled.
+# =============================================================================
+
+# MCP Store Configuration - shared Redis infrastructure for all MCP storage needs
+# (caching, auth, events, session state, etc.).
+#
+# When CACHE_REDIS_URL is set:
+# - Response caching uses Redis (if MCP_CACHE_CONFIG enabled)
+# - EventStore uses Redis for multi-pod session management
+#
+# For multi-pod/Kubernetes deployments, setting CACHE_REDIS_URL automatically
+# enables Redis-backed EventStore to share session state across pods.
+MCP_STORE_CONFIG: dict[str, Any] = {
+    "enabled": False,  # Disabled by default - caching uses in-memory store
+    "CACHE_REDIS_URL": None,  # Redis URL, e.g., "redis://localhost:6379/0"
+    # Wrapper class that prefixes all keys. Each consumer provides their own prefix.
+    "WRAPPER_TYPE": "key_value.aio.wrappers.prefix_keys.PrefixKeysWrapper",
+    # EventStore settings (for multi-pod session management)
+    "event_store_max_events": 100,  # Keep last 100 events per session
+    "event_store_ttl": 3600,  # Events expire after 1 hour
+}
+
+# MCP Response Caching Configuration - controls caching behavior and TTLs
+# When enabled without MCP_STORE_CONFIG, uses in-memory store.
+# When enabled with MCP_STORE_CONFIG, uses Redis store.
+MCP_CACHE_CONFIG: dict[str, Any] = {
+    "enabled": False,  # Disabled by default
+    "CACHE_KEY_PREFIX": None,  # Only needed when using the store
+    "list_tools_ttl": 60 * 5,  # 5 minutes
+    "list_resources_ttl": 60 * 5,  # 5 minutes
+    "list_prompts_ttl": 60 * 5,  # 5 minutes
+    "read_resource_ttl": 60 * 60,  # 1 hour
+    "get_prompt_ttl": 60 * 60,  # 1 hour
+    "call_tool_ttl": 60 * 60,  # 1 hour
+    "max_item_size": 1024 * 1024,  # 1MB
+    "excluded_tools": [  # Tools that should never be cached (side effects, dynamic)
+        "execute_sql",
+        "generate_dashboard",
+        "duplicate_dashboard",
+        "generate_chart",
+        "update_chart",
+    ],
+}
+
+# =============================================================================
+# MCP Response Size Guard Configuration
+# =============================================================================
+#
+# Overview:
+# ---------
+# The Response Size Guard prevents oversized responses from overwhelming LLM
+# clients (e.g., Claude Desktop). When a tool response exceeds the token limit,
+# it returns a helpful error with suggestions for reducing the response size.
+#
+# How it works:
+# -------------
+# 1. After a tool executes, the middleware estimates the response's token count
+# 2. If the response exceeds the configured limit, it blocks the response
+# 3. Instead, it returns an error message with smart suggestions:
+#    - Reduce page_size/limit
+#    - Use select_columns to exclude large fields
+#    - Add filters to narrow results
+#    - Tool-specific recommendations
+#
+# Configuration:
+# --------------
+# - enabled: Toggle the guard on/off (default: True)
+# - token_limit: Maximum estimated tokens per response (default: 25,000)
+# - excluded_tools: Tools to skip checking (e.g., streaming tools)
+# - warn_threshold_pct: Log warnings above this % of limit (default: 80%)
+# - max_list_items: Cap applied to list fields (e.g. ``charts``,
+#   ``native_filters``) during Phase 2 of dynamic truncation for the "info"
+#   tools (get_chart_info, get_dataset_info, get_dashboard_info,
+#   get_instance_info) when a response exceeds token_limit (default: 100).
+#   Operators with tenants that have unusually large dashboards (hundreds of
+#   charts/filters) can raise this value to return more complete responses.
+#
+# Token Estimation:
+# -----------------
+# Uses character-based heuristic (~3.5 chars per token for JSON).
+# This is intentionally conservative to avoid underestimating.
+# =============================================================================
+MCP_RESPONSE_SIZE_CONFIG: dict[str, Any] = {
+    "enabled": True,  # Enabled by default to protect LLM clients
+    "token_limit": DEFAULT_TOKEN_LIMIT,
+    "warn_threshold_pct": DEFAULT_WARN_THRESHOLD_PCT,
+    "max_list_items": DEFAULT_MAX_LIST_ITEMS,
+    "excluded_tools": [  # Tools to skip size checking
+        "health_check",  # Always small
+        "generate_explore_link",  # Returns URLs
+        "open_sql_lab_with_context",  # Returns URLs
+        "search_tools",  # Returns tool schemas for discovery (intentionally large)
+    ],
+}
+
+
+# =============================================================================
+# MCP Tool Search Transform Configuration
+# =============================================================================
+#
+# Overview:
+# ---------
+# When enabled, replaces the full tool catalog with a search interface.
+# LLMs see only 2 synthetic tools (search_tools + call_tool) plus any
+# pinned tools, and discover other tools on-demand via natural language search.
+# This reduces initial context by ~70% (from ~40k tokens to ~5-8k tokens).
+#
+# Strategies:
+# -----------
+# - "bm25": Natural language search using BM25 ranking (recommended)
+# - "regex": Pattern-based search using regular expressions
+#
+# Schema Compaction:
+# ------------------
+# When compact_schemas=True, search results strip $defs sections and replace
+# $ref pointers with {"type": "object"}, and truncate tool descriptions.
+# This reduces per-search token cost by ~40-60%.  Full schemas remain
+# available when the tool is actually invoked via call_tool.
+#
+# Rollback:
+# ---------
+# - Set enabled=False to disable tool search entirely (full catalog exposed).
+# - Set compact_schemas=False to disable schema compaction only (full $defs
+#   and descriptions in search results, tool search still active).
+# - Set max_description_length=0 to disable description truncation only.
+#
+# Summary Mode (include_schemas):
+# --------------------------------
+# When include_schemas=False (default), search results omit inputSchema
+# entirely and include a lightweight "parameters_hint" field listing
+# top-level parameter names (e.g. "page, page_size, search, filters").
+# This reduces per-search token cost by ~80% vs compact mode while still
+# conveying what parameters a tool accepts.  Full schemas remain available
+# when invoking the tool via call_tool.
+# - Set include_schemas=True to restore full inputSchema in search results.
+# - compact_schemas is ignored when include_schemas=False (no schema to
+#   compact); max_description_length still applies in summary mode.
+# =============================================================================
+MCP_TOOL_SEARCH_CONFIG: dict[str, Any] = {
+    "enabled": True,  # Enabled by default — reduces initial context by ~70%
+    "strategy": "bm25",  # "bm25" (natural language) or "regex" (pattern matching)
+    "max_results": 5,  # Max tools returned per search
+    "always_visible": [  # Tools always shown in list_tools (pinned)
+        "health_check",
+        "get_instance_info",
+    ],
+    "search_tool_name": "search_tools",  # Name of the search tool
+    "call_tool_name": "call_tool",  # Name of the call proxy tool
+    "compact_schemas": True,  # Strip $defs/$ref (requires include_schemas=True)
+    "max_description_length": 300,  # Truncate tool descriptions (0 = no truncation)
+    "include_schemas": True,  # full inputSchema in search results
+}
+
+
+def get_mcp_api_key_enabled(app: Flask, *, startup_warning: bool = False) -> bool:
+    """Return whether API key auth is enabled for the MCP transport.
+
+    Prefers ``MCP_API_KEY_ENABLED`` when explicitly set; falls back to
+    ``FAB_API_KEY_ENABLED``. When ``startup_warning=True`` and the value
+    is inherited from ``FAB_API_KEY_ENABLED``, logs a warning so operators
+    know a FAB config change now also affects the MCP transport.
+    """
+    if (mcp_setting := app.config.get("MCP_API_KEY_ENABLED", None)) is not None:
+        return bool(mcp_setting)
+    fab_enabled = bool(app.config.get("FAB_API_KEY_ENABLED", False))
+    if startup_warning and fab_enabled:
+        logger.warning(
+            "MCP API key auth is enabled via FAB_API_KEY_ENABLED=True. "
+            "Set MCP_API_KEY_ENABLED=True to silence this warning or "
+            "MCP_API_KEY_ENABLED=False to disable API keys on the MCP "
+            "transport without affecting the FAB REST API."
+        )
+    return fab_enabled
+
+
+def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
+    """Default MCP auth factory using app.config values.
+
+    Returns an auth provider when ``MCP_AUTH_ENABLED=True`` (JWT verifier,
+    optionally wrapped with ``CompositeTokenVerifier`` for API keys) or
+    when only ``MCP_API_KEY_ENABLED=True`` (or ``FAB_API_KEY_ENABLED=True``
+    as a fallback) — API-key-only verifier that rejects all non-API-key
+    Bearer tokens at the transport.
+
+    ``MCP_API_KEY_ENABLED=None`` (default) defers to ``FAB_API_KEY_ENABLED``
+    and logs a startup warning when that setting is True, so operators are
+    aware that a FAB config change now also affects the MCP transport.
+    """
+    auth_enabled = app.config.get("MCP_AUTH_ENABLED", False)
+    api_key_enabled = get_mcp_api_key_enabled(app, startup_warning=True)
+    guest_enabled = _is_mcp_guest_auth_enabled(app)
+
+    if not (auth_enabled or api_key_enabled or guest_enabled):
+        return None
+
+    # When JWT auth is enabled, an audience must be configured so issued tokens
+    # are bound to this service. Without it the verifier accepts any otherwise
+    # valid same-issuer token, regardless of which service it was minted for.
+    # Treat a missing audience as a fatal configuration error so the service
+    # fails to start instead of coming up in a permissive state — the
+    # surrounding bootstrap would otherwise turn a None/raised provider into an
+    # unauthenticated server.
+    if auth_enabled and not app.config.get("MCP_JWT_AUDIENCE"):
+        raise MCPAuthConfigError(
+            "MCP_JWT_AUDIENCE must be set when MCP_AUTH_ENABLED is True so that "
+            "tokens are bound to this service. Set MCP_JWT_AUDIENCE to the "
+            "audience value your identity provider issues for the MCP service."
+        )
+
+    jwt_verifier: Any | None = None
+
+    if auth_enabled:
+        jwks_uri = app.config.get("MCP_JWKS_URI")
+        public_key = app.config.get("MCP_JWT_PUBLIC_KEY")
+        secret = app.config.get("MCP_JWT_SECRET")
+
+        if not (jwks_uri or public_key or secret):
+            logger.warning("MCP_AUTH_ENABLED is True but no JWT keys/secret configured")
+            if not (api_key_enabled or guest_enabled):
+                return None
+        else:
+            try:
+                jwt_verifier = _build_jwt_verifier(
+                    app=app,
+                    jwks_uri=jwks_uri,
+                    public_key=public_key,
+                    secret=secret,
+                )
+            except Exception:
+                # Do not log the exception — it may contain secrets (e.g., key material)
+                logger.error("Failed to create MCP JWT verifier")
+                if not (api_key_enabled or guest_enabled):
+                    return None
+
+    # A composite verifier is needed whenever API-key OR guest auth is on, so
+    # those token types are recognized before (or instead of) the JWT verifier.
+    if api_key_enabled or guest_enabled:
+        return _build_composite_verifier(
+            app,
+            jwt_verifier,
+            api_key_enabled=api_key_enabled,
+            guest_enabled=guest_enabled,
+        )
+
+    return jwt_verifier
+
+
+def _is_mcp_guest_auth_enabled(app: Flask) -> bool:
+    """Return True when embedded guest auth should be active for the MCP transport.
+
+    Requires the opt-in ``MCP_EMBEDDED_GUEST_AUTH_ENABLED`` config AND the
+    ``EMBEDDED_SUPERSET`` feature flag — guest tokens only exist, and
+    ``is_guest_user`` only returns True, when embedding is enabled.
+    """
+    if not app.config.get("MCP_EMBEDDED_GUEST_AUTH_ENABLED", False):
+        return False
+    with app.app_context():
+        # Deferred: is_feature_enabled isn't bound until app init completes.
+        from superset import is_feature_enabled
+
+        if not is_feature_enabled("EMBEDDED_SUPERSET"):
+            logger.warning(
+                "MCP_EMBEDDED_GUEST_AUTH_ENABLED is True but the EMBEDDED_SUPERSET "
+                "feature flag is disabled; embedded guest auth for MCP will not be "
+                "enabled. Enable EMBEDDED_SUPERSET to accept guest tokens over MCP."
+            )
+            return False
+    return True
+
+
+def _validate_guest_config(app: Flask) -> None:
+    """Hard-fail on the default GUEST_TOKEN_JWT_SECRET; warn on an unset audience."""
+    if app.config.get("GUEST_TOKEN_JWT_SECRET") == CHANGE_ME_GUEST_TOKEN_JWT_SECRET:
+        # MCPAuthConfigError specifically: the bootstrap re-raises this type to
+        # refuse startup but swallows others. See _create_auth_provider.
+        raise MCPAuthConfigError(
+            "MCP_EMBEDDED_GUEST_AUTH_ENABLED is set but GUEST_TOKEN_JWT_SECRET is "
+            "the insecure default; refusing to wire guest auth. Set a strong "
+            "GUEST_TOKEN_JWT_SECRET shared with the guest-token minting service."
+        )
+    if not app.config.get("GUEST_TOKEN_JWT_AUDIENCE"):
+        # Don't interpolate the fallback host: CodeQL flags logging config-derived
+        # values as clear-text secrets, and the warning alone suffices.
+        logger.warning(
+            "MCP embedded guest auth enabled but GUEST_TOKEN_JWT_AUDIENCE is unset; "
+            "audience validation falls back to the request URL host. Set "
+            "GUEST_TOKEN_JWT_AUDIENCE consistently across the web and MCP services."
+        )
+
+
+def _build_composite_verifier(
+    app: Flask,
+    jwt_verifier: Any,
+    *,
+    api_key_enabled: bool = True,
+    guest_enabled: bool = False,
+) -> CompositeTokenVerifier:
+    """Build a CompositeTokenVerifier wiring API-key and/or guest verification.
+
+    ``api_key_prefixes`` is left empty when API-key auth is disabled (e.g. a
+    guest-only deployment) so API-key tokens are not silently accepted.
+    """
+    api_key_prefixes: list[str] = []
+    if api_key_enabled:
+        if required_scopes := app.config.get("MCP_REQUIRED_SCOPES", []):
+            logger.warning(
+                "MCP_REQUIRED_SCOPES is configured but API key tokens bypass "
+                "scope enforcement. API key holders gain access regardless of "
+                "MCP_REQUIRED_SCOPES=%r. Enforce per-key authorization via FAB "
+                "roles/RBAC instead.",
+                required_scopes,
+            )
+        raw_prefixes: str | Sequence[str] = app.config.get(
+            "FAB_API_KEY_PREFIXES", ["sst_"]
+        )
+        # Normalize: a plain string (e.g. "sst_") would iterate as characters;
+        # wrap it in a list so CompositeTokenVerifier receives a proper sequence.
+        # Guard against non-iterable config values (e.g. None, integers) that
+        # would raise TypeError and cause _create_auth_provider to fail open.
+        if isinstance(raw_prefixes, str):
+            api_key_prefixes = [raw_prefixes]
+        else:
+            try:
+                api_key_prefixes = list(raw_prefixes)
+            except TypeError:
+                logger.warning(
+                    "FAB_API_KEY_PREFIXES must be a string or list; using default"
+                )
+                api_key_prefixes = ["sst_"]
+        logger.info("API key auth enabled for MCP")
+
+    guest_verifier: GuestTokenVerifier | None = None
+    if guest_enabled:
+        _validate_guest_config(app)
+        guest_verifier = GuestTokenVerifier(app=app)
+        logger.info("Embedded guest token auth enabled for MCP")
+
+    return CompositeTokenVerifier(
+        jwt_verifier=jwt_verifier,
+        api_key_prefixes=api_key_prefixes,
+        app=app,
+        guest_verifier=guest_verifier,
+    )
+
+
+def _build_jwt_verifier(
+    app: Flask,
+    jwks_uri: Optional[str],
+    public_key: Optional[str],
+    secret: Optional[str],
+) -> JWTVerifier:
+    """Construct the JWT verifier from configured keys/secret."""
+    debug_errors = app.config.get("MCP_JWT_DEBUG_ERRORS", False)
+
+    common_kwargs: Dict[str, Any] = {
+        "issuer": app.config.get("MCP_JWT_ISSUER"),
+        "audience": app.config.get("MCP_JWT_AUDIENCE"),
+        "required_scopes": app.config.get("MCP_REQUIRED_SCOPES", []),
+    }
+
+    # For HS256 (symmetric), use the secret as the public_key parameter
+    if app.config.get("MCP_JWT_ALGORITHM") == "HS256" and secret:
+        common_kwargs["public_key"] = secret
+        common_kwargs["algorithm"] = "HS256"
+    else:
+        # For RS256 (asymmetric), use public key or JWKS
+        common_kwargs["jwks_uri"] = jwks_uri
+        common_kwargs["public_key"] = public_key
+        common_kwargs["algorithm"] = app.config.get("MCP_JWT_ALGORITHM", "RS256")
+
+    if debug_errors:
+        # DetailedJWTVerifier: detailed server-side logging of JWT
+        # validation failures. HTTP responses are always generic per
+        # RFC 6750 Section 3.1.
+        return DetailedJWTVerifier(**common_kwargs)
+
+    # MCPJWTVerifier: minimal logging + browser-friendly error page.
+    return MCPJWTVerifier(**common_kwargs)
+
+
+def default_user_resolver(app: Any, access_token: Any) -> str | None:
+    """Extract username from JWT token claims.
+
+    Checks the ``claims`` dict first (FastMCP's AccessToken format),
+    then falls back to legacy attribute access for backward compatibility.
+    """
+    # FastMCP AccessToken stores JWT claims in a dict
+    claims = getattr(access_token, "claims", None)
+    if isinstance(claims, dict) and claims:
+        # Prefer human-readable username claims over opaque `sub`
+        # (OIDC `sub` is often a stable opaque ID, not a Superset username)
+        username = (
+            claims.get("preferred_username")
+            or claims.get("username")
+            or claims.get("email")
+            or claims.get("sub")
+        )
+        if username:
+            return username
+
+    # Legacy attribute access for backward compatibility
+    if hasattr(access_token, "subject") and access_token.subject:
+        return access_token.subject
+    if hasattr(access_token, "client_id") and access_token.client_id:
+        return access_token.client_id
+    if hasattr(access_token, "payload") and isinstance(access_token.payload, dict):
+        return (
+            access_token.payload.get("sub")
+            or access_token.payload.get("email")
+            or access_token.payload.get("username")
+        )
+    return None
+
+
+def generate_secret_key() -> str:
+    """Generate a secure random secret key."""
+    return secrets.token_urlsafe(42)
+
+
+def get_mcp_config(app_config: dict[str, Any] | None = None) -> dict[str, Any]:
+    """
+    Get complete MCP configuration dictionary.
+
+    Reads from app_config first, then falls back to defaults if values are not provided.
+
+    Args:
+        app_config: Optional Flask app configuration dict to read values from
+    """
+    app_config = app_config or {}
+
+    # Default MCP configuration
+    defaults = {
+        "SUPERSET_WEBSERVER_ADDRESS": SUPERSET_WEBSERVER_ADDRESS,
+        "WEBDRIVER_BASEURL": WEBDRIVER_BASEURL,
+        "WEBDRIVER_BASEURL_USER_FRIENDLY": WEBDRIVER_BASEURL_USER_FRIENDLY,
+        "MCP_SERVICE_HOST": MCP_SERVICE_HOST,
+        "MCP_SERVICE_PORT": MCP_SERVICE_PORT,
+        "MCP_DEBUG": MCP_DEBUG,
+        "MCP_RBAC_ENABLED": MCP_RBAC_ENABLED,
+        "MCP_DISABLED_TOOLS": set(MCP_DISABLED_TOOLS),
+        "MCP_DISABLED_CHART_PLUGINS": MCP_DISABLED_CHART_PLUGINS,
+        "MCP_CHART_PLUGIN_ENABLED_FUNC": MCP_CHART_PLUGIN_ENABLED_FUNC,
+        "MCP_EMBEDDED_GUEST_AUTH_ENABLED": MCP_EMBEDDED_GUEST_AUTH_ENABLED,
+        "MCP_GUEST_ALLOWED_TOOLS": set(MCP_GUEST_ALLOWED_TOOLS),
+        **MCP_SESSION_CONFIG,
+        **MCP_CSRF_CONFIG,
+    }
+
+    # Merge app_config over defaults - app_config takes precedence
+    return {**defaults, **{k: v for k, v in app_config.items() if k in defaults}}
+
+
+def get_mcp_config_with_overrides(
+    app_config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """
+    Alternative approach: Allow any app_config keys, not just predefined ones.
+
+    This version lets users add custom MCP config keys in superset_config.py
+    that aren't predefined in the defaults.
+    """
+    app_config = app_config or {}
+    defaults = get_mcp_config()
+
+    # Start with defaults, then overlay any app_config values
+    return {**defaults, **app_config}
+
+
+def get_mcp_factory_config() -> dict[str, Any]:
+    """
+    Get FastMCP factory configuration.
+
+    This can be customized by users to provide their own auth providers,
+    middleware, lifespan handlers, and other FastMCP configuration.
+
+    Returns:
+        Dictionary of FastMCP factory configuration options
+    """
+    return MCP_FACTORY_CONFIG.copy()

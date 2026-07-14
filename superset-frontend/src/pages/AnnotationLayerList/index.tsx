@@ -19,7 +19,8 @@
 
 import { useMemo, useState } from 'react';
 import rison from 'rison';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
 import { Link, useHistory } from 'react-router-dom';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
@@ -41,7 +42,7 @@ import AnnotationLayerModal from 'src/features/annotationLayers/AnnotationLayerM
 import { AnnotationLayerObject } from 'src/features/annotationLayers/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { navigateTo } from 'src/utils/navigationUtils';
+import { ensureAppRoot, navigateTo } from 'src/utils/navigationUtils';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 const PAGE_SIZE = 25;
@@ -153,7 +154,9 @@ function AnnotationLayersList({
           }
 
           return (
-            <Typography.Link href={`/annotationlayer/${id}/annotation`}>
+            <Typography.Link
+              href={ensureAppRoot(`/annotationlayer/${id}/annotation`)}
+            >
               {name}
             </Typography.Link>
           );
@@ -255,6 +258,7 @@ function AnnotationLayersList({
         id: 'name',
         input: 'search',
         operator: FilterOperator.Contains,
+        inputName: 'annotation_layer_list_search',
       },
       {
         Header: t('Changed by'),
@@ -275,7 +279,7 @@ function AnnotationLayersList({
           user,
         ),
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ],
     [],

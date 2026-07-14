@@ -27,3 +27,28 @@ export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 200];
 export const CUSTOM_AGG_FUNCS = {
   queryTotal: 'Metric total',
 };
+
+export const FILTER_POPOVER_OPEN_DELAY = 200;
+export const FILTER_INPUT_SELECTOR = 'input[data-ref="eInput"]';
+export const NOOP_FILTER_COMPARATOR = () => 0;
+
+export const FILTER_INPUT_POSITIONS = {
+  FIRST: 'first' as const,
+  SECOND: 'second' as const,
+  UNKNOWN: 'unknown' as const,
+} as const;
+
+export const FILTER_CONDITION_BODY_INDEX = {
+  FIRST: 0,
+  SECOND: 1,
+} as const;
+
+export const ROW_NUMBER_COL_ID = '__row_number__';
+
+// Symbol key used to attach a row's basic (increase/decrease) color formatter
+// to the row data object so it travels with the row through AG Grid client-side
+// sorting (#105973). A Symbol guarantees the key can never collide with a real
+// dataset column (even one literally named "__basicColorFormatters__") and is
+// automatically excluded from Object.keys, JSON serialization and spreads, so
+// it never leaks into exports or cross-filters.
+export const BASIC_COLOR_FORMATTERS_ROW_KEY = Symbol('basicColorFormatters');

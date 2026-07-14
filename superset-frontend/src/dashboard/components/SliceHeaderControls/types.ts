@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryFormData } from '@superset-ui/core';
+import { JsonObject, QueryFormData } from '@superset-ui/core';
 
 export interface SliceHeaderControlsProps {
   slice: {
@@ -33,6 +33,7 @@ export interface SliceHeaderControlsProps {
   chartStatus: string;
   isCached: boolean[];
   cachedDttm: string[] | null;
+  queriedDttm?: string | null;
   isExpanded?: boolean;
   updatedDttm: number | null;
   isFullSize?: boolean;
@@ -56,7 +57,8 @@ export interface SliceHeaderControlsProps {
 
   supersetCanExplore?: boolean;
   supersetCanShare?: boolean;
-  supersetCanCSV?: boolean;
+  supersetCanDownload?: boolean;
 
   crossFiltersEnabled?: boolean;
+  ownState?: JsonObject;
 }

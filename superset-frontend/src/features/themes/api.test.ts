@@ -24,28 +24,32 @@ import {
   unsetSystemDarkTheme,
 } from './api';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Theme API', () => {
   beforeEach(() => {
-    fetchMock.reset();
+    fetchMock.clearHistory().removeRoutes();
   });
 
   afterEach(() => {
-    fetchMock.restore();
+    fetchMock.clearHistory().removeRoutes();
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('setSystemDefaultTheme', () => {
-    it('should call the correct endpoint with theme id', async () => {
+    test('should call the correct endpoint with theme id', async () => {
       const mockResponse = { id: 1, result: 'success' };
       fetchMock.put('glob:*/api/v1/theme/1/set_system_default', mockResponse);
 
       await setSystemDefaultTheme(1);
 
-      expect(fetchMock.called('glob:*/api/v1/theme/1/set_system_default')).toBe(
-        true,
-      );
+      expect(
+        fetchMock.callHistory.called(
+          'glob:*/api/v1/theme/1/set_system_default',
+        ),
+      ).toBe(true);
     });
 
-    it('should handle errors properly', async () => {
+    test('should handle errors properly', async () => {
       fetchMock.put('glob:*/api/v1/theme/1/set_system_default', {
         throws: new Error('API Error'),
       });
@@ -54,19 +58,20 @@ describe('Theme API', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('setSystemDarkTheme', () => {
-    it('should call the correct endpoint with theme id', async () => {
+    test('should call the correct endpoint with theme id', async () => {
       const mockResponse = { id: 2, result: 'success' };
       fetchMock.put('glob:*/api/v1/theme/2/set_system_dark', mockResponse);
 
       await setSystemDarkTheme(2);
 
-      expect(fetchMock.called('glob:*/api/v1/theme/2/set_system_dark')).toBe(
-        true,
-      );
+      expect(
+        fetchMock.callHistory.called('glob:*/api/v1/theme/2/set_system_dark'),
+      ).toBe(true);
     });
 
-    it('should handle errors properly', async () => {
+    test('should handle errors properly', async () => {
       fetchMock.put('glob:*/api/v1/theme/2/set_system_dark', {
         throws: new Error('API Error'),
       });
@@ -75,8 +80,9 @@ describe('Theme API', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('unsetSystemDefaultTheme', () => {
-    it('should call the correct endpoint', async () => {
+    test('should call the correct endpoint', async () => {
       const mockResponse = { result: 'success' };
       fetchMock.delete(
         'glob:*/api/v1/theme/unset_system_default',
@@ -85,12 +91,14 @@ describe('Theme API', () => {
 
       await unsetSystemDefaultTheme();
 
-      expect(fetchMock.called('glob:*/api/v1/theme/unset_system_default')).toBe(
-        true,
-      );
+      expect(
+        fetchMock.callHistory.called(
+          'glob:*/api/v1/theme/unset_system_default',
+        ),
+      ).toBe(true);
     });
 
-    it('should handle errors properly', async () => {
+    test('should handle errors properly', async () => {
       fetchMock.delete('glob:*/api/v1/theme/unset_system_default', {
         throws: new Error('API Error'),
       });
@@ -99,19 +107,20 @@ describe('Theme API', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('unsetSystemDarkTheme', () => {
-    it('should call the correct endpoint', async () => {
+    test('should call the correct endpoint', async () => {
       const mockResponse = { result: 'success' };
       fetchMock.delete('glob:*/api/v1/theme/unset_system_dark', mockResponse);
 
       await unsetSystemDarkTheme();
 
-      expect(fetchMock.called('glob:*/api/v1/theme/unset_system_dark')).toBe(
-        true,
-      );
+      expect(
+        fetchMock.callHistory.called('glob:*/api/v1/theme/unset_system_dark'),
+      ).toBe(true);
     });
 
-    it('should handle errors properly', async () => {
+    test('should handle errors properly', async () => {
       fetchMock.delete('glob:*/api/v1/theme/unset_system_dark', {
         throws: new Error('API Error'),
       });

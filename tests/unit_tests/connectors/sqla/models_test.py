@@ -22,9 +22,19 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session
 
-from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.connectors.sqla.models import (
+    SqlaTable,
+    TableColumn,
+    validate_stored_expression,
+)
 from superset.daos.dataset import DatasetDAO
-from superset.exceptions import OAuth2RedirectError
+from superset.daos.exceptions import DatasourceNotFound
+from superset.exceptions import (
+    OAuth2RedirectError,
+    SupersetDisallowedSQLFunctionException,
+    SupersetDisallowedSQLTableException,
+    SupersetSecurityException,
+)
 from superset.models.core import Database
 from superset.sql.parse import Table
 from superset.superset_typing import QueryObjectDict
@@ -71,6 +81,116 @@ def test_query_bubbles_errors(mocker: MockerFixture) -> None:
     }
     with pytest.raises(OAuth2RedirectError):
         sqla_table.query(query_obj)
+
+
+def _query_obj() -> QueryObjectDict:
+    return {
+        "granularity": None,
+        "from_dttm": None,
+        "to_dttm": None,
+        "groupby": ["id"],
+        "metrics": [],
+        "is_timeseries": False,
+        "filter": [],
+    }
+
+
+def _build_sqla_table_for_query(
+    mocker: MockerFixture, sql: str, engine: str = "postgresql"
+) -> SqlaTable:
+    db_engine_spec = mocker.MagicMock()
+    db_engine_spec.engine = engine
+    database = mocker.MagicMock()
+    database.db_engine_spec = db_engine_spec
+    sqla_table = SqlaTable(
+        table_name="my_sqla_table",
+        columns=[],
+        metrics=[],
+        database=database,
+    )
+    mocker.patch.object(
+        SqlaTable,
+        "db_engine_spec",
+        new=property(lambda self: db_engine_spec),
+    )
+    mocker.patch.object(
+        sqla_table,
+        "get_query_str_extended",
+        return_value=mocker.MagicMock(sql=sql, labels_expected=[]),
+    )
+    return sqla_table
+
+
+def test_query_blocks_disallowed_function_on_chart_data_path(
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch.dict(
+        "flask.current_app.config",
+        {
+            "DISALLOWED_SQL_FUNCTIONS": {"postgresql": {"version"}},
+            "DISALLOWED_SQL_TABLES": {},
+        },
+        clear=False,
+    )
+    sqla_table = _build_sqla_table_for_query(mocker, "SELECT version()")
+    with pytest.raises(SupersetDisallowedSQLFunctionException):
+        sqla_table.query(_query_obj())
+    sqla_table.database.get_df.assert_not_called()  # type: ignore[attr-defined]
+
+
+def test_query_blocks_disallowed_table_on_chart_data_path(
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch.dict(
+        "flask.current_app.config",
+        {
+            "DISALLOWED_SQL_FUNCTIONS": {},
+            "DISALLOWED_SQL_TABLES": {"postgresql": {"pg_authid"}},
+        },
+        clear=False,
+    )
+    sqla_table = _build_sqla_table_for_query(mocker, "SELECT rolname FROM pg_authid")
+    with pytest.raises(SupersetDisallowedSQLTableException):
+        sqla_table.query(_query_obj())
+    sqla_table.database.get_df.assert_not_called()  # type: ignore[attr-defined]
+
+
+def test_query_disallowed_table_error_reports_only_matched_tables(
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch.dict(
+        "flask.current_app.config",
+        {
+            "DISALLOWED_SQL_FUNCTIONS": {},
+            "DISALLOWED_SQL_TABLES": {
+                "postgresql": {"pg_authid", "pg_shadow", "pg_stat_activity"}
+            },
+        },
+        clear=False,
+    )
+    sqla_table = _build_sqla_table_for_query(mocker, "SELECT rolname FROM pg_authid")
+    with pytest.raises(SupersetDisallowedSQLTableException) as excinfo:
+        sqla_table.query(_query_obj())
+    message = str(excinfo.value)
+    assert "pg_authid" in message
+    assert "pg_shadow" not in message
+    assert "pg_stat_activity" not in message
+
+
+def test_query_allows_benign_sql_on_chart_data_path(mocker: MockerFixture) -> None:
+    mocker.patch.dict(
+        "flask.current_app.config",
+        {
+            "DISALLOWED_SQL_FUNCTIONS": {"postgresql": {"version"}},
+            "DISALLOWED_SQL_TABLES": {"postgresql": {"pg_authid"}},
+        },
+        clear=False,
+    )
+    sqla_table = _build_sqla_table_for_query(mocker, "SELECT id FROM my_sqla_table")
+    sqla_table.database.get_df.return_value = pd.DataFrame()  # type: ignore[attr-defined]
+    result = sqla_table.query(_query_obj())
+    sqla_table.database.get_df.assert_called_once()  # type: ignore[attr-defined]
+    assert result is not None
 
 
 def test_permissions_without_catalog() -> None:
@@ -268,7 +388,7 @@ def test_dataset_uniqueness(session: Session) -> None:
 
 def test_normalize_prequery_result_type_custom_sql() -> None:
     """
-    Test that the `_normalize_prequery_result_type` can hanndle custom SQL.
+    Test that the `_normalize_prequery_result_type` can handle custom SQL.
     """
     sqla_table = SqlaTable(
         table_name="my_sqla_table",
@@ -616,7 +736,7 @@ def test_fetch_metadata_empty_comment_field_handling(mocker: MockerFixture) -> N
             "test_table",
             "test_project",
             "test_dataset",
-            "test_project.test_dataset.test_table",
+            '"test_project"."test_dataset"."test_table"',
             None,
         ),
         # Database supports cross-catalog queries, catalog only (no schema)
@@ -625,7 +745,7 @@ def test_fetch_metadata_empty_comment_field_handling(mocker: MockerFixture) -> N
             "test_table",
             "test_project",
             None,
-            "test_project.test_table",
+            '"test_project"."test_table"',
             None,
         ),
         # Database supports cross-catalog queries, schema only (no catalog)
@@ -675,12 +795,14 @@ def test_get_sqla_table_with_catalog(
     expected_name: str,
     expected_schema: str | None,
 ) -> None:
-    """Test that get_sqla_table handles catalog inclusion correctly based on
-    database cross-catalog support
+    """
+    Test that `get_sqla_table` handles catalog inclusion correctly.
     """
     # Mock database with specified cross-catalog support
     database = mocker.MagicMock()
     database.db_engine_spec.supports_cross_catalog_queries = supports_cross_catalog
+    # Provide a simple quote_identifier
+    database.quote_identifier = lambda x: f'"{x}"'
 
     # Create table with specified parameters
     table = SqlaTable(
@@ -696,3 +818,362 @@ def test_get_sqla_table_with_catalog(
     # Verify expected table name and schema
     assert sqla_table.name == expected_name
     assert sqla_table.schema == expected_schema
+
+
+@pytest.mark.parametrize(
+    "table_name, catalog, schema, expected_in_sql, not_expected_in_sql",
+    [
+        (
+            "My-Table",
+            "My-DB",
+            "My-Schema",
+            '"My-DB"."My-Schema"."My-Table"',
+            '"My-DB.My-Schema.My-Table"',  # Should NOT be one quoted string
+        ),
+        (
+            "ORDERS",
+            "PROD_DB",
+            "SALES",
+            '"PROD_DB"."SALES"."ORDERS"',
+            '"PROD_DB.SALES.ORDERS"',  # Should NOT be one quoted string
+        ),
+        (
+            "My Table",
+            "My DB",
+            "My Schema",
+            '"My DB"."My Schema"."My Table"',
+            '"My DB.My Schema.My Table"',  # Should NOT be one quoted string
+        ),
+    ],
+)
+def test_get_sqla_table_quoting_for_cross_catalog(
+    mocker: MockerFixture,
+    table_name: str,
+    catalog: str | None,
+    schema: str | None,
+    expected_in_sql: str,
+    not_expected_in_sql: str,
+) -> None:
+    """
+    Test that `get_sqla_table` properly quotes each component of the identifier.
+    """
+    from sqlalchemy import create_engine, select
+
+    # Create a Postgres-like engine to test proper quoting
+    engine = create_engine("postgresql://user:pass@host/db")
+
+    # Mock database with cross-catalog support and proper quote_identifier
+    database = mocker.MagicMock()
+    database.db_engine_spec.supports_cross_catalog_queries = True
+    database.quote_identifier = engine.dialect.identifier_preparer.quote
+
+    # Create table
+    table = SqlaTable(
+        table_name=table_name,
+        database=database,
+        schema=schema,
+        catalog=catalog,
+    )
+
+    # Get the SQLAlchemy table representation
+    sqla_table = table.get_sqla_table()
+    query = select(sqla_table)
+    compiled = str(query.compile(engine, compile_kwargs={"literal_binds": True}))
+
+    # The compiled SQL should contain each part quoted separately
+    assert expected_in_sql in compiled, f"Expected {expected_in_sql} in SQL: {compiled}"
+    # Should NOT have the entire identifier quoted as one string
+    assert not_expected_in_sql not in compiled, (
+        f"Should not have {not_expected_in_sql} in SQL: {compiled}"
+    )
+
+
+def test_get_sqla_table_without_cross_catalog_ignores_catalog(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that databases without cross-catalog support ignore the catalog field.
+    """
+    from sqlalchemy import create_engine, select
+
+    # Create a PostgreSQL engine (doesn't support cross-catalog queries)
+    engine = create_engine("postgresql://user:pass@localhost/db")
+
+    # Mock database without cross-catalog support
+    database = mocker.MagicMock()
+    database.db_engine_spec.supports_cross_catalog_queries = False
+    database.quote_identifier = engine.dialect.identifier_preparer.quote
+
+    # Create table with catalog - should be ignored
+    table = SqlaTable(
+        table_name="my_table",
+        database=database,
+        schema="my_schema",
+        catalog="my_catalog",
+    )
+
+    # Get the SQLAlchemy table representation
+    sqla_table = table.get_sqla_table()
+
+    # Compile to SQL
+    query = select(sqla_table)
+    compiled = str(query.compile(engine, compile_kwargs={"literal_binds": True}))
+
+    # Should only have schema.table, not catalog.schema.table
+    assert "my_schema" in compiled
+    assert "my_table" in compiled
+    assert "my_catalog" not in compiled
+
+
+def test_quoted_name_prevents_double_quoting(mocker: MockerFixture) -> None:
+    """
+    Test that `quoted_name(..., quote=False)` does not cause double quoting.
+    """
+    from sqlalchemy import create_engine, select
+
+    engine = create_engine("postgresql://user:pass@host/db")
+
+    # Mock database
+    database = mocker.MagicMock()
+    database.db_engine_spec.supports_cross_catalog_queries = True
+    database.quote_identifier = engine.dialect.identifier_preparer.quote
+
+    # Use uppercase table name to force quoting
+    table = SqlaTable(
+        table_name="MY_TABLE",
+        database=database,
+        schema="MY_SCHEMA",
+        catalog="MY_DB",
+    )
+
+    # Get the SQLAlchemy table representation
+    sqla_table = table.get_sqla_table()
+
+    # Compile to SQL
+    query = select(sqla_table)
+    compiled = str(query.compile(engine, compile_kwargs={"literal_binds": True}))
+
+    # Should NOT have the entire identifier quoted as one:
+    # BAD:  '"MY_DB.MY_SCHEMA.MY_TABLE"'
+    # This would cause: SQL compilation error: Object '"MY_DB.MY_SCHEMA.MY_TABLE"'
+    # does not exist
+    assert '"MY_DB.MY_SCHEMA.MY_TABLE"' not in compiled
+
+    # Should have each part quoted separately:
+    # GOOD: "MY_DB"."MY_SCHEMA"."MY_TABLE"
+    assert '"MY_DB"."MY_SCHEMA"."MY_TABLE"' in compiled
+
+
+def test_sqla_table_currency_code_column_property() -> None:
+    """
+    Test currency_code_column property on SqlaTable.
+    """
+    database = Database(database_name="my_db")
+    table = SqlaTable(
+        table_name="sales",
+        database=database,
+        currency_code_column="currency",
+    )
+    assert table.currency_code_column == "currency"
+
+
+def test_sqla_table_data_includes_currency_code_column(mocker: MockerFixture) -> None:
+    """
+    Test that data property includes currency_code_column.
+    """
+    database = mocker.MagicMock()
+    database.get_sqla_engine.return_value.__enter__ = mocker.MagicMock()
+    database.get_sqla_engine.return_value.__exit__ = mocker.MagicMock()
+
+    table = SqlaTable(
+        table_name="sales",
+        database=database,
+        currency_code_column="currency_code",
+        main_dttm_col="ds",
+    )
+    table.columns = []
+    table.metrics = []
+
+    # Mock the columns property to return empty list
+    mocker.patch.object(SqlaTable, "columns", [])
+    mocker.patch.object(SqlaTable, "metrics", [])
+
+    data = table.data
+    assert data["currency_code_column"] == "currency_code"
+    assert data["main_dttm_col"] == "ds"
+
+
+def test_sqla_table_link_escapes_url(mocker: MockerFixture) -> None:
+    """
+    Test that link property properly escapes URL to prevent XSS.
+    """
+    database = Database(database_name="my_db")
+    table = SqlaTable(
+        table_name='test<script>alert("xss")</script>',
+        database=database,
+        id=1,
+    )
+
+    # Mock explore_url to return a URL with special characters
+    mocker.patch.object(
+        SqlaTable,
+        "explore_url",
+        new_callable=mocker.PropertyMock,
+        return_value='/explore/?datasource_type=table&datasource_id=1&name=<script>alert("xss")</script>',
+    )
+
+    link = table.link
+    # Verify that special characters are escaped in both name and URL
+    assert "&lt;script&gt;" in str(link)
+    assert "<script>" not in str(link)
+
+
+def test_data_for_slices_handles_missing_datasource(mocker: MockerFixture) -> None:
+    """
+    Test that data_for_slices gracefully handles a chart whose query_context
+    references a datasource that no longer exists.
+
+    When a chart's query_context references a deleted datasource, get_query_context()
+    raises DatasourceNotFound. The fix ensures this exception is caught and logged,
+    allowing the dashboard to load normally instead of returning a 404.
+    """
+    database = mocker.MagicMock()
+    database.id = 1
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[],
+        metrics=[],
+    )
+
+    # Create a mock slice whose get_query_context raises DatasourceNotFound
+    mock_slice = mocker.MagicMock()
+    mock_slice.id = 1
+    mock_slice.slice_name = "Test Chart"
+    mock_slice.form_data = {}
+    mock_slice.get_query_context.side_effect = DatasourceNotFound()
+
+    # Mock the columns and metrics properties to return empty lists
+    mocker.patch.object(SqlaTable, "columns", [])
+    mocker.patch.object(SqlaTable, "metrics", [])
+
+    # This should not raise an exception - the fix catches DatasourceNotFound
+    result = table.data_for_slices([mock_slice])
+
+    # Verify the method returns a valid data structure
+    assert "columns" in result
+    assert "metrics" in result
+    assert "verbose_map" in result
+
+
+def _database_for_expression(mocker: MockerFixture) -> Database:
+    database = mocker.MagicMock(spec=Database)
+    database.backend = "sqlite"
+    database.allow_multi_catalog = False
+    return database
+
+
+def test_validate_stored_expression_rejects_multi_statement(
+    mocker: MockerFixture,
+) -> None:
+    database = _database_for_expression(mocker)
+    with pytest.raises(SupersetSecurityException):
+        validate_stored_expression(database, None, None, "1; DROP TABLE users")
+
+
+def test_validate_stored_expression_rejects_set_operation(
+    mocker: MockerFixture,
+) -> None:
+    database = _database_for_expression(mocker)
+    with pytest.raises(SupersetSecurityException):
+        validate_stored_expression(
+            database, None, None, "1 UNION SELECT password FROM ab_user"
+        )
+
+
+def test_validate_stored_expression_accepts_case_expression(
+    mocker: MockerFixture,
+) -> None:
+    database = _database_for_expression(mocker)
+    validate_stored_expression(
+        database, None, None, "CASE WHEN amount > 0 THEN 'a' ELSE 'b' END"
+    )
+
+
+def test_validate_stored_expression_rejects_subquery(
+    mocker: MockerFixture,
+) -> None:
+    """
+    With ``ALLOW_ADHOC_SUBQUERY=False`` (the default), a stored
+    expression that contains a sub-query is rejected by the same
+    ``validate_adhoc_subquery`` gate that already covers adhoc SQL.
+    Locks in the sub-query branch so a future refactor that
+    removes the ``validate_adhoc_subquery`` call gets a red test.
+    """
+    database = _database_for_expression(mocker)
+    mocker.patch("superset.models.helpers.is_feature_enabled", return_value=False)
+    with pytest.raises(SupersetSecurityException):
+        validate_stored_expression(
+            database,
+            None,
+            None,
+            "(SELECT password FROM ab_user LIMIT 1)",
+        )
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "case when '{{ current_username() }}' = 'abc' then 'yes' else 'no' end",
+        "SUM(price) * {{ url_param('multiplier') }}",
+        "{# comment #} amount",
+        "{% if 1 %}amount{% endif %}",
+    ],
+)
+def test_validate_stored_expression_accepts_jinja(
+    mocker: MockerFixture, expression: str
+) -> None:
+    """
+    Stored expressions can contain Jinja templating. Balanced Jinja blocks
+    are replaced with a placeholder so the surrounding SQL is still parsed;
+    skeletons whose control flow leaves them unparseable defer to runtime.
+    """
+    database = _database_for_expression(mocker)
+    validate_stored_expression(database, None, None, expression)
+
+
+def test_validate_stored_expression_rejects_set_op_around_jinja(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A ``UNION`` smuggled around a Jinja block must still be rejected: the
+    Jinja substitution leaves the set operator visible to the parser.
+    """
+    database = _database_for_expression(mocker)
+    with pytest.raises(SupersetSecurityException):
+        validate_stored_expression(
+            database,
+            None,
+            None,
+            "'{{ current_username() }}' UNION SELECT password FROM ab_user",
+        )
+
+
+def test_validate_stored_expression_rejects_subquery_around_jinja(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Sub-queries combined with a Jinja comment block must still be rejected:
+    stripping the ``{# ... #}`` block leaves the sub-query visible to the
+    ``validate_adhoc_subquery`` gate.
+    """
+    database = _database_for_expression(mocker)
+    mocker.patch("superset.models.helpers.is_feature_enabled", return_value=False)
+    with pytest.raises(SupersetSecurityException):
+        validate_stored_expression(
+            database,
+            None,
+            None,
+            "(SELECT password FROM ab_user LIMIT 1) {# x #}",
+        )

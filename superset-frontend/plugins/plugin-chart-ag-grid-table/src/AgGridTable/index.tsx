@@ -22,32 +22,57 @@ import {
   useMemo,
   useRef,
   memo,
+  FunctionComponent,
   useState,
   ChangeEvent,
   useEffect,
+  type RefObject,
 } from 'react';
 
-import { ThemedAgGridReact } from '@superset-ui/core/components';
+import { Constants, ThemedAgGridReact } from '@superset-ui/core/components';
 import {
   AgGridReact,
   AllCommunityModule,
   ClientSideRowModelModule,
   type ColDef,
+  type ColumnState,
   ModuleRegistry,
   GridReadyEvent,
   GridState,
   CellClickedEvent,
-  IMenuActionParams,
+  CellKeyDownEvent,
+  SelectionChangedEvent,
 } from '@superset-ui/core/components/ThemedAgGridReact';
-import { type FunctionComponent } from 'react';
-import { JsonObject, DataRecordValue, DataRecord, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import {
+  AgGridChartState,
+  DataRecordValue,
+  DataRecord,
+  JsonObject,
+} from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
-import { debounce, isEqual } from 'lodash';
+import { debounce, isEqual } from 'lodash-es';
 import Pagination from './components/Pagination';
 import SearchSelectDropdown from './components/SearchSelectDropdown';
 import { SearchOption, SortByItem } from '../types';
 import getInitialSortState, { shouldSort } from '../utils/getInitialSortState';
+import getInitialFilterModel from '../utils/getInitialFilterModel';
+import reconcileColumnState from '../utils/reconcileColumnState';
+import getColumnStateSignature from '../utils/getColumnStateSignature';
 import { PAGE_SIZE_OPTIONS } from '../consts';
+import { getCompleteFilterState } from '../utils/filterStateManager';
+import { copyCellValueOnKeyDown } from '../utils/copyCellValue';
+
+export interface AgGridState extends Partial<GridState> {
+  timestamp?: number;
+  hasChanges?: boolean;
+}
+
+// AgGridChartState with optional metadata fields for state change events
+export type AgGridChartStateWithMetadata = Partial<AgGridChartState> & {
+  timestamp?: number;
+  hasChanges?: boolean;
+};
 
 export interface AgGridTableProps {
   gridTheme?: string;
@@ -74,12 +99,18 @@ export interface AgGridTableProps {
   percentMetrics: string[];
   serverPageLength: number;
   hasServerPageLengthChanged: boolean;
-  handleCrossFilter: (event: CellClickedEvent | IMenuActionParams) => void;
-  isActiveFilterValue: (key: string, val: DataRecordValue) => boolean;
+  handleCellClicked: (event: CellClickedEvent) => void;
+  handleSelectionChanged: (event: SelectionChangedEvent) => void;
+  filters?: Record<string, DataRecordValue[]> | null;
   renderTimeComparisonDropdown: () => JSX.Element | null;
   cleanedTotals: DataRecord;
   showTotals: boolean;
   width: number;
+  onColumnStateChange?: (state: AgGridChartStateWithMetadata) => void;
+  onFilterChanged?: (filterModel: Record<string, any>) => void;
+  metricColumns?: string[];
+  gridRef?: RefObject<AgGridReact>;
+  chartState?: AgGridChartState;
 }
 
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
@@ -108,33 +139,49 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     percentMetrics,
     serverPageLength,
     hasServerPageLengthChanged,
-    handleCrossFilter,
-    isActiveFilterValue,
+    handleCellClicked,
+    handleSelectionChanged,
+    filters,
     renderTimeComparisonDropdown,
     cleanedTotals,
     showTotals,
     width,
+    onColumnStateChange,
+    onFilterChanged,
+    metricColumns = [],
+    chartState,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const rowData = useMemo(() => data, [data]);
     const containerRef = useRef<HTMLDivElement>(null);
+    const lastCapturedStateRef = useRef<string | null>(null);
+    const filterOperationVersionRef = useRef(0);
 
     const searchId = `search-${id}`;
+
+    const initialFilterModel = getInitialFilterModel(
+      chartState,
+      serverPaginationData,
+      serverPagination,
+    );
+
     const gridInitialState: GridState = {
       ...(serverPagination && {
         sort: {
           sortModel: getInitialSortState(serverPaginationData?.sortBy || []),
         },
       }),
+      ...(initialFilterModel && {
+        filter: {
+          filterModel: initialFilterModel,
+        },
+      }),
     };
 
     const defaultColDef = useMemo<ColDef>(
       () => ({
-        flex: 1,
         filter: true,
-        enableRowGroup: true,
-        enableValue: true,
         sortable: true,
         resizable: true,
         minWidth: 100,
@@ -191,6 +238,13 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       isSearchFocused.set(searchId, false);
     }, [searchId]);
 
+    // Copy the focused cell's value on Ctrl/Cmd+C. Needed because cell text is
+    // no longer natively selectable (see enableCellTextSelection below) and the
+    // Enterprise clipboard module is not registered (#106389).
+    const handleCellKeyDown = useCallback((event: CellKeyDownEvent) => {
+      copyCellValueOnKeyDown(event);
+    }, []);
+
     const onFilterTextBoxChanged = useCallback(
       ({ target: { value } }: ChangeEvent<HTMLInputElement>) => {
         if (serverPagination) {
@@ -203,7 +257,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       [serverPagination, debouncedSearch, searchId],
     );
 
-    const handleColSort = (colId: string, sortDir: string) => {
+    const handleColSort = (colId: string, sortDir: string | null) => {
       const isSortable = shouldSort({
         colId,
         sortDir,
@@ -213,6 +267,34 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       });
 
       if (!isSortable) return;
+
+      if (serverPagination && gridRef.current?.api && onColumnStateChange) {
+        const { api } = gridRef.current;
+
+        if (sortDir == null) {
+          api.applyColumnState({
+            defaultState: { sort: null },
+          });
+        } else {
+          api.applyColumnState({
+            defaultState: { sort: null },
+            state: [{ colId, sort: sortDir as 'asc' | 'desc', sortIndex: 0 }],
+          });
+        }
+
+        const columnState = api.getColumnState?.() || [];
+        const filterModel = api.getFilterModel?.() || {};
+        const sortModel = sortDir
+          ? [{ colId, sort: sortDir as 'asc' | 'desc', sortIndex: 0 }]
+          : [];
+
+        onColumnStateChange({
+          columnState,
+          sortModel,
+          filterModel,
+          timestamp: Date.now(),
+        });
+      }
 
       if (sortDir == null) {
         onSortChange([]);
@@ -229,13 +311,110 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     };
 
     const handleColumnHeaderClick = useCallback(
-      params => {
+      (params: { column?: { colId?: string; sort?: string | null } }) => {
         const colId = params?.column?.colId;
         const sortDir = params?.column?.sort;
-        handleColSort(colId, sortDir);
+        if (colId && sortDir !== undefined) {
+          handleColSort(colId, sortDir);
+        }
       },
       [serverPagination, gridInitialState, percentMetrics, onSortChange],
     );
+
+    const handleGridStateChange = useCallback(
+      debounce(() => {
+        if (onColumnStateChange && gridRef.current?.api) {
+          try {
+            const { api } = gridRef.current;
+
+            const columnState = api.getColumnState ? api.getColumnState() : [];
+
+            const filterModel = api.getFilterModel ? api.getFilterModel() : {};
+
+            const sortModel = columnState
+              .filter(col => col.sort)
+              .map(col => ({
+                colId: col.colId,
+                sort: col.sort as 'asc' | 'desc',
+                sortIndex: col.sortIndex || 0,
+              }))
+              .sort((a, b) => (a.sortIndex || 0) - (b.sortIndex || 0));
+
+            const stateToSave = {
+              columnState,
+              sortModel,
+              filterModel,
+              timestamp: Date.now(),
+            };
+
+            const stateHash = getColumnStateSignature(
+              columnState,
+              sortModel,
+              filterModel,
+            );
+
+            if (stateHash !== lastCapturedStateRef.current) {
+              lastCapturedStateRef.current = stateHash;
+
+              onColumnStateChange(stateToSave);
+            }
+          } catch (error) {
+            console.warn('Error capturing AG Grid state:', error);
+          }
+        }
+      }, Constants.SLOW_DEBOUNCE),
+      [onColumnStateChange],
+    );
+
+    const handleFilterChanged = useCallback(async () => {
+      filterOperationVersionRef.current += 1;
+      const currentVersion = filterOperationVersionRef.current;
+
+      const completeFilterState = await getCompleteFilterState(
+        gridRef,
+        metricColumns,
+      );
+
+      // Skip stale operations from rapid filter changes
+      if (currentVersion !== filterOperationVersionRef.current) {
+        return;
+      }
+
+      // Reject invalid filter states (e.g., text filter on numeric column)
+      if (completeFilterState.originalFilterModel) {
+        const filterModel = completeFilterState.originalFilterModel;
+        const hasInvalidFilterType = Object.entries(filterModel).some(
+          ([colId, filter]: [string, any]) => {
+            if (
+              filter?.filterType === 'text' &&
+              metricColumns?.includes(colId)
+            ) {
+              return true;
+            }
+            return false;
+          },
+        );
+
+        if (hasInvalidFilterType) {
+          return;
+        }
+      }
+
+      if (
+        !isEqual(
+          serverPaginationData?.agGridFilterModel,
+          completeFilterState.originalFilterModel,
+        )
+      ) {
+        if (onFilterChanged) {
+          onFilterChanged(completeFilterState);
+        }
+      }
+    }, [
+      onFilterChanged,
+      metricColumns,
+      serverPaginationData?.agGridFilterModel,
+    ]);
 
     useEffect(() => {
       if (
@@ -251,9 +430,44 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       }
     }, [hasServerPageLengthChanged]);
 
+    useEffect(() => {
+      if (gridRef.current?.api) {
+        gridRef.current.api.sizeColumnsToFit();
+      }
+    }, [width]);
+
+    useEffect(() => {
+      if (
+        (!filters || Object.keys(filters).length === 0) &&
+        gridRef.current?.api?.getSelectedRows().length
+      ) {
+        gridRef.current.api.deselectAll();
+      }
+    }, [filters]);
+
     const onGridReady = (params: GridReadyEvent) => {
       // This will make columns fill the grid width
       params.api.sizeColumnsToFit();
+
+      // Restore saved column state from permalink if available
+      // Note: filterModel is now handled via gridInitialState for better performance
+      if (chartState?.columnState && params.api) {
+        try {
+          const reconciledColumnState = reconcileColumnState(
+            chartState.columnState as ColumnState[],
+            colDefsFromProps as ColDef[],
+          );
+
+          if (reconciledColumnState) {
+            params.api.applyColumnState?.({
+              state: reconciledColumnState.columnState,
+              applyOrder: reconciledColumnState.applyOrder,
+            });
+          }
+        } catch {
+          // Silently fail if state restoration fails
+        }
+      }
     };
 
     return (
@@ -268,7 +482,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
             <div className="search-container">
               {serverPagination && (
                 <div className="search-by-text-container">
-                  <span className="search-by-text"> Search by :</span>
+                  <span className="search-by-text"> {t('Search by')}:</span>
                   <SearchSelectDropdown
                     onChange={onSearchColChange}
                     searchOptions={searchOptions}
@@ -286,7 +500,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
                     }
                     type="text"
                     id="filter-text-box"
-                    placeholder="Search"
+                    placeholder={t('Search')}
                     onInput={onFilterTextBoxChanged}
                     onFocus={handleSearchFocus}
                     onBlur={handleSearchBlur}
@@ -309,11 +523,23 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           onColumnGroupOpened={params => params.api.sizeColumnsToFit()}
           rowSelection="multiple"
           animateRows
-          onCellClicked={handleCrossFilter}
+          onCellClicked={handleCellClicked}
+          onCellKeyDown={handleCellKeyDown}
+          onSelectionChanged={handleSelectionChanged}
+          onFilterChanged={handleFilterChanged}
+          onStateUpdated={handleGridStateChange}
           initialState={gridInitialState}
+          maintainColumnOrder
           suppressAggFuncInHeader
-          rowGroupPanelShow="always"
-          enableCellTextSelection
+          // Clicking a cell should select (focus) the cell rather than select
+          // its text content (#106389). enableCellTextSelection forces browser
+          // text selection on click, which suppresses the cell-focus behavior.
+          // Because the Enterprise clipboard module isn't registered, native
+          // text selection was the only way to copy a value, so onCellKeyDown
+          // (above) restores Ctrl/Cmd+C copy for the focused cell. Full
+          // multi-cell range selection still requires AG Grid Enterprise, which
+          // is not available in the Community build used here.
+          enableCellTextSelection={false}
           quickFilterText={serverPagination ? '' : quickFilterText}
           suppressMovableColumns={!allowRearrangeColumns}
           pagination={pagination}
@@ -321,6 +547,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           paginationPageSizeSelector={PAGE_SIZE_OPTIONS}
           suppressDragLeaveHidesColumns
           pinnedBottomRowData={showTotals ? [cleanedTotals] : undefined}
+          tooltipShowDelay={500}
           localeText={{
             // Pagination controls
             next: t('Next'),
@@ -399,7 +626,9 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
             initialSortState: getInitialSortState(
               serverPaginationData?.sortBy || [],
             ),
-            isActiveFilterValue,
+            lastFilteredColumn: serverPaginationData?.lastFilteredColumn,
+            lastFilteredInputPosition:
+              serverPaginationData?.lastFilteredInputPosition,
           }}
         />
         {serverPagination && (

@@ -47,6 +47,7 @@ from superset.extensions import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from tests.integration_tests.base_tests import subjects_from_users
 
 # Create a test model for comprehensive testing
 Base = declarative_base()
@@ -809,6 +810,75 @@ def test_base_dao_list_search(user_with_data: Session) -> None:
     user_with_data.commit()
 
 
+def test_base_dao_list_search_wildcard_injection(user_with_data: Session) -> None:
+    """Verify that search='%' is treated literally and does not match all rows."""
+    users = []
+    for i in range(3):
+        user = User(
+            id=420 + i,
+            username=f"nowildcard_{i}",
+            first_name=f"NoWild{i}",
+            last_name="Card",
+            email=f"nowild{i}@example.com",
+            active=True,
+        )
+        users.append(user)
+        user_with_data.add(user)
+    user_with_data.commit()
+
+    # '%' must be escaped; it should not match any of our plain-name users
+    results, total = UserDAO.list(search="%", search_columns=["username", "first_name"])
+    result_usernames = {r.username for r in results}
+    for user in users:
+        assert user.username not in result_usernames, (
+            f"search='%' should not match '{user.username}' — LIKE wildcard injection"
+        )
+
+    for user in users:
+        user_with_data.delete(user)
+    user_with_data.commit()
+
+
+def test_base_dao_list_column_operator_wildcard_injection(
+    user_with_data: Session,
+) -> None:
+    """Verify that column_operators with '%' values are treated literally."""
+    users = []
+    for i in range(3):
+        user = User(
+            id=430 + i,
+            username=f"opwildcard_{i}",
+            first_name=f"OpWild{i}",
+            last_name="Card",
+            email=f"opwild{i}@example.com",
+            active=True,
+        )
+        users.append(user)
+        user_with_data.add(user)
+    user_with_data.commit()
+
+    # Each wildcard operator with '%' as the value must not match plain-name rows
+    for opr in (
+        ColumnOperatorEnum.ct,
+        ColumnOperatorEnum.like,
+        ColumnOperatorEnum.ilike,
+        ColumnOperatorEnum.sw,
+        ColumnOperatorEnum.ew,
+    ):
+        results, _ = UserDAO.list(
+            column_operators=[ColumnOperator(col="username", opr=opr, value="%")]
+        )
+        result_usernames = {r.username for r in results}
+        for user in users:
+            assert user.username not in result_usernames, (
+                f"opr={opr!r} with value='%' should not match '{user.username}'"
+            )
+
+    for user in users:
+        user_with_data.delete(user)
+    user_with_data.commit()
+
+
 def test_base_dao_list_custom_filter(user_with_data: Session) -> None:
     """Test BaseDAO.list with custom filters."""
     # Create users with specific attributes
@@ -1219,8 +1289,10 @@ def test_base_dao_list_with_relationships_pagination(app_context: Session) -> No
     This test addresses the concern that joinedload() with many-to-many
     relationships can cause incorrect pagination due to SQL JOINs multiplying rows.
     """
-    # Create dashboards with owners (many-to-many relationship)
+    # Create dashboards with editors (many-to-many relationship)
     users = []
+    from superset.subjects.sync import sync_user_subject
+
     for i in range(3):
         user = User(
             username=f"rel_test_user_{i}",
@@ -1232,14 +1304,21 @@ def test_base_dao_list_with_relationships_pagination(app_context: Session) -> No
         users.append(user)
         db.session.add(user)
 
+    db.session.commit()
+    for user in users:
+        sync_user_subject(user)
+    db.session.commit()
+
     dashboards = []
     for i in range(10):
         dashboard = Dashboard(
             dashboard_title=f"Relationship Test Dashboard {i}",
             slug=f"rel-test-dash-{i}",
         )
-        # Add multiple owners to create many-to-many relationship
-        dashboard.owners = users[:2]  # Each dashboard has 2 owners
+        # Add multiple editors to create many-to-many relationship
+        dashboard.editors = subjects_from_users(
+            users[:2]
+        )  # Each dashboard has 2 editors
         dashboards.append(dashboard)
         db.session.add(dashboard)
 
@@ -1264,7 +1343,7 @@ def test_base_dao_list_with_relationships_pagination(app_context: Session) -> No
         columns=[
             "id",
             "dashboard_title",
-            "owners",
+            "editors",
         ],  # Include many-to-many relationship
         order_column="dashboard_title",
         order_direction="asc",
@@ -1285,16 +1364,16 @@ def test_base_dao_list_with_relationships_pagination(app_context: Session) -> No
 
     # 3. Verify relationships are actually loaded
     for result in results_with_rel:
-        # Check that owners relationship is loaded (would raise if not)
-        assert hasattr(result, "owners")
-        # In our test setup, each dashboard should have 2 owners
-        assert len(result.owners) == 2
+        # Check that editors relationship is loaded (would raise if not)
+        assert hasattr(result, "editors")
+        # In our test setup, each dashboard should have 2 editors
+        assert len(result.editors) == 2
 
     # Test second page to ensure offset works correctly
     results_page2, _ = DashboardDAO.list(
         page=1,
         page_size=5,
-        columns=["id", "dashboard_title", "owners"],
+        columns=["id", "dashboard_title", "editors"],
         order_column="dashboard_title",
         order_direction="asc",
     )
@@ -1394,13 +1473,21 @@ def test_base_dao_list_count_accuracy_with_filters_and_relationships(
 
     db.session.commit()
 
-    # Create dashboards owned by these users
+    from superset.subjects.sync import sync_user_subject
+
+    for user in active_users + inactive_users:
+        sync_user_subject(user)
+    db.session.commit()
+
+    # Create dashboards edited by these users
     for i in range(6):
         dashboard = Dashboard(
             dashboard_title=f"Count Test Dashboard {i}",
             slug=f"count-test-{i}",
         )
-        dashboard.owners = active_users[:3]  # 3 owners per dashboard
+        dashboard.editors = subjects_from_users(
+            active_users[:3]
+        )  # 3 editors per dashboard
         db.session.add(dashboard)
 
     db.session.commit()
@@ -1416,7 +1503,7 @@ def test_base_dao_list_count_accuracy_with_filters_and_relationships(
 
     results, count = DashboardDAO.list(
         column_operators=filters,
-        columns=["id", "dashboard_title", "owners"],  # Load many-to-many
+        columns=["id", "dashboard_title", "editors"],  # Load many-to-many
         page=0,
         page_size=3,
     )
@@ -1429,11 +1516,11 @@ def test_base_dao_list_count_accuracy_with_filters_and_relationships(
         f"Expected 3 results due to pagination, got {len(results)}"
     )
 
-    # Each should have 3 owners as we set up
+    # Each should have 3 editors as we set up
     for dashboard in results:
-        assert len(dashboard.owners) == 3, (
-            f"Dashboard {dashboard.dashboard_title} should have 3 owners, "
-            f"has {len(dashboard.owners)}"
+        assert len(dashboard.editors) == 3, (
+            f"Dashboard {dashboard.dashboard_title} should have 3 editors, "
+            f"has {len(dashboard.editors)}"
         )
 
 
@@ -1487,24 +1574,32 @@ def test_base_dao_base_filter_integration(app_context: Session) -> None:
 
 def test_base_dao_edge_cases(app_context: Session) -> None:
     """Test BaseDAO edge cases and error conditions."""
-    # Test create without item or attributes
-    created = UserDAO.create()
+    # Test create with minimal required attributes
+    created = UserDAO.create(
+        attributes={
+            "username": "dao_edge_create",
+            "first_name": "Edge",
+            "last_name": "Case",
+            "email": "edge_create@test.com",
+        }
+    )
     assert created is not None
-    # User model has required fields, so we expect them to be None
-    assert created.username is None
-
-    # Don't commit - would fail due to constraints
+    assert created.username == "dao_edge_create"
     db.session.rollback()
 
     # Test update without item (creates new)
-    updated = UserDAO.update(
-        attributes={"username": "no_item_update", "email": "test@example.com"}
-    )
-    assert updated is not None
-    assert updated.username == "no_item_update"
-
-    # Don't commit - would fail due to constraints
-    db.session.rollback()
+    with db.session.no_autoflush:
+        updated = UserDAO.update(
+            attributes={
+                "username": "no_item_update",
+                "first_name": "Test",
+                "last_name": "User",
+                "email": "test@example.com",
+            }
+        )
+        assert updated is not None
+        assert updated.username == "no_item_update"
+        db.session.rollback()
 
     # Test list with search
     results, total = UserDAO.list(search="test")

@@ -17,7 +17,12 @@
  * under the License.
  */
 
-import { render, fireEvent, screen } from 'spec/helpers/testing-library';
+import {
+  render,
+  fireEvent,
+  screen,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { DatabaseObject, ConfigurationMethod } from '../../types';
 import { EncryptedField, encryptedCredentialsMap } from './EncryptedField';
 
@@ -33,6 +38,7 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
   }),
 }));
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('EncryptedField', () => {
   // Test utilities
   const createMockDb = (
@@ -51,6 +57,7 @@ describe('EncryptedField', () => {
 
   const createMockChangeMethods = () => ({
     onEncryptedExtraInputChange: jest.fn(),
+    onClearEncryptedExtraKey: jest.fn(),
     onParametersChange: jest.fn(),
     onChange: jest.fn(),
     onQueryChange: jest.fn(),
@@ -91,7 +98,12 @@ describe('EncryptedField', () => {
     isValidating: false,
     isEditMode: false,
     editNewDb: false,
-    db: createMockDb('gsheets'),
+    // Default to bigquery so existing credential-UI assertions aren't
+    // affected by the gsheets-specific public/private dropdown. New tests
+    // below override the engine to 'gsheets' to cover the dropdown gating.
+    db: createMockDb('bigquery'),
+    isPublic: false,
+    setIsPublic: jest.fn(),
   };
 
   // Use actual encryptedCredentialsMap for data-driven tests
@@ -101,8 +113,9 @@ describe('EncryptedField', () => {
     jest.clearAllMocks();
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Engine-to-Field Mapping', () => {
-    it.each(supportedEngines)(
+    test.each(supportedEngines)(
       'resolves field name for %s engine → %s field',
       (engine, expectedField) => {
         const mockDb = createMockDb(engine);
@@ -115,48 +128,80 @@ describe('EncryptedField', () => {
       },
     );
 
-    it('handles unmapped engines gracefully', () => {
+    test('handles unmapped engines gracefully', () => {
       const unmappedEngine = 'unknown-engine-xyz';
       const mockDb = createMockDb(unmappedEngine);
       const props = { ...defaultProps, db: mockDb };
 
       expect(() => render(<EncryptedField {...props} />)).not.toThrow();
 
-      expectParametersChange(props.changeMethods, undefined, '');
-      expect(props.changeMethods.onParametersChange).toHaveBeenCalledTimes(1);
+      // No engine-specific field name → mount effect skips the clear so it
+      // doesn't write `parameters[undefined] = ''` to state.
+      expect(props.changeMethods.onParametersChange).not.toHaveBeenCalled();
     });
 
-    it.each([
-      ['null engine', null, null],
-      ['undefined engine', undefined, undefined],
-      ['empty string engine', '', ''],
-    ])('handles %s gracefully', (_description, engine, expectedName) => {
+    test.each([
+      ['null engine', null],
+      ['undefined engine', undefined],
+      ['empty string engine', ''],
+    ])('handles %s gracefully', (_description, engine) => {
       const mockDb = createMockDb(engine);
       const props = { ...defaultProps, db: mockDb };
 
       expect(() => render(<EncryptedField {...props} />)).not.toThrow();
 
-      expectParametersChange(props.changeMethods, expectedName, '');
-      expect(props.changeMethods.onParametersChange).toHaveBeenCalledTimes(1);
+      expect(props.changeMethods.onParametersChange).not.toHaveBeenCalled();
+    });
+
+    test('does not call onParametersChange when db is undefined (async load)', () => {
+      const props = { ...defaultProps, db: undefined };
+
+      expect(() => render(<EncryptedField {...props} />)).not.toThrow();
+
+      // Async edit-mode load: db hasn't arrived yet. The mount effect must
+      // NOT race with the incoming credentials by clearing them.
+      expect(props.changeMethods.onParametersChange).not.toHaveBeenCalled();
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Parameter Value Processing', () => {
-    const testCases = [
+    // In edit mode the existing credential value must never be rendered into
+    // the field, regardless of how it was returned from the backend.
+    const editModeInputs = [
+      {
+        input: { key: 'value', nested: { data: 'test' } },
+        description: 'objects',
+      },
+      { input: true, description: 'booleans' },
+      { input: false, description: 'false booleans' },
+      { input: 'test-string', description: 'strings' },
+      { input: 123, description: 'numbers' },
+    ];
+
+    test.each(editModeInputs)(
+      'does not render existing $description in edit mode',
+      ({ input }) => {
+        const mockDb = createMockDb('gsheets', {
+          service_account_info: input,
+        });
+        const props = { ...defaultProps, db: mockDb, isEditMode: true };
+
+        const { container } = render(<EncryptedField {...props} />);
+        const textarea = container.querySelector('textarea');
+
+        expect(textarea?.value).toBe('');
+      },
+    );
+
+    // The copy/paste (create) flow is controlled by the parent, which echoes
+    // typed content back through `db.parameters`. Verify that values are still
+    // serialized for display when not in edit mode.
+    const createModeCases = [
       {
         input: { key: 'value', nested: { data: 'test' } },
         expected: '{"key":"value","nested":{"data":"test"}}',
         description: 'objects to JSON strings',
-      },
-      {
-        input: true,
-        expected: 'true',
-        description: 'booleans to strings',
-      },
-      {
-        input: false,
-        expected: 'false',
-        description: 'false booleans to strings',
       },
       {
         input: 'test-string',
@@ -168,15 +213,30 @@ describe('EncryptedField', () => {
         expected: '123',
         description: 'numbers to strings',
       },
+      {
+        input: true,
+        expected: 'true',
+        description: 'true booleans to strings',
+      },
+      {
+        input: false,
+        expected: 'false',
+        description: 'false booleans to strings',
+      },
     ];
 
-    it.each(testCases)(
-      'processes $description correctly',
+    test.each(createModeCases)(
+      'processes $description correctly in create mode',
       ({ input, expected }) => {
         const mockDb = createMockDb('gsheets', {
           service_account_info: input,
         });
-        const props = { ...defaultProps, db: mockDb, isEditMode: true };
+        const props = {
+          ...defaultProps,
+          db: mockDb,
+          isEditMode: false,
+          editNewDb: true,
+        };
 
         const { container } = render(<EncryptedField {...props} />);
         const textarea = container.querySelector('textarea');
@@ -185,7 +245,7 @@ describe('EncryptedField', () => {
       },
     );
 
-    it('handles null/undefined parameters', () => {
+    test('handles null/undefined parameters', () => {
       const mockDb = createMockDb('gsheets', {});
       const props = { ...defaultProps, db: mockDb, isEditMode: true };
 
@@ -196,8 +256,9 @@ describe('EncryptedField', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Conditional Rendering Logic', () => {
-    it('shows upload selector in create mode', () => {
+    test('shows upload selector in create mode', () => {
       const props = { ...defaultProps, isEditMode: false, editNewDb: false };
 
       render(<EncryptedField {...props} />);
@@ -211,7 +272,7 @@ describe('EncryptedField', () => {
       expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     });
 
-    it('shows textarea in edit mode', () => {
+    test('shows textarea in edit mode', () => {
       const props = { ...defaultProps, isEditMode: true, editNewDb: false };
 
       render(<EncryptedField {...props} />);
@@ -225,7 +286,7 @@ describe('EncryptedField', () => {
       expect(screen.getByRole('textbox')).toBeInTheDocument();
     });
 
-    it('shows textarea when editNewDb is true', () => {
+    test('shows textarea when editNewDb is true', () => {
       const props = { ...defaultProps, isEditMode: false, editNewDb: true };
 
       render(<EncryptedField {...props} />);
@@ -241,8 +302,9 @@ describe('EncryptedField', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Upload Option State Management', () => {
-    it('defaults to upload option', () => {
+    test('defaults to upload option', () => {
       const props = { ...defaultProps, isEditMode: false };
 
       render(<EncryptedField {...props} />);
@@ -251,7 +313,7 @@ describe('EncryptedField', () => {
       expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     });
 
-    it('switches to copy-paste option', () => {
+    test('switches to copy-paste option', () => {
       const props = { ...defaultProps, isEditMode: false };
 
       render(<EncryptedField {...props} />);
@@ -267,10 +329,115 @@ describe('EncryptedField', () => {
       expect(screen.getByRole('textbox')).toBeInTheDocument();
       expect(screen.queryByText('Upload credentials')).not.toBeInTheDocument();
     });
+
+    test('uploading a file does not validate stale state, and validates once the parent commits the new value', async () => {
+      const changeMethods = createMockChangeMethods();
+      const getValidation = jest.fn();
+      const fileContent = '{"type": "service_account"}';
+
+      const { rerender } = render(
+        <EncryptedField
+          {...defaultProps}
+          changeMethods={changeMethods}
+          getValidation={getValidation}
+          db={createMockDb('bigquery', { credentials_info: '' })}
+        />,
+      );
+
+      const file = new File([fileContent], 'creds.json', {
+        type: 'application/json',
+      });
+      const input = document.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+
+      fireEvent.change(input, { target: { files: [file] } });
+
+      await waitFor(() =>
+        expect(changeMethods.onParametersChange).toHaveBeenCalledWith(
+          expect.objectContaining({
+            target: expect.objectContaining({ value: fileContent }),
+          }),
+        ),
+      );
+
+      // The parent hasn't re-rendered with the committed value yet (in the
+      // real app this is the reducer-dispatch/render gap) — validation must
+      // not fire against the stale `db` in the meantime.
+      expect(getValidation).not.toHaveBeenCalled();
+
+      // Once the parent commits the update and re-renders with the new
+      // `db.parameters.credentials_info`, validation should fire exactly
+      // once, against the up-to-date value.
+      rerender(
+        <EncryptedField
+          {...defaultProps}
+          changeMethods={changeMethods}
+          getValidation={getValidation}
+          db={createMockDb('bigquery', { credentials_info: fileContent })}
+        />,
+      );
+
+      await waitFor(() => expect(getValidation).toHaveBeenCalledTimes(1));
+    });
+
+    test('removing an upload before the parent commits clears the pending validation', async () => {
+      const changeMethods = createMockChangeMethods();
+      const getValidation = jest.fn();
+      const fileContent = '{"type": "service_account"}';
+
+      const { container, rerender } = render(
+        <EncryptedField
+          {...defaultProps}
+          changeMethods={changeMethods}
+          getValidation={getValidation}
+          db={createMockDb('bigquery', { credentials_info: '' })}
+        />,
+      );
+
+      const file = new File([fileContent], 'creds.json', {
+        type: 'application/json',
+      });
+      const input = document.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+      fireEvent.change(input, { target: { files: [file] } });
+
+      await waitFor(() =>
+        expect(changeMethods.onParametersChange).toHaveBeenCalledWith(
+          expect.objectContaining({
+            target: expect.objectContaining({ value: fileContent }),
+          }),
+        ),
+      );
+
+      // Remove the upload before the parent has committed/re-rendered with
+      // the uploaded content — this must clear the pending validation, not
+      // just leave it dangling.
+      const removeButton = container.querySelector(
+        '[aria-label="delete"]',
+      ) as HTMLElement;
+      fireEvent.click(removeButton);
+
+      // Even if some later, unrelated render happens to carry the same
+      // content the removed upload had (e.g. stale props echoed back), the
+      // cleared pending state must not fire a validation for it.
+      rerender(
+        <EncryptedField
+          {...defaultProps}
+          changeMethods={changeMethods}
+          getValidation={getValidation}
+          db={createMockDb('bigquery', { credentials_info: fileContent })}
+        />,
+      );
+
+      expect(getValidation).not.toHaveBeenCalled();
+    });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Form Integration Contract', () => {
-    it.each(supportedEngines)(
+    test.each(supportedEngines)(
       'calls onParametersChange with correct field name for %s engine',
       (engine, fieldName) => {
         const mockDb = createMockDb(engine);
@@ -287,19 +454,19 @@ describe('EncryptedField', () => {
       },
     );
 
-    it('initializes with empty value on mount', () => {
+    test('initializes with empty value on mount', () => {
       const props = { ...defaultProps };
 
       render(<EncryptedField {...props} />);
 
       expectParametersChange(
         props.changeMethods,
-        'service_account_info', // gsheets default
+        'credentials_info', // bigquery default
         '',
       );
     });
 
-    it('renders correctly with default props', () => {
+    test('renders correctly with default props', () => {
       const props = { ...defaultProps };
 
       expect(() => render(<EncryptedField {...props} />)).not.toThrow();
@@ -315,17 +482,50 @@ describe('EncryptedField', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  test('renderAsTextArea branch: renders a textarea element (not a plain input) in edit mode', () => {
+    const props = { ...defaultProps, isEditMode: true };
+    const { container } = render(<EncryptedField {...props} />);
+
+    // renderAsTextArea causes LabeledErrorBoundInput to render <textarea>
+    expect(container.querySelector('textarea')).toBeInTheDocument();
+    expect(container.querySelector('input')).not.toBeInTheDocument();
+  });
+
+  test('renderAsTextArea branch: renders a textarea element in copy-paste mode', () => {
+    const props = { ...defaultProps, isEditMode: false };
+    render(<EncryptedField {...props} />);
+
+    // Switch to copy-paste option to trigger renderAsTextArea branch
+    const select = screen.getByRole('combobox');
+    fireEvent.mouseDown(select);
+    fireEvent.click(screen.getByText('Copy and Paste JSON credentials'));
+
+    expect(screen.getByRole('textbox').tagName).toBe('TEXTAREA');
+  });
+
+  test('renderAsTextArea branch: does not render a textarea when upload option is selected', () => {
+    const props = { ...defaultProps, isEditMode: false, editNewDb: false };
+    render(<EncryptedField {...props} />);
+
+    // Default upload option — no textarea should be present
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.getByText('Upload credentials')).toBeInTheDocument();
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Error Boundaries', () => {
-    it('renders gracefully when database prop is missing', () => {
+    test('renders gracefully when database prop is missing', () => {
       const props = { ...defaultProps, db: undefined };
 
       expect(() => render(<EncryptedField {...props} />)).not.toThrow();
 
-      // Should still render the upload UI with undefined field name
-      expectParametersChange(props.changeMethods, undefined, '');
+      // Mount effect skips the parameters clear when there's no
+      // engine-specific field name to write to.
+      expect(props.changeMethods.onParametersChange).not.toHaveBeenCalled();
     });
 
-    it('renders gracefully with malformed database parameters', () => {
+    test('renders gracefully with malformed database parameters', () => {
       const mockDb = createMockDb('gsheets', {
         service_account_info: Symbol('test-symbol'),
       });
@@ -340,8 +540,9 @@ describe('EncryptedField', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Accessibility', () => {
-    it('provides proper form labels and attributes', () => {
+    test('provides proper form labels and attributes', () => {
       const props = { ...defaultProps, isEditMode: true };
 
       render(<EncryptedField {...props} />);
@@ -349,14 +550,14 @@ describe('EncryptedField', () => {
       expect(screen.getByText('Service Account')).toBeInTheDocument();
 
       const textarea = screen.getByRole('textbox');
-      expect(textarea).toHaveAttribute('name', 'service_account_info');
+      expect(textarea).toHaveAttribute('name', 'credentials_info');
       expect(textarea).toHaveAttribute(
         'placeholder',
         'Paste content of service credentials JSON file here',
       );
     });
 
-    it('provides proper labels for upload method selection', () => {
+    test('provides proper labels for upload method selection', () => {
       const props = { ...defaultProps, isEditMode: false };
 
       render(<EncryptedField {...props} />);
@@ -369,6 +570,111 @@ describe('EncryptedField', () => {
 
       const select = screen.getByRole('combobox');
       expect(select).toBeInTheDocument();
+    });
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('Google Sheets public/private dropdown', () => {
+    const gsheetsProps = {
+      ...defaultProps,
+      db: createMockDb('gsheets'),
+    };
+
+    test('renders the dropdown for gsheets', () => {
+      render(<EncryptedField {...gsheetsProps} isPublic />);
+
+      expect(
+        screen.getByText('Type of Google Sheets allowed'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('Publicly shared sheets only'),
+      ).toBeInTheDocument();
+    });
+
+    test('does not render the dropdown for non-gsheets engines', () => {
+      render(<EncryptedField {...defaultProps} />);
+
+      expect(
+        screen.queryByText('Type of Google Sheets allowed'),
+      ).not.toBeInTheDocument();
+    });
+
+    test('hides credential inputs when isPublic is true', () => {
+      render(<EncryptedField {...gsheetsProps} isPublic />);
+
+      expect(
+        screen.queryByText(
+          'How do you want to enter service account credentials?',
+        ),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText('Upload credentials')).not.toBeInTheDocument();
+      expect(screen.queryByText('Service Account')).not.toBeInTheDocument();
+    });
+
+    test('shows credential inputs when isPublic is false', () => {
+      render(<EncryptedField {...gsheetsProps} isPublic={false} />);
+
+      expect(
+        screen.getByText(
+          'How do you want to enter service account credentials?',
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByText('Upload credentials')).toBeInTheDocument();
+    });
+
+    test('hides credential textarea in edit mode when isPublic is true', () => {
+      render(<EncryptedField {...gsheetsProps} isPublic isEditMode />);
+
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+      expect(screen.queryByText('Service Account')).not.toBeInTheDocument();
+    });
+
+    test('toggling back to public clears stored credentials', () => {
+      const setIsPublic = jest.fn();
+      const changeMethods = createMockChangeMethods();
+      render(
+        <EncryptedField
+          {...gsheetsProps}
+          changeMethods={changeMethods}
+          isPublic={false}
+          setIsPublic={setIsPublic}
+        />,
+      );
+
+      const dropdown = screen.getByText('Public and privately shared sheets');
+      fireEvent.mouseDown(dropdown);
+      fireEvent.click(screen.getByText('Publicly shared sheets only'));
+
+      expect(setIsPublic).toHaveBeenCalledWith(true);
+
+      // Clears in-flight `parameters.*` so the save-time merge does nothing.
+      expect(changeMethods.onParametersChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          target: expect.objectContaining({
+            name: 'service_account_info',
+            value: '',
+          }),
+        }),
+      );
+      expect(changeMethods.onParametersChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          target: expect.objectContaining({
+            name: 'oauth2_client_info',
+            value: '',
+          }),
+        }),
+      );
+
+      // Also deletes `masked_encrypted_extra` keys directly via the dedicated
+      // `ClearEncryptedExtraKey` action so previously stored credentials
+      // don't survive a toggle in edit mode.
+      expect(changeMethods.onClearEncryptedExtraKey).toHaveBeenCalledWith(
+        'service_account_info',
+      );
+      expect(changeMethods.onClearEncryptedExtraKey).toHaveBeenCalledWith(
+        'oauth2_client_info',
+      );
+      expect(changeMethods.onEncryptedExtraInputChange).not.toHaveBeenCalled();
     });
   });
 });

@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { t, tn } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { tn } from '@apache-superset/core/translation';
 import MetadataBar, {
   MetadataType,
 } from '@superset-ui/core/components/MetadataBar';
@@ -58,9 +59,9 @@ export const useExploreMetadataBar = (
       modifiedBy: metadata.changed_by || t('Not available'),
     });
     items.push({
-      type: MetadataType.Owner as const,
+      type: MetadataType.Editor as const,
       createdBy: metadata.created_by || t('Not available'),
-      owners: metadata.owners.length > 0 ? metadata.owners : t('None'),
+      editors: metadata.editors.length > 0 ? metadata.editors : t('None'),
       createdOn: metadata.created_on_humanized,
     });
     if (slice?.description) {

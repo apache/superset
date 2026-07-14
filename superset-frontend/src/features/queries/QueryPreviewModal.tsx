@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useState } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { useTheme, styled } from '@apache-superset/core/theme';
 import cx from 'classnames';
 import { Button, Modal } from '@superset-ui/core/components';
 import withToasts, {
@@ -64,6 +65,7 @@ const TabButton = styled.div`
 const StyledModal = styled(Modal)`
   .ant-modal-body {
     padding: ${({ theme }) => theme.sizeUnit * 6}px;
+    padding-top: 0;
   }
 `;
 
@@ -92,6 +94,15 @@ function QueryPreviewModal({
       currentQueryId: query.id,
       fetchData,
     });
+  const theme = useTheme();
+  const codeBlockStyle = {
+    border: 1,
+    borderColor: theme.colorBorder,
+    borderStyle: 'solid',
+    marginTop: theme.sizeUnit * 4,
+    fontSize: theme.fontSize * 0.75,
+    height: theme.sizeUnit * 100,
+  };
 
   const [currentTab, setCurrentTab] = useState<'user' | 'executed'>('user');
 
@@ -137,6 +148,7 @@ function QueryPreviewModal({
         <QueryViewToggle>
           <TabButton
             role="button"
+            tabIndex={0}
             data-test="toggle-user-sql"
             className={cx({ active: currentTab === 'user' })}
             onClick={() => setCurrentTab('user')}
@@ -145,6 +157,7 @@ function QueryPreviewModal({
           </TabButton>
           <TabButton
             role="button"
+            tabIndex={0}
             data-test="toggle-executed-sql"
             className={cx({ active: currentTab === 'executed' })}
             onClick={() => setCurrentTab('executed')}
@@ -156,6 +169,7 @@ function QueryPreviewModal({
           addDangerToast={addDangerToast}
           addSuccessToast={addSuccessToast}
           language="sql"
+          customStyle={codeBlockStyle}
         >
           {(currentTab === 'user' ? sql : executed_sql) || ''}
         </SyntaxHighlighterCopy>

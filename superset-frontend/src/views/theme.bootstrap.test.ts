@@ -24,7 +24,9 @@
  * by testing the expected bootstrap data structure
  */
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Theme Bootstrap Data', () => {
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('when UI theme administration is enabled', () => {
     const mockBootstrapData = {
       theme: {
@@ -34,7 +36,7 @@ describe('Theme Bootstrap Data', () => {
       },
     };
 
-    it('should load themes from database when available', () => {
+    test('should load themes from database when available', () => {
       // This tests that when enableUiThemeAdministration is true,
       // the system attempts to load themes from the database
       expect(mockBootstrapData.theme.enableUiThemeAdministration).toBe(true);
@@ -42,7 +44,7 @@ describe('Theme Bootstrap Data', () => {
       expect(mockBootstrapData.theme.dark).toBeDefined();
     });
 
-    it('should have proper theme structure', () => {
+    test('should have proper theme structure', () => {
       expect(mockBootstrapData.theme).toHaveProperty('default');
       expect(mockBootstrapData.theme).toHaveProperty('dark');
       expect(mockBootstrapData.theme).toHaveProperty(
@@ -51,6 +53,7 @@ describe('Theme Bootstrap Data', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('when UI theme administration is disabled', () => {
     const mockBootstrapData = {
       theme: {
@@ -60,7 +63,7 @@ describe('Theme Bootstrap Data', () => {
       },
     };
 
-    it('should use config-based themes', () => {
+    test('should use config-based themes', () => {
       // When enableUiThemeAdministration is false,
       // themes should come from configuration files
       expect(mockBootstrapData.theme.enableUiThemeAdministration).toBe(false);
@@ -69,8 +72,9 @@ describe('Theme Bootstrap Data', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('edge cases', () => {
-    it('should handle missing theme gracefully', () => {
+    test('should handle missing theme gracefully', () => {
       const mockBootstrapData = {
         theme: {
           default: {},
@@ -84,7 +88,7 @@ describe('Theme Bootstrap Data', () => {
       expect(mockBootstrapData.theme.dark).toEqual({});
     });
 
-    it('should handle invalid theme settings', () => {
+    test('should handle invalid theme settings', () => {
       const mockBootstrapData = {
         theme: {
           default: {},
@@ -99,8 +103,9 @@ describe('Theme Bootstrap Data', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('permissions integration', () => {
-    it('should respect admin-only access for system themes', () => {
+    test('should respect admin-only access for system themes', () => {
       const mockBootstrapData = {
         theme: {
           default: {},
@@ -114,7 +119,7 @@ describe('Theme Bootstrap Data', () => {
       expect(mockBootstrapData.theme.enableUiThemeAdministration).toBe(true);
     });
 
-    it('should allow all users to view themes', () => {
+    test('should allow all users to view themes', () => {
       const mockBootstrapData = {
         theme: {
           default: { colors: { primary: '#1890ff' } },

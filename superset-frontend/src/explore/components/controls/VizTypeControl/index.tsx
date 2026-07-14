@@ -17,13 +17,9 @@
  * under the License.
  */
 import { useCallback, useState } from 'react';
-import {
-  css,
-  t,
-  getChartMetadataRegistry,
-  styled,
-  SupersetTheme,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { getChartMetadataRegistry } from '@superset-ui/core';
+import { css, styled, SupersetTheme } from '@apache-superset/core/theme';
 import { usePluginContext } from 'src/components';
 import { Icons, Modal } from '@superset-ui/core/components';
 import { noOp } from 'src/utils/common';
@@ -111,7 +107,6 @@ const VizTypeControl = ({
           display: flex;
           justify-content: flex-end;
           margin-top: ${theme.sizeUnit * 2}px;
-          color: ${theme.colorTextSecondary};
           text-decoration: underline;
           font-size: ${theme.fontSizeSM}px;
           color: ${theme.colorTextTertiary};

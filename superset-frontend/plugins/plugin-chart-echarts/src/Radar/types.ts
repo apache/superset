@@ -61,12 +61,11 @@ export enum EchartsRadarLabelType {
   KeyValue = 'key_value',
 }
 
-export interface EchartsRadarChartProps
-  extends BaseChartProps<EchartsRadarFormData> {
+export interface EchartsRadarChartProps extends BaseChartProps<EchartsRadarFormData> {
   formData: EchartsRadarFormData;
 }
 
-// @ts-ignore
+// @ts-expect-error
 export const DEFAULT_FORM_DATA: EchartsRadarFormData = {
   ...DEFAULT_LEGEND_FORM_DATA,
   groupby: [],

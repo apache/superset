@@ -79,8 +79,3 @@ export type PopKPIProps = PopKPIStylesProps &
     dashboardTimeRange?: string;
     columnConfig?: Record<string, TableColumnConfig>;
   };
-
-export enum ColorSchemeEnum {
-  Green = 'Green',
-  Red = 'Red',
-}

@@ -18,8 +18,9 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { InputNumber } from '@superset-ui/core/components';
-import { t, styled } from '@superset-ui/core';
-import { debounce } from 'lodash';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
+import { debounce } from 'lodash-es';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
 type ValueType = (number | null)[];

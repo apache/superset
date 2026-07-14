@@ -18,7 +18,8 @@
  */
 import { useState, useEffect, useMemo, ChangeEvent } from 'react';
 import type { DatabaseObject } from 'src/features/databases/types';
-import { t, styled } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import {
   Input,
   Button,
@@ -29,7 +30,6 @@ import {
   Col,
   Icons,
 } from '@superset-ui/core/components';
-import { Menu } from '@superset-ui/core/components/Menu';
 import SaveDatasetActionButton from 'src/SqlLab/components/SaveDatasetActionButton';
 import {
   SaveDatasetModal,
@@ -62,10 +62,11 @@ export type QueryPayload = {
 } & Pick<QueryEditor, 'dbId' | 'catalog' | 'schema' | 'sql'>;
 
 const Styles = styled.span`
+  display: contents;
+  white-space: nowrap;
   span[role='img']:not([aria-label='down']) {
     display: flex;
     margin: 0;
-    color: ${({ theme }) => theme.colorIcon};
     svg {
       vertical-align: -${({ theme }) => theme.sizeUnit * 1.25}px;
       margin: 0;
@@ -111,24 +112,15 @@ const SaveQuery = ({
   const [showSave, setShowSave] = useState<boolean>(false);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const isSaved = !!query.remoteId;
+  const isLabelEmpty = label.trim().length === 0;
   const canExploreDatabase = !!database?.allows_virtual_table_explore;
   const shouldShowSaveButton =
     database?.allows_virtual_table_explore !== undefined;
 
-  const overlayMenu = (
-    <Menu
-      items={[
-        {
-          label: t('Save dataset'),
-          key: 'save-dataset',
-          onClick: () => {
-            logAction(LOG_ACTIONS_SQLLAB_CREATE_CHART, {});
-            setShowSaveDatasetModal(true);
-          },
-        },
-      ]}
-    />
-  );
+  const onSaveAsExplore = () => {
+    logAction(LOG_ACTIONS_SQLLAB_CREATE_CHART, {});
+    setShowSaveDatasetModal(true);
+  };
 
   const queryPayload = () => ({
     name: label,
@@ -170,16 +162,22 @@ const SaveQuery = ({
     <Form layout="vertical">
       <Row>
         <Col xs={24}>
-          <FormItem label={t('Name')}>
-            <Input type="text" value={label} onChange={onLabelChange} />
+          <FormItem label={t('Name')} htmlFor="save-query-name">
+            <Input
+              id="save-query-name"
+              type="text"
+              value={label}
+              onChange={onLabelChange}
+            />
           </FormItem>
         </Col>
       </Row>
       <br />
       <Row>
         <Col xs={24}>
-          <FormItem label={t('Description')}>
+          <FormItem label={t('Description')} htmlFor="save-query-description">
             <Input.TextArea
+              id="save-query-description"
               rows={4}
               value={description}
               onChange={onDescriptionChange}
@@ -208,7 +206,7 @@ const SaveQuery = ({
       {shouldShowSaveButton && (
         <SaveDatasetActionButton
           setShowSave={setShowSave}
-          overlayMenu={canExploreDatabase ? overlayMenu : null}
+          onSaveAsExplore={canExploreDatabase ? onSaveAsExplore : undefined}
         />
       )}
       <SaveDatasetModal
@@ -242,14 +240,20 @@ const SaveQuery = ({
               {t('Cancel')}
             </Button>
             <Button
-              buttonStyle={isSaved ? undefined : 'primary'}
+              buttonStyle={isSaved ? 'secondary' : 'primary'}
               onClick={onSaveWrapper}
+              disabled={isLabelEmpty}
               cta
             >
               {isSaved ? t('Save as new') : t('Save')}
             </Button>
             {isSaved && (
-              <Button buttonStyle="primary" onClick={onUpdateWrapper} cta>
+              <Button
+                buttonStyle="primary"
+                onClick={onUpdateWrapper}
+                disabled={isLabelEmpty}
+                cta
+              >
                 {t('Update')}
               </Button>
             )}

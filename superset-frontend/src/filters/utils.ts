@@ -18,23 +18,41 @@
  */
 import {
   DataRecordValue,
-  GenericDataType,
   NumberFormatter,
   QueryObjectFilterClause,
   TimeFormatter,
   ExtraFormData,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { FALSE_STRING, NULL_STRING, TRUE_STRING } from 'src/utils/common';
 import {
   Clauses,
   ExpressionTypes,
 } from '../explore/components/controls/FilterControl/types';
+import { SelectFilterOperatorType } from './components/Select/types';
+
+function applyWildcard(
+  value: string,
+  operatorType: SelectFilterOperatorType,
+): string {
+  switch (operatorType) {
+    case SelectFilterOperatorType.Contains:
+      return `%${value}%`;
+    case SelectFilterOperatorType.StartsWith:
+      return `${value}%`;
+    case SelectFilterOperatorType.EndsWith:
+      return `%${value}`;
+    default:
+      return value;
+  }
+}
 
 export const getSelectExtraFormData = (
   col: string,
   value?: null | (string | number | boolean | null)[],
   emptyFilter = false,
   shouldExcludeFilter = false,
+  operatorType: SelectFilterOperatorType = SelectFilterOperatorType.Exact,
 ): ExtraFormData => {
   const extra: ExtraFormData = {};
   if (emptyFilter) {
@@ -46,14 +64,26 @@ export const getSelectExtraFormData = (
       },
     ];
   } else if (value !== undefined && value !== null && value.length !== 0) {
-    extra.filters = [
-      {
-        col,
-        op: shouldExcludeFilter ? ('NOT IN' as const) : ('IN' as const),
-        // @ts-ignore
-        val: value,
-      },
-    ];
+    const isLikeOperator = operatorType !== SelectFilterOperatorType.Exact;
+
+    if (isLikeOperator && typeof value[0] === 'string') {
+      const wildcardVal = applyWildcard(value[0] as string, operatorType);
+      extra.filters = [
+        {
+          col,
+          op: shouldExcludeFilter ? ('NOT ILIKE' as const) : ('ILIKE' as const),
+          val: wildcardVal,
+        },
+      ];
+    } else {
+      extra.filters = [
+        {
+          col,
+          op: shouldExcludeFilter ? ('NOT IN' as const) : ('IN' as const),
+          val: value,
+        },
+      ];
+    }
   }
   return extra;
 };

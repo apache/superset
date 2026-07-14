@@ -57,13 +57,13 @@ DEFAULT_BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 1000))
 def get_table_column(
     table_name: str,
     column_name: str,
-) -> Optional[list[dict[str, Any]]]:
+) -> Optional[dict[str, Any]]:
     """
     Get the specified column.
 
     :param table_name: The Table name
     :param column_name: The column name
-    :returns: The column
+    :returns: The column dictionary or None if not found
     """
 
     insp = inspect(op.get_context().bind)
@@ -130,7 +130,9 @@ def assign_uuids(
     for dialect, sql in uuid_by_dialect.items():
         if isinstance(bind.dialect, dialect):
             op.execute(
-                f"UPDATE {dialect().identifier_preparer.quote(table_name)} SET uuid = {sql}"  # noqa: S608, E501
+                text(
+                    f"UPDATE {dialect().identifier_preparer.quote(table_name)} SET uuid = {sql}"  # noqa: S608, E501
+                )
             )
             print(f"Done. Assigned {count} uuids in {time.time() - start_time:.3f}s.\n")
             return
@@ -199,6 +201,18 @@ def has_table(table_name: str) -> bool:
     return table_exists
 
 
+def get_foreign_key_names(table_name: str) -> set[str]:
+    """
+    Get the set of foreign key constraint names for a table.
+
+    :param table_name: The table name
+    :returns: A set of foreign key constraint names
+    """
+    connection = op.get_bind()
+    inspector = Inspector.from_engine(connection)
+    return {fk["name"] for fk in inspector.get_foreign_keys(table_name)}
+
+
 def drop_fks_for_table(
     table_name: str, foreign_key_names: list[str] | None = None
 ) -> None:
@@ -211,13 +225,12 @@ def drop_fks_for_table(
     If None is provided, all will be dropped.
     """
     connection = op.get_bind()
-    inspector = Inspector.from_engine(connection)
 
     if isinstance(connection.dialect, SQLiteDialect):
         return  # sqlite doesn't like constraints
 
     if has_table(table_name):
-        existing_fks = {fk["name"] for fk in inspector.get_foreign_keys(table_name)}
+        existing_fks = get_foreign_key_names(table_name)
 
         # What to delete based on whether the list was passed
         if foreign_key_names is not None:
@@ -518,6 +531,18 @@ def create_fks_for_table(
         logger.warning(
             "Table %s%s%s does not exist. Skipping foreign key creation.",  # noqa: E501
             LRED,
+            table_name,
+            RESET,
+        )
+        return
+
+    if foreign_key_name in get_foreign_key_names(table_name):
+        logger.info(
+            "Foreign key %s%s%s already exists on table %s%s%s. Skipping...",
+            GREEN,
+            foreign_key_name,
+            RESET,
+            GREEN,
             table_name,
             RESET,
         )

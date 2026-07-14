@@ -17,8 +17,8 @@
  * under the License.
  */
 import { ReactNode, MouseEvent as ReactMouseEvent } from 'react';
-import { TableInstance, Row } from 'react-table';
-import { styled } from '@superset-ui/core';
+import { TableInstance, Row, UseRowSelectRowProps } from 'react-table';
+import { styled } from '@apache-superset/core/theme';
 import cx from 'classnames';
 
 interface CardCollectionProps {
@@ -35,7 +35,7 @@ const CardContainer = styled.div<{ showThumbnails?: boolean }>`
     display: grid;
     justify-content: start;
     grid-gap: ${theme.sizeUnit * 12}px ${theme.sizeUnit * 4}px;
-    grid-template-columns: repeat(auto-fit, 300px);
+    grid-template-columns: repeat(auto-fit, ${theme.sizeUnit * 75}px);
     margin-top: ${theme.sizeUnit * -6}px;
     padding: ${
       showThumbnails
@@ -65,7 +65,7 @@ export default function CardCollection({
 }: CardCollectionProps) {
   function handleClick(
     event: ReactMouseEvent<HTMLDivElement, MouseEvent>,
-    toggleRowSelected: Row['toggleRowSelected'],
+    toggleRowSelected: (value?: boolean) => void,
   ) {
     if (bulkSelectEnabled) {
       event.preventDefault();
@@ -79,7 +79,7 @@ export default function CardCollection({
     <CardContainer showThumbnails={showThumbnails}>
       {loading &&
         rows.length === 0 &&
-        [...new Array(25)].map((e, i) => (
+        Array.from({ length: 25 }, (_, i) => (
           <div key={i}>{renderCard({ loading })}</div>
         ))}
       {rows.length > 0 &&
@@ -89,11 +89,18 @@ export default function CardCollection({
           return (
             <CardWrapper
               className={cx({
-                'card-selected': bulkSelectEnabled && row.isSelected,
+                'card-selected':
+                  bulkSelectEnabled &&
+                  (row as Row & UseRowSelectRowProps<any>).isSelected,
                 'bulk-select': bulkSelectEnabled,
               })}
               key={row.id}
-              onClick={e => handleClick(e, row.toggleRowSelected)}
+              onClick={e =>
+                handleClick(
+                  e,
+                  (row as Row & UseRowSelectRowProps<any>).toggleRowSelected,
+                )
+              }
               role="none"
             >
               {renderCard({ ...row.original, loading })}

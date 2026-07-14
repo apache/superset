@@ -19,14 +19,16 @@
 
 import { DEFAULT_BOOTSTRAP_DATA } from '../constants';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('getBootstrapData and helpers', () => {
   afterEach(() => {
     // Clean up the DOM
     document.body.innerHTML = '';
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('getBootstrapData()', () => {
-    it('should return DEFAULT_BOOTSTRAP_DATA when #app element does not exist', async () => {
+    test('should return DEFAULT_BOOTSTRAP_DATA when #app element does not exist', async () => {
       // Ensure no #app element exists.
       document.body.innerHTML = '';
 
@@ -37,7 +39,7 @@ describe('getBootstrapData and helpers', () => {
       expect(bootstrapData).toEqual(DEFAULT_BOOTSTRAP_DATA);
     });
 
-    it('should return parsed bootstrap data when #app element has valid data attribute', async () => {
+    test('should return parsed bootstrap data when #app element has valid data attribute', async () => {
       // Set up the fake #app element
       const customData = {
         common: {
@@ -55,8 +57,9 @@ describe('getBootstrapData and helpers', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Helper functions applicationRoot and staticAssetsPrefix', () => {
-    it('should return values without trailing slashes', async () => {
+    test('should return values without trailing slashes', async () => {
       // Setup a fake #app element with data-bootstrap attribute.
       const customData = {
         common: {
@@ -82,7 +85,7 @@ describe('getBootstrapData and helpers', () => {
       expect(staticAssetsPrefix()).toEqual('/custom-static');
     });
 
-    it('should return defaults without trailing slashes when #app element is missing', async () => {
+    test('should return defaults without trailing slashes when #app element is missing', async () => {
       // Ensure no #app element exists.
       document.body.innerHTML = '';
 
@@ -107,7 +110,86 @@ describe('getBootstrapData and helpers', () => {
       expect(staticAssetsPrefix()).toEqual(expectedStaticPrefix);
     });
 
-    it('should defaults without trailing slashes when #app element does not include application_root or static_assets_prefix', async () => {
+    test.each([
+      ['markup payload', '"><script>x</script>/'],
+      ['protocol-relative URL', '//evil.example.com/app/'],
+      ['absolute URL', 'https://evil.example.com/app/'],
+      // eslint-disable-next-line no-script-url -- intentional unsafe value under test
+      ['javascript scheme', 'javascript:alert(1)'],
+      ['embedded quote', "/my'app/"],
+      ['path traversal', '/app/..'],
+      ['double-dot segment', '/legit/../etc'],
+      ['backslash separator', '/app\\admin'],
+      ['leading double slash', '//app'],
+      ['double trailing slash', '/app//'],
+      ['unicode segment', '/café'],
+      ['tab control character', '/app\tadmin'],
+      ['newline control character', '/app\nadmin'],
+      ['null byte', '/app\x00admin'],
+    ])(
+      'should degrade a non-path application_root to root deployment (%s)',
+      async (_label, applicationRootValue) => {
+        const customData = {
+          common: {
+            application_root: applicationRootValue,
+            static_assets_prefix: '/custom-static/',
+          },
+        };
+        document.body.innerHTML = `<div id="app"></div>`;
+        document
+          .getElementById('app')
+          ?.setAttribute('data-bootstrap', JSON.stringify(customData));
+
+        jest.resetModules();
+        const { default: getBootstrapData, applicationRoot } =
+          await import('./getBootstrapData');
+        getBootstrapData();
+
+        expect(applicationRoot()).toEqual('');
+      },
+    );
+
+    // Percent-encoded traversal sequences are NOT decoded or rejected here.
+    // application_root is operator-controlled server-rendered configuration
+    // (see SECURITY.md trust-boundary 2); the sanitizer only enforces the
+    // documented path shape on the literal value. Encoded forms like "%2e%2e"
+    // are valid path-segment characters and pass through unchanged — this is
+    // intentional and out of scope, documented here so the behavior is pinned.
+    test('should preserve a percent-encoded application_root (operator-controlled, out of scope)', async () => {
+      const customData = {
+        common: {
+          application_root: '/app/%2e%2e',
+          static_assets_prefix: '/custom-static/',
+        },
+      };
+      document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify(customData)}'></div>`;
+
+      jest.resetModules();
+      const { default: getBootstrapData, applicationRoot } =
+        await import('./getBootstrapData');
+      getBootstrapData();
+
+      expect(applicationRoot()).toEqual('/app/%2e%2e');
+    });
+
+    test('should preserve a multi-segment application_root', async () => {
+      const customData = {
+        common: {
+          application_root: '/team-a/superset/',
+          static_assets_prefix: '/custom-static/',
+        },
+      };
+      document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify(customData)}'></div>`;
+
+      jest.resetModules();
+      const { default: getBootstrapData, applicationRoot } =
+        await import('./getBootstrapData');
+      getBootstrapData();
+
+      expect(applicationRoot()).toEqual('/team-a/superset');
+    });
+
+    test('should defaults without trailing slashes when #app element does not include application_root or static_assets_prefix', async () => {
       // Set up the fake #app element
       const customData = {
         common: {

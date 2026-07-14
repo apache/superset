@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License. You may obtain
  * a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software distributed
  * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
@@ -36,79 +36,77 @@ const mockedProps = {
   resourceName: 'dashboard',
 };
 
-describe('BulkTagModal', () => {
-  afterEach(() => {
-    fetchMock.reset();
-    jest.clearAllMocks();
+afterEach(() => {
+  fetchMock.clearHistory().removeRoutes();
+  jest.clearAllMocks();
+});
+
+test('should render', () => {
+  const { container } = render(<BulkTagModal {...mockedProps} />);
+  expect(container).toBeInTheDocument();
+});
+
+test('renders the correct title and message', () => {
+  render(<BulkTagModal {...mockedProps} />);
+  expect(
+    screen.getByText(/you are adding tags to 2 dashboards/i),
+  ).toBeInTheDocument();
+  expect(screen.getByText('Bulk tag')).toBeInTheDocument();
+});
+
+test('renders tags input field', async () => {
+  render(<BulkTagModal {...mockedProps} />);
+  const tagsInput = await screen.findByRole('combobox', { name: /tags/i });
+  expect(tagsInput).toBeInTheDocument();
+});
+
+test('calls onHide when the Cancel button is clicked', () => {
+  render(<BulkTagModal {...mockedProps} />);
+  const cancelButton = screen.getByText('Cancel');
+  fireEvent.click(cancelButton);
+  expect(mockedProps.onHide).toHaveBeenCalled();
+});
+
+test('submits the selected tags and shows success toast', async () => {
+  fetchMock.post('glob:*/api/v1/tag/bulk_create', {
+    result: {
+      objects_tagged: [1, 2],
+      objects_skipped: [],
+    },
   });
 
-  test('should render', () => {
-    const { container } = render(<BulkTagModal {...mockedProps} />);
-    expect(container).toBeInTheDocument();
+  render(<BulkTagModal {...mockedProps} />);
+
+  const tagsInput = await screen.findByRole('combobox', { name: /tags/i });
+  fireEvent.change(tagsInput, { target: { value: 'Test Tag' } });
+  fireEvent.keyDown(tagsInput, { key: 'Enter', code: 'Enter' });
+
+  fireEvent.click(screen.getByText('Save'));
+
+  await waitFor(() => {
+    expect(mockedProps.addSuccessToast).toHaveBeenCalledWith(
+      'Tagged 2 dashboards',
+    );
   });
 
-  test('renders the correct title and message', () => {
-    render(<BulkTagModal {...mockedProps} />);
-    expect(
-      screen.getByText(/you are adding tags to 2 dashboards/i),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Bulk tag')).toBeInTheDocument();
-  });
+  expect(mockedProps.refreshData).toHaveBeenCalled();
+  expect(mockedProps.onHide).toHaveBeenCalled();
+});
 
-  test('renders tags input field', async () => {
-    render(<BulkTagModal {...mockedProps} />);
-    const tagsInput = await screen.findByRole('combobox', { name: /tags/i });
-    expect(tagsInput).toBeInTheDocument();
-  });
+test('handles API errors gracefully', async () => {
+  fetchMock.post('glob:*/api/v1/tag/bulk_create', 500);
 
-  test('calls onHide when the Cancel button is clicked', () => {
-    render(<BulkTagModal {...mockedProps} />);
-    const cancelButton = screen.getByText('Cancel');
-    fireEvent.click(cancelButton);
-    expect(mockedProps.onHide).toHaveBeenCalled();
-  });
+  render(<BulkTagModal {...mockedProps} />);
 
-  test('submits the selected tags and shows success toast', async () => {
-    fetchMock.post('glob:*/api/v1/tag/bulk_create', {
-      result: {
-        objects_tagged: [1, 2],
-        objects_skipped: [],
-      },
-    });
+  const tagsInput = await screen.findByRole('combobox', { name: /tags/i });
+  fireEvent.change(tagsInput, { target: { value: 'Test Tag' } });
+  fireEvent.keyDown(tagsInput, { key: 'Enter', code: 'Enter' });
 
-    render(<BulkTagModal {...mockedProps} />);
+  fireEvent.click(screen.getByText('Save'));
 
-    const tagsInput = await screen.findByRole('combobox', { name: /tags/i });
-    fireEvent.change(tagsInput, { target: { value: 'Test Tag' } });
-    fireEvent.keyDown(tagsInput, { key: 'Enter', code: 'Enter' });
-
-    fireEvent.click(screen.getByText('Save'));
-
-    await waitFor(() => {
-      expect(mockedProps.addSuccessToast).toHaveBeenCalledWith(
-        'Tagged 2 dashboards',
-      );
-    });
-
-    expect(mockedProps.refreshData).toHaveBeenCalled();
-    expect(mockedProps.onHide).toHaveBeenCalled();
-  });
-
-  test('handles API errors gracefully', async () => {
-    fetchMock.post('glob:*/api/v1/tag/bulk_create', 500);
-
-    render(<BulkTagModal {...mockedProps} />);
-
-    const tagsInput = await screen.findByRole('combobox', { name: /tags/i });
-    fireEvent.change(tagsInput, { target: { value: 'Test Tag' } });
-    fireEvent.keyDown(tagsInput, { key: 'Enter', code: 'Enter' });
-
-    fireEvent.click(screen.getByText('Save'));
-
-    await waitFor(() => {
-      expect(mockedProps.addDangerToast).toHaveBeenCalledWith(
-        'Failed to tag items',
-      );
-    });
+  await waitFor(() => {
+    expect(mockedProps.addDangerToast).toHaveBeenCalledWith(
+      'Failed to tag items',
+    );
   });
 });

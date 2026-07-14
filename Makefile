@@ -18,16 +18,19 @@
 # Python version installed; we need 3.10-3.11
 PYTHON=`command -v python3.11 || command -v python3.10`
 
-.PHONY: install superset venv pre-commit
+.PHONY: install superset venv pre-commit up down logs ps nuke ports open
 
 install: superset pre-commit
 
 superset:
+	# Bootstrap uv (the project's installer) into the active environment
+	pip install uv
+
 	# Install external dependencies
-	pip install -r requirements/development.txt
+	uv pip install -r requirements/development.txt
 
 	# Install Superset in editable (development) mode
-	pip install -e .
+	uv pip install -e .
 
 	# Create an admin user in your metadata database
 	superset fab create-admin \
@@ -52,11 +55,14 @@ superset:
 update: update-py update-js
 
 update-py:
+	# Bootstrap uv (the project's installer) into the active environment
+	pip install uv
+
 	# Install external dependencies
-	pip install -r requirements/development.txt
+	uv pip install -r requirements/development.txt
 
 	# Install Superset in editable (development) mode
-	pip install -e .
+	uv pip install -e .
 
 	# Initialize the database
 	superset db upgrade
@@ -79,7 +85,8 @@ activate:
 
 pre-commit:
 	# setup pre commit dependencies
-	pip3 install -r requirements/development.txt
+	pip install uv
+	uv pip install -r requirements/development.txt
 	pre-commit install
 
 format: py-format js-format
@@ -112,3 +119,28 @@ report-celery-beat:
 
 admin-user:
 	superset fab create-admin
+
+# Docker Compose with auto-assigned ports (for running multiple instances)
+up:
+	./scripts/docker-compose-up.sh
+
+up-detached:
+	./scripts/docker-compose-up.sh -d
+
+down:
+	./scripts/docker-compose-up.sh down
+
+logs:
+	./scripts/docker-compose-up.sh logs -f
+
+ps:
+	./scripts/docker-compose-up.sh ps
+
+nuke:
+	./scripts/docker-compose-up.sh nuke
+
+ports:
+	./scripts/docker-compose-up.sh ports
+
+open:
+	./scripts/docker-compose-up.sh open

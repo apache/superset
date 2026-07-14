@@ -17,8 +17,9 @@
  * under the License.
  */
 
-import { css, styled, t } from '@superset-ui/core';
-import { useEffect, useState, useRef } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { css, styled } from '@apache-superset/core/theme';
+import { useEffect, useLayoutEffect, useState, useRef } from 'react';
 import cx from 'classnames';
 import { Tooltip } from '../Tooltip';
 import { CertifiedBadge } from '../CertifiedBadge';
@@ -85,6 +86,7 @@ export function EditableTitle({
   renderLink,
   maxWidth,
   autoSize = true,
+  onEditingChange,
   ...rest
 }: EditableTitleProps) {
   const [isEditing, setIsEditing] = useState(editing);
@@ -103,7 +105,7 @@ export function EditableTitle({
     return 0;
   }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const { font } = window.getComputedStyle(
       contentRef.current?.resizableTextArea?.textArea || document.body,
     );
@@ -111,7 +113,7 @@ export function EditableTitle({
     const padding = 20;
     const maxAllowedWidth = typeof maxWidth === 'number' ? maxWidth : Infinity;
     setInputWidth(Math.min(textWidth + padding, maxAllowedWidth));
-  }, [currentTitle]);
+  }, [currentTitle, maxWidth]);
 
   useEffect(() => {
     if (title !== currentTitle) {
@@ -141,6 +143,7 @@ export function EditableTitle({
       textArea.setSelectionRange(length, length);
     }
     setIsEditing(true);
+    onEditingChange?.(true);
   }
 
   function handleBlur() {
@@ -148,6 +151,7 @@ export function EditableTitle({
 
     if (!canEdit) return;
     setIsEditing(false);
+    onEditingChange?.(false);
 
     if (!formattedTitle.length) {
       setCurrentTitle(lastTitle);
@@ -236,7 +240,10 @@ export function EditableTitle({
               t("You don't have the rights to alter this title.")
         }
       >
-        {titleComponent}
+        {/* Wrap in span so the Tooltip can attach a ref to a DOM element.
+            antd's Input.TextArea forwards a non-DOM imperative handle, which
+            triggers a React 18 findDOMNode deprecation warning. */}
+        <span>{titleComponent}</span>
       </Tooltip>
     );
   }

@@ -16,27 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  FunctionComponent,
-  useState,
-  useRef,
-  useEffect,
-  useCallback,
-} from 'react';
+import { FunctionComponent, useState, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
+import { t } from '@apache-superset/core/translation';
 import {
-  styled,
   SupersetClient,
   getClientErrorObject,
-  t,
   SupersetError,
-  useTheme,
-  css,
+  isFeatureEnabled,
+  FeatureFlag,
 } from '@superset-ui/core';
+import { Alert } from '@apache-superset/core/components';
+import { styled, useTheme, css } from '@apache-superset/core/theme';
 
 import {
   Icons,
-  Alert,
   Button,
   Checkbox,
   Modal,
@@ -45,30 +39,32 @@ import {
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { ErrorMessageWithStackTrace } from 'src/components';
 import type { DatasetObject } from 'src/features/datasets/types';
+import { mapSubjectValuesToIds } from 'src/features/subjects/SubjectPicker';
 import type { DatasourceModalProps } from '../types';
 
 const DatasourceEditor = AsyncEsmComponent(
   () => import('../components/DatasourceEditor'),
 );
 
+const MODAL_HEIGHT_VH = 90;
+const TOP_MARGIN_VH = (100 - MODAL_HEIGHT_VH) / 2;
+
 const StyledDatasourceModal = styled(Modal)`
-  .modal-content {
-    height: 900px;
+  top: ${TOP_MARGIN_VH}vh;
+  padding-bottom: 0;
+
+  && .ant-modal-content {
+    max-height: ${MODAL_HEIGHT_VH}vh;
+    margin-top: 0;
+    margin-bottom: 0;
+    min-height: 500px;
+    min-width: 500px;
+  }
+
+  && .ant-modal-body {
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
-    align-items: stretch;
-  }
-
-  .modal-header {
-    flex: 0 1 auto;
-  }
-  .modal-body {
-    flex: 1 1 auto;
-    overflow: auto;
-  }
-
-  .modal-footer {
-    flex: 0 1 auto;
   }
 
   .ant-tabs-top {
@@ -76,7 +72,7 @@ const StyledDatasourceModal = styled(Modal)`
   }
 `;
 
-function buildExtraJsonObject(
+export function buildExtraJsonObject(
   item: DatasetObject['metrics'][0] | DatasetObject['columns'][0],
 ) {
   const certification =
@@ -88,7 +84,7 @@ function buildExtraJsonObject(
       : undefined;
   return JSON.stringify({
     certification,
-    warning_markdown: item?.warning_markdown,
+    warning_markdown: item?.warning_markdown || undefined,
   });
 }
 
@@ -101,8 +97,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
 }) => {
   const theme = useTheme();
   const [currentDatasource, setCurrentDatasource] = useState(datasource);
-  const syncColumnsRef = useRef(false);
-  const [confirmModal, setConfirmModal] = useState<any>(null);
+  const [syncColumns, setSyncColumns] = useState(false);
   const currencies = useSelector<
     {
       common: {
@@ -114,8 +109,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const [errors, setErrors] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
-  const dialog = useRef<any>(null);
   const [modal, contextHolder] = Modal.useModal();
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const buildPayload = (datasource: Record<string, any>) => {
     const payload: Record<string, any> = {
       table_name: datasource.table_name,
@@ -129,6 +124,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         datasource.schema,
       description: datasource.description,
       main_dttm_col: datasource.main_dttm_col,
+      currency_code_column: datasource.currency_code_column ?? null,
       normalize_columns: datasource.normalize_columns,
       always_filter_main_dttm: datasource.always_filter_main_dttm,
       offset: datasource.offset,
@@ -178,10 +174,12 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           extra: buildExtraJsonObject(column),
         }),
       ),
-      owners: datasource.owners.map(
-        (o: Record<string, number>) => o.value || o.id,
-      ),
+      editors: mapSubjectValuesToIds(datasource.editors || []),
     };
+    // Add folders if DATASET_FOLDERS feature is enabled
+    if (isFeatureEnabled(FeatureFlag.DatasetFolders) && datasource.folders) {
+      payload.folders = datasource.folders;
+    }
     // Handle catalog based on database's allow_multi_catalog setting
     // If multi-catalog is disabled, don't include catalog in payload
     // The backend will use the default catalog
@@ -196,19 +194,20 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     setIsSaving(true);
     try {
       await SupersetClient.put({
-        endpoint: `/api/v1/dataset/${currentDatasource.id}?override_columns=${syncColumnsRef.current}`,
+        endpoint: `/api/v1/dataset/${currentDatasource.id}?override_columns=${syncColumns}`,
         jsonPayload: buildPayload(currentDatasource),
       });
 
       const { json } = await SupersetClient.get({
         endpoint: `/api/v1/dataset/${currentDatasource?.id}`,
       });
+
       addSuccessToast(t('The dataset has been saved'));
       // eslint-disable-next-line no-param-reassign
       json.result.type = 'table';
       onDatasourceSave({
         ...json.result,
-        owners: currentDatasource.owners,
+        editors: currentDatasource.editors,
       });
       onHide();
     } catch (response) {
@@ -281,14 +280,9 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
               impact the column definitions, you might want to skip this step.`)}
             />
             <Checkbox
-              checked={syncColumnsRef.current}
+              checked={syncColumns}
               onChange={() => {
-                syncColumnsRef.current = !syncColumnsRef.current;
-                if (confirmModal) {
-                  confirmModal.update({
-                    content: getSaveDialog(),
-                  });
-                }
+                setSyncColumns(prev => !prev);
               }}
             />
             <span
@@ -303,34 +297,27 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         {t('Are you sure you want to save and apply changes?')}
       </div>
     ),
-    [currentDatasource.sql, datasource.sql, confirmModal],
+    [currentDatasource.sql, datasource.sql, syncColumns],
   );
 
   useEffect(() => {
-    if (confirmModal) {
-      confirmModal.update({
-        content: getSaveDialog(),
-      });
-    }
-  }, [confirmModal, getSaveDialog]);
-
-  useEffect(() => {
     if (datasource.sql !== currentDatasource.sql) {
-      syncColumnsRef.current = true;
+      setSyncColumns(true);
     }
   }, [datasource.sql, currentDatasource.sql]);
 
   const onClickSave = () => {
-    const modalInstance = modal.confirm({
-      title: t('Confirm save'),
-      content: getSaveDialog(),
-      onOk: onConfirmSave,
-      icon: null,
-      okText: t('OK'),
-      cancelText: t('Cancel'),
-    });
-    setConfirmModal(modalInstance);
-    dialog.current = modalInstance;
+    setConfirmModalOpen(true);
+  };
+
+  const handleConfirmModalClose = () => {
+    setConfirmModalOpen(false);
+  };
+
+  const handleConfirmSave = async () => {
+    await onConfirmSave();
+    // Note: on success, onConfirmSave calls onHide() which closes parent modal
+    // On error, confirmModal stays open so user can see the error and try again or cancel
   };
 
   return (
@@ -376,7 +363,9 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
                 ? t(
                     "This dataset is managed externally, and can't be edited in Superset",
                   )
-                : ''
+                : errors.length > 0
+                  ? errors.join('\n')
+                  : ''
             }
           >
             {t('Save')}
@@ -384,6 +373,12 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         </>
       }
       responsive
+      resizable
+      resizableConfig={{
+        defaultSize: { width: 'auto', height: `${MODAL_HEIGHT_VH}vh` },
+        maxHeight: `${MODAL_HEIGHT_VH}vh`,
+      }}
+      draggable
     >
       <DatasourceEditor
         showLoadingForImport
@@ -394,6 +389,16 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         currencies={currencies}
       />
       {contextHolder}
+      <Modal
+        title={t('Confirm save')}
+        show={confirmModalOpen}
+        onHide={handleConfirmModalClose}
+        onHandledPrimaryAction={handleConfirmSave}
+        primaryButtonName={t('OK')}
+        primaryButtonLoading={isSaving}
+      >
+        {getSaveDialog()}
+      </Modal>
     </StyledDatasourceModal>
   );
 };

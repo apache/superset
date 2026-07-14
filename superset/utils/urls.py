@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import urllib
-from contextlib import nullcontext
 from typing import Any
 from urllib.parse import urlparse
 
@@ -33,13 +32,21 @@ def headless_url(path: str, user_friendly: bool = False) -> str:
 
 
 def get_url_path(view: str, user_friendly: bool = False, **kwargs: Any) -> str:
-    if has_request_context():
-        request_context = nullcontext
-    else:
-        request_context = app.test_request_context
+    in_request_context = has_request_context()
 
-    with request_context():
-        return headless_url(url_for(view, **kwargs), user_friendly=user_friendly)
+    # When already in a request context, Flask's url_for respects SCRIPT_NAME from
+    # the WSGI environment, so the prefix is already included. Only add APPLICATION_ROOT
+    # prefix when creating a new request context.
+    if in_request_context:
+        url = url_for(view, **kwargs)
+    else:
+        with app.test_request_context():
+            url = url_for(view, **kwargs)
+            app_root = app.config.get("APPLICATION_ROOT", "/")
+            if app_root != "/" and not url.startswith(app_root):
+                url = app_root.rstrip("/") + url
+
+    return headless_url(url, user_friendly=user_friendly)
 
 
 def modify_url_query(url: str, **kwargs: Any) -> str:
@@ -47,14 +54,32 @@ def modify_url_query(url: str, **kwargs: Any) -> str:
     Replace or add parameters to a URL.
     """
     parts = list(urllib.parse.urlsplit(url))
-    params = urllib.parse.parse_qs(parts[3])
-    for k, v in kwargs.items():
-        if not isinstance(v, list):
-            v = [v]
-        params[k] = v
+    pairs = urllib.parse.parse_qsl(parts[3], keep_blank_values=True)
+    replacements = {
+        key: [(key, str(item)) for item in value]
+        if isinstance(value, list | tuple)
+        else [(key, str(value))]
+        for key, value in kwargs.items()
+    }
+    pending_keys = set(replacements)
+    updated_pairs: list[tuple[str, str]] = []
 
-    parts[3] = "&".join(
-        f"{k}={urllib.parse.quote(str(v[0]))}" for k, v in params.items()
+    for key, value in pairs:
+        if key not in replacements:
+            updated_pairs.append((key, value))
+        elif key in pending_keys:
+            updated_pairs.extend(replacements[key])
+            pending_keys.remove(key)
+
+    for key in kwargs:
+        if key in pending_keys:
+            updated_pairs.extend(replacements[key])
+
+    parts[3] = urllib.parse.urlencode(
+        updated_pairs,
+        doseq=True,
+        quote_via=urllib.parse.quote,
+        safe="/",
     )
     return urllib.parse.urlunsplit(parts)
 

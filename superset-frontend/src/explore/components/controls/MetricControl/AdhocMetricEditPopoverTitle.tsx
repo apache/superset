@@ -25,7 +25,8 @@ import {
   FC,
 } from 'react';
 
-import { t, styled, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { Input, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 
@@ -63,7 +64,10 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
   const handleMouseOver = useCallback(() => setIsHovered(true), []);
   const handleMouseOut = useCallback(() => setIsHovered(false), []);
   const handleClick = useCallback(() => setIsEditMode(true), []);
-  const handleBlur = useCallback(() => setIsEditMode(false), []);
+  const handleBlur = useCallback(() => {
+    setIsHovered(false);
+    setIsEditMode(false);
+  }, []);
 
   const handleKeyPress = useCallback(
     (ev: KeyboardEvent<HTMLInputElement>) => {
@@ -114,6 +118,7 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
         data-test="AdhocMetricEditTitle#trigger"
         onMouseOver={handleMouseOver}
         onMouseOut={handleMouseOut}
+        onFocus={handleMouseOver}
         onClick={handleClick}
         onBlur={handleBlur}
         role="button"

@@ -47,11 +47,12 @@ class TestBigQueryDbEngineSpec(SupersetTestCase):
         """
         DB Eng Specs (bigquery): Test column label
         """
+        # Expected labels with SHA-256 hash suffix (first 5 chars prefixed with _)
         test_cases = {
             "Col": "Col",
-            "SUM(x)": "SUM_x__5f110",
-            "SUM[x]": "SUM_x__7ebe1",
-            "12345_col": "_12345_col_8d390",
+            "SUM(x)": "SUM_x__b681e",
+            "SUM[x]": "SUM_x__ceaf6",
+            "12345_col": "_12345_col_b1415",
         }
         for original, expected in test_cases.items():
             actual = BigQueryEngineSpec.make_label_compatible(column(original).name)
@@ -304,6 +305,13 @@ class TestBigQueryDbEngineSpec(SupersetTestCase):
 
     @mock.patch("superset.models.core.Database.db_engine_spec", BigQueryEngineSpec)
     @mock.patch("sqlalchemy_bigquery._helpers.create_bigquery_client", mock.Mock)
+    @mock.patch(
+        "superset.db_engine_specs.bigquery.BigQueryEngineSpec.adjust_engine_params",
+        new=lambda uri, connect_args, catalog=None, schema=None, **kw: (
+            uri,
+            connect_args,
+        ),
+    )
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_calculated_column_in_order_by(self):
         table = self.get_table(name="birth_names")

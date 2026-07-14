@@ -21,7 +21,8 @@ import { FunctionComponent, useState, useRef, ChangeEvent } from 'react';
 import SchemaForm, { FormProps } from '@rjsf/core';
 import { FormValidation } from '@rjsf/utils';
 import validator from '@rjsf/validator-ajv8';
-import { t, styled } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { parseDate } from 'chrono-node';
 import {
   ModalTrigger,
@@ -120,6 +121,9 @@ export const StyledButtonComponent = styled(Button)`
   `}
 `;
 
+// rjsf's default theme renders glyphicon <i> elements Superset doesn't ship a
+// font for; hide them and draw text glyphs instead. rjsf 6 renamed the
+// array-item button classes from "array-item-*" to "rjsf-array-item-*".
 const StyledJsonSchema = styled.div`
   i.glyphicon {
     display: none;
@@ -127,13 +131,13 @@ const StyledJsonSchema = styled.div`
   .btn-add::after {
     content: '+';
   }
-  .array-item-move-up::after {
+  .rjsf-array-item-move-up::after {
     content: '↑';
   }
-  .array-item-move-down::after {
+  .rjsf-array-item-move-down::after {
     content: '↓';
   }
-  .array-item-remove::after {
+  .rjsf-array-item-remove::after {
     content: '-';
   }
 `;

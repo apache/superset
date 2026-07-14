@@ -30,10 +30,12 @@ from typing import Any, Optional, TYPE_CHECKING, Union
 
 import numpy as np
 import pandas as pd
+from flask import current_app
 from flask_babel import gettext as __
 
 from superset.common.chart_data import ChartDataResultFormat
 from superset.extensions import event_logger
+from superset.utils import csv
 from superset.utils.core import (
     extract_dataframe_dtypes,
     get_column_names,
@@ -337,10 +339,24 @@ def apply_client_processing(  # noqa: C901
             # do not try to process empty data
             continue
 
+        csv_export_config = current_app.config.get("CSV_EXPORT", {})
+        sep = csv_export_config.get("sep", ",")
+        decimal = csv_export_config.get("decimal", ".")
+
         if query["result_format"] == ChartDataResultFormat.JSON:
             df = pd.DataFrame.from_dict(data)
         elif query["result_format"] == ChartDataResultFormat.CSV:
-            df = pd.read_csv(StringIO(data))
+            # Use custom NA values configuration for
+            # reports to avoid unwanted conversions
+            # This allows users to control which values should be treated as null/NA
+            na_values = current_app.config["REPORTS_CSV_NA_NAMES"]
+            df = pd.read_csv(
+                StringIO(data),
+                keep_default_na=na_values is None,
+                na_values=na_values,
+                sep=sep,
+                decimal=decimal,
+            )
 
         # convert all columns to verbose (label) name
         if datasource:
@@ -379,9 +395,13 @@ def apply_client_processing(  # noqa: C901
         if query["result_format"] == ChartDataResultFormat.JSON:
             query["data"] = processed_df.to_dict()
         elif query["result_format"] == ChartDataResultFormat.CSV:
-            buf = StringIO()
-            processed_df.to_csv(buf, index=show_default_index)
-            buf.seek(0)
-            query["data"] = buf.getvalue()
+            # Route through the formula-escaping CSV writer, consistent with the
+            # other CSV export paths (viz, query context, SQL Lab export), while
+            # applying CSV_EXPORT config for consistent CSV formatting.
+            query["data"] = csv.df_to_escaped_csv(
+                processed_df,
+                index=show_default_index,
+                **current_app.config["CSV_EXPORT"],
+            )
 
     return result

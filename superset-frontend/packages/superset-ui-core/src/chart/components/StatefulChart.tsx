@@ -19,13 +19,16 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ParentSize } from '@visx/responsive';
+import { t } from '@apache-superset/core/translation';
 import {
   QueryFormData,
   QueryData,
   SupersetClientInterface,
   buildQueryContext,
   RequestConfig,
+  getClientErrorObject,
 } from '../..';
+import type { HandlerFunction } from '../types/Base';
 import { Loading } from '../../components/Loading';
 import ChartClient from '../clients/ChartClient';
 import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySingleton';
@@ -35,6 +38,24 @@ import SuperChart from './SuperChart';
 
 // Using more specific states that align with chart loading process
 type LoadingState = 'uninitialized' | 'loading' | 'loaded' | 'error';
+
+/**
+ * Known shared controls that have renderTrigger: true.
+ * These are controls defined in sharedControls that only affect rendering,
+ * not data fetching. When these controls change, we should re-render
+ * without refetching data.
+ *
+ * This list is needed because string-based control references (e.g., ['zoomable'])
+ * cannot be introspected for their renderTrigger property without importing
+ * sharedControls, which would create a circular dependency.
+ */
+const RENDER_TRIGGER_SHARED_CONTROLS = new Set([
+  'zoomable',
+  'color_scheme',
+  'time_shift_color',
+  'y_axis_format',
+  'currency_format',
+]);
 
 /**
  * Helper function to determine if data should be refetched based on formData changes
@@ -72,7 +93,13 @@ function shouldRefetchData(
       if (section.controlSetRows) {
         section.controlSetRows.forEach((row: any) => {
           row.forEach((control: any) => {
-            if (control && typeof control === 'object') {
+            // Handle string references to shared controls with renderTrigger
+            if (
+              typeof control === 'string' &&
+              RENDER_TRIGGER_SHARED_CONTROLS.has(control)
+            ) {
+              renderTriggerControls.add(control);
+            } else if (control && typeof control === 'object') {
               const controlName = control.name || control.config?.name;
               if (controlName && control.config?.renderTrigger === true) {
                 renderTriggerControls.add(controlName);
@@ -236,9 +263,7 @@ export default function StatefulChart(props: StatefulChartProps) {
       if (!useLegacyApi && !queryContext.queries) {
         queryContext = { queries: [queryContext] };
       }
-      const endpoint = useLegacyApi
-        ? '/superset/explore_json/'
-        : '/api/v1/chart/data';
+      const endpoint = useLegacyApi ? '/explore_json/' : '/api/v1/chart/data';
 
       const requestConfig: RequestConfig = {
         endpoint,
@@ -279,11 +304,17 @@ export default function StatefulChart(props: StatefulChartProps) {
       }
     } catch (err) {
       // Ignore abort errors
-      if (err.name === 'AbortError') {
+      if ((err as Error).name === 'AbortError') {
         return;
       }
 
-      const errorObj = err as Error;
+      const parsedError = await getClientErrorObject(
+        err as Parameters<typeof getClientErrorObject>[0],
+      );
+      const errorMessage =
+        parsedError.error || parsedError.message || 'An error occurred';
+
+      const errorObj = new Error(errorMessage);
       setStatus('error');
       setError(errorObj);
 
@@ -409,7 +440,7 @@ export default function StatefulChart(props: StatefulChartProps) {
           textAlign: 'center',
         }}
       >
-        Error: {error.message}
+        {t('Error')}: {error.message}
       </div>
     );
 
@@ -450,7 +481,7 @@ export default function StatefulChart(props: StatefulChartProps) {
         enableNoResults={enableNoResults}
         noResults={NoDataComponent && <NoDataComponent />}
         onRenderSuccess={onRenderSuccess}
-        onRenderFailure={onRenderFailure}
+        onRenderFailure={onRenderFailure as HandlerFunction | undefined}
         hooks={hooks}
       />
     );

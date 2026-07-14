@@ -17,10 +17,13 @@
 # pylint: disable=import-outside-toplevel, unused-argument, unused-import, invalid-name
 
 import copy
+import io
 import re
 import uuid
+from datetime import datetime
 from typing import Any
 from unittest.mock import Mock, patch
+from urllib import request
 
 import pytest
 from flask import current_app
@@ -28,25 +31,32 @@ from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
-from superset import db
+from superset import db, security_manager
 from superset.commands.dataset.exceptions import (
+    DatasetAccessDeniedError,
     DatasetForbiddenDataURI,
+    MultiCatalogDisabledValidationError,
 )
-from superset.commands.dataset.importers.v1.utils import validate_data_uri
+from superset.commands.dataset.importers.v1.utils import (
+    import_dataset,
+    validate_data_uri,
+)
 from superset.commands.exceptions import ImportFailedError
+from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.datasets.schemas import ImportV1DatasetSchema
+from superset.models.core import Database
 from superset.utils import json
 from superset.utils.core import override_user
+from tests.integration_tests.fixtures.importexport import (
+    database_config,
+    dataset_config as dataset_fixture,
+)
 
 
 def test_import_dataset(mocker: MockerFixture, session: Session) -> None:
     """
     Test importing a dataset.
     """
-    from superset import security_manager
-    from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.core import Database
-
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
@@ -247,11 +257,6 @@ def test_import_dataset_no_folder(mocker: MockerFixture, session: Session) -> No
     """
     Test importing a dataset that was exported without folders.
     """
-    from superset import security_manager
-    from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.core import Database
-
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
@@ -321,17 +326,241 @@ def test_import_dataset_no_folder(mocker: MockerFixture, session: Session) -> No
     assert sqla_table.folders is None
 
 
+def test_import_dataset_rejects_non_default_catalog_when_multi_catalog_disabled(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Importing a non-default catalog must fail when the target database has
+    multi-catalog disabled, matching the dataset update validation so an import
+    can't silently bind a dataset to an unintended catalog.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    # the connection supports catalogs, defaults to "primary", multi-catalog off
+    engine_spec = database.db_engine_spec
+    mocker.patch.object(engine_spec, "supports_catalog", True)
+    mocker.patch.object(engine_spec, "get_default_catalog", return_value="primary")
+
+    config = {
+        "table_name": "my_table",
+        "schema": "my_schema",
+        "catalog": "other_catalog",
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    with pytest.raises(MultiCatalogDisabledValidationError):
+        import_dataset(config)
+
+
+def test_import_dataset_skips_catalog_validation_for_trusted_imports(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Trusted imports (ignore_permissions=True, e.g. example loading) bypass
+    catalog validation, so a non-default catalog does not abort the import even
+    when the target database has multi-catalog disabled.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    # the connection supports catalogs, defaults to "primary", multi-catalog off
+    engine_spec = database.db_engine_spec
+    mocker.patch.object(engine_spec, "supports_catalog", True)
+    mocker.patch.object(engine_spec, "get_default_catalog", return_value="primary")
+
+    config = {
+        "table_name": "my_table",
+        "schema": "my_schema",
+        "catalog": "other_catalog",
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    sqla_table = import_dataset(config, ignore_permissions=True)
+    assert sqla_table.catalog == "other_catalog"
+
+
+def test_import_command_surfaces_non_default_catalog_as_validation_error(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    The dataset import command surfaces a disallowed catalog as a 422
+    CommandInvalidError carrying the catalog message, instead of a generic 500.
+    """
+    from superset.commands.dataset.importers.v1 import ImportDatasetsCommand
+    from superset.commands.exceptions import CommandInvalidError
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    db_config = copy.deepcopy(database_config)
+    # a URI with a database gives PostgresEngineSpec a non-None default catalog
+    db_config["sqlalchemy_uri"] = "postgresql://user:pass@host1/primary"
+
+    ds_config = copy.deepcopy(dataset_fixture)
+    ds_config["catalog"] = "other_catalog"
+
+    configs = {
+        "databases/imported_database.yaml": db_config,
+        "datasets/imported_dataset.yaml": ds_config,
+    }
+
+    with pytest.raises(CommandInvalidError) as excinfo:
+        ImportDatasetsCommand._import(configs, overwrite=False)
+
+    assert "Only the default catalog is supported for this connection" in str(
+        excinfo.value
+    )
+
+
+def test_import_dataset_overwrite_cannot_flip_to_non_default_catalog(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Overwriting an existing dataset with a non-default catalog must fail when
+    multi-catalog is disabled, so a UUID-matched import can't flip a
+    correctly-bound dataset onto an unintended catalog.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    engine_spec = database.db_engine_spec
+    mocker.patch.object(engine_spec, "supports_catalog", True)
+    mocker.patch.object(engine_spec, "get_default_catalog", return_value="primary")
+
+    dataset_uuid = uuid.uuid4()
+    existing = SqlaTable(
+        uuid=dataset_uuid,
+        table_name="my_table",
+        catalog="primary",
+        database_id=database.id,
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    config = {
+        "table_name": "my_table",
+        "schema": "my_schema",
+        "catalog": "other_catalog",
+        "uuid": dataset_uuid,
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    with pytest.raises(MultiCatalogDisabledValidationError):
+        import_dataset(config, overwrite=True)
+
+    assert existing.catalog == "primary"
+
+
+def test_import_dataset_allows_non_default_catalog_when_multi_catalog_enabled(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A non-default catalog imports cleanly when the target database has
+    multi-catalog enabled.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(
+        database_name="my_database",
+        sqlalchemy_uri="sqlite://",
+        extra=json.dumps({"allow_multi_catalog": True}),
+    )
+    db.session.add(database)
+    db.session.flush()
+
+    engine_spec = database.db_engine_spec
+    mocker.patch.object(engine_spec, "supports_catalog", True)
+    mocker.patch.object(engine_spec, "get_default_catalog", return_value="primary")
+
+    config = {
+        "table_name": "my_table",
+        "schema": "my_schema",
+        "catalog": "other_catalog",
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    sqla_table = import_dataset(config)
+    assert sqla_table.catalog == "other_catalog"
+
+
+def test_import_dataset_allows_default_catalog_when_multi_catalog_disabled(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Re-importing the connection's default catalog is allowed even with
+    multi-catalog disabled.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    engine_spec = database.db_engine_spec
+    mocker.patch.object(engine_spec, "supports_catalog", True)
+    mocker.patch.object(engine_spec, "get_default_catalog", return_value="primary")
+
+    config = {
+        "table_name": "my_table",
+        "schema": "my_schema",
+        "catalog": "primary",
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    sqla_table = import_dataset(config)
+    assert sqla_table.catalog == "primary"
+
+
 def test_import_dataset_duplicate_column(
     mocker: MockerFixture, session: Session
 ) -> None:
     """
     Test importing a dataset with a column that already exists.
     """
-    from superset import security_manager
-    from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
-    from superset.models.core import Database
-
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
@@ -452,12 +681,6 @@ def test_import_column_extra_is_string(mocker: MockerFixture, session: Session) 
     """
     Test importing a dataset when the column extra is a string.
     """
-    from superset import security_manager
-    from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.datasets.schemas import ImportV1DatasetSchema
-    from superset.models.core import Database
-
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
@@ -537,12 +760,6 @@ def test_import_dataset_extra_empty_string(
     """
     Test importing a dataset when the extra field is an empty string.
     """
-    from superset import security_manager
-    from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.datasets.schemas import ImportV1DatasetSchema
-    from superset.models.core import Database
-
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
@@ -594,24 +811,78 @@ def test_import_dataset_extra_empty_string(
     assert sqla_table.extra is None  # noqa: E711
 
 
-@patch("superset.commands.dataset.importers.v1.utils.request.urlopen")
+def test_import_dataset_template_params_is_empty_string(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Test importing a dataset when the template_params field is an empty string.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    dataset_uuid = uuid.uuid4()
+    yaml_config: dict[str, Any] = {
+        "version": "1.0.0",
+        "table_name": "my_table",
+        "main_dttm_col": "ds",
+        "schema": "my_schema",
+        "sql": None,
+        "params": {
+            "remote_id": 64,
+            "database_name": "examples",
+            "import_time": 1606677834,
+        },
+        "template_params": "",
+        "extra": None,
+        "uuid": dataset_uuid,
+        "metrics": [
+            {
+                "metric_name": "cnt",
+                "expression": "COUNT(*)",
+            }
+        ],
+        "columns": [
+            {
+                "column_name": "profit",
+                "is_dttm": False,
+                "is_active": True,
+                "type": "INTEGER",
+                "groupby": False,
+                "filterable": False,
+                "expression": "revenue-expenses",
+            }
+        ],
+        "database_uuid": database.uuid,
+    }
+
+    schema = ImportV1DatasetSchema()
+    dataset_config = schema.load(yaml_config)
+    dataset_config["database_id"] = database.id
+    sqla_table = import_dataset(dataset_config)
+
+    assert sqla_table.template_params is None  # noqa: E711
+
+
+@patch("superset.commands.dataset.importers.v1.utils.is_safe_host", return_value=True)
+@patch("superset.commands.dataset.importers.v1.utils.request.build_opener")
 def test_import_column_allowed_data_url(
-    mock_urlopen: Mock,
+    mock_build_opener: Mock,
+    mock_is_safe_host: Mock,
     mocker: MockerFixture,
     session: Session,
 ) -> None:
     """
     Test importing a dataset when using data key to fetch data from a URL.
     """
-    import io
-
-    from superset import security_manager
-    from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.datasets.schemas import ImportV1DatasetSchema
-    from superset.models.core import Database
-
-    mock_urlopen.return_value = io.StringIO("col1\nvalue1\nvalue2\n")
+    mock_opener = Mock()
+    mock_opener.open.return_value = io.StringIO("col1\nvalue1\nvalue2\n")
+    mock_build_opener.return_value = mock_opener
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
@@ -677,12 +948,6 @@ def test_import_dataset_managed_externally(
     """
     Test importing a dataset that is managed externally.
     """
-    from superset import security_manager
-    from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.core import Database
-    from tests.integration_tests.fixtures.importexport import dataset_config
-
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
@@ -692,7 +957,7 @@ def test_import_dataset_managed_externally(
     db.session.add(database)
     db.session.flush()
 
-    config = copy.deepcopy(dataset_config)
+    config = copy.deepcopy(dataset_fixture)
     config["is_managed_externally"] = True
     config["external_url"] = "https://example.org/my_table"
     config["database_id"] = database.id
@@ -702,21 +967,48 @@ def test_import_dataset_managed_externally(
     assert sqla_table.external_url == "https://example.org/my_table"
 
 
-def test_import_dataset_without_owner_permission(
+def test_import_dataset_column_datetime_format(
     mocker: MockerFixture,
     session: Session,
 ) -> None:
     """
-    Test importing a dataset that is managed externally.
+    Test importing a dataset with a column including a datetime format.
     """
-    from superset import security_manager
-    from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.core import Database
-    from tests.integration_tests.fixtures.importexport import dataset_config
+    mocker.patch.object(security_manager, "can_access", return_value=True)
 
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    for column in config["columns"]:
+        column["datetime_format"] = "%Y-%m-%d"
+
+    schema = ImportV1DatasetSchema()
+    dataset_config = schema.load(config)
+
+    dataset_config["database_id"] = database.id
+
+    sqla_table = import_dataset(dataset_config)
+    for column in sqla_table.columns:
+        assert column.datetime_format == "%Y-%m-%d"
+
+
+def test_import_dataset_without_editor_permission(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Test overwriting a dataset without editorship.
+    """
     mock_can_access = mocker.patch.object(
         security_manager, "can_access", return_value=True
+    )
+    mock_is_editor = mocker.patch.object(
+        security_manager, "is_editor", return_value=False
     )
 
     engine = db.session.get_bind()
@@ -726,7 +1018,7 @@ def test_import_dataset_without_owner_permission(
     db.session.add(database)
     db.session.flush()
 
-    config = copy.deepcopy(dataset_config)
+    config = copy.deepcopy(dataset_fixture)
     config["database_id"] = database.id
 
     import_dataset(config)
@@ -744,11 +1036,492 @@ def test_import_dataset_without_owner_permission(
 
         assert (
             str(excinfo.value)
-            == "A dataset already exists and user doesn't have permissions to overwrite it"  # noqa: E501
+            == "Dataset 'imported_dataset' (uuid 10808100-158b-42c4-842e-f32b99d88dfb) "
+            "already exists and user doesn't have permissions to overwrite it"  # noqa: E501
         )
 
-    # Assert that the can write to chart was checked
+    # Assert that the can write to dataset was checked and editorship was enforced.
     mock_can_access.assert_called_with("can_write", "Dataset")
+    mock_is_editor.assert_called_once()
+
+
+def test_import_dataset_access_check(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Test that import_dataset raises DatasetAccessDeniedError when the user does not
+    have datasource-level access to the target dataset.
+    """
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(
+        security_manager,
+        "raise_for_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                message="User does not have access to this datasource",
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    with pytest.raises(DatasetAccessDeniedError):
+        import_dataset(config)
+
+
+def test_import_soft_deleted_dataset_overwrite_restores_in_place(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Overwrite-importing a soft-deleted dataset must restore the row in
+    place rather than hard-delete-and-replace. A hard delete would
+    cascade through the chart back-reference and table_columns /
+    sql_metrics rows; in-place restore preserves them.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    initial = import_dataset(config)
+    original_id = initial.id
+
+    existing = db.session.query(SqlaTable).filter_by(uuid=config["uuid"]).one()
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    db.session.flush()
+
+    admin = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
+
+    with override_user(admin):
+        restored = import_dataset(config, overwrite=True)
+
+    assert restored.id == original_id
+    assert restored.deleted_at is None
+
+
+def test_import_soft_deleted_dataset_non_overwrite_restores_for_editor(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Non-overwrite re-import of a soft-deleted UUID is implicitly a
+    restore-and-update: the user is bringing the dataset back by
+    uploading it again. The same editorship rule as the overwrite path
+    applies, so an editor (or admin) succeeds without setting
+    overwrite=True.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "raise_for_access", return_value=None)
+    mock_is_editor = mocker.patch.object(
+        security_manager, "is_editor", return_value=True
+    )
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    initial = import_dataset(config)
+    original_id = initial.id
+
+    existing = db.session.query(SqlaTable).filter_by(uuid=config["uuid"]).one()
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    db.session.flush()
+
+    editor = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="editor",
+        roles=[Role(name="Gamma")],
+    )
+
+    with override_user(editor):
+        restored = import_dataset(config, overwrite=False)
+
+    assert restored.id == original_id
+    assert restored.deleted_at is None
+    mock_is_editor.assert_called_once_with(existing)
+
+
+def test_import_soft_deleted_dataset_non_overwrite_raises_for_non_editor(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Non-overwrite re-import that would resurrect a soft-deleted dataset
+    must respect editorship: a non-editor without admin role cannot
+    restore-via-import. Mirrors the explicit /restore endpoint's check.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mock_is_editor = mocker.patch.object(
+        security_manager, "is_editor", return_value=False
+    )
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    import_dataset(config)
+    existing = db.session.query(SqlaTable).filter_by(uuid=config["uuid"]).one()
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    db.session.flush()
+
+    non_editor = User(
+        first_name="Bob",
+        last_name="Roe",
+        email="bob@example.org",
+        username="bob",
+        roles=[Role(name="Gamma")],
+    )
+
+    with override_user(non_editor):
+        with pytest.raises(ImportFailedError) as excinfo:
+            import_dataset(config, overwrite=False)
+    assert "permissions to restore" in str(excinfo.value)
+    mock_is_editor.assert_called_once_with(existing)
+    # Verify the permission check fired before any mutation: if a regression
+    # cleared ``deleted_at`` before raising, this would silently produce a
+    # half-restored row and the test would still pass on the message check
+    # alone.
+    db.session.refresh(existing)
+    assert existing.deleted_at is not None, (
+        "deleted_at was cleared before the exception — restore mutation "
+        "happened before the editorship check"
+    )
+
+
+def test_import_soft_deleted_dataset_raises_when_caller_lacks_can_write(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Case B: re-import of a soft-deleted UUID by a caller without
+    can_write must raise, not silently return the soft-deleted row.
+
+    Real-world scenario: a user has can_write Dashboard but not
+    can_write Dataset, and they import a dashboard zip that references
+    a soft-deleted dataset. Silently returning the row would let the
+    dashboard importer wire the dashboard's charts to a deleted dataset
+    and produce broken chart loads.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=False)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    # Seed a soft-deleted dataset with the matching UUID directly, so the
+    # test doesn't need to flip permissions mid-test.
+    existing = SqlaTable(
+        table_name="soft_deleted_dataset",
+        database_id=database.id,
+        uuid=config["uuid"],
+        deleted_at=datetime(2026, 1, 1, 12, 0, 0),
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    with pytest.raises(ImportFailedError) as excinfo:
+        import_dataset(config, overwrite=False)
+    assert "can_write" in str(excinfo.value)
+    # Case B contract: deleted_at must remain set after the exception. A
+    # regression that clears deleted_at before the can_write check would
+    # leave the row in a half-restored state and silently pass the message
+    # assertion above.
+    db.session.refresh(existing)
+    assert existing.deleted_at is not None, (
+        "Case B: deleted_at was cleared before raising — mutation happened "
+        "before the can_write check"
+    )
+
+
+def test_import_existing_active_dataset_overwrite_without_can_write_returns_existing(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    An *active* (not soft-deleted) dataset re-imported with overwrite=True by a
+    caller without can_write must fall through to returning the existing row,
+    not raise the restore error. Case B is keyed on ``is_soft_deleted``, so the
+    fused ``needs_mutation`` condition must not pull active rows into the
+    restore-without-permission branch (pre-soft-delete overwrite behaviour).
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=False)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    existing = SqlaTable(
+        table_name=config["table_name"],
+        schema=config.get("schema"),
+        catalog=config.get("catalog"),
+        database_id=database.id,
+        uuid=config["uuid"],
+    )
+    db.session.add(existing)
+    db.session.flush()
+    assert existing.deleted_at is None
+
+    result = import_dataset(config, overwrite=True)
+
+    assert result.id == existing.id
+    assert result.deleted_at is None
+
+
+def test_import_blocked_by_soft_deleted_logical_duplicate_with_new_uuid(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Importing a dataset with a fresh UUID but the same physical table as a
+    soft-deleted dataset must raise. ``import_from_dict`` can't see the hidden
+    row (the visibility filter hides soft-deleted rows), so creating would
+    produce an active twin of a soft-deleted dataset. This mirrors the REST
+    create path's ``validate_uniqueness`` block.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    # A soft-deleted dataset with a DIFFERENT UUID but the same physical table.
+    twin = SqlaTable(
+        table_name=config["table_name"],
+        schema=config.get("schema"),
+        catalog=config.get("catalog"),
+        database_id=database.id,
+        uuid="ffffffff-ffff-ffff-ffff-ffffffffffff",
+        deleted_at=datetime(2026, 1, 1, 12, 0, 0),
+    )
+    db.session.add(twin)
+    db.session.flush()
+
+    with pytest.raises(ImportFailedError) as excinfo:
+        import_dataset(config)
+    assert "same physical table" in str(excinfo.value)
+
+
+def test_import_soft_deleted_dataset_restore_removes_orphan_children(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Restoring a soft-deleted dataset via re-import (non-overwrite,
+    Option C) syncs columns and metrics — children present in the live
+    row but absent from the uploaded config are removed, not silently
+    merged.
+
+    Without forcing sync on the implicit-restore path, ``sync=[]``
+    would mean "upsert by UUID, leave non-matching children alone",
+    so the restored dataset would carry stale columns from before the
+    soft-delete. That's a surprising merge of two states; treating
+    re-import as a clean replacement is what an explicit ``overwrite``
+    would do anyway.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    initial = import_dataset(config)
+    original_id = initial.id
+
+    existing = db.session.query(SqlaTable).filter_by(uuid=config["uuid"]).one()
+    # Add an orphan column that the upload doesn't know about.
+    orphan = TableColumn(
+        column_name="orphan_col",
+        type="STRING",
+        table=existing,
+    )
+    db.session.add(orphan)
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    db.session.flush()
+    orphan_uuid = orphan.uuid
+
+    admin = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
+
+    with override_user(admin):
+        restored = import_dataset(config, overwrite=False)
+
+    assert restored.id == original_id
+    assert restored.deleted_at is None
+    assert orphan_uuid not in {c.uuid for c in restored.columns}, (
+        "orphan column survived restore-via-import; the implicit-restore "
+        "path must force sync so re-import is a clean replacement"
+    )
+
+
+def test_import_dataset_multiple_results_on_soft_delete_match_raises_and_rolls_back(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    When ``find_existing_for_import`` resolves a soft-deleted row by UUID
+    and the subsequent ``import_from_dict`` hits the legacy NULL-schema
+    ambiguity (``MultipleResultsFound``), the importer must:
+
+      1. Roll back the ``deleted_at`` clear it just applied — without
+         the rollback the dataset would be left half-restored
+         (``deleted_at = None`` but no upload content applied).
+      2. Raise ``ImportFailedError`` with the legacy-duplicate message
+         so the operator resolves the duplicate manually before retrying.
+
+    Reproduce: seed a soft-deleted row with the target UUID and monkey-
+    patch ``import_from_dict`` to raise ``MultipleResultsFound``. The
+    importer must surface the guard exception, and the row's
+    ``deleted_at`` must still be set after the call returns.
+    """
+    from sqlalchemy.exc import MultipleResultsFound
+
+    from superset.commands.exceptions import ImportFailedError
+    from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(
+        SqlaTable,
+        "import_from_dict",
+        side_effect=MultipleResultsFound("simulated duplicate"),
+    )
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    original_deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    soft_deleted = SqlaTable(
+        table_name="ambiguous_dataset",
+        database_id=database.id,
+        uuid=config["uuid"],
+        deleted_at=original_deleted_at,
+    )
+    db.session.add(soft_deleted)
+    db.session.flush()
+
+    with pytest.raises(ImportFailedError, match="matches more than one existing row"):
+        import_dataset(config)
+
+    reloaded = (
+        db.session.query(SqlaTable)
+        .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+        .filter_by(uuid=config["uuid"])
+        .one()
+    )
+    assert reloaded.deleted_at == original_deleted_at, (
+        "deleted_at was not rolled back after MultipleResultsFound on "
+        "the soft-delete-match path; the row is left half-restored"
+    )
+
+
+def test_import_soft_deleted_dataset_ignore_permissions_restores_in_place(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    The example loader path: ignore_permissions=True with no logged-in
+    user. Previously the rewrite gated id-preservation on `user`, so this
+    path skipped both branches and INSERT collided on the UUID unique
+    index. The fix restores master's behavior: id is preserved on the
+    fallthrough overwrite path regardless of whether `user` is set.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    initial = import_dataset(config, ignore_permissions=True)
+    original_id = initial.id
+
+    existing = db.session.query(SqlaTable).filter_by(uuid=config["uuid"]).one()
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    db.session.flush()
+
+    restored = import_dataset(config, overwrite=True, ignore_permissions=True)
+    assert restored.id == original_id
+    assert restored.deleted_at is None
 
 
 @pytest.mark.parametrize(
@@ -783,10 +1556,239 @@ def test_import_dataset_without_owner_permission(
         (["*"], "https://host1.domain3.com/data.csv", False, re.error),
     ],
 )
-def test_validate_data_uri(allowed_urls, data_uri, expected, exception_class):
+def test_validate_data_uri(
+    allowed_urls: list[str],
+    data_uri: str,
+    expected: bool,
+    exception_class: type[Exception] | None,
+) -> None:
+    """Tests allowlist pattern matching. is_safe_host is stubbed out so that
+    fake/unresolvable test hostnames do not interfere with DNS-based checks
+    (those are covered by the dedicated is_safe_host tests below)."""
     current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = allowed_urls
-    if expected:
-        validate_data_uri(data_uri)
-    else:
-        with pytest.raises(exception_class):
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+    with patch(
+        "superset.commands.dataset.importers.v1.utils.is_safe_host",
+        return_value=True,
+    ):
+        if expected:
             validate_data_uri(data_uri)
+        else:
+            with pytest.raises(exception_class):
+                validate_data_uri(data_uri)
+
+
+def test_validate_data_uri_file_scheme_examples_allowed() -> None:
+    """file:// URIs pointing inside the examples folder are permitted."""
+    import os
+
+    from superset.examples.helpers import get_examples_folder
+
+    examples_folder = get_examples_folder()
+    uri_in_examples = (
+        f"file://{os.path.join(examples_folder, 'birth_names', 'data.parquet')}"
+    )
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = []
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+    # Should not raise
+    validate_data_uri(uri_in_examples)
+
+
+def test_validate_data_uri_file_scheme_outside_examples_blocked() -> None:
+    """file:// URIs outside the examples folder are blocked."""
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = []
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+    with pytest.raises(DatasetForbiddenDataURI):
+        validate_data_uri("file:///etc/passwd")
+
+
+@pytest.mark.parametrize(
+    "data_uri",
+    ["FiLe:///etc/passwd", "FILE:///etc/passwd", "file:/etc/passwd"],
+)
+def test_validate_data_uri_file_scheme_case_insensitive(data_uri: str) -> None:
+    """Mixed-case / single-slash file URIs still go through the sandbox check
+    and are blocked when outside the examples folder, so they cannot skip the
+    local-file check via a case-sensitive scheme gate."""
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = []
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+    with pytest.raises(DatasetForbiddenDataURI):
+        validate_data_uri(data_uri)
+
+
+@pytest.mark.parametrize(
+    "data_uri",
+    [
+        # Userinfo-injection: allowlist matches the trusted hostname in the
+        # authority but urlparse().hostname resolves to the actual target.
+        "https://allowed.example.com@169.254.169.254/latest/meta-data/",
+        "https://allowed.example.com@10.0.0.1/internal",
+        "https://allowed.example.com@127.0.0.1/admin",
+    ],
+)
+def test_validate_data_uri_blocks_userinfo_ssrf_injection(data_uri: str) -> None:
+    """Userinfo-injected private IPs must be rejected even when the leading
+    hostname matches an allowlist pattern."""
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = [r".*"]
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+    with patch(
+        "superset.commands.dataset.importers.v1.utils.is_safe_host",
+        return_value=False,
+    ):
+        with pytest.raises(DatasetForbiddenDataURI):
+            validate_data_uri(data_uri)
+
+
+def test_validate_data_uri_allow_internal_flag_bypasses_host_check() -> None:
+    """When DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS is True, internal hosts
+    must be permitted to support air-gapped / on-premises deployments."""
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = [r".*"]
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = True
+    with patch(
+        "superset.commands.dataset.importers.v1.utils.is_safe_host",
+        return_value=False,
+    ) as mock_check:
+        validate_data_uri("http://10.0.0.5/data.csv")
+        mock_check.assert_not_called()
+
+
+def test_validate_data_uri_no_hostname_raises() -> None:
+    """A URI that produces no parseable hostname (e.g. opaque data: URIs) must
+    be rejected — fail-closed: no hostname means no safe host confirmation."""
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = [r".*"]
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+    # urlparse("data:text/csv,...").hostname is None, which fails the
+    # "not hostname or not is_safe_host(hostname)" guard.
+    with pytest.raises(DatasetForbiddenDataURI):
+        validate_data_uri("data:text/csv,col1,col2")
+
+
+def test_redirect_handler_blocks_disallowed_redirect_target() -> None:
+    """The redirect handler must reject a redirect to a disallowed host by
+    re-running validate_data_uri() on the new URL before following it."""
+    from superset.commands.dataset.importers.v1.utils import (
+        _ValidatingRedirectHandler,
+    )
+
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = [r".*"]
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+
+    handler = _ValidatingRedirectHandler()
+    with patch(
+        "superset.commands.dataset.importers.v1.utils.is_safe_host",
+        return_value=False,
+    ):
+        with pytest.raises(DatasetForbiddenDataURI):
+            handler.redirect_request(
+                request.Request("http://public.example.com/data.csv"),
+                None,
+                302,
+                "Found",
+                {},
+                "http://169.254.169.254/latest/meta-data/",
+            )
+
+
+def test_import_overwrite_rename_onto_soft_deleted_twin_blocked(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """Overwriting an alive dataset must not rename it onto a hidden twin's
+    physical identity.
+
+    ``import_from_dict``'s lookup cannot see the soft-deleted row (visibility
+    filter), so without the identity re-validation the update would land
+    cleanly and the live row would silently squat the trash row's identity —
+    permanently blocking its restore. Mirrors ``UpdateDatasetCommand``'s
+    ``validate_update_uniqueness`` contract.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+    config["table_name"] = "squatted_tbl"  # rename onto the twin's identity
+
+    # The alive dataset being overwritten (matches the config's UUID).
+    existing = SqlaTable(
+        table_name="original_tbl",
+        schema=config.get("schema"),
+        catalog=config.get("catalog"),
+        database_id=database.id,
+        uuid=config["uuid"],
+    )
+    # The hidden twin holding the target identity.
+    twin = SqlaTable(
+        table_name="squatted_tbl",
+        schema=config.get("schema"),
+        catalog=config.get("catalog"),
+        database_id=database.id,
+        uuid="ffffffff-ffff-ffff-ffff-fffffffffff0",
+        deleted_at=datetime(2026, 1, 1, 12, 0, 0),
+    )
+    db.session.add_all([existing, twin])
+    db.session.flush()
+
+    with pytest.raises(ImportFailedError) as excinfo:
+        import_dataset(config, overwrite=True)
+    assert "cannot be overwritten" in str(excinfo.value)
+    assert config["uuid"] in str(excinfo.value)
+    # The alive row keeps its original identity.
+    assert existing.table_name == "original_tbl"
+
+
+def test_import_restore_blocked_by_active_twin_at_incoming_identity(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """The restore-via-import duplicate check probes the POST-update identity.
+
+    An uploaded config that renames the soft-deleted dataset onto an ACTIVE
+    dataset's identity must be refused up front (check-before-mutate: the row
+    stays soft-deleted), not fall through to a downstream
+    ``MultipleResultsFound`` with a misdiagnosing message.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+    config["table_name"] = "claimed_tbl"  # rename onto the active row's identity
+
+    # The soft-deleted dataset being restored (matches the config's UUID).
+    existing = SqlaTable(
+        table_name="old_tbl",
+        schema=config.get("schema"),
+        catalog=config.get("catalog"),
+        database_id=database.id,
+        uuid=config["uuid"],
+        deleted_at=datetime(2026, 1, 1, 12, 0, 0),
+    )
+    # An unrelated ACTIVE dataset already holding the target identity.
+    active = SqlaTable(
+        table_name="claimed_tbl",
+        schema=config.get("schema"),
+        catalog=config.get("catalog"),
+        database_id=database.id,
+        uuid="ffffffff-ffff-ffff-ffff-fffffffffff1",
+    )
+    db.session.add_all([existing, active])
+    db.session.flush()
+
+    with pytest.raises(ImportFailedError) as excinfo:
+        import_dataset(config)
+    assert "another active dataset" in str(excinfo.value)
+    # Check-before-mutate: the failed import leaves the row soft-deleted.
+    assert existing.deleted_at is not None

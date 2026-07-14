@@ -25,7 +25,7 @@ from unittest.mock import MagicMock, Mock, patch
 from zipfile import ZipFile
 
 import pandas as pd
-import prison
+import rison
 import yaml
 from flask import g, Response
 from flask_appbuilder.security.sqla import models as ab_models
@@ -38,11 +38,14 @@ from sqlalchemy.sql import func
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
+from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.models import core as models
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.sql.parse import CTASMethod
+from superset.subjects.models import Subject
+from superset.subjects.types import SubjectType
 from superset.utils import json
 from superset.utils.core import get_example_default_schema, shortid
 from superset.utils.database import get_example_database
@@ -58,6 +61,44 @@ from tests.integration_tests.fixtures.importexport import (
 from tests.integration_tests.test_app import app, login
 
 FAKE_DB_NAME = "fake_db_100"
+
+
+def subjects_from_users(users: list[ab_models.User]) -> list[Subject]:
+    """Convert a list of User objects to their corresponding Subjects.
+
+    Useful in integration tests where you need to set model.editors
+    or model.viewers from User objects. Automatically creates Subject
+    rows if they don't exist yet (via sync_user_subject).
+    """
+    from superset.subjects.sync import sync_user_subject
+
+    subjects = []
+    for user in users:
+        subject = (
+            db.session.query(Subject)
+            .filter_by(user_id=user.id, type=SubjectType.USER)
+            .first()
+        )
+        if not subject:
+            sync_user_subject(user)
+            db.session.flush()
+            subject = (
+                db.session.query(Subject)
+                .filter_by(user_id=user.id, type=SubjectType.USER)
+                .first()
+            )
+        if subject:
+            subjects.append(subject)
+    return subjects
+
+
+def user_is_editor(user: Any, model: Any) -> bool:
+    """Check whether a User is among a model's editors (via user-type Subject)."""
+    return any(
+        s.type == SubjectType.USER and s.user_id == user.id for s in model.editors
+    )
+
+
 DEFAULT_PASSWORD = "general"  # noqa: S105
 test_client = app.test_client()
 
@@ -345,7 +386,7 @@ class SupersetTestCase(TestCase):
         datasource.perm = "mock_datasource_perm"
         datasource.__class__ = SqlaTable
         datasource.database.db_engine_spec.mutate_expression_label = lambda x: x
-        datasource.owners = MagicMock()
+        datasource.editors = MagicMock()
         datasource.id = 99999
         return datasource
 
@@ -573,8 +614,7 @@ class SupersetTestCase(TestCase):
         self,
         dashboard_title: str,
         slug: Optional[str],
-        owners: list[int],
-        roles: list[int] = [],  # noqa: B006
+        editor_user_ids: list[int],
         created_by=None,
         slices: Optional[list[Slice]] = None,
         position_json: str = "",
@@ -583,21 +623,30 @@ class SupersetTestCase(TestCase):
         published: bool = False,
         certified_by: Optional[str] = None,
         certification_details: Optional[str] = None,
+        desc: Optional[str] = None,
     ) -> Dashboard:
-        obj_owners = list()  # noqa: C408
-        obj_roles = list()  # noqa: C408
+        obj_editors = list()  # noqa: C408
         slices = slices or []
-        for owner in owners:
-            user = db.session.query(security_manager.user_model).get(owner)
-            obj_owners.append(user)
-        for role in roles:
-            role_obj = db.session.query(security_manager.role_model).get(role)
-            obj_roles.append(role_obj)
+        for user_id in editor_user_ids:
+            subject = (
+                db.session.query(Subject)
+                .filter_by(user_id=user_id, type=SubjectType.USER)
+                .first()
+            )
+            if subject:
+                obj_editors.append(subject)
 
-        # Defensive cleanup: remove any existing dashboard with the same slug
+        # Defensive cleanup: remove any existing dashboard with the same slug.
+        # Bypass the soft-delete visibility filter so a soft-deleted row from
+        # a prior test still gets cleared — without the bypass the lookup
+        # returns ``None`` and the INSERT below trips the unique constraint
+        # on ``slug`` against the soft-deleted (but hidden) row.
         if slug:
             existing_dashboard = (
-                db.session.query(Dashboard).filter_by(slug=slug).first()
+                db.session.query(Dashboard)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Dashboard}})
+                .filter_by(slug=slug)
+                .first()
             )
             if existing_dashboard:
                 db.session.delete(existing_dashboard)
@@ -606,8 +655,8 @@ class SupersetTestCase(TestCase):
         dashboard = Dashboard(
             dashboard_title=dashboard_title,
             slug=slug,
-            owners=obj_owners,
-            roles=obj_roles,
+            description=desc,
+            editors=obj_editors,
             position_json=position_json,
             css=css,
             json_metadata=json_metadata,
@@ -631,7 +680,7 @@ class SupersetTestCase(TestCase):
         Get list of assets, by default using admin account. Can be filtered.
         """
         self.login(username)
-        uri = f"api/v1/{asset_type}/?q={prison.dumps(filter)}"
+        uri = f"api/v1/{asset_type}/?q={rison.dumps(filter)}"
         response = self.get_assert_metric(uri, "get_list")
         return response
 

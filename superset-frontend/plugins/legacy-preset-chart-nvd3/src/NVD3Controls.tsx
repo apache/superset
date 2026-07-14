@@ -18,7 +18,7 @@
  */
 /* eslint-disable react/jsx-key */
 
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ControlPanelSectionConfig,
   ControlSubSectionHeader,
@@ -26,6 +26,7 @@ import {
   D3_TIME_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
+  DEFAULT_TIME_FORMAT,
 } from '@superset-ui/chart-controls';
 
 /*
@@ -235,7 +236,7 @@ export const xAxisFormat: CustomControlItem = {
     label: t('X Axis Format'),
     renderTrigger: true,
     choices: D3_TIME_FORMAT_OPTIONS,
-    default: 'smart_date',
+    default: DEFAULT_TIME_FORMAT,
     description: D3_FORMAT_DOCS,
   },
 };

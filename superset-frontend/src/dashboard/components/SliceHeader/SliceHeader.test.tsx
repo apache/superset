@@ -35,7 +35,7 @@ jest.mock('src/dashboard/components/SliceHeaderControls', () => ({
       data-cached-dttm={props.cachedDttm}
       data-updated-dttm={props.updatedDttm}
       data-superset-can-explore={props.supersetCanExplore}
-      data-superset-can-csv={props.supersetCanCSV}
+      data-superset-can-download={props.supersetCanDownload}
       data-component-id={props.componentId}
       data-dashboard-id={props.dashboardId}
       data-is-full-size={props.isFullSize}
@@ -144,7 +144,7 @@ const createProps = (overrides: any = {}) => ({
   isExpanded: false,
   sliceName: 'Vaccine Candidates per Phase',
   supersetCanExplore: true,
-  supersetCanCSV: true,
+  supersetCanDownload: true,
   slice: {
     slice_id: MOCKED_CHART_ID,
     slice_url: `/explore/?form_data=%7B%22slice_id%22%3A%20${MOCKED_CHART_ID}%7D`,
@@ -170,9 +170,9 @@ const createProps = (overrides: any = {}) => ({
     datasource: '58__table',
     description: '',
     description_markeddown: '',
-    owners: [],
     modified: '<span class="no-wrap">20 hours ago</span>',
     changed_on: 1617143411366,
+    editors: [],
     slice_description: '',
   },
   componentId: 'CHART-aGfmWtliqA',
@@ -207,38 +207,22 @@ test('Should render', () => {
 test('Should render - default props', () => {
   const props = createProps();
 
-  // @ts-ignore
   delete props.forceRefresh;
-  // @ts-ignore
   delete props.updateSliceName;
-  // @ts-ignore
   delete props.toggleExpandSlice;
-  // @ts-ignore
   delete props.logExploreChart;
-  // @ts-ignore
   delete props.exportCSV;
-  // @ts-ignore
   delete props.innerRef;
-  // @ts-ignore
   delete props.editMode;
-  // @ts-ignore
   delete props.annotationQuery;
-  // @ts-ignore
   delete props.annotationError;
-  // @ts-ignore
   delete props.cachedDttm;
-  // @ts-ignore
   delete props.updatedDttm;
-  // @ts-ignore
   delete props.isCached;
-  // @ts-ignore
   delete props.isExpanded;
-  // @ts-ignore
   delete props.sliceName;
-  // @ts-ignore
   delete props.supersetCanExplore;
-  // @ts-ignore
-  delete props.supersetCanCSV;
+  delete props.supersetCanDownload;
 
   render(<SliceHeader {...props} />, {
     useRedux: true,
@@ -251,38 +235,22 @@ test('Should render - default props', () => {
 test('Should render default props and "call" actions', () => {
   const props = createProps();
 
-  // @ts-ignore
   delete props.forceRefresh;
-  // @ts-ignore
   delete props.updateSliceName;
-  // @ts-ignore
   delete props.toggleExpandSlice;
-  // @ts-ignore
   delete props.logExploreChart;
-  // @ts-ignore
   delete props.exportCSV;
-  // @ts-ignore
   delete props.innerRef;
-  // @ts-ignore
   delete props.editMode;
-  // @ts-ignore
   delete props.annotationQuery;
-  // @ts-ignore
   delete props.annotationError;
-  // @ts-ignore
   delete props.cachedDttm;
-  // @ts-ignore
   delete props.updatedDttm;
-  // @ts-ignore
   delete props.isCached;
-  // @ts-ignore
   delete props.isExpanded;
-  // @ts-ignore
   delete props.sliceName;
-  // @ts-ignore
   delete props.supersetCanExplore;
-  // @ts-ignore
-  delete props.supersetCanCSV;
+  delete props.supersetCanDownload;
 
   render(<SliceHeader {...props} />, {
     useRedux: true,
@@ -491,7 +459,7 @@ test('Correct props to "SliceHeaderControls"', () => {
     'false',
   );
   expect(screen.getByTestId('SliceHeaderControls')).toHaveAttribute(
-    'data-superset-can-csv',
+    'data-superset-can-download',
     'true',
   );
   expect(screen.getByTestId('SliceHeaderControls')).toHaveAttribute(
@@ -569,21 +537,46 @@ test('Should render RowCountLabel when row limit is hit, and hide it otherwise',
   const props = createProps({
     formData: {
       ...createProps().formData,
+      viz_type: VizType.Table,
       row_limit: 10,
+    },
+    slice: {
+      ...createProps().slice,
+      viz_type: VizType.Table,
+      form_data: {
+        ...createProps().slice.form_data,
+        viz_type: VizType.Table,
+        row_limit: 10,
+      },
     },
   });
   const rowCountState = {
     ...initialState,
     charts: {
       [props.slice.slice_id]: {
+        id: MOCKED_CHART_ID,
+        chartStatus: 'rendered',
         queriesResponse: [
           {
             sql_rowcount: 10,
+            data: Array(10).fill({}),
           },
         ],
       },
     },
   };
+
+  const mockUseUiConfig = useUiConfig as jest.MockedFunction<
+    typeof useUiConfig
+  >;
+  mockUseUiConfig.mockReturnValue({
+    hideTitle: false,
+    hideTab: false,
+    hideNav: false,
+    hideChartControls: false,
+    emitDataMasks: false,
+    showRowLimitWarning: true,
+  });
 
   const { rerender } = render(<SliceHeader {...props} />, {
     useRedux: true,
@@ -592,6 +585,7 @@ test('Should render RowCountLabel when row limit is hit, and hide it otherwise',
   });
 
   expect(screen.getByTestId('warning')).toBeInTheDocument();
+
   rerender(
     <SliceHeader
       {...props}
@@ -600,43 +594,11 @@ test('Should render RowCountLabel when row limit is hit, and hide it otherwise',
   );
 
   expect(screen.queryByTestId('warning')).not.toBeInTheDocument();
+
+  mockUseUiConfig.mockRestore();
 });
 
-test('Should hide RowCountLabel in embedded by default', () => {
-  const mockIsEmbedded = isEmbedded as jest.MockedFunction<typeof isEmbedded>;
-  mockIsEmbedded.mockReturnValue(true);
-
-  const props = createProps({
-    formData: {
-      ...createProps().formData,
-      row_limit: 10,
-    },
-  });
-  const rowCountState = {
-    ...initialState,
-    charts: {
-      [props.slice.slice_id]: {
-        queriesResponse: [
-          {
-            sql_rowcount: 10,
-          },
-        ],
-      },
-    },
-  };
-
-  render(<SliceHeader {...props} />, {
-    useRedux: true,
-    useRouter: true,
-    initialState: rowCountState,
-  });
-
-  expect(screen.queryByTestId('warning')).not.toBeInTheDocument();
-
-  mockIsEmbedded.mockRestore();
-});
-
-test('Should show RowCountLabel in embedded when uiConfig.showRowLimitWarning is true', () => {
+test('Should hide warning in embedded by default for non-table charts', () => {
   const mockIsEmbedded = isEmbedded as jest.MockedFunction<typeof isEmbedded>;
   const mockUseUiConfig = useUiConfig as jest.MockedFunction<
     typeof useUiConfig
@@ -649,7 +611,7 @@ test('Should show RowCountLabel in embedded when uiConfig.showRowLimitWarning is
     hideNav: false,
     hideChartControls: false,
     emitDataMasks: false,
-    showRowLimitWarning: true,
+    showRowLimitWarning: false,
   });
 
   const props = createProps({
@@ -677,8 +639,304 @@ test('Should show RowCountLabel in embedded when uiConfig.showRowLimitWarning is
     initialState: rowCountState,
   });
 
-  expect(screen.getByTestId('warning')).toBeInTheDocument();
+  expect(screen.queryByTestId('warning')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('row-count-label')).not.toBeInTheDocument();
 
   mockIsEmbedded.mockRestore();
+  mockUseUiConfig.mockRestore();
+});
+
+test('Should show row count badge for table chart without server pagination', () => {
+  const mockUseUiConfig = useUiConfig as jest.MockedFunction<
+    typeof useUiConfig
+  >;
+  mockUseUiConfig.mockReturnValue({
+    hideTitle: false,
+    hideTab: false,
+    hideNav: false,
+    hideChartControls: false,
+    emitDataMasks: false,
+    showRowLimitWarning: true,
+  });
+
+  const props = createProps({
+    formData: {
+      ...createProps().formData,
+      viz_type: VizType.Table,
+      row_limit: 10,
+    },
+    slice: {
+      ...createProps().slice,
+      form_data: {
+        ...createProps().slice.form_data,
+        viz_type: VizType.Table,
+        row_limit: 10,
+      },
+      viz_type: VizType.Table,
+    },
+  });
+  const tableState = {
+    ...initialState,
+    charts: {
+      [props.slice.slice_id]: {
+        id: MOCKED_CHART_ID,
+        chartStatus: 'rendered',
+        queriesResponse: [
+          {
+            sql_rowcount: 50,
+            data: [],
+          },
+        ],
+      },
+    },
+  };
+
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState: tableState,
+  });
+
+  expect(screen.getByTestId('warning')).toBeInTheDocument();
+
+  mockUseUiConfig.mockRestore();
+});
+
+test('Should show row count warning for table chart with server pagination when limit is reached', () => {
+  const props = createProps({
+    formData: {
+      ...createProps().formData,
+      viz_type: VizType.Table,
+      row_limit: 10,
+      server_pagination: true,
+    },
+    slice: {
+      ...createProps().slice,
+      form_data: {
+        ...createProps().slice.form_data,
+        viz_type: VizType.Table,
+        row_limit: 10,
+        server_pagination: true,
+      },
+      viz_type: VizType.Table,
+    },
+  });
+  const tableWithPaginationState = {
+    ...initialState,
+    charts: {
+      [props.slice.slice_id]: {
+        id: MOCKED_CHART_ID,
+        chartStatus: 'rendered',
+        queriesResponse: [
+          {
+            sql_rowcount: 10,
+            data: Array(10).fill({}),
+          },
+          {
+            data: [{ rowcount: 50 }],
+          },
+        ],
+      },
+    },
+  };
+
+  const mockUseUiConfig = useUiConfig as jest.MockedFunction<
+    typeof useUiConfig
+  >;
+  mockUseUiConfig.mockReturnValue({
+    hideTitle: false,
+    hideTab: false,
+    hideNav: false,
+    hideChartControls: false,
+    emitDataMasks: false,
+    showRowLimitWarning: true,
+  });
+
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState: tableWithPaginationState,
+  });
+
+  expect(screen.getByTestId('warning')).toBeInTheDocument();
+
+  mockUseUiConfig.mockRestore();
+});
+
+test('Should show row count warning for non-table chart when row limit is reached', () => {
+  const props = createProps({
+    formData: {
+      ...createProps().formData,
+      viz_type: VizType.Bar,
+      row_limit: 10,
+    },
+    slice: {
+      ...createProps().slice,
+      form_data: {
+        ...createProps().slice.form_data,
+        viz_type: VizType.Bar,
+        row_limit: 10,
+      },
+      viz_type: VizType.Bar,
+    },
+  });
+  const barChartState = {
+    ...initialState,
+    charts: {
+      [props.slice.slice_id]: {
+        id: MOCKED_CHART_ID,
+        chartStatus: 'rendered',
+        queriesResponse: [
+          {
+            sql_rowcount: 10,
+            data: Array(10).fill({}),
+          },
+        ],
+      },
+    },
+  };
+
+  const mockUseUiConfig = useUiConfig as jest.MockedFunction<
+    typeof useUiConfig
+  >;
+  mockUseUiConfig.mockReturnValue({
+    hideTitle: false,
+    hideTab: false,
+    hideNav: false,
+    hideChartControls: false,
+    emitDataMasks: false,
+    showRowLimitWarning: true,
+  });
+
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState: barChartState,
+  });
+
+  expect(screen.getByTestId('warning')).toBeInTheDocument();
+
+  mockUseUiConfig.mockRestore();
+});
+
+test('Should show row count warning for ag-grid table chart with server pagination when limit is reached', () => {
+  const props = createProps({
+    formData: {
+      ...createProps().formData,
+      viz_type: VizType.TableAgGrid,
+      row_limit: 10,
+      server_pagination: true,
+    },
+    slice: {
+      ...createProps().slice,
+      form_data: {
+        ...createProps().slice.form_data,
+        viz_type: VizType.TableAgGrid,
+        row_limit: 10,
+        server_pagination: true,
+      },
+      viz_type: VizType.TableAgGrid,
+    },
+  });
+  const agGridWithPaginationState = {
+    ...initialState,
+    charts: {
+      [props.slice.slice_id]: {
+        id: MOCKED_CHART_ID,
+        chartStatus: 'rendered',
+        queriesResponse: [
+          {
+            sql_rowcount: 10,
+            data: Array(10).fill({}),
+          },
+          {
+            data: [{ rowcount: 50 }],
+          },
+        ],
+      },
+    },
+  };
+
+  const mockUseUiConfig = useUiConfig as jest.MockedFunction<
+    typeof useUiConfig
+  >;
+  mockUseUiConfig.mockReturnValue({
+    hideTitle: false,
+    hideTab: false,
+    hideNav: false,
+    hideChartControls: false,
+    emitDataMasks: false,
+    showRowLimitWarning: true,
+  });
+
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState: agGridWithPaginationState,
+  });
+
+  expect(screen.getByTestId('warning')).toBeInTheDocument();
+
+  mockUseUiConfig.mockRestore();
+});
+
+test('Should NOT show row count warning for table chart with server pagination when limit is NOT reached', () => {
+  const props = createProps({
+    formData: {
+      ...createProps().formData,
+      viz_type: VizType.Table,
+      row_limit: 100,
+      server_pagination: true,
+    },
+    slice: {
+      ...createProps().slice,
+      form_data: {
+        ...createProps().slice.form_data,
+        viz_type: VizType.Table,
+        row_limit: 100,
+        server_pagination: true,
+      },
+      viz_type: VizType.Table,
+    },
+  });
+  const tableWithPaginationState = {
+    ...initialState,
+    charts: {
+      [props.slice.slice_id]: {
+        id: MOCKED_CHART_ID,
+        chartStatus: 'rendered',
+        queriesResponse: [
+          {
+            sql_rowcount: 10,
+            data: Array(10).fill({}),
+          },
+          {
+            data: [{ rowcount: 30 }],
+          },
+        ],
+      },
+    },
+  };
+
+  const mockUseUiConfig = useUiConfig as jest.MockedFunction<
+    typeof useUiConfig
+  >;
+  mockUseUiConfig.mockReturnValue({
+    hideTitle: false,
+    hideTab: false,
+    hideNav: false,
+    hideChartControls: false,
+    emitDataMasks: false,
+    showRowLimitWarning: true,
+  });
+
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState: tableWithPaginationState,
+  });
+
+  expect(screen.queryByTestId('warning')).not.toBeInTheDocument();
+
   mockUseUiConfig.mockRestore();
 });

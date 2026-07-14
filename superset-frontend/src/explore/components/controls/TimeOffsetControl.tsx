@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactNode, useCallback, useEffect, useState } from 'react';
-import { isEmpty, isEqual } from 'lodash';
+import { isEmpty, isEqual } from 'lodash-es';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import {
   parseDttmToDate,
@@ -206,7 +206,7 @@ export default function TimeOffsetControls({
         .subtract(1, 'day');
       setStartDate(resetDate.toString());
       setFormatedDate(resetDate);
-      onChange(extendedDayjs.utc(resetDate).format(DAYJS_FORMAT));
+      onChange(extendedDayjs(resetDate).utc().format(DAYJS_FORMAT));
       setIsDateSelected(true);
     }
   }, [formatedFilterDate, formatedDate, customStartDateInFilter]);

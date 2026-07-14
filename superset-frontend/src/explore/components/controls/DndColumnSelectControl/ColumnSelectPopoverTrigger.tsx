@@ -19,9 +19,9 @@
 import { useCallback, useEffect, useMemo, useState, ReactNode } from 'react';
 import { useSelector } from 'react-redux';
 
+import { t } from '@apache-superset/core/translation';
 import {
   AdhocColumn,
-  t,
   isAdhocColumn,
   Metric,
   QueryFormMetric,
@@ -51,18 +51,7 @@ interface ColumnSelectPopoverTriggerProps {
   selectedMetrics?: QueryFormMetric[];
 }
 
-const ColumnSelectPopoverTriggerWrapper = (
-  props: ColumnSelectPopoverTriggerProps,
-) => {
-  const datasource = useSelector(
-    (state: any) => state?.explore?.datasource || null,
-  );
-
-  return <ColumnSelectPopoverTriggerInner {...props} datasource={datasource} />;
-};
-
-interface ColumnSelectPopoverTriggerInnerProps
-  extends ColumnSelectPopoverTriggerProps {
+interface ColumnSelectPopoverTriggerInnerProps extends ColumnSelectPopoverTriggerProps {
   datasource?: any;
 }
 
@@ -92,10 +81,6 @@ const ColumnSelectPopoverTriggerInner = ({
     initialPopoverLabel = editedColumn.label || defaultPopoverLabel;
   }
 
-  useEffect(() => {
-    setPopoverLabel(initialPopoverLabel);
-  }, [initialPopoverLabel, popoverVisible]);
-
   const togglePopover = useCallback((visible: boolean) => {
     setPopoverVisible(visible);
   }, []);
@@ -120,6 +105,13 @@ const ColumnSelectPopoverTriggerInner = ({
   const getCurrentTab = useCallback((tab: string) => {
     setIsTitleEditDisabled(tab !== editableTitleTab);
   }, []);
+
+  useEffect(() => {
+    setPopoverLabel(initialPopoverLabel);
+    if (!visible) {
+      setHasCustomLabel(false);
+    }
+  }, [initialPopoverLabel, visible]);
 
   const overlayContent = useMemo(
     () => (
@@ -207,12 +199,24 @@ const ColumnSelectPopoverTriggerInner = ({
         open={visible}
         onOpenChange={handleTogglePopover}
         title={popoverTitle}
-        destroyTooltipOnHide
+        destroyOnHidden
       >
-        {children}
+        {/* Wrap in span so the Popover can attach a ref without relying
+            on findDOMNode (deprecated in React 18+). */}
+        <span>{children}</span>
       </ControlPopover>
     </>
   );
+};
+
+const ColumnSelectPopoverTriggerWrapper = (
+  props: ColumnSelectPopoverTriggerProps,
+) => {
+  const datasource = useSelector(
+    (state: any) => state?.explore?.datasource || null,
+  );
+
+  return <ColumnSelectPopoverTriggerInner {...props} datasource={datasource} />;
 };
 
 export default ColumnSelectPopoverTriggerWrapper;

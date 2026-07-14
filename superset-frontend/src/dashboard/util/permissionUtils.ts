@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   isUserWithPermissionsAndRoles,
   UndefinedUser,
@@ -24,10 +23,14 @@ import {
 } from 'src/types/bootstrapTypes';
 import { Dashboard } from 'src/types/Dashboard';
 import { findPermission } from 'src/utils/findPermission';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 // this should really be a config value,
 // but is hardcoded in backend logic already, so...
 const ADMIN_ROLE_NAME = 'admin';
+
+const getUserSubjects = (): number[] =>
+  getBootstrapData()?.common?.user_subjects ?? [];
 
 export const isUserAdmin = (
   user?: UserWithPermissionsAndRoles | UndefinedUser,
@@ -37,20 +40,20 @@ export const isUserAdmin = (
     role => role.toLowerCase() === ADMIN_ROLE_NAME,
   );
 
-const isUserDashboardOwner = (
-  dashboard: Dashboard,
-  user: UserWithPermissionsAndRoles | UndefinedUser,
-) =>
-  isUserWithPermissionsAndRoles(user) &&
-  dashboard.owners.some(owner => owner.id === user.userId);
+export const isUserDashboardEditor = (dashboard: Dashboard): boolean => {
+  const userSubjects = getUserSubjects();
+  return (
+    dashboard.editors?.some(editor => userSubjects.includes(editor.id)) ?? false
+  );
+};
 
 export const canUserEditDashboard = (
   dashboard: Dashboard,
   user?: UserWithPermissionsAndRoles | UndefinedUser | null,
 ) =>
   isUserWithPermissionsAndRoles(user) &&
-  (isUserAdmin(user) || isUserDashboardOwner(dashboard, user)) &&
-  findPermission('can_write', 'Dashboard', user?.roles);
+  findPermission('can_write', 'Dashboard', user?.roles) &&
+  (isUserAdmin(user) || isUserDashboardEditor(dashboard));
 
 export function userHasPermission(
   user: UserWithPermissionsAndRoles | UndefinedUser,
@@ -76,6 +79,4 @@ export const canUserSaveAsDashboard = (
 ) =>
   isUserWithPermissionsAndRoles(user) &&
   findPermission('can_write', 'Dashboard', user?.roles) &&
-  (!isFeatureEnabled(FeatureFlag.DashboardRbac) ||
-    isUserAdmin(user) ||
-    isUserDashboardOwner(dashboard, user));
+  (isUserAdmin(user) || isUserDashboardEditor(dashboard));

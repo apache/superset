@@ -28,6 +28,7 @@ const defaultProps = {
   onChange: jest.fn(),
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ColorPickerControl', () => {
   beforeAll(() => {
     getCategoricalSchemeRegistry()
@@ -45,7 +46,7 @@ describe('ColorPickerControl', () => {
     jest.clearAllMocks();
   });
 
-  it('renders a ColorPicker component', () => {
+  test('renders a ColorPicker component', () => {
     render(<ColorPickerControl {...defaultProps} />);
 
     // AntD ColorPicker renders a trigger element with class
@@ -55,14 +56,14 @@ describe('ColorPickerControl', () => {
     expect(colorPickerTrigger).toBeInTheDocument();
   });
 
-  it('displays the correct color value', () => {
+  test('displays the correct color value', () => {
     render(<ColorPickerControl {...defaultProps} />);
 
     // The color should be displayed as hex #007A87 (uppercase in AntD)
     expect(screen.getByText('#007A87')).toBeInTheDocument();
   });
 
-  it('calls onChange with RGB values when color changes', async () => {
+  test('calls onChange with RGB values when color changes', async () => {
     const onChange = jest.fn();
     render(<ColorPickerControl {...defaultProps} onChange={onChange} />);
 
@@ -80,7 +81,7 @@ describe('ColorPickerControl', () => {
     // as it uses complex internal components. The main functionality is covered by the component itself.
   });
 
-  it('includes preset colors from the categorical scheme', () => {
+  test('includes preset colors from the categorical scheme', () => {
     render(<ColorPickerControl {...defaultProps} />);
 
     // The component should have access to the preset colors from the registry

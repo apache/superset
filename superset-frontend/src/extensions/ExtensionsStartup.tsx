@@ -16,76 +16,63 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-syntax
 import * as supersetCore from '@apache-superset/core';
-import { logging } from '@superset-ui/core';
 import {
   authentication,
+  chat,
   core,
   commands,
-  environment,
+  editors,
   extensions,
+  menus,
+  navigation,
+  useNavigationTracker,
   sqlLab,
+  views,
 } from 'src/core';
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/views/store';
-import { useExtensionsContext } from './ExtensionsContext';
-import ExtensionsManager from './ExtensionsManager';
+import ExtensionsLoader from './ExtensionsLoader';
+import 'src/extensions/Namespaces';
 
-declare global {
-  interface Window {
-    superset: {
-      authentication: typeof authentication;
-      core: typeof core;
-      commands: typeof commands;
-      environment: typeof environment;
-      extensions: typeof extensions;
-      sqlLab: typeof sqlLab;
-    };
-  }
-}
-
-const ExtensionsStartup = () => {
-  // Initialize the extensions context before initializing extensions
-  // This is a prerequisite for the ExtensionsManager to work correctly
-  useExtensionsContext();
-
-  const [initialized, setInitialized] = useState(false);
+const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
+  children,
+}) => {
+  useNavigationTracker();
 
   const userId = useSelector<RootState, number | undefined>(
     ({ user }) => user.userId,
   );
 
   useEffect(() => {
-    // Skip initialization if already initialized or if user is not logged in
-    if (initialized || !userId) {
-      return;
-    }
+    if (userId == null) return;
 
-    // Provide the implementations for @apache-superset/core
+    // Provide the implementations for @apache-superset/core.
+    // Namespaces are listed explicitly — do not spread the core package here,
+    // as that would leak un-contracted symbols onto window.superset.
     window.superset = {
       ...supersetCore,
       authentication,
+      chat,
       core,
       commands,
-      environment,
+      editors,
       extensions,
+      menus,
+      navigation,
       sqlLab,
+      views,
     };
 
-    // Initialize extensions
-    try {
-      ExtensionsManager.getInstance().initializeExtensions();
-      logging.info('Extensions initialized successfully.');
-    } catch (error) {
-      logging.error('Error setting up extensions:', error);
-    } finally {
-      setInitialized(true);
+    if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
+      ExtensionsLoader.getInstance().initializeExtensions();
     }
-  }, [initialized, userId]);
+  }, [userId]);
 
-  return null;
+  return <>{children}</>;
 };
 
 export default ExtensionsStartup;

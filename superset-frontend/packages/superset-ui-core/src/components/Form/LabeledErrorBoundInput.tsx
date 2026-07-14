@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { Button, Icons, InfoTooltip, Tooltip, Flex } from '..';
 import { Input } from '../Input';
 import { FormLabel } from './FormLabel';
@@ -24,6 +25,10 @@ import { FormItem } from './FormItem';
 import type { LabeledErrorBoundInputProps } from './types';
 
 const StyledInput = styled(Input)`
+  margin: ${({ theme }) => `${theme.sizeUnit}px 0 ${theme.sizeUnit * 2}px`};
+`;
+
+const StyledTextArea = styled(Input.TextArea)`
   margin: ${({ theme }) => `${theme.sizeUnit}px 0 ${theme.sizeUnit * 2}px`};
 `;
 
@@ -61,6 +66,8 @@ export const LabeledErrorBoundInput = ({
   get_url,
   description,
   isValidating = false,
+  renderAsTextArea,
+  textAreaCss,
   ...props
 }: LabeledErrorBoundInputProps) => {
   const hasError = !!errorMessage;
@@ -78,7 +85,7 @@ export const LabeledErrorBoundInput = ({
           isValidating ? 'validating' : hasError ? 'error' : 'success'
         }
         help={errorMessage || helpText}
-        hasFeedback={!!hasError}
+        hasFeedback={isValidating || !!hasError}
       >
         {visibilityToggle || props.name === 'password' ? (
           <StyledInputPassword
@@ -97,6 +104,8 @@ export const LabeledErrorBoundInput = ({
             }
             role="textbox"
           />
+        ) : renderAsTextArea ? (
+          <StyledTextArea css={textAreaCss} {...props} {...validationMethods} />
         ) : (
           <StyledInput {...props} {...validationMethods} />
         )}

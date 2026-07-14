@@ -18,7 +18,7 @@
 ######################################################################
 # Node stage to deal with static asset construction
 ######################################################################
-ARG PY_VER=3.11.13-slim-trixie
+ARG PY_VER=3.11.14-slim-trixie
 
 # If BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
@@ -29,7 +29,7 @@ ARG BUILD_TRANSLATIONS="false"
 ######################################################################
 # superset-node-ci used as a base for building frontend assets and CI
 ######################################################################
-FROM --platform=${BUILDPLATFORM} node:20-trixie-slim AS superset-node-ci
+FROM --platform=${BUILDPLATFORM} node:24-trixie-slim AS superset-node-ci
 ARG BUILD_TRANSLATIONS
 ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
@@ -54,6 +54,13 @@ WORKDIR /app/superset-frontend
 # Create necessary folders to avoid errors in subsequent steps
 RUN mkdir -p /app/superset/static/assets \
              /app/superset/translations
+
+# Harden `npm ci` against transient npm-registry network blips (e.g. ECONNRESET),
+# which otherwise fail the entire multi-platform image build with no retry.
+ENV npm_config_fetch_retries=5 \
+    npm_config_fetch_retry_mintimeout=20000 \
+    npm_config_fetch_retry_maxtimeout=120000 \
+    npm_config_fetch_timeout=600000
 
 # Mount package files and install dependencies if not in dev mode
 # NOTE: we mount packages and plugins as they are referenced in package.json as workspaces
@@ -134,7 +141,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 COPY superset/translations/ /app/translations_mo/
 RUN if [ "${BUILD_TRANSLATIONS}" = "true" ]; then \
-        pybabel compile -d /app/translations_mo | true; \
+        pybabel compile --use-fuzzy -d /app/translations_mo || true; \
     fi; \
     rm -f /app/translations_mo/*/*/*.[po,json]
 
@@ -142,9 +149,6 @@ RUN if [ "${BUILD_TRANSLATIONS}" = "true" ]; then \
 # Python APP common layer
 ######################################################################
 FROM python-base AS python-common
-
-# Build arg to pre-populate examples DuckDB file
-ARG LOAD_EXAMPLES_DUCKDB="false"
 
 ENV SUPERSET_HOME="/app/superset_home" \
     HOME="/app/superset_home" \
@@ -157,7 +161,7 @@ ENV SUPERSET_HOME="/app/superset_home" \
 COPY --chmod=755 docker/entrypoints /app/docker/entrypoints
 
 WORKDIR /app
-# Set up necessary directories and user
+# Set up necessary directories
 RUN mkdir -p \
       ${PYTHONPATH} \
       superset/static \
@@ -168,6 +172,8 @@ RUN mkdir -p \
     && touch superset/static/version_info.json
 
 # Install Playwright and optionally setup headless browsers
+ENV PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/playwright-browsers
+
 ARG INCLUDE_CHROMIUM="false"
 ARG INCLUDE_FIREFOX="false"
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
@@ -197,20 +203,14 @@ RUN /app/docker/apt-install.sh \
       libecpg-dev \
       libldap2-dev
 
-# Pre-load examples DuckDB file if requested
-RUN if [ "$LOAD_EXAMPLES_DUCKDB" = "true" ]; then \
-        mkdir -p /app/data && \
-        echo "Downloading pre-built examples.duckdb..." && \
-        curl -L -o /app/data/examples.duckdb \
-            "https://raw.githubusercontent.com/apache-superset/examples-data/master/examples.duckdb" && \
-        chown -R superset:superset /app/data; \
-    else \
-        mkdir -p /app/data && \
-        chown -R superset:superset /app/data; \
-    fi
+# Create data directory for DuckDB examples database
+# The database file will be created at runtime when examples are loaded from Parquet files
+RUN mkdir -p /app/data && chown -R superset:superset /app/data
 
 # Copy compiled things from previous stages
 COPY --from=superset-node /app/superset/static/assets superset/static/assets
+# Copy service.worker.js optionall as it doesn't exist when DEV_MODE=true
+COPY --from=superset-node /app/superset/static/service-worker.j[s] superset/static/service-worker.js
 
 # TODO, when the next version comes out, use --exclude superset/translations
 COPY superset superset

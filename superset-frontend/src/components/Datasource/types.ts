@@ -54,25 +54,40 @@ export interface CRUDCollectionProps {
   expandFieldset?: ReactNode;
   extraButtons?: ReactNode;
   itemGenerator?: () => any;
-  itemCellProps?: ((
-    val: unknown,
-    label: string,
-    record: any,
-  ) => DetailedHTMLProps<
-    TdHTMLAttributes<HTMLTableCellElement>,
-    HTMLTableCellElement
-  >)[];
-  itemRenderers?: ((
-    val: unknown,
-    onChange: () => void,
-    label: string,
-    record: any,
-  ) => ReactNode)[];
+  itemCellProps?: Record<
+    string,
+    (
+      val: unknown,
+      label: string,
+      record: any,
+    ) => DetailedHTMLProps<
+      TdHTMLAttributes<HTMLTableCellElement>,
+      HTMLTableCellElement
+    >
+  >;
+  itemRenderers?: Record<
+    string,
+    (
+      val: unknown,
+      onChange: (value: unknown) => void,
+      label: string,
+      record: any,
+    ) => ReactNode
+  >;
   onChange?: (arg0: any) => void;
   tableColumns: any[];
   tableLayout?: 'fixed' | 'auto';
   sortColumns: string[];
   stickyHeader?: boolean;
+  pagination?:
+    | boolean
+    | {
+        pageSize?: number;
+        showSizeChanger?: boolean;
+        pageSizeOptions?: number[];
+      };
+  filterTerm?: string;
+  filterFields?: string[];
 }
 
 export type Sort = number | string | boolean | any;
@@ -89,4 +104,12 @@ export interface CRUDCollectionState {
   expandedColumns: Record<PropertyKey, any>;
   sortColumn: string;
   sort: SortOrder;
+  currentPage: number;
+  pageSize: number;
+}
+
+export enum FoldersEditorItemType {
+  Folder = 'folder',
+  Column = 'column',
+  Metric = 'metric',
 }

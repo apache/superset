@@ -51,8 +51,7 @@ export type QueryFormColumn = PhysicalColumn | AdhocColumn;
  * Format: [metric/column, is_ascending].
  */
 export type QueryFormOrderBy =
-  | [QueryFormColumn | QueryFormMetric | {}, boolean]
-  | [];
+  [QueryFormColumn | QueryFormMetric | {}, boolean] | [];
 
 export interface FormDataResidual {
   [key: string]: any;
@@ -131,7 +130,10 @@ export type ExtraFormDataOverrideRegular = Partial<
 > &
   Partial<Pick<SqlaFormData, 'granularity'>> &
   Partial<Pick<BaseFormData, 'time_range'>> &
-  Partial<Pick<QueryObject, 'time_column' | 'time_grain' | 'time_compare'>>;
+  Partial<Pick<QueryObject, 'time_column' | 'time_grain' | 'time_compare'>> & {
+    /** deck.gl layer visibility filter - controls which layers are visible in deck.gl multi-layer charts */
+    visible_deckgl_layers?: number[];
+  };
 
 /** These parameters override those already present in the form data/query object */
 export type ExtraFormDataOverride = ExtraFormDataOverrideRegular &

@@ -16,34 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import {
   isFeatureEnabled,
   FeatureFlag,
-  styled,
   SupersetClient,
-  t,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import { useSelector } from 'react-redux';
 import { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import rison from 'rison';
 import {
   createFetchRelated,
+  createFetchEditors,
+  createFetchViewers,
   createErrorHandler,
   handleDashboardDelete,
 } from 'src/views/CRUD/utils';
+import Subject from 'src/types/Subject';
+import { SUBJECT_OPTION_FILTER_PROPS } from 'src/features/subjects/SubjectSelectLabel';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import {
   CertifiedBadge,
   ConfirmStatusChange,
   DeleteModal,
   FaveStar,
+  InfoTooltip,
   Loading,
   PublishedLabel,
   Tooltip,
 } from '@superset-ui/core/components';
 import {
-  FacePile,
   TagType,
   TagsList,
   ModifiedInfo,
@@ -57,7 +62,6 @@ import {
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
-import Owner from 'src/types/Owner';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Icons } from '@superset-ui/core/components/Icons';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
@@ -104,12 +108,16 @@ export interface Dashboard {
   changed_by_name: string;
   changed_on_delta_humanized: string;
   changed_by: string;
+  changed_on?: string;
   dashboard_title: string;
   id: number;
   published: boolean;
   url: string;
-  thumbnail_url: string;
-  owners: Owner[];
+  changed_on_utc?: string;
+  description?: string;
+  thumbnail_url?: string | null;
+  editors?: Subject[];
+  viewers?: Subject[];
   tags: TagType[];
   created_by: object;
 }
@@ -118,21 +126,40 @@ const Actions = styled.div`
   color: ${({ theme }) => theme.colorIcon};
 `;
 
+const FlexRowContainer = styled.div`
+  align-items: center;
+  display: flex;
+  gap: ${({ theme }) => theme.sizeUnit}px;
+
+  a {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.2;
+    min-width: 0;
+  }
+
+  svg {
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
+  }
+`;
+
 const DASHBOARD_COLUMNS_TO_FETCH = [
   'id',
   'dashboard_title',
   'published',
   'url',
   'slug',
+  'description',
   'changed_by',
   'changed_by.id',
   'changed_by.first_name',
   'changed_by.last_name',
   'changed_on_delta_humanized',
-  'owners',
-  'owners.id',
-  'owners.first_name',
-  'owners.last_name',
+  'editors.id',
+  'editors.label',
+  'editors.img',
+  'editors.type',
   'tags.id',
   'tags.name',
   'tags.type',
@@ -140,6 +167,9 @@ const DASHBOARD_COLUMNS_TO_FETCH = [
   'certified_by',
   'certification_details',
   'changed_on',
+  ...(isFeatureEnabled(FeatureFlag.EnableViewers)
+    ? ['viewers.id', 'viewers.label', 'viewers.img', 'viewers.type']
+    : []),
 ];
 
 function DashboardList(props: DashboardListProps) {
@@ -222,9 +252,9 @@ function DashboardList(props: DashboardListProps) {
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
-  function openDashboardEditModal(dashboard: Dashboard) {
+  const openDashboardEditModal = useCallback((dashboard: Dashboard) => {
     setDashboardToEdit(dashboard);
-  }
+  }, []);
 
   function handleDashboardEdit(edits: Dashboard) {
     return SupersetClient.get({
@@ -235,30 +265,34 @@ function DashboardList(props: DashboardListProps) {
           dashboards.map(dashboard => {
             if (dashboard.id === json?.result?.id) {
               const {
-                changed_by_name,
-                changed_by,
-                dashboard_title = '',
+                changed_by_name: changedByName,
+                changed_by: changedBy,
+                dashboard_title: dashboardTitle = '',
                 slug = '',
-                json_metadata = '',
-                changed_on_delta_humanized,
+                description = '',
+                json_metadata: jsonMetadata = '',
+                changed_on_delta_humanized: changedOnDeltaHumanized,
                 url = '',
-                certified_by = '',
-                certification_details = '',
-                owners,
+                certified_by: certifiedBy = '',
+                certification_details: certificationDetails = '',
+                editors,
+                viewers,
                 tags,
               } = json.result;
               return {
                 ...dashboard,
-                changed_by_name,
-                changed_by,
-                dashboard_title,
+                changed_by_name: changedByName,
+                changed_by: changedBy,
+                dashboard_title: dashboardTitle,
                 slug,
-                json_metadata,
-                changed_on_delta_humanized,
+                description,
+                json_metadata: jsonMetadata,
+                changed_on_delta_humanized: changedOnDeltaHumanized,
                 url,
-                certified_by,
-                certification_details,
-                owners,
+                certified_by: certifiedBy,
+                certification_details: certificationDetails,
+                editors,
+                viewers,
                 tags,
               };
             }
@@ -274,13 +308,23 @@ function DashboardList(props: DashboardListProps) {
     );
   }
 
-  const handleBulkDashboardExport = (dashboardsToExport: Dashboard[]) => {
-    const ids = dashboardsToExport.map(({ id }) => id);
-    handleResourceExport('dashboard', ids, () => {
-      setPreparingExport(false);
-    });
-    setPreparingExport(true);
-  };
+  const handleBulkDashboardExport = useCallback(
+    async (dashboardsToExport: Dashboard[]) => {
+      const ids = dashboardsToExport.map(({ id }) => id);
+      setPreparingExport(true);
+      try {
+        await handleResourceExport('dashboard', ids, () => {
+          setPreparingExport(false);
+        });
+      } catch (error) {
+        setPreparingExport(false);
+        addDangerToast(
+          t('There was an issue exporting the selected dashboards'),
+        );
+      }
+    },
+    [addDangerToast],
+  );
 
   function handleBulkDashboardDelete(dashboardsToDelete: Dashboard[]) {
     return SupersetClient.delete({
@@ -329,20 +373,24 @@ function DashboardList(props: DashboardListProps) {
               dashboard_title: dashboardTitle,
               certified_by: certifiedBy,
               certification_details: certificationDetails,
+              description,
             },
           },
         }: any) => (
-          <Link to={url} title={dashboardTitle}>
-            {certifiedBy && (
-              <>
-                <CertifiedBadge
-                  certifiedBy={certifiedBy}
-                  details={certificationDetails}
-                />{' '}
-              </>
-            )}
-            {dashboardTitle}
-          </Link>
+          <FlexRowContainer>
+            <Link to={url} title={dashboardTitle}>
+              {certifiedBy && (
+                <>
+                  <CertifiedBadge
+                    certifiedBy={certifiedBy}
+                    details={certificationDetails}
+                  />{' '}
+                </>
+              )}
+              {dashboardTitle}
+            </Link>
+            {description && <InfoTooltip tooltip={description} />}
+          </FlexRowContainer>
         ),
         Header: t('Name'),
         accessor: 'dashboard_title',
@@ -393,14 +441,29 @@ function DashboardList(props: DashboardListProps) {
       {
         Cell: ({
           row: {
-            original: { owners = [] },
+            original: { editors = [] },
           },
-        }: any) => <FacePile users={owners} />,
-        Header: t('Owners'),
-        accessor: 'owners',
+        }: any) => <SubjectPile subjects={editors} />,
+        Header: t('Editors'),
+        accessor: 'editors',
         disableSortBy: true,
-        id: 'owners',
+        id: 'editors',
       },
+      ...(isFeatureEnabled(FeatureFlag.EnableViewers)
+        ? [
+            {
+              Cell: ({
+                row: {
+                  original: { viewers = [] },
+                },
+              }: any) => <SubjectPile subjects={viewers} />,
+              Header: t('Viewers'),
+              accessor: 'viewers',
+              disableSortBy: true,
+              id: 'viewers',
+            },
+          ]
+        : []),
       {
         Cell: ({
           row: {
@@ -428,6 +491,40 @@ function DashboardList(props: DashboardListProps) {
 
           return (
             <Actions className="actions">
+              {canEdit && (
+                <Tooltip
+                  id="edit-action-tooltip"
+                  title={t('Edit')}
+                  placement="bottom"
+                >
+                  <span
+                    data-test="dashboard-row-edit"
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleEdit}
+                  >
+                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
+                  </span>
+                </Tooltip>
+              )}
+              {canExport && (
+                <Tooltip
+                  id="export-action-tooltip"
+                  title={t('Export')}
+                  placement="bottom"
+                >
+                  <span
+                    data-test="dashboard-row-export"
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleExport}
+                  >
+                    <Icons.UploadOutlined iconSize="l" />
+                  </span>
+                </Tooltip>
+              )}
               {canDelete && (
                 <ConfirmStatusChange
                   title={t('Please confirm')}
@@ -446,6 +543,7 @@ function DashboardList(props: DashboardListProps) {
                       placement="bottom"
                     >
                       <span
+                        data-test="dashboard-row-delete"
                         role="button"
                         tabIndex={0}
                         className="action-button"
@@ -459,38 +557,6 @@ function DashboardList(props: DashboardListProps) {
                     </Tooltip>
                   )}
                 </ConfirmStatusChange>
-              )}
-              {canExport && (
-                <Tooltip
-                  id="export-action-tooltip"
-                  title={t('Export')}
-                  placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleExport}
-                  >
-                    <Icons.UploadOutlined iconSize="l" />
-                  </span>
-                </Tooltip>
-              )}
-              {canEdit && (
-                <Tooltip
-                  id="edit-action-tooltip"
-                  title={t('Edit')}
-                  placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleEdit}
-                  >
-                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
-                  </span>
-                </Tooltip>
               )}
             </Actions>
           );
@@ -516,6 +582,8 @@ function DashboardList(props: DashboardListProps) {
       refreshData,
       addSuccessToast,
       addDangerToast,
+      handleBulkDashboardExport,
+      openDashboardEditModal,
     ],
   );
 
@@ -537,7 +605,7 @@ function DashboardList(props: DashboardListProps) {
   );
 
   const filters: ListViewFilters = useMemo(() => {
-    const filters_list = [
+    const filtersList = [
       {
         Header: t('Name'),
         key: 'search',
@@ -571,28 +639,55 @@ function DashboardList(props: DashboardListProps) {
           ]
         : []),
       {
-        Header: t('Owner'),
-        key: 'owner',
-        id: 'owners',
+        Header: t('Editor'),
+        key: 'editor',
+        id: 'editors',
         input: 'select',
         operator: FilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
-        fetchSelects: createFetchRelated(
+        fetchSelects: createFetchEditors(
           'dashboard',
-          'owners',
           createErrorHandler(errMsg =>
             addDangerToast(
               t(
-                'An error occurred while fetching dashboard owner values: %s',
+                'An error occurred while fetching dashboard editor values: %s',
                 errMsg,
               ),
             ),
           ),
-          props.user,
+          user,
         ),
+        optionFilterProps: SUBJECT_OPTION_FILTER_PROPS,
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
+      ...(isFeatureEnabled(FeatureFlag.EnableViewers)
+        ? [
+            {
+              Header: t('Viewer'),
+              key: 'viewer',
+              id: 'viewers',
+              input: 'select',
+              operator: FilterOperator.RelationManyMany,
+              unfilteredLabel: t('All'),
+              fetchSelects: createFetchViewers(
+                'dashboard',
+                createErrorHandler(errMsg =>
+                  addDangerToast(
+                    t(
+                      'An error occurred while fetching dashboard viewer values: %s',
+                      errMsg,
+                    ),
+                  ),
+                ),
+                user,
+              ),
+              optionFilterProps: SUBJECT_OPTION_FILTER_PROPS,
+              paginate: true,
+              popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+            },
+          ]
+        : []),
       ...(user?.userId ? [favoritesFilter] : []),
       {
         Header: t('Certified'),
@@ -626,11 +721,11 @@ function DashboardList(props: DashboardListProps) {
           user,
         ),
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ] as ListViewFilters;
-    return filters_list;
-  }, [addDangerToast, favoritesFilter, props.user]);
+    return filtersList;
+  }, [addDangerToast, canReadTag, favoritesFilter, user]);
 
   const sortTypes = [
     {
@@ -681,6 +776,8 @@ function DashboardList(props: DashboardListProps) {
       user?.userId,
       saveFavoriteStatus,
       userKey,
+      handleBulkDashboardExport,
+      openDashboardEditModal,
     ],
   );
 
@@ -717,7 +814,7 @@ function DashboardList(props: DashboardListProps) {
       name: t('Dashboard'),
       buttonStyle: 'primary',
       onClick: () => {
-        navigateTo('/dashboard/new', { assign: true });
+        navigateTo('/dashboard/new/', { assign: true });
       },
     });
   }

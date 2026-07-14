@@ -34,7 +34,6 @@ Object.defineProperty(window, 'matchMedia', {
 });
 
 jest.mock('@superset-ui/core', () => ({
-  // @ts-ignore
   ...jest.requireActual('@superset-ui/core'),
   getChartMetadataRegistry: () => ({
     items: {
@@ -85,6 +84,15 @@ test('the form validates required fields', async () => {
   expect(onSave).toHaveBeenCalledTimes(0);
 });
 
+async function openDropdownAndAddFilter(
+  getByTestId: (id: string) => HTMLElement,
+  findByRole: (role: string, opts: { name: RegExp }) => Promise<HTMLElement>,
+) {
+  fireEvent.mouseEnter(getByTestId('new-item-dropdown-button'));
+  fireEvent.click(await findByRole('menuitem', { name: /add filter/i }));
+}
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('createNewOnOpen', () => {
   test('does not show alert when there is no unsaved filters', async () => {
     const onCancel = jest.fn();
@@ -95,14 +103,27 @@ describe('createNewOnOpen', () => {
 
   test('shows correct alert message for unsaved filters', async () => {
     const onCancel = jest.fn();
-    const { getByRole, getByTestId } = setup({
+    const { getByRole, getByTestId, findByRole } = setup({
       onCancel,
       createNewOnOpen: false,
     });
-    fireEvent.click(getByTestId('add-new-filter-button'));
+    await openDropdownAndAddFilter(getByTestId, findByRole);
     fireEvent.click(getByRole('button', { name: 'Cancel' }));
     expect(onCancel).toHaveBeenCalledTimes(0);
     expect(getByRole('alert')).toBeInTheDocument();
     expect(getByRole('alert')).toHaveTextContent('There are unsaved changes.');
+  });
+
+  test('confirm-cancel button proceeds with cancel after the unsaved alert', async () => {
+    const onCancel = jest.fn();
+    const { getByRole, getByTestId, findByRole } = setup({
+      onCancel,
+      createNewOnOpen: false,
+    });
+    await openDropdownAndAddFilter(getByTestId, findByRole);
+    fireEvent.click(getByRole('button', { name: 'Cancel' }));
+    expect(getByRole('alert')).toBeInTheDocument();
+    fireEvent.click(getByTestId('native-filter-modal-confirm-cancel-button'));
+    expect(onCancel).toHaveBeenCalledTimes(1);
   });
 });

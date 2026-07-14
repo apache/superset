@@ -18,9 +18,10 @@
  */
 
 import { render, screen } from 'spec/helpers/testing-library';
-import * as useQueryParamsModule from 'use-query-params';
+import { SubjectType } from 'src/types/Subject';
 import AllEntitiesTable from './AllEntitiesTable';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AllEntitiesTable', () => {
   const mockSetShowTagModal = jest.fn();
 
@@ -29,6 +30,9 @@ describe('AllEntitiesTable', () => {
     chart: [],
     query: [],
   };
+  const johnEditor = { id: 1, label: 'John Doe', type: SubjectType.User };
+  const janeEditor = { id: 2, label: 'Jane Smith', type: SubjectType.User };
+  const aliceEditor = { id: 3, label: 'Alice Brown', type: SubjectType.User };
 
   const mockObjectsWithTags = {
     dashboard: [
@@ -40,7 +44,7 @@ describe('AllEntitiesTable', () => {
         changed_on: '2023-11-20T12:34:56Z',
         created_by: 1,
         creator: 'John Doe',
-        owners: [{ id: 1, first_name: 'John', last_name: 'Doe' }],
+        editors: [johnEditor],
         tags: [
           { id: 101, name: 'Sales', type: 'TagType.custom' },
           { id: 42, name: 'Current Tag', type: 'TagType.custom' },
@@ -56,7 +60,7 @@ describe('AllEntitiesTable', () => {
         changed_on: '2023-11-19T12:00:00Z',
         created_by: 2,
         creator: 'Jane Smith',
-        owners: [{ id: 2, first_name: 'Jane', last_name: 'Smith' }],
+        editors: [janeEditor],
         tags: [
           { id: 102, name: 'Revenue', type: 'TagType.custom' },
           { id: 42, name: 'Current Tag', type: 'TagType.custom' },
@@ -72,7 +76,7 @@ describe('AllEntitiesTable', () => {
         changed_on: '2023-11-18T09:30:00Z',
         created_by: 3,
         creator: 'Alice Brown',
-        owners: [{ id: 3, first_name: 'Alice', last_name: 'Brown' }],
+        editors: [aliceEditor],
         tags: [
           { id: 103, name: 'Engagement', type: 'TagType.custom' },
           { id: 42, name: 'Current Tag', type: 'TagType.custom' },
@@ -81,17 +85,11 @@ describe('AllEntitiesTable', () => {
     ],
   };
 
-  beforeEach(() => {
-    jest
-      .spyOn(useQueryParamsModule, 'useQueryParam')
-      .mockReturnValue([42, jest.fn()]);
-  });
-
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  it('renders when empty with button to tag if user has perm', () => {
+  test('renders when empty with button to tag if user has perm', () => {
     render(
       <AllEntitiesTable
         search=""
@@ -109,7 +107,7 @@ describe('AllEntitiesTable', () => {
     expect(screen.getByText('Add tag to entities')).toBeInTheDocument();
   });
 
-  it('renders when empty without button to tag if user does not have perm', () => {
+  test('renders when empty without button to tag if user does not have perm', () => {
     render(
       <AllEntitiesTable
         search=""
@@ -127,7 +125,7 @@ describe('AllEntitiesTable', () => {
     expect(screen.queryByText('Add tag to entities')).not.toBeInTheDocument();
   });
 
-  it('renders the correct tags for each object type', () => {
+  test('renders the correct tags for each object type', () => {
     render(
       <AllEntitiesTable
         search=""
@@ -151,7 +149,7 @@ describe('AllEntitiesTable', () => {
     expect(screen.getByText('Engagement')).toBeInTheDocument();
   });
 
-  it('Only list asset types that have entities', () => {
+  test('Only list asset types that have entities', () => {
     const mockObjects = {
       dashboard: [],
       chart: [mockObjectsWithTags.chart[0]],

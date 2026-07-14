@@ -24,6 +24,7 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+import type { ReactNode } from 'react';
 
 import {
   FeatureFlag,
@@ -31,8 +32,177 @@ import {
   SupersetClient,
   TextResponse,
 } from '@superset-ui/core';
+import rison from 'rison';
 import { NotificationMethod, mapSlackValues } from './NotificationMethod';
 import { NotificationMethodOption, NotificationSetting } from '../types';
+
+type MockAsyncSelectOption = {
+  label: string;
+  value: string;
+};
+
+type MockAsyncSelectProps = {
+  ariaLabel?: string;
+  'data-test'?: string;
+  name?: string;
+  onChange?: (value: MockAsyncSelectOption[]) => void;
+  options?: (
+    filterValue: string,
+    page: number,
+    pageSize: number,
+  ) => Promise<{ data: MockAsyncSelectOption[]; totalCount: number }>;
+  placeholder?: string;
+  value?: MockAsyncSelectOption[];
+};
+
+type MockInputProps = {
+  'data-test'?: string;
+  name?: string;
+  onChange?: (event: { target: { value: string } }) => void;
+  placeholder?: string;
+  type?: string;
+  value?: string;
+};
+
+type MockSelectProps = {
+  'data-test'?: string;
+  ariaLabel?: string;
+  loading?: boolean;
+  name?: string;
+  onChange?: (value: unknown) => void;
+  placeholder?: string;
+  value?: { label?: string; value?: string } | MockAsyncSelectOption[];
+};
+
+jest.mock('@superset-ui/core/components', () => {
+  const React = jest.requireActual('react') as typeof import('react');
+  const Input = Object.assign(
+    ({
+      'data-test': dataTest,
+      onChange,
+      placeholder,
+      type = 'text',
+      value = '',
+      ...rest
+    }: MockInputProps) => (
+      <input
+        data-test={dataTest}
+        onChange={({ target: { value: inputValue } }) =>
+          onChange?.({ target: { value: inputValue } })
+        }
+        placeholder={placeholder}
+        type={type}
+        value={value}
+        {...rest}
+      />
+    ),
+    {
+      TextArea: ({
+        'data-test': dataTest,
+        onChange,
+        value = '',
+        ...rest
+      }: MockInputProps) => (
+        <textarea
+          data-test={dataTest}
+          onChange={({ target: { value: inputValue } }) =>
+            onChange?.({ target: { value: inputValue } })
+          }
+          value={value}
+          {...rest}
+        />
+      ),
+    },
+  );
+
+  return {
+    Input,
+    Select: ({
+      'data-test': dataTest,
+      ariaLabel,
+      name,
+      placeholder,
+      value,
+    }: MockSelectProps) => {
+      const label = Array.isArray(value) ? undefined : value?.label;
+
+      return (
+        <div>
+          <input
+            aria-label={ariaLabel ?? name}
+            data-test={dataTest}
+            placeholder={placeholder}
+            readOnly
+            value={label ?? ''}
+          />
+          {label && <span title={label}>{label}</span>}
+        </div>
+      );
+    },
+    AsyncSelect: ({
+      ariaLabel,
+      'data-test': dataTest,
+      name,
+      onChange,
+      options,
+      placeholder,
+      value = [],
+    }: MockAsyncSelectProps) => {
+      const [loadedOptions, setLoadedOptions] = React.useState<
+        MockAsyncSelectOption[]
+      >([]);
+      const [searchValue, setSearchValue] = React.useState('');
+      const inputRef = React.useRef<HTMLInputElement>(null);
+
+      return (
+        <>
+          <input
+            aria-label={ariaLabel ?? name}
+            data-test={dataTest}
+            placeholder={placeholder}
+            ref={inputRef}
+            value={searchValue || value.map(option => option.value).join(',')}
+            onChange={({ target: { value: inputValue } }) => {
+              setSearchValue(inputValue);
+              onChange?.(
+                inputValue
+                  .split(/[,;]/)
+                  .map(option => option.trim())
+                  .filter(Boolean)
+                  .map(option => ({ label: option, value: option })),
+              );
+            }}
+          />
+          {options && dataTest && (
+            <button
+              data-test={`${dataTest}-load-options`}
+              type="button"
+              onClick={async () => {
+                const result = await options(
+                  inputRef.current?.value ?? '',
+                  0,
+                  25,
+                );
+                setLoadedOptions(result.data);
+              }}
+            >
+              Load options
+            </button>
+          )}
+          {loadedOptions.map(option => (
+            <span key={option.value}>{option.label}</span>
+          ))}
+        </>
+      );
+    },
+  };
+});
+
+jest.mock('../AlertReportModal', () => ({
+  StyledInputContainer: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
+}));
 
 const mockOnUpdate = jest.fn();
 const mockOnRemove = jest.fn();
@@ -62,13 +232,14 @@ const mockSettingSlackV2: NotificationSetting = {
   ],
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('NotificationMethod', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     cleanup();
   });
 
-  it('should render the component', () => {
+  test('should render the component', () => {
     render(
       <NotificationMethod
         setting={mockSetting}
@@ -89,7 +260,7 @@ describe('NotificationMethod', () => {
     expect(screen.getByText('Email recipients')).toBeInTheDocument();
   });
 
-  it('should call onRemove when the delete button is clicked', () => {
+  test('should call onRemove when the delete button is clicked', () => {
     render(
       <NotificationMethod
         setting={mockSetting}
@@ -109,7 +280,7 @@ describe('NotificationMethod', () => {
     expect(mockOnRemove).toHaveBeenCalledWith(1);
   });
 
-  it('should update recipient value when input changes', () => {
+  test('should update recipient value when input changes', () => {
     render(
       <NotificationMethod
         setting={mockSetting}
@@ -134,7 +305,7 @@ describe('NotificationMethod', () => {
     });
   });
 
-  it('should call onRecipientsChange when the recipients value is changed', () => {
+  test('should call onRecipientsChange when the recipients value is changed', () => {
     render(
       <NotificationMethod
         setting={mockSetting}
@@ -159,7 +330,70 @@ describe('NotificationMethod', () => {
     });
   });
 
-  it('should correctly map recipients when method is SlackV2', () => {
+  test('should load email recipient options from report users', async () => {
+    jest.spyOn(SupersetClient, 'get').mockResolvedValueOnce({
+      json: {
+        count: 1,
+        result: [
+          {
+            text: 'Test User',
+            value: 1,
+            extra: {
+              email: 'test@example.com',
+            },
+          },
+        ],
+      },
+    } as unknown as JsonResponse);
+
+    render(
+      <NotificationMethod
+        setting={{
+          ...mockSetting,
+          options: [NotificationMethodOption.Email],
+        }}
+        index={0}
+        onUpdate={mockOnUpdate}
+        onRemove={mockOnRemove}
+        onInputChange={mockOnInputChange}
+        email_subject={mockEmailSubject}
+        defaultSubject={mockDefaultSubject}
+        setErrorSubject={mockSetErrorSubject}
+      />,
+    );
+
+    const filterValue = 'test +&#';
+    fireEvent.change(screen.getByTestId('recipients'), {
+      target: { value: filterValue },
+    });
+    fireEvent.click(screen.getByTestId('recipients-load-options'));
+
+    expect(
+      await screen.findByText('Test User <test@example.com>'),
+    ).toBeInTheDocument();
+    expect(SupersetClient.get).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: expect.stringContaining(
+          '/api/v1/report/related/created_by?q=',
+        ),
+      }),
+    );
+    expect(SupersetClient.get).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: expect.stringContaining(
+          `q=${rison.encode_uri({
+            filter: filterValue,
+            page: 0,
+            page_size: 25,
+            order_column: 'username',
+            order_direction: 'asc',
+          })}`,
+        ),
+      }),
+    );
+  });
+
+  test('should correctly map recipients when method is SlackV2', () => {
     const method = 'SlackV2';
     const recipientValue = 'user1,user2';
     const slackOptions: { label: string; value: string }[] = [
@@ -175,7 +409,7 @@ describe('NotificationMethod', () => {
     ]);
   });
 
-  it('should return an empty array when recipientValue is an empty string', () => {
+  test('should return an empty array when recipientValue is an empty string', () => {
     const method = 'SlackV2';
     const recipientValue = '';
     const slackOptions: { label: string; value: string }[] = [
@@ -188,7 +422,7 @@ describe('NotificationMethod', () => {
     expect(result).toEqual([]);
   });
 
-  it('should correctly map recipients when method is Slack with updated recipient values', () => {
+  test('should correctly map recipients when method is Slack with updated recipient values', () => {
     const method = 'Slack';
     const recipientValue = 'User One,User Two';
     const slackOptions: { label: string; value: string }[] = [
@@ -203,7 +437,7 @@ describe('NotificationMethod', () => {
       { label: 'User Two', value: 'user2' },
     ]);
   });
-  it('should render CC and BCC fields when method is Email and visibility flags are true', () => {
+  test('should render CC and BCC fields when method is Email and visibility flags are true', () => {
     const defaultProps = {
       setting: {
         method: NotificationMethodOption.Email,
@@ -230,7 +464,7 @@ describe('NotificationMethod', () => {
     expect(getByTestId('cc')).toBeInTheDocument();
     expect(getByTestId('bcc')).toBeInTheDocument();
   });
-  it('should render CC and BCC fields with correct values when method is Email', () => {
+  test('should render CC and BCC fields with correct values when method is Email', () => {
     const defaultProps = {
       setting: {
         method: NotificationMethodOption.Email,
@@ -257,7 +491,7 @@ describe('NotificationMethod', () => {
     expect(getByTestId('cc')).toHaveValue('cc1@example.com');
     expect(getByTestId('bcc')).toHaveValue('bcc1@example.com');
   });
-  it('should not render CC and BCC fields when method is not Email', () => {
+  test('should not render CC and BCC fields when method is not Email', () => {
     const defaultProps = {
       setting: {
         method: NotificationMethodOption.Slack,
@@ -285,7 +519,7 @@ describe('NotificationMethod', () => {
     expect(queryByTestId('bcc')).not.toBeInTheDocument();
   });
   // Handle empty recipients list gracefully
-  it('should handle empty recipients list gracefully', () => {
+  test('should handle empty recipients list gracefully', () => {
     const defaultProps = {
       setting: {
         method: NotificationMethodOption.Email,
@@ -312,7 +546,7 @@ describe('NotificationMethod', () => {
     expect(queryByTestId('cc')).not.toBeInTheDocument();
     expect(queryByTestId('bcc')).not.toBeInTheDocument();
   });
-  it('shows the right combo when ff is false', async () => {
+  test('shows the right combo when ff is false', async () => {
     /* should show the div with "Recipients are separated by"
     when FeatureFlag.AlertReportSlackV2 is false and fetchSlackChannels errors
     */
@@ -347,7 +581,7 @@ describe('NotificationMethod', () => {
       ).toBeInTheDocument();
     });
   });
-  it('shows the textbox when the fetch fails', async () => {
+  test('shows the textbox when the fetch fails', async () => {
     /* should show the div with "Recipients are separated by"
     when FeatureFlag.AlertReportSlackV2 is true and fetchSlackChannels errors
     */
@@ -383,7 +617,7 @@ describe('NotificationMethod', () => {
       ).toBeInTheDocument();
     });
   });
-  it('shows the dropdown when ff is true and slackChannels succeed', async () => {
+  test('shows the dropdown when ff is true and slackChannels succeed', async () => {
     /* should show the Select channels dropdown
     when FeatureFlag.AlertReportSlackV2 is true and fetchSlackChannels succeeds
     */
@@ -422,7 +656,7 @@ describe('NotificationMethod', () => {
       expect(screen.getByTitle('Slack')).toBeInTheDocument();
     });
   });
-  it('shows the textarea when ff is true and slackChannels fail', async () => {
+  test('shows the textarea when ff is true and slackChannels fail', async () => {
     /* should show the Select channels dropdown
     when FeatureFlag.AlertReportSlackV2 is true and fetchSlackChannels succeeds
     */
@@ -456,7 +690,7 @@ describe('NotificationMethod', () => {
       screen.getByText('Recipients are separated by "," or ";"'),
     ).toBeInTheDocument();
   });
-  it('shows the textarea when ff is true and slackChannels fail and slack is selected', async () => {
+  test('shows the textarea when ff is true and slackChannels fail and slack is selected', async () => {
     /* should show the Select channels dropdown
     when FeatureFlag.AlertReportSlackV2 is true and fetchSlackChannels succeeds
     */
@@ -491,7 +725,7 @@ describe('NotificationMethod', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows the textarea when ff is true, slackChannels fail and slack is selected', async () => {
+  test('shows the textarea when ff is true, slackChannels fail and slack is selected', async () => {
     window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
     jest.spyOn(SupersetClient, 'get').mockImplementation(() => {
       throw new Error('Error fetching Slack channels');
@@ -518,8 +752,9 @@ describe('NotificationMethod', () => {
     ).toBeInTheDocument();
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('RefreshLabel functionality', () => {
-    it('should call updateSlackOptions with force true when RefreshLabel is clicked', async () => {
+    test('should call updateSlackOptions with force true when RefreshLabel is clicked', async () => {
       // Set feature flag so that SlackV2 branch renders RefreshLabel
       window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
       // Spy on SupersetClient.get which is called by updateSlackOptions

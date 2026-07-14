@@ -35,11 +35,12 @@ from superset.db_engine_specs.base import (
     BasicParametersMixin,
     BasicParametersType,
     BasicPropertiesType,
+    DatabaseCategory,
 )
 from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils.core import GenericDataType
-from superset.utils.hashing import md5_sha_from_str
+from superset.utils.hashing import hash_from_str
 from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
@@ -151,64 +152,38 @@ class DatabendBaseEngineSpec(BaseEngineSpec):
         return None
 
 
-class DatabendEngineSpec(DatabendBaseEngineSpec):
-    """Engine spec for databend_sqlalchemy connector"""
-
-    engine = "databend"
-    engine_name = "Databend"
-    _function_names: list[str] = []
-
-    _show_functions_column = "name"
-    supports_file_upload = False
-
-    @classmethod
-    def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
-        return {NewConnectionError: SupersetDBAPIDatabaseError}
-
-    @classmethod
-    def get_dbapi_mapped_exception(cls, exception: Exception) -> Exception:
-        new_exception = cls.get_dbapi_exception_mapping().get(type(exception))
-        if new_exception == SupersetDBAPIDatabaseError:
-            return SupersetDBAPIDatabaseError("Connection failed")
-        if not new_exception:
-            return exception
-        return new_exception(str(exception))
-
-    @classmethod
-    def get_function_names(cls, database: Database) -> list[str]:
-        if cls._function_names:
-            return cls._function_names
-        try:
-            names = database.get_df("SELECT name FROM system.functions;")[
-                "name"
-            ].tolist()
-            cls._function_names = names
-            return names
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.exception("Error retrieving system.functions: %s", str(ex))
-            return []
-
-
 class DatabendParametersSchema(Schema):
-    username = fields.String(allow_none=True, description=__("Username"))
-    password = fields.String(allow_none=True, description=__("Password"))
-    host = fields.String(required=True, description=__("Hostname or IP address"))
+    username = fields.String(allow_none=True, metadata={"description": __("Username")})
+    password = fields.String(allow_none=True, metadata={"description": __("Password")})
+    host = fields.String(
+        required=True, metadata={"description": __("Hostname or IP address")}
+    )
     port = fields.Integer(
         allow_none=True,
-        description=__("Database port"),
+        metadata={"description": __("Database port")},
         validate=Range(min=0, max=65535),
     )
-    database = fields.String(allow_none=True, description=__("Database name"))
+    database = fields.String(
+        allow_none=True, metadata={"description": __("Database name")}
+    )
     encryption = fields.Boolean(
-        default=True, description=__("Use an encrypted connection to the database")
+        dump_default=True,
+        metadata={"description": __("Use an encrypted connection to the database")},
     )
     query = fields.Dict(
-        keys=fields.Str(), values=fields.Raw(), description=__("Additional parameters")
+        keys=fields.Str(),
+        values=fields.Raw(),
+        metadata={"description": __("Additional parameters")},
     )
 
 
-class DatabendConnectEngineSpec(BasicParametersMixin, DatabendEngineSpec):
-    """Engine spec for databend sqlalchemy connector"""
+class DatabendEngineSpec(BasicParametersMixin, DatabendBaseEngineSpec):
+    """Engine spec for Databend with native connection UI.
+
+    Databend has a single connector (``databend-sqlalchemy``), so this single
+    spec supports both SQLAlchemy URI and individual-parameter (dynamic form)
+    configuration. Both styles resolve to the ``databend`` SQLAlchemy backend.
+    """
 
     engine = "databend"
     engine_name = "Databend"
@@ -216,15 +191,44 @@ class DatabendConnectEngineSpec(BasicParametersMixin, DatabendEngineSpec):
     default_driver = "databend"
     _function_names: list[str] = []
 
+    _show_functions_column = "name"
+    supports_file_upload = False
+
     sqlalchemy_uri_placeholder = (
         "databend://user:password@host[:port][/dbname][?secure=value&=value...]"
     )
     parameters_schema = DatabendParametersSchema()
     encryption_parameters = {"secure": "true"}
 
+    metadata = {
+        "description": (
+            "Databend is a modern cloud-native data warehouse with instant elasticity "
+            "and pay-as-you-go pricing. Built in Rust for high performance."
+        ),
+        "logo": "databend.png",
+        "homepage_url": "https://www.databend.com/",
+        "categories": [
+            DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["databend-sqlalchemy"],
+        "connection_string": (
+            "databend://{username}:{password}@{host}:{port}/{database}?secure=true"
+        ),
+        "default_port": 443,
+        "parameters": {
+            "username": "Database username",
+            "password": "Database password",
+            "host": "Databend host",
+            "port": "Databend port (default 443 for HTTPS)",
+            "database": "Database name",
+        },
+    }
+
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
-        return {}
+        return {NewConnectionError: SupersetDBAPIDatabaseError}
 
     @classmethod
     def get_dbapi_mapped_exception(cls, exception: Exception) -> Exception:
@@ -363,4 +367,22 @@ class DatabendConnectEngineSpec(BasicParametersMixin, DatabendEngineSpec):
         :param label: Expected expression label
         :return: Conditionally mutated label
         """
-        return f"{label}_{md5_sha_from_str(label)[:6]}"
+        return f"{label}_{hash_from_str(label)[:6]}"
+
+
+def __getattr__(name: str) -> Any:
+    # Backwards-compatible alias. Previously there were two separate specs
+    # (a legacy ``DatabendEngineSpec`` without parameter support and a
+    # ``DatabendConnectEngineSpec`` with it), both registered under the
+    # ``databend`` engine. Because neither declared distinct ``drivers``,
+    # ``get_engine_spec`` resolved to the first-defined (legacy) spec, which
+    # lacks ``parameters_schema``/``build_sqlalchemy_uri`` and broke the
+    # "configure via individual parameters" flow. They are now merged into a
+    # single spec.
+    #
+    # The alias is exposed via module-level ``__getattr__`` (PEP 562) rather
+    # than a class binding so that ``load_engine_specs`` -- which iterates
+    # ``module.__dict__`` -- does not collect the same spec twice.
+    if name == "DatabendConnectEngineSpec":
+        return DatabendEngineSpec
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

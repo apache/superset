@@ -17,8 +17,9 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { styled, t } from '@superset-ui/core';
-import { Modal } from '@superset-ui/core/components';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
+import { Modal, Loading, Flex } from '@superset-ui/core/components';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
 interface StandardModalProps {
@@ -31,14 +32,12 @@ interface StandardModalProps {
   saveDisabled?: boolean;
   saveLoading?: boolean;
   saveText?: string;
-  cancelText?: string;
   errorTooltip?: ReactNode;
   children: ReactNode;
   isEditMode?: boolean;
   centered?: boolean;
-  destroyOnClose?: boolean;
-  maskClosable?: boolean;
   wrapProps?: object;
+  contentLoading?: boolean;
 }
 
 // Standard modal widths
@@ -48,7 +47,7 @@ export const MODAL_LARGE_WIDTH = 900;
 
 const StyledModal = styled(Modal)`
   .ant-modal-body {
-    max-height: 60vh;
+    max-height: 80vh;
     height: auto;
     overflow-y: auto;
     padding: 0;
@@ -74,7 +73,7 @@ const StyledModal = styled(Modal)`
   .ant-collapse {
     border: none;
 
-    > .ant-collapse-item:first-child {
+    > .ant-collapse-item:first-of-type {
       border-top: none;
     }
 
@@ -90,7 +89,7 @@ const StyledModal = styled(Modal)`
   }
 
   /* Ensure collapse sections have proper padding */
-  .ant-collapse-content-box {
+  .ant-collapse-body {
     padding: ${({ theme }) => theme.sizeUnit * 4}px;
   }
 `;
@@ -105,20 +104,18 @@ export function StandardModal({
   saveDisabled = false,
   saveLoading = false,
   saveText,
-  cancelText,
   errorTooltip,
   children,
   isEditMode = false,
   centered = true,
-  destroyOnClose = true,
-  maskClosable = false,
   wrapProps,
+  contentLoading = false,
 }: StandardModalProps) {
   const primaryButtonName = saveText || (isEditMode ? t('Save') : t('Add'));
 
   return (
     <StyledModal
-      disablePrimaryButton={saveDisabled || saveLoading}
+      disablePrimaryButton={saveDisabled || saveLoading || contentLoading}
       primaryButtonLoading={saveLoading}
       primaryTooltipMessage={errorTooltip}
       onHandledPrimaryAction={onSave}
@@ -127,6 +124,7 @@ export function StandardModal({
       show={show}
       width={`${width}px`}
       wrapProps={wrapProps}
+      centered={centered}
       title={
         icon ? (
           <ModalTitleWithIcon
@@ -139,7 +137,13 @@ export function StandardModal({
         )
       }
     >
-      {children}
+      {contentLoading ? (
+        <Flex justify="center" align="center" style={{ minHeight: 200 }}>
+          <Loading />
+        </Flex>
+      ) : (
+        children
+      )}
     </StyledModal>
   );
 }

@@ -19,7 +19,8 @@
 /* eslint camelcase: 0 */
 import rison from 'rison';
 import { Dataset } from '@superset-ui/chart-controls';
-import { t, SupersetClient, QueryFormData } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient, QueryFormData } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import {
   addDangerToast,
@@ -152,6 +153,103 @@ export function setForceQuery(force: boolean) {
   };
 }
 
+export const UPDATE_EXPLORE_CHART_STATE = 'UPDATE_EXPLORE_CHART_STATE';
+export function updateExploreChartState(
+  chartId: number,
+  chartState: Record<string, unknown>,
+) {
+  return {
+    type: UPDATE_EXPLORE_CHART_STATE,
+    chartId,
+    chartState,
+    lastModified: Date.now(),
+  };
+}
+
+export const SET_COMPATIBILITY = 'SET_COMPATIBILITY';
+export function setCompatibility(payload: {
+  compatibleMetrics: string[] | null;
+  compatibleDimensions: string[] | null;
+  compatibilityLoading: boolean;
+}) {
+  return { type: SET_COMPATIBILITY, ...payload };
+}
+
+let compatibilityRequestSeq = 0;
+
+/**
+ * Fetch compatible metrics and dimensions for the current selection.
+ *
+ * Only fires for semantic views — SQL datasets always have full compatibility
+ * so we short-circuit to `null` (no filtering) for everything else.
+ *
+ * Covers both real-time selection changes (M3) and saved-chart loading (M4):
+ * call this thunk on mount as well as whenever the metric / dimension
+ * selection changes in Explore.
+ */
+export function fetchCompatibility(
+  datasourceType: string,
+  datasourceId: number,
+  selectedMetrics: string[],
+  selectedDimensions: string[],
+) {
+  return async (dispatch: Dispatch) => {
+    compatibilityRequestSeq += 1;
+    const requestSeq = compatibilityRequestSeq;
+
+    if (datasourceType !== 'semantic_view') {
+      dispatch(
+        setCompatibility({
+          compatibleMetrics: null,
+          compatibleDimensions: null,
+          compatibilityLoading: false,
+        }),
+      );
+      return;
+    }
+
+    dispatch(
+      setCompatibility({
+        compatibleMetrics: null,
+        compatibleDimensions: null,
+        compatibilityLoading: true,
+      }),
+    );
+
+    try {
+      const { json } = await SupersetClient.post({
+        endpoint: `/api/v1/datasource/${datasourceType}/${datasourceId}/compatible`,
+        jsonPayload: {
+          selected_metrics: selectedMetrics,
+          selected_dimensions: selectedDimensions,
+        },
+      });
+      if (requestSeq !== compatibilityRequestSeq) {
+        return;
+      }
+      dispatch(
+        setCompatibility({
+          compatibleMetrics: json.result.compatible_metrics,
+          compatibleDimensions: json.result.compatible_dimensions,
+          compatibilityLoading: false,
+        }),
+      );
+    } catch {
+      // On error fall back to no filtering so the user is never blocked.
+      if (requestSeq !== compatibilityRequestSeq) {
+        return;
+      }
+      dispatch(
+        setCompatibility({
+          compatibleMetrics: null,
+          compatibleDimensions: null,
+          compatibilityLoading: false,
+        }),
+      );
+    }
+  };
+}
+
 export const SET_STASH_FORM_DATA = 'SET_STASH_FORM_DATA';
 export function setStashFormData(
   isHidden: boolean,
@@ -194,6 +292,7 @@ export const exploreActions = {
   sliceUpdated,
   setForceQuery,
   syncDatasourceMetadata,
+  fetchCompatibility,
 };
 
 export type ExploreActions = typeof exploreActions;

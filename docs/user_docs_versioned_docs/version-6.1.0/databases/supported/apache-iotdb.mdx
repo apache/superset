@@ -1,0 +1,31 @@
+---
+title: Apache IoTDB
+sidebar_label: Apache IoTDB
+description: "Apache IoTDB is a time series database designed for IoT data, with efficient storage and query capabilities for massive time series data."
+hide_title: true
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+import { DatabasePage } from '@site/src/components/databases';
+
+export const databaseInfo = {"engine":"apache_iotdb","engine_name":"Apache IoTDB","module":"iotdb","documentation":{"description":"Apache IoTDB is a time series database designed for IoT data, with efficient storage and query capabilities for massive time series data.","logo":"apache-iotdb.svg","homepage_url":"https://iotdb.apache.org/","categories":["APACHE_PROJECTS","TIME_SERIES","OPEN_SOURCE"],"pypi_packages":["apache-iotdb"],"connection_string":"iotdb://{username}:{password}@{hostname}:{port}","default_port":6667,"parameters":{"username":"Database username (default: root)","password":"Database password (default: root)","hostname":"IP address or hostname","port":"Default 6667"},"notes":"The IoTDB SQLAlchemy dialect was written to integrate with Apache Superset. IoTDB uses a hierarchical data model, which is reorganized into a relational model for SQL queries."},"time_grains":{"SECOND":false,"FIVE_SECONDS":false,"THIRTY_SECONDS":false,"MINUTE":false,"FIVE_MINUTES":false,"TEN_MINUTES":false,"FIFTEEN_MINUTES":false,"THIRTY_MINUTES":false,"HALF_HOUR":false,"HOUR":false,"SIX_HOURS":false,"DAY":false,"WEEK":false,"WEEK_STARTING_SUNDAY":false,"WEEK_STARTING_MONDAY":false,"WEEK_ENDING_SATURDAY":false,"WEEK_ENDING_SUNDAY":false,"MONTH":false,"QUARTER":false,"QUARTER_YEAR":false,"YEAR":false},"score":20,"max_score":201,"joins":true,"subqueries":true,"supports_dynamic_schema":false,"supports_catalog":false,"supports_dynamic_catalog":false,"ssh_tunneling":true,"supports_file_upload":true,"query_cancelation":false,"query_cost_estimation":false,"sql_validation":false,"user_impersonation":false};
+
+<DatabasePage name="Apache IoTDB" database={databaseInfo} />

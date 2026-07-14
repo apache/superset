@@ -44,13 +44,45 @@ const mockedProps = {
           message: 'Issue code message B',
         },
       ],
-      owners: ['Owner A', 'Owner B'],
+      editors: ['Owner A', 'Owner B'],
     },
     level: 'error' as ErrorLevel,
     message: 'Error message',
   },
   source: 'dashboard' as ErrorSource,
   subtitle: 'Error message',
+};
+
+const mockedPropsWithCustomError = {
+  ...mockedProps,
+  error: {
+    ...mockedProps.error,
+    extra: {
+      ...mockedProps.error.extra,
+      custom_doc_links: [
+        {
+          label: 'Custom Doc Link 1',
+          url: 'https://example.com/custom-doc-1',
+        },
+        {
+          label: 'Custom Doc Link 2',
+          url: 'https://example.com/custom-doc-2',
+        },
+      ],
+      show_issue_info: false,
+    },
+  },
+};
+
+const mockedPropsWithCustomErrorAndBadLinks = {
+  ...mockedProps,
+  error: {
+    ...mockedProps.error,
+    extra: {
+      ...mockedProps.error.extra,
+      custom_doc_links: true,
+    },
+  },
 };
 
 test('should render', () => {
@@ -86,19 +118,19 @@ test('should render the engine name', () => {
   expect(screen.getByText(/Engine name/)).toBeInTheDocument();
 });
 
-test('should render the owners', () => {
+test('should render the editors', () => {
   render(<DatabaseErrorMessage {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
   userEvent.click(button);
   expect(
-    screen.getByText('Please reach out to the Chart Owners for assistance.'),
+    screen.getByText('Please reach out to the Chart Editors for assistance.'),
   ).toBeInTheDocument();
   expect(
-    screen.getByText('Chart Owners: Owner A, Owner B'),
+    screen.getByText('Chart Editors: Owner A, Owner B'),
   ).toBeInTheDocument();
 });
 
-test('should NOT render the owners', () => {
+test('should NOT render the editors', () => {
   const noVisualizationProps = {
     ...mockedProps,
     source: 'sqllab' as ErrorSource,
@@ -109,6 +141,31 @@ test('should NOT render the owners', () => {
   const button = screen.getByText('See more');
   userEvent.click(button);
   expect(
-    screen.queryByText('Chart Owners: Owner A, Owner B'),
+    screen.queryByText('Chart Editors: Owner A, Owner B'),
   ).not.toBeInTheDocument();
+});
+
+test('should render custom documentation links when provided', () => {
+  render(<DatabaseErrorMessage {...mockedPropsWithCustomError} />, {
+    useRedux: true,
+  });
+  expect(screen.getByText('Custom Doc Link 1')).toBeInTheDocument();
+  expect(screen.getByText('Custom Doc Link 2')).toBeInTheDocument();
+});
+
+test('should NOT render see more button when show_issue_info is false', () => {
+  render(<DatabaseErrorMessage {...mockedPropsWithCustomError} />, {
+    useRedux: true,
+  });
+  const button = screen.queryByText('See more');
+  expect(button).not.toBeInTheDocument();
+});
+
+test('should render message when wrong value provided for custom_doc_urls', () => {
+  // @ts-expect-error
+  render(<DatabaseErrorMessage {...mockedPropsWithCustomErrorAndBadLinks} />, {
+    useRedux: true,
+  });
+  const button = screen.queryByText('Error message');
+  expect(button).toBeInTheDocument();
 });

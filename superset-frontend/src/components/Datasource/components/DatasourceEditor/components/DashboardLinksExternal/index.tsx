@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import { GenericLink } from 'src/components';
 
 const DashboardLinksWrapper = styled.span`
@@ -62,7 +62,7 @@ const DashboardLinksExternal = ({
         {dashboards.map((dashboard, index) => (
           <GenericLink
             key={dashboard.id}
-            to={`/superset/dashboard/${dashboard.id}/`}
+            to={`/dashboard/${dashboard.id}/`}
             target="_blank"
           >
             {index === 0

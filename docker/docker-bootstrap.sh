@@ -21,8 +21,15 @@ set -eo pipefail
 # Make python interactive
 if [ "$DEV_MODE" == "true" ]; then
     if [ "$(whoami)" = "root" ] && command -v uv > /dev/null 2>&1; then
-      echo "Reinstalling the app in editable mode"
-      uv pip install -e .
+      # Always ensure superset-core is available
+      echo "Installing superset-core in editable mode"
+      uv pip install --no-deps -e /app/superset-core
+
+      # Only reinstall the main app for non-worker processes
+      if [ "$1" != "worker" ] && [ "$1" != "beat" ]; then
+        echo "Reinstalling the app in editable mode"
+        uv pip install -e .
+      fi
     fi
 fi
 REQUIREMENTS_LOCAL="/app/docker/requirements-local.txt"
@@ -34,7 +41,8 @@ if [ "$CYPRESS_CONFIG" == "true" ]; then
     export SUPERSET__SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://superset:superset@db:5432/superset_cypress
     PORT=8081
 fi
-if [[ "$DATABASE_DIALECT" == postgres* ]] && [ "$(whoami)" = "root" ]; then
+# Skip postgres requirements installation for workers to avoid conflicts
+if [[ "$DATABASE_DIALECT" == postgres* ]] && [ "$(whoami)" = "root" ] && [ "$1" != "worker" ] && [ "$1" != "beat" ]; then
     # older images may not have the postgres dev requirements installed
     echo "Installing postgres requirements"
     if command -v uv > /dev/null 2>&1; then
@@ -63,20 +71,42 @@ case "${1}" in
   worker)
     echo "Starting Celery worker..."
     # setting up only 2 workers by default to contain memory usage in dev environments
-    celery --app=superset.tasks.celery_app:app worker -O fair -l INFO --concurrency=${CELERYD_CONCURRENCY:-2}
+    celery --app=superset.tasks.celery_app:app worker -O fair -l INFO --concurrency=${CELERYD_CONCURRENCY:-2} ${WORKER_LOG_FILE:+--logfile=$WORKER_LOG_FILE}
     ;;
   beat)
     echo "Starting Celery beat..."
     rm -f /tmp/celerybeat.pid
-    celery --app=superset.tasks.celery_app:app beat --pidfile /tmp/celerybeat.pid -l INFO -s "${SUPERSET_HOME}"/celerybeat-schedule
+    celery --app=superset.tasks.celery_app:app beat --pidfile /tmp/celerybeat.pid -l INFO -s "${SUPERSET_HOME}"/celerybeat-schedule ${BEAT_LOG_FILE:+--logfile=$BEAT_LOG_FILE}
     ;;
   app)
     echo "Starting web app (using development server)..."
-    flask run -p $PORT --reload --debugger --without-threads --host=0.0.0.0
+
+    # Default to Flask debug mode in this dev compose entrypoint so the Talisman
+    # dev CSP (which permits 'unsafe-eval' required by React Refresh / HMR) is
+    # served. Operators can still set FLASK_DEBUG=false in docker/.env-local
+    # to exercise the production-like CSP and error handling.
+    : "${FLASK_DEBUG:=1}"
+    export FLASK_DEBUG
+
+    # Werkzeug's interactive debugger (/console) is a separate, security-sensitive
+    # feature and must be opted into explicitly via SUPERSET_DEBUG_ENABLED=true.
+    if [[ "${SUPERSET_DEBUG_ENABLED:-}" == "true" ]]; then
+        DEBUGGER_FLAG="--debugger"
+        echo "  ⚠️  Werkzeug debugger enabled (requires PIN for /console access)"
+    else
+        DEBUGGER_FLAG="--no-debugger"
+        echo "  🔒 Werkzeug debugger disabled (set SUPERSET_DEBUG_ENABLED=true to enable)"
+    fi
+
+    flask run -p $PORT --reload $DEBUGGER_FLAG --host=0.0.0.0 --exclude-patterns "*/node_modules/*:*/.venv/*:*/build/*:*/__pycache__/*:*/superset-frontend/*"
     ;;
   app-gunicorn)
     echo "Starting web app..."
     /usr/bin/run-server.sh
+    ;;
+  mcp)
+    echo "Starting MCP service..."
+    superset mcp run --host 0.0.0.0 --port ${MCP_PORT:-5008} --debug
     ;;
   *)
     echo "Unknown Operation!!!"

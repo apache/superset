@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import { Select } from 'antd';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Spin } from '../Spin';
@@ -28,6 +28,7 @@ export const StyledHeader = styled.span<{ headerPosition: string }>`
     text-overflow: ellipsis;
     white-space: nowrap;
     margin-right: ${headerPosition === 'left' ? theme.sizeUnit * 2 : 0}px;
+    font-size: ${theme.fontSizeSM}px;
   `}
 `;
 
@@ -44,19 +45,22 @@ export const StyledContainer = styled.div<{ headerPosition: string }>`
 export const StyledSelect = styled(Select, {
   shouldForwardProp: prop => prop !== 'headerPosition' && prop !== 'oneLine',
 })<{ headerPosition?: string; oneLine?: boolean }>`
-  ${({ theme, headerPosition, oneLine }) => `
+  ${({ theme, headerPosition, oneLine }) => {
+    const useSubtleOptionHover = theme.selectOptionActiveOutline === false;
+    return `
     .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
-      outline: 2px solid ${theme.colorPrimary};
-      outline-offset: -2px;
+      ${useSubtleOptionHover ? 'outline: none;' : `outline: 2px solid ${theme.colorPrimary}; outline-offset: -2px;`}
     }
     flex: ${headerPosition === 'left' ? 1 : 0};
     line-height: ${theme.sizeXL}px;
 
-    && .ant-select-selection-search {
+    && .ant-select-input {
       left: 0px;
     }
 
-    && .ant-select-selection-item, .ant-select-selection-placeholder {
+    && .ant-select-content,
+    && .ant-select-selection-item,
+    && .ant-select-placeholder {
       max-height: ${theme.sizeXL}px;
     }
     .ant-select-selection-item::after {
@@ -66,22 +70,23 @@ export const StyledSelect = styled(Select, {
     ${
       oneLine &&
       `
-        .ant-select-selection-overflow {
+        .ant-select-content {
           flex-wrap: nowrap;
         }
 
-        .ant-select-selection-overflow-item:not(.ant-select-selection-overflow-item-rest):not(.ant-select-selection-overflow-item-suffix) {
+        .ant-select-content-item:not(.ant-select-content-item-rest):not(.ant-select-content-item-suffix) {
           flex-shrink: 1;
           min-width: ${theme.sizeUnit * 13}px;
         }
 
-        .ant-select-selection-overflow-item-suffix {
+        .ant-select-content-item-suffix {
           flex: unset;
           min-width: 0px;
         }
       `
     };
- `}
+  `;
+  }}
 `;
 
 export const NoElement = styled.span`
@@ -139,7 +144,17 @@ export const StyledErrorMessage = styled.div`
 
 export const StyledBulkActionsContainer = styled(Flex)`
   ${({ theme }) => `
-    padding: ${theme.sizeUnit}px;
+    padding: ${theme.sizeUnit}px 0;
     border-top: 1px solid ${theme.colorSplit};
+    & .superset-button {
+      font-family: inherit;
+      margin-left: 0 !important;
+    }
+    & .superset-button:first-of-type {
+      padding-right: 0 !important;
+    }
+    & .superset-button:last-of-type {
+      padding-left: 0 !important;
+    }
   `}
 `;

@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { ensureIsArray } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { ContentType, MetadataType } from '.';
 
 const Header = styled.div`
-  font-weight: ${({ theme }) => theme.fontWeightStrong};
+  font-weight: ${({ theme }) => theme.fontWeightBold};
 `;
 
 const Info = ({
@@ -82,15 +84,15 @@ const config = (contentType: ContentType) => {
         ),
       };
 
-    case MetadataType.Owner:
+    case MetadataType.Editor:
       return {
         icon: Icons.UserOutlined,
         title: contentType.createdBy,
         tooltip: (
           <div>
             <Info header={t('Created by')} text={contentType.createdBy} />
-            {!!contentType.owners && (
-              <Info header={t('Owners')} text={contentType.owners} />
+            {!!contentType.editors && (
+              <Info header={t('Editors')} text={contentType.editors} />
             )}
             <Info header={t('Created on')} text={contentType.createdOn} />
           </div>
@@ -130,7 +132,7 @@ const config = (contentType: ContentType) => {
       };
 
     default:
-      throw Error(`Invalid type provided: ${type}`);
+      throw new Error(`Invalid type provided: ${type}`);
   }
 };
 

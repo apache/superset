@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ColorFormatters } from '@superset-ui/chart-controls';
+import type {
+  BasicColorFormatterType,
+  ColorFormatters,
+  CustomFormatter,
+  DataColumnMeta,
+  TableColumnConfig,
+} from '@superset-ui/chart-controls';
 import {
   NumberFormatter,
   TimeFormatter,
@@ -24,17 +30,15 @@ import {
   QueryFormMetric,
   ChartProps,
   DataRecord,
-  DataRecordValue,
   DataRecordFilters,
-  GenericDataType,
   QueryMode,
   ChartDataResponseResult,
   QueryFormData,
   SetDataMaskHook,
   CurrencyFormatter,
-  Currency,
   JsonObject,
   Metric,
+  AgGridChartState,
 } from '@superset-ui/core';
 import {
   ColDef,
@@ -43,43 +47,16 @@ import {
   CustomCellRendererProps,
 } from '@superset-ui/core/components/ThemedAgGridReact';
 
-export type CustomFormatter = (value: DataRecordValue) => string;
-
-export type TableColumnConfig = {
-  d3NumberFormat?: string;
-  d3SmallNumberFormat?: string;
-  d3TimeFormat?: string;
-  columnWidth?: number;
-  horizontalAlign?: 'left' | 'right' | 'center';
-  showCellBars?: boolean;
-  alignPositiveNegative?: boolean;
-  colorPositiveNegative?: boolean;
-  truncateLongCells?: boolean;
-  currencyFormat?: Currency;
-  visible?: boolean;
-  customColumnName?: string;
-  displayTypeIcon?: boolean;
+// Re-export shared types used by internal plugin files that import from './types'
+// Types used locally in this file - re-export from local binding
+export type {
+  BasicColorFormatterType,
+  CustomFormatter,
+  DataColumnMeta,
+  TableColumnConfig,
 };
-
-export interface DataColumnMeta {
-  // `key` is what is called `label` in the input props
-  key: string;
-  // `label` is verbose column name used for rendering
-  label: string;
-  // `originalLabel` preserves the original label when time comparison transforms the labels
-  originalLabel?: string;
-  dataType: GenericDataType;
-  formatter?:
-    | TimeFormatter
-    | NumberFormatter
-    | CustomFormatter
-    | CurrencyFormatter;
-  isMetric?: boolean;
-  isPercentMetric?: boolean;
-  isNumeric?: boolean;
-  config?: TableColumnConfig;
-  isChildColumn?: boolean;
-}
+// Types only re-exported, not used locally - direct re-export
+export type { SearchOption, SortByItem } from '@superset-ui/chart-controls';
 
 export interface TableChartData {
   records: DataRecord[];
@@ -104,6 +81,7 @@ export type TableChartFormData = QueryFormData & {
   time_grain_sqla?: TimeGranularity;
   column_config?: Record<string, TableColumnConfig>;
   allow_rearrange_columns?: boolean;
+  show_numbered_column?: boolean;
 };
 
 export interface TableChartProps extends ChartProps {
@@ -113,31 +91,6 @@ export interface TableChartProps extends ChartProps {
   };
   rawFormData: TableChartFormData;
   queriesData: ChartDataResponseResult[];
-}
-
-export type BasicColorFormatterType = {
-  backgroundColor: string;
-  arrowColor: string;
-  mainArrow: string;
-};
-
-export type SortByItem = {
-  id: string;
-  key: string;
-  desc?: boolean;
-};
-
-export type SearchOption = {
-  value: string;
-  label: string;
-};
-
-export interface ServerPaginationData {
-  pageSize?: number;
-  currentPage?: number;
-  sortBy?: SortByItem[];
-  searchText?: string;
-  searchColumn?: string;
 }
 
 export interface AgGridTableChartTransformedProps<
@@ -176,11 +129,11 @@ export interface AgGridTableChartTransformedProps<
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
   basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
   formData: TableChartFormData;
-}
-
-export enum ColorSchemeEnum {
-  'Green' = 'Green',
-  'Red' = 'Red',
+  metricSqlExpressions: Record<string, string>;
+  rawSummaryColumns: string[];
+  onChartStateChange?: (chartState: JsonObject) => void;
+  chartState?: AgGridChartState;
+  showNumberedColumn: boolean;
 }
 
 export interface SortState {
@@ -188,9 +141,20 @@ export interface SortState {
   sort: 'asc' | 'desc' | null;
 }
 
+export type FilterInputPosition = 'first' | 'second' | 'unknown';
+
+export interface AGGridFilterInstance {
+  eGui?: HTMLElement;
+  eConditionBodies?: HTMLElement[];
+  eJoinAnds?: Array<{ eGui?: HTMLElement }>;
+  eJoinOrs?: Array<{ eGui?: HTMLElement }>;
+}
+
 export interface CustomContext {
   initialSortState: SortState[];
   onColumnHeaderClicked: (args: { column: SortState }) => void;
+  lastFilteredColumn?: string;
+  lastFilteredInputPosition?: FilterInputPosition;
 }
 
 export interface CustomHeaderParams extends IHeaderParams {
@@ -223,11 +187,15 @@ export interface InputColumn {
   isNumeric: boolean;
   isMetric: boolean;
   isPercentMetric: boolean;
-  config: Record<string, any>;
-  formatter?: Function;
+  config: TableColumnConfig;
+  formatter?:
+    TimeFormatter | NumberFormatter | CustomFormatter | CurrencyFormatter;
   originalLabel?: string;
   metricName?: string;
+  description?: string;
 }
+
+export type ValueRange = [number, number] | null;
 
 export type CellRendererProps = CustomCellRendererProps & {
   hasBasicColorFormatters: boolean | undefined;
@@ -235,7 +203,7 @@ export type CellRendererProps = CustomCellRendererProps & {
   basicColorFormatters: {
     [Key: string]: BasicColorFormatterType;
   }[];
-  valueRange: any;
+  valueRange: ValueRange;
   alignPositiveNegative: boolean;
   colorPositiveNegative: boolean;
   allowRenderHtml: boolean;
@@ -255,7 +223,7 @@ export type Dataset = {
   created_on_humanized: string;
   description: string;
   table_name: string;
-  owners: {
+  editors: {
     first_name: string;
     last_name: string;
   }[];

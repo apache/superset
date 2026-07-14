@@ -16,9 +16,10 @@
 # under the License.
 
 import uuid
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
+from flask import current_app
 from parameterized import parameterized
 
 from superset.models.slice import id_or_uuid_filter, Slice
@@ -78,9 +79,128 @@ class TestSlice:
             ("numeric_id", "123"),
             ("uuid_format", "550e8400-e29b-41d4-a716-446655440000"),
             ("invalid_string", "not-a-number"),
+            ("integer_id", 123),
         ]
     )
     def test_id_or_uuid_filter(self, test_name, input_value):
         """Test id_or_uuid_filter returns correct BinaryExpression."""
         result = id_or_uuid_filter(input_value)
         assert result is not None
+
+    def test_datasource_url_returns_none_when_datasource_lacks_explore_url(self):
+        """datasource_url() must not raise when the datasource has no explore_url.
+
+        Charts whose datasource resolves to a Query (or any other type without
+        explore_url) used to raise AttributeError, which caused the entire chart
+        list API response to fail instead of just skipping that one chart.
+        """
+        slc = Slice()
+        slc.id = 1
+
+        # Simulate a datasource object that does NOT have explore_url (e.g. Query)
+        mock_datasource = MagicMock(spec=[])  # spec=[] means no attributes at all
+        slc.table = mock_datasource
+
+        result = slc.datasource_url()
+        assert result is None
+
+    def test_datasource_url_returns_explore_url_when_present(self):
+        """datasource_url() returns the datasource explore_url when it exists."""
+        slc = Slice()
+        slc.id = 1
+
+        mock_table = MagicMock()
+        mock_table.explore_url = "/explore/?datasource_type=table&datasource_id=1"
+        slc.table = mock_table
+
+        result = slc.datasource_url()
+        assert result == "/explore/?datasource_type=table&datasource_id=1"
+
+    def test_datasource_url_returns_none_when_no_datasource(self):
+        """datasource_url() returns None when there is no datasource."""
+        slc = Slice()
+        slc.id = 1
+        slc.table = None
+
+        result = slc.datasource_url()
+        assert result is None
+
+    def test_icons_escapes_datasource_html(self):
+        """icons must HTML-escape the datasource name and edit URL."""
+        slc = Slice()
+        with (
+            patch.object(
+                Slice,
+                "datasource_edit_url",
+                new_callable=PropertyMock,
+                return_value='/x"onmouseover=alert(1)',
+            ),
+            patch.object(
+                Slice,
+                "datasource",
+                new_callable=PropertyMock,
+                return_value="<img src=x onerror=alert(1)>",
+            ),
+        ):
+            html = slc.icons
+
+        # The injected tag and attribute-breakout quote are escaped.
+        assert "<img" not in html
+        assert '"onmouseover' not in html
+
+
+def test_thumbnail_url_is_router_relative_at_root(app_context: None) -> None:
+    """thumbnail_url uses url_for, so at root it keeps the legacy shape."""
+    slc = Slice()
+    slc.id = 42
+
+    with patch.object(
+        Slice, "digest", new_callable=PropertyMock, return_value="abc123"
+    ):
+        with current_app.test_request_context("/"):
+            url = slc.thumbnail_url
+
+    assert url == "/api/v1/chart/42/thumbnail/abc123/"
+
+
+def test_thumbnail_url_carries_app_root_prefix(app_context: None) -> None:
+    """Under a subdirectory deployment the serialized thumbnail URL must carry
+    the application root, because the frontend treats thumbnail_url as an
+    already-prefixed raw fetch target (it is excluded from
+    normalizeBackendUrls and never passed through ensureAppRoot)."""
+    slc = Slice()
+    slc.id = 42
+
+    with patch.object(
+        Slice, "digest", new_callable=PropertyMock, return_value="abc123"
+    ):
+        with current_app.test_request_context(
+            "/", base_url="http://example.com/superset/"
+        ):
+            url = slc.thumbnail_url
+
+    assert url == "/superset/api/v1/chart/42/thumbnail/abc123/"
+
+
+def test_thumbnail_url_is_none_without_digest(app_context: None) -> None:
+    slc = Slice()
+    slc.id = 42
+
+    with patch.object(Slice, "digest", new_callable=PropertyMock, return_value=None):
+        with current_app.test_request_context("/"):
+            assert slc.thumbnail_url is None
+
+
+def test_thumbnail_url_works_outside_request_context(app_context: None) -> None:
+    """The property must stay callable from out-of-request callers (CLI,
+    celery tasks): with no request there is no SCRIPT_NAME to honor, so it
+    falls back to the router-relative shape instead of raising."""
+    slc = Slice()
+    slc.id = 42
+
+    with patch.object(
+        Slice, "digest", new_callable=PropertyMock, return_value="abc123"
+    ):
+        url = slc.thumbnail_url
+
+    assert url == "/api/v1/chart/42/thumbnail/abc123/"

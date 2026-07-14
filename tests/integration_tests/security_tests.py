@@ -24,7 +24,7 @@ from unittest.mock import Mock, patch, call, ANY
 from typing import Any
 
 import jwt
-import prison
+import rison
 import pytest
 
 from flask import current_app, g
@@ -44,14 +44,14 @@ from superset.utils.core import (
     get_example_default_schema,
     override_user,
 )
-from superset.utils import json
 from superset.utils.database import get_example_database
 from superset.utils.urls import get_url_host
 
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import GAMMA_USERNAME
 from tests.integration_tests.conftest import with_feature_flags
+from tests.integration_tests.constants import GAMMA_USERNAME
 from tests.integration_tests.fixtures.public_role import (
+    public_role_builtin,  # noqa: F401
     public_role_like_gamma,  # noqa: F401
     public_role_like_test_role,  # noqa: F401
 )
@@ -549,12 +549,86 @@ class TestRolePermission(SupersetTestCase):
                 call(ANY, ANY, tmp_db1_view_menu),
                 call(ANY, ANY, table1_view_menu),
                 call(ANY, ANY, table2_view_menu),
-            ]
+            ],
+            any_order=True,
         )
 
         db.session.delete(slice1)
         db.session.delete(table1)
         db.session.delete(table2)
+        db.session.delete(tmp_db1)
+        db.session.commit()
+
+    @with_feature_flags(SOFT_DELETE=True)
+    def test_after_update_database__perm_datasource_access_soft_deleted(self):
+        """A soft-deleted dataset's perm strings must still be rewritten on a
+        database rename. The maintenance query bypasses the soft-delete
+        visibility filter so hidden datasets are updated too; otherwise
+        restoring the dataset later would resurrect stale dataset/schema/catalog
+        permission strings pointing at the old database name.
+
+        The flag must be ON here: with SOFT_DELETE off the visibility filter
+        never engages, so the query this test guards (the
+        ``skip_visibility_filter`` bypass in
+        ``_update_vm_datasources_access``) would be exercised vacuously — the
+        test would pass even with the bypass removed.
+        """
+        from datetime import datetime  # noqa: PLC0415
+
+        from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES  # noqa: PLC0415
+
+        security_manager.on_view_menu_after_update = Mock()
+
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        db.session.add(tmp_db1)
+        db.session.commit()
+
+        table1 = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_table1",
+            database=tmp_db1,
+        )
+        db.session.add(table1)
+        db.session.commit()
+        table1 = db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        table1_id = table1.id
+
+        assert table1.perm == f"[tmp_db1].[tmp_table1](id:{table1_id})"
+
+        # Soft-delete the dataset, then rename its database.
+        table1.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        tmp_db1 = db.session.query(Database).filter_by(database_name="tmp_db1").one()
+        tmp_db1.database_name = "tmp_db2"
+        db.session.commit()
+
+        # The old perm is gone and the new one exists, even though the dataset
+        # is soft-deleted (the maintenance query bypassed the visibility filter).
+        assert (
+            security_manager.find_permission_view_menu(
+                "datasource_access", f"[tmp_db1].[tmp_table1](id:{table1_id})"
+            )
+            is None
+        )
+        assert (
+            security_manager.find_permission_view_menu(
+                "datasource_access", f"[tmp_db2].[tmp_table1](id:{table1_id})"
+            )
+            is not None
+        )
+
+        # The hidden row's own ``perm`` column was rewritten too.
+        reloaded = (
+            db.session.query(SqlaTable)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+            .filter(SqlaTable.id == table1_id)
+            .one()
+        )
+        assert reloaded.perm == f"[tmp_db2].[tmp_table1](id:{table1_id})"
+
+        # Cleanup
+        db.session.delete(reloaded)
         db.session.delete(tmp_db1)
         db.session.commit()
 
@@ -1229,8 +1303,8 @@ class TestRolePermission(SupersetTestCase):
 
         self.login(GAMMA_USERNAME)
         data = str(self.client.get("api/v1/dashboard/").data)
-        assert "/superset/dashboard/world_health/" in data
-        assert "/superset/dashboard/births/" not in data
+        assert "/dashboard/world_health/" in data
+        assert "/dashboard/births/" not in data
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("public_role_like_gamma")
@@ -1291,7 +1365,7 @@ class TestRolePermission(SupersetTestCase):
             "page": 0,
             "page_size": -1,
         }
-        NEW_FLASK_GET_SQL_DBS_REQUEST = f"/api/v1/database/?q={prison.dumps(arguments)}"  # noqa: N806
+        NEW_FLASK_GET_SQL_DBS_REQUEST = f"/api/v1/database/?q={rison.dumps(arguments)}"  # noqa: N806
         self.login(GAMMA_USERNAME)
         databases_json = self.client.get(NEW_FLASK_GET_SQL_DBS_REQUEST).json
         assert databases_json["count"] == 1
@@ -1438,6 +1512,104 @@ class TestRolePermission(SupersetTestCase):
             security_manager.find_permission_view_menu("can_read", "Dataset")
         )
 
+    def test_is_public_pvm(self):
+        """Test that _is_public_pvm correctly identifies Public role permissions."""
+        # Should include core dashboard viewing permissions
+        assert security_manager._is_public_pvm(
+            security_manager.find_permission_view_menu("can_read", "Dashboard")
+        )
+        assert security_manager._is_public_pvm(
+            security_manager.find_permission_view_menu("can_read", "Chart")
+        )
+        assert security_manager._is_public_pvm(
+            security_manager.find_permission_view_menu("can_dashboard", "Superset")
+        )
+        assert security_manager._is_public_pvm(
+            security_manager.find_permission_view_menu("can_explore_json", "Superset")
+        )
+
+        # Should NOT include write permissions on core objects
+        assert not security_manager._is_public_pvm(
+            security_manager.find_permission_view_menu("can_write", "Dashboard")
+        )
+        assert not security_manager._is_public_pvm(
+            security_manager.find_permission_view_menu("can_write", "Chart")
+        )
+
+        # Should NOT include admin/alpha permissions
+        assert not security_manager._is_public_pvm(
+            security_manager.find_permission_view_menu(
+                "all_datasource_access", "all_datasource_access"
+            )
+        )
+
+    @pytest.mark.usefixtures("public_role_builtin")
+    def test_public_role_permissions(self):
+        """Test that Public role has the expected minimal permissions."""
+        public_perm_set = get_perm_tuples("Public")
+
+        # Core dashboard viewing - should be present
+        assert ("can_read", "Dashboard") in public_perm_set
+        assert ("can_read", "Chart") in public_perm_set
+        assert ("can_dashboard", "Superset") in public_perm_set
+        assert ("can_slice", "Superset") in public_perm_set
+        assert ("can_explore_json", "Superset") in public_perm_set
+        assert ("can_dashboard_permalink", "Superset") in public_perm_set
+
+        # Filter state for interactive dashboards
+        assert ("can_read", "DashboardFilterStateRestApi") in public_perm_set
+        assert ("can_write", "DashboardFilterStateRestApi") in public_perm_set
+
+        # Should NOT have write permissions on core objects
+        assert ("can_write", "Dashboard") not in public_perm_set
+        assert ("can_write", "Chart") not in public_perm_set
+        assert ("can_write", "Dataset") not in public_perm_set
+
+        # Should NOT have share permissions
+        assert ("can_share_dashboard", "Superset") not in public_perm_set
+        assert ("can_share_chart", "Superset") not in public_perm_set
+
+        # Should NOT have SQL Lab access
+        assert ("can_sqllab", "Superset") not in public_perm_set
+        assert ("menu_access", "SQL Lab") not in public_perm_set
+
+        # Should NOT have admin permissions
+        assert (
+            "all_datasource_access",
+            "all_datasource_access",
+        ) not in public_perm_set
+        assert ("all_database_access", "all_database_access") not in public_perm_set
+
+        # Should NOT have user management access
+        assert ("can_userinfo", "UserDBModelView") not in public_perm_set
+
+    @pytest.mark.usefixtures("public_role_builtin")
+    def test_public_role_more_restrictive_than_gamma(self):
+        """Test that Public role is more restrictive than Gamma."""
+        public_perm_set = get_perm_tuples("Public")
+        gamma_perm_set = get_perm_tuples("Gamma")
+
+        # Public should be a subset of Gamma (more restrictive)
+        # Note: Public has filter state write which Gamma also has
+        public_only = public_perm_set - gamma_perm_set
+
+        # These permissions are intentionally granted to Public even though
+        # Gamma doesn't have them. Annotation permissions are needed for
+        # charts with annotations to render properly for public users.
+        # Gamma doesn't have these because Annotation is in ALPHA_ONLY_VIEW_MENUS.
+        allowed_public_only_perms = {
+            ("can_read", "Annotation"),
+            ("can_read", "AnnotationLayerRestApi"),
+        }
+
+        unexpected_perms = public_only - allowed_public_only_perms
+        assert len(unexpected_perms) == 0, (
+            f"Public has unexpected permissions Gamma doesn't: {unexpected_perms}"
+        )
+
+        # Public should have significantly fewer permissions than Gamma
+        assert len(public_perm_set) < len(gamma_perm_set)
+
     def test_gamma_permissions_basic(self):
         self.assert_can_gamma(get_perm_tuples("Gamma"))
         self.assert_cannot_alpha(get_perm_tuples("Gamma"))
@@ -1471,12 +1643,16 @@ class TestRolePermission(SupersetTestCase):
         sql_lab_set = get_perm_tuples("sql_lab")
         assert sql_lab_set == {
             ("can_activate", "TabStateView"),
+            ("can_copy_clipboard", "Superset"),
             ("can_csv", "Superset"),
             ("can_delete_query", "TabStateView"),
             ("can_delete", "TabStateView"),
+            ("can_estimate_query_cost", "SQLLab"),
             ("can_execute_sql_query", "SQLLab"),
             ("can_export", "SavedQuery"),
             ("can_export_csv", "SQLLab"),
+            ("can_export_data", "Superset"),
+            ("can_format_sql", "SQLLab"),
             ("can_get", "TabStateView"),
             ("can_get_results", "SQLLab"),
             ("can_migrate_query", "TabStateView"),
@@ -1560,6 +1736,10 @@ class TestRolePermission(SupersetTestCase):
             ["SupersetAuthView", "logout"],
             ["SupersetRegisterUserView", "register"],
             ["SupersetRegisterUserView", "activation"],
+            ["RedirectView", "redirect_warning"],
+            # Serves the PWA web app manifest unauthenticated (PWA install
+            # fetches have no session); mirrors the RedirectView precedent.
+            ["PwaManifestView", "manifest"],
         ]
         unsecured_views = []
         for view_class in appbuilder.baseviews:
@@ -1617,11 +1797,11 @@ class TestSecurityManager(SupersetTestCase):
 
         assert not security_manager.can_access_table(database, table)
 
-    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
     def test_raise_for_access_datasource(
-        self, mock_can_access_schema, mock_can_access, mock_is_owner
+        self, mock_can_access_schema, mock_can_access, mock_is_editor
     ):
         datasource = self.get_datasource_mock()
 
@@ -1630,14 +1810,14 @@ class TestSecurityManager(SupersetTestCase):
 
         mock_can_access.return_value = False
         mock_can_access_schema.return_value = False
-        mock_is_owner.return_value = False
+        mock_is_editor.return_value = False
 
         with self.assertRaises(SupersetSecurityException):  # noqa: PT027
             security_manager.raise_for_access(datasource=datasource)
 
-    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
     @patch("superset.security.SupersetSecurityManager.can_access")
-    def test_raise_for_access_query(self, mock_can_access, mock_is_owner):
+    def test_raise_for_access_query(self, mock_can_access, mock_is_editor):
         query = Mock(
             database=get_example_database(),
             schema="bar",
@@ -1649,7 +1829,7 @@ class TestSecurityManager(SupersetTestCase):
         security_manager.raise_for_access(query=query)
 
         mock_can_access.return_value = False
-        mock_is_owner.return_value = False
+        mock_is_editor.return_value = False
 
         with self.assertRaises(SupersetSecurityException):  # noqa: PT027
             security_manager.raise_for_access(query=query)
@@ -1663,21 +1843,271 @@ class TestSecurityManager(SupersetTestCase):
                     sql="SELECT * FROM foo",
                 )
 
-    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
     @patch("superset.security.SupersetSecurityManager.can_access")
-    def test_raise_for_access_sql(self, mock_can_access, mock_is_owner):
+    def test_raise_for_access_sql(self, mock_can_access, mock_is_editor):
         mock_can_access.return_value = True
-        mock_is_owner.return_value = True
+        mock_is_editor.return_value = True
         with override_user(security_manager.find_user("gamma")):
             security_manager.raise_for_access(
                 database=get_example_database(), schema="bar", sql="SELECT * FROM foo"
             )
 
-    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_force_dataset_match_allows_dataset(
+        self, mock_can_access, mock_is_editor, mock_query_datasources
+    ):
+        """
+        With force_dataset_match=True (SQL Lab path), a query that references
+        a table backed by a Superset dataset the user has datasource_access
+        on still succeeds.
+        """
+        query = Mock(
+            database=get_example_database(),
+            schema="bar",
+            sql="SELECT * FROM foo",
+            catalog=None,
+        )
+        mock_query_datasources.return_value = [
+            Mock(perm="[examples].[bar].[foo](id:1)")
+        ]
+        # Only datasource_access succeeds; database_access / schema_access
+        # / catalog_access return False.
+        mock_can_access.side_effect = lambda perm, _vm: perm == "datasource_access"
+        mock_is_editor.return_value = False
+        security_manager.raise_for_access(query=query, force_dataset_match=True)
+
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_force_dataset_match_denies_schema_only(
+        self, mock_can_access, mock_is_editor, mock_query_datasources
+    ):
+        """
+        Regression test: with force_dataset_match=True, schema_access alone
+        is not sufficient. The user must have datasource_access (or edit) a
+        registered Superset dataset for the referenced table.
+        """
+        query = Mock(
+            database=get_example_database(),
+            schema="bar",
+            sql="SELECT * FROM table_with_no_dataset",
+            catalog=None,
+        )
+        # No SqlaTable registered for the referenced table.
+        mock_query_datasources.return_value = []
+        # User holds schema_access only (would have been sufficient before
+        # the fix); everything else returns False.
+        mock_can_access.side_effect = lambda perm, _vm: perm == "schema_access"
+        mock_is_editor.return_value = False
+
+        with self.assertRaises(SupersetSecurityException):  # noqa: PT027
+            security_manager.raise_for_access(query=query, force_dataset_match=True)
+
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_force_dataset_match_denies_unresolved_schema(
+        self, mock_can_access, mock_is_editor, mock_query_datasources
+    ):
+        """
+        Regression test: with force_dataset_match=True, a query that
+        references a table without a resolvable schema (parser couldn't
+        infer one and the database has no default_schema) is denied
+        outright. Otherwise SqlaTable.query_datasources_by_name would drop
+        the schema filter and match a dataset in an unrelated schema while
+        the engine's search_path resolved the actual query against a
+        different schema.
+        """
+        database = get_example_database()
+        # default_schema_for_query returns None; the parser yields a Table
+        # with no schema either.
+        with patch.object(
+            database.db_engine_spec,
+            "get_default_schema_for_query",
+            return_value=None,
+        ):
+            query = Mock(
+                database=database,
+                schema=None,
+                sql="SELECT * FROM foo",
+                catalog=None,
+            )
+            # If the deny didn't fire first, query_datasources_by_name
+            # would return something matching across schemas.
+            mock_query_datasources.return_value = [
+                Mock(perm="[examples].[other_schema].[foo](id:1)")
+            ]
+            mock_can_access.return_value = False
+            mock_is_editor.return_value = False
+
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
+                security_manager.raise_for_access(query=query, force_dataset_match=True)
+
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_force_dataset_match_denies_unparseable(
+        self, mock_can_access, mock_is_editor, mock_query_datasources
+    ):
+        """
+        Regression test: with force_dataset_match=True, a query whose AST
+        contains an unparseable statement (sqlglot exp.Command, e.g. a
+        stored-procedure call whose internal SQL is dynamic) is denied,
+        because the per-table check below cannot see tables referenced
+        inside such statements.
+        """
+        query = Mock(
+            database=get_example_database(),
+            schema="public",
+            # CALL on Postgres parses as exp.Command with no parseable
+            # literal, yielding zero extracted tables.
+            sql="CALL get_secret_data();",
+            catalog=None,
+        )
+        mock_query_datasources.return_value = []
+        mock_can_access.return_value = False
+        mock_is_editor.return_value = False
+
+        with self.assertRaises(SupersetSecurityException):  # noqa: PT027
+            security_manager.raise_for_access(query=query, force_dataset_match=True)
+
+    @patch("superset.security.manager.process_jinja_sql")
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_force_dataset_match_prefers_executed_sql(
+        self,
+        mock_can_access,
+        mock_is_editor,
+        mock_query_datasources,
+        mock_process_jinja,
+    ):
+        """
+        Re-validation (results fetch, CSV export, streaming export) does not
+        carry template_params, so the security manager parses
+        ``executed_sql`` (the rendered SQL that actually ran) when it is set
+        to keep the table set aligned with the execute-time check.
+        """
+        from superset.sql.parse import JinjaSQLResult, SQLScript
+
+        query = Mock(
+            database=get_example_database(),
+            schema="bar",
+            sql="SELECT * FROM {{ table_name }}",
+            executed_sql="SELECT * FROM bar.foo",
+            catalog=None,
+        )
+        mock_process_jinja.return_value = JinjaSQLResult(
+            script=SQLScript("SELECT * FROM bar.foo", "postgresql"),
+            tables=set(),
+        )
+        mock_query_datasources.return_value = []
+        mock_can_access.return_value = False
+        mock_is_editor.return_value = False
+
+        security_manager.raise_for_access(query=query, force_dataset_match=True)
+
+        sql_passed = mock_process_jinja.call_args.args[0]
+        assert sql_passed == "SELECT * FROM bar.foo"
+
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_force_dataset_match_denies_kql(
+        self, mock_can_access, mock_is_editor, mock_query_datasources
+    ):
+        """
+        Regression test: with force_dataset_match=True, Kusto KQL (and any
+        other engine sqlglot doesn't model) is denied because table
+        extraction is unsupported. Otherwise raise_for_access would silently
+        return on an empty table set.
+        """
+        kql_db = Mock()
+        kql_db.database_name = "kql_db"
+        kql_db.db_engine_spec.engine = "kustokql"
+        kql_db.get_default_catalog.return_value = None
+        kql_db.get_default_schema_for_query.return_value = None
+        query = Mock(
+            database=kql_db,
+            schema=None,
+            sql="StormEvents | take 1",
+            catalog=None,
+        )
+        mock_query_datasources.return_value = []
+        mock_can_access.return_value = False
+        mock_is_editor.return_value = False
+
+        with self.assertRaises(SupersetSecurityException):  # noqa: PT027
+            security_manager.raise_for_access(query=query, force_dataset_match=True)
+
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_default_keeps_schema_access(
+        self, mock_can_access, mock_is_editor, mock_query_datasources
+    ):
+        """
+        Without force_dataset_match (default), schema_access still grants
+        access to non-dataset tables. Preserves backwards compatibility for
+        chart-data on saved queries, dataset CRUD from SQL, explore on saved
+        queries, and other non-SQL-Lab callers.
+        """
+        query = Mock(
+            database=get_example_database(),
+            schema="bar",
+            sql="SELECT * FROM table_with_no_dataset",
+            catalog=None,
+        )
+        mock_query_datasources.return_value = []
+        mock_can_access.side_effect = lambda perm, _vm: perm == "schema_access"
+        mock_is_editor.return_value = False
+
+        security_manager.raise_for_access(query=query)
+
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_force_dataset_match_table_uses_default_schema(
+        self, mock_can_access, mock_is_editor, mock_query_datasources
+    ):
+        """
+        Regression test: under force_dataset_match=True, a caller that passes
+        an under-qualified Table (e.g. MetaDB's 2-part URI ``db.table``) is
+        resolved against the database's default schema before the strict
+        deny fires, so a user with datasource_access on the default-schema
+        dataset is not refused.
+        """
+        database = get_example_database()
+        with patch.object(
+            database.db_engine_spec,
+            "get_default_schema",
+            return_value="public",
+        ):
+            table = Table("foo", None, None)
+            mock_query_datasources.return_value = [
+                Mock(perm="[examples].[public].[foo](id:1)")
+            ]
+            mock_can_access.side_effect = lambda perm, _vm: perm == "datasource_access"
+            mock_is_editor.return_value = False
+            security_manager.raise_for_access(
+                database=database,
+                table=table,
+                force_dataset_match=True,
+            )
+            # query_datasources_by_name should have been called with the
+            # resolved default schema, not None.
+            mock_query_datasources.assert_called_once()
+            _args, kwargs = mock_query_datasources.call_args
+            assert kwargs.get("schema") == "public"
+
+    @patch("superset.security.SupersetSecurityManager.is_editor")
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
     def test_raise_for_access_query_context(
-        self, mock_can_access_schema, mock_can_access, mock_is_owner
+        self, mock_can_access_schema, mock_can_access, mock_is_editor
     ):
         query_context = Mock(datasource=self.get_datasource_mock(), form_data={})
 
@@ -1686,7 +2116,7 @@ class TestSecurityManager(SupersetTestCase):
 
         mock_can_access.return_value = False
         mock_can_access_schema.return_value = False
-        mock_is_owner.return_value = False
+        mock_is_editor.return_value = False
         with override_user(security_manager.find_user("gamma")):
             with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(query_context=query_context)
@@ -1704,11 +2134,11 @@ class TestSecurityManager(SupersetTestCase):
         with self.assertRaises(SupersetSecurityException):  # noqa: PT027
             security_manager.raise_for_access(database=database, table=table)
 
-    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.is_editor")
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
     def test_raise_for_access_viz(
-        self, mock_can_access_schema, mock_can_access, mock_is_owner
+        self, mock_can_access_schema, mock_can_access, mock_is_editor
     ):
         test_viz = viz.TimeTableViz(self.get_datasource_mock(), form_data={})
 
@@ -1717,173 +2147,10 @@ class TestSecurityManager(SupersetTestCase):
 
         mock_can_access.return_value = False
         mock_can_access_schema.return_value = False
-        mock_is_owner.return_value = False
+        mock_is_editor.return_value = False
         with override_user(security_manager.find_user("gamma")):
             with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(viz=test_viz)
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @with_feature_flags(DASHBOARD_RBAC=True)
-    @patch("superset.security.SupersetSecurityManager.is_owner")
-    @patch("superset.security.SupersetSecurityManager.can_access")
-    @patch("superset.security.SupersetSecurityManager.can_access_schema")
-    def test_raise_for_access_rbac(
-        self,
-        mock_can_access_schema,
-        mock_can_access,
-        mock_is_owner,
-    ):
-        births = self.get_dash_by_slug("births")
-        girls = self.get_slice("Girls")
-        birth_names = girls.datasource
-
-        world_health = self.get_dash_by_slug("world_health")
-        treemap = self.get_slice("Treemap")
-
-        births.json_metadata = json.dumps(
-            {
-                "native_filter_configuration": [
-                    {
-                        "id": "NATIVE_FILTER-ABCDEFGH",
-                        "targets": [{"datasetId": birth_names.id}],
-                    },
-                    {
-                        "id": "NATIVE_FILTER-IJKLMNOP",
-                        "targets": [{"datasetId": treemap.id}],
-                    },
-                ]
-            }
-        )
-
-        mock_is_owner.return_value = False
-        mock_can_access.return_value = False
-        mock_can_access_schema.return_value = False
-        with override_user(security_manager.find_user("gamma")):
-            for kwarg in ["query_context", "viz"]:
-                births.roles = []
-
-                # No dashboard roles.
-                with self.assertRaises(SupersetSecurityException):  # noqa: PT027
-                    security_manager.raise_for_access(
-                        **{
-                            kwarg: Mock(
-                                datasource=birth_names,
-                                form_data={
-                                    "dashboardId": births.id,
-                                    "slice_id": girls.id,
-                                },
-                            )
-                        }
-                    )
-
-                births.roles = [self.get_role("Gamma")]
-
-                # Undefined dashboard.
-                with self.assertRaises(SupersetSecurityException):  # noqa: PT027
-                    security_manager.raise_for_access(
-                        **{
-                            kwarg: Mock(
-                                datasource=birth_names,
-                                form_data={},
-                            )
-                        }
-                    )
-
-                # Undefined dashboard chart.
-                with self.assertRaises(SupersetSecurityException):  # noqa: PT027
-                    security_manager.raise_for_access(
-                        **{
-                            kwarg: Mock(
-                                datasource=birth_names,
-                                form_data={"dashboardId": births.id},
-                            )
-                        }
-                    )
-
-                # Ill-defined dashboard chart.
-                with self.assertRaises(SupersetSecurityException):  # noqa: PT027
-                    security_manager.raise_for_access(
-                        **{
-                            kwarg: Mock(
-                                datasource=birth_names,
-                                form_data={
-                                    "dashboardId": births.id,
-                                    "slice_id": treemap.id,
-                                },
-                            )
-                        }
-                    )
-
-                # Dashboard chart not associated with said datasource.
-                with self.assertRaises(SupersetSecurityException):  # noqa: PT027
-                    security_manager.raise_for_access(
-                        **{
-                            kwarg: Mock(
-                                datasource=birth_names,
-                                form_data={
-                                    "dashboardId": world_health.id,
-                                    "slice_id": treemap.id,
-                                },
-                            )
-                        }
-                    )
-
-                # Dashboard chart associated with said datasource.
-                security_manager.raise_for_access(
-                    **{
-                        kwarg: Mock(
-                            datasource=birth_names,
-                            form_data={
-                                "dashboardId": births.id,
-                                "slice_id": girls.id,
-                            },
-                        )
-                    }
-                )
-
-                # Ill-defined native filter.
-                with self.assertRaises(SupersetSecurityException):  # noqa: PT027
-                    security_manager.raise_for_access(
-                        **{
-                            kwarg: Mock(
-                                datasource=birth_names,
-                                form_data={
-                                    "dashboardId": births.id,
-                                    "type": "NATIVE_FILTER",
-                                },
-                            )
-                        }
-                    )
-
-                # Native filter not associated with said datasource.
-                with self.assertRaises(SupersetSecurityException):  # noqa: PT027
-                    security_manager.raise_for_access(
-                        **{
-                            kwarg: Mock(
-                                datasource=birth_names,
-                                form_data={
-                                    "dashboardId": births.id,
-                                    "native_filter_id": "NATIVE_FILTER-IJKLMNOP",
-                                    "type": "NATIVE_FILTER",
-                                },
-                            )
-                        }
-                    )
-
-                # Native filter associated with said datasource.
-                security_manager.raise_for_access(
-                    **{
-                        kwarg: Mock(
-                            datasource=birth_names,
-                            form_data={
-                                "dashboardId": births.id,
-                                "native_filter_id": "NATIVE_FILTER-ABCDEFGH",
-                                "type": "NATIVE_FILTER",
-                            },
-                        )
-                    }
-                )
 
     def test_get_admin_user_roles(self):
         admin = security_manager.find_user("admin")

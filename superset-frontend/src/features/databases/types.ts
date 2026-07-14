@@ -246,6 +246,7 @@ export interface ExtraJson {
   disable_data_preview?: boolean; // in SQL Lab
   disable_drill_to_detail?: boolean;
   allow_multi_catalog?: boolean;
+  per_user_caching?: boolean; // in Security
   engine_params?: {
     catalog?: Record<string, string>;
     connect_args?: {
@@ -281,8 +282,7 @@ type CustomHTMLTextAreaElement = Omit<
   CustomTextType;
 
 export type CustomParametersChangeType<T = CustomTextType> =
-  | FormEvent<InputProps>
-  | { target: T };
+  FormEvent<InputProps> | { target: T };
 
 export type CustomEventHandlerType = EventHandler<
   ChangeEvent<CustomHTMLInputElement | CustomHTMLTextAreaElement>
@@ -307,6 +307,7 @@ export interface FieldPropTypes {
   } & {
     onExtraInputChange: (value: any) => void;
     onEncryptedExtraInputChange: (value: any) => void;
+    onClearEncryptedExtraKey: (name: string) => void;
     onSSHTunnelParametersChange: CustomEventHandlerType;
   };
   validationErrors: JsonObject | null;
@@ -322,6 +323,8 @@ export interface FieldPropTypes {
   defaultDBName?: string;
   editNewDb?: boolean;
   isValidating: boolean;
+  isPublic?: boolean;
+  setIsPublic?: (value: boolean) => void;
 }
 
 type ChangeMethodsType = FieldPropTypes['changeMethods'];
@@ -363,6 +366,7 @@ export interface DatabaseConnectionFormProps {
   onEncryptedExtraInputChange: (
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
+  onClearEncryptedExtraKey: (name: string) => void;
   onAddTableCatalog: () => void;
   onRemoveTableCatalog: (idx: number) => void;
   validationErrors: JsonObject | null;

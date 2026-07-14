@@ -16,17 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { extensions as extensionsType } from '@apache-superset/core';
-import ExtensionsManager from 'src/extensions/ExtensionsManager';
+import { extensions as extensionsApi } from '@apache-superset/core';
+import ExtensionsLoader from 'src/extensions/ExtensionsLoader';
 
-const getExtension: typeof extensionsType.getExtension = id => {
-  throw new Error('Not implemented yet');
-};
+const getExtension: typeof extensionsApi.getExtension = id =>
+  ExtensionsLoader.getInstance().getExtension(id);
 
-const getAllExtensions: typeof extensionsType.getAllExtensions = () =>
-  ExtensionsManager.getInstance().getExtensions();
+const getAllExtensions: typeof extensionsApi.getAllExtensions = () =>
+  ExtensionsLoader.getInstance().getExtensions();
 
-export const extensions: typeof extensionsType = {
+export const extensions: typeof extensionsApi = {
   getExtension,
   getAllExtensions,
 };

@@ -371,6 +371,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "allow_csv_upload",
             "extra",
             "impersonate_user",
+            "configuration_method",
             "uuid",
             "version",
         ]
@@ -393,6 +394,30 @@ class TestExportDatabasesCommand(SupersetTestCase):
         assert "metadata.yaml" in prefixes
         assert "databases" in prefixes
         assert "datasets" not in prefixes
+
+    @patch("superset.security.manager.g")
+    def test_export_database_command_unicode_chars(self, mock_g):
+        mock_g.user = security_manager.find_user("admin")
+        db.session.query(Database).filter_by(database_name="中文").delete()
+        db.session.commit()
+        command = CreateDatabaseCommand(
+            {"database_name": "中文", "sqlalchemy_uri": "sqlite:///:memory:"},
+        )
+        example_db = command.run()
+
+        try:
+            command = ExportDatabasesCommand([example_db.id], export_related=False)
+            contents = dict(command.run())
+
+            path = f"databases/{example_db.id}.yaml"
+            assert path in set(contents.keys())
+            yaml_content = contents[path]()
+            assert "database_name: 中文" in yaml_content
+        finally:
+            # CreateDatabaseCommand commits the new database, so the cleanup must
+            # also be committed and must run even if an assertion above fails
+            db.session.query(Database).filter_by(database_name="中文").delete()
+            db.session.commit()
 
 
 class TestImportDatabasesCommand(SupersetTestCase):
@@ -813,7 +838,10 @@ class TestImportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Must provide credentials for the SSH Tunnel"
+        assert str(excinfo.value) == (
+            "Error importing database: databases/imported_database.yaml: "
+            "{'ssh_tunnel': {'password': 'Either password or private_key is required'}}"
+        )
 
     @patch("superset.databases.schemas.is_feature_enabled")
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
@@ -858,10 +886,12 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert str(excinfo.value).startswith("Error importing database")
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
-                "_schema": [
-                    "Must provide a private key for the ssh tunnel",
-                    "Must provide a private key password for the ssh tunnel",
-                ]
+                "ssh_tunnel": {
+                    "password": "Either password or private_key is required",
+                    "private_key": (
+                        "private_key is required when private_key_password is provided"
+                    ),
+                }
             }
         }
 

@@ -18,23 +18,20 @@
  */
 import { useCallback, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { styled, SupersetClient, t, useTheme, css } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
+import { styled, useTheme, css } from '@apache-superset/core/theme';
 import CodeSyntaxHighlighter, {
   preloadLanguages,
 } from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import { LoadingCards } from 'src/pages/Home';
 import { TableTab } from 'src/views/CRUD/types';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import {
-  Dropdown,
-  DeleteModal,
-  Button,
-  ListViewCard,
-} from '@superset-ui/core/components';
+import { DeleteModal, Icons, ListViewCard } from '@superset-ui/core/components';
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import { copyQueryLink, useListViewResource } from 'src/views/CRUD/hooks';
-import { Icons } from '@superset-ui/core/components/Icons';
 import { User } from 'src/types/bootstrapTypes';
+import { KebabMenuButton } from 'src/components';
 import {
   CardContainer,
   createErrorHandler,
@@ -43,7 +40,6 @@ import {
   shortenSQL,
 } from 'src/views/CRUD/utils';
 import { assetUrl } from 'src/utils/assetUrl';
-import { ensureAppRoot } from 'src/utils/pathUtils';
 import { navigateTo } from 'src/utils/navigationUtils';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
@@ -92,18 +88,7 @@ export const CardStyles = styled.div`
     display: inline-block;
     width: 100%;
     height: 179px;
-    background-repeat: no-repeat;
     vertical-align: middle;
-  }
-`;
-
-const QueryData = styled.div`
-  svg {
-    margin-left: ${({ theme }) => theme.sizeUnit * 10}px;
-  }
-  .query-title {
-    padding: ${({ theme }) => theme.sizeUnit * 2 + 2}px;
-    font-size: ${({ theme }) => theme.fontSizeLG}px;
   }
 `;
 
@@ -225,7 +210,6 @@ export const SavedQueries = ({
             iconSize="l"
             css={css`
               margin-right: ${theme.sizeUnit}px;
-              vertical-align: baseline;
             `}
           />
           {t('Share')}
@@ -315,7 +299,8 @@ export const SavedQueries = ({
             <CardStyles key={q.id}>
               <ListViewCard
                 imgURL=""
-                url={ensureAppRoot(`/sqllab?savedQueryId=${q.id}`)}
+                url={`/sqllab?savedQueryId=${q.id}`}
+                linkComponent={Link}
                 title={q.label}
                 imgFallbackURL={assetUrl(
                   '/static/assets/images/empty-query.svg',
@@ -347,25 +332,17 @@ export const SavedQueries = ({
                   )
                 }
                 actions={
-                  <QueryData>
-                    <ListViewCard.Actions
-                      onClick={e => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                      }}
-                    >
-                      <Dropdown
-                        menu={{
-                          items: menuItems(q),
-                        }}
-                        trigger={['click', 'hover']}
-                      >
-                        <Button buttonSize="xsmall" buttonStyle="link">
-                          <Icons.MoreOutlined iconColor={theme.colorText} />
-                        </Button>
-                      </Dropdown>
-                    </ListViewCard.Actions>
-                  </QueryData>
+                  <ListViewCard.Actions
+                    onClick={e => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}
+                  >
+                    <KebabMenuButton
+                      menuItems={menuItems(q)}
+                      dataTest="saved-query-card-menu"
+                    />
+                  </ListViewCard.Actions>
                 }
               />
             </CardStyles>

@@ -70,9 +70,11 @@ const defaultProps = {
   colorScheme: 'supersetColors',
   customCss: '',
   hasCustomLabelsColor: false,
+  showChartTimestamps: false,
   onThemeChange: jest.fn(),
   onColorSchemeChange: jest.fn(),
   onCustomCssChange: jest.fn(),
+  onShowChartTimestampsChange: jest.fn(),
   addDangerToast: jest.fn(),
 };
 
@@ -156,7 +158,51 @@ test('displays current color scheme value', () => {
   expect(colorSchemeInput).toHaveValue('testColors');
 });
 
+test('renders chart timestamps field', () => {
+  render(<StylingSection {...defaultProps} />);
+
+  expect(
+    screen.getByTestId('dashboard-show-timestamps-field'),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByTestId('dashboard-show-timestamps-switch'),
+  ).toBeInTheDocument();
+});
+
+test('chart timestamps switch reflects showChartTimestamps prop', () => {
+  const { rerender } = render(
+    <StylingSection {...defaultProps} showChartTimestamps={false} />,
+  );
+
+  let timestampSwitch = screen.getByTestId('dashboard-show-timestamps-switch');
+  expect(timestampSwitch).not.toBeChecked();
+
+  rerender(<StylingSection {...defaultProps} showChartTimestamps />);
+
+  timestampSwitch = screen.getByTestId('dashboard-show-timestamps-switch');
+  expect(timestampSwitch).toBeChecked();
+});
+
+test('calls onShowChartTimestampsChange when switch is toggled', async () => {
+  const onShowChartTimestampsChange = jest.fn();
+  render(
+    <StylingSection
+      {...defaultProps}
+      onShowChartTimestampsChange={onShowChartTimestampsChange}
+    />,
+  );
+
+  const timestampSwitch = screen.getByTestId(
+    'dashboard-show-timestamps-switch',
+  );
+  await userEvent.click(timestampSwitch);
+
+  expect(onShowChartTimestampsChange).toHaveBeenCalled();
+  expect(onShowChartTimestampsChange.mock.calls[0][0]).toBe(true);
+});
+
 // CSS Template Tests
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('CSS Template functionality', () => {
   test('does not show CSS template select when feature flag is disabled', () => {
     mockIsFeatureEnabled.mockReturnValue(false);

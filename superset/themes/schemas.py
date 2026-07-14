@@ -14,12 +14,49 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from contextvars import ContextVar
 from typing import Any
 
-from marshmallow import fields, Schema, validates, ValidationError
+from marshmallow import fields, post_load, Schema, validates, ValidationError
 
-from superset.themes.utils import is_valid_theme, sanitize_theme_tokens
+from superset.themes.utils import (
+    is_valid_theme,
+    sanitize_theme_tokens,
+    validate_font_urls,
+)
 from superset.utils import json
+
+# Context variable for storing sanitized JSON data during validation
+sanitized_json_context: ContextVar[str | None] = ContextVar(
+    "sanitized_json_data", default=None
+)
+
+
+def _consume_sanitized_json_data(default: str) -> str:
+    sanitized_json_data = sanitized_json_context.get()
+    sanitized_json_context.set(None)
+    return sanitized_json_data or default
+
+
+def _sanitize_and_validate_theme_config(theme_config: dict[str, Any]) -> dict[str, Any]:
+    """Sanitize and validate theme configuration.
+
+    Applies token sanitization and font URL validation.
+    Returns the sanitized configuration.
+    """
+    sanitized_config = sanitize_theme_tokens(theme_config)
+
+    # Validate and sanitize fontUrls if present
+    if "token" in sanitized_config and isinstance(sanitized_config["token"], dict):
+        font_urls = sanitized_config["token"].get("fontUrls")
+        if font_urls is not None:
+            sanitized_config["token"]["fontUrls"] = validate_font_urls(font_urls)
+
+    # Validate theme structure
+    if not is_valid_theme(sanitized_config):
+        raise ValidationError("Invalid theme configuration structure")
+
+    return sanitized_config
 
 
 class ImportV1ThemeSchema(Schema):
@@ -29,7 +66,7 @@ class ImportV1ThemeSchema(Schema):
     version = fields.String(required=True)
 
     @validates("json_data")
-    def validate_json_data(self, value: dict[str, Any]) -> None:
+    def validate_json_data(self, value: dict[str, Any], **kwargs: Any) -> None:
         # Convert dict to JSON string for validation
         if isinstance(value, dict):
             json_str = json.dumps(value)
@@ -42,12 +79,8 @@ class ImportV1ThemeSchema(Schema):
         except (TypeError, json.JSONDecodeError) as ex:
             raise ValidationError("Invalid JSON configuration") from ex
 
-        # Sanitize theme tokens (including SVG content)
-        sanitized_config = sanitize_theme_tokens(theme_config)
-
-        # Validate theme structure
-        if not is_valid_theme(sanitized_config):
-            raise ValidationError("Invalid theme configuration structure")
+        # Sanitize and validate the theme configuration
+        sanitized_config = _sanitize_and_validate_theme_config(theme_config)
 
         # Update the field with sanitized content for import
         if sanitized_config != theme_config:
@@ -56,7 +89,7 @@ class ImportV1ThemeSchema(Schema):
                 value.clear()
                 value.update(sanitized_config)
             else:
-                self.context["sanitized_json_data"] = json.dumps(sanitized_config)
+                sanitized_json_context.set(json.dumps(sanitized_config))
 
 
 class ThemePostSchema(Schema):
@@ -64,30 +97,38 @@ class ThemePostSchema(Schema):
     json_data = fields.String(required=True, allow_none=False)
 
     @validates("theme_name")
-    def validate_theme_name(self, value: str) -> None:
+    def validate_theme_name(self, value: str, **kwargs: Any) -> None:
         if not value or not value.strip():
             raise ValidationError("Theme name cannot be empty.")
 
     @validates("json_data")
-    def validate_and_sanitize_json_data(self, value: str) -> None:
+    def validate_and_sanitize_json_data(self, value: str, **kwargs: Any) -> None:
+        sanitized_json_context.set(None)
         # Parse JSON
         try:
             theme_config = json.loads(value) if isinstance(value, str) else value
         except (TypeError, json.JSONDecodeError) as ex:
             raise ValidationError("Invalid JSON configuration") from ex
 
-        # Sanitize theme tokens (including SVG content)
-        sanitized_config = sanitize_theme_tokens(theme_config)
-
-        # Validate theme structure
-        if not is_valid_theme(sanitized_config):
-            raise ValidationError("Invalid theme configuration structure")
+        # Sanitize and validate the theme configuration
+        sanitized_config = _sanitize_and_validate_theme_config(theme_config)
 
         # Update the field with sanitized content
         # Note: This modifies the input data to ensure sanitized content is stored
         if sanitized_config != theme_config:
             # Re-serialize the sanitized config
-            self.context["sanitized_json_data"] = json.dumps(sanitized_config)
+            sanitized_json_context.set(json.dumps(sanitized_config))
+
+    def _apply_sanitized_json_data(self, data: dict[str, Any]) -> dict[str, Any]:
+        data["json_data"] = _consume_sanitized_json_data(data["json_data"])
+        return data
+
+    @post_load
+    def apply_sanitized_json_data(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        del kwargs
+        return self._apply_sanitized_json_data(data)
 
 
 class ThemePutSchema(Schema):
@@ -95,30 +136,35 @@ class ThemePutSchema(Schema):
     json_data = fields.String(required=True, allow_none=False)
 
     @validates("theme_name")
-    def validate_theme_name(self, value: str) -> None:
+    def validate_theme_name(self, value: str, **kwargs: Any) -> None:
         if not value or not value.strip():
             raise ValidationError("Theme name cannot be empty.")
 
     @validates("json_data")
-    def validate_and_sanitize_json_data(self, value: str) -> None:
+    def validate_and_sanitize_json_data(self, value: str, **kwargs: Any) -> None:
+        sanitized_json_context.set(None)
         # Parse JSON
         try:
             theme_config = json.loads(value) if isinstance(value, str) else value
         except (TypeError, json.JSONDecodeError) as ex:
             raise ValidationError("Invalid JSON configuration") from ex
 
-        # Sanitize theme tokens (including SVG content)
-        sanitized_config = sanitize_theme_tokens(theme_config)
-
-        # Validate theme structure
-        if not is_valid_theme(sanitized_config):
-            raise ValidationError("Invalid theme configuration structure")
+        # Sanitize and validate the theme configuration
+        sanitized_config = _sanitize_and_validate_theme_config(theme_config)
 
         # Update the field with sanitized content
         # Note: This modifies the input data to ensure sanitized content is stored
         if sanitized_config != theme_config:
             # Re-serialize the sanitized config
-            self.context["sanitized_json_data"] = json.dumps(sanitized_config)
+            sanitized_json_context.set(json.dumps(sanitized_config))
+
+    @post_load
+    def apply_sanitized_json_data(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        del kwargs
+        data["json_data"] = _consume_sanitized_json_data(data["json_data"])
+        return data
 
 
 openapi_spec_methods_override = {

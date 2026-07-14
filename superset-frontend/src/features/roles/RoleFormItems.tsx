@@ -16,24 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  FormItem,
-  Input,
-  Select,
-  AsyncSelect,
-} from '@superset-ui/core/components';
-import { t } from '@superset-ui/core';
-import { FC } from 'react';
-import { GroupObject } from 'src/pages/GroupsList';
-import { FormattedPermission } from './types';
+import { useCallback } from 'react';
+import { FormItem, Input, AsyncSelect } from '@superset-ui/core/components';
+import { t } from '@apache-superset/core/translation';
 import { fetchUserOptions } from '../groups/utils';
+import { fetchGroupOptions, fetchPermissionOptions } from './utils';
 
-interface PermissionsFieldProps {
-  permissions: FormattedPermission[];
-}
-
-interface GroupsFieldProps {
-  groups: GroupObject[];
+interface AsyncOptionsFieldProps {
+  addDangerToast: (msg: string) => void;
+  loading?: boolean;
 }
 
 interface UsersFieldProps {
@@ -51,45 +42,72 @@ export const RoleNameField = () => (
   </FormItem>
 );
 
-export const PermissionsField: FC<PermissionsFieldProps> = ({
-  permissions,
-}) => (
-  <FormItem name="rolePermissions" label={t('Permissions')}>
-    <Select
-      mode="multiple"
-      name="rolePermissions"
-      options={permissions.map(permission => ({
-        label: permission.label,
-        value: permission.id,
-      }))}
-      getPopupContainer={trigger => trigger.closest('.ant-modal-content')}
-      data-test="permissions-select"
-    />
-  </FormItem>
-);
+export const PermissionsField = ({
+  addDangerToast,
+  loading = false,
+}: AsyncOptionsFieldProps) => {
+  const options = useCallback(
+    (filterValue: string, page: number, pageSize: number) =>
+      fetchPermissionOptions(filterValue, page, pageSize, addDangerToast),
+    [addDangerToast],
+  );
 
-export const UsersField = ({ addDangerToast, loading }: UsersFieldProps) => (
-  <FormItem name="roleUsers" label={t('Users')}>
-    <AsyncSelect
-      name="roleUsers"
-      mode="multiple"
-      placeholder={t('Select users')}
-      options={(filterValue, page, pageSize) =>
-        fetchUserOptions(filterValue, page, pageSize, addDangerToast)
-      }
-      loading={loading}
-      data-test="roles-select"
-    />
-  </FormItem>
-);
+  return (
+    <FormItem name="rolePermissions" label={t('Permissions')}>
+      <AsyncSelect
+        mode="multiple"
+        name="rolePermissions"
+        placeholder={t('Select permissions')}
+        options={options}
+        loading={loading}
+        getPopupContainer={trigger => trigger.closest('.ant-modal-content')}
+        data-test="permissions-select"
+      />
+    </FormItem>
+  );
+};
 
-export const GroupsField: FC<GroupsFieldProps> = ({ groups }) => (
-  <FormItem name="roleGroups" label={t('Groups')}>
-    <Select
-      mode="multiple"
-      name="roleGroups"
-      options={groups.map(group => ({ label: group.name, value: group.id }))}
-      data-test="groups-select"
-    />
-  </FormItem>
-);
+export const UsersField = ({ addDangerToast, loading }: UsersFieldProps) => {
+  const options = useCallback(
+    (filterValue: string, page: number, pageSize: number) =>
+      fetchUserOptions(filterValue, page, pageSize, addDangerToast),
+    [addDangerToast],
+  );
+
+  return (
+    <FormItem name="roleUsers" label={t('Users')}>
+      <AsyncSelect
+        name="roleUsers"
+        mode="multiple"
+        placeholder={t('Select users')}
+        options={options}
+        loading={loading}
+        data-test="roles-select"
+      />
+    </FormItem>
+  );
+};
+
+export const GroupsField = ({
+  addDangerToast,
+  loading = false,
+}: AsyncOptionsFieldProps) => {
+  const options = useCallback(
+    (filterValue: string, page: number, pageSize: number) =>
+      fetchGroupOptions(filterValue, page, pageSize, addDangerToast),
+    [addDangerToast],
+  );
+
+  return (
+    <FormItem name="roleGroups" label={t('Groups')}>
+      <AsyncSelect
+        mode="multiple"
+        name="roleGroups"
+        placeholder={t('Select groups')}
+        options={options}
+        loading={loading}
+        data-test="groups-select"
+      />
+    </FormItem>
+  );
+};

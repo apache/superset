@@ -42,25 +42,47 @@ export function calculateTimeValue(
       errorMsg: `The time lag set at ${timeLag} is too large for the length of data at ${reversedEntries.length}. No data available.`,
     };
 
-  let laggedValue: number | null;
+  let laggedValue: number | null = null;
 
-  if (timeLag < 0)
-    laggedValue = reversedEntries[totalLag + timeLag][valueField];
-  else laggedValue = reversedEntries[timeLag][valueField];
+  if (timeLag < 0) {
+    const index = totalLag + timeLag;
+    if (index >= 0 && index < totalLag) {
+      laggedValue = reversedEntries[index][valueField];
+    }
+  } else if (timeLag === 0) {
+    laggedValue = recent;
+  } else {
+    // Find the Nth actual data point, skipping null values
+    let dataPointsFound = 0;
+    reversedEntries.slice(1, totalLag).some(entry => {
+      const searchValue = entry[valueField];
+      if (typeof searchValue === 'number') {
+        dataPointsFound += 1;
+        if (dataPointsFound === timeLag) {
+          laggedValue = searchValue;
+          return true;
+        }
+      }
+      return false;
+    });
+  }
 
-  if (typeof laggedValue !== 'number' || typeof recent !== 'number')
+  // For comparison operations, both values must be numbers
+  if (typeof laggedValue === 'number' && typeof recent === 'number') {
+    if (column.comparisonType === 'diff')
+      return { value: recent - laggedValue };
+    if (column.comparisonType === 'perc')
+      return { value: recent / laggedValue };
+    if (column.comparisonType === 'perc_change')
+      return { value: recent / laggedValue - 1 };
+  }
+
+  // If recent is null or undefined, return null (can't do meaningful calculations)
+  if (typeof recent !== 'number') {
     return { value: null };
+  }
 
-  let calculatedValue: number;
-
-  if (column.comparisonType === 'diff') calculatedValue = recent - laggedValue;
-  else if (column.comparisonType === 'perc')
-    calculatedValue = recent / laggedValue;
-  else if (column.comparisonType === 'perc_change')
-    calculatedValue = recent / laggedValue - 1;
-  else calculatedValue = laggedValue;
-
-  return { value: calculatedValue };
+  return { value: laggedValue };
 }
 
 /**

@@ -25,6 +25,7 @@ from flask import current_app
 from flask_appbuilder.security.sqla.models import Role
 from freezegun import freeze_time
 from jinja2 import DebugUndefined
+from jinja2.exceptions import SecurityError
 from jinja2.sandbox import SandboxedEnvironment
 from pytest_mock import MockerFixture
 from sqlalchemy.dialects import mysql
@@ -259,6 +260,219 @@ def test_get_filters_remove_not_present() -> None:
     assert cache.removed_filters == []
 
 
+def test_get_filters_query_context_filters() -> None:
+    """
+    Test that ``get_filters`` falls back to native query_context_filters when no
+    adhoc_filters are present — the drill-to-detail path sends filters in native
+    {col, op, val} format rather than adhoc_filters.
+    """
+    cache = ExtraCache(
+        query_context_filters=[{"col": "name", "op": "IN", "val": ["foo", "bar"]}]
+    )
+    assert cache.get_filters("name") == [
+        {"op": "IN", "col": "name", "val": ["foo", "bar"]}
+    ]
+    assert cache.applied_filters == ["name"]
+    assert cache.removed_filters == []
+
+
+def test_get_filters_query_context_filters_remove_filter() -> None:
+    """
+    Test that ``get_filters`` with ``remove_filter=True`` marks the column as removed
+    when matching via query_context_filters.
+    """
+    cache = ExtraCache(
+        query_context_filters=[{"col": "name", "op": "IN", "val": "foo"}]
+    )
+    assert cache.get_filters("name", remove_filter=True) == [
+        {"op": "IN", "col": "name", "val": ["foo"]}
+    ]
+    assert cache.removed_filters == ["name"]
+    assert cache.applied_filters == ["name"]
+
+
+def test_get_filters_query_context_filters_is_null() -> None:
+    """
+    Test that IS_NULL filters (which have no val) are returned correctly from
+    query_context_filters. Unary null operators legitimately have val=None.
+    """
+    cache = ExtraCache(query_context_filters=[{"col": "name", "op": "IS_NULL"}])
+    assert cache.get_filters("name") == [{"op": "IS_NULL", "col": "name", "val": None}]
+    assert cache.applied_filters == ["name"]
+    assert cache.removed_filters == []
+
+
+def test_get_filters_query_context_filters_is_not_null() -> None:
+    """
+    Test that IS_NOT_NULL filters (which have no val) are returned correctly from
+    query_context_filters. Unary null operators legitimately have val=None.
+    """
+    cache = ExtraCache(query_context_filters=[{"col": "name", "op": "IS_NOT_NULL"}])
+    assert cache.get_filters("name") == [
+        {"op": "IS_NOT_NULL", "col": "name", "val": None}
+    ]
+    assert cache.applied_filters == ["name"]
+    assert cache.removed_filters == []
+
+
+def test_get_filters_adhoc_filters_take_precedence_over_query_context_filters() -> None:
+    """
+    Test that adhoc_filters takes precedence over query_context_filters to avoid
+    duplicate filter entries for aggregated queries where both formats are present.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": ["adhoc_val"],
+                            "expressionType": "SIMPLE",
+                            "operator": "in",
+                            "subject": "name",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache(
+            query_context_filters=[{"col": "name", "op": "IN", "val": ["native_val"]}]
+        )
+        result = cache.get_filters("name")
+        assert result == [{"op": "IN", "col": "name", "val": ["adhoc_val"]}]
+
+
+def test_filter_values_query_context_filters() -> None:
+    """
+    Test that ``filter_values`` works via query_context_filters (drill-to-detail path).
+    """
+    cache = ExtraCache(
+        query_context_filters=[{"col": "name", "op": "IN", "val": ["foo", "bar"]}]
+    )
+    assert cache.filter_values("name") == ["foo", "bar"]
+    assert cache.applied_filters == ["name"]
+
+
+def test_get_filters_escaped_val_string_adhoc() -> None:
+    """
+    ``get_filters`` exposes an ``escaped_val`` companion for string values
+    when a dialect is configured, while leaving ``val`` raw.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": "O'Brien",
+                            "expressionType": "SIMPLE",
+                            "operator": "LIKE",
+                            "subject": "name",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache(dialect=dialect())
+        result = cache.get_filters("name")
+        assert result == [
+            {
+                "op": "LIKE",
+                "col": "name",
+                "val": "O'Brien",
+                "escaped_val": "O''Brien",
+            }
+        ]
+
+
+def test_get_filters_escaped_val_list_adhoc() -> None:
+    """
+    ``get_filters`` produces an ``escaped_val`` list with every string
+    member dialect-escaped; non-string members pass through untouched.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": ["O'Brien", "Smith"],
+                            "expressionType": "SIMPLE",
+                            "operator": "in",
+                            "subject": "name",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache(dialect=dialect())
+        result = cache.get_filters("name")
+        assert result == [
+            {
+                "op": "IN",
+                "col": "name",
+                "val": ["O'Brien", "Smith"],
+                "escaped_val": ["O''Brien", "Smith"],
+            }
+        ]
+
+
+def test_get_filters_escaped_val_query_context_filters() -> None:
+    """
+    The ``escaped_val`` companion is also populated when filters arrive via
+    the drill-to-detail ``query_context_filters`` path.
+    """
+    cache = ExtraCache(
+        dialect=dialect(),
+        query_context_filters=[
+            {"col": "name", "op": "LIKE", "val": "O'Brien"},
+        ],
+    )
+    assert cache.get_filters("name") == [
+        {
+            "op": "LIKE",
+            "col": "name",
+            "val": "O'Brien",
+            "escaped_val": "O''Brien",
+        }
+    ]
+
+
+def test_get_filters_no_escaped_val_without_dialect() -> None:
+    """
+    Without a dialect ``get_filters`` returns the original schema, with no
+    ``escaped_val`` key — preserving backwards compatibility for callers
+    that did not opt into a dialect-aware processor.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": "O'Brien",
+                            "expressionType": "SIMPLE",
+                            "operator": "LIKE",
+                            "subject": "name",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache()
+        result = cache.get_filters("name")
+        assert result == [{"op": "LIKE", "col": "name", "val": "O'Brien"}]
+        assert "escaped_val" not in result[0]
+
+
 def test_url_param_query() -> None:
     """
     Test the ``url_param`` macro.
@@ -341,6 +555,25 @@ def test_url_param_unescaped_default_form_data() -> None:
     ):
         cache = ExtraCache(dialect=dialect())
         assert cache.url_param("bar", "O'Malley", escape_result=False) == "O'Malley"
+
+
+def test_url_param_escaped_request_args() -> None:
+    """
+    Values read from the request query string are escaped the same way as
+    values from ``form_data`` (both are interpolated into the rendered SQL).
+    """
+    with current_app.test_request_context(query_string={"foo": "O'Brien"}):
+        cache = ExtraCache(dialect=dialect())
+        assert cache.url_param("foo") == "O''Brien"
+
+
+def test_url_param_unescaped_request_args() -> None:
+    """
+    ``escape_result=False`` still opts out of escaping for request-args values.
+    """
+    with current_app.test_request_context(query_string={"foo": "O'Brien"}):
+        cache = ExtraCache(dialect=dialect())
+        assert cache.url_param("foo", escape_result=False) == "O'Brien"
 
 
 def test_safe_proxy_primitive() -> None:
@@ -758,6 +991,40 @@ def test_metric_macro_expansion(mocker: MockerFixture) -> None:
 
     processor = get_template_processor(database=database)
     assert processor.process_template("{{ metric('c') }}") == "42"
+
+
+def test_metric_macro_does_not_expose_environment(mocker: MockerFixture) -> None:
+    """
+    A template must not be able to read the template environment through the
+    ``metric`` macro's bound arguments.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {"datasource": {"id": 1}}
+    processor = get_template_processor(database=database)
+    # Attribute access on the macro's partial is denied, so a reference to its
+    # bound args resolves to an undefined and any further use raises instead of
+    # yielding the environment object.
+    with pytest.raises(SecurityError):
+        processor.process_template("{{ metric.args[1] }}")
+    with pytest.raises(SecurityError):
+        processor.process_template(
+            "{{ metric.args[1].template_class.environment_class() }}"
+        )
+
+
+def test_supersetsandboxedenvironment_denies_unsafe_attributes() -> None:
+    """is_safe_attribute denies env/template class attrs and all attrs on partials."""
+    from functools import partial
+
+    from superset.jinja_context import SupersetSandboxedEnvironment
+
+    env = SupersetSandboxedEnvironment()
+    assert env.is_safe_attribute(env, "environment_class", None) is False
+    assert env.is_safe_attribute(env, "template_class", None) is False
+    macro = partial(lambda value: value, 1)
+    assert env.is_safe_attribute(macro, "args", macro.args) is False
+    assert env.is_safe_attribute(macro, "func", macro.func) is False
 
 
 def test_metric_macro_recursive_compound(mocker: MockerFixture) -> None:
@@ -1252,6 +1519,79 @@ def test_metric_macro_no_dataset_id_available_in_request_form_data(
         assert metric_macro(env, {}, "macro_key") == "COUNT(*)"
 
 
+def test_metric_macro_regular_user_uses_base_filter(mocker: MockerFixture) -> None:
+    """
+    Test that the ``metric_macro`` uses base filter for regular users.
+
+    Regular users should have standard RBAC/RLS filters applied when accessing datasets.
+    """
+    mock_is_guest_user = mocker.patch("superset.security_manager.is_guest_user")
+    mock_is_guest_user.return_value = False
+
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = SqlaTable(
+        table_name="test_dataset",
+        metrics=[
+            SqlMetric(metric_name="count", expression="COUNT(*)"),
+        ],
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+        schema="my_schema",
+        sql=None,
+    )
+
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    assert metric_macro(env, {}, "count", 1) == "COUNT(*)"
+
+    # Verify that find_by_id was called without skip_base_filter
+    DatasetDAO.find_by_id.assert_called_once_with(1, skip_base_filter=False)
+
+
+def test_metric_macro_regular_user_raises_no_access(mocker: MockerFixture) -> None:
+    """
+    Test that the ``metric_macro`` raises for regular user without dataset access.
+    """
+    mock_is_guest_user = mocker.patch("superset.security_manager.is_guest_user")
+    mock_is_guest_user.return_value = False
+
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = None
+
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    with pytest.raises(DatasetNotFoundError) as excinfo:
+        assert metric_macro(env, {}, "count", 1) == "COUNT(*)"
+
+    assert str(excinfo.value) == "Dataset ID 1 not found."
+    DatasetDAO.find_by_id.assert_called_once_with(1, skip_base_filter=False)
+
+
+def test_metric_macro_embedded_user_skips_base_filter(mocker: MockerFixture) -> None:
+    """
+    Test that the ``metric_macro`` skips base filter for embedded users.
+
+    Embedded users have dashboard-level access control via their embedding token,
+    so we bypass the regular dataset DAO filters for them.
+    """
+    mock_is_guest_user = mocker.patch("superset.security_manager.is_guest_user")
+    mock_is_guest_user.return_value = True
+
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = SqlaTable(
+        table_name="test_dataset",
+        metrics=[
+            SqlMetric(metric_name="count", expression="COUNT(*)"),
+        ],
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+        schema="my_schema",
+        sql=None,
+    )
+
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    assert metric_macro(env, {}, "count", 1) == "COUNT(*)"
+
+    # Verify that find_by_id was called with skip_base_filter=True
+    DatasetDAO.find_by_id.assert_called_once_with(1, skip_base_filter=True)
+
+
 @pytest.mark.parametrize(
     "description,args,kwargs,sqlalchemy_uri,queries,time_filter,removed_filters,applied_filters",
     [
@@ -1566,3 +1906,78 @@ def test_jinja2_server_error_handling(mocker: MockerFixture) -> None:
         assert "Internal Jinja2 template error" in str(exception)
         assert "MemoryError" in str(exception)
         assert "Out of memory" in str(exception)
+
+
+def test_undefined_template_function_exception(mocker: MockerFixture) -> None:
+    """Test UndefinedTemplateFunctionException for undefined function identifiers."""
+    from superset.jinja_context import (
+        BaseTemplateProcessor,
+        UndefinedTemplateFunctionException,
+    )
+
+    database = mocker.MagicMock()
+    database.db_engine_spec = mocker.MagicMock()
+
+    processor = BaseTemplateProcessor(database=database)
+
+    template = "SELECT {{ undefined_function() }}"
+    with pytest.raises(UndefinedTemplateFunctionException) as exc_info:
+        processor.process_template(template)
+
+    exception = exc_info.value
+    assert isinstance(exception, UndefinedTemplateFunctionException)
+    assert "undefined" in str(exception).lower()
+
+
+def test_undefined_template_function_exception_with_namespace(
+    mocker: MockerFixture,
+) -> None:
+    """Test namespaced undefined functions raise UndefinedError (not converted)."""
+    from jinja2.exceptions import UndefinedError
+
+    from superset.jinja_context import BaseTemplateProcessor
+
+    database = mocker.MagicMock()
+    database.db_engine_spec = mocker.MagicMock()
+
+    processor = BaseTemplateProcessor(database=database)
+    template = "SELECT {{ namespace.undefined_function() }}"
+    with pytest.raises(UndefinedError):
+        processor.process_template(template)
+
+
+def test_undefined_template_variable_not_function(mocker: MockerFixture) -> None:
+    """Test undefined variables with method calls raise UndefinedError."""
+    from jinja2.exceptions import UndefinedError
+
+    from superset.jinja_context import BaseTemplateProcessor
+
+    database = mocker.MagicMock()
+    database.db_engine_spec = mocker.MagicMock()
+
+    processor = BaseTemplateProcessor(database=database)
+
+    template = "SELECT {{ undefined_variable.some_method() }}"
+    with pytest.raises(UndefinedError):
+        processor.process_template(template)
+
+
+@pytest.mark.parametrize(
+    ("sql", "expected"),
+    [
+        ("SELECT {{ cache_key_wrapper(abc) }}", True),
+        ("SELECT {{ cache_key_wrapper(myfunc()) }}", True),
+        ("SELECT {{ url_param('foo') }}", True),
+        ("SELECT {{ url_param(get_param('foo')) }}", True),
+        ("SELECT {{ current_user_id() }}", True),
+        ("SELECT {{ current_username() }}", True),
+        ("SELECT {{ current_user_email() }}", True),
+        ("SELECT {{ current_user_roles() }}", True),
+        ("SELECT {{ current_user_rls_rules() }}", True),
+        ("SELECT 'cache_key_wrapper(abc)' AS false_positive", False),
+        ("SELECT 1", False),
+        ("SELECT '{{ 1 + 1 }}'", False),
+    ],
+)
+def test_extra_cache_regex(sql: str, expected: bool) -> None:
+    assert bool(ExtraCache.regex.search(sql)) is expected

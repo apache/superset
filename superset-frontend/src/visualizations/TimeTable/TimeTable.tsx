@@ -18,7 +18,8 @@
  */
 import { useMemo, ReactNode } from 'react';
 import { InfoTooltip, TableView } from '@superset-ui/core/components';
-import { styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { sortNumberWithMixedTypes, processTimeTableData } from './utils';
 import { ValueCell, LeftCell, Sparkline } from './components';
 import type { TimeTableProps } from './types';
@@ -29,7 +30,7 @@ const TimeTableStyles = styled.div<{ height?: number }>`
   overflow: auto;
 
   th {
-    z-index: 11 !important; // to cover sparkline
+    z-index: 11 !important; /* to cover sparkline */
   }
 `;
 

@@ -16,7 +16,6 @@
     ]
   },
   "dependencies": {
-    "@applitools/eyes-cypress": "^3.44.9",
     "@cypress/code-coverage": "^3.10.4",
     "@superset-ui/core": "^2.1.0",
     "brace": "^0.11.1",
@@ -33,5 +32,17 @@
     "cypress": "^11.2.0",
     "eslint-plugin-cypress": "^3.5.0",
     "tscw-config": "^1.1.2"
+  },
+  "overrides": {
+    "@babel/core": "^7.29.6",
+    "cypress": {
+      "form-data": "^2.3.4"
+    },
+    "qs": "^6.14.2",
+    "uuid": "^11.1.1",
+    "@cypress/request": "^3.0.0",
+    "@cypress/code-coverage": {
+      "js-yaml": "4.1.1"
+    }
   }
 }

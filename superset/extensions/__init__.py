@@ -15,13 +15,25 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+import logging
 import os
 from typing import Any, Callable, Optional
 
 import celery
 from flask import Flask
 from flask_appbuilder import AppBuilder
-from flask_appbuilder.utils.legacy import get_sqla_class
+
+# Temporary fix for missing flask_appbuilder.utils.legacy module
+try:
+    from flask_appbuilder.utils.legacy import get_sqla_class
+except ImportError:
+    # Fallback if legacy module doesn't exist
+    from flask_sqlalchemy import SQLAlchemy
+
+    def get_sqla_class() -> Any:
+        return SQLAlchemy
+
+
 from flask_caching.backends.base import BaseCache
 from flask_migrate import Migrate
 from flask_talisman import Talisman
@@ -34,10 +46,19 @@ from superset.extensions.ssh import SSHManagerFactory
 from superset.extensions.stats_logger import BaseStatsLoggerManager
 from superset.security.manager import SupersetSecurityManager
 from superset.utils.cache_manager import CacheManager
+from superset.utils.database import apply_mariadb_ddl_fix
 from superset.utils.encrypt import EncryptedFieldFactory
 from superset.utils.feature_flag_manager import FeatureFlagManager
 from superset.utils.machine_auth import MachineAuthProviderFactory
 from superset.utils.profiler import SupersetProfiler
+
+# Apply MariaDB DDL fix early in the import chain
+try:
+    apply_mariadb_ddl_fix()
+except Exception as ex:
+    logging.exception(
+        "Applying MariaDB DDL fix failed; continuing without patch: %s", ex
+    )
 
 
 class ResultsBackendManager:
@@ -87,7 +108,16 @@ class UIManifestProcessor:
             "js_manifest": lambda bundle: get_files(bundle, "js"),
             "css_manifest": lambda bundle: get_files(bundle, "css"),
             "assets_prefix": (  # type: ignore
-                self.app.config["STATIC_ASSETS_PREFIX"] if self.app else ""
+                self.app.config.get("STATIC_ASSETS_PREFIX", "") if self.app else ""
+            ),
+            # rstripped APPLICATION_ROOT for templates that build app-rooted
+            # URLs (e.g. spa.html's `<link rel="manifest">`). `/` → ``,
+            # `/superset` → `/superset`, `/superset/` → `/superset` so
+            # `f"{application_root_rstrip}/path"` is single-prefixed.
+            "application_root_rstrip": (  # type: ignore
+                (self.app.config.get("APPLICATION_ROOT") or "").rstrip("/")
+                if self.app
+                else ""
             ),
         }
 
@@ -125,6 +155,31 @@ cache_manager = CacheManager()
 celery_app = celery.Celery()
 csrf = CSRFProtect()
 db = get_sqla_class()()
+
+# make_versioned() MUST be called immediately after db is constructed and before
+# any versioned model class is defined.  Continuum patches the SQLAlchemy
+# metaclass at call time; models constructed before this call are silently skipped.
+from sqlalchemy_continuum import (  # noqa: E402
+    make_versioned,
+    versioning_manager as _continuum_manager,
+)
+
+from superset.versioning.factory import (  # noqa: E402
+    SkipUnmodifiedPlugin,
+    VersioningFlaskPlugin,
+    VersionTransactionFactory,
+)
+
+# Rename the transaction table from "transaction" (SQL reserved word) to
+# "version_transaction" via the custom factory before make_versioned() fires.
+_continuum_manager.transaction_cls = VersionTransactionFactory()
+
+make_versioned(
+    user_cls=None,
+    plugins=[VersioningFlaskPlugin(), SkipUnmodifiedPlugin()],
+    options={"strategy": "validity"},
+)
+
 _event_logger: dict[str, Any] = {}
 encrypted_field_factory = EncryptedFieldFactory()
 event_logger = LocalProxy(lambda: _event_logger.get("event_logger"))

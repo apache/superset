@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
@@ -32,8 +33,9 @@ import { getLayerConfig } from '../util/controlPanelUtil';
 export default class CartodiagramPlugin extends ChartPlugin {
   constructor(opts: CartodiagramPluginConstructorOpts) {
     const metadata = new ChartMetadata({
-      description:
+      description: t(
         'Display charts on a map. For using this plugin, users first have to create any other chart that can then be placed on the map.',
+      ),
       name: t('Cartodiagram'),
       thumbnail,
       thumbnailDark,

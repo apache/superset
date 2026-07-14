@@ -22,13 +22,21 @@ from typing import Any, TypedDict
 from flask import current_app as app
 from flask_babel import gettext as __
 
-from superset import db
+from superset import db, is_feature_enabled, security_manager
 from superset.commands.base import BaseCommand
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorException, SupersetTimeoutException
+from superset.exceptions import (
+    SupersetDisallowedSQLFunctionException,
+    SupersetDisallowedSQLTableException,
+    SupersetDMLNotAllowedException,
+    SupersetErrorException,
+    SupersetTimeoutException,
+)
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database
+from superset.sql.parse import SQLScript
 from superset.utils import core as utils
+from superset.utils.rls import apply_rls
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +75,72 @@ class QueryEstimationCommand(BaseCommand):
                 ),
                 status=404,
             )
+        security_manager.raise_for_access(database=self._database)
+
+    def _apply_sql_security(self, sql: str) -> str:
+        """Run the disallowed-function/table, DML and RLS controls against the
+        SQL to be estimated, mirroring ``sql_lab.execute_sql_statements``.
+
+        Returns the SQL with RLS predicates injected (when ``RLS_IN_SQLLAB`` is
+        enabled), so the cost estimate reflects the same constrained query the
+        user would actually be allowed to run.
+        """
+        db_engine_spec = self._database.db_engine_spec
+        parsed_script = SQLScript(sql, engine=db_engine_spec.engine)
+
+        disallowed_functions = app.config["DISALLOWED_SQL_FUNCTIONS"].get(
+            db_engine_spec.engine,
+            set(),
+        )
+        if disallowed_functions and parsed_script.check_functions_present(
+            disallowed_functions
+        ):
+            raise SupersetDisallowedSQLFunctionException(disallowed_functions)
+
+        disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(
+            db_engine_spec.engine,
+            set(),
+        )
+        rls_enabled = is_feature_enabled("RLS_IN_SQLLAB")
+
+        # Resolve the effective per-query schema once, the same way the execution
+        # path does (``sql_lab.execute_sql_statements``), but only when a control
+        # below actually needs it. Going through ``get_default_schema_for_query``
+        # rather than the static ``get_default_schema`` runs engine-specific
+        # per-query security gates too — e.g. ``PostgresEngineSpec`` rejects a
+        # query that sets ``search_path`` — and resolves unqualified references to
+        # the schema the engine uses at runtime, so both the denylist check and
+        # RLS injection match the execution path exactly.
+        catalog: str | None = None
+        effective_schema = ""
+        if disallowed_tables or rls_enabled:
+            catalog = self._catalog or self._database.get_default_catalog()
+            resolved_schema = self._database.resolve_query_default_schema(
+                self._sql, self._schema, catalog, self._template_params
+            )
+            # An explicit schema still wins for matching/RLS targeting; otherwise
+            # fall back to the runtime-resolved default.
+            effective_schema = self._schema or resolved_schema or ""
+
+        if disallowed_tables:
+            # Honors schema-qualified denylist entries (e.g.
+            # ``information_schema.tables``) and reports only the tables
+            # actually referenced by the query.
+            found_tables = parsed_script.get_disallowed_tables(
+                disallowed_tables, effective_schema
+            )
+            if found_tables:
+                raise SupersetDisallowedSQLTableException(found_tables)
+
+        if parsed_script.has_mutation() and not self._database.allow_dml:
+            raise SupersetDMLNotAllowedException()
+
+        if rls_enabled:
+            for statement in parsed_script.statements:
+                apply_rls(self._database, catalog, effective_schema, statement)
+            return parsed_script.format()
+
+        return sql
 
     def run(
         self,
@@ -77,6 +151,12 @@ class QueryEstimationCommand(BaseCommand):
         if self._template_params:
             template_processor = get_template_processor(self._database)
             sql = template_processor.process_template(sql, **self._template_params)
+
+        # Apply the same SQL security controls used by the execution path
+        # (sql_lab.execute_sql_statements) so cost estimation cannot be used to
+        # probe disallowed functions/tables, bypass the DML guard, or confirm
+        # the existence of rows hidden by row-level security.
+        sql = self._apply_sql_security(sql)
 
         timeout = app.config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
         timeout_msg = f"The estimation exceeded the {timeout} seconds timeout."

@@ -43,7 +43,6 @@ def test_sync_permissions_command_sync_mode(
     """
     Test ``SyncPermissionsCommand`` in sync mode.
     """
-    mock_ssh = mocker.MagicMock()
     user_mock = mocker.patch(
         "superset.commands.database.sync_permissions.security_manager.get_user_by_username"
     )
@@ -55,7 +54,9 @@ def test_sync_permissions_command_sync_mode(
     add_pvm_mock = mocker.patch("superset.commands.database.sync_permissions.add_pvm")
 
     cmmd = SyncPermissionsCommand(
-        1, "admin", db_connection=database_with_catalog, ssh_tunnel=mock_ssh
+        1,
+        "admin",
+        db_connection=database_with_catalog,
     )
     mock_refresh_schemas = mocker.patch.object(cmmd, "_refresh_schemas")
     mock_rename_db_perm = mocker.patch.object(cmmd, "_rename_database_in_permissions")
@@ -64,7 +65,6 @@ def test_sync_permissions_command_sync_mode(
 
     assert cmmd.db_connection == database_with_catalog
     assert cmmd.old_db_connection_name == "my_db"
-    assert cmmd.db_connection_ssh_tunnel == mock_ssh
     user_mock.assert_called_once_with("admin")
     add_pvm_mock.assert_has_calls(
         [
@@ -120,7 +120,6 @@ def test_sync_permissions_command_passing_all_values(
     """
     Test ``SyncPermissionsCommand`` when providing all arguments to the constructor.
     """
-    mock_ssh = mocker.MagicMock()
     mock_database_dao = mocker.patch(
         "superset.commands.database.sync_permissions.DatabaseDAO"
     )
@@ -134,16 +133,13 @@ def test_sync_permissions_command_passing_all_values(
         "admin",
         old_db_connection_name="old name",
         db_connection=database_with_catalog,
-        ssh_tunnel=mock_ssh,
     )
     mocker.patch.object(cmmd, "sync_database_permissions")
     cmmd.run()
 
     assert cmmd.db_connection == database_with_catalog
     assert cmmd.old_db_connection_name == "old name"
-    assert cmmd.db_connection_ssh_tunnel == mock_ssh
     mock_database_dao.find_by_id.assert_not_called()
-    mock_database_dao.get_ssh_tunnel.assert_not_called()
 
 
 @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": False})
@@ -159,7 +155,6 @@ def test_sync_permissions_command_raise(
         "superset.commands.database.sync_permissions.DatabaseDAO"
     )
     mock_database_dao.find_by_id.return_value = database_without_catalog
-    mock_database_dao.get_ssh_tunnel.return_value = mocker.MagicMock()
     mock_user = mocker.patch(
         "superset.commands.database.sync_permissions.security_manager.get_user_by_username"
     )
@@ -413,4 +408,50 @@ def test_sync_permissions_command_rename_db_in_perms(
     assert mock_chart.catalog_perm == f"[{database_with_catalog.name}].[catalog1]"
     assert (
         mock_chart.schema_perm == f"[{database_with_catalog.name}].[catalog1].[schema1]"
+    )
+
+
+def test_sync_permissions_command_rename_bypasses_visibility_filter(
+    mocker: MockerFixture, database_with_catalog: MagicMock
+):
+    """The dataset/chart perm rewrite must run with the soft-delete
+    visibility filter bypassed for ``SqlaTable`` and ``Slice``.
+
+    A soft-deleted dataset's ``schema_perm``/``catalog_perm`` (and its
+    charts') must still be rewritten on a database rename; without the
+    bypass, the listener hides those rows from ``get_datasets`` and a
+    later restore resurrects stale perm strings referencing the old
+    database name — matchable by a ``schema_access`` grant on a new
+    database reusing that name.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
+    from superset.models.slice import Slice
+
+    mocker.patch(
+        "superset.commands.database.sync_permissions."
+        "security_manager.find_permission_view_menu",
+        return_value=None,
+    )
+    observed_bypass: list[set[type]] = []
+
+    def capture_bypass(*args, **kwargs):
+        observed_bypass.append(
+            set(db.session.info.get(SKIP_VISIBILITY_FILTER_CLASSES, set()))
+        )
+        return []
+
+    mock_database_dao = mocker.patch(
+        "superset.commands.database.sync_permissions.DatabaseDAO"
+    )
+    mock_database_dao.get_datasets.side_effect = capture_bypass
+
+    cmmd = SyncPermissionsCommand(
+        1, None, old_db_connection_name="old_name", db_connection=database_with_catalog
+    )
+    cmmd._rename_database_in_permissions("catalog1", ["schema1"])
+
+    assert observed_bypass, "get_datasets was never called"
+    assert all({SqlaTable, Slice} <= bypass for bypass in observed_bypass), (
+        "dataset perm rewrite ran without the soft-delete visibility bypass"
     )

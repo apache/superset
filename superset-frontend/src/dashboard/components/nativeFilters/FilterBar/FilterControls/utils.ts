@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { debounce } from 'lodash';
+import { debounce } from 'lodash-es';
 import { Dispatch } from 'react';
 import {
   setFocusedNativeFilter,
   unsetFocusedNativeFilter,
   setHoveredNativeFilter,
   unsetHoveredNativeFilter,
+  setHoveredChartCustomization,
+  unsetHoveredChartCustomization,
 } from 'src/dashboard/actions/nativeFilters';
 import { Constants } from '@superset-ui/core/components';
 
@@ -43,6 +45,17 @@ export const dispatchFocusAction = debounce(
       dispatch(setFocusedNativeFilter(id));
     } else {
       dispatch(unsetFocusedNativeFilter());
+    }
+  },
+  Constants.FAST_DEBOUNCE,
+);
+
+export const dispatchChartCustomizationHoverAction = debounce(
+  (dispatch: Dispatch<any>, id?: string) => {
+    if (id) {
+      dispatch(setHoveredChartCustomization(id));
+    } else {
+      dispatch(unsetHoveredChartCustomization());
     }
   },
   Constants.FAST_DEBOUNCE,

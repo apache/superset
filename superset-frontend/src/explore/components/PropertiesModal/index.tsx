@@ -21,14 +21,12 @@ import { ChangeEvent, useMemo, useState, useCallback, useEffect } from 'react';
 import {
   Input,
   AsyncSelect,
-  Modal,
   Collapse,
   CollapseLabelInModal,
-  type SelectValue,
 } from '@superset-ui/core/components';
 import rison from 'rison';
+import { t } from '@apache-superset/core/translation';
 import {
-  t,
   SupersetClient,
   isFeatureEnabled,
   FeatureFlag,
@@ -45,6 +43,10 @@ import {
   ModalFormField,
   useModalValidation,
 } from 'src/components/Modal';
+import SubjectPicker, {
+  mapSubjectsToPickerValues,
+  type SubjectPickerValue,
+} from 'src/features/subjects/SubjectPicker';
 
 export type PropertiesModalProps = {
   slice: Slice;
@@ -52,8 +54,8 @@ export type PropertiesModalProps = {
   onHide: () => void;
   onSave: (chart: Chart) => void;
   permissionsError?: string;
-  existingOwners?: SelectValue;
   addSuccessToast: (msg: string) => void;
+  addDangerToast: (msg: string) => void;
 };
 
 function PropertiesModal({
@@ -62,6 +64,7 @@ function PropertiesModal({
   onSave,
   show,
   addSuccessToast,
+  addDangerToast,
 }: PropertiesModalProps) {
   const [submitting, setSubmitting] = useState(false);
   // values of form inputs
@@ -76,9 +79,12 @@ function PropertiesModal({
       ? slice.certification_details
       : '',
   );
-  const [selectedOwners, setSelectedOwners] = useState<SelectValue | null>(
-    null,
-  );
+  const [selectedEditors, setSelectedEditors] = useState<
+    SubjectPickerValue[] | null
+  >(null);
+  const [selectedViewers, setSelectedViewers] = useState<
+    SubjectPickerValue[] | null
+  >(null);
   const [tags, setTags] = useState<TagType[]>([]);
 
   // Validation setup
@@ -133,76 +139,61 @@ function PropertiesModal({
     return selectTags;
   }, [tags.length]);
 
-  function showError({ error, statusText, message }: any) {
-    let errorText = error || statusText || t('An error has occurred');
-    if (message === 'Forbidden') {
-      errorText = t('You do not have permission to edit this chart');
-    }
-    Modal.error({
-      title: t('Error'),
-      content: errorText,
-      okButtonProps: { danger: true, className: 'btn-danger' },
-    });
-  }
+  const showError = useCallback(
+    ({ error, statusText, message }: any) => {
+      let errorText = error || statusText || t('An error has occurred');
+      if (message === 'Forbidden') {
+        errorText = t('You do not have permission to edit this chart');
+      }
+
+      addDangerToast(errorText);
+    },
+    [addDangerToast],
+  );
 
   const fetchChartProperties = useCallback(
     async function fetchChartProperties() {
+      const selectColumns = [
+        'tags.id',
+        'tags.name',
+        'tags.type',
+        'editors.id',
+        'editors.label',
+        'editors.secondary_label',
+        'editors.type',
+        ...(isFeatureEnabled(FeatureFlag.EnableViewers)
+          ? [
+              'viewers.id',
+              'viewers.label',
+              'viewers.secondary_label',
+              'viewers.type',
+            ]
+          : []),
+      ];
       const queryParams = rison.encode({
-        select_columns: [
-          'owners.id',
-          'owners.first_name',
-          'owners.last_name',
-          'tags.id',
-          'tags.name',
-          'tags.type',
-        ],
+        select_columns: selectColumns,
       });
       try {
         const response = await SupersetClient.get({
           endpoint: `/api/v1/chart/${slice.slice_id}?q=${queryParams}`,
         });
         const chart = response.json.result;
-        setSelectedOwners(
-          chart?.owners?.map((owner: any) => ({
-            value: owner.id,
-            label: `${owner.first_name} ${owner.last_name}`,
-          })),
-        );
         if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
           const customTags = chart.tags?.filter(
             (tag: TagType) => tag.type === TagTypeEnum.Custom,
           );
           setTags(customTags);
         }
+        setSelectedEditors(mapSubjectsToPickerValues(chart?.editors ?? []));
+        if (isFeatureEnabled(FeatureFlag.EnableViewers)) {
+          setSelectedViewers(mapSubjectsToPickerValues(chart?.viewers ?? []));
+        }
       } catch (response) {
         const clientError = await getClientErrorObject(response);
         showError(clientError);
       }
     },
-    [slice.slice_id],
-  );
-
-  const loadOptions = useMemo(
-    () =>
-      (input = '', page: number, pageSize: number) => {
-        const query = rison.encode({
-          filter: input,
-          page,
-          page_size: pageSize,
-        });
-        return SupersetClient.get({
-          endpoint: `/api/v1/chart/related/owners?q=${query}`,
-        }).then(response => ({
-          data: response.json.result
-            .filter((item: { extra: { active: boolean } }) => item.extra.active)
-            .map((item: { value: number; text: string }) => ({
-              value: item.value,
-              label: item.text,
-            })),
-          totalCount: response.json.count,
-        }));
-      },
-    [],
+    [showError, slice.slice_id],
   );
 
   const onSubmit = async () => {
@@ -220,33 +211,27 @@ function PropertiesModal({
       certification_details:
         certifiedBy && certificationDetails ? certificationDetails : null,
     };
-    if (selectedOwners) {
-      payload.owners = (
-        selectedOwners as {
-          value: number;
-          label: string;
-        }[]
-      ).map(o => o.value);
-    }
     if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
       payload.tags = tags.map(tag => tag.id);
     }
+    if (selectedEditors) {
+      payload.editors = selectedEditors.map(e => e.value);
+    }
+    if (selectedViewers) {
+      payload.viewers = selectedViewers.map(v => v.value);
+    }
 
     try {
-      const res = await SupersetClient.put({
-        endpoint: `/api/v1/chart/${slice.slice_id}`,
+      const chartEndpoint = `/api/v1/chart/${slice.slice_id}`;
+      let res = await SupersetClient.put({
+        endpoint: chartEndpoint,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      // update the redux state
-      const updatedChart = {
-        ...payload,
-        ...res.json.result,
-        tags,
-        id: slice.slice_id,
-        owners: selectedOwners,
-      };
-      onSave(updatedChart);
+      res = await SupersetClient.get({
+        endpoint: chartEndpoint,
+      });
+      onSave(res.json.result);
       addSuccessToast(t('Chart properties updated'));
       onHide();
     } catch (res) {
@@ -256,9 +241,7 @@ function PropertiesModal({
     setSubmitting(false);
   };
 
-  const ownersLabel = t('Owners');
-
-  // get the owners of this slice
+  // get the editors of this slice
   useEffect(() => {
     fetchChartProperties();
   }, [slice.slice_id]);
@@ -360,30 +343,12 @@ function PropertiesModal({
                     }
                   />
                 </ModalFormField>
-                <ModalFormField
-                  label={t('Owners')}
-                  helperText={t(
-                    'A list of users who can alter the chart. Searchable by name or username.',
-                  )}
-                >
-                  <AsyncSelect
-                    ariaLabel={ownersLabel}
-                    mode="multiple"
-                    name="owners"
-                    value={selectedOwners || []}
-                    onChange={setSelectedOwners}
-                    options={loadOptions}
-                    disabled={!selectedOwners}
-                    allowClear
-                  />
-                </ModalFormField>
                 {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
                   <ModalFormField
                     label={t('Tags')}
                     helperText={t(
                       'A list of tags that have been applied to this chart.',
                     )}
-                    bottomSpacing={false}
                   >
                     <AsyncSelect
                       ariaLabel="Tags"
@@ -392,6 +357,40 @@ function PropertiesModal({
                       options={loadTags}
                       onChange={handleChangeTags}
                       onClear={handleClearTags}
+                      allowClear
+                    />
+                  </ModalFormField>
+                )}
+                <ModalFormField
+                  label={t('Editors')}
+                  helperText={t(
+                    'A list of subjects who can alter the chart. Searchable by name.',
+                  )}
+                  bottomSpacing={!isFeatureEnabled(FeatureFlag.EnableViewers)}
+                >
+                  <SubjectPicker
+                    relatedUrl="/api/v1/chart/related/editors"
+                    ariaLabel={t('Editors')}
+                    value={selectedEditors || []}
+                    onChange={setSelectedEditors}
+                    disabled={!selectedEditors}
+                    allowClear
+                  />
+                </ModalFormField>
+                {isFeatureEnabled(FeatureFlag.EnableViewers) && (
+                  <ModalFormField
+                    label={t('Viewers')}
+                    helperText={t(
+                      'A list of subjects who can view the chart. Searchable by name.',
+                    )}
+                    bottomSpacing={false}
+                  >
+                    <SubjectPicker
+                      relatedUrl="/api/v1/chart/related/viewers"
+                      ariaLabel={t('Viewers')}
+                      value={selectedViewers || []}
+                      onChange={setSelectedViewers}
+                      disabled={!selectedViewers}
                       allowClear
                     />
                   </ModalFormField>
@@ -425,7 +424,7 @@ function PropertiesModal({
                 bottomSpacing={false}
               >
                 <Input
-                  aria-label="Cache timeout"
+                  aria-label={t('Cache timeout')}
                   value={cacheTimeout}
                   onChange={(event: ChangeEvent<HTMLInputElement>) =>
                     setCacheTimeout(event.target.value ?? '')

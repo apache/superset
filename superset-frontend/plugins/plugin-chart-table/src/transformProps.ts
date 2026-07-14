@@ -17,6 +17,7 @@
  * under the License.
  */
 import memoizeOne from 'memoize-one';
+import { t } from '@apache-superset/core/translation';
 import {
   ComparisonType,
   CurrencyFormatter,
@@ -24,30 +25,31 @@ import {
   DataRecord,
   ensureIsArray,
   extractTimegrain,
-  GenericDataType,
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
   getTimeFormatterForGranularity,
+  isAdhocColumn,
+  normalizeCurrency,
   NumberFormats,
   QueryMode,
-  t,
   SMART_DATE_ID,
   TimeFormats,
   TimeFormatter,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   ColorFormatters,
   ConditionalFormattingConfig,
   getColorFormatters,
+  ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
 
-import { isEmpty, merge } from 'lodash';
+import { isEmpty, merge } from 'lodash-es';
 import isEqualColumns from './utils/isEqualColumns';
 import DateWithFormatter from './utils/DateWithFormatter';
 import {
   BasicColorFormatterType,
-  ColorSchemeEnum,
   DataColumnMeta,
   TableChartProps,
   TableChartTransformedProps,
@@ -128,13 +130,12 @@ const processComparisonTotals = (
     Object.keys(totalRecord).forEach(key => {
       if (totalRecord[key] !== undefined && !key.includes(comparisonSuffix)) {
         transformedTotals[`Main ${key}`] =
-          parseInt(transformedTotals[`Main ${key}`]?.toString() || '0', 10) +
-          parseInt(totalRecord[key]?.toString() || '0', 10);
+          parseFloat(transformedTotals[`Main ${key}`]?.toString() || '0') +
+          parseFloat(totalRecord[key]?.toString() || '0');
         transformedTotals[`# ${key}`] =
-          parseInt(transformedTotals[`# ${key}`]?.toString() || '0', 10) +
-          parseInt(
+          parseFloat(transformedTotals[`# ${key}`]?.toString() || '0') +
+          parseFloat(
             totalRecord[`${key}__${comparisonSuffix}`]?.toString() || '0',
-            10,
           );
         const { valueDifference, percentDifferenceNum } = calculateDifferences(
           transformedTotals[`Main ${key}`] as number,
@@ -200,17 +201,29 @@ const processColumns = memoizeOne(function processColumns(
   props: TableChartProps,
 ) {
   const {
-    datasource: { columnFormats, currencyFormats, verboseMap },
+    datasource: {
+      columnFormats,
+      currencyFormats,
+      verboseMap,
+      currencyCodeColumn,
+    },
     rawFormData: {
       table_timestamp_format: tableTimestampFormat,
       metrics: metrics_,
       percent_metrics: percentMetrics_,
       column_config: columnConfig = {},
+      query_mode: queryMode,
     },
+    rawDatasource,
     queriesData,
   } = props;
   const granularity = extractTimegrain(props.rawFormData);
-  const { data: records, colnames, coltypes } = queriesData[0] || {};
+  const {
+    data: records,
+    colnames,
+    coltypes,
+    detected_currency: detectedCurrency,
+  } = queriesData[0] || {};
   // convert `metrics` and `percentMetrics` to the key names in `data.records`
   const metrics = (metrics_ ?? []).map(getMetricLabel);
   const rawPercentMetrics = (percentMetrics_ ?? []).map(getMetricLabel);
@@ -219,6 +232,9 @@ const processColumns = memoizeOne(function processColumns(
   const metricsSet = new Set(metrics);
   const percentMetricsSet = new Set(percentMetrics);
   const rawPercentMetricsSet = new Set(rawPercentMetrics);
+  const columnsByName = new Map(
+    (props.datasource.columns ?? []).map(col => [col.column_name, col]),
+  );
 
   const columns: DataColumnMeta[] = (colnames || [])
     .filter(
@@ -231,6 +247,7 @@ const processColumns = memoizeOne(function processColumns(
       const config = columnConfig[key] || {};
       // for the purpose of presentation, only numeric values are treated as metrics
       // because users can also add things like `MAX(str_col)` as a metric.
+      const isFilterable = columnsByName.get(key)?.filterable;
       const isMetric = metricsSet.has(key) && isNumeric(key, records);
       const isPercentMetric = percentMetricsSet.has(key);
       const label =
@@ -246,6 +263,12 @@ const processColumns = memoizeOne(function processColumns(
         ? config.currencyFormat
         : savedCurrency;
 
+      const description =
+        rawDatasource.columns?.find((item: any) => item.column_name === key)
+          ?.description ??
+        rawDatasource.metrics?.find((item: any) => item.metric_name === key)
+          ?.description;
+
       let formatter;
 
       if (isTime || config.d3TimeFormat) {
@@ -256,7 +279,7 @@ const processColumns = memoizeOne(function processColumns(
         const timeFormat = customFormat || tableTimestampFormat;
         // When format is "Adaptive Formatting" (smart_date)
         if (timeFormat === SMART_DATE_ID) {
-          if (granularity) {
+          if (granularity && queryMode !== QueryMode.Raw) {
             // time column use formats based on granularity
             formatter = getTimeFormatterForGranularity(granularity);
           } else if (customFormat) {
@@ -276,10 +299,25 @@ const processColumns = memoizeOne(function processColumns(
         // percent metrics have a default format
         formatter = getNumberFormatter(numberFormat || PERCENT_3_POINT);
       } else if (isMetric || (isNumber && (numberFormat || currency))) {
-        formatter = currency?.symbol
+        // Resolve AUTO currency when currency column isn't in query results
+        let resolvedCurrency = currency;
+        if (
+          currency?.symbol === 'AUTO' &&
+          detectedCurrency &&
+          (!currencyCodeColumn || !colnames?.includes(currencyCodeColumn))
+        ) {
+          const normalizedCurrency = normalizeCurrency(detectedCurrency);
+          if (normalizedCurrency) {
+            resolvedCurrency = {
+              ...currency,
+              symbol: normalizedCurrency,
+            };
+          }
+        }
+        formatter = resolvedCurrency?.symbol
           ? new CurrencyFormatter({
               d3Format: numberFormat,
-              currency,
+              currency: resolvedCurrency,
             })
           : getNumberFormatter(numberFormat);
       }
@@ -292,6 +330,9 @@ const processColumns = memoizeOne(function processColumns(
         isPercentMetric,
         formatter,
         config,
+        isFilterable,
+        description,
+        currencyCodeColumn,
       };
     });
   return [metrics, percentMetrics, columns] as [
@@ -348,89 +389,87 @@ const processComparisonColumns = (
   props: TableChartProps,
   comparisonSuffix: string,
 ) =>
-  columns
-    .map(col => {
-      const {
-        datasource: { columnFormats, currencyFormats },
-        rawFormData: { column_config: columnConfig = {} },
-      } = props;
-      const savedFormat = columnFormats?.[col.key];
-      const savedCurrency = currencyFormats?.[col.key];
-      const originalLabel = col.label;
-      if (
-        (col.isMetric || col.isPercentMetric) &&
-        !col.key.includes(comparisonSuffix) &&
-        col.isNumeric
-      ) {
-        return [
-          {
-            ...col,
-            originalLabel,
-            label: t('Main'),
-            key: `${t('Main')} ${col.key}`,
-            config: getComparisonColConfig(t('Main'), col.key, columnConfig),
-            formatter: getComparisonColFormatter(
-              t('Main'),
-              col,
-              columnConfig,
-              savedFormat,
-              savedCurrency,
-            ),
-          },
-          {
-            ...col,
-            originalLabel,
-            label: `#`,
-            key: `# ${col.key}`,
-            config: getComparisonColConfig(`#`, col.key, columnConfig),
-            formatter: getComparisonColFormatter(
-              `#`,
-              col,
-              columnConfig,
-              savedFormat,
-              savedCurrency,
-            ),
-          },
-          {
-            ...col,
-            originalLabel,
-            label: `△`,
-            key: `△ ${col.key}`,
-            config: getComparisonColConfig(`△`, col.key, columnConfig),
-            formatter: getComparisonColFormatter(
-              `△`,
-              col,
-              columnConfig,
-              savedFormat,
-              savedCurrency,
-            ),
-          },
-          {
-            ...col,
-            originalLabel,
-            label: `%`,
-            key: `% ${col.key}`,
-            config: getComparisonColConfig(`%`, col.key, columnConfig),
-            formatter: getComparisonColFormatter(
-              `%`,
-              col,
-              columnConfig,
-              savedFormat,
-              savedCurrency,
-            ),
-          },
-        ];
-      }
-      if (
-        !col.isMetric &&
-        !col.isPercentMetric &&
-        !col.key.includes(comparisonSuffix)
-      ) {
-        return [col];
-      }
-      return [];
-    })
-    .flat();
+  columns.flatMap(col => {
+    const {
+      datasource: { columnFormats, currencyFormats },
+      rawFormData: { column_config: columnConfig = {} },
+    } = props;
+    const savedFormat = columnFormats?.[col.key];
+    const savedCurrency = currencyFormats?.[col.key];
+    const originalLabel = col.label;
+    if (
+      (col.isMetric || col.isPercentMetric) &&
+      !col.key.includes(comparisonSuffix) &&
+      col.isNumeric
+    ) {
+      return [
+        {
+          ...col,
+          originalLabel,
+          label: t('Main'),
+          key: `Main ${col.key}`,
+          config: getComparisonColConfig('Main', col.key, columnConfig),
+          formatter: getComparisonColFormatter(
+            'Main',
+            col,
+            columnConfig,
+            savedFormat,
+            savedCurrency,
+          ),
+        },
+        {
+          ...col,
+          originalLabel,
+          label: `#`,
+          key: `# ${col.key}`,
+          config: getComparisonColConfig(`#`, col.key, columnConfig),
+          formatter: getComparisonColFormatter(
+            `#`,
+            col,
+            columnConfig,
+            savedFormat,
+            savedCurrency,
+          ),
+        },
+        {
+          ...col,
+          originalLabel,
+          label: `△`,
+          key: `△ ${col.key}`,
+          config: getComparisonColConfig(`△`, col.key, columnConfig),
+          formatter: getComparisonColFormatter(
+            `△`,
+            col,
+            columnConfig,
+            savedFormat,
+            savedCurrency,
+          ),
+        },
+        {
+          ...col,
+          originalLabel,
+          label: `%`,
+          key: `% ${col.key}`,
+          config: getComparisonColConfig(`%`, col.key, columnConfig),
+          formatter: getComparisonColFormatter(
+            `%`,
+            col,
+            columnConfig,
+            savedFormat,
+            savedCurrency,
+          ),
+        },
+      ];
+    }
+    if (
+      !col.isMetric &&
+      !col.isPercentMetric &&
+      !col.key.includes(comparisonSuffix)
+    ) {
+      return [col];
+    }
+    return [];
+  });
 
 /**
  * Automatically set page size based on number of cells.
@@ -469,6 +508,7 @@ const transformProps = (
       onContextMenu,
     },
     emitCrossFilters,
+    theme,
   } = chartProps;
 
   const formData = merge(
@@ -497,6 +537,20 @@ const transformProps = (
     comparison_type,
     slice_id,
   } = formData;
+  // Build a mapping from column labels to original column names.
+  // When a user creates an adhoc column with a custom label (e.g. sqlExpression: "state",
+  // label: "State_Renamed"), the query result uses the label as the column name.
+  // Cross-filtering needs the original column name to work on the receiving chart.
+  const columnLabelToNameMap: Record<string, string> = {};
+  const formColumns = ensureIsArray(
+    queryMode === QueryMode.Raw ? formData.all_columns : formData.groupby,
+  );
+  formColumns.forEach(col => {
+    if (isAdhocColumn(col) && col.label && col.label !== col.sqlExpression) {
+      columnLabelToNameMap[col.label] = col.sqlExpression;
+    }
+  });
+
   const isUsingTimeComparison =
     !isEmpty(time_compare) &&
     queryMode === QueryMode.Aggregate &&
@@ -531,6 +585,29 @@ const transformProps = (
 
     return { arrow, arrowColor, backgroundColor };
   };
+
+  const nonCustomNorInheritShifts = ensureIsArray(formData.time_compare).filter(
+    (shift: string) => shift !== 'custom' && shift !== 'inherit',
+  );
+  const customOrInheritShifts = ensureIsArray(formData.time_compare).filter(
+    (shift: string) => shift === 'custom' || shift === 'inherit',
+  );
+
+  let timeOffsets: string[] = [];
+
+  if (isUsingTimeComparison && !isEmpty(nonCustomNorInheritShifts)) {
+    timeOffsets = nonCustomNorInheritShifts;
+  }
+
+  // Shifts for custom or inherit time comparison
+  if (isUsingTimeComparison && !isEmpty(customOrInheritShifts)) {
+    if (customOrInheritShifts.includes('custom')) {
+      timeOffsets = timeOffsets.concat([formData.start_date_offset]);
+    }
+    if (customOrInheritShifts.includes('inherit')) {
+      timeOffsets = timeOffsets.concat(['inherit']);
+    }
+  }
 
   const getBasicColorFormatter = memoizeOne(function getBasicColorFormatter(
     originalData: DataRecord[] | undefined,
@@ -616,28 +693,6 @@ const transformProps = (
 
   const timeGrain = extractTimegrain(formData);
 
-  const nonCustomNorInheritShifts = ensureIsArray(formData.time_compare).filter(
-    (shift: string) => shift !== 'custom' && shift !== 'inherit',
-  );
-  const customOrInheritShifts = ensureIsArray(formData.time_compare).filter(
-    (shift: string) => shift === 'custom' || shift === 'inherit',
-  );
-
-  let timeOffsets: string[] = [];
-
-  if (isUsingTimeComparison && !isEmpty(nonCustomNorInheritShifts)) {
-    timeOffsets = nonCustomNorInheritShifts;
-  }
-
-  // Shifts for custom or inherit time comparison
-  if (isUsingTimeComparison && !isEmpty(customOrInheritShifts)) {
-    if (customOrInheritShifts.includes('custom')) {
-      timeOffsets = timeOffsets.concat([formData.start_date_offset]);
-    }
-    if (customOrInheritShifts.includes('inherit')) {
-      timeOffsets = timeOffsets.concat(['inherit']);
-    }
-  }
   const comparisonSuffix = isUsingTimeComparison
     ? ensureIsArray(timeOffsets)[0]
     : '';
@@ -682,7 +737,7 @@ const transformProps = (
   const basicColorFormatters =
     comparisonColorEnabled && getBasicColorFormatter(baseQuery?.data, columns);
   const columnColorFormatters =
-    getColorFormatters(conditionalFormatting, passedData) ??
+    getColorFormatters(conditionalFormatting, passedData, theme) ??
     defaultColorFormatters;
 
   const basicColorColumnFormatters = getBasicColorFormatterForColumn(
@@ -755,6 +810,7 @@ const transformProps = (
     hasServerPageLengthChanged,
     serverPageLength,
     slice_id,
+    columnLabelToNameMap,
   };
 };
 

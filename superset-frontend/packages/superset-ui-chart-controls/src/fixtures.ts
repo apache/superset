@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatasourceType, GenericDataType } from '@superset-ui/core';
+import { DatasourceType } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { Dataset } from './types';
 
 export const TestDataset: Dataset = {
@@ -137,7 +138,7 @@ export const TestDataset: Dataset = {
   ],
   name: 'public.birth_names',
   order_by_choices: [],
-  owners: [
+  editors: [
     {
       first_name: 'admin',
       id: 1,

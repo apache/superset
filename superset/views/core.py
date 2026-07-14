@@ -28,7 +28,6 @@ from urllib import parse
 from flask import (
     abort,
     current_app as app,
-    flash,
     g,
     redirect,
     request,
@@ -47,7 +46,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.utils import safe_join
 
 from superset import (
-    appbuilder,
     db,
     event_logger,
     is_feature_enabled,
@@ -59,7 +57,6 @@ from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
 from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
 from superset.commands.dashboard.permalink.get import GetDashboardPermalinkCommand
 from superset.commands.dataset.exceptions import DatasetNotFoundError
-from superset.commands.explore.form_data.create import CreateFormDataCommand
 from superset.commands.explore.form_data.get import GetFormDataCommand
 from superset.commands.explore.form_data.parameters import CommandParameters
 from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
@@ -70,6 +67,7 @@ from superset.daos.datasource import DatasourceDAO
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.exceptions import (
     CacheLoadError,
+    SupersetErrorException,
     SupersetException,
     SupersetSecurityException,
 )
@@ -78,13 +76,17 @@ from superset.extensions import async_query_manager, cache_manager
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
-from superset.superset_typing import FlaskResponse
+from superset.superset_typing import (
+    ExplorableData,
+    FlaskResponse,
+)
+from superset.tasks.utils import get_current_user
 from superset.utils import core as utils, json
 from superset.utils.cache import etag_cache
 from superset.utils.core import (
     DatasourceType,
+    GenericDataType,
     get_user_id,
     ReservedUrlParameters,
 )
@@ -98,6 +100,7 @@ from superset.views.base import (
     generate_download_headers,
     json_error_response,
     json_success,
+    XlsxResponse,
 )
 from superset.views.error_handling import handle_api_exception
 from superset.views.utils import (
@@ -106,10 +109,10 @@ from superset.views.utils import (
     check_explore_cache_perms,
     check_resource_permissions,
     get_datasource_info,
+    get_explore_redirect_url,
     get_form_data,
     get_viz,
-    loads_request_json,
-    redirect_with_flash,
+    redirect_to_login,
     sanitize_datasource_data,
 )
 from superset.viz import BaseViz
@@ -129,6 +132,16 @@ SqlResults = dict[str, Any]
 
 class Superset(BaseSupersetView):
     """The base views for Superset!"""
+
+    # Flask-AppBuilder's BaseView auto-derives `route_base` from the class
+    # name, which would mount every @expose route under `/superset/...`. That
+    # collides catastrophically with subdirectory deployments: AppRootMiddle-
+    # ware strips the configured root from PATH_INFO and sets SCRIPT_NAME, so
+    # url_for emits `/superset/superset/...` (doubled), and the in-rule
+    # `/superset` prefix no longer matches the post-strip PATH_INFO — making
+    # the routes themselves unreachable. Mount at the root so the application
+    # root applies exactly once via SCRIPT_NAME / basename.
+    route_base = ""
 
     logger = logging.getLogger(__name__)
 
@@ -167,15 +180,16 @@ class Superset(BaseSupersetView):
         payload = viz_obj.get_df_payload()
         if viz_obj.has_error(payload):
             return json_error_response(payload=payload, status=400)
-        return self.json_response(
-            {
-                "data": payload["df"].to_dict("records"),
-                "colnames": payload.get("colnames"),
-                "coltypes": payload.get("coltypes"),
-                "rowcount": payload.get("rowcount"),
-                "sql_rowcount": payload.get("sql_rowcount"),
-            },
-        )
+        response = {
+            "data": payload["df"].to_dict("records")
+            if payload["df"] is not None
+            else [],
+            "colnames": payload.get("colnames"),
+            "coltypes": payload.get("coltypes"),
+            "rowcount": payload.get("rowcount"),
+            "sql_rowcount": payload.get("sql_rowcount"),
+        }
+        return self.json_response(response)
 
     def get_samples(self, viz_obj: BaseViz) -> FlaskResponse:
         return self.json_response(viz_obj.get_samples())
@@ -192,6 +206,9 @@ class Superset(BaseSupersetView):
                 viz_obj.get_csv(), headers=generate_download_headers("csv")
             )
 
+        if response_type == ChartDataResultFormat.XLSX:
+            return self._generate_xlsx(viz_obj)
+
         if response_type == ChartDataResultType.QUERY:
             return self.get_query_string_response(viz_obj)
 
@@ -204,6 +221,24 @@ class Superset(BaseSupersetView):
         payload = viz_obj.get_payload()
         return self.send_data_payload_response(viz_obj, payload)
 
+    @staticmethod
+    def _generate_xlsx(viz_obj: BaseViz) -> FlaskResponse:
+        import pandas as pd
+
+        from superset.utils.excel import apply_column_types, df_to_excel
+
+        payload = viz_obj.get_df_payload()
+        df = payload.get("df")
+        if df is None:
+            df = pd.DataFrame()
+            coltypes: list[GenericDataType] = []
+        else:
+            coltypes = payload.get("coltypes") or []
+            if coltypes:
+                df = apply_column_types(df, coltypes)
+        xlsx_data = df_to_excel(df, index=False)
+        return XlsxResponse(xlsx_data, headers=generate_download_headers("xlsx"))
+
     @event_logger.log_this
     @api
     @has_access_api
@@ -211,7 +246,7 @@ class Superset(BaseSupersetView):
     @permission_name("explore_json")
     @expose("/explore_json/data/<cache_key>", methods=("GET",))
     @check_resource_permissions(check_explore_cache_perms)
-    @deprecated(eol_version="5.0.0")
+    @deprecated(eol_version="5.0.0", new_target="/api/v1/chart/data/<cache_key>")
     def explore_json_data(self, cache_key: str) -> FlaskResponse:
         """Serves cached result data for async explore_json calls
 
@@ -241,6 +276,10 @@ class Superset(BaseSupersetView):
             )
 
             return self.generate_json(viz_obj, response_type)
+        except SupersetErrorException:
+            # Let structured Superset errors (e.g. OAuth2RedirectError) propagate
+            # so the global Flask error handler serializes them.
+            raise
         except SupersetException as ex:
             return json_error_response(utils.error_msg_from_exception(ex), 400)
 
@@ -264,8 +303,8 @@ class Superset(BaseSupersetView):
     )
     @etag_cache()
     @check_resource_permissions(check_datasource_perms)
-    @deprecated(eol_version="5.0.0")
-    def explore_json(
+    @deprecated(eol_version="5.0.0", new_target="/api/v1/chart/data")
+    def explore_json(  # noqa: C901
         self, datasource_type: str | None = None, datasource_id: int | None = None
     ) -> FlaskResponse:
         """Serves all request that GET or POST form_data
@@ -288,15 +327,20 @@ class Superset(BaseSupersetView):
                 response_type = response_option
                 break
 
-        # Verify user has permission to export CSV file
-        if (
-            response_type == ChartDataResultFormat.CSV
-            and not security_manager.can_access("can_csv", "Superset")
+        # Verify user has permission to export data files
+        if response_type in (
+            ChartDataResultFormat.CSV,
+            ChartDataResultFormat.XLSX,
         ):
-            return json_error_response(
-                _("You don't have the rights to download as csv"),
-                status=403,
-            )
+            if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
+                can_export = security_manager.can_access("can_export_data", "Superset")
+            else:
+                can_export = security_manager.can_access("can_csv", "Superset")
+            if not can_export:
+                return json_error_response(
+                    _("You don't have the rights to export data"),
+                    status=403,
+                )
 
         form_data = get_form_data()[0]
         try:
@@ -347,42 +391,12 @@ class Superset(BaseSupersetView):
             )
 
             return self.generate_json(viz_obj, response_type)
+        except SupersetErrorException:
+            # Let structured Superset errors (e.g. OAuth2RedirectError) propagate
+            # so the global Flask error handler serializes them.
+            raise
         except SupersetException as ex:
             return json_error_response(utils.error_msg_from_exception(ex), 400)
-
-    @staticmethod
-    def get_redirect_url() -> str:
-        """Assembles the redirect URL to the new endpoint. It also replaces
-        the form_data param with a form_data_key by saving the original content
-        to the cache layer.
-        """
-        redirect_url = request.url.replace("/superset/explore", "/explore")
-        form_data_key = None
-        if request_form_data := request.args.get("form_data"):
-            parsed_form_data = loads_request_json(request_form_data)
-            slice_id = parsed_form_data.get(
-                "slice_id", int(request.args.get("slice_id", 0))
-            )
-            if datasource := parsed_form_data.get("datasource"):
-                datasource_id, datasource_type = datasource.split("__")
-                parameters = CommandParameters(
-                    datasource_id=datasource_id,
-                    datasource_type=datasource_type,
-                    chart_id=slice_id,
-                    form_data=request_form_data,
-                )
-                form_data_key = CreateFormDataCommand(parameters).run()
-        if form_data_key:
-            url = parse.urlparse(redirect_url)
-            query = parse.parse_qs(url.query)
-            query.pop("form_data")
-            query["form_data_key"] = [form_data_key]
-            url = url._replace(query=parse.urlencode(query, True))
-            redirect_url = parse.urlunparse(url)
-
-        # Return a relative URL
-        url = parse.urlparse(redirect_url)
-        return f"{url.path}?{url.query}" if url.query else url.path
 
     @has_access
     @event_logger.log_this
@@ -409,11 +423,21 @@ class Superset(BaseSupersetView):
         key: str | None = None,
     ) -> FlaskResponse:
         if request.method == "GET":
-            return redirect(Superset.get_redirect_url())
+            # Share the form_data → form_data_key cache-and-redirect contract
+            # with `ExploreView.root` via the lifted helper. Helper returns
+            # ``None`` for: empty/non-dict form_data, missing datasource,
+            # malformed datasource, invalid `DatasourceType`,
+            # cache-write failure (loop guard), and "already at target" loop
+            # guard. Falling through to `super().render_app_template()` kills
+            # the typed-entry `/explore/<dst>/<int:dsid>/` GET loop that the
+            # `isinstance(dict)` gate alone missed.
+            redirect_url = get_explore_redirect_url()
+            if redirect_url:
+                return redirect(redirect_url)
+            return super().render_app_template()
 
         initial_form_data = {}
 
-        form_data_key = request.args.get("form_data_key")
         if key is not None:
             command = GetExplorePermalinkCommand(key)
             try:
@@ -428,9 +452,10 @@ class Superset(BaseSupersetView):
                         _("Error: permalink state not found"), status=404
                     )
             except (ChartNotFoundError, ExplorePermalinkGetFailedError) as ex:
-                flash(__("Error: %(msg)s", msg=ex.message), "danger")
-                return redirect(url_for("SliceModelView.list"))
-        elif form_data_key:
+                return json_error_response(
+                    __("Error: %(msg)s", msg=ex.message), status=404
+                )
+        elif form_data_key := request.args.get("form_data_key"):
             parameters = CommandParameters(key=form_data_key)
             value = GetFormDataCommand(parameters).run()
             initial_form_data = json.loads(value) if value else {}
@@ -440,18 +465,8 @@ class Superset(BaseSupersetView):
             dataset_id = request.args.get("dataset_id")
             if slice_id:
                 initial_form_data["slice_id"] = slice_id
-                if form_data_key:
-                    flash(
-                        _("Form data not found in cache, reverting to chart metadata.")
-                    )
             elif dataset_id:
                 initial_form_data["datasource"] = f"{dataset_id}__table"
-                if form_data_key:
-                    flash(
-                        _(
-                            "Form data not found in cache, reverting to dataset metadata."  # noqa: E501
-                        )
-                    )
 
         form_data, slc = get_form_data(
             use_slice_data=True, initial_form_data=initial_form_data
@@ -476,6 +491,10 @@ class Superset(BaseSupersetView):
                     datasource_id,
                 )
 
+        # Enforce per-datasource access before rendering its metadata.
+        if datasource:
+            security_manager.raise_for_access(datasource=datasource)
+
         datasource_name = datasource.name if datasource else _("[Missing Dataset]")
         viz_type = form_data.get("viz_type")
         if not viz_type and datasource and datasource.default_endpoint:
@@ -496,8 +515,13 @@ class Superset(BaseSupersetView):
 
         # slc perms
         slice_add_perm = security_manager.can_access("can_write", "Chart")
-        slice_overwrite_perm = security_manager.is_owner(slc) if slc else False
-        slice_download_perm = security_manager.can_access("can_csv", "Superset")
+        slice_overwrite_perm = security_manager.is_editor(slc) if slc else False
+        if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
+            slice_download_perm = security_manager.can_access(
+                "can_export_data", "Superset"
+            )
+        else:
+            slice_download_perm = security_manager.can_access("can_csv", "Superset")
 
         form_data["datasource"] = str(datasource_id) + "__" + cast(str, datasource_type)
 
@@ -537,22 +561,18 @@ class Superset(BaseSupersetView):
             )
         standalone_mode = ReservedUrlParameters.is_standalone_mode()
         force = request.args.get("force") in {"force", "1", "true"}
-        dummy_datasource_data: dict[str, Any] = {
-            "type": datasource_type,
+        dummy_datasource_data: ExplorableData = {
+            "type": datasource_type or "unknown",
             "name": datasource_name,
             "columns": [],
             "metrics": [],
             "database": {"id": 0, "backend": ""},
         }
+        datasource_data: ExplorableData
         try:
             datasource_data = datasource.data if datasource else dummy_datasource_data
         except (SupersetException, SQLAlchemyError):
             datasource_data = dummy_datasource_data
-
-        if datasource:
-            datasource_data["owners"] = datasource.owners_data
-            if isinstance(datasource, Query):
-                datasource_data["columns"] = datasource.columns
 
         bootstrap_data = {
             "can_add": slice_add_perm,
@@ -606,7 +626,14 @@ class Superset(BaseSupersetView):
         if action == "saveas":
             if "slice_id" in form_data:
                 form_data.pop("slice_id")  # don't save old slice_id
-            slc = Slice(owners=[g.user] if g.user else [])
+            from superset.subjects.utils import get_user_subject
+
+            editors = []
+            if g.user:
+                subj = get_user_subject(g.user.id)
+                if subj:
+                    editors.append(subj)
+            slc = Slice(editors=editors)
 
         utils.remove_extra_adhoc_filters(form_data)
 
@@ -624,13 +651,9 @@ class Superset(BaseSupersetView):
         if action == "saveas" and slice_add_perm:
             ChartDAO.create(slc)
             db.session.commit()  # pylint: disable=consider-using-transaction
-            msg = _("Chart [{}] has been saved").format(slc.slice_name)
-            flash(msg, "success")
         elif action == "overwrite" and slice_overwrite_perm:
             ChartDAO.update(slc)
             db.session.commit()  # pylint: disable=consider-using-transaction
-            msg = _("Chart [{}] has been overwritten").format(slc.slice_name)
-            flash(msg, "success")
 
         # Adding slice to a dashboard if requested
         dash: Dashboard | None = None
@@ -646,19 +669,12 @@ class Superset(BaseSupersetView):
                 .one(),
             )
             # check edit dashboard permissions
-            dash_overwrite_perm = security_manager.is_owner(dash)
+            dash_overwrite_perm = security_manager.is_editor(dash)
             if not dash_overwrite_perm:
                 return json_error_response(
                     _("You don't have the rights to alter this dashboard"),
                     status=403,
                 )
-
-            flash(
-                _("Chart [{}] was added to dashboard [{}]").format(
-                    slc.slice_name, dash.dashboard_title
-                ),
-                "success",
-            )
         elif new_dashboard_name:
             # Creating and adding to a new dashboard
             # check create dashboard permissions
@@ -669,15 +685,16 @@ class Superset(BaseSupersetView):
                     status=403,
                 )
 
+            from superset.subjects.utils import get_user_subject
+
+            editors = []
+            if g.user:
+                subj = get_user_subject(g.user.id)
+                if subj:
+                    editors.append(subj)
             dash = Dashboard(
                 dashboard_title=request.args.get("new_dashboard_name"),
-                owners=[g.user] if g.user else [],
-            )
-            flash(
-                _(
-                    "Dashboard [{}] just got created and chart [{}] was added to it"
-                ).format(dash.dashboard_title, slc.slice_name),
-                "success",
+                editors=editors,
             )
 
         if dash and slc not in dash.slices:
@@ -792,28 +809,26 @@ class Superset(BaseSupersetView):
         dashboard = Dashboard.get(dashboard_id_or_slug)
 
         if not dashboard:
+            if not get_current_user():
+                return redirect_to_login()
             abort(404)
+
+        # Redirect anonymous users to login for unpublished dashboards,
+        # in the edge case where a dataset has been shared with public
+        if not get_current_user() and not dashboard.published:
+            return redirect_to_login()
 
         try:
             dashboard.raise_for_access()
-        except SupersetSecurityException as ex:
-            # anonymous users should get the login screen, others should go to dashboard list  # noqa: E501
-            if g.user is None or g.user.is_anonymous:
-                redirect_url = f"{appbuilder.get_url_for_login}?next={request.url}"
-                warn_msg = "Users must be logged in to view this dashboard."
-            else:
-                redirect_url = url_for("DashboardModelView.list")
-                warn_msg = utils.error_msg_from_exception(ex)
-            return redirect_with_flash(
-                url=redirect_url,
-                message=warn_msg,
-                category="danger",
-            )
+        except SupersetSecurityException:
+            if not get_current_user():
+                return redirect_to_login()
+            abort(404)
         add_extra_log_payload(
             dashboard_id=dashboard.id,
             dashboard_version="v2",
             dash_edit_perm=(
-                security_manager.is_owner(dashboard)
+                security_manager.is_editor(dashboard)
                 and security_manager.can_access("can_write", "Dashboard")
             ),
             edit_mode=(
@@ -839,12 +854,12 @@ class Superset(BaseSupersetView):
     ) -> FlaskResponse:
         try:
             value = GetDashboardPermalinkCommand(key).run()
-        except DashboardPermalinkGetFailedError as ex:
-            flash(__("Error: %(msg)s", msg=ex.message), "danger")
-            return redirect(url_for("DashboardModelView.list"))
         except DashboardAccessDeniedError as ex:
-            flash(__("Error: %(msg)s", msg=ex.message), "danger")
-            return redirect(url_for("DashboardModelView.list"))
+            if not get_current_user():
+                return redirect_to_login()
+            return json_error_response(__("Error: %(msg)s", msg=ex.message), status=404)
+        except DashboardPermalinkGetFailedError as ex:
+            return json_error_response(__("Error: %(msg)s", msg=ex.message), status=404)
         if not value:
             return json_error_response(_("permalink state not found"), status=404)
 
@@ -854,12 +869,11 @@ class Superset(BaseSupersetView):
         )
         if url_params := state.get("urlParams"):
             for param_key, param_val in url_params:
-                if param_key == "native_filters":
-                    # native_filters doesnt need to be encoded here
-                    url = f"{url}&native_filters={param_val}"
-                else:
-                    params = parse.urlencode([param_key, param_val])  # type: ignore
-                    url = f"{url}&{params}"
+                # URL-encode every param value (including native_filters) so a
+                # value containing '&'/'#'/'=' cannot inject extra parameters
+                # into the redirect target. Flask decodes the value back on read.
+                params = parse.urlencode([(param_key, param_val)])
+                url = f"{url}&{params}"
         if original_params := request.query_string.decode():
             url = f"{url}&{original_params}"
         if hash_ := state.get("anchor", state.get("hash")):
@@ -923,7 +937,7 @@ class Superset(BaseSupersetView):
     def welcome(self) -> FlaskResponse:
         """Personalized welcome page"""
         if not g.user or not get_user_id():
-            return redirect(appbuilder.get_url_for_login)
+            return redirect_to_login()
 
         if welcome_dashboard_id := (
             db.session.query(UserAttribute.welcome_dashboard_id)
@@ -931,6 +945,21 @@ class Superset(BaseSupersetView):
             .scalar()
         ):
             return self.dashboard(dashboard_id_or_slug=str(welcome_dashboard_id))
+
+        payload = {
+            "user": bootstrap_user_data(g.user, include_perms=True),
+            "common": common_bootstrap_payload(),
+        }
+
+        return self.render_app_template(extra_bootstrap_data=payload)
+
+    @has_access
+    @event_logger.log_this
+    @expose("/file-handler")
+    def file_handler(self) -> FlaskResponse:
+        """File handler page for PWA file handling"""
+        if not g.user or not get_user_id():
+            return redirect_to_login()
 
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),

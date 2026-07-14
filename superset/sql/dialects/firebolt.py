@@ -17,6 +17,8 @@
 
 from __future__ import annotations
 
+import typing as t
+
 from sqlglot import exp, generator, parser, tokens
 from sqlglot.dialects.dialect import Dialect
 from sqlglot.helper import csv
@@ -39,8 +41,7 @@ class Firebolt(Dialect):
         UNARY_PARSERS = {
             **parser.Parser.UNARY_PARSERS,
             TokenType.NOT: lambda self: self.expression(
-                exp.Not,
-                this=self._parse_unary(),  # pylint: disable=protected-access
+                exp.Not(this=self._parse_unary()),  # pylint: disable=protected-access
             ),
         }
 
@@ -51,12 +52,14 @@ class Firebolt(Dialect):
             if not this:  # pragma: no cover
                 return this
 
-            return self.expression(exp.Not, this=self.expression(exp.Paren, this=this))
+            return self.expression(exp.Not(this=self.expression(exp.Paren(this=this))))
 
     class Generator(generator.Generator):
         """
         Custom generator for Firebolt.
         """
+
+        STAR_EXCEPT = "EXCLUDE"
 
         TYPE_MAPPING = {
             **generator.Generator.TYPE_MAPPING,
@@ -94,11 +97,12 @@ class FireboltOld(Firebolt):
             self,
             skip_join_token: bool = False,
             parse_bracket: bool = False,
+            alias_tokens: t.Collection[TokenType] | None = None,
         ) -> exp.Join | None:
             if unnest := self._parse_unnest():
-                return self.expression(exp.Join, this=unnest)
+                return self.expression(exp.Join(this=unnest))
 
-            return super()._parse_join(skip_join_token, parse_bracket)
+            return super()._parse_join(skip_join_token, parse_bracket, alias_tokens)
 
         def _parse_unnest(self, with_alias: bool = True) -> exp.Unnest | None:
             if not self._match(TokenType.UNNEST):
@@ -110,9 +114,7 @@ class FireboltOld(Firebolt):
             offset = self._match_pair(TokenType.WITH, TokenType.ORDINALITY)
 
             return self.expression(
-                exp.Unnest,
-                expressions=expressions,
-                offset=offset,
+                exp.Unnest(expressions=expressions, offset=offset),
             )
 
     class Generator(Firebolt.Generator):

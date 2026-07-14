@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useCallback } from 'react';
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Icons, InfoTooltip } from '@superset-ui/core/components';
 import {
   CaretContainer,
@@ -43,7 +44,7 @@ export default function Option({
 }: OptionProps) {
   const theme = useTheme();
   const onClickClose = useCallback(
-    e => {
+    (e: React.MouseEvent) => {
       e.stopPropagation();
       clickClose(index);
     },
@@ -57,6 +58,7 @@ export default function Option({
             text-align: center;
           `}
           role="button"
+          tabIndex={0}
           data-test="remove-control-button"
           onClick={onClickClose}
         >

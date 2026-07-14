@@ -26,7 +26,9 @@ import {
 } from 'react';
 import { useSelector } from 'react-redux';
 import rison from 'rison';
-import { styled, SupersetClient, t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import {
   Icons,
   Switch,
@@ -38,6 +40,7 @@ import {
 import { CopyToClipboard } from 'src/components';
 import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
+import { openInNewTab } from 'src/utils/navigationUtils';
 import CodeSyntaxHighlighter, {
   SupportedLanguage,
   preloadLanguages,
@@ -59,6 +62,8 @@ const StyledSyntaxContainer = styled.div`
 
 const StyledThemedSyntaxHighlighter = styled(CodeSyntaxHighlighter)`
   flex: 1;
+  height: ${({ theme }) => theme.sizeUnit * 26}px;
+  margin-top: 0;
 `;
 
 const StyledFooter = styled.div`
@@ -106,7 +111,8 @@ const ViewQuery: FC<ViewQueryProps> = props => {
         const response = await SupersetClient.get({
           endpoint: `/api/v1/dataset/${datasetId}?q=${queryParams}`,
         });
-        backend = response.json.result.database;
+        const { backend: datasetBackend } = response.json.result.database;
+        backend = datasetBackend;
       }
 
       // Format the SQL query
@@ -134,9 +140,8 @@ const ViewQuery: FC<ViewQueryProps> = props => {
       };
       if (domEvent.metaKey || domEvent.ctrlKey) {
         domEvent.preventDefault();
-        window.open(
+        openInNewTab(
           `/sqllab?datasourceKey=${datasource}&sql=${encodeURIComponent(currentSQL)}`,
-          '_blank',
         );
       } else {
         history.push({ pathname: '/sqllab', state: { requestedQuery } });
@@ -157,7 +162,12 @@ const ViewQuery: FC<ViewQueryProps> = props => {
         ) : (
           <StyledThemedSyntaxHighlighter
             language={language}
-            customStyle={{ flex: 1, marginBottom: theme.sizeUnit * 3 }}
+            customStyle={{
+              flex: 1,
+              marginBottom: theme.sizeUnit * 3,
+              fontSize: theme.fontSize * 0.75,
+              padding: 0,
+            }}
           >
             {currentSQL}
           </StyledThemedSyntaxHighlighter>

@@ -31,7 +31,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from flask import current_app as app, g
 from sqlalchemy import Column, text, types
-from sqlalchemy.engine.base import Engine
+from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.expression import ColumnClause, Select
@@ -39,7 +39,7 @@ from sqlalchemy.sql.expression import ColumnClause, Select
 from superset import db
 from superset.common.db_query_status import QueryStatus
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.exceptions import SupersetException
 from superset.extensions import cache_manager
@@ -96,6 +96,22 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     supports_dynamic_schema = True
     supports_cross_catalog_queries = False
+
+    metadata = {
+        "description": (
+            "Apache Hive is a data warehouse infrastructure built on Hadoop."
+        ),
+        "logo": "apache-hive.svg",
+        "homepage_url": "https://hive.apache.org/",
+        "categories": [
+            DatabaseCategory.APACHE_PROJECTS,
+            DatabaseCategory.QUERY_ENGINES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["pyhive"],
+        "connection_string": "hive://hive@{hostname}:{port}/{database}",
+        "default_port": 10000,
+    }
 
     # When running `SHOW FUNCTIONS`, what is the name of the column with the
     # function names?
@@ -190,13 +206,24 @@ class HiveEngineSpec(PrestoEngineSpec):
 
         if to_sql_kwargs["if_exists"] == "fail":
             # Ensure table doesn't already exist.
+            escaped_table = (
+                table.table.replace("\\", "\\\\")
+                .replace("'", "\\'")
+                .replace("%", "\\%")
+                .replace("_", "\\_")
+            )
+            # Hive LIKE uses backslash as the escape character. Python needs \\\\
+            # to produce the two-character SQL literal \\ (a single backslash).
+            escape_clause = " ESCAPE '\\\\'"
             if table.schema:
+                escaped_schema = table.schema.replace("`", "``")
                 table_exists = not database.get_df(
-                    f"SHOW TABLES IN {table.schema} LIKE '{table.table}'"
+                    f"SHOW TABLES IN `{escaped_schema}`"
+                    f" LIKE '{escaped_table}'{escape_clause}"
                 ).empty
             else:
                 table_exists = not database.get_df(
-                    f"SHOW TABLES LIKE '{table.table}'"
+                    f"SHOW TABLES LIKE '{escaped_table}'{escape_clause}"
                 ).empty
 
             if table_exists:
@@ -207,7 +234,8 @@ class HiveEngineSpec(PrestoEngineSpec):
                 catalog=table.catalog,
                 schema=table.schema,
             ) as engine:
-                engine.execute(f"DROP TABLE IF EXISTS {str(table)}")
+                with engine.begin() as conn:
+                    conn.execute(text(f"DROP TABLE IF EXISTS {str(table)}"))
 
         def _get_hive_type(dtype: np.dtype[Any]) -> str:
             hive_type_by_dtype = {
@@ -233,22 +261,25 @@ class HiveEngineSpec(PrestoEngineSpec):
                 catalog=table.catalog,
                 schema=table.schema,
             ) as engine:
-                engine.execute(
-                    text(
-                        f"""
-                        CREATE TABLE {str(table)} ({schema_definition})
-                        STORED AS PARQUET
-                        LOCATION :location
-                        """
-                    ),
-                    location=upload_to_s3(
-                        filename=file.name,
-                        upload_prefix=app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"](
-                            database, g.user, table.schema
+                with engine.begin() as conn:
+                    conn.execute(
+                        text(
+                            f"""
+                            CREATE TABLE {str(table)} ({schema_definition})
+                            STORED AS PARQUET
+                            LOCATION :location
+                            """
                         ),
-                        table=table,
-                    ),
-                )
+                        {
+                            "location": upload_to_s3(
+                                filename=file.name,
+                                upload_prefix=app.config[
+                                    "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"
+                                ](database, g.user, table.schema),
+                                table=table,
+                            ),
+                        },
+                    )
 
     @classmethod
     def convert_dttm(
@@ -482,9 +513,12 @@ class HiveEngineSpec(PrestoEngineSpec):
         order_by: list[tuple[str, bool]] | None = None,
         filters: dict[Any, Any] | None = None,
     ) -> str:
-        full_table_name = (
-            f"{table.schema}.{table.table}" if table.schema else table.table
-        )
+        escaped_table = table.table.replace("`", "``")
+        if table.schema:
+            escaped_schema = table.schema.replace("`", "``")
+            full_table_name = f"`{escaped_schema}`.`{escaped_table}`"
+        else:
+            full_table_name = f"`{escaped_table}`"
         return f"SHOW PARTITIONS {full_table_name}"
 
     @classmethod
@@ -492,7 +526,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         cls,
         database: Database,
         table: Table,
-        engine: Engine,
+        dialect: Dialect,
         limit: int = 100,
         show_cols: bool = False,
         indent: bool = True,
@@ -505,7 +539,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         return super(PrestoEngineSpec, cls).select_star(
             database,
             table,
-            engine,
+            dialect,
             limit,
             show_cols,
             indent,
@@ -612,7 +646,8 @@ class HiveEngineSpec(PrestoEngineSpec):
         sql = "SHOW VIEWS"
 
         if schema:
-            sql += f" IN `{schema}`"
+            escaped_schema = schema.replace("`", "``")
+            sql += f" IN `{escaped_schema}`"
 
         with database.get_raw_connection(schema=schema) as conn:
             cursor = conn.cursor()

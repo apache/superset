@@ -18,13 +18,13 @@
  */
 import { ChangeEvent, EventHandler, useState, useEffect } from 'react';
 import cx from 'classnames';
+import { t } from '@apache-superset/core/translation';
 import {
-  t,
   DatabaseConnectionExtension,
   isFeatureEnabled,
-  useTheme,
   FeatureFlag,
 } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/theme';
 import {
   Input,
   Checkbox,
@@ -63,6 +63,27 @@ const ExtraOptions = ({
   onExtraEditorChange: Function;
   extraExtension: DatabaseConnectionExtension | undefined;
 }) => {
+  const onExtraInputChangeNonNegative = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    if (
+      (name === 'schema_cache_timeout' || name === 'table_cache_timeout') &&
+      Number(value) < 0
+    ) {
+      return;
+    }
+    onExtraInputChange(e);
+  };
+
+  const onInputChangeValidateTimeout = (
+    e: CheckboxChangeEvent | ChangeEvent<HTMLInputElement>,
+  ) => {
+    const target = e.target as HTMLInputElement;
+    if (target.name === 'cache_timeout' && Number(target.value) < -1) {
+      return;
+    }
+    onInputChange(e);
+  };
+
   const expandableModalIsOpen = !!db?.expose_in_sqllab;
   const createAsOpen = !!(db?.allow_ctas || db?.allow_cvas);
   const isFileUploadSupportedByEngine =
@@ -115,6 +136,15 @@ const ExtraOptions = ({
     FeatureFlag.ForceSqlLabRunAsync,
   );
   const [activeKey, setActiveKey] = useState<string[] | undefined>();
+
+  const [schemasText, setSchemasText] = useState<string>('');
+  useEffect(() => {
+    if (!db) return;
+    const initialSchemas = (
+      (extraJson?.schemas_allowed_for_file_upload as string[] | undefined) || []
+    ).join(',');
+    setSchemasText(initialSchemas);
+  }, [db?.extra]);
 
   useEffect(() => {
     if (!expandableModalIsOpen && activeKey !== undefined) {
@@ -339,9 +369,10 @@ const ExtraOptions = ({
                   <Input
                     type="number"
                     name="cache_timeout"
-                    value={db?.cache_timeout || ''}
+                    min={-1}
+                    value={db?.cache_timeout ?? ''}
                     placeholder={t('Enter duration in seconds')}
-                    onChange={onInputChange}
+                    onChange={onInputChangeValidateTimeout}
                     data-test="cache-timeout-test"
                   />
                 </div>
@@ -359,12 +390,13 @@ const ExtraOptions = ({
                   <Input
                     type="number"
                     name="schema_cache_timeout"
+                    min={0}
                     value={
-                      extraJson?.metadata_cache_timeout?.schema_cache_timeout ||
+                      extraJson?.metadata_cache_timeout?.schema_cache_timeout ??
                       ''
                     }
                     placeholder={t('Enter duration in seconds')}
-                    onChange={onExtraInputChange}
+                    onChange={onExtraInputChangeNonNegative}
                     data-test="schema-cache-timeout-test"
                   />
                 </div>
@@ -381,12 +413,13 @@ const ExtraOptions = ({
                   <Input
                     type="number"
                     name="table_cache_timeout"
+                    min={0}
                     value={
-                      extraJson?.metadata_cache_timeout?.table_cache_timeout ||
+                      extraJson?.metadata_cache_timeout?.table_cache_timeout ??
                       ''
                     }
                     placeholder={t('Enter duration in seconds')}
-                    onChange={onExtraInputChange}
+                    onChange={onExtraInputChangeNonNegative}
                     data-test="table-cache-timeout-test"
                   />
                 </div>
@@ -461,6 +494,94 @@ const ExtraOptions = ({
           children: (
             <>
               <StyledInputContainer>
+                <div className="input-container">
+                  <Checkbox
+                    id="per_user_caching"
+                    name="per_user_caching"
+                    indeterminate={false}
+                    checked={!!extraJson?.per_user_caching}
+                    onChange={onExtraInputChange}
+                  >
+                    {t('Per user caching')}
+                  </Checkbox>
+                  <InfoTooltip
+                    tooltip={t(
+                      'Cache data separately for each user based on their data access roles and permissions. ' +
+                        'When disabled, a single cache will be used for all users.',
+                    )}
+                  />
+                </div>
+              </StyledInputContainer>
+              <StyledInputContainer>
+                <div className="input-container">
+                  <Checkbox
+                    id="impersonate_user"
+                    name="impersonate_user"
+                    indeterminate={false}
+                    checked={!!db?.impersonate_user}
+                    onChange={onInputChange}
+                  >
+                    {t(
+                      'Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)',
+                    )}
+                  </Checkbox>
+                  <InfoTooltip
+                    tooltip={t(
+                      'If Presto or Trino, all the queries in SQL Lab are going to be executed as the ' +
+                        'currently logged on user who must have permission to run them. If Hive ' +
+                        'and hive.server2.enable.doAs is enabled, will run the queries as ' +
+                        'service account, but impersonate the currently logged on user via ' +
+                        'hive.server2.proxy.user property.',
+                    )}
+                  />
+                </div>
+              </StyledInputContainer>
+              {isFileUploadSupportedByEngine && (
+                <StyledInputContainer>
+                  <div className="input-container">
+                    <Checkbox
+                      id="allow_file_upload"
+                      name="allow_file_upload"
+                      indeterminate={false}
+                      checked={!!db?.allow_file_upload}
+                      onChange={onInputChange}
+                    >
+                      {t('Allow file uploads to database')}
+                    </Checkbox>
+                  </div>
+                </StyledInputContainer>
+              )}
+              {isFileUploadSupportedByEngine && !!db?.allow_file_upload && (
+                <StyledInputContainer className="extra-container">
+                  <div className="control-label">
+                    {t('Schemas allowed for File upload')}
+                  </div>
+                  <div className="input-container">
+                    <Input
+                      type="text"
+                      name="schemas_allowed_for_file_upload"
+                      value={schemasText}
+                      placeholder={t('schema1,schema2')}
+                      onChange={e => setSchemasText(e.target.value)}
+                      onBlur={() =>
+                        onExtraInputChange({
+                          target: {
+                            type: 'text',
+                            name: 'schemas_allowed_for_file_upload',
+                            value: schemasText,
+                          },
+                        } as ChangeEvent<HTMLInputElement>)
+                      }
+                    />
+                  </div>
+                  <div className="helper">
+                    {t(
+                      'A comma-separated list of schemas that files are allowed to upload to.',
+                    )}
+                  </div>
+                </StyledInputContainer>
+              )}
+              <StyledInputContainer>
                 <div className="control-label">{t('Secure extra')}</div>
                 <div className="input-container">
                   <StyledJsonEditor
@@ -503,72 +624,6 @@ const ExtraOptions = ({
                   )}
                 </div>
               </StyledInputContainer>
-              <StyledInputContainer
-                css={!isFileUploadSupportedByEngine ? no_margin_bottom : {}}
-              >
-                <div className="input-container">
-                  <Checkbox
-                    id="impersonate_user"
-                    name="impersonate_user"
-                    indeterminate={false}
-                    checked={!!db?.impersonate_user}
-                    onChange={onInputChange}
-                  >
-                    {t(
-                      'Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)',
-                    )}
-                  </Checkbox>
-                  <InfoTooltip
-                    tooltip={t(
-                      'If Presto or Trino, all the queries in SQL Lab are going to be executed as the ' +
-                        'currently logged on user who must have permission to run them. If Hive ' +
-                        'and hive.server2.enable.doAs is enabled, will run the queries as ' +
-                        'service account, but impersonate the currently logged on user via ' +
-                        'hive.server2.proxy.user property.',
-                    )}
-                  />
-                </div>
-              </StyledInputContainer>
-              {isFileUploadSupportedByEngine && (
-                <StyledInputContainer
-                  css={!db?.allow_file_upload ? no_margin_bottom : {}}
-                >
-                  <div className="input-container">
-                    <Checkbox
-                      id="allow_file_upload"
-                      name="allow_file_upload"
-                      indeterminate={false}
-                      checked={!!db?.allow_file_upload}
-                      onChange={onInputChange}
-                    >
-                      {t('Allow file uploads to database')}
-                    </Checkbox>
-                  </div>
-                </StyledInputContainer>
-              )}
-              {isFileUploadSupportedByEngine && !!db?.allow_file_upload && (
-                <StyledInputContainer css={no_margin_bottom}>
-                  <div className="control-label">
-                    {t('Schemas allowed for File upload')}
-                  </div>
-                  <div className="input-container">
-                    <Input
-                      type="text"
-                      name="schemas_allowed_for_file_upload"
-                      value={(
-                        extraJson?.schemas_allowed_for_file_upload || []
-                      ).join(',')}
-                      placeholder="schema1,schema2"
-                      onChange={onExtraInputChange}
-                    />
-                  </div>
-                  <div className="helper">
-                    {t(
-                      'A comma-separated list of schemas that files are allowed to upload to.',
-                    )}
-                  </div>
-                </StyledInputContainer>
-              )}
             </>
           ),
         },
@@ -576,9 +631,9 @@ const ExtraOptions = ({
           ? [
               {
                 key: extraExtension?.title,
-                collapsible: extraExtension.enabled?.()
-                  ? ('icon' as const)
-                  : ('disabled' as const),
+                ...(extraExtension.enabled?.()
+                  ? {}
+                  : { collapsible: 'disabled' as const }),
                 label: (
                   <CollapseLabelInModal
                     key={extraExtension?.title}

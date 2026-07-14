@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from __future__ import annotations
+
 from typing import Any
 
 import sqlalchemy as sa
@@ -41,11 +43,19 @@ class SSHTunnel(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
 
     id = sa.Column(sa.Integer, primary_key=True)
     database_id = sa.Column(
-        sa.Integer, sa.ForeignKey("dbs.id"), nullable=False, unique=True
+        sa.Integer,
+        sa.ForeignKey("dbs.id"),
+        nullable=False,
+        unique=True,
     )
     database: Database = relationship(
         "Database",
-        backref=backref("ssh_tunnels", uselist=False, cascade="all, delete-orphan"),
+        backref=backref(
+            "ssh_tunnel",
+            uselist=False,
+            cascade="all, delete-orphan",
+            lazy="joined",
+        ),
         foreign_keys=[database_id],
     )
 
@@ -62,6 +72,12 @@ class SSHTunnel(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
         encrypted_field_factory.create(Text), nullable=True
     )
 
+    # Optional expected SSH server host key, in authorized-key form
+    # (e.g. "ssh-rsa AAAA...", "ssh-ed25519 AAAA..."). When set, the SSH server's
+    # presented host key is verified against this value before the tunnel is opened.
+    # This is a public key, so it is stored in plaintext (not encrypted).
+    server_host_key = sa.Column(sa.Text, nullable=True)
+
     export_fields = [
         "server_address",
         "server_port",
@@ -69,6 +85,7 @@ class SSHTunnel(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
         "password",
         "private_key",
         "private_key_password",
+        "server_host_key",
     ]
 
     extra_import_fields = [
@@ -83,6 +100,9 @@ class SSHTunnel(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
             "server_port": self.server_port,
             "username": self.username,
         }
+        if self.server_host_key is not None:
+            # public key, not sensitive: returned in cleartext
+            output["server_host_key"] = self.server_host_key
         if self.password is not None:
             output["password"] = PASSWORD_MASK
         if self.private_key is not None:

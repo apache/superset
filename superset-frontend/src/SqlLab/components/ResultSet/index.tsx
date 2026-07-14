@@ -23,41 +23,41 @@ import {
   memo,
   ChangeEvent,
   MouseEvent,
+  useMemo,
 } from 'react';
 
 import AutoSizer from 'react-virtualized-auto-sizer';
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { useHistory } from 'react-router-dom';
-import { pick } from 'lodash';
+import { pick } from 'lodash-es';
 import {
-  Alert,
   Button,
   ButtonGroup,
+  Divider,
   Tooltip,
-  Card,
-  Modal,
   Input,
   Label,
-  Loading,
 } from '@superset-ui/core/components';
 import {
   CopyToClipboard,
   FilterableTable,
   ErrorMessageWithStackTrace,
 } from 'src/components';
+import type { GridThemeOverrides } from 'src/components/GridTable/types';
+import { buildResultsGridThemeOverrides } from './buildResultsGridThemeOverrides';
 import { nanoid } from 'nanoid';
+import { t } from '@apache-superset/core/translation';
 import {
   QueryState,
-  styled,
-  t,
-  tn,
-  useTheme,
   usePrevious,
-  css,
   getNumberFormatter,
   getExtensionsRegistry,
   ErrorTypeEnum,
 } from '@superset-ui/core';
+import { tn } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
+import { styled, useTheme, css } from '@apache-superset/core/theme';
 import {
   ISaveableDatasource,
   ISimpleColumn,
@@ -66,7 +66,6 @@ import {
 import { EXPLORE_CHART_DEFAULT, SqlLabRootState } from 'src/SqlLab/types';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
-import ProgressBar from '@superset-ui/core/components/ProgressBar';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
@@ -86,11 +85,16 @@ import {
   LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV,
 } from 'src/logger/LogUtils';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { findPermission } from 'src/utils/findPermission';
+import { usePermissions } from 'src/hooks/usePermissions';
+import { StreamingExportModal } from 'src/components/StreamingExportModal';
+import { useStreamingExport } from 'src/components/StreamingExportModal/useStreamingExport';
+import { useConfirmModal } from 'src/hooks/useConfirmModal';
+import { makeUrl, openInNewTab, redirect } from 'src/utils/navigationUtils';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
-import QueryStateLabel from '../QueryStateLabel';
+import PanelToolbar from 'src/components/PanelToolbar';
+import { ViewLocations } from 'src/SqlLab/contributions';
 
 enum LimitingFactor {
   Query = 'QUERY',
@@ -115,7 +119,7 @@ export interface ResultSetProps {
 const ResultContainer = styled.div`
   display: flex;
   flex-direction: column;
-  row-gap: ${({ theme }) => theme.sizeUnit * 2}px;
+  row-gap: ${({ theme }) => theme.sizeUnit * 3}px;
   height: 100%;
 `;
 
@@ -134,7 +138,6 @@ const ResultlessStyles = styled.div`
 // but wrapping text too so text doesn't overflow
 const MonospaceDiv = styled.div`
   font-family: ${({ theme }) => theme.fontFamilyCode};
-  white-space: pre;
   word-break: break-word;
   overflow-x: auto;
   white-space: pre-wrap;
@@ -145,30 +148,15 @@ const ReturnedRows = styled.div`
   line-height: 1;
 `;
 
-const ResultSetControls = styled.div`
-  display: flex;
-  justify-content: space-between;
-`;
-
 const ResultSetButtons = styled.div`
   display: grid;
   grid-auto-flow: column;
-  padding-right: ${({ theme }) => 2 * theme.sizeUnit}px;
 `;
 
-const copyButtonStyles = css`
-  &:hover {
-    text-decoration: unset;
-  }
-  span > :first-of-type {
-    margin: 0px;
-  }
-`;
-
-const ROWS_CHIP_WIDTH = 100;
 const GAP = 8;
 
 const extensionsRegistry = getExtensionsRegistry();
+const EMPTY: string[] = [];
 
 const ResultSet = ({
   cache = false,
@@ -182,7 +170,10 @@ const ResultSet = ({
   visualize = true,
   defaultQueryLimit,
 }: ResultSetProps) => {
-  const user = useSelector(({ user }: SqlLabRootState) => user, shallowEqual);
+  const streamingThreshold = useSelector(
+    (state: SqlLabRootState) =>
+      state.common?.conf?.CSV_STREAMING_ROW_THRESHOLD || 1000,
+  );
   const query = useSelector(
     ({ sqlLab: { queries } }: SqlLabRootState) =>
       pick(queries[queryId], [
@@ -196,6 +187,7 @@ const ResultSet = ({
         'sql',
         'executedSql',
         'sqlEditorId',
+        'sqlEditorImmutableId',
         'templateParams',
         'schema',
         'rows',
@@ -219,13 +211,41 @@ const ResultSet = ({
     extensionsRegistry.get('sqleditor.extension.resultTable') ??
     FilterableTable;
   const theme = useTheme();
+
+  const resultsGridThemeOverrides = useMemo<GridThemeOverrides | undefined>(
+    () => buildResultsGridThemeOverrides(theme),
+    [theme],
+  );
+
   const [searchText, setSearchText] = useState('');
   const [cachedData, setCachedData] = useState<Record<string, unknown>[]>([]);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
+  const [showStreamingModal, setShowStreamingModal] = useState(false);
+  const orderedColumnKeys = useMemo(
+    () => query.results?.columns?.map(col => col.column_name) ?? EMPTY,
+    [query.results?.columns],
+  );
+  const expandedColumns = useMemo(
+    () => query.results?.expanded_columns?.map(col => col.column_name) ?? EMPTY,
+    [query.results?.expanded_columns],
+  );
 
+  const {
+    canExportDataSqlLab: canExportData,
+    canCopyClipboardSqlLab: canCopyClipboard,
+  } = usePermissions();
   const history = useHistory();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const logAction = useLogAction({ queryId, sqlEditorId: query.sqlEditorId });
+  const { showConfirm, ConfirmModal } = useConfirmModal();
+
+  const { progress, startExport, resetExport, retryExport, cancelExport } =
+    useStreamingExport({
+      onComplete: () => {},
+      onError: error => {
+        addDangerToast(t('Export failed: %s', error));
+      },
+    });
 
   const reRunQueryIfSessionTimeoutErrorOnMount = useCallback(() => {
     if (
@@ -280,15 +300,23 @@ const ResultSet = ({
       const key = await postFormData(results.query_id, 'query', {
         ...EXPLORE_CHART_DEFAULT,
         datasource: `${results.query_id}__query`,
-        ...{
-          all_columns: results.columns.map(column => column.column_name),
+
+        all_columns: results.columns.map(column => column.column_name),
+      });
+      const force = false;
+      const includeAppRoot = openInNewWindow;
+      const url = mountExploreUrl(
+        'base',
+        {
+          [URL_PARAMS.formDataKey.name]: key,
         },
-      });
-      const url = mountExploreUrl(null, {
-        [URL_PARAMS.formDataKey.name]: key,
-      });
+        force,
+        includeAppRoot,
+      );
       if (openInNewWindow) {
-        window.open(url, '_blank', 'noreferrer');
+        // `url` is from `mountExploreUrl(..., includeAppRoot=true)`; the
+        // helper re-applies `ensureAppRoot` idempotently.
+        openInNewTab(url);
       } else {
         history.push(url);
       }
@@ -298,11 +326,33 @@ const ResultSet = ({
   };
 
   const getExportCsvUrl = (clientId: string) =>
-    `/api/v1/sqllab/export/${clientId}/`;
+    makeUrl(`/api/v1/sqllab/export/${clientId}/`);
+
+  const handleCloseStreamingModal = () => {
+    cancelExport();
+    setShowStreamingModal(false);
+    resetExport();
+  };
+
+  const shouldUseStreamingExport = () => {
+    const { rows, queryLimit, limitingFactor } = query;
+    const limit = queryLimit || query.results?.query?.limit;
+    const rowsCount = Math.min(rows || 0, query.results?.data?.length || 0);
+
+    let actualRowCount = rowsCount;
+
+    if (limitingFactor === LimitingFactor.NotLimited && rows) {
+      actualRowCount = rows;
+    } else if (limit) {
+      actualRowCount = Math.max(actualRowCount, limit);
+    }
+
+    return actualRowCount >= streamingThreshold;
+  };
 
   const renderControls = () => {
     if (search || visualize || csv) {
-      const { results, queryLimit, limitingFactor, rows } = query;
+      const { limitingFactor, queryLimit, results, rows } = query;
       const limit = queryLimit || results.query.limit;
       const rowsCount = Math.min(rows || 0, results?.data?.length || 0);
       let { data } = query.results;
@@ -310,7 +360,6 @@ const ResultSet = ({
         data = cachedData;
       }
       const { columns } = query.results;
-      // Added compute logic to stop user from being able to Save & Explore
 
       const datasource: ISaveableDatasource = {
         columns: query.results.columns as ISimpleColumn[],
@@ -321,14 +370,117 @@ const ResultSet = ({
         schema: query?.schema,
       };
 
-      const canExportData = findPermission(
-        'can_export_csv',
-        'SQLLab',
-        user?.roles,
+      const handleDownloadCsv = (event: React.MouseEvent<HTMLElement>) => {
+        logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {});
+
+        if (limitingFactor === LimitingFactor.Dropdown && limit === rowsCount) {
+          event.preventDefault();
+
+          showConfirm({
+            title: t('Download is on the way'),
+            body: t(
+              'Downloading %(rows)s rows based on the LIMIT configuration. If you want the entire result set, you need to adjust the LIMIT.',
+              { rows: rowsCount.toLocaleString() },
+            ),
+            onConfirm: () => {
+              // `getExportCsvUrl` already runs the path through `makeUrl`;
+              // `redirect` re-applies `ensureAppRoot` idempotently and routes
+              // the sink through navigationUtils' barriers (scheme allowlist,
+              // userinfo rejection, backslash rejection), which is a
+              // strict superset of what `sanitizeUrl` from master PR #40546
+              // provides.
+              redirect(getExportCsvUrl(query.id));
+            },
+            confirmText: t('OK'),
+            cancelText: t('Close'),
+          });
+        }
+      };
+
+      const defaultPrimaryActions = (
+        <>
+          {visualize && database?.allows_virtual_table_explore && (
+            <ExploreResultsButton
+              database={database}
+              onClick={createExploreResultsOnClick}
+            />
+          )}
+          {csv && (
+            <Button
+              buttonSize="small"
+              variant="text"
+              color="primary"
+              icon={<Icons.DownloadOutlined iconSize="m" />}
+              tooltip={
+                !canExportData
+                  ? t("You don't have permission to export data")
+                  : t('Download to CSV')
+              }
+              aria-label={t('Download to CSV')}
+              disabled={!canExportData}
+              {...(canExportData &&
+                !shouldUseStreamingExport() && {
+                  href: getExportCsvUrl(query.id),
+                })}
+              data-test="export-csv-button"
+              onClick={e => {
+                if (!canExportData) return;
+                const useStreaming = shouldUseStreamingExport();
+
+                if (useStreaming) {
+                  e.preventDefault();
+                  setShowStreamingModal(true);
+
+                  startExport({
+                    url: makeUrl('/api/v1/sqllab/export_streaming/'),
+                    payload: { client_id: query.id },
+                    exportType: 'csv',
+                    exportSource: 'sqllab',
+                    expectedRows: rows,
+                  });
+                } else {
+                  handleDownloadCsv(e);
+                }
+              }}
+            />
+          )}
+          <CopyToClipboard
+            text={
+              canCopyClipboard
+                ? prepareCopyToClipboardTabularData(
+                    data,
+                    columns.map(c => c.column_name),
+                  )
+                : ''
+            }
+            disabled={!canCopyClipboard}
+            wrapped={false}
+            copyNode={
+              <Button
+                buttonSize="small"
+                variant="text"
+                color="primary"
+                icon={<Icons.CopyOutlined iconSize="m" />}
+                tooltip={
+                  !canCopyClipboard
+                    ? t("You don't have permission to copy to clipboard")
+                    : t('Copy to Clipboard')
+                }
+                aria-label={t('Copy to Clipboard')}
+                disabled={!canCopyClipboard}
+                data-test="copy-to-clipboard-button"
+              />
+            }
+            hideTooltip
+            onCopyEnd={() =>
+              logAction(LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD, {})
+            }
+          />
+        </>
       );
 
       return (
-        <ResultSetControls>
+        <ResultSetButtons>
           <SaveDatasetModal
             visible={showSaveDatasetModal}
             onHide={() => setShowSaveDatasetModal(false)}
@@ -339,97 +491,21 @@ const ResultSet = ({
             )}
             datasource={datasource}
           />
-          <ResultSetButtons>
-            {visualize && database?.allows_virtual_table_explore && (
-              <ExploreResultsButton
-                database={database}
-                onClick={createExploreResultsOnClick}
-              />
-            )}
-            {csv && canExportData && (
-              <Button
-                css={copyButtonStyles}
-                buttonSize="small"
-                buttonStyle="secondary"
-                href={getExportCsvUrl(query.id)}
-                data-test="export-csv-button"
-                onClick={() => {
-                  logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {});
-                  if (
-                    limitingFactor === LimitingFactor.Dropdown &&
-                    limit === rowsCount
-                  ) {
-                    Modal.warning({
-                      title: t('Download is on the way'),
-                      content: t(
-                        'Downloading %(rows)s rows based on the LIMIT configuration. If you want the entire result set, you need to adjust the LIMIT.',
-                        { rows: rowsCount.toLocaleString() },
-                      ),
-                    });
-                  }
-                }}
-              >
-                <Icons.DownloadOutlined iconSize="m" /> {t('Download to CSV')}
-              </Button>
-            )}
-
-            {canExportData && (
-              <CopyToClipboard
-                text={prepareCopyToClipboardTabularData(data, columns)}
-                wrapped={false}
-                copyNode={
-                  <Button
-                    css={copyButtonStyles}
-                    buttonSize="small"
-                    buttonStyle="secondary"
-                    data-test="copy-to-clipboard-button"
-                  >
-                    <Icons.CopyOutlined iconSize="s" /> {t('Copy to Clipboard')}
-                  </Button>
-                }
-                hideTooltip
-                onCopyEnd={() =>
-                  logAction(LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD, {})
-                }
-              />
-            )}
-          </ResultSetButtons>
-          {search && (
-            <Input
-              onChange={changeSearch}
-              value={searchText}
-              className="form-control input-sm"
-              placeholder={t('Filter results')}
-            />
-          )}
-        </ResultSetControls>
+          <PanelToolbar
+            viewId={ViewLocations.sqllab.results}
+            defaultPrimaryActions={defaultPrimaryActions}
+          />
+        </ResultSetButtons>
       );
     }
-    return <div />;
+    return null;
   };
 
-  const renderRowsReturned = (alertMessage: boolean) => {
+  const renderRowsReturned = () => {
     const { results, rows, queryLimit, limitingFactor } = query;
     let limitMessage = '';
     const limitReached = results?.displayLimitReached;
     const limit = queryLimit || results.query.limit;
-    const isAdmin = !!user?.roles?.Admin;
-    const rowsCount = Math.min(rows || 0, results?.data?.length || 0);
-
-    const displayMaxRowsReachedMessage = {
-      withAdmin: t(
-        'The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROW. ' +
-          'Please add additional limits/filters or download to csv to see more rows up to ' +
-          'the %(limit)d limit.',
-        { rows: rowsCount, limit },
-      ),
-      withoutAdmin: t(
-        'The number of results displayed is limited to %(rows)d. ' +
-          'Please add additional limits/filters, download to csv, or contact an admin ' +
-          'to see more rows up to the %(limit)d limit.',
-        { rows: rowsCount, limit },
-      ),
-    };
     const shouldUseDefaultDropdownAlert =
       limit === defaultQueryLimit && limitingFactor === LimitingFactor.Dropdown;
 
@@ -451,76 +527,54 @@ const ResultSet = ({
         'The number of rows displayed is limited to %(rows)d by the query and limit dropdown.',
         { rows },
       );
+    } else if (shouldUseDefaultDropdownAlert) {
+      limitMessage = t(
+        'The number of rows displayed is limited to %(rows)d by the dropdown.',
+        { rows },
+      );
+    } else if (limitReached) {
+      limitMessage = t(
+        'The number of results displayed is limited to %(rows)d.',
+        { rows },
+      );
     }
+
     const formattedRowCount = getNumberFormatter()(rows);
     const rowsReturnedMessage = t('%(rows)d rows returned', {
       rows,
     });
 
-    const tooltipText = `${rowsReturnedMessage}. ${limitMessage}`;
-
-    if (alertMessage) {
-      return (
-        <>
-          {!limitReached && shouldUseDefaultDropdownAlert && (
-            <div>
-              <Alert
-                closable
-                type="warning"
-                message={t(
-                  'The number of rows displayed is limited to %(rows)d by the dropdown.',
-                  { rows },
-                )}
-              />
-            </div>
-          )}
-          {limitReached && (
-            <div>
-              <Alert
-                closable
-                type="warning"
-                message={
-                  isAdmin
-                    ? displayMaxRowsReachedMessage.withAdmin
-                    : displayMaxRowsReachedMessage.withoutAdmin
-                }
-              />
-            </div>
-          )}
-        </>
-      );
-    }
-    const showRowsReturned =
-      showSqlInline || (!limitReached && !shouldUseDefaultDropdownAlert);
+    const hasWarning = !!limitMessage;
+    const tooltipText = hasWarning
+      ? `${rowsReturnedMessage}. ${limitMessage}`
+      : rowsReturnedMessage;
 
     return (
-      <>
-        {showRowsReturned && (
-          <ReturnedRows>
-            <Tooltip
-              id="sqllab-rowcount-tooltip"
-              title={tooltipText}
-              placement="left"
-            >
-              <Label
+      <ReturnedRows>
+        <Tooltip
+          id="sqllab-rowcount-tooltip"
+          title={tooltipText}
+          placement="left"
+        >
+          <Label
+            monospace
+            css={css`
+              line-height: ${theme.fontSizeLG}px;
+            `}
+          >
+            {hasWarning && (
+              <Icons.WarningOutlined
                 css={css`
-                  line-height: ${theme.fontSizeLG}px;
+                  font-size: ${theme.fontSize}px;
+                  margin-right: ${theme.sizeUnit}px;
+                  color: ${theme.colorWarning};
                 `}
-              >
-                {limitMessage && (
-                  <Icons.ExclamationCircleOutlined
-                    css={css`
-                      font-size: ${theme.fontSize}px;
-                      margin-right: ${theme.sizeUnit}px;
-                    `}
-                  />
-                )}
-                {tn('%s row', '%s rows', rows, formattedRowCount)}
-              </Label>
-            </Tooltip>
-          </ReturnedRows>
-        )}
-      </>
+              />
+            )}
+            {tn('%s row', '%s rows', rows, formattedRowCount)}
+          </Label>
+        </Tooltip>
+      </ReturnedRows>
     );
   };
 
@@ -645,133 +699,175 @@ const ResultSet = ({
       ({ data } = results);
     }
     if (data && data.length > 0) {
-      const expandedColumns = results.expanded_columns
-        ? results.expanded_columns.map(col => col.column_name)
-        : [];
       const allowHTML = getItem(
         LocalStorageKeys.SqllabIsRenderHtmlEnabled,
         true,
       );
+
+      const tableProps = {
+        data,
+        queryId: query.id,
+        orderedColumnKeys,
+        filterText: searchText,
+        expandedColumns,
+        allowHTML,
+        themeOverrides: resultsGridThemeOverrides,
+      };
+
       return (
-        <ResultContainer>
-          {renderControls()}
-          {showSql && showSqlInline ? (
-            <>
-              <div
-                css={css`
-                  display: flex;
-                  justify-content: space-between;
-                  align-items: center;
-                  gap: ${GAP}px;
-                `}
-              >
-                <Card
-                  css={[
-                    css`
-                      height: 28px;
-                      width: calc(100% - ${ROWS_CHIP_WIDTH + GAP}px);
-                      code {
-                        width: 100%;
-                        overflow: hidden;
+        <>
+          <ResultContainer>
+            <div
+              css={css`
+                display: flex;
+                align-items: center;
+                gap: ${GAP}px;
+
+                & .ant-divider {
+                  height: ${theme.sizeUnit * 6}px;
+                  margin: 0 ${theme.sizeUnit * 2}px 0 0;
+                }
+              `}
+            >
+              {renderControls()}
+              <Divider type="vertical" />
+              {showSql && (
+                <>
+                  <div
+                    css={css`
+                      flex: 0 1 auto;
+                      min-width: 0;
+                      overflow: hidden;
+                      margin-right: ${theme.sizeUnit}px;
+
+                      & * {
+                        overflow: hidden !important;
                         white-space: nowrap !important;
-                        text-overflow: ellipsis;
-                        display: block;
+                        text-overflow: ellipsis !important;
                       }
-                    `,
-                  ]}
-                >
-                  {sql}
-                </Card>
-                {renderRowsReturned(false)}
-              </div>
-              {renderRowsReturned(true)}
-            </>
-          ) : (
-            <>
-              {renderRowsReturned(false)}
-              {renderRowsReturned(true)}
-              {sql}
-            </>
-          )}
-          <div
-            css={css`
-              flex: 1 1 auto;
-            `}
-          >
-            <AutoSizer disableWidth>
-              {({ height }) => (
-                <ResultTable
-                  data={data}
-                  queryId={query.id}
-                  orderedColumnKeys={results.columns.map(
-                    col => col.column_name,
-                  )}
-                  height={height}
-                  filterText={searchText}
-                  expandedColumns={expandedColumns}
-                  allowHTML={allowHTML}
+
+                      pre {
+                        margin: 0 !important;
+                      }
+                    `}
+                  >
+                    {sql}
+                  </div>
+                  <Divider type="vertical" />
+                </>
+              )}
+              {renderRowsReturned()}
+              {search && (
+                <Input
+                  css={css`
+                    flex: none;
+                    width: 200px;
+                  `}
+                  onChange={changeSearch}
+                  value={searchText}
+                  placeholder={t('Filter results')}
                 />
               )}
-            </AutoSizer>
-          </div>
-        </ResultContainer>
+            </div>
+            <div
+              css={css`
+                flex: 1 1 auto;
+                padding-bottom: ${theme.sizeUnit * 3}px;
+              `}
+            >
+              <AutoSizer disableWidth>
+                {({ height: autoHeight }) => (
+                  <ResultTable {...tableProps} height={autoHeight} />
+                )}
+              </AutoSizer>
+            </div>
+          </ResultContainer>
+          <StreamingExportModal
+            visible={showStreamingModal}
+            onCancel={handleCloseStreamingModal}
+            onRetry={retryExport}
+            progress={progress}
+          />
+          {ConfirmModal}
+        </>
       );
     }
     if (data && data.length === 0) {
-      return <Alert type="warning" message={t('The query returned no data')} />;
+      return (
+        <>
+          <Alert type="warning" message={t('The query returned no data')} />
+          <StreamingExportModal
+            visible={showStreamingModal}
+            onCancel={handleCloseStreamingModal}
+            onRetry={retryExport}
+            progress={progress}
+          />
+        </>
+      );
     }
   }
 
   if (query.cached || (query.state === QueryState.Success && !query.results)) {
     if (query.isDataPreview) {
       return (
-        <Button
-          buttonSize="small"
-          buttonStyle="primary"
-          onClick={() =>
-            dispatch(
-              reFetchQueryResults({
-                ...query,
-                isDataPreview: true,
-              }),
-            )
-          }
-        >
-          {t('Fetch data preview')}
-        </Button>
+        <>
+          <Button
+            buttonSize="small"
+            buttonStyle="primary"
+            onClick={() =>
+              dispatch(
+                reFetchQueryResults({
+                  ...query,
+                  isDataPreview: true,
+                }),
+              )
+            }
+          >
+            {t('Fetch data preview')}
+          </Button>
+          <StreamingExportModal
+            visible={showStreamingModal}
+            onCancel={handleCloseStreamingModal}
+            onRetry={retryExport}
+            progress={progress}
+          />
+        </>
       );
     }
     if (query.resultsKey) {
       return (
-        <Button
-          buttonSize="small"
-          buttonStyle="primary"
-          onClick={() => fetchResults(query)}
-        >
-          {t('Refetch results')}
-        </Button>
+        <>
+          <Button
+            buttonSize="small"
+            buttonStyle="primary"
+            onClick={() => fetchResults(query)}
+          >
+            {t('Refetch results')}
+          </Button>
+          <StreamingExportModal
+            visible={showStreamingModal}
+            onCancel={handleCloseStreamingModal}
+            onRetry={retryExport}
+            progress={progress}
+          />
+        </>
       );
     }
-  }
-
-  let progressBar;
-  if (query.progress > 0) {
-    progressBar = (
-      <ProgressBar percent={parseInt(query.progress.toFixed(0), 10)} striped />
-    );
   }
 
   const progressMsg = query?.extra?.progress ?? null;
 
   return (
     <ResultlessStyles>
-      <div>{!progressBar && <Loading position="normal" />}</div>
-      {/* show loading bar whenever progress bar is completed but needs time to render */}
-      <div>{query.progress === 100 && <Loading position="normal" />}</div>
-      <QueryStateLabel query={query} />
-      <div>{progressMsg && <Alert type="success" message={progressMsg} />}</div>
-      <div>{query.progress !== 100 && progressBar}</div>
+      {progressMsg && (
+        <Alert type="success" message={progressMsg} closable={false} />
+      )}
       {trackingUrl && <div>{trackingUrl}</div>}
+      <StreamingExportModal
+        visible={showStreamingModal}
+        onCancel={handleCloseStreamingModal}
+        progress={progress}
+      />
     </ResultlessStyles>
   );
 };

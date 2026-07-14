@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { forwardRef, useEffect, useCallback, ComponentType } from 'react';
+import {
+  forwardRef,
+  useEffect,
+  useCallback,
+  useRef,
+  ComponentType,
+} from 'react';
 
 import type {
   Editor as OrigEditor,
@@ -26,13 +32,16 @@ import type {
 } from 'brace';
 import type AceEditor from 'react-ace';
 import type { IAceEditorProps } from 'react-ace';
+import type { Ace } from 'ace-builds';
 
 import {
   AsyncEsmComponent,
   PlaceholderProps,
 } from '@superset-ui/core/components/AsyncEsmComponent';
-import { useTheme, css } from '@superset-ui/core';
+import { useTheme, css, type SupersetTheme } from '@apache-superset/core/theme';
 import { Global } from '@emotion/react';
+
+import { patchAceEmojiWidths } from './emojiWidthPatch';
 
 export { getTooltipHTML } from './Tooltip';
 export { useJsonValidation } from './useJsonValidation';
@@ -105,6 +114,19 @@ export type AsyncAceEditorOptions = {
 };
 
 /**
+ * Theme-aware styling for the matched-prefix highlight in the autocomplete
+ * popup. Ace ships a hardcoded `color: #000` that is invisible on the dark
+ * popup, so the override needs `!important` to win. Lives in the shared editor
+ * so every Ace editor (SQL Lab, Explore Custom SQL, ...) stays consistent.
+ */
+export const aceCompletionHighlightStyles = (token: SupersetTheme) => css`
+  .ace_completion-highlight {
+    color: ${token.colorPrimaryText} !important;
+    background-color: ${token.colorPrimaryBgHover};
+  }
+`;
+
+/**
  * Get an async AceEditor with automatical loading of specified ace modules.
  */
 export function AsyncAceEditor(
@@ -113,22 +135,19 @@ export function AsyncAceEditor(
     defaultMode,
     defaultTheme,
     defaultTabSize = 2,
-    fontFamily = 'Menlo, Consolas, Courier New, Ubuntu Mono, source-code-pro, Lucida Console, monospace',
+    fontFamily,
     placeholder,
   }: AsyncAceEditorOptions = {},
 ) {
   return AsyncEsmComponent(async () => {
     const reactAcePromise = import('react-ace');
     const aceBuildsConfigPromise = import('ace-builds');
-    const cssWorkerUrlPromise = import(
-      'ace-builds/src-min-noconflict/worker-css'
-    );
-    const javascriptWorkerUrlPromise = import(
-      'ace-builds/src-min-noconflict/worker-javascript'
-    );
-    const htmlWorkerUrlPromise = import(
-      'ace-builds/src-min-noconflict/worker-html'
-    );
+    const cssWorkerUrlPromise =
+      import('ace-builds/src-min-noconflict/worker-css');
+    const javascriptWorkerUrlPromise =
+      import('ace-builds/src-min-noconflict/worker-javascript');
+    const htmlWorkerUrlPromise =
+      import('ace-builds/src-min-noconflict/worker-html');
     const acequirePromise = import('ace-builds/src-min-noconflict/ace');
 
     const [
@@ -151,6 +170,14 @@ export function AsyncAceEditor(
     config.setModuleUrl('ace/mode/javascript_worker', javascriptWorkerUrl);
     config.setModuleUrl('ace/mode/html_worker', htmlWorkerUrl);
 
+    // Align caret math and rendered glyph geometry for emoji (issue #41664);
+    // see emojiWidthPatch for the full story. Applied once, globally, since
+    // the prototypes are shared by every Ace editor instance.
+    patchAceEmojiWidths(
+      acequire('ace/edit_session').EditSession,
+      acequire('ace/layer/text').Text,
+    );
+
     await Promise.all(aceModules.map(x => aceModuleLoaders[x]()));
 
     const inferredMode =
@@ -168,11 +195,13 @@ export function AsyncAceEditor(
           theme = inferredTheme,
           tabSize = defaultTabSize,
           defaultValue = '',
+          onLoad,
           ...props
         },
         ref,
       ) {
         const token = useTheme();
+        const editorFontFamily = fontFamily || token.fontFamilyCode;
         const langTools = acequire('ace/ext/language_tools');
 
         const setCompleters = useCallback(
@@ -207,21 +236,147 @@ export function AsyncAceEditor(
           }
         }, [keywords, setCompleters]);
 
+        // Move autocomplete popup to the nearest parent container with data-ace-container
+        useEffect(() => {
+          const editorInstance = (ref as React.RefObject<AceEditor>)?.current
+            ?.editor;
+          if (!editorInstance) return;
+
+          const editorContainer = editorInstance.container;
+          if (!editorContainer) return;
+
+          // Cache DOM elements to avoid repeated queries on every command execution
+          let cachedAutocompletePopup: HTMLElement | null = null;
+          let cachedTargetContainer: Element | null = null;
+
+          const moveAutocompleteToContainer = () => {
+            // Revalidate cached popup if missing or detached from DOM
+            if (
+              !cachedAutocompletePopup ||
+              !document.body.contains(cachedAutocompletePopup)
+            ) {
+              cachedAutocompletePopup =
+                editorContainer.querySelector<HTMLElement>(
+                  '.ace_autocomplete',
+                ) ?? document.querySelector<HTMLElement>('.ace_autocomplete');
+            }
+
+            // Revalidate cached container if missing or detached
+            if (
+              !cachedTargetContainer ||
+              !document.body.contains(cachedTargetContainer)
+            ) {
+              cachedTargetContainer =
+                editorContainer.closest('#ace-editor') ??
+                editorContainer.parentElement;
+            }
+
+            if (
+              cachedAutocompletePopup &&
+              cachedTargetContainer &&
+              cachedTargetContainer !== document.body
+            ) {
+              cachedTargetContainer.appendChild(cachedAutocompletePopup);
+              cachedAutocompletePopup.dataset.aceAutocomplete = 'true';
+            }
+          };
+
+          const handleAfterExec = (e: Ace.Operation) => {
+            const name: string | undefined = e?.command?.name;
+            if (name === 'insertstring' || name === 'startAutocomplete') {
+              moveAutocompleteToContainer();
+            }
+          };
+
+          const { commands } = editorInstance;
+          commands.on('afterExec', handleAfterExec);
+
+          return () => {
+            commands.off('afterExec', handleAfterExec);
+            cachedAutocompletePopup = null;
+            cachedTargetContainer = null;
+          };
+        }, [ref]);
+
+        // Ace caches the measured glyph width in its internal FontMetrics and
+        // only re-measures when its hidden measure node's own size changes. If
+        // the editor font finishes loading after construction, the cached width
+        // can stop matching the rendered glyphs and the caret drifts further
+        // from the text the longer the line, the residual misalignment in issue
+        // #41664 that the font-family CSS from #38928 does not address.
+        // `updateFontSize` runs Ace's `checkForSizeChanges`, which on a metrics
+        // change emits `changeCharacterSize`; Ace's renderer reacts with a
+        // forced resize and full re-render.
+        //
+        // Re-measure on every signal that glyph geometry may have changed:
+        // - immediately, for the already-loaded case;
+        // - after explicitly loading the editor font via `fonts.load()` —
+        //   `fonts.ready` alone is NOT enough, because it can settle before a
+        //   lazily-referenced editor font even starts loading, in which case
+        //   waiting on it misses the swap entirely;
+        // - after `fonts.ready`, for everything in flight at mount;
+        // - on every subsequent `loadingdone` event while mounted, for fonts
+        //   that load even later (removed on unmount via fontCleanupsRef).
+        const fontCleanupsRef = useRef<(() => void)[]>([]);
+        useEffect(
+          () => () => {
+            fontCleanupsRef.current.forEach(cleanup => cleanup());
+            fontCleanupsRef.current = [];
+          },
+          [],
+        );
+        const handleLoad = useCallback(
+          (editor: Ace.Editor) => {
+            const remeasure = () => {
+              try {
+                editor.renderer.updateFontSize();
+              } catch {
+                // The editor was destroyed before a pending font event fired.
+              }
+            };
+            remeasure();
+            const { fonts } = document;
+            if (fonts) {
+              // The size in the shorthand is irrelevant; any value triggers
+              // the load of the family's faces.
+              fonts
+                .load?.(`12px ${editorFontFamily}`)
+                ?.then(remeasure)
+                ?.catch(() => {});
+              fonts.ready?.then(remeasure)?.catch(() => {});
+              fonts.addEventListener?.('loadingdone', remeasure);
+              fontCleanupsRef.current.push(() =>
+                fonts.removeEventListener?.('loadingdone', remeasure),
+              );
+            }
+            onLoad?.(editor);
+          },
+          [onLoad, editorFontFamily],
+        );
+
         return (
           <>
             <Global
               key="ace-tooltip-global"
               styles={css`
                 .ace_editor {
-                  border: 1px solid ${token.colorBorder} !important;
                   background-color: ${token.colorBgContainer} !important;
                 }
-
                 /* Basic editor styles with dark mode support */
                 .ace_editor.ace-github,
                 .ace_editor.ace-tm {
                   background-color: ${token.colorBgContainer} !important;
                   color: ${token.colorText} !important;
+                }
+
+                /* Fix cursor misalignment by ensuring consistent font-family */
+                .ace_editor .ace_content {
+                  font-family: ${editorFontFamily} !important;
+                }
+
+                /* Ensure the text layer uses the same font-family */
+                .ace_editor .ace_text-layer {
+                  font-family: ${editorFontFamily} !important;
                 }
 
                 /* Adjust gutter colors */
@@ -234,7 +389,9 @@ export function AsyncAceEditor(
                 }
                 /* Adjust selection color */
                 .ace_editor .ace_selection {
-                  background-color: ${token.colorPrimaryBgHover} !important;
+                  background-color: ${
+                    token.colorEditorSelection ?? token.colorPrimaryBgHover
+                  } !important;
                 }
 
                 /* Improve active line highlighting */
@@ -247,6 +404,11 @@ export function AsyncAceEditor(
                 .ace_editor .ace_print-margin {
                   background-color: ${token.colorSplit} !important;
                   opacity: 0.5;
+                }
+
+                /* Style bracket matching to blend with theme */
+                .ace_editor .ace_bracket {
+                  border-color: ${token.colorPrimaryBorderHover} !important;
                 }
 
                 /* Adjust cursor color */
@@ -282,20 +444,31 @@ export function AsyncAceEditor(
                 /* Adjust tooltip styles */
                 .ace_tooltip {
                   margin-left: ${token.margin}px;
-                  padding: ${token.sizeUnit * 2}px;
                   background-color: ${token.colorBgElevated} !important;
                   color: ${token.colorText} !important;
                   border: 1px solid ${token.colorBorderSecondary};
                   box-shadow: ${token.boxShadow};
                   border-radius: ${token.borderRadius}px;
+                  padding: ${token.paddingXS}px ${token.paddingXS}px;
                 }
 
-                & .tooltip-detail {
+                .ace_tooltip.ace_doc-tooltip {
+                  display: flex !important;
+                }
+
+                ${aceCompletionHighlightStyles(token)}
+
+                &&& .tooltip-detail {
+                  display: flex;
+                  justify-content: center;
+                  flex-direction: row;
+                  gap: ${token.paddingXXS}px;
+                  align-items: center;
                   background-color: ${token.colorBgContainer};
                   white-space: pre-wrap;
                   word-break: break-all;
-                  min-width: ${token.sizeXXL * 5}px;
                   max-width: ${token.sizeXXL * 10}px;
+                  font-size: ${token.fontSize}px;
 
                   & .tooltip-detail-head {
                     background-color: ${token.colorBgElevated};
@@ -318,7 +491,9 @@ export function AsyncAceEditor(
 
                   & .tooltip-detail-head,
                   & .tooltip-detail-body {
-                    padding: ${token.padding}px ${token.paddingLG}px;
+                    background-color: ${token.colorBgLayout};
+                    padding: 0px ${token.paddingXXS}px;
+                    border: 1px ${token.colorSplit} solid;
                   }
 
                   & .tooltip-detail-footer {
@@ -365,7 +540,8 @@ export function AsyncAceEditor(
               theme={theme}
               tabSize={tabSize}
               defaultValue={defaultValue}
-              setOptions={{ fontFamily }}
+              setOptions={{ fontFamily: editorFontFamily }}
+              onLoad={handleLoad}
               {...props}
             />
           </>
@@ -387,7 +563,9 @@ export const FullSQLEditor = AsyncAceEditor(
   {
     // a custom placeholder in SQL lab for less jumpy re-renders
     placeholder: () => {
-      const gutterBackground = '#e8e8e8'; // from ace-github theme
+      // Use a hook to get theme colors
+      const theme = useTheme();
+      const gutterBackground = theme.colorBgElevated;
       return (
         <div
           style={{
@@ -426,5 +604,11 @@ export const JsonEditor = AsyncAceEditor(['mode/json', 'theme/github']);
 export const ConfigEditor = AsyncAceEditor([
   'mode/json',
   'mode/yaml',
+  'theme/github',
+]);
+
+export const JSEditor = AsyncAceEditor([
+  'mode/javascript',
+  'mode/json',
   'theme/github',
 ]);

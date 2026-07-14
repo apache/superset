@@ -16,10 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook, waitFor } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
-import { useDashboardDatasets } from './dashboards';
+import { useDashboard, useDashboardDatasets } from './dashboards';
 
+test('useDashboard excludes thumbnail_url from request', async () => {
+  fetchMock.get('glob:*/api/v1/dashboard/5?q=*', {
+    result: {
+      id: 5,
+      dashboard_title: 'Test',
+      json_metadata: '{}',
+      position_json: '{}',
+      editors: [],
+    },
+  });
+
+  renderHook(() => useDashboard(5));
+
+  await waitFor(() => {
+    const calledUrl = fetchMock.callHistory.lastCall()?.url ?? '';
+    expect(calledUrl).toContain('?q=');
+  });
+
+  const calledUrl = fetchMock.callHistory.lastCall()?.url ?? '';
+  expect(calledUrl).toContain('?q=');
+  expect(calledUrl).not.toContain('thumbnail_url');
+
+  fetchMock.clearHistory().removeRoutes();
+});
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('useDashboardDatasets', () => {
   const mockDatasets = [
     {
@@ -52,18 +78,15 @@ describe('useDashboardDatasets', () => {
   ];
 
   beforeEach(() => {
-    fetchMock.reset();
+    fetchMock.clearHistory().removeRoutes();
   });
 
-  it('adds currencyFormats to datasets', async () => {
+  test('adds currencyFormats to datasets', async () => {
     fetchMock.get('glob:*/api/v1/dashboard/*/datasets', {
       result: mockDatasets,
     });
 
-    const { result, waitForNextUpdate } = renderHook(() =>
-      useDashboardDatasets(1),
-    );
-    await waitForNextUpdate();
+    const { result } = renderHook(() => useDashboardDatasets(1));
 
     const expectedContent = [
       {
@@ -84,6 +107,8 @@ describe('useDashboardDatasets', () => {
         },
       },
     ];
-    expect(result.current.result).toEqual(expectedContent);
+    await waitFor(() => {
+      expect(result.current.result).toEqual(expectedContent);
+    });
   });
 });

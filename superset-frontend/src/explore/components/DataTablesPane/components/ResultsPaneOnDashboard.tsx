@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, styled } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import Tabs from '@superset-ui/core/components/Tabs';
 import { ResultTypes, ResultsPaneProps } from '../types';
 import { useResultsPane } from './useResultsPane';
@@ -30,11 +31,11 @@ const Wrapper = styled.div`
     height: 100%;
   }
 
-  .ant-tabs-content {
+  .ant-tabs-body {
     height: 100%;
   }
 
-  .ant-tabs-tabpane {
+  .ant-tabs-content {
     display: flex;
     flex-direction: column;
   }
@@ -54,6 +55,8 @@ export const ResultsPaneOnDashboard = ({
   isVisible,
   dataSize = 50,
   canDownload,
+  columnDisplayNames,
+  queriesResponse,
 }: ResultsPaneProps) => {
   const resultsPanes = useResultsPane({
     errorMessage,
@@ -65,6 +68,8 @@ export const ResultsPaneOnDashboard = ({
     dataSize,
     isVisible,
     canDownload,
+    columnDisplayNames,
+    queriesResponse,
   });
 
   if (resultsPanes.length === 1) {

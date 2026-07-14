@@ -17,7 +17,9 @@
  * under the License.
  */
 import { useResizeDetector } from 'react-resize-detector';
-import { css, SupersetClient } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core';
+import { css } from '@apache-superset/core/theme';
+import { SubjectType } from 'src/types/Subject';
 import { useDatasetMetadataBar } from './useDatasetMetadataBar';
 
 export default {
@@ -37,11 +39,11 @@ export default {
             created_on: '2023-01-26T12:06:54.965034',
             created_on_humanized: 'a month ago',
             table_name: `This is dataset's name`,
-            owners: [
-              { first_name: 'John', last_name: 'Doe' },
-              { first_name: 'Luke', last_name: 'Skywalker' },
-            ],
             description: 'This is a dataset description',
+            editors: [
+              { id: 1, label: 'John Doe', type: SubjectType.User },
+              { id: 2, label: 'Luke Skywalker', type: SubjectType.User },
+            ],
           },
         },
       },
@@ -61,11 +63,11 @@ export const DatasetSpecific = () => {
     created_on: '2023-01-26T12:06:54.965034',
     created_on_humanized: 'a month ago',
     table_name: `This is dataset's name`,
-    owners: [
-      { first_name: 'John', last_name: 'Doe' },
-      { first_name: 'Luke', last_name: 'Skywalker' },
-    ],
     description: 'This is a dataset description',
+    editors: [
+      { id: 1, label: 'John Doe', type: SubjectType.User },
+      { id: 2, label: 'Luke Skywalker', type: SubjectType.User },
+    ],
   };
 
   const { metadataBar } = useDatasetMetadataBar({ dataset: mockDataset });

@@ -21,8 +21,12 @@ import {
   DataMaskStateWithId,
   DataRecordFilters,
   DataRecordValue,
+  ensureIsArray,
+  getColumnLabel,
   JsonObject,
   PartialFilters,
+  ChartCustomization,
+  QueryFormColumn,
 } from '@superset-ui/core';
 import {
   ChartConfiguration,
@@ -30,8 +34,14 @@ import {
   ActiveFilters,
 } from 'src/dashboard/types';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
+import { isChartCustomization } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
+import { isEqual } from 'lodash-es';
 import { areObjectsEqual } from 'src/reduxUtils';
-import { isEqual } from 'lodash';
+import {
+  isSingleColumnDimensionChart,
+  limitColumnsForChartType,
+  isChartWithoutGroupBy,
+} from './chartTypeLimitations';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { getAllActiveFilters } from '../activeAllDashboardFilters';
 
@@ -49,6 +59,7 @@ interface CachedFormData {
   label_colors?: Record<string, string>;
   shared_label_colors?: string[];
   map_label_colors?: Record<string, string>;
+  chart_customization?: JsonObject;
   layer_filter_scope?: {
     [filterId: string]: number[];
   };
@@ -67,11 +78,13 @@ const cachedFormdataByChart: Record<
   CachedFormData & {
     dataMask: DataMask;
     extraControls: Record<string, string | boolean | null>;
+    nativeFilters: PartialFilters;
   }
 > = {};
 
 export interface GetFormDataWithExtraFiltersArguments {
   chartConfiguration: ChartConfiguration;
+  chartCustomizationItems?: ChartCustomization[];
   chart: ChartQueryPayload;
   filters: DataRecordFilters;
   colorScheme?: string;
@@ -85,6 +98,7 @@ export interface GetFormDataWithExtraFiltersArguments {
   labelsColorMap?: Record<string, string>;
   sharedLabelsColors?: string[];
   allSliceIds: number[];
+  chartCustomization?: JsonObject;
   activeFilters?: ActiveFilters;
 }
 
@@ -104,11 +118,302 @@ const createFilterDataMapping = (
   return filterDataMapping;
 };
 
+function extractColumnNames(columns: unknown[]): string[] {
+  const columnNames: string[] = [];
+  if (Array.isArray(columns)) {
+    columns.forEach((col: unknown) => {
+      if (typeof col === 'string') {
+        columnNames.push(col);
+      } else if (col && typeof col === 'object') {
+        if ('column_name' in col) {
+          columnNames.push((col as { column_name: string }).column_name);
+        } else if ('sqlExpression' in col) {
+          const label = getColumnLabel(col as QueryFormColumn);
+          if (label) columnNames.push(label);
+        }
+      }
+    });
+  }
+  return columnNames;
+}
+
+function buildExistingColumnsSet(chart: ChartQueryPayload): Set<string> {
+  const existingColumns = new Set<string>();
+  const chartType = chart.form_data?.viz_type;
+
+  // Base groupby is excluded: Dynamic Group By REPLACES it with the user's selection.
+  const xAxisColumn = chart.form_data?.x_axis;
+  if (xAxisColumn && chartType !== 'heatmap' && chartType !== 'heatmap_v2') {
+    existingColumns.add(xAxisColumn);
+  }
+
+  const metrics = chart.form_data?.metrics || [];
+  metrics.forEach((metric: any) => {
+    if (typeof metric === 'string') {
+      existingColumns.add(metric);
+    } else if (metric && typeof metric === 'object' && 'column' in metric) {
+      const metricColumn = metric.column;
+      if (typeof metricColumn === 'string') {
+        existingColumns.add(metricColumn);
+      } else if (
+        metricColumn &&
+        typeof metricColumn === 'object' &&
+        'column_name' in metricColumn
+      ) {
+        existingColumns.add(metricColumn.column_name);
+      }
+    }
+  });
+
+  const seriesColumn = chart.form_data?.series;
+  if (seriesColumn) existingColumns.add(seriesColumn);
+
+  const entityColumn = chart.form_data?.entity;
+  if (entityColumn) existingColumns.add(entityColumn);
+
+  const targetColumn = chart.form_data?.target;
+  if (targetColumn) existingColumns.add(targetColumn);
+
+  if (chartType === 'box_plot') {
+    const boxPlotColumns = extractColumnNames(chart.form_data?.columns || []);
+    boxPlotColumns.forEach(col => existingColumns.add(col));
+  }
+
+  if (chartType === 'pivot_table_v2') {
+    const pivotColumns = extractColumnNames(
+      chart.form_data?.groupbyColumns || [],
+    );
+    pivotColumns.forEach(col => existingColumns.add(col));
+  }
+
+  return existingColumns;
+}
+
+function applyChartSpecificGroupBy(
+  chartType: string,
+  groupByColumns: string[],
+  existingGroupBy: string[],
+  xAxisColumn?: string,
+): any {
+  const groupByFormData: any = {};
+
+  if (groupByColumns.length === 0) return groupByFormData;
+
+  if (
+    chartType?.startsWith('echarts_timeseries') ||
+    chartType?.startsWith('echarts_area')
+  ) {
+    if (xAxisColumn) {
+      const nonConflictingGroupByColumns = groupByColumns.filter(
+        columnName => columnName !== xAxisColumn,
+      );
+      groupByFormData.groupby =
+        nonConflictingGroupByColumns.length > 0
+          ? nonConflictingGroupByColumns
+          : existingGroupBy;
+    } else {
+      groupByFormData.groupby =
+        groupByColumns.length > 0 ? groupByColumns : existingGroupBy;
+    }
+  } else if (chartType === 'word_cloud') {
+    const { limitedColumns } = limitColumnsForChartType(
+      chartType,
+      groupByColumns,
+    );
+    groupByFormData.series = limitedColumns[0];
+    groupByFormData.groupby = [];
+  } else if (chartType === 'heatmap' || chartType === 'heatmap_v2') {
+    groupByFormData.groupby =
+      groupByColumns.length > 0
+        ? [groupByColumns[0]]
+        : existingGroupBy.filter(col => col !== xAxisColumn);
+  } else if (chartType === 'waterfall') {
+    const { limitedColumns } = limitColumnsForChartType(
+      chartType,
+      groupByColumns,
+    );
+    groupByFormData.groupby = [limitedColumns[0]];
+  } else if (chartType === 'sunburst_v2') {
+    groupByFormData.columns = groupByColumns;
+    groupByFormData.groupby = [];
+  } else if (chartType === 'graph_chart') {
+    const { limitedColumns } = limitColumnsForChartType(
+      chartType,
+      groupByColumns,
+    );
+    groupByFormData.source = limitedColumns[0];
+    if (limitedColumns.length > 1) {
+      groupByFormData.target = limitedColumns[1];
+    }
+  } else if (chartType === 'sankey_v2') {
+    const { limitedColumns } = limitColumnsForChartType(
+      chartType,
+      groupByColumns,
+    );
+    groupByFormData.source = limitedColumns[0];
+    if (limitedColumns.length > 1) {
+      groupByFormData.target = limitedColumns[1];
+    }
+  } else if (['chord'].includes(chartType)) {
+    groupByFormData.groupby =
+      groupByColumns.length > 0 ? [groupByColumns[0]] : existingGroupBy;
+  } else if (chartType === 'bubble_v2') {
+    const { limitedColumns } = limitColumnsForChartType(
+      chartType,
+      groupByColumns,
+    );
+    groupByFormData.series = limitedColumns[0];
+    if (limitedColumns.length > 1) {
+      groupByFormData.entity = limitedColumns[1];
+    }
+    groupByFormData.groupby = [];
+  } else if (chartType === 'pivot_table_v2') {
+    groupByFormData.groupbyColumns = groupByColumns;
+  } else if (chartType === 'treemap_v2') {
+    groupByFormData.groupby = groupByColumns;
+  } else {
+    groupByFormData.groupby = groupByColumns;
+  }
+
+  return groupByFormData;
+}
+
+function processGroupByCustomizations(
+  chartCustomizationItems: ChartCustomization[],
+  chart: ChartQueryPayload,
+  groupByState: Record<
+    string,
+    { selectedValues: string[]; hasInteracted: boolean }
+  >,
+): {
+  groupby?: string[];
+  x_axis?: string;
+  series?: string;
+  columns?: string[];
+  entity?: string;
+  source?: string;
+  target?: string;
+  groupbyColumns?: string[];
+} {
+  if (!chartCustomizationItems || chartCustomizationItems.length === 0) {
+    return {};
+  }
+
+  const chartDataset = chart.form_data?.datasource;
+  if (!chartDataset) {
+    return {};
+  }
+
+  // ``form_data.datasource`` is encoded as ``<id>__<type>`` (e.g.
+  // ``7__table``, ``7__semantic_view``). Datasets and semantic views have
+  // independent ID spaces, so we have to compare both the numeric ID and the
+  // datasource type to avoid matching a semantic-view customization to a
+  // table chart that happens to share its numeric ID.
+  const chartDatasetParts = String(chartDataset).split('__');
+  const chartDatasetId = chartDatasetParts[0];
+  const chartDatasourceType = chartDatasetParts[1];
+
+  const matchingCustomizations = chartCustomizationItems.filter(item => {
+    if (item.removed) return false;
+
+    const targetDataset = item.targets?.[0]?.datasetId;
+    if (!targetDataset) return false;
+
+    const targetDatasetId = String(targetDataset);
+    const targetDatasourceType = item.targets?.[0]?.datasourceType;
+    const datasetMatches = chartDatasetId === targetDatasetId;
+    // ``datasourceType`` is optional on targets persisted before semantic
+    // views shipped, so a missing value on either side is treated as a
+    // wildcard match — this preserves behavior for pre-existing
+    // customizations while still disambiguating new ones.
+    const datasourceTypeMatches =
+      !targetDatasourceType ||
+      !chartDatasourceType ||
+      targetDatasourceType === chartDatasourceType;
+    const chartMatches =
+      item.chartsInScope == null || item.chartsInScope.includes(chart.id);
+
+    return datasetMatches && datasourceTypeMatches && chartMatches;
+  });
+
+  const chartType = chart.form_data?.viz_type;
+  if (isChartWithoutGroupBy(chartType) || chartType === 'chord') {
+    return {};
+  }
+
+  const existingColumns = buildExistingColumnsSet(chart);
+  const existingGroupBy = ensureIsArray(chart.form_data?.groupby);
+  const xAxisColumn = chart.form_data?.x_axis;
+
+  const groupByColumns: string[] = [];
+  let heatmapColumnAdded = false;
+
+  matchingCustomizations.forEach(item => {
+    if (!item.targets?.[0]) return;
+
+    const groupById = item.id;
+    const groupByInfo = groupByState[groupById];
+
+    if (!groupByInfo) {
+      return;
+    }
+
+    const selectedValues = (groupByInfo.selectedValues || []).filter(
+      (value): value is string => typeof value === 'string' && value.length > 0,
+    );
+    const columnNames = selectedValues;
+
+    if (columnNames.length === 0) {
+      return;
+    }
+
+    const nonConflictingColumns = columnNames.filter(
+      columnName => !existingColumns.has(columnName),
+    );
+
+    if (nonConflictingColumns.length === 0) {
+      return;
+    }
+
+    if (isSingleColumnDimensionChart(chartType)) {
+      if (!heatmapColumnAdded && nonConflictingColumns.length > 0) {
+        const firstColumn = nonConflictingColumns[0];
+        if (!groupByColumns.includes(firstColumn)) {
+          groupByColumns.push(firstColumn);
+          heatmapColumnAdded = true;
+        }
+      }
+      if (nonConflictingColumns.length > 1) {
+        limitColumnsForChartType(chartType, nonConflictingColumns);
+      }
+    } else {
+      nonConflictingColumns.forEach(columnName => {
+        if (!groupByColumns.includes(columnName)) {
+          groupByColumns.push(columnName);
+        }
+      });
+    }
+  });
+
+  const groupByFormData = applyChartSpecificGroupBy(
+    chartType,
+    groupByColumns,
+    existingGroupBy,
+    xAxisColumn,
+  );
+
+  return groupByFormData;
+}
+
+// this function merge chart's formData with dashboard filters value,
+// and generate a new formData which will be used in the new query.
+// filters param only contains those applicable to this chart.
 export default function getFormDataWithExtraFilters({
   chart,
   filters,
   nativeFilters,
   chartConfiguration,
+  chartCustomizationItems,
   colorScheme,
   ownColorScheme,
   colorNamespace,
@@ -119,9 +424,18 @@ export default function getFormDataWithExtraFilters({
   labelsColorMap,
   sharedLabelsColors,
   allSliceIds,
+  chartCustomization,
   activeFilters: passedActiveFilters,
 }: GetFormDataWithExtraFiltersArguments) {
   const cachedFormData = cachedFormdataByChart[sliceId];
+  const dataMaskEqual = areObjectsEqual(cachedFormData?.dataMask, dataMask, {
+    ignoreUndefined: true,
+  });
+  const nativeFiltersEqual = areObjectsEqual(
+    cachedFormData?.nativeFilters,
+    nativeFilters,
+    { ignoreUndefined: true },
+  );
   if (
     cachedFiltersByChart[sliceId] === filters &&
     areObjectsEqual(cachedFormData?.own_color_scheme, ownColorScheme) &&
@@ -137,10 +451,12 @@ export default function getFormDataWithExtraFilters({
     }) &&
     isEqual(cachedFormData?.shared_label_colors, sharedLabelsColors) &&
     !!cachedFormData &&
-    areObjectsEqual(cachedFormData?.dataMask, dataMask, {
+    dataMaskEqual &&
+    nativeFiltersEqual &&
+    areObjectsEqual(cachedFormData?.extraControls, extraControls, {
       ignoreUndefined: true,
     }) &&
-    areObjectsEqual(cachedFormData?.extraControls, extraControls, {
+    areObjectsEqual(cachedFormData?.chart_customization, chartCustomization, {
       ignoreUndefined: true,
     })
   ) {
@@ -158,7 +474,7 @@ export default function getFormDataWithExtraFilters({
 
   let extraData: JsonObject = {};
   const filterIdsAppliedOnChart = Object.entries(activeFilters)
-    .filter(([, activeFilter]) => activeFilter.scope.includes(chart.id))
+    .filter(([, activeFilter]) => activeFilter?.scope?.includes(chart.id))
     .map(([filterId]) => filterId);
 
   if (filterIdsAppliedOnChart.length) {
@@ -173,7 +489,7 @@ export default function getFormDataWithExtraFilters({
     const isDeckMultiChart = chart.form_data?.viz_type === 'deck_multi';
     const hasLayerScopeInActiveFilters =
       passedActiveFilters &&
-      Object.values(passedActiveFilters).some(filter => filter.layerScope);
+      Object.values(passedActiveFilters).some(filter => filter?.layerScope);
 
     if (isDeckMultiChart || hasLayerScopeInActiveFilters) {
       const filterDataMapping = createFilterDataMapping(
@@ -205,6 +521,53 @@ export default function getFormDataWithExtraFilters({
     }
   }
 
+  const groupByState: Record<
+    string,
+    { selectedValues: string[]; hasInteracted: boolean }
+  > = {};
+  const customizationIds: string[] = [];
+  Object.entries(dataMask).forEach(([key, mask]) => {
+    if (isChartCustomization(key)) {
+      const customization = chartCustomizationItems?.find(
+        item => item.id === key,
+      );
+      const isInScope =
+        customization &&
+        (customization.chartsInScope == null ||
+          customization.chartsInScope.includes(chart.id));
+
+      if (isInScope) {
+        customizationIds.push(key);
+      }
+
+      const selectedValues = mask.filterState?.value;
+      groupByState[key] = {
+        selectedValues: Array.isArray(selectedValues)
+          ? selectedValues
+          : typeof selectedValues === 'string'
+            ? [selectedValues]
+            : [],
+        hasInteracted: mask.filterState?.value !== undefined,
+      };
+    }
+  });
+
+  const groupByCustomizations =
+    chartCustomizationItems?.filter(
+      item => item.filterType === 'chart_customization_dynamic_groupby',
+    ) || [];
+
+  const groupByFormData = processGroupByCustomizations(
+    groupByCustomizations,
+    chart,
+    groupByState,
+  );
+
+  const customizationExtraFormData =
+    customizationIds.length > 0
+      ? getExtraFormData(dataMask, customizationIds)
+      : {};
+
   const formData: CachedFormDataWithExtraControls = {
     ...chart.form_data,
     chart_id: chart.id,
@@ -218,11 +581,20 @@ export default function getFormDataWithExtraFilters({
     extra_filters: getEffectiveExtraFilters(filters),
     ...extraData,
     ...extraControls,
+    ...groupByFormData,
+    ...customizationExtraFormData,
+    ...(chartCustomization && { chart_customization: chartCustomization }),
     ...(layerFilterScope && { layer_filter_scope: layerFilterScope }),
   };
 
   cachedFiltersByChart[sliceId] = filters;
-  cachedFormdataByChart[sliceId] = { ...formData, dataMask, extraControls };
+  cachedFormdataByChart[sliceId] = {
+    ...formData,
+    dataMask,
+    extraControls,
+    nativeFilters,
+    ...(chartCustomization && { chart_customization: chartCustomization }),
+  };
 
   return formData;
 }

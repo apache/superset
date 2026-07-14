@@ -18,32 +18,96 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Dict, List, TYPE_CHECKING
+from typing import Dict, List
 
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from sqlalchemy import or_, select
+from sqlalchemy.orm import Query
 
 from superset.charts.filters import ChartFilter
 from superset.commands.chart.exceptions import ChartNotFoundError
-from superset.daos.base import BaseDAO
+from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.slice import id_or_uuid_filter, Slice
 from superset.utils.core import get_user_id
 
-if TYPE_CHECKING:
-    pass
-
 logger = logging.getLogger(__name__)
 
 # Custom filterable fields for charts
 CHART_CUSTOM_FIELDS = {
-    "viz_type": ["eq", "in_", "like"],
-    "datasource_name": ["eq", "in_", "like"],
+    "viz_type": ["eq", "in", "like"],
+    "datasource_name": ["eq", "in", "like"],
+    "editor": ["eq", "in"],
 }
 
 
 class ChartDAO(BaseDAO[Slice]):
     base_filter = ChartFilter
+    filterable_relationships = frozenset({"dashboards"})
+
+    @classmethod
+    def apply_column_operators(
+        cls,
+        query: Query,
+        column_operators: list[ColumnOperator] | None = None,
+    ) -> Query:
+        """Override to handle editor filters via the chart_editors M2M table."""
+        if not column_operators:
+            return query
+
+        remaining_operators: list[ColumnOperator] = []
+        for c in column_operators:
+            if not isinstance(c, ColumnOperator):
+                c = ColumnOperator.model_validate(c)
+            if c.col == "editor":
+                from superset.subjects.models import chart_editors, Subject
+
+                operator_enum = ColumnOperatorEnum(c.opr)
+                subq = (
+                    select(chart_editors.c.chart_id)
+                    .join(
+                        Subject.__table__,
+                        Subject.__table__.c.id == chart_editors.c.subject_id,
+                    )
+                    .where(
+                        Subject.__table__.c.type == 1,
+                        operator_enum.apply(Subject.__table__.c.user_id, c.value),
+                    )
+                )
+                query = query.filter(
+                    Slice.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]
+                )
+            elif c.col == "created_by_fk_or_editor":
+                if c.opr != "eq":
+                    raise ValueError(
+                        f"created_by_fk_or_editor only supports 'eq'; got '{c.opr}'"
+                    )
+                from superset.subjects.models import chart_editors, Subject
+
+                editor_subq = (
+                    select(chart_editors.c.chart_id)
+                    .join(
+                        Subject.__table__,
+                        Subject.__table__.c.id == chart_editors.c.subject_id,
+                    )
+                    .where(
+                        Subject.__table__.c.type == 1,
+                        Subject.__table__.c.user_id == c.value,
+                    )
+                )
+                query = query.filter(
+                    or_(
+                        Slice.created_by_fk == c.value,  # type: ignore[attr-defined,unused-ignore]
+                        Slice.id.in_(editor_subq),  # type: ignore[attr-defined,unused-ignore]
+                    )
+                )
+            else:
+                remaining_operators.append(c)
+
+        if remaining_operators:
+            query = super().apply_column_operators(query, remaining_operators)
+        return query
 
     @classmethod
     def get_filterable_columns_and_operators(cls) -> Dict[str, List[str]]:

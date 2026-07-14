@@ -18,19 +18,27 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import math
 import threading
 import time
+from collections.abc import Sequence
 from typing import Any, TYPE_CHECKING
 
 import requests
 from flask import copy_current_request_context, ctx, current_app as app, Flask, g
+from flask_babel import gettext as __
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
 
-from superset import db
+from superset import cache_manager, db
+from superset.common.db_query_status import QueryStatus
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
-from superset.db_engine_specs.base import BaseEngineSpec, convert_inspector_columns
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    convert_inspector_columns,
+    DatabaseCategory,
+)
 from superset.db_engine_specs.exceptions import (
     SupersetDBAPIConnectionError,
     SupersetDBAPIDatabaseError,
@@ -59,25 +67,148 @@ except ImportError:
     HttpError = Exception
 
 
-class CustomTrinoAuthErrorMeta(type):
-    def __instancecheck__(cls, instance: object) -> bool:
-        logger.info("is this being called?")
-        return isinstance(instance, HttpError) and "error 401" in str(instance)
-
-
-class TrinoAuthError(HttpError, metaclass=CustomTrinoAuthErrorMeta):
-    pass
-
-
 class TrinoEngineSpec(PrestoBaseEngineSpec):
     engine = "trino"
     engine_name = "Trino"
     allows_alias_to_source_column = False
 
+    # The full set of columns Trino's "<table>$partitions" exposes for an
+    # Iceberg table. The real partition keys are nested in the "partition" ROW,
+    # so none of these are user partition columns.
+    iceberg_partitions_metadata_columns = frozenset(
+        {"partition", "record_count", "file_count", "total_size", "data"}
+    )
+    # Always present for Iceberg; used as the positive signal so we don't act on
+    # a table that merely happens to share one of the names above.
+    iceberg_partitions_signature_columns = frozenset(
+        {"record_count", "file_count", "total_size"}
+    )
+
+    metadata = {
+        "description": (
+            "Trino is a distributed SQL query engine for big data analytics."
+        ),
+        "logo": "trino.png",
+        "homepage_url": "https://trino.io/",
+        "categories": [DatabaseCategory.QUERY_ENGINES, DatabaseCategory.OPEN_SOURCE],
+        "pypi_packages": ["trino"],
+        "install_instructions": 'pip install "apache-superset[trino]"',
+        "connection_string": "trino://{username}:{password}@{hostname}:{port}/{catalog}",
+        "default_port": 8080,
+        "parameters": {
+            "username": "Trino username",
+            "password": "Trino password (if authentication is enabled)",
+            "hostname": "Trino coordinator hostname",
+            "port": "Trino coordinator port (default 8080)",
+            "catalog": "Catalog name",
+        },
+        "drivers": [
+            {
+                "name": "trino",
+                "pypi_package": "trino",
+                "connection_string": (
+                    "trino://{username}:{password}@{hostname}:{port}/{catalog}"
+                ),
+                "is_recommended": True,
+            },
+        ],
+        "compatible_databases": [
+            {
+                "name": "Starburst Galaxy",
+                "description": (
+                    "Starburst Galaxy is a fully-managed cloud analytics platform "
+                    "built on Trino. It provides data lake analytics with "
+                    "enterprise security and governance."
+                ),
+                "logo": "starburst.png",
+                "homepage_url": "https://www.starburst.io/platform/starburst-galaxy/",
+                "categories": [
+                    DatabaseCategory.QUERY_ENGINES,
+                    DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "pypi_packages": ["trino"],
+                "connection_string": (
+                    "trino://{username}:{password}@{host}:{port}/{catalog}"
+                ),
+                "parameters": {
+                    "username": "Starburst Galaxy username (email/role)",
+                    "password": "Starburst Galaxy password or token",
+                    "host": "Your Galaxy cluster hostname",
+                    "port": "Port (default 443)",
+                    "catalog": "Catalog name",
+                },
+                "docs_url": "https://docs.starburst.io/starburst-galaxy/",
+            },
+            {
+                "name": "Starburst Enterprise",
+                "description": (
+                    "Starburst Enterprise is a self-managed Trino distribution "
+                    "with enterprise features, security, and support."
+                ),
+                "logo": "starburst.png",
+                "homepage_url": "https://www.starburst.io/platform/starburst-enterprise/",
+                "categories": [
+                    DatabaseCategory.QUERY_ENGINES,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "pypi_packages": ["trino"],
+                "connection_string": (
+                    "trino://{username}:{password}@{hostname}:{port}/{catalog}"
+                ),
+                "docs_url": "https://docs.starburst.io/",
+            },
+        ],
+    }
+
     # OAuth 2.0
     supports_oauth2 = True
-    oauth2_exception = TrinoAuthError
     oauth2_token_request_type = "data"  # noqa: S105
+
+    @classmethod
+    def needs_oauth2(cls, ex: Exception) -> bool:
+        """
+        Check if the exception indicates that OAuth2 authentication is required.
+
+        Trino returns an HTTP 401 error when the access token is missing or expired.
+        """
+        return (
+            bool(g)
+            and hasattr(g, "user")
+            and isinstance(ex, HttpError)
+            and "error 401" in str(ex)
+        )
+
+    @classmethod
+    def _filter_iceberg_partition_indexes(
+        cls,
+        indexes: list[dict[str, Any]] | None,
+    ) -> list[dict[str, Any]]:
+        """
+        Drop Iceberg "$partitions" metadata indexes.
+
+        A partition index is recognized as Iceberg metadata only when it carries
+        the signature columns *and* every one of its columns is a known metadata
+        field. Requiring the latter means an index with any real partition key
+        (e.g. a Hive table partitioned on "ds" that also has a column named
+        "record_count") is left untouched. Such an index has no real partition
+        keys, so it's dropped entirely; all other indexes pass through unchanged.
+
+        :param indexes: the indexes associated with a table
+        :returns: the indexes with Iceberg metadata indexes removed
+        """
+        filtered_indexes = []
+        for index in indexes or []:
+            column_names = set(index.get("column_names") or [])
+            is_iceberg_metadata = (
+                index.get("name") == "partition"
+                and cls.iceberg_partitions_signature_columns <= column_names
+                and column_names <= cls.iceberg_partitions_metadata_columns
+            )
+            if not is_iceberg_metadata:
+                filtered_indexes.append(index)
+
+        return filtered_indexes
 
     @classmethod
     def get_extra_table_metadata(
@@ -87,7 +218,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     ) -> dict[str, Any]:
         metadata = {}
 
-        if indexes := database.get_indexes(table):
+        if indexes := cls._filter_iceberg_partition_indexes(
+            database.get_indexes(table)
+        ):
             col_names, latest_parts = cls.latest_partition(
                 database,
                 table,
@@ -95,8 +228,11 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 indexes=indexes,
             )
 
-            if not latest_parts:
-                latest_parts = tuple([None] * len(col_names))
+            partition_values: Sequence[str | None]
+            if latest_parts:
+                partition_values = latest_parts
+            else:
+                partition_values = [None] * len(col_names)
 
             metadata["partitions"] = {
                 "cols": sorted(  # noqa: C414
@@ -109,7 +245,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                         }
                     )
                 ),
-                "latest": dict(zip(col_names, latest_parts, strict=False)),
+                "latest": dict(zip(col_names, partition_values, strict=False)),
                 "partitionQuery": cls._partition_query(
                     table=table,
                     indexes=indexes,
@@ -177,6 +313,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         `execute_with_cursor` instead, to handle this asynchronously.
         """
 
+        execute_result = getattr(cursor, "_execute_result", None)
+        execute_event = getattr(cursor, "_execute_event", None)
+
         # Adds the executed query id to the extra payload so the query can be cancelled
         cancel_query_id = cursor.query_id
         logger.debug("Query %d: queryId %s found in cursor", query.id, cancel_query_id)
@@ -187,16 +326,61 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
         db.session.commit()  # pylint: disable=consider-using-transaction
 
-        # if query cancelation was requested prior to the handle_cursor call, but
-        # the query was still executed, trigger the actual query cancelation now
-        if query.extra.get(QUERY_EARLY_CANCEL_KEY):
-            cls.cancel_query(
-                cursor=cursor,
-                query=query,
-                cancel_query_id=cancel_query_id,
-            )
-
         super().handle_cursor(cursor=cursor, query=query)
+
+        terminal_states = {"FINISHED", "FAILED", "CANCELED"}
+        state = "QUEUED"
+        progress = 0.0
+        poll_interval = app.config["DB_POLL_INTERVAL_SECONDS"].get(cls.engine, 1)
+        max_wait_time = app.config.get("SQLLAB_ASYNC_TIME_LIMIT_SEC", 21600)
+        start_time = time.time()
+        while state not in terminal_states:
+            if time.time() - start_time > max_wait_time:
+                logger.warning("Query %d: Progress polling timed out", query.id)
+                break
+            # Check for errors raised in execute_thread
+            if execute_result is not None and execute_result.get("error"):
+                break
+
+            # Check if execute_event is set (thread completed)
+            if execute_event is not None and execute_event.is_set():
+                break
+
+            # if query cancelation was requested prior to the handle_cursor call, but
+            # the query was still executed, trigger the actual query cancelation now
+            if query.extra.get(QUERY_EARLY_CANCEL_KEY) or query.status in [
+                QueryStatus.STOPPED,
+                QueryStatus.TIMED_OUT,
+            ]:
+                cls.cancel_query(
+                    cursor=cursor,
+                    query=query,
+                    cancel_query_id=cancel_query_id,
+                )
+                break
+
+            needs_commit = False
+            info = getattr(cursor, "stats", {}) or {}
+            state = info.get("state", "UNKNOWN")
+            completed_splits = float(info.get("completedSplits", 0))
+            total_splits = float(info.get("totalSplits", 1) or 1)
+            progress = math.floor((completed_splits / (total_splits or 1)) * 100)
+            progress_text = {
+                "PLANNING": __("Scheduled"),
+                "QUEUED": __("Queued"),
+            }.get(state, state)
+
+            if progress != query.progress:
+                query.progress = progress
+                needs_commit = True
+            if progress_text != query.extra.get("progress_text"):
+                query.set_extra_json_key(key="progress_text", value=progress_text)
+                needs_commit = True
+
+            if needs_commit:
+                db.session.commit()  # pylint: disable=consider-using-transaction
+
+            time.sleep(poll_interval)
 
     @classmethod
     def execute_with_cursor(
@@ -262,6 +446,10 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         while not cursor.query_id and not execute_event.is_set():
             time.sleep(0.1)
 
+        # Pass additional attributes to check whether an error occurred in the
+        # execute thread running in parallel while updating progress through the cursor.
+        cursor._execute_result = execute_result
+        cursor._execute_event = execute_event
         logger.debug("Query %d: Handling cursor", query_id)
         cls.handle_cursor(cursor, query)
 
@@ -290,6 +478,12 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         :param cancel_query_id: Trino `queryId`
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent SQL injection
+        # Trino query IDs look like yyyymmdd_hhmmss_nnnnn_xxxxx
+        # (alphanumeric with underscores)
+        if not cls.validate_cancel_query_id(cancel_query_id, r"^[a-zA-Z0-9_]+$"):
+            return False
+
         try:
             cursor.execute(
                 f"CALL system.runtime.kill_query(query_id => '{cancel_query_id}',"
@@ -486,3 +680,66 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             return super().get_indexes(database, inspector, table)
         except NoSuchTableError:
             return []
+
+    @classmethod
+    @cache_manager.data_cache.memoize(timeout=60)
+    def latest_partition(
+        cls,
+        database: Database,
+        table: Table,
+        show_first: bool = False,
+        indexes: list[dict[str, Any]] | None = None,
+    ) -> tuple[list[str], list[str] | None]:
+        """
+        Return the latest partition for a table.
+
+        Iceberg "$partitions" metadata fields are filtered out first, so we
+        never build a latest-partition query against them. Memoized like the
+        base implementation so the index lookup is not repeated on cache hits.
+
+        :param database: the database the query will be run against
+        :param table: the table instance
+        :param show_first: return the value for the first partitioning key when
+            there are several
+        :param indexes: the indexes associated with the table
+        :returns: the column names and the latest partition values
+        """
+        if indexes is None:
+            indexes = database.get_indexes(table)
+
+        return super().latest_partition(
+            database,
+            table,
+            show_first=show_first,
+            indexes=cls._filter_iceberg_partition_indexes(indexes),
+        )
+
+    @classmethod
+    def latest_sub_partition(
+        cls,
+        database: Database,
+        table: Table,
+        indexes: list[dict[str, Any]] | None = None,
+        **kwargs: Any,
+    ) -> Any:
+        """
+        Return the latest sub-partition value for a table.
+
+        Iceberg "$partitions" metadata fields are filtered out first, so the
+        ``latest_sub_partition`` macro never builds a query against them.
+
+        :param database: the database the query will be run against
+        :param table: the table instance
+        :param indexes: the indexes associated with the table
+        :param kwargs: filtering criteria on the partition list
+        :returns: the latest sub-partition value
+        """
+        if indexes is None:
+            indexes = database.get_indexes(table)
+
+        return super().latest_sub_partition(
+            database,
+            table,
+            indexes=cls._filter_iceberg_partition_indexes(indexes),
+            **kwargs,
+        )

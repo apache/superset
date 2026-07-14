@@ -20,9 +20,10 @@ from datetime import datetime
 from unittest.mock import patch
 from urllib import parse
 
-import prison
 import pytest
+import rison
 from freezegun import freeze_time
+from markupsafe import Markup
 from sqlalchemy import and_
 from sqlalchemy.sql import func
 
@@ -39,8 +40,12 @@ from superset.tags.models import (
     user_favorite_tag_table,
 )
 from superset.utils import json
-from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import ADMIN_USERNAME, ALPHA_USERNAME
+from tests.integration_tests.base_tests import subjects_from_users, SupersetTestCase
+from tests.integration_tests.constants import (
+    ADMIN_USERNAME,
+    ALPHA_USERNAME,
+    GAMMA_USERNAME,
+)
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -147,6 +152,46 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         db.session.delete(tag)
         db.session.commit()
 
+    def test_get_tag_user_fields(self):
+        """
+        Query API: Test get tag only returns first_name and last_name for
+        created_by and changed_by fields
+        """
+        self.login(ADMIN_USERNAME)
+        # Create tag via API to ensure created_by is set
+        uri = "api/v1/tag/"
+        rv = self.client.post(
+            uri,
+            json={"name": "test_user_fields_tag", "objects_to_tag": []},
+        )
+        assert rv.status_code == 201
+
+        # Get the created tag
+        tag = db.session.query(Tag).filter(Tag.name == "test_user_fields_tag").first()
+        assert tag is not None
+
+        # Fetch the tag via GET API
+        uri = f"api/v1/tag/{tag.id}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+
+        # Verify created_by only contains first_name and last_name
+        assert result["created_by"] is not None
+        assert set(result["created_by"].keys()) == {"first_name", "last_name"}
+        assert result["created_by"]["first_name"] is not None
+        assert result["created_by"]["last_name"] is not None
+
+        # Verify changed_by only contains first_name and last_name (or is None)
+        if result["changed_by"] is not None:
+            assert set(result["changed_by"].keys()) == {"first_name", "last_name"}
+
+        # Cleanup
+        db.session.delete(tag)
+        db.session.commit()
+
     def test_get_tag_not_found(self):
         """
         Query API: Test get query not found
@@ -183,7 +228,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         tags = [
             {"name": "Test custom Tag", "type": "custom"},
             {"name": "type:dashboard", "type": "type"},
-            {"name": "owner:1", "type": "owner"},
+            {"name": "editor:1", "type": "editor"},
             {"name": "Another Tag", "type": "custom"},
             {"name": "favorited_by:1", "type": "favorited_by"},
         ]
@@ -205,7 +250,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
                 }
             ],
         }
-        uri = f"api/v1/tag/?{parse.urlencode({'q': prison.dumps(query)})}"
+        uri = f"api/v1/tag/?{parse.urlencode({'q': rison.dumps(query)})}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -213,7 +258,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
 
         # Only system tags
         query["filters"][0]["value"] = False
-        uri = f"api/v1/tag/?{parse.urlencode({'q': prison.dumps(query)})}"
+        uri = f"api/v1/tag/?{parse.urlencode({'q': rison.dumps(query)})}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -415,8 +460,14 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
             tag_type="custom",
         )
 
+        first_dataset, second_dataset = (
+            db.session.query(SqlaTable).order_by(SqlaTable.id).limit(2).all()
+        )
+
         # Create a chart
-        chart_first_dataset = self.insert_chart("first_chart", [owner.id], 1)
+        chart_first_dataset = self.insert_chart(
+            "first_chart", [owner.id], first_dataset.id
+        )
         first_tag_relation = self.insert_tagged_object(
             tag_id=tag.id,
             object_id=chart_first_dataset.id,
@@ -424,7 +475,9 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         )
 
         # Create another chart and add it to a dashboard
-        chart_second_dataset = self.insert_chart("second_chart", [owner.id], 2)
+        chart_second_dataset = self.insert_chart(
+            "second_chart", [owner.id], second_dataset.id
+        )
         second_tag_relation = self.insert_tagged_object(
             tag_id=tag.id,
             object_id=chart_second_dataset.id,
@@ -456,8 +509,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         assert rv.status_code == 200
         assert rv.json["result"] == []
 
-        # grant access to dataset ID 1
-        first_dataset = db.session.query(SqlaTable).filter(SqlaTable.id == 1).first()
+        # grant access to the first dataset
         self.grant_role_access_to_table(first_dataset, "testing_new_role")
 
         rv = self.client.get(uri)
@@ -466,8 +518,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         assert len(result) == 1
         assert result[0]["id"] == chart_first_dataset.id
 
-        # grant access to dataset ID 2
-        second_dataset = db.session.query(SqlaTable).filter(SqlaTable.id == 2).first()
+        # grant access to the second dataset
         self.grant_role_access_to_table(second_dataset, "testing_new_role")
 
         rv = self.client.get(uri)
@@ -501,7 +552,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         tags = db.session.query(Tag).filter(Tag.name.in_(example_tag_names))
         assert tags.count() == 3
         # delete the first tag
-        uri = f"api/v1/tag/?q={prison.dumps(example_tag_names[:1])}"
+        uri = f"api/v1/tag/?q={rison.dumps(example_tag_names[:1])}"
         rv = self.client.delete(uri, follow_redirects=True)
         # successful request
         assert rv.status_code == 200
@@ -511,7 +562,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         tags = db.session.query(Tag).filter(Tag.name.in_(example_tag_names))
         assert tags.count() == 2
         # delete multiple tags
-        uri = f"api/v1/tag/?q={prison.dumps(example_tag_names[1:])}"
+        uri = f"api/v1/tag/?q={rison.dumps(example_tag_names[1:])}"
         rv = self.client.delete(uri, follow_redirects=True)
         # successful request
         assert rv.status_code == 200
@@ -559,6 +610,46 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         )
 
         assert association_row is None
+
+    @pytest.mark.usefixtures("create_tags")
+    def test_get_list_tag_filtered_by_favorite(self):
+        """
+        Tag API: Test get list filtered by the ``tag_is_favorite`` filter
+        returns only the tags the current user has (or has not) favorited.
+        """
+        self.login(ADMIN_USERNAME)
+        # favorite a single tag for the current (admin) user
+        favorited_tag = db.session.query(Tag).first()
+        rv = self.client.post(
+            f"api/v1/tag/{favorited_tag.id}/favorites/", follow_redirects=True
+        )
+        assert rv.status_code == 200
+
+        # value=True returns only the favorited tag
+        query = {
+            "filters": [{"col": "id", "opr": "tag_is_favorite", "value": True}],
+        }
+        uri = f"api/v1/tag/?{parse.urlencode({'q': rison.dumps(query)})}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["count"] == 1
+        assert data["result"][0]["id"] == favorited_tag.id
+
+        # value=False returns every other tag
+        query["filters"][0]["value"] = False
+        uri = f"api/v1/tag/?{parse.urlencode({'q': rison.dumps(query)})}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["count"] == TAGS_FIXTURE_COUNT - 1
+        assert favorited_tag.id not in {tag["id"] for tag in data["result"]}
+
+        # cleanup the favorite association
+        rv = self.client.delete(
+            f"api/v1/tag/{favorited_tag.id}/favorites/", follow_redirects=True
+        )
+        assert rv.status_code == 200
 
     @pytest.mark.usefixtures("create_tags")
     def test_add_tag_not_found(self):
@@ -726,6 +817,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
                 TaggedObject.object_id == dashboard.id,
                 TaggedObject.object_type == ObjectType.dashboard,
                 Tag.type == TagType.custom,
+                Tag.name.in_(tags),
             )
         )
         assert tagged_objects.count() == 2
@@ -737,6 +829,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
                 TaggedObject.object_id == chart.id,
                 TaggedObject.object_type == ObjectType.chart,
                 Tag.type == TagType.custom,
+                Tag.name.in_(tags),
             )
         )
         assert tagged_objects.count() == 2
@@ -782,5 +875,120 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
 
         assert rv.status_code == 200
         result = rv.json["result"]
-        assert len(result["objects_tagged"]) == 2
-        assert len(result["objects_skipped"]) == 1
+        # Alpha owns only alpha_dash, so only that is tagged; the World Bank
+        # dashboard and chart it does not own are skipped (objects the caller
+        # cannot modify are not tagged, including via the bulk-create path).
+        assert len(result["objects_tagged"]) == 1
+        assert len(result["objects_skipped"]) == 2
+
+    def test_create_tag_mysql_compatibility(self) -> None:
+        """
+        Test creating a tag via API to ensure MySQL compatibility.
+
+        This test verifies the fix for issue #32484 where tag creation
+        failed with MySQL due to Markup objects being used instead of strings.
+        """
+
+        self.login(ADMIN_USERNAME)
+
+        tag_name = "mysql-fix-verification-20251111"
+        uri = "api/v1/tag/"
+
+        # Create a tag via the API (tags can only be created with objects_to_tag)
+        # So we'll create a simple tag and verify it in the database
+        data = {
+            "name": tag_name,
+            "description": "Test tag for MySQL compatibility verification",
+            "objects_to_tag": [],  # Empty list is acceptable
+        }
+
+        rv = self.client.post(uri, json=data)
+
+        # Should succeed without SQL errors (201 for created or 200 for success)
+        assert rv.status_code in [
+            200,
+            201,
+        ], f"Tag creation should succeed, got {rv.status_code}"
+
+        # Query the database to verify the tag was created correctly
+        created_tag = db.session.query(Tag).filter_by(name=tag_name).first()
+        assert created_tag is not None, "Tag should exist in database"
+
+        # Critical check: ensure the tag name is a plain string, not Markup
+        assert isinstance(created_tag.name, str), "Tag name should be a plain string"
+        assert not isinstance(created_tag.name, Markup), (
+            "Tag name should NOT be a Markup object"
+        )
+        assert created_tag.name.__class__ is str, "Tag name should be exactly str type"
+        assert created_tag.name == tag_name, "Tag name should match the input"
+
+        # Cleanup
+        db.session.delete(created_tag)
+        db.session.commit()
+
+    def test_bulk_create_and_update_skip_inaccessible_objects(self):
+        """A non-editor with the Tag write permission must not create tag
+        relationships on a dashboard they cannot access, via either bulk_create
+        or PUT /tag/<id>. The single-object path already enforced this; these two
+        paths must too (object is looked up bypassing the access base filter, so
+        an inaccessible object is checked instead of silently passing through)."""
+        admin = self.get_user(ADMIN_USERNAME)
+        victim = Dashboard(
+            dashboard_title="tag_access_victim_dashboard",
+            slug="tag-access-victim",
+            published=False,
+            editors=subjects_from_users([admin]),
+        )
+        db.session.add(victim)
+        db.session.commit()
+        vid = victim.id
+
+        self.login(GAMMA_USERNAME)
+
+        # bulk_create must skip the inaccessible dashboard.
+        self.client.post(
+            "api/v1/tag/bulk_create",
+            json={
+                "tags": [
+                    {"name": "tag_access_bulk", "objects_to_tag": [["dashboard", vid]]}
+                ]
+            },
+        )
+        bulk_rows = (
+            db.session.query(TaggedObject)
+            .join(Tag)
+            .filter(TaggedObject.object_id == vid, Tag.name == "tag_access_bulk")
+            .count()
+        )
+        assert bulk_rows == 0, "bulk_create tagged a dashboard the user cannot access"
+
+        # PUT /tag/<id> must skip the inaccessible dashboard too. Create the tag
+        # without a (denied) relationship first, then attempt to attach the victim.
+        put_tag = Tag(name="tag_access_put", type=TagType.custom)
+        db.session.add(put_tag)
+        db.session.commit()
+        put_tag_id = put_tag.id
+        self.client.put(
+            f"api/v1/tag/{put_tag_id}",
+            json={"name": "tag_access_put", "objects_to_tag": [["dashboard", vid]]},
+        )
+        put_rows = (
+            db.session.query(TaggedObject)
+            .filter(TaggedObject.object_id == vid, TaggedObject.tag_id == put_tag_id)
+            .count()
+        )
+        assert put_rows == 0, "tag update tagged a dashboard the user cannot access"
+
+        # Cleanup
+        db.session.query(TaggedObject).filter(
+            TaggedObject.tag_id.in_(
+                db.session.query(Tag.id).filter(
+                    Tag.name.in_(["tag_access_bulk", "tag_access_put"])
+                )
+            )
+        ).delete(synchronize_session=False)
+        db.session.query(Tag).filter(
+            Tag.name.in_(["tag_access_bulk", "tag_access_put"])
+        ).delete(synchronize_session=False)
+        db.session.query(Dashboard).filter(Dashboard.id == vid).delete()
+        db.session.commit()

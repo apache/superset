@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useRef, useCallback } from 'react';
+import { useMemo, useCallback, memo } from 'react';
 import { GridSize } from 'src/components/GridTable/constants';
 import { GridTable } from 'src/components/GridTable';
 import { type ColDef } from 'src/components/GridTable/types';
@@ -65,6 +65,7 @@ export const FilterableTable = ({
   expandedColumns = [],
   allowHTML = true,
   striped,
+  themeOverrides,
 }: FilterableTableProps) => {
   const getCellContent = useCellContentParser({
     columnKeys: orderedColumnKeys,
@@ -109,15 +110,15 @@ export const FilterableTable = ({
     [orderedColumnKeys, allowHTML, getCellContent],
   );
 
-  const keyword = useRef<string | undefined>(filterText);
-  keyword.current = filterText;
-
-  const keywordFilter = useCallback(node => {
-    if (keyword.current && node.data) {
-      return hasMatch(keyword.current, node.data);
-    }
-    return true;
-  }, []);
+  const keywordFilter = useCallback(
+    (node: { data: Datum }) => {
+      if (filterText && node.data) {
+        return hasMatch(filterText, node.data);
+      }
+      return true;
+    },
+    [filterText],
+  );
 
   return (
     <div className="filterable-table-container" data-test="table-container">
@@ -131,9 +132,11 @@ export const FilterableTable = ({
         striped={striped}
         enableActions
         columnReorderable
+        themeOverrides={themeOverrides}
       />
     </div>
   );
 };
 
 export type { FilterableTableProps };
+export default memo(FilterableTable);

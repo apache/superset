@@ -12,20 +12,15 @@
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
+ * KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations
  * under the License.
  */
 import { useMemo, useState, useCallback, ReactElement, useEffect } from 'react';
 import { Link, useHistory } from 'react-router-dom';
-import {
-  css,
-  QueryState,
-  styled,
-  SupersetClient,
-  t,
-  useTheme,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { QueryState, SupersetClient } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import {
   createFetchRelated,
   createFetchDistinct,
@@ -52,7 +47,7 @@ import { QueryObject, QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
 import QueryPreviewModal from 'src/features/queries/QueryPreviewModal';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
-import getOwnerName from 'src/utils/getOwnerName';
+import getUserName from 'src/utils/getUserName';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 
 const PAGE_SIZE = 25;
@@ -349,7 +344,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
           row: {
             original: { user },
           },
-        }: any) => getOwnerName(user),
+        }: any) => getUserName(user),
         id: QueryObjectColumns.UserFirstName,
       },
       {

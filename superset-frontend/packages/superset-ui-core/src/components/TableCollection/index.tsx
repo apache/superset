@@ -25,12 +25,17 @@ import {
   TableBodyPropGetter,
   TablePropGetter,
 } from 'react-table';
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import { Table, TableSize } from '@superset-ui/core/components/Table';
-import { TableRowSelection, SorterResult } from 'antd/es/table/interface';
+import {
+  ColumnsType,
+  TableRowSelection,
+  SorterResult,
+} from 'antd/es/table/interface';
+import type { TableProps } from 'antd/es/table';
 import { mapColumns, mapRows } from './utils';
 
-interface TableCollectionProps<T extends object> {
+export interface TableCollectionProps<T extends object> {
   getTableProps: TablePropGetter<T>;
   getTableBodyProps: TableBodyPropGetter<T>;
   prepareRow: (row: Row<T>) => void;
@@ -53,6 +58,7 @@ interface TableCollectionProps<T extends object> {
   onPageChange?: (page: number, pageSize: number) => void;
   isPaginationSticky?: boolean;
   showRowCount?: boolean;
+  expandable?: Record<string, unknown>;
 }
 
 const StyledTable = styled(Table)<{
@@ -94,6 +100,11 @@ const StyledTable = styled(Table)<{
       }
     }
 
+    .ant-table-row.table-row-highlighted > td.ant-table-cell,
+    .ant-table-row.table-row-highlighted > td.ant-table-cell.ant-table-cell-row-hover {
+      background-color: ${theme.colorPrimaryBg};
+    }
+
     .ant-table-cell {
       max-width: 320px;
       font-feature-settings: 'tnum' 1;
@@ -103,6 +114,15 @@ const StyledTable = styled(Table)<{
       vertical-align: middle;
       padding-left: ${theme.sizeUnit * 4}px;
       white-space: nowrap;
+    }
+
+    .ant-table-tbody > tr > td {
+      height: ${theme.sizeUnit * 12}px;
+    }
+
+    .ant-table-tbody > tr > td.ant-table-cell:has(.ant-avatar-group) {
+      padding-top: ${theme.sizeUnit}px;
+      padding-bottom: ${theme.sizeUnit}px;
     }
 
     .ant-table-placeholder .ant-table-cell {
@@ -146,6 +166,7 @@ function TableCollection<T extends object>({
   columns,
   rows,
   loading,
+  highlightRowId,
   setSortBy,
   headerGroups,
   columnsForWrapText,
@@ -162,6 +183,7 @@ function TableCollection<T extends object>({
   onPageChange,
   isPaginationSticky = false,
   showRowCount = true,
+  expandable,
 }: TableCollectionProps<T>) {
   const mappedColumns = useMemo(
     () => mapColumns<T>(columns, headerGroups, columnsForWrapText),
@@ -181,6 +203,14 @@ function TableCollection<T extends object>({
   const rowSelection: TableRowSelection | undefined = useMemo(() => {
     if (!bulkSelectEnabled) return undefined;
 
+    // antd Table's `rowSelection` API renders its own checkbox column.
+    // The select-all `data-test` lives on the `<th>` via `header.cell`
+    // below (keyed on antd's `ant-table-selection-column` className), NOT
+    // via `columnTitle` — rc-table's MeasureCell renders the column
+    // `title` verbatim inside `<tbody>`, so a `columnTitle` wrapper leaks
+    // any `data-test` attr into the measure row and breaks Playwright
+    // strict-mode selectors. `renderCell` only renders in real body rows,
+    // so wrapping per-row checkboxes there is safe.
     return {
       selectedRowKeys,
       onSelect: (record, selected) => {
@@ -189,6 +219,9 @@ function TableCollection<T extends object>({
       onSelectAll: (selected: boolean) => {
         toggleAllRowsSelected?.(selected);
       },
+      renderCell: (_value, _record, _index, originNode) => (
+        <span data-test="row-select-checkbox">{originNode}</span>
+      ),
     };
   }, [
     bulkSelectEnabled,
@@ -215,9 +248,14 @@ function TableCollection<T extends object>({
   const handleTableChange = useCallback(
     (_pagination: any, _filters: any, sorter: SorterResult) => {
       if (sorter && sorter.field) {
+        // Convert array field back to dot notation for nested fields
+        const fieldId = Array.isArray(sorter.field)
+          ? sorter.field.join('.')
+          : sorter.field;
+
         setSortBy?.([
           {
-            id: sorter.field,
+            id: fieldId,
             desc: sorter.order === 'descend',
           },
         ] as SortingRule<T>[]);
@@ -258,11 +296,22 @@ function TableCollection<T extends object>({
     onPageChange,
   ]);
 
+  const getRowClassName = useCallback(
+    (record: Record<string, unknown>) =>
+      highlightRowId !== undefined && record?.id === highlightRowId
+        ? 'table-row-highlighted'
+        : '',
+    [highlightRowId],
+  );
+
   return (
     <StyledTable
       loading={loading}
       sticky={sticky ?? false}
-      columns={mappedColumns}
+      // Forward-compat: TS 6.0 tightens antd Table's generic inference so our
+      // typed-against-react-table mapped columns must be widened to the antd
+      // ColumnsType<object> surface the Table expects here.
+      columns={mappedColumns as unknown as ColumnsType<object>}
       data={mappedRows}
       size={size}
       data-test="listview-table"
@@ -275,11 +324,24 @@ function TableCollection<T extends object>({
       sortDirections={['ascend', 'descend', 'ascend']}
       isPaginationSticky={isPaginationSticky}
       showRowCount={showRowCount}
+      rowClassName={
+        getRowClassName as unknown as TableProps<object>['rowClassName']
+      }
+      expandable={expandable}
       components={{
         header: {
-          cell: (props: HTMLAttributes<HTMLTableCellElement>) => (
-            <th {...props} data-test="sort-header" role="columnheader" />
-          ),
+          cell: (props: HTMLAttributes<HTMLTableCellElement>) => {
+            const isSelectionColumn =
+              props.className?.includes('ant-table-selection-column') ?? false;
+            return (
+              <th
+                {...props}
+                data-test={
+                  isSelectionColumn ? 'header-toggle-all' : 'sort-header'
+                }
+              />
+            );
+          },
         },
         body: {
           row: (props: HTMLAttributes<HTMLTableRowElement>) => (
@@ -290,7 +352,7 @@ function TableCollection<T extends object>({
           ),
         },
       }}
-      onChange={handleTableChange}
+      onChange={handleTableChange as unknown as TableProps<object>['onChange']}
     />
   );
 }

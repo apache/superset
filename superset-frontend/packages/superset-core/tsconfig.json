@@ -1,19 +1,16 @@
 {
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "allowSyntheticDefaultImports": true,
-    "declaration": true,
-    "declarationDir": "lib",
+    // Path Resolution: Override baseUrl to maintain correct path mappings from parent config
+    // (e.g., "@apache-superset/core" -> "./packages/superset-core/src")
+    "baseUrl": "../..",
+
+    // Directory Overrides: Parent config paths are relative to frontend root,
+    // but packages need paths relative to their own directory
     "outDir": "lib",
-    "strict": true,
     "rootDir": "src",
-    "jsx": "preserve",
-    "baseUrl": ".",
-    "module": "esnext",
-    "moduleResolution": "node",
-    "skipLibCheck": true,
-    "target": "es2020",
-    "esModuleInterop": true
+    "declarationDir": "lib"
   },
-  "include": ["src/**/*.ts*"],
-  "exclude": ["lib"]
+  "include": ["src/**/*", "types/**/*"],
+  "exclude": ["src/**/*.test.*", "src/**/*.stories.*"]
 }
