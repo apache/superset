@@ -34,7 +34,7 @@
     "@types/node": "^26.1.0",
     "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.62.0",
-    "@typescript-eslint/parser": "^8.62.0",
+    "@typescript-eslint/parser": "^8.63.0",
     "eslint": "^10.5.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.6.0",
