@@ -23,9 +23,11 @@ from datetime import datetime, timezone
 from flask import Flask
 from pytest_mock import MockerFixture
 
+from superset.common.query_context_factory import QueryContextFactory
+from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models.core import Database
-from superset.superset_typing import QueryObjectDict
+from superset.superset_typing import AdhocColumn, QueryObjectDict
 
 
 def _make_dataset(mocker: MockerFixture) -> SqlaTable:
@@ -206,6 +208,43 @@ def test_actual_from_to_dttm_produces_time_filter(
     assert "time_start" in generated_sql.lower(), (
         f"Expected time_start column in WHERE clause, got: {generated_sql}"
     )
+
+
+def test_time_range_without_granularity_filters_main_datetime_column(
+    mocker: MockerFixture,
+    app: Flask,
+) -> None:
+    """A SQL-expression dimension must not cause a dashboard range to be dropped."""
+    dataset = _make_dataset(mocker)
+    expression: AdhocColumn = {
+        "sqlExpression": "value / 10",
+        "label": "value_bucket",
+        "columnType": "BASE_AXIS",
+    }
+    query_object = QueryObject(
+        granularity=None,
+        is_timeseries=False,
+        metrics=["count"],
+        columns=[expression],
+        from_dttm=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        to_dttm=datetime(2024, 1, 31, tzinfo=timezone.utc),
+    )
+
+    with app.test_request_context():
+        QueryContextFactory()._apply_granularity(
+            query_object,
+            {"x_axis": expression},
+            dataset,
+        )
+        generated_sql = dataset.get_query_str_extended(
+            query_object.to_dict(), mutate=False
+        ).sql.lower()
+
+    assert query_object.granularity == "time_start"
+    assert "value / 10" in generated_sql
+    assert "group by" in generated_sql
+    assert "where time_start >=" in generated_sql
+    assert "time_start <" in generated_sql
 
 
 def test_series_limit_with_time_filter_includes_time_in_inner_subquery(

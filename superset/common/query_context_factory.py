@@ -245,6 +245,20 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         }
         x_axis = form_data and form_data.get("x_axis")
 
+        should_infer_filter_granularity = (
+            is_adhoc_column(x_axis)  # type: ignore
+            and query_object.granularity is None
+            and bool(query_object.from_dttm or query_object.to_dttm)
+            and (main_dttm_col := getattr(datasource, "main_dttm_col", None))
+            in temporal_columns
+        )
+        if should_infer_filter_granularity:
+            # The inferred column supplies the time-filter subject. It must not be
+            # treated as an explicitly selected granularity, which would rewrite
+            # the x-axis or remove an independent temporal filter below.
+            query_object.granularity = main_dttm_col
+            return
+
         if granularity := query_object.granularity:
             filter_to_remove = None
             if is_adhoc_column(x_axis):  # type: ignore
