@@ -12046,7 +12046,7 @@ msgid "Select a database to connect"
 msgstr "Sélectionnez une base de données à connecter"
 
 msgid "Select a database to upload the file to"
-msgstr "Sélectionner une base de données vers laquelle téléverser le fichier"
+msgstr "Sélectionner une base de données vers laquelle charger le fichier"
 
 msgid "Select a database to write a query"
 msgstr "Sélectionnez une base de données pour écrire une requête"
@@ -16432,44 +16432,44 @@ msgid "Updating chart was stopped"
 msgstr "La mise à jour du graphique a été interrompue"
 
 msgid "Upload"
-msgstr "Téléversement"
+msgstr "Charger"
 
 msgid "Upload CSV"
-msgstr "Téléverser un fichier CSV"
+msgstr "Charger un fichier CSV"
 
 msgid "Upload CSV to database"
-msgstr "Téléverser un fichier CSV vers la base de données"
+msgstr "Charger un fichier CSV vers la base de données"
 
 msgid "Upload Columnar"
-msgstr "Téléverser un fichier en colonnes"
+msgstr "Charger un fichier en colonnes"
 
 msgid "Upload Columnar file to database"
-msgstr "Téléverser un fichier en colonnes vers la base de données"
+msgstr "Charger un fichier en colonnes vers la base de données"
 
 msgid "Upload Enabled"
-msgstr "Téléversement activé"
+msgstr "Chargement activé"
 
 msgid "Upload Excel"
-msgstr "Téléverser un fichier Excel"
+msgstr "Charger un fichier Excel"
 
 msgid "Upload Excel to database"
-msgstr "Téléverser un fichier Excel vers la base de données"
+msgstr "Charger un fichier Excel vers la base de données"
 
 msgid "Upload JSON file"
-msgstr "Téléverser un fichier JSON"
+msgstr "Charger un fichier JSON"
 
 #, python-format
 msgid "Upload a file with a valid extension. Valid: [%s]"
-msgstr "Téléverser un fichier avec une extension valide. Valide: [%s]"
+msgstr "Charger un fichier avec une extension valide. Valide: [%s]"
 
 msgid "Upload credentials"
-msgstr "Téléverser les informations de connexion"
+msgstr "Charger les informations de connexion"
 
 msgid "Upload file to database"
-msgstr "Téléverser un fichier vers la base de données"
+msgstr "Charger un fichier vers la base de données"
 
 msgid "Upload file to preview columns"
-msgstr "Téléverser un fichier pour prévisualiser les colonnes"
+msgstr "Charger un fichier pour prévisualiser les colonnes"
 
 msgid "Uploading a file is required"
 msgstr "La fourniture d'un fichier est obligatoire"
