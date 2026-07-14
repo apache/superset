@@ -19,7 +19,7 @@
 
 import json  # noqa: TID251
 from types import SimpleNamespace
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 import pytest
 from flask_appbuilder.security.sqla.models import Role, User
@@ -2143,7 +2143,7 @@ def test_skip_legacy_fab_password_view_registration_keeps_forced_change_target(
     )
     current_app.config["ENABLE_FORCE_PASSWORD_CHANGE"] = enable_force_password_change
 
-    original_add_view_no_menu = fake_appbuilder.add_view_no_menu
+    original_add_view_no_menu: Callable[..., Any] = fake_appbuilder.add_view_no_menu
     try:
         original_add_view_no_menu = sm._skip_legacy_fab_password_view_registration()
 

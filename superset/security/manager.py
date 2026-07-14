@@ -4328,7 +4328,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ]
 
     def _skip_legacy_fab_password_view_registration(self) -> Callable[..., Any]:
-        original_add_view_no_menu = self.appbuilder.add_view_no_menu
+        original_add_view_no_menu: Callable[..., Any] = self.appbuilder.add_view_no_menu
 
         if current_app.config.get("ENABLE_LEGACY_FAB_PASSWORD_VIEWS", False):
             return original_add_view_no_menu
@@ -4386,7 +4386,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         original_auth_rate_limited = current_app.config["AUTH_RATE_LIMITED"]
         current_app.config["AUTH_RATE_LIMITED"] = False
 
-        original_add_view_no_menu = self._skip_legacy_fab_password_view_registration()
+        original_add_view_no_menu: Callable[..., Any] = (
+            self._skip_legacy_fab_password_view_registration()
+        )
 
         try:
             super().register_views()
@@ -4400,7 +4402,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # temporal change to remove the roles view from the security menu, after
         # migrating all views to frontend, we will set FAB_ADD_SECURITY_VIEWS = False
         for view in list(self.appbuilder.baseviews):
-            route_base = getattr(view, "route_base", None)
+            route_base: Optional[str] = getattr(view, "route_base", None)
             # Remove FAB security menu views (roles, users, groups, registrations)
             if isinstance(view, self.rolemodelview.__class__) and route_base in [
                 "/roles",

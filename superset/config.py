@@ -1812,7 +1812,7 @@ FAB_API_KEY_PREFIXES = ["sst_"]
 # When False (default), legacy FAB SSR password reset routes
 # (/superset/resetpassword, /superset/resetmypassword) are not registered.
 # Set to True to re-enable direct URL access to those views (e.g. during migration).
-ENABLE_LEGACY_FAB_PASSWORD_VIEWS = False
+ENABLE_LEGACY_FAB_PASSWORD_VIEWS: bool = False
 
 # The link to a page containing common errors and their resolutions
 # It will be appended at the bottom of sql_lab errors.
