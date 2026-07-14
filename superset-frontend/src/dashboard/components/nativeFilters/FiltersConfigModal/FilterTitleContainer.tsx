@@ -166,6 +166,7 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
         <FilterTitle
           role="tab"
           key={`filter-title-tab-${id}`}
+          tabIndex={0}
           onClick={() => onChange(id)}
           className={classNames.join(' ')}
           aria-selected={isActive}
@@ -211,7 +212,7 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
                   event.stopPropagation();
                   onRemove(id);
                 }}
-                alt={t('Remove filter')}
+                aria-label={t('Remove filter')}
                 data-test="filter-remove-button"
               />
             )}

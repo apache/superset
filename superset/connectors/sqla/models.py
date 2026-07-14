@@ -31,7 +31,6 @@ import pandas as pd
 import sqlalchemy as sa
 from flask import current_app
 from flask_appbuilder import Model
-from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
 from jinja2.exceptions import TemplateError
 from markupsafe import escape, Markup
@@ -104,12 +103,14 @@ from superset.models.helpers import (
     ExploreMixin,
     ImportExportMixin,
     QueryResult,
+    SoftDeleteMixin,
     SQLA_QUERY_KEYS,
     validate_adhoc_subquery,
 )
 from superset.models.slice import Slice
 from superset.models.sql_types.base import CurrencyType
 from superset.sql.parse import sanitize_clause, SQLStatement, Table
+from superset.subjects.models import sqlatable_editors, Subject
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -186,8 +187,6 @@ class BaseDatasource(
     __tablename__: str | None = None  # {connector_name}_datasource
     baselink: str | None = None  # url portion pointing to ModelView endpoint
 
-    owner_class: User | None = None
-
     # Used to do code highlighting when displaying the query in the UI
     query_language: str | None = None
 
@@ -217,7 +216,6 @@ class BaseDatasource(
     external_url = Column(Text, nullable=True)
 
     sql: str | None = None
-    owners: list[User]
     update_from_object_fields: list[str]
 
     extra_import_fields = ["is_managed_externally", "external_url"]
@@ -317,19 +315,6 @@ class BaseDatasource(
     @property
     def kind(self) -> DatasourceKind:
         return DatasourceKind.VIRTUAL if self.sql else DatasourceKind.PHYSICAL
-
-    @property
-    def owners_data(self) -> list[dict[str, Any]]:
-        return [
-            {
-                "first_name": o.first_name,
-                "last_name": o.last_name,
-                "username": o.username,
-                "id": o.id,
-                "email": o.email,
-            }
-            for o in self.owners
-        ]
 
     @property
     def is_virtual(self) -> bool:
@@ -498,7 +483,6 @@ class BaseDatasource(
             "folders": self.folders,
             # TODO deprecate, move logic to JS
             "order_by_choices": self.order_by_choices,
-            "owners": [owner.id for owner in self.owners],
             "verbose_map": self.verbose_map,
             "select_star": self.select_star,
         }
@@ -699,7 +683,9 @@ class BaseDatasource(
         for attr in self.update_from_object_fields:
             setattr(self, attr, obj.get(attr))
 
-        self.owners = obj.get("owners", [])
+        # editors is the source of truth for access control
+        if "editors" in obj:
+            self.editors = obj.get("editors", [])
 
         # Syncing metrics
         metrics = (
@@ -946,6 +932,15 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
 
     __tablename__ = "table_columns"
     __table_args__ = (UniqueConstraint("table_id", "column_name"),)
+    # SPIKE (full-Continuum): Continuum-versioned
+    # again, with audit-field exclusions to suppress the per-column-per-save
+    # noise rows that ADR-004 flagged as Failure 3. ``changed_on`` refreshes
+    # on every parent dataset save even when the column itself wasn't user-
+    # edited; capturing it produced one shadow row per column per save with
+    # no user signal.
+    __versioned__: dict[str, Any] = {
+        "exclude": ["changed_on", "created_on", "changed_by_fk", "created_by_fk"]
+    }
 
     id = Column(Integer, primary_key=True)
     column_name = Column(String(255), nullable=False)
@@ -1191,6 +1186,10 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
 
     __tablename__ = "sql_metrics"
     __table_args__ = (UniqueConstraint("table_id", "metric_name"),)
+    # SPIKE: same audit-field exclusions as TableColumn (see above).
+    __versioned__: dict[str, Any] = {
+        "exclude": ["changed_on", "created_on", "changed_by_fk", "created_by_fk"]
+    }
 
     id = Column(Integer, primary_key=True)
     metric_name = Column(String(255), nullable=False)
@@ -1283,26 +1282,9 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
         return {s: getattr(self, s) for s in attrs}
 
 
-sqlatable_user = DBTable(
-    "sqlatable_user",
-    metadata,
-    Column(
-        "user_id",
-        Integer,
-        ForeignKey("ab_user.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-    Column(
-        "table_id",
-        Integer,
-        ForeignKey("tables.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-)
-
-
 class SqlaTable(
     CoreDataset,
+    SoftDeleteMixin,
     BaseDatasource,
     ExploreMixin,
 ):  # pylint: disable=too-many-public-methods
@@ -1325,9 +1307,38 @@ class SqlaTable(
     )
     metric_class = SqlMetric
     column_class = TableColumn
-    owner_class = security_manager.user_model
-
     __tablename__ = "tables"
+    # Exclude M2M association relationships: Continuum only captures FK columns on
+    # association INSERTs (not the auto-increment id), which breaks the NOT NULL PK.
+    # deleted_at is deletion-state metadata (SoftDeleteMixin), tracked by soft
+    # delete, not content versioning; it is also absent from the tables_version
+    # shadow table, so leaving it in would fail every capture INSERT.
+    # Audit columns are auto-bumped on every save. Excluding them lets
+    # Continuum's is_modified() return False on no-op saves (e.g. owners-only
+    # edits) so we don't create empty version rows. version_transaction.user_id
+    # / issued_at preserve "who/when".
+    # The perm-string class (perm / schema_perm / catalog_perm) is derived
+    # security state, not user-authored content: permission maintenance
+    # rewrites it in bulk, and versioning it produced phantom transactions
+    # flooding the activity stream (one "updated" row per touched entity
+    # with no user edit — surfaced by the version-history UI).
+    # Excluding it also means a restore can't resurrect stale permission
+    # strings; the live, derived values stay authoritative.
+    __versioned__: dict[str, Any] = {
+        "exclude": [
+            "owners",
+            "editors",
+            "row_level_security_filters",
+            "changed_on",
+            "created_on",
+            "changed_by_fk",
+            "created_by_fk",
+            "perm",
+            "schema_perm",
+            "catalog_perm",
+            "deleted_at",
+        ]
+    }
 
     # Note this uniqueness constraint is not part of the physical schema, i.e., it does
     # not exist in the migrations, but is required by `import_from_dict` to ensure the
@@ -1345,7 +1356,12 @@ class SqlaTable(
     currency_code_column = Column(String(250))
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
     fetch_values_predicate = Column(Text)
-    owners = relationship(owner_class, secondary=sqlatable_user, backref="tables")
+    editors = relationship(
+        Subject,
+        secondary=sqlatable_editors,
+        passive_deletes=True,
+    )
+
     database: Database = relationship(
         "Database",
         backref=backref("tables", cascade="all, delete-orphan"),
@@ -1456,7 +1472,7 @@ class SqlaTable(
         name = escape(self.name)
         url = escape(self.explore_url)
         anchor = f'<a target="_blank" href="{url}">{name}</a>'
-        return Markup(anchor)
+        return Markup(anchor)  # noqa: S704
 
     def get_catalog_perm(self) -> str | None:
         """Returns catalog permission if present, database one otherwise."""
@@ -1597,7 +1613,6 @@ class SqlaTable(
             data_["is_sqllab_view"] = self.is_sqllab_view
             data_["health_check_message"] = self.health_check_message
             data_["extra"] = self.extra
-            data_["owners"] = self.owners_data
             data_["always_filter_main_dttm"] = self.always_filter_main_dttm
             data_["normalize_columns"] = self.normalize_columns
         return data_
@@ -1687,6 +1702,12 @@ class SqlaTable(
         label = utils.get_metric_name(metric, self.verbose_map)
 
         if expression_type == utils.AdhocMetricExpressionType.SIMPLE:
+            aggregate: Any = metric.get("aggregate")
+            if (
+                not isinstance(aggregate, str)
+                or aggregate not in self.sqla_aggregations
+            ):
+                raise QueryObjectValidationError(_("Adhoc metric aggregate is invalid"))
             metric_column = metric.get("column") or {}
             column_name = cast(str, metric_column.get("column_name"))
             table_column: TableColumn | None = columns_by_name.get(column_name)
@@ -1696,9 +1717,13 @@ class SqlaTable(
                 )
             else:
                 sqla_column = column(column_name)
-            sqla_metric = self.sqla_aggregations[metric["aggregate"]](sqla_column)
+            sqla_metric = self.sqla_aggregations[aggregate](sqla_column)
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
-            expression = metric.get("sqlExpression")
+            expression: str | None = metric.get("sqlExpression")
+            if not isinstance(expression, str) or not expression.strip():
+                raise QueryObjectValidationError(
+                    _("Adhoc metric SQL expression is invalid")
+                )
 
             if not processed:
                 try:
@@ -2244,15 +2269,21 @@ sa.event.listen(SqlaTable, "before_update", SqlaTable.before_update)
 sa.event.listen(SqlaTable, "after_insert", SqlaTable.after_insert)
 sa.event.listen(SqlaTable, "after_delete", SqlaTable.after_delete)
 
-RLSFilterRoles = DBTable(
-    "rls_filter_roles",
+RLSFilterSubjects = DBTable(
+    "rls_filter_subjects",
     metadata,
-    Column("role_id", Integer, ForeignKey("ab_role.id"), primary_key=True),
+    Column("id", Integer, primary_key=True),
+    Column(
+        "subject_id",
+        Integer,
+        ForeignKey("subjects.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
     Column(
         "rls_filter_id",
         Integer,
-        ForeignKey("row_level_security_filters.id"),
-        primary_key=True,
+        ForeignKey("row_level_security_filters.id", ondelete="CASCADE"),
+        nullable=False,
     ),
 )
 
@@ -2285,11 +2316,12 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
         ),
     )
     group_key = Column(String(255), nullable=True)
-    roles = relationship(
-        security_manager.role_model,
-        secondary=RLSFilterRoles,
+    subjects = relationship(
+        "Subject",
+        secondary=RLSFilterSubjects,
         backref="row_level_security_filters",
     )
+
     tables = relationship(
         SqlaTable,
         overlaps="table",

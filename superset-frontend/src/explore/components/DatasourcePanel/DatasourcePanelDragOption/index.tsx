@@ -41,7 +41,7 @@ const DatasourceItemContainer = styled.div<{ isDragging?: boolean }>`
     height: ${theme.sizeUnit * 6}px;
     padding: 0 ${theme.sizeUnit}px;
 
-    // hack to make the drag preview image corners rounded
+    /* hack to make the drag preview image corners rounded */
     transform: translate(0, 0);
     color: ${theme.colorText};
     background-color: ${theme.colorBgLayout};

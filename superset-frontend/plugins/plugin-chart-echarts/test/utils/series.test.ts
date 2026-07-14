@@ -67,11 +67,7 @@ const {
     chartHeight: number;
     chartWidth: number;
     legendItems?: (
-      | string
-      | number
-      | null
-      | undefined
-      | { name?: string | number | null }
+      string | number | null | undefined | { name?: string | number | null }
     )[];
     legendMargin?: string | number | null;
     orientation: LegendOrientation;
@@ -94,11 +90,7 @@ const {
     chartHeight: number;
     chartWidth: number;
     legendItems?: (
-      | string
-      | number
-      | null
-      | undefined
-      | { name?: string | number | null }
+      string | number | null | undefined | { name?: string | number | null }
     )[];
     legendMargin?: string | number | null;
     orientation: LegendOrientation;
@@ -998,6 +990,62 @@ test('getLegendLayoutResult keeps plain horizontal legends when they fit within 
   ).toEqual({
     effectiveMargin: defaultLegendPadding[LegendOrientation.Top],
     effectiveType: LegendType.Plain,
+  });
+});
+
+test('getLegendLayoutResult honors user-selected plain type for many horizontal legend items given ample width (#39540)', () => {
+  // Regression contract for issue #39540: a legend with enough items to be
+  // scrollable must still honor a user-selected plain type when the chart is
+  // wide enough, instead of being unconditionally forced to scroll.
+  const layout = getLegendLayoutResult({
+    chartHeight: 600,
+    chartWidth: 1600,
+    legendItems: Array.from({ length: 10 }, (_, i) => `Series ${i + 1}`),
+    legendMargin: null,
+    orientation: LegendOrientation.Top,
+    show: true,
+    theme,
+    type: LegendType.Plain,
+  });
+
+  expect(layout.effectiveType).toBe(LegendType.Plain);
+  expect(layout.effectiveMargin).toBeGreaterThanOrEqual(
+    defaultLegendPadding[LegendOrientation.Top],
+  );
+});
+
+test('getLegendLayoutResult keeps user-selected plain type for bottom-oriented legends when space allows', () => {
+  expect(
+    getLegendLayoutResult({
+      chartHeight: 400,
+      chartWidth: 800,
+      legendItems: ['Alpha', 'Beta', 'Gamma', 'Delta'],
+      legendMargin: null,
+      orientation: LegendOrientation.Bottom,
+      show: true,
+      theme,
+      type: LegendType.Plain,
+    }),
+  ).toEqual({
+    effectiveMargin: defaultLegendPadding[LegendOrientation.Bottom],
+    effectiveType: LegendType.Plain,
+  });
+});
+
+test('getLegendLayoutResult passes a user-selected scroll type through untouched', () => {
+  expect(
+    getLegendLayoutResult({
+      chartHeight: 400,
+      chartWidth: 800,
+      legendItems: ['Alpha', 'Beta'],
+      legendMargin: null,
+      orientation: LegendOrientation.Top,
+      show: true,
+      theme,
+      type: LegendType.Scroll,
+    }),
+  ).toEqual({
+    effectiveType: LegendType.Scroll,
   });
 });
 

@@ -38,8 +38,7 @@ import {
 } from '@superset-ui/core/components';
 import { findPermission } from 'src/utils/findPermission';
 import { safeStringify } from 'src/utils/safeStringify';
-import Role from 'src/types/Role';
-import Owner from 'src/types/Owner';
+import Subject from 'src/types/Subject';
 import { DashboardLayout, RootState } from 'src/dashboard/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { AlertObject } from 'src/features/alerts/types';
@@ -105,8 +104,7 @@ type DashboardPropertiesUpdate = {
   jsonMetadata?: string;
   certifiedBy?: string;
   certificationDetails?: string;
-  owners?: Owner[];
-  roles?: Role[];
+  editors?: Subject[];
   tags?: TagType[];
   theme?: { id: number; theme_name: string; json_data: string } | null;
   css?: string;
@@ -127,7 +125,6 @@ type DashboardInfoState = RootState['dashboardInfo'] & {
   last_modified_time?: number;
   certified_by?: string;
   certification_details?: string;
-  roles?: Role[];
   tags?: TagType[];
   metadata: RootState['dashboardInfo']['metadata'] & {
     timed_refresh_immune_slices?: number[];
@@ -180,7 +177,7 @@ const actionButtonsStyle = (theme: SupersetTheme) => css`
 `;
 
 const StyledUndoRedoButton = styled(Button)`
-  // TODO: check if we need this
+  /* TODO: check if we need this */
   padding: 0;
   &:hover {
     background: transparent;
@@ -441,8 +438,7 @@ const Header = (): JSX.Element => {
       css: customCss,
       dashboard_title: dashboardTitle,
       last_modified_time: actualLastModifiedTime,
-      owners: dashboardInfo.owners,
-      roles: dashboardInfo.roles,
+      editors: dashboardInfo.editors,
       slug,
       description: dashboardInfo.description,
       tags: (dashboardInfo.tags || []).filter(
@@ -493,8 +489,7 @@ const Header = (): JSX.Element => {
     dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_POSITION_DATA_LIMIT,
     dashboardInfo.id,
     dashboardInfo.metadata,
-    dashboardInfo.owners,
-    dashboardInfo.roles,
+    dashboardInfo.editors,
     dashboardInfo.tags,
     dashboardTitle,
     layout,
@@ -565,8 +560,7 @@ const Header = (): JSX.Element => {
         metadata: JSON.parse(updates.jsonMetadata || '{}'),
         certified_by: updates.certifiedBy,
         certification_details: updates.certificationDetails,
-        owners: updates.owners,
-        roles: updates.roles,
+        editors: updates.editors,
         tags: updates.tags,
         // Conditional spread: omit `theme` key entirely when undefined
         // to prevent the reducer from overwriting the existing theme.
@@ -875,7 +869,6 @@ const Header = (): JSX.Element => {
       )}
 
       <ReportModal
-        userId={user.userId}
         show={showingReportModal}
         onHide={hideReportModal}
         userEmail={user.email}

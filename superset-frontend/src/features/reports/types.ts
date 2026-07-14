@@ -44,7 +44,6 @@ export interface ReportObject {
   description?: string;
   log_retention: number;
   name: string;
-  owners: number[];
   recipients: [
     {
       recipient_config_json: {
@@ -63,6 +62,7 @@ export interface ReportObject {
   working_timeout: number;
   creation_method: string;
   force_screenshot: boolean;
+  editors?: number[];
   custom_width?: number | null;
   error?: string;
 }

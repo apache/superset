@@ -27,16 +27,11 @@ import CodeSyntaxHighlighter, {
 import { LoadingCards } from 'src/pages/Home';
 import { TableTab } from 'src/views/CRUD/types';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import {
-  Dropdown,
-  DeleteModal,
-  Button,
-  ListViewCard,
-} from '@superset-ui/core/components';
+import { DeleteModal, Icons, ListViewCard } from '@superset-ui/core/components';
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import { copyQueryLink, useListViewResource } from 'src/views/CRUD/hooks';
-import { Icons } from '@superset-ui/core/components/Icons';
 import { User } from 'src/types/bootstrapTypes';
+import { KebabMenuButton } from 'src/components';
 import {
   CardContainer,
   createErrorHandler,
@@ -93,7 +88,6 @@ export const CardStyles = styled.div`
     display: inline-block;
     width: 100%;
     height: 179px;
-    background-repeat: no-repeat;
     vertical-align: middle;
   }
 `;
@@ -344,14 +338,10 @@ export const SavedQueries = ({
                       e.preventDefault();
                     }}
                   >
-                    <Dropdown
-                      menu={{ items: menuItems(q) }}
-                      trigger={['click', 'hover']}
-                    >
-                      <Button buttonSize="xsmall" buttonStyle="link">
-                        <Icons.MoreOutlined iconSize="xl" />
-                      </Button>
-                    </Dropdown>
+                    <KebabMenuButton
+                      menuItems={menuItems(q)}
+                      dataTest="saved-query-card-menu"
+                    />
                   </ListViewCard.Actions>
                 }
               />
