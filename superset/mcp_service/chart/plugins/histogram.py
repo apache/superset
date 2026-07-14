@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from typing import Any, ClassVar
 
@@ -118,19 +119,16 @@ class HistogramChartPlugin(BaseChartPlugin):
         def _is_numeric(col: dict[str, Any]) -> bool:
             if col.get("is_numeric", False):
                 return True
-            # Backends report many spellings (BIGINT, SMALLINT, REAL,
-            # NUMBER, DOUBLE PRECISION); substring-match the common stems.
+            # Backends report many spellings (BIGINT, SMALLINT, REAL, NUMBER,
+            # DOUBLE PRECISION); match numeric tokens at word boundaries so
+            # INTERVAL/POINT (which merely contain "INT") stay non-numeric.
             type_upper = str(col.get("type", "")).upper()
-            return any(
-                stem in type_upper
-                for stem in (
-                    "INT",
-                    "FLOAT",
-                    "DOUBLE",
-                    "DECIMAL",
-                    "NUMERIC",
-                    "REAL",
-                    "NUMBER",
+            return bool(
+                re.search(
+                    r"\b(?:TINY|SMALL|MEDIUM|BIG)?INT(?:EGER)?\b"
+                    r"|\bFLOAT\b|\bDOUBLE\b|\bDECIMAL\b"
+                    r"|\bNUMERIC\b|\bREAL\b|\bNUMBER\b",
+                    type_upper,
                 )
             )
 

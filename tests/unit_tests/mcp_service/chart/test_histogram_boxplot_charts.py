@@ -369,3 +369,18 @@ class TestHistogramNumericColumnValidation:
             column_name="missing",
         )
         assert error is None
+
+    def test_interval_and_point_types_are_not_numeric(self) -> None:
+        """INTERVAL/POINT contain the substring INT but are not numeric."""
+        for sql_type in ("INTERVAL", "POINT"):
+            error = self._validate(
+                [{"name": "payment_type", "type": sql_type, "is_numeric": False}]
+            )
+            assert error is not None, sql_type
+
+    def test_word_boundary_numeric_spellings_pass(self) -> None:
+        for sql_type in ("BIGINT", "SMALLINT", "DOUBLE PRECISION", "REAL"):
+            error = self._validate(
+                [{"name": "payment_type", "type": sql_type, "is_numeric": False}]
+            )
+            assert error is None, sql_type
