@@ -272,17 +272,17 @@ msgstr "\"%s\"이(가) 시스템 다크 테마로 설정되었습니다"
 msgid "\"%s\" is now the system default theme"
 msgstr "\"%s\"이(가) 시스템 기본 테마로 설정되었습니다"
 
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% calculation"
 msgstr "시각화 유형 선택"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, es,
 # fa, ja, lv, mi, ru, sk, sl, sr, sr_Latn, tr, uk]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of parent"
 msgstr "상위 항목의 %"
 
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of total"
 msgstr "컬럼 보기"
 

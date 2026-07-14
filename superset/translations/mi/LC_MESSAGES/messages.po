@@ -234,15 +234,15 @@ msgstr "\"%s\" ko nāianei te āhuatanga pouri o te pūnaha"
 msgid "\"%s\" is now the system default theme"
 msgstr "\"%s\" ko nāianei te āhuatanga taunoa o te pūnaha"
 
-#, python-format
+#, no-python-format
 msgid "% calculation"
 msgstr "% tatauranga"
 
-#, python-format
+#, no-python-format
 msgid "% of parent"
 msgstr "% o te mātua"
 
-#, python-format
+#, no-python-format
 msgid "% of total"
 msgstr "% o te katoa"
 
@@ -301,10 +301,8 @@ msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgid_plural ""
 "%(firstSuggestions)s or %(lastSuggestion)s instead of "
 "\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s hei utu mō \"%(undefinedParameter)s?\""
-msgstr[1] ""
-"%(firstSuggestions)s, %(lastSuggestion)s rānei hei utu mō "
-"\"%(undefinedParameter)s\"?"
+msgstr[0] "%(lastSuggestion)s hei utu mō \"%(undefinedParameter)s?\""
+msgstr[1] "%(firstSuggestions)s, %(lastSuggestion)s rānei hei utu mō \"%(undefinedParameter)s\"?"
 
 # Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
 # placeholder]
@@ -1375,13 +1373,13 @@ msgstr "Kua Tāpiritia"
 #, python-format
 msgid "Added 1 new column to the virtual dataset"
 msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Kua tāpiritia 1 tīwae hou ki te rārangi raraunga mariko"
+msgstr[0] "Kua tāpiritia %s tīwae hou ki te rārangi raraunga mariko"
 msgstr[1] "Kua tāpiritia %s tīwae hou ki te rārangi raraunga mariko"
 
 #, python-format
 msgid "Added to 1 dashboard"
 msgid_plural "Added to %s dashboards"
-msgstr[0] "Kua tāpiritia ki 1 papatohu"
+msgstr[0] "Kua tāpiritia ki %s papatohu"
 msgstr[1] "Kua tāpiritia ki %s papatohu"
 
 msgid "Additional Parameters"
@@ -7504,10 +7502,7 @@ msgid ""
 "Format data labels. Use variables: {name}, {value}, {percent}. \\n "
 "represents a new line. ECharts compatibility:\n"
 "{a} (series), {b} (name), {c} (value), {d} (percentage)"
-msgstr ""
-"Hōputu tapanga raraunga. Whakamahia ngā taurangi: {name}, {value}, "
-"{percent}. \n"
-" e tohu ana i tētahi rārangi hou. Hāngaitanga ECharts:"
+msgstr "Hōputu tapanga raraunga. Whakamahia ngā taurangi: {name}, {value}, {percent}. \n e tohu ana i tētahi rārangi hou. Hāngaitanga ECharts:\n{a} (raupapa), {b} (ingoa), {c} (uara), {d} (ōrau)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -9500,7 +9495,7 @@ msgstr "Kua Whakarerekeahia %s"
 #, python-format
 msgid "Modified 1 column in the virtual dataset"
 msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "I whakarerekeahia 1 tīwae i te rārangi raraunga mariko"
+msgstr[0] "I whakarerekeahia %s tīwae i te rārangi raraunga mariko"
 msgstr[1] "I whakarerekeahia %s tīwae i te rārangi raraunga mariko"
 
 msgid "Modified by"
@@ -11445,7 +11440,7 @@ msgstr "Tango pātai mai i te rārangi"
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
 msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Kua tangohia 1 tīwae mai i te rārangi raraunga mariko"
+msgstr[0] "Kua tangohia %s tīwae mai i te rārangi raraunga mariko"
 msgstr[1] "Kua tangohia %s tīwae mai i te rārangi raraunga mariko"
 
 msgid "Rename tab"

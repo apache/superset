@@ -180,7 +180,9 @@ test('calls onChange when a dataset is selected', async () => {
   await waitFor(() => {
     expect(mockOnChange).toHaveBeenCalled();
     const callArg = mockOnChange.mock.calls[0][0];
-    expect(callArg).toEqual({ key: 1, label: expect.anything(), value: 1 });
+    // antd v6 no longer includes the internal `key` field in the
+    // labeledValue passed to onChange; assert on the public value/label.
+    expect(callArg).toEqual({ label: expect.anything(), value: 1 });
   });
 });
 

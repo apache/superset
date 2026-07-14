@@ -449,9 +449,16 @@ const FilterBar: FC<FiltersBarProps> = ({
       pendingChartCustomizations &&
       Object.keys(pendingChartCustomizations).length > 0
     ) {
-      const pendingItems = Object.values(pendingChartCustomizations).filter(
-        Boolean,
-      ) as (ChartCustomization | ChartCustomizationDivider)[];
+      // Skip pending items no longer in the config; re-saving a deleted one
+      // makes the backend append it back, resurrecting the control.
+      const existingCustomizationIds = new Set(
+        chartCustomizationValues.map(item => item.id),
+      );
+      const pendingItems = (
+        Object.values(pendingChartCustomizations).filter(Boolean) as (
+          ChartCustomization | ChartCustomizationDivider
+        )[]
+      ).filter(item => existingCustomizationIds.has(item.id));
 
       if (pendingItems.length > 0) {
         dispatch(saveChartCustomization(pendingItems, []));

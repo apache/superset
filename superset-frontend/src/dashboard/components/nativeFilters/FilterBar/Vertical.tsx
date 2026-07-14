@@ -140,8 +140,6 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
   onPendingCustomizationDataMaskChange,
   toggleFiltersBar,
   width,
-  clearAllTriggers,
-  onClearAllComplete,
 }) => {
   const theme = useTheme();
   const [isScrolling, setIsScrolling] = useState(false);
@@ -267,6 +265,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
           className={cx({ open: !filtersOpen })}
           onClick={openFiltersBar}
           role="button"
+          tabIndex={0}
           offset={offset}
         >
           <Icons.VerticalAlignTopOutlined
