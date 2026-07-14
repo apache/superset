@@ -106,7 +106,11 @@ test('stops propagation of navigation keys to parent elements', async () => {
     expect(handleParentKeyDown).not.toHaveBeenCalled();
   }
 
-  const allowedKeys = ['Escape', 'Tab'];
+  // `Tab` must be checked before `Escape`: pressing `Escape` legitimately
+  // closes the modal (a real global listener unmounts the dialog), so any
+  // key fired on the stale `input` reference afterwards can no longer
+  // bubble anywhere.
+  const allowedKeys = ['Tab', 'Escape'];
 
   for (const key of allowedKeys) {
     handleParentKeyDown.mockClear();

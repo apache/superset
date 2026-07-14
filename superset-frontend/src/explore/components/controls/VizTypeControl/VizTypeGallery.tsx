@@ -124,7 +124,7 @@ const LeftPane = styled.div`
       padding-bottom: ${({ theme }) => theme.sizeUnit}px;
     }
 
-    .ant-collapse-content .ant-collapse-content-box {
+    .ant-collapse-panel .ant-collapse-body {
       display: flex;
       flex-direction: column;
       padding: 0 ${({ theme }) => theme.sizeUnit * 2}px;

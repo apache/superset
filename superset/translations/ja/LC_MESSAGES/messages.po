@@ -376,7 +376,7 @@ msgstr "選択したすべてのオブジェクトに対する編集権限がな
 #, python-format
 msgid "%s metric"
 msgid_plural "%s metrics"
-msgstr[0] "%s メトリック"
+msgstr[0] "%s件のメトリック"
 
 #, python-format
 msgid "%s min ago"

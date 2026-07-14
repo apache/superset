@@ -130,7 +130,7 @@ const TagModal: FC<TagModalProps> = ({
           setChartsToTag(resourceMap[TaggableResources.Chart]);
           setSavedQueriesToTag(resourceMap[TaggableResources.SavedQuery]);
         },
-        (error: Response) => {
+        (_error: Response) => {
           addDangerToast('Error Fetching Tagged Objects');
         },
       );

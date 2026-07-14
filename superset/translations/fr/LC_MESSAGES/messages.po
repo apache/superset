@@ -232,19 +232,19 @@ msgstr "\"%s\" est maintenant le thème par défaut du système"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% calculation"
 msgstr "% calcul"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, es,
 # fa, ja, lv, mi, ru, sk, sl, sr, sr_Latn, tr, uk]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of parent"
 msgstr "% du parent"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, es,
 # fa, ja, lv, mi, ru, sk, sl, sr, sr_Latn, uk]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of total"
 msgstr "% du total"
 
@@ -1370,7 +1370,7 @@ msgstr[1] "%s nouvelles colonnes ajoutées au jeu de données virtuel"
 #, python-format
 msgid "Added to 1 dashboard"
 msgid_plural "Added to %s dashboards"
-msgstr[0] "Ajouté à 1 tableau de bord"
+msgstr[0] "Ajouté à %s tableau de bord"
 msgstr[1] "Ajouté à %s tableaux de bord"
 
 msgid "Additional Parameters"
@@ -9462,7 +9462,7 @@ msgstr "%s modifié"
 #, python-format
 msgid "Modified 1 column in the virtual dataset"
 msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "1 colonne modifiée dans le jeu de données virtuel"
+msgstr[0] "%s colonne modifiée dans le jeu de données virtuel"
 msgstr[1] "%s colonnes modifiées dans le jeu de données virtuel"
 
 msgid "Modified by"
@@ -11436,7 +11436,7 @@ msgstr "Supprimer la requête des journaux"
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
 msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "1 colonne supprimée du jeu de données virtuel"
+msgstr[0] "%s colonne supprimée du jeu de données virtuel"
 msgstr[1] "%s colonnes supprimées du jeu de données virtuel"
 
 msgid "Rename tab"

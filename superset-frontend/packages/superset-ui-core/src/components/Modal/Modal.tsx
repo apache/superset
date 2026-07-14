@@ -344,6 +344,8 @@ const CustomModal = ({
         className="draggable-trigger"
         onMouseOver={() => dragDisabled && setDragDisabled(false)}
         onMouseOut={() => !dragDisabled && setDragDisabled(true)}
+        onFocus={() => dragDisabled && setDragDisabled(false)}
+        onBlur={() => !dragDisabled && setDragDisabled(true)}
       >
         {title}
       </div>

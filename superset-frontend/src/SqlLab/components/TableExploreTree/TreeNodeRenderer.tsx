@@ -101,7 +101,6 @@ export interface TreeNodeRendererProps extends NodeRendererProps<TreeNodeData> {
 const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
   node,
   style,
-  manuallyOpenedNodes,
   loadingNodes,
   searchTerm,
   catalog,
@@ -239,7 +238,6 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
       {identifier === 'schema' && (
         <div
           className="side-action-container"
-          role="menu"
           onClick={e => e.stopPropagation()}
         >
           {pinnedSchemas.has(schema) && (
@@ -307,7 +305,6 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
           return (
             <div
               className="side-action-container"
-              role="menu"
               onClick={e => e.stopPropagation()}
             >
               {isPinned && (
