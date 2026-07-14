@@ -1927,7 +1927,12 @@ class BoxPlotChartConfig(UnknownFieldCheckMixin):
         description="Structured filters (column/op/value). "
         "Do NOT use adhoc_filters or raw SQL expressions.",
     )
-    row_limit: int = Field(100, description="Max boxes", ge=1, le=10000)
+    row_limit: int = Field(
+        10000,
+        description="Max grouped rows (frontend shared default)",
+        ge=1,
+        le=50000,
+    )
     number_format: str = Field("SMART_NUMBER", max_length=50)
     date_format: str = Field("smart_date", max_length=50)
 
