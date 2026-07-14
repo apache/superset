@@ -65,8 +65,16 @@ export const formattingOptions = [
 ];
 
 // Use theme token names instead of hex values to support theme switching
-export const colorSchemeOptions = () => [
-  { value: 'colorSuccess', label: t('success') },
-  { value: 'colorWarning', label: t('alert') },
-  { value: 'colorError', label: t('error') },
+export const colorsSchemeOptions = () => [
+  {
+    label: t('Colors'),
+    colors: [
+      'colorSuccess',
+      'colorWarning',
+      'colorError',
+      'colorSuccessBg',
+      'colorWarningBg',
+      'colorErrorBg',
+    ],
+  },
 ];

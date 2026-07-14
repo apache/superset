@@ -51,12 +51,8 @@ const mixColumns = [
 
 const extraColorChoices = [
   {
-    value: ColorSchemeEnum.Green,
-    label: 'Green for increase, red for decrease',
-  },
-  {
-    value: ColorSchemeEnum.Red,
-    label: 'Red for increase, green for decrease',
+    label: 'Colors',
+    colors: [ColorSchemeEnum.Green, ColorSchemeEnum.Red],
   },
 ];
 
@@ -295,7 +291,7 @@ test('should hide formatting fields when allColumns is empty', async () => {
 test('should hide formatting fields when color scheme is Green', async () => {
   render(
     <FormattingPopoverContent
-      config={{ colorScheme: extraColorChoices[0].value }}
+      config={{ colorScheme: extraColorChoices[0].colors[0] }}
       columns={mixColumns}
       allColumns={mixColumns}
       onChange={mockOnChange}

@@ -35,6 +35,7 @@ import type {
   QueryFormMetric,
   QueryResponse,
   TimeFormatter,
+  RgbaColor,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { sharedControls, sharedControlComponents } from './shared-controls';
@@ -491,7 +492,7 @@ export type ConditionalFormattingConfig = {
   targetValueLeft?: number;
   targetValueRight?: number;
   column?: string;
-  colorScheme?: string;
+  colorScheme?: RgbaColor | string;
   toAllRow?: boolean;
   toTextColor?: boolean;
   useGradient?: boolean;
@@ -507,7 +508,7 @@ export type ColorFormatters = {
   objectFormatting?: ObjectFormattingEnum;
   getColorFromValue: (
     value: number | string | boolean | null,
-  ) => string | undefined;
+  ) => RgbaColor | string | undefined;
 }[];
 
 export type ResolvedColorFormatterResult = {

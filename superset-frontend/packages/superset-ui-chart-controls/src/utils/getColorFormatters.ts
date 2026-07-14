@@ -19,7 +19,7 @@
 import memoizeOne from 'memoize-one';
 import { isString, isBoolean } from 'lodash-es';
 import { isBlank } from '@apache-superset/core/utils';
-import { addAlpha, DataRecord } from '@superset-ui/core';
+import { addAlpha, DataRecord, rgbaToHex } from '@superset-ui/core';
 import tinycolor from 'tinycolor2';
 import {
   ColorFormatters,
@@ -270,19 +270,23 @@ export const getColorFunction = (
     if (compareResult === false) return undefined;
     const { cutoffValue, extremeValue } = compareResult;
 
+    if (typeof colorScheme === 'string') {
+      return colorScheme;
+    }
+    const baseHexColor = rgbaToHex(colorScheme);
     // If useGradient is explicitly false, return solid color
     if (useGradient === false) {
-      return colorScheme;
+      return baseHexColor;
     }
 
     // Otherwise apply gradient (default behavior for backward compatibility)
     if (alpha === undefined || alpha) {
       return addAlpha(
-        colorScheme,
+        baseHexColor,
         getOpacity(value, cutoffValue, extremeValue, minOpacity, maxOpacity),
       );
     }
-    return colorScheme;
+    return baseHexColor;
   };
 };
 

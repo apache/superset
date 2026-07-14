@@ -18,7 +18,7 @@
  */
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { styled } from '@apache-superset/core/theme';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
   Comparator,
@@ -44,8 +44,9 @@ import {
   stringOperatorOptions,
   booleanOperatorOptions,
   formattingOptions,
-  colorSchemeOptions,
+  colorsSchemeOptions,
 } from './constants';
+import ColorPickerControlControl from '../ColorPickerControl';
 
 const FullWidthInputNumber = styled(InputNumber)`
   width: 100%;
@@ -236,11 +237,12 @@ export const FormattingPopoverContent = ({
   config?: ConditionalFormattingConfig;
   onChange: (config: ConditionalFormattingConfig) => void;
   columns: { label: string; value: string; dataType: GenericDataType }[];
-  extraColorChoices?: { label: string; value: string }[];
+  extraColorChoices?: { label: string; colors: string[] }[];
   allColumns?: ColumnOption[];
 }) => {
   const [form] = Form.useForm();
-  const colorScheme = colorSchemeOptions();
+  const theme = useTheme();
+  const colorsScheme = colorsSchemeOptions();
   const [showOperatorFields, setShowOperatorFields] = useState(
     config === undefined ||
       (config?.colorScheme !== ColorSchemeEnum.Green &&
@@ -320,6 +322,10 @@ export const FormattingPopoverContent = ({
     [allColumns],
   );
 
+  const defaultColorValue =
+    theme[colorsSchemeOptions()[0]?.colors[0] as keyof typeof theme] ||
+    undefined;
+
   const visibleUseGradient = useMemo(
     () =>
       numericColumns.length > 0
@@ -395,12 +401,11 @@ export const FormattingPopoverContent = ({
             name="colorScheme"
             label={t('Color scheme')}
             rules={rulesRequired}
-            initialValue={colorScheme[0].value}
+            initialValue={defaultColorValue}
           >
-            <Select
+            <ColorPickerControlControl
               onChange={event => handleChange(event)}
-              ariaLabel={t('Color scheme')}
-              options={[...colorScheme, ...extraColorChoices]}
+              presets={[...colorsScheme, ...extraColorChoices]}
             />
           </FormItem>
         </Col>

@@ -51,6 +51,7 @@ import {
   BinaryQueryObjectFilterClause,
   extractTextFromHTML,
   TimeGranularity,
+  forceHexAlpha,
 } from '@superset-ui/core';
 import {
   styled,
@@ -1081,7 +1082,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 formatter.objectFormatting === ObjectFormattingEnum.CELL_BAR
               ) {
                 if (generalShowCellBars)
-                  backgroundColorCellBar = formatterResult.slice(0, -2);
+                  backgroundColorCellBar = forceHexAlpha(formatterResult);
               } else {
                 backgroundColor = formatterResult;
                 valueRangeFlag = false;
@@ -1169,7 +1170,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   alignPositiveNegative,
                 })}%`};
                 background-color: ${
-                  (backgroundColorCellBar && `${backgroundColorCellBar}99`) ||
+                  backgroundColorCellBar ||
                   cellBackground({
                     value: value as number,
                     colorPositiveNegative,
