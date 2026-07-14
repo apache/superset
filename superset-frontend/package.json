@@ -374,7 +374,7 @@
     "webpack-cli": "^7.0.3",
     "webpack-dev-server": "^5.2.5",
     "webpack-manifest-plugin": "^6.0.1",
-    "webpack-sources": "^3.5.0",
+    "webpack-sources": "^3.5.1",
     "webpack-visualizer-plugin2": "^2.0.0"
   },
   "peerDependencies": {
