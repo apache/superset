@@ -3640,7 +3640,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": True,
                         "supports_offset": True,
                         "supports_schemas": True,
-                        "identifier_quote": {"start": "`", "end": "`"},
+                        "identifier_quote": {"start": '"', "end": '"'},
                     },
                     "supports_oauth2": True,
                 },

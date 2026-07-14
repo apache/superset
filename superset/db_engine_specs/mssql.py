@@ -55,8 +55,8 @@ class MssqlEngineSpec(BaseEngineSpec):
 
     # SQL Server quotes identifiers with square brackets; only the closing bracket
     # needs escaping (by doubling).
-    identifier_quote_start = "["
-    identifier_quote_end = "]"
+    identifier_quote_start: str = "["
+    identifier_quote_end: str = "]"
 
     metadata = {
         "description": (
