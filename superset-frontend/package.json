@@ -345,7 +345,7 @@
     "mini-css-extract-plugin": "^2.10.2",
     "minimizer-webpack-plugin": "^5.6.1",
     "open-cli": "^9.0.0",
-    "oxlint": "^1.72.0",
+    "oxlint": "^1.73.0",
     "po2json": "^0.4.5",
     "postcss-styled-syntax": "^0.7.2",
     "prettier": "3.9.4",
