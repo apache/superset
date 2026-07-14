@@ -1106,3 +1106,58 @@ test('tooltip time grain wiring: chart-level time grain drives the tooltip when 
   expect(result).toContain('2021');
   expect(result).not.toContain('2021-01-07');
 });
+
+const createTemporalMixedChartProps = (timeFormat: string) => {
+  const rows = [
+    { __timestamp: Date.UTC(2003, 4, 1), metric: 10 },
+    { __timestamp: Date.UTC(2004, 0, 1), metric: 20 },
+    { __timestamp: Date.UTC(2005, 4, 1), metric: 30 },
+  ];
+  const q = createTestQueryData(rows, {
+    colnames: ['__timestamp', 'metric'],
+    coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+    label_map: { __timestamp: ['__timestamp'], metric: ['metric'] },
+  });
+  return createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [q, q],
+    formData: {
+      ...formData,
+      x_axis: '__timestamp',
+      metrics: ['metric'],
+      metricsB: ['metric'],
+      groupby: [],
+      groupbyB: [],
+      timeGrainSqla: TimeGranularity.MONTH,
+      xAxisTimeFormat: timeFormat,
+    },
+    queriesData: [q, q],
+  });
+};
+
+test('x-axis forces showMinLabel for time grains so the beginning date stays visible (mixed)', () => {
+  const xAxis = transformProps(createTemporalMixedChartProps('smart_date'))
+    .echartOptions.xAxis as any;
+  expect(xAxis.axisLabel.showMinLabel).toBe(true);
+});
+
+test('x-axis dedup keeps the forced min label when the endpoints format identically (mixed)', () => {
+  // May→May range renders "May" at both boundaries; the dedup must reset per
+  // ECharts pass so the forced min label survives the second pass.
+  const { formatter } = (
+    transformProps(createTemporalMixedChartProps('%b')).echartOptions
+      .xAxis as any
+  ).axisLabel;
+  const min = Date.UTC(2003, 4, 1);
+  const mid = Date.UTC(2004, 0, 1);
+  const max = Date.UTC(2005, 4, 1);
+
+  formatter(min);
+  formatter(mid);
+  formatter(max);
+
+  expect(formatter(min)).toBe('May');
+});
