@@ -29,6 +29,21 @@ import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import { supersetGetCache } from 'src/utils/cachedSupersetGet';
 import DrillDetailPane from './DrillDetailPane';
 
+const mockAddDangerToast = jest.fn();
+jest.mock('src/components/MessageToasts/withToasts', () => {
+  const actual = jest.requireActual('src/components/MessageToasts/withToasts');
+  return {
+    __esModule: true,
+    ...actual,
+    useToasts: () => ({
+      addDangerToast: mockAddDangerToast,
+      addSuccessToast: jest.fn(),
+      addInfoToast: jest.fn(),
+      addWarningToast: jest.fn(),
+    }),
+  };
+});
+
 const chart = chartQueries[sliceId];
 const setup = (overrides: Record<string, any> = {}) => {
   const store = getMockStoreWithNativeFilters();
@@ -250,6 +265,24 @@ describe('download actions', () => {
     const body = postFormSpy.mock.calls[0][1] as { form_data: string };
     const payload = JSON.parse(body.form_data);
     expect(payload.result_format).toBe('xlsx');
+    postFormSpy.mockRestore();
+  });
+
+  test('shows a danger toast when the download request fails', async () => {
+    mockAddDangerToast.mockClear();
+    fetchWithData();
+    const postFormSpy = jest
+      .spyOn(SupersetClient, 'postForm')
+      .mockImplementation(() => Promise.reject(new Error('boom')));
+    renderWithDownloadPermission();
+
+    await clickDownloadItem('Export to CSV');
+
+    await waitFor(() =>
+      expect(mockAddDangerToast).toHaveBeenCalledWith(
+        'Failed to generate download: boom',
+      ),
+    );
     postFormSpy.mockRestore();
   });
 });
