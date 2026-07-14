@@ -53,7 +53,7 @@ def test_get_drill_detail_does_not_strip_filters(
         "val": "USA",
     }
 
-    query_obj = QueryObject(
+    query_obj: QueryObject = QueryObject(
         columns=["region", "sales"],
         metrics=["count"],
         filters=[applied_filter],
@@ -67,7 +67,7 @@ def test_get_drill_detail_does_not_strip_filters(
     datasource = MagicMock()
     datasource.columns = [col_region, col_sales]
 
-    query_context = MagicMock()
+    query_context: MagicMock = MagicMock()
     query_context.datasource = datasource
     query_context.result_type = ChartDataResultType.DRILL_DETAIL
 
@@ -81,7 +81,7 @@ def test_get_drill_detail_does_not_strip_filters(
 
     _get_drill_detail(query_context, query_obj)
 
-    executed = captured["query_obj"]
+    executed: QueryObject = captured["query_obj"]
     assert applied_filter in executed.filter, (
         "_get_drill_detail unexpectedly stripped a filter it never touches; "
         "this guards against a regression introduced in that function, not #28562."
