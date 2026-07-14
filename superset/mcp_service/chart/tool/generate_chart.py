@@ -111,9 +111,9 @@ async def generate_chart(  # noqa: C901
 
     IMPORTANT: The 'chart_type' field in the config is a DISCRIMINATOR that determines
     which chart configuration schema to use. It MUST be included and MUST match the
-    other fields in your configuration. There are exactly 9 valid chart_type values
-    — NOT 'line', 'bar', 'mixed_timeseries', etc. Those are 'kind' values WITHIN
-    chart_type='xy' (see below), not chart_type values themselves:
+    other fields in your configuration. There are exactly 9 valid chart_type values,
+    listed below. Values such as 'line', 'bar', 'area', and 'scatter' are 'kind'
+    values WITHIN chart_type='xy', not chart_type values themselves:
 
     - chart_type='xy' for charts with x and y axes (line, bar, area, scatter).
       Required fields: y (x is optional — defaults to dataset's primary
