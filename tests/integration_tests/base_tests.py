@@ -32,8 +32,10 @@ from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
 from sqlalchemy.dialects.mysql import dialect
 from sqlalchemy.engine.interfaces import Dialect
-from sqlalchemy.ext.declarative import DeclarativeMeta
-from sqlalchemy.orm import Session  # noqa: F401
+from sqlalchemy.orm import (
+    DeclarativeMeta,
+    Session,  # noqa: F401
+)
 from sqlalchemy.sql import func
 
 from superset import db, security_manager

@@ -40,8 +40,11 @@ from sqlalchemy import (  # noqa: E402
     UniqueConstraint,
 )
 from sqlalchemy.exc import SQLAlchemyError  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
-from sqlalchemy.orm import backref, relationship  # noqa: E402
+from sqlalchemy.orm import (  # noqa: E402
+    backref,
+    declarative_base,  # noqa: E402
+    relationship,
+)
 
 Base = declarative_base()
 

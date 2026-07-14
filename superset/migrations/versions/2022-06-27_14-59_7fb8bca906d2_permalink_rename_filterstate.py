@@ -30,8 +30,10 @@ import pickle  # noqa: E402
 
 from alembic import op  # noqa: E402
 from sqlalchemy import Column, Integer, LargeBinary, String  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
-from sqlalchemy.orm import Session  # noqa: E402
+from sqlalchemy.orm import (  # noqa: E402
+    declarative_base,
+    Session,
+)
 
 from superset import db  # noqa: E402
 from superset.migrations.shared.utils import paginated_update  # noqa: E402

@@ -25,8 +25,13 @@ Create Date: 2020-10-05 18:10:52.272047
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects.sqlite.base import SQLiteDialect
-from sqlalchemy.ext.declarative import declarative_base, declared_attr
-from sqlalchemy.orm import backref, relationship, RelationshipProperty
+from sqlalchemy.orm import (
+    backref,
+    declarative_base,
+    declared_attr,
+    relationship,
+    RelationshipProperty,
+)
 
 from superset import db
 from superset.migrations.shared.utils import create_table
