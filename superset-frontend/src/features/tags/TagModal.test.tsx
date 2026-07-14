@@ -47,7 +47,7 @@ test('renders correctly in create mode', () => {
 
 test('description input has an accessible name', async () => {
   render(<TagModal {...mockedProps} />);
-  expect(await screen.findByLabelText('Description')).toBeInTheDocument();
+  expect(await screen.findByLabelText('Tag description')).toBeInTheDocument();
 });
 
 test('renders correctly in edit mode', () => {
