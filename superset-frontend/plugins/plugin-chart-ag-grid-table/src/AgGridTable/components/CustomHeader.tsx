@@ -20,7 +20,7 @@
  */
 
 import { handleKeyboardActivation } from '@superset-ui/core';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, SyntheticEvent } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons';
 import { Column } from '@superset-ui/core/components/ThemedAgGridReact';
@@ -187,7 +187,10 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
     return undefined;
   }, [lastFilteredColumn, colId, lastFilteredInputPosition]);
 
-  const handleMenuClick = (e: React.MouseEvent) => {
+  // `SyntheticEvent` (rather than `MouseEvent`) so this callback can also be
+  // used as the keyboard-activation handler via `handleKeyboardActivation`,
+  // which invokes it with a `KeyboardEvent`.
+  const handleMenuClick = (e: SyntheticEvent) => {
     e.stopPropagation();
     setMenuVisible(!isMenuVisible);
   };

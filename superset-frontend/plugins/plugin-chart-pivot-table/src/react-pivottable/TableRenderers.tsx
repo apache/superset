@@ -20,6 +20,7 @@
 import {
   ReactNode,
   MouseEvent,
+  SyntheticEvent,
   useState,
   useCallback,
   useRef,
@@ -154,7 +155,10 @@ function displayCell(value: unknown, allowRenderHtml?: boolean): ReactNode {
 function displayHeaderCell(
   needToggle: boolean,
   ArrowIcon: ReactNode,
-  onArrowClick: ((e: MouseEvent<HTMLSpanElement>) => void) | null,
+  // `SyntheticEvent` (rather than `MouseEvent`) so this callback can also be
+  // used as the keyboard-activation handler via `handleKeyboardActivation`,
+  // which invokes it with a `KeyboardEvent`.
+  onArrowClick: ((e: SyntheticEvent) => void) | null,
   value: unknown,
   namesMapping: Record<string, string>,
   allowRenderHtml?: boolean,
@@ -465,7 +469,7 @@ export function TableRenderer(props: TableRendererProps) {
   );
 
   const toggleRowKey = useCallback(
-    (flatRowKey: string) => (e: MouseEvent<HTMLSpanElement>) => {
+    (flatRowKey: string) => (e: SyntheticEvent) => {
       e.stopPropagation();
       setCollapsedRows(state => ({
         ...state,
@@ -476,7 +480,7 @@ export function TableRenderer(props: TableRendererProps) {
   );
 
   const toggleColKey = useCallback(
-    (flatColKey: string) => (e: MouseEvent<HTMLSpanElement>) => {
+    (flatColKey: string) => (e: SyntheticEvent) => {
       e.stopPropagation();
       setCollapsedCols(state => ({
         ...state,
