@@ -699,7 +699,7 @@ test('Download submenu shows standardized export screenshot and PDF labels', asy
   expect(
     await screen.findByText('Export screenshot (jpeg)'),
   ).toBeInTheDocument();
-  expect(screen.getByText('Export screenshot (PNG)')).toBeInTheDocument();
+  expect(screen.getByText('Export screenshot (png)')).toBeInTheDocument();
   expect(screen.getByText('Export as PDF')).toBeInTheDocument();
 });
 
@@ -721,12 +721,12 @@ test('Clicking "Export screenshot (jpeg)" calls downloadAsImage and logEvent', a
   );
 });
 
-test('Export screenshot (PNG) submenu shows Transparent and Solid options', async () => {
+test('Export screenshot (png) submenu shows Transparent and Solid options', async () => {
   const props = createProps();
   renderWrapper(props);
   openMenu();
   userEvent.hover(screen.getByText('Download'));
-  userEvent.hover(await screen.findByText('Export screenshot (PNG)'));
+  userEvent.hover(await screen.findByText('Export screenshot (png)'));
   expect(await screen.findByText('Transparent background')).toBeInTheDocument();
   expect(screen.getByText('Solid background')).toBeInTheDocument();
 });
@@ -736,7 +736,7 @@ test('Clicking "Transparent background" calls downloadAsImage with transparent o
   renderWrapper(props);
   openMenu();
   userEvent.hover(screen.getByText('Download'));
-  userEvent.hover(await screen.findByText('Export screenshot (PNG)'));
+  userEvent.hover(await screen.findByText('Export screenshot (png)'));
   userEvent.click(await screen.findByText('Transparent background'));
   expect(downloadAsImage).toHaveBeenCalledWith(
     `.dashboard-chart-id-${SLICE_ID}`,
@@ -759,7 +759,7 @@ test('Clicking "Solid background" calls downloadAsImage with solid option and lo
   renderWrapper(props);
   openMenu();
   userEvent.hover(screen.getByText('Download'));
-  userEvent.hover(await screen.findByText('Export screenshot (PNG)'));
+  userEvent.hover(await screen.findByText('Export screenshot (png)'));
   userEvent.click(await screen.findByText('Solid background'));
   expect(downloadAsImage).toHaveBeenCalledWith(
     `.dashboard-chart-id-${SLICE_ID}`,

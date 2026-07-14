@@ -145,7 +145,7 @@ export function getExportScreenshotMenuItems({
     {
       type: 'submenu' as const,
       key: submenuKey,
-      label: t('Export screenshot (PNG)'),
+      label: t('Export screenshot (png)'),
       icon: <Icons.FileImageOutlined />,
       children: [
         {

@@ -686,7 +686,7 @@ const SliceHeaderControls = (
         {
           type: 'submenu',
           key: 'download_as_png_submenu',
-          label: t('Export screenshot (PNG)'),
+          label: t('Export screenshot (png)'),
           icon: <Icons.FileImageOutlined css={dropdownIconsStyles} />,
           children: [
             {
