@@ -419,9 +419,7 @@ def update_dashboard(
 
     try:
         with event_logger.log_context(action="mcp.update_dashboard.apply"):
-            changed_fields = _apply_field_updates(
-                dashboard, request, resolved_owners
-            )
+            changed_fields = _apply_field_updates(dashboard, request, resolved_owners)
 
             if not changed_fields:
                 warnings.append("No fields provided; dashboard unchanged.")
