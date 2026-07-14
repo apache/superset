@@ -343,6 +343,13 @@ export default function downloadAsImageOptimized(
           !node.className.includes('header-controls')
         : true;
 
+    const isPng = format === 'png';
+    const scale = isPng ? PNG_SCALE : 1;
+    const bgcolor =
+      isPng && backgroundType === 'transparent'
+        ? 'transparent'
+        : theme?.colorBgContainer;
+
     // Only apply ag-grid path for single-chart captures.
     // Skip entirely for dashboard-level exports (selector targets the .dashboard root).
     const isDashboardCapture = (
@@ -432,17 +439,29 @@ export default function downloadAsImageOptimized(
 
         const imageHeight = agRootWrapper.scrollHeight;
 
-        const dataUrl = await domToImage.toJpeg(agRootWrapper, {
-          bgcolor: theme?.colorBgContainer,
+        const agImageOptions = {
+          bgcolor,
           filter,
           quality: IMAGE_DOWNLOAD_QUALITY,
-          height: imageHeight,
-          width: originalWidth,
+          height: imageHeight * scale,
+          width: originalWidth * scale,
           cacheBust: true,
-        });
+          ...(isPng && {
+            style: {
+              transform: `scale(${PNG_SCALE})`,
+              transformOrigin: 'top left',
+              width: `${originalWidth}px`,
+              height: `${imageHeight}px`,
+            },
+          }),
+        };
+
+        const dataUrl = isPng
+          ? await domToImage.toPng(agRootWrapper, agImageOptions)
+          : await domToImage.toJpeg(agRootWrapper, agImageOptions);
 
         const link = document.createElement('a');
-        link.download = `${generateFileStem(description)}.jpg`;
+        link.download = `${generateFileStem(description)}.${isPng ? 'png' : 'jpg'}`;
         link.href = dataUrl;
         link.click();
       } catch (error) {
@@ -477,13 +496,6 @@ export default function downloadAsImageOptimized(
         theme,
       );
       cleanup = cleanupFn;
-
-      const isPng = format === 'png';
-      const scale = isPng ? PNG_SCALE : 1;
-      const bgcolor =
-        isPng && backgroundType === 'transparent'
-          ? 'transparent'
-          : theme?.colorBgContainer;
 
       const imageOptions = {
         bgcolor,
