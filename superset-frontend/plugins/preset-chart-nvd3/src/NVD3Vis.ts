@@ -229,7 +229,6 @@ const propTypes = {
 };
 
 const NOOP = () => {};
-const formatter = getNumberFormatter();
 
 function nvd3Vis(element, props) {
   const {
@@ -243,7 +242,6 @@ function nvd3Vis(element, props) {
     colorScheme,
     comparisonType,
     contribution,
-    entity,
     isBarStacked,
     isDonut,
     isPieLabelOutside,
@@ -253,7 +251,6 @@ function nvd3Vis(element, props) {
     markerLines,
     markerLineLabels,
     markers,
-    maxBubbleSize,
     onBrushEnd = NOOP,
     onError = NOOP,
     pieLabelType,
@@ -264,13 +261,11 @@ function nvd3Vis(element, props) {
     showLabels,
     showLegend,
     showMarkers,
-    sizeField,
     vizType,
     xAxisFormat,
     numberFormat,
     xAxisLabel,
     xAxisShowMinMax = false,
-    xField,
     xIsLogScale,
     xTicksLayout,
     yAxisFormat,
@@ -278,7 +273,6 @@ function nvd3Vis(element, props) {
     yAxisLabel,
     yAxisShowMinMax = false,
     yAxis2ShowMinMax = false,
-    yField,
     yIsLogScale,
     sliceId,
   } = props;

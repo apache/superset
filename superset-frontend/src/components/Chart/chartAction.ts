@@ -274,7 +274,6 @@ export interface GetChartDataRequestParams {
   resultFormat?: string;
   resultType?: string;
   force?: boolean;
-  method?: 'GET' | 'POST';
   requestParams?: RequestParams;
   ownState?: JsonObject;
 }
@@ -461,7 +460,6 @@ export async function getChartDataRequest({
   resultFormat = 'json',
   resultType = 'full',
   force = false,
-  method = 'POST' as const,
   requestParams = {},
   ownState = {},
 }: GetChartDataRequestParams): Promise<ChartDataRequestResponse> {
@@ -713,7 +711,6 @@ export function exploreJSON(
       resultFormat: 'json',
       resultType: 'full',
       force,
-      method: 'POST',
       requestParams,
       ownState,
     });
