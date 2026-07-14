@@ -66,8 +66,8 @@ let config: AppConfig;
 let transport: string;
 let pollingDelayMs: number;
 let pollingTimeoutId: number;
-let listenersByJobId: Record<string, ListenerFn>;
-let retriesByJobId: Record<string, number>;
+let listenersByJobId: Map<string, ListenerFn>;
+let retriesByJobId: Map<string, number>;
 let lastReceivedEventId: string | null | undefined;
 let consecutivePollingErrorCount = 0;
 // Incremented on every init() so polling invocations that are already
@@ -75,13 +75,13 @@ let consecutivePollingErrorCount = 0;
 // stop, instead of mutating fresh state or scheduling a second loop
 let pollingGeneration = 0;
 
-const addListener = (id: string, fn: any) => {
-  listenersByJobId[id] = fn;
+const addListener = (id: string, fn: ListenerFn) => {
+  listenersByJobId.set(id, fn);
 };
 
 const removeListener = (id: string) => {
-  if (!listenersByJobId[id]) return;
-  delete listenersByJobId[id];
+  if (!listenersByJobId.has(id)) return;
+  listenersByJobId.delete(id);
 };
 
 const fetchCachedData = async (
@@ -150,11 +150,13 @@ export const waitForAsyncData = async (
           break;
         }
         default: {
-          logging.warn('received event with status', asyncEvent.status);
-          // Non-terminal status: drop this (stale) job listener but keep the
-          // abort handler so an unmount/supersede can still reject the pending
-          // promise (full cleanup here would leave it hanging on abort).
-          removeListener(jobId);
+          // Non-terminal status (e.g., 'pending', 'running'): keep the listener
+          // registered so it can receive the eventual terminal event ('done', 'error').
+          // Only cleanup happens on terminal states or abort.
+          logging.info(
+            'received non-terminal event with status',
+            asyncEvent.status,
+          );
         }
       }
     };
@@ -192,22 +194,26 @@ const setLastId = (asyncEvent: AsyncEvent) => {
 export const processEvents = async (events: AsyncEvent[]) => {
   events.forEach((asyncEvent: AsyncEvent) => {
     const jobId = asyncEvent.job_id;
-    const listener = listenersByJobId[jobId];
-    if (listener) {
+    const listener = listenersByJobId.get(jobId);
+    // `jobId` originates from server/WebSocket payloads, so the listener is
+    // resolved exclusively through a Map (never plain-object property access,
+    // which would expose the prototype chain), and we confirm the retrieved
+    // value is a registered function before dispatching the event to it.
+    if (typeof listener === 'function') {
       listener(asyncEvent);
-      delete retriesByJobId[jobId];
+      retriesByJobId.delete(jobId);
     } else {
       // handle race condition where event is received
       // before listener is registered
-      if (!retriesByJobId[jobId]) retriesByJobId[jobId] = 0;
-      retriesByJobId[jobId] += 1;
+      const retries = (retriesByJobId.get(jobId) ?? 0) + 1;
+      retriesByJobId.set(jobId, retries);
 
-      if (retriesByJobId[jobId] <= MAX_RETRIES) {
+      if (retries <= MAX_RETRIES) {
         setTimeout(() => {
           processEvents([asyncEvent]);
-        }, RETRY_DELAY * retriesByJobId[jobId]);
+        }, RETRY_DELAY * retries);
       } else {
-        delete retriesByJobId[jobId];
+        retriesByJobId.delete(jobId);
         logging.warn('listener not found for job_id', asyncEvent.job_id);
       }
     }
@@ -227,7 +233,7 @@ const getPollingDelay = () => {
 const loadEventsFromApi = async () => {
   const generation = pollingGeneration;
   const eventArgs = lastReceivedEventId ? { last_id: lastReceivedEventId } : {};
-  if (Object.keys(listenersByJobId).length) {
+  if (listenersByJobId.size) {
     try {
       const { result: events } = await fetchEvents(eventArgs);
       if (generation !== pollingGeneration) return;
@@ -296,8 +302,8 @@ export const init = (appConfig?: AppConfig) => {
   if (pollingTimeoutId) clearTimeout(pollingTimeoutId);
   if (!isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) return;
 
-  listenersByJobId = {};
-  retriesByJobId = {};
+  listenersByJobId = new Map();
+  retriesByJobId = new Map();
   lastReceivedEventId = null;
   consecutivePollingErrorCount = 0;
 
