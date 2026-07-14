@@ -59,9 +59,9 @@ def test_get_drill_detail_does_not_strip_filters(
         filters=[applied_filter],
     )
 
-    col_region = MagicMock()
+    col_region: MagicMock = MagicMock()
     col_region.column_name = "region"
-    col_sales = MagicMock()
+    col_sales: MagicMock = MagicMock()
     col_sales.column_name = "sales"
 
     datasource = MagicMock()
