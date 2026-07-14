@@ -728,7 +728,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
                 "Could not import libraries needed to connect to BigQuery."
             )
 
-        project = engine.url.host or None
+        project: str | None = engine.url.host or engine.url.database or None
 
         if credentials_info := engine.dialect.credentials_info:
             credentials = service_account.Credentials.from_service_account_info(
