@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import difflib
 import logging
+import re
 from datetime import datetime
 from typing import Annotated, Any, cast, Dict, List, Literal, Protocol
 
@@ -1904,12 +1905,19 @@ class BoxPlotChartConfig(UnknownFieldCheckMixin):
     distribute_across: List[ColumnRef] = Field(
         ...,
         min_length=1,
-        description="Columns whose values form the boxes along the x-axis "
-        "(one box per value)",
+        validation_alias=AliasChoices("distribute_across", "columns"),
+        description="Columns whose distinct values form the SAMPLES inside "
+        "each box (typically a temporal column such as month) — the "
+        "distribution is computed across these values; maps to the "
+        "frontend's 'Distribute across' control (form_data 'columns'). "
+        "This does NOT split boxes; use 'dimensions' for that.",
     )
     dimensions: List[ColumnRef] | None = Field(
         None,
-        description="Optional series dimensions (one colored box group per value)",
+        validation_alias=AliasChoices("dimensions", "groupby"),
+        description="Columns whose values split the chart into boxes — one "
+        "box per value on the x-axis (form_data 'groupby'). Omit for a "
+        "single box showing each metric's overall distribution.",
     )
     whisker_type: Literal["tukey", "min_max", "percentile"] = Field(
         "tukey",
@@ -1935,6 +1943,35 @@ class BoxPlotChartConfig(UnknownFieldCheckMixin):
     )
     number_format: str = Field("SMART_NUMBER", max_length=50)
     date_format: str = Field("smart_date", max_length=50)
+
+    @model_validator(mode="before")
+    @classmethod
+    def accept_frontend_whisker_options(cls, data: Any) -> Any:
+        """Translate the frontend's whiskerOptions strings ('Tukey',
+        'Min/max (no outliers)', '<low>/<high> percentiles') so configs
+        copied from existing Superset form_data are accepted rather than
+        refused."""
+        if (
+            isinstance(data, dict)
+            and "whiskerOptions" in data
+            and "whisker_type" not in data
+        ):
+            raw = str(data.pop("whiskerOptions"))
+            if raw == "Tukey":
+                data["whisker_type"] = "tukey"
+            elif raw == "Min/max (no outliers)":
+                data["whisker_type"] = "min_max"
+            else:
+                match = re.fullmatch(r"(\d{1,3})/(\d{1,3}) percentiles", raw)
+                if not match:
+                    raise ValueError(
+                        f"Unsupported whiskerOptions value: {raw!r}. Use "
+                        "whisker_type ('tukey'|'min_max'|'percentile') instead."
+                    )
+                data["whisker_type"] = "percentile"
+                data.setdefault("percentile_low", int(match.group(1)))
+                data.setdefault("percentile_high", int(match.group(2)))
+        return data
 
     @model_validator(mode="after")
     def validate_percentiles_and_dimensions(self) -> "BoxPlotChartConfig":

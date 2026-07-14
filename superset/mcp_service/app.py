@@ -387,7 +387,8 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="histogram": Histogram of a numeric column's distribution
   (column required; optional bins, groupby, normalize, cumulative)
 - chart_type="box_plot": Box plot comparing statistical spread
-  (metrics + distribute_across required; optional dimensions,
+  (metrics + distribute_across required — distribute_across is the sample
+   axis, e.g. a temporal column; dimensions splits into one box per value;
    whisker_type: tukey | min_max | percentile)
 
 Time grain for temporal x-axis (time_grain parameter):

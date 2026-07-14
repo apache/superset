@@ -384,3 +384,56 @@ class TestHistogramNumericColumnValidation:
                 [{"name": "payment_type", "type": sql_type, "is_numeric": False}]
             )
             assert error is None, sql_type
+
+
+class TestBoxPlotNativeVocabulary:
+    """Superset-native form_data keys are translated, not refused."""
+
+    def test_columns_and_groupby_aliases(self) -> None:
+        config = BoxPlotChartConfig.model_validate(
+            {
+                "chart_type": "box_plot",
+                "metrics": [{"name": "fare", "aggregate": "AVG"}],
+                "columns": [{"name": "month"}],
+                "groupby": [{"name": "day_of_week"}],
+            }
+        )
+        assert [c.name for c in config.distribute_across] == ["month"]
+        assert [d.name for d in (config.dimensions or [])] == ["day_of_week"]
+
+    def test_whisker_options_strings_translate(self) -> None:
+        config = BoxPlotChartConfig.model_validate(
+            {
+                "chart_type": "box_plot",
+                "metrics": [{"name": "fare", "aggregate": "AVG"}],
+                "distribute_across": [{"name": "month"}],
+                "whiskerOptions": "10/90 percentiles",
+            }
+        )
+        assert config.whisker_type == "percentile"
+        assert (config.percentile_low, config.percentile_high) == (10, 90)
+
+    def test_unsupported_whisker_options_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            BoxPlotChartConfig.model_validate(
+                {
+                    "chart_type": "box_plot",
+                    "metrics": [{"name": "fare", "aggregate": "AVG"}],
+                    "distribute_across": [{"name": "month"}],
+                    "whiskerOptions": "banana",
+                }
+            )
+
+    def test_box_split_semantics_documented_in_form_data(self) -> None:
+        """dimensions drives form_data groupby (the box-splitting axis per
+        the pandas boxplot post-processor); distribute_across drives
+        columns (the sample axis)."""
+        config = BoxPlotChartConfig(
+            chart_type="box_plot",
+            metrics=[{"name": "fare", "aggregate": "AVG"}],
+            distribute_across=[{"name": "month"}],
+            dimensions=[{"name": "day_of_week"}],
+        )
+        form_data = map_box_plot_config(config)
+        assert form_data["groupby"] == ["day_of_week"]
+        assert form_data["columns"] == ["month"]

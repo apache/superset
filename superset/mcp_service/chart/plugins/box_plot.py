@@ -50,7 +50,8 @@ class BoxPlotChartPlugin(BaseChartPlugin):
             missing_fields.append("'metrics' (values whose spread is plotted)")
         if "distribute_across" not in config:
             missing_fields.append(
-                "'distribute_across' (columns forming one box per value)"
+                "'distribute_across' (columns whose values form the samples "
+                "inside each box, e.g. a temporal column)"
             )
 
         if missing_fields:
@@ -60,8 +61,9 @@ class BoxPlotChartPlugin(BaseChartPlugin):
                     f"Box plot missing required fields: {', '.join(missing_fields)}"
                 ),
                 details=(
-                    "Box plots show the distribution of one or more metrics "
-                    "across the values of the distribute_across columns"
+                    "Box plots compute each metric's distribution across the "
+                    "distribute_across values; add 'dimensions' to split the "
+                    "chart into one box per dimension value"
                 ),
                 suggestions=[
                     "Add 'metrics': [{'name': 'value_column', 'aggregate': 'AVG'}] "
@@ -69,7 +71,8 @@ class BoxPlotChartPlugin(BaseChartPlugin):
                     "Add 'distribute_across': [{'name': 'category_column'}]",
                     "Example: {'chart_type': 'box_plot', 'metrics': "
                     "[{'name': 'fare', 'aggregate': 'AVG'}], "
-                    "'distribute_across': [{'name': 'day_of_week'}]}",
+                    "'distribute_across': [{'name': 'month'}], "
+                    "'dimensions': [{'name': 'day_of_week'}]}",
                 ],
                 error_code="MISSING_BOX_PLOT_FIELDS",
             )
@@ -94,8 +97,11 @@ class BoxPlotChartPlugin(BaseChartPlugin):
 
     def generate_name(self, config: Any, dataset_name: str | None = None) -> str:
         metric_names = ", ".join(m.label or m.name for m in config.metrics)
-        across = ", ".join(c.label or c.name for c in config.distribute_across)
-        what = f"{metric_names} distribution by {across}"
+        if config.dimensions:
+            split = ", ".join(d.label or d.name for d in config.dimensions)
+            what = f"{metric_names} distribution by {split}"
+        else:
+            what = f"{metric_names} distribution"
         context = _summarize_filters(config.filters)
         return self._with_context(what, context)
 
@@ -136,11 +142,13 @@ class BoxPlotChartPlugin(BaseChartPlugin):
             suggestions=[
                 "Ensure 'metrics' is a non-empty list; each entry needs 'name' "
                 "plus 'aggregate' (or saved_metric=True for a saved metric)",
-                "Ensure 'distribute_across' is a non-empty list of columns",
+                "'distribute_across' = sample axis (e.g. a temporal column); "
+                "'dimensions' = one box per value",
                 "whisker_type='percentile' requires percentile_low < percentile_high",
                 "Example: {'chart_type': 'box_plot', 'metrics': "
                 "[{'name': 'fare', 'aggregate': 'AVG'}], "
-                "'distribute_across': [{'name': 'day_of_week'}], "
+                "'distribute_across': [{'name': 'month'}], "
+                "'dimensions': [{'name': 'day_of_week'}], "
                 "'whisker_type': 'tukey'}",
             ],
             error_code="BOX_PLOT_VALIDATION_ERROR",

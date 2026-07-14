@@ -139,8 +139,9 @@ async def generate_chart(  # noqa: C901
       cumulative
 
     - Use chart_type='box_plot' for statistical spread comparisons
-      Required fields: metrics, distribute_across; optional: dimensions,
-      whisker_type ('tukey'|'min_max'|'percentile')
+      Required fields: metrics, distribute_across (the sample axis, e.g. a
+      temporal column); use dimensions to split into one box per value;
+      optional whisker_type ('tukey'|'min_max'|'percentile')
 
     Example usage for XY chart:
     ```json

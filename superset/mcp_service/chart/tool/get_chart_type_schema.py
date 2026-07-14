@@ -146,7 +146,8 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
         {
             "chart_type": "box_plot",
             "metrics": [{"name": "fare_amount", "aggregate": "AVG"}],
-            "distribute_across": [{"name": "day_of_week"}],
+            "distribute_across": [{"name": "month"}],
+            "dimensions": [{"name": "day_of_week"}],
         },
         {
             "chart_type": "box_plot",
