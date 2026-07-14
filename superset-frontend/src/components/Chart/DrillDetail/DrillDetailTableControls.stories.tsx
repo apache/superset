@@ -33,6 +33,7 @@ InteractiveTableControls.args = {
     { op: '>', col: 'tz_offset', val: 200 },
     { op: '==', col: 'platform', val: 'GB' },
   ],
+  setFilters: () => {},
   canDownload: true,
   onDownloadCSV: () => {},
   onDownloadXLSX: () => {},
