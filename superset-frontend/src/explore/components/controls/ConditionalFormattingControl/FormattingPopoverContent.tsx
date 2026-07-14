@@ -44,9 +44,9 @@ import {
   stringOperatorOptions,
   booleanOperatorOptions,
   formattingOptions,
-  colorsSchemeOptions,
+  colorScheme,
 } from './constants';
-import ColorPickerControlControl from '../ColorPickerControl';
+import ColorPickerControl from '../ColorPickerControl';
 
 const FullWidthInputNumber = styled(InputNumber)`
   width: 100%;
@@ -242,7 +242,7 @@ export const FormattingPopoverContent = ({
 }) => {
   const [form] = Form.useForm();
   const theme = useTheme();
-  const colorsScheme = colorsSchemeOptions();
+  const colors = colorScheme();
   const [showOperatorFields, setShowOperatorFields] = useState(
     config === undefined ||
       (config?.colorScheme !== ColorSchemeEnum.Green &&
@@ -323,8 +323,7 @@ export const FormattingPopoverContent = ({
   );
 
   const defaultColorValue =
-    theme[colorsSchemeOptions()[0]?.colors[0] as keyof typeof theme] ||
-    undefined;
+    theme[colorScheme()[0]?.colors[0] as keyof typeof theme] || undefined;
 
   const visibleUseGradient = useMemo(
     () =>
@@ -403,9 +402,9 @@ export const FormattingPopoverContent = ({
             rules={rulesRequired}
             initialValue={defaultColorValue}
           >
-            <ColorPickerControlControl
+            <ColorPickerControl
               onChange={event => handleChange(event)}
-              presets={[...colorsScheme, ...extraColorChoices]}
+              presets={[...colors, ...extraColorChoices]}
             />
           </FormItem>
         </Col>

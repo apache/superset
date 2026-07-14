@@ -65,7 +65,7 @@ export const formattingOptions = [
 ];
 
 // Use theme token names instead of hex values to support theme switching
-export const colorsSchemeOptions = () => [
+export const colorScheme = () => [
   {
     label: t('Colors'),
     colors: [
