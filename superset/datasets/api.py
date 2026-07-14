@@ -1365,7 +1365,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         catalog = body.get("catalog") or None
         if schema:
             table = DatasetDAO.get_table_by_catalog_schema_and_name(
-                database_id, schema, table_name, catalog=catalog
+                table_name, database_id, schema, catalog=catalog
             )
         else:
             try:
