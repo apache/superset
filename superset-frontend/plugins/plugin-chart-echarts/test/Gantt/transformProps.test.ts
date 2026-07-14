@@ -18,6 +18,7 @@
  */
 import { AxisType, ChartProps } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
+import type { LegendComponentOption } from 'echarts/components';
 import {
   LegendOrientation,
   LegendType,
@@ -344,7 +345,9 @@ describe('legend sorting', () => {
 
     const result = transformProps(props as EchartsGanttChartProps);
 
-    expect((result.echartOptions.legend as any).type).toBe(LegendType.Plain);
+    expect((result.echartOptions.legend as LegendComponentOption).type).toBe(
+      LegendType.Plain,
+    );
   });
 
   test('keeps legend visibility driven by showLegend for single-series charts', () => {
