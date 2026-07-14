@@ -115,17 +115,30 @@ class HistogramChartPlugin(BaseChartPlugin):
             # Column existence is validated separately; don't double-report.
             return None
 
-        numeric_types = ["INTEGER", "FLOAT", "DOUBLE", "DECIMAL", "NUMERIC"]
-        if col_info.get("is_numeric", False) or (
-            col_info.get("type", "").upper() in numeric_types
-        ):
+        def _is_numeric(col: dict[str, Any]) -> bool:
+            if col.get("is_numeric", False):
+                return True
+            # Backends report many spellings (BIGINT, SMALLINT, REAL,
+            # NUMBER, DOUBLE PRECISION); substring-match the common stems.
+            type_upper = str(col.get("type", "")).upper()
+            return any(
+                stem in type_upper
+                for stem in (
+                    "INT",
+                    "FLOAT",
+                    "DOUBLE",
+                    "DECIMAL",
+                    "NUMERIC",
+                    "REAL",
+                    "NUMBER",
+                )
+            )
+
+        if _is_numeric(col_info):
             return None
 
         numeric_columns = sorted(
-            col["name"]
-            for col in dataset_context.available_columns
-            if col.get("is_numeric", False)
-            or col.get("type", "").upper() in numeric_types
+            col["name"] for col in dataset_context.available_columns if _is_numeric(col)
         )
         return ChartGenerationError(
             error_type="non_numeric_histogram_column",

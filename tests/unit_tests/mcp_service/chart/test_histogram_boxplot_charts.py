@@ -34,6 +34,7 @@ from superset.mcp_service.chart.schemas import (
     ChartConfig,
     HistogramChartConfig,
 )
+from superset.mcp_service.common.error_schemas import ChartGenerationError
 
 
 class TestHistogramChartConfigSchema:
@@ -328,7 +329,7 @@ class TestHistogramNumericColumnValidation:
 
     def _validate(
         self, columns: list[dict[str, object]], column_name: str = "payment_type"
-    ) -> object:
+    ) -> "ChartGenerationError | None":
         from unittest.mock import patch
 
         from superset.mcp_service.chart import registry

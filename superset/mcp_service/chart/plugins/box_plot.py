@@ -64,7 +64,8 @@ class BoxPlotChartPlugin(BaseChartPlugin):
                     "across the values of the distribute_across columns"
                 ),
                 suggestions=[
-                    "Add 'metrics': [{'name': 'value_column', 'aggregate': 'AVG'}]",
+                    "Add 'metrics': [{'name': 'value_column', 'aggregate': 'AVG'}] "
+                    "(or {'name': 'saved', 'saved_metric': True})",
                     "Add 'distribute_across': [{'name': 'category_column'}]",
                     "Example: {'chart_type': 'box_plot', 'metrics': "
                     "[{'name': 'fare', 'aggregate': 'AVG'}], "
@@ -133,7 +134,8 @@ class BoxPlotChartPlugin(BaseChartPlugin):
                 "has invalid structure"
             ),
             suggestions=[
-                "Ensure 'metrics' is a non-empty list with 'name' and 'aggregate'",
+                "Ensure 'metrics' is a non-empty list; each entry needs 'name' "
+                "plus 'aggregate' (or saved_metric=True for a saved metric)",
                 "Ensure 'distribute_across' is a non-empty list of columns",
                 "whisker_type='percentile' requires percentile_low < percentile_high",
                 "Example: {'chart_type': 'box_plot', 'metrics': "
