@@ -58,19 +58,11 @@ closed-set discipline.
 from __future__ import annotations
 
 import re
-import sys
 from typing import Iterable, Optional
 from urllib.parse import quote
+from wsgiref.types import StartResponse, WSGIApplication, WSGIEnvironment
 
 from werkzeug.wrappers import Response
-
-if sys.version_info >= (3, 11):
-    from wsgiref.types import StartResponse, WSGIApplication, WSGIEnvironment
-else:
-    from typing import TYPE_CHECKING
-
-    if TYPE_CHECKING:
-        from _typeshed.wsgi import StartResponse, WSGIApplication, WSGIEnvironment
 
 #: The legacy URL token the shim recognises. Hard-coded — not configurable.
 _LEGACY_PREFIX: str = "/superset"

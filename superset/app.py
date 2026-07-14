@@ -18,21 +18,12 @@ from __future__ import annotations
 
 import logging
 import os
-import sys
 from typing import cast, Iterable, Optional
+from wsgiref.types import StartResponse, WSGIApplication, WSGIEnvironment
 
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
-
-if sys.version_info >= (3, 11):
-    from wsgiref.types import StartResponse, WSGIApplication, WSGIEnvironment
-else:
-    from typing import TYPE_CHECKING
-
-    if TYPE_CHECKING:
-        from _typeshed.wsgi import StartResponse, WSGIApplication, WSGIEnvironment
-
 from flask import Flask, Response
 from werkzeug.exceptions import NotFound
 
@@ -100,12 +91,8 @@ def create_app(
         # because legacy bookmarks exist under root deployments too.
         # See the "Layering invariant" section of the module docstring
         # in `superset/middleware/legacy_prefix_redirect.py`.
-        # mypy reads `app.wsgi_app` as `object` after the conditional
-        # `AppRootMiddleware` rewrap above — the LUB of the two branches
-        # widens it. The runtime type is always a WSGI callable; the
-        # `# type: ignore` is intentional.
         app.wsgi_app = LegacyPrefixRedirectMiddleware(
-            app.wsgi_app,  # type: ignore[arg-type]
+            app.wsgi_app,
             app_root,
         )
 
