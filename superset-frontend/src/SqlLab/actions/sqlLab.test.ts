@@ -1998,4 +1998,56 @@ describe('async actions', () => {
       });
     });
   });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('toggleLeftBar', () => {
+    const activeId = 'active-qe';
+    const makeState = (hideLeftBar: boolean, unsavedOverride?: boolean) => ({
+      sqlLab: {
+        tabHistory: [activeId],
+        queryEditors: [{ id: activeId, hideLeftBar }],
+        unsavedQueryEditor:
+          unsavedOverride !== undefined
+            ? { id: activeId, hideLeftBar: unsavedOverride }
+            : {},
+      },
+    });
+
+    test('dispatches QUERY_EDITOR_TOGGLE_LEFT_BAR when state differs', () => {
+      const store = mockStore(makeState(false));
+      store.dispatch(actions.toggleLeftBar(true));
+      expect(store.getActions()).toEqual([
+        {
+          type: actions.QUERY_EDITOR_TOGGLE_LEFT_BAR,
+          queryEditorId: activeId,
+          hideLeftBar: true,
+        },
+      ]);
+    });
+
+    test('does not dispatch when state is already the same', () => {
+      const store = mockStore(makeState(true));
+      store.dispatch(actions.toggleLeftBar(true));
+      expect(store.getActions()).toHaveLength(0);
+    });
+
+    test('uses unsavedQueryEditor state when available', () => {
+      // qe in queryEditors says false, but unsaved override says true
+      const store = mockStore(makeState(false, true));
+      store.dispatch(actions.toggleLeftBar(true));
+      expect(store.getActions()).toHaveLength(0);
+    });
+
+    test('does not dispatch when there is no active query editor', () => {
+      const store = mockStore({
+        sqlLab: {
+          tabHistory: [],
+          queryEditors: [],
+          unsavedQueryEditor: {},
+        },
+      });
+      store.dispatch(actions.toggleLeftBar(true));
+      expect(store.getActions()).toHaveLength(0);
+    });
+  });
 });
