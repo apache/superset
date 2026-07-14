@@ -21,6 +21,7 @@ import logging
 import re
 import time
 from contextvars import ContextVar
+from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any, cast, ClassVar, TYPE_CHECKING
 
@@ -94,6 +95,23 @@ logger = logging.getLogger(__name__)
 _annotation_chart_stack: ContextVar[tuple[int, ...]] = ContextVar(
     "chart_data_annotation_stack", default=()
 )
+
+_REUSABLE_CONTRIBUTION_RESULT_TYPES = frozenset(
+    {
+        ChartDataResultType.FULL,
+        ChartDataResultType.POST_PROCESSED,
+        ChartDataResultType.RESULTS,
+    }
+)
+
+
+@dataclass(frozen=True)
+class _ContributionDependencies:
+    """Acquired totals and outputs shared with the public query plan."""
+
+    consumer_to_producer: dict[int, int]
+    reusable_outputs: dict[int, AcquiredQuery]
+    totals_by_producer: dict[int, dict[str, Any]]
 
 
 class QueryContextProcessor:
@@ -449,16 +467,13 @@ class QueryContextProcessor:
             query_idx: get_effective_result_type(self._query_context, query)
             for query_idx, query in enumerate(self._query_context.queries)
         }
-        (
-            data_contribution_plan,
-            output_acquisitions,
-            contribution_totals,
-        ) = self._acquire_contribution_dependencies(
+        contribution_dependencies = self._acquire_contribution_dependencies(
             contribution_plan,
             requested_result_types,
             force_cached,
             materialize,
         )
+        output_acquisitions = dict(contribution_dependencies.reusable_outputs)
         query_results: dict[int, QueryDataResult] = {}
 
         for query_idx, query_obj in enumerate(self._query_context.queries):
@@ -482,11 +497,12 @@ class QueryContextProcessor:
                 )
                 continue
 
-            totals_idx = data_contribution_plan.get(query_idx)
+            totals_idx = contribution_dependencies.consumer_to_producer.get(query_idx)
             if totals_idx is not None and (
-                totals_idx not in contribution_totals
+                totals_idx not in contribution_dependencies.totals_by_producer
                 or not self._totals_support_consumer(
-                    query_obj, contribution_totals.get(totals_idx, {})
+                    query_obj,
+                    contribution_dependencies.totals_by_producer.get(totals_idx, {}),
                 )
             ):
                 query_results[query_idx] = self._dependency_failed_result(
@@ -495,7 +511,8 @@ class QueryContextProcessor:
                 continue
             execution_query = (
                 self._with_contribution_totals(
-                    query_obj, contribution_totals[totals_idx]
+                    query_obj,
+                    contribution_dependencies.totals_by_producer[totals_idx],
                 )
                 if totals_idx is not None
                 else query_obj
@@ -531,39 +548,52 @@ class QueryContextProcessor:
         requested_result_types: dict[int, ChartDataResultType],
         force_cached: bool,
         materialize: bool,
-    ) -> tuple[
-        dict[int, int],
-        dict[int, AcquiredQuery],
-        dict[int, dict[str, Any]],
-    ]:
+    ) -> _ContributionDependencies:
         """Acquire dataframe producers needed by data-backed consumers."""
 
-        data_plan = {
+        data_plan: dict[int, int] = {
             consumer_idx: producer_idx
             for consumer_idx, producer_idx in contribution_plan.items()
             if is_data_result_type(requested_result_types[consumer_idx])
         }
-        output_acquisitions: dict[int, AcquiredQuery] = {}
+        reusable_outputs: dict[int, AcquiredQuery] = {}
         totals: dict[int, dict[str, Any]] = {}
         for producer_idx in sorted(set(data_plan.values())):
+            producer = self._query_context.queries[producer_idx]
+            requested_result_type = requested_result_types[producer_idx]
+            dependency_query = self._totals_query(producer_idx)
+            reuse_for_output = (
+                requested_result_type in _REUSABLE_CONTRIBUTION_RESULT_TYPES
+                and self._same_acquisition_identity(producer, dependency_query)
+            )
+            if reuse_for_output:
+                dependency_query = producer
+                dependency_result_type = requested_result_type
+            else:
+                dependency_query.result_type = ChartDataResultType.FULL
+                dependency_result_type = ChartDataResultType.FULL
             acquired = acquire_query_data(
-                ChartDataResultType.FULL,
+                dependency_result_type,
                 self._query_context,
-                self._totals_query(producer_idx),
+                dependency_query,
                 force_cached if materialize else False,
-                detect_currency_value=materialize,
+                detect_currency_value=materialize and reuse_for_output,
             )
             if acquired is None:
                 raise QueryObjectValidationError(
                     _("Contribution totals require a dataframe result type")
                 )
-            if is_data_result_type(requested_result_types[producer_idx]):
-                output_acquisitions[producer_idx] = acquired
+            if reuse_for_output:
+                reusable_outputs[producer_idx] = acquired
             if acquired.acquisition.payload["status"] != QueryStatus.FAILED:
                 totals[producer_idx] = self._totals_from_df(
                     acquired.acquisition.payload["df"]
                 )
-        return data_plan, output_acquisitions, totals
+        return _ContributionDependencies(
+            consumer_to_producer=data_plan,
+            reusable_outputs=reusable_outputs,
+            totals_by_producer=totals,
+        )
 
     def _contribution_plan(self) -> dict[int, int]:
         """Resolve explicit contribution producers with a strict legacy fallback."""
@@ -690,9 +720,36 @@ class QueryContextProcessor:
         )
 
     def _totals_query(self, totals_idx: int) -> QueryObject:
+        """Build a canonical all-record dependency from a public producer."""
+
         totals_query = copy.copy(self._query_context.queries[totals_idx])
         totals_query.row_limit = None
+        totals_query.row_offset = 0
+        totals_query.is_rowcount = False
+        totals_query.is_timeseries = False
+        totals_query.orderby = []
+        totals_query.series_columns = []
+        totals_query.series_limit = 0
+        totals_query.series_limit_metric = None
+        totals_query.group_others_when_limit_reached = False
+        totals_query.annotation_layers = []
         return totals_query
+
+    @staticmethod
+    def _same_acquisition_identity(
+        left: QueryObject,
+        right: QueryObject,
+    ) -> bool:
+        """Return whether two queries share execution and dataframe cache identity."""
+
+        return (
+            left.to_dict() == right.to_dict()
+            and left.annotation_layers == right.annotation_layers
+            and left.time_offsets == right.time_offsets
+            and left.result_type == right.result_type
+            and getattr(left.datasource, "uid", None)
+            == getattr(right.datasource, "uid", None)
+        )
 
     @staticmethod
     def _totals_from_df(dataframe: pd.DataFrame) -> dict[str, Any]:

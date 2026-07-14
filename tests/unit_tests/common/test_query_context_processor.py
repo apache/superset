@@ -1261,11 +1261,10 @@ def test_cache_key_non_contribution_post_processing_unchanged():
     )
 
 
-def test_force_cached_normalizes_totals_query_row_limit():
+def test_force_cached_separates_dependency_and_producer_cache_identity():
     """
-    When fetching from cache (force_cached=True), the totals query should still be
-    normalized so its cache key matches the cached entry, but the totals query should
-    not be executed.
+    A normalized totals dependency and its limited public producer use distinct cache
+    identities, without executing either source when both entries are cached.
     """
     from superset.common.query_object import QueryObject
 
@@ -1361,7 +1360,7 @@ def test_force_cached_normalizes_totals_query_row_limit():
             ):
                 processor.get_payload(cache_query_context=False, force_cached=True)
 
-    assert captured_limits == [None], "Totals query should be normalized before caching"
+    assert captured_limits == [None, 1000]
     assert totals_query.row_limit == 1000
     assert "contribution_totals" not in main_query.post_processing[0]["options"]
     mock_query_context.get_query_result.assert_not_called()

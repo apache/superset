@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import copy
 from contextlib import contextmanager
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
@@ -1065,26 +1064,42 @@ def test_legacy_chart_annotation_records_all_source_phases() -> None:
     assert result == payload["data"]
 
 
-def test_contribution_totals_are_reused_without_mutating_queries() -> None:
+def test_contribution_dependency_does_not_replace_public_producer() -> None:
     datasource = MagicMock()
+    annotation = {
+        "annotationType": "EVENT",
+        "name": "release",
+        "sourceType": "NATIVE",
+        "value": 7,
+    }
     main_query = QueryObject(
         datasource=datasource,
+        annotation_layers=[annotation],
         columns=["region"],
         metrics=["sales"],
         row_limit=100,
+        row_offset=4,
+        is_timeseries=True,
         post_processing=[{"operation": "contribution", "options": {}}],
     )
     totals_query = QueryObject(
         datasource=datasource,
+        annotation_layers=[annotation],
         columns=[],
         metrics=["sales"],
         row_limit=100,
+        row_offset=4,
+        is_timeseries=True,
+        orderby=[("sales", False)],
+        series_limit=5,
+        series_limit_metric="sales",
+        group_others_when_limit_reached=True,
     )
     query_context = MagicMock()
     query_context.queries = [main_query, totals_query]
     query_context.result_type = ChartDataResultType.FULL
     processor = QueryContextProcessor(query_context)
-    observed_queries: list[tuple[list[Any], int | None]] = []
+    observed_queries: list[tuple[ChartDataResultType, QueryObject, bool]] = []
 
     def acquire(
         result_type: ChartDataResultType,
@@ -1093,7 +1108,169 @@ def test_contribution_totals_are_reused_without_mutating_queries() -> None:
         force_cached: bool,
         **kwargs: Any,
     ) -> AcquiredQuery:
-        observed_queries.append((copy.deepcopy(query.post_processing), query.row_limit))
+        observed_queries.append((result_type, query, kwargs["detect_currency_value"]))
+        value = 100.0 if not query.columns else 1.0
+        return acquired_query(query, pd.DataFrame({"sales": [value]}))
+
+    def materialize(_: MagicMock, acquired: AcquiredQuery) -> QueryDataResult:
+        return QueryDataResult(
+            {
+                "columns": acquired.query_obj.columns,
+                "row_limit": acquired.query_obj.row_limit,
+            },
+            query_timing(),
+        )
+
+    with (
+        patch(
+            "superset.common.query_context_processor.acquire_query_data",
+            side_effect=acquire,
+        ),
+        patch(
+            "superset.common.query_context_processor.materialize_acquired_query",
+            side_effect=materialize,
+        ),
+    ):
+        result = processor._execute_query_plan(False, True)
+
+    assert len(observed_queries) == 3
+    dependency_result_type, dependency_query, dependency_detect_currency = (
+        observed_queries[0]
+    )
+    assert dependency_result_type == ChartDataResultType.FULL
+    assert dependency_query.result_type == ChartDataResultType.FULL
+    assert dependency_query.row_limit is None
+    assert dependency_query.row_offset == 0
+    assert dependency_query.is_timeseries is False
+    assert dependency_query.orderby == []
+    assert dependency_query.series_limit == 0
+    assert dependency_query.series_limit_metric is None
+    assert dependency_query.group_others_when_limit_reached is False
+    assert dependency_query.annotation_layers == []
+    assert dependency_detect_currency is False
+
+    _, consumer_query, consumer_detect_currency = observed_queries[1]
+    assert consumer_query.post_processing[0]["options"]["contribution_totals"] == {
+        "sales": 100.0
+    }
+    assert consumer_detect_currency is True
+
+    producer_result_type, producer_query, producer_detect_currency = observed_queries[2]
+    assert producer_result_type == ChartDataResultType.FULL
+    assert producer_query is totals_query
+    assert producer_detect_currency is True
+    assert result[1].payload == {"columns": [], "row_limit": 100}
+
+    assert totals_query.row_limit == 100
+    assert totals_query.row_offset == 4
+    assert totals_query.is_timeseries is True
+    assert totals_query.annotation_layers == [annotation]
+    assert "contribution_totals" not in main_query.post_processing[0]["options"]
+
+
+@pytest.mark.parametrize("materialize", [True, False])
+def test_contribution_dependency_reuses_exact_public_producer(
+    materialize: bool,
+) -> None:
+    datasource = MagicMock()
+    main_query = QueryObject(
+        datasource=datasource,
+        columns=["region"],
+        metrics=["sales"],
+        contribution_totals_query_index=1,
+        post_processing=[{"operation": "contribution", "options": {}}],
+    )
+    totals_query = QueryObject(datasource=datasource, columns=[], metrics=["sales"])
+    query_context = MagicMock()
+    query_context.queries = [main_query, totals_query]
+    query_context.result_type = ChartDataResultType.FULL
+    processor = QueryContextProcessor(query_context)
+    observed_queries: list[tuple[QueryObject, bool]] = []
+
+    def acquire(
+        result_type: ChartDataResultType,
+        context: MagicMock,
+        query: QueryObject,
+        force_cached: bool,
+        **kwargs: Any,
+    ) -> AcquiredQuery:
+        observed_queries.append((query, kwargs["detect_currency_value"]))
+        value = 100.0 if not query.columns else 1.0
+        return acquired_query(query, pd.DataFrame({"sales": [value]}))
+
+    completed = QueryDataResult({"status": "success"}, query_timing())
+    with (
+        patch(
+            "superset.common.query_context_processor.acquire_query_data",
+            side_effect=acquire,
+        ),
+        patch(
+            "superset.common.query_context_processor.materialize_acquired_query",
+            return_value=completed,
+        ) as materialize_result,
+        patch(
+            "superset.common.query_context_processor.cache_acquired_query",
+            return_value=completed,
+        ) as cache_only,
+    ):
+        result = processor._execute_query_plan(False, materialize)
+
+    assert len(observed_queries) == 2
+    assert observed_queries[0][0] is totals_query
+    assert observed_queries[1][0].columns == ["region"]
+    assert [detect_currency for _, detect_currency in observed_queries] == [
+        materialize,
+        materialize,
+    ]
+    selected_renderer = materialize_result if materialize else cache_only
+    unused_renderer = cache_only if materialize else materialize_result
+    assert selected_renderer.call_count == 2
+    unused_renderer.assert_not_called()
+    assert result == (completed, completed)
+
+
+@pytest.mark.parametrize(
+    ("producer_result_type", "reusable"),
+    [
+        (ChartDataResultType.RESULTS, True),
+        (ChartDataResultType.POST_PROCESSED, True),
+        (ChartDataResultType.SAMPLES, False),
+        (ChartDataResultType.DRILL_DETAIL, False),
+    ],
+)
+def test_contribution_producer_reuse_respects_result_preparation(
+    producer_result_type: ChartDataResultType,
+    reusable: bool,
+) -> None:
+    datasource = MagicMock()
+    main_query = QueryObject(
+        datasource=datasource,
+        columns=["region"],
+        metrics=["sales"],
+        result_type=ChartDataResultType.FULL,
+        contribution_totals_query_index=1,
+        post_processing=[{"operation": "contribution", "options": {}}],
+    )
+    totals_query = QueryObject(
+        datasource=datasource,
+        columns=[],
+        metrics=["sales"],
+        result_type=producer_result_type,
+    )
+    query_context = MagicMock()
+    query_context.queries = [main_query, totals_query]
+    query_context.result_type = ChartDataResultType.FULL
+    processor = QueryContextProcessor(query_context)
+    observed_queries: list[tuple[ChartDataResultType, QueryObject]] = []
+
+    def acquire(
+        result_type: ChartDataResultType,
+        context: MagicMock,
+        query: QueryObject,
+        force_cached: bool,
+        **kwargs: Any,
+    ) -> AcquiredQuery:
+        observed_queries.append((result_type, query))
         value = 100.0 if not query.columns else 1.0
         return acquired_query(query, pd.DataFrame({"sales": [value]}))
 
@@ -1107,24 +1284,80 @@ def test_contribution_totals_are_reused_without_mutating_queries() -> None:
             "superset.common.query_context_processor.materialize_acquired_query",
             return_value=completed,
         ),
+    ):
+        processor._execute_query_plan(False, True)
+
+    if reusable:
+        assert len(observed_queries) == 2
+        assert observed_queries[0] == (producer_result_type, totals_query)
+    else:
+        assert len(observed_queries) == 3
+        dependency_result_type, dependency_query = observed_queries[0]
+        assert dependency_result_type == ChartDataResultType.FULL
+        assert dependency_query.result_type == ChartDataResultType.FULL
+        assert observed_queries[2] == (producer_result_type, totals_query)
+    assert totals_query.result_type == producer_result_type
+
+
+def test_failed_dependency_does_not_replace_special_producer_response() -> None:
+    datasource = MagicMock()
+    main_query = QueryObject(
+        datasource=datasource,
+        columns=["region"],
+        metrics=["sales"],
+        result_type=ChartDataResultType.FULL,
+        contribution_totals_query_index=1,
+        post_processing=[{"operation": "contribution", "options": {}}],
+    )
+    totals_query = QueryObject(
+        datasource=datasource,
+        columns=[],
+        metrics=["sales"],
+        result_type=ChartDataResultType.SAMPLES,
+    )
+    query_context = MagicMock()
+    query_context.queries = [main_query, totals_query]
+    query_context.result_type = ChartDataResultType.FULL
+    processor = QueryContextProcessor(query_context)
+    observed_result_types: list[ChartDataResultType] = []
+
+    def acquire(
+        result_type: ChartDataResultType,
+        context: MagicMock,
+        query: QueryObject,
+        force_cached: bool,
+        **kwargs: Any,
+    ) -> AcquiredQuery:
+        observed_result_types.append(result_type)
+        status = (
+            QueryStatus.FAILED
+            if result_type == ChartDataResultType.FULL
+            else QueryStatus.SUCCESS
+        )
+        return acquired_query(query, pd.DataFrame({"sales": []}), status)
+
+    completed = QueryDataResult({"status": "success"}, query_timing())
+    with (
         patch(
-            "superset.common.query_context_processor.cache_acquired_query",
+            "superset.common.query_context_processor.acquire_query_data",
+            side_effect=acquire,
+        ),
+        patch(
+            "superset.common.query_context_processor.materialize_acquired_query",
             return_value=completed,
         ),
     ):
-        materialized = processor._execute_query_plan(False, True)
-        materialized_queries = list(observed_queries)
-        observed_queries.clear()
-        cached = processor._execute_query_plan(False, False)
+        result = processor._execute_query_plan(False, True)
 
-    assert len(materialized) == len(cached) == 2
-    assert observed_queries == materialized_queries
-    assert observed_queries[0] == ([], None)
-    assert observed_queries[1][0][0]["options"]["contribution_totals"] == {
-        "sales": 100.0
+    assert observed_result_types == [
+        ChartDataResultType.FULL,
+        ChartDataResultType.SAMPLES,
+    ]
+    assert result[0].payload == {
+        "error": "Contribution totals query failed",
+        "status": QueryStatus.FAILED,
     }
-    assert totals_query.row_limit == 100
-    assert "contribution_totals" not in main_query.post_processing[0]["options"]
+    assert result[1] == completed
 
 
 def test_legacy_contribution_uses_first_equivalent_totals_query() -> None:
