@@ -273,7 +273,7 @@
     "@storybook/test-runner": "0.24.4",
     "@svgr/webpack": "^8.1.0",
     "@swc/core": "^1.15.43",
-    "@swc/plugin-emotion": "^14.14.1",
+    "@swc/plugin-emotion": "^14.15.0",
     "@swc/plugin-transform-imports": "^12.5.0",
     "@testing-library/dom": "^9.3.4",
     "@testing-library/jest-dom": "^6.9.1",
