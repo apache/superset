@@ -173,7 +173,5 @@ test('getRelatedCharts returns empty array when the filter is undefined', () => 
   // A native filter can transiently disappear from the redux map (e.g. right
   // after saving a chart customization) while it is still hovered/focused.
   // Guard against reading .scope on undefined so the dashboard doesn't crash.
-  expect(
-    getRelatedCharts('missing', undefined as unknown as Filter, slices),
-  ).toEqual([]);
+  expect(getRelatedCharts('missing', undefined, slices)).toEqual([]);
 });

@@ -84,7 +84,7 @@ function getRelatedChartsForCrossFilter(
 
 export function getRelatedCharts(
   filterKey: string,
-  filter: AppliedNativeFilterType | AppliedCrossFilterType | Filter,
+  filter: AppliedNativeFilterType | AppliedCrossFilterType | Filter | undefined,
   slices: Record<string, Slice>,
 ) {
   let related: number[] = [];
