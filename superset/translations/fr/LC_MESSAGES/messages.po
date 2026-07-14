@@ -2644,7 +2644,7 @@ msgid ""
 "defined based on the min/max of the data. Note that this feature will "
 "only expand the axis range. It won't narrow the data's extent."
 msgstr ""
-"Limites de l'axe des ordonnées. Lorsqu'elles sont laissées vides, les "
+"Limites de l'axe Y. Lorsqu'elles sont laissées vides, les "
 "limites sont définies dynamiquement sur la base des valeurs min/max des "
 "données. Notez que cette fonction ne fait qu'étendre la plage de l'axe. "
 "Elle ne réduira pas l'étendue des données."
@@ -2665,7 +2665,7 @@ msgid ""
 "feature will only expand the axis range. It won't narrow the data's "
 "extent."
 msgstr ""
-"Limites de l'axe des ordonnées principal. Lorsqu'elles sont laissées "
+"Limites de l'axe Y principal. Lorsqu'elles sont laissées "
 "vides, les limites sont définies dynamiquement sur la base des valeurs "
 "min/max des données. Notez que cette fonction ne fait qu'étendre la plage"
 " de l'axe. Elle ne réduira pas l'étendue des données."
@@ -5470,7 +5470,7 @@ msgid "Dimension to use on x-axis."
 msgstr "Dimension à utiliser sur l’axe X."
 
 msgid "Dimension to use on y-axis."
-msgstr "Dimension à utiliser sur l’axe des ordonnées."
+msgstr "Dimension à utiliser sur l’axe Y."
 
 msgid "Dimension values"
 msgstr "Valeurs des dimensions"
@@ -8618,16 +8618,16 @@ msgid "Logarithmic axis"
 msgstr "Axe logarithmique"
 
 msgid "Logarithmic scale on primary y-axis"
-msgstr "Échelle logarithmique sur l'axe des ordonnées primaire"
+msgstr "Échelle logarithmique sur l'axe Y primaire"
 
 msgid "Logarithmic scale on secondary y-axis"
-msgstr "Échelle logarithmique sur axe des ordonnées secondaire"
+msgstr "Échelle logarithmique sur axe Y secondaire"
 
 msgid "Logarithmic x-axis"
 msgstr "Axe X logarithmique"
 
 msgid "Logarithmic y-axis"
-msgstr "Axe des ordonnées logarithmique"
+msgstr "Axe Y logarithmique"
 
 msgid "Login"
 msgstr "Connexion"
@@ -8731,7 +8731,7 @@ msgid "Mandatory"
 msgstr "Obligatoire"
 
 msgid "Manually set min/max values for the y-axis."
-msgstr "Définir manuellement les valeurs min/max pour l’axe des ordonnées."
+msgstr "Définir manuellement les valeurs min/max pour l’axe Y."
 
 msgid "Map"
 msgstr "Carte"
@@ -10735,10 +10735,10 @@ msgid "Primary key"
 msgstr "Clé primaire"
 
 msgid "Primary or secondary y-axis"
-msgstr "Axe des ordonnées primaire ou secondaire"
+msgstr "Axe Y primaire ou secondaire"
 
 msgid "Primary y-axis Bounds"
-msgstr "Limites de l’axe des ordonnées primaires"
+msgstr "Limites de l’axe Y primaires"
 
 msgid "Primary y-axis format"
 msgstr "Format de l’axe primaire des ordonnées"
@@ -11956,13 +11956,13 @@ msgstr ""
 "Format de devise secondaire"
 
 msgid "Secondary y-axis Bounds"
-msgstr "Limites secondaires de l'axe des ordonnées"
+msgstr "Limites secondaires de l'axe Y"
 
 msgid "Secondary y-axis format"
-msgstr "Format secondaire de l’axe des ordonnées"
+msgstr "Format secondaire de l’axe Y"
 
 msgid "Secondary y-axis title"
-msgstr "Titre secondaire de l’axe des ordonnées"
+msgstr "Titre secondaire de l’axe Y"
 
 #, python-format
 msgid "Seconds %s"
@@ -12799,13 +12799,13 @@ msgid "Show X-axis"
 msgstr "Afficher l’axe X"
 
 msgid "Show Y-axis"
-msgstr "Afficher l’axe des ordonnées"
+msgstr "Afficher l’axe Y"
 
 msgid ""
 "Show Y-axis on the sparkline. Will display the manually set min/max if "
 "set or min/max values in the data otherwise."
 msgstr ""
-"Afficher l’axe des ordonnées sur la ligne de la bougie. Les valeurs "
+"Afficher l’axe Y sur la ligne de la bougie. Les valeurs "
 "min/max définies manuellement s’afficheront si elles sont définies ou "
 "autrement min/max dans les données."
 
@@ -13178,10 +13178,10 @@ msgid "Sort Series By"
 msgstr "Trier les séries par"
 
 msgid "Sort X Axis"
-msgstr "Trier l’axe des absisses"
+msgstr "Trier l’axe X"
 
 msgid "Sort Y Axis"
-msgstr "Trier l’axe des ordonnées"
+msgstr "Trier l’axe Y"
 
 msgid "Sort ascending"
 msgstr "Trier par ordre croissant"
@@ -13358,13 +13358,13 @@ msgid "Start date included in time range"
 msgstr "Date de début incluse de l'intervalle de temps"
 
 msgid "Start y-axis at 0"
-msgstr "Commencer l’axe des ordonnées à 0"
+msgstr "Commencer l’axe Y à 0"
 
 msgid ""
 "Start y-axis at zero. Uncheck to start y-axis at minimum value in the "
 "data."
 msgstr ""
-"Commencer l’axe des ordonnées à zéro. Décochez pour démarrer l’axe des "
+"Commencer l’axe Y à zéro. Décochez pour démarrer l’axe des "
 "ordonnées à la valeur minimale dans les données."
 
 msgid "Started"
@@ -16039,7 +16039,7 @@ msgstr "Tronquer l’axe des absisses"
 
 msgid "Truncate Y Axis. Can be overridden by specifying a min or max bound."
 msgstr ""
-"Tronquer l’axe des ordonnées. Peut être modifié en spécifiant une limite "
+"Tronquer l’axe Y. Peut être modifié en spécifiant une limite "
 "minimale ou maximale."
 
 msgid "Truncate long cells to the \"min width\" set above"
@@ -16503,7 +16503,7 @@ msgid "Use a log scale for the X-axis"
 msgstr "Utiliser une échelle de journalisation pour l’axe des absisses"
 
 msgid "Use a log scale for the Y-axis"
-msgstr "Utiliser une échelle de journalisation pour l’axe des ordonnées"
+msgstr "Utiliser une échelle de journalisation pour l’axe Y"
 
 msgid "Use an encrypted connection to the database"
 msgstr "Utiliser une connexion cryptée vers la base de données"
@@ -16870,7 +16870,7 @@ msgid ""
 "showcased using bubble color."
 msgstr ""
 "Visualise une mesure sur trois dimensions de données dans un seul "
-"graphique (axe des absisses, axe des ordonnées et taille des bulles). Les"
+"graphique (axe des absisses, axe Y et taille des bulles). Les"
 " bulles du même groupe peuvent être présentées en utilisant la couleur "
 "des bulles."
 
@@ -17118,7 +17118,7 @@ msgid ""
 "Format is forced to `.1%`"
 msgstr ""
 "Lorsque « Type de calcul » vaut « Pourcentage de changement », le format "
-"de l'axe des ordonnées est à forcé à « .1% »"
+"de l'axe Y est à forcé à « .1% »"
 
 msgid "When a secondary metric is provided, a linear color scale is used."
 msgstr ""
@@ -17133,7 +17133,7 @@ msgstr ""
 msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
 "values of your data"
-msgstr "Affichage des valeurs min et max de l'axe des ordonnées"
+msgstr "Si activé, affiche dans l'axe les valeurs minimal et maximal de vos données "
 
 msgid "When enabled, users are able to visualize SQL Lab results in Explore."
 msgstr ""
@@ -17284,7 +17284,7 @@ msgid "Whether to display the min and max values of the X-axis"
 msgstr "Affichage ou non des valeurs min et max de l’axe des absisses"
 
 msgid "Whether to display the min and max values of the Y-axis"
-msgstr "Affichage ou non des valeurs min et max de l’axe des ordonnées"
+msgstr "Affichage ou non des valeurs min et max de l’axe Y"
 
 #, fuzzy
 msgid "Whether to display the numbered column"
@@ -17499,25 +17499,25 @@ msgid "Y 2 bounds"
 msgstr "Limites ordonnées 2"
 
 msgid "Y Axis"
-msgstr "Axe des ordonnées"
+msgstr "Axe Y"
 
 msgid "Y Axis 2 Bounds"
-msgstr "Limites de l’axe des ordonnées 2"
+msgstr "Limites de l’axe Y 2"
 
 msgid "Y Axis Bounds"
-msgstr "Limites de l’axe des ordonnées"
+msgstr "Limites de l’axe Y"
 
 msgid "Y Axis Format"
-msgstr "Format de l'axe des ordonnées"
+msgstr "Format de l'axe Y"
 
 msgid "Y Axis Label"
-msgstr "Étiquette de l’axe des ordonnées"
+msgstr "Étiquette de l’axe Y"
 
 msgid "Y Axis Title"
-msgstr "Titre de l’axe des ordonnées"
+msgstr "Titre de l’axe Y"
 
 msgid "Y Axis Title Margin"
-msgstr "Marge du titre de l'axe des ordonnées"
+msgstr "Marge du titre de l'axe Y"
 
 msgid "Y Axis Title Position"
 msgstr "Position du titre de l'axe des ordonées"
@@ -17532,19 +17532,19 @@ msgid "Y bounds"
 msgstr "Limites des ordonnées"
 
 msgid "Y-Axis"
-msgstr "Axe des ordonnées"
+msgstr "Axe Y"
 
 msgid "Y-Axis Sort Ascending"
-msgstr "Tri croissant sur l'axe des ordonnées"
+msgstr "Tri croissant sur l'axe Y"
 
 msgid "Y-Axis Sort By"
-msgstr "Axe des ordonnées – Trier par"
+msgstr "Axe Y – Trier par"
 
 msgid "Y-axis"
-msgstr "Axe des ordonnées"
+msgstr "Axe Y"
 
 msgid "Y-axis bounds"
-msgstr "Limites de l’axe des ordonnées"
+msgstr "Limites de l’axe Y"
 
 msgid "Y-scale interval"
 msgstr "Intervalle d'échelle Y"
