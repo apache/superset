@@ -20,7 +20,6 @@
 import json  # noqa: TID251
 from types import SimpleNamespace
 from typing import Any, Callable, Optional
-from typing import Any, Optional
 from unittest.mock import MagicMock
 
 import pytest
