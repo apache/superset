@@ -29,12 +29,17 @@ test('calls onClick when clicked and not disabled', () => {
 
   expect(onClick).toHaveBeenCalledTimes(1);
   // aria-disabled is only rendered when the `disabled` prop is set
-  expect(screen.getByTestId('my-button')).not.toHaveAttribute('aria-disabled', 'true');
+  expect(screen.getByTestId('my-button')).not.toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
 });
 
 test('does not call onClick and sets aria-disabled when disabled', () => {
   const onClick = jest.fn();
-  render(<IconButton icon={icon} onClick={onClick} disabled data-test="my-button" />);
+  render(
+    <IconButton icon={icon} onClick={onClick} disabled data-test="my-button" />,
+  );
 
   const button = screen.getByTestId('my-button');
   fireEvent.click(button);
