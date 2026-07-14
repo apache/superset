@@ -17,6 +17,7 @@
 
 """Tests for the manage_dashboard_certification MCP tool."""
 
+from collections.abc import Iterator
 from unittest.mock import Mock, patch
 
 import pytest
@@ -34,7 +35,7 @@ def mcp_server() -> object:
 
 
 @pytest.fixture(autouse=True)
-def mock_auth():
+def mock_auth() -> Iterator[Mock]:
     """Mock authentication for all tests in this module."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
         with patch("superset.security_manager.raise_for_editorship"):
@@ -227,3 +228,33 @@ class TestManageDashboardCertification:
             certification_details="<script>alert(1)</script>Verified details",
         )
         assert "<script>" not in (request.certification_details or "")
+
+    @pytest.mark.asyncio()
+    async def test_certified_by_sanitized_to_empty_rejected(
+        self, mcp_server: object
+    ) -> None:
+        """HTML-only input must not be silently treated as a clear request."""
+        from pydantic import ValidationError
+
+        from superset.mcp_service.dashboard.schemas import (
+            ManageDashboardCertificationRequest,
+        )
+
+        with pytest.raises(ValidationError, match="explicit empty string"):
+            ManageDashboardCertificationRequest(identifier=1, certified_by="<b></b>")
+
+    @pytest.mark.asyncio()
+    async def test_certification_details_sanitized_to_empty_rejected(
+        self, mcp_server: object
+    ) -> None:
+        """HTML-only input must not be silently treated as a clear request."""
+        from pydantic import ValidationError
+
+        from superset.mcp_service.dashboard.schemas import (
+            ManageDashboardCertificationRequest,
+        )
+
+        with pytest.raises(ValidationError, match="explicit empty string"):
+            ManageDashboardCertificationRequest(
+                identifier=1, certification_details="<script>alert(1)</script>"
+            )

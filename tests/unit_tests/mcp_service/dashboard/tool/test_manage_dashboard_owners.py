@@ -22,6 +22,7 @@ Subject-based model apache/superset#38831 introduced, replacing the legacy
 ``owners`` relationship).
 """
 
+from collections.abc import Iterator
 from unittest.mock import Mock, patch
 
 import pytest
@@ -42,7 +43,7 @@ def mcp_server() -> object:
 
 
 @pytest.fixture(autouse=True)
-def mock_auth():
+def mock_auth() -> Iterator[Mock]:
     """Mock authentication for all tests in this module."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
         with patch("superset.security_manager.raise_for_editorship"):

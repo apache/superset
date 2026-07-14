@@ -49,7 +49,7 @@ from superset.mcp_service.system.schemas import serialize_subject_object
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.subjects.types import SubjectType
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def _find_and_authorize_dashboard(
@@ -92,10 +92,7 @@ def _find_and_authorize_dashboard(
 
 def _dashboard_url(dashboard: Any) -> str:
     """Build the user-facing dashboard URL, preferring slug over id."""
-    return (
-        f"{get_superset_base_url()}/superset/dashboard/"
-        f"{dashboard.slug or dashboard.id}/"
-    )
+    return f"{get_superset_base_url()}/dashboard/{dashboard.slug or dashboard.id}/"
 
 
 def _viewer_role_ids(dashboard: Any) -> list[int]:
@@ -116,12 +113,13 @@ def _other_viewers(dashboard: Any) -> list[Any]:
 
 def _compute_new_role_ids(
     dashboard: Any, request: ManageDashboardRolesRequest, viewers_enabled: bool
-) -> tuple[list[int] | None, ManageDashboardRolesResponse | None]:
+) -> tuple[list[int] | None, list[int] | None, ManageDashboardRolesResponse | None]:
     """Load current viewer roles and apply add/remove operations.
 
-    Returns ``(new_role_ids, None)`` on success or ``(None, error_response)``
-    when the initial lazy-load fails or a removal targets an unassigned
-    role.
+    Returns ``(current_role_ids, new_role_ids, None)`` on success or
+    ``(None, None, error_response)`` when the initial lazy-load fails or a
+    removal targets an unassigned role. The pre-call ``current_role_ids``
+    is returned so the caller can report true added/removed deltas.
     """
     try:
         current_role_ids = _viewer_role_ids(dashboard)
@@ -132,19 +130,27 @@ def _compute_new_role_ids(
             db_err,
             exc_info=True,
         )
-        return None, ManageDashboardRolesResponse(
-            viewers_enabled=viewers_enabled,
-            error="Failed to load dashboard roles due to a database error.",
+        return (
+            None,
+            None,
+            ManageDashboardRolesResponse(
+                viewers_enabled=viewers_enabled,
+                error="Failed to load dashboard roles due to a database error.",
+            ),
         )
 
     unknown_removals = sorted(set(request.remove_role_ids) - set(current_role_ids))
     if unknown_removals:
-        return None, ManageDashboardRolesResponse(
-            viewers_enabled=viewers_enabled,
-            error=(
-                f"Cannot remove role IDs that are not currently assigned: "
-                f"{unknown_removals}. Current role IDs: "
-                f"{sorted(current_role_ids)}."
+        return (
+            None,
+            None,
+            ManageDashboardRolesResponse(
+                viewers_enabled=viewers_enabled,
+                error=(
+                    f"Cannot remove role IDs that are not currently assigned: "
+                    f"{unknown_removals}. Current role IDs: "
+                    f"{sorted(current_role_ids)}."
+                ),
             ),
         )
 
@@ -157,7 +163,7 @@ def _compute_new_role_ids(
         if role_id not in new_role_ids:
             new_role_ids.append(role_id)
 
-    return new_role_ids, None
+    return current_role_ids, new_role_ids, None
 
 
 @tool(
@@ -226,11 +232,12 @@ def manage_dashboard_roles(
             "control until it is enabled."
         )
 
-    new_role_ids, compute_error = _compute_new_role_ids(
+    current_role_ids, new_role_ids, compute_error = _compute_new_role_ids(
         dashboard, request, viewers_enabled
     )
     if compute_error is not None:
         return compute_error
+    assert current_role_ids is not None  # narrows for mypy
     assert new_role_ids is not None  # narrows for mypy
 
     try:
@@ -288,12 +295,15 @@ def manage_dashboard_roles(
             and (info := serialize_subject_object(subject)) is not None
         ],
         dashboard_url=_dashboard_url(dashboard),
-        added_role_ids=sorted(final_role_ids & set(request.add_role_ids)),
-        removed_role_ids=[
-            role_id
-            for role_id in request.remove_role_ids
-            if role_id not in final_role_ids
-        ],
+        # True deltas against the PRE-call state — not just membership in
+        # the request — so a role that was already assigned (or already
+        # absent) is never misreported as added/removed.
+        added_role_ids=sorted(
+            (final_role_ids & set(request.add_role_ids)) - set(current_role_ids)
+        ),
+        removed_role_ids=sorted(
+            (set(request.remove_role_ids) & set(current_role_ids)) - final_role_ids
+        ),
         viewers_enabled=viewers_enabled,
         warnings=warnings,
     )

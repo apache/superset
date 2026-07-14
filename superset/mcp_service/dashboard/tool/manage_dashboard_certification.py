@@ -40,7 +40,7 @@ from superset.mcp_service.dashboard.schemas import (
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def _find_and_authorize_dashboard(
@@ -83,10 +83,7 @@ def _find_and_authorize_dashboard(
 
 def _dashboard_url(dashboard: Any) -> str:
     """Build the user-facing dashboard URL, preferring slug over id."""
-    return (
-        f"{get_superset_base_url()}/superset/dashboard/"
-        f"{dashboard.slug or dashboard.id}/"
-    )
+    return f"{get_superset_base_url()}/dashboard/{dashboard.slug or dashboard.id}/"
 
 
 @tool(

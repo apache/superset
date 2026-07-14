@@ -22,6 +22,7 @@ Subject-based model apache/superset#38831 introduced, replacing the legacy
 ``roles``/``DASHBOARD_RBAC`` relationship), gated by ``ENABLE_VIEWERS``.
 """
 
+from collections.abc import Iterator
 from unittest.mock import Mock, patch
 
 import pytest
@@ -42,7 +43,7 @@ def mcp_server() -> object:
 
 
 @pytest.fixture(autouse=True)
-def mock_auth():
+def mock_auth() -> Iterator[Mock]:
     """Mock authentication for all tests in this module."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
         with patch("superset.security_manager.raise_for_editorship"):
@@ -284,3 +285,36 @@ class TestManageDashboardRoles:
                     "manage_dashboard_roles",
                     {"request": {"identifier": 42}},
                 )
+
+    @patch(IS_FEATURE_ENABLED, return_value=True)
+    @patch(SUBJECTS_FROM_ROLES)
+    @patch(DAO_GET)
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio()
+    async def test_add_already_assigned_role_not_reported_as_added(
+        self,
+        mock_session: Mock,
+        mock_get: Mock,
+        mock_subjects_from_roles: Mock,
+        mock_flag: Mock,
+        mcp_server: object,
+    ) -> None:
+        """added_role_ids is a delta against the pre-call state, so a role
+        that was already assigned must not be reported as added."""
+        existing = _mock_subject(200, 5, "Analyst")
+        dash = _mock_dashboard(viewers=[existing])
+        mock_get.return_value = dash
+        mock_subjects_from_roles.return_value = [existing]
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "manage_dashboard_roles",
+                {"request": {"identifier": 42, "add_role_ids": [5]}},
+            )
+
+        payload = json.loads(result.content[0].text)
+        assert payload["added_role_ids"] == []
+        assert payload["removed_role_ids"] == []
+        # URL matches the sibling dashboard tools' /dashboard/... pattern.
+        assert payload["dashboard_url"].endswith("/dashboard/test-slug/")
+        assert "/superset/dashboard/" not in payload["dashboard_url"]

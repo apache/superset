@@ -1125,7 +1125,9 @@ class ManageDashboardOwnersRequest(BaseModel):
             raise ValueError(
                 "At least one of add_owner_ids or remove_owner_ids is required."
             )
-        overlap = sorted(set(self.add_owner_ids) & set(self.remove_owner_ids))
+        overlap: list[int] = sorted(
+            set(self.add_owner_ids) & set(self.remove_owner_ids)
+        )
         if overlap:
             raise ValueError(
                 "User IDs cannot appear in both add_owner_ids and "
@@ -1217,7 +1219,7 @@ class ManageDashboardRolesRequest(BaseModel):
             raise ValueError(
                 "At least one of add_role_ids or remove_role_ids is required."
             )
-        overlap = sorted(set(self.add_role_ids) & set(self.remove_role_ids))
+        overlap: list[int] = sorted(set(self.add_role_ids) & set(self.remove_role_ids))
         if overlap:
             raise ValueError(
                 "Role IDs cannot appear in both add_role_ids and "
@@ -1312,7 +1314,18 @@ class ManageDashboardCertificationRequest(BaseModel):
         """Sanitize certified_by to prevent XSS; it renders as a UI badge."""
         if v is None or v == "":
             return v
-        return sanitize_user_input(v, "certified_by", max_length=500, allow_empty=True)
+        sanitized: str | None = sanitize_user_input(
+            v, "certified_by", max_length=500, allow_empty=True
+        )
+        if not sanitized:
+            # Empty string means "clear the field", so an input that
+            # sanitizes down to nothing (HTML-only or whitespace-only) must
+            # not silently erase an existing certification.
+            raise ValueError(
+                "certified_by has no content left after sanitization; pass "
+                'an explicit empty string ("") to clear the field.'
+            )
+        return sanitized
 
     @field_validator("certification_details")
     @classmethod
@@ -1321,9 +1334,17 @@ class ManageDashboardCertificationRequest(BaseModel):
         same CertifiedBadge tooltip as certified_by."""
         if v is None or v == "":
             return v
-        return sanitize_user_input(
+        sanitized: str | None = sanitize_user_input(
             v, "certification_details", max_length=5000, allow_empty=True
         )
+        if not sanitized:
+            # Same guard as certified_by: only an explicit "" may clear.
+            raise ValueError(
+                "certification_details has no content left after "
+                'sanitization; pass an explicit empty string ("") to clear '
+                "the field."
+            )
+        return sanitized
 
 
 class ManageDashboardCertificationResponse(BaseModel):
