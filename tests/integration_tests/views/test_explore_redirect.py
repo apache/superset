@@ -28,10 +28,10 @@ failure mode the helper or its callers must close:
 - Loop guard via ``(endpoint, sorted_query_items)`` equality.
 - ``ExploreView.root`` owns the bare ``/explore/`` rule (registration order).
 - The sanctioned callers set is exactly ``{explore.py, core.py}``;
-  a fourth caller fails the static assertion.
+  a third caller fails the static assertion.
 """
 
-import re
+import ast
 from pathlib import Path
 from unittest import mock
 from urllib.parse import quote
@@ -301,21 +301,33 @@ class TestExploreRedirect(SupersetTestCase):
         """Exactly two files call the helper; a third must update this test.
 
         Pins the sanctioned-callers invariant via a source-tree scan so a
-        fourth caller landing without an explicit update fails CI. Mirrors
+        third caller landing without an explicit update fails CI. Mirrors
         the ``applicationRoot()`` and ``DIRECT_DOM_NAV_SANCTIONED`` patterns
         from the frontend L2 scanners.
         """
-        # Exclude the definition site by shape, not by path. Skipping
-        # `views/utils.py` wholesale (where the helper is defined) would also
-        # hide a genuine new *call* added inside that same module — the exact
-        # thing this scan exists to catch. The lookbehind drops only the
-        # `def get_explore_redirect_url(` line itself.
-        pattern = re.compile(r"(?<!def )\bget_explore_redirect_url\(")
+        # Scan the AST rather than raw text: only executable call sites count,
+        # so a mention of the helper in a comment, docstring, or string literal
+        # is not mistaken for a caller. This also excludes the definition site
+        # by shape instead of by path — `def get_explore_redirect_url` parses to
+        # a FunctionDef, not a Call — which keeps `views/utils.py` itself in
+        # scope. Skipping that module wholesale would hide a genuine new call
+        # added inside it, the exact thing this scan exists to catch.
         callers: set[str] = set()
         for path in (REPO_ROOT / "superset").rglob("*.py"):
-            text = path.read_text(encoding="utf-8")
-            if pattern.search(text):
-                callers.add(str(path.relative_to(REPO_ROOT)).replace("\\", "/"))
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                func = node.func
+                if isinstance(func, ast.Name):
+                    called = func.id
+                elif isinstance(func, ast.Attribute):
+                    called = func.attr
+                else:
+                    continue
+                if called == "get_explore_redirect_url":
+                    callers.add(str(path.relative_to(REPO_ROOT)).replace("\\", "/"))
+                    break
         assert callers == {
             "superset/views/explore.py",
             "superset/views/core.py",
