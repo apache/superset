@@ -19,7 +19,6 @@
 import { action } from 'storybook/actions';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import { supersetTheme } from '@apache-superset/core/theme';
 import RangeFilterPlugin from './index';
 import transformProps from './transformProps';
 
@@ -36,7 +35,6 @@ export const range = ({ width, height }: { width: number; height: number }) => (
     chartType="filter_range"
     width={width}
     height={height}
-    theme={supersetTheme}
     queriesData={[{ data: [{ min: 10, max: 100 }] }]}
     filterState={{ value: [10, 70] }}
     formData={{

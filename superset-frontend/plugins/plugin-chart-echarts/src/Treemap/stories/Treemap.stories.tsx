@@ -18,7 +18,6 @@
  */
 
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/theme';
 import {
   EchartsTreemapChartPlugin,
   TreemapTransformProps,
@@ -54,7 +53,6 @@ export const Treemap = ({
   height: number;
 }) => (
   <SuperChart
-    theme={supersetTheme}
     chartType="echarts-treemap"
     width={width}
     height={height}

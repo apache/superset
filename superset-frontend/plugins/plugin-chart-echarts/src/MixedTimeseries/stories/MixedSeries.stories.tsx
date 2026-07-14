@@ -18,7 +18,6 @@
  */
 
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/theme';
 import {
   EchartsTimeseriesChartPlugin,
   MixedTimeseriesTransformProps,
@@ -109,7 +108,6 @@ export const Timeseries = ({
   ];
   return (
     <SuperChart
-      theme={supersetTheme}
       chartType="mixed-timeseries"
       width={width}
       height={height}
@@ -262,7 +260,6 @@ export const WithNegativeNumbers = ({
   height: number;
 }) => (
   <SuperChart
-    theme={supersetTheme}
     chartType="mixed-timeseries"
     width={width}
     height={height}

@@ -18,7 +18,6 @@
  */
 
 import { SuperChart, VizType } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/theme';
 import { BulletChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3';
 import { dummyDatasource, withResizableChartDemo } from '@storybook-shared';
 import data from './data';
@@ -70,7 +69,6 @@ export const Basic = ({
   height: number;
 }) => (
   <SuperChart
-    theme={supersetTheme}
     chartType={VizType.Bullet}
     width={width}
     height={height}

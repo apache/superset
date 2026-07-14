@@ -18,7 +18,6 @@
  */
 
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/theme';
 import {
   EchartsSunburstChartPlugin,
   SunburstTransformProps,
@@ -52,7 +51,6 @@ export const Sunburst = ({
   height: number;
 }) => (
   <SuperChart
-    theme={supersetTheme}
     chartType="echarts-sunburst"
     width={width}
     height={height}

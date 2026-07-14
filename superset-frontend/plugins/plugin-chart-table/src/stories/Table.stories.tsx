@@ -19,7 +19,6 @@
 
 import memoizeOne from 'memoize-one';
 import { DataRecord, SuperChart, VizType } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/theme';
 import TableChartPlugin, {
   TableChartProps,
 } from '@superset-ui/plugin-chart-table';
@@ -145,7 +144,6 @@ function loadData(
 
 export const Basic = ({ width, height }: { width: number; height: number }) => (
   <SuperChart
-    theme={supersetTheme}
     chartType={VizType.Table}
     datasource={{
       columnFormats: {},
@@ -197,7 +195,6 @@ export const BigTable = ({
     <SuperChart
       chartType={VizType.Table}
       {...chartProps}
-      theme={supersetTheme}
       width={width}
       height={height}
     />

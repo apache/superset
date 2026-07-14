@@ -18,7 +18,6 @@
  */
 
 import { SuperChart, VizType } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/theme';
 import { PivotTableChartPlugin } from '@superset-ui/plugin-chart-pivot-table';
 import { basicFormData, basicData } from './testData';
 import { withResizableChartDemo } from '@storybook-shared';
@@ -93,7 +92,6 @@ export const Basic = ({
   colSubtotalPosition: string;
 }) => (
   <SuperChart
-    theme={supersetTheme}
     chartType={VizType.PivotTable}
     datasource={{
       columnFormats: {},

@@ -22,7 +22,6 @@ import {
   ChartDataProvider,
   SupersetClient,
 } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/theme';
 import { BigNumberChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import { WordCloudChartPlugin } from '@superset-ui/plugin-chart-word-cloud';
 
@@ -89,7 +88,6 @@ export const dataProvider = ({
               return (
                 <>
                   <SuperChart
-                    theme={supersetTheme}
                     chartType={visType}
                     formData={payload.formData}
                     height={Number(height)}

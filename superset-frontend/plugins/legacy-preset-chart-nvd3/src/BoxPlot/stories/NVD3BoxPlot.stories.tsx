@@ -18,7 +18,6 @@
  */
 
 import { SuperChart, VizType } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/theme';
 import { EchartsBoxPlotChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import { dummyDatasource, withResizableChartDemo } from '@storybook-shared';
 import data from './data';
@@ -66,7 +65,6 @@ export const Basic = ({
   height: number;
 }) => (
   <SuperChart
-    theme={supersetTheme}
     chartType="box-plot"
     width={width}
     height={height}

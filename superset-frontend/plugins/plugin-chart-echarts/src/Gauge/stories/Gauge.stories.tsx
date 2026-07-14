@@ -18,7 +18,6 @@
  */
 
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/theme';
 import {
   EchartsGaugeChartPlugin,
   GaugeTransformProps,
@@ -97,7 +96,6 @@ export const Gauge = ({
   endAngle: number;
 }) => (
   <SuperChart
-    theme={supersetTheme}
     chartType="echarts-gauge"
     width={width}
     height={height}

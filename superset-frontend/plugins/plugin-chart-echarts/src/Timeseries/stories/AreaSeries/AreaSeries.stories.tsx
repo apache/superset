@@ -22,7 +22,6 @@ import {
   getChartTransformPropsRegistry,
   VizType,
 } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/theme';
 import {
   EchartsAreaChartPlugin,
   TimeseriesTransformProps,
@@ -175,7 +174,6 @@ export const AreaSeries = ({
     .filter(row => forecastEnabled || !!row.Boston);
   return (
     <SuperChart
-      theme={supersetTheme}
       chartType={VizType.Area}
       width={width}
       height={height}
