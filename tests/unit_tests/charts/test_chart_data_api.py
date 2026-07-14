@@ -30,6 +30,7 @@ from superset.charts.data.dashboard_filter_context import (
     apply_dashboard_filter_context,
 )
 from superset.commands.chart.data.get_data_command import ChartDataExecutionOptions
+from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import (
     CacheWriteOutcome,
@@ -372,3 +373,19 @@ def test_async_cache_lookup_uses_typed_execution_options() -> None:
         ChartDataExecutionOptions(force_cached=True)
     )
     send_response.assert_called_once_with(execution)
+
+
+def test_chart_data_query_failure_returns_controlled_400(app: SupersetApp) -> None:
+    api = ChartDataRestApi.__new__(ChartDataRestApi)
+    command = MagicMock()
+    command.execute.side_effect = ChartDataQueryFailedError(
+        "Annotation layer with ID 8 was not found."
+    )
+
+    with app.test_request_context("/api/v1/chart/data"):
+        response = ChartDataRestApi._get_data_response.__wrapped__(api, command)
+
+    assert response.status_code == 400
+    assert json.loads(response.get_data(as_text=True)) == {
+        "message": "Annotation layer with ID 8 was not found."
+    }

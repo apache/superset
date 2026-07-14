@@ -1016,6 +1016,26 @@ def test_native_annotation_records_planning_execution_and_processing() -> None:
     ]
 
 
+def test_missing_native_annotation_layer_raises_validation_error() -> None:
+    existing_layer = MagicMock(id=7, annotation=[])
+    query = MagicMock(
+        annotation_layers=[
+            {"sourceType": "NATIVE", "value": 7, "name": "events"},
+            {"sourceType": "NATIVE", "value": 8, "name": "releases"},
+        ]
+    )
+
+    with patch(
+        "superset.common.query_context_processor.AnnotationLayerDAO.find_by_ids",
+        return_value=[existing_layer],
+    ):
+        with pytest.raises(
+            QueryObjectValidationError,
+            match="Annotation layer with ID 8 .*'releases'.* was not found",
+        ):
+            QueryContextProcessor.get_native_annotation_data(query)
+
+
 def test_legacy_chart_annotation_records_all_source_phases() -> None:
     phases: list[str] = []
 

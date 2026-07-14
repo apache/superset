@@ -846,7 +846,7 @@ class QueryContextProcessor:
             }
 
         with source_phase("processing"):
-            annotation_data = {}
+            annotation_data: dict[str, Any] = {}
             columns = [
                 "start_dttm",
                 "end_dttm",
@@ -855,11 +855,22 @@ class QueryContextProcessor:
                 "json_metadata",
             ]
             for layer in annotation_layers:
+                layer_id = layer["value"]
+                layer_name = layer["name"]
+                if (annotations := layer_objects.get(layer_id)) is None:
+                    raise QueryObjectValidationError(
+                        _(
+                            "Annotation layer with ID %(layer_id)s "
+                            "(referenced by '%(layer_name)s') was not found.",
+                            layer_id=layer_id,
+                            layer_name=layer_name,
+                        )
+                    )
                 records = [
                     {column: getattr(annotation, column) for column in columns}
-                    for annotation in layer_objects[layer["value"]]
+                    for annotation in annotations
                 ]
-                annotation_data[layer["name"]] = {
+                annotation_data[layer_name] = {
                     "columns": columns,
                     "records": records,
                 }
