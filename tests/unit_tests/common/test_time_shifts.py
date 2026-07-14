@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import pytest
 from pandas import DataFrame, Series, Timestamp
 from pandas.testing import assert_frame_equal
 from pytest import fixture, mark  # noqa: PT013
@@ -24,7 +23,6 @@ from superset.common.query_context import QueryContext
 from superset.common.query_context_processor import QueryContextProcessor
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import TimeGrain
-from superset.exceptions import QueryObjectValidationError
 from superset.models.helpers import ExploreMixin
 
 # Create processor and bind ExploreMixin methods to datasource
@@ -50,6 +48,9 @@ _datasource.join_offset_dfs = ExploreMixin.join_offset_dfs.__get__(_datasource)
 _datasource.is_valid_date_range = ExploreMixin.is_valid_date_range.__get__(_datasource)
 _datasource._determine_join_keys = ExploreMixin._determine_join_keys.__get__(
     _datasource
+)
+_datasource._align_offset_without_time_grain = (
+    ExploreMixin._align_offset_without_time_grain.__get__(_datasource)
 )
 _datasource._perform_join = ExploreMixin._perform_join.__get__(_datasource)
 _datasource._apply_cleanup_logic = ExploreMixin._apply_cleanup_logic.__get__(
@@ -334,18 +335,215 @@ def test_join_offset_dfs_totals_query_no_dimensions():
     assert_frame_equal(expected, result)
 
 
-def test_join_offset_dfs_raises_without_time_grain():
-    """Time comparison with relative offsets requires a time grain."""
-    df = DataFrame({"ds": [Timestamp("2021-01-01")], "D": [1]})
-    offset_df = DataFrame({"ds": [Timestamp("2021-02-01")], "B": [5]})
+def test_join_offset_dfs_no_time_grain_aligns_relative_offset():
+    """
+    Without a time grain, a relative offset joins on the exact shifted
+    timestamps instead of raising, so saved charts without a grain render
+    with a correctly aligned comparison series.
+    """
+    df = DataFrame(
+        {
+            "ds": [Timestamp("2021-01-01"), Timestamp("2021-02-01")],
+            "D": [1, 2],
+        }
+    )
+    offset_df = DataFrame(
+        {
+            "ds": [Timestamp("2020-01-01"), Timestamp("2020-02-01")],
+            "B": [5, 6],
+        }
+    )
     offset_dfs = {"1 year ago": offset_df}
 
-    with pytest.raises(
-        QueryObjectValidationError, match="Time Grain must be specified"
-    ):
-        query_context_processor.join_offset_dfs(
-            df, offset_dfs, time_grain=None, join_keys=["ds"]
-        )
+    expected = DataFrame(
+        {
+            "ds": [Timestamp("2021-01-01"), Timestamp("2021-02-01")],
+            "D": [1, 2],
+            "B": [5, 6],
+        }
+    )
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, time_grain=None, join_keys=["ds"]
+    )
+
+    assert_frame_equal(expected, result)
+
+
+def test_join_offset_dfs_no_time_grain_unmatched_timestamps_yield_nulls():
+    """
+    Without a time grain, offset timestamps that have no exact shifted
+    counterpart in the main series produce nulls instead of raising.
+    """
+    df = DataFrame({"ds": [Timestamp("2021-01-01")], "D": [1]})
+    offset_df = DataFrame({"ds": [Timestamp("2020-06-15")], "B": [5]})
+    offset_dfs = {"1 year ago": offset_df}
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, time_grain=None, join_keys=["ds"]
+    )
+
+    assert "B" in result.columns
+    assert result["B"].isna().all()
+
+
+def test_join_offset_dfs_no_time_grain_multiple_offsets():
+    """
+    Multiple relative offsets without a time grain each align on their own
+    shifted timestamps, and no synthetic join columns leak into the result.
+    """
+    df = DataFrame({"ds": [Timestamp("2021-01-29")], "D": [1]})
+    offset_df1 = DataFrame({"ds": [Timestamp("2021-01-01")], "B": [5]})
+    offset_df2 = DataFrame({"ds": [Timestamp("2020-01-29")], "C": [7]})
+    offset_dfs = {"28 days ago": offset_df1, "1 year ago": offset_df2}
+
+    expected = DataFrame(
+        {
+            "ds": [Timestamp("2021-01-29")],
+            "D": [1],
+            "B": [5],
+            "C": [7],
+        }
+    )
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, time_grain=None, join_keys=["ds"]
+    )
+
+    assert_frame_equal(expected, result)
+
+
+def test_join_offset_dfs_no_time_grain_empty_offset_df():
+    """
+    An empty offset series materializes its join keys as NaN floats; the
+    grain-less join must not crash on the dtype mismatch.
+    """
+    df = DataFrame({"ds": [Timestamp("2021-01-01")], "D": [1]})
+    offset_df = DataFrame({"ds": [float("nan")], "B": [float("nan")]})
+    offset_dfs = {"1 year ago": offset_df}
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, time_grain=None, join_keys=["ds"]
+    )
+
+    assert "B" in result.columns
+    assert result["B"].isna().all()
+
+
+def test_join_offset_dfs_no_time_grain_quarter_offset():
+    """
+    Quarter offsets align without a time grain (normalize_time_delta converts
+    quarters to months, since pd.DateOffset has no quarters argument).
+    """
+    df = DataFrame({"ds": [Timestamp("2021-04-01")], "D": [1]})
+    offset_df = DataFrame({"ds": [Timestamp("2021-01-01")], "B": [5]})
+    offset_dfs = {"1 quarter ago": offset_df}
+
+    expected = DataFrame({"ds": [Timestamp("2021-04-01")], "D": [1], "B": [5]})
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, time_grain=None, join_keys=["ds"]
+    )
+
+    assert_frame_equal(expected, result)
+
+
+def test_join_offset_dfs_no_time_grain_free_form_offset():
+    """
+    Offsets outside the normalize_time_delta grammar (e.g. "one year ago")
+    are aligned with the same parser that shifted the offset query's range.
+    """
+    df = DataFrame({"ds": [Timestamp("2021-01-01")], "D": [1]})
+    offset_df = DataFrame({"ds": [Timestamp("2020-01-01")], "B": [5]})
+    offset_dfs = {"one year ago": offset_df}
+
+    expected = DataFrame({"ds": [Timestamp("2021-01-01")], "D": [1], "B": [5]})
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, time_grain=None, join_keys=["ds"]
+    )
+
+    assert_frame_equal(expected, result)
+
+
+def test_join_offset_dfs_no_time_grain_uninterpretable_offset():
+    """
+    An offset that no parser can interpret falls back to joining on the raw
+    keys (an empty comparison series) instead of crashing.
+    """
+    df = DataFrame({"ds": [Timestamp("2021-01-01")], "D": [1]})
+    offset_df = DataFrame({"ds": [Timestamp("2020-01-01")], "B": [5]})
+    offset_dfs = {"not a real offset": offset_df}
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, time_grain=None, join_keys=["ds"]
+    )
+
+    assert "B" in result.columns
+    assert result["B"].isna().all()
+
+
+def test_join_offset_dfs_no_time_grain_prefers_x_axis_label():
+    """
+    With multiple datetime join keys, the query's x-axis is the one shifted
+    for alignment, not whichever datetime column happens to come first.
+    """
+    df = DataFrame(
+        {
+            "birth_date": [Timestamp("1990-05-05")],
+            "ds": [Timestamp("2021-02-01")],
+            "D": [1],
+        }
+    )
+    offset_df = DataFrame(
+        {
+            "birth_date": [Timestamp("1990-05-05")],
+            "ds": [Timestamp("2021-01-01")],
+            "B": [5],
+        }
+    )
+    offset_dfs = {"1 month ago": offset_df}
+
+    result = query_context_processor.join_offset_dfs(
+        df,
+        offset_dfs,
+        time_grain=None,
+        join_keys=["birth_date", "ds"],
+        x_axis_label="ds",
+    )
+
+    assert result["B"].tolist() == [5]
+
+
+def test_join_offset_dfs_no_time_grain_preserves_column_order():
+    """
+    A join key following the temporal key must not change the result's
+    column order (chart payloads and CSV exports derive order from columns).
+    """
+    df = DataFrame(
+        {
+            "country": ["US"],
+            "ds": [Timestamp("2021-02-01")],
+            "category": ["a"],
+            "D": [1],
+        }
+    )
+    offset_df = DataFrame(
+        {
+            "country": ["US"],
+            "ds": [Timestamp("2021-01-01")],
+            "category": ["a"],
+            "B": [5],
+        }
+    )
+    offset_dfs = {"1 month ago": offset_df}
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, time_grain=None, join_keys=["country", "ds", "category"]
+    )
+
+    assert result.columns.tolist() == ["country", "ds", "category", "D", "B"]
+    assert result["B"].tolist() == [5]
 
 
 def test_join_offset_dfs_allows_non_temporal_join_without_time_grain():
@@ -360,27 +558,38 @@ def test_join_offset_dfs_allows_non_temporal_join_without_time_grain():
     assert "metric__1 year ago" in result.columns
 
 
-def test_join_offset_dfs_raises_when_temporal_key_not_first():
-    """Temporal join key detection works even when it's not the first key."""
+def test_join_offset_dfs_no_time_grain_temporal_key_not_first():
+    """
+    The temporal join key is aligned by shifting even when it is not the
+    first join key; remaining keys still participate in the join.
+    """
     df = DataFrame(
         {
             "country": ["US", "UK"],
-            "ds": [Timestamp("2021-01-01"), Timestamp("2021-02-01")],
+            "ds": [Timestamp("2021-02-01"), Timestamp("2021-02-01")],
             "D": [1, 2],
         }
     )
     offset_df = DataFrame(
         {
             "country": ["US", "UK"],
-            "ds": [Timestamp("2021-03-01"), Timestamp("2021-04-01")],
+            "ds": [Timestamp("2021-01-01"), Timestamp("2021-01-01")],
             "B": [5, 6],
         }
     )
-    offset_dfs = {"1 year ago": offset_df}
+    offset_dfs = {"1 month ago": offset_df}
 
-    with pytest.raises(
-        QueryObjectValidationError, match="Time Grain must be specified"
-    ):
-        query_context_processor.join_offset_dfs(
-            df, offset_dfs, time_grain=None, join_keys=["country", "ds"]
-        )
+    expected = DataFrame(
+        {
+            "country": ["US", "UK"],
+            "ds": [Timestamp("2021-02-01"), Timestamp("2021-02-01")],
+            "D": [1, 2],
+            "B": [5, 6],
+        }
+    )
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, time_grain=None, join_keys=["country", "ds"]
+    )
+
+    assert_frame_equal(expected, result)

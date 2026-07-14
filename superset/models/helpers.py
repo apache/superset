@@ -2118,6 +2118,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 time_grain,
                 join_keys,
                 full_range=getattr(query_object, "time_compare_full_range", False),
+                x_axis_label=get_x_axis_label(query_object.columns),
             )
 
         return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
@@ -2268,7 +2269,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         else:
             df.drop(
-                list(df.filter(regex=f"{R_SUFFIX}")),
+                list(df.filter(regex=f"{OFFSET_JOIN_COLUMN_SUFFIX}|{R_SUFFIX}")),
                 axis=1,
                 inplace=True,
             )
@@ -2284,6 +2285,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         join_keys: list[str],
         is_date_range_offset: bool,
         join_column_producer: Any,
+        x_axis_label: str | None = None,
     ) -> tuple[pd.DataFrame, list[str]]:
         """Determine appropriate join keys and modify DataFrames if needed."""
         if time_grain and not is_date_range_offset:
@@ -2312,7 +2314,86 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return self._process_date_range_offset(offset_df, join_keys)
 
         else:
+            return self._align_offset_without_time_grain(
+                df, offset_df, offset, join_keys, x_axis_label
+            )
+
+    def _align_offset_without_time_grain(
+        self,
+        df: pd.DataFrame,
+        offset_df: pd.DataFrame,
+        offset: str,
+        join_keys: list[str],
+        x_axis_label: str | None = None,
+    ) -> tuple[pd.DataFrame, list[str]]:
+        """
+        Determine join keys for a relative offset when no time grain is set.
+
+        Without a time grain there is no truncated join column, but the two
+        series can still be aligned exactly: shifting the main series'
+        timestamps by the offset delta lands them on the offset series' raw
+        timestamps (normalize_time_delta returns a negative delta for "... ago"
+        offsets). Timestamps without an exact counterpart in the offset series
+        produce nulls, mirroring the grain-based join, and null timestamps in
+        the two series join to each other (both stringify to "NaT"). When
+        there is no temporal join key, or the offset cannot be interpreted as
+        a time delta, the original join keys are used as-is.
+        """
+        # Prefer the query's temporal x-axis when it is a join key; otherwise
+        # use the first datetime join key.
+        candidate_keys = sorted(join_keys, key=lambda key: key != x_axis_label)
+        temporal_join_key = next(
+            (
+                key
+                for key in candidate_keys
+                if key in df.columns
+                and key in offset_df.columns
+                and pd.api.types.is_datetime64_any_dtype(df[key])
+            ),
+            None,
+        )
+        if not temporal_join_key:
             return offset_df, join_keys
+
+        try:
+            delta: DateOffset | None = DateOffset(**normalize_time_delta(offset))
+        except (ValueError, TimeDeltaAmbiguousError):
+            delta = None
+
+        column_name = OFFSET_JOIN_COLUMN_SUFFIX + offset
+        if delta is not None:
+            shifted = df[temporal_join_key].map(lambda value: value + delta)
+        else:
+            # Free-form offsets (e.g. "one year ago") don't match the
+            # normalize_time_delta grammar; shift with the same parser that
+            # shifted the offset query's time range. parsedatetime works at
+            # second resolution, so sub-second or timezone-aware timestamps
+            # won't align on this path.
+            probe = df[temporal_join_key].dropna()
+            if (
+                not probe.empty
+                and get_past_or_future(offset, probe.iloc[0]) == (probe.iloc[0])
+            ):
+                logger.warning(
+                    "Cannot interpret time offset %r without a time grain; "
+                    "the time comparison may be incorrect.",
+                    offset,
+                )
+                return offset_df, join_keys
+            shifted = df[temporal_join_key].map(
+                lambda value: value
+                if pd.isna(value)
+                else get_past_or_future(offset, value)
+            )
+
+        # Join on string values so that mismatched key dtypes (e.g. an empty
+        # offset series materializes its join keys as NaN floats) cannot break
+        # the merge.
+        df[column_name] = shifted.map(str)
+        offset_df[column_name] = offset_df[temporal_join_key].map(str)
+
+        remaining_keys = [key for key in join_keys if key != temporal_join_key]
+        return offset_df, [column_name, *remaining_keys]
 
     def _perform_join(
         self,
@@ -2357,6 +2438,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         time_grain: str | None,
         join_keys: list[str],
         full_range: bool = False,
+        x_axis_label: str | None = None,
     ) -> pd.DataFrame:
         """
         Join offset DataFrames with the main DataFrame.
@@ -2369,31 +2451,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             time range instead of being truncated to the main series' range. This
             uses an outer join so offset-only rows (e.g. the rest of a prior day when
             the current day is still in progress) are preserved.
+        :param x_axis_label: The query's temporal x-axis label, used to pick the
+            temporal join key when no time grain is set.
         """
         join_column_producer = app.config["TIME_GRAIN_JOIN_COLUMN_PRODUCERS"].get(
             time_grain
         )
-
-        if not time_grain:
-            has_temporal_join_key = any(
-                pd.api.types.is_datetime64_any_dtype(df[key])
-                for key in join_keys
-                if key in df.columns
-            )
-            if has_temporal_join_key:
-                has_relative_offset = any(
-                    not (
-                        self.is_valid_date_range(offset)
-                        and feature_flag_manager.is_feature_enabled(
-                            "DATE_RANGE_TIMESHIFTS_ENABLED"
-                        )
-                    )
-                    for offset in offset_dfs
-                )
-                if has_relative_offset:
-                    raise QueryObjectValidationError(
-                        _("Time Grain must be specified when using Time Comparison.")
-                    )
+        original_columns = list(df.columns)
 
         for offset, offset_df in offset_dfs.items():
             is_date_range_offset = self.is_valid_date_range(
@@ -2410,6 +2474,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 join_keys,
                 is_date_range_offset,
                 join_column_producer,
+                x_axis_label,
             )
 
             # The full-range option is only meaningful for relative offsets aligned
@@ -2431,6 +2496,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             df = self._apply_cleanup_logic(
                 df, offset, time_grain, join_keys, is_date_range_offset
             )
+
+            if not time_grain and not is_date_range_offset:
+                # The grain-less join indexes on the synthetic key plus the
+                # non-temporal join keys, which reset_index moves to the front;
+                # restore the original column order.
+                df = df[
+                    [col for col in original_columns if col in df.columns]
+                    + [col for col in df.columns if col not in original_columns]
+                ]
 
         return df
 

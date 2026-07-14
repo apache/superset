@@ -32,9 +32,11 @@ from superset.utils.date_parser import (
     datetime_eval,
     get_past_or_future,
     get_since_until,
+    normalize_time_delta,
     parse_human_datetime,
     parse_human_timedelta,
     parse_past_timedelta,
+    TimeDeltaAmbiguousError,
 )
 from tests.unit_tests.conftest import with_feature_flags
 
@@ -559,6 +561,18 @@ def test_get_past_or_future() -> None:
     assert get_past_or_future("-1 year", dttm) == datetime(2019, 2, 28)
     assert get_past_or_future("1 month", dttm) == datetime(2020, 3, 29)
     assert get_past_or_future("3 month", dttm) == datetime(2020, 5, 29)
+
+
+def test_normalize_time_delta() -> None:
+    assert normalize_time_delta("1 year ago") == {"years": -1}
+    assert normalize_time_delta("2 months later") == {"months": 2}
+    assert normalize_time_delta("28 days ago") == {"days": -28}
+    # quarters are converted to months (pd.DateOffset has no quarters argument)
+    assert normalize_time_delta("1 quarter ago") == {"months": -3}
+    assert normalize_time_delta("2 quarters later") == {"months": 6}
+
+    with pytest.raises(TimeDeltaAmbiguousError):
+        normalize_time_delta("one year ago")
 
 
 def test_parse_human_datetime() -> None:

@@ -98,6 +98,9 @@ def normalize_time_delta(human_readable: str) -> dict[str, int]:
     key = matched[2] + "s"
     value = int(matched[1])
     value = -value if matched[3] == "ago" else value
+    if key == "quarters":
+        # pd.DateOffset does not accept a `quarters` argument
+        key, value = "months", value * 3
     return {key: value}
 
 
