@@ -41,7 +41,7 @@
     "prettier": "^3.9.4",
     "tscw-config": "^1.1.2",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.62.1",
+    "typescript-eslint": "^8.63.0",
     "vitest": "^4.1.10"
   },
   "engines": {
