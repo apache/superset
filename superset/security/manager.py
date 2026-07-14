@@ -4327,8 +4327,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             role.name for role in self.get_user_roles()
         ]
 
-    # temporal change to remove the roles view from the security menu,
-    # after migrating all views to frontend, we will set FAB_ADD_SECURITY_VIEWS = False
     def _skip_legacy_fab_password_view_registration(self) -> Callable[..., Any]:
         original_add_view_no_menu = self.appbuilder.add_view_no_menu
 
@@ -4340,14 +4338,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             ResetPasswordView,
         )
 
-        legacy_password_views = (ResetPasswordView, ResetMyPasswordView)
+        legacy_password_views: tuple[type[Any], ...] = (ResetPasswordView,)
+        if not current_app.config.get("ENABLE_FORCE_PASSWORD_CHANGE", False):
+            legacy_password_views = (*legacy_password_views, ResetMyPasswordView)
 
         def add_view_no_menu_without_legacy_password_views(
             baseview: Any, *args: Any, **kwargs: Any
         ) -> Any:
-            if (
-                isinstance(baseview, legacy_password_views)
-                or isinstance(baseview, type)
+            if isinstance(baseview, legacy_password_views) or (
+                isinstance(baseview, type)
                 and issubclass(baseview, legacy_password_views)
             ):
                 return baseview
@@ -4398,6 +4397,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 original_add_view_no_menu
             )
 
+        # temporal change to remove the roles view from the security menu, after
+        # migrating all views to frontend, we will set FAB_ADD_SECURITY_VIEWS = False
         for view in list(self.appbuilder.baseviews):
             route_base = getattr(view, "route_base", None)
             # Remove FAB security menu views (roles, users, groups, registrations)
@@ -4408,7 +4409,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 "registrations",
             ]:
                 self.appbuilder.baseviews.remove(view)
-                continue
 
         security_menu = next(
             (m for m in self.appbuilder.menu.get_list() if m.name == "Security"), None

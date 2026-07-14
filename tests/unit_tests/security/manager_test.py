@@ -2095,6 +2095,68 @@ def test_user_view_menu_names_for_guest_user_no_roles(
     mock_get_user_id.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    "enable_legacy_password_views,enable_force_password_change,expected_registered",
+    [
+        (False, False, {"NonPasswordView"}),
+        (False, True, {"NonPasswordView", "ResetMyPasswordView"}),
+        (
+            True,
+            False,
+            {"NonPasswordView", "ResetMyPasswordView", "ResetPasswordView"},
+        ),
+    ],
+)
+def test_skip_legacy_fab_password_view_registration_keeps_forced_change_target(
+    app_context: None,
+    enable_legacy_password_views: bool,
+    enable_force_password_change: bool,
+    expected_registered: set[str],
+) -> None:
+    """Forced password changes require the self-service reset view."""
+    from flask import current_app
+    from flask_appbuilder.security.views import ResetMyPasswordView, ResetPasswordView
+
+    class NonPasswordView:
+        pass
+
+    registered: list[str] = []
+
+    def add_view_no_menu(baseview: type[Any], *args: Any, **kwargs: Any) -> type[Any]:
+        registered.append(baseview.__name__)
+        return baseview
+
+    fake_appbuilder = SimpleNamespace(add_view_no_menu=add_view_no_menu)
+    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
+    sm.appbuilder = fake_appbuilder
+
+    previous_config = {
+        "ENABLE_LEGACY_FAB_PASSWORD_VIEWS": current_app.config[
+            "ENABLE_LEGACY_FAB_PASSWORD_VIEWS"
+        ],
+        "ENABLE_FORCE_PASSWORD_CHANGE": current_app.config[
+            "ENABLE_FORCE_PASSWORD_CHANGE"
+        ],
+    }
+    current_app.config["ENABLE_LEGACY_FAB_PASSWORD_VIEWS"] = (
+        enable_legacy_password_views
+    )
+    current_app.config["ENABLE_FORCE_PASSWORD_CHANGE"] = enable_force_password_change
+
+    original_add_view_no_menu = fake_appbuilder.add_view_no_menu
+    try:
+        original_add_view_no_menu = sm._skip_legacy_fab_password_view_registration()
+
+        fake_appbuilder.add_view_no_menu(ResetPasswordView)
+        fake_appbuilder.add_view_no_menu(ResetMyPasswordView)
+        fake_appbuilder.add_view_no_menu(NonPasswordView)
+    finally:
+        current_app.config.update(previous_config)
+        fake_appbuilder.add_view_no_menu = original_add_view_no_menu
+
+    assert set(registered) == expected_registered
+
+
 def test_reset_password_self_service_clears_flag(
     mocker: MockerFixture,
     app_context: None,
