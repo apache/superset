@@ -313,3 +313,58 @@ class TestDimensionFieldsRejectSavedMetrics:
                 distribute_across=[{"name": "day"}],
                 dimensions=[{"name": "revenue", "saved_metric": True}],
             )
+
+
+class TestHistogramNumericColumnValidation:
+    """post_map_validate mirrors the Explore UI's numeric-only column rule."""
+
+    @staticmethod
+    def _context(columns: list[dict[str, object]]) -> object:
+        from unittest.mock import MagicMock
+
+        ctx = MagicMock()
+        ctx.available_columns = columns
+        return ctx
+
+    def _validate(
+        self, columns: list[dict[str, object]], column_name: str = "payment_type"
+    ) -> object:
+        from unittest.mock import patch
+
+        from superset.mcp_service.chart import registry
+
+        plugin = registry.get("histogram")
+        assert plugin is not None
+        config = HistogramChartConfig(
+            chart_type="histogram", column={"name": column_name}
+        )
+        with patch(
+            "superset.mcp_service.chart.validation.dataset_validator."
+            "DatasetValidator._get_dataset_context",
+            return_value=self._context(columns),
+        ):
+            return plugin.post_map_validate(config, {}, dataset_id=1)
+
+    def test_non_numeric_column_rejected_with_numeric_suggestions(self) -> None:
+        error = self._validate(
+            [
+                {"name": "payment_type", "type": "VARCHAR", "is_numeric": False},
+                {"name": "fare_amount", "type": "FLOAT", "is_numeric": True},
+            ]
+        )
+        assert error is not None
+        assert error.error_type == "non_numeric_histogram_column"
+        assert any("fare_amount" in s for s in error.suggestions)
+
+    def test_numeric_column_passes(self) -> None:
+        error = self._validate(
+            [{"name": "payment_type", "type": "FLOAT", "is_numeric": True}]
+        )
+        assert error is None
+
+    def test_unknown_column_defers_to_existence_validation(self) -> None:
+        error = self._validate(
+            [{"name": "other", "type": "VARCHAR", "is_numeric": False}],
+            column_name="missing",
+        )
+        assert error is None

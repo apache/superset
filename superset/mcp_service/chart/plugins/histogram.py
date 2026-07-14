@@ -84,6 +84,70 @@ class HistogramChartPlugin(BaseChartPlugin):
         context = _summarize_filters(config.filters)
         return self._with_context(what, context)
 
+    def post_map_validate(
+        self,
+        config: Any,
+        form_data: dict[str, Any],
+        dataset_id: int | str | None = None,
+    ) -> ChartGenerationError | None:
+        """Require a numeric binned column, mirroring the Explore UI.
+
+        The frontend control panel restricts the histogram column to
+        ``GenericDataType.Numeric``; without this check an LLM picking a
+        text column passes pre-validation and only fails at query time.
+        """
+        if not isinstance(config, HistogramChartConfig) or dataset_id is None:
+            return None
+
+        dataset_context = DatasetValidator._get_dataset_context(dataset_id)
+        if dataset_context is None:
+            return None
+
+        col_info = next(
+            (
+                col
+                for col in dataset_context.available_columns
+                if col["name"].lower() == (config.column.name or "").lower()
+            ),
+            None,
+        )
+        if col_info is None:
+            # Column existence is validated separately; don't double-report.
+            return None
+
+        numeric_types = ["INTEGER", "FLOAT", "DOUBLE", "DECIMAL", "NUMERIC"]
+        if col_info.get("is_numeric", False) or (
+            col_info.get("type", "").upper() in numeric_types
+        ):
+            return None
+
+        numeric_columns = sorted(
+            col["name"]
+            for col in dataset_context.available_columns
+            if col.get("is_numeric", False)
+            or col.get("type", "").upper() in numeric_types
+        )
+        return ChartGenerationError(
+            error_type="non_numeric_histogram_column",
+            message=(
+                f"Histograms bin numeric values; column "
+                f"'{config.column.name}' has type "
+                f"{col_info.get('type', 'UNKNOWN')}."
+            ),
+            details=(
+                "The Explore UI restricts the histogram column to numeric "
+                "columns; non-numeric columns fail or produce meaningless "
+                "bins at query time."
+            ),
+            suggestions=(
+                [f"Numeric columns in this dataset: {', '.join(numeric_columns)}"]
+                if numeric_columns
+                else ["Use get_dataset_info to inspect the dataset's columns"]
+            )
+            + ["For category frequencies, use chart_type='xy' with kind='bar'"],
+            error_code="NON_NUMERIC_HISTOGRAM_COLUMN",
+        )
+
     def resolve_viz_type(self, config: Any) -> str:
         return "histogram_v2"
 
