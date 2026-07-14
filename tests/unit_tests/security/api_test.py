@@ -93,6 +93,12 @@ def test_security_api_trailing_slash_matches_route_ownership(client: Any) -> Non
     test pins that intended per-route contract so the behavior stays documented
     and any accidental future change is caught.
     """
+    # Control: the canonical (no trailing slash) login route is registered and
+    # reachable, so the 404 below is specific to the stray slash rather than
+    # the route being missing entirely.
+    response = client.open("/api/v1/security/login", method="POST")
+    assert response.status_code != 404
+
     # FAB-owned no-trailing-slash route: adding a stray slash hard-404s because
     # there is no canonical slashed URL to redirect to.
     response = client.open(
@@ -106,11 +112,13 @@ def test_security_api_trailing_slash_matches_route_ownership(client: Any) -> Non
         "/api/v1/security/csrf_token", method="GET", follow_redirects=False
     )
     assert response.status_code == 308
+    assert response.headers["Location"].endswith("/api/v1/security/csrf_token/")
 
     response = client.open(
         "/api/v1/security/guest_token", method="POST", follow_redirects=False
     )
     assert response.status_code == 308
+    assert response.headers["Location"].endswith("/api/v1/security/guest_token/")
 
 
 def test_rls_rule_schema_accepts_dataset_scoped_rule() -> None:
