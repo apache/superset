@@ -129,8 +129,11 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         try:
             query_context = json.loads(raw_query_context)
         except (TypeError, ValueError):
-            # An unparseable payload cannot be verified or replayed; leave it for
-            # downstream handling rather than guessing at its intent.
+            # TypeError covers a query_context that isn't a string (e.g. an
+            # already-parsed dict); that shape is intentionally out of scope
+            # here since the schema serializes it as a JSON string. ValueError
+            # covers a string that failed to parse. Either way, an unverifiable
+            # payload is left for downstream handling rather than guessed at.
             return
 
         datasource = (
