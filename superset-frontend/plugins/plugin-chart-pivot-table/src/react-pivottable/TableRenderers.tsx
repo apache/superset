@@ -27,6 +27,7 @@ import {
   useEffect,
 } from 'react';
 import { safeHtmlSpan } from '@superset-ui/core';
+import { type RGBColor } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core/translation';
 import { supersetTheme } from '@apache-superset/core/theme';
 import PropTypes from 'prop-types';
@@ -203,7 +204,7 @@ export function getCellColor(
       for (const formatter of cellColorFormatter) {
         if (formatter.column === key) {
           const result = formatter.getColorFromValue(aggValue);
-          if (result) {
+          if (result && typeof result === 'string') {
             if (isTextColorFormatter(formatter)) {
               color = result;
             } else if (

@@ -706,7 +706,7 @@ const config: ControlPanelConfig = {
                 const extraColorChoices = hasTimeComparison
                   ? [
                       {
-                        label: 'Trend colors',
+                        label: t('Trend colors'),
                         colors: [ColorSchemeEnum.Green, ColorSchemeEnum.Red],
                       },
                     ]
