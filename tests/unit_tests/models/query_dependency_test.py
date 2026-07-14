@@ -63,6 +63,35 @@ def test_extra_cache_key_rendering_defers_source_queries() -> None:
     assert get_sqla_query.call_args.kwargs["defer_source_queries"] is True
 
 
+def test_extra_cache_key_deduplication_supports_unhashable_values() -> None:
+    datasource = SqlaTable(table_name="dataset", database=MagicMock())
+    sqla_query = MagicMock(
+        extra_cache_keys=[
+            ["tenant", 7],
+            {"tenant": 7, "roles": ["alpha"]},
+            ["tenant", 7],
+            {"roles": ["alpha"], "tenant": 7},
+        ]
+    )
+    query: QueryObjectDict = {
+        "columns": ["region"],
+        "metrics": ["sales"],
+        "extras": {},
+    }
+
+    with (
+        patch.object(BaseDatasource, "get_extra_cache_keys", return_value=[]),
+        patch.object(datasource, "has_extra_cache_key_calls", return_value=True),
+        patch.object(datasource, "get_sqla_query", return_value=sqla_query),
+    ):
+        result = datasource.get_extra_cache_keys(query)
+
+    assert result == [
+        ["tenant", 7],
+        {"tenant": 7, "roles": ["alpha"]},
+    ]
+
+
 def test_query_preview_returns_prequeries_and_executable_main_query() -> None:
     datasource = ExploreMixin()
     query: QueryObjectDict = {"columns": ["region"], "metrics": ["sales"]}

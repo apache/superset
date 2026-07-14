@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any, ClassVar, TYPE_CHECKING
 
 import pandas as pd
@@ -154,12 +155,14 @@ class QueryContext:
         query_obj: QueryObject,
         force_cached: bool | None = False,
         source_kind: SourceKind = SourceKind.PRIMARY,
+        cache_key_extra: Mapping[str, Any] | None = None,
     ) -> QueryAcquisitionResult:
         """Acquire a dataframe with timing kept outside the payload."""
         return self._processor.get_df_payload_result(
             query_obj=query_obj,
             force_cached=force_cached,
             source_kind=source_kind,
+            cache_key_extra=cache_key_extra,
         )
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:

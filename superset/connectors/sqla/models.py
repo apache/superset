@@ -21,7 +21,6 @@ import builtins
 import logging
 import re
 from collections import defaultdict
-from collections.abc import Hashable
 from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any, Callable, cast, Optional, Union
@@ -709,7 +708,7 @@ class BaseDatasource(
     def get_extra_cache_keys(
         self,
         query_obj: QueryObjectDict,  # pylint: disable=unused-argument
-    ) -> list[Hashable]:
+    ) -> list[Any]:
         """If a datasource needs to provide additional keys for calculation of
         cache keys, those can be provided via this method
 
@@ -2169,7 +2168,7 @@ class SqlaTable(
                 return True
         return False
 
-    def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
+    def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Any]:
         """
         The cache key of a SqlaTable needs to consider any keys added by the parent
         class and any keys added via `ExtraCache`.
@@ -2207,7 +2206,19 @@ class SqlaTable(
             # Add each predicate as a separate cache key component
             extra_cache_keys.extend(rls_predicates)
 
-        return list(dict.fromkeys(extra_cache_keys))
+        deduplicated: list[Any] = []
+        seen: set[str] = set()
+        for cache_key in extra_cache_keys:
+            identity = json.dumps(
+                cache_key,
+                sort_keys=True,
+                default=json.json_int_dttm_ser,
+                ignore_nan=True,
+            )
+            if identity not in seen:
+                seen.add(identity)
+                deduplicated.append(cache_key)
+        return deduplicated
 
     @property
     def quote_identifier(self) -> Callable[[str], str]:

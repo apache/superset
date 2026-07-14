@@ -25,7 +25,7 @@ import dataclasses
 import logging
 import re
 import uuid
-from collections.abc import Hashable, Iterator
+from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import (
@@ -1230,7 +1230,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def columns(self) -> list[Any]:
         raise NotImplementedError()
 
-    def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
+    def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Any]:
         raise NotImplementedError()
 
     def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:

@@ -19,6 +19,7 @@ from __future__ import annotations
 import copy
 import logging
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Callable, TYPE_CHECKING
 
@@ -302,6 +303,7 @@ def acquire_query_data(
     force_cached: bool,
     *,
     detect_currency_value: bool = True,
+    cache_key_extra: Mapping[str, Any] | None = None,
 ) -> AcquiredQuery | None:
     """Prepare and acquire dataframe-backed query data without materializing it."""
 
@@ -313,11 +315,16 @@ def acquire_query_data(
     elif not is_data_result_type(result_type):
         return None
 
+    acquisition = query_context.get_df_payload_result(
+        prepared,
+        force_cached=force_cached,
+        cache_key_extra=cache_key_extra,
+    )
     acquisition, detected_currency, currency_processing_ns = (
         _acquire_currency_dependency(
             query_context,
             prepared,
-            query_context.get_df_payload_result(prepared, force_cached=force_cached),
+            acquisition,
             force_cached,
             detect_value=detect_currency_value,
         )

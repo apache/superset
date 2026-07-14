@@ -23,7 +23,6 @@ including SQL datasets, saved queries, and semantic layer views.
 
 from __future__ import annotations
 
-from collections.abc import Hashable
 from datetime import datetime
 from typing import Any, Protocol, runtime_checkable, TYPE_CHECKING, TypedDict
 
@@ -365,7 +364,7 @@ class Explorable(Protocol):
         :return: Datetime of last modification, or None
         """
 
-    def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
+    def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Any]:
         """
         Additional cache key components specific to this explorable.
 
@@ -375,7 +374,7 @@ class Explorable(Protocol):
         by uid or changed_on.
 
         :param query_obj: The query being executed
-        :return: List of additional hashable values for cache key
+        :return: List of additional JSON-serializable values for the cache key
         """
 
     # =========================================================================

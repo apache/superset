@@ -20,7 +20,6 @@ import builtins
 import inspect
 import logging
 import re
-from collections.abc import Hashable
 from datetime import datetime
 from typing import Any, cast, Optional, TYPE_CHECKING
 
@@ -367,7 +366,7 @@ class Query(
     def default_endpoint(self) -> str:
         return ""
 
-    def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
+    def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Any]:
         return []
 
     def get_time_grains(self) -> list[TimeGrainDict]:

@@ -20,7 +20,6 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Hashable
 from dataclasses import dataclass
 from functools import cached_property
 from typing import Any, TYPE_CHECKING
@@ -443,7 +442,7 @@ class SemanticView(AuditMixinNullable, Model):
     def data_for_slices(self, slices: list[Any]) -> ExplorableData:
         return self.data
 
-    def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
+    def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Any]:
         return []
 
     @property

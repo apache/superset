@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 
-from collections.abc import Hashable, Sequence
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Any, Literal, TYPE_CHECKING, TypeAlias, TypedDict
 
@@ -227,7 +227,7 @@ class QueryObjectDict(TypedDict, total=False):
     # Additional fields used throughout the codebase
     time_range: str | None
     datasource: Any  # BaseDatasource instance
-    extra_cache_keys: list[Hashable]
+    extra_cache_keys: list[Any]
     rls: list[Any]
     changed_on: datetime | None
 

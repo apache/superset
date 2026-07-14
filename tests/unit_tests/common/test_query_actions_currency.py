@@ -19,6 +19,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
+from superset.common.chart_data import ChartDataResultType
 from superset.common.chart_data_timing import (
     CacheWriteOutcome,
     QueryAcquisitionResult,
@@ -28,7 +29,9 @@ from superset.common.chart_data_timing import (
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_actions import (
     _acquire_currency_dependency,
+    acquire_query_data,
 )
+from superset.common.query_object import QueryObject
 
 
 @pytest.fixture
@@ -110,6 +113,42 @@ def test_modern_currency_dependency_is_cache_aware_and_bounded(
     }
     assert currency == "USD"
     assert combined.timing.source_ns == 6
+
+
+def test_acquisition_passes_additional_cache_identity() -> None:
+    query_context = MagicMock()
+    query_context.form_data = {}
+    datasource = MagicMock()
+    datasource.currency_code_column = None
+    query = QueryObject(datasource=datasource, columns=["region"])
+    acquisition = QueryAcquisitionResult(
+        payload={"df": pd.DataFrame(), "status": QueryStatus.SUCCESS},
+        timing=QueryAcquisitionTiming(
+            cache_key_ns=0,
+            cache_read_ns=0,
+            source_ns=0,
+            cache_write_ns=None,
+            cache_write_outcome=CacheWriteOutcome.NOT_ATTEMPTED,
+            cache_hit=False,
+            sources=(),
+        ),
+    )
+    query_context.get_df_payload_result.return_value = acquisition
+
+    result = acquire_query_data(
+        ChartDataResultType.FULL,
+        query_context,
+        query,
+        False,
+        cache_key_extra={"dependency": "producer-cache-key"},
+    )
+
+    assert result is not None
+    query_context.get_df_payload_result.assert_called_once_with(
+        query,
+        force_cached=False,
+        cache_key_extra={"dependency": "producer-cache-key"},
+    )
 
 
 def test_cache_only_prewarms_currency_without_detecting_value(

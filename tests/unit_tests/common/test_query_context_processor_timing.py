@@ -100,11 +100,12 @@ def acquired_query(
     query: QueryObject,
     df: pd.DataFrame,
     status: QueryStatus = QueryStatus.SUCCESS,
+    cache_key: str = "query-cache-key",
 ) -> AcquiredQuery:
     return AcquiredQuery(
         query_obj=query,
         acquisition=QueryAcquisitionResult(
-            payload={"df": df, "status": status},
+            payload={"df": df, "status": status, "cache_key": cache_key},
             timing=QueryAcquisitionTiming(
                 cache_key_ns=0,
                 cache_read_ns=0,
@@ -1205,7 +1206,7 @@ def test_contribution_dependency_reuses_exact_public_producer(
     query_context.queries = [main_query, totals_query]
     query_context.result_type = ChartDataResultType.FULL
     processor = QueryContextProcessor(query_context)
-    observed_queries: list[tuple[QueryObject, bool]] = []
+    observed_queries: list[tuple[QueryObject, bool, dict[str, Any] | None]] = []
 
     def acquire(
         result_type: ChartDataResultType,
@@ -1214,7 +1215,13 @@ def test_contribution_dependency_reuses_exact_public_producer(
         force_cached: bool,
         **kwargs: Any,
     ) -> AcquiredQuery:
-        observed_queries.append((query, kwargs["detect_currency_value"]))
+        observed_queries.append(
+            (
+                query,
+                kwargs["detect_currency_value"],
+                kwargs.get("cache_key_extra"),
+            )
+        )
         value = 100.0 if not query.columns else 1.0
         return acquired_query(query, pd.DataFrame({"sales": [value]}))
 
@@ -1237,8 +1244,12 @@ def test_contribution_dependency_reuses_exact_public_producer(
 
     assert len(observed_queries) == 2
     assert observed_queries[0][0] is totals_query
+    assert observed_queries[0][2] is None
     assert observed_queries[1][0].columns == ["region"]
-    assert [detect_currency for _, detect_currency in observed_queries] == [
+    assert observed_queries[1][2] == {
+        "contribution_totals_cache_key": "query-cache-key"
+    }
+    assert [detect_currency for _, detect_currency, _ in observed_queries] == [
         materialize,
         materialize,
     ]
@@ -1247,6 +1258,26 @@ def test_contribution_dependency_reuses_exact_public_producer(
     assert selected_renderer.call_count == 2
     unused_renderer.assert_not_called()
     assert result == (completed, completed)
+
+
+def test_contribution_producer_identity_changes_consumer_cache_key() -> None:
+    datasource = MagicMock()
+    datasource.uid = "1__table"
+    datasource.database.extra = "{}"
+    query = QueryObject(
+        datasource=datasource,
+        columns=["region"],
+        metrics=["sales"],
+        post_processing=[{"operation": "contribution", "options": {}}],
+    )
+
+    first = query.cache_key(contribution_totals_cache_key="producer-a")
+    query.contribution_totals_query_index = 7
+    same_producer = query.cache_key(contribution_totals_cache_key="producer-a")
+    different_producer = query.cache_key(contribution_totals_cache_key="producer-b")
+
+    assert first == same_producer
+    assert first != different_producer
 
 
 @pytest.mark.parametrize(

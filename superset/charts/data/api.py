@@ -631,21 +631,23 @@ class ChartDataRestApi(ChartRestApi):
                 result = command.execute(
                     ChartDataExecutionOptions(force_cached=force_cached)
                 )
+
+            self._log_is_cached(result, add_extra_log_payload)
+
+            return self._send_chart_response(
+                result,
+                form_data,
+                datasource,
+                filename,
+                expected_rows,
+                dashboard_filter_context=dashboard_filter_context,
+            )
         except ChartDataCacheLoadError as exc:
             return self.response_422(message=exc.message)
         except ChartDataQueryFailedError as exc:
             return self.response_400(message=exc.message)
-
-        self._log_is_cached(result, add_extra_log_payload)
-
-        return self._send_chart_response(
-            result,
-            form_data,
-            datasource,
-            filename,
-            expected_rows,
-            dashboard_filter_context=dashboard_filter_context,
-        )
+        except QueryObjectValidationError as exc:
+            return self.response_400(message=exc.message)
 
     def _extract_export_params_from_request(self) -> tuple[str | None, int | None]:
         """Extract filename and expected_rows from request for streaming exports."""

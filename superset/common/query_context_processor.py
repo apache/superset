@@ -20,6 +20,7 @@ import copy
 import logging
 import re
 import time
+from collections.abc import Mapping
 from contextvars import ContextVar
 from dataclasses import dataclass
 from decimal import Decimal
@@ -106,12 +107,20 @@ _REUSABLE_CONTRIBUTION_RESULT_TYPES = frozenset(
 
 
 @dataclass(frozen=True)
+class _ContributionTotals:
+    """Computed totals coupled to their producer cache identity."""
+
+    values: dict[str, Any]
+    cache_key: str
+
+
+@dataclass(frozen=True)
 class _ContributionDependencies:
     """Acquired totals and outputs shared with the public query plan."""
 
     consumer_to_producer: dict[int, int]
     reusable_outputs: dict[int, AcquiredQuery]
-    totals_by_producer: dict[int, dict[str, Any]]
+    totals_by_producer: dict[int, _ContributionTotals]
 
 
 class QueryContextProcessor:
@@ -141,6 +150,7 @@ class QueryContextProcessor:
         query_obj: QueryObject,
         force_cached: bool | None = False,
         source_kind: SourceKind = SourceKind.PRIMARY,
+        cache_key_extra: Mapping[str, Any] | None = None,
     ) -> QueryAcquisitionResult:
         """Acquire a dataframe and return timing as a typed sidecar."""
 
@@ -150,7 +160,7 @@ class QueryContextProcessor:
             # Always validate the query object before generating cache key
             # This ensures sanitize_clause() is called and extras are normalized
             query_obj.validate()
-        cache_key = self.query_cache_key(query_obj)
+        cache_key = self.query_cache_key(query_obj, **(cache_key_extra or {}))
         timeout = self.get_cache_timeout()
         force_query = self._query_context.force or timeout == CACHE_DISABLED_TIMEOUT
         cache_key_ns = max(0, time.perf_counter_ns() - cache_key_start_ns)
@@ -498,12 +508,14 @@ class QueryContextProcessor:
                 continue
 
             totals_idx = contribution_dependencies.consumer_to_producer.get(query_idx)
+            totals = (
+                contribution_dependencies.totals_by_producer.get(totals_idx)
+                if totals_idx is not None
+                else None
+            )
             if totals_idx is not None and (
-                totals_idx not in contribution_dependencies.totals_by_producer
-                or not self._totals_support_consumer(
-                    query_obj,
-                    contribution_dependencies.totals_by_producer.get(totals_idx, {}),
-                )
+                totals is None
+                or not self._totals_support_consumer(query_obj, totals.values)
             ):
                 query_results[query_idx] = self._dependency_failed_result(
                     _("Contribution totals query failed")
@@ -512,9 +524,9 @@ class QueryContextProcessor:
             execution_query = (
                 self._with_contribution_totals(
                     query_obj,
-                    contribution_dependencies.totals_by_producer[totals_idx],
+                    totals.values,
                 )
-                if totals_idx is not None
+                if totals is not None
                 else query_obj
             )
             acquired = acquire_query_data(
@@ -523,6 +535,11 @@ class QueryContextProcessor:
                 execution_query,
                 force_cached if materialize else False,
                 detect_currency_value=materialize,
+                cache_key_extra=(
+                    {"contribution_totals_cache_key": totals.cache_key}
+                    if totals is not None
+                    else None
+                ),
             )
             if acquired is not None:
                 output_acquisitions[query_idx] = acquired
@@ -557,7 +574,7 @@ class QueryContextProcessor:
             if is_data_result_type(requested_result_types[consumer_idx])
         }
         reusable_outputs: dict[int, AcquiredQuery] = {}
-        totals: dict[int, dict[str, Any]] = {}
+        totals: dict[int, _ContributionTotals] = {}
         for producer_idx in sorted(set(data_plan.values())):
             producer = self._query_context.queries[producer_idx]
             requested_result_type = requested_result_types[producer_idx]
@@ -586,8 +603,14 @@ class QueryContextProcessor:
             if reuse_for_output:
                 reusable_outputs[producer_idx] = acquired
             if acquired.acquisition.payload["status"] != QueryStatus.FAILED:
-                totals[producer_idx] = self._totals_from_df(
-                    acquired.acquisition.payload["df"]
+                cache_key = acquired.acquisition.payload.get("cache_key")
+                if not isinstance(cache_key, str) or not cache_key:
+                    raise QueryObjectValidationError(
+                        _("Contribution totals query has no cache identity")
+                    )
+                totals[producer_idx] = _ContributionTotals(
+                    values=self._totals_from_df(acquired.acquisition.payload["df"]),
+                    cache_key=cache_key,
                 )
         return _ContributionDependencies(
             consumer_to_producer=data_plan,
