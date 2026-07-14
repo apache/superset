@@ -924,9 +924,9 @@ async def generate_chart(  # noqa: C901
 
         logger.exception("Chart generation failed: %s", str(e))
 
-        # request.config is always a validated ChartConfig (never a dict), so
-        # chart_type context isn't extractable here.
-        chart_type = "unknown"
+        # request.config is always a validated ChartConfig, whose variants all
+        # define chart_type as a discriminator field.
+        chart_type: str = request.config.chart_type
 
         execution_time = int((time.time() - start_time) * 1000)
 
