@@ -22,7 +22,7 @@ import {
   ForwardedRef,
   useState,
   ReactNode,
-  MouseEvent,
+  SyntheticEvent,
 } from 'react';
 
 import { Button } from '../Button';
@@ -97,7 +97,7 @@ export const ModalTrigger = forwardRef(
       onExit?.();
     };
 
-    const open = (e: MouseEvent) => {
+    const open = (e: SyntheticEvent) => {
       e.preventDefault();
       beforeOpen?.();
       setShowModal(true);
