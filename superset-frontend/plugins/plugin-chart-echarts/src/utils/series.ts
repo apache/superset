@@ -60,6 +60,8 @@ const DEFAULT_LEGEND_ICON_WIDTH = 25;
 const LEGEND_ICON_LABEL_GAP = 5;
 const LEGEND_HORIZONTAL_SIDE_GUTTER = 16;
 const LEGEND_HORIZONTAL_ROW_HEIGHT = 24;
+// Cap the reserved horizontal legend margin so an overflowing legend can't eat the plot.
+const MAX_LEGEND_MARGIN_RATIO = 0.4;
 const LEGEND_VERTICAL_SIDE_GUTTER = 16;
 const LEGEND_SELECTOR_GAP = 10;
 const LEGEND_MARGIN_GUTTER = 45;
@@ -235,6 +237,7 @@ function isHorizontalLegendOrientation(
 }
 
 function getHorizontalPlainLegendLayout({
+  availableHeight,
   availableWidth,
   currentMargin,
   legendLabels,
@@ -242,6 +245,7 @@ function getHorizontalPlainLegendLayout({
   showSelectors,
   theme,
 }: {
+  availableHeight: number;
   availableWidth: number;
   currentMargin: number;
   legendLabels: string[];
@@ -261,9 +265,13 @@ function getHorizontalPlainLegendLayout({
   const requiredMargin =
     defaultLegendPadding[orientation] +
     Math.max(0, rowsForMargin - 1) * LEGEND_HORIZONTAL_ROW_HEIGHT;
+  const boundedMargin =
+    availableHeight > 0
+      ? Math.min(requiredMargin, availableHeight * MAX_LEGEND_MARGIN_RATIO)
+      : requiredMargin;
 
   return {
-    effectiveMargin: Math.max(currentMargin, requiredMargin),
+    effectiveMargin: Math.max(currentMargin, boundedMargin),
     effectiveType: LegendType.Plain,
   };
 }
@@ -303,7 +311,9 @@ function getVerticalPlainLegendLayout({
 }
 
 export function getLegendLayoutResult({
+  availableHeight,
   availableWidth,
+  chartHeight,
   chartWidth,
   legendItems = [],
   legendMargin,
@@ -337,9 +347,11 @@ export function getLegendLayoutResult({
       : defaultLegendPadding[orientation];
   const legendLabels = getLegendLabels(legendItems);
   const resolvedAvailableWidth = availableWidth ?? chartWidth;
+  const resolvedAvailableHeight = availableHeight ?? chartHeight;
 
   if (isHorizontalLegendOrientation(orientation)) {
     return getHorizontalPlainLegendLayout({
+      availableHeight: resolvedAvailableHeight,
       availableWidth: resolvedAvailableWidth,
       currentMargin: resolvedLegendMargin,
       legendLabels,

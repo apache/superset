@@ -1097,6 +1097,24 @@ test('getLegendLayoutResult keeps plain when horizontal plain legends exceed two
   );
 });
 
+test('getLegendLayoutResult bounds reserved margin for overflowing horizontal legends so the plot is not collapsed', () => {
+  const chartHeight = 200;
+  const layout = getLegendLayoutResult({
+    chartHeight,
+    chartWidth: 100,
+    legendItems: Array.from({ length: 100 }, (_, index) => `Series ${index}`),
+    legendMargin: null,
+    orientation: LegendOrientation.Top,
+    show: true,
+    theme,
+    type: LegendType.Plain,
+  });
+
+  expect(layout.effectiveType).toBe(LegendType.Plain);
+  expect(Number.isFinite(layout.effectiveMargin)).toBe(true);
+  expect(layout.effectiveMargin as number).toBeLessThan(chartHeight);
+});
+
 test('getLegendLayoutResult keeps plain when a single horizontal plain legend item exceeds available width', () => {
   const layout = getLegendLayoutResult({
     chartHeight: 400,
