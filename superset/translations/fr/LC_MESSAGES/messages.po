@@ -401,8 +401,8 @@ msgstr[1] ""
 #, fuzzy, python-format
 msgid "%s hr ago"
 msgid_plural "%s hr ago"
-msgstr[0] "%s rangée"
-msgstr[1] "%s rangées"
+msgstr[0] "%s ligne"
+msgstr[1] "%s lignes"
 
 #, python-format
 msgid "%s imported"
@@ -487,8 +487,8 @@ msgstr[1] "%s Enregistrements"
 #, python-format
 msgid "%s row"
 msgid_plural "%s rows"
-msgstr[0] "%s rangée"
-msgstr[1] "%s rangées"
+msgstr[0] "%s ligne"
+msgstr[1] "%s lignes"
 
 #, fuzzy, python-format
 msgid "%s s ago"
@@ -1518,7 +1518,7 @@ msgid "Alert query returned more than one column. %(num_cols)s columns returned"
 msgstr "La requête a retourné plus d'une colonne. %(num_cols)s colonnes retournées"
 
 msgid "Alert query returned more than one row."
-msgstr "La requête d’alerte a retourné plus d'une rangée."
+msgstr "La requête d’alerte a retourné plus d'une ligne."
 
 #, python-format
 msgid "Alert query returned more than one row. %(num_rows)s rows returned"
@@ -2755,7 +2755,7 @@ msgid "By key: use column names as sorting key"
 msgstr "Par clé : utilisez les noms de colonne comme clé de tri"
 
 msgid "By key: use row names as sorting key"
-msgstr "Par clé : utilisez les noms de rangée comme clé de tri"
+msgstr "Par clé : utilisez les noms de ligne comme clé de tri"
 
 msgid "By value: use metric values as sorting key"
 msgstr "Par valeur : utilisez les valeurs mesures comme clé de tri"
@@ -3079,7 +3079,7 @@ msgid "Change order of columns."
 msgstr "Modifier l’ordre des colonnes."
 
 msgid "Change order of rows."
-msgstr "Modifier l’ordre des rangées."
+msgstr "Modifier l’ordre des lignes."
 
 msgid "Changed by"
 msgstr "Modifié par"
@@ -3462,7 +3462,7 @@ msgid ""
 "Classic row-by-column spreadsheet like view of a dataset. Use tables to "
 "showcase a view into the underlying data or to show aggregated metrics."
 msgstr ""
-"Vue classique d'un jeu de données, rangée par colonne, à la manière d'une"
+"Vue classique d'un jeu de données, ligne par colonne, à la manière d'une"
 " feuille de calcul. Utilisez les tableaux pour présenter une vue des "
 "données sous-jacentes ou pour montrer des mesures agrégées."
 
@@ -3772,7 +3772,7 @@ msgid ""
 "Column to use as the index of the dataframe. If None is given, Index "
 "label is used."
 msgstr ""
-"Colonne à utiliser pour les étiquettes de rangée de l'image de données. "
+"Colonne à utiliser pour les étiquettes de ligne de l'image de données. "
 "Laissez vide s'il n'y a pas de colonne d'index."
 
 msgid "Column type"
@@ -3837,7 +3837,7 @@ msgid "Columns to group by on the columns"
 msgstr "Colonnes à regrouper sur les colonnes"
 
 msgid "Columns to group by on the rows"
-msgstr "Colonnes à regrouper sur les rangées"
+msgstr "Colonnes à regrouper sur les lignes"
 
 msgid "Columns to read"
 msgstr "Colonnes à lire"
@@ -4185,7 +4185,7 @@ msgid "Count as Fraction of Columns"
 msgstr "Compter comme fraction de colonnes"
 
 msgid "Count as Fraction of Rows"
-msgstr "Compter comme fraction de rangées"
+msgstr "Compter comme fraction de lignes"
 
 msgid "Count as Fraction of Total"
 msgstr "Compter comme fraction de total"
@@ -6131,7 +6131,7 @@ msgid "Empty query?"
 msgstr "Requête vide ?"
 
 msgid "Empty row"
-msgstr "Rangée vide"
+msgstr "Ligne vide"
 
 msgid "Enable 'Allow file uploads to database' in any database's settings"
 msgstr ""
@@ -6567,7 +6567,7 @@ msgid "Expand data panel"
 msgstr "Développer le panneau de données"
 
 msgid "Expand row"
-msgstr "Agrandir la rangée"
+msgstr "Agrandir la ligne"
 
 msgid "Expand row to edit"
 msgstr "Développer la ligne à modifier"
@@ -7505,7 +7505,7 @@ msgid "Header"
 msgstr "En-tête"
 
 msgid "Header row"
-msgstr "Rangée d'en-tête"
+msgstr "Ligne d'en-tête"
 
 msgid "Header row is required"
 msgstr "L'en-tête est obligatoire"
@@ -9035,7 +9035,7 @@ msgid ""
 "appropriate)."
 msgstr ""
 "Mesure utilisée pour définir comment les séries principales sont triées "
-"si une limite de série ou de rangée est définie. Si indéfini, la première"
+"si une limite de série ou de ligne est définie. Si indéfini, la première"
 " mesure sera utilisée (si approprié)."
 
 msgid "Metrics"
@@ -10686,7 +10686,7 @@ msgid "Position of intermediate node label on tree"
 msgstr "Position de l’étiquette de nœud intermédiaire sur l’arbre"
 
 msgid "Position of row level subtotal"
-msgstr "Position du sous-total au niveau de la rangée"
+msgstr "Position du sous-total au niveau de la ligne"
 
 msgid "Powered by Apache Superset"
 msgstr "Propulsé par Apache Superset"
@@ -11474,7 +11474,7 @@ msgid "Round cap"
 msgstr "Extrémité arrondie"
 
 msgid "Row"
-msgstr "Rangée"
+msgstr "Ligne"
 
 msgid "Row Level Security"
 msgstr "Contrôle d'accès par ligne"
@@ -11500,19 +11500,19 @@ msgid "Row height"
 msgstr "Hauteur de la ligne"
 
 msgid "Row limit"
-msgstr "Nombre de rangées maximum"
+msgstr "Nombre de lignes maximum"
 
 msgid "Rows"
-msgstr "Rangées"
+msgstr "Lignes"
 
 msgid "Rows (vertical layout)"
 msgstr "Lignes (disposition verticale)"
 
 msgid "Rows per page, 0 means no pagination"
-msgstr "Rangées par page, 0 signifie aucune pagination"
+msgstr "lignes par page, 0 signifie aucune pagination"
 
 msgid "Rows subtotal position"
-msgstr "Position du sous-total des rangées"
+msgstr "Position du sous-total des lignes"
 
 msgid "Rows to read"
 msgstr "Lignes à lire"
@@ -13243,7 +13243,7 @@ msgstr ""
 "requêtes sur certaines bases de données."
 
 msgid "Sort rows by"
-msgstr "Trier les rangées par"
+msgstr "Trier les lignes par"
 
 msgid "Sort series in ascending order"
 msgstr "Trier les séries en ordre croissant"
@@ -13508,7 +13508,7 @@ msgid "Sum as Fraction of Columns"
 msgstr "Somme comme fraction de colonnes"
 
 msgid "Sum as Fraction of Rows"
-msgstr "Somme comme fraction de rangées"
+msgstr "Somme comme fraction de lignes"
 
 msgid "Sum as Fraction of Total"
 msgstr "Somme comme fraction de total"
@@ -13554,7 +13554,7 @@ msgid "Swap %s"
 msgstr "Échanger %s"
 
 msgid "Swap rows and columns"
-msgstr "Échanger les rangées et les colonnes"
+msgstr "Échanger les lignes et les colonnes"
 
 msgid ""
 "Swiss army knife for visualizing data. Choose between step, line, "
@@ -14413,19 +14413,19 @@ msgstr ""
 #, python-format
 msgid "The number of rows displayed is limited to %(rows)d by the limit dropdown."
 msgstr ""
-"Le nombre de rangées affichées est limité à %(rows)d par la liste "
+"Le nombre de lignes affichées est limité à %(rows)d par la liste "
 "déroulante de limite."
 
 #, python-format
 msgid "The number of rows displayed is limited to %(rows)d by the query"
-msgstr "Le nombre de rangées affichées est limité à %(rows)d par la requête"
+msgstr "Le nombre de lignes affichées est limité à %(rows)d par la requête"
 
 #, python-format
 msgid ""
 "The number of rows displayed is limited to %(rows)d by the query and "
 "limit dropdown."
 msgstr ""
-"Le nombre de rangées affichées est limité à %(rows)d par la requête et "
+"Le nombre de lignes affichées est limité à %(rows)d par la requête et "
 "liste déroulante de limite."
 
 msgid "The number of seconds before expiring the cache"
@@ -16549,7 +16549,7 @@ msgid "Use this section if you want a query that aggregates"
 msgstr "Utiliser cette section si vous voulez une requête qui regroupe"
 
 msgid "Use this section if you want to query atomic rows"
-msgstr "Utiliser cette section si vous souhaitez interroger des rangées atomiques"
+msgstr "Utiliser cette section si vous souhaitez interroger des lignes atomiques"
 
 msgid "Use this to define a static color for all circles"
 msgstr "Utiliser ceci pour définir une couleur statique pour tous les cercles"
@@ -18959,7 +18959,7 @@ msgid "y"
 msgstr "y"
 
 msgid "y: values are normalized within each row"
-msgstr "y : les valeurs sont normalisées dans chaque rangée"
+msgstr "y : les valeurs sont normalisées dans chaque ligne"
 
 msgid "year"
 msgstr "année"
