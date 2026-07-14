@@ -3725,7 +3725,7 @@ def test_simple_metric_quotes_column_requiring_quoting(database: Database) -> No
 
 @pytest.mark.parametrize(
     "native_type",
-    ["UUID", "uuid", "Nullable(UUID)"],
+    ["UUID", "uuid", "Nullable(UUID)", "uniqueidentifier"],
 )
 @pytest.mark.parametrize(
     "op",

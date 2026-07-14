@@ -250,7 +250,9 @@ def json_to_dict(json_str: str) -> dict[Any, Any]:
     return {}
 
 
-UUID_NATIVE_TYPE_RE: re.Pattern[str] = re.compile(r"\buuid\b", re.IGNORECASE)
+UUID_NATIVE_TYPE_RE: re.Pattern[str] = re.compile(
+    r"\b(uuid|uniqueidentifier)\b", re.IGNORECASE
+)
 
 
 def is_uuid_native_type(native_type: Optional[str]) -> bool:
@@ -260,9 +262,10 @@ def is_uuid_native_type(native_type: Optional[str]) -> bool:
     Engines such as PostgreSQL and ClickHouse expose native UUID column types
     (e.g. ``UUID``, ``Nullable(UUID)``) that map to ``GenericDataType.STRING``
     yet reject LIKE/ILIKE against the raw column, so these columns need an
-    explicit cast to string before pattern matching. The match is on the
-    whole word ``uuid`` so unrelated types that merely contain the substring
-    (e.g. a hypothetical ``uuidish`` type) aren't misclassified.
+    explicit cast to string before pattern matching. SQL Server's equivalent
+    native type is ``uniqueidentifier``, which is matched too. The match is
+    on whole words so unrelated types that merely contain one of these as a
+    substring (e.g. a hypothetical ``uuidish`` type) aren't misclassified.
     """
     return native_type is not None and bool(
         UUID_NATIVE_TYPE_RE.search(native_type.strip())
