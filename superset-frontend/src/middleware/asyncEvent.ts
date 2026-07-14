@@ -66,8 +66,8 @@ let config: AppConfig;
 let transport: string;
 let pollingDelayMs: number;
 let pollingTimeoutId: number;
-let listenersByJobId: Map<string, ListenerFn>;
-let retriesByJobId: Map<string, number>;
+let listenersByJobId: Record<string, ListenerFn>;
+let retriesByJobId: Record<string, number>;
 let lastReceivedEventId: string | null | undefined;
 let consecutivePollingErrorCount = 0;
 // Incremented on every init() so polling invocations that are already
@@ -75,23 +75,25 @@ let consecutivePollingErrorCount = 0;
 // stop, instead of mutating fresh state or scheduling a second loop
 let pollingGeneration = 0;
 
-const addListener = (id: string, fn: ListenerFn) => {
-  listenersByJobId.set(id, fn);
+const addListener = (id: string, fn: any) => {
+  listenersByJobId[id] = fn;
 };
 
 const removeListener = (id: string) => {
-  if (!listenersByJobId.has(id)) return;
-  listenersByJobId.delete(id);
+  if (!listenersByJobId[id]) return;
+  delete listenersByJobId[id];
 };
 
 const fetchCachedData = async (
   asyncEvent: AsyncEvent,
+  signal?: AbortSignal,
 ): Promise<CachedDataResponse> => {
   let status = 'success';
   let data;
   try {
     const { json } = await SupersetClient.get({
       endpoint: String(asyncEvent.result_url),
+      signal,
     });
     data = 'result' in json ? json.result : json;
   } catch (response) {
@@ -102,32 +104,71 @@ const fetchCachedData = async (
   return { status, data };
 };
 
-export const waitForAsyncData = async (asyncResponse: AsyncEvent) =>
+export const waitForAsyncData = async (
+  asyncResponse: AsyncEvent,
+  signal?: AbortSignal,
+) =>
   new Promise((resolve, reject) => {
     const jobId = asyncResponse.job_id;
+
+    let onAbort: (() => void) | undefined;
+    const cleanup = () => {
+      removeListener(jobId);
+      if (onAbort && signal) {
+        signal.removeEventListener('abort', onAbort);
+      }
+    };
+
+    // Bail immediately if the caller has already aborted (e.g. the chart was
+    // unmounted before the job started), avoiding a leaked listener.
+    if (signal?.aborted) {
+      reject(new DOMException('Aborted', 'AbortError'));
+      return;
+    }
+
     const listener = async (asyncEvent: AsyncEvent) => {
       switch (asyncEvent.status) {
         case JOB_STATUS.DONE: {
-          let { data, status } = await fetchCachedData(asyncEvent); // eslint-disable-line prefer-const
+          // Forward the signal so the cached-result download is cancelled too if
+          // the caller aborts mid-fetch, rather than wasting network/processing.
+          let { data, status } = await fetchCachedData(asyncEvent, signal); // eslint-disable-line prefer-const
           data = ensureIsArray(data);
           if (status === 'success') {
             resolve(data);
           } else {
             reject(data);
           }
+          // Terminal status: the promise is settled, so fully clean up.
+          cleanup();
           break;
         }
         case JOB_STATUS.ERROR: {
           const err = parseErrorJson(asyncEvent);
           reject(err);
+          // Terminal status: the promise is settled, so fully clean up.
+          cleanup();
           break;
         }
         default: {
           logging.warn('received event with status', asyncEvent.status);
+          // Non-terminal status: drop this (stale) job listener but keep the
+          // abort handler so an unmount/supersede can still reject the pending
+          // promise (full cleanup here would leave it hanging on abort).
+          removeListener(jobId);
         }
       }
-      removeListener(jobId);
     };
+
+    // When the caller aborts (chart superseded/unmounted), stop listening so the
+    // listener and its retained closure don't leak and keep the poller busy.
+    if (signal) {
+      onAbort = () => {
+        cleanup();
+        reject(new DOMException('Aborted', 'AbortError'));
+      };
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
+
     addListener(jobId, listener);
   });
 
@@ -151,26 +192,22 @@ const setLastId = (asyncEvent: AsyncEvent) => {
 export const processEvents = async (events: AsyncEvent[]) => {
   events.forEach((asyncEvent: AsyncEvent) => {
     const jobId = asyncEvent.job_id;
-    const listener = listenersByJobId.get(jobId);
-    // `jobId` originates from server/WebSocket payloads, so the listener is
-    // resolved exclusively through a Map (never plain-object property access,
-    // which would expose the prototype chain), and we confirm the retrieved
-    // value is a registered function before dispatching the event to it.
-    if (typeof listener === 'function') {
+    const listener = listenersByJobId[jobId];
+    if (listener) {
       listener(asyncEvent);
-      retriesByJobId.delete(jobId);
+      delete retriesByJobId[jobId];
     } else {
       // handle race condition where event is received
       // before listener is registered
-      const retries = (retriesByJobId.get(jobId) ?? 0) + 1;
-      retriesByJobId.set(jobId, retries);
+      if (!retriesByJobId[jobId]) retriesByJobId[jobId] = 0;
+      retriesByJobId[jobId] += 1;
 
-      if (retries <= MAX_RETRIES) {
+      if (retriesByJobId[jobId] <= MAX_RETRIES) {
         setTimeout(() => {
           processEvents([asyncEvent]);
-        }, RETRY_DELAY * retries);
+        }, RETRY_DELAY * retriesByJobId[jobId]);
       } else {
-        retriesByJobId.delete(jobId);
+        delete retriesByJobId[jobId];
         logging.warn('listener not found for job_id', asyncEvent.job_id);
       }
     }
@@ -190,7 +227,7 @@ const getPollingDelay = () => {
 const loadEventsFromApi = async () => {
   const generation = pollingGeneration;
   const eventArgs = lastReceivedEventId ? { last_id: lastReceivedEventId } : {};
-  if (listenersByJobId.size) {
+  if (Object.keys(listenersByJobId).length) {
     try {
       const { result: events } = await fetchEvents(eventArgs);
       if (generation !== pollingGeneration) return;
@@ -259,8 +296,8 @@ export const init = (appConfig?: AppConfig) => {
   if (pollingTimeoutId) clearTimeout(pollingTimeoutId);
   if (!isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) return;
 
-  listenersByJobId = new Map();
-  retriesByJobId = new Map();
+  listenersByJobId = {};
+  retriesByJobId = {};
   lastReceivedEventId = null;
   consecutivePollingErrorCount = 0;
 
