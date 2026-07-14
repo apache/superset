@@ -188,14 +188,57 @@ def _resolve_owners(owner_ids: list[int]) -> tuple[list[Any], list[int]]:
     return users, missing
 
 
-def _apply_field_updates(dashboard: Any, request: UpdateDashboardRequest) -> list[str]:
+def _resolve_and_validate_owners(
+    request: UpdateDashboardRequest,
+) -> tuple[list[Any] | None, DashboardError | None]:
+    """Resolve the requested owners exactly once, returning ``(users, error)``.
+
+    A ``None`` users result means the request left owners unchanged; an empty
+    list is a valid "clear all owners" request. Resolving here once (rather
+    than again at mutation time) closes the window where a user removed between
+    validation and the write would be silently dropped. Unknown IDs and DB
+    errors are surfaced as structured ``DashboardError`` responses, matching the
+    other pre-flight validations.
+    """
+    if request.owners is None:
+        return None, None
+
+    try:
+        users, missing = _resolve_owners(request.owners)
+    except SQLAlchemyError:
+        logger.warning("Database error during owner validation", exc_info=True)
+        return None, DashboardError(
+            error="Failed to validate owners due to a database error.",
+            error_type="DatabaseError",
+        )
+
+    if missing:
+        return None, DashboardError(
+            error=(
+                "Unknown owner user IDs: "
+                + ", ".join(str(m) for m in missing)
+                + ". Find valid IDs with list_users."
+            ),
+            error_type="OwnersNotFound",
+        )
+
+    return users, None
+
+
+def _apply_field_updates(
+    dashboard: Any,
+    request: UpdateDashboardRequest,
+    resolved_owners: list[Any] | None,
+) -> list[str]:
     """Apply each explicitly-passed field to the dashboard.
 
     Returns the names of fields actually changed. Mutates ``dashboard``
     in place. ``json_metadata_overrides`` (plus the typed metadata fields) is
     merged shallowly with the existing ``json_metadata``; an empty string in
     ``slug`` or ``css`` clears the underlying value; ``tags`` fully replaces the
-    dashboard's custom tags. Inputs are assumed pre-validated by
+    dashboard's custom tags. ``resolved_owners`` is the already-resolved,
+    already-validated owner list from ``_resolve_and_validate_owners`` (used
+    only when ``request.owners`` is set). Inputs are assumed pre-validated by
     ``_validate_update_request``.
     """
     changed: list[str] = []
@@ -239,12 +282,11 @@ def _apply_field_updates(dashboard: Any, request: UpdateDashboardRequest) -> lis
         changed.append("tags")
 
     if request.owners is not None:
-        # Full replacement of owners (empty list clears them). IDs are
-        # validated up front in _validate_update_request, so resolving here
-        # only maps the already-verified IDs to user objects.
-        owner_users: list[Any]
-        owner_users, _missing = _resolve_owners(request.owners)
-        dashboard.owners = owner_users
+        # Full replacement of owners (empty list clears them). The owners were
+        # resolved and validated exactly once by _resolve_and_validate_owners,
+        # so there is no second lookup here that could silently drop a user
+        # removed between validation and this write.
+        dashboard.owners = resolved_owners or []
         changed.append("owners")
 
     return changed
@@ -304,30 +346,9 @@ def _validate_update_request(
                 error_type="DatabaseError",
             )
 
-    # A non-empty owners list must reference existing users. An empty list is
-    # a valid "clear all owners" request and needs no lookup. Owner resolution
-    # queries the DB before the tool's main SQLAlchemyError wrapper, so guard it
-    # here to return the same structured DatabaseError as the other validations.
-    if request.owners:
-        missing_owner_ids: list[int]
-        try:
-            _users, missing_owner_ids = _resolve_owners(request.owners)
-        except SQLAlchemyError:
-            logger.warning("Database error during owner validation", exc_info=True)
-            return DashboardError(
-                error="Failed to validate owners due to a database error.",
-                error_type="DatabaseError",
-            )
-        if missing_owner_ids:
-            return DashboardError(
-                error=(
-                    "Unknown owner user IDs: "
-                    + ", ".join(str(m) for m in missing_owner_ids)
-                    + ". Find valid IDs with list_users."
-                ),
-                error_type="OwnersNotFound",
-            )
-
+    # Owners are resolved and validated separately by
+    # _resolve_and_validate_owners so the resolution can be reused for the
+    # write without a second lookup.
     return None
 
 
@@ -387,12 +408,20 @@ def update_dashboard(
     if validation_error is not None:
         return validation_error
 
+    # Resolve owners once up front so the same list is used for validation and
+    # the write (no second lookup that could drop a concurrently-removed user).
+    resolved_owners, owners_error = _resolve_and_validate_owners(request)
+    if owners_error is not None:
+        return owners_error
+
     changed_fields: list[str] = []
     warnings: list[str] = list(request.sanitization_warnings)
 
     try:
         with event_logger.log_context(action="mcp.update_dashboard.apply"):
-            changed_fields = _apply_field_updates(dashboard, request)
+            changed_fields = _apply_field_updates(
+                dashboard, request, resolved_owners
+            )
 
             if not changed_fields:
                 warnings.append("No fields provided; dashboard unchanged.")
