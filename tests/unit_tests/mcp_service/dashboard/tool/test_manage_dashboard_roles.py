@@ -84,7 +84,7 @@ class TestManageDashboardRoles:
     @patch(SUBJECTS_FROM_ROLES)
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_add_role(
         self,
         mock_session: Mock,
@@ -117,7 +117,7 @@ class TestManageDashboardRoles:
     @patch(SUBJECTS_FROM_ROLES)
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_add_role_warns_when_flag_disabled(
         self,
         mock_session: Mock,
@@ -145,7 +145,7 @@ class TestManageDashboardRoles:
     @patch(SUBJECTS_FROM_ROLES)
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_remove_role(
         self,
         mock_session: Mock,
@@ -172,7 +172,7 @@ class TestManageDashboardRoles:
 
     @patch(IS_FEATURE_ENABLED, return_value=True)
     @patch(DAO_GET)
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_remove_unknown_role_id_rejected(
         self, mock_get: Mock, mock_flag: Mock, mcp_server: object
     ) -> None:
@@ -191,7 +191,7 @@ class TestManageDashboardRoles:
 
     @patch(IS_FEATURE_ENABLED, return_value=True)
     @patch(DAO_GET)
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_dashboard_not_found(
         self, mock_get: Mock, mock_flag: Mock, mcp_server: object
     ) -> None:
@@ -210,7 +210,7 @@ class TestManageDashboardRoles:
 
     @patch(IS_FEATURE_ENABLED, return_value=True)
     @patch(DAO_GET)
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_non_owner_gets_permission_denied(
         self, mock_get: Mock, mock_flag: Mock, mcp_server: object
     ) -> None:
@@ -235,7 +235,7 @@ class TestManageDashboardRoles:
     @patch(IS_FEATURE_ENABLED, return_value=True)
     @patch(SUBJECTS_FROM_ROLES)
     @patch(DAO_GET)
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_unknown_role_id_in_add_rejected(
         self,
         mock_get: Mock,
@@ -258,7 +258,7 @@ class TestManageDashboardRoles:
         assert "do not exist" in (payload.get("error") or "").lower()
         assert "list_roles" in (payload.get("error") or "")
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_add_remove_overlap_rejected(self, mcp_server: object) -> None:
         from fastmcp.exceptions import ToolError
 
@@ -275,7 +275,7 @@ class TestManageDashboardRoles:
                     },
                 )
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_no_operation_rejected(self, mcp_server: object) -> None:
         from fastmcp.exceptions import ToolError
 
@@ -290,7 +290,7 @@ class TestManageDashboardRoles:
     @patch(SUBJECTS_FROM_ROLES)
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_add_already_assigned_role_not_reported_as_added(
         self,
         mock_session: Mock,

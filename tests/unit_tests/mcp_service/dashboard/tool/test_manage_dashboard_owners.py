@@ -86,7 +86,7 @@ class TestManageDashboardOwners:
     @patch(GET_OR_CREATE_USER_SUBJECT)
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_add_owner(
         self,
         mock_session: Mock,
@@ -125,7 +125,7 @@ class TestManageDashboardOwners:
     @patch(GET_OR_CREATE_USER_SUBJECT)
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_remove_owner(
         self,
         mock_session: Mock,
@@ -155,7 +155,7 @@ class TestManageDashboardOwners:
         assert [o["id"] for o in payload["owners"]] == [100]
 
     @patch(DAO_GET)
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_remove_all_owners_rejected(
         self, mock_get: Mock, mcp_server: object
     ) -> None:
@@ -176,7 +176,7 @@ class TestManageDashboardOwners:
         assert dash.editors is original_editors
 
     @patch(DAO_GET)
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_remove_unknown_owner_id_rejected(
         self, mock_get: Mock, mcp_server: object
     ) -> None:
@@ -194,7 +194,7 @@ class TestManageDashboardOwners:
         assert "not currently owners" in (payload.get("error") or "").lower()
 
     @patch(DAO_GET)
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_dashboard_not_found(
         self, mock_get: Mock, mcp_server: object
     ) -> None:
@@ -212,7 +212,7 @@ class TestManageDashboardOwners:
         assert "not found" in (payload.get("error") or "").lower()
 
     @patch(DAO_GET)
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_non_owner_gets_permission_denied(
         self, mock_get: Mock, mcp_server: object
     ) -> None:
@@ -236,7 +236,7 @@ class TestManageDashboardOwners:
 
     @patch(GET_OR_CREATE_USER_SUBJECT)
     @patch(DAO_GET)
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_unknown_user_id_in_add_rejected(
         self, mock_get: Mock, mock_get_or_create: Mock, mcp_server: object
     ) -> None:
@@ -259,7 +259,7 @@ class TestManageDashboardOwners:
     @patch(GET_OR_CREATE_USER_SUBJECT)
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_self_removal_auto_readded_warns(
         self,
         mock_session: Mock,
@@ -296,7 +296,7 @@ class TestManageDashboardOwners:
 
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_add_already_owner_is_noop_without_disclosure(
         self, mock_session: Mock, mock_get: Mock, mcp_server: object
     ) -> None:
@@ -324,7 +324,7 @@ class TestManageDashboardOwners:
     @patch(GET_OR_CREATE_USER_SUBJECT)
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_partial_change_still_discloses_full_owners(
         self,
         mock_session: Mock,
@@ -356,7 +356,7 @@ class TestManageDashboardOwners:
         assert sorted(o["id"] for o in payload["owners"]) == [100, 101]
         assert payload["added_owner_ids"] == [7]
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_add_remove_overlap_rejected(self, mcp_server: object) -> None:
         from fastmcp.exceptions import ToolError
 
@@ -373,7 +373,7 @@ class TestManageDashboardOwners:
                     },
                 )
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_no_operation_rejected(self, mcp_server: object) -> None:
         from fastmcp.exceptions import ToolError
 
