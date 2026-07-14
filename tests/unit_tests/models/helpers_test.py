@@ -3789,7 +3789,7 @@ def test_like_filter_on_string_column_does_not_cast(database: Database) -> None:
         is_timeseries=False,
         orderby=[],
     )
-    whereclause = result.sqla_query.whereclause
+    whereclause: ColumnElement = result.sqla_query.whereclause
     assert not any(isinstance(node, Cast) for node in iterate(whereclause)), (
         f"Unexpected Cast node in the filter expression: {whereclause}"
     )
