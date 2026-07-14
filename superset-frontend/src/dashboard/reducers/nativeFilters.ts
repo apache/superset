@@ -76,12 +76,17 @@ function handleFilterChangesComplete(
   filters: Array<
     Filter | Divider | ChartCustomization | ChartCustomizationDivider
   >,
+  deletedIds: string[] = [],
 ) {
-  // Create new filters object from backend response (deleted filters won't be included)
+  // Native filters and chart customizations share this map, but each save path
+  // only reports its own domain. Merge the incoming changes into the existing
+  // map (instead of rebuilding from scratch) so, e.g., saving a chart
+  // customization doesn't drop native filters and vice versa. Deletions are
+  // applied explicitly via deletedIds.
   const newFilters: Record<
     string,
     Filter | Divider | ChartCustomization | ChartCustomizationDivider
-  > = {};
+  > = { ...state.filters };
 
   filters.forEach(filter => {
     const existingFilter = state.filters[filter.id];
@@ -94,6 +99,10 @@ function handleFilterChangesComplete(
         tabsInScope: filter.tabsInScope ?? existingFilter?.tabsInScope,
       };
     }
+  });
+
+  deletedIds.forEach(id => {
+    delete newFilters[id];
   });
 
   return {
@@ -143,7 +152,11 @@ export default function nativeFilterReducer(
       return getInitialState({ filterConfig: action.filterConfig, state });
 
     case SET_NATIVE_FILTERS_CONFIG_COMPLETE:
-      return handleFilterChangesComplete(state, action.filterChanges);
+      return handleFilterChangesComplete(
+        state,
+        action.filterChanges,
+        action.deletedIds,
+      );
 
     case SET_FOCUSED_NATIVE_FILTER:
       return {

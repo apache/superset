@@ -88,6 +88,9 @@ export function getRelatedCharts(
   slices: Record<string, Slice>,
 ) {
   let related: number[] = [];
+  if (!filter) {
+    return related;
+  }
   const isCrossFilter =
     Object.keys(slices).includes(filterKey) && isAppliedCrossFilterType(filter);
 

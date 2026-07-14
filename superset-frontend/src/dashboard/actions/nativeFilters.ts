@@ -50,6 +50,7 @@ export interface SetNativeFiltersConfigComplete {
   filterChanges: Array<
     Filter | Divider | ChartCustomization | ChartCustomizationDivider
   >;
+  deletedIds?: string[];
 }
 
 export const SET_NATIVE_FILTERS_CONFIG_FAIL = 'SET_NATIVE_FILTERS_CONFIG_FAIL';
@@ -92,6 +93,7 @@ export const setFilterConfiguration =
       dispatch({
         type: SET_NATIVE_FILTERS_CONFIG_COMPLETE,
         filterChanges: response.result,
+        deletedIds: filterChanges.deleted,
       });
       dispatch(nativeFiltersConfigChanged(response.result));
       dispatch(setDataMaskForFilterChangesComplete(filterChanges, oldFilters));
