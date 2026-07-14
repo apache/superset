@@ -7,6 +7,11 @@ on:
       - "[0-9].[0-9]*"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
+  # Nightly full-tree sweep. Per-PR runs only lint changed files, so a change
+  # that invalidates an untouched file (e.g. a type change that breaks an
+  # importing test) can pass every PR yet leave master red. This catches that.
+  schedule:
+    - cron: "0 6 * * *"
 
 permissions:
   contents: read
