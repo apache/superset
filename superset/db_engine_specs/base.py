@@ -546,8 +546,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # quote characters are escaped by doubling the closing character. These are
     # surfaced to the client (see `get_public_information`) so identifier quoting
     # stays owned by the engine spec rather than duplicated per client.
-    identifier_quote_start = '"'
-    identifier_quote_end = '"'
+    identifier_quote_start: str = '"'
+    identifier_quote_end: str = '"'
 
     # Some databases (e.g. Druid, Pinot) build cursor.description by inspecting
     # the values in the first returned row rather than from query-plan metadata.

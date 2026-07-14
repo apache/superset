@@ -81,8 +81,8 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
     max_column_name_length = 64
 
     # MySQL/MariaDB quote identifiers with backticks rather than ANSI double quotes.
-    identifier_quote_start = "`"
-    identifier_quote_end = "`"
+    identifier_quote_start: str = "`"
+    identifier_quote_end: str = "`"
 
     default_driver = "mysqldb"
     sqlalchemy_uri_placeholder = (
