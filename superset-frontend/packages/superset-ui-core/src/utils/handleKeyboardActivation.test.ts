@@ -19,10 +19,10 @@
 import { KeyboardEvent } from 'react';
 import { handleKeyboardActivation } from './handleKeyboardActivation';
 
-const makeEvent = (key: string) => {
+const makeEvent = (key: string, repeat = false) => {
   const preventDefault = jest.fn();
   return {
-    event: { key, preventDefault } as unknown as KeyboardEvent,
+    event: { key, repeat, preventDefault } as unknown as KeyboardEvent,
     preventDefault,
   };
 };
@@ -49,4 +49,13 @@ test('ignores other keys', () => {
   handleKeyboardActivation(callback)(event);
   expect(callback).not.toHaveBeenCalled();
   expect(preventDefault).not.toHaveBeenCalled();
+});
+
+test('ignores auto-repeat keydown events fired while a key is held', () => {
+  const callback = jest.fn();
+  const { event, preventDefault } = makeEvent('Enter', true);
+  handleKeyboardActivation(callback)(event);
+  expect(callback).not.toHaveBeenCalled();
+  // Still prevents default so the page doesn't scroll while Space is held.
+  expect(preventDefault).toHaveBeenCalled();
 });

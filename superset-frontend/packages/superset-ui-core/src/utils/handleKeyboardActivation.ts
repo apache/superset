@@ -35,6 +35,11 @@ export function handleKeyboardActivation(
       // Prevent the page from scrolling on Space and stop any duplicate
       // default activation on Enter.
       event.preventDefault();
+      // Ignore auto-repeat keydown events fired while the key is held, so
+      // a long press activates the callback once, matching a mouse click.
+      if (event.repeat) {
+        return;
+      }
       callback(event);
     }
   };

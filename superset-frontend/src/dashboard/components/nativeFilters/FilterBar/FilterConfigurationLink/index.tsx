@@ -33,7 +33,7 @@ export const FilterConfigurationLink: FC<FCBProps> = ({
   <div
     {...getFilterBarTestId('create-filter')}
     onClick={onClick}
-    onKeyDown={handleKeyboardActivation(onClick)}
+    onKeyDown={onClick ? handleKeyboardActivation(onClick) : undefined}
     role="button"
     tabIndex={0}
   >
