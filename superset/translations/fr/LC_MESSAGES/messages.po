@@ -5219,7 +5219,7 @@ msgid "Delete dashboard tab?"
 msgstr "Supprimer l'onglet du tableau de bord?"
 
 msgid "Delete email report"
-msgstr "Supprimer le rapport par courriel"
+msgstr "Supprimer le rapport par mail"
 
 msgid "Delete group"
 msgstr "supprimer le groupe"
@@ -6014,7 +6014,7 @@ msgid "Edit database"
 msgstr "Modifier la base de données"
 
 msgid "Edit email report"
-msgstr "Modifier le rapport par courriel"
+msgstr "Modifier le rapport par mail"
 
 msgid "Edit formatter"
 msgstr "Modifier le formateur"
@@ -6092,7 +6092,7 @@ msgid "Email link"
 msgstr "Adresse email"
 
 msgid "Email reports active"
-msgstr "Rapports par courriel actifs"
+msgstr "Rapports par mail actifs"
 
 msgid "Email subject name (optional)"
 msgstr "Objet de l'email (optionnel)"
@@ -7279,7 +7279,7 @@ msgstr ""
 "utilisé."
 
 msgid "Formatted CSV attached in email"
-msgstr "CSV formatté attaché dans le courriel"
+msgstr "CSV formatté attaché dans le mail"
 
 msgid "Formatted date"
 msgstr "Date formatée"
@@ -7685,7 +7685,7 @@ msgid "Ignore time"
 msgstr "Ignorer le temps"
 
 msgid "Image (PNG) embedded in email"
-msgstr "Image (PNG) encapsulée dans le courriel"
+msgstr "Image (PNG) encapsulée dans le mail"
 
 msgid "Image download failed, please refresh and try again."
 msgstr "Échec du téléchargement de l’image, veuillez actualiser et réessayer."
@@ -10572,12 +10572,12 @@ msgstr[1] "Veuillez contacter les propriétaires du graphique pour obtenir de l'
 msgid "Please save your chart first, then try creating a new email report."
 msgstr ""
 "Veuillez d'abord enregistrer votre graphique, puis essayez de créer un "
-"nouveau rapport par courriel."
+"nouveau rapport par mail."
 
 msgid "Please save your dashboard first, then try creating a new email report."
 msgstr ""
 "Veuillez d'abord sauvegarder votre tableau de bord, puis essayez de créer"
-" un nouveau rapport par courriel."
+" un nouveau rapport par mail."
 
 msgid "Please select at least one role or group"
 msgstr "Veuillez choisir au moins un role ou groupe"
@@ -11207,7 +11207,7 @@ msgstr "Rapport échoué"
 
 #, fuzzy
 msgid "Report is active"
-msgstr "Rapports par courriel actifs"
+msgstr "Rapports par mail actifs"
 
 msgid "Report name"
 msgstr "Nom du rapport"
@@ -11827,9 +11827,8 @@ msgstr ""
 msgid "Schedule"
 msgstr "Planifier"
 
-#, fuzzy
 msgid "Schedule a new email report"
-msgstr "Planifier un nouveau rapport par courriel"
+msgstr "Planifier un nouveau rapport par mail"
 
 msgid "Schedule query"
 msgstr "Planifier une requête"
@@ -12654,7 +12653,7 @@ msgstr ""
 "bord. Le tableau de bord rechargera ses données à l'intervalle spécifié."
 
 msgid "Set up an email report"
-msgstr "Définir un rapport par courriel"
+msgstr "Définir un rapport par mail"
 
 msgid "Set up basic details, such as name and description."
 msgstr "Configurer les informations de base, telles que le nom et la description."
@@ -12693,10 +12692,10 @@ msgid "Share"
 msgstr "Partager"
 
 msgid "Share chart by email"
-msgstr "Partager le graphique par courriel"
+msgstr "Partager le graphique par mail"
 
 msgid "Share permalink by email"
-msgstr "Partager le lien par courriel"
+msgstr "Partager le lien par mail"
 
 msgid "Shared"
 msgstr "Partagé"
@@ -13854,7 +13853,7 @@ msgid "Text align"
 msgstr "Alignement du texte"
 
 msgid "Text embedded in email"
-msgstr "Text encapsulé dans le courriel"
+msgstr "Text encapsulé dans le mail"
 
 #, python-format
 msgid "The %s"
@@ -14621,7 +14620,7 @@ msgid "The report has been created"
 msgstr "Le rapport a été créé"
 
 msgid "The report will be sent to your email at"
-msgstr "Les rapports planifiés seront envoyés à votre courriel"
+msgstr "Les rapports planifiés seront envoyés à votre mail"
 
 msgid ""
 "The result of this query must be a value capable of numeric "
