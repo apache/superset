@@ -22,14 +22,23 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import ParamSpec, TypeVar
+from typing import Literal, ParamSpec, TypeVar
 
 from flask import current_app, Response
 
 P = ParamSpec("P")
 R = TypeVar("R", bound=Response)
 
-_PHASE_NAMES = {
+ChartTimingPhase = Literal[
+    "context",
+    "authorize",
+    "query",
+    "client",
+    "serialize",
+    "enqueue",
+]
+
+_PHASE_NAMES: dict[ChartTimingPhase, str] = {
     "context": "chart-context",
     "authorize": "chart-authorize",
     "query": "chart-query",
@@ -44,9 +53,9 @@ class ChartRequestTiming:
     """Request-local accumulator for fixed chart API phases."""
 
     started_ns: int = field(default_factory=time.perf_counter_ns)
-    phases_ns: dict[str, int] = field(default_factory=dict)
+    phases_ns: dict[ChartTimingPhase, int] = field(default_factory=dict)
 
-    def add(self, phase: str, duration_ns: int) -> None:
+    def add(self, phase: ChartTimingPhase, duration_ns: int) -> None:
         self.phases_ns[phase] = self.phases_ns.get(phase, 0) + max(0, duration_ns)
 
 
@@ -56,7 +65,7 @@ _request_timing: ContextVar[ChartRequestTiming | None] = ContextVar(
 
 
 @contextmanager
-def chart_timing_phase(phase: str) -> Iterator[None]:
+def chart_timing_phase(phase: ChartTimingPhase) -> Iterator[None]:
     """Measure one fixed chart API phase when request collection is active."""
     timing = _request_timing.get()
     if timing is None:

@@ -1127,7 +1127,6 @@ class QueryStringExtended(NamedTuple):
     labels_expected: list[str]
     prequeries: list[str]
     sql: str
-    deferred: bool = False
 
 
 class SqlaQuery(NamedTuple):
@@ -1139,7 +1138,6 @@ class SqlaQuery(NamedTuple):
     labels_expected: list[str]
     prequeries: list[str]
     sqla_query: Select
-    deferred: bool = False
 
 
 class ExploreMixin:  # pylint: disable=too-many-public-methods
@@ -1478,7 +1476,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             labels_expected=sqlaq.labels_expected,
             prequeries=sqlaq.prequeries,
             sql=sql,
-            deferred=sqlaq.deferred,
         )
 
     def _normalize_prequery_result_type(
@@ -3378,7 +3375,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         template_kwargs["applied_filters"] = applied_template_filters
         template_processor = self.get_template_processor(**template_kwargs)
         prequeries: list[str] = []
-        deferred = False
         orderby = orderby or []
         need_groupby = bool(metrics is not None or groupby)
         metrics = metrics or []
@@ -4134,7 +4130,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                     prequeries.extend([*prequery.prequeries, prequery.sql])
                     top_groups = sa.false()
-                    deferred = True
                 else:
                     with source_timing(SourceKind.SERIES_LIMIT, SourceProvider.SQL):
                         result = self.query(prequery_obj)
@@ -4227,5 +4222,4 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             labels_expected=labels_expected,
             sqla_query=qry,
             prequeries=prequeries,
-            deferred=deferred,
         )
