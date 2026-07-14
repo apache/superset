@@ -134,44 +134,47 @@ async def restore_chart(
             error_type="NotDeleted",
         )
 
-    try:
-        from superset.commands.chart.restore import RestoreChartCommand
+    # The try/except sits inside log_context so failed restore attempts are
+    # recorded in the audit log too — the context manager does not log when
+    # an exception propagates through it.
+    with event_logger.log_context(action="mcp.restore_chart"):
+        try:
+            from superset.commands.chart.restore import RestoreChartCommand
 
-        with event_logger.log_context(action="mcp.restore_chart"):
             RestoreChartCommand(str(chart.uuid)).run()
 
-        return RestoreChartResponse(
-            success=True,
-            restored_id=chart_id,
-            restored_name=chart_name,
-            message=f"Restored chart '{chart_name}' (id={chart_id}) from trash.",
-        )
-    except ChartForbiddenError:
-        await ctx.warning("Permission denied restoring chart id=%s" % (chart_id,))
-        return RestoreChartResponse(
-            success=False,
-            permission_denied=True,
-            error=(
-                f"You do not have permission to restore chart '{chart_name}' "
-                f"(id={chart_id}). Ask the user to restore it or grant access; "
-                "do not retry."
-            ),
-            error_type="Forbidden",
-        )
-    except ChartNotFoundError:
-        msg = f"Chart id={chart_id} is no longer restorable."
-        return RestoreChartResponse(success=False, error=msg, error_type="NotFound")
-    except (CommandException, SQLAlchemyError, ValueError) as ex:
-        _rollback()
-        await ctx.error("Chart restore failed: %s: %s" % (type(ex).__name__, ex))
-        return RestoreChartResponse(
-            success=False,
-            # Raw SQLAlchemy text can leak SQL or connection details; command
-            # and validation messages are user-facing by design.
-            error=(
-                "Chart restore failed due to a database error."
-                if isinstance(ex, SQLAlchemyError)
-                else f"Chart restore failed: {ex}"
-            ),
-            error_type=type(ex).__name__,
-        )
+            return RestoreChartResponse(
+                success=True,
+                restored_id=chart_id,
+                restored_name=chart_name,
+                message=f"Restored chart '{chart_name}' (id={chart_id}) from trash.",
+            )
+        except ChartForbiddenError:
+            await ctx.warning("Permission denied restoring chart id=%s" % (chart_id,))
+            return RestoreChartResponse(
+                success=False,
+                permission_denied=True,
+                error=(
+                    f"You do not have permission to restore chart '{chart_name}' "
+                    f"(id={chart_id}). Ask the user to restore it or grant access; "
+                    "do not retry."
+                ),
+                error_type="Forbidden",
+            )
+        except ChartNotFoundError:
+            msg = f"Chart id={chart_id} is no longer restorable."
+            return RestoreChartResponse(success=False, error=msg, error_type="NotFound")
+        except (CommandException, SQLAlchemyError, ValueError) as ex:
+            _rollback()
+            await ctx.error("Chart restore failed: %s: %s" % (type(ex).__name__, ex))
+            return RestoreChartResponse(
+                success=False,
+                # Raw SQLAlchemy text can leak SQL or connection details; command
+                # and validation messages are user-facing by design.
+                error=(
+                    "Chart restore failed due to a database error."
+                    if isinstance(ex, SQLAlchemyError)
+                    else f"Chart restore failed: {ex}"
+                ),
+                error_type=type(ex).__name__,
+            )

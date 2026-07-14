@@ -234,3 +234,17 @@ async def test_restore_dashboard_slug_conflict(
     assert content["success"] is False
     assert content["error_type"] == "DashboardSlugConflictError"
     assert "slug" in (content["error"] or "").lower()
+
+
+@pytest.mark.asyncio
+async def test_restore_dashboard_rejects_boolean_identifier(
+    mcp_server: object,
+) -> None:
+    """bool subclasses int; identifier=true must not coerce to dashboard ID 1."""
+    from fastmcp.exceptions import ToolError
+
+    async with Client(mcp_server) as client:
+        with pytest.raises(ToolError):
+            await client.call_tool(
+                "restore_dashboard", {"request": {"identifier": True}}
+            )

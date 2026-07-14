@@ -138,48 +138,56 @@ async def restore_dashboard(
             error_type="NotDeleted",
         )
 
-    try:
-        from superset.commands.dashboard.restore import RestoreDashboardCommand
+    # The try/except sits inside log_context so failed restore attempts are
+    # recorded in the audit log too — the context manager does not log when
+    # an exception propagates through it.
+    with event_logger.log_context(action="mcp.restore_dashboard"):
+        try:
+            from superset.commands.dashboard.restore import RestoreDashboardCommand
 
-        with event_logger.log_context(action="mcp.restore_dashboard"):
             RestoreDashboardCommand(str(dashboard.uuid)).run()
 
-        return RestoreDashboardResponse(
-            success=True,
-            restored_id=dashboard_id,
-            restored_name=dashboard_name,
-            message=(
-                f"Restored dashboard '{dashboard_name}' (id={dashboard_id}) from trash."
-            ),
-        )
-    except DashboardForbiddenError:
-        await ctx.warning(
-            "Permission denied restoring dashboard id=%s" % (dashboard_id,)
-        )
-        return RestoreDashboardResponse(
-            success=False,
-            permission_denied=True,
-            error=(
-                f"You do not have permission to restore dashboard "
-                f"'{dashboard_name}' (id={dashboard_id}). Ask the user to "
-                "restore it or grant access; do not retry."
-            ),
-            error_type="Forbidden",
-        )
-    except DashboardNotFoundError:
-        msg = f"Dashboard id={dashboard_id} is no longer restorable."
-        return RestoreDashboardResponse(success=False, error=msg, error_type="NotFound")
-    except (CommandException, SQLAlchemyError, ValueError) as ex:
-        _rollback()
-        await ctx.error("Dashboard restore failed: %s: %s" % (type(ex).__name__, ex))
-        return RestoreDashboardResponse(
-            success=False,
-            # Raw SQLAlchemy text can leak SQL or connection details; command
-            # and validation messages are user-facing by design.
-            error=(
-                "Dashboard restore failed due to a database error."
-                if isinstance(ex, SQLAlchemyError)
-                else f"Dashboard restore failed: {ex}"
-            ),
-            error_type=type(ex).__name__,
-        )
+            return RestoreDashboardResponse(
+                success=True,
+                restored_id=dashboard_id,
+                restored_name=dashboard_name,
+                message=(
+                    f"Restored dashboard '{dashboard_name}' "
+                    f"(id={dashboard_id}) from trash."
+                ),
+            )
+        except DashboardForbiddenError:
+            await ctx.warning(
+                "Permission denied restoring dashboard id=%s" % (dashboard_id,)
+            )
+            return RestoreDashboardResponse(
+                success=False,
+                permission_denied=True,
+                error=(
+                    f"You do not have permission to restore dashboard "
+                    f"'{dashboard_name}' (id={dashboard_id}). Ask the user to "
+                    "restore it or grant access; do not retry."
+                ),
+                error_type="Forbidden",
+            )
+        except DashboardNotFoundError:
+            msg = f"Dashboard id={dashboard_id} is no longer restorable."
+            return RestoreDashboardResponse(
+                success=False, error=msg, error_type="NotFound"
+            )
+        except (CommandException, SQLAlchemyError, ValueError) as ex:
+            _rollback()
+            await ctx.error(
+                "Dashboard restore failed: %s: %s" % (type(ex).__name__, ex)
+            )
+            return RestoreDashboardResponse(
+                success=False,
+                # Raw SQLAlchemy text can leak SQL or connection details; command
+                # and validation messages are user-facing by design.
+                error=(
+                    "Dashboard restore failed due to a database error."
+                    if isinstance(ex, SQLAlchemyError)
+                    else f"Dashboard restore failed: {ex}"
+                ),
+                error_type=type(ex).__name__,
+            )

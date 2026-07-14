@@ -230,3 +230,13 @@ async def test_restore_chart_lookup_db_error_is_structured(
     assert content["success"] is False
     assert content["error_type"] == "LookupFailed"
     assert "down" not in (content["error"] or "")
+
+
+@pytest.mark.asyncio
+async def test_restore_chart_rejects_boolean_identifier(mcp_server: object) -> None:
+    """bool subclasses int; identifier=true must not coerce to chart ID 1."""
+    from fastmcp.exceptions import ToolError
+
+    async with Client(mcp_server) as client:
+        with pytest.raises(ToolError):
+            await client.call_tool("restore_chart", {"request": {"identifier": True}})

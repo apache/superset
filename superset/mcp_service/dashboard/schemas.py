@@ -2295,6 +2295,15 @@ class RestoreDashboardRequest(BaseModel):
         description="Dashboard identifier - numeric ID or UUID string.",
     )
 
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so identifier=true would coerce to
+        dashboard ID 1 and target the wrong object; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID or UUID string")
+        return value
+
 
 class RestoreDashboardResponse(BaseModel):
     """Result of a restore_dashboard operation."""
