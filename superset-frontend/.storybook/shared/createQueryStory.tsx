@@ -22,7 +22,6 @@ import {
   ChartDataProvider,
   SupersetClient,
 } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/theme';
 import Expandable from './Expandable';
 import VerifyCORS, { renderError } from './VerifyCORS';
 
@@ -65,7 +64,6 @@ export default function createQueryStory({
                   return (
                     <>
                       <SuperChart
-                        theme={supersetTheme}
                         chartType={chartType}
                         width={width}
                         height={height}
