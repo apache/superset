@@ -13640,16 +13640,15 @@ msgid "Tab title"
 msgstr "Titre de l’onglet"
 
 msgid "Table"
-msgstr "Tableau"
+msgstr "Table"
 
 #, python-format
 msgid "Table %(table)s wasn't found in the database %(db)s"
-msgstr "Le tableau %(table)s n’a pas été trouvé dans la base de données %(db)s"
+msgstr "La table %(table)s n’a pas été trouvé dans la base de données %(db)s"
 
 msgid "Table Name"
-msgstr "Nom du tableau"
+msgstr "Nom de la table"
 
-#, fuzzy
 msgid "Table V2"
 msgstr "Tableau V2"
 
@@ -13670,23 +13669,23 @@ msgstr ""
 " à utiliser."
 
 msgid "Table cache timeout"
-msgstr "Délai d'attente du cache du tableau dépassé"
+msgstr "Délai d'attente du cache de la table dépassé"
 
 msgid "Table columns"
 msgstr "Colonnes de la table"
 
 msgid "Table name"
-msgstr "Nom du tableau"
+msgstr "Nom de la table"
 
 msgid "Table name is required"
-msgstr "Le nom du tableau est obligatoire"
+msgstr "Le nom de la table est obligatoire"
 
 msgid "Table name undefined"
-msgstr "Nom du tableau non défini"
+msgstr "Nom de la table non défini"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Table or View \"%(table)s\" does not exist."
-msgstr "Le tableau ou la vue « %(table)s » n'existe pas."
+msgstr "La table ou la vue « %(table)s » n'existe pas."
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -13696,7 +13695,7 @@ msgstr ""
 "comprendre les différences statistiques entre les groupes."
 
 msgid "Tables"
-msgstr "Tableaux"
+msgstr "Tables"
 
 msgid "Tabs"
 msgstr "Onglets"
@@ -13707,11 +13706,9 @@ msgstr "Tabulaire"
 msgid "Tag"
 msgstr "Étiquette"
 
-#, fuzzy
 msgid "Tag could not be created."
 msgstr "L'étiquette n'a pas pu être créée."
 
-#, fuzzy
 msgid "Tag could not be deleted."
 msgstr "L'étiquette n'a pas pu être supprimée."
 
