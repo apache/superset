@@ -19,7 +19,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from unittest.mock import call, Mock, patch
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from flask.ctx import AppContext
@@ -181,6 +181,11 @@ def assert_log(state: str, error_message: Optional[str] = None):
     # only assert an explicitly expected message.
     if error_message is not None:
         assert error_message in [log.error_message for log in logs]
+
+    for log in logs:
+        if log.state == ReportState.WORKING:
+            assert log.value is None
+            assert log.value_row_json is None
 
 
 @contextmanager
@@ -842,7 +847,7 @@ def test_email_chart_report_schedule_single_log_per_execution(
         db.session.commit()
         logs = (
             db.session.query(ReportExecutionLog)
-            .filter(ReportExecutionLog.uuid == TEST_ID)
+            .filter(ReportExecutionLog.uuid == UUID(TEST_ID))
             .all()
         )
         # A single execution (one uuid) must map to a single log entry, not one
