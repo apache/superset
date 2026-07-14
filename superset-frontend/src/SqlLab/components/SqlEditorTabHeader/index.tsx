@@ -41,7 +41,6 @@ import {
   removeAllOtherQueryEditors,
   queryEditorSetTitle,
   cloneQueryToNewTab,
-  toggleLeftBar,
 } from 'src/SqlLab/actions/sqlLab';
 import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { Icons, type IconType } from '@superset-ui/core/components/Icons';
@@ -105,7 +104,6 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
           removeAllOtherQueryEditors,
           queryEditorSetTitle,
           cloneQueryToNewTab,
-          toggleLeftBar,
         },
         dispatch,
       ),
