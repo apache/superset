@@ -13711,32 +13711,32 @@ msgstr "Étiquette"
 
 #, fuzzy
 msgid "Tag could not be created."
-msgstr "La balise n'a pas pu être créée."
+msgstr "L'étiquette n'a pas pu être créée."
 
 #, fuzzy
 msgid "Tag could not be deleted."
-msgstr "La balise n'a pas pu être supprimée."
+msgstr "L'étiquette n'a pas pu être supprimée."
 
 msgid "Tag could not be found."
-msgstr "La balise est introuvable."
+msgstr "L'étiquette est introuvable."
 
 msgid "Tag could not be updated."
-msgstr "La balise n'a pas pu être mise à jour."
+msgstr "L'étiquette n'a pas pu être mise à jour."
 
 msgid "Tag created"
-msgstr "La balise a été créé"
+msgstr "L'étiquette a été créé"
 
 msgid "Tag name"
-msgstr "Nom de la balise"
+msgstr "Nom de l'étiquette"
 
 msgid "Tag name is invalid (cannot contain ':')"
-msgstr "Le nom de la balise n’est pas valide (ne peut pas contenir « : »)"
+msgstr "Le nom de l'étiquette n’est pas valide (ne peut pas contenir « : »)"
 
 msgid "Tag parameters are invalid."
-msgstr "Les paramètres de la balise ne sont pas valides."
+msgstr "Les paramètres de l'étiquette ne sont pas valides."
 
 msgid "Tag updated"
-msgstr "Balise mise à jour"
+msgstr "Etiquette mise à jour"
 
 #, python-format
 msgid "Tagged %s %ss"
@@ -13746,7 +13746,7 @@ msgid "Tagged Object could not be deleted."
 msgstr "L'objet étiqueté n'a pas pu être supprimé."
 
 msgid "Tags"
-msgstr "Balises"
+msgstr "Etiquettes"
 
 msgid "Target"
 msgstr "Cible"
@@ -18855,12 +18855,11 @@ msgstr "somme"
 msgid "superset.example.com"
 msgstr ""
 
-#, fuzzy
 msgid "syntax."
 msgstr "syntaxe."
 
 msgid "tag"
-msgstr "balise"
+msgstr "étiquette"
 
 msgid "task"
 msgstr "tâche"
