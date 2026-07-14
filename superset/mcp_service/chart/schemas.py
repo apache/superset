@@ -283,6 +283,8 @@ class GetChartInfoRequest(BaseModel):
     current chart configuration from cache.
     """
 
+    model_config = ConfigDict(populate_by_name=True)
+
     identifier: Annotated[
         int | str | None,
         Field(
@@ -291,6 +293,7 @@ class GetChartInfoRequest(BaseModel):
                 "Chart identifier - can be numeric ID or UUID string. "
                 "Optional when form_data_key is provided (for unsaved charts)."
             ),
+            validation_alias=AliasChoices("identifier", "id", "chart_id"),
         ),
     ]
     form_data_key: str | None = Field(
@@ -321,6 +324,7 @@ class GetChartInfoRequest(BaseModel):
                 "set that excludes 'form_data' (the full chart config, can be 50KB+). "
                 "Add 'form_data' explicitly when you need the raw chart configuration."
             ),
+            validation_alias=AliasChoices("select_columns", "columns"),
         ),
     ]
 
@@ -1777,6 +1781,8 @@ ChartConfig = Annotated[
 class ListChartsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
     """Request schema for list_charts with clear, unambiguous types."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     filters: Annotated[
         List[ChartFilter],
         Field(
@@ -1792,6 +1798,7 @@ class ListChartsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
             default_factory=list,
             description="List of columns to select. Defaults to common columns if not "
             "specified.",
+            validation_alias=AliasChoices("select_columns", "columns"),
         ),
     ]
 
@@ -1964,6 +1971,8 @@ class GenerateChartRequest(QueryCacheControl):
 
 
 class GenerateExploreLinkRequest(FormDataCacheControl):
+    model_config = ConfigDict(populate_by_name=True)
+
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
     config: ChartConfig | None = Field(
         None,
@@ -1978,7 +1987,11 @@ class GenerateExploreLinkRequest(FormDataCacheControl):
 class UpdateChartRequest(QueryCacheControl):
     model_config = ConfigDict(populate_by_name=True)
 
-    identifier: int | str = Field(..., description="Chart ID or UUID")
+    identifier: int | str = Field(
+        ...,
+        description="Chart ID or UUID",
+        validation_alias=AliasChoices("identifier", "id", "chart_id"),
+    )
     config: ChartConfig | None = Field(
         None,
         description="Chart configuration. Optional; omit to only update chart_name.",
@@ -2014,6 +2027,8 @@ class UpdateChartRequest(QueryCacheControl):
 
 
 class UpdateChartPreviewRequest(FormDataCacheControl):
+    model_config = ConfigDict(populate_by_name=True)
+
     form_data_key: str | None = Field(
         None,
         description=(
@@ -2041,12 +2056,15 @@ class GetChartDataRequest(QueryCacheControl):
     the current chart configuration from cache.
     """
 
+    model_config = ConfigDict(populate_by_name=True)
+
     identifier: int | str | None = Field(
         default=None,
         description=(
             "Chart identifier (ID, UUID). "
             "Optional when form_data_key is provided (for unsaved charts)."
         ),
+        validation_alias=AliasChoices("identifier", "id", "chart_id"),
     )
     form_data_key: str | None = Field(
         default=None,
@@ -2161,12 +2179,15 @@ class GetChartPreviewRequest(QueryCacheControl):
     using the current chart configuration from cache.
     """
 
+    model_config = ConfigDict(populate_by_name=True)
+
     identifier: int | str | None = Field(
         default=None,
         description=(
             "Chart identifier (ID, UUID). "
             "Optional when form_data_key is provided (for unsaved charts)."
         ),
+        validation_alias=AliasChoices("identifier", "id", "chart_id"),
     )
     form_data_key: str | None = Field(
         default=None,
@@ -2373,12 +2394,15 @@ class GetChartSqlRequest(BaseModel):
     to get the SQL for the unsaved chart state from the Explore view.
     """
 
+    model_config = ConfigDict(populate_by_name=True)
+
     identifier: int | str | None = Field(
         default=None,
         description=(
             "Chart identifier - can be numeric ID or UUID string. "
             "Optional when form_data_key is provided (for unsaved charts)."
         ),
+        validation_alias=AliasChoices("identifier", "id", "chart_id"),
     )
     form_data_key: str | None = Field(
         default=None,

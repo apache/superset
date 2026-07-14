@@ -25,6 +25,7 @@ from datetime import datetime
 from typing import Annotated, Any, Dict, List, Literal
 
 from pydantic import (
+    AliasChoices,
     BaseModel,
     ConfigDict,
     Field,
@@ -244,6 +245,8 @@ class DatasetList(BaseModel):
 class ListDatasetsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
     """Request schema for list_datasets with clear, unambiguous types."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     filters: Annotated[
         List[DatasetFilter],
         Field(
@@ -259,6 +262,7 @@ class ListDatasetsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl
             default_factory=list,
             description="List of columns to select. Defaults to common columns if not "
             "specified.",
+            validation_alias=AliasChoices("select_columns", "columns"),
         ),
     ]
     search: Annotated[
@@ -354,9 +358,14 @@ DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS: List[str] = [
 class GetDatasetInfoRequest(MetadataCacheControl):
     """Request schema for get_dataset_info with support for ID or UUID."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     identifier: Annotated[
         int | str,
-        Field(description="Dataset identifier - can be numeric ID or UUID string"),
+        Field(
+            description="Dataset identifier - can be numeric ID or UUID string",
+            validation_alias=AliasChoices("identifier", "id", "dataset_id"),
+        ),
     ]
     select_columns: Annotated[
         List[str],
@@ -368,6 +377,7 @@ class GetDatasetInfoRequest(MetadataCacheControl):
                 "extra, tags, certification_details. Pass an explicit list to "
                 "override (e.g. ['id','table_name','columns'] for minimal output)."
             ),
+            validation_alias=AliasChoices("select_columns", "columns"),
         ),
     ]
     column_fields: Annotated[
