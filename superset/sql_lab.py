@@ -484,7 +484,7 @@ def execute_sql_statements(  # noqa: C901
             # `False` here) would never fire. Mutate each statement here, before
             # joining them into the single block this engine requires, so
             # `MUTATE_AFTER_SPLIT=True` still applies the mutator per statement.
-            blocks = [
+            blocks: list[str] = [
                 ";\n".join(
                     database.mutate_sql_based_on_config(
                         statement.format(comments=db_engine_spec.allows_sql_comments),

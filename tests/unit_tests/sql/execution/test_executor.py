@@ -47,7 +47,11 @@ from superset.models.core import Database
 
 # Note: database, database_with_dml, mock_db_session fixtures and
 # mock_query_execution helper are imported from conftest.py
-from .conftest import create_mock_cursor, mock_query_execution
+from .conftest import (
+    _passthrough_mutate_sql_based_on_config,
+    create_mock_cursor,
+    mock_query_execution,
+)
 
 # =============================================================================
 # Basic Execution Tests
@@ -889,14 +893,16 @@ def test_execute_sql_with_cursor_forwards_is_split(
     """
     from superset.sql.execution.executor import execute_sql_with_cursor
 
-    mutate_mock = mocker.patch.object(
-        database, "mutate_sql_based_on_config", side_effect=lambda sql, **kw: sql
+    mutate_mock: MagicMock = mocker.patch.object(
+        database,
+        "mutate_sql_based_on_config",
+        side_effect=_passthrough_mutate_sql_based_on_config,
     )
     mocker.patch.object(database.db_engine_spec, "execute")
     mocker.patch.object(database.db_engine_spec, "fetch_data", return_value=[(1,)])
     mocker.patch("superset.result_set.SupersetResultSet", return_value=MagicMock())
 
-    cursor = create_mock_cursor(["id"], data=[(1,)])
+    cursor: MagicMock = create_mock_cursor(["id"], data=[(1,)])
 
     execute_sql_with_cursor(
         database=database,
