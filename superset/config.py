@@ -1928,8 +1928,10 @@ FAB_ADD_SECURITY_PERMISSION_VIEWS_VIEW = False
 FAB_API_KEY_ENABLED = False
 FAB_API_KEY_PREFIXES = ["sst_"]
 
-# When False (default), legacy FAB SSR password reset routes
-# (/superset/resetpassword, /superset/resetmypassword) are not registered.
+# When False (default), the legacy FAB SSR admin password reset route
+# (/superset/resetpassword) is not registered. The self-service password reset
+# route (/superset/resetmypassword) is also skipped unless forced password
+# changes are enabled, since that flow still needs a reachable reset form.
 # Set to True to re-enable direct URL access to those views (e.g. during migration).
 ENABLE_LEGACY_FAB_PASSWORD_VIEWS: bool = False
 
