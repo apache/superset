@@ -48,7 +48,7 @@ class BoxPlotChartPlugin(BaseChartPlugin):
         missing_fields = []
         if "metrics" not in config:
             missing_fields.append("'metrics' (values whose spread is plotted)")
-        if "distribute_across" not in config:
+        if "distribute_across" not in config and "columns" not in config:
             missing_fields.append(
                 "'distribute_across' (columns whose values form the samples "
                 "inside each box, e.g. a temporal column)"

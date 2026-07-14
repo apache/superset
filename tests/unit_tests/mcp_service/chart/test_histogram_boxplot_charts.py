@@ -437,3 +437,29 @@ class TestBoxPlotNativeVocabulary:
         form_data = map_box_plot_config(config)
         assert form_data["groupby"] == ["day_of_week"]
         assert form_data["columns"] == ["month"]
+
+    def test_columns_alias_satisfies_pre_validate(self) -> None:
+        from superset.mcp_service.chart import registry
+
+        plugin = registry.get("box_plot")
+        assert plugin is not None
+        error = plugin.pre_validate(
+            {
+                "chart_type": "box_plot",
+                "metrics": [{"name": "fare", "aggregate": "AVG"}],
+                "columns": [{"name": "month"}],
+            }
+        )
+        assert error is None
+
+    def test_whisker_options_alongside_whisker_type_is_consumed(self) -> None:
+        config = BoxPlotChartConfig.model_validate(
+            {
+                "chart_type": "box_plot",
+                "metrics": [{"name": "fare", "aggregate": "AVG"}],
+                "distribute_across": [{"name": "month"}],
+                "whisker_type": "min_max",
+                "whiskerOptions": "Tukey",
+            }
+        )
+        assert config.whisker_type == "min_max"

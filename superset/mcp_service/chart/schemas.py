@@ -1951,12 +1951,12 @@ class BoxPlotChartConfig(UnknownFieldCheckMixin):
         'Min/max (no outliers)', '<low>/<high> percentiles') so configs
         copied from existing Superset form_data are accepted rather than
         refused."""
-        if (
-            isinstance(data, dict)
-            and "whiskerOptions" in data
-            and "whisker_type" not in data
-        ):
+        if isinstance(data, dict) and "whiskerOptions" in data:
             raw = str(data.pop("whiskerOptions"))
+            if "whisker_type" in data:
+                # Explicit whisker_type wins; the alias is consumed so the
+                # unknown-field check doesn't reject the request.
+                return data
             if raw == "Tukey":
                 data["whisker_type"] = "tukey"
             elif raw == "Min/max (no outliers)":
