@@ -26,56 +26,6 @@ interface TestDashboardResult {
   name: string;
 }
 
-/** A chart to place in a generated dashboard layout. */
-export interface DashboardChartLayout {
-  id: number;
-  sliceName: string;
-}
-
-/**
- * Build a v2 `position_json` that lays the given charts out in a single row.
- *
- * Centralizes the ROOT → GRID → ROW → CHART scaffold that every dashboard-
- * building E2E test would otherwise hand-roll.
- */
-export function buildDashboardPositionJson(
-  charts: DashboardChartLayout[],
-): Record<string, unknown> {
-  const chartKeys = charts.map(chart => `CHART-${chart.id}`);
-  const positionJson: Record<string, unknown> = {
-    DASHBOARD_VERSION_KEY: 'v2',
-    ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['GRID_ID'] },
-    GRID_ID: {
-      type: 'GRID',
-      id: 'GRID_ID',
-      children: ['ROW-1'],
-      parents: ['ROOT_ID'],
-    },
-    'ROW-1': {
-      type: 'ROW',
-      id: 'ROW-1',
-      children: chartKeys,
-      parents: ['ROOT_ID', 'GRID_ID'],
-      meta: { background: 'BACKGROUND_TRANSPARENT' },
-    },
-  };
-  charts.forEach((chart, index) => {
-    positionJson[chartKeys[index]] = {
-      type: 'CHART',
-      id: chartKeys[index],
-      children: [],
-      parents: ['ROOT_ID', 'GRID_ID', 'ROW-1'],
-      meta: {
-        chartId: chart.id,
-        width: 4,
-        height: 50,
-        sliceName: chart.sliceName,
-      },
-    };
-  });
-  return positionJson;
-}
-
 interface CreateTestDashboardOptions {
   /** Prefix for generated name (default: 'test_dashboard') */
   prefix?: string;

@@ -40,9 +40,68 @@ import { getDatasetByName } from '../../helpers/api/dataset';
 import { extractIdFromResponse } from '../../helpers/api/assertions';
 import { TIMEOUT } from '../../utils/constants';
 import { DashboardPage } from '../../pages/DashboardPage';
-import { buildDashboardPositionJson } from './dashboard-test-helpers';
 
 const DATASET_NAME = 'birth_names';
+
+/** Superset's dashboard grid is 12 columns wide (see dashboard/util/constants). */
+const GRID_COLUMN_COUNT = 12;
+const CHART_WIDTH = 4;
+const CHART_HEIGHT = 50;
+
+/**
+ * Build a v2 `position_json` laying every chart out in a single row.
+ *
+ * Deliberately local. This is the only spec that builds a layout from scratch,
+ * and one fixed-width row is all it needs; the sibling dashboard specs hand-roll
+ * their own scaffolds with different sizing, so hoisting this into a shared
+ * helper would add a parallel implementation rather than retire one. If a second
+ * caller ever wants it, generalize it then — with per-chart sizing and row
+ * wrapping — and migrate the siblings in the same change.
+ */
+function buildSingleRowPositionJson(
+  charts: { id: number; sliceName: string }[],
+): Record<string, unknown> {
+  if (charts.length * CHART_WIDTH > GRID_COLUMN_COUNT) {
+    throw new Error(
+      `${charts.length} charts of width ${CHART_WIDTH} overflow the ` +
+        `${GRID_COLUMN_COUNT}-column grid; add row wrapping before growing this layout`,
+    );
+  }
+
+  const chartKeys = charts.map(chart => `CHART-${chart.id}`);
+  const positionJson: Record<string, unknown> = {
+    DASHBOARD_VERSION_KEY: 'v2',
+    ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['GRID_ID'] },
+    GRID_ID: {
+      type: 'GRID',
+      id: 'GRID_ID',
+      children: ['ROW-1'],
+      parents: ['ROOT_ID'],
+    },
+    'ROW-1': {
+      type: 'ROW',
+      id: 'ROW-1',
+      children: chartKeys,
+      parents: ['ROOT_ID', 'GRID_ID'],
+      meta: { background: 'BACKGROUND_TRANSPARENT' },
+    },
+  };
+  charts.forEach((chart, index) => {
+    positionJson[chartKeys[index]] = {
+      type: 'CHART',
+      id: chartKeys[index],
+      children: [],
+      parents: ['ROOT_ID', 'GRID_ID', 'ROW-1'],
+      meta: {
+        chartId: chart.id,
+        width: CHART_WIDTH,
+        height: CHART_HEIGHT,
+        sliceName: chart.sliceName,
+      },
+    };
+  });
+  return positionJson;
+}
 
 testWithAssets(
   'dashboard loads and every chart renders via real queries',
@@ -110,7 +169,7 @@ testWithAssets(
     const chartIds = charts.map(chart => chart.id);
 
     // Lay all charts out in a single row.
-    const positionJson = buildDashboardPositionJson(charts);
+    const positionJson = buildSingleRowPositionJson(charts);
 
     const dashResp = await apiPostDashboard(page, {
       dashboard_title: `load_smoke_${uniqueSuffix}`,
@@ -163,7 +222,11 @@ testWithAssets(
     await dashboard.waitForAllChartsRendered(chartIds);
 
     // The render came from real backend queries: every chart issued its own
-    // chart-data POST and each one succeeded.
+    // chart-data POST and each one was accepted. 202 counts as accepted — with
+    // GLOBAL_ASYNC_QUERIES enabled a cold-cache query legitimately returns 202
+    // and delivers its result out of band. The render assertion above is what
+    // proves the data actually arrived, so this only needs to rule out a chart
+    // that never queried or was rejected outright.
     for (const chartId of chartIds) {
       const status = chartDataStatusBySliceId.get(chartId);
       expect(
@@ -171,9 +234,9 @@ testWithAssets(
         `chart ${chartId} should have issued a /api/v1/chart/data POST`,
       ).toBeDefined();
       expect(
-        status,
-        `chart ${chartId}'s /api/v1/chart/data response should be 200`,
-      ).toBe(200);
+        [200, 202],
+        `chart ${chartId}'s /api/v1/chart/data response should be 200 or 202, got ${status}`,
+      ).toContain(status);
     }
   },
 );
