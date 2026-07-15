@@ -385,6 +385,8 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
   Requires handlebars_template with Handlebars HTML template string.
   Supports query_mode="aggregate" (with metrics/groupby) or "raw" (with columns).
   Data available as {{{{data}}}} array; helpers: dateFormat, formatNumber, stringify.
+- chart_type="waterfall": Waterfall chart of cumulative increases/decreases
+  (x_axis + metric required; optional single breakdown column, show_total)
 
 Time grain for temporal x-axis (time_grain parameter):
 - PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P1Y (yearly)
@@ -392,8 +394,9 @@ Time grain for temporal x-axis (time_grain parameter):
 Chart Types in Existing Charts (viewable via list_charts/get_chart_info):
 Each chart returned by list_charts / get_chart_info includes a
 chart_type_display_name field with a human-readable name when available.
-This field is populated only for the 7 chart types supported by generate_chart
-(xy, pie, table, pivot_table, big_number, mixed_timeseries, handlebars).
+This field is populated only for the 8 chart types supported by generate_chart
+(xy, pie, table, pivot_table, big_number, mixed_timeseries, handlebars,
+waterfall).
 For all other viz_types (Funnel, Gauge, Heatmap, etc.) it will be null —
 use the raw viz_type field instead when referring to those chart types.
 

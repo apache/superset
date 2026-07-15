@@ -106,7 +106,8 @@ async def generate_chart(  # noqa: C901
     - LLM clients MUST display returned chart URL to users
     - Use numeric dataset ID or UUID (NOT schema.table_name format)
     - MUST include chart_type in config (one of: 'xy', 'table', 'pie',
-      'pivot_table', 'mixed_timeseries', 'handlebars', 'big_number')
+      'pivot_table', 'mixed_timeseries', 'handlebars', 'big_number',
+      'waterfall')
 
     IMPORTANT: The 'chart_type' field in the config is a DISCRIMINATOR that determines
     which chart configuration schema to use. It MUST be included and MUST match the
@@ -132,6 +133,10 @@ async def generate_chart(  # noqa: C901
 
     - Use chart_type='big_number' for single KPI metric displays
       Required fields: metric
+
+    - Use chart_type='waterfall' for cumulative increase/decrease breakdowns
+      Required fields: x_axis, metric; optional: breakdown (single category
+      column, alias: groupby), show_total
 
     Example usage for XY chart:
     ```json

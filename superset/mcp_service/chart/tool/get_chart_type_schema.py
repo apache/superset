@@ -34,6 +34,7 @@ from superset.mcp_service.chart.schemas import (
     PieChartConfig,
     PivotTableChartConfig,
     TableChartConfig,
+    WaterfallChartConfig,
     XYChartConfig,
 )
 
@@ -48,6 +49,7 @@ _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
     "mixed_timeseries": TypeAdapter(MixedTimeseriesChartConfig),
     "handlebars": TypeAdapter(HandlebarsChartConfig),
     "big_number": TypeAdapter(BigNumberChartConfig),
+    "waterfall": TypeAdapter(WaterfallChartConfig),
 }
 
 VALID_CHART_TYPES = sorted(_CHART_TYPE_ADAPTERS.keys())
@@ -125,6 +127,20 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "time_grain": "P1D",
         },
     ],
+    "waterfall": [
+        {
+            "chart_type": "waterfall",
+            "x_axis": {"name": "month"},
+            "metric": {"name": "revenue_delta", "aggregate": "SUM"},
+        },
+        {
+            "chart_type": "waterfall",
+            "x_axis": {"name": "quarter"},
+            "metric": {"name": "profit", "aggregate": "SUM"},
+            "breakdown": {"name": "region"},
+            "show_total": True,
+        },
+    ],
 }
 
 
@@ -188,7 +204,7 @@ def get_chart_type_schema(
     for a chart configuration before calling generate_chart or update_chart.
 
     Valid chart_type values: xy, table, pie, pivot_table,
-    mixed_timeseries, handlebars, big_number.
+    mixed_timeseries, handlebars, big_number, waterfall.
 
     Returns the JSON Schema for the requested chart type, optionally
     with working examples.

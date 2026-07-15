@@ -1846,6 +1846,73 @@ class XYChartConfig(UnknownFieldCheckMixin):
         return self
 
 
+class WaterfallChartConfig(UnknownFieldCheckMixin):
+    """Config for waterfall charts (viz_type ``waterfall``)."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["waterfall"] = "waterfall"
+    x_axis: ColumnRef = Field(
+        ...,
+        description="Category or period column along the x-axis (often "
+        "temporal, e.g. month); each value is one waterfall step",
+    )
+    metric: ColumnRef = Field(
+        ...,
+        description="Metric whose per-step change is plotted (use aggregate "
+        "e.g. SUM for ad-hoc, or saved_metric=True for a saved metric)",
+    )
+    breakdown: ColumnRef | None = Field(
+        None,
+        validation_alias=AliasChoices("breakdown", "groupby"),
+        description="Optional single category column that breaks each "
+        "x-axis period into per-category steps (form_data 'groupby'; the "
+        "frontend Breakdowns control is single-select)",
+    )
+    show_total: bool = Field(
+        True, description="Append a total bar per period (frontend default)"
+    )
+    show_legend: bool = Field(True, description="Show the legend")
+    increase_label: str = Field("Increase", max_length=50)
+    decrease_label: str = Field("Decrease", max_length=50)
+    total_label: str = Field("Total", max_length=50)
+    x_axis_time_format: str = Field(
+        "smart_date",
+        description="Time format for a temporal x-axis (e.g. 'smart_date', '%Y-%m-%d')",
+        max_length=50,
+    )
+    y_axis_format: str = Field("SMART_NUMBER", max_length=50)
+    currency_format: CurrencyFormat | None = Field(
+        None,
+        description="Currency symbol applied to the metric value",
+    )
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    row_limit: int = Field(
+        10000,
+        description="Max grouped rows (frontend shared default)",
+        ge=1,
+        le=50000,
+    )
+
+    @model_validator(mode="after")
+    def reject_metric_style_dimensions(self) -> "WaterfallChartConfig":
+        """x_axis and breakdown are dimensions, not metrics."""
+        for ref, field_name in ((self.x_axis, "x_axis"), (self.breakdown, "breakdown")):
+            if ref is None:
+                continue
+            _reject_sql_expression_on_dimension(ref, field_name)
+            if ref.saved_metric:
+                raise ValueError(
+                    f"{field_name} cannot use saved_metric=True; "
+                    "saved metrics belong in the 'metric' field"
+                )
+        return self
+
+
 # Discriminated union for runtime validation (not exposed in JSON Schema)
 ChartConfig = Annotated[
     XYChartConfig
@@ -1854,13 +1921,14 @@ ChartConfig = Annotated[
     | PivotTableChartConfig
     | MixedTimeseriesChartConfig
     | HandlebarsChartConfig
-    | BigNumberChartConfig,
+    | BigNumberChartConfig
+    | WaterfallChartConfig,
     Field(
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
             "'pie', 'pivot_table', 'mixed_timeseries', 'handlebars', "
-            "or 'big_number'"
+            "'big_number', or 'waterfall'"
         ),
     ),
 ]

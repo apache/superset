@@ -271,7 +271,7 @@ class DatasetValidator:
         """Extract all column references from configuration via the plugin registry.
 
         Previously only handled TableChartConfig and XYChartConfig, causing
-        5 of 7 chart types to silently skip column validation. Now delegates
+        most chart types to silently skip column validation. Now delegates
         to the plugin for each chart type so all types are covered.
         """
         # Local import: plugins call DatasetValidator helpers from
@@ -390,7 +390,7 @@ class DatasetValidator:
         so we need to ensure column names match exactly.
 
         Previously only XYChartConfig and TableChartConfig were normalized; now
-        all 7 chart types are handled via the plugin registry.
+        all registered chart types are handled via the plugin registry.
 
         Args:
             config: Chart configuration with column references

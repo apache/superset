@@ -44,6 +44,7 @@ from superset.mcp_service.chart.schemas import (
     PivotTableChartConfig,
     SortByConfig,
     TableChartConfig,
+    WaterfallChartConfig,
     XYChartConfig,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
@@ -375,7 +376,7 @@ def map_config_to_form_data(
 ) -> Dict[str, Any]:
     """Map chart config to Superset form_data via the plugin registry.
 
-    The previous if/elif chain across all 7 chart types has been replaced by a
+    The previous per-chart-type if/elif chain has been replaced by a
     single registry lookup. Cross-field constraints (e.g. BigNumber trendline
     temporal check) are now owned by each plugin's post_map_validate() method
     rather than being baked into this dispatcher.
@@ -888,6 +889,33 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
     add_currency_format(form_data, config.currency_format)
     _add_adhoc_filters(form_data, config.filters)
 
+    return form_data
+
+
+def map_waterfall_config(config: WaterfallChartConfig) -> Dict[str, Any]:
+    """Map waterfall config to Superset form_data (viz_type waterfall).
+
+    Matches the frontend Waterfall buildQuery contract: a single ``x_axis``
+    column, an optional single-select ``groupby`` breakdown, and one
+    ``metric``; the query orders by the axis columns ascending, which the
+    frontend derives from these keys.
+    """
+    form_data: Dict[str, Any] = {
+        "viz_type": "waterfall",
+        "x_axis": config.x_axis.name,
+        "groupby": [config.breakdown.name] if config.breakdown else [],
+        "metric": create_metric_object(config.metric),
+        "show_total": config.show_total,
+        "show_legend": config.show_legend,
+        "increase_label": config.increase_label,
+        "decrease_label": config.decrease_label,
+        "total_label": config.total_label,
+        "x_axis_time_format": config.x_axis_time_format,
+        "y_axis_format": config.y_axis_format,
+        "row_limit": config.row_limit,
+    }
+    add_currency_format(form_data, config.currency_format)
+    _add_adhoc_filters(form_data, config.filters)
     return form_data
 
 
