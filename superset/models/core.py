@@ -503,7 +503,6 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                         nullpool=nullpool,
                         source=source,
                         sqlalchemy_uri=sqlalchemy_uri,
-                        cacheable=not prequeries,
                     )
                     yield engine
 
@@ -656,7 +655,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                             for prequery in prequeries:
                                 cursor.execute(prequery)
                         finally:
-                            cursor.close()                    
+                            cursor.close()
                     yield conn
 
     def get_default_catalog(self) -> str | None:
