@@ -564,9 +564,13 @@ def test_get_past_or_future() -> None:
 
 
 def test_normalize_time_delta() -> None:
-    assert normalize_time_delta("1 year ago") == {"years": -1}
-    assert normalize_time_delta("2 months later") == {"months": 2}
+    assert normalize_time_delta("30 seconds ago") == {"seconds": -30}
+    assert normalize_time_delta("5 minutes later") == {"minutes": 5}
+    assert normalize_time_delta("12 hours ago") == {"hours": -12}
+    assert normalize_time_delta("2 weeks ago") == {"weeks": -2}
     assert normalize_time_delta("28 days ago") == {"days": -28}
+    assert normalize_time_delta("2 months later") == {"months": 2}
+    assert normalize_time_delta("1 year ago") == {"years": -1}
     # quarters are converted to months (pd.DateOffset has no quarters argument)
     assert normalize_time_delta("1 quarter ago") == {"months": -3}
     assert normalize_time_delta("2 quarters later") == {"months": 6}
