@@ -238,9 +238,9 @@ et-xmlfile==2.0.0
     #   openpyxl
 exceptiongroup==1.3.0
     # via fastmcp-slim
-fastmcp==3.4.2
+fastmcp==3.4.4
     # via apache-superset
-fastmcp-slim==3.4.2
+fastmcp-slim==3.4.4
     # via fastmcp
 filelock==3.20.3
     # via
