@@ -926,11 +926,14 @@ export function sanitizeHtml(text: string): string {
   return format.encodeHTML(text);
 }
 
+// Bar charts default to categorical via chart control panels
+// (xAxisForceCategorical), not via seriesType coercion here.
+// When forceCategorical is false, numeric + unstacked charts use a Value axis
+// so users can see spacing for missing x values.
 export function getAxisType(
   stack: StackType,
   forceCategorical?: boolean,
   dataType?: GenericDataType,
-  seriesType?: EchartsTimeseriesSeriesType,
 ): AxisType {
   if (forceCategorical) {
     return AxisType.Category;
@@ -938,11 +941,7 @@ export function getAxisType(
   if (dataType === GenericDataType.Temporal) {
     return AxisType.Time;
   }
-  if (
-    dataType === GenericDataType.Numeric &&
-    !stack &&
-    seriesType !== EchartsTimeseriesSeriesType.Bar
-  ) {
+  if (dataType === GenericDataType.Numeric && !stack) {
     return AxisType.Value;
   }
   return AxisType.Category;

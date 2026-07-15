@@ -292,3 +292,8 @@ test('x_axis_time_format should be hidden for numeric columns', () => {
     false,
   );
 });
+
+test('xAxisForceCategorical defaults to true for bar charts', () => {
+  const control = getControl('xAxisForceCategorical');
+  expect(control?.config?.default).toBe(true);
+});

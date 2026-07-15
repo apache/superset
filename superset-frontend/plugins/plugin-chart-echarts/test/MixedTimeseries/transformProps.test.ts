@@ -777,6 +777,51 @@ test('xAxisForceCategorical forces Category axis regardless of Numeric coltype',
   expect(xAxis.type).toBe(AxisType.Category);
 });
 
+test('xAxisForceCategorical runtime fallback enables Category axis for unstacked numeric bars when omitted from payload', () => {
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const epochRows = [
+    { __timestamp: ts1, metric: 10 },
+    { __timestamp: ts2, metric: 20 },
+  ];
+  const epochQueryData = createTestQueryData(epochRows, {
+    colnames: ['__timestamp', 'metric'],
+    coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+    label_map: { __timestamp: ['__timestamp'], metric: ['metric'] },
+  });
+
+  const defaultFormDataOmittingFlag = { ...DEFAULT_FORM_DATA } as any;
+  delete defaultFormDataOmittingFlag.xAxisForceCategorical;
+
+  // For unstacked numeric bars, Value axis would be selected if
+  // `xAxisForceCategorical` defaults to false. This test simulates a
+  // legacy/external payload that omits the control entirely.
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultFormData: defaultFormDataOmittingFlag,
+    defaultVizType: 'mixed_timeseries',
+    defaultQueriesData: [epochQueryData, epochQueryData],
+    formData: {
+      ...formData,
+      x_axis: '__timestamp',
+      metrics: ['metric'],
+      metricsB: ['metric'],
+      groupby: [],
+      groupbyB: [],
+      stack: false,
+      stackB: false,
+    },
+    queriesData: [epochQueryData, epochQueryData],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as { type: string };
+  expect(xAxis.type).toBe(AxisType.Category);
+});
+
 test('temporal x coltype wires the time formatter and Time axis', () => {
   // Regression guard: the happy path for mixed-timeseries charts. Ensures
   // Temporal coltype still routes through the TimeFormatter so the time axis
