@@ -60,7 +60,7 @@ cffi==2.0.0
     #   pynacl
 charset-normalizer==3.4.2
     # via requests
-click==8.4.1
+click==8.4.2
     # via
     #   apache-superset (pyproject.toml)
     #   celery

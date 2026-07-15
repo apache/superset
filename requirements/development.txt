@@ -130,7 +130,7 @@ charset-normalizer==3.4.2
     # via
     #   -c requirements/base-constraint.txt
     #   requests
-click==8.4.1
+click==8.4.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
