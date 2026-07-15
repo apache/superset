@@ -18,10 +18,10 @@
 """Tests for the update_dashboard MCP tool."""
 
 from datetime import datetime
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-from fastmcp import Client
+from fastmcp import Client, Context
 
 from superset.mcp_service.app import mcp
 from superset.utils import json
@@ -493,6 +493,37 @@ class TestUpdateDashboard:
         payload = json.loads(result.content[0].text)
         assert "css is invalid" in (payload.get("error") or "").lower()
         mock_session.commit.assert_not_called()
+
+    @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_ctx_info_is_awaited(
+        self, mock_session: Mock, mock_get: Mock, mcp_server: object
+    ) -> None:
+        """``ctx.info`` calls must be awaited — ``Context.info`` is an
+        async method, so an unawaited call silently drops the log line
+        instead of raising. Assert it was actually invoked (and thus
+        awaited, since ``AsyncMock`` records only real awaits) rather
+        than just checking the response succeeded."""
+        dash = _mock_dashboard(id=42)
+        mock_get.return_value = dash
+
+        with patch.object(Context, "info", new_callable=AsyncMock) as mock_ctx_info:
+            async with Client(mcp_server) as client:
+                await client.call_tool(
+                    "update_dashboard",
+                    {
+                        "request": {
+                            "identifier": 42,
+                            "dashboard_title": "Renamed",
+                        }
+                    },
+                )
+
+        assert mock_ctx_info.await_count >= 2
+        awaited_messages = [c.args[0] for c in mock_ctx_info.await_args_list]
+        assert any("Updating dashboard" in msg for msg in awaited_messages)
+        assert any("updated" in msg for msg in awaited_messages)
 
     def test_request_slug_is_normalized(self) -> None:
         """Slug is cleaned to match the REST DashboardPutSchema contract."""

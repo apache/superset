@@ -288,7 +288,7 @@ def _validate_update_request(
     ),
 )
 @mcp_auth_hook(class_permission_name="Dashboard", method_permission_name="write")
-def update_dashboard(
+async def update_dashboard(
     request: UpdateDashboardRequest, ctx: Context
 ) -> UpdateDashboardResponse | DashboardError:
     """Patch an existing dashboard's layout, theme, styling, or metadata.
@@ -320,7 +320,7 @@ def update_dashboard(
             "css": ".header-controls {display: none;}",
         })
     """
-    ctx.info(f"Updating dashboard: identifier={request.identifier}")
+    await ctx.info(f"Updating dashboard: identifier={request.identifier}")
 
     dashboard, auth_error = _find_and_authorize_dashboard(request.identifier)
     if auth_error is not None:
@@ -378,7 +378,7 @@ def update_dashboard(
             error_type="DatabaseError",
         )
 
-    ctx.info(f"Dashboard {dashboard.id} updated: changed={changed_fields}")
+    await ctx.info(f"Dashboard {dashboard.id} updated: changed={changed_fields}")
 
     return UpdateDashboardResponse(
         dashboard=dashboard_serializer(dashboard),
