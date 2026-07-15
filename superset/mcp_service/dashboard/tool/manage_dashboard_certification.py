@@ -152,17 +152,26 @@ def manage_dashboard_certification(
 
     changed_fields: list[str] = []
     warnings: list[str] = []
+    # Captured before commit so the final response never has to dereference
+    # `dashboard` post-commit: SQLAlchemy expires ORM attributes on commit,
+    # and a failed `refresh()` below would otherwise leave a later
+    # `dashboard.certified_by`/`certification_details` read free to raise an
+    # unhandled `SQLAlchemyError` from a broken session.
+    final_certified_by = dashboard.certified_by
+    final_certification_details = dashboard.certification_details
 
     try:
         with event_logger.log_context(
             action="mcp.manage_dashboard_certification.apply"
         ):
             if request.certified_by is not None:
-                dashboard.certified_by = request.certified_by or None
+                final_certified_by = request.certified_by or None
+                dashboard.certified_by = final_certified_by
                 changed_fields.append("certified_by")
 
             if request.certification_details is not None:
-                dashboard.certification_details = request.certification_details or None
+                final_certification_details = request.certification_details or None
+                dashboard.certification_details = final_certification_details
                 changed_fields.append("certification_details")
 
             db.session.commit()  # pylint: disable=consider-using-transaction
@@ -198,8 +207,8 @@ def manage_dashboard_certification(
     )
 
     return ManageDashboardCertificationResponse(
-        certified_by=dashboard.certified_by,
-        certification_details=dashboard.certification_details,
+        certified_by=final_certified_by,
+        certification_details=final_certification_details,
         dashboard_url=_dashboard_url(dashboard),
         changed_fields=changed_fields,
         warnings=warnings,

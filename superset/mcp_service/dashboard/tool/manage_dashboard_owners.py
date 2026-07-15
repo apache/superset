@@ -174,12 +174,17 @@ def _compute_new_owner_ids(
 
 def _apply_owner_change(
     dashboard: Any, new_owner_ids: list[int]
-) -> ManageDashboardOwnersResponse | None:
+) -> tuple[list[Any] | None, ManageDashboardOwnersResponse | None]:
     """Resolve the new owner user IDs to USER-type Subjects and persist.
 
     Mutates ``dashboard.editors`` in place on success — replacing the
     USER-type entries while preserving any ROLE/GROUP-type editors. Returns
-    an error response on failure, or ``None`` on success.
+    ``(resolved_owner_subjects, None)`` on success — captured before commit
+    so callers never need to dereference ``dashboard.editors`` post-commit
+    (SQLAlchemy expires ORM attributes on commit, and a failed
+    ``refresh()`` would otherwise leave a later ``dashboard.editors`` read
+    free to raise an unhandled ``SQLAlchemyError`` from a broken session) —
+    or ``(None, error_response)`` on failure.
     """
     from superset.commands.utils import populate_subject_list
     from superset.subjects.utils import get_or_create_user_subject
@@ -192,7 +197,7 @@ def _apply_owner_change(
             for user_id in new_owner_ids:
                 subject = get_or_create_user_subject(user_id)
                 if subject is None:
-                    return ManageDashboardOwnersResponse(
+                    return None, ManageDashboardOwnersResponse(
                         error=(
                             f"User ID {user_id} does not exist. Use "
                             "find_users to resolve valid user IDs."
@@ -208,7 +213,7 @@ def _apply_owner_change(
                     field_name="editors",
                 )
             except SubjectsNotFoundValidationError:
-                return ManageDashboardOwnersResponse(
+                return None, ManageDashboardOwnersResponse(
                     error=(
                         "One or more user IDs could not be resolved to "
                         "owners. Use find_users to resolve valid user IDs."
@@ -236,11 +241,11 @@ def _apply_owner_change(
                 exc_info=True,
             )
         logger.error("Dashboard owners update failed: %s", db_err, exc_info=True)
-        return ManageDashboardOwnersResponse(
+        return None, ManageDashboardOwnersResponse(
             error="Failed to update dashboard owners due to a database error.",
         )
 
-    return None
+    return resolved_owner_subjects, None
 
 
 def _build_owner_warnings(
@@ -351,10 +356,16 @@ def manage_dashboard_owners(
             ],
         )
 
-    if (apply_error := _apply_owner_change(dashboard, new_owner_ids)) is not None:
+    resolved_owner_subjects, apply_error = _apply_owner_change(dashboard, new_owner_ids)
+    if apply_error is not None:
         return apply_error
+    assert resolved_owner_subjects is not None  # narrows for mypy
 
-    final_owner_ids = set(_owner_user_ids(dashboard))
+    final_owner_ids = {
+        subject.user_id
+        for subject in resolved_owner_subjects
+        if subject.type == SubjectType.USER
+    }
     warnings = _build_owner_warnings(final_owner_ids, new_owner_ids)
 
     # True deltas against the PRE-call state — not just membership in the
@@ -384,7 +395,7 @@ def manage_dashboard_owners(
     return ManageDashboardOwnersResponse(
         owners=[
             info
-            for subject in dashboard.editors
+            for subject in resolved_owner_subjects
             if subject.type == SubjectType.USER
             and (info := serialize_subject_object(subject)) is not None
         ],

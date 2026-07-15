@@ -17,6 +17,7 @@
 
 """Tests for the manage_dashboard_certification MCP tool."""
 
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -34,7 +35,7 @@ def _mock_dashboard(
     certified_by: str | None = None,
     certification_details: str | None = None,
 ) -> Mock:
-    dashboard = Mock()
+    dashboard: Mock = Mock()
     dashboard.id = id
     dashboard.dashboard_title = title
     dashboard.slug = slug
@@ -50,7 +51,7 @@ class TestManageDashboardCertification:
     async def test_set_certification(
         self, mock_session: Mock, mock_get: Mock, mcp_server: object
     ) -> None:
-        dash = _mock_dashboard()
+        dash: Mock = _mock_dashboard()
         mock_get.return_value = dash
 
         async with Client(mcp_server) as client:
@@ -68,7 +69,7 @@ class TestManageDashboardCertification:
         assert dash.certified_by == "Data Platform Team"
         assert dash.certification_details == "Verified against source-of-truth."
         assert mock_session.commit.call_count >= 1
-        payload = json.loads(result.content[0].text)
+        payload: dict[str, Any] = json.loads(result.content[0].text)
         # Response text is wrapped for LLM context (mirrors the read-path
         # sanitization on DashboardInfo.certified_by), so check substring.
         assert "Data Platform Team" in payload["certified_by"]
@@ -161,6 +162,18 @@ class TestManageDashboardCertification:
         payload = json.loads(result.content[0].text)
         assert "not found" in (payload.get("error") or "").lower()
 
+    @pytest.mark.asyncio
+    async def test_rejects_boolean_identifier(self, mcp_server: object) -> None:
+        """bool subclasses int; identifier=true must not coerce to dashboard ID 1."""
+        from fastmcp.exceptions import ToolError
+
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError):
+                await client.call_tool(
+                    "manage_dashboard_certification",
+                    {"request": {"identifier": True, "certified_by": "Team"}},
+                )
+
     @patch(DAO_GET)
     @pytest.mark.asyncio
     async def test_lookup_database_error_is_not_masked_as_not_found(
@@ -240,8 +253,10 @@ class TestManageDashboardCertification:
             ManageDashboardCertificationRequest,
         )
 
-        request = ManageDashboardCertificationRequest(
-            identifier=1, certified_by="<script>alert(1)</script>Team"
+        request: ManageDashboardCertificationRequest = (
+            ManageDashboardCertificationRequest(
+                identifier=1, certified_by="<script>alert(1)</script>Team"
+            )
         )
         assert "<script>" not in (request.certified_by or "")
 

@@ -1128,6 +1128,15 @@ class ManageDashboardOwnersRequest(BaseModel):
             raise ValueError("identifier must be an integer ID, UUID, or slug string")
         return value
 
+    @field_validator("add_owner_ids", "remove_owner_ids", mode="before")
+    @classmethod
+    def reject_bool_owner_ids(cls, value: object) -> object:
+        """bool is a subclass of int, so a `true`/`false` list element would
+        coerce to owner ID 1/0 and add/remove the wrong owner; reject it."""
+        if isinstance(value, list) and any(isinstance(item, bool) for item in value):
+            raise ValueError("owner ID list items must be integers, not booleans")
+        return value
+
     @model_validator(mode="after")
     def _validate_operations(self) -> "ManageDashboardOwnersRequest":
         if not self.add_owner_ids and not self.remove_owner_ids:
@@ -1262,6 +1271,15 @@ class ManageDashboardRolesRequest(BaseModel):
             raise ValueError("identifier must be an integer ID, UUID, or slug string")
         return value
 
+    @field_validator("add_role_ids", "remove_role_ids", mode="before")
+    @classmethod
+    def reject_bool_role_ids(cls, value: object) -> object:
+        """bool is a subclass of int, so a `true`/`false` list element would
+        coerce to role ID 1/0 and grant/revoke the wrong role; reject it."""
+        if isinstance(value, list) and any(isinstance(item, bool) for item in value):
+            raise ValueError("role ID list items must be integers, not booleans")
+        return value
+
     @model_validator(mode="after")
     def _validate_operations(self) -> "ManageDashboardRolesRequest":
         if not self.add_role_ids and not self.remove_role_ids:
@@ -1366,6 +1384,15 @@ class ManageDashboardCertificationRequest(BaseModel):
             "an empty string to clear. Omit (None) to leave unchanged."
         ),
     )
+
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so identifier=true would coerce to
+        dashboard ID 1 and mutate the wrong dashboard; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID, UUID, or slug string")
+        return value
 
     @field_validator("certified_by")
     @classmethod

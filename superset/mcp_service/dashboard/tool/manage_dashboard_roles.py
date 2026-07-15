@@ -278,6 +278,19 @@ def manage_dashboard_roles(
                     ),
                 )
 
+            # Captured before commit so the final response never has to
+            # dereference `dashboard.viewers` post-commit: SQLAlchemy
+            # expires ORM attributes on commit, and a failed `refresh()`
+            # below would otherwise leave a later `dashboard.viewers` read
+            # free to raise an unhandled `SQLAlchemyError` from a broken
+            # session.
+            final_role_ids = resolved_role_ids
+            roles_response = [
+                info
+                for subject in resolved_role_subjects
+                if (info := serialize_subject_object(subject)) is not None
+            ]
+
             dashboard.viewers = other_viewers + resolved_role_subjects
             db.session.commit()  # pylint: disable=consider-using-transaction
             try:
@@ -304,16 +317,10 @@ def manage_dashboard_roles(
             error="Failed to update dashboard roles due to a database error.",
         )
 
-    final_role_ids = set(_viewer_role_ids(dashboard))
     ctx.info(f"Dashboard {dashboard.id} roles updated: {sorted(final_role_ids)}")
 
     return ManageDashboardRolesResponse(
-        roles=[
-            info
-            for subject in dashboard.viewers
-            if subject.type == SubjectType.ROLE
-            and (info := serialize_subject_object(subject)) is not None
-        ],
+        roles=roles_response,
         dashboard_url=_dashboard_url(dashboard),
         # True deltas against the PRE-call state — not just membership in
         # the request — so a role that was already assigned (or already

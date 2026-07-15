@@ -22,6 +22,7 @@ Subject-based model apache/superset#38831 introduced, replacing the legacy
 ``owners`` relationship).
 """
 
+from typing import Callable
 from unittest.mock import Mock, patch
 
 import pytest
@@ -33,6 +34,18 @@ from superset.utils import json
 DAO_GET: str = "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug"
 GET_OR_CREATE_USER_SUBJECT: str = "superset.subjects.utils.get_or_create_user_subject"
 POPULATE_SUBJECT_LIST: str = "superset.commands.utils.populate_subject_list"
+
+
+def _get_or_create_side_effect(
+    mapping: dict[int, Mock],
+) -> Callable[[int], Mock | None]:
+    """Typed stand-in for ``get_or_create_user_subject``'s ``side_effect``:
+    resolves a user ID to its mocked Subject, or ``None`` if unknown."""
+
+    def _lookup(user_id: int) -> Mock | None:
+        return mapping.get(user_id)
+
+    return _lookup
 
 
 def _mock_subject(id: int, user_id: int, label: str = "user") -> Mock:
@@ -80,7 +93,9 @@ class TestManageDashboardOwners:
         new_owner = _mock_subject(101, 7, "bob")
         dash = _mock_dashboard(editors=[existing])
         mock_get.return_value = dash
-        mock_get_or_create.side_effect = lambda uid: {1: existing, 7: new_owner}[uid]
+        mock_get_or_create.side_effect = _get_or_create_side_effect(
+            {1: existing, 7: new_owner}
+        )
         mock_populate.return_value = [existing, new_owner]
 
         async with Client(mcp_server) as client:
@@ -119,7 +134,7 @@ class TestManageDashboardOwners:
         remove = _mock_subject(101, 2, "carol")
         dash = _mock_dashboard(editors=[keep, remove])
         mock_get.return_value = dash
-        mock_get_or_create.side_effect = lambda uid: {1: keep}[uid]
+        mock_get_or_create.side_effect = _get_or_create_side_effect({1: keep})
         mock_populate.return_value = [keep]
 
         async with Client(mcp_server) as client:
@@ -247,7 +262,7 @@ class TestManageDashboardOwners:
         existing = _mock_subject(100, 1, "admin")
         dash = _mock_dashboard(editors=[existing])
         mock_get.return_value = dash
-        mock_get_or_create.side_effect = lambda uid: existing if uid == 1 else None
+        mock_get_or_create.side_effect = _get_or_create_side_effect({1: existing})
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
@@ -281,7 +296,7 @@ class TestManageDashboardOwners:
         dave = _mock_subject(102, 3, "dave")
         dash = _mock_dashboard(editors=[admin, carol, dave])
         mock_get.return_value = dash
-        mock_get_or_create.side_effect = lambda uid: {3: dave}[uid]
+        mock_get_or_create.side_effect = _get_or_create_side_effect({3: dave})
         # Requested new subject ids == [102] (dave), but populate_subject_list
         # simulates re-adding admin's subject per ensure_no_lockout.
         mock_populate.return_value = [admin, dave]
@@ -344,7 +359,9 @@ class TestManageDashboardOwners:
         new_owner = _mock_subject(101, 7, "bob")
         dash = _mock_dashboard(editors=[existing])
         mock_get.return_value = dash
-        mock_get_or_create.side_effect = lambda uid: {1: existing, 7: new_owner}[uid]
+        mock_get_or_create.side_effect = _get_or_create_side_effect(
+            {1: existing, 7: new_owner}
+        )
         mock_populate.return_value = [existing, new_owner]
 
         async with Client(mcp_server) as client:
@@ -400,6 +417,30 @@ class TestManageDashboardOwners:
                     {"request": {"identifier": True, "add_owner_ids": [1]}},
                 )
 
+    @pytest.mark.asyncio
+    async def test_rejects_boolean_add_owner_ids(self, mcp_server: object) -> None:
+        """bool subclasses int; add_owner_ids=[true] must not coerce to user ID 1."""
+        from fastmcp.exceptions import ToolError
+
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError):
+                await client.call_tool(
+                    "manage_dashboard_owners",
+                    {"request": {"identifier": 42, "add_owner_ids": [True]}},
+                )
+
+    @pytest.mark.asyncio
+    async def test_rejects_boolean_remove_owner_ids(self, mcp_server: object) -> None:
+        """bool subclasses int; remove_owner_ids=[false] must not coerce to ID 0."""
+        from fastmcp.exceptions import ToolError
+
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError):
+                await client.call_tool(
+                    "manage_dashboard_owners",
+                    {"request": {"identifier": 42, "remove_owner_ids": [False]}},
+                )
+
     @patch(DAO_GET)
     @pytest.mark.asyncio
     async def test_lookup_database_error_is_not_masked_as_not_found(
@@ -452,7 +493,9 @@ class TestManageDashboardOwners:
         new_owner = _mock_subject(101, 7, "<script>alert(1)</script>")
         dash = _mock_dashboard(editors=[existing])
         mock_get.return_value = dash
-        mock_get_or_create.side_effect = lambda uid: {1: existing, 7: new_owner}[uid]
+        mock_get_or_create.side_effect = _get_or_create_side_effect(
+            {1: existing, 7: new_owner}
+        )
         mock_populate.return_value = [existing, new_owner]
 
         async with Client(mcp_server) as client:

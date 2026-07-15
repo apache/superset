@@ -370,6 +370,30 @@ class TestManageDashboardRoles:
                     {"request": {"identifier": True, "add_role_ids": [5]}},
                 )
 
+    @pytest.mark.asyncio
+    async def test_rejects_boolean_add_role_ids(self, mcp_server: object) -> None:
+        """bool subclasses int; add_role_ids=[true] must not coerce to role ID 1."""
+        from fastmcp.exceptions import ToolError
+
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError):
+                await client.call_tool(
+                    "manage_dashboard_roles",
+                    {"request": {"identifier": 42, "add_role_ids": [True]}},
+                )
+
+    @pytest.mark.asyncio
+    async def test_rejects_boolean_remove_role_ids(self, mcp_server: object) -> None:
+        """bool subclasses int; remove_role_ids=[false] must not coerce to role ID 0."""
+        from fastmcp.exceptions import ToolError
+
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError):
+                await client.call_tool(
+                    "manage_dashboard_roles",
+                    {"request": {"identifier": 42, "remove_role_ids": [False]}},
+                )
+
     @patch(DAO_GET)
     @pytest.mark.asyncio
     async def test_lookup_database_error_is_not_masked_as_not_found(
