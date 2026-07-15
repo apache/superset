@@ -1221,6 +1221,40 @@ def test_date_adhoc_column(app_context, physical_dataset):
 
 
 @only_postgresql
+def test_date_trunc_metric_matches_quarter_grouping(app_context, physical_dataset):
+    metric = {
+        "expressionType": "SQL",
+        "sqlExpression": (
+            "CASE WHEN DATE_TRUNC('QUARTER', col6) = TIMESTAMP '2002-01-01' "
+            "THEN SUM(col1) ELSE 0 END"
+        ),
+        "label": "quarter_metric",
+        "hasCustomLabel": True,
+    }
+    qc = QueryContextFactory().create(
+        datasource={"type": physical_dataset.type, "id": physical_dataset.id},
+        queries=[
+            {
+                "columns": [],
+                "extras": {"time_grain_sqla": "P3M"},
+                "granularity": "col6",
+                "is_timeseries": True,
+                "metrics": [metric],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+
+    payload = qc.get_df_payload(qc.queries[0])
+    df = payload["df"].sort_values("__timestamp").reset_index(drop=True)
+
+    assert "DATE_TRUNC('QUARTER'" not in payload["query"]
+    assert payload["query"].count("DATE_TRUNC('quarter'") >= 2
+    assert df["quarter_metric"].tolist() == [3, 0, 0, 0]
+
+
+@only_postgresql
 def test_non_date_adhoc_column(app_context, physical_dataset):
     # sql expression returns non-date type
     column_on_axis: AdhocColumn = {
