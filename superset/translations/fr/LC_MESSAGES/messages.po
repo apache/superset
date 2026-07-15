@@ -211,7 +211,7 @@ msgstr " pour marquer une colonne comme colonne temporelle"
 msgid " to open SQL Lab. From there you can save the query as a dataset."
 msgstr ""
 " pour ouvrir SQL Lab. À partir de là, vous pouvez enregistrer la requête "
-"sous forme d'ensemble de données."
+"sous forme de jeu de données."
 
 msgid " to see details."
 msgstr "Voir les détails"
@@ -982,7 +982,7 @@ msgid "A report named \"%(name)s\" already exists"
 msgstr "Un rapport nommé \"%(name)s\" existe déjà"
 
 msgid "A reusable dataset will be saved with your chart."
-msgstr "Un ensemble de données réutilisable sera enregistré avec votre graphique."
+msgstr "Un jeu de données réutilisable sera enregistré avec votre graphique."
 
 msgid ""
 "A set of parameters that become available in the query using Jinja "
@@ -1678,7 +1678,7 @@ msgid "An error occurred"
 msgstr "Un erreur s'est produite"
 
 msgid "An error occurred saving dataset"
-msgstr "Une erreur s'est produite durant la sauvegarde du ensemble de données"
+msgstr "Une erreur s'est produite durant la sauvegarde du jeu de données"
 
 msgid "An error occurred when running alert query"
 msgstr "Une erreur s'est produite lors du traitement des alertes "
@@ -1824,7 +1824,7 @@ msgstr ""
 #, python-format
 msgid "An error occurred while fetching dataset datasource values: %s"
 msgstr ""
-"Une erreur s'est produite lors de la récupération de l’ensemble de "
+"Une erreur s'est produite lors de la récupération du jeu de "
 "données relatives à la source de données : %s"
 
 #, python-format
@@ -2915,7 +2915,7 @@ msgstr "Impossible d'accéder à la requête"
 msgid "Cannot delete a database that has datasets attached"
 msgstr ""
 "Impossible de supprimer une base de données à laquelle sont attachés des "
-"ensembles de données"
+"jeux de données"
 
 msgid "Cannot delete system themes"
 msgstr "Impossible de supprimer les thèmes système"
@@ -3089,10 +3089,10 @@ msgid "Changing this control takes effect instantly"
 msgstr "Modifier ce contrôle prend effet instantanément"
 
 msgid "Changing this dataset is forbidden"
-msgstr "Modifier cet ensemble de données est interdit"
+msgstr "Modifier ce jeu de données est interdit"
 
 msgid "Changing this dataset is forbidden."
-msgstr "Modifier cet ensemble de données est interdit."
+msgstr "Modifier ce jeu de données est interdit."
 
 msgid "Changing this datasource is forbidden"
 msgstr "Modifier cette source de données est interdit"
@@ -3240,7 +3240,7 @@ msgid "Chart type"
 msgstr "Type du graphique"
 
 msgid "Chart type requires a dataset"
-msgstr "Le type de graphique nécessite un ensemble de données"
+msgstr "Le type de graphique nécessite un jeu de données"
 
 msgid "Chart was saved but could not be added to the selected tab."
 msgstr ""
@@ -4743,71 +4743,71 @@ msgid "Databases"
 msgstr "Bases de données"
 
 msgid "Dataset"
-msgstr "Ensemble de données"
+msgstr "Jeux de données"
 
 #, python-format
 msgid "Dataset %(table)s already exists"
 msgstr "Le jeu de données %(table)s existe déjà"
 
 msgid "Dataset Name"
-msgstr "Nom de l’ensemble de données"
+msgstr "Nom du jeu de données"
 
 msgid "Dataset column delete failed."
-msgstr "La suppression de l’ensemble de données a échoué."
+msgstr "La suppression du jeu de données a échoué."
 
 msgid "Dataset column not found."
-msgstr "Colonne de l’ensemble de données introuvable."
+msgstr "Colonne du jeu de données introuvable."
 
 msgid "Dataset could not be created."
-msgstr "L’ensemble de données n'a pas pu être créé."
+msgstr "Le jeu de données n'a pas pu être créé."
 
 msgid "Dataset could not be duplicated."
-msgstr "L’ensemble de données n'a pas pu être dupliqué."
+msgstr "Le jeu de données n'a pas pu être dupliqué."
 
 msgid "Dataset could not be restored."
-msgstr ""
+msgstr "Le jeu de données n'a pas pu être restoré"
 
 msgid "Dataset could not be updated."
-msgstr "L’ensemble de données n'a pas pu être mis à jour."
+msgstr "Le jeu de données n'a pas pu être mis à jour."
 
 msgid "Dataset does not exist"
-msgstr "L’ensemble de données n'existe pas"
+msgstr "Le jeu de données n'existe pas"
 
 msgid "Dataset is required"
-msgstr "Un ensemble de données est requis"
+msgstr "Un jeu de données est requis"
 
 msgid "Dataset metric delete failed."
-msgstr "La suppression de l’ensemble de données a échoué."
+msgstr "La suppression du jeu de données a échoué."
 
 msgid "Dataset metric not found."
-msgstr "Mesure de l'ensemble de données non trouvée."
+msgstr "Mesure du jeu de données non trouvée."
 
 msgid "Dataset name"
-msgstr "Nom de l’ensemble de données"
+msgstr "Nom du jeu de données"
 
 msgid "Dataset parameters are invalid."
-msgstr "Les paramètres de l'ensemble de données ne sont pas valides."
+msgstr "Les paramètres du jeu de données ne sont pas valides."
 
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
-msgstr "Le schéma de l'ensemble de données n'est pas valide : %(error)s"
+msgstr "Le schéma du jeu de données n'est pas valide : %(error)s"
 
 msgid "Datasets"
-msgstr "Ensembles de données"
+msgstr "Jeux de données"
 
 msgid ""
 "Datasets can be created from database tables or SQL queries. Select a "
 "database table to the left or "
 msgstr ""
-"Les ensembles de données peuvent être créés à partir de tableaux de base "
+"Les jeux de données peuvent être créés à partir de tableaux de base "
 "de données ou de requêtes SQL. Sélectionnez un tableau de base de données"
 " à gauche ou "
 
 msgid "Datasets could not be deleted."
-msgstr "L'ensemble de données n'a pas pu être supprimé."
+msgstr "Les jeux de données n'ont pas pu être supprimés."
 
 msgid "Datasets do not contain a temporal column"
-msgstr "Les ensembles de données ne comportent pas de colonne temporelle"
+msgstr "Les jeux de données ne comportent pas de colonne temporelle"
 
 msgid "Datasource"
 msgstr "Source de données"
@@ -4950,7 +4950,7 @@ msgid ""
 "Accepts relative URLs such as"
 msgstr ""
 "URL par défaut vers laquelle rediriger l'utilisateur lorsqu'il accède à "
-"la page depuis la liste des ensembles de données. Accepte les URL "
+"la page depuis la liste des jeux de données. Accepte les URL "
 "relatives telles que"
 
 msgid "Default Value"
@@ -5222,8 +5222,8 @@ msgstr[1] "%(num)d tableaux de bord supprimés"
 #, python-format
 msgid "Deleted %(num)d dataset"
 msgid_plural "Deleted %(num)d datasets"
-msgstr[0] "Ensemble de données %(num)d supprimé"
-msgstr[1] "Ensemble de données %(num)d supprimés"
+msgstr[0] "%(num)d jeu de données supprimé"
+msgstr[1] "%(num)d jeux de données  supprimés"
 
 #, python-format
 msgid "Deleted %(num)d report schedule"
@@ -5351,7 +5351,7 @@ msgstr ""
 "Correspondance exacte » utilise l'opérateur IN (par défaut). Les options "
 "ILIKE permettent une correspondance partielle de texte avec une saisie "
 "libre. Avertissement : les requêtes ILIKE peuvent être lentes sur de "
-"grands ensembles de données car elles ne peuvent pas utiliser les index "
+"grands jeux de données car elles ne peuvent pas utiliser les index "
 "efficacement."
 
 msgid "Determines how whiskers and outliers are calculated."
@@ -5883,7 +5883,7 @@ msgid "Edit Dashboard"
 msgstr "Modifier le tableau de bord"
 
 msgid "Edit Dataset "
-msgstr "Modifier l’ensemble de données "
+msgstr "Modifier le jeu de données "
 
 msgid "Edit Group"
 msgstr "Modifier le groupe"
@@ -6474,7 +6474,7 @@ msgid "Execution log"
 msgstr "Journal d'exécution"
 
 msgid "Existing dataset"
-msgstr "Ensemble de données existant"
+msgstr "Jeu de données existant"
 
 msgid "Exit fullscreen"
 msgstr "Sortir du mode plein écran"
@@ -7619,7 +7619,7 @@ msgid "Import database from file"
 msgstr "Importer la base de données depuis un fichier"
 
 msgid "Import dataset failed for an unknown reason"
-msgstr "L'import de l’ensemble de données a échoué pour une raison inconnue"
+msgstr "L'import du jeu de données a échoué pour une raison inconnue"
 
 msgid "Import queries"
 msgstr "Importer des requêtes"
@@ -11513,7 +11513,7 @@ msgid "Save for this session"
 msgstr "Enregistrer pour cette session"
 
 msgid "Save or Overwrite Dataset"
-msgstr "Enregistrer ou remplacer l’ensemble de données"
+msgstr "Enregistrer ou remplacer le jeu de données"
 
 msgid "Save query"
 msgstr "Enregistrer la requête"
@@ -13825,7 +13825,7 @@ msgid "The database was not found."
 msgstr "Base de données introuvable."
 
 msgid "The dataset associated with this chart no longer exists"
-msgstr "L’ensemble de donnée associé à ce graphique n'existe plus"
+msgstr "Le jeu de donnée associé à ce graphique n'existe plus"
 
 msgid "The dataset column/metric that returns the values on your chart's x-axis."
 msgstr ""
@@ -13863,7 +13863,7 @@ msgstr ""
 "graphiques                de manière non voulue."
 
 msgid "The dataset has been saved"
-msgstr "L’ensemble de données a été sauvegardé"
+msgstr "Le jeu de données a été sauvegardé"
 
 msgid "The datasource couldn't be loaded"
 msgstr "La source de données ne peut pas être chargée"
@@ -15002,7 +15002,7 @@ msgid "This column might be incompatible with current %s"
 msgstr "Cette colonne peut être incompatible avec l'actuelle ressource %s"
 
 msgid "This column might be incompatible with current dataset"
-msgstr "Cette colonne peut être incompatible avec l’ensemble de données actuel"
+msgstr "Cette colonne peut être incompatible avec le jeu de données actuel"
 
 msgid "This column must contain date/time information."
 msgstr "Cette colonne doit contenir une information date/heure."
@@ -15110,7 +15110,7 @@ msgstr ""
 
 msgid "This dataset is managed externally, and can't be edited in Superset"
 msgstr ""
-"Cet ensemble de données est géré à l'externe et ne peut pas être modifié "
+"Ce jeu de données est géré à l'externe et ne peut pas être modifié "
 "dans Superset"
 
 msgid "This defines the element to be plotted on the chart"
@@ -15311,14 +15311,14 @@ msgstr ""
 "correctement."
 
 msgid "This table already has a dataset"
-msgstr "Ce tableau contient déjà un ensemble de données"
+msgstr "Ce tableau contient déjà un jeu de données"
 
 msgid ""
 "This table already has a dataset associated with it. You can only "
 "associate one dataset with a table.\n"
 msgstr ""
-"Ce tableau est déjà associé à un ensemble de données. Vous ne pouvez "
-"associer qu'un seul ensemble de données à un tableau.\n"
+"Ce tableau est déjà associé à un jeu de données. Vous ne pouvez "
+"associer qu'un seul jeu de données à un tableau.\n"
 
 msgid "This theme is set locally"
 msgstr "Ce thème est défini localement pour votre session"
@@ -16519,16 +16519,16 @@ msgid "Virtual (SQL)"
 msgstr "Virtuel (SQL)"
 
 msgid "Virtual dataset query cannot be empty"
-msgstr "L’ensemble de données virtuel ne peut pas être vide"
+msgstr "Le jeu de données virtuel ne peut pas être vide"
 
 msgid "Virtual dataset query cannot consist of multiple statements"
 msgstr ""
-"Une requête sur un ensemble de données virtuel ne peut pas être composée "
+"Une requête sur un jeu de données virtuel ne peut pas être composée "
 "de plusieurs instructions"
 
 msgid "Virtual dataset query must be read-only"
 msgstr ""
-"L'interrogation de l'ensemble de données virtuel doit être en lecture "
+"L'interrogation du jeu de données virtuel doit être en lecture "
 "seule"
 
 msgid "Visual Tweaks"
@@ -17670,7 +17670,7 @@ msgid "[Longitude] and [Latitude] must be set"
 msgstr "Les colonnes [Longitude] et [Latitude] doivent êtres définies"
 
 msgid "[Missing Dataset]"
-msgstr "[Ensemble de données manquant]"
+msgstr "[Jeu de données manquant]"
 
 msgid "[Untitled]"
 msgstr "[Sans titre]"
@@ -17902,7 +17902,7 @@ msgid "create a new chart"
 msgstr "créer un nouveau graphique"
 
 msgid "create dataset from SQL query"
-msgstr "créer un ensemble de données à partir d'une requête SQL"
+msgstr "créer un jeu de données à partir d'une requête SQL"
 
 #. do-not-translate
 msgid "crontab"
@@ -17936,13 +17936,13 @@ msgid "databases"
 msgstr "Bases de données"
 
 msgid "dataset"
-msgstr "ensemble de données"
+msgstr "jeu de données"
 
 msgid "dataset name"
-msgstr "nom de l’ensemble de données"
+msgstr "nom du jeu de données"
 
 msgid "datasets"
-msgstr "Ensembles de données"
+msgstr "jeux de données"
 
 msgid "datasource"
 msgstr "Source de données"
