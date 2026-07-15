@@ -95,9 +95,9 @@ def normalize_time_delta(human_readable: str) -> dict[str, int]:
     if not matched:
         raise TimeDeltaAmbiguousError(human_readable)
 
-    key = matched[2] + "s"
+    key = matched[2].lower() + "s"
     value = int(matched[1])
-    value = -value if matched[3] == "ago" else value
+    value = -value if (matched[3] or "").lower() == "ago" else value
     if key == "quarters":
         # pd.DateOffset does not accept a `quarters` argument
         key, value = "months", value * 3

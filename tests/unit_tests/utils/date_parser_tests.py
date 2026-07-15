@@ -574,6 +574,9 @@ def test_normalize_time_delta() -> None:
     # quarters are converted to months (pd.DateOffset has no quarters argument)
     assert normalize_time_delta("1 quarter ago") == {"months": -3}
     assert normalize_time_delta("2 quarters later") == {"months": 6}
+    # matching is case-insensitive and the result uses lowercase keys
+    assert normalize_time_delta("1 QUARTER ago") == {"months": -3}
+    assert normalize_time_delta("1 Year AGO") == {"years": -1}
 
     with pytest.raises(TimeDeltaAmbiguousError):
         normalize_time_delta("one year ago")
