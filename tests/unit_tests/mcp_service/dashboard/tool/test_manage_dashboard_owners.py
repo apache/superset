@@ -213,6 +213,29 @@ class TestManageDashboardOwners:
 
     @patch(DAO_GET)
     @pytest.mark.asyncio
+    async def test_view_only_caller_gets_permission_denied(
+        self, mock_get: Mock, mcp_server: object
+    ) -> None:
+        """get_by_id_or_slug itself re-checks view access and raises
+        DashboardAccessDeniedError for dashboards the caller cannot see;
+        that must surface as permission_denied, not an unhandled error."""
+        from superset.commands.dashboard.exceptions import (
+            DashboardAccessDeniedError,
+        )
+
+        mock_get.side_effect = DashboardAccessDeniedError()
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "manage_dashboard_owners",
+                {"request": {"identifier": 42, "add_owner_ids": [1]}},
+            )
+
+        payload = json.loads(result.content[0].text)
+        assert payload.get("permission_denied") is True
+
+    @patch(DAO_GET)
+    @pytest.mark.asyncio
     async def test_non_owner_gets_permission_denied(
         self, mock_get: Mock, mcp_server: object
     ) -> None:

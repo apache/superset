@@ -38,7 +38,10 @@ from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.commands.dashboard.exceptions import DashboardNotFoundError
+from superset.commands.dashboard.exceptions import (
+    DashboardAccessDeniedError,
+    DashboardNotFoundError,
+)
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db, event_logger
 from superset.mcp_service.dashboard.schemas import (
@@ -66,6 +69,18 @@ def _find_and_authorize_dashboard(
 
     try:
         dashboard = DashboardDAO.get_by_id_or_slug(identifier)
+    except DashboardAccessDeniedError:
+        # get_by_id_or_slug re-checks view access and raises access-denied
+        # for dashboards the caller cannot see; surface it as the
+        # structured permission_denied response instead of an unhandled
+        # error.
+        return None, ManageDashboardRolesResponse(
+            permission_denied=True,
+            error=(
+                "You do not have permission to access this dashboard. "
+                "Ask the user to grant access; do not retry."
+            ),
+        )
     except (DashboardNotFoundError, SQLAlchemyError):
         return None, ManageDashboardRolesResponse(
             error=f"Dashboard not found: {identifier!r}",
