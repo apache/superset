@@ -189,16 +189,13 @@ msgstr ""
 msgid "\"%s\" is now the system default theme"
 msgstr ""
 
-#, no-python-format
-msgid "% calculation"
+msgid "%% calculation"
 msgstr ""
 
-#, no-python-format
-msgid "% of parent"
+msgid "%% of parent"
 msgstr ""
 
-#, no-python-format
-msgid "% of total"
+msgid "%% of total"
 msgstr ""
 
 #, python-format
