@@ -38,7 +38,7 @@ from typing import Any
 
 import xlsxwriter
 
-from superset.utils.excel import NEUTRAL_DOCUMENT_PROPERTIES
+from superset.utils.excel import FORMULA_PREFIXES, NEUTRAL_DOCUMENT_PROPERTIES
 
 # Excel limits a sheet name to 31 characters and forbids these characters.
 MAX_SHEET_NAME_LEN = 31
@@ -48,10 +48,6 @@ _RESERVED_SHEET_NAME = "history"
 
 # A worksheet holds at most 1,048,576 rows; one is reserved for the header.
 MAX_DATA_ROWS_PER_SHEET = 1_048_576 - 1
-
-# Leading characters that turn a cell into a formula in spreadsheet apps. Mirrors
-# superset.utils.excel.quote_formulas so streamed exports get the same guard.
-_FORMULA_PREFIXES = {"=", "+", "-", "@"}
 
 # Excel cannot represent integers beyond 10**15 without precision loss.
 _MAX_EXCEL_INT = 10**15
@@ -67,7 +63,7 @@ def _quote_if_formula(text: str) -> str:
     tabs (e.g. ``" =cmd"`` or ``"\\t=cmd"``).
     """
     stripped = text.lstrip()
-    return f"'{text}" if stripped and stripped[0] in _FORMULA_PREFIXES else text
+    return f"'{text}" if stripped and stripped[0] in FORMULA_PREFIXES else text
 
 
 def _coerce_float_cell(value: Any) -> Any:
