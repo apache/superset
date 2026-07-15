@@ -59,7 +59,7 @@ def _find_and_authorize_dashboard(
     the not-found and forbidden cases so the main tool body has a single
     pre-condition branch. Returns ``DashboardError`` on not-found and
     ``UpdateDashboardResponse`` (with ``permission_denied=True``) on
-    ownership failure — the two shapes carry different information for
+    editorship failure; the two shapes carry different information for
     the caller.
     """
     # avoids ImportError before Flask app initialisation:
@@ -73,10 +73,21 @@ def _find_and_authorize_dashboard(
 
     try:
         dashboard = DashboardDAO.get_by_id_or_slug(identifier)
-    except (DashboardNotFoundError, SQLAlchemyError):
+    except DashboardNotFoundError:
         return None, DashboardError(
             error=f"Dashboard not found: {identifier!r}",
             error_type="DashboardNotFound",
+        )
+    except SQLAlchemyError:
+        # ``str(exc)`` on SQLAlchemyError frequently contains table/column/
+        # constraint names that should not leak to the MCP response. The raw
+        # exception is captured here via ``logger.exception``; the response
+        # surfaces a generic message (mirrors generate_dashboard.py's
+        # rollback/error handling).
+        logger.exception("Database error looking up dashboard %r", identifier)
+        return None, DashboardError(
+            error="Failed to look up dashboard due to a database error.",
+            error_type="DatabaseError",
         )
 
     if dashboard is None:
@@ -86,7 +97,7 @@ def _find_and_authorize_dashboard(
         )
 
     try:
-        security_manager.raise_for_ownership(dashboard)
+        security_manager.raise_for_editorship(dashboard)
     except SupersetSecurityException:
         return None, UpdateDashboardResponse(
             permission_denied=True,

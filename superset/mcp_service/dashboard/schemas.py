@@ -27,6 +27,7 @@ Example usage:
         id=1,
         dashboard_title="Sales Dashboard",
         published=True,
+        editors=[SubjectInfo(id=1, label="admin", type="USER")],
         tags=[TagInfo(id=1, name="sales")],
         charts=[DashboardChartSummary(id=1, slice_name="Sales Chart")]
     )
@@ -87,17 +88,19 @@ if TYPE_CHECKING:
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import (
     CreatedByMeMixin,
+    EditedByMeMixin,
     MetadataCacheControl,
-    OwnedByMeMixin,
 )
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.privacy import (
     filter_user_directory_fields,
+    strip_user_directory_fields_from_schema,
     user_can_view_data_model_metadata,
 )
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
-    RoleInfo,
+    serialize_subject_object,
+    SubjectInfo,
     TagInfo,
 )
 from superset.mcp_service.utils import (
@@ -154,20 +157,6 @@ def serialize_tag_object(tag: Any) -> TagInfo | None:
     )
 
 
-def serialize_role_object(role: Any) -> RoleInfo | None:
-    """Serialize a role object to RoleInfo"""
-    if not role:
-        return None
-
-    return RoleInfo(
-        id=getattr(role, "id", None),
-        name=getattr(role, "name", None),
-        permissions=[perm.name for perm in getattr(role, "permissions", [])]
-        if hasattr(role, "permissions")
-        else None,
-    )
-
-
 class DashboardFilter(ColumnOperator):
     """
     Filter object for dashboard listing.
@@ -179,6 +168,7 @@ class DashboardFilter(ColumnOperator):
     col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         "dashboard_title",
         "published",
+        "editor",
         "favorite",
         "created_by_fk",
         "changed_by_fk",
@@ -202,8 +192,10 @@ class DashboardFilter(ColumnOperator):
     )
 
 
-class ListDashboardsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
+class ListDashboardsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
     """Request schema for list_dashboards with clear, unambiguous types."""
+
+    model_config = ConfigDict(populate_by_name=True)
 
     filters: Annotated[
         List[DashboardFilter],
@@ -220,6 +212,7 @@ class ListDashboardsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheContr
             default_factory=list,
             description="List of columns to select. Defaults to common columns "
             "if not specified.",
+            validation_alias=AliasChoices("select_columns", "columns"),
         ),
     ]
 
@@ -331,10 +324,15 @@ class GetDashboardInfoRequest(MetadataCacheControl):
     in a dashboard but the URL contains a permalink_key.
     """
 
+    model_config = ConfigDict(populate_by_name=True)
+
     identifier: Annotated[
         int | str,
         Field(
-            description="Dashboard identifier - can be numeric ID, UUID string, or slug"
+            description=(
+                "Dashboard identifier - can be numeric ID, UUID string, or slug"
+            ),
+            validation_alias=AliasChoices("identifier", "id", "dashboard_id"),
         ),
     ]
     permalink_key: str | None = Field(
@@ -357,6 +355,7 @@ class GetDashboardInfoRequest(MetadataCacheControl):
                 "to override, e.g. ['id','dashboard_title','charts'] for minimal "
                 "output, or add 'css' to include raw dashboard CSS."
             ),
+            validation_alias=AliasChoices("select_columns", "columns"),
         ),
     ]
 
@@ -419,7 +418,7 @@ class DashboardChartSummary(BaseModel):
 
     Contains only the fields needed for LLMs to understand which charts
     are on a dashboard, omitting verbose fields like form_data, tags,
-    owners, and timestamps that bloat the response.
+    editors, and timestamps that bloat the response.
     """
 
     id: int | None = Field(None, description="Chart ID")
@@ -460,8 +459,22 @@ class DashboardInfo(BaseModel):
     created_on_humanized: str | None = None
     changed_on_humanized: str | None = None
     chart_count: int = 0
+    editors: List[SubjectInfo] = Field(default_factory=list)
     tags: List[TagInfo] = Field(default_factory=list)
-    charts: List[DashboardChartSummary] = Field(default_factory=list)
+    charts: List[DashboardChartSummary] = Field(
+        default_factory=list,
+        description=(
+            "Charts on this dashboard. May be capped below chart_count "
+            "(cap: MCP_RESPONSE_SIZE_CONFIG['max_list_items']) when the full "
+            "response would exceed the token budget. "
+            "Compare len(charts) to chart_count to detect this. For "
+            "dashboards with more charts than the cap, call list_charts "
+            "with filters=[{'col': 'dashboards', 'opr': 'eq', "
+            "'value': <this dashboard's id>}] and page through with "
+            "page/page_size to retrieve the complete list regardless of "
+            "size."
+        ),
+    )
 
     # Structured filter information extracted from json_metadata
     native_filters: List[NativeFilterSummary] = Field(
@@ -469,7 +482,11 @@ class DashboardInfo(BaseModel):
         description=(
             "Native filters configured on this dashboard. Extracted from "
             "json_metadata for LLM consumption. Includes filter name/type, "
-            "and target columns only when data-model metadata is allowed."
+            "and target columns only when data-model metadata is allowed. "
+            "Subject to the same max_list_items cap as charts, though "
+            "dashboards rarely have enough native filters to hit it; "
+            "operators can raise MCP_RESPONSE_SIZE_CONFIG['max_list_items'] "
+            "for tenants that do."
         ),
     )
     cross_filters_enabled: bool | None = Field(
@@ -514,7 +531,11 @@ class DashboardInfo(BaseModel):
         ),
     )
 
-    model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
+    model_config = ConfigDict(
+        from_attributes=True,
+        ser_json_timedelta="iso8601",
+        json_schema_extra=strip_user_directory_fields_from_schema,
+    )
 
     @model_serializer(mode="wrap")
     def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:
@@ -573,10 +594,18 @@ class DashboardList(BaseModel):
 class AddChartToDashboardRequest(BaseModel):
     """Request schema for adding a chart to an existing dashboard."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     dashboard_id: int = Field(
-        ..., description="ID of the dashboard to add the chart to"
+        ...,
+        description="ID of the dashboard to add the chart to",
+        validation_alias=AliasChoices("dashboard_id", "dashboard", "id"),
     )
-    chart_id: int = Field(..., description="ID of the chart to add to the dashboard")
+    chart_id: int = Field(
+        ...,
+        description="ID of the chart to add to the dashboard",
+        validation_alias=AliasChoices("chart_id", "chart"),
+    )
     target_tab: str | None = Field(
         None,
         min_length=1,
@@ -1637,6 +1666,13 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
                 json_metadata_str,
                 position_json_str,
             ),
+            editors=[
+                info
+                for editor in dashboard.editors
+                if (info := serialize_subject_object(editor)) is not None
+            ]
+            if dashboard.editors
+            else [],
             tags=[
                 TagInfo.model_validate(tag, from_attributes=True)
                 for tag in dashboard.tags
@@ -1706,6 +1742,13 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
             if getattr(dashboard, "uuid", None)
             else None,
             chart_count=len(getattr(dashboard, "slices", [])),
+            editors=[
+                info
+                for editor in getattr(dashboard, "editors", [])
+                if (info := serialize_subject_object(editor)) is not None
+            ]
+            if getattr(dashboard, "editors", None)
+            else [],
             tags=[
                 TagInfo.model_validate(tag, from_attributes=True)
                 for tag in getattr(dashboard, "tags", [])
@@ -1781,6 +1824,50 @@ def dashboard_layout_serializer(dashboard: "Dashboard") -> DashboardLayout:
             charts=charts,
             has_layout=bool(position_json_str),
         )
+    )
+
+
+class DeleteDashboardRequest(BaseModel):
+    """Request schema for delete_dashboard."""
+
+    identifier: int | str = Field(
+        ...,
+        description="Dashboard identifier - numeric ID, UUID string, or slug.",
+    )
+
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so identifier=true would coerce to
+        dashboard ID 1 and delete the wrong object; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID, UUID, or slug string")
+        return value
+
+
+class DeleteDashboardResponse(BaseModel):
+    """Result of a delete_dashboard operation."""
+
+    success: bool = Field(description="Whether the dashboard was deleted")
+    deleted_id: int | None = Field(None, description="ID of the deleted dashboard")
+    deleted_name: str | None = Field(None, description="Title of the deleted dashboard")
+    soft_deleted: bool = Field(
+        False,
+        description=(
+            "True when the dashboard was soft-deleted (moved to trash, because "
+            "the SOFT_DELETE feature flag is enabled) and can be restored by an "
+            "owner or Admin. False means the delete was permanent."
+        ),
+    )
+    message: str | None = Field(None, description="Human-readable outcome message")
+    error: str | None = Field(None, description="Error message if the delete failed")
+    error_type: str | None = Field(None, description="Type of error if failed")
+    permission_denied: bool = Field(
+        False,
+        description=(
+            "True when the caller lacks permission to delete the dashboard (do "
+            "not retry; ask the user)."
+        ),
     )
 
 

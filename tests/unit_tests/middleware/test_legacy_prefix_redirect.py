@@ -285,17 +285,78 @@ def test_canonical_path_without_legacy_prefix_passes_through() -> None:
         assert resp.data == _SENTINEL_BODY, canonical
 
 
-def test_legacy_sql_route_passes_through_not_308() -> None:
-    """`/superset/sql/<id>/` has **no** row in `LEGACY_REDIRECT_MAP` —
-    `Database.sql_url` reshaped to `/sqllab/?dbid=<id>` so no 1:1 path
-    mapping exists. UPDATING.md documents the hard re-bookmark break."""
+def test_legacy_sql_deep_link_redirects_to_sqllab_dbid() -> None:
+    """`/superset/sql/<id>/` has **no** 1:1 path row — `Database.sql_url`
+    reshaped to `/sqllab/?dbid=<id>`. The shim special-cases the numeric
+    deep link (via `_LEGACY_SQL_RE`) and 308s to the migrated query-string
+    shape so legacy SQL Lab bookmarks survive one release cycle instead of
+    hard-404ing."""
     client = _build_client(app_root="/")
     resp = client.get("/superset/sql/5/")
-    # Pass-through: inner app reached, not a 308 from the shim.
+    assert resp.status_code == 308
+    assert resp.headers["Location"] == "/sqllab/?dbid=5"
+    # Handled by the special case, NOT the closed-set map.
+    assert "/sql/" not in LEGACY_REDIRECT_MAP
+
+
+def test_legacy_sql_deep_link_without_trailing_slash() -> None:
+    """The historical route was `@expose("/sql/<int:database_id>/")`; the
+    trailing slash is optional on the inbound bookmark. Both forms 308 to the
+    same target."""
+    client = _build_client(app_root="/")
+    resp = client.get("/superset/sql/5")
+    assert resp.status_code == 308
+    assert resp.headers["Location"] == "/sqllab/?dbid=5"
+
+
+def test_legacy_sql_deep_link_under_subdir() -> None:
+    """Under a subdir deployment the dbid target carries the single app-root
+    prefix — `/myapp/sqllab/?dbid=<id>`, never `/myapp/superset/...`."""
+    client = _build_client(app_root="/myapp")
+    resp = client.get("/myapp/superset/sql/12/")
+    assert resp.status_code == 308
+    assert resp.headers["Location"] == "/myapp/sqllab/?dbid=12"
+
+
+def test_legacy_sql_deep_link_merges_query_string_with_ampersand() -> None:
+    """An inbound query string is merged onto the already-present `?dbid=<id>`
+    with `&` — never a second `?`. Guards against re-introducing the
+    `SqlaTable.sql_url` double-`?` bug shape (`/sqllab/?dbid=5?table_name=…`)."""
+    client = _build_client(app_root="/")
+    resp = client.get("/superset/sql/5/?table_name=foo&schema=bar")
+    assert resp.status_code == 308
+    assert resp.headers["Location"] == "/sqllab/?dbid=5&table_name=foo&schema=bar"
+    # Exactly one `?` in the Location.
+    assert resp.headers["Location"].count("?") == 1
+
+
+def test_legacy_sql_post_returns_410() -> None:
+    """The old `/superset/sql/<id>/` route was GET-only; a POST 308 would
+    re-POST against `/sqllab/` (a GET view) → 405. Emit 410 instead, matching
+    the disposition of every other GET-only canonical."""
+    client = _build_client(app_root="/")
+    resp = client.post("/superset/sql/5/", data={"k": "v"})
+    assert resp.status_code == 410
+    assert "Location" not in resp.headers
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/superset/sql/",  # no id
+        "/superset/sql/abc/",  # non-numeric id
+        "/superset/sql/5/extra/",  # trailing extra segment
+    ],
+)
+def test_legacy_sql_non_numeric_passes_through(path: str) -> None:
+    """Closed-set discipline: only a bare numeric `<database_id>` is
+    special-cased. Anything else is not a real legacy SQL Lab deep link and
+    falls through to the inner app (→ 404 in production) rather than being
+    coerced into a `?dbid=<garbage>` redirect."""
+    client = _build_client(app_root="/")
+    resp = client.get(path)
     assert resp.status_code == 200
     assert resp.data == _SENTINEL_BODY
-    # Belt-and-braces: the path is not in the map either.
-    assert "/sql/" not in LEGACY_REDIRECT_MAP
 
 
 def test_degenerate_app_root_equals_superset_disables_shim() -> None:

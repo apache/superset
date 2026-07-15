@@ -42,7 +42,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "flask-appbuilder>=5.0.2,<6",
+    "flask-appbuilder>=5.2.0,<6",
     "isodate>=0.7.0",
     "pyarrow>=16.0.0",
     "pydantic>=2.8.0",

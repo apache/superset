@@ -14,9 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from contextvars import ContextVar
 from typing import Any
 
-from marshmallow import fields, Schema, validates, ValidationError
+from marshmallow import fields, post_load, Schema, validates, ValidationError
 
 from superset.themes.utils import (
     is_valid_theme,
@@ -24,6 +25,17 @@ from superset.themes.utils import (
     validate_font_urls,
 )
 from superset.utils import json
+
+# Context variable for storing sanitized JSON data during validation
+sanitized_json_context: ContextVar[str | None] = ContextVar(
+    "sanitized_json_data", default=None
+)
+
+
+def _consume_sanitized_json_data(default: str) -> str:
+    sanitized_json_data = sanitized_json_context.get()
+    sanitized_json_context.set(None)
+    return sanitized_json_data or default
 
 
 def _sanitize_and_validate_theme_config(theme_config: dict[str, Any]) -> dict[str, Any]:
@@ -77,7 +89,7 @@ class ImportV1ThemeSchema(Schema):
                 value.clear()
                 value.update(sanitized_config)
             else:
-                self.context["sanitized_json_data"] = json.dumps(sanitized_config)
+                sanitized_json_context.set(json.dumps(sanitized_config))
 
 
 class ThemePostSchema(Schema):
@@ -91,6 +103,7 @@ class ThemePostSchema(Schema):
 
     @validates("json_data")
     def validate_and_sanitize_json_data(self, value: str, **kwargs: Any) -> None:
+        sanitized_json_context.set(None)
         # Parse JSON
         try:
             theme_config = json.loads(value) if isinstance(value, str) else value
@@ -104,7 +117,18 @@ class ThemePostSchema(Schema):
         # Note: This modifies the input data to ensure sanitized content is stored
         if sanitized_config != theme_config:
             # Re-serialize the sanitized config
-            self.context["sanitized_json_data"] = json.dumps(sanitized_config)
+            sanitized_json_context.set(json.dumps(sanitized_config))
+
+    def _apply_sanitized_json_data(self, data: dict[str, Any]) -> dict[str, Any]:
+        data["json_data"] = _consume_sanitized_json_data(data["json_data"])
+        return data
+
+    @post_load
+    def apply_sanitized_json_data(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        del kwargs
+        return self._apply_sanitized_json_data(data)
 
 
 class ThemePutSchema(Schema):
@@ -118,6 +142,7 @@ class ThemePutSchema(Schema):
 
     @validates("json_data")
     def validate_and_sanitize_json_data(self, value: str, **kwargs: Any) -> None:
+        sanitized_json_context.set(None)
         # Parse JSON
         try:
             theme_config = json.loads(value) if isinstance(value, str) else value
@@ -131,7 +156,15 @@ class ThemePutSchema(Schema):
         # Note: This modifies the input data to ensure sanitized content is stored
         if sanitized_config != theme_config:
             # Re-serialize the sanitized config
-            self.context["sanitized_json_data"] = json.dumps(sanitized_config)
+            sanitized_json_context.set(json.dumps(sanitized_config))
+
+    @post_load
+    def apply_sanitized_json_data(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        del kwargs
+        data["json_data"] = _consume_sanitized_json_data(data["json_data"])
+        return data
 
 
 openapi_spec_methods_override = {

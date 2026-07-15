@@ -176,7 +176,7 @@ https://superset.apache.org/admin-docs/configuration/configuring-superset/#rotat
 
 ### **Appendix C: Secrets Register and Rotation Schedule**
 
-`SUPERSET_SECRET_KEY` is not the only security-critical secret in a Superset deployment. Maintain an inventory of all such secrets, store each in a secrets manager (not in `superset_config.py` or version control), assign an owner, and rotate them on a defined cadence as well as after any suspected compromise.
+`SUPERSET_SECRET_KEY` is not the only security-critical secret in a Superset deployment. Maintain an inventory of all such secrets, store each in a secrets manager (not in `superset_config.py` or version control), assign a responsible maintainer, and rotate them on a defined cadence as well as after any suspected compromise.
 
 | Secret | Purpose | Risk if leaked | Suggested rotation |
 |---|---|---|---|

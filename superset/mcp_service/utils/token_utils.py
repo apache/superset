@@ -51,6 +51,8 @@ from typing import Any, Dict, List, Union
 from pydantic import BaseModel
 from typing_extensions import TypeAlias
 
+from superset.mcp_service.constants import DEFAULT_MAX_LIST_ITEMS
+
 logger = logging.getLogger(__name__)
 
 # Type alias for MCP tool responses (Pydantic models, dicts, lists, strings, bytes)
@@ -469,8 +471,6 @@ INFO_TOOLS = frozenset(
 
 # Maximum character length for string fields before truncation
 _MAX_STRING_CHARS = 500
-# Maximum items to keep in list fields before truncation
-_MAX_LIST_ITEMS = 30
 # Maximum keys to keep when summarizing large dict fields
 _MAX_DICT_KEYS = 20
 
@@ -538,6 +538,7 @@ def _truncate_lists(data: Dict[str, Any], notes: List[str], max_items: int) -> b
     metadata is communicated through the *notes* list and top-level response
     fields ``_response_truncated`` / ``_truncation_notes``.
     """
+    max_items = max(1, max_items)
     changed = False
     for key, value in data.items():
         if isinstance(value, list) and len(value) > max_items:
@@ -601,13 +602,15 @@ def _is_under_limit(data: Dict[str, Any], token_limit: int) -> bool:
 def truncate_oversized_response(
     response: ToolResponse,
     token_limit: int,
+    # Configurable via MCP_RESPONSE_SIZE_CONFIG["max_list_items"]
+    max_list_items: int = DEFAULT_MAX_LIST_ITEMS,
 ) -> tuple[ToolResponse, bool, list[str]]:
     """
     Dynamically truncate large fields in a response to fit within the token limit.
 
     Applies five progressive phases of truncation:
     1. Truncate long top-level string fields
-    2. Truncate large list fields to _MAX_LIST_ITEMS
+    2. Truncate large list fields to max_list_items (configurable)
     3. Recursively truncate strings in nested structures (list items, nested dicts)
     4. Aggressively reduce lists to 10 items and summarize large dicts
     5. Replace all collections with empty values
@@ -615,6 +618,7 @@ def truncate_oversized_response(
     Args:
         response: The tool response (Pydantic model, dict, or other).
         token_limit: Maximum estimated tokens allowed.
+        max_list_items: Maximum items to keep in list fields during Phase 2.
 
     Returns:
         A tuple of (possibly-truncated response, was_truncated, list of notes).
@@ -637,7 +641,7 @@ def truncate_oversized_response(
         return data, was_truncated, notes
 
     # Phase 2: Truncate large list fields
-    was_truncated |= _truncate_lists(data, notes, _MAX_LIST_ITEMS)
+    was_truncated |= _truncate_lists(data, notes, max_list_items)
     if _is_under_limit(data, token_limit):
         return data, was_truncated, notes
 

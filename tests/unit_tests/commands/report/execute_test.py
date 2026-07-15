@@ -17,7 +17,7 @@
 
 import json  # noqa: TID251
 from datetime import datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from urllib.error import URLError
 from uuid import UUID, uuid4
 
@@ -57,9 +57,24 @@ from superset.reports.models import (
     ReportSourceFormat,
     ReportState,
 )
+from superset.subjects.types import SubjectType
 from superset.utils.core import HeaderDataType
 from superset.utils.screenshots import ChartScreenshot
 from tests.integration_tests.conftest import with_feature_flags
+
+
+def _make_mock_editors(mocker: MockerFixture, user_ids: list[int]) -> list[Mock]:
+    """Create mock editor subjects with user-type attributes."""
+    editors = []
+    for uid in user_ids:
+        editor = mocker.Mock()
+        editor.type = SubjectType.USER
+        mock_user = mocker.Mock()
+        mock_user.id = uid
+        mock_user.email = f"user{uid}@example.com"
+        editor.user = mock_user
+        editors.append(editor)
+    return editors
 
 
 def test_log_data_with_chart(mocker: MockerFixture) -> None:
@@ -69,7 +84,7 @@ def test_log_data_with_chart(mocker: MockerFixture) -> None:
     mock_report_schedule.dashboard_id = None
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = []
 
     class_instance: BaseReportState = BaseReportState(
@@ -85,7 +100,7 @@ def test_log_data_with_chart(mocker: MockerFixture) -> None:
         "notification_format": "report_format",
         "chart_id": 123,
         "dashboard_id": None,
-        "owners": [1, 2],
+        "editors": [1, 2],
         "slack_channels": None,
         "execution_id": "execution_id_example",
     }
@@ -100,7 +115,7 @@ def test_log_data_with_dashboard(mocker: MockerFixture) -> None:
     mock_report_schedule.dashboard_id = 123
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = []
 
     class_instance: BaseReportState = BaseReportState(
@@ -116,7 +131,7 @@ def test_log_data_with_dashboard(mocker: MockerFixture) -> None:
         "notification_format": "report_format",
         "chart_id": None,
         "dashboard_id": 123,
-        "owners": [1, 2],
+        "editors": [1, 2],
         "slack_channels": None,
         "execution_id": "execution_id_example",
     }
@@ -131,7 +146,7 @@ def test_log_data_with_email_recipients(mocker: MockerFixture) -> None:
     mock_report_schedule.dashboard_id = 123
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = []
     mock_report_schedule.recipients = [
         mocker.Mock(type=ReportRecipientType.EMAIL, recipient_config_json="email_1"),
@@ -151,7 +166,7 @@ def test_log_data_with_email_recipients(mocker: MockerFixture) -> None:
         "notification_format": "report_format",
         "chart_id": None,
         "dashboard_id": 123,
-        "owners": [1, 2],
+        "editors": [1, 2],
         "slack_channels": [],
         "execution_id": "execution_id_example",
     }
@@ -166,7 +181,7 @@ def test_log_data_with_slack_recipients(mocker: MockerFixture) -> None:
     mock_report_schedule.dashboard_id = 123
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = []
     mock_report_schedule.recipients = [
         mocker.Mock(type=ReportRecipientType.SLACK, recipient_config_json="channel_1"),
@@ -186,7 +201,7 @@ def test_log_data_with_slack_recipients(mocker: MockerFixture) -> None:
         "notification_format": "report_format",
         "chart_id": None,
         "dashboard_id": 123,
-        "owners": [1, 2],
+        "editors": [1, 2],
         "slack_channels": ["channel_1", "channel_2"],
         "execution_id": "execution_id_example",
     }
@@ -194,14 +209,14 @@ def test_log_data_with_slack_recipients(mocker: MockerFixture) -> None:
     assert result == expected_result
 
 
-def test_log_data_no_owners(mocker: MockerFixture) -> None:
+def test_log_data_no_editors(mocker: MockerFixture) -> None:
     mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
     mock_report_schedule.chart = False
     mock_report_schedule.chart_id = None
     mock_report_schedule.dashboard_id = 123
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = []
+    mock_report_schedule.editors = []
     mock_report_schedule.recipients = [
         mocker.Mock(type=ReportRecipientType.SLACK, recipient_config_json="channel_1"),
         mocker.Mock(type=ReportRecipientType.SLACK, recipient_config_json="channel_2"),
@@ -220,7 +235,7 @@ def test_log_data_no_owners(mocker: MockerFixture) -> None:
         "notification_format": "report_format",
         "chart_id": None,
         "dashboard_id": 123,
-        "owners": [],
+        "editors": [],
         "slack_channels": ["channel_1", "channel_2"],
         "execution_id": "execution_id_example",
     }
@@ -235,7 +250,7 @@ def test_log_data_with_missing_values(mocker: MockerFixture) -> None:
     mock_report_schedule.dashboard_id = None
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = [
         mocker.Mock(type=ReportRecipientType.SLACK, recipient_config_json="channel_1"),
         mocker.Mock(
@@ -256,7 +271,7 @@ def test_log_data_with_missing_values(mocker: MockerFixture) -> None:
         "notification_format": "report_format",
         "chart_id": None,
         "dashboard_id": None,
-        "owners": [1, 2],
+        "editors": [1, 2],
         "slack_channels": ["channel_1", "channel_2"],
         "execution_id": "execution_id_example",
     }
@@ -303,7 +318,7 @@ def test_get_dashboard_urls_with_multiple_tabs(
     mock_report_schedule.dashboard_id = 123
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = []
     mock_report_schedule.extra = {
         "dashboard": {
@@ -346,7 +361,7 @@ def test_get_dashboard_urls_with_exporting_dashboard_only(
     mock_report_schedule.force_screenshot = False
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = []
     mock_report_schedule.extra = {
         "dashboard": {
@@ -465,7 +480,7 @@ def test_get_dashboard_urls_with_filters_and_tabs(
     mock_report_schedule.dashboard_id = 123
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = []
     native_filter_rison = "(NATIVE_FILTER-1:(filterType:filter_select))"
     mock_report_schedule.extra = {
@@ -525,7 +540,7 @@ def test_get_dashboard_urls_with_filters_and_tabs_preserves_existing_url_params(
     mock_report_schedule.dashboard_id = 123
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = []
     native_filter_rison = "(NATIVE_FILTER-1:(filterType:filter_select))"
     mock_report_schedule.extra = {
@@ -578,7 +593,7 @@ def test_get_dashboard_urls_with_filters_and_tabs_deduplicates_stale_native_filt
     mock_report_schedule.dashboard_id = 123
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = []
     native_filter_rison = "(NATIVE_FILTER-1:(new:value))"
     mock_report_schedule.extra = {
@@ -627,7 +642,7 @@ def test_get_dashboard_urls_with_filters_no_tabs(
     mock_report_schedule.dashboard_id = 123
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = []
     native_filter_rison = "(NATIVE_FILTER-1:(filterType:filter_select))"
     mock_report_schedule.extra = {
@@ -685,7 +700,7 @@ def test_get_dashboard_urls_preserves_existing_url_params(
     mock_report_schedule.dashboard_id = 123
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = []
     native_filter_rison = "(NATIVE_FILTER-1:(filterType:filter_select))"
     mock_report_schedule.extra = {
@@ -739,7 +754,7 @@ def test_get_dashboard_urls_deduplicates_stale_native_filters(
     mock_report_schedule.dashboard_id = 123
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = []
     native_filter_rison = "(NATIVE_FILTER-1:(new:value))"
     mock_report_schedule.extra = {
@@ -817,7 +832,7 @@ def test_get_dashboard_urls_multitab_preserves_url_params(
     mock_report_schedule.dashboard_id = 123
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = []
     native_filter_rison = "(NATIVE_FILTER-1:(filterType:filter_select))"
     # Use list-of-lists (not tuples) — extra_json deserializes urlParams from
@@ -1805,7 +1820,7 @@ def _make_notification_state(
     schedule.email_subject = email_subject
     schedule.force_screenshot = False
     schedule.recipients = []
-    schedule.owners = []
+    schedule.editors = []
 
     if has_chart:
         schedule.chart = mocker.Mock()
@@ -1936,7 +1951,7 @@ def _make_state_instance(
     schedule.working_timeout = working_timeout
     schedule.last_eval_dttm = datetime.utcnow()
     schedule.name = "Test"
-    schedule.owners = []
+    schedule.editors = []
     schedule.recipients = []
     schedule.force_screenshot = False
     schedule.extra = {}

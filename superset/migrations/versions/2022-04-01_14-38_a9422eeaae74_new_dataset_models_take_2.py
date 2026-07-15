@@ -31,8 +31,13 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import select, text
 from sqlalchemy.exc import NoSuchModuleError
-from sqlalchemy.ext.declarative import declarative_base, declared_attr
-from sqlalchemy.orm import backref, relationship, Session
+from sqlalchemy.orm import (
+    backref,
+    declarative_base,
+    declared_attr,
+    relationship,
+    Session,
+)
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import functions as func
 from sqlalchemy.sql.expression import and_, or_

@@ -36,7 +36,7 @@ def mcp_server() -> object:
 def mock_auth():
     """Mock authentication for all tests in this module."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-        with patch("superset.security_manager.raise_for_ownership"):
+        with patch("superset.security_manager.raise_for_editorship"):
             mock_user = Mock()
             mock_user.id = 1
             mock_user.username = "admin"
@@ -79,7 +79,7 @@ def _mock_dashboard(
     dashboard.changed_on_humanized = "a day ago"
     dashboard.uuid = f"dashboard-uuid-{id}"
     dashboard.slices = []
-    dashboard.owners = []
+    dashboard.editors = []
     dashboard.tags = []
     dashboard.embedded = []
     return dashboard
@@ -184,6 +184,33 @@ class TestUpdateDashboard:
         assert "not found" in (payload.get("error") or "").lower()
 
     @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+    @pytest.mark.asyncio
+    async def test_update_lookup_database_error_is_not_masked_as_not_found(
+        self, mock_get: Mock, mcp_server: object
+    ) -> None:
+        """A real DB/infra failure during lookup must surface as a distinct
+        ``DatabaseError``, not be collapsed into ``DashboardNotFound`` — and
+        must be logged server-side, since ``ctx.*`` calls never reach ops."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        mock_get.side_effect = SQLAlchemyError("connection to server lost")
+
+        with patch(
+            "superset.mcp_service.dashboard.tool.update_dashboard.logger"
+        ) as mock_logger:
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "update_dashboard", {"request": {"identifier": 999999}}
+                )
+
+        payload = json.loads(result.content[0].text)
+        assert payload.get("error_type") == "DatabaseError"
+        assert "not found" not in (payload.get("error") or "").lower()
+        # The raw exception text must never reach the LLM-facing response.
+        assert "connection to server lost" not in (payload.get("error") or "")
+        mock_logger.exception.assert_called_once()
+
+    @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
     @patch("superset.extensions.db.session")
     @pytest.mark.asyncio
     async def test_update_title_and_slug_and_published(
@@ -260,10 +287,10 @@ class TestUpdateDashboard:
 
     @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
     @pytest.mark.asyncio
-    async def test_non_owner_gets_permission_denied(
+    async def test_non_editor_gets_permission_denied(
         self, mock_get: Mock, mcp_server: object
     ) -> None:
-        """A user without ownership on the dashboard receives a
+        """A user without editorship on the dashboard receives a
         permission_denied response — the class-level Dashboard.write
         permission is not enough on its own.
         """
@@ -272,11 +299,11 @@ class TestUpdateDashboard:
         dash = _mock_dashboard(id=42)
         mock_get.return_value = dash
 
-        # mock_auth fixture patches raise_for_ownership to a no-op for the
+        # mock_auth fixture patches raise_for_editorship to a no-op for the
         # whole module; override here so this one test sees the real
-        # ownership rejection path.
+        # editorship rejection path.
         with patch(
-            "superset.security_manager.raise_for_ownership",
+            "superset.security_manager.raise_for_editorship",
             side_effect=SupersetSecurityException(Mock(message="forbidden")),
         ):
             async with Client(mcp_server) as client:

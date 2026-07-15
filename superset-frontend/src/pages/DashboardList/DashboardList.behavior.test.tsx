@@ -130,10 +130,6 @@ test('can unfavorite a dashboard', async () => {
       value: d.id === 1,
     })),
   });
-  fetchMock.get('glob:*/api/v1/dashboard/related/owners*', {
-    result: [],
-    count: 0,
-  });
   fetchMock.get('glob:*/api/v1/dashboard/related/changed_by*', {
     result: [],
     count: 0,
@@ -247,7 +243,7 @@ test('can edit dashboard title via properties modal', async () => {
     dashboard_count: mockDashboards.length,
   });
   fetchMock.get(API_ENDPOINTS.DASHBOARD_FAVORITE_STATUS, { result: [] });
-  fetchMock.get(API_ENDPOINTS.DASHBOARD_RELATED_OWNERS, {
+  fetchMock.get(API_ENDPOINTS.DASHBOARD_RELATED_EDITORS, {
     result: [],
     count: 0,
   });
@@ -303,7 +299,9 @@ test('can edit dashboard title via properties modal', async () => {
 
   // Wait for properties modal to load and show the title input
   const titleInput = await screen.findByTestId('dashboard-title-input');
-  expect(titleInput).toHaveValue(mockDashboards[0].dashboard_title);
+  await waitFor(() => {
+    expect(titleInput).toHaveValue(mockDashboards[0].dashboard_title);
+  });
 
   // Change the title
   await userEvent.clear(titleInput);

@@ -326,7 +326,8 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         """
         Get all catalogs.
         """
-        return {catalog for (catalog,) in inspector.bind.execute(text("SHOW CATALOGS"))}
+        with inspector.engine.connect() as conn:
+            return {catalog for (catalog,) in conn.execute(text("SHOW CATALOGS"))}
 
     @classmethod
     def adjust_engine_params(
@@ -712,9 +713,8 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         :return: list of column objects
         """
         full_table_name = cls.quote_table(table, inspector.engine.dialect)
-        return inspector.bind.execute(
-            text(f"SHOW COLUMNS FROM {full_table_name}")
-        ).fetchall()
+        with inspector.engine.connect() as conn:
+            return conn.execute(text(f"SHOW COLUMNS FROM {full_table_name}")).fetchall()
 
     @classmethod
     def _create_column_info(

@@ -53,6 +53,12 @@ jobs:
         python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["previous", "current", "next"]') }}
     env:
       PYTHONPATH: ${{ github.workspace }}
+      # Promotes the SQLAlchemy 2.0 deprecation warnings already locked in as
+      # errors via pytest.ini's `filterwarnings` to actually run in CI, so a
+      # regression on those fails the build instead of relying on a
+      # contributor remembering to set this locally. See the migration
+      # battleplan: https://github.com/apache/superset/discussions/40273
+      SQLALCHEMY_WARN_20: "1"
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

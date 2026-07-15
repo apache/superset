@@ -267,7 +267,7 @@ const fetchEmailRecipientOptions = async (
   });
 
   const response = await SupersetClient.get({
-    endpoint: `/api/v1/report/related/owners?q=${query}`,
+    endpoint: `/api/v1/report/related/created_by?q=${query}`,
   });
   const results = (response.json?.result ?? []) as RelatedUserOption[];
 
@@ -413,7 +413,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
           }
         }
       })
-      .catch(e => {
+      .catch(() => {
         // Fallback to slack v1 if slack v2 is not compatible
         setUseSlackV1(true);
       })

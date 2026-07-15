@@ -997,15 +997,18 @@ def test_import_dataset_column_datetime_format(
         assert column.datetime_format == "%Y-%m-%d"
 
 
-def test_import_dataset_without_owner_permission(
+def test_import_dataset_without_editor_permission(
     mocker: MockerFixture,
     session: Session,
 ) -> None:
     """
-    Test importing a dataset that is managed externally.
+    Test overwriting a dataset without editorship.
     """
     mock_can_access = mocker.patch.object(
         security_manager, "can_access", return_value=True
+    )
+    mock_is_editor = mocker.patch.object(
+        security_manager, "is_editor", return_value=False
     )
 
     engine = db.session.get_bind()
@@ -1037,8 +1040,9 @@ def test_import_dataset_without_owner_permission(
             "already exists and user doesn't have permissions to overwrite it"  # noqa: E501
         )
 
-    # Assert that the can write to chart was checked
+    # Assert that the can write to dataset was checked and editorship was enforced.
     mock_can_access.assert_called_with("can_write", "Dataset")
+    mock_is_editor.assert_called_once()
 
 
 def test_import_dataset_access_check(
@@ -1123,18 +1127,22 @@ def test_import_soft_deleted_dataset_overwrite_restores_in_place(
     assert restored.deleted_at is None
 
 
-def test_import_soft_deleted_dataset_non_overwrite_restores_for_owner(
+def test_import_soft_deleted_dataset_non_overwrite_restores_for_editor(
     mocker: MockerFixture,
     session: Session,
 ) -> None:
     """
     Non-overwrite re-import of a soft-deleted UUID is implicitly a
     restore-and-update: the user is bringing the dataset back by
-    uploading it again. The same ownership rule as the overwrite path
-    applies, so an owner (or admin) succeeds without setting
+    uploading it again. The same editorship rule as the overwrite path
+    applies, so an editor (or admin) succeeds without setting
     overwrite=True.
     """
     mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "raise_for_access", return_value=None)
+    mock_is_editor = mocker.patch.object(
+        security_manager, "is_editor", return_value=True
+    )
 
     engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
@@ -1153,31 +1161,35 @@ def test_import_soft_deleted_dataset_non_overwrite_restores_for_owner(
     existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
     db.session.flush()
 
-    admin = User(
+    editor = User(
         first_name="Alice",
         last_name="Doe",
         email="adoe@example.org",
-        username="admin",
-        roles=[Role(name="Admin")],
+        username="editor",
+        roles=[Role(name="Gamma")],
     )
 
-    with override_user(admin):
+    with override_user(editor):
         restored = import_dataset(config, overwrite=False)
 
     assert restored.id == original_id
     assert restored.deleted_at is None
+    mock_is_editor.assert_called_once_with(existing)
 
 
-def test_import_soft_deleted_dataset_non_overwrite_raises_for_non_owner(
+def test_import_soft_deleted_dataset_non_overwrite_raises_for_non_editor(
     mocker: MockerFixture,
     session: Session,
 ) -> None:
     """
     Non-overwrite re-import that would resurrect a soft-deleted dataset
-    must respect ownership: a non-owner without admin role cannot
+    must respect editorship: a non-editor without admin role cannot
     restore-via-import. Mirrors the explicit /restore endpoint's check.
     """
     mocker.patch.object(security_manager, "can_access", return_value=True)
+    mock_is_editor = mocker.patch.object(
+        security_manager, "is_editor", return_value=False
+    )
 
     engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
@@ -1194,7 +1206,7 @@ def test_import_soft_deleted_dataset_non_overwrite_raises_for_non_owner(
     existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
     db.session.flush()
 
-    non_owner = User(
+    non_editor = User(
         first_name="Bob",
         last_name="Roe",
         email="bob@example.org",
@@ -1202,10 +1214,11 @@ def test_import_soft_deleted_dataset_non_overwrite_raises_for_non_owner(
         roles=[Role(name="Gamma")],
     )
 
-    with override_user(non_owner):
+    with override_user(non_editor):
         with pytest.raises(ImportFailedError) as excinfo:
             import_dataset(config, overwrite=False)
     assert "permissions to restore" in str(excinfo.value)
+    mock_is_editor.assert_called_once_with(existing)
     # Verify the permission check fired before any mutation: if a regression
     # cleared ``deleted_at`` before raising, this would silently produce a
     # half-restored row and the test would still pass on the message check
@@ -1213,7 +1226,7 @@ def test_import_soft_deleted_dataset_non_overwrite_raises_for_non_owner(
     db.session.refresh(existing)
     assert existing.deleted_at is not None, (
         "deleted_at was cleared before the exception — restore mutation "
-        "happened before the ownership check"
+        "happened before the editorship check"
     )
 
 
