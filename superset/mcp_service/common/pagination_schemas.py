@@ -118,7 +118,7 @@ class PaginatedListRequest(BaseModel, Generic[FilterT]):
         Handles Claude Code bug where objects are double-serialized as
         strings. See: https://github.com/anthropics/claude-code/issues/5504
         """
-        filter_type = get_args(cls.model_fields["filters"].annotation)[0]
+        filter_type: type = get_args(cls.model_fields["filters"].annotation)[0]
         return parse_json_or_model_list(v, filter_type, "filters")
 
     @field_validator("select_columns", mode="before")
