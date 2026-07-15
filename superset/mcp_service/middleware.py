@@ -935,7 +935,7 @@ class ResponseSizeGuardMiddleware(Middleware):
         return response
 
 
-def _safe_int_config(config: Dict[str, Any], key: str, default: int) -> int:
+def _safe_int_config(config: dict[str, Any], key: str, default: int) -> int:
     """Best-effort int coercion for MCP_RESPONSE_SIZE_CONFIG values.
 
     Falls back to ``default`` (with a warning log) when the configured value
