@@ -136,6 +136,7 @@ Dashboard Management:
 - delete_dashboard: Delete a dashboard by ID/UUID/slug (requires editor rights — owner or Admin; destructive; does not delete its charts; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
 - manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select and filter_time)
 - remove_chart_from_dashboard: Remove a chart from an existing dashboard (requires write access)
+- restore_dashboard: Restore a soft-deleted dashboard from trash by ID/UUID (requires editor rights — owner or Admin; only applies to dashboards trashed under the SOFT_DELETE feature flag)
 
 Annotation Layers:
 - list_annotation_layers: List annotation layers with advanced filters (1-based pagination)
@@ -189,6 +190,7 @@ Chart Management:
 - update_chart: Update existing saved chart configuration (requires write access)
 - update_chart_preview: Update cached chart preview without saving (requires write access)
 - delete_chart: Delete a chart by ID/UUID (requires editor rights — owner or Admin; destructive; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
+- restore_chart: Restore a soft-deleted chart from trash by ID/UUID (requires editor rights — owner or Admin; only applies to charts trashed under the SOFT_DELETE feature flag)
 
 SQL Lab Integration:
 - execute_sql: Execute SQL queries and get results (requires database_id and SQL access)
@@ -736,6 +738,7 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
     get_chart_sql,
     get_chart_type_schema,
     list_charts,
+    restore_chart,
     update_chart,
     update_chart_preview,
 )
@@ -750,6 +753,7 @@ from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     list_dashboards,
     manage_native_filters,
     remove_chart_from_dashboard,
+    restore_dashboard,
     update_dashboard,
 )
 from superset.mcp_service.database.tool import (  # noqa: F401, E402

@@ -2314,3 +2314,46 @@ def dashboard_datasets_serializer(dashboard: "Dashboard") -> DashboardDatasets:
         inaccessible_dataset_count=inaccessible_count,
         datasets=datasets,
     )
+
+
+# ---------------------------------------------------------------------------
+# restore_dashboard schemas
+# ---------------------------------------------------------------------------
+
+
+class RestoreDashboardRequest(BaseModel):
+    """Request schema for restore_dashboard."""
+
+    identifier: int | str = Field(
+        ...,
+        description="Dashboard identifier - numeric ID or UUID string.",
+    )
+
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so identifier=true would coerce to
+        dashboard ID 1 and target the wrong object; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID or UUID string")
+        return value
+
+
+class RestoreDashboardResponse(BaseModel):
+    """Result of a restore_dashboard operation."""
+
+    success: bool = Field(description="Whether the dashboard was restored from trash")
+    restored_id: int | None = Field(None, description="ID of the restored dashboard")
+    restored_name: str | None = Field(
+        None, description="Title of the restored dashboard"
+    )
+    message: str | None = Field(None, description="Human-readable outcome message")
+    error: str | None = Field(None, description="Error message if the restore failed")
+    error_type: str | None = Field(None, description="Type of error if failed")
+    permission_denied: bool = Field(
+        False,
+        description=(
+            "True when the caller lacks permission to restore the dashboard (do "
+            "not retry; ask the user)."
+        ),
+    )
