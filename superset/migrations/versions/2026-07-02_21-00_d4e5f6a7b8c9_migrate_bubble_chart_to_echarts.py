@@ -17,7 +17,7 @@
 """migrate_bubble_chart_to_echarts
 
 Revision ID: d4e5f6a7b8c9
-Revises: 8f3a1b2c4d5e
+Revises: d24e6b0a9c7f
 Create Date: 2026-07-02 21:00:00.000000
 
 """
@@ -31,7 +31,7 @@ from superset.migrations.shared.migrate_viz import MigrateBubbleChart
 
 # revision identifiers, used by Alembic.
 revision = "d4e5f6a7b8c9"
-down_revision = "8f3a1b2c4d5e"
+down_revision = "d24e6b0a9c7f"
 
 
 def upgrade():
