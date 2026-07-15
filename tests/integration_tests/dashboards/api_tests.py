@@ -3369,13 +3369,14 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         self, mock_raise, mock_task, mock_acquire
     ):
         """Dashboard API: export_xlsx is gated on ``can_export``, not a distinct
-        ``can_export_xlsx``. A role holding only dashboard ``can_export`` is
+        ``can_export_xlsx``. Gamma holds dashboard ``can_export`` by default (and
+        the frontend shows the menu item on that basis), so a Gamma user must be
         admitted (202) rather than rejected by ``@protect()`` (403)."""
+        gamma_user = security_manager.find_user(username=GAMMA_USERNAME)
         slice_ = db.session.query(Slice).first()
-        with self.temporary_user(
-            extra_pvms=[("can_export", "Dashboard"), ("can_read", "Dashboard")],
-            login=True,
-        ) as user:
+        # Clone Gamma (so the login password is valid); Gamma already carries
+        # dashboard ``can_export``.
+        with self.temporary_user(gamma_user, login=True) as user:
             dashboard = self.insert_dashboard(
                 "xlsx-can-export", None, [user.id], slices=[slice_], published=True
             )
