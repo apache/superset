@@ -1,0 +1,168 @@
+# =============================================================================
+# Auto-merge path policy  —  Devin Superset orchestrator
+# Committed location in repo: .github/auto-merge-allowlist.yml
+# =============================================================================
+# This file is the single source of truth the orchestrator reads to decide
+# whether a PR is eligible for AUTONOMOUS auto-merge (bot merges with no human
+# in the loop) or must be ESCALATED to a human reviewer.
+#
+# Evaluation rules (applied by the reviewer flow, orchestrator-reviewer.yml):
+#   1. Every changed file in the PR is matched against `blocklist` first.
+#   2. If ANY changed file matches ANY blocklist glob  -> auto-merge DENIED.
+#      The PR is labeled `automerge:blocked` and handed to a human.
+#   3. If NO file is blocked AND every changed file matches an `allowlist`
+#      glob -> auto-merge ELIGIBLE (still gated on CI + branch protection).
+#   4. If a file matches neither list -> treated as UNKNOWN -> auto-merge
+#      DENIED (fail-closed). Add an explicit allowlist entry to opt it in.
+#
+#   Blocklist ALWAYS wins over allowlist. Precedence is deny-by-default.
+#
+# Globs use gitignore / minimatch semantics (`**` = any depth). Paths are
+# repo-root-relative. Keep this file in sync with CODEOWNERS.
+# =============================================================================
+
+version: 1
+policy: deny-by-default          # unmatched files are NOT auto-mergeable
+
+# -----------------------------------------------------------------------------
+# BLOCKLIST — a match here forces human review, no matter what.
+# Categories: auth · migrations · CI config · secrets · infra
+# -----------------------------------------------------------------------------
+blocklist:
+
+  auth:
+    reason: "Security / authentication / authorization surface — human review required."
+    paths:
+      - "superset/security/**"
+      - "superset/**/security/**"
+      - "superset/extensions/security/**"
+      - "superset/security_manager.py"
+      - "superset/**/security_manager.py"
+      - "superset/config.py"                 # feature flags, auth backends, secrets wiring
+      - "superset/**/permissions/**"
+      - "**/oauth*.py"
+      - "**/ldap*.py"
+      - "**/saml*.py"
+      - "**/*auth*.py"
+
+  migrations:
+    reason: "Database schema / data migrations are irreversible — human review required."
+    paths:
+      - "superset/migrations/**"
+      - "**/migrations/versions/**"
+      - "**/alembic/**"
+      - "**/*.sql"
+
+  ci_config:
+    reason: "CI/CD pipeline, release, and repo automation changes — human review required."
+    paths:
+      - ".github/**"                          # workflows, actions, CODEOWNERS, this file
+      - ".pre-commit-config.yaml"
+      - "**/Makefile"
+      - "scripts/**"
+      - ".asf.yaml"
+      - "tox.ini"
+      - "setup.cfg"
+      - "pyproject.toml"
+
+  secrets:
+    reason: "Credentials / secret material must never be auto-merged."
+    paths:
+      - "**/secrets/**"
+      - "**/*secret*"
+      - "**/*.pem"
+      - "**/*.key"
+      - "**/*.p12"
+      - "**/*.pfx"
+      - "**/.env"
+      - "**/.env.*"
+      - "**/credentials*"
+      - "docker/.env-non-dev"
+      - "**/superset_config*.py"
+
+  infra:
+    reason: "Deployment / infrastructure / packaging changes carry blast radius — human review required."
+    paths:
+      - "helm/**"
+      - "docker/**"
+      - "Dockerfile*"
+      - "**/Dockerfile*"
+      - "docker-compose*.yml"
+      - ".devcontainer/**"
+      - "**/*.tf"
+      - "**/*.tfvars"
+      - "**/ansible/**"
+      - "**/k8s/**"
+      - "**/kubernetes/**"
+      - "requirements/**"
+      - "superset-frontend/package.json"
+      - "superset-frontend/package-lock.json"
+      - "uv.lock"
+
+# -----------------------------------------------------------------------------
+# ALLOWLIST — low-risk surfaces the orchestrator MAY auto-merge
+# (only when CI is green and no blocklist file is touched).
+# -----------------------------------------------------------------------------
+allowlist:
+
+  docs:
+    reason: "Documentation and markdown — safe to auto-merge."
+    paths:
+      - "docs/**"
+      - "**/*.md"
+      - "**/*.mdx"
+      - "**/*.rst"
+      - "RESOURCES/**"
+
+  tests:
+    reason: "Test-only changes that add or adjust coverage."
+    paths:
+      - "tests/**"
+      - "**/*_test.py"
+      - "**/*.test.ts"
+      - "**/*.test.tsx"
+      - "**/*.test.js"
+      - "superset-frontend/**/*.test.{ts,tsx,js,jsx}"
+      - "**/__tests__/**"
+
+  i18n:
+    reason: "Translation catalogs — mechanical, low-risk."
+    paths:
+      - "superset/translations/**"
+      - "superset-frontend/**/locales/**"
+      - "**/*.po"
+
+  frontend_src:
+    reason: "Application source (non-security, non-infra). CI must be green."
+    paths:
+      - "superset-frontend/src/**"
+      - "superset-frontend/plugins/**"
+      - "superset-frontend/packages/**"
+
+  backend_src:
+    reason: "Application source (non-security, non-migration). CI must be green."
+    paths:
+      - "superset/views/**"
+      - "superset/charts/**"
+      - "superset/dashboards/**"
+      - "superset/datasets/**"
+      - "superset/models/**"
+      - "superset/utils/**"
+      - "superset/commands/**"
+
+# -----------------------------------------------------------------------------
+# Gates that ALSO must pass before the bot merges an eligible PR.
+# (Enforced by branch protection; listed here for the orchestrator's own
+#  pre-flight check so it fails fast instead of attempting a doomed merge.)
+# -----------------------------------------------------------------------------
+required_gates:
+  ci_must_be_green: true
+  required_status_checks:
+    - "Python unit tests"
+    - "Frontend build & test"
+    - "pre-commit"
+    - "Lint"
+  max_files_changed: 40            # oversized PRs escalate regardless of paths
+  max_total_diff_lines: 1500
+  block_if_conflicts: true
+  merge_method: squash
