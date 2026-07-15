@@ -3252,6 +3252,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         if template_processor:
             expression = template_processor.process_template(column["column_name"])
+            # Validate the stored expression at the point of use, applying the
+            # same sub-query policy and RLS injection as adhoc expressions.
+            expression = validate_adhoc_subquery(
+                expression,
+                self.database,
+                self.catalog,
+                self.schema or "",
+                self.db_engine_spec.engine,
+            )
             col = sa.literal_column(expression, type_=type_)
 
         time_expr = self.db_engine_spec.get_timestamp_expr(col, None, time_grain)
@@ -3272,6 +3281,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if expression := tbl_column.expression:
             if template_processor:
                 expression = template_processor.process_template(expression)
+            # Validate the stored expression at the point of use, applying the
+            # same sub-query policy and RLS injection as adhoc expressions.
+            expression = validate_adhoc_subquery(
+                expression,
+                self.database,
+                self.catalog,
+                self.schema or "",
+                self.db_engine_spec.engine,
+            )
             col = literal_column(expression, type_=type_)
         else:
             col = sa.column(tbl_column.column_name, type_=type_)

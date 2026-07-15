@@ -29,6 +29,7 @@ from superset.connectors.sqla.models import (
 )
 from superset.daos.dataset import DatasetDAO
 from superset.daos.exceptions import DatasourceNotFound
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2RedirectError,
     SupersetDisallowedSQLFunctionException,
@@ -1177,3 +1178,34 @@ def test_validate_stored_expression_rejects_subquery_around_jinja(
             None,
             "(SELECT password FROM ab_user LIMIT 1) {# x #}",
         )
+
+
+def test_get_sqla_col_validates_stored_expression_at_query_time(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A stored calculated-column expression must be validated at the query sink,
+    not only at save time. ``get_sqla_col`` routes the expression through
+    ``validate_adhoc_subquery`` so a disallowed sub-query is rejected even when
+    it reaches the query with the save-time check bypassed (templating, the
+    create path, or older data). Locks in the query-time gate.
+    """
+    tc = TableColumn(
+        column_name="leak",
+        expression="(SELECT password FROM ab_user LIMIT 1)",
+    )
+    tc.table = mocker.MagicMock()
+    tc.table.database.backend = "sqlite"
+    spy = mocker.patch(
+        "superset.connectors.sqla.models.validate_adhoc_subquery",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                message="Sub-queries are not allowed in stored expressions.",
+                error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+    with pytest.raises(SupersetSecurityException):
+        tc.get_sqla_col()
+    spy.assert_called_once()

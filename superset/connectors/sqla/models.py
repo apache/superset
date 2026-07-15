@@ -1103,6 +1103,17 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
                             msg=msg,
                         )
                     ) from ex
+            # Validate the stored expression at the point of use, applying the
+            # same sub-query policy and RLS injection as adhoc expressions. The
+            # save-time check can be deferred past (templating, the create path,
+            # older data), so the query sink is the reliable place to enforce it.
+            expression = validate_adhoc_subquery(
+                expression,
+                self.database,
+                self.catalog,
+                self.schema or "",
+                self.db_engine_spec.engine,
+            )
             col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
@@ -1245,6 +1256,16 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
                     )
                 ) from ex
 
+        if expression:
+            # Validate the stored metric expression at the point of use, applying
+            # the same sub-query policy and RLS injection as adhoc expressions.
+            expression = validate_adhoc_subquery(
+                expression,
+                self.table.database,
+                self.table.catalog,
+                self.table.schema or "",
+                self.table.db_engine_spec.engine,
+            )
         sqla_col: ColumnClause = literal_column(expression)
         return self.table.database.make_sqla_column_compatible(sqla_col, label)
 
