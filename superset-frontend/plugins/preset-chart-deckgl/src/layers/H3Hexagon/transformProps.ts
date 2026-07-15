@@ -37,7 +37,7 @@ export interface H3Feature {
 }
 
 export default function transformProps(chartProps: ChartProps) {
-  const { formData } = chartProps;
+  const { rawFormData: formData } = chartProps;
   const { h3_index: h3IndexRaw, metric, js_columns: jsColumns } = formData;
 
   const records = getRecordsFromQuery(chartProps.queriesData);
