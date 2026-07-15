@@ -335,7 +335,7 @@ def test_join_offset_dfs_totals_query_no_dimensions():
     assert_frame_equal(expected, result)
 
 
-def test_join_offset_dfs_no_time_grain_aligns_relative_offset():
+def test_join_offset_dfs_no_time_grain_aligns_relative_offset() -> None:
     """
     Without a time grain, a relative offset joins on the exact shifted
     timestamps instead of raising, so saved charts without a grain render
@@ -370,7 +370,7 @@ def test_join_offset_dfs_no_time_grain_aligns_relative_offset():
     assert_frame_equal(expected, result)
 
 
-def test_join_offset_dfs_no_time_grain_unmatched_timestamps_yield_nulls():
+def test_join_offset_dfs_no_time_grain_unmatched_timestamps_yield_nulls() -> None:
     """
     Without a time grain, offset timestamps that have no exact shifted
     counterpart in the main series produce nulls instead of raising.
@@ -387,7 +387,7 @@ def test_join_offset_dfs_no_time_grain_unmatched_timestamps_yield_nulls():
     assert result["B"].isna().all()
 
 
-def test_join_offset_dfs_no_time_grain_multiple_offsets():
+def test_join_offset_dfs_no_time_grain_multiple_offsets() -> None:
     """
     Multiple relative offsets without a time grain each align on their own
     shifted timestamps, and no synthetic join columns leak into the result.
@@ -413,7 +413,7 @@ def test_join_offset_dfs_no_time_grain_multiple_offsets():
     assert_frame_equal(expected, result)
 
 
-def test_join_offset_dfs_no_time_grain_empty_offset_df():
+def test_join_offset_dfs_no_time_grain_empty_offset_df() -> None:
     """
     An empty offset series materializes its join keys as NaN floats; the
     grain-less join must not crash on the dtype mismatch.
@@ -430,7 +430,7 @@ def test_join_offset_dfs_no_time_grain_empty_offset_df():
     assert result["B"].isna().all()
 
 
-def test_join_offset_dfs_no_time_grain_quarter_offset():
+def test_join_offset_dfs_no_time_grain_quarter_offset() -> None:
     """
     Quarter offsets align without a time grain (normalize_time_delta converts
     quarters to months, since pd.DateOffset has no quarters argument).
@@ -448,7 +448,7 @@ def test_join_offset_dfs_no_time_grain_quarter_offset():
     assert_frame_equal(expected, result)
 
 
-def test_join_offset_dfs_no_time_grain_free_form_offset():
+def test_join_offset_dfs_no_time_grain_free_form_offset() -> None:
     """
     Offsets outside the normalize_time_delta grammar (e.g. "one year ago")
     are aligned with the same parser that shifted the offset query's range.
@@ -466,7 +466,7 @@ def test_join_offset_dfs_no_time_grain_free_form_offset():
     assert_frame_equal(expected, result)
 
 
-def test_join_offset_dfs_no_time_grain_uninterpretable_offset():
+def test_join_offset_dfs_no_time_grain_uninterpretable_offset() -> None:
     """
     An offset that no parser can interpret falls back to joining on the raw
     keys (an empty comparison series) instead of crashing.
@@ -483,7 +483,7 @@ def test_join_offset_dfs_no_time_grain_uninterpretable_offset():
     assert result["B"].isna().all()
 
 
-def test_join_offset_dfs_no_time_grain_prefers_x_axis_label():
+def test_join_offset_dfs_no_time_grain_prefers_x_axis_label() -> None:
     """
     With multiple datetime join keys, the query's x-axis is the one shifted
     for alignment, not whichever datetime column happens to come first.
@@ -515,7 +515,7 @@ def test_join_offset_dfs_no_time_grain_prefers_x_axis_label():
     assert result["B"].tolist() == [5]
 
 
-def test_join_offset_dfs_no_time_grain_preserves_column_order():
+def test_join_offset_dfs_no_time_grain_preserves_column_order() -> None:
     """
     A join key following the temporal key must not change the result's
     column order (chart payloads and CSV exports derive order from columns).
@@ -558,7 +558,7 @@ def test_join_offset_dfs_allows_non_temporal_join_without_time_grain():
     assert "metric__1 year ago" in result.columns
 
 
-def test_join_offset_dfs_no_time_grain_temporal_key_not_first():
+def test_join_offset_dfs_no_time_grain_temporal_key_not_first() -> None:
     """
     The temporal join key is aligned by shifting even when it is not the
     first join key; remaining keys still participate in the join.
