@@ -1,0 +1,97 @@
+# =============================================================================
+# Close-out flow  —  Devin Superset orchestrator
+# Committed location in repo: .github/workflows/orchestrator-closeout.yml
+# =============================================================================
+# Fires when a PR is CLOSED. It only acts on MERGED PRs (ignores closed-unmerged)
+# and runs the close-out flow:
+#   1. Deletes the merged head branch (housekeeping) when it is in this repo.
+#   2. Posts a close-out summary comment.
+#   3. Hands off to the orchestrator via repository_dispatch + optional webhook
+#      so it can update its task ledger, notify subscribers, and free the slot.
+#
+# Config (Settings -> Secrets and variables -> Actions):
+#   vars.ORCHESTRATOR_WEBHOOK_URL   (optional) HTTPS endpoint of your orchestrator
+#   secrets.ORCHESTRATOR_TOKEN      (optional) bearer token for that endpoint
+# =============================================================================
+
+name: Orchestrator · Close-out flow
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write          # needed to delete the merged head branch
+  pull-requests: write
+  issues: write
+
+jobs:
+  closeout:
+    # Only run when the PR was actually merged, not merely closed.
+    if: ${{ github.event.pull_request.merged == true }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete merged head branch (same-repo only)
+        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const ref = `heads/${context.payload.pull_request.head.ref}`;
+            try {
+              await github.rest.git.deleteRef({ ...context.repo, ref });
+              core.info(`Deleted ${ref}`);
+            } catch (e) { core.info(`Skip branch delete: ${e.message}`); }
+
+      - name: Post close-out summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const by = pr.merged_by ? pr.merged_by.login : 'unknown';
+            const body = [
+              `### ✅ Orchestrator close-out — PR #${pr.number} merged`,
+              '',
+              `- Merged by: \`${by}\``,
+              `- Merge commit: \`${pr.merge_commit_sha}\``,
+              `- Base: \`${pr.base.ref}\`  ·  Head: \`${pr.head.ref}\``,
+              '',
+              '_Close-out flow dispatched: ledger updated, branch cleaned, slot released._',
+            ].join('\n');
+            await github.rest.issues.createComment({ ...context.repo, issue_number: pr.number, body });
+
+      - name: In-repo repository_dispatch (close-out handoff)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            await github.rest.repos.createDispatchEvent({
+              ...context.repo,
+              event_type: 'orchestrator-closeout',
+              client_payload: {
+                pr: pr.number,
+                merge_commit_sha: pr.merge_commit_sha,
+                merged_by: pr.merged_by ? pr.merged_by.login : null,
+                base: pr.base.ref,
+                head: pr.head.ref,
+              },
+            });
+
+      - name: Outbound webhook to orchestrator (optional)
+        if: ${{ vars.ORCHESTRATOR_WEBHOOK_URL != '' }}
+        env:
+          URL: ${{ vars.ORCHESTRATOR_WEBHOOK_URL }}
+          TOKEN: ${{ secrets.ORCHESTRATOR_TOKEN }}
+        run: |
+          curl -sS -X POST "$URL" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $TOKEN" \
+            -d @- <<JSON
+          {
+            "flow": "closeout",
+            "event": "pull_request.closed",
+            "merged": true,
+            "repo": "${{ github.repository }}",
+            "pr": ${{ github.event.pull_request.number }},
+            "merge_commit_sha": "${{ github.event.pull_request.merge_commit_sha }}"
+          }
+          JSON
