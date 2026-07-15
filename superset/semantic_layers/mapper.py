@@ -337,7 +337,7 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
     metrics = [all_metrics[metric] for metric in (query_object.metrics or [])]
 
     grain = _convert_time_grain(query_object.extras.get("time_grain_sqla"))
-    time_axis_column = _get_time_axis_column(query_object, all_dimensions)
+    time_axis_column = _get_grain_time_axis_column(query_object, all_dimensions)
     # A semantic view can expose multiple Dimension variants per name (one per
     # supported time grain). Pick exactly one variant per selected column:
     # for the time-axis column we honor the user's grain selection, falling
@@ -1037,7 +1037,7 @@ def _get_group_limit_filters(
     return filters if filters else None
 
 
-def _get_time_axis_column(
+def _get_grain_time_axis_column(
     query_object: ValidatedQueryObject,
     all_dimensions: dict[str, Dimension],
 ) -> str | None:
@@ -1180,7 +1180,7 @@ def _validate_granularity(query_object: ValidatedQueryObject) -> None:
         )
 
     if time_grain := query_object.extras.get("time_grain_sqla"):
-        time_column = _get_time_axis_column(query_object, all_dimensions)
+        time_column = _get_grain_time_axis_column(query_object, all_dimensions)
         if not time_column:
             raise ValueError(
                 "A time column must be specified when a time grain is provided."

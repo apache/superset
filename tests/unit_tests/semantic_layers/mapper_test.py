@@ -48,6 +48,7 @@ from superset.semantic_layers.mapper import (
     _convert_time_grain,
     _get_filters_from_extras,
     _get_filters_from_query_object,
+    _get_grain_time_axis_column,
     _get_group_limit_filters,
     _get_group_limit_from_query_object,
     _get_order_from_query_object,
@@ -1280,19 +1281,19 @@ def test_map_query_object_picks_raw_variant_for_non_axis_time_dim(
     assert shipped_dims[0].grain is None
 
 
-def test_get_time_axis_column_returns_granularity_when_set(
+def test_get_grain_time_axis_column_returns_granularity_when_set(
     mocker: MockerFixture,
 ) -> None:
     """Legacy path: ``granularity`` short-circuits scanning ``columns``."""
     qo = mocker.Mock()
     qo.granularity = "order_date"
-    assert _get_time_axis_column(qo, {}) == "order_date"
+    assert _get_grain_time_axis_column(qo, {}) == "order_date"
 
 
-def test_get_time_axis_column_finds_temporal_in_columns(
+def test_get_grain_time_axis_column_finds_temporal_in_columns(
     mocker: MockerFixture,
 ) -> None:
-    """Modern x_axis path: pick the first temporal dim from ``columns``."""
+    """Modern x_axis path: the sole temporal dim in ``columns`` is the axis."""
     all_dims = {
         "category": Dimension(
             id="products.category",
@@ -1310,10 +1311,10 @@ def test_get_time_axis_column_finds_temporal_in_columns(
     qo = mocker.Mock()
     qo.granularity = None
     qo.columns = ["category", "order_date"]
-    assert _get_time_axis_column(qo, all_dims) == "order_date"
+    assert _get_grain_time_axis_column(qo, all_dims) == "order_date"
 
 
-def test_get_time_axis_column_skips_unknown_columns(
+def test_get_grain_time_axis_column_skips_unknown_columns(
     mocker: MockerFixture,
 ) -> None:
     """A column not present in the semantic view is silently skipped."""
@@ -1329,10 +1330,10 @@ def test_get_time_axis_column_skips_unknown_columns(
     qo.granularity = None
     qo.columns = ["does_not_exist", "category"]
     # No temporal dim in columns — returns None.
-    assert _get_time_axis_column(qo, all_dims) is None
+    assert _get_grain_time_axis_column(qo, all_dims) is None
 
 
-def test_get_time_axis_column_skips_unparseable_adhoc_columns(
+def test_get_grain_time_axis_column_skips_unparseable_adhoc_columns(
     mocker: MockerFixture,
 ) -> None:
     """An adhoc column that ``_normalize_column`` rejects is silently skipped."""
@@ -1349,10 +1350,10 @@ def test_get_time_axis_column_skips_unparseable_adhoc_columns(
     # First column is an adhoc dict without ``isColumnReference`` — raises in
     # ``_normalize_column`` and the loop should keep going.
     qo.columns = [{"label": "unsupported", "sqlExpression": "lower(x)"}, "order_date"]
-    assert _get_time_axis_column(qo, all_dims) == "order_date"
+    assert _get_grain_time_axis_column(qo, all_dims) == "order_date"
 
 
-def test_get_time_axis_column_returns_none_on_multiple_temporal_columns(
+def test_get_grain_time_axis_column_returns_none_on_multiple_temporal_columns(
     mocker: MockerFixture,
 ) -> None:
     """
@@ -1379,10 +1380,10 @@ def test_get_time_axis_column_returns_none_on_multiple_temporal_columns(
     qo = mocker.Mock()
     qo.granularity = None
     qo.columns = ["created_at", "shipped_at"]
-    assert _get_time_axis_column(qo, all_dims) is None
+    assert _get_grain_time_axis_column(qo, all_dims) is None
 
 
-def test_get_time_axis_column_returns_none_when_no_temporal_columns(
+def test_get_grain_time_axis_column_returns_none_when_no_temporal_columns(
     mocker: MockerFixture,
 ) -> None:
     """Without ``granularity`` and without a temporal column we return None."""
@@ -1397,7 +1398,7 @@ def test_get_time_axis_column_returns_none_when_no_temporal_columns(
     qo = mocker.Mock()
     qo.granularity = None
     qo.columns = ["category"]
-    assert _get_time_axis_column(qo, all_dims) is None
+    assert _get_grain_time_axis_column(qo, all_dims) is None
 
 
 def test_convert_query_object_filter_unknown_operator(
