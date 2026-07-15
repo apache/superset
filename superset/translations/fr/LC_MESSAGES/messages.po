@@ -230,9 +230,6 @@ msgstr "\"%s\" est maintenant le thème sombre du système"
 msgid "\"%s\" is now the system default theme"
 msgstr "\"%s\" est maintenant le thème par défaut du système"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, ja, lv, mi, nl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
-#, fuzzy, python-format
 msgid "% calculation"
 msgstr "% calcul"
 
@@ -296,7 +293,7 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d lignes retournées"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgid_plural ""
 "%(firstSuggestions)s or %(lastSuggestion)s instead of "
@@ -316,9 +313,9 @@ msgstr ""
 "Merci de vérifier à nouveau votre requête.\n"
 "Exception: %(ex)s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s %s"
-msgstr "%s%s"
+msgstr "%s %s"
 
 #, python-format
 msgid "%s ENCRYPTED EXTRA"
@@ -364,9 +361,7 @@ msgstr "%s Sélectionnée (Physique)"
 msgid "%s Selected (Virtual)"
 msgstr "%s Sélectionnée (Virtuelle)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
-# sr_Latn]
-#, fuzzy, python-format
+#, python-format
 msgid "%s Semantic View"
 msgstr "%s Vue sémantique"
 
@@ -382,37 +377,37 @@ msgstr "%s Virtuel"
 msgid "%s aggregates(s)"
 msgstr "%s agrégat(s)"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s column"
 msgid_plural "%s columns"
-msgstr[0] "%s colonne(s)"
-msgstr[1] ""
+msgstr[0] "%s colonne"
+msgstr[1] "%s colonnes"
 
 #, python-format
 msgid "%s column(s)"
 msgstr "%s colonne(s)"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "Il y a 1 jour"
-msgstr[1] ""
+msgstr[1] "Il y a %s jours"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s hr ago"
 msgid_plural "%s hr ago"
-msgstr[0] "%s ligne"
-msgstr[1] "%s lignes"
+msgstr[0] "Il y a 1 heure"
+msgstr[1] "Il y a %s heures"
 
 #, python-format
 msgid "%s imported"
-msgstr "%s données importées"
+msgstr "%s importé"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s item"
 msgid_plural "%s items"
-msgstr[0] "%s élément(s)"
-msgstr[1] ""
+msgstr[0] "%s élément"
+msgstr[1] "%s éléments"
 
 #, python-format
 msgid "%s item(s)"
@@ -426,17 +421,17 @@ msgstr ""
 "%s objets n'ont pas pu être taggés parce que vous n'avez pas les "
 "permissions sur tout les objets sélectionnés."
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s metric"
 msgid_plural "%s metrics"
-msgstr[0] "Trier les mesures"
-msgstr[1] ""
+msgstr[0] "%s métrique"
+msgstr[1] "%s métriques"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s min ago"
 msgid_plural "%s min ago"
-msgstr[0] "Il y a 1 mois"
-msgstr[1] ""
+msgstr[0] "Il y a 1 minute"
+msgstr[1] "il y a %s minutes"
 
 #, python-format
 msgid "%s operator(s)"
@@ -452,17 +447,17 @@ msgstr[1] "%s options"
 msgid "%s option(s)"
 msgstr "%s option(s)"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s column"
 msgid_plural "%s out of %s columns"
-msgstr[0] "Dimensionner automatiquement la colonne"
-msgstr[1] ""
+msgstr[0] "%s parmi %s colonne"
+msgstr[1] "%s parmi %s colonnes"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s metric"
 msgid_plural "%s out of %s metrics"
-msgstr[0] "Trier les mesures"
-msgstr[1] ""
+msgstr[0] "%s parmi %s métrique"
+msgstr[1] "%s parmi %s métriques"
 
 #, python-format
 msgid "%s out of %s selected"
@@ -478,11 +473,11 @@ msgid_plural "%s records..."
 msgstr[0] "%s Enregistrement"
 msgstr[1] "%s Enregistrements"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s record..."
 msgid_plural "%s records..."
-msgstr[0] "%s Enregistrement"
-msgstr[1] "%s Enregistrements"
+msgstr[0] "%s enregistrement..."
+msgstr[1] "%s enregistrements..."
 
 #, python-format
 msgid "%s row"
@@ -490,39 +485,33 @@ msgid_plural "%s rows"
 msgstr[0] "%s ligne"
 msgstr[1] "%s lignes"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s s ago"
 msgid_plural "%s s ago"
-msgstr[0] "Il y a 30 jours"
-msgstr[1] ""
+msgstr[0] "Il y a %s seconde"
+msgstr[1] "Il y a %s secondes"
 
 #, python-format
 msgid "%s saved metric(s)"
 msgstr "%s mesure(s) sauvegardée(s)"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s second"
 msgid_plural "%s seconds"
-msgstr[0] "5 secondes"
-msgstr[1] ""
+msgstr[0] "%s seconde"
+msgstr[1] "%s secondes"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
-# sr_Latn]
-#, fuzzy, python-format
+#, python-format
 msgid "%s semantic view(s) added"
 msgstr "%s vue(s) sémantique(s) ajoutée(s)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
-# sr_Latn]
 #, python-format
 msgid "%s semantic view(s) failed to add"
 msgstr "Echéc de l'ajout pour %s vue(s) sémantique(s)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
 #, python-format
 msgid "%s semantic view(s) failed to add: %s"
-msgstr "Echéc de l'ajout pour %s vue(s) sémantique(s). Raison: %s"
+msgstr "Echéc de l'ajout pour %s vue(s) sémantique(s) : %s"
 
 #, python-format
 msgid "%s tab selected"
@@ -603,9 +592,9 @@ msgstr ""
 msgid "... and %d more"
 msgstr "... et %d autres"
 
-#, fuzzy, python-format
+#, python-format
 msgid "... and %s more records"
-msgstr "... et %s autres"
+msgstr "... et %s autres enregistrements"
 
 #, python-format
 msgid "... and %s others"
@@ -836,7 +825,6 @@ msgstr "<nouvelle colonne>"
 msgid "<new metric>"
 msgstr "<nouvelle mesure>"
 
-#, fuzzy
 msgid "<new spatial>"
 msgstr "<new spatial>"
 
@@ -865,9 +853,7 @@ msgstr "Une fonction JavaScript qui génère un label de configuration"
 msgid "A JavaScript function that generates an icon configuration object"
 msgstr "Une fonction JavaScript qui génère une icône de configuration"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid ""
 "A JavaScript object that adheres to the ECharts options specification, "
 "overriding other control options with higher precedence. (i.e. { title: {"
@@ -1022,36 +1008,27 @@ msgstr ""
 "          Ces valeurs intermédiaires peuvent être temporelles ou "
 "catégoriques."
 
-#, fuzzy
 msgid "A-Z"
-msgstr "clé a-z"
+msgstr "A-Z"
 
 msgid "AND"
 msgstr "ET"
 
-#, fuzzy
 msgid "API Key Created"
-msgstr "a été créé"
+msgstr "Clé API créée"
 
-#, fuzzy
 msgid "API Keys"
-msgstr "Clé privée"
+msgstr "Clés API"
 
-#, fuzzy
 msgid "API key created successfully"
-msgstr "Le rapport a été créé"
+msgstr "Clé API créée avec succès"
 
-#, fuzzy
 msgid "API key name is required"
-msgstr "Le nom du tableau est obligatoire"
+msgstr "Le nom de la clé API est obligatoire"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
-# sr_Latn]
 msgid "API key revoked successfully"
 msgstr "La clé API a été révoquée avec succès."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
-# sr_Latn]
 msgid "API keys allow scoped programmatic access to Superset."
 msgstr "Les clés API permettent un accès avec un périmètre restreint à Superset."
 
@@ -1067,13 +1044,11 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "AUG"
 
-#, fuzzy
 msgid "Aborted"
-msgstr "Commencé"
+msgstr "Annulé"
 
-#, fuzzy
 msgid "Aborting"
-msgstr "Exécution"
+msgstr "En cours d'annulation"
 
 msgid "About"
 msgstr "À propos"
@@ -1123,9 +1098,9 @@ msgstr "Formatage adaptatif"
 msgid "Add"
 msgstr "Ajouter"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Add %s view(s)"
-msgstr "%s élément(s)"
+msgstr "Ajouter %s vue(s)"
 
 msgid "Add BCC Recipients"
 msgstr "Ajouter un destinataire de la copie cachée (Cci)"
@@ -1161,9 +1136,8 @@ msgstr "ajouter un rôles"
 msgid "Add Rule"
 msgstr "Ajouter une règle"
 
-#, fuzzy
 msgid "Add Semantic View"
-msgstr "Ajouter un élément"
+msgstr "Ajouter une vue sémantique"
 
 msgid "Add Tag"
 msgstr "Ajouter un tag"
@@ -1220,7 +1194,6 @@ msgstr "Ajouter des détails de certification pour ce tableau de bord"
 msgid "Add color for positive/negative change"
 msgstr "Ajouter une couleur pour les changements positifs/négatifs"
 
-#, fuzzy
 msgid "Add colors to cell bars for +/- for all columns"
 msgstr "Ajouter des couleurs aux barres de cellules pour +/-"
 
@@ -1295,9 +1268,8 @@ msgstr "Ajouter un nouveau formateur de couleur"
 msgid "Add new formatter"
 msgstr "Ajouter un nouveau formateur"
 
-#, fuzzy
 msgid "Add numbered column"
-msgstr " pour ajouter des colonnes calculées"
+msgstr "Ajouter le numéro de la colonne"
 
 msgid "Add or edit display controls"
 msgstr "Ajouter ou modifier les contrôles d'affichage"
@@ -1338,9 +1310,7 @@ msgstr "Ajouter aux onglets"
 msgid "Added"
 msgstr "Ajouté"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
-# es, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy, python-format
+#,  python-format
 msgid "Added 1 new column to the virtual dataset"
 msgid_plural "Added %s new columns to the virtual dataset"
 msgstr[0] "1 nouvelle colonne ajoutée au jeu de données virtuel"
@@ -1545,9 +1515,8 @@ msgstr "Alertes et rapports"
 msgid "Align +/-"
 msgstr "Aligner +/-"
 
-#, fuzzy
 msgid "Align +/- for all columns"
-msgstr "Afficher toutes les colonnes"
+msgstr "Aligner +/- pour toutes les colonnes"
 
 msgid "All"
 msgstr "Tous"
@@ -1565,9 +1534,8 @@ msgstr "Tous les graphiques"
 msgid "All charts/global scoping"
 msgstr "Tous les graphiques/champ d'application mondial"
 
-#, fuzzy
 msgid "All dimensions"
-msgstr "Dimensions"
+msgstr "Toutes les dimensions"
 
 msgid "All filters"
 msgstr "Tous les filtres"
@@ -1732,17 +1700,16 @@ msgid "An error occurred while creating the data source"
 msgstr "Une erreur s'est produite durant la création de la source de donnée"
 
 msgid "An error occurred while creating the extension."
-msgstr "Une erreur s'est produite durant la création de la valeur."
+msgstr "Une erreur s'est produite durant la création de l'extension."
 
-#, fuzzy
 msgid "An error occurred while creating the semantic layer"
-msgstr "Une erreur s'est produite durant la création de la valeur."
+msgstr "Une erreur s'est produite durant la création de la couche sémantique."
 
 msgid "An error occurred while creating the value."
 msgstr "Une erreur s'est produite durant la création de la valeur."
 
 msgid "An error occurred while deleting the extension."
-msgstr "Une erreur s'est produite durant la suppression de la valeur."
+msgstr "Une erreur s'est produite durant la suppression de l'extension."
 
 msgid "An error occurred while deleting the value."
 msgstr "Une erreur s'est produite durant la suppression de la valeur."
@@ -1780,9 +1747,9 @@ msgstr ""
 "[NEUTRE] Une erreur s'est produite lors de l'extraction de %s valeurs de "
 "l'utilisateur·rice : %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching %s: %s"
-msgstr "Une erreur s'est produite durant la récupération des informations %ss : %s"
+msgstr "Une erreur s'est produite durant la récupération des informations %s : %s"
 
 #, python-format
 msgid "An error occurred while fetching %ss: %s"
@@ -1805,9 +1772,8 @@ msgstr ""
 "Une erreur s'est produite lors de l'extraction des valeurs des "
 "propriétaires de graphiques : %s"
 
-#, fuzzy
 msgid "An error occurred while fetching connections"
-msgstr "Une erreur s'est produite lors de la recherche des noms de fonctions."
+msgstr "Une erreur s'est produite lors de la récupération des connections."
 
 #, python-format
 msgid "An error occurred while fetching created by values: %s"
@@ -1821,9 +1787,8 @@ msgstr ""
 "Une erreur s'est produite lors de l'extraction des valeurs du "
 "propriétaire du tableau de bord : %s"
 
-#, fuzzy
 msgid "An error occurred while fetching dashboards"
-msgstr "Une erreur s'est produite durant la récupération des informations"
+msgstr "Une erreur s'est produite durant la récupération des tableaux de bord"
 
 #, python-format
 msgid "An error occurred while fetching dashboards: %s"
@@ -1856,11 +1821,10 @@ msgstr ""
 msgid "An error occurred while fetching function names."
 msgstr "Une erreur s'est produite lors de la recherche des noms de fonctions."
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching owners values: %s"
 msgstr ""
-"Une erreur s'est produite lors de la recherche des valeurs des "
-"propriétaires : %s"
+"Une erreur s'est produite lors de la récupération des propriétaires : %s"
 
 #, python-format
 msgid "An error occurred while fetching schema values: %s"
@@ -1891,13 +1855,11 @@ msgstr ""
 "Une erreur s'est produite lors de l'extraction des métadonnées du "
 "tableau. Veuillez contacter votre administrateur."
 
-#, fuzzy
 msgid "An error occurred while fetching the configuration schema"
-msgstr "Une erreur s'est produite lors de la recherche des noms de fonctions."
+msgstr "Une erreur s'est produite lors de la récupération des schémas de configuration."
 
-#, fuzzy
 msgid "An error occurred while fetching the runtime schema"
-msgstr "Une erreur s'est produite lors de la recherche des noms de fonctions."
+msgstr "Une erreur s'est produite lors de la récupération des schéma d'exécution."
 
 msgid "An error occurred while fetching the semantic layer"
 msgstr "Une erreur s'est produite lors de la récupération de l'état de l'onglet"
@@ -1965,9 +1927,8 @@ msgstr ""
 msgid "An error occurred while rendering the visualization: %s"
 msgstr "Une erreur s'est produite durant le rendu de la visualisation : %s"
 
-#, fuzzy
 msgid "An error occurred while saving the semantic view"
-msgstr "Une erreur s'est produite durant le chargement de SQL"
+msgstr "Une erreur s'est produite durant lors de la sauvegarde de la vue sémantique"
 
 msgid "An error occurred while starring this chart"
 msgstr "Une erreur s'est produite lors de la mise en favori de ce graphique"
@@ -2181,9 +2142,6 @@ msgstr ""
 "assurer que la requête source respecte les périodes minimales définies "
 "dans la fenêtre glissante."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
 msgid ""
 "Applies only when \"Cell bars\" formatting is selected: the background of"
 " the histogram columns is displayed if the \"Show cell bars\" flag is "
@@ -2300,11 +2258,10 @@ msgstr ""
 "L'application reviendra au thème par défaut défini dans le fichier de "
 "configuration."
 
-#, fuzzy
 msgid ""
 "Are you sure you want to revoke this API key? This action cannot be "
 "undone."
-msgstr "Voulez-vous vraiment supprimer les annotations sélectionnées?"
+msgstr "Voulez-vous vraiment révoquer cette clé API ? Cette action ne peut pas être annulée."
 
 msgid "Are you sure you want to save and apply changes?"
 msgstr "Voulez-vous vraiment sauvegarder et appliquer les changements?"
@@ -2378,23 +2335,19 @@ msgstr "Auto"
 msgid "Auto Zoom"
 msgstr "Zoom automatique"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy, python-format
+#, python-format
 msgid "Auto refresh paused (set to %s seconds)"
 msgstr "Actualisation automatique suspendue (définie à %s secondes)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy, python-format
+#, python-format
 msgid "Auto refresh paused - tab inactive (set to %s seconds)"
 msgstr ""
 "Actualisation automatique suspendue - onglet inactif (définie à %s "
 "secondes)"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Auto refresh set to %s seconds"
-msgstr "La fréquence de rafraîchissement doit être d'au moins %s secondes"
+msgstr "La fréquence de rafraîchissement définie à %s secondes"
 
 msgid "Auto-detect"
 msgstr "Auto détection"
@@ -2440,9 +2393,8 @@ msgstr "Moyenne"
 msgid "Average value"
 msgstr "Valeur moyenne"
 
-#, fuzzy
 msgid "Awaiting filter selection"
-msgstr "Sélection inverse"
+msgstr "En attente de la sélection d'un filtre"
 
 msgid "Axis"
 msgstr "Axe"
@@ -2515,9 +2467,8 @@ msgstr "Orientation des barres"
 msgid "Base"
 msgstr "Base"
 
-#, fuzzy
 msgid "Base exponent"
-msgstr "Port de la base de données"
+msgstr "Base exponentielle"
 
 msgid "Base height"
 msgstr "Hauteur de base"
@@ -2532,9 +2483,9 @@ msgstr ""
 msgid "Base layer map style. Accepts a Mapbox style URL (mapbox://styles/...)."
 msgstr "Style de la couche de base de la carte. Accepte une URL compatible Mapbox"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Base layer map style. See MapLibre documentation: %s"
-msgstr "Style de la couche de base de la carte. Voir la documentation Mapbox : %s"
+msgstr "Style de la couche de base de la carte. Voir la documentation MapLibre : %s"
 
 msgid "Base slope"
 msgstr "Pente de base"
@@ -2690,9 +2641,8 @@ msgstr "Diagramme de quartiles"
 msgid "Breakdowns"
 msgstr "Ventilations"
 
-#, fuzzy
 msgid "Breakpoint Metric"
-msgstr "Basé sur une mesure"
+msgstr "Point de rupture de la mesure"
 
 msgid ""
 "Breaks down the series by the category specified in this control.\n"
@@ -2769,8 +2719,6 @@ msgstr "destinataires en copie"
 msgid "COPY QUERY"
 msgstr "Copier la requête"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
-#, fuzzy
 msgid "Copy query"
 msgstr "Copier la requête"
 
@@ -2846,9 +2794,8 @@ msgstr ""
 "Assurez-vous que la requête a bien un SELECT en dernière instruction. "
 "Puis essayez d'exécuter votre requête à nouveau."
 
-#, fuzzy
 msgid "CUSTOM"
-msgstr "Personnalisé"
+msgstr "PERSONNALISE"
 
 msgid ""
 "CVAS (create view as select) can only be run with a query with a single "
@@ -2928,16 +2875,12 @@ msgstr "Peut selectionner plusieurs valeurs"
 msgid "Cancel"
 msgstr "Annuler"
 
-#, fuzzy
 msgid "Cancel Task"
-msgstr "Annuler"
+msgstr "Annuler la tâche"
 
 msgid "Cancel query on window unload event"
 msgstr "Annuler la requête lors de l'événement de déchargement de la fenêtre"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
-# sr_Latn]
-#, fuzzy
 msgid "Cancellation not available due to missing abort handler"
 msgstr "Annulation impossible en raison d'un gestionnaire d'annulation manquant"
 
@@ -3049,7 +2992,6 @@ msgstr "Limite de la cellule"
 msgid "Cell title template"
 msgstr "Modèle de titre de cellule"
 
-#, fuzzy
 msgid "Centroid (Longitude and Latitude): "
 msgstr "Centroïde (longitude et latitude) :"
 
@@ -3133,7 +3075,6 @@ msgstr "Modifier cette source de données est interdit"
 msgid "Changing this report is forbidden"
 msgstr "Modifier ce rapport est interdit"
 
-#, fuzzy
 msgid "Changing this semantic layer is forbidden"
 msgstr "Modifier cette couche sémantique est interdit"
 
@@ -3352,9 +3293,8 @@ msgstr "Choisissez une source"
 msgid "Choose a target"
 msgstr "Choisissez une cible"
 
-#, fuzzy
 msgid "Choose already exists"
-msgstr "Cet ensemble de filtre existe déjà"
+msgstr "La sélection existe déjà"
 
 msgid "Choose chart type"
 msgstr "Choisissez un type de graphique"
@@ -3581,9 +3521,8 @@ msgstr "Trier par ordre décroissant"
 msgid "Client ID"
 msgstr "ID client"
 
-#, fuzzy
 msgid "Client Secret"
-msgstr "Sélection d'une colonne"
+msgstr "Secret du client"
 
 msgid "Close"
 msgstr "Fermer"
@@ -3609,9 +3548,8 @@ msgstr "Code"
 msgid "Code Copied!"
 msgstr "Code copié!"
 
-#, fuzzy
 msgid "Collapse"
-msgstr "Réduire la ligne"
+msgstr "Réduire"
 
 msgid "Collapse All"
 msgstr "Tout réduire"
@@ -3634,16 +3572,14 @@ msgstr "Couleur"
 msgid "Color +/-"
 msgstr "Couleur +/-"
 
-#, fuzzy
 msgid "Color By X-Axis"
-msgstr "Colorer par"
+msgstr "Colorer par axe X"
 
-#, fuzzy
 msgid "Color By Y-Axis"
-msgstr "Colorer par"
+msgstr "Colorer par axe Y"
 
 msgid "Color Metric"
-msgstr "Mesure pour les couleurs"
+msgstr "Colour de la mesure"
 
 msgid "Color Scheme"
 msgstr "Schéma de couleurs"
@@ -3673,20 +3609,16 @@ msgstr "Points de rupture de couleur"
 msgid "Color by"
 msgstr "Colorer par"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr ""
 "Le champ couleur doit être une couleur hexadécimale (#rrggbb) ou 'rgb(r, "
 "g, b)'"
 
-#, fuzzy
 msgid "Color for breakpoint"
-msgstr "Couleur pour point de rupture"
+msgstr "Couleur pour les points de rupture"
 
 msgid "Color metric"
-msgstr "Mesure de couleur"
+msgstr "Couleur de la mesure"
 
 msgid "Color of the source location"
 msgstr "Couleur de l'emplacement de la source"
@@ -3767,20 +3699,18 @@ msgstr "Sélection d'une colonne"
 msgid "Column to group by"
 msgstr "Colonnes à regrouper par"
 
-#, fuzzy
 msgid ""
 "Column to use as the index of the dataframe. If None is given, Index "
 "label is used."
 msgstr ""
-"Colonne à utiliser pour les étiquettes de ligne de l'image de données. "
+"Colonne à utiliser en tant qu'index des données. "
 "Laissez vide s'il n'y a pas de colonne d'index."
 
 msgid "Column type"
 msgstr "Type de données de la colonne"
 
-#, fuzzy
 msgid "Columnar upload"
-msgstr "Fichier en colonnes"
+msgstr "Charger un fichier column (parquet)"
 
 msgid "Columns"
 msgstr "Colonnes"
@@ -3789,16 +3719,14 @@ msgstr "Colonnes"
 msgid "Columns (%s)"
 msgstr "%s colonne(s)"
 
-#, fuzzy
 msgid "Columns (horizontal layout)"
-msgstr "Horizontal (haut)"
+msgstr "Colonnes (disposition horizontale)"
 
 msgid "Columns and metrics"
 msgstr " Colonnes et métriques"
 
-#, fuzzy
 msgid "Columns and metrics should be inside folders"
-msgstr " Colonnes et métriques"
+msgstr " Colonnes et mesures doivent être dans le dossier"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -3945,12 +3873,11 @@ msgstr "Configurer %s"
 msgid "Configure Advanced Time Range "
 msgstr "Configuration de la plage horaire avancée "
 
-#, fuzzy
 msgid "Configure Time Range: Current..."
-msgstr "Configurer l'intervalle de temps : Dernier…"
+msgstr "Configurer l'intervalle de temps : actuel..."
 
 msgid "Configure Time Range: Last..."
-msgstr "Configurer l'intervalle de temps : Dernier…"
+msgstr "Configurer l'intervalle de temps : Dernier..."
 
 msgid "Configure Time Range: Previous..."
 msgstr "Configurer intervalle de temps : Précédent…"
@@ -4208,12 +4135,11 @@ msgstr "Carte de pays"
 msgid "Create"
 msgstr "Créer"
 
-#, fuzzy
 msgid "Create API Key"
-msgstr "Créé par"
+msgstr "Créer une clé API"
 
 msgid "Create Tag"
-msgstr "créer une étiquette"
+msgstr "Créer une étiquette"
 
 msgid "Create a dataset"
 msgstr "Créer un jeu de données"
@@ -4274,13 +4200,11 @@ msgstr "Créer une source de données et ouvrir un nouvel onglet"
 msgid "Creator"
 msgstr "Créateur"
 
-#, fuzzy
 msgid "Crimson"
 msgstr "Cramoisi"
 
-#, fuzzy
 msgid "Cross-filter column"
-msgstr "Portée du filtrage croisé"
+msgstr "Colonne filtrage croisé"
 
 msgid "Cross-filter will be applied to all of the charts that use this dataset."
 msgstr ""
@@ -4305,9 +4229,8 @@ msgstr "Cumulatif"
 msgid "Currency"
 msgstr "Devise"
 
-#, fuzzy
 msgid "Currency code column"
-msgstr "Symbole de la devise"
+msgstr "Colonne de la devise"
 
 msgid "Currency format"
 msgstr "Format de la devise"
@@ -4367,9 +4290,8 @@ msgstr ""
 "Les champs SQL personnalisés ne peuvent pas être traités en tant que "
 "seule instruction SQL"
 
-#, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
-msgstr "Les champs SQL personnalisés ne peuvent pas contenir de sous-requêtes."
+msgstr "Les champs SQL personnalisés ne peuvent pas définir d'opérations."
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Les champs SQL personnalisés ne peuvent pas contenir de sous-requêtes."
@@ -4408,9 +4330,8 @@ msgstr "Personnalisation et style"
 msgid "Customization type"
 msgstr "Type de personnalisation"
 
-#, fuzzy
 msgid "Customization value is required"
-msgstr "La valeur du filtre est requise"
+msgstr "La valeur personnalisée est requise"
 
 #, python-format
 msgid "Customizations out of scope (%d)"
@@ -4544,27 +4465,21 @@ msgstr ""
 "Le tableau de bord ne peut pas être copié en raison de paramètres "
 "invalides."
 
-#, fuzzy
 msgid "Dashboard cannot be favorited."
-msgstr "Le tableau de bord n'a pas pu être mis à jour."
+msgstr "Le tableau de bord n'a pas pu être ajouté aux favoris."
 
-#, fuzzy
 msgid "Dashboard cannot be unfavorited."
-msgstr "Le tableau de bord n'a pas pu être mis à jour."
+msgstr "Le tableau de bord n'a pas pu être retiré des favoris."
 
-#, fuzzy
 msgid "Dashboard chart customizations could not be updated."
-msgstr "Le tableau de bord n'a pas pu être mis à jour."
+msgstr "La personnalisation des graphiques du tableau de bord n'a pas pu être mis à jour."
 
-#, fuzzy
 msgid "Dashboard color configuration could not be updated."
-msgstr "Le tableau de bord n'a pas pu être mis à jour."
+msgstr "La configuration des couleurs du tableau de bord n'a pas pu être mis à jour."
 
 msgid "Dashboard could not be deleted."
 msgstr "Le tableau de bord n'a pas pu être supprimé."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Dashboard could not be restored."
 msgstr "Le tableau de bord n'a pas pu être restauré."
 
@@ -4589,9 +4504,8 @@ msgstr "Configuration du nom et de l'URL du tableau de bord"
 msgid "Dashboard name is required"
 msgstr "Le nom est obligatoire"
 
-#, fuzzy
 msgid "Dashboard native filters could not be patched."
-msgstr "Le tableau de bord n'a pas pu être mis à jour."
+msgstr "Les filtres natifs du tableau de bord n'ont pas pu être mis à jour."
 
 msgid "Dashboard parameters are invalid."
 msgstr "Les paramètres du tableau de bord sont invalides."
@@ -4602,7 +4516,6 @@ msgstr "Propriétés du tableau de bord"
 msgid "Dashboard properties updated"
 msgstr "Propriétés du tableau de bord mises à jour"
 
-#, fuzzy
 msgid "Dashboard scheme"
 msgstr "Schéma du tableau de bord"
 
@@ -4620,9 +4533,9 @@ msgstr ""
 msgid "Dashboard title"
 msgstr "Titre du tableau de bord"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Dashboard updated %s"
-msgstr "Dernière mise à jour %s"
+msgstr "Tableau de bord mis à jour %s"
 
 msgid "Dashboard usage"
 msgstr "Utilisation du tableau de bord"
@@ -4680,9 +4593,8 @@ msgstr ""
 "Les données n'ont pas pu être extraites du programme dorsal des "
 "résultats. Vous devez réexécuter la requête initiale."
 
-#, fuzzy
 msgid "Data error"
-msgstr "Erreur de base de données"
+msgstr "Erreur de données"
 
 #, python-format
 msgid "Data for %s"
@@ -4768,9 +4680,8 @@ msgstr "Mots de passe de la base de données"
 msgid "Database port"
 msgstr "Port de la base de données"
 
-#, fuzzy
 msgid "Database reference is not allowed on a report"
-msgstr "Schémas non autorisés pour le chargement de CSV"
+msgstr "La référence à une base de données n'est pas autorisée dans un rapport"
 
 msgid "Database schema is not allowed for csv uploads."
 msgstr "Schémas non autorisés pour le chargement de CSV"
@@ -4884,7 +4795,6 @@ msgstr "Le type de source de données n’est pas valide"
 msgid "Datasource type is required when datasource_id is given"
 msgstr "Le type de source de données est requis quand datasource_id est spécifié"
 
-#, fuzzy
 msgid "Datasources"
 msgstr "Source de données"
 
@@ -4946,7 +4856,6 @@ msgstr "Deck.gl - 3D HEX"
 msgid "Deck.gl - Arc"
 msgstr "Deck.gl - Arc"
 
-#, fuzzy
 msgid "Deck.gl - Contour"
 msgstr "Deck.gl - Arc"
 
@@ -4980,15 +4889,12 @@ msgstr "DeckGL"
 msgid "Decrease"
 msgstr "Diminuer"
 
-#, fuzzy
 msgid "Decrease color"
-msgstr "Diminuer"
+msgstr "Diminuer la couleur"
 
-#, fuzzy
 msgid "Decrease label"
-msgstr "Diminuer"
+msgstr "Diminuer l'étiquette"
 
-#, fuzzy
 msgid "Default"
 msgstr "Défaut"
 
@@ -5105,9 +5011,8 @@ msgstr ""
 "Définir la base de données, la requête SQL et les conditions de "
 "déclenchement de l'alerte."
 
-#, fuzzy
 msgid "Defined through system configuration."
-msgstr "Configuration lat/long non valide."
+msgstr "Défini via la configuration système."
 
 msgid ""
 "Defines a rolling window function to apply, works along with the "
@@ -5157,9 +5062,6 @@ msgstr ""
 msgid "Definition"
 msgstr "Définition"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
-# sr_Latn]
-#, fuzzy, python-format
 msgid "Delayed (missed %s refresh)"
 msgid_plural "Delayed (missed %s refreshes)"
 msgstr[0] "Retardé (%s actualisation manquée)"
@@ -5293,7 +5195,7 @@ msgid_plural "Deleted %(num)d report schedules"
 msgstr[0] "Calendrier de %(num)d rapport supprimé"
 msgstr[1] "Calendriers de %(num)d rapport supprimés"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Deleted %(num)d rules"
 msgid_plural "Deleted %(num)d rules"
 msgstr[0] "%(num)d règles supprimées"
@@ -5305,17 +5207,17 @@ msgid_plural "Deleted %(num)d saved queries"
 msgstr[0] "%(num)d requête sauvegardée supprimée"
 msgstr[1] "%(num)d requêtes sauvegardées supprimées"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Deleted %(num)d semantic view"
 msgid_plural "Deleted %(num)d semantic views"
-msgstr[0] "Modèle %(num)d css supprimé"
-msgstr[1] "Modèles %(num)d css supprimés"
+msgstr[0] "Modèle %(num)d vue sémantique supprimé"
+msgstr[1] "Modèles %(num)d vue sémantique supprimés"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Deleted %(num)d theme"
 msgid_plural "Deleted %(num)d themes"
-msgstr[0] "Modèle %(num)d css supprimé"
-msgstr[1] "Modèles %(num)d css supprimés"
+msgstr[0] "Modèle %(num)d thèmes supprimé"
+msgstr[1] "Modèles %(num)d thèmes supprimés"
 
 #, python-format
 msgid "Deleted %s"
@@ -5403,9 +5305,6 @@ msgstr "Détails"
 msgid "Details of the certification"
 msgstr "Détails de la certification"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
 msgid ""
 "Determines how the filter matches values. \"Exact match\" uses the IN "
 "operator (default). ILIKE options enable partial text matching with a "
@@ -5444,9 +5343,6 @@ msgstr "Gris terne"
 msgid "Dimension"
 msgstr "Dimension"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
 msgid ""
 "Dimension column emitted as a cross-filter when a feature is clicked. "
 "Other charts on the dashboard match against this column. If unset, falls "
@@ -5478,9 +5374,9 @@ msgstr "Valeurs des dimensions"
 msgid "Dimensions"
 msgstr "Dimensions"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Dimensions (%s)"
-msgstr "Dimensions"
+msgstr "Dimensions (%s)"
 
 msgid ""
 "Dimensions contain qualitative values such as names, dates, or "
@@ -5549,29 +5445,23 @@ msgstr "Afficher le nom de la colonne"
 msgid "Display configuration"
 msgstr "Configuration d'affichage"
 
-#, fuzzy
 msgid "Display control configuration"
 msgstr "Configuration d'affichage"
 
-#, fuzzy
 msgid "Display control has default value"
 msgstr "Le filtre a une valeur par défaut"
 
-#, fuzzy
 msgid "Display control name"
-msgstr "Afficher le total au niveau de la colonne"
+msgstr "Nom du filtre"
 
-#, fuzzy
 msgid "Display control settings"
-msgstr "Conserver les paramètres de contrôle?"
+msgstr "Paramètre du filtre"
 
-#, fuzzy
 msgid "Display control type"
-msgstr "Afficher le total au niveau de la colonne"
+msgstr "Type du filtre"
 
-#, fuzzy
 msgid "Display controls"
-msgstr "Configuration d'affichage"
+msgstr "Contrôle du filtre"
 
 #, python-format
 msgid "Display controls (%d)"
@@ -5612,9 +5502,6 @@ msgstr "Afficher le total au niveau de la ligne"
 msgid "Display row level total"
 msgstr "Afficher le total au niveau de la ligne"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
 msgid "Display the last queried timestamp on charts in the dashboard view"
 msgstr ""
 "Afficher l'horodatage de la dernière requête sur les graphiques dans la "
@@ -5800,7 +5687,6 @@ msgstr "Déposez une colonne temporelle ici ou cliquez sur"
 msgid "Drop columns/metrics here or click"
 msgstr "Déposez des colonnes/mesures ici ou cliquez sur"
 
-#, fuzzy
 msgid "Dttm"
 msgstr "dttm"
 
@@ -5892,9 +5778,6 @@ msgstr "Durée en ms (66000 => 1m 6s)"
 msgid "Duration in seconds"
 msgstr "Durée en secondes"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
 msgid "Dynamic"
 msgstr "Dynamique"
 
@@ -5913,12 +5796,9 @@ msgstr "Description dynamique"
 msgid "Dynamically search all filter values"
 msgstr "Charge dynamiquement les valeurs du filtre"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
 msgid "Dynamically select grouping columns from a dataset"
 msgstr ""
-"Sélectionner dynamiquement des colonnes de regroupement à partir d'un jeu"
+"Sélectionner dynamiquement un groupe de colonnes à partir d'un jeu"
 " de données"
 
 msgid "ECharts"
@@ -5929,7 +5809,6 @@ msgstr "ECharts"
 msgid "ECharts Options (JS object literals)"
 msgstr "Options ECharts (Objet literal JS)"
 
-#, fuzzy
 msgid "EMAIL_REPORTS_CTA"
 msgstr "EMAIL_REPORTS_CTA"
 
@@ -6175,7 +6054,6 @@ msgstr "Autoriser le mode JavaScript des labels"
 msgid "Enable labels"
 msgstr "Autoriser les labels"
 
-#, fuzzy
 msgid "Enable matrixify"
 msgstr "Activer Matrixify"
 
@@ -6250,9 +6128,8 @@ msgstr "Date de fin exclue de l'intervalle de temps"
 msgid "End date must be after start date"
 msgstr "La date de début ne peut être postérieure à Date de début"
 
-#, fuzzy
 msgid "Ends With"
-msgstr "Largeur de la capture d'écran"
+msgstr "Termine par"
 
 #, python-format
 msgid "Ends with (ILIKE %x)"
@@ -6330,7 +6207,7 @@ msgid "Enter the user's last name"
 msgstr "Saisir le nom de famille de l'utilisateur"
 
 msgid "Enter the user's password"
-msgstr "[NEUTRE] Saisir le mot de passe de l'utilisateur"
+msgstr "Saisir le mot de passe de l'utilisateur"
 
 msgid "Enter the user's username"
 msgstr "Saisir le nom de l'utilisateur"
@@ -6350,7 +6227,6 @@ msgstr "Taille des dates égales"
 msgid "Equal to (=)"
 msgstr "Égal à (=)"
 
-#, fuzzy
 msgid "Equals"
 msgstr "Egal"
 
@@ -6360,13 +6236,10 @@ msgstr "Erreur"
 msgid "Error Fetching Tagged Objects"
 msgstr "Erreur lors de la récupérer des objets étiquetés"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Error deleting %s"
-msgstr "Une erreur s'est produite durant la récupération des données : %s"
+msgstr "Une erreur lors de la suppression %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
-# sr_Latn]
-#, fuzzy, python-format
 msgid "Error disabling fullscreen: %s"
 msgstr "Erreur lors de la désactivation du plein écran : %s"
 
@@ -6377,9 +6250,8 @@ msgstr "Erreur lors de l'activiation du mode plein écran : %s"
 msgid "Error executing query. "
 msgstr "Erreur lors de l'exécution d'une requête."
 
-#, fuzzy
 msgid "Error faving chart"
-msgstr "Une erreur s'est produite durant la sauvegarde du jeu de données"
+msgstr "Une erreur lors de la mise en favori du graphique"
 
 msgid "Error fetching charts"
 msgstr "Une erreur s'est produite durant la récupération des graphiques"
@@ -6395,31 +6267,28 @@ msgstr "Erreur dans l'expression jinja des filtres RLS : %(msg)s"
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Erreur d'expression jinja dans la clause WHERE : %(msg)s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
-msgstr "Erreur d'expression jinja dans la clause WHERE : %(msg)s"
+msgstr "Erreur de la colonne adhoc dans l'expression jinja : %(msg)s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Error in jinja expression in column expression: %(msg)s"
-msgstr ""
-"Erreur dans l'expression jinja dans la réupération du prédicat des "
-"valeurs : %(msg)s"
+msgstr "Erreur de l'expression de la colonne dans l'expression jinja : %(msg)s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Error in jinja expression in datetime column: %(msg)s"
-msgstr "Erreur d'expression jinja dans la clause WHERE : %(msg)s"
+msgstr "Erreur de la colonne temporelle dans l'expression jinja : %(msg)s"
 
 #, python-format
 msgid "Error in jinja expression in fetch values predicate: %(msg)s"
 msgstr ""
-"Erreur dans l'expression jinja dans la réupération du prédicat des "
-"valeurs : %(msg)s"
+"Erreur lors de la récupération du prédicat des valeurs "
+"dans l'expression jinja : %(msg)s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Error in jinja expression in metric expression: %(msg)s"
 msgstr ""
-"Erreur dans l'expression jinja dans la réupération du prédicat des "
-"valeurs : %(msg)s"
+"Erreur dans l'expression de la mesure dans l'expression jinja : %(msg)s"
 
 msgid "Error loading chart datasources. Filters may not work correctly."
 msgstr ""
@@ -6506,9 +6375,6 @@ msgstr "Évolution"
 msgid "Exact"
 msgstr "Exact"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
 msgid "Exact match (IN)"
 msgstr "Correspondance exacte (IN)"
 
@@ -6604,9 +6470,8 @@ msgstr "Exporter"
 msgid "Export All Data"
 msgstr "Exporter toutes les données"
 
-#, fuzzy
 msgid "Export Current View"
-msgstr "Inverser la page actuelle"
+msgstr "Exporter la vue actuelle"
 
 msgid "Export YAML"
 msgstr "Exporter YAML"
@@ -6630,9 +6495,6 @@ msgstr "Échec de l'export, veuillez réessayer."
 msgid "Export failed: %s"
 msgstr "Echec lors de l'export: %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ro, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
 msgid "Export screenshot (jpeg)"
 msgstr "Exporter la capture d'écran (jpeg)"
 
@@ -6679,16 +6541,14 @@ msgstr "Exposer la base de données dans SQL Lab"
 msgid "Expose in SQL Lab"
 msgstr "Exposer dans SQL Lab"
 
-#, fuzzy
 msgid "Expression"
-msgstr "Expression SQL"
+msgstr "Expression"
 
 msgid "Expression cannot be empty"
 msgstr "L'expression ne peut pas être vide"
 
-#, fuzzy
 msgid "Extensions"
-msgstr "Dimensions"
+msgstr "Extensions"
 
 msgid "Extent"
 msgstr "Étendue"
@@ -6733,7 +6593,6 @@ msgstr ""
 "Paramètres supplémentaires que les modules d'extension peuvent choisir de"
 " définir pour être utilisés dans les requêtes modèles de Jinja"
 
-#, fuzzy
 msgid "Extra url parameters for use in Jinja templated queries"
 msgstr "Paramètres supplémentaires à utiliser dans les modèles de requêtes jinja"
 
@@ -6746,8 +6605,6 @@ msgstr "FEB"
 msgid "FIT DATA"
 msgstr "Modifier le jeu de données"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
-#, fuzzy
 msgid "Fit data"
 msgstr "Ajuster aux données"
 
@@ -6908,7 +6765,7 @@ msgstr "Récupération"
 msgid "Fetching data..."
 msgstr "Récupération des données..."
 
-#, fuzzy, python-format
+#, python-format
 msgid "Field cannot be decoded by JSON. %(json_error)s"
 msgstr "Le champ ne peut pas être décodé par JSON. %(json_error)s"
 
@@ -6986,7 +6843,6 @@ msgstr ""
 "Le filtre n'affiche que les valeurs pertinentes après les sélections "
 "effectuées dans d'autres filtres."
 
-#, fuzzy
 msgid "Filter options"
 msgstr "Paramètres du filtre"
 
@@ -7075,7 +6931,6 @@ msgstr "Prénom"
 msgid "First name"
 msgstr "Prénom"
 
-#, fuzzy
 msgid "First name is required"
 msgstr "Le prénom est obligatoire"
 
@@ -7108,13 +6963,8 @@ msgstr "Rayon de point fixe"
 msgid "Flow"
 msgstr "Flux"
 
-#, fuzzy
 msgid "Folder with content must have a name"
-msgstr ""
-"Représente les mesures individuelles pour chaque ligne de données "
-"verticalement et les relie par une ligne. Ce graphique est utile pour "
-"comparer plusieurs mesures sur l'ensemble des échantillons ou des lignes "
-"de données"
+msgstr "Les dossiers avec du contenu doivent avoir un nom"
 
 msgid "Folders"
 msgstr "Dossiers"
@@ -7173,9 +7023,6 @@ msgstr "Interdit"
 msgid "Force"
 msgstr "Forcer"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ro, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
 msgid "Force Time Grain as Max Interval"
 msgstr "Forcer la granularité temporelle comme intervalle maximum"
 
@@ -7210,11 +7057,8 @@ msgid "Force refresh schema list"
 msgstr "Forcer l'actualisation de la liste des schémas"
 
 msgid "Force refresh table list"
-msgstr "Forcer l'actualisation de la liste des tableaux"
+msgstr "Forcer l'actualisation de la liste des tables"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ro, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
 msgid "Forces selected Time Grain as the maximum interval for X Axis Labels"
 msgstr ""
 "Force la granularité temporelle sélectionnée comme intervalle maximum "
@@ -7239,9 +7083,8 @@ msgstr ""
 "Les données du formulaire n'ont pas été trouvées dans le jeu de données, "
 "les métadonnées du graphique ont été rétablies."
 
-#, fuzzy
 msgid "Format"
-msgstr "Date formatée"
+msgstr "Format"
 
 msgid "Format JSON configuration"
 msgstr "Mettre en forme la configuration JSON"
@@ -7299,7 +7142,6 @@ msgstr "Formatage de l'objet"
 msgid "Formula"
 msgstr "Formule"
 
-#, fuzzy
 msgid "Forward values"
 msgstr "Valeurs à terme"
 
@@ -7411,7 +7253,6 @@ msgstr "Nom et URL de la feuille Google Sheet"
 msgid "Grace period"
 msgstr "Période de grâce"
 
-#, fuzzy
 msgid "Grain"
 msgstr "Fragment de temps"
 
@@ -7483,14 +7324,11 @@ msgstr ""
 msgid "Guest user cannot modify chart payload"
 msgstr "Un utilisateur invité ne peut pas modifier le contenu du graphique"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ru, sk, sr, sr_Latn, tr, uk]
 msgid "HTTP Path"
 msgstr "Route HTTP"
 
-#, fuzzy
 msgid "Handlebars"
-msgstr "Guidons"
+msgstr "Handlebars"
 
 msgid "Handlebars Template"
 msgstr "Modèle Handlebars"
@@ -7720,7 +7558,6 @@ msgstr "Importer les tableaux de bords"
 msgid "Import database failed for an unknown reason"
 msgstr "L'import de la base de données a échoué pour une raison inconnue"
 
-#, fuzzy
 msgid "Import database from file"
 msgstr "Importer la base de données depuis un fichier"
 
@@ -7767,7 +7604,7 @@ msgstr "Include les paramètres du modèle"
 msgid "Include a description that will be sent with your report"
 msgstr "Inclure une description qui sera envoyée avec votre rapport"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Include description to be sent with %s"
 msgstr "Inclure une description à envoyer avec %s"
 
@@ -7797,7 +7634,7 @@ msgstr "Étiquette d'index"
 
 #, python-format
 msgid "Indexes (%s)"
-msgstr "Vue des clés et index (%s)"
+msgstr "Index (%s)"
 
 msgid "Info"
 msgstr "Info"
@@ -7805,9 +7642,6 @@ msgstr "Info"
 msgid "Inherit range from time filter"
 msgstr "Hériter de la plage du filtre temporel"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ro, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
 msgid "Initial tree depth"
 msgstr "Profondeur initiale de l'arborescence"
 
@@ -7845,12 +7679,11 @@ msgstr "Intérieur en bas à gauche"
 msgid "Inside bottom right"
 msgstr "Intérieur en bas à droite"
 
-#, fuzzy
 msgid "Inside left"
-msgstr "Haut à gauche"
+msgstr "Intérieur gauche"
 
 msgid "Inside right"
-msgstr "Intérieur à droite"
+msgstr "Intérieur droit"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -7985,9 +7818,9 @@ msgstr "Configuration lat/long non valide."
 msgid "Invalid longitude/latitude"
 msgstr "Longitude/latitude invalide"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Invalid metric object: %(metric)s"
-msgstr "Objet mesure non valide : %(metric)s"
+msgstr "Mesure non valide : %(metric)s"
 
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
@@ -8029,7 +7862,6 @@ msgstr "Le nom d’utilisateur ou le mot de passe est incorrect."
 msgid "Inverse selection"
 msgstr "Sélection inverse"
 
-#, fuzzy
 msgid "Invert current page"
 msgstr "Inverser la page actuelle"
 
@@ -8081,13 +7913,9 @@ msgstr "Isoligne"
 msgid "Issue 1000 - The dataset is too large to query."
 msgstr "Problème 1000 - Le jeu de données est trop volumineux pour être interrogé."
 
-#, fuzzy
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Problème 1001 - La base de données est soumise à une charge inhabituelle."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
 msgid ""
 "It won't be removed even if empty. It won't be shown in chart editing "
 "view if empty."
@@ -8245,7 +8073,6 @@ msgstr "Seuil d’étiquette"
 msgid "Labelling"
 msgstr "Étiquetage"
 
-#, fuzzy
 msgid "Labels"
 msgstr "Étiquettes"
 
@@ -8322,7 +8149,6 @@ msgstr "Semaine dernière"
 msgid "Last year"
 msgstr "An dernier"
 
-#, fuzzy
 msgid "Lat"
 msgstr "Lat"
 
@@ -8418,9 +8244,6 @@ msgstr "Plus petit ou égal (<=)"
 msgid "Less than (<)"
 msgstr "Plus petit que (<)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
 msgid "Liberty (OpenFreeMap)"
 msgstr "Liberty (OpenFreeMap)"
 
@@ -8578,9 +8401,8 @@ msgstr "Données mises en cache chargées"
 msgid "Loaded from cache"
 msgstr "Chargées depuis le cache"
 
-#, fuzzy
 msgid "Loading"
-msgstr "Chargement..."
+msgstr "Chargement"
 
 msgid "Loading filter values"
 msgstr "Charger les valeurs de filtre"
@@ -8591,9 +8413,8 @@ msgstr "Chargement des timezones..."
 msgid "Loading..."
 msgstr "Chargement..."
 
-#, fuzzy
 msgid "Local"
-msgstr "étiquette"
+msgstr "Local"
 
 msgid "Local theme set for preview"
 msgstr "Thème local défini pour l'aperçu"
@@ -8644,7 +8465,6 @@ msgstr "Déconnexion"
 msgid "Logs"
 msgstr "Journaux"
 
-#, fuzzy
 msgid "Lon"
 msgstr "Lon"
 
@@ -8745,20 +8565,15 @@ msgstr "Rendu de la carte"
 msgid "Map Style"
 msgstr "Style de carte"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
 msgid "MapLibre (open-source)"
-msgstr "MapLibre (open source)"
+msgstr "MapLibre (open-source)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
 msgid ""
 "MapLibre is open-source and requires no API key. Mapbox requires "
 "MAPBOX_API_KEY to be configured on the server."
 msgstr ""
 "MapLibre est open-source et ne nécessite pas de clé API. Mapbox nécessite"
-" querequires la variable d'environnement MAPBOX_API_KEY soit configurée "
+" que la variable d'environnement MAPBOX_API_KEY soit configurée "
 "sur le serveur."
 
 msgid "Mapbox"
@@ -8842,12 +8657,9 @@ msgstr "Taille maximale de la police"
 msgid "Maximum Radius"
 msgstr "Rayon maximal"
 
-#, fuzzy
 msgid "Maximum Width"
-msgstr "Largeur minimale"
+msgstr "Largeur maximale"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Maximum folder nesting depth reached"
 msgstr "Nombre de dossiers imbriqués maximum atteint"
 
@@ -8867,9 +8679,8 @@ msgstr "Valeur maximale"
 msgid "Maximum value on the gauge axis"
 msgstr "Valeur maximale sur l’axe de l’indicateur"
 
-#, fuzzy
 msgid "Maximum width size of the path, in pixels or meters."
-msgstr "La taille de la cellule carrée, en pixels"
+msgstr "La largeur maximale du chemin, en pixels ou en mètre"
 
 msgid "May"
 msgstr "Mai"
@@ -8897,7 +8708,6 @@ msgstr ""
 "Taille du nœud médiane, le plus grand nœud sera 4 fois plus grand que le "
 "plus petit"
 
-#, fuzzy
 msgid "Median values"
 msgstr "Valeurs médianes"
 
@@ -9003,7 +8813,6 @@ msgstr "Pourcentage de variation de la valeur mesure de « depuis » à « ju
 msgid "Metric that defines the size of the bubble"
 msgstr "Mesure qui définit la taille de la bulle"
 
-#, fuzzy
 msgid "Metric to display bottom title"
 msgstr "Mesure à afficher dans le titre du bas"
 
@@ -9019,7 +8828,6 @@ msgstr "Mesure utilisée pour calculer la taille des bulles"
 msgid "Metric used to control height"
 msgstr "Mesure utilisée pour contrôler la hauteur"
 
-#, fuzzy
 msgid ""
 "Metric used to define how the top series are sorted if a series or cell "
 "limit is present. If undefined reverts to the first metric (where "
@@ -9086,7 +8894,6 @@ msgstr "Largeur minimale"
 msgid "Min periods"
 msgstr "Périodes minimales"
 
-#, fuzzy
 msgid "Min value"
 msgstr "Valeur mini"
 
@@ -9111,7 +8918,6 @@ msgstr "Taille minimale de la police"
 msgid "Minimum Radius"
 msgstr "Rayon minimum"
 
-#, fuzzy
 msgid "Minimum Width"
 msgstr "Largeur minimale"
 
@@ -9137,9 +8943,8 @@ msgstr "Valeur minimale pour que l'étiquette soit affichée sur le graphique."
 msgid "Minimum value on the gauge axis"
 msgstr "Valeur minimale sur l’axe de la jauge"
 
-#, fuzzy
 msgid "Minimum width size of the path, in pixels or meters."
-msgstr "La taille de la cellule carrée, en pixels"
+msgstr "La taille minimal du path, en pixels ou en mètres"
 
 msgid "Minor Split Line"
 msgstr "Ligne de séparation mineure"
@@ -9167,9 +8972,8 @@ msgstr "Paramètre URL manquant"
 msgid "Missing URL parameters"
 msgstr "Paramètres URL manquants"
 
-#, fuzzy
 msgid "Mixed Chart"
-msgstr "Graphique composés"
+msgstr "Graphique combiné"
 
 msgid "Modified"
 msgstr "Modifié"
@@ -9293,7 +9097,6 @@ msgstr "NON GROUPÉ PAR"
 msgid "NOV"
 msgstr "NOV"
 
-#, fuzzy
 msgid "NUMERIC"
 msgstr "NUMÉRIQUE"
 
@@ -9312,7 +9115,6 @@ msgstr "Nom de la table à créer"
 msgid "Name of the column containing the id of the parent node"
 msgstr "Nom de la colonne contenant l'ID du nœud parent"
 
-#, fuzzy
 msgid "Name of the id column"
 msgstr "Nom de la colonne d'identification"
 
@@ -9331,9 +9133,6 @@ msgstr "Nommez votre étiquette"
 msgid "Name your database"
 msgstr "Nom de votre base de données"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
 msgid "Name your folder and to edit it later, click on the folder name"
 msgstr ""
 "Nommez votre dossier et, pour le modifier ultérieurement, cliquez sur le "
@@ -9351,18 +9150,15 @@ msgstr "Besoin d’aide? Apprenez comment connecter votre base de données"
 msgid "Need help? Learn more about"
 msgstr "Besoin d’aide? En savoir plus sur"
 
-#, fuzzy
 msgid "Network Error"
 msgstr "Erreur de réseau"
 
-#, fuzzy
 msgid "Network error"
 msgstr "Erreur de réseau"
 
 msgid "Network error while attempting to fetch resource"
 msgstr "Une erreur réseau s'est produite lors de la récupération de la ressource"
 
-#, fuzzy
 msgid "Network error."
 msgstr "Erreur de réseau."
 
@@ -9381,7 +9177,6 @@ msgstr "Nouveau jeu de données"
 msgid "New dataset name"
 msgstr "Nom du jeu de données"
 
-#, fuzzy
 msgid "New header"
 msgstr "Nouvel en-tête"
 
@@ -9397,11 +9192,9 @@ msgstr "Nouvel onglet (Ctrl + t)"
 msgid "Next"
 msgstr "Suivant"
 
-#, fuzzy
 msgid "Nightingale"
-msgstr "Graphique en rose Nightingale"
+msgstr "Graphique Nightingale"
 
-#, fuzzy
 msgid "Nightingale Rose Chart"
 msgstr "Graphique en rose Nightingale"
 
@@ -9433,7 +9226,6 @@ msgstr "Aucune étiquette créée"
 msgid "No actions"
 msgstr "Aucune actions"
 
-#, fuzzy
 msgid "No annotation layers"
 msgstr "Aucune couche d'annotations"
 
@@ -9446,11 +9238,9 @@ msgstr "Pas encore d'annotations"
 msgid "No applied filters"
 msgstr "Aucun filtre appliqué"
 
-#, fuzzy
 msgid "No available filters."
 msgstr "Aucun filtre disponible."
 
-#, fuzzy
 msgid "No columns found"
 msgstr "Aucune colonne trouvée"
 
@@ -9464,7 +9254,6 @@ msgstr "Aucun catalogue compatible trouvé"
 msgid "No compatible columns found"
 msgstr "Aucune colonne compatible trouvée"
 
-#, fuzzy
 msgid "No compatible schema found"
 msgstr "Aucun schéma compatible trouvé"
 
@@ -9512,7 +9301,6 @@ msgstr "Aucun filtres ou personnalisations n'existent actuellement"
 msgid "No form settings were maintained"
 msgstr "Aucun paramètre de formulaire n'a été conservé"
 
-#, fuzzy
 msgid "No global filters are currently added"
 msgstr "Aucun filtre global n'est actuellement ajouté"
 
@@ -9522,9 +9310,8 @@ msgstr "Aucun groupe"
 msgid "No groups yet"
 msgstr "Pas encore de groupe"
 
-#, fuzzy
 msgid "No items"
-msgstr "Aucun filtre"
+msgstr "Aucun élément"
 
 msgid "No matching records found"
 msgstr "Aucun enregistrement correspondant n'a été trouvé"
@@ -9540,7 +9327,6 @@ msgstr ""
 msgid "No records found"
 msgstr "Aucun enregistrement n'a été trouvé"
 
-#, fuzzy
 msgid "No results"
 msgstr "Aucun résultat"
 
@@ -9591,14 +9377,12 @@ msgstr ""
 "Aucune colonne de ce type n'a été trouvée. Pour filtrer sur une mesure, "
 "essayez l'onglet Custom SQL."
 
-#, fuzzy
 msgid "No table columns"
-msgstr "Pas de colonnes de tableau"
+msgstr "Aucune colonne dans la table"
 
 msgid "No tasks yet"
 msgstr "Pas encore de tâches"
 
-#, fuzzy
 msgid "No temporal columns found"
 msgstr "Aucune colonne temporelle trouvée"
 
@@ -9658,7 +9442,6 @@ msgstr "Normalisé"
 msgid "Not Contains"
 msgstr "Ne contient pas"
 
-#, fuzzy
 msgid "Not Equal"
 msgstr "!= (N'est pas égal)"
 
@@ -9679,18 +9462,15 @@ msgstr ""
 msgid "Not available"
 msgstr "Indisponible"
 
-#, fuzzy
 msgid "Not defined"
 msgstr "Indéfini"
 
 msgid "Not equal to (≠)"
 msgstr "Différent de (≠)"
 
-#, fuzzy
 msgid "Not found"
-msgstr "Graphique non trouvé"
+msgstr "Non trouvé"
 
-#, fuzzy
 msgid "Not in"
 msgstr "Pas dans"
 
@@ -9700,7 +9480,6 @@ msgstr "Non nul"
 msgid "Not set"
 msgstr "Non défini"
 
-#, fuzzy
 msgid "Not triggered"
 msgstr "Non déclenché"
 
@@ -9713,7 +9492,6 @@ msgstr "Il n'y a rien ici pour l'instant"
 msgid "Nothing triggered"
 msgstr "Rien déclenché"
 
-#, fuzzy
 msgid "Notification Method"
 msgstr "Méthode de notification"
 
@@ -9726,11 +9504,9 @@ msgstr "Novembre"
 msgid "Now"
 msgstr "Maintenant"
 
-#, fuzzy
 msgid "Null Values"
 msgstr "Valeurs nulles"
 
-#, fuzzy
 msgid "Null imputation"
 msgstr "Imputation nulle"
 
@@ -9754,9 +9530,8 @@ msgstr ""
 msgid "Number format"
 msgstr "Format des nombres"
 
-#, fuzzy
 msgid "Number format string"
-msgstr "Chaîne de format des nombres"
+msgstr "Format des nombres"
 
 msgid "Number formatting"
 msgstr "Formatage des nombres"
@@ -9815,11 +9590,10 @@ msgstr ""
 msgid "Number of top values"
 msgstr "Nombre de top valeurs"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Numbers must be within %(min)s and %(max)s"
 msgstr ""
-"La largeur de la capture d'écran doit être comprise entre %(min)spx et "
-"%(max)spx"
+"Les nombres doivent être compris entre %(min)s et %(max)s"
 
 msgid "Numeric column used to calculate the histogram."
 msgstr "Colonnes numériques utilisées pour calculer l'histogramme"
@@ -9876,7 +9650,6 @@ msgstr "Un ou plusieurs contrôles à pivoter en tant que colonnes"
 msgid "One or many metrics to display"
 msgstr "Une ou plusieurs mesures à afficher"
 
-#, fuzzy
 msgid "One or more annotation layers failed loading."
 msgstr "Le chargement d'une ou plusieurs couches d'annotations a échoué."
 
@@ -9978,14 +9751,12 @@ msgstr "Opacité, attend des valeurs entre 0 et 100"
 msgid "Open Datasource tab"
 msgstr "Ouvrir l'onglet Source de données"
 
-#, fuzzy
 msgid "Open SQL Lab in a new tab"
-msgstr "Exécuter la requête dans une nouvelle fenêtre"
+msgstr "Exécuter la requête dans un nouvel onglet"
 
 msgid "Open in SQL Lab"
 msgstr "Ouvrir dans SQL Lab"
 
-#, fuzzy
 msgid "Open in SQL lab"
 msgstr "Ouvrir dans SQL Lab"
 
@@ -10018,13 +9789,11 @@ msgstr ""
 "Contenu CA_BUNDLE optionnel pour valider les requêtes HTTPS. Disponible "
 "uniquement sur certains moteurs de base de données."
 
-#, fuzzy
 msgid "Optional d3 date format string"
-msgstr "Chaîne de format de date d3 facultative"
+msgstr "Format de date d3 facultatif"
 
-#, fuzzy
 msgid "Optional d3 number format string"
-msgstr "Chaîne de format de nombre d3 facultative"
+msgstr "Format de nombre d3 facultatif"
 
 msgid "Optional name of the data column."
 msgstr "Nom facultatif de la colonne de données."
@@ -10066,11 +9835,9 @@ msgstr "Orientation du diagramme à barres"
 msgid "Orientation of filter bar"
 msgstr "Orientation de la barre de filtres"
 
-#, fuzzy
 msgid "Orientation of tree"
 msgstr "Orientation de la hierarchie"
 
-#, fuzzy
 msgid "Original"
 msgstr "Original"
 
@@ -10111,7 +9878,6 @@ msgstr ""
 "langage naturel (exemple : 24 heures, 7 jours, 52 semaines, 365 jours). "
 "Le texte libre est pris en charge."
 
-#, fuzzy
 msgid ""
 "Overlay one or more timeseries from a relative time period. Expects "
 "relative time deltas in natural language (example: 24 hours, 7 days, 52 "
@@ -10122,7 +9888,6 @@ msgstr ""
 "langage naturel (exemple : 24 heures, 7 jours, 52 semaines, 365 jours). "
 "Le texte libre est pris en charge."
 
-#, fuzzy
 msgid ""
 "Overlay results from a relative time period. Expects relative time deltas"
 " in natural language (example:  24 hours, 7 days, 52 weeks, 365 days). "
@@ -10145,7 +9910,6 @@ msgstr ""
 msgid "Override time grain"
 msgstr "Remplacer la granularité temporelle"
 
-#, fuzzy
 msgid "Override time range"
 msgstr "Remplacer l'intervalle de temps"
 
@@ -10159,9 +9923,8 @@ msgstr "Modifier et explorer"
 msgid "Overwrite Dashboard [%s]"
 msgstr "Ecraser le tableau de bord [%s]"
 
-#, fuzzy
 msgid "Overwrite existing"
-msgstr "Remplacer les données existantes"
+msgstr "Remplacer l'existant"
 
 msgid "Overwrite text in the editor with a query on this table"
 msgstr "Remplacer le texte de l'éditeur par une requête sur ce tableau"
@@ -10233,12 +9996,12 @@ msgstr "Paramètres relatifs à la vue et à la perspective sur la carte"
 msgid "Parent"
 msgstr "Parent"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Parsing error: %(error)s"
-msgstr "Erreur : %(error)s"
+msgstr "Erreur de parsing : %(error)s"
 
 msgid "Part of a Whole"
-msgstr "Ensembles"
+msgstr "Partie d'un tout"
 
 msgid "Partition Chart"
 msgstr "Graphique de partition"
@@ -10303,7 +10066,7 @@ msgstr "Mettre en pause l'actualisation automatique si l'onglet est inactif"
 msgid "Pause auto-refresh"
 msgstr "Suspendre le rafraîchissement automatique"
 
-#, fuzzy/stregint-generator/
+#, /stregint-generator/
 msgid "Pending"
 msgstr "En attente"
 
@@ -10349,7 +10112,6 @@ msgstr "Moyenne de la période"
 msgid "Periods"
 msgstr "Périodes"
 
-#, fuzzy
 msgid "Periods must be a whole number"
 msgstr "Les périodes doivent être un nombre entier"
 
@@ -10457,13 +10219,11 @@ msgstr "L'opération de pivot doit inclure au moins un agrégat"
 msgid "Pivot operation requires at least one index"
 msgstr "L'opération de pivot nécessite au moins un index"
 
-#, fuzzy
 msgid "Pivoted"
 msgstr "Pivoté"
 
-#, fuzzy
 msgid "Pivots"
-msgstr "rapports"
+msgstr "Pivots"
 
 msgid "Pixel height of each series"
 msgstr "Hauteur des pixels de chaque série"
@@ -10499,7 +10259,6 @@ msgstr ""
 "Veuillez corriger une erreur de syntaxe dans la requête près de « "
 "%(server_error)s ». Puis essayez de relancer la requête."
 
-#, fuzzy
 msgid ""
 "Please check your template parameters for syntax errors and make sure "
 "they match across your SQL query and Set Parameters. Then, try running "
@@ -10563,7 +10322,6 @@ msgstr "Veuillez saisir à nouveau le mot de passe."
 msgid "Please re-export your file and try importing again"
 msgstr "Veuillez réexporter votre fichier et réessayer l'importation"
 
-#, fuzzy
 msgid "Please reach out to the Chart Owner for assistance."
 msgid_plural "Please reach out to the Chart Owners for assistance."
 msgstr[0] "Veuillez contacter le propriétaire du graphique pour obtenir de l'aide."
@@ -10615,9 +10373,8 @@ msgstr ""
 msgid "Plugins"
 msgstr "Plugiciels"
 
-#, fuzzy
 msgid "Point Cluster Map"
-msgstr "Couleur du point"
+msgstr "Point du cluster de la carte"
 
 msgid "Point Color"
 msgstr "Couleur du point"
@@ -10700,7 +10457,6 @@ msgstr "Valeurs disponibles pour le préfiltre"
 msgid "Pre-filter is required"
 msgstr "Un préfiltre est requis"
 
-#, fuzzy
 msgid "Predictive"
 msgstr "Prédictif"
 
@@ -10839,7 +10595,6 @@ msgstr "Historiques des requêtes"
 msgid "Query State"
 msgstr "État de la requête"
 
-#, fuzzy
 msgid "Query cannot be loaded."
 msgstr "La requête ne peut pas être chargée"
 
@@ -10897,13 +10652,11 @@ msgstr "Graphique de radar"
 msgid "Radar render type, whether to display 'circle' shape."
 msgstr "Type de rendu radar, s'il faut afficher la forme du cercle."
 
-#, fuzzy
 msgid "Radial"
 msgstr "Radial"
 
-#, fuzzy
 msgid "Radius"
-msgstr "Rayon de la cellule"
+msgstr "Rayon"
 
 msgid "Radius in kilometers"
 msgstr "Rayon en kilomètres"
@@ -11035,7 +10788,6 @@ msgstr "Actualiser les valeurs par défaut"
 msgid "Refreshing charts"
 msgstr "Actualisation des graphiques"
 
-#, fuzzy
 msgid "Refreshing columns"
 msgstr "Actualisation des colonnes"
 
@@ -11064,7 +10816,6 @@ msgstr ""
 "définir ce que les utilisateur·rice·s peuvent voir si aucun filtre RLS au"
 " sein d'un groupe de filtres ne s'appliquent à eux."
 
-#, fuzzy
 msgid "Relational"
 msgstr "Relationnel"
 
@@ -11205,20 +10956,17 @@ msgstr "Contenu du rapport"
 msgid "Report failed"
 msgstr "Rapport échoué"
 
-#, fuzzy
 msgid "Report is active"
-msgstr "Rapports par mail actifs"
+msgstr "Le rapport est actif"
 
 msgid "Report name"
 msgstr "Nom du rapport"
 
-#, fuzzy
 msgid "Report schedule client error"
-msgstr "Erreur du client de la planification de rapport"
+msgstr "Erreur de la planification du rapport par le client"
 
-#, fuzzy
 msgid "Report schedule system error"
-msgstr "Erreur système de la planification de rapport"
+msgstr "Erreur de la planification du rapport par le serveur"
 
 msgid "Report schedule unexpected error"
 msgstr "Erreur inattendue de la planification de rapport"
@@ -11229,7 +10977,6 @@ msgstr "Envoi d'un rapport"
 msgid "Report sent"
 msgstr "Rapport envoyé"
 
-#, fuzzy
 msgid "Report updated"
 msgstr "Rapport mis à jour"
 
@@ -11255,7 +11002,6 @@ msgstr "La requête n'est pas JSON"
 msgid "Request missing data field."
 msgstr "Champ de données manquant dans la requête."
 
-#, fuzzy
 msgid "Request timed out"
 msgstr "La requête a expiré"
 
@@ -11271,7 +11017,6 @@ msgstr "Rééchantillonner"
 msgid "Resample method should be in "
 msgstr "La méthode de rééchantillonnage devrait être"
 
-#, fuzzy
 msgid "Resample operation requires DatetimeIndex"
 msgstr "L'opération de rééchantillonnage nécessite DatetimeIndex"
 
@@ -11281,9 +11026,6 @@ msgstr "Réinitialiser"
 msgid "Reset Columns"
 msgstr "Réinitialiser les colonnes"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
 msgid "Reset all folders to default"
 msgstr "Réinitialiser tous les dossiers aux valeurs par défaut"
 
@@ -11336,9 +11078,8 @@ msgstr ""
 "Le programme dorsal des résultats pour les requêtes asynchrones n'est pas"
 " configuré."
 
-#, fuzzy
 msgid "Resume auto-refresh"
-msgstr "Définir l'intervalle de rafraîchissement automatique"
+msgstr "Reprendre le rafraîchissement automatique"
 
 msgid "Retry"
 msgstr "re-essayer"
@@ -11364,9 +11105,6 @@ msgstr "Révoquer"
 msgid "Revoke API Key"
 msgstr "Révoquer la clé API"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
-# sr_Latn]
-#, fuzzy
 msgid "Revoke this API key"
 msgstr "Révoquer cette clé API"
 
@@ -11379,18 +11117,15 @@ msgstr "Infobulle détaillée"
 msgid "Rich tooltip"
 msgstr "Infobulle détaillée"
 
-#, fuzzy
 msgid "Right"
 msgstr "Droite"
 
 msgid "Right Axis Format"
 msgstr "Format de l'axe de droite"
 
-#, fuzzy
 msgid "Right Axis Metric"
 msgstr "Mesure de l'axe de droite"
 
-#, fuzzy
 msgid "Right Panel"
 msgstr "Volet de droite"
 
@@ -11529,7 +11264,6 @@ msgstr "Règle ajoutée"
 msgid "Run"
 msgstr "Exécuter"
 
-#, fuzzy
 msgid "Run a query to display query history"
 msgstr "Exécuter une requête pour afficher l'historique des requêtes"
 
@@ -11661,7 +11395,6 @@ msgstr "Le mode SSL « require » sera utilisé."
 msgid "STEP %(stepCurr)s OF %(stepLast)s"
 msgstr "ÉTAPE %(stepCurr)s DE %(stepLast)s"
 
-#, fuzzy
 msgid "STRING"
 msgstr "CHAÎNE"
 
@@ -11680,14 +11413,12 @@ msgstr "Exemples"
 msgid "Samples for dataset could not be retrieved."
 msgstr "Les exemples du jeu de données n'ont pas pu être récupérés."
 
-#, fuzzy
 msgid "Samples for datasource could not be retrieved."
 msgstr "Les exemples de source de données n'ont pas pu être récupérés."
 
 msgid "Sankey Chart"
 msgstr "Graphique Sankey"
 
-#, fuzzy
 msgid "Satellite"
 msgstr "Satellite"
 
@@ -11798,9 +11529,6 @@ msgstr "Enregistrement..."
 msgid "Scale and Move"
 msgstr "Échelle et mouvement"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
 msgid "Scale factor applied to metric-driven line widths"
 msgstr ""
 "Facteur d'échelle appliqué aux largeurs de ligne déterminées par les "
@@ -11896,7 +11624,6 @@ msgstr "Rechercher les mesures et les colonnes"
 msgid "Search all charts"
 msgstr "Rechercher tous les graphiques"
 
-#, fuzzy
 msgid "Search all metrics & columns"
 msgstr "Rechercher les mesures et les colonnes"
 
@@ -12012,9 +11739,8 @@ msgstr "Sélectionner la méthode de livraison"
 msgid "Select Filter"
 msgstr "Selectionner un filtre"
 
-#, fuzzy
 msgid "Select Tags"
-msgstr "Sélectionner les étiquette"
+msgstr "Sélectionner les étiquettes"
 
 msgid "Select Value"
 msgstr "Sélectionner la valeur"
@@ -12078,7 +11804,6 @@ msgstr "Sélectionné un template CSS prédéfini à appliquer au tableau de bor
 msgid "Select a schema"
 msgstr "Sélectionner un schéma"
 
-#, fuzzy
 msgid "Select a schema if the database supports this"
 msgstr "Sélectionner un schéma si la base de données le prend en charge"
 
@@ -12164,7 +11889,6 @@ msgstr "Sélectionner la colonne de la devise"
 msgid "Select current page"
 msgstr "Sélectionner la page actuelle"
 
-#, fuzzy
 msgid "Select dashboard"
 msgstr "Sélectionner un tableau de bord"
 
@@ -12295,11 +12019,9 @@ msgstr "Sélectionner les mesures sauvegardées"
 msgid "Select saved queries"
 msgstr "Sélectionner les requêtes enregistrées"
 
-#, fuzzy
 msgid "Select schema"
 msgstr "Sélectionner un schéma"
 
-#, fuzzy
 msgid "Select scheme"
 msgstr "Sélectionner un schéma"
 
@@ -12327,7 +12049,6 @@ msgstr ""
 "Sélectionnez une table ou saisissez une partie de son nom pour filtrer "
 "les possibilités"
 
-#, fuzzy
 msgid "Select the Annotation Layer you would like to use."
 msgstr "Sélectionner la couche d'annotation que vous souhaitez utiliser."
 
@@ -12397,7 +12118,6 @@ msgstr ""
 msgid "Select the fixed color"
 msgstr "Sélectionner la couleur fixe"
 
-#, fuzzy
 msgid "Select the geojson column"
 msgstr "Sélectionner la colonne geojson"
 
@@ -12411,9 +12131,6 @@ msgstr ""
 " ne nécessite pas de clé API. Mapbox nécessite la variable "
 "d'environnement MAPBOX_API_KEY configurée dans Superset."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
 msgid ""
 "Select the metric used to determine which color breakpoint range each "
 "path falls into."
@@ -12439,9 +12156,6 @@ msgstr ""
 "panneau de commande. Exécutez ensuite la requête en cliquant sur le "
 "bouton %s."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
 msgid ""
 "Select which time grains are available in the filter control. This is a "
 "UI allow list only and does not add extra conditions to the underlying "
@@ -12467,15 +12181,9 @@ msgstr "Sémantique"
 msgid "Semantic Layer"
 msgstr "Couche sémantique"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
 msgid "Semantic View"
 msgstr "Vue sémantique"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
 msgid "Semantic Views"
 msgstr "Vues sémantiques"
 
@@ -12521,15 +12229,9 @@ msgstr "La vue sémantique n'existe pas"
 msgid "Semantic view parameters are invalid."
 msgstr "Les paramètres de la vue sémantique ne sont pas valides."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
 msgid "Semantic view updated"
 msgstr "Vue sémantique mise à jour"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
 msgid "Semantic views"
 msgstr "Vues sémantiques"
 
@@ -12566,15 +12268,9 @@ msgstr "Style de série"
 msgid "Series chart type (line, bar etc)"
 msgstr "Type de graphique de la série (ligne, barre, etc.)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ro, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
 msgid "Series decrease setting"
 msgstr "Paramètre de diminution de série"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ro, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
 msgid "Series increase setting"
 msgstr "Paramètre d'augmentation de série"
 
@@ -12605,9 +12301,8 @@ msgstr ""
 msgid "Service Account"
 msgstr "Compte de service"
 
-#, fuzzy
 msgid "Service version"
-msgstr "Compte de service"
+msgstr "Version du service"
 
 msgid "Set System Dark Theme"
 msgstr "Définir le thème sombre du système"
@@ -12621,14 +12316,12 @@ msgstr "Définir comme thème sombre par défaut"
 msgid "Set as default light theme"
 msgstr "Définir comme thème clair par défaut"
 
-#, fuzzy
 msgid "Set auto-refresh"
 msgstr "Définir l'intervalle de rafraîchissement automatique"
 
 msgid "Set filter mapping"
 msgstr "Définir le mappage de filtre"
 
-#, fuzzy
 msgid "Set local theme for testing"
 msgstr "Définir un thème local pour test (aperçu uniquement)"
 
@@ -12706,9 +12399,8 @@ msgstr "Requête partagée"
 msgid "Shared query fields"
 msgstr "Champs de requête partagée"
 
-#, fuzzy
 msgid "Sheet name"
-msgstr "Nom de feuille"
+msgstr "Nom de la feuille"
 
 msgid "Shift + Click to sort by multiple columns"
 msgstr "Shift + clic pour classer par plusieurs colonnes"
@@ -12824,9 +12516,8 @@ msgstr "Afficher toutes les cellules de toutes les colonnes"
 msgid "Show chart description"
 msgstr "Afficher la description de graphique"
 
-#, fuzzy
 msgid "Show chart query timestamps"
-msgstr "Afficher l'horodatage"
+msgstr "Afficher l'horodatage de la requête du graphique"
 
 msgid "Show column headers"
 msgstr "Afficher les entêtes de colonnes"
@@ -13229,9 +12920,6 @@ msgstr "Trier les mesures"
 msgid "Sort query by"
 msgstr "Trier la requête par"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
 msgid ""
 "Sort results by series name in ascending order. When combined with \"Sort"
 " by metric\", this acts as a tiebreaker for equal metric values. Adding "
@@ -13263,9 +12951,8 @@ msgstr "SQL source"
 msgid "Source category"
 msgstr "Catégorie de source"
 
-#, fuzzy
 msgid "Source location"
-msgstr "Catégorie de source"
+msgstr "Localisation de la source"
 
 msgid "Sparkline"
 msgstr "Sparkline"
@@ -13332,9 +13019,8 @@ msgstr "Série de temps standard"
 msgid "Start"
 msgstr "Début"
 
-#, fuzzy
 msgid "Start (Longitude, Latitude): "
-msgstr "Début (longitude, latitude) :"
+msgstr "Début (Longitude, Latitude) :"
 
 msgid "Start (inclusive)"
 msgstr "Début (inclus)"
@@ -13397,7 +13083,6 @@ msgstr "Étape - commencer"
 msgid "Step type"
 msgstr "Type d'étape"
 
-#, fuzzy
 msgid "Stepped Line"
 msgstr "Ligne en escalier"
 
@@ -13419,7 +13104,6 @@ msgstr "Arrêter"
 msgid "Stop query"
 msgstr "Arrêter la requête"
 
-#, fuzzy
 msgid "Stop running (Ctrl + e)"
 msgstr "Arrêter l'exécution (Ctrl + e)"
 
@@ -13453,9 +13137,6 @@ msgstr "Tracé"
 msgid "Structural"
 msgstr "Structurel"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
 msgid "Structure is managed by the upstream semantic layer and is read-only."
 msgstr ""
 "La structure est gérée par la couche sémantique en amont et est en "
@@ -13604,7 +13285,6 @@ msgstr ""
 "Erreur de syntaxe : %(qualifier)s entrée « %(input)s » en attente « "
 "%(expected)s"
 
-#, fuzzy
 msgid "System"
 msgstr "Système"
 
@@ -13793,7 +13473,6 @@ msgstr ""
 "Les tâches apparaîtront ici pendant l'exécution des opérations d'arrière "
 "plan."
 
-#, fuzzy
 msgid "Template"
 msgstr "Modèle"
 
@@ -14017,7 +13696,6 @@ msgstr ""
 "La couleur utilisée lorsqu'une valeur ne correspond à aucun point d'arrêt"
 " défini."
 
-#, fuzzy
 msgid ""
 "The colors of this chart might be overridden by custom label colors of "
 "the related dashboard.\n"
@@ -14027,7 +13705,6 @@ msgstr ""
 "personnalisées.    Vérifiez les métadonnées JSON dans les paramètres "
 "avancés"
 
-#, fuzzy
 msgid "The column header label"
 msgstr "L'étiquette de l'en-tête de la colonne"
 
@@ -14064,7 +13741,6 @@ msgstr ""
 msgid "The data source seems to have been deleted"
 msgstr "La source de données semble avoir été effacée"
 
-#, fuzzy
 msgid "The database columns that contains lines information"
 msgstr ""
 "Les colonnes de la base de données qui contiennent les informations sur "
@@ -14298,9 +13974,6 @@ msgstr "Le nom d'hôte fourni ne peut pas être résolu."
 msgid "The id of the active chart"
 msgstr "L'identifiant du graphique actif"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
 msgid ""
 "The image URL of the icon to display for GeoJSON points. Note that the "
 "image URL must conform to the content security policy (CSP) in order to "
@@ -14319,9 +13992,8 @@ msgstr ""
 "Le niveau initial (profondeur) de l'arbre. Si -1, tous les noeuds sont "
 "développés."
 
-#, fuzzy
 msgid "The layer attribution"
-msgstr "Attributs du formulaire liés au temps"
+msgstr "L'attribution de la couche"
 
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "La limite inférieure de la plage de seuil de l'isobande"
@@ -14884,9 +14556,6 @@ msgstr "L'épaisseur des bordures de l'élément"
 msgid "The width of the lines"
 msgstr "L'épaisseur des lignes"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
 msgid ""
 "The width of the lines as either a fixed value or variable width based on"
 " a metric."
@@ -14906,7 +14575,6 @@ msgstr "Thème introuvable."
 msgid "Themes"
 msgstr "Thèmes"
 
-#, fuzzy
 msgid "Themes could not be deleted."
 msgstr "Les thèmes n'ont pas pu être supprimés."
 
@@ -15024,7 +14692,7 @@ msgstr ""
 "Une erreur s'est produite lors de la récupération des onglets du tableau "
 "de bord"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an error saving the favorite status: %s"
 msgstr ""
 "Une erreur s'est produite lors de l'enregistrement du statut de favori : "
@@ -15487,9 +15155,8 @@ msgstr ""
 msgid "This is the default dark theme"
 msgstr "Ceci est le thème sombre par défaut du système"
 
-#, fuzzy
 msgid "This is the default folder"
-msgstr "Ceci est le thème par défaut du système"
+msgstr "Ceci est le dossier par défaut"
 
 msgid "This is the default light theme"
 msgstr "Ceci est le thème clair par défaut du système"
@@ -15509,8 +15176,6 @@ msgstr ""
 " la position des widgets par glisser-déposer dans la vue du tableau de "
 "bord"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
 msgstr "Ce lien ne peut pas être suivi car son adresse n'est pas sécurisée."
 
@@ -15558,7 +15223,6 @@ msgstr ""
 "Cette page est destinée à être intégrée dans une iframe, mais il semble "
 "que ce ne soit pas le cas."
 
-#, fuzzy
 msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
@@ -15596,7 +15260,6 @@ msgstr ""
 "Ce tableau est déjà associé à un jeu de données. Vous ne pouvez associer "
 "qu'un seul jeu de données à un tableau.\n"
 
-#, fuzzy
 msgid "This theme is set locally"
 msgstr "Ce thème est défini localement pour votre session"
 
@@ -15618,7 +15281,6 @@ msgstr "Ce type de visualisation ne prend pas en charge le filtrage croisé."
 msgid "This visualization type is not supported."
 msgstr "Ce type de visualisation n'est pas pris en charge."
 
-#, fuzzy
 msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "Cela a été déclenché par :"
@@ -15666,7 +15328,6 @@ msgstr "Seuil alpha pour déterminer l’importance"
 msgid "Threshold for Other"
 msgstr "Seuil pour les autres"
 
-#, fuzzy
 msgid "Threshold: "
 msgstr "Seuil :"
 
@@ -15831,9 +15492,8 @@ msgstr ""
 msgid "Time-series Percent Change"
 msgstr "Evolution en pourcentage des séries temporelles"
 
-#, fuzzy
 msgid "Time-series Period Pivot"
-msgstr "Période Pivot de séries temporelles"
+msgstr "Période du pivot de séries temporelles"
 
 msgid "Time-series Table"
 msgstr "Tableau des séries temporelles"
@@ -15844,9 +15504,6 @@ msgstr "Délai terminé"
 msgid "Timeline"
 msgstr "Echéance"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy, python-format
 msgid ""
 "Timeout configured (%s seconds) but no abort handler defined. Task will "
 "continue running past the timeout."
@@ -15914,9 +15571,8 @@ msgstr "Pour obtenir une URL lisible pour votre tableau de bord"
 msgid "Token Request URI"
 msgstr "URL de requête du Token"
 
-#, fuzzy
 msgid "Tool Panel"
-msgstr "Tous les panneaux"
+msgstr "Outil du panneau"
 
 msgid "Tooltip"
 msgstr "Infobulle"
@@ -15971,13 +15627,12 @@ msgstr "Couleur total"
 msgid "Total label"
 msgstr "Etiquette totale"
 
-#, fuzzy
 msgid "Total value"
 msgstr "Valeur totale"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Total: %s"
-msgstr "Total : (%s)"
+msgstr "Total : %s"
 
 msgid "Track job"
 msgstr "Suivre le travail"
@@ -16064,7 +15719,6 @@ msgstr "Essayer différents critères pour afficher les résultats."
 msgid "Tuesday"
 msgstr "Mardi"
 
-#, fuzzy
 msgid "Tukey"
 msgstr "Turquie"
 
@@ -16126,9 +15780,8 @@ msgstr "URl des filtres"
 msgid "URL Parameters"
 msgstr "Paramètres URL"
 
-#, fuzzy
 msgid "URL Slug"
-msgstr "Logotype URL"
+msgstr "URL Slug"
 
 msgid "URL parameters"
 msgstr "Paramètres URL"
@@ -16156,7 +15809,6 @@ msgstr ""
 "définies « bigquery.readsessions.create », « "
 "bigquery.readsessions.getData »"
 
-#, fuzzy
 msgid ""
 "Unable to connect. Verify that the following roles are set on the service"
 " account: \"Cloud Datastore Viewer\", \"Cloud Datastore User\", \"Cloud "
@@ -16269,11 +15921,8 @@ msgstr "Annuler l'action"
 msgid "Undo?"
 msgstr "Annuler?"
 
-#, fuzzy
 msgid "Unexpected HTTP 401 response. Check your credentials."
-msgstr ""
-"Une erreur inattendue s'est produite, veuillez consulter vos journaux "
-"pour plus de détails"
+msgstr "Erreur HTTP 401 inattendue. Vérifier votre identifiants."
 
 msgid "Unexpected error"
 msgstr "Erreur inattendue"
@@ -16283,7 +15932,6 @@ msgstr ""
 "Une erreur inattendue s'est produite, veuillez consulter vos journaux "
 "pour plus de détails"
 
-#, fuzzy
 msgid "Unexpected error: "
 msgstr "Erreur inattendue :"
 
@@ -16303,11 +15951,10 @@ msgstr "Afficher"
 msgid "Unknown"
 msgstr "Inconnu"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Unknown Doris server host \"%(hostname)s\"."
-msgstr "Hôte MySQL \"%(hostname)s\" inconnu."
+msgstr "Hôte du serveur Doris \"%(hostname)s\" inconnu."
 
-#, fuzzy
 msgid "Unknown Error"
 msgstr "Erreur inconnue"
 
@@ -16315,9 +15962,9 @@ msgstr "Erreur inconnue"
 msgid "Unknown MySQL server host \"%(hostname)s\"."
 msgstr "Hôte inconnu du serveur MySQL \"%(hostname)s\"."
 
-#, fuzzy, python-format
+#, python-format
 msgid "Unknown OceanBase server host \"%(hostname)s\"."
-msgstr "Hôte MySQL \"%(hostname)s\" inconnu."
+msgstr "Hôte du serveur OceanBase \"%(hostname)s\" inconnu."
 
 msgid "Unknown Presto Error"
 msgstr "Erreur Presto inconnue"
@@ -16340,11 +15987,9 @@ msgstr "Format d'entrée inconnu"
 msgid "Unknown tokens will be highlighted as warnings."
 msgstr "Les tokens inconnus seront mis en surbrillance."
 
-#, fuzzy
 msgid "Unknown type"
 msgstr "Type inconnu"
 
-#, fuzzy
 msgid "Unknown value"
 msgstr "Valeur inconnue"
 
@@ -16356,14 +16001,9 @@ msgstr "Détacher"
 msgid "Unpin from the result panel"
 msgstr "Détacher du panneau de résultat"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
 msgid "Unpin from top"
 msgstr "Détacher du haut"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Unsafe link blocked"
 msgstr "Lien non sécurisé bloqué"
 
@@ -16417,9 +16057,8 @@ msgstr "Non vérifié"
 msgid "Update"
 msgstr "Mettre à jour"
 
-#, fuzzy
 msgid "Update auto-refresh"
-msgstr "Définir l'intervalle de rafraîchissement automatique"
+msgstr "Mettre à jour l'intervalle de rafraîchissement automatique"
 
 msgid "Update chart"
 msgstr "Mettre à jour le graphique"
@@ -16479,7 +16118,7 @@ msgstr "Le seuil haut doit être plus grand que le seuil bas"
 msgid "Usage"
 msgstr "Utilisation"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Use %s to open in a new tab."
 msgstr "Utilisez %s pour ouvrir un nouvel onglet."
 
@@ -16580,16 +16219,14 @@ msgstr "Utilisateur·rice"
 msgid "User Name"
 msgstr "[NEUTRE] Nom de l'utilisateur·rice"
 
-#, fuzzy
 msgid "User Registrations"
-msgstr "Imputation nulle"
+msgstr "Inscription de l'utilisateur"
 
 msgid "User doesn't have the proper permissions."
 msgstr "Lutilisateur·rice n'a pas les droits."
 
-#, fuzzy
 msgid "User info"
-msgstr "Nom de la requête"
+msgstr "Information de l'utilisateur"
 
 msgid "User must select a value before applying the chart customization"
 msgstr "[NEUTRE] L'utilisateur·rice doit sélectionner une valeur pour ce filtre"
@@ -16609,9 +16246,8 @@ msgstr "[NEUTRE] Enregistrement de l'utilisateur·rice"
 msgid "Username"
 msgstr "Username"
 
-#, fuzzy
 msgid "Username is required"
-msgstr "Le nom est obligatoire"
+msgstr "Le pseudo est obligatoire"
 
 msgid "Username:"
 msgstr "Nom d'utilisateur"
@@ -16706,9 +16342,8 @@ msgstr "Différence de valeur entre les périodes"
 msgid "Value format"
 msgstr "Format de valeur"
 
-#, fuzzy
 msgid "Value greater than"
-msgstr "La valeur doit être plus grande que 0"
+msgstr "La valeur doit être plus grande que"
 
 msgid "Value is required"
 msgstr "Une valeur est obligatoire"
@@ -16716,9 +16351,8 @@ msgstr "Une valeur est obligatoire"
 msgid "Value less than"
 msgstr "Valeur inférieure à"
 
-#, fuzzy
 msgid "Value must be 0 or greater"
-msgstr "La valeur doit être plus grande que 0"
+msgstr "La valeur doit être plus grande ou égale à 0"
 
 msgid "Value must be greater than 0"
 msgstr "La valeur doit être plus grande que 0"
@@ -16750,11 +16384,9 @@ msgstr "Version"
 msgid "Version number"
 msgstr "Numéro de version"
 
-#, fuzzy
 msgid "Vertical"
 msgstr "Vertical"
 
-#, fuzzy
 msgid "Vertical (Left)"
 msgstr "Vertical (gauche)"
 
@@ -16953,9 +16585,6 @@ msgstr "En attente de la base de donnée..."
 msgid "Want to add a new database?"
 msgstr "Ajouter un nouvelle base de données?"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
 msgid "Warehouse"
 msgstr "Entrepôt"
 
@@ -17016,7 +16645,6 @@ msgstr ""
 msgid "We have the following keys: %s"
 msgstr "Nous avons les clés suivantes : %s"
 
-#, fuzzy
 msgid "We were unable to activate or deactivate this report."
 msgstr "Nous n'avons pas pu activer ou désactiver ce rapport."
 
@@ -17145,7 +16773,6 @@ msgstr ""
 "Lorsque seule une mesure primaire est fournie, une échelle de couleur "
 "catégorique est utilisée."
 
-#, fuzzy
 msgid ""
 "When specifying SQL, the datasource acts as a view. Superset will use "
 "this statement as a subquery while grouping and filtering on the "
@@ -17193,7 +16820,6 @@ msgstr ""
 "Lorsque vous utilisez un formatage autre que adaptatif, les étiquettes "
 "peuvent se chevaucher"
 
-#, fuzzy
 msgid ""
 "When using this option, default value can't be set. Using this option may"
 " impact the load times for your dashboard."
@@ -17286,9 +16912,8 @@ msgstr "Affichage ou non des valeurs min et max de l’axe des absisses"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Affichage ou non des valeurs min et max de l’axe Y"
 
-#, fuzzy
 msgid "Whether to display the numbered column"
-msgstr "Affichage ou non de la ligne de tendance"
+msgstr "Affichage ou non le numéro de la colonne"
 
 msgid "Whether to display the numerical values within the cells"
 msgstr "Affichage ou non des valeurs numériques dans les cellules"
@@ -17407,7 +17032,6 @@ msgstr "Pourquoi dois-je ajouter une base de données ?"
 msgid "Width"
 msgstr "Largeur"
 
-#, fuzzy
 msgid "Width of the confidence interval. Should be between 0 and 1"
 msgstr "Largeur de l'intervalle de confiance. Doit être comprise entre 0 et 1"
 
@@ -17565,7 +17189,6 @@ msgstr "Année %s"
 msgid "Yes"
 msgstr "Oui"
 
-#, fuzzy
 msgid "Yes, Cancel"
 msgstr "Oui, annuler"
 
@@ -17579,7 +17202,6 @@ msgstr "Oui, écraser les modifications"
 msgid "You are adding tags to %s %ss"
 msgstr "Vous ajoutez des étiquettes à %s %s"
 
-#, fuzzy
 msgid "You are editing a query from the virtual dataset "
 msgstr "Vous modifiez une requête provenant du jeu de données virtuel"
 
@@ -17740,7 +17362,6 @@ msgstr "Vous n'avez pas accès à ce tableau de bord."
 msgid "You don't have access to this dataset."
 msgstr "Vous n'avez pas accès à ce jeu de données."
 
-#, fuzzy
 msgid "You don't have access to this embedded dashboard config."
 msgstr "Vous n'avez pas accès à la configuration de ce tableau de bord intégré."
 
@@ -17790,7 +17411,6 @@ msgstr "Vous avez été retiré de la tâche: %s"
 msgid "You have removed this filter."
 msgstr "Vous avez supprimé ce filtre."
 
-#, fuzzy
 msgid "You have unsaved changes"
 msgstr "Vous avez des modifications non enregistrées."
 
@@ -17830,9 +17450,6 @@ msgstr "Vous devez entrer un nom pour le nouveau tableau de Bord"
 msgid "You must run the query successfully first"
 msgstr "Vous devez d'abord exécuter la requête avec succès"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
 msgid "You need to"
 msgstr "Vous devez"
 
@@ -17863,9 +17480,6 @@ msgstr ""
 "données (colonnes, mesures) qui correspondent à ce nouveau jeu de données"
 " ont été conservés."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
 msgid "Your account is activated. You can log in with your credentials."
 msgstr "Votre compte est activé. Vous pouvez vous connecter avec vos identifiants."
 
@@ -17919,9 +17533,8 @@ msgstr "Votre rapport n'a pas pu être supprimée"
 msgid "Your user information"
 msgstr "Vos informations"
 
-#, fuzzy
 msgid "Z-A"
-msgstr "clé z-a"
+msgstr "Z-A"
 
 msgid "ZIP file contains multiple file types"
 msgstr "Fichier ZIP contient plusieurs type de fichier"
@@ -17955,7 +17568,6 @@ msgstr "[Jeu de données manquant]"
 msgid "[Untitled]"
 msgstr "[Sans titre]"
 
-#, fuzzy
 msgid "[asc]"
 msgstr "[croissant]"
 
@@ -18067,11 +17679,9 @@ msgstr "auto"
 msgid "background"
 msgstr "contexte"
 
-#, fuzzy
 msgid "background color"
 msgstr "Couleur d'arrière plan"
 
-#, fuzzy
 msgid "basis"
 msgstr "base"
 
@@ -18100,7 +17710,6 @@ msgstr "booléen"
 msgid "boolean type icon"
 msgstr "icône de type booléen"
 
-#, fuzzy
 msgid "bottom"
 msgstr "bas"
 
@@ -18113,12 +17722,11 @@ msgstr "en utilisant"
 msgid "cannot be empty"
 msgstr "ne peut pas être vide"
 
-#, fuzzy
 msgid "cardinal"
 msgstr "cardinal"
 
 msgid "cell bar"
-msgstr "barres de cellule"
+msgstr "barre de la cellule"
 
 msgid "change"
 msgstr "changement"
@@ -18135,7 +17743,6 @@ msgstr "choisir WHERE ou HAVING..."
 msgid "click here"
 msgstr "cliquer ici"
 
-#, fuzzy
 msgid "close"
 msgstr "Fermer"
 
@@ -18206,7 +17813,6 @@ msgstr "Connexions aux données"
 msgid "database"
 msgstr "base de données"
 
-#, fuzzy
 msgid "databases"
 msgstr "Bases de données"
 
@@ -18216,17 +17822,14 @@ msgstr "jeu de données"
 msgid "dataset name"
 msgstr "nom du jeu de données"
 
-#, fuzzy
 msgid "datasets"
 msgstr "Ensembles de données"
 
-#, fuzzy
 msgid "datasource"
 msgstr "Source de données"
 
-#, fuzzy
 msgid "datasources"
-msgstr "Source de données"
+msgstr "Sources de données"
 
 msgid "date"
 msgstr "date"
@@ -18240,57 +17843,45 @@ msgstr "jour du mois"
 msgid "day of the week"
 msgstr "jour de la semaine"
 
-#, fuzzy
 msgid "deck.gl 3D Hexagon"
-msgstr "Hexagone 3D deck.gl"
+msgstr "deck.gl - Hexagone 3D"
 
-#, fuzzy
 msgid "deck.gl Arc"
-msgstr "Arc deck.gl "
+msgstr "deck.gl - Arc"
 
-#, fuzzy
 msgid "deck.gl Contour"
-msgstr "Deck.gl - Arc"
+msgstr "Deck.gl - Contour"
 
-#, fuzzy
 msgid "deck.gl Geojson"
-msgstr "Geojson deck.gl "
+msgstr "deck.gl - Geojson"
 
-#, fuzzy
 msgid "deck.gl Grid"
-msgstr "Grille deck.gl"
+msgstr "deck.gl - Grille"
 
-#, fuzzy
 msgid "deck.gl Heatmap"
-msgstr "Carte thermique Deck.gl"
+msgstr "deck.gl - Carte thermique "
 
-#, fuzzy
 msgid "deck.gl Multiple Layers"
-msgstr "Couches multiples Deck.gl"
+msgstr "deck.gl - multiples couches"
 
-#, fuzzy
 msgid "deck.gl Path"
-msgstr "Path deck.gl"
+msgstr "deck.gl - Path"
 
-#, fuzzy
 msgid "deck.gl Polygon"
-msgstr "Polygon deck.gl"
+msgstr "deck.gl - Polygon"
 
 msgid "deck.gl Scatterplot"
-msgstr "Graphique de dispersion Deck.gl"
+msgstr "deck.gl - Graphique de dispersion"
 
-#, fuzzy
 msgid "deck.gl Screen Grid"
-msgstr "Grille d'écran Deck.gl"
+msgstr "deck.gl - Grille d'écran"
 
-#, fuzzy
 msgid "deck.gl layers (charts)"
-msgstr "Graphiques deck.gl"
+msgstr "deck.gl - Couches (graphiques)"
 
 msgid "deckGL"
 msgstr "deckGL"
 
-#, fuzzy
 msgid "default"
 msgstr "défaut"
 
@@ -18374,7 +17965,6 @@ msgstr "enregistrement par page"
 msgid "error"
 msgstr "erreur"
 
-#, fuzzy
 msgid "error_message"
 msgstr "error_message"
 
@@ -18399,9 +17989,6 @@ msgstr "chaque mois"
 msgid "expand"
 msgstr "agrandir"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
 msgid "extra.dashboard must be an object"
 msgstr "extra.dashboard doit être un objet"
 
@@ -18422,16 +18009,14 @@ msgstr "ffill"
 msgid "flat"
 msgstr "plat"
 
-#, fuzzy
 msgid "for a list of available helpers."
-msgstr "Aucun filtre disponible."
+msgstr "pour une liste d'aides disponibles."
 
 msgid "for more information on how to structure your URI."
 msgstr "pour plus d'information sur comment strcuturer votre URI."
 
-#, fuzzy
 msgid "formatted"
-msgstr "Date formatée"
+msgstr "formaté"
 
 msgid "function type icon"
 msgstr "icône de type de fonction"
@@ -18542,7 +18127,6 @@ msgstr "gauche"
 msgid "less than {min} {name}"
 msgstr "moins de {min} {name}"
 
-#, fuzzy
 msgid "linear"
 msgstr "linéaire"
 
@@ -18559,7 +18143,6 @@ msgstr ""
 "le percentile inférieur doit être plus grand que 0 et plus petit que 100 "
 "et doit être plus petit que le percentile supérieur."
 
-#, fuzzy
 msgid "max"
 msgstr "max"
 
@@ -18578,7 +18161,6 @@ msgstr "mesure"
 msgid "metric type icon"
 msgstr "type d'icône de mesure"
 
-#, fuzzy
 msgid "min"
 msgstr "min"
 
@@ -18588,7 +18170,6 @@ msgstr "minute"
 msgid "minute(s)"
 msgstr "minutes"
 
-#, fuzzy
 msgid "monotone"
 msgstr "monotone"
 
@@ -18605,9 +18186,6 @@ msgstr "doit avoir une valeur"
 msgid "name"
 msgstr "Nom"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
 msgid "nativeFilters must be a list"
 msgstr "nativeFilters doit être une liste"
 
@@ -18623,9 +18201,6 @@ msgstr "nativeFilters[%(idx)s] nécessite les clés suivantes: %(keys)s"
 msgid "nativeFilters[%(idx)s] must be an object"
 msgstr "nativeFilters[%(idx)s] doit être un object"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy, python-format
 msgid "nativeFilters[%(idx)s].filterValues must be a list"
 msgstr "nativeFilters[%(idx)s].filterValues doit être une liste"
 
@@ -18647,7 +18222,6 @@ msgstr ""
 "nativeFilters[%(idx)s].nativeFilterId ne peut pas être une chaîne de "
 "caractère nulle"
 
-#, fuzzy
 msgid "no SQL validator is configured"
 msgstr "aucun validateur SQL n'est configuré"
 
@@ -18709,7 +18283,7 @@ msgstr "p95"
 msgid "p99"
 msgstr "p99"
 
-#, fuzzy/stregint-generator/
+#, /stregint-generator/
 msgid "pending"
 msgstr "en attente"
 
@@ -18741,7 +18315,6 @@ msgstr "semaine calendaire précédente"
 msgid "previous calendar year"
 msgstr "année calendaire précédente"
 
-#, fuzzy
 msgid "provide authorization"
 msgstr "Autorisation requise"
 
@@ -18805,15 +18378,12 @@ msgstr ""
 msgid "sql"
 msgstr "sql"
 
-#, fuzzy
 msgid "square"
 msgstr "carré"
 
-#, fuzzy
 msgid "stack"
 msgstr "pile"
 
-#, fuzzy
 msgid "staggered"
 msgstr "décalé"
 
@@ -18826,20 +18396,17 @@ msgstr "étape-après"
 msgid "step-before"
 msgstr "step-before"
 
-#, fuzzy
 msgid "stopped"
 msgstr "arrêté"
 
-#, fuzzy
 msgid "stream"
 msgstr "flux"
 
-#, fuzzy
 msgid "string"
-msgstr "CHAÎNE"
+msgstr "chaîne de caractères"
 
 msgid "string type icon"
-msgstr "icône de type de chaîne"
+msgstr "type d'icône de la chaîne de caractères"
 
 msgid "success"
 msgstr "succès"
@@ -18882,17 +18449,14 @@ msgstr "horodatage"
 msgid "to"
 msgstr "à"
 
-#, fuzzy
 msgid "top"
 msgstr "haut"
 
-#, fuzzy
 msgid "undo"
 msgstr "annuler"
 
-#, fuzzy
 msgid "unknown type icon"
-msgstr "icône de type inconnu"
+msgstr "type d'icône inconnu"
 
 msgid "unset"
 msgstr "désactiver"
@@ -18907,18 +18471,15 @@ msgstr ""
 "le centile supérieur doit être supérieur à 0 et inférieur à 100. Doit "
 "être supérieur au percentile inférieur."
 
-#, fuzzy
 msgid "use latest_partition template"
 msgstr "utiliser le modèle latest_partition"
 
 msgid "username"
 msgstr "[NEUTRE] Nom d'utilisateur"
 
-#, fuzzy
 msgid "value ascending"
 msgstr "valeurs croissantes"
 
-#, fuzzy
 msgid "value descending"
 msgstr "valeurs décroissantes"
 
