@@ -221,11 +221,12 @@ def test_time_range_without_granularity_filters_main_datetime_column(
         "label": "value_bucket",
         "columnType": "BASE_AXIS",
     }
-    query_object = QueryObject(
+    query_object: QueryObject = QueryObject(
         granularity=None,
         is_timeseries=False,
         metrics=["count"],
         columns=[expression],
+        time_range="2024-01-01 : 2024-01-31",
         from_dttm=datetime(2024, 1, 1, tzinfo=timezone.utc),
         to_dttm=datetime(2024, 1, 31, tzinfo=timezone.utc),
     )
