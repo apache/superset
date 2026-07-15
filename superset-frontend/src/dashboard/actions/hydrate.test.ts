@@ -31,11 +31,11 @@ import { DASHBOARD_ROOT_ID } from '../util/constants';
  * utilities, screenshot download) reads the dashboard's real default tab path
  * instead of an empty array.
  *
- * On master, hydrate seeds `activeTabs: activeTabs || dashboardState?.activeTabs
- * || []` (hydrate.ts). With no permalink, no stored state and no
- * directPathToChild, that resolves to `[]`, and the live `Tabs` component only
- * populates the value from a post-mount effect. These tests assert the seeded
- * default path and therefore fail RED against master's `[]`.
+ * Before this change, hydrate seeded `activeTabs: activeTabs ||
+ * dashboardState?.activeTabs || []` (hydrate.ts). With no permalink, no stored
+ * state and no directPathToChild, that resolved to `[]`, and the live `Tabs`
+ * component only populated the value from a post-mount effect. These tests
+ * assert the seeded default path and fail without the hydration-time seeding.
  */
 
 const layoutItem = (
@@ -198,7 +198,7 @@ test('seeds the default tab path for an embedded top-level-TABS layout (hideTab 
   expect(action.data.dashboardState.activeTabs).toEqual(['TAB-Company']);
 });
 
-// Precedence (RCA §Root Cause / PLAN §4.5): the layout default only applies
+// Precedence: the layout default only applies
 // to a genuinely fresh load. A permalink `activeTabs`, a non-empty stored
 // redux value, or a non-empty `directPathToChild` (deep link) must each
 // suppress it.
