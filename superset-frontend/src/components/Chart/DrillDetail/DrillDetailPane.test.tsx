@@ -27,6 +27,7 @@ import {
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import { supersetGetCache } from 'src/utils/cachedSupersetGet';
+import * as drillUtils from './utils';
 import DrillDetailPane from './DrillDetailPane';
 
 const mockAddDangerToast = jest.fn();
@@ -283,6 +284,29 @@ describe('download actions', () => {
         'Failed to generate download: boom',
       ),
     );
+    postFormSpy.mockRestore();
+  });
+
+  test('shows a danger toast when the drill payload cannot be generated', async () => {
+    mockAddDangerToast.mockClear();
+    fetchWithData();
+    const getDrillPayloadSpy = jest
+      .spyOn(drillUtils, 'getDrillPayload')
+      .mockReturnValue(undefined);
+    const postFormSpy = jest
+      .spyOn(SupersetClient, 'postForm')
+      .mockImplementation(() => Promise.resolve());
+    renderWithDownloadPermission();
+
+    await clickDownloadItem('Export to CSV');
+
+    await waitFor(() =>
+      expect(mockAddDangerToast).toHaveBeenCalledWith(
+        'Unable to generate download payload',
+      ),
+    );
+    expect(postFormSpy).not.toHaveBeenCalled();
+    getDrillPayloadSpy.mockRestore();
     postFormSpy.mockRestore();
   });
 });
