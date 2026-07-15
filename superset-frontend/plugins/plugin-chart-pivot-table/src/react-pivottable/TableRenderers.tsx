@@ -20,14 +20,13 @@
 import {
   ReactNode,
   MouseEvent,
-  SyntheticEvent,
   useState,
   useCallback,
   useRef,
   useMemo,
   useEffect,
 } from 'react';
-import { safeHtmlSpan, handleKeyboardActivation } from '@superset-ui/core';
+import { safeHtmlSpan } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { supersetTheme } from '@apache-superset/core/theme';
 import PropTypes from 'prop-types';
@@ -156,10 +155,7 @@ function displayCell(value: unknown, allowRenderHtml?: boolean): ReactNode {
 function displayHeaderCell(
   needToggle: boolean,
   ArrowIcon: ReactNode,
-  // `SyntheticEvent` (rather than `MouseEvent`) so this callback can also be
-  // used as the keyboard-activation handler via `handleKeyboardActivation`,
-  // which invokes it with a `KeyboardEvent`.
-  onArrowClick: ((e: SyntheticEvent) => void) | null,
+  onArrowClick: ((e: MouseEvent<HTMLButtonElement>) => void) | null,
   value: unknown,
   namesMapping: Record<string, string>,
   allowRenderHtml?: boolean,
@@ -172,17 +168,9 @@ function displayHeaderCell(
       : parsedLabel;
   return needToggle ? (
     <span className="toggle-wrapper">
-      <span
-        role="button"
-        tabIndex={0}
-        className="toggle"
-        onClick={onArrowClick || undefined}
-        onKeyDown={
-          onArrowClick ? handleKeyboardActivation(onArrowClick) : undefined
-        }
-      >
+      <button type="button" className="toggle" onClick={onArrowClick || undefined}>
         {ArrowIcon}
-      </span>
+      </button>
       <span className="toggle-val">{labelContent}</span>
     </span>
   ) : (
@@ -470,7 +458,7 @@ export function TableRenderer(props: TableRendererProps) {
   );
 
   const toggleRowKey = useCallback(
-    (flatRowKey: string) => (e: SyntheticEvent) => {
+    (flatRowKey: string) => (e: MouseEvent<HTMLButtonElement>) => {
       e.stopPropagation();
       setCollapsedRows(state => ({
         ...state,
@@ -481,7 +469,7 @@ export function TableRenderer(props: TableRendererProps) {
   );
 
   const toggleColKey = useCallback(
-    (flatColKey: string) => (e: SyntheticEvent) => {
+    (flatColKey: string) => (e: MouseEvent<HTMLButtonElement>) => {
       e.stopPropagation();
       setCollapsedCols(state => ({
         ...state,
@@ -1048,8 +1036,6 @@ export function TableRenderer(props: TableRendererProps) {
                 settingsAllowRenderHtml,
               )}
               <span
-                role="button"
-                tabIndex={0}
                 // Prevents event bubbling to avoid conflict with column header click handlers
                 // Ensures sort operation executes without triggering cross-filtration
                 onClick={e => {

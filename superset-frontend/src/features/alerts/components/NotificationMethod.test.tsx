@@ -117,6 +117,29 @@ jest.mock('@superset-ui/core/components', () => {
 
   return {
     Input,
+    ActionButton: ({
+      label,
+      icon,
+      onClick,
+      className,
+      dataTest,
+    }: {
+      label: string;
+      icon: ReactNode;
+      onClick: () => void;
+      className?: string;
+      dataTest?: string;
+    }) => (
+      <button
+        type="button"
+        aria-label={label}
+        className={className}
+        data-test={dataTest ?? label}
+        onClick={onClick}
+      >
+        {icon}
+      </button>
+    ),
     Select: ({
       'data-test': dataTest,
       ariaLabel,

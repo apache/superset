@@ -93,12 +93,12 @@ describe('ChartList Card View Tests', () => {
 
     // Verify card view toggle is active (appstore icon should have active class)
     const cardViewToggle = screen.getByRole('img', { name: 'appstore' });
-    const cardViewButton = cardViewToggle.closest('[role="button"]');
+    const cardViewButton = cardViewToggle.closest('button');
     expect(cardViewButton).toHaveClass('active');
 
     // Verify list view toggle is not active
     const listViewToggle = screen.getByRole('img', { name: 'unordered-list' });
-    const listViewButton = listViewToggle.closest('[role="button"]');
+    const listViewButton = listViewToggle.closest('button');
     expect(listViewButton).not.toHaveClass('active');
   });
 
@@ -111,7 +111,7 @@ describe('ChartList Card View Tests', () => {
 
     // Switch to list view
     const listViewToggle = screen.getByRole('img', { name: 'unordered-list' });
-    const listViewButton = listViewToggle.closest('[role="button"]');
+    const listViewButton = listViewToggle.closest('button');
     expect(listViewButton).not.toBeNull();
     fireEvent.click(listViewButton!);
 

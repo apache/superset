@@ -870,14 +870,14 @@ test('Renders only an overflow tag if dropdown is open in oneLine mode', async (
 test('does not fire onChange when searching but no selection', async () => {
   const onChange = jest.fn();
   render(
-    <div role="main">
+    <main>
       <AsyncSelect
         {...defaultProps}
         onChange={onChange}
         mode="multiple"
         allowNewOptions
       />
-    </div>,
+    </main>,
   );
   await open();
   await type('Joh');

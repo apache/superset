@@ -215,122 +215,124 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
 
   return (
     <StyledHeader backgroundColor={props.backgroundColor}>
-      <Row className="menu" role="navigation" aria-label={t('Page navigation')}>
-        {props.name && <div className="header">{props.name}</div>}
-        <Menu
-          mode={showMenu}
-          disabledOverflow
-          role="tablist"
-          items={props.tabs?.map(tab => {
-            if ((props.usesRouter || hasHistory) && !!tab.usesRouter) {
+      <nav aria-label={t('Page navigation')}>
+        <Row className="menu">
+          {props.name && <div className="header">{props.name}</div>}
+          <Menu
+            mode={showMenu}
+            disabledOverflow
+            role="tablist"
+            items={props.tabs?.map(tab => {
+              if ((props.usesRouter || hasHistory) && !!tab.usesRouter) {
+                return {
+                  key: tab.label,
+                  label: (
+                    <Link
+                      to={tab.url || ''}
+                      role="tab"
+                      id={tab.id || tab.name}
+                      data-test={tab['data-test']}
+                      aria-selected={tab.name === props.activeChild}
+                      aria-controls={tab['aria-controls'] || ''}
+                      className={tab.name === props.activeChild ? 'active' : ''}
+                    >
+                      {tab.label}
+                    </Link>
+                  ),
+                };
+              }
               return {
                 key: tab.label,
                 label: (
-                  <Link
-                    to={tab.url || ''}
+                  <div
+                    className={cx('no-router', {
+                      active: tab.name === props.activeChild,
+                    })}
                     role="tab"
-                    id={tab.id || tab.name}
-                    data-test={tab['data-test']}
                     aria-selected={tab.name === props.activeChild}
-                    aria-controls={tab['aria-controls'] || ''}
-                    className={tab.name === props.activeChild ? 'active' : ''}
                   >
-                    {tab.label}
-                  </Link>
+                    <Typography.Link href={tab.url} onClick={tab.onClick}>
+                      {tab.label}
+                    </Typography.Link>
+                  </div>
                 ),
               };
-            }
-            return {
-              key: tab.label,
-              label: (
-                <div
-                  className={cx('no-router', {
-                    active: tab.name === props.activeChild,
-                  })}
-                  role="tab"
-                  aria-selected={tab.name === props.activeChild}
-                >
-                  <Typography.Link href={tab.url} onClick={tab.onClick}>
-                    {tab.label}
-                  </Typography.Link>
-                </div>
-              ),
-            };
-          })}
-        />
-        <div className={navRightStyle}>
-          <Menu
-            mode="horizontal"
-            triggerSubMenuAction="click"
-            disabledOverflow
-            css={css`
-              [data-icon='caret-down'] {
-                color: ${theme.colorIcon};
-                font-size: ${theme.fontSizeXS}px;
-                margin-left: ${theme.sizeUnit}px;
-              }
-            `}
-            items={props.dropDownLinks?.map((link, i) => ({
-              key: `dropdown-${i}`,
-              label: link.label,
-              icon: <Icons.CaretDownOutlined />,
-              popupOffset: [10, 20],
-              className: 'dropdown-menu-links',
-              children: link.childs
-                ?.filter(
-                  (item): item is Exclude<typeof item, string> =>
-                    typeof item === 'object',
-                )
-                .map(item =>
-                  item.disable
-                    ? {
-                        key: item.label,
-                        disabled: true,
-                        label: (
-                          <Tooltip
-                            placement="top"
-                            title={t(
-                              "Enable 'Allow file uploads to database' in any database's settings",
-                            )}
-                          >
-                            <span css={styledDisabled(theme)}>
-                              {item.label}
-                            </span>
-                          </Tooltip>
-                        ),
-                      }
-                    : {
-                        key: item.label,
-                        label: (
-                          <Typography.Link
-                            href={item.url}
-                            onClick={item.onClick}
-                          >
-                            {item.label}
-                          </Typography.Link>
-                        ),
-                      },
-                ),
-            }))}
+            })}
           />
-          {props.buttons?.map((btn, i) =>
-            btn.component ? (
-              <span key={i}>{btn.component}</span>
-            ) : (
-              <Button
-                key={i}
-                buttonStyle={btn.buttonStyle}
-                icon={btn.icon}
-                onClick={btn.onClick}
-                data-test={btn['data-test']}
-                loading={btn.loading ?? false}
-              >
-                {btn.name}
-              </Button>
-            ),
-          )}
-        </div>
-      </Row>
+          <div className={navRightStyle}>
+            <Menu
+              mode="horizontal"
+              triggerSubMenuAction="click"
+              disabledOverflow
+              css={css`
+                [data-icon='caret-down'] {
+                  color: ${theme.colorIcon};
+                  font-size: ${theme.fontSizeXS}px;
+                  margin-left: ${theme.sizeUnit}px;
+                }
+              `}
+              items={props.dropDownLinks?.map((link, i) => ({
+                key: `dropdown-${i}`,
+                label: link.label,
+                icon: <Icons.CaretDownOutlined />,
+                popupOffset: [10, 20],
+                className: 'dropdown-menu-links',
+                children: link.childs
+                  ?.filter(
+                    (item): item is Exclude<typeof item, string> =>
+                      typeof item === 'object',
+                  )
+                  .map(item =>
+                    item.disable
+                      ? {
+                          key: item.label,
+                          disabled: true,
+                          label: (
+                            <Tooltip
+                              placement="top"
+                              title={t(
+                                "Enable 'Allow file uploads to database' in any database's settings",
+                              )}
+                            >
+                              <span css={styledDisabled(theme)}>
+                                {item.label}
+                              </span>
+                            </Tooltip>
+                          ),
+                        }
+                      : {
+                          key: item.label,
+                          label: (
+                            <Typography.Link
+                              href={item.url}
+                              onClick={item.onClick}
+                            >
+                              {item.label}
+                            </Typography.Link>
+                          ),
+                        },
+                  ),
+              }))}
+            />
+            {props.buttons?.map((btn, i) =>
+              btn.component ? (
+                <span key={i}>{btn.component}</span>
+              ) : (
+                <Button
+                  key={i}
+                  buttonStyle={btn.buttonStyle}
+                  icon={btn.icon}
+                  onClick={btn.onClick}
+                  data-test={btn['data-test']}
+                  loading={btn.loading ?? false}
+                >
+                  {btn.name}
+                </Button>
+              ),
+            )}
+          </div>
+        </Row>
+      </nav>
       {props.children}
     </StyledHeader>
   );

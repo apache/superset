@@ -25,7 +25,6 @@ import {
   JsonResponse,
   SupersetClient,
   isMatrixifyEnabled,
-  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
@@ -47,6 +46,7 @@ import {
 } from 'src/views/CRUD/hooks';
 import handleResourceExport from 'src/utils/export';
 import {
+  ActionButton,
   ConfirmStatusChange,
   CertifiedBadge,
   Tooltip,
@@ -86,7 +86,6 @@ import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { Tag } from 'src/components/Tag';
 import { datasetLabel } from 'src/features/semanticLayers/label';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
-import IconButton from 'src/dashboard/components/IconButton';
 import type { CellProps } from 'react-table';
 
 const FlexRowContainer = styled.div`
@@ -532,9 +531,9 @@ function ChartList(props: ChartListProps) {
           return (
             <Actions className="actions">
               {canEdit && (
-                <Tooltip
-                  id="edit-action-tooltip"
-                  title={
+                <ActionButton
+                  label={t('Edit')}
+                  tooltip={
                     allowEdit
                       ? t('Edit')
                       : t(
@@ -542,31 +541,23 @@ function ChartList(props: ChartListProps) {
                         )
                   }
                   placement="bottom"
-                >
-                  <IconButton
-                    data-test="chart-row-edit"
-                    disabled={!allowEdit}
-                    onClick={openEditModal}
-                    onKeyDown={handleKeyboardActivation(openEditModal)}
-                    icon={
-                      <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
-                    }
-                  />
-                </Tooltip>
+                  icon={
+                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
+                  }
+                  dataTest="chart-row-edit"
+                  disabled={!allowEdit}
+                  onClick={openEditModal}
+                />
               )}
               {canExport && (
-                <Tooltip
-                  id="export-action-tooltip"
-                  title={t('Export')}
+                <ActionButton
+                  label={t('Export')}
+                  tooltip={t('Export')}
                   placement="bottom"
-                >
-                  <IconButton
-                    data-test="chart-row-export"
-                    onClick={handleExport}
-                    onKeyDown={handleKeyboardActivation(handleExport)}
-                    icon={<Icons.UploadOutlined iconSize="l" />}
-                  />
-                </Tooltip>
+                  icon={<Icons.UploadOutlined iconSize="l" />}
+                  dataTest="chart-row-export"
+                  onClick={handleExport}
+                />
               )}
               {canDelete && (
                 <ConfirmStatusChange
@@ -580,9 +571,9 @@ function ChartList(props: ChartListProps) {
                   onConfirm={handleDelete}
                 >
                   {confirmDelete => (
-                    <Tooltip
-                      id="delete-action-tooltip"
-                      title={
+                    <ActionButton
+                      label={t('Delete')}
+                      tooltip={
                         allowEdit
                           ? t('Delete')
                           : t(
@@ -590,15 +581,11 @@ function ChartList(props: ChartListProps) {
                             )
                       }
                       placement="bottom"
-                    >
-                      <IconButton
-                        data-test="chart-row-delete"
-                        disabled={!allowEdit}
-                        onClick={confirmDelete}
-                        onKeyDown={handleKeyboardActivation(confirmDelete)}
-                        icon={<Icons.DeleteOutlined iconSize="l" />}
-                      />
-                    </Tooltip>
+                      icon={<Icons.DeleteOutlined iconSize="l" />}
+                      dataTest="chart-row-delete"
+                      disabled={!allowEdit}
+                      onClick={confirmDelete}
+                    />
                   )}
                 </ConfirmStatusChange>
               )}

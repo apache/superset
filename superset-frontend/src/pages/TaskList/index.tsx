@@ -17,17 +17,18 @@
  * under the License.
  */
 
-import {
-  FeatureFlag,
-  isFeatureEnabled,
-  SupersetClient,
-  handleKeyboardActivation,
-} from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, SupersetClient } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { useMemo, useCallback, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { Tooltip, Label, Modal, Checkbox } from '@superset-ui/core/components';
+import {
+  ActionButton,
+  Tooltip,
+  Label,
+  Modal,
+  Checkbox,
+} from '@superset-ui/core/components';
 import {
   CreatedInfo,
   ListView,
@@ -510,23 +511,13 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
                 </Tooltip>
               )}
               {canCancelTask && (
-                <Tooltip
-                  id="cancel-action-tooltip"
-                  title={t('Cancel')}
+                <ActionButton
+                  label={t('Cancel')}
+                  tooltip={t('Cancel')}
                   placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={() => openCancelModal(original)}
-                    onKeyDown={handleKeyboardActivation(() =>
-                      openCancelModal(original),
-                    )}
-                  >
-                    <Icons.StopOutlined iconSize="l" />
-                  </span>
-                </Tooltip>
+                  icon={<Icons.StopOutlined iconSize="l" />}
+                  onClick={() => openCancelModal(original)}
+                />
               )}
             </div>
           );

@@ -158,11 +158,12 @@ export default function TableControls({
           </Tooltip>
         )}
         <Tooltip title={t('Reload')}>
+          {/* role is auto-computed by BaseIconComponent as "button" since
+              onClick is present, so no explicit role needed here. */}
           <Icons.ReloadOutlined
             iconColor={theme.colorIcon}
             iconSize="l"
             aria-label={t('Reload')}
-            role="button"
             tabIndex={0}
             onClick={onReload}
           />

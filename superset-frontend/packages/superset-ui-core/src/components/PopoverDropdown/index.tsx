@@ -103,7 +103,18 @@ const PopoverDropdown = (props: PopoverDropdownProps) => {
         })),
       }}
     >
-      <div role="button" css={{ display: 'flex', alignItems: 'center' }}>
+      <button
+        type="button"
+        css={{
+          appearance: 'none',
+          border: 'none',
+          background: 'none',
+          padding: 0,
+          font: 'inherit',
+          display: 'flex',
+          alignItems: 'center',
+        }}
+      >
         {selected && renderButton(selected)}
         <Icons.DownOutlined
           iconSize="s"
@@ -112,7 +123,7 @@ const PopoverDropdown = (props: PopoverDropdownProps) => {
             marginLeft: theme.sizeUnit * 0.5,
           }}
         />
-      </div>
+      </button>
     </Dropdown>
   );
 };

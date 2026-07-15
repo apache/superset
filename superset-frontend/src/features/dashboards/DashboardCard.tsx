@@ -18,11 +18,8 @@
  */
 import { Link, useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
-import {
-  isFeatureEnabled,
-  FeatureFlag,
-  handleKeyboardActivation,
-} from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { css } from '@apache-superset/core/theme';
 import { CardStyles } from 'src/views/CRUD/utils';
 import {
   FaveStar,
@@ -38,6 +35,18 @@ import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { KebabMenuButton } from 'src/components';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
 import type { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+
+const menuItemButtonCss = css`
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+`;
 
 interface DashboardCardProps {
   isChart?: boolean;
@@ -94,24 +103,17 @@ function DashboardCard({
                 )
           }
         >
-          <div
-            role="button"
-            tabIndex={0}
+          <button
+            type="button"
+            css={menuItemButtonCss}
             className="action-button"
             onClick={
               allowEdit ? () => openDashboardEditModal(dashboard) : undefined
             }
-            onKeyDown={
-              allowEdit
-                ? handleKeyboardActivation(() =>
-                    openDashboardEditModal(dashboard),
-                  )
-                : undefined
-            }
             data-test="dashboard-card-option-edit-button"
           >
             <Icons.EditOutlined iconSize="l" data-test="edit-alt" /> {t('Edit')}
-          </div>
+          </button>
         </Tooltip>
       ),
       disabled: !allowEdit,
@@ -122,18 +124,15 @@ function DashboardCard({
     menuItems.push({
       key: 'export',
       label: (
-        <div
-          role="button"
-          tabIndex={0}
+        <button
+          type="button"
+          css={menuItemButtonCss}
           onClick={() => handleBulkDashboardExport([dashboard])}
-          onKeyDown={handleKeyboardActivation(() =>
-            handleBulkDashboardExport([dashboard]),
-          )}
           className="action-button"
           data-test="dashboard-card-option-export-button"
         >
           <Icons.UploadOutlined iconSize="l" /> {t('Export')}
-        </div>
+        </button>
       ),
     });
   }
@@ -151,20 +150,15 @@ function DashboardCard({
                 )
           }
         >
-          <div
-            role="button"
-            tabIndex={0}
+          <button
+            type="button"
+            css={menuItemButtonCss}
             className="action-button"
             onClick={allowEdit ? () => onDelete(dashboard) : undefined}
-            onKeyDown={
-              allowEdit
-                ? handleKeyboardActivation(() => onDelete(dashboard))
-                : undefined
-            }
             data-test="dashboard-card-option-delete-button"
           >
             <Icons.DeleteOutlined iconSize="l" /> {t('Delete')}
-          </div>
+          </button>
         </Tooltip>
       ),
       disabled: !allowEdit,

@@ -64,7 +64,12 @@ export const FilterName = styled.span`
   white-space: nowrap;
 `;
 
-export const DependencyItem = styled.span`
+export const DependencyItem = styled.button`
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
   text-decoration: underline;
   cursor: pointer;
 `;

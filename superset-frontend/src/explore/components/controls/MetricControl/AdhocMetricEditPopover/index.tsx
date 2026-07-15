@@ -19,15 +19,10 @@
 /* eslint-disable camelcase */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
-import {
-  isDefined,
-  ensureIsArray,
-  DatasourceType,
-  handleKeyboardActivation,
-} from '@superset-ui/core';
+import { isDefined, ensureIsArray, DatasourceType } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import type { editors } from '@apache-superset/core';
-import { styled } from '@apache-superset/core/theme';
+import { css, styled } from '@apache-superset/core/theme';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
   Button,
@@ -496,20 +491,24 @@ function AdhocMetricEditPopover({
                   title={t('No saved metrics found')}
                   description={
                     <>
-                      <span
-                        tabIndex={0}
-                        role="button"
+                      <button
+                        type="button"
+                        css={css`
+                          appearance: none;
+                          border: none;
+                          background: none;
+                          padding: 0;
+                          font: inherit;
+                          color: inherit;
+                          cursor: pointer;
+                        `}
                         onClick={() => {
                           handleDatasetModal?.(true);
                           onClose();
                         }}
-                        onKeyDown={handleKeyboardActivation(() => {
-                          handleDatasetModal?.(true);
-                          onClose();
-                        })}
                       >
                         {t('Create a dataset')}
-                      </span>
+                      </button>
                       {t(' to add metrics')}
                     </>
                   }
@@ -616,6 +615,11 @@ function AdhocMetricEditPopover({
           {t('Save')}
         </Button>
         <Icons.ArrowsAltOutlined
+          // Drag-to-resize handle activated via mousedown, not click; there's
+          // no keyboard equivalent, so role="button" (which implies a
+          // click/Enter/Space-activatable control) isn't quite right, but no
+          // native tag fits a drag handle either.
+          // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
           role="button"
           aria-label={t('Resize')}
           tabIndex={0}

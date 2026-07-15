@@ -1047,14 +1047,14 @@ test('dropdown takes full width of the select input for single select', async ()
 test('does not fire onChange when searching but no selection', async () => {
   const onChange = jest.fn();
   render(
-    <div role="main">
+    <main>
       <Select
         {...defaultProps}
         onChange={onChange}
         mode="multiple"
         allowNewOptions
       />
-    </div>,
+    </main>,
   );
   await open();
   await type('Joh');

@@ -71,9 +71,9 @@ test('leaves labels untouched when no format is provided', () => {
 });
 
 test('clicking a legend item toggles the category without triggering anchor navigation', () => {
-  // Regression proof for #33576: the legend items are href="#" anchors, so a
-  // click whose default action is not prevented would navigate to "#" and
-  // scroll the browser window to the top of the page.
+  // Regression proof for #33576: legend items render as real <button>
+  // elements (not href="#" anchors), so a click has no default navigation
+  // action to begin with.
   const toggleCategory = jest.fn();
   renderWithTheme(
     <Legend
@@ -87,18 +87,18 @@ test('clicking a legend item toggles the category without triggering anchor navi
   );
 
   const legendItem = screen.getByRole('button', { name: 'Positive' });
+  expect(legendItem.tagName).toBe('BUTTON');
   const clickEvent = createEvent.click(legendItem);
   fireEvent(legendItem, clickEvent);
 
-  expect(clickEvent.defaultPrevented).toBe(true);
   expect(toggleCategory).toHaveBeenCalledTimes(1);
   expect(toggleCategory).toHaveBeenCalledWith('Positive');
 });
 
 test('ctrl+clicking a legend item toggles the category without opening a new tab', () => {
-  // Regression proof for #34157: legend items are href="#" anchors, so a
-  // ctrl+click whose default action is not prevented would ask the browser
-  // to open the "#" href in a new tab instead of just toggling the layer.
+  // Regression proof for #34157: legend items render as real <button>
+  // elements (not href="#" anchors), so a ctrl+click has no "open link in
+  // new tab" behavior to begin with.
   const toggleCategory = jest.fn();
   renderWithTheme(
     <Legend
@@ -112,14 +112,12 @@ test('ctrl+clicking a legend item toggles the category without opening a new tab
   );
 
   const legendItem = screen.getByRole('button', { name: 'cat1' });
+  expect(legendItem.tagName).toBe('BUTTON');
   const ctrlClickEvent = createEvent.click(legendItem, {
     ctrlKey: true,
   }) as MouseEvent;
   fireEvent(legendItem, ctrlClickEvent);
 
-  // preventDefault() in the onClick handler is what stops the browser's
-  // native ctrl+click "open link in new tab" behavior on the anchor.
-  expect(ctrlClickEvent.defaultPrevented).toBe(true);
   expect(ctrlClickEvent.ctrlKey).toBe(true);
   expect(toggleCategory).toHaveBeenCalledTimes(1);
   expect(toggleCategory).toHaveBeenCalledWith('cat1');

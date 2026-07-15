@@ -82,7 +82,7 @@ describe('DashboardList Card View Tests', () => {
 
     // Verify card view toggle is active
     const cardViewToggle = screen.getByRole('img', { name: 'appstore' });
-    const cardViewButton = cardViewToggle.closest('[role="button"]');
+    const cardViewButton = cardViewToggle.closest('button');
     expect(cardViewButton).toHaveClass('active');
   });
 
@@ -96,7 +96,7 @@ describe('DashboardList Card View Tests', () => {
     const listViewToggle = screen.getByRole('img', {
       name: 'unordered-list',
     });
-    const listViewButton = listViewToggle.closest('[role="button"]');
+    const listViewButton = listViewToggle.closest('button');
     expect(listViewButton).not.toBeNull();
     fireEvent.click(listViewButton!);
 

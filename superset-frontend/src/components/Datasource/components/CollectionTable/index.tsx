@@ -446,11 +446,12 @@ export default function CRUDCollection({
               color: ${theme.colorTextTertiary};
             `}
           >
+            {/* role is auto-computed by BaseIconComponent as "button" since
+                onClick is present, so no explicit role needed here. */}
             <Icons.DeleteOutlined
               aria-label={t('Delete item')}
               className="pointer"
               data-test="crud-delete-icon"
-              role="button"
               tabIndex={0}
               onClick={() => deleteItem(record.id)}
               iconSize="l"

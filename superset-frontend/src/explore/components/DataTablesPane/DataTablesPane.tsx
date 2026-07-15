@@ -18,12 +18,8 @@
  */
 import { useCallback, useEffect, useMemo, useState, MouseEvent } from 'react';
 import { t } from '@apache-superset/core/translation';
-import {
-  isFeatureEnabled,
-  FeatureFlag,
-  handleKeyboardActivation,
-} from '@superset-ui/core';
-import { styled } from '@apache-superset/core/theme';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
@@ -184,30 +180,31 @@ export const DataTablesPane = ({
     ) : (
       <Icons.DownOutlined aria-label={t('Expand data panel')} />
     );
+    const resetButtonCss = css`
+      appearance: none;
+      border: none;
+      background: none;
+      padding: 0;
+      font: inherit;
+    `;
     return (
       <div>
         {panelOpen ? (
-          <span
-            role="button"
-            tabIndex={0}
+          <button
+            type="button"
+            css={resetButtonCss}
             onClick={() => handleCollapseChange(false)}
-            onKeyDown={handleKeyboardActivation(() =>
-              handleCollapseChange(false),
-            )}
           >
             {caretIcon}
-          </span>
+          </button>
         ) : (
-          <span
-            role="button"
-            tabIndex={0}
+          <button
+            type="button"
+            css={resetButtonCss}
             onClick={() => handleCollapseChange(true)}
-            onKeyDown={handleKeyboardActivation(() =>
-              handleCollapseChange(true),
-            )}
           >
             {caretIcon}
-          </span>
+          </button>
         )}
       </div>
     );
