@@ -160,7 +160,7 @@ def test_email_content_with_xlsx_attachment() -> None:
         header_data={
             "notification_format": "XLSX",
             "notification_type": "Report",
-            "owners": [1],
+            "editors": [1],
             "notification_source": None,
             "chart_id": None,
             "dashboard_id": None,
