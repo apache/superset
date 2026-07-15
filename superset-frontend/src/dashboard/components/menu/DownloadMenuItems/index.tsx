@@ -169,15 +169,23 @@ export const useDownloadMenuItems = (
 
   const onExportXlsx = async (mode: 'data' | 'images') => {
     try {
-      await SupersetClient.post({
+      const { json } = await SupersetClient.post({
         endpoint: `/api/v1/dashboard/${dashboardId}/export_xlsx/`,
         jsonPayload: { active_data_mask: buildActiveDataMask(), mode },
       });
-      addSuccessToast(
-        t(
-          "Your export is being prepared. You'll receive an email when it's ready.",
-        ),
-      );
+      // The throttle response (an export is already running) returns 202 with a
+      // message but no job_id; only a freshly enqueued job carries a job_id.
+      if ((json as { job_id?: string })?.job_id) {
+        addSuccessToast(
+          t(
+            "Your export is being prepared. You'll receive an email when it's ready.",
+          ),
+        );
+      } else {
+        addSuccessToast(
+          t('An export for this dashboard is already in progress.'),
+        );
+      }
     } catch (error) {
       // status comes from the response (Partial<SupersetClientResponse>), which
       // the union type does not expose uniformly; read it via a narrow cast.

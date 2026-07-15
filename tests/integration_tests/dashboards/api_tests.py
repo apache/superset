@@ -735,7 +735,6 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             "can_write",
             "can_export",
             "can_export_as_example",
-            "can_export_xlsx",
             "can_get_embedded",
             "can_delete_embedded",
             "can_set_embedded",
@@ -3360,6 +3359,76 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         finally:
             db.session.delete(dashboard)
             db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    @patch("superset.dashboards.api.security_manager.raise_for_access")
+    def test_export_xlsx_admitted_with_can_export_only(
+        self, mock_raise, mock_task, mock_acquire
+    ):
+        """Dashboard API: export_xlsx is gated on ``can_export``, not a distinct
+        ``can_export_xlsx``. A role holding only dashboard ``can_export`` is
+        admitted (202) rather than rejected by ``@protect()`` (403)."""
+        slice_ = db.session.query(Slice).first()
+        with self.temporary_user(
+            extra_pvms=[("can_export", "Dashboard"), ("can_read", "Dashboard")],
+            login=True,
+        ) as user:
+            dashboard = self.insert_dashboard(
+                "xlsx-can-export", None, [user.id], slices=[slice_], published=True
+            )
+            try:
+                rv = self.client.post(
+                    f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+                    json={"active_data_mask": {}},
+                )
+                assert rv.status_code == 202
+                mock_task.apply_async.assert_called_once()
+            finally:
+                db.session.delete(dashboard)
+                db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    def test_export_xlsx_images_404_when_screenshot_flags_off(self, mock_task):
+        """Dashboard API: ``mode=images`` is rejected with 404 when the webdriver
+        screenshot flags are disabled (the same signal the UI gates the option on),
+        and no task is enqueued."""
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}, "mode": "images"},
+        )
+        assert rv.status_code == 404
+        mock_task.apply_async.assert_not_called()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @with_feature_flags(
+        ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True,
+        ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT=True,
+    )
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    def test_export_xlsx_images_202_when_screenshot_flags_on(
+        self, mock_task, mock_acquire
+    ):
+        """Dashboard API: ``mode=images`` is accepted (202) when both webdriver
+        screenshot flags are enabled."""
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}, "mode": "images"},
+        )
+        assert rv.status_code == 202
+        mock_task.apply_async.assert_called_once()
+        _, kwargs = mock_task.apply_async.call_args
+        assert kwargs["kwargs"]["mode"] == "images"
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_embedded_dashboards(self):

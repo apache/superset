@@ -305,6 +305,10 @@ class DashboardRestApi(
     method_permission_name = {
         **MODEL_API_RW_METHOD_PERMISSION_MAP,
         "restore": "write",
+        # Reuse the dashboard ``can_export`` permission (the frontend gates the
+        # menu item on it) instead of the ``can_export_xlsx`` FAB would otherwise
+        # derive from the method name.
+        "export_xlsx": "export",
     }
 
     # Default list_columns (used if config not set)
@@ -1593,7 +1597,6 @@ class DashboardRestApi(
     @expose("/<pk>/export_xlsx/", methods=("POST",))
     @protect()
     @safe
-    @permission_name("export")
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export_xlsx",
@@ -1651,6 +1654,16 @@ class DashboardRestApi(
             )
         except ValidationError as error:
             return self.response_400(message=error.messages)
+
+        # Image export drives the headless webdriver, so it is only available
+        # when the same screenshot flags the UI checks are enabled. The decorator
+        # form (``@validate_feature_flags``) can't be used here because it would
+        # also block ``mode="data"``; mirror its 404 behavior inline instead.
+        if payload.get("mode") == "images" and not (
+            is_feature_enabled("ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS")
+            and is_feature_enabled("ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT")
+        ):
+            return self.response_404()
 
         dashboard = cast(Dashboard, self.datamodel.get(pk, self._base_filters))
         if not dashboard:

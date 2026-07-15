@@ -142,7 +142,9 @@ test('Excel export items are hidden when userCanExport is false', () => {
 });
 
 test('Export Data to Excel posts mode "data" and shows a pending toast', async () => {
-  mockSupersetClient.post.mockResolvedValue({} as never);
+  mockSupersetClient.post.mockResolvedValue({
+    json: { job_id: 'abc' },
+  } as never);
 
   render(<MenuWrapper />, { useRedux: true });
 
@@ -161,7 +163,9 @@ test('Export Data to Excel posts mode "data" and shows a pending toast', async (
 
 test('Export Images to Excel posts mode "images" and shows a pending toast', async () => {
   enableWebDriverScreenshot();
-  mockSupersetClient.post.mockResolvedValue({} as never);
+  mockSupersetClient.post.mockResolvedValue({
+    json: { job_id: 'abc' },
+  } as never);
 
   render(<MenuWrapper />, { useRedux: true });
 
@@ -174,6 +178,25 @@ test('Export Images to Excel posts mode "images" and shows a pending toast', asy
     });
     expect(mockAddSuccessToast).toHaveBeenCalledWith(
       "Your export is being prepared. You'll receive an email when it's ready.",
+    );
+  });
+});
+
+test('Export Data to Excel shows an "already in progress" toast when throttled', async () => {
+  // The throttle response is 202 with a message but no job_id.
+  mockSupersetClient.post.mockResolvedValue({
+    json: {
+      message: 'An Excel export for this dashboard is already in progress.',
+    },
+  } as never);
+
+  render(<MenuWrapper />, { useRedux: true });
+
+  await userEvent.click(screen.getByText('Export Data to Excel'));
+
+  await waitFor(() => {
+    expect(mockAddSuccessToast).toHaveBeenCalledWith(
+      'An export for this dashboard is already in progress.',
     );
   });
 });
