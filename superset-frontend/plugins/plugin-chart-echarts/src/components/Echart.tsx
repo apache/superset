@@ -124,7 +124,7 @@ use([
 const loadLocale = async (locale: string) => {
   let lang;
   try {
-    lang = await import(`echarts/lib/i18n/lang${locale}`);
+    lang = await import(`echarts/i18n/lang${locale}.js`);
   } catch {
     // Locale not supported in ECharts
   }
