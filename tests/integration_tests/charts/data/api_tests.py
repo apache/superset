@@ -165,7 +165,7 @@ class BaseTestChartDataApi(SupersetTestCase):
                 db.session.commit()
 
 
-@pytest.mark.chart_data_flow()
+@pytest.mark.chart_data_flow  # noqa: PT023
 @pytest.mark.skip(
     reason=(
         "TODO: Fix test class to work with DuckDB example data format. "
@@ -1204,7 +1204,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             assert rv.status_code == 403
 
 
-@pytest.mark.chart_data_flow()
+@pytest.mark.chart_data_flow  # noqa: PT023
 @pytest.mark.skip(
     reason=(
         "TODO: Fix test class to work with DuckDB example data format. "
@@ -1856,7 +1856,7 @@ def test_chart_data_subquery_allowed(
     assert rv.status_code == status_code
 
 
-@pytest.mark.chart_data_flow()
+@pytest.mark.chart_data_flow  # noqa: PT023
 class TestGetChartDataWithDashboardFilter(BaseTestChartDataApi):
     """Tests for the filters_dashboard_id parameter on GET /api/v1/chart/<pk>/data/."""
 
