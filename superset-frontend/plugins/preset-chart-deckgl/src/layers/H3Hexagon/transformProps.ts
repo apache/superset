@@ -66,7 +66,7 @@ export default function transformProps(chartProps: ChartProps) {
 
   const metricLabel = metric ? getMetricLabel(metric) : undefined;
 
-  const features: H3Feature[] = records.map((record, index) => {
+  const features: H3Feature[] = records.map(record => {
     const hexagonValue = h3Index ? record[h3Index] : undefined;
     const feature: H3Feature = {
       hexagon: String(hexagonValue || ''),

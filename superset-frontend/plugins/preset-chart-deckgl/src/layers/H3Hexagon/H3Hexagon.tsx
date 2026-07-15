@@ -19,7 +19,7 @@
 import { H3HexagonLayer } from '@deck.gl/geo-layers';
 import { cellToBoundary } from 'h3-js';
 import { JsonObject, QueryFormData } from '@superset-ui/core';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { Color } from '@deck.gl/core';
 import { commonLayerProps, getColorForBreakpoints } from '../common';
 import { createDeckGLComponent, GetLayerType } from '../../factory';
@@ -98,11 +98,9 @@ export const getLayer: GetLayerType<H3HexagonLayer> = function ({
   }
 
   const fc = fd.fill_color_picker as
-    | { r: number; g: number; b: number; a: number }
-    | undefined;
+    { r: number; g: number; b: number; a: number } | undefined;
   const defaultBreakpointColor = fd.default_breakpoint_color as
-    | { r: number; g: number; b: number; a: number }
-    | undefined;
+    { r: number; g: number; b: number; a: number } | undefined;
   const fixedColor: Color = fc
     ? [fc.r, fc.g, fc.b, 255 * fc.a]
     : [
@@ -126,7 +124,10 @@ export const getLayer: GetLayerType<H3HexagonLayer> = function ({
       // Without a metric there is nothing to scale by, fall back to the fixed color
       getFillColor = fd.metric
         ? getBreakPointColorScaler(
-            { ...fd, opacity: fd.opacity ?? 100 } as unknown as BucketsWithColorScale,
+            {
+              ...fd,
+              opacity: fd.opacity ?? 100,
+            } as unknown as BucketsWithColorScale,
             data,
             accessor,
           )
@@ -145,12 +146,7 @@ export const getLayer: GetLayerType<H3HexagonLayer> = function ({
           breakpointIndex !== undefined &&
           colorBreakpoints[breakpointIndex - 1]?.color;
         if (breakpointColor) {
-          return [
-            breakpointColor.r,
-            breakpointColor.g,
-            breakpointColor.b,
-            255,
-          ];
+          return [breakpointColor.r, breakpointColor.g, breakpointColor.b, 255];
         }
         if (defaultBreakpointColor) {
           return [
@@ -187,7 +183,7 @@ export const getLayer: GetLayerType<H3HexagonLayer> = function ({
     data,
     extruded: Boolean(extruded),
     coverage,
-    elevationScale: elevationScale,
+    elevationScale,
 
     getHexagon: (d: JsonObject) => d.hexagon,
     getFillColor: safeGetFillColor,
