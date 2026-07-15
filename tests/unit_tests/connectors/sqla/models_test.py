@@ -1198,7 +1198,7 @@ def test_get_sqla_col_validates_stored_expression_at_query_time(
     tc.table = mocker.MagicMock()
     tc.table.database.backend = "sqlite"
     spy = mocker.patch(
-        "superset.connectors.sqla.models.validate_adhoc_subquery",
+        "superset.models.helpers.validate_adhoc_subquery",
         side_effect=SupersetSecurityException(
             SupersetError(
                 message="Sub-queries are not allowed in stored expressions.",
@@ -1228,7 +1228,7 @@ def test_get_timestamp_expression_validates_stored_expression_at_query_time(
     tc.table = mocker.MagicMock()
     tc.table.database.backend = "sqlite"
     spy = mocker.patch(
-        "superset.connectors.sqla.models.validate_adhoc_subquery",
+        "superset.models.helpers.validate_adhoc_subquery",
         side_effect=SupersetSecurityException(
             SupersetError(
                 message="Sub-queries are not allowed in stored expressions.",
@@ -1255,7 +1255,7 @@ def test_get_sqla_col_falls_back_when_stored_expression_unparseable(
     tc.table = mocker.MagicMock()
     tc.table.database.backend = "mysql"
     mocker.patch(
-        "superset.connectors.sqla.models.validate_adhoc_subquery",
+        "superset.models.helpers.validate_adhoc_subquery",
         side_effect=SupersetParseError("DATE_ADD(ds, 1)", "mysql"),
     )
     literal = mocker.patch("superset.connectors.sqla.models.literal_column")

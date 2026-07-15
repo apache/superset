@@ -248,6 +248,31 @@ def validate_adhoc_subquery(
     return parsed_statement.format() if rls_applied else sql
 
 
+def validate_stored_expression_at_query_time(
+    expression: str,
+    database: Database,
+    catalog: str | None,
+    schema: str,
+    engine: str,
+) -> str:
+    """
+    Validate a stored column/metric expression at the point of use, applying the
+    same sub-query policy and RLS injection as adhoc expressions. The save-time
+    check can be deferred past (Jinja templating, the create path, older data),
+    so the query sink is the reliable place to enforce it.
+
+    Stored expressions can contain dialect-specific syntax sqlglot cannot parse
+    (e.g. ``DATE_ADD(ds, 1)`` on MySQL); such expressions pre-date this gate and
+    went straight to the query unparsed, so a parse failure falls back to the raw
+    expression rather than breaking the query. A genuine sub-query still parses
+    and is caught.
+    """
+    try:
+        return validate_adhoc_subquery(expression, database, catalog, schema, engine)
+    except SupersetParseError:
+        return expression
+
+
 def json_to_dict(json_str: str) -> dict[Any, Any]:
     if json_str:
         val = re.sub(",[ \t\r\n]+}", "}", json_str)
@@ -3231,25 +3256,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return ValidationResultDict(valid=True, errors=[])
 
     def _validate_stored_expression(self, expression: str) -> str:
-        """
-        Validate a stored expression at the point of use, applying the same
-        sub-query policy and RLS injection as adhoc expressions.
-
-        Stored expressions can contain dialect-specific syntax sqlglot cannot
-        parse; those pre-date this gate and went to the query unparsed, so a
-        parse failure falls back to the raw expression. A genuine sub-query
-        still parses and is caught.
-        """
-        try:
-            return validate_adhoc_subquery(
-                expression,
-                self.database,
-                self.catalog,
-                self.schema or "",
-                self.db_engine_spec.engine,
-            )
-        except SupersetParseError:
-            return expression
+        return validate_stored_expression_at_query_time(
+            expression,
+            self.database,
+            self.catalog,
+            self.schema or "",
+            self.db_engine_spec.engine,
+        )
 
     def get_timestamp_expression(
         self,
