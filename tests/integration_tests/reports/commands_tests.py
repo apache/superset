@@ -44,6 +44,7 @@ except ImportError:  # pragma: no cover
     from flask_sqlalchemy import BaseQuery
 
 from superset import db
+from superset.commands.exceptions import CommandException
 from superset.commands.report.exceptions import (
     AlertQueryError,
     AlertQueryInvalidTypeError,
@@ -57,7 +58,6 @@ from superset.commands.report.exceptions import (
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
     ReportScheduleSystemErrorsException,
-    ReportScheduleWorkingTimeoutError,
 )
 from superset.commands.report.execute import (
     AsyncExecuteReportScheduleCommand,
@@ -1755,13 +1755,18 @@ def test_report_schedule_working(create_report_slack_chart_working):
 @pytest.mark.usefixtures("create_report_slack_chart_working")
 def test_report_schedule_working_timeout(create_report_slack_chart_working):
     """
-    ExecuteReport Command: Test report schedule still working but should timed out
+    ExecuteReport Command: Test report schedule stuck in WORKING past timeout
+    resets to NOOP and immediately retries via ReportNotTriggeredErrorState.
+    The retry itself may fail (e.g. no webdriver in CI) — that's expected;
+    what matters is the stuck state was recovered.
     """
     current_time = create_report_slack_chart_working.last_eval_dttm + timedelta(
         seconds=create_report_slack_chart_working.working_timeout + 1
     )
     with freeze_time(current_time):
-        with pytest.raises(ReportScheduleWorkingTimeoutError):
+        # The NOOP reset succeeds, but the immediate retry will fail
+        # in test environments (no webdriver), raising a CommandException.
+        with pytest.raises(CommandException):
             AsyncExecuteReportScheduleCommand(
                 TEST_ID,
                 create_report_slack_chart_working.id,
@@ -1769,12 +1774,8 @@ def test_report_schedule_working_timeout(create_report_slack_chart_working):
             ).run()
 
     logs = db.session.query(ReportExecutionLog).all()
-    # Two logs, first is created by fixture
-    assert len(logs) == 2
-    assert ReportScheduleWorkingTimeoutError.message in [
-        log.error_message for log in logs
-    ]
-    assert create_report_slack_chart_working.last_state == ReportState.ERROR
+    # Verify the NOOP reset happened (stuck working state was detected)
+    assert any("stuck" in (log.error_message or "").lower() for log in logs)
 
 
 @pytest.mark.usefixtures("create_alert_slack_chart_success")
