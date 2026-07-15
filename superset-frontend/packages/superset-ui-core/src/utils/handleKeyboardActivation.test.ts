@@ -56,6 +56,7 @@ test('ignores auto-repeat keydown events fired while a key is held', () => {
   const { event, preventDefault } = makeEvent('Enter', true);
   handleKeyboardActivation(callback)(event);
   expect(callback).not.toHaveBeenCalled();
-  // Still prevents default so the page doesn't scroll while Space is held.
+  // preventDefault still fires on the repeat event itself, matching the
+  // non-repeat Enter case above.
   expect(preventDefault).toHaveBeenCalled();
 });
