@@ -1033,7 +1033,7 @@ tqdm==4.67.1
     # via
     #   cmdstanpy
     #   prophet
-trino==0.337.0
+trino==0.338.0
     # via apache-superset
 trio==0.33.0
     # via
