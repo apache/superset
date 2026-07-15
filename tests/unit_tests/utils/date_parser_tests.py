@@ -563,6 +563,31 @@ def test_get_past_or_future() -> None:
     assert get_past_or_future("3 month", dttm) == datetime(2020, 5, 29)
 
 
+def test_get_past_or_future_quarters() -> None:
+    # parsedatetime has no notion of quarters (it would leave the source time
+    # unchanged); quarter phrases are rewritten to months before parsing
+    dttm = datetime(2024, 5, 15, 10, 30, 45)
+    assert get_past_or_future("1 quarter ago", dttm) == datetime(
+        2024, 2, 15, 10, 30, 45
+    )
+    assert get_past_or_future("2 quarters ago", dttm) == datetime(
+        2023, 11, 15, 10, 30, 45
+    )
+    assert get_past_or_future("1 quarter later", dttm) == datetime(
+        2024, 8, 15, 10, 30, 45
+    )
+    assert get_past_or_future("1 QUARTER ago", dttm) == datetime(
+        2024, 2, 15, 10, 30, 45
+    )
+
+
+def test_parse_human_timedelta_unparseable_is_zero() -> None:
+    # the parser leaves unparseable phrases as the source time, so their
+    # delta is zero; callers rely on this to detect invalid offsets
+    dttm = datetime(2024, 5, 15)
+    assert parse_human_timedelta("not a real offset", dttm) == timedelta(0)
+
+
 def test_normalize_time_delta() -> None:
     assert normalize_time_delta("30 seconds ago") == {"seconds": -30}
     assert normalize_time_delta("5 minutes later") == {"minutes": 5}

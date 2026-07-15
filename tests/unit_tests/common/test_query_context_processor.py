@@ -1024,6 +1024,159 @@ def test_processing_time_offsets_updates_temporal_filter_with_adhoc_x_axis(proce
     assert "2025-06-01" in val, f"Expected shifted-to-dttm in val, got: {val!r}"
 
 
+def test_processing_time_offsets_quarter_offset_shifts_query_window(processor):
+    """A quarter offset must shift the offset query's window, not just the
+    join keys. parsedatetime does not understand "1 quarter ago", so without
+    rewriting quarters to months the offset subquery silently runs against
+    the current period and the comparison series joins to nulls. The fake
+    query below derives its rows from the requested window, so the join only
+    yields the expected values when the window was actually shifted.
+    """
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import ExploreMixin
+
+    for method in (
+        "processing_time_offsets",
+        "_align_offset_without_time_grain",
+        "_coalesce_offset_index",
+    ):
+        setattr(
+            processor._qc_datasource,
+            method,
+            getattr(ExploreMixin, method).__get__(processor._qc_datasource),
+        )
+
+    df = pd.DataFrame(
+        {
+            "__timestamp": pd.to_datetime(["2024-04-01", "2024-05-01", "2024-06-01"]),
+            "sum__num": [100, 200, 300],
+        }
+    )
+
+    query_object = QueryObject(
+        datasource=MagicMock(),
+        granularity="ds",
+        columns=[],
+        metrics=["sum__num"],
+        is_timeseries=True,
+        time_offsets=["1 quarter ago"],
+        filters=[
+            {
+                "col": "ds",
+                "op": "TEMPORAL_RANGE",
+                "val": "2024-04-01 : 2024-07-01",
+            }
+        ],
+    )
+
+    captured: list[dict[str, Any]] = []
+
+    def fake_query(dct: dict[str, Any]) -> MagicMock:
+        captured.append(dct)
+        result = MagicMock()
+        result.df = pd.DataFrame(
+            {
+                "__timestamp": pd.date_range(
+                    start=dct["from_dttm"], periods=3, freq="MS"
+                ),
+                "sum__num": [1.0, 2.0, 3.0],
+            }
+        )
+        result.query = "SELECT 1"
+        return result
+
+    processor._qc_datasource.query = fake_query
+    processor._qc_datasource.normalize_df = MagicMock(
+        side_effect=lambda offset_df, _query_object: offset_df
+    )
+
+    with (
+        patch(
+            "superset.models.helpers.get_since_until_from_query_object",
+            return_value=(pd.Timestamp("2024-04-01"), pd.Timestamp("2024-07-01")),
+        ),
+        patch(
+            "superset.common.utils.query_cache_manager.QueryCacheManager"
+        ) as mock_cache_manager,
+        patch.object(
+            processor._qc_datasource,
+            "get_time_grain",
+            return_value=None,
+        ),
+    ):
+        mock_cache = MagicMock()
+        mock_cache.is_loaded = False
+        mock_cache_manager.get.return_value = mock_cache
+
+        result = processor._qc_datasource.processing_time_offsets(
+            df, query_object, None, None, False
+        )
+
+    assert len(captured) == 1
+    assert captured[0]["from_dttm"] == pd.Timestamp("2024-01-01")
+    assert captured[0]["to_dttm"] == pd.Timestamp("2024-04-01")
+    assert result["df"]["sum__num__1 quarter ago"].tolist() == [1.0, 2.0, 3.0]
+
+
+def test_processing_time_offsets_rejects_unparseable_offset(processor):
+    """An offset no parser understands must fail with a validation error
+    instead of querying an unshifted window and presenting the current
+    period's rows as the comparison series.
+    """
+    from superset.common.query_object import QueryObject
+    from superset.exceptions import QueryObjectValidationError
+    from superset.models.helpers import ExploreMixin
+
+    processor._qc_datasource.processing_time_offsets = (
+        ExploreMixin.processing_time_offsets.__get__(processor._qc_datasource)
+    )
+
+    df = pd.DataFrame(
+        {
+            "__timestamp": pd.to_datetime(["2024-04-01"]),
+            "sum__num": [100],
+        }
+    )
+
+    query_object = QueryObject(
+        datasource=MagicMock(),
+        granularity="ds",
+        columns=[],
+        metrics=["sum__num"],
+        is_timeseries=True,
+        time_offsets=["not a real offset"],
+        filters=[
+            {
+                "col": "ds",
+                "op": "TEMPORAL_RANGE",
+                "val": "2024-04-01 : 2024-07-01",
+            }
+        ],
+    )
+
+    processor._qc_datasource.query = MagicMock()
+
+    with (
+        patch(
+            "superset.models.helpers.get_since_until_from_query_object",
+            return_value=(pd.Timestamp("2024-04-01"), pd.Timestamp("2024-07-01")),
+        ),
+        patch.object(
+            processor._qc_datasource,
+            "get_time_grain",
+            return_value=None,
+        ),
+    ):
+        with pytest.raises(
+            QueryObjectValidationError, match="Unable to interpret the time offset"
+        ):
+            processor._qc_datasource.processing_time_offsets(
+                df, query_object, None, None, False
+            )
+
+    processor._qc_datasource.query.assert_not_called()
+
+
 def test_ensure_totals_available_updates_cache_values():
     """
     Test that ensure_totals_available() updates the query objects AND

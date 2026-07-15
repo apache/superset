@@ -141,6 +141,7 @@ from superset.utils.core import (
 from superset.utils.date_parser import (
     get_past_or_future,
     normalize_time_delta,
+    parse_human_timedelta,
     TimeDeltaAmbiguousError,
 )
 from superset.utils.dates import datetime_to_epoch
@@ -1912,6 +1913,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             outer_from_dttm,
                             outer_to_dttm,
                         )
+                    elif parse_human_timedelta(offset, outer_from_dttm) == timedelta():
+                        # get_past_or_future silently returns the source time
+                        # for offsets it cannot parse; querying with an
+                        # unshifted window would present the current period's
+                        # data as the comparison series.
+                        raise QueryObjectValidationError(
+                            _(
+                                "Unable to interpret the time offset: "
+                                "%(offset)s. Use a relative time such as "
+                                '"1 month ago".',
+                                offset=offset,
+                            )
+                        )
                     query_object_clone.from_dttm = get_past_or_future(
                         offset,
                         outer_from_dttm,
@@ -2366,25 +2380,34 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         else:
             # Free-form offsets (e.g. "one year ago") don't match the
             # normalize_time_delta grammar; shift with the same parser that
-            # shifted the offset query's time range. parsedatetime works at
-            # second resolution, so sub-second or timezone-aware timestamps
-            # won't align on this path.
+            # shifted the offset query's time range. parsedatetime only
+            # handles naive timestamps at second resolution, so compute each
+            # row's delta from a truncated copy and apply it to the original
+            # value, preserving timezone and sub-second precision.
+            def truncate(value: datetime) -> datetime:
+                timestamp = pd.Timestamp(value)
+                if timestamp.tzinfo is not None:
+                    timestamp = timestamp.tz_localize(None)
+                return timestamp.floor("s").to_pydatetime()
+
             probe = df[temporal_join_key].dropna()
-            if (
-                not probe.empty
-                and get_past_or_future(offset, probe.iloc[0]) == (probe.iloc[0])
-            ):
-                logger.warning(
-                    "Cannot interpret time offset %r without a time grain; "
-                    "the time comparison may be incorrect.",
-                    offset,
-                )
-                return offset_df, join_keys
-            shifted = df[temporal_join_key].map(
-                lambda value: value
-                if pd.isna(value)
-                else get_past_or_future(offset, value)
-            )
+            if not probe.empty:
+                probe_value = truncate(probe.iloc[0])
+                if get_past_or_future(offset, probe_value) == probe_value:
+                    logger.warning(
+                        "Cannot interpret time offset %r without a time grain; "
+                        "the time comparison may be incorrect.",
+                        offset,
+                    )
+                    return offset_df, join_keys
+
+            def shift(value: datetime) -> datetime:
+                if pd.isna(value):
+                    return value
+                truncated = truncate(value)
+                return value + (get_past_or_future(offset, truncated) - truncated)
+
+            shifted = df[temporal_join_key].map(shift)
 
         # Join on string values so that mismatched key dtypes (e.g. an empty
         # offset series materializes its join keys as NaN floats) cannot break

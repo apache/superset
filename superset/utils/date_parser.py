@@ -66,6 +66,11 @@ ORDINAL_MAP: dict[str, int] = {
     "1st": 1,
 }
 
+# parsedatetime does not understand "N quarters" (it leaves the source time
+# unchanged), so such phrases are rewritten to the equivalent number of months
+# before parsing.
+_QUARTERS_PATTERN = re.compile(r"([0-9]+)\s+quarters?\b", re.IGNORECASE)
+
 
 def parse_human_datetime(human_readable: str) -> datetime:
     """Returns ``datetime.datetime`` from human readable strings"""
@@ -123,7 +128,11 @@ def get_past_or_future(
     source_dttm = dttm_from_timetuple(
         source_time.timetuple() if source_time else datetime.now().timetuple()
     )
-    return dttm_from_timetuple(cal.parse(human_readable or "", source_dttm)[0])
+    human_readable = _QUARTERS_PATTERN.sub(
+        lambda match: f"{int(match[1]) * 3} months",
+        human_readable or "",
+    )
+    return dttm_from_timetuple(cal.parse(human_readable, source_dttm)[0])
 
 
 def parse_human_timedelta(

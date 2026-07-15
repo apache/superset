@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
+
 from pandas import DataFrame, Series, Timestamp
 from pandas.testing import assert_frame_equal
 from pytest import fixture, mark  # noqa: PT013
@@ -466,6 +468,27 @@ def test_join_offset_dfs_no_time_grain_free_form_offset() -> None:
     assert_frame_equal(expected, result)
 
 
+def test_join_offset_dfs_no_time_grain_free_form_offset_tz_microseconds() -> None:
+    """
+    Free-form offsets align timezone-aware, sub-second timestamps: each row's
+    shift is computed from a naive second-truncated copy and applied to the
+    original value, so the join keys keep their timezone and precision.
+    """
+    df = DataFrame(
+        {"ds": [Timestamp("2021-03-04 05:06:07.890123", tz="UTC")], "D": [1]}
+    )
+    offset_df = DataFrame(
+        {"ds": [Timestamp("2020-03-04 05:06:07.890123", tz="UTC")], "B": [5]}
+    )
+    offset_dfs = {"one year ago": offset_df}
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, time_grain=None, join_keys=["ds"]
+    )
+
+    assert result["B"].tolist() == [5]
+
+
 def test_join_offset_dfs_no_time_grain_uninterpretable_offset() -> None:
     """
     An offset that no parser can interpret falls back to joining on the raw
@@ -480,6 +503,28 @@ def test_join_offset_dfs_no_time_grain_uninterpretable_offset() -> None:
     )
 
     assert "B" in result.columns
+    assert result["B"].isna().all()
+
+
+def test_join_offset_dfs_no_time_grain_uninterpretable_offset_subsecond(
+    caplog,
+) -> None:
+    """
+    The unparseable-offset probe compares against a truncated copy of the
+    probed timestamp; sub-second values must not mask an uninterpretable
+    offset (the parser echoes a truncated time, which would look like a
+    successful parse and silently join truncated keys).
+    """
+    df = DataFrame({"ds": [Timestamp("2021-01-01 00:00:00.123456")], "D": [1]})
+    offset_df = DataFrame({"ds": [Timestamp("2020-01-01 00:00:00.123456")], "B": [5]})
+    offset_dfs = {"not a real offset": offset_df}
+
+    with caplog.at_level(logging.WARNING, logger="superset.models.helpers"):
+        result = query_context_processor.join_offset_dfs(
+            df, offset_dfs, time_grain=None, join_keys=["ds"]
+        )
+
+    assert "Cannot interpret time offset" in caplog.text
     assert result["B"].isna().all()
 
 
