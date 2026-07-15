@@ -1119,6 +1119,15 @@ class ManageDashboardOwnersRequest(BaseModel):
         ),
     )
 
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so identifier=true would coerce to
+        dashboard ID 1 and mutate the wrong dashboard; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID, UUID, or slug string")
+        return value
+
     @model_validator(mode="after")
     def _validate_operations(self) -> "ManageDashboardOwnersRequest":
         if not self.add_owner_ids and not self.remove_owner_ids:
@@ -1136,7 +1145,28 @@ class ManageDashboardOwnersRequest(BaseModel):
         return self
 
 
-class ManageDashboardOwnersResponse(BaseModel):
+class DashboardMutationErrorFields(BaseModel):
+    """Shared ``error``/``permission_denied`` fields for dashboard governance
+    mutation responses (owners/roles/certification), including the
+    validator that wraps ``error`` before it is exposed to LLM context.
+    """
+
+    error: str | None = Field(None, description="Error message, if operation failed")
+    permission_denied: bool = Field(
+        default=False,
+        description=("True when the user lacks edit rights on the target dashboard."),
+    )
+
+    @field_validator("error")
+    @classmethod
+    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
+        """Wrap error text before it is exposed to LLM context."""
+        if value is None:
+            return value
+        return sanitize_for_llm_context(value, field_path=("error",))
+
+
+class ManageDashboardOwnersResponse(DashboardMutationErrorFields):
     """Response schema for ``manage_dashboard_owners``."""
 
     owners: List[SubjectInfo] = Field(
@@ -1164,19 +1194,29 @@ class ManageDashboardOwnersResponse(BaseModel):
             "themselves."
         ),
     )
-    error: str | None = Field(None, description="Error message, if operation failed")
-    permission_denied: bool = Field(
-        default=False,
-        description=("True when the user lacks edit rights on the target dashboard."),
-    )
 
-    @field_validator("error")
+    @field_validator("owners", mode="after")
     @classmethod
-    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
-        """Wrap error text before it is exposed to LLM context."""
-        if value is None:
-            return value
-        return sanitize_for_llm_context(value, field_path=("error",))
+    def sanitize_owners_for_llm_context(
+        cls, value: List[SubjectInfo]
+    ) -> List[SubjectInfo]:
+        """Wrap owner labels before LLM exposure; owner display names are
+        user-controlled and render as plain text in this response, so an
+        unsanitized label could inject content into LLM context (CWE-79
+        analog for LLM-facing output). Entries that sanitize to an empty
+        label are dropped rather than surfaced with a blank identity."""
+        sanitized: List[SubjectInfo] = []
+        for subject in value:
+            if subject.label is None:
+                sanitized.append(subject)
+                continue
+            clean_label = sanitize_for_llm_context(
+                subject.label, field_path=("owners", "label")
+            )
+            if not clean_label:
+                continue
+            sanitized.append(subject.model_copy(update={"label": clean_label}))
+        return sanitized
 
 
 class ManageDashboardRolesRequest(BaseModel):
@@ -1213,6 +1253,15 @@ class ManageDashboardRolesRequest(BaseModel):
         ),
     )
 
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so identifier=true would coerce to
+        dashboard ID 1 and mutate the wrong dashboard; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID, UUID, or slug string")
+        return value
+
     @model_validator(mode="after")
     def _validate_operations(self) -> "ManageDashboardRolesRequest":
         if not self.add_role_ids and not self.remove_role_ids:
@@ -1228,7 +1277,7 @@ class ManageDashboardRolesRequest(BaseModel):
         return self
 
 
-class ManageDashboardRolesResponse(BaseModel):
+class ManageDashboardRolesResponse(DashboardMutationErrorFields):
     """Response schema for ``manage_dashboard_roles``."""
 
     roles: List[SubjectInfo] = Field(
@@ -1260,19 +1309,29 @@ class ManageDashboardRolesResponse(BaseModel):
     warnings: List[str] = Field(
         default_factory=list, description="Non-fatal advisory messages."
     )
-    error: str | None = Field(None, description="Error message, if operation failed")
-    permission_denied: bool = Field(
-        default=False,
-        description=("True when the user lacks edit rights on the target dashboard."),
-    )
 
-    @field_validator("error")
+    @field_validator("roles", mode="after")
     @classmethod
-    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
-        """Wrap error text before it is exposed to LLM context."""
-        if value is None:
-            return value
-        return sanitize_for_llm_context(value, field_path=("error",))
+    def sanitize_roles_for_llm_context(
+        cls, value: List[SubjectInfo]
+    ) -> List[SubjectInfo]:
+        """Wrap role labels before LLM exposure; role display names are
+        user-controlled and render as plain text in this response, so an
+        unsanitized label could inject content into LLM context (CWE-79
+        analog for LLM-facing output). Entries that sanitize to an empty
+        label are dropped rather than surfaced with a blank identity."""
+        sanitized: List[SubjectInfo] = []
+        for subject in value:
+            if subject.label is None:
+                sanitized.append(subject)
+                continue
+            clean_label = sanitize_for_llm_context(
+                subject.label, field_path=("roles", "label")
+            )
+            if not clean_label:
+                continue
+            sanitized.append(subject.model_copy(update={"label": clean_label}))
+        return sanitized
 
 
 class ManageDashboardCertificationRequest(BaseModel):
@@ -1347,7 +1406,7 @@ class ManageDashboardCertificationRequest(BaseModel):
         return sanitized
 
 
-class ManageDashboardCertificationResponse(BaseModel):
+class ManageDashboardCertificationResponse(DashboardMutationErrorFields):
     """Response schema for ``manage_dashboard_certification``."""
 
     certified_by: str | None = Field(
@@ -1364,19 +1423,6 @@ class ManageDashboardCertificationResponse(BaseModel):
     warnings: List[str] = Field(
         default_factory=list, description="Non-fatal advisory messages."
     )
-    error: str | None = Field(None, description="Error message, if operation failed")
-    permission_denied: bool = Field(
-        default=False,
-        description=("True when the user lacks edit rights on the target dashboard."),
-    )
-
-    @field_validator("error")
-    @classmethod
-    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
-        """Wrap error text before it is exposed to LLM context."""
-        if value is None:
-            return value
-        return sanitize_for_llm_context(value, field_path=("error",))
 
     @field_validator("certified_by", "certification_details")
     @classmethod

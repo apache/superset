@@ -83,9 +83,14 @@ def _find_and_authorize_dashboard(
                 "Ask the user to grant access; do not retry."
             ),
         )
-    except (DashboardNotFoundError, SQLAlchemyError):
+    except DashboardNotFoundError:
         return None, ManageDashboardOwnersResponse(
             error=f"Dashboard not found: {identifier!r}",
+        )
+    except SQLAlchemyError:
+        logger.exception("Database error looking up dashboard %r", identifier)
+        return None, ManageDashboardOwnersResponse(
+            error="Failed to look up dashboard due to a database error.",
         )
 
     if dashboard is None:

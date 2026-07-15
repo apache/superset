@@ -17,33 +17,14 @@
 
 """Tests for the manage_dashboard_certification MCP tool."""
 
-from collections.abc import Iterator
 from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
 
-from superset.mcp_service.app import mcp
 from superset.utils import json
 
-DAO_GET = "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug"
-
-
-@pytest.fixture
-def mcp_server() -> object:
-    return mcp
-
-
-@pytest.fixture(autouse=True)
-def mock_auth() -> Iterator[Mock]:
-    """Mock authentication for all tests in this module."""
-    with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-        with patch("superset.security_manager.raise_for_editorship"):
-            mock_user = Mock()
-            mock_user.id = 1
-            mock_user.username = "admin"
-            mock_get_user.return_value = mock_user
-            yield mock_get_user
+DAO_GET: str = "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug"
 
 
 def _mock_dashboard(
@@ -179,6 +160,32 @@ class TestManageDashboardCertification:
 
         payload = json.loads(result.content[0].text)
         assert "not found" in (payload.get("error") or "").lower()
+
+    @patch(DAO_GET)
+    @pytest.mark.asyncio
+    async def test_lookup_database_error_is_not_masked_as_not_found(
+        self, mock_get: Mock, mcp_server: object
+    ) -> None:
+        """A real DB/infra failure during lookup must surface as a distinct
+        database error, not be collapsed into "not found"."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        mock_get.side_effect = SQLAlchemyError("connection to server lost")
+
+        with patch(
+            "superset.mcp_service.dashboard.tool.manage_dashboard_certification.logger"
+        ) as mock_logger:
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "manage_dashboard_certification",
+                    {"request": {"identifier": 999999, "certified_by": "Team"}},
+                )
+
+        payload = json.loads(result.content[0].text)
+        assert "not found" not in (payload.get("error") or "").lower()
+        assert "database error" in (payload.get("error") or "").lower()
+        assert "connection to server lost" not in (payload.get("error") or "")
+        mock_logger.exception.assert_called_once()
 
     @patch(DAO_GET)
     @pytest.mark.asyncio

@@ -22,36 +22,17 @@ Subject-based model apache/superset#38831 introduced, replacing the legacy
 ``owners`` relationship).
 """
 
-from collections.abc import Iterator
 from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
 
-from superset.mcp_service.app import mcp
 from superset.subjects.types import SubjectType
 from superset.utils import json
 
-DAO_GET = "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug"
-GET_OR_CREATE_USER_SUBJECT = "superset.subjects.utils.get_or_create_user_subject"
-POPULATE_SUBJECT_LIST = "superset.commands.utils.populate_subject_list"
-
-
-@pytest.fixture
-def mcp_server() -> object:
-    return mcp
-
-
-@pytest.fixture(autouse=True)
-def mock_auth() -> Iterator[Mock]:
-    """Mock authentication for all tests in this module."""
-    with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-        with patch("superset.security_manager.raise_for_editorship"):
-            mock_user = Mock()
-            mock_user.id = 1
-            mock_user.username = "admin"
-            mock_get_user.return_value = mock_user
-            yield mock_get_user
+DAO_GET: str = "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug"
+GET_OR_CREATE_USER_SUBJECT: str = "superset.subjects.utils.get_or_create_user_subject"
+POPULATE_SUBJECT_LIST: str = "superset.commands.utils.populate_subject_list"
 
 
 def _mock_subject(id: int, user_id: int, label: str = "user") -> Mock:
@@ -406,3 +387,83 @@ class TestManageDashboardOwners:
                     "manage_dashboard_owners",
                     {"request": {"identifier": 42}},
                 )
+
+    @pytest.mark.asyncio
+    async def test_rejects_boolean_identifier(self, mcp_server: object) -> None:
+        """bool subclasses int; identifier=true must not coerce to dashboard ID 1."""
+        from fastmcp.exceptions import ToolError
+
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError):
+                await client.call_tool(
+                    "manage_dashboard_owners",
+                    {"request": {"identifier": True, "add_owner_ids": [1]}},
+                )
+
+    @patch(DAO_GET)
+    @pytest.mark.asyncio
+    async def test_lookup_database_error_is_not_masked_as_not_found(
+        self, mock_get: Mock, mcp_server: object
+    ) -> None:
+        """A real DB/infra failure during lookup must surface as a distinct
+        database error, not be collapsed into "not found"."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        mock_get.side_effect = SQLAlchemyError("connection to server lost")
+
+        with patch(
+            "superset.mcp_service.dashboard.tool.manage_dashboard_owners.logger"
+        ) as mock_logger:
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "manage_dashboard_owners",
+                    {"request": {"identifier": 999999, "add_owner_ids": [1]}},
+                )
+
+        payload = json.loads(result.content[0].text)
+        assert "not found" not in (payload.get("error") or "").lower()
+        assert "database error" in (payload.get("error") or "").lower()
+        # The raw exception text must never reach the LLM-facing response.
+        assert "connection to server lost" not in (payload.get("error") or "")
+        mock_logger.exception.assert_called_once()
+
+    @patch(POPULATE_SUBJECT_LIST)
+    @patch(GET_OR_CREATE_USER_SUBJECT)
+    @patch(DAO_GET)
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_owner_label_sanitized_for_llm_context(
+        self,
+        mock_session: Mock,
+        mock_get: Mock,
+        mock_get_or_create: Mock,
+        mock_populate: Mock,
+        mcp_server: object,
+    ) -> None:
+        """Owner labels are user-controlled display names; they must be
+        wrapped in untrusted-content delimiters before reaching LLM context
+        so they cannot be mistaken for trusted instructions."""
+        from superset.mcp_service.utils.sanitization import (
+            LLM_CONTEXT_CLOSE_DELIMITER,
+            LLM_CONTEXT_OPEN_DELIMITER,
+        )
+
+        existing = _mock_subject(100, 1, "admin")
+        new_owner = _mock_subject(101, 7, "<script>alert(1)</script>")
+        dash = _mock_dashboard(editors=[existing])
+        mock_get.return_value = dash
+        mock_get_or_create.side_effect = lambda uid: {1: existing, 7: new_owner}[uid]
+        mock_populate.return_value = [existing, new_owner]
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "manage_dashboard_owners",
+                {"request": {"identifier": 42, "add_owner_ids": [7]}},
+            )
+
+        payload = json.loads(result.content[0].text)
+        new_label = next(o["label"] for o in payload["owners"] if o["id"] == 101)
+        assert new_label is not None
+        assert new_label.startswith(LLM_CONTEXT_OPEN_DELIMITER)
+        assert new_label.endswith(LLM_CONTEXT_CLOSE_DELIMITER)
+        assert "<script>alert(1)</script>" in new_label
