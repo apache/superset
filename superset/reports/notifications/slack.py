@@ -21,6 +21,7 @@ from typing import Union
 
 import backoff
 from flask import g
+from slack_sdk import WebClient
 from slack_sdk.errors import (
     BotUserAccessError,
     SlackApiError,
@@ -51,6 +52,12 @@ from superset.utils.slack import (
 )
 
 logger = logging.getLogger(__name__)
+
+_SLACK_V1_FILE_UPLOAD_MESSAGE = (
+    "Slack v1 file uploads are no longer supported because Slack retired "
+    "`files.upload`. Grant the Slack bot both the `channels:read` and "
+    "`groups:read` scopes so the recipient can be upgraded to Slack v2."
+)
 
 
 # Deprecated: Slack v1 will be removed in the next major release. The Slack
@@ -90,18 +97,27 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
             return ("pdf", [self._content.pdf])
         return (None, [])
 
+    @staticmethod
+    def _send_text(client: WebClient, channel: str, body: str) -> None:
+        """Send a text notification once to each configured channel."""
+        for target in recipients_string_to_list(channel):
+            client.chat_postMessage(channel=target, text=body)
+
     @backoff.on_exception(backoff.expo, SlackApiError, factor=10, base=2, max_tries=5)
     @statsd_gauge("reports.slack.send")
-    def send(self) -> None:
+    def send(self, *, force_v1: bool = False) -> None:
         file_type, files = self._get_inline_files()
         title = self._content.name
         body = self._get_body(content=self._content)
         global_logs_context = getattr(g, "logs_context", {}) or {}
 
         # see if the v2 api will work
-        if should_use_v2_api():
+        if not force_v1 and should_use_v2_api():
             # if we can fetch channels, then raise an error and use the v2 api
             raise SlackV1NotificationError
+
+        if force_v1 and files:
+            raise NotificationParamException(_SLACK_V1_FILE_UPLOAD_MESSAGE)
 
         try:
             client = get_slack_client()
@@ -117,7 +133,7 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
                         filetype=file_type,
                     )
             else:
-                client.chat_postMessage(channel=channel, text=body)
+                self._send_text(client, channel, body)
             logger.info(
                 "Report sent to slack",
                 extra={
