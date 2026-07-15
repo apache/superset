@@ -32,8 +32,6 @@ runs:
         elif [ "$INPUT_PYTHON_VERSION" = "next" ]; then
           # currently disabled in GHA matrixes because of library compatibility issues
           RESOLVED_VERSION="3.12"
-        elif [ "$INPUT_PYTHON_VERSION" = "previous" ]; then
-          RESOLVED_VERSION="3.10"
         elif printf '%s' "$INPUT_PYTHON_VERSION" | grep -Eq '^[0-9]+\.[0-9]+(\.[0-9]+)?$'; then
           RESOLVED_VERSION="$INPUT_PYTHON_VERSION"
         else

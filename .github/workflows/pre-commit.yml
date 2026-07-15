@@ -30,7 +30,7 @@ jobs:
         # Run the full version spread on push (master/release) and nightly,
         # but only the current version on PRs — lint/format/type results
         # rarely differ across patch versions, so 3x per PR is wasteful.
-        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["current", "previous", "next"]') }}
+        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["current", "next"]') }}
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

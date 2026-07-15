@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { handleKeyboardActivation } from '@superset-ui/core';
 import { forwardRef, useCallback, useState } from 'react';
 
 import { t } from '@apache-superset/core/translation';
@@ -199,6 +200,7 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
                   e.preventDefault();
                   restoreFilter(id);
                 }}
+                onKeyDown={handleKeyboardActivation(() => restoreFilter(id))}
               >
                 {t('Undo?')}
               </span>
