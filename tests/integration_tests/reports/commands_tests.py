@@ -1543,15 +1543,13 @@ def test_slack_chart_report_schedule_converts_to_v2_channel_with_hash(
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
 @patch("superset.reports.notifications.slackv2.get_slack_client")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
-def test_slack_chart_report_schedule_fails_to_converts_to_v2(
+def test_slack_chart_report_schedule_failed_v2_conversion_rejects_v1_file_upload(
     screenshot_mock,
     slack_client_mock,
     slack_should_use_v2_api_mock,
     get_channels_with_search_mock,
 ):
-    """
-    ExecuteReport Command: Test converting a Slack report to v2 fails.
-    """
+    """A failed Slack v2 conversion rejects unsupported Slack v1 file uploads."""
     # setup screenshot mock
     screenshot_mock.return_value = SCREENSHOT_FILE
     channel_id = "slack_channel_id"
@@ -1568,25 +1566,27 @@ def test_slack_chart_report_schedule_fails_to_converts_to_v2(
         },
     ]
 
-    with pytest.raises(ReportScheduleSystemErrorsException):
-        AsyncExecuteReportScheduleCommand(
-            TEST_ID, report_schedule.id, datetime.utcnow()
-        ).run()
+    try:
+        with pytest.raises(ReportScheduleClientErrorsException):
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, report_schedule.id, datetime.utcnow()
+            ).run()
 
-    # Assert failuer with proper log
-    expected_message = (
-        "Failed to update slack recipients to v2: "
-        "Could not find the following channels: my_member_ID"
-    )
-    assert_log(ReportState.ERROR, error_message=expected_message)
+        expected_message = (
+            "Slack v1 file uploads are no longer supported because Slack retired "
+            "`files.upload`. Grant the Slack bot both the `channels:read` and "
+            "`groups:read` scopes so the recipient can be upgraded to Slack v2."
+        )
+        assert_log(ReportState.ERROR, error_message=expected_message)
 
-    # Assert that previous configuration was kept for manual correction
-    assert report_schedule.recipients[0].recipient_config_json == json.dumps(
-        {"target": "#slack_channel,my_member_ID"}
-    )
-    assert report_schedule.recipients[0].type == ReportRecipientType.SLACK
-
-    cleanup_report_schedule(report_schedule)
+        # Keep the previous configuration for manual correction.
+        assert report_schedule.recipients[0].recipient_config_json == json.dumps(
+            {"target": "#slack_channel,my_member_ID"}
+        )
+        assert report_schedule.recipients[0].type == ReportRecipientType.SLACK
+        slack_client_mock.assert_not_called()
+    finally:
+        cleanup_report_schedule(report_schedule)
 
 
 @pytest.mark.usefixtures("create_report_slack_chartv2")
