@@ -142,7 +142,7 @@ msgid ""
 " Set the opacity to 0 if you do not want to override the color specified "
 "in the GeoJSON"
 msgstr ""
-" Réglez l’opacité à 0 si vous ne voulez pas remplacer la couleur "
+" Réglez l'opacité à 0 si vous ne voulez pas remplacer la couleur "
 "spécifiée dans le GeoJSON"
 
 msgid " a dashboard OR "
@@ -415,7 +415,7 @@ msgstr "%s élément(s)"
 
 #, python-format
 msgid ""
-"%s items could not be tagged because you don’t have edit permissions to "
+"%s items could not be tagged because you don't have edit permissions to "
 "all selected objects."
 msgstr ""
 "%s objets n'ont pas pu être taggés parce que vous n'avez pas les "
@@ -604,7 +604,7 @@ msgid "0 Selected"
 msgstr "0 sélectionné"
 
 msgid "1 calendar day frequency"
-msgstr "Fréquence d’un jour civil"
+msgstr "Fréquence d'un jour civil"
 
 msgid "1 day"
 msgstr "1 jour"
@@ -881,7 +881,7 @@ msgstr "Une base de données avec le même nom existe déjà."
 
 msgid "A date is required when using custom date shift"
 msgstr ""
-"Une date est requise lors de l’utilisation d’un décalage de date "
+"Une date est requise lors de l'utilisation d'un décalage de date "
 "personnalisé"
 
 #, python-brace-format
@@ -913,7 +913,7 @@ msgid ""
 "empty will allow embedding from any domain."
 msgstr ""
 "Une liste de noms de domaine qui peuvent intégrer ce tableau de bord. "
-"Laisser ce champ vide permettra l’intégration à partir de n’importe quel "
+"Laisser ce champ vide permettra l'intégration à partir de n'importe quel "
 "domaine."
 
 msgid "A list of tags that have been applied to this chart."
@@ -955,7 +955,7 @@ msgid ""
 " rather than its radius or sweep angle."
 msgstr ""
 "Un tableau de coordonnées polaires où le cercle est divisé en coins "
-"d’angle égal et où la valeur représentée par n’importe quel coin est "
+"d'angle égal et où la valeur représentée par n'importe quel coin est "
 "illustrée par sa zone, plutôt que par son rayon ou son angle de balayage."
 
 msgid "A readable URL for your dashboard"
@@ -1057,7 +1057,7 @@ msgid "Access & ownership"
 msgstr "Accès et propriété"
 
 msgid "Access token"
-msgstr "Jeton d’accès"
+msgstr "Jeton d'accès"
 
 msgid "Account"
 msgstr "Compte"
@@ -1425,7 +1425,7 @@ msgid ""
 "Aggregate function to apply when pivoting and computing the total rows "
 "and columns"
 msgstr ""
-"Fonction d’agrégation à appliquer lors du pivotement et du calcul du "
+"Fonction d'agrégation à appliquer lors du pivotement et du calcul du "
 "total des lignes et des colonnes"
 
 msgid ""
@@ -1442,7 +1442,7 @@ msgid "Aggregation Method"
 msgstr "Aggregation"
 
 msgid "Aggregation function"
-msgstr "Fonctions d’agrégation"
+msgstr "Fonctions d'agrégation"
 
 msgid "Alert"
 msgstr "Alerte"
@@ -1478,17 +1478,17 @@ msgid "Alert on grace period"
 msgstr "Alerte sur la période de grace"
 
 msgid "Alert query returned a non-number value."
-msgstr "La requête d’alerte a retourné une valeur non numérique."
+msgstr "La requête d'alerte a retourné une valeur non numérique."
 
 msgid "Alert query returned more than one column."
-msgstr "La requête d’alerte a retourné plus d'une colonne."
+msgstr "La requête d'alerte a retourné plus d'une colonne."
 
 #, python-format
 msgid "Alert query returned more than one column. %(num_cols)s columns returned"
 msgstr "La requête a retourné plus d'une colonne. %(num_cols)s colonnes retournées"
 
 msgid "Alert query returned more than one row."
-msgstr "La requête d’alerte a retourné plus d'une ligne."
+msgstr "La requête d'alerte a retourné plus d'une ligne."
 
 #, python-format
 msgid "Alert query returned more than one row. %(num_rows)s rows returned"
@@ -1584,9 +1584,9 @@ msgid ""
 "Allow end user to drag-and-drop column headers to rearrange them. Note "
 "their changes won't persist for the next time they open the chart."
 msgstr ""
-"Permettre à l’utilisateur·rice final·e de glisser-déposer les en-têtes de"
+"Permettre à l'utilisateur·rice final·e de glisser-déposer les en-têtes de"
 " colonne pour les réorganiser. Notez que leurs changements ne "
-"persisteront pas la prochaine fois qu’ils ouvriront le tableau."
+"persisteront pas la prochaine fois qu'ils ouvriront le tableau."
 
 msgid "Allow file uploads to database"
 msgstr "Autoriser des téléchargements de fichier vers la base de donnée"
@@ -1809,7 +1809,7 @@ msgstr ""
 #, python-format
 msgid "An error occurred while fetching dataset datasource values: %s"
 msgstr ""
-"Une erreur s'est produite lors de la récupération de l’ensemble de "
+"Une erreur s'est produite lors de la récupération de l'ensemble de "
 "données relatives à la source de données : %s"
 
 #, python-format
@@ -1880,7 +1880,7 @@ msgstr "Une erreur s'est produite lors de l'extraction des données d'utilisatio
 msgid "An error occurred while fetching user values: %s"
 msgstr ""
 "Une erreur s'est produite lors de l'extraction des valeurs de "
-"l’utilisateur·rice : %s"
+"l'utilisateur·rice : %s"
 
 msgid "An error occurred while formatting SQL"
 msgstr "Une erreur s'est produite lors du formatage du SQL"
@@ -2084,7 +2084,7 @@ msgid "Any"
 msgstr "Tout"
 
 msgid "Any additional detail to show in the certification tooltip."
-msgstr "Tout détail supplémentaire à afficher dans l’infobulle de certification."
+msgstr "Tout détail supplémentaire à afficher dans l'infobulle de certification."
 
 msgid ""
 "Any color palette selected here will override the colors applied to this "
@@ -2174,7 +2174,7 @@ msgid ""
 "to target specific components."
 msgstr ""
 "Appliquez du CSS personnalisé au tableau de bord. Utilisez des noms de "
-"classes ou des sélecteurs d’éléments pour cibler des composants "
+"classes ou des sélecteurs d'éléments pour cibler des composants "
 "spécifiques."
 
 msgid "Apply filters"
@@ -2406,7 +2406,7 @@ msgid "Axis Format"
 msgstr "Format de l'axe"
 
 msgid "Axis Title"
-msgstr "Titre de l’axe"
+msgstr "Titre de l'axe"
 
 msgid "Axis ascending"
 msgstr "Axe ascendant"
@@ -2557,8 +2557,8 @@ msgstr "En bas à gauche"
 
 msgid "Bottom margin, in pixels, allowing for more room for axis labels"
 msgstr ""
-"Marge inférieure, en pixels, offrant plus d’espace pour les étiquettes "
-"d’axe"
+"Marge inférieure, en pixels, offrant plus d'espace pour les étiquettes "
+"d'axe"
 
 msgid "Bottom right"
 msgstr "En bas à droite"
@@ -3018,10 +3018,10 @@ msgid "Certified by %s"
 msgstr "Certifié par %s"
 
 msgid "Change order of columns."
-msgstr "Modifier l’ordre des colonnes."
+msgstr "Modifier l'ordre des colonnes."
 
 msgid "Change order of rows."
-msgstr "Modifier l’ordre des lignes."
+msgstr "Modifier l'ordre des lignes."
 
 msgid "Changed by"
 msgstr "Modifié par"
@@ -3257,7 +3257,7 @@ msgstr ""
 "hauteur"
 
 msgid "Child label position"
-msgstr "Position de l’étiquette enfant"
+msgstr "Position de l'étiquette enfant"
 
 msgid "Choice of [Label] must be present in [Group By]"
 msgstr "Le choix de [Étiquette] doit être présent dans [Grouper par]"
@@ -3338,11 +3338,11 @@ msgstr "choisir une valeur comprise entre %(min)spx et %(max)spx"
 
 msgid "Choose one of the available databases from the panel on the left."
 msgstr ""
-"Choisissez l’une des bases de données disponibles dans le panneau de "
+"Choisissez l'une des bases de données disponibles dans le panneau de "
 "gauche."
 
 msgid "Choose one of the available databases on the left panel."
-msgstr "Choisir l’une des bases de données disponibles dans le panneau de gauche."
+msgstr "Choisir l'une des bases de données disponibles dans le panneau de gauche."
 
 msgid "Choose sheet name"
 msgstr "choisir Nom de feuille"
@@ -3501,7 +3501,7 @@ msgid "Click to edit chart."
 msgstr "Cliquer pour modifier le graphique."
 
 msgid "Click to edit label"
-msgstr "Cliquer pour éditer l’étiquette"
+msgstr "Cliquer pour éditer l'étiquette"
 
 msgid "Click to favorite/unfavorite"
 msgstr "Marquer/Enlever comme favori"
@@ -3531,7 +3531,7 @@ msgid "Close all other tabs"
 msgstr "Fermer tous les autres onglets"
 
 msgid "Close color breakpoint editor"
-msgstr "Fermer l’éditeur de points d'arrêt de couleur"
+msgstr "Fermer l'éditeur de points d'arrêt de couleur"
 
 msgid "Close tab"
 msgstr "Fermer l'onglet"
@@ -3907,7 +3907,7 @@ msgstr "Configurer la taille du graphique pour chaque niveau de zoom"
 
 msgid "Configure this dashboard to embed it into an external web application."
 msgstr ""
-"Configurez ce tableau de bord pour l’intégrer dans une application Web "
+"Configurez ce tableau de bord pour l'intégrer dans une application Web "
 "externe."
 
 msgid "Configure your how you overlay is displayed here."
@@ -4404,10 +4404,10 @@ msgstr ""
 "les grands nombres"
 
 msgid "D3 time format for datetime columns"
-msgstr "Format d'heure D3 pour les colonnes d’horodatage"
+msgstr "Format d'heure D3 pour les colonnes d'horodatage"
 
 msgid "D3 time format syntax: https://github.com/d3/d3-time-format"
-msgstr "Syntaxe de format d’heure D3 : https://github.com/d3/d3-time-format"
+msgstr "Syntaxe de format d'heure D3 : https://github.com/d3/d3-time-format"
 
 msgid "DATETIME"
 msgstr "HORODATAGE"
@@ -4565,7 +4565,7 @@ msgid "Data Table"
 msgstr "Tableau des données"
 
 msgid "Data URI is not allowed."
-msgstr "L’URI des données n’est pas autorisé."
+msgstr "L'URI des données n'est pas autorisé."
 
 msgid "Data Zoom"
 msgstr "Zoom des données"
@@ -4790,7 +4790,7 @@ msgid "Datasource is required for validation"
 msgstr "Une source de données est requise pour la validation"
 
 msgid "Datasource type is invalid"
-msgstr "Le type de source de données n’est pas valide"
+msgstr "Le type de source de données n'est pas valide"
 
 msgid "Datasource type is required when datasource_id is given"
 msgstr "Le type de source de données est requis quand datasource_id est spécifié"
@@ -4818,7 +4818,7 @@ msgstr ""
 "configuration du tableau et est requise par ce type de graphique"
 
 msgid "Datetime format"
-msgstr "Format d’horodatage"
+msgstr "Format d'horodatage"
 
 msgid "Day"
 msgstr "Jour"
@@ -5162,8 +5162,8 @@ msgstr[1] "%(num)d annotations supprimées"
 #, python-format
 msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
-msgstr[0] "%(num)d couche d’annotation supprimée"
-msgstr[1] "%(num)d couches d’annotation supprimées"
+msgstr[0] "%(num)d couche d'annotation supprimée"
+msgstr[1] "%(num)d couches d'annotation supprimées"
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -5263,7 +5263,7 @@ msgid ""
 "Deleting a tab will remove all content within it and will deactivate any "
 "related alerts or reports. You may still reverse this action with the"
 msgstr ""
-"La suppression d’un onglet supprimera tout le contenu qu’il contient. "
+"La suppression d'un onglet supprimera tout le contenu qu'il contient. "
 "Vous pouvez toujours annuler cette action avec le"
 
 msgid "Delimited long & lat single column"
@@ -5363,10 +5363,10 @@ msgid "Dimension selection"
 msgstr "Sélection de la dimension"
 
 msgid "Dimension to use on x-axis."
-msgstr "Dimension à utiliser sur l’axe X."
+msgstr "Dimension à utiliser sur l'axe X."
 
 msgid "Dimension to use on y-axis."
-msgstr "Dimension à utiliser sur l’axe Y."
+msgstr "Dimension à utiliser sur l'axe Y."
 
 msgid "Dimension values"
 msgstr "Valeurs des dimensions"
@@ -5411,7 +5411,7 @@ msgid "Disable drill to detail"
 msgstr "Désactiver aller dans le détail"
 
 msgid "Disable embedding?"
-msgstr "Désactiver l’intégration ?"
+msgstr "Désactiver l'intégration ?"
 
 msgid "Disabled"
 msgstr "Désactivé"
@@ -5610,11 +5610,11 @@ msgstr "Glisser pour réorganiser"
 
 msgid "Draw a marker on data points. Only applicable for line types."
 msgstr ""
-"Tracer un marqueur sur les points de données. Ne s’applique qu’aux types "
+"Tracer un marqueur sur les points de données. Ne s'applique qu'aux types "
 "de ligne."
 
 msgid "Draw area under curves. Only applicable for line types."
-msgstr "Tracer une zone sous les courbes. Ne s’applique qu’aux types de ligne."
+msgstr "Tracer une zone sous les courbes. Ne s'applique qu'aux types de ligne."
 
 msgid "Draw line from Pie to label when labels outside?"
 msgstr ""
@@ -5626,7 +5626,7 @@ msgstr "Tracer des lignes de séparation pour les points de repère de l'axe min
 
 msgid "Draw split lines for minor y-axis ticks"
 msgstr ""
-"Tracer des lignes séparées pour les points de repère de l’axe des "
+"Tracer des lignes séparées pour les points de repère de l'axe des "
 "ordonnées mineur"
 
 msgid "Drill by"
@@ -5869,10 +5869,10 @@ msgid "Edit User"
 msgstr "Modifier l'utilisateur"
 
 msgid "Edit alert"
-msgstr "Modifier l’alerte"
+msgstr "Modifier l'alerte"
 
 msgid "Edit annotation"
-msgstr "Modifier l’annotation"
+msgstr "Modifier l'annotation"
 
 msgid "Edit annotation layer"
 msgstr "Modifier une couche d'annotations"
@@ -5926,7 +5926,7 @@ msgid "Edit theme properties"
 msgstr "Modifier les propriétés du thème"
 
 msgid "Edit time range"
-msgstr "Modifier l’intervalle de temps"
+msgstr "Modifier l'intervalle de temps"
 
 msgid "Edit user"
 msgstr "Modifier l'utilisateur"
@@ -5942,7 +5942,7 @@ msgstr "La base de données est mal orthographiée ou elle n'existe pas."
 
 #, python-format
 msgid "Either the username \"%(username)s\" or the password is incorrect."
-msgstr "Le nom d’utilisateur « %(username)s » ou le mot de passe est incorrect."
+msgstr "Le nom d'utilisateur « %(username)s » ou le mot de passe est incorrect."
 
 #, python-format
 msgid ""
@@ -5953,7 +5953,7 @@ msgstr ""
 "données « %(database)s » est incorrect."
 
 msgid "Either the username or the password is wrong."
-msgstr "Le nom d’utilisateur ou le mot de passe est incorrect."
+msgstr "Le nom d'utilisateur ou le mot de passe est incorrect."
 
 msgid "Elapsed"
 msgstr "Temps passé"
@@ -5989,10 +5989,10 @@ msgid "Embedded dashboard could not be deleted."
 msgstr "Le tableau de bord intégré n'a pas pu être supprimé."
 
 msgid "Embedding deactivated."
-msgstr "L’intégration est désactivée."
+msgstr "L'intégration est désactivée."
 
 msgid "Emphasis"
-msgstr "Mettre l’accent sur"
+msgstr "Mettre l'accent sur"
 
 msgid "Empty circle"
 msgstr "Cercle vide"
@@ -6027,7 +6027,7 @@ msgid "Enable data zooming controls"
 msgstr "Activer les contrôles d'agrandissement des données"
 
 msgid "Enable embedding"
-msgstr "Activer l’intégration"
+msgstr "Activer l'intégration"
 
 msgid "Enable forecast"
 msgstr "Activer la prévision"
@@ -6192,7 +6192,7 @@ msgstr "Saisir le nom du groupe"
 
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
-msgstr "Saisir les informations d’%(dbModelName)sidentification requises"
+msgstr "Saisir les informations d'%(dbModelName)sidentification requises"
 
 msgid "Enter the unique project id for your database."
 msgstr "Saisir l'identifiant unique du projet pour votre base de données."
@@ -6364,7 +6364,7 @@ msgid "Event flow"
 msgstr "Flux d'événements"
 
 msgid "Event time column"
-msgstr "Colonne temporelle de l’événement"
+msgstr "Colonne temporelle de l'événement"
 
 msgid "Every"
 msgstr "Chaque"
@@ -6394,7 +6394,7 @@ msgid "Excel file format cannot be determined"
 msgstr "Le format du fichier Excel ne peut pas être déterminé"
 
 msgid "Excel upload"
-msgstr "Téléversement d’un fichier Excel"
+msgstr "Téléversement d'un fichier Excel"
 
 msgid "Exclude selected values"
 msgstr "Exclure les valeurs sélectionnées"
@@ -6643,7 +6643,7 @@ msgstr "Échec de la création du rapport"
 
 #, python-format
 msgid "Failed to execute %(query)s"
-msgstr "Échec de l’exécution de %(query)s"
+msgstr "Échec de l'exécution de %(query)s"
 
 msgid "Failed to fetch API keys"
 msgstr "Echec de la récupératiopn des clés API"
@@ -6942,7 +6942,7 @@ msgid ""
 "results do not include the start or end dates"
 msgstr ""
 "Corrigez la ligne de tendance à la plage de temps complète spécifiée au "
-"cas où les résultats filtrés n’incluraient pas les dates de début ou de "
+"cas où les résultats filtrés n'incluraient pas les dates de début ou de "
 "fin"
 
 msgid "Fix to selected Time Range"
@@ -6974,8 +6974,8 @@ msgstr "Taille de la police"
 
 msgid "Font size for axis labels, detail value and other text elements"
 msgstr ""
-"Taille de la police pour les étiquettes d’axe, la valeur de détail et "
-"d’autres éléments de texte"
+"Taille de la police pour les étiquettes d'axe, la valeur de détail et "
+"d'autres éléments de texte"
 
 msgid "Font size for the biggest value in the list"
 msgstr "Taille de police pour la plus grande valeur de la liste"
@@ -7176,10 +7176,10 @@ msgid "Funnel Chart"
 msgstr "Diagramme en entonnoir"
 
 msgid "Further customize how to display each column"
-msgstr "Personnaliser davantage la façon d’afficher chaque colonne"
+msgstr "Personnaliser davantage la façon d'afficher chaque colonne"
 
 msgid "Further customize how to display each metric"
-msgstr "Personnaliser davantage la façon d’afficher chaque mesure"
+msgstr "Personnaliser davantage la façon d'afficher chaque mesure"
 
 msgid "GROUP BY"
 msgstr "GROUPER PAR"
@@ -7526,7 +7526,7 @@ msgid "Image (PNG) embedded in email"
 msgstr "Image (PNG) encapsulée dans le mail"
 
 msgid "Image download failed, please refresh and try again."
-msgstr "Échec du téléchargement de l’image, veuillez actualiser et réessayer."
+msgstr "Échec du téléchargement de l'image, veuillez actualiser et réessayer."
 
 msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
@@ -7658,7 +7658,7 @@ msgstr ""
 
 msgid "Input field supports custom rotation. e.g. 30 for 30°"
 msgstr ""
-"Le champ d’entrée prend en charge la rotation personnalisée, p. ex., 30 "
+"Le champ d'entrée prend en charge la rotation personnalisée, p. ex., 30 "
 "pour 30°"
 
 msgid "Insert Layer URL"
@@ -7703,11 +7703,11 @@ msgid "Intensity Radius"
 msgstr "Rayon d'intensité"
 
 msgid "Intensity Radius is the radius at which the weight is distributed"
-msgstr "Le rayon d’intensité est le rayon auquel le poids est distribué"
+msgstr "Le rayon d'intensité est le rayon auquel le poids est distribué"
 
 msgid "Intensity is the value multiplied by the weight to obtain the final weight"
 msgstr ""
-"L’intensité est la valeur multipliée par le poids pour obtenir le poids "
+"L'intensité est la valeur multipliée par le poids pour obtenir le poids "
 "final"
 
 msgid "Interval"
@@ -7788,7 +7788,7 @@ msgid "Invalid currency code in saved metrics"
 msgstr "Code de la devise invalide dans les métriques sauvegardés"
 
 msgid "Invalid date/timestamp format"
-msgstr "Format d’horodatage invalide"
+msgstr "Format d'horodatage invalide"
 
 msgid "Invalid executor type"
 msgstr "Type d'exécuteur invalide"
@@ -7857,7 +7857,7 @@ msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Identifiants d'onglet non valides : %(tab_ids)s"
 
 msgid "Invalid username or password"
-msgstr "Le nom d’utilisateur ou le mot de passe est incorrect."
+msgstr "Le nom d'utilisateur ou le mot de passe est incorrect."
 
 msgid "Inverse selection"
 msgstr "Sélection inverse"
@@ -7923,8 +7923,8 @@ msgstr ""
 "Il ne sera pas supprimé même s'il est vide. Il ne sera pas affiché dans "
 "la vue d'édition du graphique s'il est vide."
 
-msgid "It’s not recommended to truncate Y axis in Bar chart."
-msgstr "Il n’est pas recommandé de tronquer l’axe dans le graphique à barres."
+msgid "It's not recommended to truncate Y axis in Bar chart."
+msgstr "Il n'est pas recommandé de tronquer l'axe dans le graphique à barres."
 
 msgid "JAN"
 msgstr "JAN"
@@ -7975,7 +7975,7 @@ msgid "JavaScript onClick href"
 msgstr "JavaScript onClick href"
 
 msgid "JavaScript tooltip generator"
-msgstr "Générateur d’infobulle JavaScript"
+msgstr "Générateur d'infobulle JavaScript"
 
 msgid "Jinja templating"
 msgstr "Modèles Jinja"
@@ -7993,7 +7993,7 @@ msgid "Keep control settings?"
 msgstr "Conserver les paramètres de contrôle?"
 
 msgid "Keep editing"
-msgstr "Poursuivre l’édition"
+msgstr "Poursuivre l'édition"
 
 msgid "Key"
 msgstr "Clé"
@@ -8027,7 +8027,7 @@ msgid "Label JavaScript config generator"
 msgstr "Générateur d'infobulle JavaScript"
 
 msgid "Label Line"
-msgstr "Ligne d’étiquette"
+msgstr "Ligne d'étiquette"
 
 msgid "Label Template"
 msgstr "Modèle d'étiquette"
@@ -8068,7 +8068,7 @@ msgid "Label size unit"
 msgstr "Unité de la taille de l'étiquette"
 
 msgid "Label threshold"
-msgstr "Seuil d’étiquette"
+msgstr "Seuil d'étiquette"
 
 msgid "Labelling"
 msgstr "Étiquetage"
@@ -8189,7 +8189,7 @@ msgid "Layout type of graph"
 msgstr "Type de disposition du graphique"
 
 msgid "Layout type of tree"
-msgstr "Type de disposition de l’arbre"
+msgstr "Type de disposition de l'arbre"
 
 msgid "Least recently modified"
 msgstr "Dernière modification en date"
@@ -8202,8 +8202,8 @@ msgstr "Marge gauche"
 
 msgid "Left margin, in pixels, allowing for more room for axis labels"
 msgstr ""
-"Marge inférieure, en pixels, offrant plus d’espace pour les étiquettes "
-"d’axe"
+"Marge inférieure, en pixels, offrant plus d'espace pour les étiquettes "
+"d'axe"
 
 msgid "Left to Right"
 msgstr "Gauche à droite"
@@ -8318,7 +8318,7 @@ msgstr ""
 "Le graphique linéaire est utilisé pour visualiser les mesures prises sur "
 "une catégorie donnée. Le graphique linéaire est un type de graphique qui "
 "affiche les informations sous forme de série de points de données reliés "
-"par des segments linéaires. Il s’agit d’un type de tableau de base commun"
+"par des segments linéaires. Il s'agit d'un type de tableau de base commun"
 " dans de nombreux champs."
 
 msgid "Line charts on a map"
@@ -8551,7 +8551,7 @@ msgid "Mandatory"
 msgstr "Obligatoire"
 
 msgid "Manually set min/max values for the y-axis."
-msgstr "Définir manuellement les valeurs min/max pour l’axe Y."
+msgstr "Définir manuellement les valeurs min/max pour l'axe Y."
 
 msgid "Map"
 msgstr "Carte"
@@ -8677,7 +8677,7 @@ msgid "Maximum value"
 msgstr "Valeur maximale"
 
 msgid "Maximum value on the gauge axis"
-msgstr "Valeur maximale sur l’axe de l’indicateur"
+msgstr "Valeur maximale sur l'axe de l'indicateur"
 
 msgid "Maximum width size of the path, in pixels or meters."
 msgstr "La largeur maximale du chemin, en pixels ou en mètre"
@@ -8754,7 +8754,7 @@ msgid ""
 " operate over the time series data points."
 msgstr ""
 "Méthode pour calculer la valeur affichée. « Valeur globale » calcule une "
-"métrique unique sur l’ensemble de la période filtrée, idéale pour les "
+"métrique unique sur l'ensemble de la période filtrée, idéale pour les "
 "métriques non additives comme les ratios, moyennes ou comptes distincts. "
 "Les autres méthodes s'appliquent aux points de données de la série "
 "temporelle."
@@ -8783,7 +8783,7 @@ msgid "Metric assigned to the [Y] axis"
 msgstr "Mesure assignée à l'axe [Y]"
 
 msgid "Metric change in value from `since` to `until`"
-msgstr "Variation de la valeur mesure de « depuis » à « jusqu’à »"
+msgstr "Variation de la valeur mesure de « depuis » à « jusqu'à »"
 
 msgid "Metric currency"
 msgstr "Devise de la métrique"
@@ -8792,7 +8792,7 @@ msgid "Metric descending"
 msgstr "Mesure descendante"
 
 msgid "Metric factor change from `since` to `until`"
-msgstr "Le facteur mesure passe de « depuis » à « jusqu’à »"
+msgstr "Le facteur mesure passe de « depuis » à « jusqu'à »"
 
 msgid "Metric for node values"
 msgstr "Mesure pour les valeurs de nœud"
@@ -8808,7 +8808,7 @@ msgid "Metric name [%s] is duplicated"
 msgstr "Le nom de mesure [%s] est dupliqué"
 
 msgid "Metric percent change in value from `since` to `until`"
-msgstr "Pourcentage de variation de la valeur mesure de « depuis » à « jusqu’à »"
+msgstr "Pourcentage de variation de la valeur mesure de « depuis » à « jusqu'à »"
 
 msgid "Metric that defines the size of the bubble"
 msgstr "Mesure qui définit la taille de la bulle"
@@ -8941,7 +8941,7 @@ msgid "Minimum value for label to be displayed on graph."
 msgstr "Valeur minimale pour que l'étiquette soit affichée sur le graphique."
 
 msgid "Minimum value on the gauge axis"
-msgstr "Valeur minimale sur l’axe de la jauge"
+msgstr "Valeur minimale sur l'axe de la jauge"
 
 msgid "Minimum width size of the path, in pixels or meters."
 msgstr "La taille minimal du path, en pixels ou en mètres"
@@ -9145,10 +9145,10 @@ msgid "Native filter values has no values"
 msgstr "Le filtre natif n'a pas de valeurs"
 
 msgid "Need help? Learn how to connect your database"
-msgstr "Besoin d’aide? Apprenez comment connecter votre base de données"
+msgstr "Besoin d'aide? Apprenez comment connecter votre base de données"
 
 msgid "Need help? Learn more about"
-msgstr "Besoin d’aide? En savoir plus sur"
+msgstr "Besoin d'aide? En savoir plus sur"
 
 msgid "Network Error"
 msgstr "Erreur de réseau"
@@ -10440,7 +10440,7 @@ msgid "Position of column level subtotal"
 msgstr "Position du sous-total au niveau de la colonne"
 
 msgid "Position of intermediate node label on tree"
-msgstr "Position de l’étiquette de nœud intermédiaire sur l’arbre"
+msgstr "Position de l'étiquette de nœud intermédiaire sur l'arbre"
 
 msgid "Position of row level subtotal"
 msgstr "Position du sous-total au niveau de la ligne"
@@ -10494,10 +10494,10 @@ msgid "Primary or secondary y-axis"
 msgstr "Axe Y primaire ou secondaire"
 
 msgid "Primary y-axis Bounds"
-msgstr "Limites de l’axe Y primaires"
+msgstr "Limites de l'axe Y primaires"
 
 msgid "Primary y-axis format"
-msgstr "Format de l’axe primaire des ordonnées"
+msgstr "Format de l'axe primaire des ordonnées"
 
 msgid "Private"
 msgstr "Privé"
@@ -10555,10 +10555,10 @@ msgid "Purple"
 msgstr "Violet"
 
 msgid "Put labels outside"
-msgstr "Placer les étiquettes à l’extérieur"
+msgstr "Placer les étiquettes à l'extérieur"
 
 msgid "Put the labels outside of the pie?"
-msgstr "Placer les étiquettes à l’extérieur du graphique circulaire?"
+msgstr "Placer les étiquettes à l'extérieur du graphique circulaire?"
 
 msgid "Put your code here"
 msgstr "Mettez votre code ici"
@@ -10680,10 +10680,10 @@ msgid "Range filter"
 msgstr "Filtre d'intervalle"
 
 msgid "Range filter plugin using AntD"
-msgstr "Module d'extension de filtre d’intervalle utilisant AntD"
+msgstr "Module d'extension de filtre d'intervalle utilisant AntD"
 
 msgid "Range labels"
-msgstr "Étiquettes d’intervalle"
+msgstr "Étiquettes d'intervalle"
 
 msgid "Range type"
 msgstr "Type d'intervalle"
@@ -10725,7 +10725,7 @@ msgid "Red for increase, green for decrease"
 msgstr "Rouge pour une augmentation, vert pour une diminution"
 
 msgid "Redo the action"
-msgstr "Refaire l’action"
+msgstr "Refaire l'action"
 
 msgid "Reduce X ticks"
 msgstr "Réduire X points de repère"
@@ -10736,8 +10736,8 @@ msgid ""
 "will be applied to columns and the width may overflow into an horizontal "
 "scroll."
 msgstr ""
-"Réduit le nombre de points de repère de l’axe X à afficher. "
-"Si la valeur est définie à True, l’axe X ne débordera pas et "
+"Réduit le nombre de points de repère de l'axe X à afficher. "
+"Si la valeur est définie à True, l'axe X ne débordera pas et "
 "des étiquettes pourraient être manquantes. Si elle est fausse, une "
 "largeur minimale sera appliquée aux colonnes et la largeur pourrait "
 "déborder dans un défilement horizontal."
@@ -10761,14 +10761,14 @@ msgid "Refresh delayed"
 msgstr "Actualisation retardée"
 
 msgid "Refresh frequency"
-msgstr "Fréquence d’actualisation"
+msgstr "Fréquence d'actualisation"
 
 #, python-format
 msgid "Refresh frequency must be at least %s seconds"
 msgstr "La fréquence de rafraîchissement doit être d'au moins %s secondes"
 
 msgid "Refresh interval"
-msgstr "Intervalle d’actualisation"
+msgstr "Intervalle d'actualisation"
 
 msgid "Refresh interval saved"
 msgstr "Intervalle d'actualisation enregistré"
@@ -10853,7 +10853,7 @@ msgid "Remove filter"
 msgstr "Supprimer le filtre"
 
 msgid "Remove item"
-msgstr "Supprimer l’élément"
+msgstr "Supprimer l'élément"
 
 msgid "Remove query from log"
 msgstr "Supprimer la requête des journaux"
@@ -10920,7 +10920,7 @@ msgstr ""
 msgid "Report Schedule execution failed when generating a screenshot."
 msgstr ""
 "L'exécution de la planification de rapport a échoué à la génération d'une"
-" capture d’écran."
+" capture d'écran."
 
 msgid "Report Schedule execution got an unexpected error."
 msgstr ""
@@ -10933,7 +10933,7 @@ msgstr ""
 "refusé."
 
 msgid "Report Schedule log prune failed."
-msgstr "Échec de l’élagage du journal du planification de rapport."
+msgstr "Échec de l'élagage du journal du planification de rapport."
 
 msgid "Report Schedule not found."
 msgstr "Planification de rapport introuvable."
@@ -11091,7 +11091,7 @@ msgid "Return to Superset"
 msgstr "Retourner à Superset."
 
 msgid "Return to specific datetime."
-msgstr "Retour à l’horodatage spécifique."
+msgstr "Retour à l'horodatage spécifique."
 
 msgid "Reverse Lat & Long"
 msgstr "Inverser la latitude et la longitude"
@@ -11197,7 +11197,7 @@ msgid "Rose Type"
 msgstr "Type en rose"
 
 msgid "Rotate x axis label"
-msgstr "Faire pivoter l’étiquette de l’axe des absisses"
+msgstr "Faire pivoter l'étiquette de l'axe des absisses"
 
 msgid "Rotate y axis label"
 msgstr "Faire pivoter l'étiquette de l'axe Y"
@@ -11219,9 +11219,9 @@ msgid ""
 "retrieved, respecting the row limit. All Records: Percentages are "
 "calculated based on the total dataset, ignoring the row limit."
 msgstr ""
-"Limite de lignes : les pourcentages sont calculés sur l’ensemble des "
+"Limite de lignes : les pourcentages sont calculés sur l'ensemble des "
 "données récupérées, en respectant la limite de lignes. Toutes les données"
-" : les pourcentages sont calculés sur l’ensemble du jeu de données, en "
+" : les pourcentages sont calculés sur l'ensemble du jeu de données, en "
 "ignorant la limite de lignes."
 
 msgid ""
@@ -11289,7 +11289,7 @@ msgid "Run selection"
 msgstr "Exécuter la sélection"
 
 msgid "Running"
-msgstr "En cours d’exécution"
+msgstr "En cours d'exécution"
 
 #, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
@@ -11334,10 +11334,10 @@ msgid ""
 msgstr ""
 "SQL Lab utilise le stockage local de votre navigateur pour stocker les "
 "requêtes et les résultats. Actuellement, vous utilisez %(currentUsage)s "
-"ko sur %(maxStorage)d ko à partir de l’espace de stockage. Pour éviter "
+"ko sur %(maxStorage)d ko à partir de l'espace de stockage. Pour éviter "
 "que SQL Lab ne tombe en panne, veuillez supprimer certains onglets de "
 "requête. Vous pouvez accéder à nouveau à ces requêtes en utilisant la "
-"fonction Enregistrer avant de supprimer l’onglet. Veuillez noter que vous"
+"fonction Enregistrer avant de supprimer l'onglet. Veuillez noter que vous"
 " devrez fermer les autres fenêtres de SQL Lab avant de le faire."
 
 msgid "SQL Query"
@@ -11402,7 +11402,7 @@ msgid "SUN"
 msgstr "DIM"
 
 msgid "Sample Standard Deviation"
-msgstr "Exemple d’écart-type"
+msgstr "Exemple d'écart-type"
 
 msgid "Sample Variance"
 msgstr "Exemple de variance"
@@ -11548,8 +11548,8 @@ msgid ""
 "connected in order. It shows a statistical relationship between two "
 "variables."
 msgstr ""
-"Le diagramme de dispersion a l’axe horizontal en unités linéaires et les "
-"points sont connectés dans l’ordre. Il montre une relation statistique "
+"Le diagramme de dispersion a l'axe horizontal en unités linéaires et les "
+"points sont connectés dans l'ordre. Il montre une relation statistique "
 "entre deux variables."
 
 msgid "Schedule"
@@ -11686,10 +11686,10 @@ msgid "Secondary y-axis Bounds"
 msgstr "Limites secondaires de l'axe Y"
 
 msgid "Secondary y-axis format"
-msgstr "Format secondaire de l’axe Y"
+msgstr "Format secondaire de l'axe Y"
 
 msgid "Secondary y-axis title"
-msgstr "Titre secondaire de l’axe Y"
+msgstr "Titre secondaire de l'axe Y"
 
 #, python-format
 msgid "Seconds %s"
@@ -11833,7 +11833,7 @@ msgid "Select a visualization type"
 msgstr "Selectionner un type de visualisation"
 
 msgid "Select aggregate options"
-msgstr "Sélectionner les options d’agrégat"
+msgstr "Sélectionner les options d'agrégat"
 
 msgid "Select all"
 msgstr "Sélectionner tout"
@@ -12443,7 +12443,7 @@ msgid "Show Bubbles"
 msgstr "Afficher les bulles"
 
 msgid "Show CREATE VIEW statement"
-msgstr "Afficher l’énoncé CREATE VIEW"
+msgstr "Afficher l'énoncé CREATE VIEW"
 
 msgid "Show Dashboard"
 msgstr "Afficher le tableau de bord"
@@ -12488,24 +12488,24 @@ msgid "Show Values"
 msgstr "Afficher les valeurs"
 
 msgid "Show X-axis"
-msgstr "Afficher l’axe X"
+msgstr "Afficher l'axe X"
 
 msgid "Show Y-axis"
-msgstr "Afficher l’axe Y"
+msgstr "Afficher l'axe Y"
 
 msgid ""
 "Show Y-axis on the sparkline. Will display the manually set min/max if "
 "set or min/max values in the data otherwise."
 msgstr ""
-"Afficher l’axe Y sur la ligne de la bougie. Les valeurs "
-"min/max définies manuellement s’afficheront si elles sont définies ou "
+"Afficher l'axe Y sur la ligne de la bougie. Les valeurs "
+"min/max définies manuellement s'afficheront si elles sont définies ou "
 "autrement min/max dans les données."
 
 msgid "Show all columns"
 msgstr "Afficher toutes les colonnes"
 
 msgid "Show axis line ticks"
-msgstr "Afficher les coches de ligne d’axe"
+msgstr "Afficher les coches de ligne d'axe"
 
 msgid "Show cell bars"
 msgstr "Afficher les barres de cellules"
@@ -12545,7 +12545,7 @@ msgid ""
 msgstr ""
 "Afficher les relations hiérarchiques des données, avec la valeur "
 "représentée par aire, montrant la proportion et la contribution à "
-"l’ensemble."
+"l'ensemble."
 
 msgid "Show info tooltip"
 msgstr "Afficher l'info-bulle"
@@ -12615,7 +12615,7 @@ msgid ""
 " apply to the result."
 msgstr ""
 "Afficher les agrégats totaux des mesures sélectionnées. Notez que la "
-"limite de ligne ne s’applique pas au résultat."
+"limite de ligne ne s'applique pas au résultat."
 
 msgid "Show value"
 msgstr "Afficher la valeur"
@@ -12625,8 +12625,8 @@ msgid ""
 "call attention to a KPI or the one thing you want your audience to focus "
 "on."
 msgstr ""
-"Présente une seule mesure au premier plan. Il est préférable d’utiliser "
-"un grand chiffre pour attirer l’attention sur un ICR ou sur la chose sur "
+"Présente une seule mesure au premier plan. Il est préférable d'utiliser "
+"un grand chiffre pour attirer l'attention sur un ICR ou sur la chose sur "
 "laquelle vous voulez que votre public se concentre."
 
 msgid ""
@@ -12634,16 +12634,16 @@ msgid ""
 "attention to an important metric along with its change over time or other"
 " dimension."
 msgstr ""
-"Présente un seul chiffre accompagné d’un graphique linéaire simple pour "
-"attirer l’attention sur une mesure importante ainsi que son changement au"
-" fil du temps ou d’autres dimensions."
+"Présente un seul chiffre accompagné d'un graphique linéaire simple pour "
+"attirer l'attention sur une mesure importante ainsi que son changement au"
+" fil du temps ou d'autres dimensions."
 
 msgid ""
 "Showcases how a metric changes as the funnel progresses. This classic "
 "chart is useful for visualizing drop-off between stages in a pipeline or "
 "lifecycle."
 msgstr ""
-"Montre comment une mesure change au fur et à mesure que l’entonnoir "
+"Montre comment une mesure change au fur et à mesure que l'entonnoir "
 "progresse. Ce graphique classique est utile pour visualiser la baisse "
 "entre les étapes d'un pipeline ou d'un cycle de vie."
 
@@ -12659,7 +12659,7 @@ msgid ""
 "Showcases the progress of a single metric against a given target. The "
 "higher the fill, the closer the metric is to the target."
 msgstr ""
-"Affiche la progression d’une seule mesure par rapport à une cible donnée."
+"Affiche la progression d'une seule mesure par rapport à une cible donnée."
 " Plus le remplissage est élevé, plus la mesure est proche de la cible."
 
 #, python-format
@@ -12711,7 +12711,7 @@ msgid "Size of edge symbols"
 msgstr "Taille des symboles de bord"
 
 msgid "Size of marker. Also applies to forecast observations."
-msgstr "Taille du marqueur. S’applique également aux observations prévisionnelles."
+msgstr "Taille du marqueur. S'applique également aux observations prévisionnelles."
 
 msgid "Skip blank lines rather than interpreting them as Not A Number values"
 msgstr ""
@@ -12869,10 +12869,10 @@ msgid "Sort Series By"
 msgstr "Trier les séries par"
 
 msgid "Sort X Axis"
-msgstr "Trier l’axe X"
+msgstr "Trier l'axe X"
 
 msgid "Sort Y Axis"
-msgstr "Trier l’axe Y"
+msgstr "Trier l'axe Y"
 
 msgid "Sort ascending"
 msgstr "Trier par ordre croissant"
@@ -13044,13 +13044,13 @@ msgid "Start date included in time range"
 msgstr "Date de début incluse de l'intervalle de temps"
 
 msgid "Start y-axis at 0"
-msgstr "Commencer l’axe Y à 0"
+msgstr "Commencer l'axe Y à 0"
 
 msgid ""
 "Start y-axis at zero. Uncheck to start y-axis at minimum value in the "
 "data."
 msgstr ""
-"Commencer l’axe Y à zéro. Décochez pour démarrer l’axe des "
+"Commencer l'axe Y à zéro. Décochez pour démarrer l'axe des "
 "ordonnées à la valeur minimale dans les données."
 
 msgid "Started"
@@ -13094,7 +13094,7 @@ msgid ""
 msgstr ""
 "Le graphique à lignes en escalier (également appelé graphique à étapes) "
 "est une variation du graphique linéaire, mais la ligne formant une série "
-"d’étapes entre les points de données. Un tableau des étapes peut être "
+"d'étapes entre les points de données. Un tableau des étapes peut être "
 "utile lorsque vous voulez afficher les changements qui se produisent à "
 "des intervalles irréguliers."
 
@@ -13180,7 +13180,7 @@ msgid "Suffix"
 msgstr "Suffixe"
 
 msgid "Suffix to apply after the percentage display"
-msgstr "Suffixe à appliquer après l’affichage du pourcentage"
+msgstr "Suffixe à appliquer après l'affichage du pourcentage"
 
 msgid "Sum"
 msgstr "Somme"
@@ -13317,14 +13317,14 @@ msgid "Tab schema is invalid, caused by: %(error)s"
 msgstr "Le schéma du jeu de données n'est pas valide : %(error)s"
 
 msgid "Tab title"
-msgstr "Titre de l’onglet"
+msgstr "Titre de l'onglet"
 
 msgid "Table"
 msgstr "Table"
 
 #, python-format
 msgid "Table %(table)s wasn't found in the database %(db)s"
-msgstr "La table %(table)s n’a pas été trouvé dans la base de données %(db)s"
+msgstr "La table %(table)s n'a pas été trouvé dans la base de données %(db)s"
 
 msgid "Table Name"
 msgstr "Nom de la table"
@@ -13405,7 +13405,7 @@ msgid "Tag name"
 msgstr "Nom de l'étiquette"
 
 msgid "Tag name is invalid (cannot contain ':')"
-msgstr "Le nom de l'étiquette n’est pas valide (ne peut pas contenir « : »)"
+msgstr "Le nom de l'étiquette n'est pas valide (ne peut pas contenir « : »)"
 
 msgid "Tag parameters are invalid."
 msgstr "Les paramètres de l'étiquette ne sont pas valides."
@@ -13541,7 +13541,7 @@ msgstr "La ressource %s liée à ce graphique semble avoir été effacée."
 
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
-msgstr "La réponse API de %s ne correspond pas à l’interface IDatabaseTable."
+msgstr "La réponse API de %s ne correspond pas à l'interface IDatabaseTable."
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
@@ -13611,7 +13611,7 @@ msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr "Il manque à l'URL les paramètres dataset_id ou slice_id."
 
 msgid "The X-axis is not on the filters list"
-msgstr "L’axe X ne figure pas dans la liste des filtres"
+msgstr "L'axe X ne figure pas dans la liste des filtres"
 
 msgid ""
 "The X-axis is not on the filters list which will prevent it from being "
@@ -13636,7 +13636,7 @@ msgid ""
 "associated with more than one category, only the first will be used."
 msgstr ""
 "La catégorie de nœuds sources utilisée pour attribuer des couleurs. Si un"
-" nœud est associé à plus d’une catégorie, seul le premier sera utilisé."
+" nœud est associé à plus d'une catégorie, seul le premier sera utilisé."
 
 msgid ""
 "The chart this report targets was deleted. Restore the chart, or update "
@@ -13701,7 +13701,7 @@ msgid ""
 "the related dashboard.\n"
 "    Check the JSON metadata in the Advanced settings."
 msgstr ""
-"Ce schéma de couleurs est remplacé par des couleurs d’étiquettes "
+"Ce schéma de couleurs est remplacé par des couleurs d'étiquettes "
 "personnalisées.    Vérifiez les métadonnées JSON dans les paramètres "
 "avancés"
 
@@ -13916,7 +13916,7 @@ msgid "The font size of the point labels"
 msgstr "La taille de la police des étiquettes du point"
 
 msgid "The function to use when aggregating points into groups"
-msgstr "La fonction à utiliser lors de l’agrégation de points en groupes"
+msgstr "La fonction à utiliser lors de l'agrégation de points en groupes"
 
 msgid "The group has been created successfully."
 msgstr "Le group a été créé avec succès."
@@ -14003,10 +14003,10 @@ msgid ""
 " first"
 msgstr ""
 "Le nombre maximal de subdivisions de chaque groupe; les valeurs "
-"inférieures sont d’abord élaguées"
+"inférieures sont d'abord élaguées"
 
 msgid "The maximum value of metrics. It is an optional configuration"
-msgstr "La valeur maximale des mesures. Il s’agit d’une configuration optionnelle"
+msgstr "La valeur maximale des mesures. Il s'agit d'une configuration optionnelle"
 
 #, python-format
 msgid ""
@@ -14060,7 +14060,7 @@ msgid "The name of the rule must be unique"
 msgstr "Le nom doit être unique"
 
 msgid "The number color \"steps\""
-msgstr "Le nombre d’« étapes » colorées"
+msgstr "Le nombre d'« étapes » colorées"
 
 msgid "The number of bins for the histogram"
 msgstr "Sélectionner le nombre de cases pour l'histogramme"
@@ -14222,7 +14222,7 @@ msgstr "Le numéro de port est invalide."
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr ""
 "La mesure principale est utilisée pour définir les tailles des segments "
-"d’arc"
+"d'arc"
 
 msgid "The provided table was not found in the provided database"
 msgstr "La table est introuvable dans la base de données."
@@ -14272,7 +14272,7 @@ msgid ""
 "to turn off clustering, but beware that a large number of points (>1000) "
 "will cause lag."
 msgstr ""
-"Rayon (en pixels) utilisé par l’algorithme pour définir une grappe. "
+"Rayon (en pixels) utilisé par l'algorithme pour définir une grappe. "
 "Choisissez 0 pour désactiver la mise en grappe, mais faites attention, "
 "car un grand nombre de points (>1 000) causera un décalage."
 
@@ -14282,7 +14282,7 @@ msgid ""
 " cluster"
 msgstr ""
 "Le rayon des points individuels (ceux qui ne sont pas dans une grappe). "
-"Une colonne numérique ou « Auto », qui met à l’échelle le point en "
+"Une colonne numérique ou « Auto », qui met à l'échelle le point en "
 "fonction de la plus grande grappe"
 
 msgid "The report has been created"
@@ -14315,7 +14315,7 @@ msgstr ""
 
 msgid "The rich tooltip shows a list of all series for that point in time"
 msgstr ""
-"L’infobulle détaillée affiche une liste de toutes les séries pour ce "
+"L'infobulle détaillée affiche une liste de toutes les séries pour ce "
 "moment"
 
 msgid "The role has been created successfully."
@@ -14473,11 +14473,11 @@ msgid ""
 "The time unit for each block. Should be a smaller unit than "
 "domain_granularity. Should be larger or equal to Time Grain"
 msgstr ""
-"L’unité de temps pour chaque bloc. Doit être une unité plus petite que "
+"L'unité de temps pour chaque bloc. Doit être une unité plus petite que "
 "domain_granularity. Doit être plus grand ou égal au fragment de temps"
 
 msgid "The time unit used for the grouping of blocks"
-msgstr "L’unité de temps utilisée pour le regroupement des blocs"
+msgstr "L'unité de temps utilisée pour le regroupement des blocs"
 
 msgid "The two passwords that you entered do not match!"
 msgstr "Les deux mots de passe que vous avez rentré ne correspondent pas !"
@@ -14519,11 +14519,11 @@ msgstr "[NEUTRE] L'utilisateur·rice a été sauvegardé·e avec succès."
 msgid "The user/password combination is not valid (Incorrect password for user)."
 msgstr ""
 "La combinaison utilisateur·rice/mot de passe n'est pas valide (mot de "
-"passe incorrect pour l’utilisateur·rice)."
+"passe incorrect pour l'utilisateur·rice)."
 
 #, python-format
 msgid "The username \"%(username)s\" does not exist."
-msgstr "L’utilisateur·rice « %(username)s » n'existe pas."
+msgstr "L'utilisateur·rice « %(username)s » n'existe pas."
 
 msgid "The username provided when connecting to a database is not valid."
 msgstr ""
@@ -14540,7 +14540,7 @@ msgid "The visible title of the layer"
 msgstr "Le titre visible de la couche"
 
 msgid "The way the ticks are laid out on the X-axis"
-msgstr "La façon dont les points de repères sont disposés sur l’axe des absisses"
+msgstr "La façon dont les points de repères sont disposés sur l'axe des absisses"
 
 msgid "The width of the Isoline in pixels"
 msgstr "La largeur de l'isoline en pixels"
@@ -14925,7 +14925,7 @@ msgstr "Ce graphique est géré en externe et ne peut être modifié dans Supers
 
 msgid "This chart is managed externally, and can't be edited in Superset"
 msgstr ""
-"Ce graphique est géré à l’externe et ne peut pas être modifié dans "
+"Ce graphique est géré à l'externe et ne peut pas être modifié dans "
 "Superset"
 
 msgid "This chart might be incompatible with the filter (datasets don't match)"
@@ -14980,7 +14980,7 @@ msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
-"Ce tableau de bord est géré à l’externe et ne peut pas être modifié dans "
+"Ce tableau de bord est géré à l'externe et ne peut pas être modifié dans "
 "Superset"
 
 msgid ""
@@ -15013,7 +15013,7 @@ msgid ""
 " id to the SDK:"
 msgstr ""
 "Ce tableau de bord est prêt à être intégré. Dans votre application, "
-"transmettez l’identifiant suivant au SDK :"
+"transmettez l'identifiant suivant au SDK :"
 
 msgid "This dashboard was saved successfully."
 msgstr "Ce Tableau de Bord a été sauvegardé avec succès."
@@ -15028,7 +15028,7 @@ msgstr ""
 
 msgid "This database is managed externally, and can't be edited in Superset"
 msgstr ""
-"Cette base de données est gérée à l’externe et ne peut pas être modifiée "
+"Cette base de données est gérée à l'externe et ne peut pas être modifiée "
 "dans Superset"
 
 msgid ""
@@ -15308,7 +15308,7 @@ msgid "This will cancel the task."
 msgstr "Cette action arrêtera la tâche"
 
 msgid "This will remove your current embed configuration."
-msgstr "Cela supprimera votre configuration d’intégration actuelle."
+msgstr "Cela supprimera votre configuration d'intégration actuelle."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
@@ -15323,7 +15323,7 @@ msgid "Threshold"
 msgstr "Seuil"
 
 msgid "Threshold alpha level for determining significance"
-msgstr "Seuil alpha pour déterminer l’importance"
+msgstr "Seuil alpha pour déterminer l'importance"
 
 msgid "Threshold for Other"
 msgstr "Seuil pour les autres"
@@ -15690,11 +15690,11 @@ msgstr ""
 "max. Seulement applicable sur les axes X numériques."
 
 msgid "Truncate Y Axis"
-msgstr "Tronquer l’axe des absisses"
+msgstr "Tronquer l'axe des absisses"
 
 msgid "Truncate Y Axis. Can be overridden by specifying a min or max bound."
 msgstr ""
-"Tronquer l’axe Y. Peut être modifié en spécifiant une limite "
+"Tronquer l'axe Y. Peut être modifié en spécifiant une limite "
 "minimale ou maximale."
 
 msgid "Truncate long cells to the \"min width\" set above"
@@ -15710,7 +15710,7 @@ msgstr "Faire confiance à cette URL et sauvegarder le choix"
 
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
-"Essayez d’appliquer différents filtres ou de vous assurer que votre "
+"Essayez d'appliquer différents filtres ou de vous assurer que votre "
 "source de données contient des données"
 
 msgid "Try different criteria to display results."
@@ -15896,7 +15896,7 @@ msgstr ""
 "administrateur si ce problème persiste."
 
 msgid "Unable to parse SQL"
-msgstr "Impossible d’analyser le SQL"
+msgstr "Impossible d'analyser le SQL"
 
 msgid "Unable to read the file, please refresh and try again."
 msgstr "Échec du téléchargement de l'image, veuillez actualiser et réessayer."
@@ -16139,10 +16139,10 @@ msgid "Use a log scale"
 msgstr "Utiliser une échelle de journalisation"
 
 msgid "Use a log scale for the X-axis"
-msgstr "Utiliser une échelle de journalisation pour l’axe des absisses"
+msgstr "Utiliser une échelle de journalisation pour l'axe des absisses"
 
 msgid "Use a log scale for the Y-axis"
-msgstr "Utiliser une échelle de journalisation pour l’axe Y"
+msgstr "Utiliser une échelle de journalisation pour l'axe Y"
 
 msgid "Use an encrypted connection to the database"
 msgstr "Utiliser une connexion cryptée vers la base de données"
@@ -16179,10 +16179,10 @@ msgstr ""
 "ou les lignes"
 
 msgid "Use only a single value."
-msgstr "N’utiliser qu’une seule valeur."
+msgstr "N'utiliser qu'une seule valeur."
 
 msgid "Use the Advanced Analytics options below"
-msgstr "Utiliser les options d’analyse avancée ci-dessous"
+msgstr "Utiliser les options d'analyse avancée ci-dessous"
 
 msgid "Use this section if you want a query that aggregates"
 msgstr "Utiliser cette section si vous voulez une requête qui regroupe"
@@ -16238,7 +16238,7 @@ msgid "User must select a value before applying the filter"
 msgstr "[NEUTRE] L'utilisateur·rice doit sélectionner une valeur pour ce filtre"
 
 msgid "User query"
-msgstr "Requête d’utilisateur·rice"
+msgstr "Requête d'utilisateur·rice"
 
 msgid "User registrations"
 msgstr "[NEUTRE] Enregistrement de l'utilisateur·rice"
@@ -16264,7 +16264,7 @@ msgid ""
 "Uses Gaussian Kernel Density Estimation to visualize spatial distribution"
 " of data"
 msgstr ""
-"Utilise l’estimation de la densité du noyau gaussien pour visualiser la "
+"Utilise l'estimation de la densité du noyau gaussien pour visualiser la "
 "distribution spatiale des données"
 
 msgid ""
@@ -16272,7 +16272,7 @@ msgid ""
 "position of the dial represents the progress and the terminal value in "
 "the gauge represents the target value."
 msgstr ""
-"Utilise une jauge pour montrer la progression d’une mesure vers une "
+"Utilise une jauge pour montrer la progression d'une mesure vers une "
 "cible. La position du cadran représente la progression et la valeur de "
 "borne dans la jauge représente la valeur cible."
 
@@ -16283,9 +16283,9 @@ msgid ""
 "funnels and pipelines."
 msgstr ""
 "Utilise des cercles pour visualiser le flux de données à travers les "
-"différentes étapes d’un système. Placez le curseur sur les chemins "
-"individuels dans la visualisation pour comprendre les étapes qu’une "
-"valeur a suivies. Utile pour la visualisation d’entonnoirs et de "
+"différentes étapes d'un système. Placez le curseur sur les chemins "
+"individuels dans la visualisation pour comprendre les étapes qu'une "
+"valeur a suivies. Utile pour la visualisation d'entonnoirs et de "
 "pipelines à plusieurs étapes et groupes."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
@@ -16484,7 +16484,7 @@ msgid ""
 "Visualize multiple levels of hierarchy using a familiar tree-like "
 "structure."
 msgstr ""
-"Visualisez plusieurs niveaux de hiérarchie à l’aide d’une structure "
+"Visualisez plusieurs niveaux de hiérarchie à l'aide d'une structure "
 "familière semblable à un arbre."
 
 msgid ""
@@ -16515,17 +16515,17 @@ msgid ""
 msgstr ""
 "Visualise les zones géographiques de vos données sous forme de polygones "
 "sur une carte rendue par Mapbox. Les polygones peuvent être colorés à "
-"l’aide d’une mesure."
+"l'aide d'une mesure."
 
 msgid ""
 "Visualizes how a metric has changed over a time using a color scale and a"
 " calendar view. Gray values are used to indicate missing values and the "
 "linear color scheme is used to encode the magnitude of each day's value."
 msgstr ""
-"Visualise la façon dont une mesure a changé au fil du temps à l’aide "
-"d’une échelle de couleurs et d’une vue de calendrier. Les valeurs grises "
+"Visualise la façon dont une mesure a changé au fil du temps à l'aide "
+"d'une échelle de couleurs et d'une vue de calendrier. Les valeurs grises "
 "sont utilisées pour indiquer les valeurs manquantes et le schéma de "
-"couleurs linéaires est utilisé pour coder l’amplitude de la valeur de "
+"couleurs linéaires est utilisé pour coder l'amplitude de la valeur de "
 "chaque jour."
 
 msgid ""
@@ -16535,7 +16535,7 @@ msgid ""
 "geographic boundary."
 msgstr ""
 "Visualise la façon dont une seule mesure varie entre les principales "
-"subdivisions d’un pays (États, provinces, etc.) sur une carte de "
+"subdivisions d'un pays (États, provinces, etc.) sur une carte de "
 "choroplète. La valeur de chaque subdivision est élevée lorsque vous "
 "survolez la limite géographique correspondante."
 
@@ -16545,8 +16545,8 @@ msgid ""
 "instead."
 msgstr ""
 "Visualise de nombreux objets de séries temporelles différents dans un "
-"seul tableau. Ce graphique est en cours d’amortissement et nous vous "
-"recommandons d’utiliser plutôt le graphique des séries temporelles."
+"seul tableau. Ce graphique est en cours d'amortissement et nous vous "
+"recommandons d'utiliser plutôt le graphique des séries temporelles."
 
 msgid ""
 "Visualizes the words in a column that appear the most often. Bigger font "
@@ -16652,7 +16652,7 @@ msgid ""
 "We were unable to carry over any controls when switching to this new "
 "dataset."
 msgstr ""
-"Nous n’avons pas été en mesure de reporter les contrôles lors du passage "
+"Nous n'avons pas été en mesure de reporter les contrôles lors du passage "
 "à ce nouveau jeu de données."
 
 #, python-format
@@ -16703,10 +16703,10 @@ msgstr "Poids"
 
 #, python-format
 msgid ""
-"We’re having trouble loading these results. Queries are set to timeout "
+"We're having trouble loading these results. Queries are set to timeout "
 "after %s second."
 msgid_plural ""
-"We’re having trouble loading these results. Queries are set to timeout "
+"We're having trouble loading these results. Queries are set to timeout "
 "after %s seconds."
 msgstr[0] ""
 "Erreur au chargement de ces résultats. Les requêtes s'interrompent au "
@@ -16717,10 +16717,10 @@ msgstr[1] ""
 
 #, python-format
 msgid ""
-"We’re having trouble loading this visualization. Queries are set to "
+"We're having trouble loading this visualization. Queries are set to "
 "timeout after %s second."
 msgid_plural ""
-"We’re having trouble loading this visualization. Queries are set to "
+"We're having trouble loading this visualization. Queries are set to "
 "timeout after %s seconds."
 msgstr[0] ""
 "Nous avons des difficultés à charger cette visualisation. Les requêtes "
@@ -16750,7 +16750,7 @@ msgstr ""
 
 msgid "When a secondary metric is provided, a linear color scale is used."
 msgstr ""
-"Lorsqu’une mesure secondaire est fournie, une échelle de couleur linéaire"
+"Lorsqu'une mesure secondaire est fournie, une échelle de couleur linéaire"
 " est utilisée."
 
 msgid "When checked, the map will zoom to your data after each query"
@@ -16830,7 +16830,7 @@ msgstr ""
 
 msgid "Whether the progress bar overlaps when there are multiple groups of data"
 msgstr ""
-"Si la barre de progression se chevauche lorsqu’il y a plusieurs groupes "
+"Si la barre de progression se chevauche lorsqu'il y a plusieurs groupes "
 "de données"
 
 msgid ""
@@ -16853,8 +16853,8 @@ msgstr "Animation ou non de la progression et la valeur ou simplement les affich
 
 msgid "Whether to apply a normal distribution based on rank on the color scale"
 msgstr ""
-"Application ou non d’une distribution normale en fonction du classement "
-"sur l’échelle de couleurs"
+"Application ou non d'une distribution normale en fonction du classement "
+"sur l'échelle de couleurs"
 
 msgid "Whether to colorize numeric values by if they are positive or negative"
 msgstr ""
@@ -16907,10 +16907,10 @@ msgid "Whether to display the metric name as a title"
 msgstr "Affichage ou non du nom de la mesure sous forme de titre"
 
 msgid "Whether to display the min and max values of the X-axis"
-msgstr "Affichage ou non des valeurs min et max de l’axe des absisses"
+msgstr "Affichage ou non des valeurs min et max de l'axe des absisses"
 
 msgid "Whether to display the min and max values of the Y-axis"
-msgstr "Affichage ou non des valeurs min et max de l’axe Y"
+msgstr "Affichage ou non des valeurs min et max de l'axe Y"
 
 msgid "Whether to display the numbered column"
 msgstr "Affichage ou non le numéro de la colonne"
@@ -16928,7 +16928,7 @@ msgid "Whether to display the time range interactive selector"
 msgstr "Affichage ou non du sélecteur interactif de plage horaire"
 
 msgid "Whether to display the timestamp"
-msgstr "Affichage ou non de l’horodatage"
+msgstr "Affichage ou non de l'horodatage"
 
 msgid "Whether to display the tooltip labels."
 msgstr "Affichage de l'infobulle des étiquettes."
@@ -16945,7 +16945,7 @@ msgstr "Affichage du type d'icône (#, Δ, %)"
 msgid "Whether to enable changing graph position and scaling."
 msgstr ""
 "Activation ou non de la modification de la position et de la mise à "
-"l’échelle du graphique."
+"l'échelle du graphique."
 
 msgid "Whether to enable node dragging in force layout mode."
 msgstr "Activation ou non du glissement de nœud en mode de disposition en force."
@@ -16992,11 +16992,11 @@ msgstr "Montrer ou non le pointeur"
 
 msgid "Whether to show the progress of gauge chart"
 msgstr ""
-"Indiquer ou non s’il y a lieu de montrer la progression du graphique de "
+"Indiquer ou non s'il y a lieu de montrer la progression du graphique de "
 "jauge"
 
 msgid "Whether to show the split lines on the axis"
-msgstr "Indiquer ou non s’il faut afficher les lignes divisées sur l’axe"
+msgstr "Indiquer ou non s'il faut afficher les lignes divisées sur l'axe"
 
 msgid "Whether to sort ascending or descending on the base Axis."
 msgstr "Tri croissant ou décroissant sur l'axe de base."
@@ -17078,7 +17078,7 @@ msgid "X Axis Format"
 msgstr "Format de l'axe X"
 
 msgid "X Axis Label"
-msgstr "Étiquette de l’axe X"
+msgstr "Étiquette de l'axe X"
 
 msgid "X Axis Label Interval"
 msgstr "Intervalle des labels de l'axe X"
@@ -17087,7 +17087,7 @@ msgid "X Axis Number Format"
 msgstr "Format de nombre de l'axe X"
 
 msgid "X Axis Title"
-msgstr "Titre de l’axe des absisses"
+msgstr "Titre de l'axe des absisses"
 
 msgid "X Axis Title Margin"
 msgstr "Marge du titre de l'axe X"
@@ -17126,19 +17126,19 @@ msgid "Y Axis"
 msgstr "Axe Y"
 
 msgid "Y Axis 2 Bounds"
-msgstr "Limites de l’axe Y 2"
+msgstr "Limites de l'axe Y 2"
 
 msgid "Y Axis Bounds"
-msgstr "Limites de l’axe Y"
+msgstr "Limites de l'axe Y"
 
 msgid "Y Axis Format"
 msgstr "Format de l'axe Y"
 
 msgid "Y Axis Label"
-msgstr "Étiquette de l’axe Y"
+msgstr "Étiquette de l'axe Y"
 
 msgid "Y Axis Title"
-msgstr "Titre de l’axe Y"
+msgstr "Titre de l'axe Y"
 
 msgid "Y Axis Title Margin"
 msgstr "Marge du titre de l'axe Y"
@@ -17168,7 +17168,7 @@ msgid "Y-axis"
 msgstr "Axe Y"
 
 msgid "Y-axis bounds"
-msgstr "Limites de l’axe Y"
+msgstr "Limites de l'axe Y"
 
 msgid "Y-scale interval"
 msgstr "Intervalle d'échelle Y"
@@ -17425,7 +17425,7 @@ msgid ""
 msgstr ""
 "Vous avez utilisé tous les emplacements d%(historyLength)s'annulation et "
 "ne pourrez pas annuler complètement les actions subséquentes. Vous pouvez"
-" enregistrer votre état actuel pour réinitialiser l’historique."
+" enregistrer votre état actuel pour réinitialiser l'historique."
 
 #, python-format
 msgid ""
@@ -17442,7 +17442,7 @@ msgid ""
 msgstr ""
 "Vous devez être propriétaire d'un jeu de données pour pouvoir le "
 "modifier. Veuillez communiquer avec un propriétaire de jeu de données "
-"pour demander des modifications ou modifier l’accès."
+"pour demander des modifications ou modifier l'accès."
 
 msgid "You must pick a name for the new dashboard"
 msgstr "Vous devez entrer un nom pour le nouveau tableau de Bord"
@@ -17459,7 +17459,7 @@ msgid ""
 "button or"
 msgstr ""
 "Vous avez mis à jour les valeurs dans le panneau de commande, mais le "
-"graphique n’a pas été mis à jour automatiquement. Exécutez la requête en "
+"graphique n'a pas été mis à jour automatiquement. Exécutez la requête en "
 "cliquant sur le bouton « Mettre à jour le graphique » ou"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
@@ -17489,7 +17489,7 @@ msgid "Your changes will be lost if you leave without saving."
 msgstr "Vos changements seront perdus si vous quittez sans enregistrer."
 
 msgid "Your chart is not up to date"
-msgstr "Votre graphique n’est pas à jour"
+msgstr "Votre graphique n'est pas à jour"
 
 msgid "Your chart is ready to go!"
 msgstr "Votre graphique est prêt!"
@@ -17606,7 +17606,7 @@ msgid ""
 "label points. Leave empty to get a count of points in each cluster."
 msgstr ""
 "« count » est COUNT(*) si un groupe par est utilisé. Les colonnes "
-"numériques seront regroupées avec l’agrégateur. Les colonnes non "
+"numériques seront regroupées avec l'agrégateur. Les colonnes non "
 "numériques seront utilisées pour étiqueter les points. Laissez vide pour "
 "obtenir un compte de points dans chaque regroupement."
 
@@ -17714,7 +17714,7 @@ msgid "bottom"
 msgstr "bas"
 
 msgid "button (cmd + z) until you save your changes."
-msgstr "(cmd + z) jusqu’à ce que vous sauvegardiez vos modifications."
+msgstr "(cmd + z) jusqu'à ce que vous sauvegardiez vos modifications."
 
 msgid "by using"
 msgstr "en utilisant"
@@ -18352,7 +18352,7 @@ msgid "rowlevelsecurity"
 msgstr "Sécurité d'accès par ligne (RLS)"
 
 msgid "running"
-msgstr "en cours d’exécution"
+msgstr "en cours d'exécution"
 
 msgid "save"
 msgstr "Enregistrer"
@@ -18371,7 +18371,7 @@ msgid ""
 " scale; change: Show changes compared to the first data point in each "
 "series"
 msgstr ""
-"série : traiter chaque série indépendamment; dans l’ensemble : toutes les"
+"série : traiter chaque série indépendamment; dans l'ensemble : toutes les"
 " séries utilisent la même échelle; changement : afficher les changements "
 "par rapport au premier point de données de chaque série"
 
