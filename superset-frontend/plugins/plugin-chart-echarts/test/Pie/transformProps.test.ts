@@ -29,7 +29,7 @@ import type {
 } from 'echarts/types/src/util/types';
 import transformProps, {
   parseParams,
-  isHalfDonut,
+  getHalfDonut,
   getTotalValuePadding,
 } from '../../src/Pie/transformProps';
 import { EchartsPieChartProps, PieChartDataItem } from '../../src/Pie/types';
@@ -695,20 +695,33 @@ describe('Half-donut', () => {
     expect(series[0].endAngle).toBe(90);
   });
 
-  test('returns true when sweptAngle is 180 and startAngle is 180', () => {
-    expect(isHalfDonut(180, 180)).toBe(true);
+  test('sets center to 30% for bottom half-donut (startAngle=0)', () => {
+    const props = getAngleChartProps(true, 180, 0);
+    const transformed = transformProps(props);
+    const series = transformed.echartOptions.series as PieSeriesOption[];
+    expect(series[0].center).toEqual(['50%', '30%']);
   });
 
-  test('returns true when sweptAngle is less than 180 and startAngle is 180', () => {
-    expect(isHalfDonut(180, 90)).toBe(true);
+  test('sets center to 30% for bottom half-donut (startAngle=360)', () => {
+    const props = getAngleChartProps(true, 180, 360);
+    const transformed = transformProps(props);
+    const series = transformed.echartOptions.series as PieSeriesOption[];
+    expect(series[0].center).toEqual(['50%', '30%']);
   });
 
-  test('returns false when sweptAngle is greater than 180', () => {
-    expect(isHalfDonut(180, 181)).toBe(false);
-  });
-
-  test('returns false when startAngle is not 180', () => {
-    expect(isHalfDonut(90, 180)).toBe(false);
+  test.each([
+    [180, 180, 'top'],
+    [180, 90, 'top'],
+    [180, 45, 'top'],
+    [0, 180, 'bottom'],
+    [360, 180, 'bottom'],
+    [360, 90, 'bottom'],
+    [90, 180, 'none'],
+    [270, 180, 'none'],
+    [180, 360, 'none'],
+    [0, 360, 'none'],
+  ])('startAngle=%i, sweptAngle=%i → %s (%s)', (start, swept, expected) => {
+    expect(getHalfDonut(start, swept)).toBe(expected);
   });
 
   const baseProps = {

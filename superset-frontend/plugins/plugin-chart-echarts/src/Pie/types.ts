@@ -124,3 +124,5 @@ export interface PaddingResult {
   top?: string;
   left?: string;
 }
+
+export type HalfDonut = 'top' | 'bottom' | 'none';
