@@ -233,17 +233,13 @@ msgstr "\"%s\" est maintenant le thème par défaut du système"
 msgid "% calculation"
 msgstr "% calcul"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, es,
-# fa, ja, lv, mi, ru, sk, sl, sr, sr_Latn, tr, uk]
-#, fuzzy, python-format
-msgid "% of parent"
-msgstr "% du parent"
+#, python-format
+msgid "%% of parent"
+msgstr "%% du parent"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, es,
-# fa, ja, lv, mi, ru, sk, sl, sr, sr_Latn, uk]
-#, fuzzy, python-format
-msgid "% of total"
-msgstr "% du total"
+#, python-format
+msgid "%% of total"
+msgstr "%% du total"
 
 #, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
@@ -390,13 +386,13 @@ msgstr "%s colonne(s)"
 #, python-format
 msgid "%s day ago"
 msgid_plural "%s days ago"
-msgstr[0] "Il y a 1 jour"
+msgstr[0] "Il y a %s jour"
 msgstr[1] "Il y a %s jours"
 
 #, python-format
 msgid "%s hr ago"
 msgid_plural "%s hr ago"
-msgstr[0] "Il y a 1 heure"
+msgstr[0] "Il y a %s heure"
 msgstr[1] "Il y a %s heures"
 
 #, python-format
@@ -430,7 +426,7 @@ msgstr[1] "%s métriques"
 #, python-format
 msgid "%s min ago"
 msgid_plural "%s min ago"
-msgstr[0] "Il y a 1 minute"
+msgstr[0] "Il y a %s minute"
 msgstr[1] "il y a %s minutes"
 
 #, python-format
