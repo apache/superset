@@ -497,19 +497,6 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             engine_context_manager = app.config["ENGINE_CONTEXT_MANAGER"]
             with engine_context_manager(self, catalog, schema):
                 with check_for_oauth2(self):
-                    prequeries = self.db_engine_spec.get_prequeries(
-                        database=self,
-                        catalog=catalog,
-                        schema=schema,
-                    )
-                    # Prequeries attach a per-call ``connect`` listener below
-                    # (and remove it on exit). SQLAlchemy's listener collection
-                    # is an unlocked deque, so mutating it on an engine shared
-                    # via ``_ENGINE_CACHE`` races with concurrent connection
-                    # checkouts iterating the same deque ("RuntimeError: deque
-                    # mutated during iteration", surfacing as 500s). Request a
-                    # private, uncached engine whenever prequeries are present
-                    # so the listener add/remove never touches a shared object.
                     engine = self._get_sqla_engine(
                         catalog=catalog,
                         schema=schema,
@@ -518,35 +505,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                         sqlalchemy_uri=sqlalchemy_uri,
                         cacheable=not prequeries,
                     )
-                    if prequeries:
-                        # SQLAlchemy connect event: runs prequeries on every new
-                        # DBAPI connection (e.g. SET search_path for PostgreSQL).
-                        def run_prequeries(
-                            dbapi_connection: Any,
-                            connection_record: Any,  # pylint: disable=unused-argument
-                        ) -> None:
-                            cursor = dbapi_connection.cursor()
-                            try:
-                                for prequery in prequeries:
-                                    cursor.execute(prequery)
-                            finally:
-                                cursor.close()
-
-                        sqla.event.listen(engine, "connect", run_prequeries)
-                        try:
-                            yield engine
-                        finally:
-                            sqla.event.remove(engine, "connect", run_prequeries)
-                            # The engine is private (cacheable=False above), so
-                            # nothing else can hold a reference: dispose it to
-                            # release its pool immediately. With the default
-                            # nullpool=True this is a no-op safety net; it
-                            # matters if a caller ever passes nullpool=False,
-                            # where each private engine would otherwise keep a
-                            # short-lived QueuePool alive until GC.
-                            engine.dispose()
-                    else:
-                        yield engine
+                    yield engine
 
     def _get_sqla_engine(  # pylint: disable=too-many-locals  # noqa: C901
         self,
@@ -686,6 +645,18 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         ) as engine:
             with check_for_oauth2(self):
                 with closing(engine.raw_connection()) as conn:
+                    prequeries = self.db_engine_spec.get_prequeries(
+                        database=self,
+                        catalog=catalog,
+                        schema=schema,
+                    )
+                    if prequeries:
+                        cursor = conn.cursor()
+                        try:
+                            for prequery in prequeries:
+                                cursor.execute(prequery)
+                        finally:
+                            cursor.close()                    
                     yield conn
 
     def get_default_catalog(self) -> str | None:
