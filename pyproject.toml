@@ -45,7 +45,7 @@ dependencies = [
     # without the ``base.txt`` lock file (#40962).
     "cachetools>=7.1.4, <8",
     "celery>=5.6.3, <6.0.0",
-    "click>=8.4.0",
+    "click>=8.4.2",
     "click-option-group",
     "colorama",
     "flask-cors>=6.0.5, <7.0",
@@ -130,7 +130,7 @@ bigquery = [
     "sqlalchemy-bigquery>=1.17.0",
     "google-cloud-bigquery>=3.42.1",
 ]
-clickhouse = ["clickhouse-connect>=1.1.1, <2.0"]
+clickhouse = ["clickhouse-connect>=1.4.2, <2.0"]
 cockroachdb = ["cockroachdb>=0.3.5, <0.4"]
 crate = ["sqlalchemy-cratedb>=0.41.0, <1"]
 d1 = [
@@ -159,7 +159,7 @@ excel = ["xlrd>=2.0.2, <2.1"]
 # installing this extra is only required to actually run exports.
 excel-export = ["boto3"]
 fastmcp = [
-    "fastmcp>=3.4.2,<4.0",
+    "fastmcp>=3.4.3,<4.0",
     # tiktoken backs the response-size-guard token estimator. Without
     # it, the middleware falls back to a coarser character-based
     # heuristic that under-counts JSON-heavy MCP responses.
@@ -169,7 +169,7 @@ firebird = ["sqlalchemy-firebird>=0.8.0, <2.2"]
 firebolt = ["firebolt-sqlalchemy>=1.0.0, <2"]
 gevent = ["gevent>=26.4.0"]
 gsheets = ["shillelagh[gsheetsapi]>=1.4.4, <2"]
-hana = ["hdbcli==2.28.21", "sqlalchemy_hana==3.0.3"]
+hana = ["hdbcli==2.29.23", "sqlalchemy_hana==3.0.3"]
 hive = [
     "pyhive[hive]>=0.6.5;python_version<'3.11'",
     "pyhive[hive_pure_sasl]>=0.7.0",
@@ -196,14 +196,14 @@ pinot = ["pinotdb>=5.0.0, <10.0.0"]
 playwright = ["playwright>=1.61.0, <2"]
 postgres = ["psycopg2-binary==2.9.12"]
 presto = ["pyhive[presto]>=0.6.5"]
-trino = ["trino>=0.337.0"]
+trino = ["trino>=0.338.0"]
 prophet = ["prophet>=1.1.6, <2"]
 redshift = ["sqlalchemy-redshift>=0.8.1, <0.9"]
 risingwave = ["sqlalchemy-risingwave"]
 shillelagh = ["shillelagh[all]>=1.4.4, <2"]
 singlestore = ["sqlalchemy-singlestoredb>=1.2.1, <2"]
 snowflake = ["snowflake-sqlalchemy>=1.10.2, <2"]
-sqlite = ["syntaqlite>=0.6.0,<0.7.0"]
+sqlite = ["syntaqlite>=0.7.0,<0.8.0"]
 spark = [
     "pyhive[hive]>=0.6.5;python_version<'3.11'",
     "pyhive[hive_pure_sasl]>=0.7",
@@ -219,7 +219,7 @@ thumbnails = [] # deprecated, will be removed in 7.0
 vertica = ["sqlalchemy-vertica-python>= 0.6.3, < 0.7"]
 netezza = ["nzalchemy>=11.0.2, < 11.2"]
 starrocks = ["starrocks>=1.3.3, <2"]
-doris = ["pydoris>=1.0.0, <2.0.0"]
+doris = ["pydoris>=1.2.0, <2.0.0"]
 oceanbase = ["oceanbase_py>=0.0.1.2"]
 ydb = ["ydb-sqlalchemy>=0.1.22", "ydb-sqlglot-plugin>=0.2.8"]
 development = [
@@ -248,7 +248,7 @@ development = [
     "ruff",
     "sqloxide",
     "statsd",
-    "syntaqlite>=0.6.0,<0.7.0",
+    "syntaqlite>=0.7.0,<0.8.0",
 ]
 
 [project.urls]
