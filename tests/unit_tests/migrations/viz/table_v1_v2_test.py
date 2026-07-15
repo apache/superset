@@ -67,6 +67,36 @@ def test_migration() -> None:
     migrate_and_assert(MigrateTableChart, SOURCE_FORM_DATA, TARGET_FORM_DATA)
 
 
+def test_migration_without_datasource_key_in_params() -> None:
+    """Some slices don't have a "datasource" key inside params, relying
+    instead on the datasource_id/datasource_type columns — that key is
+    normally injected on the fly by Slice.form_data, which the migration
+    framework bypasses by reading params directly. upgrade_slice must
+    synthesize the same "id__type" string from those columns, or
+    _build_query() raises KeyError('datasource') for charts missing it."""
+    from superset.models.slice import Slice
+    from superset.utils import json
+
+    source: dict[str, Any] = {
+        k: v for k, v in SOURCE_FORM_DATA.items() if k != "datasource"
+    }
+    dumped_form_data = json.dumps(source)
+
+    slc = Slice(
+        viz_type=MigrateTableChart.source_viz_type,
+        datasource_id=1,
+        datasource_type="table",
+        params=dumped_form_data,
+        query_context=f'{{"form_data": {dumped_form_data}, "queries": []}}',
+    )
+
+    MigrateTableChart.upgrade_slice(slc)
+
+    assert slc.viz_type == MigrateTableChart.target_viz_type
+    new_form_data = json.loads(slc.params)
+    assert new_form_data["datasource"] == "1__table"
+
+
 def test_migration_raw_mode() -> None:
     source: dict[str, Any] = {
         **SOURCE_FORM_DATA,

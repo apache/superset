@@ -40,6 +40,8 @@ class Slice(Base):  # type: ignore
     viz_type = Column(String(250))
     params = Column(Text)
     query_context = Column(Text)
+    datasource_id = Column(Integer)
+    datasource_type = Column(String(200))
 
 
 FORM_DATA_BAK_FIELD_NAME = "form_data_bak"
@@ -148,6 +150,14 @@ class MigrateViz:
     def upgrade_slice(cls, slc: Slice) -> None:
         try:
             clz = cls(slc.params)
+            # Some charts don't carry a "datasource" key in params — outside
+            # of migrations, callers always read it via Slice.form_data,
+            # which injects "datasource" from the datasource_id/
+            # datasource_type columns on every access. _build_query() (and
+            # anything else touching self.data) needs that same key, so
+            # synthesize it here the same way for the charts missing it.
+            if "datasource" not in clz.data and slc.datasource_id is not None:
+                clz.data["datasource"] = f"{slc.datasource_id}__{slc.datasource_type}"
             form_data_bak = copy.deepcopy(clz.data)
 
             clz._pre_action()
