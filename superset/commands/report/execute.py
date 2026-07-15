@@ -463,9 +463,22 @@ class BaseReportState:
                 )
                 for url in urls
             ]
+        per_chart_reports = feature_flag_manager.is_feature_enabled(
+            "PER_CHART_DASHBOARD_REPORTS"
+        )
         try:
             imges = []
             for screenshot in screenshots:
+                if per_chart_reports and isinstance(screenshot, DashboardScreenshot):
+                    chart_imges = screenshot.get_per_chart_screenshots(user=user)
+                    if chart_imges:
+                        imges.extend(chart_imges)
+                        continue
+                    logger.warning(
+                        "Per-chart capture returned no charts for %s; "
+                        "falling back to full-dashboard screenshot",
+                        screenshot.url,
+                    )
                 imge = screenshot.get_screenshot(user=user)
                 if imge is None:
                     raise ReportScheduleScreenshotFailedError(

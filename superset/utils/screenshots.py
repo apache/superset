@@ -410,6 +410,24 @@ class DashboardScreenshot(BaseScreenshot):
         self.window_size = window_size or DEFAULT_DASHBOARD_WINDOW_SIZE
         self.thumb_size = thumb_size or DEFAULT_DASHBOARD_THUMBNAIL_SIZE
 
+    def get_per_chart_screenshots(
+        self, user: User, window_size: WindowSize | None = None
+    ) -> list[bytes] | None:
+        """
+        Capture each chart on the dashboard as an individual screenshot.
+
+        Playwright-only; returns None when the resolved driver is Selenium
+        so callers can fall back to the full-dashboard screenshot.
+        """
+        driver = self.driver(window_size, user)
+        if not isinstance(driver, WebDriverPlaywright):
+            logger.info(
+                "Per-chart screenshots require Playwright; falling back to "
+                "full-dashboard screenshot"
+            )
+            return None
+        return driver.get_per_chart_screenshots(self.url, self.element, user)
+
     def get_cache_key(
         self,
         window_size: bool | WindowSize | None = None,

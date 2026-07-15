@@ -41,7 +41,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from superset.extensions import machine_auth_provider_factory
 from superset.utils.retries import retry_call
-from superset.utils.screenshot_utils import take_tiled_screenshot
+from superset.utils.screenshot_utils import (
+    take_per_chart_screenshots,
+    take_tiled_screenshot,
+)
 
 WindowSize = tuple[int, int]
 logger = logging.getLogger(__name__)
@@ -480,6 +483,78 @@ class WebDriverPlaywright(WebDriverProxy):
         finally:
             context.close()
         return img
+
+    def get_per_chart_screenshots(
+        self, url: str, element_name: str, user: User | None = None
+    ) -> list[bytes] | None:
+        """
+        Capture each chart on a dashboard as an individual screenshot.
+
+        Navigates to the dashboard once (so permalink tab state and dashboard
+        filters apply to every chart), then captures chart-by-chart. Each
+        chart waits only for its own loading spinner, so one slow chart
+        cannot block or blank the entire report.
+
+        Returns a list of PNG bytes in layout order, or None if Playwright
+        is unavailable or the dashboard itself failed to load.
+        """
+        if not PLAYWRIGHT_AVAILABLE:
+            logger.info(
+                "Playwright not available - per-chart screenshots require "
+                "Playwright. %s",
+                PLAYWRIGHT_INSTALL_MESSAGE,
+            )
+            return None
+
+        browser_args = app.config["WEBDRIVER_OPTION_ARGS"]
+        browser = _browser_manager.get_browser(browser_args)
+        pixel_density = app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
+        context = browser.new_context(
+            bypass_csp=True,
+            viewport={
+                "height": self._window[1],
+                "width": self._window[0],
+            },
+            device_scale_factor=pixel_density,
+        )
+        context.set_default_timeout(app.config["SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT"])
+        if user:
+            self.auth(user, context)
+        page = context.new_page()
+        try:
+            try:
+                page.goto(
+                    url,
+                    wait_until=app.config["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"],
+                )
+            except PlaywrightTimeout:
+                logger.exception(
+                    "Web event %s not detected. Page %s might not have been "
+                    "fully loaded",
+                    app.config["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"],
+                    url,
+                )
+
+            selenium_headstart = app.config["SCREENSHOT_SELENIUM_HEADSTART"]
+            page.wait_for_timeout(selenium_headstart * 1000)
+            try:
+                page.locator(f".{element_name}").wait_for()
+            except PlaywrightTimeout:
+                logger.exception("Timed out requesting url %s", url)
+                return None
+
+            return take_per_chart_screenshots(
+                page,
+                load_wait=self._screenshot_load_wait,
+                animation_wait=app.config["SCREENSHOT_SELENIUM_ANIMATION_WAIT"],
+            )
+        except PlaywrightError:
+            logger.exception(
+                "Encountered an unexpected error when requesting url %s", url
+            )
+            return None
+        finally:
+            context.close()
 
 
 class WebDriverSelenium(WebDriverProxy):

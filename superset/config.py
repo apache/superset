@@ -732,6 +732,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # When impersonating a user, use the email prefix instead of username
     # @lifecycle: testing
     "IMPERSONATE_WITH_EMAIL_PREFIX": False,
+    # Capture dashboard reports chart-by-chart and arrange the images in a
+    # single column, instead of one full-dashboard screenshot. Each chart
+    # waits for its own loading spinner, so one slow chart cannot block or
+    # blank the entire report. Requires PLAYWRIGHT_REPORTS_AND_THUMBNAILS.
+    # @lifecycle: testing
+    "PER_CHART_DASHBOARD_REPORTS": False,
     # Replace Selenium with Playwright for reports and thumbnails.
     # Supports deck.gl visualizations. Requires playwright pip package.
     # @lifecycle: testing

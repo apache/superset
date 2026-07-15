@@ -23,7 +23,9 @@ from PIL import Image
 
 from superset.utils.screenshot_utils import (
     combine_screenshot_tiles,
+    PlaywrightTimeout,
     SCROLL_SETTLE_TIMEOUT_MS,
+    take_per_chart_screenshots,
     take_tiled_screenshot,
 )
 
@@ -397,3 +399,90 @@ class TestTakeTiledScreenshot:
 
         sig = inspect.signature(take_tiled_screenshot)
         assert sig.parameters["animation_wait"].default == 0
+
+
+class TestTakePerChartScreenshots:
+    def _make_page_with_charts(self, chart_screenshots: list[bytes]):
+        """Create a mock page whose chart holders return the given bytes."""
+        page = MagicMock()
+        holders = MagicMock()
+        holders.count.return_value = len(chart_screenshots)
+
+        holder_mocks = []
+        for shot in chart_screenshots:
+            holder = MagicMock()
+            holder.screenshot.return_value = shot
+            holder_mocks.append(holder)
+        holders.nth.side_effect = lambda i: holder_mocks[i]
+        page.locator.return_value = holders
+        return page, holder_mocks
+
+    def test_captures_all_charts_in_order(self):
+        page, _ = self._make_page_with_charts([b"chart1", b"chart2", b"chart3"])
+
+        result = take_per_chart_screenshots(page, load_wait=10)
+
+        assert result == [b"chart1", b"chart2", b"chart3"]
+
+    def test_uses_chart_holder_selector(self):
+        page, _ = self._make_page_with_charts([b"chart1"])
+
+        take_per_chart_screenshots(page, load_wait=10)
+
+        page.locator.assert_called_once_with(
+            '[data-test="dashboard-component-chart-holder"]'
+        )
+
+    def test_no_charts_returns_empty_list(self):
+        page, _ = self._make_page_with_charts([])
+
+        result = take_per_chart_screenshots(page, load_wait=10)
+
+        assert result == []
+
+    def test_spinner_timeout_skips_chart_and_continues(self):
+        page, holders = self._make_page_with_charts([b"chart1", b"chart2"])
+        # First chart's spinner never clears
+        holders[0].locator.return_value.first.wait_for.side_effect = PlaywrightTimeout(
+            "spinner stuck"
+        )
+
+        result = take_per_chart_screenshots(page, load_wait=10)
+
+        assert result == [b"chart2"]
+        holders[0].screenshot.assert_not_called()
+
+    def test_screenshot_failure_skips_chart_and_continues(self):
+        page, holders = self._make_page_with_charts([b"chart1", b"chart2"])
+        holders[0].screenshot.side_effect = Exception("capture failed")
+
+        result = take_per_chart_screenshots(page, load_wait=10)
+
+        assert result == [b"chart2"]
+
+    def test_waits_for_each_charts_own_spinner(self):
+        page, holders = self._make_page_with_charts([b"chart1"])
+
+        take_per_chart_screenshots(page, load_wait=42)
+
+        holders[0].locator.assert_called_once_with(".loading")
+        holders[0].locator.return_value.first.wait_for.assert_called_once_with(
+            state="detached", timeout=42000
+        )
+
+    def test_scrolls_each_chart_into_view(self):
+        page, holders = self._make_page_with_charts([b"chart1", b"chart2"])
+
+        take_per_chart_screenshots(page, load_wait=10)
+
+        for holder in holders:
+            holder.scroll_into_view_if_needed.assert_called_once()
+
+    def test_animation_wait_applied_after_spinner_clears(self):
+        page, _ = self._make_page_with_charts([b"chart1"])
+
+        take_per_chart_screenshots(page, load_wait=10, animation_wait=3)
+
+        # Scroll settle wait plus animation wait
+        page.wait_for_timeout.assert_any_call(SCROLL_SETTLE_TIMEOUT_MS)
+        page.wait_for_timeout.assert_any_call(3000)

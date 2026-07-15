@@ -232,3 +232,69 @@ def take_tiled_screenshot(
     except Exception as e:
         logger.exception("Tiled screenshot failed: %s", e)
         return None
+
+
+CHART_HOLDER_SELECTOR = '[data-test="dashboard-component-chart-holder"]'
+
+
+def take_per_chart_screenshots(
+    page: "Page",
+    load_wait: int = 60,
+    animation_wait: int = 0,
+) -> list[bytes]:
+    """
+    Capture each chart on a dashboard as an individual screenshot.
+
+    Unlike the full-dashboard screenshot, each chart waits only for its own
+    loading spinner, so one slow chart cannot block or blank the entire
+    report. Charts whose spinner never clears within ``load_wait`` are
+    skipped with a warning rather than captured mid-load.
+
+    The page must already be navigated to the dashboard (typically via a
+    permalink URL so tab state and dashboard filters are applied).
+
+    Args:
+        page: Playwright page object, already at the dashboard URL
+        load_wait: Seconds to wait for each chart's spinner to clear
+        animation_wait: Seconds to wait for chart animations after load
+
+    Returns:
+        List of PNG screenshot bytes, one per successfully captured chart,
+        in DOM (layout) order. Empty list if no charts could be captured.
+    """
+    chart_holders = page.locator(CHART_HOLDER_SELECTOR)
+    chart_count = chart_holders.count()
+    logger.info("Capturing %s charts individually", chart_count)
+
+    screenshots: list[bytes] = []
+    for i in range(chart_count):
+        holder = chart_holders.nth(i)
+        try:
+            holder.scroll_into_view_if_needed()
+            # Trigger lazy loading and let layout settle
+            page.wait_for_timeout(SCROLL_SETTLE_TIMEOUT_MS)
+            try:
+                # Wait for this chart's own spinner only; spinners in other
+                # charts (still loading elsewhere on the page) don't block.
+                holder.locator(".loading").first.wait_for(
+                    state="detached", timeout=load_wait * 1000
+                )
+            except PlaywrightTimeout:
+                logger.warning(
+                    "Chart %s/%s did not finish loading within %ss; skipping",
+                    i + 1,
+                    chart_count,
+                    load_wait,
+                )
+                continue
+            if animation_wait > 0:
+                page.wait_for_timeout(animation_wait * 1000)
+            screenshots.append(holder.screenshot())
+            logger.debug("Captured chart %s/%s", i + 1, chart_count)
+        except Exception:
+            logger.exception(
+                "Failed to capture chart %s/%s; skipping", i + 1, chart_count
+            )
+
+    logger.info("Captured %s/%s charts individually", len(screenshots), chart_count)
+    return screenshots

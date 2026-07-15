@@ -54,7 +54,7 @@ from superset.reports.models import (
     ReportState,
 )
 from superset.utils.core import HeaderDataType
-from superset.utils.screenshots import ChartScreenshot
+from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from tests.integration_tests.conftest import with_feature_flags
 
 
@@ -1722,3 +1722,85 @@ def test_get_url_for_csv_uses_post_processed_type(
         f"CSV report URL must use type=post_processed so chart filters "
         f"(incl. time filters) are applied; got: {url}; see issue #25538"
     )
+
+
+def _make_dashboard_report_state(mocker: MockerFixture) -> BaseReportState:
+    """Build a BaseReportState for a dashboard report with screenshot mocks."""
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.chart = False
+    mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.dashboard.digest = "digest"
+    mock_report_schedule.custom_width = None
+    mock_report_schedule.custom_height = None
+
+    mocker.patch(
+        "superset.commands.report.execute.get_executor",
+        return_value=(None, "admin"),
+    )
+    mocker.patch(
+        "superset.commands.report.execute.security_manager.find_user",
+        return_value=mocker.Mock(),
+    )
+    mocker.patch.object(
+        BaseReportState,
+        "get_dashboard_urls",
+        return_value=["http://example.com/superset/dashboard/p/abc123/"],
+    )
+
+    class_instance = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+    return class_instance
+
+
+@with_feature_flags(PER_CHART_DASHBOARD_REPORTS=True)
+def test_get_screenshots_per_chart_mode(mocker: MockerFixture, app) -> None:
+    """With the flag on, dashboard reports capture each chart individually."""
+    class_instance = _make_dashboard_report_state(mocker)
+    per_chart = mocker.patch.object(
+        DashboardScreenshot,
+        "get_per_chart_screenshots",
+        return_value=[b"chart1", b"chart2"],
+    )
+    full_screenshot = mocker.patch.object(DashboardScreenshot, "get_screenshot")
+
+    result = class_instance._get_screenshots()
+
+    assert result == [b"chart1", b"chart2"]
+    per_chart.assert_called_once()
+    full_screenshot.assert_not_called()
+
+
+@with_feature_flags(PER_CHART_DASHBOARD_REPORTS=True)
+def test_get_screenshots_per_chart_mode_falls_back_when_empty(
+    mocker: MockerFixture, app
+) -> None:
+    """If per-chart capture yields nothing, fall back to the full screenshot."""
+    class_instance = _make_dashboard_report_state(mocker)
+    mocker.patch.object(
+        DashboardScreenshot, "get_per_chart_screenshots", return_value=[]
+    )
+    full_screenshot = mocker.patch.object(
+        DashboardScreenshot, "get_screenshot", return_value=b"full_dashboard"
+    )
+
+    result = class_instance._get_screenshots()
+
+    assert result == [b"full_dashboard"]
+    full_screenshot.assert_called_once()
+
+
+@with_feature_flags(PER_CHART_DASHBOARD_REPORTS=False)
+def test_get_screenshots_per_chart_mode_disabled(mocker: MockerFixture, app) -> None:
+    """With the flag off, dashboard reports use the full-dashboard screenshot."""
+    class_instance = _make_dashboard_report_state(mocker)
+    per_chart = mocker.patch.object(DashboardScreenshot, "get_per_chart_screenshots")
+    mocker.patch.object(
+        DashboardScreenshot, "get_screenshot", return_value=b"full_dashboard"
+    )
+
+    result = class_instance._get_screenshots()
+
+    assert result == [b"full_dashboard"]
+    per_chart.assert_not_called()
