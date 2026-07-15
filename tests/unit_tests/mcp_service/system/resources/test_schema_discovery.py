@@ -17,10 +17,12 @@
 
 """Tests for the schema discovery MCP resources (superset://schema/*)."""
 
+from collections.abc import Iterator
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
-from fastmcp import Client
+from fastmcp import Client, FastMCP
 from fastmcp.exceptions import McpError
 
 from superset.mcp_service.app import mcp
@@ -38,12 +40,12 @@ RESOURCE_URIS = {
 
 
 @pytest.fixture
-def mcp_server():
+def mcp_server() -> FastMCP:
     return mcp
 
 
 @pytest.fixture(autouse=True)
-def mock_auth():
+def mock_auth() -> Iterator[Mock]:
     """Mock authentication for all tests."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
         mock_user = Mock()
@@ -53,7 +55,7 @@ def mock_auth():
         yield mock_get_user
 
 
-async def _read_resource(mcp_server, uri):
+async def _read_resource(mcp_server: FastMCP, uri: str) -> dict[str, Any]:
     async with Client(mcp_server) as client:
         result = await client.read_resource(uri)
     return json.loads(result[0].text)
@@ -63,7 +65,7 @@ class TestSchemaDiscoveryResourceRegistration:
     """URI pattern matching: resources are discoverable under superset://schema/*."""
 
     @pytest.mark.asyncio
-    async def test_all_schema_resources_registered(self, mcp_server):
+    async def test_all_schema_resources_registered(self, mcp_server: FastMCP) -> None:
         async with Client(mcp_server) as client:
             resources = await client.list_resources()
 
@@ -76,7 +78,7 @@ class TestSchemaDiscoveryResourceSuccessPaths:
     """Success paths for each model-specific and combined schema resource."""
 
     @pytest.mark.asyncio
-    async def test_chart_schema_resource(self, mcp_server):
+    async def test_chart_schema_resource(self, mcp_server: FastMCP) -> None:
         data = await _read_resource(mcp_server, RESOURCE_URIS["chart"])
 
         assert data["model_type"] == "chart"
@@ -88,7 +90,7 @@ class TestSchemaDiscoveryResourceSuccessPaths:
             assert set(column.keys()) == {"name", "description", "type"}
 
     @pytest.mark.asyncio
-    async def test_dataset_schema_resource(self, mcp_server):
+    async def test_dataset_schema_resource(self, mcp_server: FastMCP) -> None:
         data = await _read_resource(mcp_server, RESOURCE_URIS["dataset"])
 
         assert data["model_type"] == "dataset"
@@ -96,7 +98,7 @@ class TestSchemaDiscoveryResourceSuccessPaths:
         assert "table_name" in data["all_column_names"]
 
     @pytest.mark.asyncio
-    async def test_dashboard_schema_resource(self, mcp_server):
+    async def test_dashboard_schema_resource(self, mcp_server: FastMCP) -> None:
         data = await _read_resource(mcp_server, RESOURCE_URIS["dashboard"])
 
         assert data["model_type"] == "dashboard"
@@ -104,7 +106,9 @@ class TestSchemaDiscoveryResourceSuccessPaths:
         assert "dashboard_title" in data["all_column_names"]
 
     @pytest.mark.asyncio
-    async def test_all_schemas_resource_combines_all_model_types(self, mcp_server):
+    async def test_all_schemas_resource_combines_all_model_types(
+        self, mcp_server: FastMCP
+    ) -> None:
         data = await _read_resource(mcp_server, RESOURCE_URIS["all"])
 
         assert set(data.keys()) == {"chart", "dataset", "dashboard", "metadata"}
@@ -118,10 +122,12 @@ class TestSchemaDiscoveryResourceErrorHandling:
     """Error handling for invalid requests against the schema resources."""
 
     @pytest.mark.asyncio
-    async def test_unregistered_uri_raises(self, mcp_server):
+    async def test_unregistered_uri_raises(self, mcp_server: FastMCP) -> None:
         async with Client(mcp_server) as client:
             with pytest.raises(McpError, match="Unknown resource"):
                 await client.read_resource("superset://schema/nonexistent")
 
-    def test_build_schema_resource_returns_empty_dict_for_unknown_model_type(self):
+    def test_build_schema_resource_returns_empty_dict_for_unknown_model_type(
+        self,
+    ) -> None:
         assert _build_schema_resource("unknown") == {}
