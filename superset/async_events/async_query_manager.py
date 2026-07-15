@@ -293,13 +293,18 @@ class AsyncQueryManager:
         from superset import security_manager
 
         job_metadata = self.init_job(channel_id, user_id)
-        self._load_explore_json_into_cache_job.delay(
-            {**job_metadata, "guest_token": guest_user.guest_token}
-            if (guest_user := security_manager.get_current_guest_user_if_guest())
-            else job_metadata,
-            form_data,
-            response_type,
-            force,
+        self._load_explore_json_into_cache_job.apply_async(
+            args=[
+                {**job_metadata, "guest_token": guest_user.guest_token}
+                if (
+                    guest_user := security_manager.get_current_guest_user_if_guest()
+                )
+                else job_metadata,
+                form_data,
+                response_type,
+                force,
+            ],
+            expires=self._jwt_expiration_seconds,
         )
         return job_metadata
 
@@ -317,11 +322,16 @@ class AsyncQueryManager:
         # this way we can keep the cache key consistent between sync and async command
         # so that it can be looked up consistently
         job_metadata = self.init_job(channel_id, user_id)
-        self._load_chart_data_into_cache_job.delay(
-            {**job_metadata, "guest_token": guest_user.guest_token}
-            if (guest_user := security_manager.get_current_guest_user_if_guest())
-            else job_metadata,
-            form_data,
+        self._load_chart_data_into_cache_job.apply_async(
+            args=[
+                {**job_metadata, "guest_token": guest_user.guest_token}
+                if (
+                    guest_user := security_manager.get_current_guest_user_if_guest()
+                )
+                else job_metadata,
+                form_data,
+            ],
+            expires=self._jwt_expiration_seconds,
         )
         return job_metadata
 
