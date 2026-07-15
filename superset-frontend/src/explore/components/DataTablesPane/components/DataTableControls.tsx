@@ -125,13 +125,21 @@ export const TableControls = ({
         )}
         {onReload && (
           <Tooltip title={t('Reload')}>
-            <Icons.ReloadOutlined
-              iconColor={theme.colorIcon}
-              iconSize="l"
+            <button
+              type="button"
               aria-label={t('Reload')}
-              role="button"
               onClick={onReload}
-            />
+              css={css`
+                display: inline-flex;
+                align-items: center;
+                padding: 0;
+                border: none;
+                background: none;
+                cursor: pointer;
+              `}
+            >
+              <Icons.ReloadOutlined iconColor={theme.colorIcon} iconSize="l" />
+            </button>
           </Tooltip>
         )}
       </div>

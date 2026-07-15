@@ -252,7 +252,7 @@ export default function DrillDetailPane({
         form_data: safeStringify(payload),
       }).catch(error => {
         addDangerToast(
-          t('Failed to generate download: %s', error.message || error),
+          t('Failed to generate download: %s', error?.message ?? String(error)),
         );
       });
     },

@@ -287,6 +287,25 @@ describe('download actions', () => {
     postFormSpy.mockRestore();
   });
 
+  test('shows a danger toast when the download rejects with a non-Error value', async () => {
+    mockAddDangerToast.mockClear();
+    fetchWithData();
+    const postFormSpy = jest
+      .spyOn(SupersetClient, 'postForm')
+      // eslint-disable-next-line prefer-promise-reject-errors
+      .mockImplementation(() => Promise.reject('kaboom'));
+    renderWithDownloadPermission();
+
+    await clickDownloadItem('Export to CSV');
+
+    await waitFor(() =>
+      expect(mockAddDangerToast).toHaveBeenCalledWith(
+        'Failed to generate download: kaboom',
+      ),
+    );
+    postFormSpy.mockRestore();
+  });
+
   test('shows a danger toast when the drill payload cannot be generated', async () => {
     mockAddDangerToast.mockClear();
     fetchWithData();
