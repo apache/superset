@@ -31,15 +31,15 @@ msgstr ""
 #, python-format
 msgid ""
 "A soft-deleted dataset (uuid %(uuid)s) already references this table. "
-"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a new "
-"dataset over this table, or use a different table name."
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a "
+"new dataset over this table, or use a different table name."
 msgstr ""
 
 #, python-format
 msgid ""
 "A soft-deleted dataset (uuid %(uuid)s) already references this table. "
-"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or "
-"upload to a different table name."
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or"
+" upload to a different table name."
 msgstr ""
 
 msgid ""
@@ -50,9 +50,9 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Dataset cannot be restored because another active dataset already references "
-"the same physical table (same database, catalog, schema, and table name). "
-"Delete the duplicate or rename the table before restoring."
+"Dataset cannot be restored because another active dataset already "
+"references the same physical table (same database, catalog, schema, and "
+"table name). Delete the duplicate or rename the table before restoring."
 msgstr ""
 
 msgid ""
@@ -230,8 +230,9 @@ msgstr "\"%s\" est maintenant le thème sombre du système"
 msgid "\"%s\" is now the system default theme"
 msgstr "\"%s\" est maintenant le thème par défaut du système"
 
-msgid "% calculation"
-msgstr "% calcul"
+#, python-format
+msgid "%% calculation"
+msgstr "%% calcul"
 
 #, python-format
 msgid "%% of parent"
@@ -273,7 +274,9 @@ msgstr "%(prefix)s %(title)s"
 msgid ""
 "%(prefix)sResults truncated to %(row_count)s rows due to memory "
 "constraints."
-msgstr "%(prefix)sRésultats tronqués à %(row_count)s pour des contraintes mémoires."
+msgstr ""
+"%(prefix)sRésultats tronqués à %(row_count)s pour des contraintes "
+"mémoires."
 
 #, python-format
 msgid ""
@@ -411,7 +414,7 @@ msgstr "%s élément(s)"
 
 #, python-format
 msgid ""
-"%s items could not be tagged because you don't have edit permissions to "
+"%s items could not be tagged because you don’t have edit permissions to "
 "all selected objects."
 msgstr ""
 "%s objets n'ont pas pu être taggés parce que vous n'avez pas les "
@@ -662,6 +665,7 @@ msgstr "10 secondes"
 msgid "10/90 percentiles"
 msgstr "10/90 percentiles"
 
+#. do-not-translate
 msgid "10000"
 msgstr "10 000"
 
@@ -898,8 +902,8 @@ msgid ""
 "A full URL pointing to the location of the built plugin (could be hosted "
 "on a CDN for example)"
 msgstr ""
-"Une URL complète désignant le lieu du plugin (pourrait être hébergé "
-"sur un CDN par exemple)"
+"Une URL complète désignant le lieu du plugin (pourrait être hébergé sur "
+"un CDN par exemple)"
 
 msgid "A handlebars template that is applied to the data"
 msgstr "Un modèle de Handlebars appliqué aux données"
@@ -1319,7 +1323,7 @@ msgstr "Ajouter aux onglets"
 msgid "Added"
 msgstr "Ajouté"
 
-#,  python-format
+#, python-format
 msgid "Added 1 new column to the virtual dataset"
 msgid_plural "Added %s new columns to the virtual dataset"
 msgstr[0] "1 nouvelle colonne ajoutée au jeu de données virtuel"
@@ -1593,9 +1597,9 @@ msgid ""
 "Allow end user to drag-and-drop column headers to rearrange them. Note "
 "their changes won't persist for the next time they open the chart."
 msgstr ""
-"Permettre à l'utilisateur final de glisser-déposer les en-têtes de"
-" colonne pour les réorganiser. Notez que leurs changements ne "
-"persisteront pas la prochaine fois qu'ils ouvriront le tableau."
+"Permettre à l'utilisateur final de glisser-déposer les en-têtes de "
+"colonne pour les réorganiser. Notez que leurs changements ne persisteront"
+" pas la prochaine fois qu'ils ouvriront le tableau."
 
 msgid "Allow file uploads to database"
 msgstr "Autoriser des téléchargements de fichier vers la base de donnée"
@@ -1746,8 +1750,7 @@ msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching %s values: %s"
-msgstr ""
-"Une erreur s'est produite lors de l'extraction de %s valeurs : %s"
+msgstr "Une erreur s'est produite lors de l'extraction de %s valeurs : %s"
 
 #, python-format
 msgid "An error occurred while fetching %s: %s"
@@ -1836,13 +1839,14 @@ msgstr ""
 "Une erreur s'est produite lors de la récupération des données relatives "
 "au jeu de données : %s"
 
+#, python-format
+msgid "An error occurred while fetching editor values: %s"
+msgstr ""
+"Une erreur s'est produite lors de l'extraction des valeurs des éditeurs "
+":%s"
+
 msgid "An error occurred while fetching function names."
 msgstr "Une erreur s'est produite lors de la recherche des noms de fonctions."
-
-#, python-format
-msgid "An error occurred while fetching owners values: %s"
-msgstr ""
-"Une erreur s'est produite lors de la récupération des propriétaires : %s"
 
 #, python-format
 msgid "An error occurred while fetching schema values: %s"
@@ -1857,12 +1861,16 @@ msgstr "Une erreur s'est produite lors de la récupération des couches sémanti
 msgid "An error occurred while fetching tab state"
 msgstr "Une erreur s'est produite lors de l'extraction de l'état de l'onglet"
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching table metadata for %s"
-msgstr "Une erreur s'est produite lors de l'extraction des métadonnées de la table"
+msgstr ""
+"Une erreur s'est produite lors de l'extraction des métadonnées de la "
+"table pour %s"
 
 msgid "An error occurred while fetching the configuration schema"
-msgstr "Une erreur s'est produite lors de la récupération des schémas de configuration."
+msgstr ""
+"Une erreur s'est produite lors de la récupération des schémas de "
+"configuration."
 
 msgid "An error occurred while fetching the runtime schema"
 msgstr "Une erreur s'est produite lors de la récupération des schéma d'exécution."
@@ -1939,7 +1947,9 @@ msgid "An error occurred while rendering the visualization: %s"
 msgstr "Une erreur s'est produite durant le rendu de la visualisation : %s"
 
 msgid "An error occurred while saving the semantic view"
-msgstr "Une erreur s'est produite durant lors de la sauvegarde de la vue sémantique"
+msgstr ""
+"Une erreur s'est produite durant lors de la sauvegarde de la vue "
+"sémantique"
 
 msgid "An error occurred while starring this chart"
 msgstr "Une erreur s'est produite lors de la mise en favori de ce graphique"
@@ -1951,8 +1961,8 @@ msgid ""
 msgstr ""
 "Une erreur s'est produite lors de l'enregistrement de votre requête dans "
 "le programme dorsal. Pour éviter de perdre vos modifications, veuillez "
-"enregistrer votre requête en utilisant le bouton \"Enregistrer la requête"
-"\"."
+"enregistrer votre requête en utilisant le bouton \"Enregistrer la "
+"requête\"."
 
 #, python-format
 msgid "An error occurred while syncing permissions for %s: %s"
@@ -2272,7 +2282,9 @@ msgstr ""
 msgid ""
 "Are you sure you want to revoke this API key? This action cannot be "
 "undone."
-msgstr "Voulez-vous vraiment révoquer cette clé API ? Cette action ne peut pas être annulée."
+msgstr ""
+"Voulez-vous vraiment révoquer cette clé API ? Cette action ne peut pas "
+"être annulée."
 
 msgid "Are you sure you want to save and apply changes?"
 msgstr "Voulez-vous vraiment sauvegarder et appliquer les changements?"
@@ -2496,7 +2508,9 @@ msgstr "Style de la couche de base de la carte. Accepte une URL compatible Mapbo
 
 #, python-format
 msgid "Base layer map style. See MapLibre documentation: %s"
-msgstr "Style de la couche de base de la carte. Voir la documentation MapLibre : %s"
+msgstr ""
+"Style de la couche de base de la carte. Voir la documentation MapLibre : "
+"%s"
 
 msgid "Base slope"
 msgstr "Pente de base"
@@ -2606,10 +2620,10 @@ msgid ""
 "defined based on the min/max of the data. Note that this feature will "
 "only expand the axis range. It won't narrow the data's extent."
 msgstr ""
-"Limites de l'axe Y. Lorsqu'elles sont laissées vides, les "
-"limites sont définies dynamiquement sur la base des valeurs min/max des "
-"données. Notez que cette fonction ne fait qu'étendre la plage de l'axe. "
-"Elle ne réduira pas l'étendue des données."
+"Limites de l'axe Y. Lorsqu'elles sont laissées vides, les limites sont "
+"définies dynamiquement sur la base des valeurs min/max des données. Notez"
+" que cette fonction ne fait qu'étendre la plage de l'axe. Elle ne réduira"
+" pas l'étendue des données."
 
 msgid ""
 "Bounds for the axis. When left empty, the bounds are dynamically defined "
@@ -2627,10 +2641,10 @@ msgid ""
 "feature will only expand the axis range. It won't narrow the data's "
 "extent."
 msgstr ""
-"Limites de l'axe Y principal. Lorsqu'elles sont laissées "
-"vides, les limites sont définies dynamiquement sur la base des valeurs "
-"min/max des données. Notez que cette fonction ne fait qu'étendre la plage"
-" de l'axe. Elle ne réduira pas l'étendue des données."
+"Limites de l'axe Y principal. Lorsqu'elles sont laissées vides, les "
+"limites sont définies dynamiquement sur la base des valeurs min/max des "
+"données. Notez que cette fonction ne fait qu'étendre la plage de l'axe. "
+"Elle ne réduira pas l'étendue des données."
 
 msgid ""
 "Bounds for the secondary Y-axis. Only works when Independent Y-axis\n"
@@ -2833,9 +2847,9 @@ msgid ""
 "Cache data separately for each user based on their data access roles and "
 "permissions. When disabled, a single cache will be used for all users."
 msgstr ""
-"Conserver les données en cache pour chaque utilisateur en se "
-"basant sur leurs roles et leurs permissions. Si désactivée, un seul cache"
-" sera utilisé pour tous les utilisateurs"
+"Conserver les données en cache pour chaque utilisateur en se basant sur "
+"leurs roles et leurs permissions. Si désactivée, un seul cache sera "
+"utilisé pour tous les utilisateurs"
 
 msgid "Cache timeout"
 msgstr "Délai d'inactivité et reprise du cache"
@@ -2942,7 +2956,7 @@ msgid "Captcha"
 msgstr "Captcha"
 
 msgid "Cartodiagram"
-msgstr "Diagramme cartographique"est
+msgstr "Diagramme cartographique\"es"
 
 msgid "Catalog"
 msgstr "Catalogue"
@@ -3171,7 +3185,9 @@ msgstr "Le graphique n'a pas pu être mis à jour."
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Chart customization to control deck.gl layer visibility"
-msgstr "Personnalisation du graphique pour contrôler la couche de visibilité deck.gl"
+msgstr ""
+"Personnalisation du graphique pour contrôler la couche de visibilité "
+"deck.gl"
 
 msgid "Chart customization value is required"
 msgstr "La valeur de personnalisation du graphique est obligatoire"
@@ -3337,8 +3353,8 @@ msgid ""
 "Choose layers to hide from all deck.gl Multiple Layer charts in this "
 "dashboard."
 msgstr ""
-"Choisir les calques à masquer de tous graphiques avec des calques multiples "
-"dans ce tableau de bord."
+"Choisir les calques à masquer de tous graphiques avec des calques "
+"multiples dans ce tableau de bord."
 
 msgid "Choose notification method and recipients."
 msgstr "Ajouter une méthode et des destinataires de notification"
@@ -3413,8 +3429,8 @@ msgid ""
 "Classic row-by-column spreadsheet like view of a dataset. Use tables to "
 "showcase a view into the underlying data or to show aggregated metrics."
 msgstr ""
-"Vue classique d'un jeu de données, ligne par colonne, à la manière d'une"
-" feuille de calcul. Utilisez les tableaux pour présenter une vue des "
+"Vue classique d'un jeu de données, ligne par colonne, à la manière d'une "
+"feuille de calcul. Utilisez les tableaux pour présenter une vue des "
 "données sous-jacentes ou pour montrer des mesures agrégées."
 
 msgid "Clause"
@@ -3711,8 +3727,8 @@ msgid ""
 "Column to use as the index of the dataframe. If None is given, Index "
 "label is used."
 msgstr ""
-"Colonne à utiliser en tant qu'index des données. "
-"Laissez vide s'il n'y a pas de colonne d'index."
+"Colonne à utiliser en tant qu'index des données. Laissez vide s'il n'y a "
+"pas de colonne d'index."
 
 msgid "Column type"
 msgstr "Type de données de la colonne"
@@ -3801,6 +3817,9 @@ msgstr ""
 "Limites des intervalles séparées par des virgules, par exemple 2,4,5 pour"
 " les intervalles 0-2, 2-4 et 4-5. Le dernier chiffre doit correspondre à "
 "la valeur fournie pour MAX."
+
+msgid "Common (unit per pixel at zoom 0)"
+msgstr ""
 
 msgid "Comparator option"
 msgstr "Option comparateur"
@@ -4157,7 +4176,7 @@ msgstr "Créer un jeu de données"
 
 msgid ""
 "Create a dataset to begin visualizing your data as a chart or go to\n"
-"          SQL Lab to query your data."   
+"          SQL Lab to query your data."
 msgstr ""
 "Créer un jeu de données pour commencer à visualiser vos données sous "
 "forme de graphique ou aller à SQL Lab pour interroger vos données."
@@ -4433,6 +4452,7 @@ msgstr "Dates au format JJ/MM, format international et européen"
 msgid "DEC"
 msgstr "DEC"
 
+#. do-not-translate
 msgid "DELETE"
 msgstr "SUPPRIMER"
 
@@ -4483,10 +4503,14 @@ msgid "Dashboard cannot be unfavorited."
 msgstr "Le tableau de bord n'a pas pu être retiré des favoris."
 
 msgid "Dashboard chart customizations could not be updated."
-msgstr "La personnalisation des graphiques du tableau de bord n'a pas pu être mis à jour."
+msgstr ""
+"La personnalisation des graphiques du tableau de bord n'a pas pu être mis"
+" à jour."
 
 msgid "Dashboard color configuration could not be updated."
-msgstr "La configuration des couleurs du tableau de bord n'a pas pu être mis à jour."
+msgstr ""
+"La configuration des couleurs du tableau de bord n'a pas pu être mis à "
+"jour."
 
 msgid "Dashboard could not be deleted."
 msgstr "Le tableau de bord n'a pas pu être supprimé."
@@ -4925,9 +4949,9 @@ msgid ""
 "Default URL to redirect to when accessing from the dataset list page. "
 "Accepts relative URLs such as"
 msgstr ""
-"URL par défaut vers laquelle rediriger l'utilisateur lorsqu'il "
-"accède à la page depuis la liste des ensembles de données. Accepte les "
-"URL relatives telles que"
+"URL par défaut vers laquelle rediriger l'utilisateur lorsqu'il accède à "
+"la page depuis la liste des ensembles de données. Accepte les URL "
+"relatives telles que"
 
 msgid "Default Value"
 msgstr "Valeur par défaut"
@@ -4972,8 +4996,8 @@ msgid ""
 "Default value set automatically when \"Select first filter value by "
 "default\" is checked"
 msgstr ""
-"La valeur par défaut est définie automatiquement lorsque l'option \""
-"Sélectionner la première valeur de filtre par défaut\" est cochée"
+"La valeur par défaut est définie automatiquement lorsque l'option "
+"\"Sélectionner la première valeur de filtre par défaut\" est cochée"
 
 msgid ""
 "Define a function that receives the input and outputs the content for a "
@@ -5073,6 +5097,7 @@ msgstr ""
 msgid "Definition"
 msgstr "Définition"
 
+#, python-format
 msgid "Delayed (missed %s refresh)"
 msgid_plural "Delayed (missed %s refreshes)"
 msgstr[0] "Retardé (%s actualisation manquée)"
@@ -5809,9 +5834,10 @@ msgstr "Charge dynamiquement les valeurs du filtre"
 
 msgid "Dynamically select grouping columns from a dataset"
 msgstr ""
-"Sélectionner dynamiquement un groupe de colonnes à partir d'un jeu"
-" de données"
+"Sélectionner dynamiquement un groupe de colonnes à partir d'un jeu de "
+"données"
 
+#. do-not-translate
 msgid "ECharts"
 msgstr "ECharts"
 
@@ -5820,6 +5846,7 @@ msgstr "ECharts"
 msgid "ECharts Options (JS object literals)"
 msgstr "Options ECharts (Objet literal JS)"
 
+#. do-not-translate
 msgid "EMAIL_REPORTS_CTA"
 msgstr "EMAIL_REPORTS_CTA"
 
@@ -6272,6 +6299,7 @@ msgstr "Erreur lors de la récupérer des objets étiquetés"
 msgid "Error deleting %s"
 msgstr "Une erreur lors de la suppression %s"
 
+#, python-format
 msgid "Error disabling fullscreen: %s"
 msgstr "Erreur lors de la désactivation du plein écran : %s"
 
@@ -6314,13 +6342,12 @@ msgstr "Erreur de la colonne temporelle dans l'expression jinja : %(msg)s"
 #, python-format
 msgid "Error in jinja expression in fetch values predicate: %(msg)s"
 msgstr ""
-"Erreur lors de la récupération du prédicat des valeurs "
-"dans l'expression jinja : %(msg)s"
+"Erreur lors de la récupération du prédicat des valeurs dans l'expression "
+"jinja : %(msg)s"
 
 #, python-format
 msgid "Error in jinja expression in metric expression: %(msg)s"
-msgstr ""
-"Erreur dans l'expression de la mesure dans l'expression jinja : %(msg)s"
+msgstr "Erreur dans l'expression de la mesure dans l'expression jinja : %(msg)s"
 
 msgid "Error loading chart datasources. Filters may not work correctly."
 msgstr ""
@@ -6612,8 +6639,8 @@ msgstr ""
 "Données supplémentaires pour spécifier les métadonnées du tableau. "
 "Actuellement, les métadonnées sont prises en charge dans le format "
 "suivant : `{ \"certification\": { \"certified_by\": \"Data Platform Team "
-"», \"details\": \"Ce tableau est la source de la vérité.\" }, \""
-"warning_markdown\": \"Ceci est un avertissement.\" }`."
+"», \"details\": \"Ce tableau est la source de la vérité.\" }, "
+"\"warning_markdown\": \"Ceci est un avertissement.\" }`."
 
 msgid "Extra parameters for use in jinja templated queries"
 msgstr "Paramètres supplémentaires à utiliser dans les modèles de requêtes jinja"
@@ -6634,12 +6661,11 @@ msgstr "Extrudé"
 msgid "FEB"
 msgstr "FEB"
 
-#, fuzzy
 msgid "FIT DATA"
-msgstr "Modifier l’ensemble de données"
+msgstr "AJUSTER LES DONNEES"
 
 msgid "Fit data"
-msgstr "Ajuster aux données"
+msgstr "Ajuster les données"
 
 msgid "FRI"
 msgstr "FRI"
@@ -6946,8 +6972,8 @@ msgstr ""
 "table a 3 filtres dont 2 sont pour les départements Finance et Marketing "
 "(clé de groupe \"department\", et 1 se réfère à la région Europe (clé de "
 "groupe = \"region\"), la clause du filtre qui s'appliquerait serait "
-"(department = \"Finance\" OR department = \"Marketing\") AND (region = \""
-"Europe\")."
+"(department = \"Finance\" OR department = \"Marketing\") AND (region = "
+"\"Europe\")."
 
 msgid "Find"
 msgstr "Trouver"
@@ -7040,11 +7066,10 @@ msgstr ""
 "Pour obtenir de plus amples renseignements sur les objets dans le "
 "contexte de la portée de cette fonction, reportez-vous au"
 
-#, fuzzy
 msgid ""
-"For regular filters, these are the roles this filter will be applied to. "
-"For base filters, these are the roles that the filter DOES NOT apply to, "
-"e.g. Admin if admin should see all data."
+"For regular filters, these are the subjects (users, roles, groups) this "
+"filter will be applied to. For base filters, these are the subjects that "
+"the filter DOES NOT apply to, e.g. Admin if admin should see all data."
 msgstr ""
 "Pour les filtres réguliers, il s'agit des rôles auxquels le filtre "
 "s'applique. Pour les filtres de base, il s'agit des rôles auxquels le "
@@ -7212,6 +7237,7 @@ msgstr "Personnaliser davantage la façon d'afficher chaque colonne"
 msgid "Further customize how to display each metric"
 msgstr "Personnaliser davantage la façon d'afficher chaque mesure"
 
+#. do-not-translate
 msgid "GROUP BY"
 msgstr "GROUPER PAR"
 
@@ -7512,11 +7538,11 @@ msgid ""
 "hive.server2.proxy.user property."
 msgstr ""
 "Dans le cas de Presto ou Trino, toutes les requêtes dans SQL Lab seront "
-"exécutées en tant qu'utilisateur connecté qui doit avoir la "
-"permission de les exécuter. Si Hive et hive.server2.enable.doAs sont "
-"activés, les requêtes seront exécutées en tant que compte de service, "
-"mais en usurpant l'identité de l'utilisateur connecté via la "
-"propriété hive.server2.proxy.user."
+"exécutées en tant qu'utilisateur connecté qui doit avoir la permission de"
+" les exécuter. Si Hive et hive.server2.enable.doAs sont activés, les "
+"requêtes seront exécutées en tant que compte de service, mais en usurpant"
+" l'identité de l'utilisateur connecté via la propriété "
+"hive.server2.proxy.user."
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr "Si une mesure est définie, le tri sera basé sur sa valeur"
@@ -7561,8 +7587,8 @@ msgstr "Échec du téléchargement de l'image, veuillez actualiser et réessayer
 
 msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
-"Se faire passer pour l'utilisateur connecté (Presto, Trino, Drill,"
-" Hive, and GSheets)"
+"Se faire passer pour l'utilisateur connecté (Presto, Trino, Drill, Hive, "
+"and GSheets)"
 
 msgid "Import"
 msgstr "Importer"
@@ -7763,8 +7789,8 @@ msgid ""
 "Invalid Connection String: Expecting String of the form "
 "'ocient://user:pass@host:port/database'."
 msgstr ""
-"Chaîne de connexion non valide : la chaîne attendue est de la forme \""
-"ocient://user:pass@host:port/database\"."
+"Chaîne de connexion non valide : la chaîne attendue est de la forme "
+"\"ocient://user:pass@host:port/database\"."
 
 msgid "Invalid JSON"
 msgstr "JSON invalide"
@@ -7954,8 +7980,8 @@ msgstr ""
 "Il ne sera pas supprimé même s'il est vide. Il ne sera pas affiché dans "
 "la vue d'édition du graphique s'il est vide."
 
-msgid "It's not recommended to truncate Y axis in Bar chart."
-msgstr "Il n'est pas recommandé de tronquer l'axe dans le graphique à barres."
+msgid "It’s not recommended to truncate Y axis in Bar chart."
+msgstr "Il n'est pas recommandé de tronquer l'axe Y dans le graphique à barres."
 
 msgid "JAN"
 msgstr "JAN"
@@ -8041,9 +8067,6 @@ msgid "Keys are shown only once at creation. Store them securely."
 msgstr ""
 "Les clés sont affichés une seule et unique fois à leur création. "
 "Enregistrer les de façon sécurisée"
-
-msgid "Keys for table"
-msgstr "Clefs pour le tableau"
 
 msgid "Kilometers"
 msgstr "Kilomètres"
@@ -8232,9 +8255,7 @@ msgid "Left Margin"
 msgstr "Marge gauche"
 
 msgid "Left margin, in pixels, allowing for more room for axis labels"
-msgstr ""
-"Marge gauche, en pixels, offrant plus d'espace pour les étiquettes "
-"d'axe"
+msgstr "Marge gauche, en pixels, offrant plus d'espace pour les étiquettes d'axe"
 
 msgid "Left to Right"
 msgstr "Gauche à droite"
@@ -8604,8 +8625,8 @@ msgid ""
 "MAPBOX_API_KEY to be configured on the server."
 msgstr ""
 "MapLibre est open-source et ne nécessite pas de clé API. Mapbox nécessite"
-" que la variable d'environnement MAPBOX_API_KEY soit configurée "
-"sur le serveur."
+" que la variable d'environnement MAPBOX_API_KEY soit configurée sur le "
+"serveur."
 
 msgid "Mapbox"
 msgstr "Mapbox"
@@ -8874,8 +8895,8 @@ msgid ""
 "appropriate)."
 msgstr ""
 "Mesure utilisée pour définir comment les séries principales sont triées "
-"si une limite de série ou de ligne est définie. Si indéfini, la première"
-" mesure sera utilisée (si approprié)."
+"si une limite de série ou de ligne est définie. Si indéfini, la première "
+"mesure sera utilisée (si approprié)."
 
 msgid "Metrics"
 msgstr "Mesures"
@@ -9089,11 +9110,11 @@ msgstr "Multiplicateur"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 msgid ""
-"Must be a chart owner to overwrite this chart. Save as a new chart "
+"Must be a chart editor to overwrite this chart. Save as a new chart "
 "instead."
 msgstr ""
-"[FORMULATION] Vous devez être propriétaire du graphique pour "
-"l'enregistrer et l'écraser. Enregistrer en tant que nouveau graphique."
+"Vous devez être propriétaire du graphique pour l'enregistrer et "
+"l'écraser. Enregistrer en tant que nouveau graphique."
 
 msgid "Must be unique"
 msgstr "Doit être unique"
@@ -9122,6 +9143,7 @@ msgstr "Ma mesure"
 msgid "N/A"
 msgstr "S.O."
 
+#. do-not-translate
 msgid "NOT GROUPED BY"
 msgstr "NON GROUPÉ PAR"
 
@@ -9625,8 +9647,7 @@ msgstr "Nombre de top valeurs"
 
 #, python-format
 msgid "Numbers must be within %(min)s and %(max)s"
-msgstr ""
-"Les nombres doivent être compris entre %(min)s et %(max)s"
+msgstr "Les nombres doivent être compris entre %(min)s et %(max)s"
 
 msgid "Numeric column used to calculate the histogram."
 msgstr "Colonnes numériques utilisées pour calculer l'histogramme"
@@ -9646,6 +9667,7 @@ msgstr "OK"
 msgid "OR"
 msgstr "ou"
 
+#. do-not-translate
 msgid "OVERWRITE"
 msgstr "REMPLACER"
 
@@ -9968,28 +9990,6 @@ msgstr "Remplacer le texte de l'éditeur par une requête sur ce tableau"
 msgid "Owned Created or Favored"
 msgstr "Propriétaire créé ou privilégié"
 
-msgid "Owner"
-msgstr "Propriétaire"
-
-msgid "Owners"
-msgstr "Propriétaires"
-
-msgid "Owners are invalid"
-msgstr "Les propriétaires ne sont pas valides"
-
-msgid "Owners is a list of users who can alter the dashboard."
-msgstr ""
-"Les propriétaires est une liste d'utilisateurs qui peuvent modifier"
-" le tableau de bord."
-
-msgid ""
-"Owners is a list of users who can alter the dashboard. Searchable by name"
-" or username."
-msgstr ""
-"Les propriétaires sont une liste des utilisateurs qui peuvent modifier le"
-" tableau de bord. Il est possible d'effectuer une recherche par nom ou "
-"par nom d'utilisateur."
-
 msgid "PDF download failed, please refresh and try again."
 msgstr "Échec du téléchargement du PDF, veuillez actualiser et réessayer."
 
@@ -10287,16 +10287,16 @@ msgid ""
 "Please check your query for syntax errors at or near "
 "\"%(syntax_error)s\". Then, try running your query again."
 msgstr ""
-"Veuillez corriger une erreur de syntaxe dans la requête près de \""
-"%(syntax_error)s\". Puis essayez de relancer la requête."
+"Veuillez corriger une erreur de syntaxe dans la requête près de "
+"\"%(syntax_error)s\". Puis essayez de relancer la requête."
 
 #, python-format
 msgid ""
 "Please check your query for syntax errors near \"%(server_error)s\". "
 "Then, try running your query again."
 msgstr ""
-"Veuillez corriger une erreur de syntaxe dans la requête près de \""
-"%(server_error)s\". Puis essayez de relancer la requête."
+"Veuillez corriger une erreur de syntaxe dans la requête près de "
+"\"%(server_error)s\". Puis essayez de relancer la requête."
 
 msgid ""
 "Please check your template parameters for syntax errors and make sure "
@@ -10361,8 +10361,8 @@ msgstr "Veuillez saisir à nouveau le mot de passe."
 msgid "Please re-export your file and try importing again"
 msgstr "Veuillez réexporter votre fichier et réessayer l'importation"
 
-msgid "Please reach out to the Chart Owner for assistance."
-msgid_plural "Please reach out to the Chart Owners for assistance."
+msgid "Please reach out to the Chart Editor for assistance."
+msgid_plural "Please reach out to the Chart Editors for assistance."
 msgstr[0] "Veuillez contacter le propriétaire du graphique pour obtenir de l'aide."
 msgstr[1] "Veuillez contacter les propriétaires du graphique pour obtenir de l'aide."
 
@@ -10778,11 +10778,11 @@ msgid ""
 "will be applied to columns and the width may overflow into an horizontal "
 "scroll."
 msgstr ""
-"Réduit le nombre de points de repère de l'axe X à afficher. "
-"Si la valeur est définie à True, l'axe X ne débordera pas et "
-"des étiquettes pourraient être manquantes. Si elle est fausse, une "
-"largeur minimale sera appliquée aux colonnes et la largeur pourrait "
-"déborder dans un défilement horizontal."
+"Réduit le nombre de points de repère de l'axe X à afficher. Si la valeur "
+"est définie à True, l'axe X ne débordera pas et des étiquettes pourraient"
+" être manquantes. Si elle est fausse, une largeur minimale sera appliquée"
+" aux colonnes et la largeur pourrait déborder dans un défilement "
+"horizontal."
 
 msgid "Refer to the"
 msgstr "Se référer à"
@@ -10851,12 +10851,12 @@ msgid ""
 "except the roles defined in the filter, and can be used to define what "
 "users can see if no RLS filters within a filter group apply to them."
 msgstr ""
-"Les filtres réguliers ajoutent des clauses WHERE aux requêtes si"
-" un·e utilisateur appartient à un profil référencé dans le filtre. "
-"Les filtres de base appliquent les filtres à toutes les requêtes sauf "
-"pour les profils définis dans le filtre, et peuvent être utilisés pour "
-"définir ce que les utilisateur(s) peuvent voir si aucun filtre RLS au"
-" sein d'un groupe de filtres ne s'appliquent à eux."
+"Les filtres réguliers ajoutent des clauses WHERE aux requêtes si un·e "
+"utilisateur appartient à un profil référencé dans le filtre. Les filtres "
+"de base appliquent les filtres à toutes les requêtes sauf pour les "
+"profils définis dans le filtre, et peuvent être utilisés pour définir ce "
+"que les utilisateur(s) peuvent voir si aucun filtre RLS au sein d'un "
+"groupe de filtres ne s'appliquent à eux."
 
 msgid "Relational"
 msgstr "Relationnel"
@@ -11004,6 +11004,9 @@ msgstr "Le rapport est actif"
 msgid "Report name"
 msgstr "Nom du rapport"
 
+msgid "Report not yet run"
+msgstr "Rapport pas encore envoyé"
+
 msgid "Report schedule client error"
 msgstr "Erreur de la planification du rapport par le client"
 
@@ -11101,7 +11104,7 @@ msgstr "Ressource introuvable."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
-msgid "Resource was removed before ownership could be verified"
+msgid "Resource was removed before editorship could be verified"
 msgstr ""
 "La ressource a été supprimée avant que le propriétaire de la ressource "
 "soit vérifié."
@@ -11200,26 +11203,6 @@ msgstr "Le nom de rôle est nécessaire"
 
 msgid "Roles"
 msgstr "Rôles"
-
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks. If no roles are "
-"defined, regular access permissions apply."
-msgstr ""
-"Les rôles sont une liste qui définit l'accès au tableau de bord. En "
-"accordant à un rôle l'accès à un tableau de bord, les contrôles au niveau"
-" du jeu de données seront contournés. Si aucun rôle n'est défini, les "
-"autorisations d'accès normales s'appliquent."
-
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks.If no roles are "
-"defined, regular access permissions apply."
-msgstr ""
-"Les rôles sont une liste qui définit l'accès au tableau de bord. En "
-"accordant à un rôle l'accès à un tableau de bord, les contrôles au niveau"
-" du jeu de données seront contournés. Si aucun rôle n'est défini, les "
-"autorisations d'accès normales s'appliquent."
 
 msgid "Rolling Function"
 msgstr "Fonction glissante"
@@ -11685,8 +11668,8 @@ msgstr "Recherche par texte d'interrogation"
 msgid "Search calculated columns by name"
 msgstr "Rechercher les colonnes calculées par nom"
 
-msgid "Search charts by name, owner, or dashboard"
-msgstr "Recherche le graphique par nom, propriétaire ou tableau de bord"
+msgid "Search charts by name, editor, or dashboard"
+msgstr "Recherche le graphique par nom, éditeur ou tableau de bord"
 
 msgid "Search columns"
 msgstr "Recherche de colonnes"
@@ -11705,12 +11688,6 @@ msgstr "Recherche dans les filtres"
 
 msgid "Search metrics by key or label"
 msgstr "Rechercher les mesures par clé ou intitulé"
-
-msgid "Search owners"
-msgstr "Rechercher les propriétaires"
-
-msgid "Search roles"
-msgstr "Rechercher les rôles"
 
 msgid "Search tags"
 msgstr "Rechercher les tags"
@@ -11731,8 +11708,7 @@ msgid "Secondary Metric"
 msgstr "Mesure secondaire"
 
 msgid "Secondary currency format"
-msgstr ""
-"Format de devise secondaire"
+msgstr "Format de devise secondaire"
 
 msgid "Secondary y-axis Bounds"
 msgstr "Limites secondaires de l'axe Y"
@@ -12056,9 +12032,6 @@ msgstr "Sélectionnez ou saisissez la devise"
 msgid "Select or type dataset name"
 msgstr "Sélectionner la base de données ou taper le nom du jeu de données"
 
-msgid "Select owners"
-msgstr "Sélectionner les propriétaires"
-
 msgid "Select page size"
 msgstr "Sélectionner la taille de la page"
 
@@ -12117,8 +12090,8 @@ msgstr ""
 "Sélectionnez les graphiques auxquels vous souhaitez appliquer des filtres"
 " croisés dans ce tableau de bord. Si vous désélectionnez un graphique, il"
 " ne sera pas filtré lors de l'application de filtres croisés à partir de "
-"n'importe quel graphique du tableau de bord. Vous pouvez sélectionner \""
-"Tous les graphiques\" pour appliquer des filtres croisés à tous les "
+"n'importe quel graphique du tableau de bord. Vous pouvez sélectionner "
+"\"Tous les graphiques\" pour appliquer des filtres croisés à tous les "
 "graphiques qui utilisent le même jeu de données ou contiennent le même "
 "nom de colonne dans le tableau de bord."
 
@@ -12552,9 +12525,9 @@ msgid ""
 "Show Y-axis on the sparkline. Will display the manually set min/max if "
 "set or min/max values in the data otherwise."
 msgstr ""
-"Afficher l'axe Y sur la ligne de la bougie. Les valeurs "
-"min/max définies manuellement s'afficheront si elles sont définies ou "
-"autrement min/max dans les données."
+"Afficher l'axe Y sur la ligne de la bougie. Les valeurs min/max définies "
+"manuellement s'afficheront si elles sont définies ou autrement min/max "
+"dans les données."
 
 msgid "Show all columns"
 msgstr "Afficher toutes les colonnes"
@@ -13105,8 +13078,8 @@ msgid ""
 "Start y-axis at zero. Uncheck to start y-axis at minimum value in the "
 "data."
 msgstr ""
-"Commencer l'axe Y à zéro. Décochez pour démarrer l'axe des "
-"ordonnées à la valeur minimale dans les données."
+"Commencer l'axe Y à zéro. Décochez pour démarrer l'axe des ordonnées à la"
+" valeur minimale dans les données."
 
 msgid "Started"
 msgstr "Commencé"
@@ -13352,8 +13325,8 @@ msgstr "Syntaxe"
 #, python-format
 msgid "Syntax Error: %(qualifier)s input \"%(input)s\" expecting \"%(expected)s"
 msgstr ""
-"Erreur de syntaxe : %(qualifier)s entrée \"%(input)s\" en attente \""
-"%(expected)s"
+"Erreur de syntaxe : %(qualifier)s entrée \"%(input)s\" en attente "
+"\"%(expected)s"
 
 msgid "System"
 msgstr "Système"
@@ -13370,6 +13343,7 @@ msgstr "Thème par défaut du système supprimé"
 msgid "TABLES"
 msgstr "TABLEAUX"
 
+#. do-not-translate
 msgid "TEMPORAL_RANGE"
 msgstr "PERIODE_TEMPORELLE"
 
@@ -13660,6 +13634,9 @@ msgstr ""
 "Voir https://superset.apache.org/docs/configuration/async-queries-celery "
 "pour plus de détails de configuration."
 
+msgid "The SSH server host key could not be verified against the expected key."
+msgstr ""
+
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
 "values across\n"
@@ -13688,9 +13665,9 @@ msgid ""
 "used in time range filters in dashboards. Would you like to add it to the"
 " filters list?"
 msgstr ""
-"L'axe X ne figure pas dans la liste des filtres, ce qui "
-"l'empêchera d'être utilisé dans les filtres de plage de temps dans les "
-"tableaux de bord. Voulez-vous l'ajouter à la liste des filtres?"
+"L'axe X ne figure pas dans la liste des filtres, ce qui l'empêchera "
+"d'être utilisé dans les filtres de plage de temps dans les tableaux de "
+"bord. Voulez-vous l'ajouter à la liste des filtres?"
 
 msgid "The annotation has been saved"
 msgstr "Cette annotation a été sauvegardée"
@@ -13716,7 +13693,9 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 msgid "The chart is still loading. Please wait a moment and try again."
-msgstr "Le graphique est toujours en chargement. Merci de patienter et de réessayer."
+msgstr ""
+"Le graphique est toujours en chargement. Merci de patienter et de "
+"réessayer."
 
 msgid ""
 "The classic. Great for showing how much of a company each investor gets, "
@@ -13956,8 +13935,8 @@ msgid ""
 "The following entries in `series_columns` are missing in `columns`: "
 "%(columns)s. "
 msgstr ""
-"Les entrées suivantes dans \"series_columns\" sont manquantes dans \""
-"columns\" : %(columns)s. "
+"Les entrées suivantes dans \"series_columns\" sont manquantes dans "
+"\"columns\" : %(columns)s. "
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -14355,6 +14334,11 @@ msgstr ""
 "Une colonne numérique ou \"Auto\", qui met à l'échelle le point en "
 "fonction de la plus grande grappe"
 
+msgid ""
+"The radius of point features, in the units specified below. The final "
+"rendered size is this value multiplied by Point Radius Scale."
+msgstr ""
+
 msgid "The report has been created"
 msgstr "Le rapport a été créé"
 
@@ -14593,8 +14577,8 @@ msgstr "L'utilisateur a été sauvegardé avec succès."
 
 msgid "The user/password combination is not valid (Incorrect password for user)."
 msgstr ""
-"La combinaison utilisateur/mot de passe n'est pas valide (mot de "
-"passe incorrect pour l'utilisateur)."
+"La combinaison utilisateur/mot de passe n'est pas valide (mot de passe "
+"incorrect pour l'utilisateur)."
 
 #, python-format
 msgid "The username \"%(username)s\" does not exist."
@@ -14602,8 +14586,8 @@ msgstr "L'utilisateur \"%(username)s\" n'existe pas."
 
 msgid "The username provided when connecting to a database is not valid."
 msgstr ""
-"Le nom d'utilisateur fourni lors de la connexion à une base de "
-"données n'est pas valide."
+"Le nom d'utilisateur fourni lors de la connexion à une base de données "
+"n'est pas valide."
 
 msgid "The values overlap other breakpoint values"
 msgstr "Les valeurs se chevauchent avec d'autres valeurs de points d'arrêt"
@@ -14716,8 +14700,8 @@ msgstr "Une erreur s'est produite lors de la création du rôle. Merci de réess
 
 msgid "There was an error creating the user. Please, try again."
 msgstr ""
-"Une erreur s'est produite lors de la création de "
-"l'utilisateur. Merci de réessayer."
+"Une erreur s'est produite lors de la création de l'utilisateur. Merci de "
+"réessayer."
 
 msgid "There was an error duplicating the role. Please, try again."
 msgstr "Il y a eu un problème de duplication du rôle."
@@ -14785,8 +14769,8 @@ msgstr ""
 
 msgid "There was an error updating the user. Please, try again."
 msgstr ""
-"Une erreur s'est produite lors de la mise à jour de "
-"l'utilisateur. Merci de réessayer"
+"Une erreur s'est produite lors de la mise à jour de l'utilisateur. Merci "
+"de réessayer"
 
 msgid "There was an error while fetching groups"
 msgstr "Une erreur s'est produite lors de la récupération des groupes"
@@ -14815,8 +14799,8 @@ msgstr "Il y a eu un problème lors de la suppression de %s : %s"
 #, python-format
 msgid "There was an issue deleting registration for user: %s"
 msgstr ""
-"Il y a eu un problème lors de la suppression de l'inscription de"
-" l'utilisateur : %s"
+"Il y a eu un problème lors de la suppression de l'inscription de "
+"l'utilisateur : %s"
 
 #, python-format
 msgid "There was an issue deleting rules: %s"
@@ -14971,9 +14955,7 @@ msgid "This action will permanently delete the theme."
 msgstr "Cette acion supprimera définitivement le thème."
 
 msgid "This action will permanently delete the user registration."
-msgstr ""
-"Cette action supprimera définitivement l'enregistrement de "
-"l'utilisateur."
+msgstr "Cette action supprimera définitivement l'enregistrement de l'utilisateur."
 
 msgid "This action will permanently delete the user."
 msgstr "Cette action supprimera définitivement l'utilisateur."
@@ -15097,9 +15079,9 @@ msgid ""
 "This database does not allow for DDL/DML, but the query mutates data. "
 "Please contact your administrator for more assistance."
 msgstr ""
-"La requête modifie les données et cette base de données "
-"n'autorise pas les DDL/DML. Veuillez contacter un administrateur pour "
-"obtenir davantage d'aide."
+"La requête modifie les données et cette base de données n'autorise pas "
+"les DDL/DML. Veuillez contacter un administrateur pour obtenir davantage "
+"d'aide."
 
 msgid "This database is managed externally, and can't be edited in Superset"
 msgstr ""
@@ -15223,9 +15205,9 @@ msgstr ""
 "Ceci est la condition qui sera ajoutée à la clause WHERE. Par exemple, "
 "pour ne retourner que les lignes d'un client particulier, vous pouvez "
 "définir un filtre régulier avec la clause \"client_id = 9\". Pour "
-"n'afficher aucune ligne sauf pour les utilisateurs qui "
-"appartiennent à un role de filtre RLS, un filtre de base peut être créé "
-"avec la  clause \"1 = 0\" (toujours faux)."
+"n'afficher aucune ligne sauf pour les utilisateurs qui appartiennent à un"
+" role de filtre RLS, un filtre de base peut être créé avec la  clause \"1"
+" = 0\" (toujours faux)."
 
 msgid "This is the default dark theme"
 msgstr "Ceci est le thème sombre par défaut du système"
@@ -15297,6 +15279,9 @@ msgid ""
 msgstr ""
 "Cette page est destinée à être intégrée dans une iframe, mais il semble "
 "que ce ne soit pas le cas."
+
+msgid "This password is too common; please choose a less guessable one."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -15579,6 +15564,7 @@ msgstr "Délai terminé"
 msgid "Timeline"
 msgstr "Echéance"
 
+#, python-format
 msgid ""
 "Timeout configured (%s seconds) but no abort handler defined. Task will "
 "continue running past the timeout."
@@ -15645,6 +15631,18 @@ msgstr "Pour obtenir une URL lisible pour votre tableau de bord"
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Token Request URI"
 msgstr "URL de requête du Token"
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
 
 msgid "Tool Panel"
 msgstr "Outil du panneau"
@@ -15769,8 +15767,8 @@ msgstr "Tronquer l'axe des absisses"
 
 msgid "Truncate Y Axis. Can be overridden by specifying a min or max bound."
 msgstr ""
-"Tronquer l'axe Y. Peut être modifié en spécifiant une limite "
-"minimale ou maximale."
+"Tronquer l'axe Y. Peut être modifié en spécifiant une limite minimale ou "
+"maximale."
 
 msgid "Truncate long cells to the \"min width\" set above"
 msgstr "Tronquer les cellules longues à la \"largeur minimale\" définie ci-dessus"
@@ -15881,8 +15879,8 @@ msgstr ""
 "Impossible de se connecter. Vérifiez que les rôles suivants sont définis "
 "sur le compte de service : \"BigQuery Data Viewer\", \"BigQuery Metadata "
 "Viewer\", \"BigQuery Job User\" et que les permissions suivantes sont "
-"définies \"bigquery.readsessions.create\", \""
-"bigquery.readsessions.getData\""
+"définies \"bigquery.readsessions.create\", "
+"\"bigquery.readsessions.getData\""
 
 msgid ""
 "Unable to connect. Verify that the following roles are set on the service"
@@ -15892,8 +15890,8 @@ msgstr ""
 "Impossible de se connecter. Vérifiez que les rôles suivants sont définis "
 "sur le compte de service : \"BigQuery Data Viewer\", \"BigQuery Metadata "
 "Viewer\", \"BigQuery Job User\" et que les permissions suivantes sont "
-"définies \"bigquery.readsessions.create\", \""
-"bigquery.readsessions.getData\""
+"définies \"bigquery.readsessions.create\", "
+"\"bigquery.readsessions.getData\""
 
 msgid "Unable to create chart without a query id."
 msgstr "Impossible de créer un graphique sans ID de requête."
@@ -16283,10 +16281,9 @@ msgid ""
 msgstr ""
 "Utilisé pour résumer un jeu de données en regroupant plusieurs "
 "statistiques le long de deux axes. Exemples : Chiffre d'affaires par "
-"région et par mois, tâches par statut et par "
-"destinataire,utilisateur(s) actif(s) par âge et par lieu. Ce n'est "
-"pas la visualisation la plus impressionnante, mais elle est très "
-"informative et polyvalente."
+"région et par mois, tâches par statut et par destinataire,utilisateur(s) "
+"actif(s) par âge et par lieu. Ce n'est pas la visualisation la plus "
+"impressionnante, mais elle est très informative et polyvalente."
 
 msgid "User"
 msgstr "Utilisateur"
@@ -16332,8 +16329,8 @@ msgstr "Utilisateurs"
 
 msgid "Users are not allowed to set a search path for security reasons."
 msgstr ""
-"Les utilisateurs ne sont pas autorisés à définir une "
-"recherche de chemin pour des raions de sécurité."
+"Les utilisateurs ne sont pas autorisés à définir une recherche de chemin "
+"pour des raions de sécurité."
 
 msgid ""
 "Uses Gaussian Kernel Density Estimation to visualize spatial distribution"
@@ -16591,9 +16588,8 @@ msgid ""
 "showcased using bubble color."
 msgstr ""
 "Visualise une mesure sur trois dimensions de données dans un seul "
-"graphique (axe des absisses, axe Y et taille des bulles). Les"
-" bulles du même groupe peuvent être présentées en utilisant la couleur "
-"des bulles."
+"graphique (axe des absisses, axe Y et taille des bulles). Les bulles du "
+"même groupe peuvent être présentées en utilisant la couleur des bulles."
 
 msgid "Visualizes connected points, which form a path, on a map."
 msgstr "Visualise les points connectés, qui forment un chemin, sur une carte."
@@ -16653,9 +16649,11 @@ msgstr "Type Viz"
 msgid "WED"
 msgstr "MER"
 
+#. do-not-translate
 msgid "WFS"
 msgstr "WMS"
 
+#. do-not-translate
 msgid "WMS"
 msgstr "WMS"
 
@@ -16749,8 +16747,8 @@ msgid ""
 "We were unable to connect to your database named \"%(database)s\". Please"
 " verify your database name and try again."
 msgstr ""
-"Nous n'avons pas pu nous connecter à votre base de données \"%(database)s"
-"\". Veuillez vérfier le nom de la base et réessayez."
+"Nous n'avons pas pu nous connecter à votre base de données "
+"\"%(database)s\". Veuillez vérfier le nom de la base et réessayez."
 
 msgid "Web"
 msgstr "Web"
@@ -16792,10 +16790,10 @@ msgstr "Poids"
 
 #, python-format
 msgid ""
-"We're having trouble loading these results. Queries are set to timeout "
+"We’re having trouble loading these results. Queries are set to timeout "
 "after %s second."
 msgid_plural ""
-"We're having trouble loading these results. Queries are set to timeout "
+"We’re having trouble loading these results. Queries are set to timeout "
 "after %s seconds."
 msgstr[0] ""
 "Erreur au chargement de ces résultats. Les requêtes s'interrompent au "
@@ -16806,10 +16804,10 @@ msgstr[1] ""
 
 #, python-format
 msgid ""
-"We're having trouble loading this visualization. Queries are set to "
+"We’re having trouble loading this visualization. Queries are set to "
 "timeout after %s second."
 msgid_plural ""
-"We're having trouble loading this visualization. Queries are set to "
+"We’re having trouble loading this visualization. Queries are set to "
 "timeout after %s seconds."
 msgstr[0] ""
 "Nous avons des difficultés à charger cette visualisation. Les requêtes "
@@ -16850,12 +16848,14 @@ msgstr ""
 msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
 "values of your data"
-msgstr "Si activé, affiche dans l'axe les valeurs minimal et maximal de vos données "
+msgstr ""
+"Si activé, affiche dans l'axe les valeurs minimal et maximal de vos "
+"données "
 
 msgid "When enabled, users are able to visualize SQL Lab results in Explore."
 msgstr ""
-"Quand activé, les utilisateurs peuvent visualiser les résulats de "
-"SQL Lab dans Explorer."
+"Quand activé, les utilisateurs peuvent visualiser les résulats de SQL Lab"
+" dans Explorer."
 
 msgid "When only a primary metric is provided, a categorical color scale is used."
 msgstr ""
@@ -17205,6 +17205,7 @@ msgstr "Axe X"
 msgid "X-scale interval"
 msgstr "Intervalle XScale"
 
+#. do-not-translate
 msgid "XYZ"
 msgstr "XYZ"
 
@@ -17442,6 +17443,9 @@ msgstr "Vous n'avez pas les permission pour modifier ce tableau de bord."
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "Vous n'avez pas les permissions suffisantes pour modifier ce graphique"
 
+msgid "You don't have access to one or more of the referenced datasources."
+msgstr "Vous n'avez pas accès à une ou plusieurs sources de données référencées."
+
 msgid "You don't have access to this chart."
 msgstr "Vous n'avez pas le droit d'accéder à ce graphique."
 
@@ -17518,26 +17522,37 @@ msgstr ""
 
 #, python-format
 msgid ""
-"You must be a %s owner in order to edit. Please reach out to a %s owner "
-"to request modifications or edit access."
+"You must be a %s editor in order to edit. Please reach out to a %s editor"
+" to request modifications or edit access."
 msgstr ""
 "Vous devez être propriétaire de la ressource %s pour pouvoir la modifier."
 " Veuillez contacter un propriétaire de la ressource %s pour modifier vos "
 "permissions."
 
 msgid ""
-"You must be a dataset owner in order to edit. Please reach out to a "
-"dataset owner to request modifications or edit access."
+"You must be a dataset editor in order to edit. Please reach out to a "
+"dataset editor to request modifications or edit access."
 msgstr ""
 "Vous devez être propriétaire d'un jeu de données pour pouvoir le "
 "modifier. Veuillez communiquer avec un propriétaire de jeu de données "
 "pour demander des modifications ou modifier l'accès."
+
+msgid "You must change your password before continuing."
+msgstr "Vous devez modifier votre mot de passe avant de continuer."
 
 msgid "You must pick a name for the new dashboard"
 msgstr "Vous devez entrer un nom pour le nouveau tableau de Bord"
 
 msgid "You must run the query successfully first"
 msgstr "Vous devez d'abord exécuter la requête avec succès"
+
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"'all_database_access' or 'all_datasource_access' permission"
+msgstr ""
+"Vous devez avoir accès aux tables suivantes: %(tables)s, ou avoir les "
+"permissions 'all_database_access' ou 'all_datasource_access'"
 
 msgid "You need to"
 msgstr "Vous devez"
@@ -17618,6 +17633,9 @@ msgstr "Votre requête a été mise à jour"
 
 msgid "Your report could not be deleted"
 msgstr "Votre rapport n'a pas pu être supprimée"
+
+msgid "Your session has ended. Please sign in again."
+msgstr ""
 
 msgid "Your user information"
 msgstr "Vos informations"
@@ -17726,6 +17744,10 @@ msgstr "\"row_offset\" doit être plus grand ou égal à 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "\"width\" doit être plus grand ou égal à 0"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
+msgid "`window` must be between 1 and 10000"
+msgstr "`periods` doit être entre 1 et 10000"
+
 msgid "a few seconds"
 msgstr "il y a quelques secondes"
 
@@ -17774,6 +17796,9 @@ msgstr "contexte"
 msgid "background color"
 msgstr "Couleur d'arrière plan"
 
+msgid "banana"
+msgstr ""
+
 msgid "basis"
 msgstr "base"
 
@@ -17793,6 +17818,7 @@ msgstr "entre {down} et {up} {name}"
 msgid "bfill"
 msgstr "bfill"
 
+#. do-not-translate
 msgid "bolt"
 msgstr "boulon"
 
@@ -17878,6 +17904,7 @@ msgstr "créer un nouveau graphique"
 msgid "create dataset from SQL query"
 msgstr "créer un ensemble de données à partir d'une requête SQL"
 
+#. do-not-translate
 msgid "crontab"
 msgstr "crontab"
 
@@ -17944,6 +17971,7 @@ msgstr "deck.gl - Arc"
 msgid "deck.gl Contour"
 msgstr "Deck.gl - Contour"
 
+#. do-not-translate
 msgid "deck.gl Geojson"
 msgstr "deck.gl - Geojson"
 
@@ -17992,6 +18020,7 @@ msgstr "dialect+driver://username:password@host:port/database"
 msgid "documentation"
 msgstr "Documentation"
 
+#. do-not-translate
 msgid "dttm"
 msgstr "dttm"
 
@@ -18060,6 +18089,7 @@ msgstr "enregistrement par page"
 msgid "error"
 msgstr "erreur"
 
+#. do-not-translate
 msgid "error_message"
 msgstr "error_message"
 
@@ -18296,6 +18326,7 @@ msgstr "nativeFilters[%(idx)s] nécessite les clés suivantes: %(keys)s"
 msgid "nativeFilters[%(idx)s] must be an object"
 msgstr "nativeFilters[%(idx)s] doit être un object"
 
+#, python-format
 msgid "nativeFilters[%(idx)s].filterValues must be a list"
 msgstr "nativeFilters[%(idx)s].filterValues doit être une liste"
 
@@ -18363,15 +18394,19 @@ msgstr "global"
 msgid "p-value precision"
 msgstr "précision de la valeur p"
 
+#. do-not-translate
 msgid "p1"
 msgstr "p1"
 
+#. do-not-translate
 msgid "p5"
 msgstr "p5"
 
+#. do-not-translate
 msgid "p95"
 msgstr "p95"
 
+#. do-not-translate
 msgid "p99"
 msgstr "p99"
 
@@ -18389,6 +18424,7 @@ msgstr ""
 msgid "permalink state not found"
 msgstr "état du permalien non trouvé"
 
+#. do-not-translate
 msgid "pivoted_xlsx"
 msgstr "xlsx pivoté"
 
@@ -18449,6 +18485,7 @@ msgstr "en cours d'exécution"
 msgid "save"
 msgstr "Enregistrer"
 
+#. do-not-translate
 msgid "schema1,schema2"
 msgstr ""
 
@@ -18467,6 +18504,7 @@ msgstr ""
 " séries utilisent la même échelle; changement : afficher les changements "
 "par rapport au premier point de données de chaque série"
 
+#. do-not-translate
 msgid "sql"
 msgstr "sql"
 
@@ -18482,9 +18520,11 @@ msgstr "décalé"
 msgid "std"
 msgstr "std"
 
+#. do-not-translate
 msgid "step-after"
 msgstr "étape-après"
 
+#. do-not-translate
 msgid "step-before"
 msgstr "step-before"
 
@@ -18506,6 +18546,7 @@ msgstr "succès"
 msgid "sum"
 msgstr "somme"
 
+#. do-not-translate
 msgid "superset.example.com"
 msgstr ""
 
@@ -18617,6 +18658,7 @@ msgstr "y : les valeurs sont normalisées dans chaque ligne"
 msgid "year"
 msgstr "année"
 
+#. do-not-translate
 msgid "your-project-1234-a1"
 msgstr ""
 
@@ -18630,3 +18672,81 @@ msgstr "© Attribution de la couche"
 # sr_Latn]
 msgid "№"
 msgstr "N°"
+
+#~ msgid "An error occurred while fetching owners values: %s"
+#~ msgstr ""
+#~ "Une erreur s'est produite lors de "
+#~ "la récupération des propriétaires : %s"
+
+#~ msgid "Keys for table"
+#~ msgstr "Clefs pour le tableau"
+
+#~ msgid "Owner"
+#~ msgstr "Propriétaire"
+
+#~ msgid "Owners"
+#~ msgstr "Propriétaires"
+
+#~ msgid "Owners are invalid"
+#~ msgstr "Les propriétaires ne sont pas valides"
+
+#~ msgid "Owners is a list of users who can alter the dashboard."
+#~ msgstr ""
+#~ "Les propriétaires est une liste "
+#~ "d'utilisateurs qui peuvent modifier le "
+#~ "tableau de bord."
+
+#~ msgid ""
+#~ "Owners is a list of users who "
+#~ "can alter the dashboard. Searchable by"
+#~ " name or username."
+#~ msgstr ""
+#~ "Les propriétaires sont une liste des "
+#~ "utilisateurs qui peuvent modifier le "
+#~ "tableau de bord. Il est possible "
+#~ "d'effectuer une recherche par nom ou "
+#~ "par nom d'utilisateur."
+
+#~ msgid ""
+#~ "Roles is a list which defines "
+#~ "access to the dashboard. Granting a "
+#~ "role access to a dashboard will "
+#~ "bypass dataset level checks. If no "
+#~ "roles are defined, regular access "
+#~ "permissions apply."
+#~ msgstr ""
+#~ "Les rôles sont une liste qui "
+#~ "définit l'accès au tableau de bord. "
+#~ "En accordant à un rôle l'accès à"
+#~ " un tableau de bord, les contrôles"
+#~ " au niveau du jeu de données "
+#~ "seront contournés. Si aucun rôle n'est"
+#~ " défini, les autorisations d'accès normales"
+#~ " s'appliquent."
+
+#~ msgid ""
+#~ "Roles is a list which defines "
+#~ "access to the dashboard. Granting a "
+#~ "role access to a dashboard will "
+#~ "bypass dataset level checks.If no roles"
+#~ " are defined, regular access permissions"
+#~ " apply."
+#~ msgstr ""
+#~ "Les rôles sont une liste qui "
+#~ "définit l'accès au tableau de bord. "
+#~ "En accordant à un rôle l'accès à"
+#~ " un tableau de bord, les contrôles"
+#~ " au niveau du jeu de données "
+#~ "seront contournés. Si aucun rôle n'est"
+#~ " défini, les autorisations d'accès normales"
+#~ " s'appliquent."
+
+#~ msgid "Search owners"
+#~ msgstr "Rechercher les propriétaires"
+
+#~ msgid "Search roles"
+#~ msgstr "Rechercher les rôles"
+
+#~ msgid "Select owners"
+#~ msgstr "Sélectionner les propriétaires"
+
