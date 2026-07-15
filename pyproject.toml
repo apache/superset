@@ -145,7 +145,7 @@ databricks = [
 ]
 db2 = ["ibm-db-sa>0.3.8, <=0.4.4"]
 denodo = ["denodo-sqlalchemy>=2.0.5,<2.1.0"]
-dremio = ["sqlalchemy-dremio>=1.2.1, <4"]
+dremio = ["sqlalchemy-dremio>=3.0.5, <4"]
 drill = ["sqlalchemy-drill>=1.1.10, <2"]
 druid = ["pydruid>=0.6.5,<0.7"]
 duckdb = ["duckdb>=1.5.4,<2", "duckdb-engine>=0.17.0"]
