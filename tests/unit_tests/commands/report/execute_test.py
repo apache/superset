@@ -1724,7 +1724,9 @@ def test_get_url_for_csv_uses_post_processed_type(
     )
 
 
-def _make_dashboard_report_state(mocker: MockerFixture) -> BaseReportState:
+def _make_dashboard_report_state(
+    mocker: MockerFixture, per_chart_dashboard: bool = True
+) -> BaseReportState:
     """Build a BaseReportState for a dashboard report with screenshot mocks."""
     mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
     mock_report_schedule.chart = False
@@ -1732,6 +1734,9 @@ def _make_dashboard_report_state(mocker: MockerFixture) -> BaseReportState:
     mock_report_schedule.dashboard.digest = "digest"
     mock_report_schedule.custom_width = None
     mock_report_schedule.custom_height = None
+    mock_report_schedule.extra = (
+        {"per_chart_dashboard": True} if per_chart_dashboard else {}
+    )
 
     mocker.patch(
         "superset.commands.report.execute.get_executor",
@@ -1795,6 +1800,23 @@ def test_get_screenshots_per_chart_mode_falls_back_when_empty(
 def test_get_screenshots_per_chart_mode_disabled(mocker: MockerFixture, app) -> None:
     """With the flag off, dashboard reports use the full-dashboard screenshot."""
     class_instance = _make_dashboard_report_state(mocker)
+    per_chart = mocker.patch.object(DashboardScreenshot, "get_per_chart_screenshots")
+    mocker.patch.object(
+        DashboardScreenshot, "get_screenshot", return_value=b"full_dashboard"
+    )
+
+    result = class_instance._get_screenshots()
+
+    assert result == [b"full_dashboard"]
+    per_chart.assert_not_called()
+
+
+@with_feature_flags(PER_CHART_DASHBOARD_REPORTS=True)
+def test_get_screenshots_per_chart_report_toggle_off(
+    mocker: MockerFixture, app
+) -> None:
+    """The flag alone is not enough; the report's own toggle must be on."""
+    class_instance = _make_dashboard_report_state(mocker, per_chart_dashboard=False)
     per_chart = mocker.patch.object(DashboardScreenshot, "get_per_chart_screenshots")
     mocker.patch.object(
         DashboardScreenshot, "get_screenshot", return_value=b"full_dashboard"

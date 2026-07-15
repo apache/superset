@@ -628,6 +628,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     isFeatureEnabled(FeatureFlag.AlertsAttachReports) || isReport;
   const tabsEnabled = isFeatureEnabled(FeatureFlag.AlertReportTabs);
   const filtersEnabled = isFeatureEnabled(FeatureFlag.AlertReportsFilter);
+  const perChartEnabled = isFeatureEnabled(
+    FeatureFlag.PerChartDashboardReports,
+  );
 
   const [notificationAddState, setNotificationAddState] =
     useState<NotificationAddStatus>('active');
@@ -861,6 +864,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setCurrentAlert(currentAlertData => {
       const dashboardState = currentAlertData?.extra?.dashboard;
       const extra = {
+        ...currentAlertData?.extra,
         dashboard: {
           ...dashboardState,
           anchor: value,
@@ -1486,6 +1490,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
   const onForceScreenshotChange = (e: CheckboxChangeEvent) => {
     setForceScreenshot(e.target.checked);
+  };
+
+  const onPerChartDashboardChange = (e: CheckboxChangeEvent) => {
+    const { checked } = e.target;
+    setCurrentAlert(currentAlertData => ({
+      ...currentAlertData,
+      extra: {
+        ...currentAlertData?.extra,
+        per_chart_dashboard: checked,
+      },
+    }));
   };
 
   const onChangeDashboardFilter = (idx: number, nativeFilterId: string) => {
@@ -2652,6 +2667,30 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       </Checkbox>
                     </div>
                   )}
+                  {perChartEnabled &&
+                    isScreenshot &&
+                    contentType === ContentType.Dashboard && (
+                      <div className="inline-container">
+                        <Checkbox
+                          data-test="per-chart-dashboard"
+                          checked={
+                            currentAlert?.extra?.per_chart_dashboard || false
+                          }
+                          onChange={onPerChartDashboardChange}
+                        >
+                          {t('Arrange dashboard charts in a single column')}
+                        </Checkbox>
+                        <InfoTooltip
+                          tooltip={t(
+                            'Each chart is captured individually and stacked ' +
+                              'vertically in the report. Dashboard filters ' +
+                              'are applied to all charts. Charts that fail ' +
+                              'to load are skipped instead of blocking the ' +
+                              'report.',
+                          )}
+                        />
+                      </div>
+                    )}
                 </>
               ),
             },

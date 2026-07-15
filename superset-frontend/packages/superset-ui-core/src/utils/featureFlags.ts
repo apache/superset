@@ -60,6 +60,7 @@ export enum FeatureFlag {
   GranularExportControls = 'GRANULAR_EXPORT_CONTROLS',
   ListviewsDefaultCardView = 'LISTVIEWS_DEFAULT_CARD_VIEW',
   Matrixify = 'MATRIXIFY',
+  PerChartDashboardReports = 'PER_CHART_DASHBOARD_REPORTS',
   ScheduledQueries = 'SCHEDULED_QUERIES',
   SemanticLayers = 'SEMANTIC_LAYERS',
   SqllabBackendPersistence = 'SQLLAB_BACKEND_PERSISTENCE',

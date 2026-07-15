@@ -465,7 +465,7 @@ class BaseReportState:
             ]
         per_chart_reports = feature_flag_manager.is_feature_enabled(
             "PER_CHART_DASHBOARD_REPORTS"
-        )
+        ) and bool((self._report_schedule.extra or {}).get("per_chart_dashboard"))
         try:
             imges = []
             for screenshot in screenshots:

@@ -110,6 +110,7 @@ export type ExtraNativeFilter = {
 
 export type Extra = {
   dashboard?: DashboardState;
+  per_chart_dashboard?: boolean;
 };
 
 export type Operator = '<' | '>' | '<=' | '>=' | '==' | '!=' | 'not null';

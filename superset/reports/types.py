@@ -19,5 +19,9 @@ from typing import TypedDict
 from superset.dashboards.permalink.types import DashboardPermalinkState
 
 
-class ReportScheduleExtra(TypedDict):
+class ReportScheduleExtra(TypedDict, total=False):
     dashboard: DashboardPermalinkState
+    # Capture each chart individually and arrange the images in a single
+    # column, instead of one full-dashboard screenshot. Only honored when
+    # the PER_CHART_DASHBOARD_REPORTS feature flag is enabled.
+    per_chart_dashboard: bool

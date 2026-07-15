@@ -679,6 +679,54 @@ test('removes ignore cache checkbox when chart is selected', async () => {
   ).not.toBeInTheDocument();
 });
 
+test('renders single column checkbox when dashboard is selected', async () => {
+  render(<AlertReportModal {...generateMockedProps(false, true, true)} />, {
+    useRedux: true,
+  });
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test dashboard/i);
+  expect(
+    screen.getByRole('checkbox', {
+      name: /arrange dashboard charts in a single column/i,
+    }),
+  ).toBeInTheDocument();
+});
+
+test('removes single column checkbox when chart is selected', async () => {
+  render(<AlertReportModal {...generateMockedProps(false, true, true)} />, {
+    useRedux: true,
+  });
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test dashboard/i);
+  const contentTypeSelector = screen.getByRole('combobox', {
+    name: /select content type/i,
+  });
+  await comboboxSelect(
+    contentTypeSelector,
+    'Chart',
+    () => screen.getAllByText(/select chart/i)[0],
+  );
+  expect(
+    screen.queryByRole('checkbox', {
+      name: /arrange dashboard charts in a single column/i,
+    }),
+  ).not.toBeInTheDocument();
+});
+
+test('toggles single column checkbox', async () => {
+  render(<AlertReportModal {...generateMockedProps(false, true, true)} />, {
+    useRedux: true,
+  });
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test dashboard/i);
+  const checkbox = screen.getByRole('checkbox', {
+    name: /arrange dashboard charts in a single column/i,
+  });
+  expect(checkbox).not.toBeChecked();
+  await userEvent.click(checkbox);
+  expect(checkbox).toBeChecked();
+});
+
 test('open chart button opens explore with slice_id', async () => {
   // Render with an existing alert that has a chart selected
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
@@ -694,7 +742,9 @@ test('open chart button opens explore with slice_id', async () => {
   });
   expect(openChartButton).toBeInTheDocument();
 
-  const navSpy = jest.spyOn(navigationUtils, 'navigateTo').mockImplementation(() => null);
+  const navSpy = jest
+    .spyOn(navigationUtils, 'navigateTo')
+    .mockImplementation(() => null);
   try {
     await userEvent.click(openChartButton);
     expect(navSpy).toHaveBeenCalledWith(
@@ -721,7 +771,9 @@ test('open dashboard button opens dashboard url', async () => {
   });
   expect(openDashButton).toBeInTheDocument();
 
-  const navSpy = jest.spyOn(navigationUtils, 'navigateTo').mockImplementation(() => null);
+  const navSpy = jest
+    .spyOn(navigationUtils, 'navigateTo')
+    .mockImplementation(() => null);
   try {
     await userEvent.click(openDashButton);
     expect(navSpy).toHaveBeenCalledWith(
