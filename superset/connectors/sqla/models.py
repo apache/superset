@@ -1088,14 +1088,23 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
         sub-query policy and RLS injection as adhoc expressions. The save-time
         check can be deferred past (templating, the create path, older data),
         so the query sink is the reliable place to enforce it.
+
+        Stored expressions can contain dialect-specific syntax that sqlglot
+        cannot parse (e.g. ``DATE_ADD(ds, 1)`` on MySQL); such expressions
+        pre-date this gate and went straight to the query unparsed, so a parse
+        failure falls back to the raw expression rather than breaking the query.
+        A genuine sub-query still parses and is caught.
         """
-        return validate_adhoc_subquery(
-            expression,
-            self.database,
-            self.table.catalog if self.table else None,
-            (self.table.schema if self.table else None) or "",
-            self.db_engine_spec.engine,
-        )
+        try:
+            return validate_adhoc_subquery(
+                expression,
+                self.database,
+                self.table.catalog if self.table else None,
+                (self.table.schema if self.table else None) or "",
+                self.db_engine_spec.engine,
+            )
+        except SupersetParseError:
+            return expression
 
     def get_sqla_col(
         self,
@@ -1243,6 +1252,24 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
     def __repr__(self) -> str:
         return str(self.metric_name)
 
+    def _validate_stored_expression(self, expression: str) -> str:
+        """
+        Validate a stored metric expression at the point of use, applying the
+        same sub-query policy and RLS injection as adhoc expressions. Dialect-
+        specific syntax sqlglot cannot parse falls back to the raw expression
+        (see ``TableColumn._validate_stored_expression``).
+        """
+        try:
+            return validate_adhoc_subquery(
+                expression,
+                self.table.database,
+                self.table.catalog,
+                self.table.schema or "",
+                self.table.db_engine_spec.engine,
+            )
+        except SupersetParseError:
+            return expression
+
     def get_sqla_col(
         self,
         label: str | None = None,
@@ -1263,15 +1290,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
                 ) from ex
 
         if expression:
-            # Validate the stored metric expression at the point of use, applying
-            # the same sub-query policy and RLS injection as adhoc expressions.
-            expression = validate_adhoc_subquery(
-                expression,
-                self.table.database,
-                self.table.catalog,
-                self.table.schema or "",
-                self.table.db_engine_spec.engine,
-            )
+            expression = self._validate_stored_expression(expression)
         sqla_col: ColumnClause = literal_column(expression)
         return self.table.database.make_sqla_column_compatible(sqla_col, label)
 

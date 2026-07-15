@@ -34,6 +34,7 @@ from superset.exceptions import (
     OAuth2RedirectError,
     SupersetDisallowedSQLFunctionException,
     SupersetDisallowedSQLTableException,
+    SupersetParseError,
     SupersetSecurityException,
 )
 from superset.models.core import Database
@@ -1239,3 +1240,25 @@ def test_get_timestamp_expression_validates_stored_expression_at_query_time(
     with pytest.raises(SupersetSecurityException):
         tc.get_timestamp_expression(time_grain=None)
     spy.assert_called_once()
+
+
+def test_get_sqla_col_falls_back_when_stored_expression_unparseable(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A stored expression using dialect-specific syntax that sqlglot cannot parse
+    (e.g. ``DATE_ADD(ds, 1)`` on MySQL) pre-dates the query-time gate and went
+    to the query unparsed. A parse failure must fall back to the raw expression
+    rather than break the query; a genuine sub-query still parses and is caught.
+    """
+    tc = TableColumn(column_name="ds", expression="DATE_ADD(ds, 1)")
+    tc.table = mocker.MagicMock()
+    tc.table.database.backend = "mysql"
+    mocker.patch(
+        "superset.connectors.sqla.models.validate_adhoc_subquery",
+        side_effect=SupersetParseError("DATE_ADD(ds, 1)", "mysql"),
+    )
+    literal = mocker.patch("superset.connectors.sqla.models.literal_column")
+    tc.get_sqla_col()
+    # The raw expression reaches ``literal_column`` unchanged; no exception.
+    assert literal.call_args.args[0] == "DATE_ADD(ds, 1)"

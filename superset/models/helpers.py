@@ -101,6 +101,7 @@ from superset.exceptions import (
     SupersetDisallowedSQLTableException,
     SupersetErrorException,
     SupersetErrorsException,
+    SupersetParseError,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
 )
@@ -3233,14 +3234,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         """
         Validate a stored expression at the point of use, applying the same
         sub-query policy and RLS injection as adhoc expressions.
+
+        Stored expressions can contain dialect-specific syntax sqlglot cannot
+        parse; those pre-date this gate and went to the query unparsed, so a
+        parse failure falls back to the raw expression. A genuine sub-query
+        still parses and is caught.
         """
-        return validate_adhoc_subquery(
-            expression,
-            self.database,
-            self.catalog,
-            self.schema or "",
-            self.db_engine_spec.engine,
-        )
+        try:
+            return validate_adhoc_subquery(
+                expression,
+                self.database,
+                self.catalog,
+                self.schema or "",
+                self.db_engine_spec.engine,
+            )
+        except SupersetParseError:
+            return expression
 
     def get_timestamp_expression(
         self,
