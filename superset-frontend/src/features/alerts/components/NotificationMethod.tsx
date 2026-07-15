@@ -111,8 +111,7 @@ const StyledNotificationMethod = styled.div`
       flex-direction: column;
       align-items: stretch;
 
-      .email-recipient-select,
-      .email-recipient-select > div {
+      .email-recipient-select {
         width: 100%;
       }
 
