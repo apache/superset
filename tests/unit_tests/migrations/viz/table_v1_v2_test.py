@@ -1,0 +1,193 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+from typing import Any
+
+import pytest
+
+from superset.migrations.shared.migrate_viz import MigrateTableChart
+from tests.unit_tests.migrations.viz.utils import migrate_and_assert
+
+SOURCE_FORM_DATA: dict[str, Any] = {
+    "datasource": "1__table",
+    "any_other_key": "untouched",
+    "viz_type": "table",
+    "query_mode": "aggregate",
+    "groupby": ["name"],
+    "metrics": ["count"],
+    "percent_metrics": [],
+    "all_columns": [],
+    "row_limit": 1000,
+    "order_desc": True,
+    "table_timestamp_format": "smart_date",
+    "page_length": 20,
+    "include_search": False,
+    "show_cell_bars": True,
+    "align_pn": False,
+    "color_pn": True,
+    "allow_rearrange_columns": True,
+    "allow_render_html": True,
+}
+
+TARGET_FORM_DATA: dict[str, Any] = {
+    "datasource": "1__table",
+    "any_other_key": "untouched",
+    "viz_type": "ag-grid-table",
+    "query_mode": "aggregate",
+    "groupby": ["name"],
+    "metrics": ["count"],
+    "percent_metrics": [],
+    "all_columns": [],
+    "row_limit": 1000,
+    "order_desc": True,
+    "table_timestamp_format": "smart_date",
+    "page_length": 20,
+    "include_search": False,
+    "show_cell_bars": True,
+    "align_pn": False,
+    "color_pn": True,
+    "form_data_bak": SOURCE_FORM_DATA,
+}
+
+
+def test_migration() -> None:
+    migrate_and_assert(MigrateTableChart, SOURCE_FORM_DATA, TARGET_FORM_DATA)
+
+
+def test_migration_raw_mode() -> None:
+    source: dict[str, Any] = {
+        **SOURCE_FORM_DATA,
+        "query_mode": "raw",
+        "groupby": [],
+        "metrics": [],
+        "all_columns": ["name", "sales"],
+    }
+    target: dict[str, Any] = {
+        **TARGET_FORM_DATA,
+        "query_mode": "raw",
+        "groupby": [],
+        "metrics": [],
+        "all_columns": ["name", "sales"],
+        "form_data_bak": source,
+    }
+    migrate_and_assert(MigrateTableChart, source, target)
+
+
+def test_migration_page_length_all_maps_to_max() -> None:
+    """page_length: 0 ('All rows') has no v2 dropdown choice; map to 200,
+    the max of v2's PAGE_SIZE_OPTIONS, so migrated charts keep showing as
+    many rows per page as v2 supports."""
+    source: dict[str, Any] = {**SOURCE_FORM_DATA, "page_length": 0}
+    target: dict[str, Any] = {
+        **TARGET_FORM_DATA,
+        "page_length": 200,
+        "form_data_bak": source,
+    }
+    migrate_and_assert(MigrateTableChart, source, target)
+
+
+def test_migration_page_length_all_as_string_maps_to_max() -> None:
+    source: dict[str, Any] = {**SOURCE_FORM_DATA, "page_length": "0"}
+    target: dict[str, Any] = {
+        **TARGET_FORM_DATA,
+        "page_length": 200,
+        "form_data_bak": source,
+    }
+    migrate_and_assert(MigrateTableChart, source, target)
+
+
+def test_migration_percent_metric_calculation_all_records_carries_over() -> None:
+    """percent_metric_calculation now has a v2 equivalent (control panel +
+    buildQuery all_records branch), so it should carry over unchanged."""
+    source: dict[str, Any] = {
+        **SOURCE_FORM_DATA,
+        "percent_metrics": ["sum__sales"],
+        "percent_metric_calculation": "all_records",
+    }
+    target: dict[str, Any] = {
+        **TARGET_FORM_DATA,
+        "percent_metrics": ["sum__sales"],
+        "percent_metric_calculation": "all_records",
+        "form_data_bak": source,
+    }
+    migrate_and_assert(MigrateTableChart, source, target)
+
+
+def test_migration_entire_row_conditional_formatting_carries_over() -> None:
+    """'entire row' conditional formatting now has a v2 equivalent (control
+    panel + getCellStyle.ts), so it should carry over unchanged."""
+    conditional_formatting = [
+        {
+            "operator": ">",
+            "targetValue": 0,
+            "colorScheme": "#ACE1C4",
+            "column": "sales",
+            "columnFormatting": "ENTIRE_ROW",
+        }
+    ]
+    source: dict[str, Any] = {
+        **SOURCE_FORM_DATA,
+        "conditional_formatting": conditional_formatting,
+    }
+    target: dict[str, Any] = {
+        **TARGET_FORM_DATA,
+        "conditional_formatting": conditional_formatting,
+        "form_data_bak": source,
+    }
+    migrate_and_assert(MigrateTableChart, source, target)
+
+
+def test_migration_strips_matrixify_keys() -> None:
+    """Matrixify has no v2 control panel surface at all. Table charts can't
+    reach the Matrixify tab through today's Explore UI, but a chart saved
+    during the ~5 months before that exclusion was added (or edited directly
+    via the API) can still carry matrixify_* keys. Those keys should be
+    dropped and the migration should proceed normally rather than skipping
+    the slice."""
+    source: dict[str, Any] = {
+        **SOURCE_FORM_DATA,
+        "matrixify_enable": True,
+        "matrixify_mode_rows": "dimensions",
+        "matrixify_dimension_rows": "category",
+    }
+    target: dict[str, Any] = {**TARGET_FORM_DATA, "form_data_bak": source}
+    migrate_and_assert(MigrateTableChart, source, target)
+
+
+@pytest.mark.parametrize(
+    "auto_currency_form_data",
+    [
+        {
+            **SOURCE_FORM_DATA,
+            "column_config": {
+                "sales": {
+                    "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"}
+                }
+            },
+        },
+    ],
+)
+def test_migration_auto_currency_carries_over(
+    auto_currency_form_data: dict[str, Any],
+) -> None:
+    """AUTO currency resolution now has a v2 equivalent (transformProps.ts +
+    formatValue.ts), so column_config carries over unchanged."""
+    target: dict[str, Any] = {
+        **TARGET_FORM_DATA,
+        "column_config": auto_currency_form_data["column_config"],
+        "form_data_bak": auto_currency_form_data,
+    }
+    migrate_and_assert(MigrateTableChart, auto_currency_form_data, target)

@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  CurrencyFormatter,
   DataRecordValue,
   getSmallNumberFormatter,
   isDefined,
@@ -37,6 +38,8 @@ import DateWithFormatter from './DateWithFormatter';
 function formatValue(
   formatter: DataColumnMeta['formatter'],
   value: DataRecordValue,
+  rowData?: Record<string, DataRecordValue>,
+  currencyColumn?: string,
 ): [boolean, string] {
   // render undefined as empty string
   if (value === undefined) {
@@ -52,6 +55,10 @@ function formatValue(
     return [false, 'N/A'];
   }
   if (formatter) {
+    // If formatter is a CurrencyFormatter, pass row context for AUTO mode
+    if (formatter instanceof CurrencyFormatter) {
+      return [false, formatter(value as number, rowData, currencyColumn)];
+    }
     return [false, formatter(value as number)];
   }
   if (typeof value === 'string') {
@@ -63,8 +70,9 @@ function formatValue(
 export function formatColumnValue(
   column: DataColumnMeta,
   value: DataRecordValue,
+  rowData?: Record<string, DataRecordValue>,
 ) {
-  const { dataType, formatter, config = {} } = column;
+  const { dataType, formatter, config = {}, currencyCodeColumn } = column;
   const isNumber = dataType === GenericDataType.Numeric;
   const smallNumberFormatter = getSmallNumberFormatter(
     formatter,
@@ -76,6 +84,8 @@ export function formatColumnValue(
       ? smallNumberFormatter
       : formatter,
     value,
+    rowData,
+    currencyCodeColumn,
   );
 }
 
@@ -83,12 +93,15 @@ export const valueFormatter = (
   params: ValueFormatterParams,
   col: InputColumn,
 ): string => {
-  const { value, node } = params;
+  const { value, node, data } = params;
   if (
     isDefined(value) &&
     value !== '' &&
     !(value instanceof DateWithFormatter && value.input === null)
   ) {
+    if (col.formatter instanceof CurrencyFormatter) {
+      return col.formatter(value, data, col.currencyCodeColumn) || value;
+    }
     return col.formatter?.(value) || value;
   }
   if (node?.level === -1) {

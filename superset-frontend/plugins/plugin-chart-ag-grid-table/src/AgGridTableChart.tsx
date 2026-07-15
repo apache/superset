@@ -18,8 +18,10 @@
  */
 import { t } from '@apache-superset/core/translation';
 import {
+  BinaryQueryObjectFilterClause,
   DataRecord,
   DataRecordValue,
+  extractTextFromHTML,
   getTimeFormatterForGranularity,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -28,6 +30,7 @@ import { isEqual } from 'lodash-es';
 
 import {
   CellClickedEvent,
+  CellContextMenuEvent,
   SelectionChangedEvent,
 } from '@superset-ui/core/components/ThemedAgGridReact';
 import {
@@ -37,12 +40,18 @@ import {
   SortByItem,
 } from './types';
 import AgGridDataTable from './AgGridTable';
-import { updateTableOwnState } from './utils/externalAPIs';
+import { updateTableOwnState, ClientViewSnapshot } from './utils/externalAPIs';
 import TimeComparisonVisibility from './AgGridTable/components/TimeComparisonVisibility';
 import { useColDefs } from './utils/useColDefs';
-import { buildSelectionCrossFilterDataMask } from './utils/getCrossFilterDataMask';
+import {
+  buildSelectionCrossFilterDataMask,
+  getCrossFilterDataMask,
+} from './utils/getCrossFilterDataMask';
 import { StyledChartContainer } from './styles';
 import type { FilterState } from './utils/filterStateManager';
+import DateWithFormatter from './utils/DateWithFormatter';
+import { formatColumnValue } from './utils/formatValue';
+import getTimeRangeFromGranularity from './utils/getTimeRangeFromGranularity';
 
 const getGridHeight = (height: number, includeSearch: boolean | undefined) => {
   let calculatedGridHeight = height;
@@ -88,6 +97,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     metricSqlExpressions,
     rawSummaryColumns,
     showNumberedColumn,
+    onContextMenu,
   } = props;
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
@@ -368,6 +378,114 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [emitCrossFilters, setDataMask, timeGrain, timestampFormatter],
   );
 
+  const drillColumns = isUsingTimeComparison
+    ? (filteredColumns as InputColumn[])
+    : (columns as InputColumn[]);
+
+  const handleContextMenu = useCallback(
+    (event: CellContextMenuEvent) => {
+      if (!onContextMenu || isRawRecords || !event.column || !event.data) {
+        return;
+      }
+      const nativeEvent = event.event as MouseEvent | null | undefined;
+      if (!nativeEvent) return;
+      nativeEvent.preventDefault();
+      nativeEvent.stopPropagation();
+
+      const rowData = event.data as Record<string, DataRecordValue>;
+      const key = event.column.getColId();
+      const cellValue = event.value as DataRecordValue;
+      const colDef = event.column.getColDef();
+      const isMetric = Boolean(
+        colDef.context?.isMetric || colDef.context?.isPercentMetric,
+      );
+
+      const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
+      drillColumns.forEach(col => {
+        if (col.isMetric || col.isPercentMetric) return;
+        const dataRecordValue = rowData[col.key];
+
+        if (
+          dataRecordValue == null ||
+          (dataRecordValue instanceof DateWithFormatter &&
+            dataRecordValue.input == null)
+        ) {
+          drillToDetailFilters.push({
+            col: col.key,
+            op: 'IS NULL' as any,
+            val: null,
+          });
+        } else if (col.dataType === GenericDataType.Temporal && timeGrain) {
+          const startTime =
+            dataRecordValue instanceof Date
+              ? dataRecordValue
+              : new Date(dataRecordValue as string | number);
+
+          const [rangeStartTime, rangeEndTime] = getTimeRangeFromGranularity(
+            startTime,
+            timeGrain,
+          );
+          const timeRangeValue = `${rangeStartTime.toISOString()} : ${rangeEndTime.toISOString()}`;
+
+          drillToDetailFilters.push({
+            col: col.key,
+            op: 'TEMPORAL_RANGE',
+            val: timeRangeValue,
+            grain: timeGrain,
+            formattedVal: formatColumnValue(col, dataRecordValue)[1],
+          });
+        } else {
+          const sanitizedValue = extractTextFromHTML(dataRecordValue);
+          drillToDetailFilters.push({
+            col: col.key,
+            op: '==',
+            val: sanitizedValue as string | number | boolean,
+            formattedVal: formatColumnValue(col, sanitizedValue)[1],
+          });
+        }
+      });
+
+      onContextMenu(nativeEvent.clientX, nativeEvent.clientY, {
+        drillToDetail: drillToDetailFilters,
+        crossFilter: isMetric
+          ? undefined
+          : getCrossFilterDataMask({
+              key,
+              value: cellValue,
+              filters,
+              timeGrain,
+              isActiveFilterValue,
+              timestampFormatter,
+            }),
+        drillBy: isMetric
+          ? undefined
+          : {
+              filters: [
+                {
+                  col: key,
+                  op: (cellValue == null ||
+                  (cellValue instanceof DateWithFormatter &&
+                    cellValue.input == null)
+                    ? 'IS NULL'
+                    : '==') as any,
+                  val: extractTextFromHTML(cellValue),
+                },
+              ],
+              groupbyFieldName: 'groupby',
+            },
+      });
+    },
+    [
+      onContextMenu,
+      isRawRecords,
+      drillColumns,
+      timeGrain,
+      filters,
+      isActiveFilterValue,
+      timestampFormatter,
+    ],
+  );
+
   const handleServerPaginationChange = useCallback(
     (pageNumber: number, pageSize: number) => {
       const modifiedOwnState = {
@@ -439,6 +557,18 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [setDataMask, serverPagination],
   );
 
+  // Feeds the "Export Current View" menu item (EXPORT_CURRENT_VIEW behavior),
+  // mirroring Table V1's clientView snapshot on ownState.
+  const handleClientViewChange = useCallback(
+    (clientView: ClientViewSnapshot) => {
+      updateTableOwnState(setDataMask, {
+        ...serverPaginationData,
+        clientView,
+      });
+    },
+    [setDataMask, serverPaginationData],
+  );
+
   const renderTimeComparisonVisibility = (): JSX.Element => (
     <TimeComparisonVisibility
       comparisonColumns={comparisonColumns}
@@ -478,6 +608,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         metricColumns={metricColumns}
         id={slice_id}
         handleCellClicked={handleCellClicked}
+        handleCellContextMenu={handleContextMenu}
         handleSelectionChanged={handleSelectionChanged}
         filters={filters}
         percentMetrics={percentMetrics}
@@ -493,6 +624,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         width={width}
         onColumnStateChange={handleColumnStateChange}
         chartState={chartState}
+        onClientViewChange={handleClientViewChange}
       />
     </StyledChartContainer>
   );

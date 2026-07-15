@@ -40,6 +40,7 @@ import {
   GridReadyEvent,
   GridState,
   CellClickedEvent,
+  CellContextMenuEvent,
   CellKeyDownEvent,
   SelectionChangedEvent,
 } from '@superset-ui/core/components/ThemedAgGridReact';
@@ -59,9 +60,10 @@ import getInitialSortState, { shouldSort } from '../utils/getInitialSortState';
 import getInitialFilterModel from '../utils/getInitialFilterModel';
 import reconcileColumnState from '../utils/reconcileColumnState';
 import getColumnStateSignature from '../utils/getColumnStateSignature';
-import { PAGE_SIZE_OPTIONS } from '../consts';
+import { PAGE_SIZE_OPTIONS, ROW_NUMBER_COL_ID } from '../consts';
 import { getCompleteFilterState } from '../utils/filterStateManager';
 import { copyCellValueOnKeyDown } from '../utils/copyCellValue';
+import type { ClientViewSnapshot } from '../utils/externalAPIs';
 
 export interface AgGridState extends Partial<GridState> {
   timestamp?: number;
@@ -100,6 +102,7 @@ export interface AgGridTableProps {
   serverPageLength: number;
   hasServerPageLengthChanged: boolean;
   handleCellClicked: (event: CellClickedEvent) => void;
+  handleCellContextMenu?: (event: CellContextMenuEvent) => void;
   handleSelectionChanged: (event: SelectionChangedEvent) => void;
   filters?: Record<string, DataRecordValue[]> | null;
   renderTimeComparisonDropdown: () => JSX.Element | null;
@@ -111,6 +114,7 @@ export interface AgGridTableProps {
   metricColumns?: string[];
   gridRef?: RefObject<AgGridReact>;
   chartState?: AgGridChartState;
+  onClientViewChange?: (snapshot: ClientViewSnapshot) => void;
 }
 
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
@@ -140,6 +144,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     serverPageLength,
     hasServerPageLengthChanged,
     handleCellClicked,
+    handleCellContextMenu,
     handleSelectionChanged,
     filters,
     renderTimeComparisonDropdown,
@@ -150,6 +155,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     onFilterChanged,
     metricColumns = [],
     chartState,
+    onClientViewChange,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -416,6 +422,41 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       serverPaginationData?.agGridFilterModel,
     ]);
 
+    // Captures the "current view" (post-filter/sort, all rows across all
+    // pages) for the "Export Current View" menu, mirroring Table V1's
+    // clientView snapshot. Client-side mode only: in server pagination mode
+    // the grid only ever holds a single page's rows, so a client-derived
+    // snapshot can't represent the full filtered/sorted result and export
+    // falls back to a fresh backend query instead (see useExploreAdditionalActionsMenu).
+    const lastClientViewSignatureRef = useRef<string | null>(null);
+    const handleModelUpdated = useCallback(() => {
+      if (serverPagination || !onClientViewChange || !gridRef.current?.api) {
+        return;
+      }
+      const { api } = gridRef.current;
+      const displayedColumns = api
+        .getAllDisplayedColumns()
+        .filter(column => column.getColId() !== ROW_NUMBER_COL_ID);
+      const columns = displayedColumns.map(column => ({
+        key: column.getColId(),
+        label: column.getColDef().headerName || column.getColId(),
+      }));
+
+      const rows: Record<string, unknown>[] = [];
+      api.forEachNodeAfterFilterAndSort(node => {
+        if (node.data) {
+          rows.push(node.data);
+        }
+      });
+
+      const signature = `${rows.length}|${columns.map(c => c.key).join(',')}`;
+      if (signature === lastClientViewSignatureRef.current) {
+        return;
+      }
+      lastClientViewSignatureRef.current = signature;
+      onClientViewChange({ rows, columns, count: rows.length });
+    }, [serverPagination, onClientViewChange]);
+
     useEffect(() => {
       if (
         hasServerPageLengthChanged &&
@@ -524,9 +565,11 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           rowSelection="multiple"
           animateRows
           onCellClicked={handleCellClicked}
+          onCellContextMenu={handleCellContextMenu}
           onCellKeyDown={handleCellKeyDown}
           onSelectionChanged={handleSelectionChanged}
           onFilterChanged={handleFilterChanged}
+          onModelUpdated={handleModelUpdated}
           onStateUpdated={handleGridStateChange}
           initialState={gridInitialState}
           maintainColumnOrder
