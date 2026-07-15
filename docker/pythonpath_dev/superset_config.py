@@ -108,9 +108,75 @@ CELERY_CONFIG = CeleryConfig
 FEATURE_FLAGS = {
     "ALERT_REPORTS": True,
     "DATASET_FOLDERS": True,
+    "EMBEDDED_SUPERSET": True,
     "ENABLE_EXTENSIONS": True,
+    "ENABLE_TEMPLATE_PROCESSING": True,
     "SEMANTIC_LAYERS": True,
 }
+
+
+_jinja_logger = logging.getLogger("superset.jinja_context")
+
+
+def get_user_attribute(attr: str, default=None):
+    """Return an attribute from the currently logged-in Superset user."""
+    try:
+        from flask_login import current_user
+
+        return getattr(current_user, attr, default)
+    except Exception:  # noqa: BLE001
+        return default
+
+
+def guest_attr(attr: str, default=None):
+    """Return an attribute from the guest token user object.
+
+    The guest token payload must include the attribute under ``user``:
+        {"user": {"username": "...", "tenant_id": 42}, "resources": [...], "rls": [...]}
+
+    Usage in SQL:
+        WHERE tenant_id = {{ guest_attr('tenant_id') }}
+        AND center_id IN ({{ guest_attr('center_ids') | join(', ') }})
+    """
+    try:
+        from flask_login import current_user
+
+        if getattr(current_user, "is_guest_user", False):
+            token_user = current_user.guest_token.get("user", {})
+            return token_user.get(attr, default)
+        return default
+    except Exception as exc:  # noqa: BLE001
+        _jinja_logger.warning("[guest_attr] ERROR attr=%r exc=%r", attr, exc)
+        return default
+
+
+JINJA_CONTEXT_ADDONS = {
+    "get_user_attribute": get_user_attribute,
+    "guest_attr": guest_attr,
+}
+
+
+def GUEST_TOKEN_VALIDATOR_HOOK(body: dict) -> bool:
+    """Re-inject custom user fields stripped by UserSchema (unknown=EXCLUDE).
+
+    UserSchema only keeps username/first_name/last_name. Any extra fields we
+    send (center_id, center_ids, classroom_ids) are stripped before this hook
+    is called. We re-read them from the raw request and merge them back so
+    they end up in the signed JWT and are accessible via guest_attr().
+    """
+    try:
+        from flask import request as flask_request
+
+        raw_user = (flask_request.json or {}).get("user", {})
+        allowed_keys = {"username", "first_name", "last_name"}
+        custom_fields = {k: v for k, v in raw_user.items() if k not in allowed_keys}
+        if custom_fields:
+            body.setdefault("user", {}).update(custom_fields)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("GUEST_TOKEN_VALIDATOR_HOOK error: %r", exc)
+    return True
+
+
 EXTENSIONS_PATH = "/app/docker/extensions"
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 WEBDRIVER_BASEURL = f"http://superset_app{os.environ.get('SUPERSET_APP_ROOT', '/')}/"  # When using docker compose baseurl should be http://superset_nginx{ENV{BASEPATH}}/  # noqa: E501

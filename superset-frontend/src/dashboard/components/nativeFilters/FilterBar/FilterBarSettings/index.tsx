@@ -35,6 +35,7 @@ import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/sta
 import { useFilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink/useFilterConfigModal';
 import { useCrossFiltersScopingModal } from '../CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import FilterConfigurationLink from '../FilterConfigurationLink';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded'; // check if dashboard is embedded in an iframe
 
 type SelectedKey = FilterBarOrientation | string | number;
 
@@ -242,7 +243,8 @@ const FilterBarSettings = () => {
     filterValues,
   ]);
 
-  if (!menuItems.length || !canEdit) {
+  // Hide the settings menu if there are no menu items, the user cannot edit, or if the dashboard is embedded in an iframe
+  if (!menuItems.length || !canEdit || isEmbedded()) {
     return null;
   }
 
