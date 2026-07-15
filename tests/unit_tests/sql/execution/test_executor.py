@@ -350,6 +350,47 @@ def test_execute_allowed_functions(
     assert result.status == QueryStatus.SUCCESS
 
 
+def test_execute_disallowed_function_names_in_identifiers_are_allowed(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """
+    Test that disallowed function names are not matched inside identifiers.
+
+    The denylist should block actual function calls such as USER() or SCHEMA(),
+    but not column names, table names, or aliases that merely contain those
+    words.
+    """
+    mock_query_execution(
+        mocker,
+        database,
+        return_data=[(10, "example_schema")],
+        column_names=["total_users", "table_schema"],
+    )
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 30,
+            "SQL_MAX_ROW": None,
+            "DISALLOWED_SQL_FUNCTIONS": {"sqlite": {"USER", "SCHEMA"}},
+            "QUERY_LOGGER": None,
+        },
+    )
+
+    result = database.execute(
+        """
+        SELECT
+          SUM(metric_user_count) AS total_users,
+          table_schema
+        FROM information_schema_tables
+        GROUP BY table_schema
+        LIMIT 5
+        """,
+    )
+
+    assert result.status == QueryStatus.SUCCESS
+
+
 def test_execute_disallowed_tables(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
