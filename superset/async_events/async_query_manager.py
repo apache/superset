@@ -296,9 +296,7 @@ class AsyncQueryManager:
         self._load_explore_json_into_cache_job.apply_async(
             args=[
                 {**job_metadata, "guest_token": guest_user.guest_token}
-                if (
-                    guest_user := security_manager.get_current_guest_user_if_guest()
-                )
+                if (guest_user := security_manager.get_current_guest_user_if_guest())
                 else job_metadata,
                 form_data,
                 response_type,
@@ -325,9 +323,7 @@ class AsyncQueryManager:
         self._load_chart_data_into_cache_job.apply_async(
             args=[
                 {**job_metadata, "guest_token": guest_user.guest_token}
-                if (
-                    guest_user := security_manager.get_current_guest_user_if_guest()
-                )
+                if (guest_user := security_manager.get_current_guest_user_if_guest())
                 else job_metadata,
                 form_data,
             ],
