@@ -1209,3 +1209,33 @@ def test_get_sqla_col_validates_stored_expression_at_query_time(
     with pytest.raises(SupersetSecurityException):
         tc.get_sqla_col()
     spy.assert_called_once()
+
+
+def test_get_timestamp_expression_validates_stored_expression_at_query_time(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The timestamp-expression sink must enforce the same query-time gate as
+    ``get_sqla_col``: a stored datetime column expression is routed through
+    ``validate_adhoc_subquery`` before it reaches ``literal_column``, so a
+    disallowed sub-query is rejected on the time-grained query path too.
+    """
+    tc = TableColumn(
+        column_name="ds",
+        expression="(SELECT ts FROM ab_user LIMIT 1)",
+    )
+    tc.table = mocker.MagicMock()
+    tc.table.database.backend = "sqlite"
+    spy = mocker.patch(
+        "superset.connectors.sqla.models.validate_adhoc_subquery",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                message="Sub-queries are not allowed in stored expressions.",
+                error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+    with pytest.raises(SupersetSecurityException):
+        tc.get_timestamp_expression(time_grain=None)
+    spy.assert_called_once()

@@ -1082,6 +1082,21 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             else None
         )
 
+    def _validate_stored_expression(self, expression: str) -> str:
+        """
+        Validate a stored expression at the point of use, applying the same
+        sub-query policy and RLS injection as adhoc expressions. The save-time
+        check can be deferred past (templating, the create path, older data),
+        so the query sink is the reliable place to enforce it.
+        """
+        return validate_adhoc_subquery(
+            expression,
+            self.database,
+            self.table.catalog if self.table else None,
+            (self.table.schema if self.table else None) or "",
+            self.db_engine_spec.engine,
+        )
+
     def get_sqla_col(
         self,
         label: str | None = None,
@@ -1103,17 +1118,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
                             msg=msg,
                         )
                     ) from ex
-            # Validate the stored expression at the point of use, applying the
-            # same sub-query policy and RLS injection as adhoc expressions. The
-            # save-time check can be deferred past (templating, the create path,
-            # older data), so the query sink is the reliable place to enforce it.
-            expression = validate_adhoc_subquery(
-                expression,
-                self.database,
-                self.catalog,
-                self.schema or "",
-                self.db_engine_spec.engine,
-            )
+            expression = self._validate_stored_expression(expression)
             col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
@@ -1161,6 +1166,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
                             msg=msg,
                         )
                     ) from ex
+            expression = self._validate_stored_expression(expression)
             col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
