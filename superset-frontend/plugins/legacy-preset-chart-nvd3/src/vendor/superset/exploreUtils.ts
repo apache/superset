@@ -27,7 +27,7 @@ export function getURIDirectory(formData, endpointType = 'base') {
   // Building the directory part of the URI
   let directory = '/explore/';
   if (['json', 'csv', 'query', 'results', 'samples'].includes(endpointType)) {
-    directory = '/superset/explore_json/';
+    directory = '/explore_json/';
   }
 
   return directory;
