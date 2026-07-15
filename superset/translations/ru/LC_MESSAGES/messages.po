@@ -226,15 +226,15 @@ msgstr "\"%s\" назначен системной темной темой"
 msgid "\"%s\" is now the system default theme"
 msgstr "\"%s\" назначен системной светлой темой"
 
-#, no-python-format, python-format
+#, no-python-format
 msgid "% calculation"
 msgstr "Расчет долей"
 
-#, no-python-format, python-format
+#, no-python-format
 msgid "% of parent"
 msgstr "% родителя"
 
-#, no-python-format, python-format
+#, no-python-format
 msgid "% of total"
 msgstr "% итого"
 
@@ -293,13 +293,9 @@ msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgid_plural ""
 "%(firstSuggestions)s or %(lastSuggestion)s instead of "
 "\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s вместо \"%(undefinedParameter)s\"?"
-msgstr[1] ""
-"%(firstSuggestions)s или %(lastSuggestion)s вместо "
-"\"%(undefinedParameter)s\"?"
-msgstr[2] ""
-"%(firstSuggestions)s или %(lastSuggestion)s вместо "
-"\"%(undefinedParameter)s\"?"
+msgstr[0] "%(firstSuggestions)s %(lastSuggestion)s вместо \"%(undefinedParameter)s\"?"
+msgstr[1] "%(firstSuggestions)s или %(lastSuggestion)s вместо \"%(undefinedParameter)s\"?"
+msgstr[2] "%(firstSuggestions)s или %(lastSuggestion)s вместо \"%(undefinedParameter)s\"?"
 
 #, python-format
 msgid ""

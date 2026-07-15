@@ -107,7 +107,6 @@ const VizTypeControl = ({
           display: flex;
           justify-content: flex-end;
           margin-top: ${theme.sizeUnit * 2}px;
-          color: ${theme.colorTextSecondary};
           text-decoration: underline;
           font-size: ${theme.fontSizeSM}px;
           color: ${theme.colorTextTertiary};

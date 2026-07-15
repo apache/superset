@@ -16,6 +16,20 @@
 # under the License.
 from marshmallow import fields, Schema
 
+openapi_spec_methods_override = {
+    "get": {"get": {"summary": "Get a Subject"}},
+    "get_list": {
+        "get": {
+            "summary": "Get a list of Subjects",
+            "description": "Gets a list of Subjects, use Rison or JSON "
+            "query parameters for filtering, sorting, "
+            "pagination and for selecting specific "
+            "columns and metadata.",
+        }
+    },
+    "info": {"get": {"summary": "Get metadata information about this API resource"}},
+}
+
 
 class SubjectSchema(Schema):
     id = fields.Int()

@@ -307,6 +307,7 @@ class TestChartDataModelMetadataPrivacy:
 
     def test_user_can_view_data_model_metadata_uses_dataset_permission(self):
         with patch("superset.security_manager", new_callable=Mock) as security_manager:
+            security_manager.is_guest_user.return_value = False
             security_manager.can_access.side_effect = [False, True, False]
 
             assert user_can_view_data_model_metadata() is True

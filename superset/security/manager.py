@@ -1149,6 +1149,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "PermissionViewMenu",
         "ViewMenu",
         "User",
+        "Subject",
         # FAB registers ApiKeyApi when FAB_API_KEY_ENABLED=True
         "ApiKey",
     } | USER_MODEL_VIEWS
@@ -4409,6 +4410,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     embedded = EmbeddedDashboardDAO.find_by_id(str(resource["id"]))
                     if not embedded:
                         raise EmbeddedDashboardNotFoundError()
+                elif not dashboard.embedded:
+                    # A raw dashboard id must still reference an embedded dashboard;
+                    # otherwise a guest token could be scoped to a non-embedded one.
+                    raise EmbeddedDashboardNotFoundError()
 
     def create_guest_access_token(
         self,

@@ -163,6 +163,7 @@ export default function TableControls({
             iconSize="l"
             aria-label={t('Reload')}
             role="button"
+            tabIndex={0}
             onClick={onReload}
           />
         </Tooltip>

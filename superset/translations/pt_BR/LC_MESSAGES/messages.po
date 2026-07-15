@@ -240,15 +240,15 @@ msgstr "\"%s\" é agora o tema escuro do sistema"
 msgid "\"%s\" is now the system default theme"
 msgstr " \"%s\" é agora o tema padrão do sistema"
 
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% calculation"
 msgstr "cálculo %"
 
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of parent"
 msgstr "% do pai"
 
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of total"
 msgstr "% do total"
 

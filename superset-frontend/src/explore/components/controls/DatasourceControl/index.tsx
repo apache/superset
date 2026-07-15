@@ -221,7 +221,6 @@ const preventRouterLinkWhileMetaClicked = (evt: React.MouseEvent) => {
 export default function DatasourceControl({
   actions,
   onChange = () => {},
-  value = null,
   datasource,
   form_data,
   isEditable = true,

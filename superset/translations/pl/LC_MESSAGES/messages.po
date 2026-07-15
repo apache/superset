@@ -260,15 +260,15 @@ msgstr "\"%s\" jest teraz systemowym ciemnym motywem"
 msgid "\"%s\" is now the system default theme"
 msgstr "\"%s\" jest teraz domyślnym motywem systemu"
 
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% calculation"
 msgstr "Wybierz rodzaj obliczeń"
 
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of parent"
 msgstr "Rodzic"
 
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of total"
 msgstr "Pokaż całkowitą wartość"
 
@@ -12120,7 +12120,7 @@ msgstr "Usuń zapytanie z dziennika"
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
 msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Usunięto 1 kolumnę z wirtualnego zestawu danych"
+msgstr[0] "Usunięto %s kolumnę z wirtualnego zestawu danych"
 msgstr[1] "Usunięto %s kolumny z wirtualnego zestawu danych"
 
 msgid "Rename tab"

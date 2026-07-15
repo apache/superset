@@ -182,6 +182,7 @@ def test_user_can_view_data_model_metadata_requires_stronger_dataset_permission(
     app_context,
 ):
     with patch("superset.security_manager", new_callable=Mock) as mock_security_manager:
+        mock_security_manager.is_guest_user.return_value = False
         mock_security_manager.can_access.side_effect = (
             lambda permission_name, view_name: permission_name == "can_read"
         )

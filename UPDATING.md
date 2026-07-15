@@ -153,6 +153,16 @@ virtual-dataset SQL) raises a parse error in SQL Lab and dashboard-generated
 queries. Deployments that legitimately run queries above this size should raise
 the value, and `SQL_MAX_PARSE_LENGTH = None` disables the check entirely.
 
+### Ant Design upgraded from v5 to v6
+
+The frontend now builds against Ant Design 6, and `@superset-ui/core` / `@apache-superset/core` peer-depend on `antd ^6`. Custom plugins, extensions, and themes that interact with Ant Design need review:
+
+- **Internal DOM classes were renamed**, so any custom CSS targeting `.ant-*` internals silently stops matching. Notable renames: `.ant-tabs-content-holder` → `.ant-tabs-body-holder`, `.ant-tabs-content` → `.ant-tabs-body`, `.ant-tabs-tabpane` → `.ant-tabs-content`; `.ant-select-selector` → `.ant-select-content`, `.ant-select-selection-placeholder` → `.ant-select-placeholder`, `.ant-select-arrow` → `.ant-select-suffix`; `.ant-tooltip-inner` → `.ant-tooltip-container`; `.ant-popover-inner` → `.ant-popover-container`; `.ant-steps-item-tail` → `.ant-steps-item-rail`.
+- **Some component props changed or were removed** — e.g. `Select` no longer accepts `dropdownAlign`, `visible`/`onVisibleChange` are `open`/`onOpenChange`, `Dropdown` `overlay` is `menu`, `Steps.Step` children are the `items` prop, and `styles.body` on Tooltip/Popover is `styles.container`.
+- **CSS variables are on by default** in antd 6, and `ThemeConfig.cssVar` no longer accepts a boolean; Superset theme configs using `cssVar: true`/`false` are coerced (`true` → `{}`, `false` → omitted).
+
+Theme tokens are unaffected — antd 6 removed none of the tokens Superset exposes, so existing theme configurations continue to work. See the [Ant Design v6 migration guide](https://ant.design/docs/react/migration-v6) for the complete upstream list.
+
 ### Guest-token RLS rules reject unknown fields
 
 The `rls` rules passed to `POST /api/v1/security/guest_token/` are now validated strictly: a rule may only contain `dataset` and `clause`. Previously unknown fields were silently dropped, so a mistyped or legacy scope key (most commonly `datasource` instead of `dataset`) produced a rule with no `dataset`, which is treated as a *global* rule applied to every dataset the embedded resource can reach. Such a request now returns HTTP 400 identifying the offending field instead of issuing a token with an unintended global rule. Integrators that were sending extra fields in RLS rules must remove them; valid dataset-scoped (`{"dataset": 41, "clause": "..."}`) and global (`{"clause": "..."}`) rules are unaffected.
@@ -213,6 +223,17 @@ ALTER TABLE tagged_object DROP CONSTRAINT <constraint_name>;
 -- MySQL: find names via `SHOW CREATE TABLE tagged_object;`
 ALTER TABLE tagged_object DROP FOREIGN KEY <constraint_name>;
 ```
+### Entity version-history infrastructure (gated off by default)
+
+Introduces the schema and SQLAlchemy-Continuum wiring that captures version history for charts, dashboards, and datasets, plus read-only `GET /api/v1/{chart,dashboard,dataset}/<uuid>/versions/` endpoints. This ships **inert**: a new config flag `ENABLE_VERSIONING_CAPTURE` defaults to `False`, so no save writes any version rows and the endpoints return empty. It is an operational kill-switch (a release toggle that becomes a permanent ops switch), not a feature flag — set it to `True` to enable capture once validated. The migration is additive; existing entity `PUT` responses gain `old_version_uuid` / `new_version_uuid` body fields and an `ETag` header (both null/absent when capture is off).
+
+A few save- and import-path internals change **unconditionally** (independent of the flag), because the versioned mappers must behave correctly whether or not capture is enabled:
+
+- `DatasetDAO` column/metric updates move from bulk operations to per-row ORM operations, and a metadata refresh now preserves column primary keys via a natural-key (`column_name`) upsert instead of delete-and-reinsert — so charts that reference dataset columns by id keep working across a refresh (previously such references could be invalidated).
+- `ImportExportMixin.reset_ownership` stamps the current user onto `created_by`/`changed_by` when a request context is present (previously left null for the column default to fill).
+- `UpdateDashboardCommand` runs its body under `no_autoflush`.
+
+These are behavior changes that take effect on upgrade regardless of `ENABLE_VERSIONING_CAPTURE`; no operator action is required.
 
 ### Webhook alerts/reports block private/internal hosts by default
 

@@ -63,7 +63,7 @@
     "@swc/core": "^1.15.43",
     "antd": "^6.5.0",
     "baseline-browser-mapping": "^2.10.40",
-    "caniuse-lite": "^1.0.30001799",
+    "caniuse-lite": "^1.0.30001803",
     "docusaurus-plugin-openapi-docs": "^5.1.0",
     "docusaurus-theme-openapi-docs": "^5.1.0",
     "js-yaml": "^5.2.0",
@@ -90,7 +90,7 @@
     "@types/js-yaml": "^4.0.9",
     "@types/react": "^19.1.8",
     "@typescript-eslint/eslint-plugin": "^8.59.3",
-    "@typescript-eslint/parser": "^8.61.0",
+    "@typescript-eslint/parser": "^8.63.0",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.6",
@@ -98,7 +98,7 @@
     "globals": "^17.7.0",
     "prettier": "^3.9.1",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.62.0",
+    "typescript-eslint": "^8.63.0",
     "webpack": "^5.108.2"
   },
   "browserslist": {
