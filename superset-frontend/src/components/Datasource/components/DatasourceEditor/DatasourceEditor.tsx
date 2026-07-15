@@ -36,6 +36,7 @@ import {
   SupersetClient,
   getClientErrorObject,
   getExtensionsRegistry,
+  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { t } from '@apache-superset/core/translation';
@@ -1760,6 +1761,7 @@ function DatasourceEditor({
             role="button"
             tabIndex={0}
             onClick={onChangeEditMode}
+            onKeyDown={handleKeyboardActivation(onChangeEditMode)}
           >
             {isEditMode ? (
               <Icons.UnlockOutlined

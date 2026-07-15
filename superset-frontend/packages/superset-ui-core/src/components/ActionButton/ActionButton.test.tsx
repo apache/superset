@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from '@superset-ui/core/spec';
+import { render, screen, userEvent, fireEvent } from '@superset-ui/core/spec';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { ActionButton } from '.';
 
@@ -43,6 +43,18 @@ test('calls onClick when clicked', async () => {
   userEvent.click(button);
 
   expect(onClick).toHaveBeenCalledTimes(1);
+});
+
+test('calls onClick when activated with the keyboard', () => {
+  const onClick = jest.fn();
+  render(<ActionButton {...defaultProps} onClick={onClick} />);
+
+  const button = screen.getByRole('button');
+  fireEvent.keyDown(button, { key: 'Enter' });
+  expect(onClick).toHaveBeenCalledTimes(1);
+
+  fireEvent.keyDown(button, { key: ' ' });
+  expect(onClick).toHaveBeenCalledTimes(2);
 });
 
 test('renders with tooltip when tooltip prop is provided', async () => {

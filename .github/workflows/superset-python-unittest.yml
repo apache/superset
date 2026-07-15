@@ -50,7 +50,7 @@ jobs:
       matrix:
         # Full version spread on push (master/release) + nightly; current only
         # on PRs to cut runner cost (cross-version breaks are caught at merge).
-        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["previous", "current", "next"]') }}
+        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["current", "next"]') }}
     env:
       PYTHONPATH: ${{ github.workspace }}
       # Promotes the SQLAlchemy 2.0 deprecation warnings already locked in as

@@ -18,7 +18,10 @@
  */
 import { useCallback, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { getChartMetadataRegistry } from '@superset-ui/core';
+import {
+  getChartMetadataRegistry,
+  handleKeyboardActivation,
+} from '@superset-ui/core';
 import { css, styled, SupersetTheme } from '@apache-superset/core/theme';
 import { usePluginContext } from 'src/components';
 import { Icons, Modal } from '@superset-ui/core/components';
@@ -112,7 +115,12 @@ const VizTypeControl = ({
           color: ${theme.colorTextTertiary};
         `}
       >
-        <span role="button" tabIndex={0} onClick={openModal}>
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={openModal}
+          onKeyDown={handleKeyboardActivation(openModal)}
+        >
           {t('View all charts')}
         </span>
       </div>
