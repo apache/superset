@@ -42,6 +42,8 @@ shim to see it.
 Disposition rules
 -----------------
 * GET against any enumerated row → 308 Permanent Redirect.
+* HEAD is folded to GET before the method check, so it tracks GET exactly:
+  it 308s wherever GET does, and 410s against a POST-only canonical.
 * POST against a POST-capable canonical → 308 (body-preserving).
 * POST against a GET-only canonical → 410 Gone (308 would 405 on retry).
 * Anything not in :data:`LEGACY_REDIRECT_MAP` → pass through unchanged.
@@ -186,28 +188,21 @@ class LegacyPrefixRedirectMiddleware:
         # produce the same Location prefix at build time. Empty string is
         # correct for app_root == "/".
         self.app_root_prefix: str = app_root.rstrip("/")
-        # If the operator deploys under
-        # APPLICATION_ROOT == "/superset", the legacy prefix collides with
-        # the app-root prefix and `app_root_prefix + canonical_target`
-        # produces the same URL as the inbound path → infinite 308 loop.
-        # In that deployment shape there is no migration to perform anyway
-        # (legacy URLs are already at their canonical location), so the
-        # shim becomes a no-op.
-        self._enabled: bool = self.app_root_prefix != _LEGACY_PREFIX
 
     def __call__(
         self,
         environ: "WSGIEnvironment",
         start_response: "StartResponse",
     ) -> Iterable[bytes]:
-        # Short-circuit when APPLICATION_ROOT == _LEGACY_PREFIX
-        # (legacy and canonical prefixes coincide → 308 self-loop). See
-        # `__init__` for the full rationale.
-        if not self._enabled:
-            return self.wsgi_app(environ, start_response)
-
         path_info: str = environ.get("PATH_INFO", "")
         method: str = environ.get("REQUEST_METHOD", "GET").upper()
+        # HEAD is GET-without-a-body (RFC 9110 §9.3.2) and Werkzeug registers
+        # it implicitly on every GET rule, so LEGACY_REDIRECT_MAP spells only
+        # the methods the canonical @expose decorators name explicitly — never
+        # HEAD. Fold it to GET for the method checks below; otherwise every
+        # legacy HEAD probe (link-checkers, uptime monitors, `curl -I`) falls
+        # into the wrong-method branch and gets a spurious 410 Gone.
+        method_for_match: str = "GET" if method == "HEAD" else method
 
         # Under a subdirectory deployment, legacy bookmarks carry the app
         # root too (`/myapp/superset/dashboard/1/`) — this shim sits outside
@@ -216,6 +211,15 @@ class LegacyPrefixRedirectMiddleware:
         # check so both `/superset/...` and `{app_root}/superset/...` forms
         # are recognised. The Location below is built from the captured
         # app_root either way, so both forms 308 to the same canonical URL.
+        #
+        # This strip is also what makes APPLICATION_ROOT == "/superset" safe,
+        # the one deployment where the app-root and legacy prefixes are the
+        # same token. A legacy bookmark there carries it twice
+        # (`/superset/superset/dashboard/1/`) and 308s to
+        # `/superset/dashboard/1/`; that target strips to `/dashboard/1/`,
+        # which is not a legacy path, so it passes through on the next hop.
+        # Because the strip runs *before* the legacy check, a canonical URL
+        # can never re-enter the redirect branch — there is no self-loop.
         candidate = path_info
         if self.app_root_prefix and candidate.startswith(self.app_root_prefix + "/"):
             candidate = candidate[len(self.app_root_prefix) :]
@@ -233,7 +237,7 @@ class LegacyPrefixRedirectMiddleware:
         # Redirect it explicitly (numeric id only) so legacy SQL Lab deep links
         # survive one release cycle instead of hard-404ing.
         if sql_match := _LEGACY_SQL_RE.match(canonical_after_strip):
-            if method != "GET":
+            if method_for_match != "GET":
                 # The old /superset/sql/<id>/ route was GET-only; a 308 would
                 # have the client retry-POST against /sqllab/ → 405. Emit 410.
                 return _response_with_location(410, None)(environ, start_response)
@@ -252,7 +256,7 @@ class LegacyPrefixRedirectMiddleware:
             return self.wsgi_app(environ, start_response)
 
         allowed_methods, canonical_target = match
-        if method not in allowed_methods:
+        if method_for_match not in allowed_methods:
             # POST against GET-only canonical (308 would have the client
             # retry-POST against the canonical → 405). Emit 410 explicitly
             # so the operator-facing signal is unambiguous.
@@ -264,6 +268,16 @@ class LegacyPrefixRedirectMiddleware:
         # unset at this outer layer) and never from X-Forwarded-*. See
         # module docstring for the proxy-strips-prefix operator caveat.
         location = self.app_root_prefix + canonical_target
+
+        # Belt-and-braces: a 308 whose target is the inbound path would never
+        # converge. No enumerated row can produce one (no canonical target
+        # begins with the legacy prefix, so the rewrite always shortens the
+        # path), but a future map edit could — pass through rather than emit a
+        # redirect that loops. Compared before the query string is appended:
+        # the query is carried over verbatim and cannot break a tie.
+        if location == path_info:
+            return self.wsgi_app(environ, start_response)
+
         if query_string := environ.get("QUERY_STRING", ""):
             location = f"{location}?{query_string}"
 
