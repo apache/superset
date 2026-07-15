@@ -1920,8 +1920,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         offset, outer_to_dttm
                     )
 
-                    query_object_clone.inner_from_dttm = query_object_clone.from_dttm
-                    query_object_clone.inner_to_dttm = query_object_clone.to_dttm
+                    # Match the date-range branch above — leaving these
+                    # unset avoids the extra WHERE clause that snapped the
+                    # comparison bucket to the full grain on coarse-grain
+                    # partial periods. See #40501.
+                    query_object_clone.inner_from_dttm = None
+                    query_object_clone.inner_to_dttm = None
 
                 x_axis_label = get_x_axis_label(query_object.columns)
                 query_object_clone.granularity = (
