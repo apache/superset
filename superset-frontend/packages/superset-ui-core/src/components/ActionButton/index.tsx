@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { handleKeyboardActivation } from '../../utils';
 import type { ReactElement, ReactNode } from 'react';
+import cx from 'classnames';
 import { Tooltip, type TooltipPlacement } from '@superset-ui/core/components';
 import { css, useTheme } from '@apache-superset/core/theme';
 
@@ -28,6 +28,9 @@ export interface ActionProps {
   placement?: TooltipPlacement;
   icon: ReactNode;
   onClick: () => void;
+  className?: string;
+  disabled?: boolean;
+  dataTest?: string;
 }
 
 export const ActionButton = ({
@@ -36,14 +39,26 @@ export const ActionButton = ({
   placement,
   icon,
   onClick,
+  className,
+  disabled = false,
+  dataTest,
 }: ActionProps) => {
   const theme = useTheme();
   const actionButton = (
-    <span
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
+      aria-disabled={disabled}
       aria-label={typeof tooltip === 'string' ? tooltip : label}
       css={css`
+        appearance: none;
+        border: none;
+        background: none;
+        padding: 0;
+        margin: 0;
+        font: inherit;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
         cursor: pointer;
         color: ${theme.colorIcon};
         margin-right: ${theme.sizeUnit}px;
@@ -52,14 +67,17 @@ export const ActionButton = ({
             fill: ${theme.colorPrimary};
           }
         }
+        &.disabled {
+          color: ${theme.colorTextDisabled};
+          cursor: not-allowed;
+        }
       `}
-      className="action-button"
-      data-test={label}
-      onClick={onClick}
-      onKeyDown={onClick ? handleKeyboardActivation(onClick) : undefined}
+      className={cx('action-button', className, { disabled })}
+      data-test={dataTest ?? label}
+      onClick={disabled ? undefined : onClick}
     >
       {icon}
-    </span>
+    </button>
   );
 
   const tooltipId = `${label.replaceAll(' ', '-').toLowerCase()}-tooltip`;

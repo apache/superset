@@ -31,6 +31,12 @@ const sectionContainerStyle = (theme: SupersetTheme) => css`
 `;
 
 const sectionHeaderStyle = (theme: SupersetTheme) => css`
+  appearance: none;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -104,24 +110,13 @@ const UrlFiltersVerticalCollapse = (props: {
 
   return (
     <div css={sectionContainerStyle}>
-      <div
-        css={sectionHeaderStyle}
-        onClick={toggleSection}
-        onKeyDown={e => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            toggleSection();
-          }
-        }}
-        role="button"
-        tabIndex={0}
-      >
+      <button type="button" css={sectionHeaderStyle} onClick={toggleSection}>
         <h4 css={sectionTitleStyle}>
           <Icons.LinkOutlined iconSize="s" />
           {t('URL Filters')}
         </h4>
         <Icons.UpOutlined iconSize="m" css={iconStyle(isOpen, theme)} />
-      </div>
+      </button>
       {isOpen && <div css={sectionContentStyle}>{filterIndicators}</div>}
       {isOpen && <div css={dividerStyle} data-test="url-filters-divider" />}
     </div>

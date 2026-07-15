@@ -98,16 +98,9 @@ export default memo(
                 key={item}
                 className={currentPage === item ? 'active' : undefined}
               >
-                <a
-                  href={`#page-${item}`}
-                  role="button"
-                  onClick={e => {
-                    e.preventDefault();
-                    onPageChange(item);
-                  }}
-                >
+                <button type="button" onClick={() => onPageChange(item)}>
                   {item + 1}
-                </a>
+                </button>
               </li>
             ) : (
               <li key={item} className="dt-pagination-ellipsis">

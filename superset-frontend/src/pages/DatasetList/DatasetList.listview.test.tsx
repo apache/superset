@@ -1635,9 +1635,7 @@ test('type filter persists after duplicating a dataset', async () => {
   expect(row).toBeInTheDocument();
 
   const duplicateIcon = await within(row!).findByTestId('copy');
-  const duplicateButton = duplicateIcon.closest(
-    '[role="button"]',
-  ) as HTMLElement | null;
+  const duplicateButton = duplicateIcon.closest('button') as HTMLElement | null;
   expect(duplicateButton).toBeTruthy();
 
   await userEvent.click(duplicateButton!);
@@ -1781,8 +1779,13 @@ test('bulk export error shows toast and clears loading state', async () => {
     );
   });
 
-  // Click bulk export
-  const exportButton = await screen.findByRole('button', { name: /export/i });
+  // Click bulk export. Disambiguate from the row-level export action (now
+  // sharing the same accessible name since it carries a real aria-label) and
+  // from the bulk-delete action (same data-test, different action key).
+  const exportButton = (
+    await screen.findByTestId('bulk-select-controls')
+  ).querySelector('[data-test-action-key="export"]') as HTMLElement;
+  expect(exportButton).toBeTruthy();
   await userEvent.click(exportButton);
 
   // Wait for error toast
