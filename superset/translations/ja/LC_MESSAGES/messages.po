@@ -254,7 +254,7 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d 行が返されました"
 
-#, python-format
+#, fuzzy, python-format
 msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgid_plural ""
 "%(firstSuggestions)s or %(lastSuggestion)s instead of "
@@ -5715,7 +5715,7 @@ msgstr "%s の削除エラー"
 msgid "Error disabling fullscreen: %s"
 msgstr "全画面表示の無効化中にエラーが発生しました: %s"
 
-#,python-format
+#, python-format
 msgid "Error enabling fullscreen: %s"
 msgstr "全画面表示の有効化中にエラーが発生しました: %s"
 
