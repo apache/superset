@@ -17,7 +17,7 @@
 
 # pylint: disable=import-outside-toplevel
 from datetime import datetime
-from typing import Any, Callable
+from typing import Any
 
 import numpy
 import pandas as pd
