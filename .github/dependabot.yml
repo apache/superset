@@ -11,7 +11,15 @@ updates:
   - package-ecosystem: "npm"
     ignore:
       - dependency-name: "@rjsf/*"
-      # TODO: remove below entries until React >= 19.0.0
+      # TODO: remove below entries once the application supports React >= 19.0.0
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react-dom"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "react-icons"
       # JSDOM v30 doesn't play well with Jest v30
       # Source: https://jestjs.io/blog#known-issues

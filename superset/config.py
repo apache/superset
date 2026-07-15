@@ -2349,6 +2349,11 @@ SLACK_PROXY = None
 # ignored for workspace-level tokens, so leaving it as None preserves the default
 # single-workspace behavior.
 SLACK_TEAM_ID: Callable[[], str] | str | None = None
+# How long the fetched channel list is cached. The Alerts & Reports recipient
+# picker serves channels from this cache, so on very large workspaces (tens of
+# thousands of channels) schedule the ``slack.cache_channels`` Celery task to
+# warm the cache ahead of the TTL — enumerating that many channels inside a
+# single interactive request will otherwise hit Slack rate limits and time out.
 SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 
 # Maximum number of retries when Slack API returns rate limit errors
