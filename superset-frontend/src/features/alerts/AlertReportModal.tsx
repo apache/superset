@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -2708,7 +2707,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                         onUpdate={updateNotificationSetting}
                         onRemove={removeNotificationSetting}
                         onInputChange={onInputChange}
-                        emailSubject={currentAlert?.email_subject || ''}
+                        email_subject={currentAlert?.email_subject || ''}
                         defaultSubject={emailSubject || ''}
                         setErrorSubject={handleErrorUpdate}
                         addDangerToast={addDangerToast}

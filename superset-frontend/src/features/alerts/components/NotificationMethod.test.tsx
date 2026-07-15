@@ -246,7 +246,7 @@ test('NotificationMethod - should render the component', () => {
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      emailSubject={mockEmailSubject}
+      email_subject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -266,7 +266,7 @@ test('NotificationMethod - should call onRemove when the delete button is clicke
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      emailSubject={mockEmailSubject}
+      email_subject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -287,7 +287,7 @@ test('NotificationMethod - should update recipient value when input changes', ()
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      emailSubject={mockEmailSubject}
+      email_subject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -313,7 +313,7 @@ test('NotificationMethod - should call onRecipientsChange when the recipients va
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      emailSubject={mockEmailSubject}
+      email_subject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -466,7 +466,7 @@ test('NotificationMethod - should render CC and BCC fields when method is Email 
     onUpdate: jest.fn(),
     onRemove: jest.fn(),
     onInputChange: jest.fn(),
-    emailSubject: 'Test Subject',
+    email_subject: 'Test Subject',
     defaultSubject: 'Default Subject',
     setErrorSubject: jest.fn(),
   };
@@ -491,7 +491,7 @@ test('NotificationMethod - should render CC and BCC fields with correct values w
     onUpdate: jest.fn(),
     onRemove: jest.fn(),
     onInputChange: jest.fn(),
-    emailSubject: 'Test Subject',
+    email_subject: 'Test Subject',
     defaultSubject: 'Default Subject',
     setErrorSubject: jest.fn(),
   };
@@ -516,7 +516,7 @@ test('NotificationMethod - should not render CC and BCC fields when method is no
     onUpdate: jest.fn(),
     onRemove: jest.fn(),
     onInputChange: jest.fn(),
-    emailSubject: 'Test Subject',
+    email_subject: 'Test Subject',
     defaultSubject: 'Default Subject',
     setErrorSubject: jest.fn(),
   };
@@ -541,7 +541,7 @@ test('NotificationMethod - should handle empty recipients list gracefully', () =
     onUpdate: jest.fn(),
     onRemove: jest.fn(),
     onInputChange: jest.fn(),
-    emailSubject: 'Test Subject',
+    email_subject: 'Test Subject',
     defaultSubject: 'Default Subject',
     setErrorSubject: jest.fn(),
   };
@@ -575,7 +575,7 @@ test('shows the right combo when ff is false', async () => {
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      emailSubject={mockEmailSubject}
+      email_subject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -613,7 +613,7 @@ test('shows the textbox when the fetch fails', async () => {
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      emailSubject={mockEmailSubject}
+      email_subject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -656,7 +656,7 @@ test('shows the dropdown when ff is true and slackChannels succeed', async () =>
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      emailSubject={mockEmailSubject}
+      email_subject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -692,7 +692,7 @@ test('shows the textarea when ff is true and slackChannels fail', async () => {
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      emailSubject={mockEmailSubject}
+      email_subject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -728,7 +728,7 @@ test('shows the textarea when ff is true and slackChannels fail and slack is sel
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      emailSubject={mockEmailSubject}
+      email_subject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -757,7 +757,7 @@ test('shows the textarea when ff is true, slackChannels fail and slack is select
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      emailSubject={mockEmailSubject}
+      email_subject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -791,7 +791,7 @@ test('NotificationMethod - AsyncSelect should render for SlackV2 method', async 
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      emailSubject={mockEmailSubject}
+      email_subject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -830,7 +830,7 @@ test('NotificationMethod - AsyncSelect should handle SlackV2 with valid API resp
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      emailSubject={mockEmailSubject}
+      email_subject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -872,7 +872,7 @@ test('NotificationMethod - AsyncSelect should render refresh button for SlackV2'
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      emailSubject={mockEmailSubject}
+      email_subject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -916,7 +916,7 @@ test('NotificationMethod - AsyncSelect should reload channels without clearing r
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      emailSubject={mockEmailSubject}
+      email_subject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -990,7 +990,7 @@ test('NotificationMethod - data cache prevents redundant API calls when selectin
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      emailSubject={mockEmailSubject}
+      email_subject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -1057,7 +1057,7 @@ test('NotificationMethod - should preserve selected channels on refresh', async 
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      emailSubject={mockEmailSubject}
+      email_subject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -1132,7 +1132,7 @@ test('NotificationMethod - should initialize Slack recipients when editing exist
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      emailSubject={mockEmailSubject}
+      email_subject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -1237,7 +1237,7 @@ test('NotificationMethod - should preserve selected channels during search and p
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      emailSubject={mockEmailSubject}
+      email_subject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -1345,7 +1345,7 @@ test('NotificationMethod - should support comma-separated channel search', async
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      emailSubject={mockEmailSubject}
+      email_subject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -1399,7 +1399,7 @@ test('NotificationMethod - AsyncSelect should not filter results client-side', a
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      emailSubject={mockEmailSubject}
+      email_subject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -1452,7 +1452,7 @@ test('NotificationMethod - AsyncSelect should not use comma as token separator',
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      emailSubject={mockEmailSubject}
+      email_subject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}

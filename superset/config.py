@@ -1678,7 +1678,9 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         #     "schedule": crontab(minute=0, hour=0),
         #     "kwargs": {"max_rows_per_run": 10000},
         # },
-        # Uncomment to enable Slack channel cache warm-up
+        # Uncomment to enable Slack channel cache warm-up. Beat-scheduled runs
+        # use the default time limit; add "options" to override, e.g.
+        # "options": {"time_limit": 600, "soft_time_limit": 480}.
         # "slack.cache_channels": {
         #     "task": "slack.cache_channels",
         #     "schedule": crontab(minute="0", hour="*"),
@@ -2369,13 +2371,16 @@ SLACK_API_TIMEOUT = 30
 SLACK_ENABLE_CACHING: bool = True
 
 # Maximum number of channels to cache during warmup
-# Prevents excessive memory usage in very large workspaces
-# The cache warmup task will stop after reaching this limit
+# Prevents excessive memory usage in very large workspaces. The cache warmup
+# task stops after reaching this limit and stores a continuation cursor so that
+# channels beyond the cap are streamed from the Slack API on demand.
 # Default: 20000 channels (~100MB cache size)
 SLACK_CACHE_MAX_CHANNELS: int = 20000
 
-# Celery task timeout for Slack cache warmup (seconds)
-# Prevents runaway cache warmup tasks in extremely large workspaces
+# Hard time limit (in seconds) for the Slack channel cache warm-up Celery task.
+# Guards against a runaway warm-up in extremely large workspaces. Applied when
+# the task is dispatched on demand (e.g. a force refresh); the soft time limit
+# is derived as 80% of this value.
 # Default: 300 seconds (5 minutes)
 SLACK_CACHE_WARMUP_TIMEOUT: int = 300
 

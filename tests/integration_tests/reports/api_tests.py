@@ -3213,8 +3213,11 @@ class TestReportSchedulesApi(SupersetTestCase):
         # Verify cache was cleared
         assert mock_cache_manager.cache.delete.call_count == 2
 
-        # Verify async cache warmup was triggered
-        mock_cache_channels.delay.assert_called_once()
+        # Verify async cache warmup was triggered with config-driven time limits
+        mock_cache_channels.apply_async.assert_called_once()
+        _, warmup_kwargs = mock_cache_channels.apply_async.call_args
+        assert "time_limit" in warmup_kwargs
+        assert "soft_time_limit" in warmup_kwargs
 
     @patch("superset.reports.api.cache_channels")
     @patch("superset.reports.api.cache_manager")
@@ -3244,4 +3247,4 @@ class TestReportSchedulesApi(SupersetTestCase):
             assert mock_cache_manager.cache.delete.call_count == 2
 
             # But async warmup should NOT be triggered
-            mock_cache_channels.delay.assert_not_called()
+            mock_cache_channels.apply_async.assert_not_called()

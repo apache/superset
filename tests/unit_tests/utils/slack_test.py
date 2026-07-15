@@ -30,6 +30,8 @@ from superset.utils.slack import (
     _SLACK_V1_DEPRECATION_MESSAGE,
     get_channels_with_search,
     should_use_v2_api,
+    SLACK_CHANNELS_CACHE_KEY,
+    SLACK_CHANNELS_CONTINUATION_CURSOR_KEY,
     SlackChannelTypes,
 )
 
@@ -112,6 +114,101 @@ class TestGetChannelsWithSearch:
             "next_cursor": None,
             "has_more": False,
         }
+
+    def test_cold_cache_single_page_warms_cache(self, mocker):
+        """An unfiltered first-page request on a cold cache writes the full
+        channel list through to the cache, so deployments without a Celery
+        warmup worker keep the in-memory fast path."""
+        mock_data = {
+            "channels": [
+                {"name": "general", "id": "C1", "is_private": False, "is_member": True},
+                {"name": "random", "id": "C2", "is_private": False, "is_member": True},
+            ],
+            "response_metadata": {"next_cursor": None},
+        }
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.return_value = MockResponse(mock_data)
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+
+        mock_cache = mocker.patch("superset.utils.slack.cache_manager.cache")
+        mock_cache.get.return_value = None  # cold cache
+
+        result = get_channels_with_search()
+
+        assert result["has_more"] is False
+        assert len(result["result"]) == 2
+        # Full list written through, continuation cursor cleared.
+        mock_cache.set.assert_called_once()
+        key, cached = mock_cache.set.call_args.args
+        assert key == SLACK_CHANNELS_CACHE_KEY
+        assert len(cached) == 2
+        mock_cache.delete.assert_called_once_with(
+            SLACK_CHANNELS_CONTINUATION_CURSOR_KEY
+        )
+
+    def test_cold_cache_multi_page_does_not_warm(self, mocker):
+        """A multi-page workspace is left to the async warmup task; the
+        synchronous write-through only fires when the whole workspace fits in
+        the fetched pages (has_more is False)."""
+        mock_data = {
+            "channels": [
+                {"name": "general", "id": "C1", "is_private": False, "is_member": True}
+            ],
+            "response_metadata": {"next_cursor": "CURSOR2"},
+        }
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.return_value = MockResponse(mock_data)
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+
+        mock_cache = mocker.patch("superset.utils.slack.cache_manager.cache")
+        mock_cache.get.return_value = None
+
+        result = get_channels_with_search(limit=1)
+
+        assert result["has_more"] is True
+        mock_cache.set.assert_not_called()
+
+    def test_cold_cache_search_does_not_warm(self, mocker):
+        """A search request returns a filtered subset, not the full list, so it
+        must never write through to the cache."""
+        mock_data = {
+            "channels": [
+                {"name": "general", "id": "C1", "is_private": False, "is_member": True}
+            ],
+            "response_metadata": {"next_cursor": None},
+        }
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.return_value = MockResponse(mock_data)
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+
+        mock_cache = mocker.patch("superset.utils.slack.cache_manager.cache")
+        mock_cache.get.return_value = None
+
+        get_channels_with_search(search_string="general")
+
+        mock_cache.set.assert_not_called()
+
+    def test_cold_cache_warm_skipped_when_caching_disabled(self, mocker):
+        """With SLACK_ENABLE_CACHING disabled, no write-through occurs."""
+        from flask import current_app
+
+        mock_data = {
+            "channels": [
+                {"name": "general", "id": "C1", "is_private": False, "is_member": True}
+            ],
+            "response_metadata": {"next_cursor": None},
+        }
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.return_value = MockResponse(mock_data)
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+
+        mock_cache = mocker.patch("superset.utils.slack.cache_manager.cache")
+        mock_cache.get.return_value = None
+        mocker.patch.dict(current_app.config, {"SLACK_ENABLE_CACHING": False})
+
+        get_channels_with_search()
+
+        mock_cache.set.assert_not_called()
 
     def test_handle_exact_match_search_string_single_channel(self, mocker):
         # Mock data with multiple channels
@@ -555,6 +652,7 @@ The server responded with: missing scope: channels:read"""
         # Should indicate more results available
         assert result["has_more"] is True
         assert result["next_cursor"] == "next_page"
+
 
 # ---------------------------------------------------------------------------
 # should_use_v2_api: drives the v1→v2 auto-upgrade decision and emits

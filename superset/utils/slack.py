@@ -67,7 +67,6 @@ def _emit_v1_scope_missing_deprecation() -> None:
     warnings.warn(_SLACK_V1_DEPRECATION_MESSAGE, DeprecationWarning, stacklevel=3)
 
 
-
 class SlackChannelTypes(StrEnum):
     PUBLIC = "public_channel"
     PRIVATE = "private_channel"
@@ -116,97 +115,22 @@ def get_team_id() -> Optional[str]:
     return team_id or None
 
 
-def get_channels(
-    team_id: Optional[str] = None, **kwargs: Any
-) -> list[SlackChannelSchema]:
-    """
-    Retrieves a list of all conversations accessible by the bot
-    from the Slack API, and caches results (to avoid rate limits).
-
-    The Slack API does not provide search so to apply a search use
-    get_channels_with_search instead.
-
-    :param team_id: workspace (team) ID to target, required for org-scoped tokens
-        on an Enterprise Grid org. Defaults to the configured ``SLACK_TEAM_ID``
-        (via get_team_id) when not given. When set it also keys the cache so that
-        distinct workspaces never share cached channel lists; when unset, the
-        legacy cache key is used so that upgrading does not invalidate existing
-        caches.
-    :param kwargs: forwarded to the memoized fetch (``force``, ``cache_timeout``,
-        ``cache``).
-    """
-    if team_id is None:
-        team_id = get_team_id()
-    cache_key = "slack_conversations_list"
-    if team_id:
-        cache_key = f"{cache_key}_{team_id}"
-    return _get_channels(cache_key, team_id=team_id, **kwargs)
-
-
-@cache_util.memoized_func(
-    key="{cache_key}",
-    cache=cache_manager.cache,
-)
-def _get_channels(
-    cache_key: str, team_id: Optional[str] = None
-) -> list[SlackChannelSchema]:
-    client = get_slack_client()
-    channel_schema = SlackChannelSchema()
-    channels: list[SlackChannelSchema] = []
-    extra_params = {"types": _SLACK_CONVERSATION_TYPES}
-    if team_id:
-        extra_params["team_id"] = team_id
-    cursor = None
-    page_count = 0
-
-    logger.info("Starting Slack channels fetch")
-
-    try:
-        while True:
-            page_count += 1
-
-            response = client.conversations_list(
-                limit=999, cursor=cursor, exclude_archived=True, **extra_params
-            )
-            page_channels = response.data["channels"]
-            channels.extend(channel_schema.load(channel) for channel in page_channels)
-
-            logger.debug(
-                "Fetched page %d: %d channels (total: %d)",
-                page_count,
-                len(page_channels),
-                len(channels),
-            )
-
-            cursor = response.data.get("response_metadata", {}).get("next_cursor")
-            if not cursor:
-                break
-
-        logger.info(
-            "Successfully fetched %d Slack channels in %d pages",
-            len(channels),
-            page_count,
-        )
-        return channels
-    except SlackApiError as ex:
-        logger.error(
-            "Failed to fetch Slack channels after %d pages: %s",
-            page_count,
-            str(ex),
-            exc_info=True,
-        )
-        raise
-
-
-
 def _fetch_channels_without_search(
     client: WebClient,
     channel_schema: SlackChannelSchema,
     types_param: str,
     cursor: Optional[str],
     limit: int,
+    cache_full_list: bool = False,
 ) -> dict[str, Any]:
-    """Fetch channels without search filtering, paginating for large limits."""
+    """Fetch channels without search filtering, paginating for large limits.
+
+    When ``cache_full_list`` is True and the entire workspace is returned in a
+    single page (``has_more`` is False), the complete channel list is written
+    through to the cache so instances without a Celery warmup worker keep the
+    in-memory fast path on subsequent requests. Larger, multi-page workspaces
+    are left to the async warmup task to avoid blocking the request.
+    """
     channels: list[SlackChannelSchema] = []
     slack_cursor = cursor
 
@@ -228,10 +152,27 @@ def _fetch_channels_without_search(
         if not slack_cursor or len(channels) >= limit:
             break
 
+    has_more = bool(slack_cursor)
+
+    # Write-through cache: only when the full, unfiltered workspace fits in the
+    # pages already fetched (has_more is False). ``channels`` is the complete
+    # list here, so it can back the in-memory search/pagination path.
+    if cache_full_list and not has_more:
+        cache_timeout = app.config["SLACK_CACHE_TIMEOUT"]
+        cache_manager.cache.set(
+            SLACK_CHANNELS_CACHE_KEY, channels, timeout=cache_timeout
+        )
+        cache_manager.cache.delete(SLACK_CHANNELS_CONTINUATION_CURSOR_KEY)
+        logger.info(
+            "Warmed Slack channel cache with %d channels without a Celery "
+            "worker (single-page workspace)",
+            len(channels),
+        )
+
     return {
         "result": channels[:limit],
         "next_cursor": slack_cursor,
-        "has_more": bool(slack_cursor),
+        "has_more": has_more,
     }
 
 
@@ -426,6 +367,7 @@ def _fetch_from_api(
     exact_match: bool,
     cursor: Optional[str],
     limit: int,
+    cache_full_list: bool = False,
 ) -> dict[str, Any]:
     """
     Fetch from Slack API with pagination.
@@ -439,6 +381,10 @@ def _fetch_from_api(
         exact_match: If True, search term must exactly match
         cursor: Real Slack API cursor for pagination
         limit: Maximum channels to return
+        cache_full_list: When True and the whole (unfiltered) workspace is
+            returned in this fetch, populate the channel cache as a
+            write-through so deployments without a Celery warmup worker still
+            benefit from caching. Only honored for the no-search path.
 
     Returns:
         Dict with results from Slack API
@@ -455,7 +401,7 @@ def _fetch_from_api(
 
         if not search_string:
             return _fetch_channels_without_search(
-                client, channel_schema, types_param, cursor, limit
+                client, channel_schema, types_param, cursor, limit, cache_full_list
             )
 
         return _fetch_channels_with_search(
@@ -509,6 +455,17 @@ def get_channels_with_search(
     - has_more: boolean indicating if more pages exist
     """
     enable_caching = app.config.get("SLACK_ENABLE_CACHING", True)
+
+    # A cold cache on an unfiltered first-page request is eligible for a
+    # synchronous write-through warm (handled in _fetch_channels_without_search)
+    # so deployments without a Celery worker keep the cache fast path. Computed
+    # from the original request before any cursor reset below.
+    cache_full_list = (
+        enable_caching
+        and cursor is None
+        and not search_string
+        and (not types or len(types) >= len(SlackChannelTypes))
+    )
 
     # Handle transition from cache to API continuation
     if cursor == "api:continue":
@@ -566,7 +523,9 @@ def get_channels_with_search(
 
     # API path for real Slack cursors
     logger.debug("Using API path")
-    return _fetch_from_api(search_string, types, exact_match, cursor, limit)
+    return _fetch_from_api(
+        search_string, types, exact_match, cursor, limit, cache_full_list
+    )
 
 
 _SCOPE_MISSING_ERROR_CODES = frozenset(

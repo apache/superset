@@ -63,7 +63,7 @@ from superset.reports.schemas import (
     ReportScheduleSubscribeSchema,
 )
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
-from superset.tasks.slack import cache_channels
+from superset.tasks.slack import cache_channels, get_cache_warmup_options
 from superset.utils.slack import (
     get_channels_with_search,
     SLACK_CHANNELS_CACHE_KEY,
@@ -694,14 +694,12 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             # Clear cache if force refresh requested
             if force:
                 cache_manager.cache.delete(SLACK_CHANNELS_CACHE_KEY)
-                cache_manager.cache.delete(
-                    SLACK_CHANNELS_CONTINUATION_CURSOR_KEY
-                )
+                cache_manager.cache.delete(SLACK_CHANNELS_CONTINUATION_CURSOR_KEY)
                 logger.info("Slack channels cache cleared due to force=True")
 
                 # Trigger async cache warmup if caching is enabled
                 if current_app.config.get("SLACK_ENABLE_CACHING", True):
-                    cache_channels.delay()
+                    cache_channels.apply_async(**get_cache_warmup_options())
                     logger.info("Triggered async cache warmup task")
 
             channels_data = get_channels_with_search(

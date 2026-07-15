@@ -154,7 +154,7 @@ interface NotificationMethodProps {
   onInputChange?: (
     event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => void;
-  emailSubject: string;
+  email_subject: string;
   defaultSubject: string;
   setErrorSubject: (hasError: boolean) => void;
   addDangerToast?: (msg: string) => void;
@@ -267,7 +267,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   onUpdate,
   onRemove,
   onInputChange,
-  emailSubject,
+  email_subject,
   defaultSubject,
   setErrorSubject,
   addDangerToast,
@@ -619,7 +619,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                     <Input
                       type="text"
                       name="email_subject"
-                      value={emailSubject}
+                      value={email_subject}
                       placeholder={defaultSubject}
                       onChange={onSubjectChange}
                     />
