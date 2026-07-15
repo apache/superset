@@ -241,6 +241,26 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             if (column["is_dttm"] if isinstance(column, dict) else column.is_dttm)
         }
         x_axis = form_data and form_data.get("x_axis")
+        temporal_range_filters = [
+            filter_
+            for filter_ in query_object.filter
+            if filter_["op"] == "TEMPORAL_RANGE"
+        ]
+
+        should_infer_filter_granularity: bool = (
+            is_adhoc_column(x_axis)  # type: ignore
+            and query_object.granularity is None
+            and bool(query_object.from_dttm or query_object.to_dttm)
+            and (bool(query_object.time_range) or not temporal_range_filters)
+            and (main_dttm_col := getattr(datasource, "main_dttm_col", None))
+            in temporal_columns
+        )
+        if should_infer_filter_granularity:
+            # The inferred column supplies the time-filter subject. It must not be
+            # treated as an explicitly selected granularity, which would rewrite
+            # the x-axis or remove an independent temporal filter below.
+            query_object.granularity = main_dttm_col
+            return
 
         if granularity := query_object.granularity:
             filter_to_remove = None
