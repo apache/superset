@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
+from importlib import import_module
 from importlib.util import find_spec
 from unittest.mock import patch
 
@@ -25,6 +26,8 @@ from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import DTTM_ALIAS
 from superset.utils.pandas_postprocessing import prophet
 from tests.unit_tests.fixtures.dataframes import prophet_df
+
+prophet_module = import_module("superset.utils.pandas_postprocessing.prophet")
 
 
 def test_prophet_valid():
@@ -207,9 +210,7 @@ def test_prophet_fit_error():
     if find_spec("prophet") is None:
         pytest.skip("prophet not installed")
 
-    with patch(
-        "superset.utils.pandas_postprocessing.prophet._prophet_fit_and_predict"
-    ) as mock_fit:
+    with patch.object(prophet_module, "_prophet_fit_and_predict") as mock_fit:
         mock_fit.side_effect = InvalidPostProcessingError(
             "Unable to generate forecast: Dataframe has fewer than 2 non-NaN rows."
         )

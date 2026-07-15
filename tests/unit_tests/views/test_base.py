@@ -49,7 +49,10 @@ def test_common_bootstrap_payload_converts_locale_to_string(
 
     # Verify cached_common_bootstrap_data was called with string locale
     mock_cached.assert_called_once_with(1, "de_DE")
-    assert result == {"test": "data"}
+    # The wrapper copies the cached dict and injects `language_pack` after
+    # the memoized call so the per-locale pack isn't duplicated per user.
+    assert result["test"] == "data"
+    assert "language_pack" in result
 
 
 @patch("superset.views.base.utils.get_user_id", return_value=1)
@@ -272,3 +275,24 @@ def test_csv_response_leaves_bytes_untouched() -> None:
 
     payload = "Ürün\n".encode("utf-8-sig")
     assert CsvResponse(payload).get_data() == payload
+
+
+def test_deprecated_logs_warning_exactly_once() -> None:
+    from superset.views.base import BaseSupersetView, deprecated
+
+    @deprecated(eol_version="5.0.0", new_target="/api/v1/chart/data")
+    def endpoint(self: BaseSupersetView) -> None:
+        return None
+
+    view = MagicMock(spec=BaseSupersetView)
+    view.__class__.__name__ = "Superset"
+
+    with patch("superset.views.base.logger") as mock_logger:
+        endpoint(view)
+        endpoint(view)
+
+    assert mock_logger.warning.call_count == 1
+    # logger.warning uses lazy %-style formatting, so the version is a
+    # separate positional arg rather than being interpolated into the
+    # message template string itself.
+    assert "5.0.0" in mock_logger.warning.call_args[0]

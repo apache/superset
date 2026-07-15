@@ -34,6 +34,12 @@ import {
 import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
 import { ADD_TOAST } from 'src/components/MessageToasts/actions';
 import { EMPTY_STATE_QE_ID } from 'src/SqlLab/hooks/useQueryEditor';
+import { api } from 'src/hooks/apiResources/queryApi';
+import {
+  queryHistoryApi,
+  type QueryResult,
+} from 'src/hooks/apiResources/queries';
+import { defaultStore } from 'spec/helpers/testing-library';
 import { ToastType } from '../../components/MessageToasts/types';
 
 const isFeatureEnabledMock = isFeatureEnabled as unknown as jest.Mock;
@@ -749,7 +755,7 @@ describe('async actions', () => {
         database_name: 'examples',
         id: 2,
       },
-      description: '',
+      description: 'A saved query description',
       id: 1,
       label: 'Query 1',
       schema: 'public',
@@ -799,6 +805,7 @@ describe('async actions', () => {
 
       const expectedParams = {
         name: 'Query 1',
+        description: 'A saved query description',
         dbId: 2,
         catalog: null,
         schema: 'public',
@@ -1105,6 +1112,80 @@ describe('async actions', () => {
         store.dispatch(actions.removeQueryEditor(queryEditor));
         expect(store.getActions()).toEqual(expectedActions);
       });
+    });
+
+    test('removeQuery removes the deleted query from the editorQueries cache', async () => {
+      isFeatureEnabledMock.mockReturnValue(false);
+      const editorId = 'editor1';
+      const queryToRemove = {
+        ...query,
+        id: 'queryToRemove',
+        sqlEditorId: editorId,
+      };
+
+      await defaultStore.dispatch(
+        queryHistoryApi.util.upsertQueryData('editorQueries', { editorId }, {
+          count: 2,
+          ids: [],
+          result: [{ id: 'queryToRemove' }, { id: 'keep' }],
+        } as unknown as QueryResult),
+      );
+
+      await defaultStore.dispatch(
+        actions.removeQuery(queryToRemove) as unknown as AnyAction,
+      );
+
+      const { data } = queryHistoryApi.endpoints.editorQueries.select({
+        editorId,
+      })(defaultStore.getState());
+
+      expect(data).toEqual({
+        count: 1,
+        ids: [],
+        result: [{ id: 'keep' }],
+      });
+
+      defaultStore.dispatch(api.util.resetApiState());
+    });
+
+    test('removeQuery removes duplicate cache entries for the deleted query', async () => {
+      isFeatureEnabledMock.mockReturnValue(false);
+      const editorId = 'editor1';
+      const queryToRemove = {
+        ...query,
+        id: 'queryToRemove',
+        sqlEditorId: editorId,
+      };
+
+      // The infinite-scroll merge can append the same query twice when
+      // offsets shift between page fetches; deletion must drop every copy.
+      await defaultStore.dispatch(
+        queryHistoryApi.util.upsertQueryData('editorQueries', { editorId }, {
+          count: 3,
+          ids: [],
+          result: [
+            { id: 'queryToRemove' },
+            { id: 'keep' },
+            { id: 'queryToRemove' },
+          ],
+        } as unknown as QueryResult),
+      );
+
+      await defaultStore.dispatch(
+        actions.removeQuery(queryToRemove) as unknown as AnyAction,
+      );
+
+      const { data } = queryHistoryApi.endpoints.editorQueries.select({
+        editorId,
+      })(defaultStore.getState());
+
+      expect(data).toEqual({
+        count: 2,
+        ids: [],
+        result: [{ id: 'keep' }],
+      });
+
+      defaultStore.dispatch(api.util.resetApiState());
     });
 
     // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -1915,6 +1996,58 @@ describe('async actions', () => {
             ).toHaveLength(2);
           });
       });
+    });
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('toggleLeftBar', () => {
+    const activeId = 'active-qe';
+    const makeState = (hideLeftBar: boolean, unsavedOverride?: boolean) => ({
+      sqlLab: {
+        tabHistory: [activeId],
+        queryEditors: [{ id: activeId, hideLeftBar }],
+        unsavedQueryEditor:
+          unsavedOverride !== undefined
+            ? { id: activeId, hideLeftBar: unsavedOverride }
+            : {},
+      },
+    });
+
+    test('dispatches QUERY_EDITOR_TOGGLE_LEFT_BAR when state differs', () => {
+      const store = mockStore(makeState(false));
+      store.dispatch(actions.toggleLeftBar(true));
+      expect(store.getActions()).toEqual([
+        {
+          type: actions.QUERY_EDITOR_TOGGLE_LEFT_BAR,
+          queryEditorId: activeId,
+          hideLeftBar: true,
+        },
+      ]);
+    });
+
+    test('does not dispatch when state is already the same', () => {
+      const store = mockStore(makeState(true));
+      store.dispatch(actions.toggleLeftBar(true));
+      expect(store.getActions()).toHaveLength(0);
+    });
+
+    test('uses unsavedQueryEditor state when available', () => {
+      // qe in queryEditors says false, but unsaved override says true
+      const store = mockStore(makeState(false, true));
+      store.dispatch(actions.toggleLeftBar(true));
+      expect(store.getActions()).toHaveLength(0);
+    });
+
+    test('does not dispatch when there is no active query editor', () => {
+      const store = mockStore({
+        sqlLab: {
+          tabHistory: [],
+          queryEditors: [],
+          unsavedQueryEditor: {},
+        },
+      });
+      store.dispatch(actions.toggleLeftBar(true));
+      expect(store.getActions()).toHaveLength(0);
     });
   });
 });

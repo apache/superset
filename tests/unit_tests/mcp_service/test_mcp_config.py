@@ -103,7 +103,7 @@ def test_get_default_instructions_forbid_disclosing_other_user_access_or_roles()
     assert "Do NOT disclose dashboard access lists" in instructions
     assert "other users' names, usernames, email addresses" in instructions
     assert "current user's own identity details" in instructions
-    assert "Do NOT use execute_sql to query user, role, owner" in instructions
+    assert "Do NOT use execute_sql to query user, role, editor" in instructions
     assert "direct them to their workspace admin" in instructions
 
 

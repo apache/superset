@@ -202,8 +202,7 @@ export const useExploreAdditionalActionsMenu = (
   onOpenPropertiesModal: () => void,
   ownState: OwnStateWithClientView | undefined,
   dashboards:
-    | NonNullable<ExplorePageInitialData['metadata']>['dashboards']
-    | undefined,
+    NonNullable<ExplorePageInitialData['metadata']>['dashboards'] | undefined,
   showReportModal: () => void,
   setCurrentReportDeleting: Dispatch<SetStateAction<ReportObject | null>>,
   ...rest: MenuProps[]
@@ -1067,6 +1066,7 @@ export const useExploreAdditionalActionsMenu = (
           modalBody={
             <ViewQueryModal
               latestQueryFormData={latestQueryFormData as QueryFormData}
+              ownState={ownState}
             />
           }
           draggable

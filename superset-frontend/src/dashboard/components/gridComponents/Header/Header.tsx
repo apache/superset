@@ -43,13 +43,10 @@ export type ComponentType =
   (typeof componentTypes)[keyof typeof componentTypes];
 
 export type HeaderStyleValue =
-  | typeof SMALL_HEADER
-  | typeof MEDIUM_HEADER
-  | typeof LARGE_HEADER;
+  typeof SMALL_HEADER | typeof MEDIUM_HEADER | typeof LARGE_HEADER;
 
 export type BackgroundStyleValue =
-  | typeof BACKGROUND_TRANSPARENT
-  | typeof BACKGROUND_WHITE;
+  typeof BACKGROUND_TRANSPARENT | typeof BACKGROUND_WHITE;
 
 export interface ComponentMeta {
   width?: number;

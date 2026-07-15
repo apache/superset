@@ -139,6 +139,7 @@ const ItemTitleContainer = forwardRef<HTMLDivElement, Props>(
         <ItemTitle
           role="tab"
           key={`item-title-tab-${id}`}
+          tabIndex={0}
           onClick={() => onChange(id)}
           className={classNames.join(' ')}
           aria-selected={isActive}
@@ -179,7 +180,7 @@ const ItemTitleContainer = forwardRef<HTMLDivElement, Props>(
                   event.stopPropagation();
                   onRemove(id);
                 }}
-                alt={deleteAltText}
+                aria-label={deleteAltText}
               />
             )}
           </div>

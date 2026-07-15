@@ -66,7 +66,7 @@ import {
 } from './styles';
 import {
   DEFAULT_SORT_COMPARATOR,
-  DROPDOWN_ALIGN_BOTTOM,
+  DROPDOWN_BUILTIN_PLACEMENTS,
   EMPTY_OPTIONS,
   MAX_TAG_COUNT,
   TOKEN_SEPARATORS,
@@ -130,7 +130,9 @@ const Select = forwardRef(
     ref: Ref<RefSelectProps>,
   ) => {
     const isSingleMode = mode === 'single';
-    const shouldShowSearch = allowNewOptions ? true : showSearch;
+    // antd v6 widened `showSearch` to `boolean | SearchConfig`; coerce to a
+    // plain boolean for Superset's internal toggles and helpers.
+    const shouldShowSearch = allowNewOptions ? true : Boolean(showSearch);
     const [selectValue, setSelectValue] = useState(value);
     const [inputValue, setInputValue] = useState('');
     const [isDropdownVisible, setIsDropdownVisible] = useState(false);
@@ -719,7 +721,14 @@ const Select = forwardRef(
           setSelectValue(value);
         }
       } else {
-        const token = tokenSeparators.find(token => pastedText.includes(token));
+        // antd v6 widened `tokenSeparators` to `string[] | (input => string[])`;
+        // Superset always uses the array form.
+        const separators = Array.isArray(tokenSeparators)
+          ? tokenSeparators
+          : [];
+        const token = separators.find((token: string) =>
+          pastedText.includes(token),
+        );
         const array = token
           ? uniq(
               pastedText
@@ -811,7 +820,10 @@ const Select = forwardRef(
             ) => number
           }
           getPopupContainer={
-            getPopupContainer || (triggerNode => triggerNode.parentNode)
+            getPopupContainer ||
+            ((triggerNode: HTMLElement) =>
+              (triggerNode?.closest('.ant-modal-content') as HTMLElement) ||
+              (triggerNode.parentNode as HTMLElement))
           }
           headerPosition={headerPosition}
           labelInValue={labelInValue}
@@ -865,8 +877,8 @@ const Select = forwardRef(
           optionRender={option => <Space>{option.label || option.value}</Space>}
           oneLine={oneLine}
           popupMatchSelectWidth={oneLine ? dropdownWidth : true}
+          builtinPlacements={DROPDOWN_BUILTIN_PLACEMENTS}
           css={props.css}
-          dropdownAlign={DROPDOWN_ALIGN_BOTTOM}
           {...props}
           showSearch={shouldShowSearch}
           ref={ref}

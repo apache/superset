@@ -20,8 +20,7 @@ from typing import Any
 
 from flask import current_app
 from sqlalchemy import and_, Column, Integer, String, Text
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import declarative_base, Session
 
 from superset.constants import TimeGrain
 from superset.migrations.shared.utils import paginated_update, try_load_json

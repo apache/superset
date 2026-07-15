@@ -35,6 +35,7 @@ import {
 } from 'spec/helpers/testing-library';
 import { fallbackExploreInitialData } from 'src/explore/fixtures';
 import type { ColumnObject } from 'src/features/datasets/types';
+import type Subject from 'src/types/Subject';
 import DatasourceControl from '.';
 
 // Mock DatasourceEditor to avoid mounting the full 2500+ line editor tree.
@@ -95,14 +96,9 @@ interface TestDatasource {
   columns?: Partial<ColumnObject>[];
   type?: DatasourceType;
   main_dttm_col?: string | null;
-  owners?: Array<{
-    first_name: string;
-    last_name: string;
-    id: number;
-    username?: string;
-  }>;
   sql?: string;
   metrics?: Array<{ id: number; metric_name: string }>;
+  editors?: Subject[];
   [key: string]: unknown;
 }
 
@@ -117,8 +113,8 @@ const mockDatasource: TestDatasource = {
   datasource_name: 'channels',
   type: DatasourceType.Table,
   columns: [],
-  owners: [{ first_name: 'john', last_name: 'doe', id: 1, username: 'jd' }],
   sql: 'SELECT * FROM mock_datasource_sql',
+  editors: [{ id: 1, label: 'john doe', type: 1 }],
 };
 
 // Use type assertion for test props since the component is wrapped with withTheme
@@ -317,7 +313,7 @@ test('Click on Edit dataset', async () => {
 test('Edit dataset should be disabled when user is not admin', async () => {
   const props = createProps();
   props.user.roles = {};
-  props.datasource.owners = [];
+  props.datasource.editors = [];
 
   render(<DatasourceControl {...props} />, {
     useRedux: true,
