@@ -123,13 +123,20 @@ jobs:
           # pull timeouts, 504/401 on push, ECONNRESET) that otherwise fail
           # the whole job. buildx reuses the buildkit layer cache from the
           # failed attempt, so a retry mostly re-does just the failed push.
+          #
+          # supersetbot's "dev"/"lean" presets pin their own --build-arg
+          # PY_VER, which lands ahead of --extra-flags on the assembled
+          # buildx command line; docker/buildx keeps the last value for a
+          # repeated --build-arg key, so appending PY_VER here overrides
+          # supersetbot's pin and keeps the build on the Dockerfile's own
+          # supported Python version.
           for attempt in 1 2 3; do
             if supersetbot docker \
               $PUSH_OR_LOAD \
               --preset "$BUILD_PRESET" \
               --context "$EVENT" \
               --context-ref "$RELEASE" $FORCE_LATEST \
-              --extra-flags "--build-arg INCLUDE_CHROMIUM=false --tag $IMAGE_TAG" \
+              --extra-flags "--build-arg PY_VER=3.11.14-slim-trixie --build-arg INCLUDE_CHROMIUM=false --tag $IMAGE_TAG" \
               $PLATFORM_ARG; then
               break
             fi
