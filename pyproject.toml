@@ -45,7 +45,7 @@ dependencies = [
     # without the ``base.txt`` lock file (#40962).
     "cachetools>=7.1.4, <8",
     "celery>=5.6.3, <6.0.0",
-    "click>=8.4.0",
+    "click>=8.4.2",
     "click-option-group",
     "colorama",
     "flask-cors>=6.0.5, <7.0",
