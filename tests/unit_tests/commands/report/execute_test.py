@@ -30,6 +30,7 @@ from superset.app import SupersetApp
 from superset.commands.exceptions import UpdateFailedError
 from superset.commands.report.exceptions import (
     ReportScheduleAlertGracePeriodError,
+    ReportScheduleClientErrorsException,
     ReportScheduleCsvFailedError,
     ReportScheduleExecuteUnexpectedError,
     ReportScheduleExecutorNotFoundError,
@@ -61,6 +62,7 @@ from superset.reports.models import (
     ReportSourceFormat,
     ReportState,
 )
+from superset.reports.notifications.base import NotificationContent
 from superset.subjects.types import SubjectType
 from superset.utils.core import HeaderDataType
 from superset.utils.screenshots import ChartScreenshot
@@ -1969,6 +1971,123 @@ def test_update_recipient_to_slack_v2_no_slack_recipients_is_noop(
         == '{"target": "user@example.com"}'
     )
     mock_search.assert_not_called()
+
+
+def test_send_falls_back_to_slack_v1_when_private_channels_upgrade_fails(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """A partial-visibility probe must not block a text-only v1 send."""
+    app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
+    original_config = json.dumps({"target": "private-a, private-b"})
+    recipient = ReportRecipients(
+        type=ReportRecipientType.SLACK,
+        recipient_config_json=original_config,
+    )
+    report_schedule = ReportSchedule(
+        name="Private channel report",
+        recipients=[recipient],
+    )
+    report_state = BaseReportState(
+        report_schedule,
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    notification_content = NotificationContent(
+        name="Private channel report",
+        header_data={
+            "notification_format": "TEXT",
+            "notification_type": "Report",
+            "editors": [],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": ["private-a", "private-b"],
+            "execution_id": "execution_id_example",
+        },
+        description="Text-only report",
+        url="https://superset.example/report",
+    )
+    v2_probe = mocker.patch(
+        "superset.reports.notifications.slack.should_use_v2_api",
+        return_value=True,
+    )
+    channel_search = mocker.patch(
+        "superset.commands.report.execute.get_channels_with_search",
+        return_value=[],
+    )
+    slack_client = mocker.patch("superset.reports.notifications.slack.get_slack_client")
+    mocker.patch("superset.reports.notifications.slack.g", logs_context={})
+
+    report_state._send(notification_content, report_schedule.recipients)
+
+    v2_probe.assert_called_once_with()
+    channel_search.assert_called_once()
+    assert slack_client.return_value.chat_postMessage.call_count == 2
+    assert [
+        call.kwargs["channel"]
+        for call in slack_client.return_value.chat_postMessage.call_args_list
+    ] == ["private-a", "private-b"]
+    assert recipient.type == ReportRecipientType.SLACK
+    assert recipient.recipient_config_json == original_config
+
+
+def test_send_does_not_fall_back_to_slack_v1_for_file_uploads(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """A failed v2 migration must not retry a retired v1 file upload."""
+    app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
+    recipient = ReportRecipients(
+        type=ReportRecipientType.SLACK,
+        recipient_config_json=json.dumps({"target": "private-channel"}),
+    )
+    report_schedule = ReportSchedule(
+        name="Private channel report",
+        recipients=[recipient],
+    )
+    report_state = BaseReportState(
+        report_schedule,
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    notification_content = NotificationContent(
+        name="Private channel report",
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Report",
+            "editors": [],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": ["private-channel"],
+            "execution_id": "execution_id_example",
+        },
+        screenshots=[b"screenshot"],
+        description="File-bearing report",
+        url="https://superset.example/report",
+    )
+    mocker.patch(
+        "superset.reports.notifications.slack.should_use_v2_api",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.report.execute.get_channels_with_search",
+        return_value=[],
+    )
+    slack_client = mocker.patch("superset.reports.notifications.slack.get_slack_client")
+    mocker.patch("superset.reports.notifications.slack.g", logs_context={})
+
+    with pytest.raises(ReportScheduleClientErrorsException) as exc_info:
+        report_state._send(notification_content, report_schedule.recipients)
+
+    error_message = str(exc_info.value.errors[0].message)
+    assert "Slack v1 file uploads are no longer supported" in error_message
+    assert "`channels:read` and `groups:read`" in error_message
+    slack_client.return_value.files_upload.assert_not_called()
+    slack_client.return_value.chat_postMessage.assert_not_called()
+    assert recipient.type == ReportRecipientType.SLACK
+    assert recipient.recipient_config_json == '{"target": "private-channel"}'
 
 
 # ---------------------------------------------------------------------------

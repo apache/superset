@@ -75,12 +75,13 @@ from superset.reports.models import (
     ReportState,
 )
 from superset.reports.notifications import create_notification
-from superset.reports.notifications.base import NotificationContent
+from superset.reports.notifications.base import BaseNotification, NotificationContent
 from superset.reports.notifications.exceptions import (
     NotificationError,
     NotificationParamException,
     SlackV1NotificationError,
 )
+from superset.reports.notifications.slack import SlackNotification
 from superset.subjects.types import SubjectType
 from superset.tasks.utils import get_executor
 from superset.utils import json
@@ -1012,6 +1013,30 @@ class BaseReportState:
             header_data=header_data,
         )
 
+    def _upgrade_and_send_slack_notification(
+        self,
+        notification: BaseNotification,
+        recipient: ReportRecipients,
+        notification_content: NotificationContent,
+    ) -> None:
+        """Upgrade a Slack recipient, falling back to text-only v1 delivery."""
+        try:
+            self.update_report_schedule_slack_v2()
+        except UpdateFailedError as update_error:
+            logger.warning(
+                "Slack v2 upgrade unavailable; attempting a text-only Slack v1 "
+                "fallback for this execution: %s",
+                update_error,
+            )
+            if not isinstance(notification, SlackNotification):
+                raise
+            notification.send(force_v1=True)
+            return
+
+        recipient.type = ReportRecipientType.SLACKV2
+        notification = create_notification(recipient, notification_content)
+        notification.send()
+
     def _send(
         self,
         notification_content: NotificationContent,
@@ -1042,10 +1067,11 @@ class BaseReportState:
                     logger.info(
                         "Attempting to upgrade the report to Slackv2: %s", str(ex)
                     )
-                    self.update_report_schedule_slack_v2()
-                    recipient.type = ReportRecipientType.SLACKV2
-                    notification = create_notification(recipient, notification_content)
-                    notification.send()
+                    self._upgrade_and_send_slack_notification(
+                        notification,
+                        recipient,
+                        notification_content,
+                    )
             except (
                 UpdateFailedError,
                 NotificationParamException,
