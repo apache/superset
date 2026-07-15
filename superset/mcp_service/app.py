@@ -133,6 +133,7 @@ Dashboard Management:
 - update_dashboard: Update an existing dashboard's title/description/slug/published/layout/theme/CSS (requires write access; editorship-checked per-instance)
 - duplicate_dashboard: Duplicate an existing dashboard, optionally deep-copying its charts (requires write access)
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
+- delete_dashboard: Delete a dashboard by ID/UUID/slug (requires editor rights — owner or Admin; destructive; does not delete its charts; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
 - manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select and filter_time)
 - remove_chart_from_dashboard: Remove a chart from an existing dashboard (requires write access)
 
@@ -145,6 +146,11 @@ Annotation Layers:
 Tag Management:
 - list_tags: List tags with advanced filters (1-based pagination)
 - get_tag_info: Get detailed tag information by ID
+
+Theme Management:
+- list_themes: Discover themes (antd design-token configurations) with filters (1-based pagination)
+- get_theme_info: Get a theme's tokens (json_data) by ID or UUID
+- create_theme: Create a reusable theme from antd design tokens (requires write access)
 
 Database Connections:
 - list_databases: List database connections with advanced filters (1-based pagination)
@@ -169,6 +175,7 @@ Dataset Management:
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
 - create_dataset: Register a physical table as a dataset against an existing DB connection (requires write access)
 - create_virtual_dataset: Save a SQL query as a virtual dataset for charting (requires write access)
+- update_dataset_metric: Update a saved metric on a dataset — expression, name, verbose_name, format (requires dataset ownership)
 - query_dataset: Query a dataset using its semantic layer (saved metrics, dimensions, filters) without needing a saved chart
 
 Chart Management:
@@ -181,6 +188,7 @@ Chart Management:
 - generate_explore_link: Create an interactive explore URL (preferred for exploration)
 - update_chart: Update existing saved chart configuration (requires write access)
 - update_chart_preview: Update cached chart preview without saving (requires write access)
+- delete_chart: Delete a chart by ID/UUID (requires editor rights — owner or Admin; destructive; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
 
 SQL Lab Integration:
 - execute_sql: Execute SQL queries and get results (requires database_id and SQL access)
@@ -456,8 +464,8 @@ Input format:
 {_instance_info_role_bullet}- ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
   charts, or dashboards). SQL execution is a separate permission — see execute_sql below.
 - Write tools (generate_chart, generate_dashboard, update_chart, duplicate_dashboard,
-  create_dataset, create_virtual_dataset, save_sql_query, add_chart_to_existing_dashboard,
-  manage_native_filters, remove_chart_from_dashboard,
+  create_dataset, create_virtual_dataset, update_dataset_metric, save_sql_query,
+  add_chart_to_existing_dashboard, manage_native_filters, remove_chart_from_dashboard,
   update_chart_preview) require write
   permissions. These tools are only listed for users who have the necessary access.
   If a write tool does not appear in the tool list, the current user lacks write access.
@@ -713,6 +721,7 @@ from superset.mcp_service.chart import (  # noqa: F401, E402
     resources as chart_resources,
 )
 from superset.mcp_service.chart.tool import (  # noqa: F401, E402
+    delete_chart,
     generate_chart,
     get_chart_data,
     get_chart_info,
@@ -725,6 +734,7 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
 )
 from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     add_chart_to_existing_dashboard,
+    delete_dashboard,
     duplicate_dashboard,
     generate_dashboard,
     get_dashboard_datasets,
@@ -745,6 +755,7 @@ from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
     get_dataset_info,
     list_datasets,
     query_dataset,
+    update_dataset_metric,
 )
 from superset.mcp_service.explore.tool import (  # noqa: F401, E402
     generate_explore_link,
@@ -798,6 +809,11 @@ from superset.mcp_service.tag.tool import (  # noqa: F401, E402
 from superset.mcp_service.task.tool import (  # noqa: F401, E402
     get_task_info,
     list_tasks,
+)
+from superset.mcp_service.theme.tool import (  # noqa: F401, E402
+    create_theme,
+    get_theme_info,
+    list_themes,
 )
 from superset.mcp_service.user.tool import (  # noqa: F401, E402
     get_user_info,

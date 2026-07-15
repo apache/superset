@@ -232,15 +232,15 @@ msgstr "\"%s is now the system dark theme"
 msgid "\"%s\" is now the system default theme"
 msgstr "«%s» тепер є типовою системною темою"
 
-#, python-format
+#, no-python-format
 msgid "% calculation"
 msgstr "% обчислення"
 
-#, python-format
+#, no-python-format
 msgid "% of parent"
 msgstr "% батька"
 
-#, python-format
+#, no-python-format
 msgid "% of total"
 msgstr "%  всього"
 
@@ -299,14 +299,10 @@ msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgid_plural ""
 "%(firstSuggestions)s or %(lastSuggestion)s instead of "
 "\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s замість «%(undefinedParameter)s?»"
-msgstr[1] ""
-"%(firstSuggestions)s або %(lastSuggestion)s замість "
-"«%(undefinedParameter)s?»"
-msgstr[2] ""
-"%(firstSuggestions)s або %(lastSuggestion)s замість "
-"«%(undefinedParameter)s?»"
-msgstr[3] "%(suggestion)s замість «%(undefinedParameter)s?»"
+msgstr[0] "%(firstSuggestions)s %(lastSuggestion)s замість «%(undefinedParameter)s?»"
+msgstr[1] "%(firstSuggestions)s або %(lastSuggestion)s замість «%(undefinedParameter)s?»"
+msgstr[2] "%(firstSuggestions)s або %(lastSuggestion)s замість «%(undefinedParameter)s?»"
+msgstr[3] "%(firstSuggestions)s %(lastSuggestion)s замість «%(undefinedParameter)s?»"
 
 #, python-format
 msgid ""

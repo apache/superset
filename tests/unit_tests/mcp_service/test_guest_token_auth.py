@@ -39,8 +39,9 @@ from flask import g
 from superset.app import SupersetApp
 from superset.constants import CHANGE_ME_GUEST_TOKEN_JWT_SECRET
 from superset.mcp_service.auth import (
+    _DEFAULT_GUEST_ALLOWED_TOOLS,
     _resolve_user_from_jwt_context,
-    _tool_denied_for_guest,
+    _tool_denied_for_principal,
     check_tool_permission,
     CLASS_PERMISSION_ATTR,
     is_tool_visible_to_current_user,
@@ -316,21 +317,85 @@ def _make_guest_user() -> GuestUser:
     )
 
 
-def test_tool_denied_for_guest_helper(app: SupersetApp) -> None:
+def test_tool_denied_for_principal_helper(app: SupersetApp) -> None:
     denied = MagicMock()
-    denied.__name__ = "find_users"
+    denied.__name__ = "find_users"  # not on the allow-list
     allowed = MagicMock()
-    allowed.__name__ = "list_charts"
+    allowed.__name__ = "list_charts"  # on the allow-list
 
     with app.app_context():
-        # Non-guest: deny-list never applies.
+        # Non-guest: the guest allow-list never applies.
         g.user = MagicMock(spec=[])
-        assert _tool_denied_for_guest(denied) is False
+        assert _tool_denied_for_principal(denied) is False
 
-        # Guest: denied tool blocked, non-denied tool allowed.
+        # Guest: only allow-listed tools pass; everything else is denied.
         g.user = _make_guest_user()
-        assert _tool_denied_for_guest(denied) is True
-        assert _tool_denied_for_guest(allowed) is False
+        assert _tool_denied_for_principal(denied) is True
+        assert _tool_denied_for_principal(allowed) is False
+
+
+def test_default_allow_list_matches_config() -> None:
+    """The auth.py default and the mcp_config.py default must stay in sync."""
+    from superset.mcp_service.mcp_config import MCP_GUEST_ALLOWED_TOOLS
+
+    assert set(_DEFAULT_GUEST_ALLOWED_TOOLS) == set(MCP_GUEST_ALLOWED_TOOLS)
+
+
+@pytest.mark.parametrize("tool_name", sorted(_DEFAULT_GUEST_ALLOWED_TOOLS))
+def test_allow_listed_tools_permitted_for_guest(
+    app: SupersetApp, tool_name: str
+) -> None:
+    """Every tool on the default allow-list is reachable by a guest."""
+    func = MagicMock()
+    func.__name__ = tool_name
+
+    with app.app_context():
+        g.user = _make_guest_user()
+        assert _tool_denied_for_principal(func) is False
+
+
+@pytest.mark.parametrize(
+    "tool_name",
+    [
+        # user-directory / security-config
+        "find_users",
+        "get_user_info",
+        "list_users",
+        "get_role_info",
+        "list_roles",
+        "get_instance_info",
+        # data-model internals
+        "get_dataset_info",
+        "list_datasets",
+        "query_dataset",
+        "get_database_info",
+        "get_chart_sql",
+        "list_rls_filters",
+        # newly-covered enumeration tools (tags/tasks/annotations/reports/queries)
+        "list_tags",
+        "list_tasks",
+        "list_annotation_layers",
+        "list_reports",
+        "list_queries",
+        "list_saved_queries",
+        # mutating tools
+        "execute_sql",
+        "create_dataset",
+        "update_dashboard",
+        "generate_chart",
+    ],
+)
+def test_non_allow_listed_tools_denied_to_guest(
+    app: SupersetApp, tool_name: str
+) -> None:
+    """Default-deny: any tool not on the allow-list is blocked for a guest,
+    regardless of its RBAC class (holds with RBAC off)."""
+    func = MagicMock()
+    func.__name__ = tool_name
+
+    with app.app_context():
+        g.user = _make_guest_user()
+        assert _tool_denied_for_principal(func) is True
 
 
 def test_guest_denied_tool_blocked_at_call_time(app: SupersetApp) -> None:
@@ -354,8 +419,8 @@ def test_guest_denied_tool_hidden_from_listing(app: SupersetApp) -> None:
 
 
 def test_guest_allowed_tool_permitted_with_rbac(app: SupersetApp) -> None:
-    """A guest passes the deny-list and is granted a non-denied tool through the
-    full RBAC chain (deny-list runs, RBAC grants, scopes allow)."""
+    """A guest passes the allow-list and is granted an allow-listed tool through
+    the full RBAC chain (allow-list runs, RBAC grants, scopes allow)."""
     func = MagicMock()
     func.__name__ = "list_charts"
     setattr(func, CLASS_PERMISSION_ATTR, "Chart")
@@ -372,33 +437,100 @@ def test_guest_allowed_tool_permitted_with_rbac(app: SupersetApp) -> None:
             assert check_tool_permission(func) is True
 
 
-def test_denylist_string_misconfig_falls_back_to_default(app: SupersetApp) -> None:
-    """A misconfigured string deny-list must not cause substring matching; the
-    type guard falls back to the safe default set."""
+def test_allowlist_string_misconfig_falls_back_to_default(app: SupersetApp) -> None:
+    """A misconfigured string allow-list must not cause substring matching; the
+    type guard falls back to the safe default set (fail-closed)."""
     func = MagicMock()
-    func.__name__ = "find_user"  # substring of "find_users"
+    func.__name__ = "chart"  # substring of allow-list entries like "get_chart_info"
 
     with app.app_context():
         with patch.dict(
-            app.config, {"MCP_GUEST_DENIED_TOOLS": "find_users,get_instance_info"}
+            app.config, {"MCP_GUEST_ALLOWED_TOOLS": "get_chart_info,list_charts"}
         ):
             g.user = _make_guest_user()
-            # Naive `in` on the string would wrongly match "find_user"; the guard
-            # falls back to the default set, so "find_user" is allowed...
-            assert _tool_denied_for_guest(func) is False
-            # ...while a genuinely-denied tool is still blocked via the default.
-            func.__name__ = "find_users"
-            assert _tool_denied_for_guest(func) is True
+            # Naive substring `in` would wrongly ALLOW "chart"; the guard falls
+            # back to the default set, where "chart" is absent, so it is denied.
+            assert _tool_denied_for_principal(func) is True
+            # A genuinely allow-listed tool is still permitted via the default.
+            func.__name__ = "get_chart_info"
+            assert _tool_denied_for_principal(func) is False
 
 
-def test_guest_denied_tools_operator_override(app: SupersetApp) -> None:
+def test_guest_allowed_tools_operator_override(app: SupersetApp) -> None:
+    """An operator can widen the guest allow-list via config."""
+    func = MagicMock()
+    func.__name__ = "get_dataset_info"  # not on the default allow-list
+
+    with app.app_context():
+        g.user = _make_guest_user()
+        assert _tool_denied_for_principal(func) is True
+        with patch.dict(app.config, {"MCP_GUEST_ALLOWED_TOOLS": {"get_dataset_info"}}):
+            assert _tool_denied_for_principal(func) is False
+
+
+def test_restricted_tool_policy_hook_restricts_non_guest(app: SupersetApp) -> None:
+    """A custom MCP_RESTRICTED_TOOL_POLICY can restrict a non-guest principal,
+    proving the allow-list layer is principal-agnostic (guests are just the
+    default). The policy returns an allow-list; non-listed tools are denied."""
+    allowed = MagicMock()
+    allowed.__name__ = "list_charts"
+    denied = MagicMock()
+    denied.__name__ = "execute_sql"
+
+    def policy(user: Any) -> frozenset[str] | None:
+        return frozenset({"list_charts"})
+
+    with app.app_context():
+        with patch.dict(app.config, {"MCP_RESTRICTED_TOOL_POLICY": policy}):
+            g.user = MagicMock(spec=[])  # an ordinary (non-guest) principal
+            assert _tool_denied_for_principal(allowed) is False
+            assert _tool_denied_for_principal(denied) is True
+
+
+def test_restricted_tool_policy_hook_none_means_unrestricted(app: SupersetApp) -> None:
+    """A policy returning None leaves the principal governed by RBAC (not blocked
+    by the allow-list layer)."""
+    func = MagicMock()
+    func.__name__ = "execute_sql"
+
+    def policy(user: Any) -> frozenset[str] | None:
+        return None
+
+    with app.app_context():
+        with patch.dict(app.config, {"MCP_RESTRICTED_TOOL_POLICY": policy}):
+            g.user = _make_guest_user()
+            assert _tool_denied_for_principal(func) is False
+
+
+def test_restricted_tool_policy_hook_bad_return_fails_closed(app: SupersetApp) -> None:
+    """A misbehaving policy that returns a non-collection denies all tools."""
+    func = MagicMock()
+    func.__name__ = "get_chart_info"
+
+    def policy(user: Any) -> frozenset[str] | None:
+        return "list_charts"  # type: ignore[return-value]
+
+    with app.app_context():
+        with patch.dict(app.config, {"MCP_RESTRICTED_TOOL_POLICY": policy}):
+            g.user = _make_guest_user()
+            assert _tool_denied_for_principal(func) is True
+
+
+def test_restricted_tool_policy_hook_non_callable_uses_default(
+    app: SupersetApp,
+) -> None:
+    """A non-callable policy (a set is the natural mistake, since
+    MCP_GUEST_ALLOWED_TOOLS is a set) does not crash every call: it falls back to
+    the built-in default, so a guest stays default-denied for non-allow-listed
+    tools."""
     func = MagicMock()
     func.__name__ = "execute_sql"
 
     with app.app_context():
-        with patch.dict(app.config, {"MCP_GUEST_DENIED_TOOLS": {"execute_sql"}}):
+        with patch.dict(app.config, {"MCP_RESTRICTED_TOOL_POLICY": {"list_charts"}}):
             g.user = _make_guest_user()
-            assert _tool_denied_for_guest(func) is True
+            # No TypeError, and the guest is still restricted (execute_sql denied).
+            assert _tool_denied_for_principal(func) is True
 
 
 # -- Hardening: expiry, forgery, and the resolution gate --

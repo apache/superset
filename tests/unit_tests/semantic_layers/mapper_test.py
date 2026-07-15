@@ -375,6 +375,28 @@ def test_convert_query_object_filter_in(mock_datasource: MagicMock) -> None:
     }
 
 
+def test_convert_query_object_filter_ilike_rejected(
+    mock_datasource: MagicMock,
+) -> None:
+    """
+    Case-insensitive operators are rejected explicitly rather than silently
+    collapsed into LIKE — that collapse would let the backend's collation
+    decide case sensitivity, silently diverging from the filter the dashboard
+    author selected.
+    """
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+    for op in (FilterOperator.ILIKE.value, FilterOperator.NOT_ILIKE.value):
+        filter_: ValidatedQueryObjectFilterClause = {
+            "op": op,
+            "col": "category",
+            "val": "%book%",
+        }
+        with pytest.raises(ValueError, match="case-insensitive"):
+            _convert_query_object_filter(filter_, all_dimensions)
+
+
 def test_convert_query_object_filter_is_null(mock_datasource: MagicMock) -> None:
     """
     Test conversion of IS_NULL filter.
@@ -3469,6 +3491,7 @@ def test_map_query_object_shifts_time_offset_via_temporal_range_filter(
     main_query, offset_query = queries[0], queries[1]
 
     def time_filter_bounds(query: SemanticQuery) -> tuple[datetime, datetime]:
+        assert query.filters is not None
         gte = next(
             f.value
             for f in query.filters
@@ -3483,6 +3506,8 @@ def test_map_query_object_shifts_time_offset_via_temporal_range_filter(
             and f.column.name == "order_date"
             and f.operator == Operator.LESS_THAN
         )
+        assert isinstance(gte, datetime)
+        assert isinstance(lt, datetime)
         return gte, lt
 
     main_gte, main_lt = time_filter_bounds(main_query)

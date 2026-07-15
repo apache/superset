@@ -176,6 +176,28 @@ class FilterRelatedSubjects(BaseFilter):
         return _apply_subject_list_filters(query)
 
 
+class SubjectAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """ILIKE search across a subject's textual columns.
+
+    Used by the Subject REST API ``search_filters`` for free-text search.
+    """
+
+    name = _("All Text")
+    arg_name = "subject_all_text"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if not value:
+            return query
+        ilike_value = f"%{value}%"
+        return query.filter(
+            or_(
+                Subject.label.ilike(ilike_value),
+                Subject.secondary_label.ilike(ilike_value),
+                Subject.extra_search.ilike(ilike_value),
+            )
+        )
+
+
 def filter_subject_relation_by_current_user(
     query: Query,
     *,

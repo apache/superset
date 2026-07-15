@@ -20,25 +20,23 @@
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiPost, apiPut } from '../../helpers/api/requests';
 import { apiPostDashboard } from '../../helpers/api/dashboard';
+import { getDatasetByName } from '../../helpers/api/dataset';
 import { DashboardPage } from '../../pages/DashboardPage';
+import { TIMEOUT } from '../../utils/constants';
 
 const DATASET_NAME = 'birth_names';
 const FILTER_COLUMN = 'gender';
 
-async function findDatasetIdByName(page: any, name: string): Promise<number> {
-  const rison = `(filters:!((col:table_name,opr:eq,value:'${name}')))`;
-  const resp = await page.request.get(`api/v1/dataset/?q=${rison}`);
-  const body = await resp.json();
-  if (!body.result?.length) {
-    throw new Error(`Dataset ${name} not found`);
-  }
-  return body.result[0].id;
-}
-
 testWithAssets(
   'Clear all filters waits for Apply (sc-105059)',
   async ({ page, testAssets }) => {
-    const datasetId = await findDatasetIdByName(page, DATASET_NAME);
+    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
+
+    const dataset = await getDatasetByName(page, DATASET_NAME);
+    if (!dataset) {
+      throw new Error(`Dataset ${DATASET_NAME} not found`);
+    }
+    const datasetId = dataset.id;
 
     // Create a chart that the dashboard filter will target
     const chartParams = {
@@ -148,7 +146,7 @@ testWithAssets(
     // Visit dashboard
     const dashboardPage = new DashboardPage(page);
     await dashboardPage.gotoById(dashboardId);
-    await dashboardPage.waitForLoad();
+    await dashboardPage.waitForLoad({ timeout: TIMEOUT.SLOW_TEST });
     await dashboardPage.waitForChartsToLoad();
 
     // The Gender select should be visible in the filter bar

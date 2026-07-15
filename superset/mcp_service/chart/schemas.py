@@ -306,6 +306,8 @@ class GetChartInfoRequest(BaseModel):
     current chart configuration from cache.
     """
 
+    model_config = ConfigDict(populate_by_name=True)
+
     identifier: Annotated[
         int | str | None,
         Field(
@@ -314,6 +316,7 @@ class GetChartInfoRequest(BaseModel):
                 "Chart identifier - can be numeric ID or UUID string. "
                 "Optional when form_data_key is provided (for unsaved charts)."
             ),
+            validation_alias=AliasChoices("identifier", "id", "chart_id"),
         ),
     ]
     form_data_key: str | None = Field(
@@ -344,6 +347,7 @@ class GetChartInfoRequest(BaseModel):
                 "set that excludes 'form_data' (the full chart config, can be 50KB+). "
                 "Add 'form_data' explicitly when you need the raw chart configuration."
             ),
+            validation_alias=AliasChoices("select_columns", "columns"),
         ),
     ]
 
@@ -1405,8 +1409,10 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
     temporal_column: str | None = Field(
         None,
         description=(
-            "Temporal column for the trendline x-axis. "
-            "Required when show_trendline is True."
+            "Temporal column for the trendline x-axis. Required when "
+            "show_trendline is True. Also used (whether or not a trendline is "
+            "shown) to bind the chart's dashboard time-range filter; when "
+            "omitted, the dataset's main temporal column is used instead."
         ),
         min_length=1,
         max_length=255,
@@ -1935,6 +1941,8 @@ class ChartRequestNormalizerMixin(BaseModel):
 class ListChartsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
     """Request schema for list_charts with clear, unambiguous types."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     filters: Annotated[
         List[ChartFilter],
         Field(
@@ -1950,6 +1958,7 @@ class ListChartsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheControl)
             default_factory=list,
             description="List of columns to select. Defaults to common columns if not "
             "specified.",
+            validation_alias=AliasChoices("select_columns", "columns"),
         ),
     ]
 
@@ -2127,6 +2136,8 @@ class GenerateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
 
 
 class GenerateExploreLinkRequest(ChartRequestNormalizerMixin, FormDataCacheControl):
+    model_config = ConfigDict(populate_by_name=True)
+
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
     config: ChartConfig | None = Field(
         None,
@@ -2141,7 +2152,11 @@ class GenerateExploreLinkRequest(ChartRequestNormalizerMixin, FormDataCacheContr
 class UpdateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
     model_config = ConfigDict(populate_by_name=True)
 
-    identifier: int | str = Field(..., description="Chart ID or UUID")
+    identifier: int | str = Field(
+        ...,
+        description="Chart ID or UUID",
+        validation_alias=AliasChoices("identifier", "id", "chart_id"),
+    )
     config: ChartConfig | None = Field(
         None,
         description="Chart configuration. Optional; omit to only update chart_name.",
@@ -2186,6 +2201,8 @@ class UpdateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
 
 
 class UpdateChartPreviewRequest(ChartRequestNormalizerMixin, FormDataCacheControl):
+    model_config = ConfigDict(populate_by_name=True)
+
     form_data_key: str | None = Field(
         None,
         description=(
@@ -2213,12 +2230,15 @@ class GetChartDataRequest(QueryCacheControl):
     the current chart configuration from cache.
     """
 
+    model_config = ConfigDict(populate_by_name=True)
+
     identifier: int | str | None = Field(
         default=None,
         description=(
             "Chart identifier (ID, UUID). "
             "Optional when form_data_key is provided (for unsaved charts)."
         ),
+        validation_alias=AliasChoices("identifier", "id", "chart_id"),
     )
     form_data_key: str | None = Field(
         default=None,
@@ -2343,12 +2363,15 @@ class GetChartPreviewRequest(QueryCacheControl):
     using the current chart configuration from cache.
     """
 
+    model_config = ConfigDict(populate_by_name=True)
+
     identifier: int | str | None = Field(
         default=None,
         description=(
             "Chart identifier (ID, UUID). "
             "Optional when form_data_key is provided (for unsaved charts)."
         ),
+        validation_alias=AliasChoices("identifier", "id", "chart_id"),
     )
     form_data_key: str | None = Field(
         default=None,
@@ -2562,12 +2585,15 @@ class GetChartSqlRequest(BaseModel):
     to get the SQL for the unsaved chart state from the Explore view.
     """
 
+    model_config = ConfigDict(populate_by_name=True)
+
     identifier: int | str | None = Field(
         default=None,
         description=(
             "Chart identifier - can be numeric ID or UUID string. "
             "Optional when form_data_key is provided (for unsaved charts)."
         ),
+        validation_alias=AliasChoices("identifier", "id", "chart_id"),
     )
     form_data_key: str | None = Field(
         default=None,
@@ -2725,3 +2751,49 @@ class ChartFiltersInfo(BaseModel):
 
 # Rebuild ChartInfo so Pydantic can resolve the ChartFiltersInfo forward reference.
 ChartInfo.model_rebuild()
+
+
+class DeleteChartRequest(BaseModel):
+    """Request schema for delete_chart."""
+
+    identifier: int | str = Field(
+        ...,
+        description=(
+            "Chart identifier - numeric ID or UUID string (charts have no slug)."
+        ),
+    )
+
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so identifier=true would coerce to
+        chart ID 1 and delete the wrong object; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID or UUID string")
+        return value
+
+
+class DeleteChartResponse(BaseModel):
+    """Result of a delete_chart operation."""
+
+    success: bool = Field(description="Whether the chart was deleted")
+    deleted_id: int | None = Field(None, description="ID of the deleted chart")
+    deleted_name: str | None = Field(None, description="Name of the deleted chart")
+    soft_deleted: bool = Field(
+        False,
+        description=(
+            "True when the chart was soft-deleted (moved to trash, because the "
+            "SOFT_DELETE feature flag is enabled) and can be restored by an "
+            "owner or Admin. False means the delete was permanent."
+        ),
+    )
+    message: str | None = Field(None, description="Human-readable outcome message")
+    error: str | None = Field(None, description="Error message if the delete failed")
+    error_type: str | None = Field(None, description="Type of error if failed")
+    permission_denied: bool = Field(
+        False,
+        description=(
+            "True when the caller lacks permission to delete the chart (do not "
+            "retry; ask the user)."
+        ),
+    )

@@ -27,6 +27,7 @@ from flask import Flask
 from superset.constants import CHANGE_ME_GUEST_TOKEN_JWT_SECRET
 from superset.mcp_service.composite_token_verifier import CompositeTokenVerifier
 from superset.mcp_service.constants import (
+    DEFAULT_MAX_LIST_ITEMS,
     DEFAULT_TOKEN_LIMIT,
     DEFAULT_WARN_THRESHOLD_PCT,
 )
@@ -154,9 +155,25 @@ MCP_API_KEY_CREATE_URL = "/profile/"
 # GUEST_TOKEN_JWT_* config. See SECURITY.md "Embedded Guest Authentication".
 MCP_EMBEDDED_GUEST_AUTH_ENABLED: bool = False
 
-# Tools a guest may never call (enforced at tools/list and call time, regardless
-# of RBAC). Sync with _DEFAULT_GUEST_DENIED_TOOLS in auth.py.
-MCP_GUEST_DENIED_TOOLS: set[str] = {"find_users", "get_instance_info"}
+# The only tools an embedded guest may call (default-deny, regardless of RBAC).
+# Guest data is further scoped to the token's dashboards by the chart/dashboard
+# filters and redacted by the data-model privacy gate. Sync with
+# _DEFAULT_GUEST_ALLOWED_TOOLS in auth.py.
+MCP_GUEST_ALLOWED_TOOLS: set[str] = {
+    "get_dashboard_info",
+    "get_dashboard_layout",
+    "list_dashboards",
+    "list_charts",
+    "get_chart_info",
+    "get_chart_data",
+    "get_chart_preview",
+}
+
+# Hook to restrict which MCP tools a principal may call, independent of RBAC.
+# Given the current user, return an allow-list (only these tools are callable) or
+# None if the principal is not restricted. Defaults to restricting embedded guests
+# to MCP_GUEST_ALLOWED_TOOLS; set a callable to add other restricted principals.
+MCP_RESTRICTED_TOOL_POLICY: Callable[[Any], frozenset[str] | None] | None = None
 
 
 # Session configuration for local development
@@ -306,6 +323,12 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
 # - token_limit: Maximum estimated tokens per response (default: 25,000)
 # - excluded_tools: Tools to skip checking (e.g., streaming tools)
 # - warn_threshold_pct: Log warnings above this % of limit (default: 80%)
+# - max_list_items: Cap applied to list fields (e.g. ``charts``,
+#   ``native_filters``) during Phase 2 of dynamic truncation for the "info"
+#   tools (get_chart_info, get_dataset_info, get_dashboard_info,
+#   get_instance_info) when a response exceeds token_limit (default: 100).
+#   Operators with tenants that have unusually large dashboards (hundreds of
+#   charts/filters) can raise this value to return more complete responses.
 #
 # Token Estimation:
 # -----------------
@@ -316,6 +339,7 @@ MCP_RESPONSE_SIZE_CONFIG: dict[str, Any] = {
     "enabled": True,  # Enabled by default to protect LLM clients
     "token_limit": DEFAULT_TOKEN_LIMIT,
     "warn_threshold_pct": DEFAULT_WARN_THRESHOLD_PCT,
+    "max_list_items": DEFAULT_MAX_LIST_ITEMS,
     "excluded_tools": [  # Tools to skip size checking
         "health_check",  # Always small
         "generate_explore_link",  # Returns URLs
@@ -672,7 +696,7 @@ def get_mcp_config(app_config: dict[str, Any] | None = None) -> dict[str, Any]:
         "MCP_DISABLED_CHART_PLUGINS": MCP_DISABLED_CHART_PLUGINS,
         "MCP_CHART_PLUGIN_ENABLED_FUNC": MCP_CHART_PLUGIN_ENABLED_FUNC,
         "MCP_EMBEDDED_GUEST_AUTH_ENABLED": MCP_EMBEDDED_GUEST_AUTH_ENABLED,
-        "MCP_GUEST_DENIED_TOOLS": set(MCP_GUEST_DENIED_TOOLS),
+        "MCP_GUEST_ALLOWED_TOOLS": set(MCP_GUEST_ALLOWED_TOOLS),
         **MCP_SESSION_CONFIG,
         **MCP_CSRF_CONFIG,
     }

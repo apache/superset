@@ -24,7 +24,6 @@ export const Pill = styled.div`
     color: ${theme.colorBgBase};
     background: ${theme.colorText};
     border-radius: 1em;
-    vertical-align: text-top;
     padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
     font-size: ${theme.fontSize}px;
     font-weight: ${theme.fontWeightStrong};

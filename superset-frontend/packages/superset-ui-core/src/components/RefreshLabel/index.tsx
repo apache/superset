@@ -36,6 +36,7 @@ const RefreshLabel = ({
     <Icons.SyncOutlined
       iconSize="l"
       role="button"
+      tabIndex={disabled ? -1 : 0}
       onClick={disabled ? undefined : onClick}
       css={(theme: SupersetTheme) => ({
         cursor: 'pointer',

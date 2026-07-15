@@ -318,7 +318,10 @@ def test_get_all_catalog_names(mocker: MockerFixture) -> None:
 
     get_inspector = mocker.patch.object(database, "get_inspector")
     with get_inspector() as inspector:
-        inspector.bind.execute.return_value = [("examples",), ("other",)]
+        inspector.engine.connect().__enter__().execute.return_value = [
+            ("examples",),
+            ("other",),
+        ]
 
     assert database.get_all_catalog_names(force=True) == {"examples", "other"}
     get_inspector.assert_called_with()
