@@ -1584,7 +1584,7 @@ msgid ""
 "Allow end user to drag-and-drop column headers to rearrange them. Note "
 "their changes won't persist for the next time they open the chart."
 msgstr ""
-"Permettre à l'utilisateur·rice final·e de glisser-déposer les en-têtes de"
+"Permettre à l'utilisateur final de glisser-déposer les en-têtes de"
 " colonne pour les réorganiser. Notez que leurs changements ne "
 "persisteront pas la prochaine fois qu'ils ouvriront le tableau."
 
@@ -1744,8 +1744,7 @@ msgstr ""
 #, python-format
 msgid "An error occurred while fetching %s values: %s"
 msgstr ""
-"[NEUTRE] Une erreur s'est produite lors de l'extraction de %s valeurs de "
-"l'utilisateur·rice : %s"
+"Une erreur s'est produite lors de l'extraction de %s valeurs : %s"
 
 #, python-format
 msgid "An error occurred while fetching %s: %s"
@@ -1880,7 +1879,7 @@ msgstr "Une erreur s'est produite lors de l'extraction des données d'utilisatio
 msgid "An error occurred while fetching user values: %s"
 msgstr ""
 "Une erreur s'est produite lors de l'extraction des valeurs de "
-"l'utilisateur·rice : %s"
+"l'utilisateur : %s"
 
 msgid "An error occurred while formatting SQL"
 msgstr "Une erreur s'est produite lors du formatage du SQL"
@@ -2698,7 +2697,7 @@ msgstr ""
 "Par défaut, chaque filtre charge au maximum 1000 choix lors du chargement"
 " initial de la page. Cochez cette case si vous avez plus de 1000 valeurs "
 "de filtre et que vous souhaitez activer la recherche dynamique qui charge"
-" les valeurs de filtre au fur et à mesure que les utilisateur·rice·s les "
+" les valeurs de filtre au fur et à mesure que les utilisateurs les "
 "saisissent (ce qui risque d'alourdir votre base de données)."
 
 msgid "By key: use column names as sorting key"
@@ -2822,7 +2821,7 @@ msgid ""
 "Cache data separately for each user based on their data access roles and "
 "permissions. When disabled, a single cache will be used for all users."
 msgstr ""
-"[NEUTRE] Conserver les données en cache pour chaque utilisateur en se "
+"Conserver les données en cache pour chaque utilisateur en se "
 "basant sur leurs roles et leurs permissions. Si désactivée, un seul cache"
 " sera utilisé pour tous les utilisateurs"
 
@@ -4914,7 +4913,7 @@ msgid ""
 "Default URL to redirect to when accessing from the dataset list page. "
 "Accepts relative URLs such as"
 msgstr ""
-"[NEUTRE] URL par défaut vers laquelle rediriger l'utilisateur lorsqu'il "
+"URL par défaut vers laquelle rediriger l'utilisateur lorsqu'il "
 "accède à la page depuis la liste des ensembles de données. Accepte les "
 "URL relatives telles que"
 
@@ -4974,7 +4973,7 @@ msgstr ""
 msgid "Define a function that returns a URL to navigate to when user clicks"
 msgstr ""
 "Définissez une fonction qui renvoie une URL vers laquelle naviguer "
-"lorsque l'utilisateur·rice clique"
+"lorsque l'utilisateur clique"
 
 msgid ""
 "Define a javascript function that receives the data array used in the "
@@ -5145,10 +5144,10 @@ msgid "Delete user"
 msgstr "Supprimer l'utilisateur"
 
 msgid "Delete user registration"
-msgstr "[NEUTRE] Supprimer l'inscription de l'utilisateur"
+msgstr "Supprimer l'inscription de l'utilisateur"
 
 msgid "Delete user registration?"
-msgstr "[NEUTRE] Supprimer l'inscription d'un utilisateur ?"
+msgstr "Supprimer l'inscription d'un utilisateur ?"
 
 msgid "Deleted"
 msgstr "Supprimé"
@@ -7481,10 +7480,10 @@ msgid ""
 "hive.server2.proxy.user property."
 msgstr ""
 "Dans le cas de Presto ou Trino, toutes les requêtes dans SQL Lab seront "
-"exécutées en tant qu'utilisateur·rice connecté·e qui doit avoir la "
+"exécutées en tant qu'utilisateur connecté qui doit avoir la "
 "permission de les exécuter. Si Hive et hive.server2.enable.doAs sont "
 "activés, les requêtes seront exécutées en tant que compte de service, "
-"mais en usurpant l'identité de l'utilisateur·rice connecté·e via la "
+"mais en usurpant l'identité de l'utilisateur connecté via la "
 "propriété hive.server2.proxy.user."
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
@@ -7530,7 +7529,7 @@ msgstr "Échec du téléchargement de l'image, veuillez actualiser et réessayer
 
 msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
-"Se faire passer pour l'utilisateur·rice connecté·e (Presto, Trino, Drill,"
+"Se faire passer pour l'utilisateur connecté (Presto, Trino, Drill,"
 " Hive, and GSheets)"
 
 msgid "Import"
@@ -9393,7 +9392,7 @@ msgid "No user registrations yet"
 msgstr "Aucune inscription d'utilisateur pour le moment"
 
 msgid "No users yet"
-msgstr "[NEUTRE] Pas encore d'utilisateurs"
+msgstr "Pas encore d'utilisateurs"
 
 msgid "No validator found (configured for the engine)"
 msgstr "Aucun validateur trouvé (configuré pour le moteur)"
@@ -9943,7 +9942,7 @@ msgstr "Les propriétaires ne sont pas valides"
 
 msgid "Owners is a list of users who can alter the dashboard."
 msgstr ""
-"Les propriétaires est une liste d'utilisateur·rice·s qui peuvent modifier"
+"Les propriétaires est une liste d'utilisateurs qui peuvent modifier"
 " le tableau de bord."
 
 msgid ""
@@ -10809,11 +10808,11 @@ msgid ""
 "except the roles defined in the filter, and can be used to define what "
 "users can see if no RLS filters within a filter group apply to them."
 msgstr ""
-"[NEUTRE] Les filtres réguliers ajoutent des clauses WHERE aux requêtes si"
-" un·e utilisateur·rice appartient à un profil référencé dans le filtre. "
+"Les filtres réguliers ajoutent des clauses WHERE aux requêtes si"
+" un·e utilisateur appartient à un profil référencé dans le filtre. "
 "Les filtres de base appliquent les filtres à toutes les requêtes sauf "
 "pour les profils définis dans le filtre, et peuvent être utilisés pour "
-"définir ce que les utilisateur·rice·s peuvent voir si aucun filtre RLS au"
+"définir ce que les utilisateur(s) peuvent voir si aucun filtre RLS au"
 " sein d'un groupe de filtres ne s'appliquent à eux."
 
 msgid "Relational"
@@ -12142,7 +12141,7 @@ msgid "Select the type of color scheme to use."
 msgstr "Sélectionner le type de couleur de schéma à utiliser"
 
 msgid "Select users"
-msgstr "[NEUTRE] Sélectionner les utilisateurs"
+msgstr "Sélectionner les utilisateurs"
 
 msgid "Select values"
 msgstr "Sélectionner les valeurs"
@@ -14505,29 +14504,29 @@ msgid "The upper limit of the threshold range of the Isoband"
 msgstr "La limite supérieure de la plage de seuil de l'isobande"
 
 msgid "The user has been created successfully."
-msgstr "[NEUTRE] L'utilisateur·rice a été créé·e avec succès."
+msgstr "L'utilisateur a été créé avec succès."
 
 msgid "The user has been updated successfully."
-msgstr "[NEUTRE] L'utilisateur·rice a été sauvegardé·e avec succès."
+msgstr "L'utilisateur a été sauvegardé avec succès."
 
 msgid "The user seems to have been deleted"
-msgstr "L'utilisateur·rice semble avoir été effacé·e"
+msgstr "L'utilisateur semble avoir été effacé"
 
 msgid "The user was updated successfully"
-msgstr "[NEUTRE] L'utilisateur·rice a été sauvegardé·e avec succès."
+msgstr "L'utilisateur a été sauvegardé avec succès."
 
 msgid "The user/password combination is not valid (Incorrect password for user)."
 msgstr ""
-"La combinaison utilisateur·rice/mot de passe n'est pas valide (mot de "
-"passe incorrect pour l'utilisateur·rice)."
+"La combinaison utilisateur/mot de passe n'est pas valide (mot de "
+"passe incorrect pour l'utilisateur)."
 
 #, python-format
 msgid "The username \"%(username)s\" does not exist."
-msgstr "L'utilisateur·rice « %(username)s » n'existe pas."
+msgstr "L'utilisateur « %(username)s » n'existe pas."
 
 msgid "The username provided when connecting to a database is not valid."
 msgstr ""
-"Le nom d'utilisateur·rice fourni lors de la connexion à une base de "
+"Le nom d'utilisateur fourni lors de la connexion à une base de "
 "données n'est pas valide."
 
 msgid "The values overlap other breakpoint values"
@@ -14641,8 +14640,8 @@ msgstr "Une erreur s'est produite lors de la création du rôle. Merci de réess
 
 msgid "There was an error creating the user. Please, try again."
 msgstr ""
-"[NEUTRE] Une erreur s'est produite lors de la création de "
-"l'utilisateur·rice. Merci de réessayer."
+"Une erreur s'est produite lors de la création de "
+"l'utilisateur. Merci de réessayer."
 
 msgid "There was an error duplicating the role. Please, try again."
 msgstr "Il y a eu un problème de duplication du rôle."
@@ -14685,7 +14684,7 @@ msgid "There was an error loading the tables"
 msgstr "Une erreur s'est produite lors de la récupération des tableaux"
 
 msgid "There was an error loading users."
-msgstr "[NEUTRE] Une erreur s'est produite lors du chargement des utilisateurs"
+msgstr "Une erreur s'est produite lors du chargement des utilisateurs"
 
 msgid "There was an error retrieving dashboard tabs."
 msgstr ""
@@ -14710,7 +14709,7 @@ msgstr ""
 
 msgid "There was an error updating the user. Please, try again."
 msgstr ""
-"[NEUTRE] Une erreur s'est produite lors de la mise à jour de "
+"Une erreur s'est produite lors de la mise à jour de "
 "l'utilisateur. Merci de réessayer"
 
 msgid "There was an error while fetching groups"
@@ -14740,7 +14739,7 @@ msgstr "Il y a eu un problème lors de la suppression de %s : %s"
 #, python-format
 msgid "There was an issue deleting registration for user: %s"
 msgstr ""
-"[NEUTRE] Il y a eu un problème lors de la suppression de l'inscription de"
+"Il y a eu un problème lors de la suppression de l'inscription de"
 " l'utilisateur : %s"
 
 #, python-format
@@ -14897,11 +14896,11 @@ msgstr "Cette acion supprimera définitivement le thème."
 
 msgid "This action will permanently delete the user registration."
 msgstr ""
-"[NEUTRE] Cette action supprimera définitivement l'enregistrement de "
+"Cette action supprimera définitivement l'enregistrement de "
 "l'utilisateur."
 
 msgid "This action will permanently delete the user."
-msgstr "[NEUTRE] Cette action supprimera définitivement l'utilisateur."
+msgstr "Cette action supprimera définitivement l'utilisateur."
 
 msgid ""
 "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
@@ -15022,7 +15021,7 @@ msgid ""
 "This database does not allow for DDL/DML, but the query mutates data. "
 "Please contact your administrator for more assistance."
 msgstr ""
-"[NEUTRE] La requête modifie les données et cette base de données "
+"La requête modifie les données et cette base de données "
 "n'autorise pas les DDL/DML. Veuillez contacter un administrateur pour "
 "obtenir davantage d'aide."
 
@@ -15148,7 +15147,7 @@ msgstr ""
 "Ceci est la condition qui sera ajoutée à la clause WHERE. Par exemple, "
 "pour ne retourner que les lignes d'un client particulier, vous pouvez "
 "définir un filtre régulier avec la clause « client_id = 9 ». Pour "
-"n'afficher aucune ligne sauf pour les utilisateur·rice·s qui "
+"n'afficher aucune ligne sauf pour les utilisateurs qui "
 "appartiennent à un role de filtre RLS, un filtre de base peut être créé "
 "avec la  clause « 1 = 0 » (toujours faux)."
 
@@ -16209,39 +16208,39 @@ msgstr ""
 "Utilisé pour résumer un jeu de données en regroupant plusieurs "
 "statistiques le long de deux axes. Exemples : Chiffre d'affaires par "
 "région et par mois, tâches par statut et par "
-"destinataire,utilisateur·rice·s actif·ve·s par âge et par lieu. Ce n'est "
+"destinataire,utilisateur(s) actif(s) par âge et par lieu. Ce n'est "
 "pas la visualisation la plus impressionnante, mais elle est très "
 "informative et polyvalente."
 
 msgid "User"
-msgstr "Utilisateur·rice"
+msgstr "Utilisateur"
 
 msgid "User Name"
-msgstr "[NEUTRE] Nom de l'utilisateur·rice"
+msgstr "Nom de l'utilisateur"
 
 msgid "User Registrations"
 msgstr "Inscription de l'utilisateur"
 
 msgid "User doesn't have the proper permissions."
-msgstr "Lutilisateur·rice n'a pas les droits."
+msgstr "Lutilisateur n'a pas les droits."
 
 msgid "User info"
 msgstr "Information de l'utilisateur"
 
 msgid "User must select a value before applying the chart customization"
-msgstr "[NEUTRE] L'utilisateur·rice doit sélectionner une valeur pour ce filtre"
+msgstr "L'utilisateur doit sélectionner une valeur pour ce filtre"
 
 msgid "User must select a value before applying the customization"
-msgstr "[NEUTRE] L'utilisateur·rice doit sélectionner une valeur pour ce filtre"
+msgstr "L'utilisateur doit sélectionner une valeur pour ce filtre"
 
 msgid "User must select a value before applying the filter"
-msgstr "[NEUTRE] L'utilisateur·rice doit sélectionner une valeur pour ce filtre"
+msgstr "L'utilisateur doit sélectionner une valeur pour ce filtre"
 
 msgid "User query"
-msgstr "Requête d'utilisateur·rice"
+msgstr "Requête d'utilisateur"
 
 msgid "User registrations"
-msgstr "[NEUTRE] Enregistrement de l'utilisateur·rice"
+msgstr "Enregistrement de l'utilisateur"
 
 msgid "Username"
 msgstr "Username"
@@ -16257,7 +16256,7 @@ msgstr "Utilisateurs"
 
 msgid "Users are not allowed to set a search path for security reasons."
 msgstr ""
-"[NEUTRE] Les utilisateur·rices ne sont pas autorisés à définir une "
+"Les utilisateurs ne sont pas autorisés à définir une "
 "recherche de chemin pour des raions de sécurité."
 
 msgid ""
@@ -16765,7 +16764,7 @@ msgstr "Si activé, affiche dans l'axe les valeurs minimal et maximal de vos don
 
 msgid "When enabled, users are able to visualize SQL Lab results in Explore."
 msgstr ""
-"Quand activé, les utilisateur·rice·s peuvent visualiser les résulats de "
+"Quand activé, les utilisateurs peuvent visualiser les résulats de "
 "SQL Lab dans Explorer."
 
 msgid "When only a primary metric is provided, a categorical color scale is used."
@@ -18475,7 +18474,7 @@ msgid "use latest_partition template"
 msgstr "utiliser le modèle latest_partition"
 
 msgid "username"
-msgstr "[NEUTRE] Nom d'utilisateur"
+msgstr "Nom d'utilisateur"
 
 msgid "value ascending"
 msgstr "valeurs croissantes"
