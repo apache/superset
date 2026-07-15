@@ -98,6 +98,7 @@ from superset.jinja_context import (
 from superset.models.annotations import Annotation
 from superset.models.core import Database
 from superset.models.helpers import (
+    _normalize_custom_sql_metric,
     AuditMixinNullable,
     CertificationMixin,
     ExploreMixin,
@@ -1245,6 +1246,11 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
                     )
                 ) from ex
 
+        expression, _source_is_safe = _normalize_custom_sql_metric(
+            expression,
+            self.table.database.backend,
+            self.table.database.db_engine_spec.normalize_custom_sql_metric,
+        )
         sqla_col: ColumnClause = literal_column(expression)
         return self.table.database.make_sqla_column_compatible(sqla_col, label)
 
@@ -1733,6 +1739,7 @@ class SqlaTable(
                         engine=self.database.backend,
                         schema=self.schema,
                         template_processor=template_processor,
+                        expression_normalizer=self.db_engine_spec.normalize_custom_sql_metric,
                     )
                 except SupersetSecurityException as ex:
                     raise QueryObjectValidationError(ex.message) from ex
@@ -1888,7 +1895,11 @@ class SqlaTable(
     ) -> Column:
         if utils.is_adhoc_metric(series_limit_metric):
             assert isinstance(series_limit_metric, dict)
-            ob = self.adhoc_metric_to_sqla(series_limit_metric, columns_by_name)
+            ob = self.adhoc_metric_to_sqla(
+                series_limit_metric,
+                columns_by_name,
+                template_processor=template_processor,
+            )
         elif (
             isinstance(series_limit_metric, str)
             and series_limit_metric in metrics_by_name

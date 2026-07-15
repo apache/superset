@@ -749,6 +749,109 @@ class AuditMixinNullable(AuditMixin):
 _NO_BYPASS: frozenset[type] = frozenset()
 
 
+def _make_metric_line_comments_safe(  # noqa: C901
+    expression: str,
+) -> tuple[str, bool]:
+    """Convert SQL line comments without regenerating otherwise valid SQL."""
+    result: list[str] = []
+    index = 0
+    quote: str | None = None
+    dollar_quote: str | None = None
+    backslash_escapes = False
+    in_block_comment = False
+    while index < len(expression):
+        if in_block_comment:
+            end = expression.find("*/", index)
+            if end < 0:
+                return expression, False
+            result.append(expression[index : end + 2])
+            index = end + 2
+            in_block_comment = False
+            continue
+        if dollar_quote:
+            end = expression.find(dollar_quote, index)
+            if end < 0:
+                return expression, False
+            result.append(expression[index : end + len(dollar_quote)])
+            index = end + len(dollar_quote)
+            dollar_quote = None
+            continue
+        if quote:
+            character = expression[index]
+            result.append(character)
+            index += 1
+            if backslash_escapes and character == "\\" and index < len(expression):
+                result.append(expression[index])
+                index += 1
+            elif character == quote:
+                if index < len(expression) and expression[index] == quote:
+                    result.append(expression[index])
+                    index += 1
+                else:
+                    quote = None
+                    backslash_escapes = False
+            continue
+
+        if expression.startswith("/*", index):
+            in_block_comment = True
+            continue
+        if expression.startswith("--", index):
+            line_end = len(expression)
+            for separator in ("\n", "\r"):
+                separator_index = expression.find(separator, index + 2)
+                if separator_index >= 0:
+                    line_end = min(line_end, separator_index)
+            contents = expression[index + 2 : line_end]
+            if "*/" in contents:
+                return expression, False
+            result.append(f"/*{contents} */")
+            index = line_end
+            continue
+        if expression[index] in {"'", '"'}:
+            quote = expression[index]
+            backslash_escapes = (
+                quote == "'"
+                and index > 0
+                and expression[index - 1] in {"E", "e"}
+                and (index == 1 or not expression[index - 2].isalnum())
+            )
+            result.append(quote)
+            index += 1
+            continue
+        if expression[index] == "$":
+            match = re.match(r"\$[A-Za-z_][A-Za-z0-9_]*\$|\$\$", expression[index:])
+            if match:
+                dollar_quote = match.group(0)
+                result.append(dollar_quote)
+                index += len(dollar_quote)
+                continue
+        result.append(expression[index])
+        index += 1
+    if quote or dollar_quote or in_block_comment:
+        return expression, False
+    return "".join(result), True
+
+
+def _normalize_custom_sql_metric(
+    expression: str,
+    engine: str,
+    normalizer: Callable[[str], str],
+) -> tuple[str, bool]:
+    """Normalize a metric and report whether its source is safe to preserve."""
+    expression = normalizer(expression)
+    if engine not in {"postgresql", "redshift"}:
+        return expression, False
+
+    expression, source_is_safe = _make_metric_line_comments_safe(expression)
+    if source_is_safe:
+        return expression, True
+
+    try:
+        return sanitize_clause(expression, engine), False
+    except QueryClauseValidationException:
+        return expression, False
+
+
 class SoftDeleteMixin:
     """Mixin that adds soft-delete support to a SQLAlchemy model.
 
@@ -1276,13 +1379,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         return self._denylist_default_schema
 
-    def _process_sql_expression(  # pylint: disable=too-many-arguments
+    def _process_sql_expression(  # pylint: disable=too-many-arguments  # noqa: C901
         self,
         expression: Optional[str],
         database_id: int,
         engine: str,
         schema: str,
         template_processor: Optional[BaseTemplateProcessor],
+        expression_normalizer: Callable[[str], str] | None = None,
     ) -> Optional[str]:
         if template_processor and expression:
             expression = template_processor.process_template(expression)
@@ -1294,10 +1398,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 schema,
                 engine,
             )
+            source_is_safe = False
+            if expression_normalizer:
+                expression, source_is_safe = _normalize_custom_sql_metric(
+                    expression,
+                    engine,
+                    expression_normalizer,
+                )
+            source_expression = expression
             try:
                 expression = sanitize_clause(expression, engine)
             except QueryClauseValidationException as ex:
                 raise QueryObjectValidationError(ex.message) from ex
+            if source_is_safe:
+                expression = source_expression.rstrip().rstrip(";").rstrip()
             # Adhoc expressions are user-controlled SQL that ends up inside a
             # `literal_column(...)`. Apply the operator-configured
             # `DISALLOWED_SQL_FUNCTIONS` / `DISALLOWED_SQL_TABLES` gates at the
@@ -1351,6 +1465,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         engine: str,
         schema: str,
         template_processor: Optional[BaseTemplateProcessor],
+        expression_normalizer: Callable[[str], str] | None = None,
     ) -> Optional[str]:
         """
         Validate and process an adhoc expression used as a column or metric.
@@ -1367,6 +1482,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             engine=engine,
             schema=schema,
             template_processor=template_processor,
+            expression_normalizer=expression_normalizer,
         ):
             prefix, expression = re.split(
                 r"SELECT\s+",
@@ -1385,6 +1501,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         engine: str,
         schema: str,
         template_processor: Optional[BaseTemplateProcessor],
+        expression_normalizer: Callable[[str], str] | None = None,
     ) -> Optional[str]:
         """
         Validate and process an ORDER BY clause expression.
@@ -1401,6 +1518,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             engine=engine,
             schema=schema,
             template_processor=template_processor,
+            expression_normalizer=expression_normalizer,
         ):
             prefix, expression = re.split(
                 r"ORDER\s+BY",
@@ -2689,6 +2807,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     engine=self.database.backend,
                     schema=self.schema,
                     template_processor=template_processor,
+                    expression_normalizer=self.db_engine_spec.normalize_custom_sql_metric,
                 )
 
             sqla_metric = literal_column(expression)
@@ -2811,7 +2930,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     ) -> Column:
         if utils.is_adhoc_metric(series_limit_metric):
             assert isinstance(series_limit_metric, dict)
-            ob = self.adhoc_metric_to_sqla(series_limit_metric, columns_by_name)
+            ob = self.adhoc_metric_to_sqla(
+                series_limit_metric,
+                columns_by_name,
+                template_processor=template_processor,
+            )
         elif (
             isinstance(series_limit_metric, str)
             and series_limit_metric in metrics_by_name
@@ -3439,6 +3562,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         engine=self.database.backend,
                         schema=self.schema,
                         template_processor=template_processor,
+                        expression_normalizer=self.db_engine_spec.normalize_custom_sql_metric,
                     )
                 if utils.is_adhoc_metric(col):
                     # add adhoc sort by column to columns_by_name if not exists

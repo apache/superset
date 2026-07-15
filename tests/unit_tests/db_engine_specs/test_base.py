@@ -85,6 +85,13 @@ def test_get_text_clause_with_colon() -> None:
     assert text_clause.text == "SELECT foo FROM tbl WHERE foo = '123\\:456')"
 
 
+def test_normalize_custom_sql_metric_is_identity_by_default() -> None:
+    """Unconfigured engines preserve custom metric SQL exactly."""
+    expression = "DATE_TRUNC('QUARTER', created_at) /* keep */"
+
+    assert BaseEngineSpec.normalize_custom_sql_metric(expression) == expression
+
+
 def test_validate_db_uri(mocker: MockerFixture) -> None:
     """
     Ensures that the `validate_database_uri` method invokes the validator correctly

@@ -2157,6 +2157,117 @@ def test_adhoc_metric_to_sqla_invalid_sql_expression_raises_validation_error(
         table.adhoc_metric_to_sqla(metric, {})
 
 
+def test_adhoc_metric_normalizes_rendered_sql_once(
+    database: Database,
+    mocker: MockerFixture,
+) -> None:
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    normalizer = mocker.patch.object(
+        table.db_engine_spec,
+        "normalize_custom_sql_metric",
+        return_value="SELECT DATE_TRUNC('quarter', a)",
+    )
+    template_processor = MagicMock()
+    template_processor.process_template.side_effect = (
+        lambda expression: expression.replace("{{ unit }}", "QUARTER")
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "DATE_TRUNC('{{ unit }}', a)",
+        "label": "quarter",
+    }
+
+    result = table.adhoc_metric_to_sqla(
+        metric,
+        {},
+        template_processor=template_processor,
+    )
+
+    assert "DATE_TRUNC('quarter', a)" in str(result)
+    normalizer.assert_called_once_with("SELECT DATE_TRUNC('QUARTER', a)")
+
+
+def test_processed_orderby_uses_metric_normalizer_once(
+    database: Database,
+    mocker: MockerFixture,
+) -> None:
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    normalizer = MagicMock(return_value="SELECT 1 ORDER BY DATE_TRUNC('quarter', a)")
+
+    expression = table._process_orderby_expression(
+        expression="DATE_TRUNC('QUARTER', a)",
+        database_id=database.id or 1,
+        engine=database.backend,
+        schema="",
+        template_processor=None,
+        expression_normalizer=normalizer,
+    )
+
+    assert expression == "DATE_TRUNC('quarter', a)"
+    normalizer.assert_called_once_with("SELECT 1 ORDER BY DATE_TRUNC('QUARTER', a)")
+
+
+def test_metric_normalization_preserves_post_validation_rls_expression(
+    database: Database,
+    mocker: MockerFixture,
+) -> None:
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    mocker.patch(
+        "superset.models.helpers.validate_adhoc_subquery",
+        return_value=(
+            "SELECT (SELECT DATE_TRUNC('QUARTER', created_at) FROM orders "
+            "WHERE tenant_id = 7)"
+        ),
+    )
+
+    result = table._process_select_expression(
+        expression="(SELECT DATE_TRUNC('QUARTER', created_at) FROM orders)",
+        database_id=database.id or 1,
+        engine="postgresql",
+        schema="public",
+        template_processor=None,
+        expression_normalizer=PostgresEngineSpec.normalize_custom_sql_metric,
+    )
+
+    assert result is not None
+    assert "tenant_id = 7" in result
+    assert "DATE_TRUNC('quarter', created_at)" in result
+
+
+@pytest.mark.parametrize(
+    "expression, expected",
+    [
+        ("SELECT 'abc\\' -- trailing", "SELECT 'abc\\' /* trailing */"),
+        (
+            "SELECT DATE_TRUNC('QUARTER', created_at) -- contains */",
+            "SELECT TIMESTAMP_TRUNC(created_at, QUARTER) /* contains * / */",
+        ),
+    ],
+)
+def test_metric_comment_safety_falls_back_without_restoring_unsafe_source(
+    expression: str,
+    expected: str,
+) -> None:
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+    from superset.models.helpers import _normalize_custom_sql_metric
+
+    normalized, source_is_safe = _normalize_custom_sql_metric(
+        expression,
+        "postgresql",
+        PostgresEngineSpec.normalize_custom_sql_metric,
+    )
+
+    assert normalized == expected
+    assert source_is_safe is ("*/" not in expression)
+
+
 def test_extras_where_is_parenthesized(
     database: Database,
 ) -> None:
