@@ -106,6 +106,7 @@ from superset.exceptions import (
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
+from superset.sql.metric_normalization import normalize_custom_metric
 from superset.sql.parse import sanitize_clause, SQLScript, SQLStatement
 from superset.superset_typing import (
     AdhocColumn,
@@ -749,107 +750,13 @@ class AuditMixinNullable(AuditMixin):
 _NO_BYPASS: frozenset[type] = frozenset()
 
 
-def _make_metric_line_comments_safe(  # noqa: C901
-    expression: str,
-) -> tuple[str, bool]:
-    """Convert SQL line comments without regenerating otherwise valid SQL."""
-    result: list[str] = []
-    index = 0
-    quote: str | None = None
-    dollar_quote: str | None = None
-    backslash_escapes = False
-    in_block_comment = False
-    while index < len(expression):
-        if in_block_comment:
-            end = expression.find("*/", index)
-            if end < 0:
-                return expression, False
-            result.append(expression[index : end + 2])
-            index = end + 2
-            in_block_comment = False
-            continue
-        if dollar_quote:
-            end = expression.find(dollar_quote, index)
-            if end < 0:
-                return expression, False
-            result.append(expression[index : end + len(dollar_quote)])
-            index = end + len(dollar_quote)
-            dollar_quote = None
-            continue
-        if quote:
-            character = expression[index]
-            result.append(character)
-            index += 1
-            if backslash_escapes and character == "\\" and index < len(expression):
-                result.append(expression[index])
-                index += 1
-            elif character == quote:
-                if index < len(expression) and expression[index] == quote:
-                    result.append(expression[index])
-                    index += 1
-                else:
-                    quote = None
-                    backslash_escapes = False
-            continue
+@dataclasses.dataclass(frozen=True)
+class SqlExpressionContext:
+    """Database context required to validate and render a SQL expression."""
 
-        if expression.startswith("/*", index):
-            in_block_comment = True
-            continue
-        if expression.startswith("--", index):
-            line_end = len(expression)
-            for separator in ("\n", "\r"):
-                separator_index = expression.find(separator, index + 2)
-                if separator_index >= 0:
-                    line_end = min(line_end, separator_index)
-            contents = expression[index + 2 : line_end]
-            if "*/" in contents:
-                return expression, False
-            result.append(f"/*{contents} */")
-            index = line_end
-            continue
-        if expression[index] in {"'", '"'}:
-            quote = expression[index]
-            backslash_escapes = (
-                quote == "'"
-                and index > 0
-                and expression[index - 1] in {"E", "e"}
-                and (index == 1 or not expression[index - 2].isalnum())
-            )
-            result.append(quote)
-            index += 1
-            continue
-        if expression[index] == "$":
-            match = re.match(r"\$[A-Za-z_][A-Za-z0-9_]*\$|\$\$", expression[index:])
-            if match:
-                dollar_quote = match.group(0)
-                result.append(dollar_quote)
-                index += len(dollar_quote)
-                continue
-        result.append(expression[index])
-        index += 1
-    if quote or dollar_quote or in_block_comment:
-        return expression, False
-    return "".join(result), True
-
-
-def _normalize_custom_sql_metric(
-    expression: str,
-    engine: str,
-    normalizer: Callable[[str], str],
-) -> tuple[str, bool]:
-    """Normalize a metric and report whether its source is safe to preserve."""
-    expression = normalizer(expression)
-    if engine not in {"postgresql", "redshift"}:
-        return expression, False
-
-    expression, source_is_safe = _make_metric_line_comments_safe(expression)
-    if source_is_safe:
-        return expression, True
-
-    try:
-        return sanitize_clause(expression, engine), False
-    except QueryClauseValidationException:
-        return expression, False
+    engine: str
+    schema: str
+    template_processor: BaseTemplateProcessor | None
 
 
 class SoftDeleteMixin:
@@ -1379,38 +1286,56 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         return self._denylist_default_schema
 
-    def _process_sql_expression(  # pylint: disable=too-many-arguments  # noqa: C901
+    def _process_sql_expression(
         self,
         expression: Optional[str],
-        database_id: int,
-        engine: str,
-        schema: str,
-        template_processor: Optional[BaseTemplateProcessor],
-        expression_normalizer: Callable[[str], str] | None = None,
+        context: SqlExpressionContext,
     ) -> Optional[str]:
-        if template_processor and expression:
-            expression = template_processor.process_template(expression)
+        return self._process_normalized_sql_expression(
+            expression,
+            context,
+            lambda source: source,
+        )
+
+    def _process_metric_sql_expression(
+        self,
+        expression: Optional[str],
+        context: SqlExpressionContext,
+    ) -> Optional[str]:
+        return self._process_normalized_sql_expression(
+            expression,
+            context,
+            self.database.db_engine_spec.normalize_custom_sql_metric,
+        )
+
+    def _process_normalized_sql_expression(  # noqa: C901
+        self,
+        expression: Optional[str],
+        context: SqlExpressionContext,
+        normalizer: Callable[[str], str],
+    ) -> Optional[str]:
+        if context.template_processor and expression:
+            expression = context.template_processor.process_template(expression)
         if expression:
             expression = validate_adhoc_subquery(
                 expression,
                 self.database,
                 self.catalog,
-                schema,
-                engine,
+                context.schema,
+                context.engine,
             )
-            source_is_safe = False
-            if expression_normalizer:
-                expression, source_is_safe = _normalize_custom_sql_metric(
-                    expression,
-                    engine,
-                    expression_normalizer,
-                )
+            normalized_metric = normalize_custom_metric(
+                expression,
+                context.engine,
+                normalizer,
+            )
+            expression = normalized_metric.expression
             source_expression = expression
             try:
-                expression = sanitize_clause(expression, engine)
+                expression = sanitize_clause(expression, context.engine)
             except QueryClauseValidationException as ex:
                 raise QueryObjectValidationError(ex.message) from ex
-            if source_is_safe:
+            if normalized_metric.may_preserve_source:
                 expression = source_expression.rstrip().rstrip(";").rstrip()
             # Adhoc expressions are user-controlled SQL that ends up inside a
             # `literal_column(...)`. Apply the operator-configured
@@ -1421,9 +1346,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # the same gate applied at query-execution time and gives the
             # adhoc-expression path defense in depth.
             disallowed_functions = app.config["DISALLOWED_SQL_FUNCTIONS"].get(
-                engine, set()
+                context.engine, set()
             )
-            disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(engine, set())
+            disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(
+                context.engine, set()
+            )
             if disallowed_functions or disallowed_tables:
                 # `_process_select_expression` (and siblings) pre-wraps the
                 # input with `SELECT ...`; other callers pass bare
@@ -1434,7 +1361,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     if expression.strip().upper().startswith("SELECT")
                     else f"SELECT {expression}"
                 )
-                parsed = SQLScript(sql_to_check, engine=engine)
+                parsed = SQLScript(sql_to_check, engine=context.engine)
                 if disallowed_functions and parsed.check_functions_present(
                     disallowed_functions
                 ):
@@ -1461,11 +1388,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def _process_select_expression(
         self,
         expression: Optional[str],
-        database_id: int,
         engine: str,
         schema: str,
         template_processor: Optional[BaseTemplateProcessor],
-        expression_normalizer: Callable[[str], str] | None = None,
     ) -> Optional[str]:
         """
         Validate and process an adhoc expression used as a column or metric.
@@ -1476,15 +1401,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if expression:
             expression = f"SELECT {expression}"
 
-        if processed := self._process_sql_expression(
-            expression=expression,
-            database_id=database_id,
-            engine=engine,
-            schema=schema,
-            template_processor=template_processor,
-            expression_normalizer=expression_normalizer,
-        ):
-            prefix, expression = re.split(
+        context = SqlExpressionContext(engine, schema, template_processor)
+        if processed := self._process_sql_expression(expression, context):
+            _prefix, expression = re.split(
                 r"SELECT\s+",
                 processed,
                 maxsplit=1,
@@ -1494,14 +1413,34 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return None
 
-    def _process_orderby_expression(
+    def _process_metric_select_expression(
         self,
         expression: Optional[str],
-        database_id: int,
         engine: str,
         schema: str,
         template_processor: Optional[BaseTemplateProcessor],
-        expression_normalizer: Callable[[str], str] | None = None,
+    ) -> Optional[str]:
+        """Validate and normalize an ad hoc metric used in SELECT."""
+        if expression:
+            expression = f"SELECT {expression}"
+
+        context = SqlExpressionContext(engine, schema, template_processor)
+        if processed := self._process_metric_sql_expression(expression, context):
+            _prefix, expression = re.split(
+                r"SELECT\s+",
+                processed,
+                maxsplit=1,
+                flags=re.IGNORECASE,
+            )
+            return expression.strip()
+        return None
+
+    def _process_orderby_expression(
+        self,
+        expression: Optional[str],
+        engine: str,
+        schema: str,
+        template_processor: Optional[BaseTemplateProcessor],
     ) -> Optional[str]:
         """
         Validate and process an ORDER BY clause expression.
@@ -1512,15 +1451,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if expression:
             expression = f"SELECT 1 ORDER BY {expression}"
 
-        if processed := self._process_sql_expression(
-            expression=expression,
-            database_id=database_id,
-            engine=engine,
-            schema=schema,
-            template_processor=template_processor,
-            expression_normalizer=expression_normalizer,
-        ):
-            prefix, expression = re.split(
+        context = SqlExpressionContext(engine, schema, template_processor)
+        if processed := self._process_sql_expression(expression, context):
+            _prefix, expression = re.split(
                 r"ORDER\s+BY",
                 processed,
                 maxsplit=1,
@@ -1528,6 +1461,28 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
             return expression.strip()
 
+        return None
+
+    def _process_metric_orderby_expression(
+        self,
+        expression: Optional[str],
+        engine: str,
+        schema: str,
+        template_processor: Optional[BaseTemplateProcessor],
+    ) -> Optional[str]:
+        """Validate and normalize an ad hoc metric used in ORDER BY."""
+        if expression:
+            expression = f"SELECT 1 ORDER BY {expression}"
+
+        context = SqlExpressionContext(engine, schema, template_processor)
+        if processed := self._process_metric_sql_expression(expression, context):
+            _prefix, expression = re.split(
+                r"ORDER\s+BY",
+                processed,
+                maxsplit=1,
+                flags=re.IGNORECASE,
+            )
+            return expression.strip()
         return None
 
     def make_sqla_column_compatible(
@@ -2801,13 +2756,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
 
             if not processed:
-                expression = self._process_select_expression(
+                expression = self._process_metric_select_expression(
                     expression=expression,
-                    database_id=self.database_id,
                     engine=self.database.backend,
                     schema=self.schema,
                     template_processor=template_processor,
-                    expression_normalizer=self.db_engine_spec.normalize_custom_sql_metric,
                 )
 
             sqla_metric = literal_column(expression)
@@ -3556,13 +3509,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # back would change the cache key of a rehydrated query context
                 col = cast(AdhocMetric, dict(col))
                 if col.get("sqlExpression"):
-                    col["sqlExpression"] = self._process_orderby_expression(
+                    col["sqlExpression"] = self._process_metric_orderby_expression(
                         expression=col["sqlExpression"],
-                        database_id=self.database_id,
                         engine=self.database.backend,
                         schema=self.schema,
                         template_processor=template_processor,
-                        expression_normalizer=self.db_engine_spec.normalize_custom_sql_metric,
                     )
                 if utils.is_adhoc_metric(col):
                     # add adhoc sort by column to columns_by_name if not exists
@@ -3630,7 +3581,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     else:
                         selected = self._process_select_expression(
                             expression=selected,
-                            database_id=self.database_id,
                             engine=self.database.backend,
                             schema=self.schema,
                             template_processor=template_processor,
@@ -3682,7 +3632,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
                 selected = self._process_select_expression(
                     expression=_sql,
-                    database_id=self.database_id,
                     engine=self.database.backend,
                     schema=self.schema,
                     template_processor=template_processor,
@@ -4045,7 +3994,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if where:
                 where = self._process_select_expression(
                     expression=where,
-                    database_id=self.database_id,
                     engine=self.database.backend,
                     schema=self.schema,
                     template_processor=template_processor,
@@ -4055,7 +4003,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if having:
                 having = self._process_select_expression(
                     expression=having,
-                    database_id=self.database_id,
                     engine=self.database.backend,
                     schema=self.schema,
                     template_processor=template_processor,

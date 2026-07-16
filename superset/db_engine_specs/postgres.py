@@ -40,7 +40,8 @@ from superset.db_engine_specs.base import (
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.sql_lab import Query
-from superset.sql.parse import normalize_date_trunc_units, process_jinja_sql
+from superset.sql.dialects.postgres import normalize_date_trunc_units
+from superset.sql.parse import process_jinja_sql
 from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType, QuerySource
 
