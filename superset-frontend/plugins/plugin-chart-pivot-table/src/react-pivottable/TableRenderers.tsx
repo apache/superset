@@ -20,14 +20,14 @@
 import {
   ReactNode,
   MouseEvent,
+  SyntheticEvent,
   useState,
   useCallback,
   useRef,
   useMemo,
   useEffect,
 } from 'react';
-import { safeHtmlSpan } from '@superset-ui/core';
-import { type RGBColor } from '@superset-ui/core/components';
+import { safeHtmlSpan, handleKeyboardActivation } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { supersetTheme } from '@apache-superset/core/theme';
 import PropTypes from 'prop-types';
@@ -155,7 +155,10 @@ function displayCell(value: unknown, allowRenderHtml?: boolean): ReactNode {
 function displayHeaderCell(
   needToggle: boolean,
   ArrowIcon: ReactNode,
-  onArrowClick: ((e: MouseEvent<HTMLSpanElement>) => void) | null,
+  // `SyntheticEvent` (rather than `MouseEvent`) so this callback can also be
+  // used as the keyboard-activation handler via `handleKeyboardActivation`,
+  // which invokes it with a `KeyboardEvent`.
+  onArrowClick: ((e: SyntheticEvent) => void) | null,
   value: unknown,
   namesMapping: Record<string, string>,
   allowRenderHtml?: boolean,
@@ -173,6 +176,9 @@ function displayHeaderCell(
         tabIndex={0}
         className="toggle"
         onClick={onArrowClick || undefined}
+        onKeyDown={
+          onArrowClick ? handleKeyboardActivation(onArrowClick) : undefined
+        }
       >
         {ArrowIcon}
       </span>
@@ -463,7 +469,7 @@ export function TableRenderer(props: TableRendererProps) {
   );
 
   const toggleRowKey = useCallback(
-    (flatRowKey: string) => (e: MouseEvent<HTMLSpanElement>) => {
+    (flatRowKey: string) => (e: SyntheticEvent) => {
       e.stopPropagation();
       setCollapsedRows(state => ({
         ...state,
@@ -474,7 +480,7 @@ export function TableRenderer(props: TableRendererProps) {
   );
 
   const toggleColKey = useCallback(
-    (flatColKey: string) => (e: MouseEvent<HTMLSpanElement>) => {
+    (flatColKey: string) => (e: SyntheticEvent) => {
       e.stopPropagation();
       setCollapsedCols(state => ({
         ...state,
@@ -1047,6 +1053,7 @@ export function TableRenderer(props: TableRendererProps) {
                 onClick={e => {
                   e.stopPropagation();
                 }}
+                onKeyDown={e => e.stopPropagation()}
                 aria-label={
                   activeSortColumn === i
                     ? `Sorted by ${columnName} ${sortingOrder[i] === 'asc' ? 'ascending' : 'descending'}`

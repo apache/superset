@@ -17,7 +17,11 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  handleKeyboardActivation,
+} from '@superset-ui/core';
 import { css } from '@apache-superset/core/theme';
 import { Link, useHistory } from 'react-router-dom';
 import {
@@ -86,6 +90,7 @@ export default function ChartCard({
           role="button"
           tabIndex={0}
           onClick={() => openChartEditModal(chart)}
+          onKeyDown={handleKeyboardActivation(() => openChartEditModal(chart))}
         >
           <Icons.EditOutlined
             iconSize="l"
@@ -107,6 +112,9 @@ export default function ChartCard({
           role="button"
           tabIndex={0}
           onClick={() => handleBulkChartExport([chart])}
+          onKeyDown={handleKeyboardActivation(() =>
+            handleBulkChartExport([chart]),
+          )}
         >
           <Icons.UploadOutlined
             iconSize="l"
@@ -150,6 +158,7 @@ export default function ChartCard({
               tabIndex={0}
               className="action-button"
               onClick={confirmDelete}
+              onKeyDown={handleKeyboardActivation(confirmDelete)}
             >
               <Icons.DeleteOutlined
                 iconSize="l"

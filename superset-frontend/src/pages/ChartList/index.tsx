@@ -25,6 +25,7 @@ import {
   JsonResponse,
   SupersetClient,
   isMatrixifyEnabled,
+  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { css, styled } from '@apache-superset/core/theme';
 import { useState, useMemo, useCallback } from 'react';
@@ -544,6 +545,7 @@ function ChartList(props: ChartListProps) {
                     tabIndex={0}
                     className="action-button"
                     onClick={openEditModal}
+                    onKeyDown={handleKeyboardActivation(openEditModal)}
                   >
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
                   </span>
@@ -561,6 +563,7 @@ function ChartList(props: ChartListProps) {
                     tabIndex={0}
                     className="action-button"
                     onClick={handleExport}
+                    onKeyDown={handleKeyboardActivation(handleExport)}
                   >
                     <Icons.UploadOutlined iconSize="l" />
                   </span>
@@ -589,6 +592,7 @@ function ChartList(props: ChartListProps) {
                         tabIndex={0}
                         className="action-button"
                         onClick={confirmDelete}
+                        onKeyDown={handleKeyboardActivation(confirmDelete)}
                       >
                         <Icons.DeleteOutlined iconSize="l" />
                       </span>

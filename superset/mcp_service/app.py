@@ -125,7 +125,7 @@ necessary access — do NOT attempt to call it.
 Available tools:
 
 Dashboard Management:
-- list_dashboards: List dashboards with advanced filters (1-based pagination)
+- list_dashboards: List dashboards with advanced filters (1-based pagination; deleted_state='only'/'include' surfaces trashed dashboards the caller may restore)
 - get_dashboard_info: Get detailed dashboard information by ID
 - get_dashboard_layout: Get parsed tabs and chart positions for a dashboard (companion to get_dashboard_info when its omitted_fields hint flags position_json)
 - get_dashboard_datasets: List the datasets used by a dashboard's charts, with columns and metrics (context for configuring native filters)
@@ -136,6 +136,7 @@ Dashboard Management:
 - delete_dashboard: Delete a dashboard by ID/UUID/slug (requires editor rights — owner or Admin; destructive; does not delete its charts; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
 - manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select and filter_time)
 - remove_chart_from_dashboard: Remove a chart from an existing dashboard (requires write access)
+- restore_dashboard: Restore a soft-deleted dashboard from trash by ID/UUID (requires editor rights — owner or Admin; only applies to dashboards trashed under the SOFT_DELETE feature flag)
 
 Annotation Layers:
 - list_annotation_layers: List annotation layers with advanced filters (1-based pagination)
@@ -179,7 +180,7 @@ Dataset Management:
 - query_dataset: Query a dataset using its semantic layer (saved metrics, dimensions, filters) without needing a saved chart
 
 Chart Management:
-- list_charts: List charts with advanced filters (1-based pagination)
+- list_charts: List charts with advanced filters (1-based pagination; deleted_state='only'/'include' surfaces trashed charts the caller may restore)
 - get_chart_info: Get detailed chart information by ID
 - get_chart_preview: Get a visual preview of a chart as formatted content or URL
 - get_chart_data: Get underlying chart data in text-friendly format
@@ -189,6 +190,7 @@ Chart Management:
 - update_chart: Update existing saved chart configuration (requires write access)
 - update_chart_preview: Update cached chart preview without saving (requires write access)
 - delete_chart: Delete a chart by ID/UUID (requires editor rights — owner or Admin; destructive; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
+- restore_chart: Restore a soft-deleted chart from trash by ID/UUID (requires editor rights — owner or Admin; only applies to charts trashed under the SOFT_DELETE feature flag)
 
 SQL Lab Integration:
 - execute_sql: Execute SQL queries and get results (requires database_id and SQL access)
@@ -385,6 +387,12 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
   Requires handlebars_template with Handlebars HTML template string.
   Supports query_mode="aggregate" (with metrics/groupby) or "raw" (with columns).
   Data available as {{{{data}}}} array; helpers: dateFormat, formatNumber, stringify.
+- chart_type="histogram": Histogram of a numeric column's distribution
+  (column required; optional bins, groupby, normalize, cumulative)
+- chart_type="box_plot": Box plot comparing statistical spread
+  (metrics + distribute_across required — distribute_across is the sample
+   axis, e.g. a temporal column; dimensions splits into one box per value;
+   whisker_type: tukey | min_max | percentile)
 
 Time grain for temporal x-axis (time_grain parameter):
 - PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P1Y (yearly)
@@ -392,8 +400,9 @@ Time grain for temporal x-axis (time_grain parameter):
 Chart Types in Existing Charts (viewable via list_charts/get_chart_info):
 Each chart returned by list_charts / get_chart_info includes a
 chart_type_display_name field with a human-readable name when available.
-This field is populated only for the 7 chart types supported by generate_chart
-(xy, pie, table, pivot_table, big_number, mixed_timeseries, handlebars).
+This field is populated only for the 9 chart types supported by generate_chart
+(xy, pie, table, pivot_table, big_number, mixed_timeseries, handlebars,
+histogram, box_plot).
 For all other viz_types (Funnel, Gauge, Heatmap, etc.) it will be null —
 use the raw viz_type field instead when referring to those chart types.
 
@@ -729,6 +738,7 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
     get_chart_sql,
     get_chart_type_schema,
     list_charts,
+    restore_chart,
     update_chart,
     update_chart_preview,
 )
@@ -743,6 +753,7 @@ from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     list_dashboards,
     manage_native_filters,
     remove_chart_from_dashboard,
+    restore_dashboard,
     update_dashboard,
 )
 from superset.mcp_service.database.tool import (  # noqa: F401, E402

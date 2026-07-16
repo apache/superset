@@ -41,6 +41,7 @@ def async_query_manager():
     query_manager = AsyncQueryManager()
     query_manager._jwt_secret = JWT_TOKEN_SECRET
     query_manager._jwt_cookie_name = JWT_TOKEN_COOKIE_NAME
+    query_manager._jwt_expiration_seconds = 3600
     return query_manager
 
 
@@ -246,25 +247,28 @@ def test_submit_chart_data_job_as_guest_user(
         form_data={},
     )
 
-    job_mock.delay.assert_called_once_with(
-        {
-            "channel_id": "test_channel_id",
-            "errors": [],
-            "guest_token": {
-                "user": {},
-                "resources": [{"type": "dashboard", "id": "some-uuid"}],
-                "rls_rules": [{"clause": '"STATEID" = 3'}],
-                "iat": 1700000000.0,
-                "exp": 1700000300.0,
-                "aud": "http://0.0.0.0:8080/",
-                "type": "guest",
+    job_mock.apply_async.assert_called_once_with(
+        args=[
+            {
+                "channel_id": "test_channel_id",
+                "errors": [],
+                "guest_token": {
+                    "user": {},
+                    "resources": [{"type": "dashboard", "id": "some-uuid"}],
+                    "rls_rules": [{"clause": '"STATEID" = 3'}],
+                    "iat": 1700000000.0,
+                    "exp": 1700000300.0,
+                    "aud": "http://0.0.0.0:8080/",
+                    "type": "guest",
+                },
+                "job_id": ANY,
+                "result_url": None,
+                "status": "pending",
+                "user_id": None,
             },
-            "job_id": ANY,
-            "result_url": None,
-            "status": "pending",
-            "user_id": None,
-        },
-        {},
+            {},
+        ],
+        expires=3600,
     )
 
     assert "guest_token" not in job_meta
@@ -349,27 +353,30 @@ def test_submit_explore_json_job_as_guest_user(
         response_type="json",
     )
 
-    job_mock.delay.assert_called_once_with(
-        {
-            "channel_id": "test_channel_id",
-            "errors": [],
-            "guest_token": {
-                "user": {},
-                "resources": [{"type": "dashboard", "id": "some-uuid"}],
-                "rls_rules": [{"clause": '"STATEID" = 3'}],
-                "iat": 1700000000.0,
-                "exp": 1700000300.0,
-                "aud": "http://0.0.0.0:8080/",
-                "type": "guest",
+    job_mock.apply_async.assert_called_once_with(
+        args=[
+            {
+                "channel_id": "test_channel_id",
+                "errors": [],
+                "guest_token": {
+                    "user": {},
+                    "resources": [{"type": "dashboard", "id": "some-uuid"}],
+                    "rls_rules": [{"clause": '"STATEID" = 3'}],
+                    "iat": 1700000000.0,
+                    "exp": 1700000300.0,
+                    "aud": "http://0.0.0.0:8080/",
+                    "type": "guest",
+                },
+                "job_id": ANY,
+                "result_url": None,
+                "status": "pending",
+                "user_id": None,
             },
-            "job_id": ANY,
-            "result_url": None,
-            "status": "pending",
-            "user_id": None,
-        },
-        {},
-        "json",
-        False,
+            {},
+            "json",
+            False,
+        ],
+        expires=3600,
     )
 
     assert "guest_token" not in job_meta
