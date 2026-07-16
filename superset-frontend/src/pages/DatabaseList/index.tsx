@@ -22,6 +22,7 @@ import {
   SupersetClient,
   isFeatureEnabled,
   FeatureFlag,
+  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -697,6 +698,9 @@ function DatabaseList({
                       tabIndex={0}
                       className="action-button"
                       onClick={() => setSlCurrentlyDeleting(original)}
+                      onKeyDown={handleKeyboardActivation(() =>
+                        setSlCurrentlyDeleting(original),
+                      )}
                     >
                       <Icons.DeleteOutlined iconSize="l" />
                     </span>
@@ -715,6 +719,9 @@ function DatabaseList({
                       onClick={() =>
                         setSlCurrentlyEditing(original.uuid ?? null)
                       }
+                      onKeyDown={handleKeyboardActivation(() =>
+                        setSlCurrentlyEditing(original.uuid ?? null),
+                      )}
                     >
                       <Icons.EditOutlined iconSize="l" />
                     </span>
@@ -746,6 +753,7 @@ function DatabaseList({
                     tabIndex={0}
                     className="action-button"
                     onClick={handleEdit}
+                    onKeyDown={handleKeyboardActivation(handleEdit)}
                   >
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
                   </span>
@@ -762,6 +770,7 @@ function DatabaseList({
                     tabIndex={0}
                     className="action-button"
                     onClick={handleExport}
+                    onKeyDown={handleKeyboardActivation(handleExport)}
                   >
                     <Icons.UploadOutlined iconSize="l" />
                   </span>
@@ -779,6 +788,7 @@ function DatabaseList({
                     tabIndex={0}
                     className="action-button"
                     onClick={handleSync}
+                    onKeyDown={handleKeyboardActivation(handleSync)}
                   >
                     <Icons.SyncOutlined iconSize="l" />
                   </span>
@@ -791,6 +801,7 @@ function DatabaseList({
                   className="action-button"
                   data-test="database-delete"
                   onClick={handleDelete}
+                  onKeyDown={handleKeyboardActivation(handleDelete)}
                 >
                   <Tooltip
                     id="delete-action-tooltip"

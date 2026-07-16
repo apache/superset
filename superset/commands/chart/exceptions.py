@@ -103,6 +103,19 @@ class DatasourceTypeUpdateRequiredValidationError(ValidationError):
         )
 
 
+class ChartQueryContextDatasourceMismatchValidationError(ValidationError):
+    """
+    Raised when a query-context-only update carries a datasource that does not
+    match the chart's own datasource.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            _("The query context datasource does not match the chart datasource"),
+            field_name="query_context",
+        )
+
+
 class ChartNotFoundError(CommandException):
     message = "Chart not found."
 

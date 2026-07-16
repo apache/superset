@@ -195,6 +195,8 @@ class DashboardFilter(ColumnOperator):
 class ListDashboardsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
     """Request schema for list_dashboards with clear, unambiguous types."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     filters: Annotated[
         List[DashboardFilter],
         Field(
@@ -210,6 +212,7 @@ class ListDashboardsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheCont
             default_factory=list,
             description="List of columns to select. Defaults to common columns "
             "if not specified.",
+            validation_alias=AliasChoices("select_columns", "columns"),
         ),
     ]
 
@@ -321,10 +324,15 @@ class GetDashboardInfoRequest(MetadataCacheControl):
     in a dashboard but the URL contains a permalink_key.
     """
 
+    model_config = ConfigDict(populate_by_name=True)
+
     identifier: Annotated[
         int | str,
         Field(
-            description="Dashboard identifier - can be numeric ID, UUID string, or slug"
+            description=(
+                "Dashboard identifier - can be numeric ID, UUID string, or slug"
+            ),
+            validation_alias=AliasChoices("identifier", "id", "dashboard_id"),
         ),
     ]
     permalink_key: str | None = Field(
@@ -347,6 +355,7 @@ class GetDashboardInfoRequest(MetadataCacheControl):
                 "to override, e.g. ['id','dashboard_title','charts'] for minimal "
                 "output, or add 'css' to include raw dashboard CSS."
             ),
+            validation_alias=AliasChoices("select_columns", "columns"),
         ),
     ]
 
@@ -585,10 +594,18 @@ class DashboardList(BaseModel):
 class AddChartToDashboardRequest(BaseModel):
     """Request schema for adding a chart to an existing dashboard."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     dashboard_id: int = Field(
-        ..., description="ID of the dashboard to add the chart to"
+        ...,
+        description="ID of the dashboard to add the chart to",
+        validation_alias=AliasChoices("dashboard_id", "dashboard", "id"),
     )
-    chart_id: int = Field(..., description="ID of the chart to add to the dashboard")
+    chart_id: int = Field(
+        ...,
+        description="ID of the chart to add to the dashboard",
+        validation_alias=AliasChoices("chart_id", "chart"),
+    )
     target_tab: str | None = Field(
         None,
         min_length=1,
@@ -2296,4 +2313,47 @@ def dashboard_datasets_serializer(dashboard: "Dashboard") -> DashboardDatasets:
         dataset_count=len(datasets),
         inaccessible_dataset_count=inaccessible_count,
         datasets=datasets,
+    )
+
+
+# ---------------------------------------------------------------------------
+# restore_dashboard schemas
+# ---------------------------------------------------------------------------
+
+
+class RestoreDashboardRequest(BaseModel):
+    """Request schema for restore_dashboard."""
+
+    identifier: int | str = Field(
+        ...,
+        description="Dashboard identifier - numeric ID or UUID string.",
+    )
+
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so identifier=true would coerce to
+        dashboard ID 1 and target the wrong object; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID or UUID string")
+        return value
+
+
+class RestoreDashboardResponse(BaseModel):
+    """Result of a restore_dashboard operation."""
+
+    success: bool = Field(description="Whether the dashboard was restored from trash")
+    restored_id: int | None = Field(None, description="ID of the restored dashboard")
+    restored_name: str | None = Field(
+        None, description="Title of the restored dashboard"
+    )
+    message: str | None = Field(None, description="Human-readable outcome message")
+    error: str | None = Field(None, description="Error message if the restore failed")
+    error_type: str | None = Field(None, description="Type of error if failed")
+    permission_denied: bool = Field(
+        False,
+        description=(
+            "True when the caller lacks permission to restore the dashboard (do "
+            "not retry; ask the user)."
+        ),
     )

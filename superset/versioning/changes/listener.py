@@ -299,6 +299,17 @@ def _inject_action_meta_record(
         logger.exception("version_changes: malformed ACTION_META_KEY payload")
 
 
+def _write_action_kind(
+    session: Session, tx_table: sa.Table, tx_id: int, action_kind: str
+) -> None:
+    """Write action metadata through the transaction's existing connection."""
+    session.connection().execute(
+        sa.update(tx_table)
+        .where(tx_table.c.id == tx_id)
+        .values(action_kind=action_kind)
+    )
+
+
 def _stamp_action_kind_on_transaction(session: Session, tx_id: int) -> None:
     """Pop the per-tx action_kind from ``session.info`` and stamp it
     onto the ``version_transaction`` row identified by *tx_id*.
@@ -312,10 +323,11 @@ def _stamp_action_kind_on_transaction(session: Session, tx_id: int) -> None:
 
     The action_kind is popped (not just read) so a long-lived session
     can't accidentally carry the value into the next transaction. A
-    failed stamp is logged and swallowed — action_kind is a
-    descriptive enrichment, not a correctness invariant; refusing to
-    write change records because an UPDATE on a single column failed
-    would punish the user save for an audit-log nicety.
+    failed stamp is rolled back to a SAVEPOINT, logged, and swallowed:
+    action_kind is descriptive enrichment, not a correctness invariant.
+    The SAVEPOINT is opened after the final flush, so a failed metadata
+    statement cannot poison the user transaction or disturb Continuum's
+    canonical shadows.
     """
     # pylint: disable=import-outside-toplevel
     from sqlalchemy_continuum import versioning_manager
@@ -325,11 +337,8 @@ def _stamp_action_kind_on_transaction(session: Session, tx_id: int) -> None:
         return
     tx_tbl = versioning_manager.transaction_cls.__table__
     try:
-        session.connection().execute(
-            sa.update(tx_tbl)
-            .where(tx_tbl.c.id == tx_id)
-            .values(action_kind=action_kind)
-        )
+        with session.connection().begin_nested():
+            _write_action_kind(session, tx_tbl, tx_id, action_kind)
     except Exception:  # pylint: disable=broad-except
         logger.exception(
             "version_changes: failed to stamp action_kind=%s on tx %s",
