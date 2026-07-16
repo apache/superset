@@ -615,6 +615,9 @@ test('renders all Alert Condition fields', async () => {
   expect(sql).toBeInTheDocument();
   expect(condition).toBeInTheDocument();
   expect(threshold).toBeInTheDocument();
+  // Guard against a double border: passing type="number" leaks onto the inner
+  // input and matches the StyledInputContainer input[type='number'] border rule.
+  expect(threshold).not.toHaveAttribute('type', 'number');
 });
 test('disables condition threshold if not null condition is selected', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
@@ -852,7 +855,11 @@ test('shows screenshot width when PDF is selected', async () => {
     () => screen.getAllByText(/Send as PDF/i)[0],
   );
   expect(screen.getByText(/screenshot width/i)).toBeInTheDocument();
-  expect(screen.getByRole('spinbutton')).toBeInTheDocument();
+  const screenshotWidth = screen.getByRole('spinbutton');
+  expect(screenshotWidth).toBeInTheDocument();
+  // Guard against a double border: passing type="number" leaks onto the inner
+  // input and matches the StyledInputContainer input[type='number'] border rule.
+  expect(screenshotWidth).not.toHaveAttribute('type', 'number');
 });
 
 // Schedule Section
