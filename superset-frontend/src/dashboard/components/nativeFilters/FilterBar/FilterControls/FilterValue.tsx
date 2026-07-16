@@ -42,7 +42,7 @@ import {
   getClientErrorObject,
   isChartCustomization,
 } from '@superset-ui/core';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
@@ -122,6 +122,19 @@ const FilterValue: FC<FilterValueProps> = ({
   const transitiveParentIds = useTransitiveParentIds(id);
   const shouldRefresh = useShouldFilterRefresh();
 
+  // Derive only the defaultToFirstItem flag per filter to avoid re-renders
+  // when unrelated filter config fields change.
+  const parentDefaultToFirstItem = useSelector(
+    (state: RootState) =>
+      Object.fromEntries(
+        Object.entries(state.nativeFilters?.filters ?? {}).map(([fId, f]) => [
+          fId,
+          Boolean(f.controlValues?.defaultToFirstItem),
+        ]),
+      ),
+    shallowEqual,
+  );
+
   const behaviors = useMemo(
     () => [
       isCustomization ? Behavior.ChartCustomization : Behavior.NativeFilter,
@@ -187,6 +200,21 @@ const FilterValue: FC<FilterValueProps> = ({
       // selections first. We walk the full transitive ancestor chain (not just
       // direct parents) so the counts line up with `dependencies`, which is
       // itself built from the transitive chain by `useFilterDependencies`.
+
+      // Block if any parent with defaultToFirstItem hasn't auto-selected yet.
+      // Without this, the child fetches unfiltered options before the parent
+      // auto-selects, leading to a stale first-value dispatch that never
+      // gets corrected because subsequent re-selections are not first-initialization.
+      const hasDefaultFirstParentPending = transitiveParentIds.some(pId => {
+        const parentMask = dataMaskSelected?.[pId];
+        return (
+          parentDefaultToFirstItem[pId] &&
+          parentMask?.filterState?.value === undefined
+        );
+      });
+      if (hasDefaultFirstParentPending) {
+        return;
+      }
 
       let selectedParentFilterValueCounts = 0;
 
@@ -288,6 +316,7 @@ const FilterValue: FC<FilterValueProps> = ({
     shouldRefresh,
     dataMaskSelected,
     transitiveParentIds,
+    parentDefaultToFirstItem,
   ]);
 
   useEffect(() => {
