@@ -163,11 +163,7 @@ const createFetchDatasets = async (
 interface ChartListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  user: {
-    userId: string | number;
-    firstName: string;
-    lastName: string;
-  };
+  user?: UserWithPermissionsAndRoles;
 }
 
 const Actions = styled.div`
@@ -176,7 +172,7 @@ const Actions = styled.div`
 
 function ChartList(props: ChartListProps) {
   const { addDangerToast, addSuccessToast, user } = props;
-  const { userId } = user;
+  const userId = user?.userId;
 
   const history = useHistory();
 
@@ -229,9 +225,11 @@ function ChartList(props: ChartListProps) {
   // TODO: Fix usage of localStorage keying on the user id
   const userSettings = useMemo(
     () =>
-      dangerouslyGetItemDoNotUse(userId?.toString(), null) as {
-        thumbnails: boolean;
-      },
+      userId === undefined
+        ? null
+        : (dangerouslyGetItemDoNotUse(userId.toString(), null) as {
+            thumbnails: boolean;
+          }),
     [userId],
   );
 
@@ -621,6 +619,7 @@ function ChartList(props: ChartListProps) {
       },
     ],
     [
+      user,
       userId,
       canEdit,
       canDelete,

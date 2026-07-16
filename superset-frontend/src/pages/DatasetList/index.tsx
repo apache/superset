@@ -100,7 +100,10 @@ import {
 import { useSelector } from 'react-redux';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
-import type { BootstrapData } from 'src/types/bootstrapTypes';
+import type {
+  BootstrapData,
+  UserWithPermissionsAndRoles,
+} from 'src/types/bootstrapTypes';
 import type User from 'src/types/User';
 import IconButton from 'src/dashboard/components/IconButton';
 
@@ -166,11 +169,7 @@ interface VirtualDataset extends Dataset {
 interface DatasetListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  user: {
-    userId: string | number;
-    firstName: string;
-    lastName: string;
-  };
+  user?: UserWithPermissionsAndRoles;
 }
 
 type RelatedObjects = {

@@ -37,6 +37,7 @@ import { assetUrl } from 'src/utils/assetUrl';
 import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { KebabMenuButton } from 'src/components';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
+import type { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
 interface DashboardCardProps {
   isChart?: boolean;
@@ -47,7 +48,7 @@ interface DashboardCardProps {
   openDashboardEditModal?: (d: Dashboard) => void;
   saveFavoriteStatus: (id: number, isStarred: boolean) => void;
   favoriteStatus: boolean;
-  user?: { userId?: string | number };
+  user?: UserWithPermissionsAndRoles;
   showThumbnails?: boolean;
   handleBulkDashboardExport: (dashboardsToExport: Dashboard[]) => void;
   onDelete: (dashboard: Dashboard) => void;

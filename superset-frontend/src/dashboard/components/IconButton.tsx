@@ -55,7 +55,18 @@ const StyledSpan = styled.span`
 `;
 
 const IconButton = forwardRef<HTMLDivElement, IconButtonProps>(
-  ({ icon, label, onClick, disabled, 'data-test': dataTest, ...rest }, ref) => (
+  (
+    {
+      icon,
+      label,
+      onClick,
+      onKeyDown,
+      disabled,
+      'data-test': dataTest,
+      ...rest
+    },
+    ref,
+  ) => (
     <StyledDiv
       {...rest}
       ref={ref}
@@ -68,6 +79,11 @@ const IconButton = forwardRef<HTMLDivElement, IconButtonProps>(
         e.preventDefault();
         if (!disabled) {
           onClick(e);
+        }
+      }}
+      onKeyDown={e => {
+        if (!disabled) {
+          onKeyDown?.(e);
         }
       }}
     >

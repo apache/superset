@@ -101,11 +101,7 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 interface DashboardListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  user: {
-    userId: string | number;
-    firstName: string;
-    lastName: string;
-  };
+  user?: UserWithPermissionsAndRoles;
 }
 
 export interface Dashboard {
@@ -247,7 +243,10 @@ function DashboardList(props: DashboardListProps) {
   };
 
   // TODO: Fix usage of localStorage keying on the user id
-  const userKey = dangerouslyGetItemDoNotUse(user?.userId?.toString(), null);
+  const userKey =
+    user?.userId === undefined
+      ? null
+      : dangerouslyGetItemDoNotUse(user.userId.toString(), null);
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
@@ -587,7 +586,7 @@ function DashboardList(props: DashboardListProps) {
       },
     ],
     [
-      user?.userId,
+      user,
       canEdit,
       canDelete,
       canExport,

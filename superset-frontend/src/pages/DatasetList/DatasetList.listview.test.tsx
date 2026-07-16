@@ -1054,7 +1054,6 @@ test('edit action is disabled for non-editor', async () => {
 test('all action buttons are clickable and enabled for admin user', async () => {
   const virtualDataset = {
     ...mockDatasets[1],
-    editors: [mockDatasetEditors.admin],
   };
 
   mockDatasetListEndpoints({ result: [virtualDataset], count: 1 });

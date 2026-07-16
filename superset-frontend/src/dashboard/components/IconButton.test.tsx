@@ -48,6 +48,26 @@ test('does not call onClick and sets aria-disabled when disabled', () => {
   expect(button).toHaveAttribute('aria-disabled', 'true');
 });
 
+test('does not prevent default keyboard navigation', () => {
+  const onKeyDown = jest.fn();
+  render(
+    <IconButton
+      icon={icon}
+      onClick={jest.fn()}
+      onKeyDown={onKeyDown}
+      data-test="my-button"
+    />,
+  );
+
+  const eventWasNotCancelled = fireEvent.keyDown(
+    screen.getByTestId('my-button'),
+    { key: 'Tab' },
+  );
+
+  expect(eventWasNotCancelled).toBe(true);
+  expect(onKeyDown).toHaveBeenCalledTimes(1);
+});
+
 test('renders the provided label', () => {
   render(<IconButton icon={icon} onClick={jest.fn()} label="My Label" />);
 

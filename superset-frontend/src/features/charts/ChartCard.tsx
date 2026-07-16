@@ -41,6 +41,7 @@ import { assetUrl } from 'src/utils/assetUrl';
 import type { ListViewFetchDataConfig as FetchDataConfig } from 'src/components';
 import { TableTab } from 'src/views/CRUD/types';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
+import type { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
 interface ChartCardProps {
   chart: Chart;
@@ -54,7 +55,7 @@ interface ChartCardProps {
   saveFavoriteStatus: (id: number, isStarred: boolean) => void;
   favoriteStatus: boolean;
   chartFilter?: string;
-  user?: { userId?: string | number };
+  user?: UserWithPermissionsAndRoles;
   showThumbnails?: boolean;
   handleBulkChartExport: (chartsToExport: Chart[]) => void;
   getData?: (tab: TableTab) => void;
