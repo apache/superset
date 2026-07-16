@@ -19,8 +19,6 @@
  */
 import { ReactElement, ReactNode, ComponentType } from 'react';
 
-type ReactText = string | number;
-
 import type {
   AdhocColumn,
   Column,
@@ -40,6 +38,9 @@ import type {
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { sharedControls, sharedControlComponents } from './shared-controls';
+
+// React 19 removed the ReactText type.
+type ReactText = string | number;
 
 export type { Metric } from '@superset-ui/core';
 export type { ControlComponentProps } from './shared-controls/components/types';
