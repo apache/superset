@@ -64,6 +64,8 @@ import { HydrateExplore } from 'src/explore/actions/hydrateExplore';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { Dataset } from '@superset-ui/chart-controls';
 import databaseReducer from 'src/database/reducers';
+import versionHistoryReducer from 'src/features/versionHistory/reducer';
+import { versionSessionLogMiddleware } from 'src/features/versionHistory/sessionLogMiddleware';
 
 // Some reducers don't do anything, and redux is just used to reference the initial "state".
 // This may change later, as the client application takes on more responsibilities.
@@ -106,8 +108,19 @@ const getMiddleware: ConfigureStoreOptions['middleware'] =
             ignoredPaths: [/queryController/g],
             warnAfter: 200,
           },
-        }).concat(listenerMiddleware.middleware, logger, api.middleware)
-      : [listenerMiddleware.middleware, thunk, logger, api.middleware];
+        }).concat(
+          listenerMiddleware.middleware,
+          logger,
+          api.middleware,
+          versionSessionLogMiddleware,
+        )
+      : [
+          listenerMiddleware.middleware,
+          thunk,
+          logger,
+          api.middleware,
+          versionSessionLogMiddleware,
+        ];
 
 // TODO: This reducer is a combination of the Dashboard and Explore reducers.
 // The correct way of handling this is to unify the actions and reducers from both
@@ -149,6 +162,7 @@ const reducers = {
   saveModal,
   explore,
   database: databaseReducer,
+  versionHistory: versionHistoryReducer,
 };
 
 /* In some cases the jinja template injects two separate React apps into basic.html
