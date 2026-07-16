@@ -39,82 +39,20 @@ from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.commands.dashboard.exceptions import (
-    DashboardAccessDeniedError,
-    DashboardNotFoundError,
-)
-from superset.exceptions import SupersetSecurityException
 from superset.extensions import db, event_logger
 from superset.mcp_service.dashboard.schemas import (
     ManageDashboardOwnersRequest,
     ManageDashboardOwnersResponse,
 )
+from superset.mcp_service.dashboard.tool.governance_utils import (
+    dashboard_url,
+    find_and_authorize_dashboard,
+)
 from superset.mcp_service.system.schemas import serialize_subject_object
-from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.subjects.exceptions import SubjectsNotFoundValidationError
 from superset.subjects.types import SubjectType
 
 logger: logging.Logger = logging.getLogger(__name__)
-
-
-def _find_and_authorize_dashboard(
-    identifier: int | str,
-) -> tuple[Any, ManageDashboardOwnersResponse | None]:
-    """Return (dashboard, None) on success or (None, error_response) on failure.
-
-    Mirrors the helper in ``update_dashboard``: avoids ImportError before
-    Flask app initialisation by co-locating the imports it needs with the
-    call site rather than importing them at module load time.
-    """
-    from superset import security_manager
-    from superset.daos.dashboard import DashboardDAO
-
-    try:
-        dashboard = DashboardDAO.get_by_id_or_slug(identifier)
-    except DashboardAccessDeniedError:
-        # get_by_id_or_slug re-checks view access and raises access-denied
-        # for dashboards the caller cannot see; surface it as the
-        # structured permission_denied response instead of an unhandled
-        # error.
-        return None, ManageDashboardOwnersResponse(
-            permission_denied=True,
-            error=(
-                "You do not have permission to access this dashboard. "
-                "Ask the user to grant access; do not retry."
-            ),
-        )
-    except DashboardNotFoundError:
-        return None, ManageDashboardOwnersResponse(
-            error=f"Dashboard not found: {identifier!r}",
-        )
-    except SQLAlchemyError:
-        logger.exception("Database error looking up dashboard %r", identifier)
-        return None, ManageDashboardOwnersResponse(
-            error="Failed to look up dashboard due to a database error.",
-        )
-
-    if dashboard is None:
-        return None, ManageDashboardOwnersResponse(
-            error=f"Dashboard not found: {identifier!r}",
-        )
-
-    try:
-        security_manager.raise_for_editorship(dashboard)
-    except SupersetSecurityException:
-        return None, ManageDashboardOwnersResponse(
-            permission_denied=True,
-            error=(
-                f"You don't have permission to edit dashboard "
-                f"'{dashboard.dashboard_title}' (ID: {dashboard.id})."
-            ),
-        )
-
-    return dashboard, None
-
-
-def _dashboard_url(dashboard: Any) -> str:
-    """Build the user-facing dashboard URL, preferring slug over id."""
-    return f"{get_superset_base_url()}/dashboard/{dashboard.slug or dashboard.id}/"
 
 
 def _owner_user_ids(dashboard: Any) -> list[int]:
@@ -320,7 +258,9 @@ def manage_dashboard_owners(
         f"add={request.add_owner_ids} remove={request.remove_owner_ids}"
     )
 
-    dashboard, auth_error = _find_and_authorize_dashboard(request.identifier)
+    dashboard, auth_error = find_and_authorize_dashboard(
+        request.identifier, ManageDashboardOwnersResponse
+    )
     if auth_error is not None:
         return auth_error
 
@@ -347,10 +287,18 @@ def manage_dashboard_owners(
     # confirmation of an actual change (see docstring); returning it for a
     # request that changes nothing would let a caller enumerate owners via
     # a disguised no-op (e.g. "add" an ID that is already an owner).
+    #
+    # A self-removal-only request from a non-admin is deliberately NOT
+    # detected here even though ensure_no_lockout will revert it: whether
+    # the caller is actually re-added depends on resolution-time state
+    # (admin status, EXTRA_EDITORS_RESOLVER) that populate_subject_list
+    # owns, and predicting it here would duplicate that logic. That rare
+    # path is allowed to commit a redundant (state-preserving) write and is
+    # caught by the post-resolution no-op check further down.
     if set(new_owner_ids) == set(current_owner_ids):
         ctx.info(f"Dashboard {dashboard.id} owners unchanged; no-op request.")
         return ManageDashboardOwnersResponse(
-            dashboard_url=_dashboard_url(dashboard),
+            dashboard_url=dashboard_url(dashboard),
             warnings=[
                 "No effective change: requested owners already match the current state."
             ],
@@ -386,7 +334,7 @@ def manage_dashboard_owners(
         )
         ctx.info(f"Dashboard {dashboard.id} owners unchanged after resolution.")
         return ManageDashboardOwnersResponse(
-            dashboard_url=_dashboard_url(dashboard),
+            dashboard_url=dashboard_url(dashboard),
             warnings=warnings,
         )
 
@@ -399,7 +347,7 @@ def manage_dashboard_owners(
             if subject.type == SubjectType.USER
             and (info := serialize_subject_object(subject)) is not None
         ],
-        dashboard_url=_dashboard_url(dashboard),
+        dashboard_url=dashboard_url(dashboard),
         added_owner_ids=added_owner_ids,
         removed_owner_ids=removed_owner_ids,
         warnings=warnings,

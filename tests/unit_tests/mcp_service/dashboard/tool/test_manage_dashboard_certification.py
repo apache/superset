@@ -128,6 +128,64 @@ class TestManageDashboardCertification:
         assert payload["certification_details"] is None
 
     @patch(DAO_GET)
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_refresh_failure_after_commit_returns_captured_values(
+        self, mock_session: Mock, mock_get: Mock, mcp_server: object
+    ) -> None:
+        """A failed post-commit refresh() must not fail the call: the
+        response returns the values captured before the commit and appends
+        an advisory warning."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        dash = _mock_dashboard()
+        mock_get.return_value = dash
+        mock_session.refresh.side_effect = SQLAlchemyError("stale connection")
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "manage_dashboard_certification",
+                {
+                    "request": {
+                        "identifier": 42,
+                        "certified_by": "Data Platform Team",
+                    }
+                },
+            )
+
+        assert mock_session.commit.call_count >= 1
+        payload = json.loads(result.content[0].text)
+        assert payload.get("error") is None
+        assert "Data Platform Team" in payload["certified_by"]
+        assert payload["changed_fields"] == ["certified_by"]
+        assert any("refresh failed" in w.lower() for w in payload["warnings"])
+
+    @patch(DAO_GET)
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_rollback_failure_still_returns_structured_error(
+        self, mock_session: Mock, mock_get: Mock, mcp_server: object
+    ) -> None:
+        """Even when the rollback itself fails on the already-broken
+        session, the caller must still get the structured database-error
+        response, not an unhandled exception."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        dash = _mock_dashboard()
+        mock_get.return_value = dash
+        mock_session.commit.side_effect = SQLAlchemyError("connection lost")
+        mock_session.rollback.side_effect = SQLAlchemyError("still broken")
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "manage_dashboard_certification",
+                {"request": {"identifier": 42, "certified_by": "Data Platform Team"}},
+            )
+
+        payload = json.loads(result.content[0].text)
+        assert "database error" in (payload.get("error") or "").lower()
+
+    @patch(DAO_GET)
     @pytest.mark.asyncio
     async def test_no_fields_is_noop(self, mock_get: Mock, mcp_server: object) -> None:
         dash = _mock_dashboard(certified_by="Existing")
@@ -186,7 +244,7 @@ class TestManageDashboardCertification:
         mock_get.side_effect = SQLAlchemyError("connection to server lost")
 
         with patch(
-            "superset.mcp_service.dashboard.tool.manage_dashboard_certification.logger"
+            "superset.mcp_service.dashboard.tool.governance_utils.logger"
         ) as mock_logger:
             async with Client(mcp_server) as client:
                 result = await client.call_tool(

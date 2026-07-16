@@ -1104,13 +1104,13 @@ class ManageDashboardOwnersRequest(BaseModel):
             "accepted by ``get_dashboard_info``."
         ),
     )
-    add_owner_ids: List[int] = Field(
+    add_owner_ids: list[int] = Field(
         default_factory=list,
         description=(
             "User IDs to add as dashboard owners. Discover IDs with ``find_users``."
         ),
     )
-    remove_owner_ids: List[int] = Field(
+    remove_owner_ids: list[int] = Field(
         default_factory=list,
         description=(
             "User IDs to remove from dashboard owners. Rejected if it would "
@@ -1178,7 +1178,7 @@ class DashboardMutationErrorFields(BaseModel):
 class ManageDashboardOwnersResponse(DashboardMutationErrorFields):
     """Response schema for ``manage_dashboard_owners``."""
 
-    owners: List[SubjectInfo] = Field(
+    owners: list[SubjectInfo] = Field(
         default_factory=list,
         description=(
             "Full list of USER-type editor subjects (dashboard owners) "
@@ -1187,15 +1187,15 @@ class ManageDashboardOwnersResponse(DashboardMutationErrorFields):
         ),
     )
     dashboard_url: str | None = Field(None, description="URL to view the dashboard")
-    added_owner_ids: List[int] = Field(
+    added_owner_ids: list[int] = Field(
         default_factory=list,
         description="User IDs actually added as owners by this call.",
     )
-    removed_owner_ids: List[int] = Field(
+    removed_owner_ids: list[int] = Field(
         default_factory=list,
         description="User IDs actually removed from owners by this call.",
     )
-    warnings: List[str] = Field(
+    warnings: list[str] = Field(
         default_factory=list,
         description=(
             "Non-fatal advisory messages, e.g. that a non-admin caller was "
@@ -1207,14 +1207,14 @@ class ManageDashboardOwnersResponse(DashboardMutationErrorFields):
     @field_validator("owners", mode="after")
     @classmethod
     def sanitize_owners_for_llm_context(
-        cls, value: List[SubjectInfo]
-    ) -> List[SubjectInfo]:
+        cls, value: list[SubjectInfo]
+    ) -> list[SubjectInfo]:
         """Wrap owner labels before LLM exposure; owner display names are
         user-controlled and render as plain text in this response, so an
         unsanitized label could inject content into LLM context (CWE-79
         analog for LLM-facing output). Entries that sanitize to an empty
         label are dropped rather than surfaced with a blank identity."""
-        sanitized: List[SubjectInfo] = []
+        sanitized: list[SubjectInfo] = []
         for subject in value:
             if subject.label is None:
                 sanitized.append(subject)
@@ -1248,13 +1248,13 @@ class ManageDashboardRolesRequest(BaseModel):
             "accepted by ``get_dashboard_info``."
         ),
     )
-    add_role_ids: List[int] = Field(
+    add_role_ids: list[int] = Field(
         default_factory=list,
         description=(
             "Role IDs to grant dashboard access to. Discover IDs with ``list_roles``."
         ),
     )
-    remove_role_ids: List[int] = Field(
+    remove_role_ids: list[int] = Field(
         default_factory=list,
         description=(
             "Role IDs to revoke dashboard access from. Rejected if an ID is "
@@ -1298,7 +1298,7 @@ class ManageDashboardRolesRequest(BaseModel):
 class ManageDashboardRolesResponse(DashboardMutationErrorFields):
     """Response schema for ``manage_dashboard_roles``."""
 
-    roles: List[SubjectInfo] = Field(
+    roles: list[SubjectInfo] = Field(
         default_factory=list,
         description=(
             "Full list of ROLE-type viewer subjects (dashboard access "
@@ -1307,11 +1307,11 @@ class ManageDashboardRolesResponse(DashboardMutationErrorFields):
         ),
     )
     dashboard_url: str | None = Field(None, description="URL to view the dashboard")
-    added_role_ids: List[int] = Field(
+    added_role_ids: list[int] = Field(
         default_factory=list,
         description="Role IDs actually added by this call.",
     )
-    removed_role_ids: List[int] = Field(
+    removed_role_ids: list[int] = Field(
         default_factory=list,
         description="Role IDs actually removed by this call.",
     )
@@ -1324,21 +1324,21 @@ class ManageDashboardRolesResponse(DashboardMutationErrorFields):
             "Superset permissions/editorship."
         ),
     )
-    warnings: List[str] = Field(
+    warnings: list[str] = Field(
         default_factory=list, description="Non-fatal advisory messages."
     )
 
     @field_validator("roles", mode="after")
     @classmethod
     def sanitize_roles_for_llm_context(
-        cls, value: List[SubjectInfo]
-    ) -> List[SubjectInfo]:
+        cls, value: list[SubjectInfo]
+    ) -> list[SubjectInfo]:
         """Wrap role labels before LLM exposure; role display names are
         user-controlled and render as plain text in this response, so an
         unsanitized label could inject content into LLM context (CWE-79
         analog for LLM-facing output). Entries that sanitize to an empty
         label are dropped rather than surfaced with a blank identity."""
-        sanitized: List[SubjectInfo] = []
+        sanitized: list[SubjectInfo] = []
         for subject in value:
             if subject.label is None:
                 sanitized.append(subject)
@@ -1443,11 +1443,11 @@ class ManageDashboardCertificationResponse(DashboardMutationErrorFields):
         None, description="Certification details after the operation."
     )
     dashboard_url: str | None = Field(None, description="URL to view the dashboard")
-    changed_fields: List[str] = Field(
+    changed_fields: list[str] = Field(
         default_factory=list,
         description="Names of fields that were actually applied.",
     )
-    warnings: List[str] = Field(
+    warnings: list[str] = Field(
         default_factory=list, description="Non-fatal advisory messages."
     )
 

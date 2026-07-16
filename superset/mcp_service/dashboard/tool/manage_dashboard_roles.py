@@ -38,81 +38,19 @@ from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.commands.dashboard.exceptions import (
-    DashboardAccessDeniedError,
-    DashboardNotFoundError,
-)
-from superset.exceptions import SupersetSecurityException
 from superset.extensions import db, event_logger
 from superset.mcp_service.dashboard.schemas import (
     ManageDashboardRolesRequest,
     ManageDashboardRolesResponse,
 )
+from superset.mcp_service.dashboard.tool.governance_utils import (
+    dashboard_url,
+    find_and_authorize_dashboard,
+)
 from superset.mcp_service.system.schemas import serialize_subject_object
-from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.subjects.types import SubjectType
 
 logger: logging.Logger = logging.getLogger(__name__)
-
-
-def _find_and_authorize_dashboard(
-    identifier: int | str,
-) -> tuple[Any, ManageDashboardRolesResponse | None]:
-    """Return (dashboard, None) on success or (None, error_response) on failure.
-
-    Mirrors the helper in ``update_dashboard``: avoids ImportError before
-    Flask app initialisation by co-locating the imports it needs with the
-    call site rather than importing them at module load time.
-    """
-    from superset import security_manager
-    from superset.daos.dashboard import DashboardDAO
-
-    try:
-        dashboard = DashboardDAO.get_by_id_or_slug(identifier)
-    except DashboardAccessDeniedError:
-        # get_by_id_or_slug re-checks view access and raises access-denied
-        # for dashboards the caller cannot see; surface it as the
-        # structured permission_denied response instead of an unhandled
-        # error.
-        return None, ManageDashboardRolesResponse(
-            permission_denied=True,
-            error=(
-                "You do not have permission to access this dashboard. "
-                "Ask the user to grant access; do not retry."
-            ),
-        )
-    except DashboardNotFoundError:
-        return None, ManageDashboardRolesResponse(
-            error=f"Dashboard not found: {identifier!r}",
-        )
-    except SQLAlchemyError:
-        logger.exception("Database error looking up dashboard %r", identifier)
-        return None, ManageDashboardRolesResponse(
-            error="Failed to look up dashboard due to a database error.",
-        )
-
-    if dashboard is None:
-        return None, ManageDashboardRolesResponse(
-            error=f"Dashboard not found: {identifier!r}",
-        )
-
-    try:
-        security_manager.raise_for_editorship(dashboard)
-    except SupersetSecurityException:
-        return None, ManageDashboardRolesResponse(
-            permission_denied=True,
-            error=(
-                f"You don't have permission to edit dashboard "
-                f"'{dashboard.dashboard_title}' (ID: {dashboard.id})."
-            ),
-        )
-
-    return dashboard, None
-
-
-def _dashboard_url(dashboard: Any) -> str:
-    """Build the user-facing dashboard URL, preferring slug over id."""
-    return f"{get_superset_base_url()}/dashboard/{dashboard.slug or dashboard.id}/"
 
 
 def _viewer_role_ids(dashboard: Any) -> list[int]:
@@ -186,6 +124,28 @@ def _compute_new_role_ids(
     return current_role_ids, new_role_ids, None
 
 
+def _resolve_role_subjects(new_role_ids: list[int]) -> tuple[list[Any], list[int]]:
+    """Resolve role IDs to ROLE-type Subjects, one at a time.
+
+    Mirrors the owners tool's ``get_or_create_user_subject`` loop: a role
+    that exists but has no synced Subject row yet is synced on demand
+    instead of being misreported as nonexistent. Returns
+    ``(resolved_subjects, missing_role_ids)`` where the latter contains
+    only IDs with no matching role at all.
+    """
+    from superset.subjects.utils import get_or_create_role_subject
+
+    resolved_role_subjects: list[Any] = []
+    missing_role_ids: list[int] = []
+    for role_id in new_role_ids:
+        subject = get_or_create_role_subject(role_id)
+        if subject is None:
+            missing_role_ids.append(role_id)
+        else:
+            resolved_role_subjects.append(subject)
+    return resolved_role_subjects, missing_role_ids
+
+
 @tool(
     tags=["mutate"],
     class_permission_name="Dashboard",
@@ -223,7 +183,10 @@ def manage_dashboard_roles(
     dashboard. Do not use it to answer "who can access X" for a dashboard
     the caller did not ask to modify, and do not call this tool merely to
     look up current roles — those remain off-limits per the server
-    instructions.
+    instructions. A request that has no effective change (e.g. "adding" a
+    role that is already assigned) returns an empty ``roles`` list rather
+    than the full current set, so this tool cannot be used as a disguised
+    directory lookup.
 
     Example::
 
@@ -239,7 +202,9 @@ def manage_dashboard_roles(
         f"add={request.add_role_ids} remove={request.remove_role_ids}"
     )
 
-    dashboard, auth_error = _find_and_authorize_dashboard(request.identifier)
+    dashboard, auth_error = find_and_authorize_dashboard(
+        request.identifier, ManageDashboardRolesResponse
+    )
     if auth_error is not None:
         return auth_error
 
@@ -260,21 +225,35 @@ def manage_dashboard_roles(
     assert current_role_ids is not None  # narrows for mypy
     assert new_role_ids is not None  # narrows for mypy
 
+    # No-op short-circuit: skip the DB write and, more importantly, the
+    # full roles list in the response — mirrors manage_dashboard_owners.
+    # The roles list is only sanctioned as confirmation of an actual change
+    # (see docstring); returning it for a request that changes nothing
+    # would let a caller enumerate access roles via a disguised no-op
+    # (e.g. "add" a role that is already assigned).
+    if set(new_role_ids) == set(current_role_ids):
+        ctx.info(f"Dashboard {dashboard.id} roles unchanged; no-op request.")
+        return ManageDashboardRolesResponse(
+            dashboard_url=dashboard_url(dashboard),
+            viewers_enabled=viewers_enabled,
+            warnings=warnings
+            + ["No effective change: requested roles already match the current state."],
+        )
+
     try:
         with event_logger.log_context(action="mcp.manage_dashboard_roles.apply"):
-            from superset.subjects.utils import subjects_from_roles
-
             other_viewers = _other_viewers(dashboard)
-            resolved_role_subjects = subjects_from_roles(new_role_ids)
-            resolved_role_ids = {subject.role_id for subject in resolved_role_subjects}
-            missing_role_ids = sorted(set(new_role_ids) - resolved_role_ids)
+
+            resolved_role_subjects, missing_role_ids = _resolve_role_subjects(
+                new_role_ids
+            )
             if missing_role_ids:
                 return ManageDashboardRolesResponse(
                     viewers_enabled=viewers_enabled,
                     error=(
                         f"One or more role IDs do not exist: "
-                        f"{missing_role_ids}. Use list_roles to resolve "
-                        "valid role IDs."
+                        f"{sorted(missing_role_ids)}. Use list_roles to "
+                        "resolve valid role IDs."
                     ),
                 )
 
@@ -284,7 +263,7 @@ def manage_dashboard_roles(
             # below would otherwise leave a later `dashboard.viewers` read
             # free to raise an unhandled `SQLAlchemyError` from a broken
             # session.
-            final_role_ids = resolved_role_ids
+            final_role_ids = {subject.role_id for subject in resolved_role_subjects}
             roles_response = [
                 info
                 for subject in resolved_role_subjects
@@ -321,7 +300,7 @@ def manage_dashboard_roles(
 
     return ManageDashboardRolesResponse(
         roles=roles_response,
-        dashboard_url=_dashboard_url(dashboard),
+        dashboard_url=dashboard_url(dashboard),
         # True deltas against the PRE-call state — not just membership in
         # the request — so a role that was already assigned (or already
         # absent) is never misreported as added/removed.

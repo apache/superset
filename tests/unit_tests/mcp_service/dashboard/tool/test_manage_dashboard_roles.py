@@ -22,6 +22,7 @@ Subject-based model apache/superset#38831 introduced, replacing the legacy
 ``roles``/``DASHBOARD_RBAC`` relationship), gated by ``ENABLE_VIEWERS``.
 """
 
+from typing import Callable
 from unittest.mock import Mock, patch
 
 import pytest
@@ -31,8 +32,20 @@ from superset.subjects.types import SubjectType
 from superset.utils import json
 
 DAO_GET: str = "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug"
-SUBJECTS_FROM_ROLES: str = "superset.subjects.utils.subjects_from_roles"
+GET_OR_CREATE_ROLE_SUBJECT: str = "superset.subjects.utils.get_or_create_role_subject"
 IS_FEATURE_ENABLED: str = "superset.is_feature_enabled"
+
+
+def _get_or_create_side_effect(
+    mapping: dict[int, Mock],
+) -> Callable[[int], Mock | None]:
+    """Typed stand-in for ``get_or_create_role_subject``'s ``side_effect``:
+    resolves a role ID to its mocked Subject, or ``None`` if unknown."""
+
+    def _lookup(role_id: int) -> Mock | None:
+        return mapping.get(role_id)
+
+    return _lookup
 
 
 def _mock_subject(id: int, role_id: int, label: str = "role") -> Mock:
@@ -62,7 +75,7 @@ def _mock_dashboard(
 
 class TestManageDashboardRoles:
     @patch(IS_FEATURE_ENABLED, return_value=True)
-    @patch(SUBJECTS_FROM_ROLES)
+    @patch(GET_OR_CREATE_ROLE_SUBJECT)
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
     @pytest.mark.asyncio
@@ -70,14 +83,14 @@ class TestManageDashboardRoles:
         self,
         mock_session: Mock,
         mock_get: Mock,
-        mock_subjects_from_roles: Mock,
+        mock_get_or_create: Mock,
         mock_flag: Mock,
         mcp_server: object,
     ) -> None:
         new_subject = _mock_subject(200, 5, "Analyst")
         dash = _mock_dashboard(viewers=[])
         mock_get.return_value = dash
-        mock_subjects_from_roles.return_value = [new_subject]
+        mock_get_or_create.side_effect = _get_or_create_side_effect({5: new_subject})
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
@@ -85,7 +98,7 @@ class TestManageDashboardRoles:
                 {"request": {"identifier": 42, "add_role_ids": [5]}},
             )
 
-        mock_subjects_from_roles.assert_called_once_with([5])
+        mock_get_or_create.assert_called_once_with(5)
         assert dash.viewers == [new_subject]
         assert mock_session.commit.call_count >= 1
         payload = json.loads(result.content[0].text)
@@ -95,7 +108,7 @@ class TestManageDashboardRoles:
         assert payload["warnings"] == []
 
     @patch(IS_FEATURE_ENABLED, return_value=True)
-    @patch(SUBJECTS_FROM_ROLES)
+    @patch(GET_OR_CREATE_ROLE_SUBJECT)
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
     @pytest.mark.asyncio
@@ -103,7 +116,7 @@ class TestManageDashboardRoles:
         self,
         mock_session: Mock,
         mock_get: Mock,
-        mock_subjects_from_roles: Mock,
+        mock_get_or_create: Mock,
         mock_flag: Mock,
         mcp_server: object,
     ) -> None:
@@ -115,7 +128,7 @@ class TestManageDashboardRoles:
         new_subject = _mock_subject(200, 5, "Analyst")
         dash = _mock_dashboard(viewers=[])
         mock_get.return_value = dash
-        mock_subjects_from_roles.return_value = [new_subject]
+        mock_get_or_create.side_effect = _get_or_create_side_effect({5: new_subject})
         mock_session.commit.side_effect = SQLAlchemyError("connection lost")
 
         async with Client(mcp_server) as client:
@@ -128,8 +141,108 @@ class TestManageDashboardRoles:
         payload = json.loads(result.content[0].text)
         assert "database error" in (payload.get("error") or "").lower()
 
+    @patch(IS_FEATURE_ENABLED, return_value=True)
+    @patch(GET_OR_CREATE_ROLE_SUBJECT)
+    @patch(DAO_GET)
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_rollback_failure_still_returns_structured_error(
+        self,
+        mock_session: Mock,
+        mock_get: Mock,
+        mock_get_or_create: Mock,
+        mock_flag: Mock,
+        mcp_server: object,
+    ) -> None:
+        """Even when the rollback itself fails on the already-broken
+        session, the caller must still get the structured database-error
+        response, not an unhandled exception."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        new_subject = _mock_subject(200, 5, "Analyst")
+        dash = _mock_dashboard(viewers=[])
+        mock_get.return_value = dash
+        mock_get_or_create.side_effect = _get_or_create_side_effect({5: new_subject})
+        mock_session.commit.side_effect = SQLAlchemyError("connection lost")
+        mock_session.rollback.side_effect = SQLAlchemyError("still broken")
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "manage_dashboard_roles",
+                {"request": {"identifier": 42, "add_role_ids": [5]}},
+            )
+
+        payload = json.loads(result.content[0].text)
+        assert "database error" in (payload.get("error") or "").lower()
+
+    @patch(IS_FEATURE_ENABLED, return_value=True)
+    @patch(GET_OR_CREATE_ROLE_SUBJECT)
+    @patch(DAO_GET)
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_refresh_failure_after_commit_returns_captured_values(
+        self,
+        mock_session: Mock,
+        mock_get: Mock,
+        mock_get_or_create: Mock,
+        mock_flag: Mock,
+        mcp_server: object,
+    ) -> None:
+        """A failed post-commit refresh() must not fail the call: the
+        response is built from values captured before the commit."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        new_subject = _mock_subject(200, 5, "Analyst")
+        dash = _mock_dashboard(viewers=[])
+        mock_get.return_value = dash
+        mock_get_or_create.side_effect = _get_or_create_side_effect({5: new_subject})
+        mock_session.refresh.side_effect = SQLAlchemyError("stale connection")
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "manage_dashboard_roles",
+                {"request": {"identifier": 42, "add_role_ids": [5]}},
+            )
+
+        assert mock_session.commit.call_count >= 1
+        payload = json.loads(result.content[0].text)
+        assert payload.get("error") is None
+        assert [r["id"] for r in payload["roles"]] == [200]
+        assert payload["added_role_ids"] == [5]
+
+    @patch(IS_FEATURE_ENABLED, return_value=True)
+    @patch(DAO_GET)
+    @pytest.mark.asyncio
+    async def test_viewers_lazy_load_failure_returns_error(
+        self, mock_get: Mock, mock_flag: Mock, mcp_server: object
+    ) -> None:
+        """A DB fault while lazy-loading dashboard.viewers must surface as
+        the structured load error, not an unhandled exception."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        class _ViewersRaise:
+            id = 42
+            dashboard_title = "Test Dashboard"
+            slug = "test-slug"
+
+            @property
+            def viewers(self) -> list[Mock]:
+                raise SQLAlchemyError("lazy load failed")
+
+        mock_get.return_value = _ViewersRaise()
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "manage_dashboard_roles",
+                {"request": {"identifier": 42, "add_role_ids": [5]}},
+            )
+
+        payload = json.loads(result.content[0].text)
+        assert "failed to load dashboard roles" in (payload.get("error") or "").lower()
+        assert "lazy load failed" not in (payload.get("error") or "")
+
     @patch(IS_FEATURE_ENABLED, return_value=False)
-    @patch(SUBJECTS_FROM_ROLES)
+    @patch(GET_OR_CREATE_ROLE_SUBJECT)
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
     @pytest.mark.asyncio
@@ -137,14 +250,14 @@ class TestManageDashboardRoles:
         self,
         mock_session: Mock,
         mock_get: Mock,
-        mock_subjects_from_roles: Mock,
+        mock_get_or_create: Mock,
         mock_flag: Mock,
         mcp_server: object,
     ) -> None:
         new_subject = _mock_subject(200, 5, "Analyst")
         dash = _mock_dashboard(viewers=[])
         mock_get.return_value = dash
-        mock_subjects_from_roles.return_value = [new_subject]
+        mock_get_or_create.side_effect = _get_or_create_side_effect({5: new_subject})
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
@@ -157,7 +270,7 @@ class TestManageDashboardRoles:
         assert any("ENABLE_VIEWERS" in w for w in payload["warnings"])
 
     @patch(IS_FEATURE_ENABLED, return_value=True)
-    @patch(SUBJECTS_FROM_ROLES)
+    @patch(GET_OR_CREATE_ROLE_SUBJECT)
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
     @pytest.mark.asyncio
@@ -165,7 +278,7 @@ class TestManageDashboardRoles:
         self,
         mock_session: Mock,
         mock_get: Mock,
-        mock_subjects_from_roles: Mock,
+        mock_get_or_create: Mock,
         mock_flag: Mock,
         mcp_server: object,
     ) -> None:
@@ -173,7 +286,7 @@ class TestManageDashboardRoles:
         remove = _mock_subject(201, 6, "Sales")
         dash = _mock_dashboard(viewers=[keep, remove])
         mock_get.return_value = dash
-        mock_subjects_from_roles.return_value = [keep]
+        mock_get_or_create.side_effect = _get_or_create_side_effect({5: keep})
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
@@ -181,7 +294,7 @@ class TestManageDashboardRoles:
                 {"request": {"identifier": 42, "remove_role_ids": [6]}},
             )
 
-        mock_subjects_from_roles.assert_called_once_with([5])
+        mock_get_or_create.assert_called_once_with(5)
         payload = json.loads(result.content[0].text)
         assert payload["removed_role_ids"] == [6]
 
@@ -272,20 +385,22 @@ class TestManageDashboardRoles:
         assert payload.get("permission_denied") is True
 
     @patch(IS_FEATURE_ENABLED, return_value=True)
-    @patch(SUBJECTS_FROM_ROLES)
+    @patch(GET_OR_CREATE_ROLE_SUBJECT)
     @patch(DAO_GET)
     @pytest.mark.asyncio
     async def test_unknown_role_id_in_add_rejected(
         self,
         mock_get: Mock,
-        mock_subjects_from_roles: Mock,
+        mock_get_or_create: Mock,
         mock_flag: Mock,
         mcp_server: object,
     ) -> None:
         dash = _mock_dashboard(viewers=[])
         mock_get.return_value = dash
-        # subjects_from_roles silently skips roles without a matching Subject.
-        mock_subjects_from_roles.return_value = []
+        # get_or_create_role_subject returns None only when no such role
+        # exists (an unsynced-but-existing role is synced on demand).
+        mock_get_or_create.return_value = None
+        mock_get_or_create.side_effect = None
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
@@ -326,24 +441,23 @@ class TestManageDashboardRoles:
                 )
 
     @patch(IS_FEATURE_ENABLED, return_value=True)
-    @patch(SUBJECTS_FROM_ROLES)
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
     @pytest.mark.asyncio
-    async def test_add_already_assigned_role_not_reported_as_added(
+    async def test_add_already_assigned_role_is_noop_without_disclosure(
         self,
         mock_session: Mock,
         mock_get: Mock,
-        mock_subjects_from_roles: Mock,
         mock_flag: Mock,
         mcp_server: object,
     ) -> None:
-        """added_role_ids is a delta against the pre-call state, so a role
-        that was already assigned must not be reported as added."""
+        """ "Adding" an already-assigned role is a no-op: no DB write, no
+        added/removed deltas, and — mirroring manage_dashboard_owners — an
+        EMPTY roles list, so the tool cannot be used as a disguised
+        access-role directory lookup."""
         existing = _mock_subject(200, 5, "Analyst")
         dash = _mock_dashboard(viewers=[existing])
         mock_get.return_value = dash
-        mock_subjects_from_roles.return_value = [existing]
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
@@ -351,9 +465,12 @@ class TestManageDashboardRoles:
                 {"request": {"identifier": 42, "add_role_ids": [5]}},
             )
 
+        mock_session.commit.assert_not_called()
         payload = json.loads(result.content[0].text)
+        assert payload["roles"] == []
         assert payload["added_role_ids"] == []
         assert payload["removed_role_ids"] == []
+        assert any("no effective change" in w.lower() for w in payload["warnings"])
         # URL matches the sibling dashboard tools' /dashboard/... pattern.
         assert payload["dashboard_url"].endswith("/dashboard/test-slug/")
         assert "/superset/dashboard/" not in payload["dashboard_url"]
@@ -406,7 +523,7 @@ class TestManageDashboardRoles:
         mock_get.side_effect = SQLAlchemyError("connection to server lost")
 
         with patch(
-            "superset.mcp_service.dashboard.tool.manage_dashboard_roles.logger"
+            "superset.mcp_service.dashboard.tool.governance_utils.logger"
         ) as mock_logger:
             async with Client(mcp_server) as client:
                 result = await client.call_tool(

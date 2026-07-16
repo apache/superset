@@ -453,7 +453,7 @@ class TestManageDashboardOwners:
         mock_get.side_effect = SQLAlchemyError("connection to server lost")
 
         with patch(
-            "superset.mcp_service.dashboard.tool.manage_dashboard_owners.logger"
+            "superset.mcp_service.dashboard.tool.governance_utils.logger"
         ) as mock_logger:
             async with Client(mcp_server) as client:
                 result = await client.call_tool(
@@ -467,6 +467,120 @@ class TestManageDashboardOwners:
         # The raw exception text must never reach the LLM-facing response.
         assert "connection to server lost" not in (payload.get("error") or "")
         mock_logger.exception.assert_called_once()
+
+    @patch(POPULATE_SUBJECT_LIST)
+    @patch(GET_OR_CREATE_USER_SUBJECT)
+    @patch(DAO_GET)
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_subjects_not_found_during_populate_returns_error(
+        self,
+        mock_session: Mock,
+        mock_get: Mock,
+        mock_get_or_create: Mock,
+        mock_populate: Mock,
+        mcp_server: object,
+    ) -> None:
+        """populate_subject_list raising SubjectsNotFoundValidationError
+        (subject rows vanished between resolution and validation) must
+        surface as the structured could-not-resolve error."""
+        from superset.subjects.exceptions import SubjectsNotFoundValidationError
+
+        existing = _mock_subject(100, 1, "admin")
+        new_owner = _mock_subject(101, 7, "bob")
+        dash = _mock_dashboard(editors=[existing])
+        mock_get.return_value = dash
+        mock_get_or_create.side_effect = _get_or_create_side_effect(
+            {1: existing, 7: new_owner}
+        )
+        mock_populate.side_effect = SubjectsNotFoundValidationError()
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "manage_dashboard_owners",
+                {"request": {"identifier": 42, "add_owner_ids": [7]}},
+            )
+
+        payload = json.loads(result.content[0].text)
+        assert "could not be resolved" in (payload.get("error") or "").lower()
+        assert "find_users" in (payload.get("error") or "")
+
+    @patch(POPULATE_SUBJECT_LIST)
+    @patch(GET_OR_CREATE_USER_SUBJECT)
+    @patch(DAO_GET)
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_rollback_failure_still_returns_structured_error(
+        self,
+        mock_session: Mock,
+        mock_get: Mock,
+        mock_get_or_create: Mock,
+        mock_populate: Mock,
+        mcp_server: object,
+    ) -> None:
+        """Even when the rollback itself fails on the already-broken
+        session, the caller must still get the structured database-error
+        response, not an unhandled exception."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        existing = _mock_subject(100, 1, "admin")
+        new_owner = _mock_subject(101, 7, "bob")
+        dash = _mock_dashboard(editors=[existing])
+        mock_get.return_value = dash
+        mock_get_or_create.side_effect = _get_or_create_side_effect(
+            {1: existing, 7: new_owner}
+        )
+        mock_populate.return_value = [existing, new_owner]
+        mock_session.commit.side_effect = SQLAlchemyError("connection lost")
+        mock_session.rollback.side_effect = SQLAlchemyError("still broken")
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "manage_dashboard_owners",
+                {"request": {"identifier": 42, "add_owner_ids": [7]}},
+            )
+
+        payload = json.loads(result.content[0].text)
+        assert "database error" in (payload.get("error") or "").lower()
+
+    @patch(POPULATE_SUBJECT_LIST)
+    @patch(GET_OR_CREATE_USER_SUBJECT)
+    @patch(DAO_GET)
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_refresh_failure_after_commit_still_returns_owners(
+        self,
+        mock_session: Mock,
+        mock_get: Mock,
+        mock_get_or_create: Mock,
+        mock_populate: Mock,
+        mcp_server: object,
+    ) -> None:
+        """A failed post-commit refresh() must not fail the call: the
+        response is built from the subjects captured before the commit."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        existing = _mock_subject(100, 1, "admin")
+        new_owner = _mock_subject(101, 7, "bob")
+        dash = _mock_dashboard(editors=[existing])
+        mock_get.return_value = dash
+        mock_get_or_create.side_effect = _get_or_create_side_effect(
+            {1: existing, 7: new_owner}
+        )
+        mock_populate.return_value = [existing, new_owner]
+        mock_session.refresh.side_effect = SQLAlchemyError("stale connection")
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "manage_dashboard_owners",
+                {"request": {"identifier": 42, "add_owner_ids": [7]}},
+            )
+
+        assert mock_session.commit.call_count >= 1
+        payload = json.loads(result.content[0].text)
+        assert payload.get("error") is None
+        assert sorted(o["id"] for o in payload["owners"]) == [100, 101]
+        assert payload["added_owner_ids"] == [7]
 
     @patch(POPULATE_SUBJECT_LIST)
     @patch(GET_OR_CREATE_USER_SUBJECT)
