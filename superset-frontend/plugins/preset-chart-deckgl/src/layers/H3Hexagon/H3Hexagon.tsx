@@ -62,10 +62,9 @@ export function getPoints(data: H3Feature[]) {
 
     try {
       const boundary = cellToBoundary(hexagon);
-      if (boundary && boundary.length > 0) {
-        const point: [number, number] = [boundary[0][1], boundary[0][0]];
-        points.push(point);
-      }
+      boundary?.forEach(([lat, lng]) => {
+        points.push([lng, lat]);
+      });
     } catch {
       // Skip entries with invalid H3 indices that cause cellToBoundary to throw
     }
