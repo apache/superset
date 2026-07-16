@@ -125,7 +125,7 @@ necessary access — do NOT attempt to call it.
 Available tools:
 
 Dashboard Management:
-- list_dashboards: List dashboards with advanced filters (1-based pagination)
+- list_dashboards: List dashboards with advanced filters (1-based pagination; deleted_state='only'/'include' surfaces trashed dashboards the caller may restore)
 - get_dashboard_info: Get detailed dashboard information by ID
 - get_dashboard_layout: Get parsed tabs and chart positions for a dashboard (companion to get_dashboard_info when its omitted_fields hint flags position_json)
 - get_dashboard_datasets: List the datasets used by a dashboard's charts, with columns and metrics (context for configuring native filters)
@@ -180,7 +180,7 @@ Dataset Management:
 - query_dataset: Query a dataset using its semantic layer (saved metrics, dimensions, filters) without needing a saved chart
 
 Chart Management:
-- list_charts: List charts with advanced filters (1-based pagination)
+- list_charts: List charts with advanced filters (1-based pagination; deleted_state='only'/'include' surfaces trashed charts the caller may restore)
 - get_chart_info: Get detailed chart information by ID
 - get_chart_preview: Get a visual preview of a chart as formatted content or URL
 - get_chart_data: Get underlying chart data in text-friendly format

@@ -142,6 +142,13 @@ class ChartInfo(BaseModel):
         None, description="Certification details or reason"
     )
     uuid: str | None = Field(None, description="Chart UUID")
+    deleted_at: str | datetime | None = Field(
+        None,
+        description=(
+            "When the chart was moved to trash (soft-deleted); null for live "
+            "charts. Only populated when listing with deleted_state."
+        ),
+    )
     tags: List[TagInfo] = Field(default_factory=list, description="Chart tags")
     editors: List[SubjectInfo] = Field(
         default_factory=list, description="Chart editors"
@@ -626,6 +633,7 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
             uuid=str(getattr(chart, "uuid", ""))
             if getattr(chart, "uuid", None)
             else None,
+            deleted_at=getattr(chart, "deleted_at", None),
             tags=[
                 TagInfo.model_validate(tag, from_attributes=True)
                 for tag in getattr(chart, "tags", [])
@@ -2159,6 +2167,20 @@ class ListChartsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheControl)
             default=None,
             description="Text search string to match against chart fields. Cannot be "
             "used together with 'filters'.",
+        ),
+    ]
+    deleted_state: Annotated[
+        Literal["include", "only"] | None,
+        Field(
+            default=None,
+            description=(
+                "Surface soft-deleted (trashed) charts: 'only' returns just "
+                "trashed charts, 'include' returns live and trashed charts "
+                "together. Omit for live charts only (default). Trashed rows "
+                "carry a non-null deleted_at and are limited to charts the "
+                "caller owns (admins see all); requires the SOFT_DELETE "
+                "feature flag to have produced trashed rows."
+            ),
         ),
     ]
     order_column: Annotated[
