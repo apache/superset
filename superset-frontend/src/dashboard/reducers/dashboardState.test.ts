@@ -208,12 +208,6 @@ describe('DashboardState reducer', () => {
       );
     });
 
-    // Pins PLAN.md §4.1: a nested-tab switch must not drop a hydrate-seeded
-    // outer ancestor from activeTabs. setActiveTab's inactiveTabs/prevTabId
-    // removal only targets the tab being left and its descendants, so an
-    // outer ancestor that is neither must survive. This property is what the
-    // repurposed `nativeFilters/state.test.ts` "full Redux-supplied path"
-    // test assumes holds once hydration seeds the default tab path.
     test('preserves a hydrate-seeded outer ancestor across a nested-tab switch', () => {
       const store = mockStore({
         dashboardState: { activeTabs: ['TAB-Outer1', 'TAB-Inner1'] },
