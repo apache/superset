@@ -429,9 +429,9 @@ def test_latest_sub_partition_rejects_unknown_field(
     from superset.db_engine_specs.presto import PrestoBaseEngineSpec
     from superset.exceptions import SupersetTemplateException
 
-    database = mocker.MagicMock()
+    database: mock.MagicMock = mocker.MagicMock()
     database.get_indexes.return_value = [{"column_names": ["ds", "event_type"]}]
-    table = mocker.MagicMock()
+    table: mock.MagicMock = mocker.MagicMock()
 
     with pytest.raises(SupersetTemplateException) as exc_info:
         PrestoBaseEngineSpec.latest_sub_partition(
@@ -457,12 +457,12 @@ def test_partition_query_escapes_single_quote_in_filter_value(
     """
     from superset.db_engine_specs.presto import PrestoBaseEngineSpec
 
-    database = mocker.MagicMock()
+    database: mock.MagicMock = mocker.MagicMock()
     database.get_extra.return_value = {}
-    table = Table("my_table", "my_schema")
+    table: Table = Table("my_table", "my_schema")
 
-    injected = "2024-01-01' UNION SELECT secret FROM other_table--"
-    sql = PrestoBaseEngineSpec._partition_query(
+    injected: str = "2024-01-01' UNION SELECT secret FROM other_table--"
+    sql: str = PrestoBaseEngineSpec._partition_query(
         table,
         indexes=[{"column_names": ["ds", "event_type"]}],
         database=database,
