@@ -16,26 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import { sortNumberWithMixedTypes } from './sortUtils';
-import type { ColumnConfig } from '../../types';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('sortNumberWithMixedTypes', () => {
-  const createMockRow = (
-    value: any,
-    columnOverrides: Partial<ColumnConfig> = {},
-  ) => ({
+  const createMockRow = (value: any) => ({
     values: {
       testColumn: {
         props: {
-          valueField: 'metric',
-          column: {
-            key: 'testColumn',
-            colType: 'time',
-            bounds: undefined,
-            ...columnOverrides,
-          },
-          reversedEntries: [{ metric: value }],
+          value,
         },
       },
     },
@@ -47,7 +37,7 @@ describe('sortNumberWithMixedTypes', () => {
 
     const result = sortNumberWithMixedTypes(rowA, rowB, 'testColumn');
 
-    expect(result).toBeLessThan(0); // rowA should come before rowB
+    expect(result).toBeLessThan(0);
   });
 
   test('should sort numbers in descending order', () => {
@@ -73,12 +63,13 @@ describe('sortNumberWithMixedTypes', () => {
     const rowB = createMockRow(10);
 
     const result = sortNumberWithMixedTypes(rowA, rowB, 'testColumn');
+
     expect(typeof result).toBe('number');
   });
 
   test('should handle string numbers', () => {
-    const rowA = createMockRow('10', { colType: undefined });
-    const rowB = createMockRow('20', { colType: undefined });
+    const rowA = createMockRow('10');
+    const rowB = createMockRow('20');
 
     const result = sortNumberWithMixedTypes(rowA, rowB, 'testColumn');
 
@@ -114,17 +105,11 @@ describe('sortNumberWithMixedTypes', () => {
   });
 
   test('should sort ValueCell-like props numerically', () => {
-    const createValueCellRow = (metricValue: number | null) => ({
+    const createValueCellRow = (value: number | null) => ({
       values: {
         testColumn: {
           props: {
-            valueField: 'metric',
-            column: {
-              key: 'testColumn',
-              colType: 'time',
-              bounds: undefined,
-            },
-            reversedEntries: [{ metric: metricValue }],
+            value,
           },
         },
       },

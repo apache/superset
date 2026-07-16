@@ -104,6 +104,12 @@ const TimeTable = ({
             };
           }
 
+          const { value, errorMsg } = calculateCellValue(
+            valueField,
+            columnConfig,
+            reversedEntries,
+          );
+
           return {
             ...acc,
             [columnConfig.key]: (

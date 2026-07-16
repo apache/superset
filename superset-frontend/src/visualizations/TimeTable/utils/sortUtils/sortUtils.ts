@@ -68,27 +68,36 @@ export function sortNumberWithMixedTypes(
   // Normalize to reversedEntries before delegating to calculateCellValue.
   const propsA = cellA?.props as
     | {
-        valueField: string;
-        column: ColumnConfig;
-        reversedEntries?: Entry[];
+        value?: number | null;
+        valueField?: string;
+        column?: ColumnConfig;
         entries?: Entry[];
       }
     | undefined;
+
   const propsB = cellB?.props as
     | {
-        valueField: string;
-        column: ColumnConfig;
-        reversedEntries?: Entry[];
+        value?: number | null;
+        valueField?: string;
+        column?: ColumnConfig;
         entries?: Entry[];
       }
     | undefined;
 
-  const reversedEntriesA =
-    propsA?.reversedEntries ?? propsA?.entries?.slice().reverse();
-  const reversedEntriesB =
-    propsB?.reversedEntries ?? propsB?.entries?.slice().reverse();
+  if (!propsA || !propsB) {
+    return 0;
+  }
 
-  if (!propsA || !propsB || !reversedEntriesA || !reversedEntriesB) {
+  // ValueCell already provides the computed value.
+  if ('value' in propsA && 'value' in propsB) {
+    return compareValues(propsA.value, propsB.value, 'asSmallest');
+  }
+
+  // Sparkline still needs calculation.
+  const reversedEntriesA = propsA.entries?.slice().reverse();
+  const reversedEntriesB = propsB.entries?.slice().reverse();
+
+  if (!reversedEntriesA || !reversedEntriesB) {
     return 0;
   }
 
@@ -97,6 +106,7 @@ export function sortNumberWithMixedTypes(
     propsA.column,
     reversedEntriesA,
   );
+
   const { value: valueB } = calculateCellValue(
     propsB.valueField,
     propsB.column,
