@@ -912,9 +912,10 @@ describe('active tab highlighting (regression #36403)', () => {
   });
 });
 
-test('navbar renders horizontal when breakpoints are not yet measured (regression for layout flash)', async () => {
-  // Simulate first paint: useBreakpoint returns {} before the viewport is measured.
-  // screens.md is undefined, so isMd = (undefined !== false) = true → mode="horizontal".
+test('navbar renders horizontal when breakpoints are not yet measured on a wide viewport (regression for layout flash)', async () => {
+  // Simulate first paint: useBreakpoint returns {} before the viewport is
+  // measured, so the layout falls back to the viewport width (jsdom defaults
+  // to 1024px, above the md threshold) → mode="horizontal".
   mockUseBreakpoint.mockReturnValue({});
   useSelectorMock.mockReturnValue({ roles: user.roles });
   render(<Menu {...mockedProps} />, {
@@ -928,9 +929,40 @@ test('navbar renders horizontal when breakpoints are not yet measured (regressio
   expect(navbar).not.toHaveClass('ant-menu-inline');
 });
 
+test('navbar renders inline when breakpoints are not yet measured on a narrow viewport', async () => {
+  // Simulate first paint on a mobile-sized window: useBreakpoint returns {}
+  // and the viewport-width fallback (below the md threshold) → mode="inline",
+  // so mobile users don't see a horizontal flash either.
+  const originalInnerWidth = window.innerWidth;
+  Object.defineProperty(window, 'innerWidth', {
+    configurable: true,
+    writable: true,
+    value: 500,
+  });
+  try {
+    mockUseBreakpoint.mockReturnValue({});
+    useSelectorMock.mockReturnValue({ roles: user.roles });
+    render(<Menu {...mockedProps} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+    const navbar = await screen.findByTestId('navbar-top');
+    expect(navbar).toHaveClass('ant-menu-inline');
+    expect(navbar).not.toHaveClass('ant-menu-horizontal');
+  } finally {
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: originalInnerWidth,
+    });
+  }
+});
+
 test('navbar renders inline on mobile viewport (md: false)', async () => {
-  // Simulate a mobile viewport where the md breakpoint is explicitly false.
-  // isMd = (false !== false) = false → mode="inline".
+  // Simulate a mobile viewport where the md breakpoint has resolved to false,
+  // which takes precedence over the viewport-width fallback → mode="inline".
   mockUseBreakpoint.mockReturnValue({ md: false });
   useSelectorMock.mockReturnValue({ roles: user.roles });
   render(<Menu {...mockedProps} />, {

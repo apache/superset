@@ -199,11 +199,13 @@ export function Menu({
   isFrontendRoute = () => false,
 }: MenuProps) {
   const screens = useBreakpoint();
-  // screens.md is undefined on the first render before breakpoints are measured;
-  // treat undefined as true so the nav renders horizontal instead of flashing to inline
-  const isMd = screens.md !== false;
   const uiConfig = useUiConfig();
   const theme = useTheme();
+  // screens.md is undefined on the first render before breakpoints are measured;
+  // fall back to the actual viewport width (using the same threshold as antd's
+  // md media query) so the first paint matches the device layout instead of
+  // flashing to the wrong mode on either desktop or mobile
+  const isMd = screens.md ?? window.innerWidth >= theme.screenMDMin;
 
   enum Paths {
     Explore = '/explore',
