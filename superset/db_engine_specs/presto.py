@@ -500,7 +500,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
             for field, value in filters.items():
                 # Escape single quotes so a ``'`` in the caller-supplied value
                 # cannot break out of the SQL string literal. See #41869.
-                escaped_value = str(value).replace("'", "''")
+                escaped_value: str = str(value).replace("'", "''")
                 l.append(f"{field} = '{escaped_value}'")
             where_clause = "WHERE " + " AND ".join(l)
 
@@ -676,7 +676,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         part_fields = indexes[0]["column_names"]
         for k in kwargs:
             if k not in part_fields:
-                msg = f"Field [{k}] is not part of the partitioning key"
+                msg: str = f"Field [{k}] is not part of the partitioning key"
                 raise SupersetTemplateException(msg)
         if len(kwargs.keys()) != len(part_fields) - 1:
             # pylint: disable=consider-using-f-string
