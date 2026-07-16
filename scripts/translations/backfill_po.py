@@ -142,7 +142,7 @@ def _lang_name(code: str) -> str:
 # (``_BR``, two uppercase) or an ISO 15924 script (``_Latn``, titlecase). The
 # script subtag matters for catalogs like ``sr_Latn`` (Serbian in Latin script);
 # without it the code was rejected and the catalog silently skipped.
-_LANG_CODE_RE = re.compile(r"[a-z]{2,3}(_([A-Z]{2}|[A-Z][a-z]{3}))?")
+_LANG_CODE_RE: re.Pattern[str] = re.compile(r"[a-z]{2,3}(_([A-Z]{2}|[A-Z][a-z]{3}))?")
 
 
 def _is_valid_lang_code(lang: str) -> bool:
