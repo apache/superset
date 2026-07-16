@@ -18,7 +18,11 @@
  */
 import { Link, useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  handleKeyboardActivation,
+} from '@superset-ui/core';
 import { CardStyles } from 'src/views/CRUD/utils';
 import {
   FaveStar,
@@ -80,6 +84,9 @@ function DashboardCard({
           tabIndex={0}
           className="action-button"
           onClick={() => openDashboardEditModal(dashboard)}
+          onKeyDown={handleKeyboardActivation(() =>
+            openDashboardEditModal(dashboard),
+          )}
           data-test="dashboard-card-option-edit-button"
         >
           <Icons.EditOutlined iconSize="l" data-test="edit-alt" /> {t('Edit')}
@@ -96,6 +103,9 @@ function DashboardCard({
           role="button"
           tabIndex={0}
           onClick={() => handleBulkDashboardExport([dashboard])}
+          onKeyDown={handleKeyboardActivation(() =>
+            handleBulkDashboardExport([dashboard]),
+          )}
           className="action-button"
           data-test="dashboard-card-option-export-button"
         >
@@ -114,6 +124,7 @@ function DashboardCard({
           tabIndex={0}
           className="action-button"
           onClick={() => onDelete(dashboard)}
+          onKeyDown={handleKeyboardActivation(() => onDelete(dashboard))}
           data-test="dashboard-card-option-delete-button"
         >
           <Icons.DeleteOutlined iconSize="l" /> {t('Delete')}
