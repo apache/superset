@@ -233,14 +233,15 @@ describe('ResultSet', () => {
     const table = getByTestId('table-container');
     expect(table).toBeInTheDocument();
 
-    const firstColumn = queryAllByText(
-      query.results?.columns[0].column_name ?? '',
-    )[0];
-    const secondColumn = queryAllByText(
-      query.results?.columns[1].column_name ?? '',
-    )[0];
-    expect(firstColumn).toBeInTheDocument();
-    expect(secondColumn).toBeInTheDocument();
+    // AG Grid commits its header row after the initial render under React 19.
+    await waitFor(() => {
+      expect(
+        queryAllByText(query.results?.columns[0].column_name ?? '')[0],
+      ).toBeInTheDocument();
+      expect(
+        queryAllByText(query.results?.columns[1].column_name ?? '')[0],
+      ).toBeInTheDocument();
+    });
 
     const exploreButton = getByTestId('explore-results-button');
     expect(exploreButton).toBeInTheDocument();
