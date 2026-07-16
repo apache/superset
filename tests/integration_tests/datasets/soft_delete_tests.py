@@ -603,3 +603,141 @@ class TestDatasetRestore(SupersetTestCase):
             )
             row.restore()
             db.session.commit()
+
+
+class TestDatasetArchiveListing(SupersetTestCase):
+    """Recently-Deleted view listing (sc-111760, T017): ``deleted_at``
+    ordering and a deletion-time cutoff filter work at the SQL layer and
+    compose with the ``dataset_deleted_state`` filter; the restore gate holds
+    for a non-owner."""
+
+    def _make(self, name: str) -> tuple[SqlaTable, Database]:
+        admin = self.get_user("admin")
+        database = Database(database_name=f"db_{name}", sqlalchemy_uri="sqlite://")
+        db.session.add(database)
+        db.session.flush()
+        dataset = SqlaTable(table_name=name, database=database, owners=[admin])
+        db.session.add(dataset)
+        db.session.commit()
+        return dataset, database
+
+    def _cleanup(self, dataset_id: int, database: Database) -> None:
+        row = (
+            db.session.query(SqlaTable)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+            .filter(SqlaTable.id == dataset_id)
+            .one_or_none()
+        )
+        if row:
+            db.session.delete(row)
+        db.session.delete(database)
+        db.session.commit()
+
+    def test_archive_list_orders_by_deleted_at(self) -> None:
+        """``order_column:deleted_at`` sorts archived datasets by deletion time
+        (SQL-layer ordering, not merely field presence)."""
+        older, older_db = self._make("arch_order_older_ds")
+        newer, newer_db = self._make("arch_order_newer_ds")
+        older_id, newer_id = older.id, newer.id
+        older.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        newer.deleted_at = datetime(2026, 3, 1, 12, 0, 0)
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+
+        rison_query = (
+            "(filters:!((col:id,opr:dataset_deleted_state,value:only)),"
+            "order_column:deleted_at,order_direction:desc,page_size:200)"
+        )
+        rv = self.client.get(f"/api/v1/dataset/?q={rison_query}")
+        assert rv.status_code == 200
+        ids = [r["id"] for r in json.loads(rv.data)["result"]]
+        assert older_id in ids
+        assert newer_id in ids
+        assert ids.index(newer_id) < ids.index(older_id)
+
+        # Cleanup
+        self._cleanup(older_id, older_db)
+        self._cleanup(newer_id, newer_db)
+
+    def test_archive_list_filters_by_deleted_at_cutoff(self) -> None:
+        """A ``deleted_at`` ``gt`` cutoff narrows the archive and composes with
+        the deleted-state filter."""
+        old, old_db = self._make("arch_cut_old_ds")
+        recent, recent_db = self._make("arch_cut_recent_ds")
+        old_id, recent_id = old.id, recent.id
+        old.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        recent.deleted_at = datetime(2026, 6, 1, 12, 0, 0)
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+
+        rison_query = (
+            "(filters:!("
+            "(col:id,opr:dataset_deleted_state,value:only),"
+            "(col:deleted_at,opr:gt,value:'2026-03-01T00:00:00')"
+            "),page_size:200)"
+        )
+        rv = self.client.get(f"/api/v1/dataset/?q={rison_query}")
+        assert rv.status_code == 200
+        ids = [r["id"] for r in json.loads(rv.data)["result"]]
+        assert recent_id in ids
+        assert old_id not in ids
+
+        # Cleanup
+        self._cleanup(old_id, old_db)
+        self._cleanup(recent_id, recent_db)
+
+    def test_archive_restore_blocked_for_non_owner(self) -> None:
+        """A non-owner (Gamma) cannot restore another user's archived
+        dataset — the restore gate is owner/admin only (SC-003)."""
+        dataset, database = self._make("arch_rbac_ds")
+        dataset_id = dataset.id
+        dataset_uuid = str(dataset.uuid)
+        dataset.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        self.login(GAMMA_USERNAME)
+        rv = self.client.post(f"/api/v1/dataset/{dataset_uuid}/restore")
+        assert rv.status_code in (403, 404), rv.data
+
+        # Cleanup
+        self._cleanup(dataset_id, database)
+
+    def test_purge_by_owner_permanently_deletes(self) -> None:
+        """POST /api/v1/dataset/<uuid>/purge hard-deletes an archived dataset."""
+        dataset, database = self._make("arch_purge_ds")
+        dataset_id = dataset.id
+        dataset_uuid = str(dataset.uuid)
+        dataset.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        rv = self.client.post(f"/api/v1/dataset/{dataset_uuid}/purge")
+        assert rv.status_code == 200, rv.data
+
+        row = (
+            db.session.query(SqlaTable)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+            .filter(SqlaTable.id == dataset_id)
+            .one_or_none()
+        )
+        assert row is None
+
+        # The dataset is purged; clean up its database row.
+        db.session.delete(database)
+        db.session.commit()
+
+    def test_purge_blocked_for_non_owner(self) -> None:
+        """A non-owner (Gamma) cannot permanently delete another user's archived
+        dataset (SC-003)."""
+        dataset, database = self._make("arch_purge_ds_rbac")
+        dataset_id = dataset.id
+        dataset_uuid = str(dataset.uuid)
+        dataset.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        self.login(GAMMA_USERNAME)
+        rv = self.client.post(f"/api/v1/dataset/{dataset_uuid}/purge")
+        assert rv.status_code in (403, 404), rv.data
+
+        # Cleanup
+        self._cleanup(dataset_id, database)

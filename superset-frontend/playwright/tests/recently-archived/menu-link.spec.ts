@@ -17,25 +17,22 @@
  * under the License.
  */
 
-import type { ReactNode } from 'react';
+/**
+ * The Recently-Archived view is reachable from Settings → Manage when the
+ * SOFT_DELETE feature flag is enabled (sc-111760 T004).
+ */
+import { test, expect } from '@playwright/test';
 
-export interface DeleteModalProps {
-  description: ReactNode;
-  onConfirm: () => void;
-  onHide: () => void;
-  open: boolean;
-  title: ReactNode;
-  name?: string;
-  /**
-   * Recoverable (soft-delete) mode: the action moves the object to the archive
-   * rather than destroying it, so the modal drops the "type DELETE to confirm"
-   * friction and uses a primary (non-danger) confirm button.
-   */
-  recoverable?: boolean;
-  /**
-   * Whether to require typing "DELETE" to confirm (default true). Set false for
-   * a plain danger confirm with no typing — e.g. a "delete forever" from the
-   * archive, which warns instead of gating. Ignored when `recoverable` is true.
-   */
-  requireConfirmationText?: boolean;
-}
+test('Settings menu links to the Recently Archived view', async ({ page }) => {
+  await page.goto('chart/list/');
+
+  // Open the Settings dropdown in the top navigation (the trigger's accessible
+  // name includes the caret, e.g. "down Settings").
+  await page.getByRole('menuitem', { name: /Settings/ }).hover();
+  const link = page.getByRole('menuitem', { name: 'Recently Archived' });
+  await expect(link).toBeVisible();
+  await link.click();
+
+  await expect(page).toHaveURL(/\/archived\/?$/);
+  await expect(page.getByTestId('archived-list-view')).toBeVisible();
+});

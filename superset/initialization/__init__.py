@@ -201,6 +201,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.all_entities import TaggedObjectsModelView
         from superset.views.annotations import AnnotationLayerView
         from superset.views.api import Api
+        from superset.views.archived_assets import ArchivedAssetsView
         from superset.views.chart.views import SliceModelView
         from superset.views.core import Superset
         from superset.views.css_templates import CssTemplateModelView
@@ -522,6 +523,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_icon="",
             category="Manage",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"),
+        )
+        appbuilder.add_view(
+            ArchivedAssetsView,
+            "Recently Archived",
+            label=_("Recently Archived"),
+            icon="fa-archive",
+            category_icon="",
+            category="Manage",
+            category_label=_("Manage"),
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled("SOFT_DELETE"),
         )
         appbuilder.add_api(LogRestApi)
         appbuilder.add_api(UserRegistrationsRestAPI)

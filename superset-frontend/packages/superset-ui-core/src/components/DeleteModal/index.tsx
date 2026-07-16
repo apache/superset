@@ -39,7 +39,14 @@ export function DeleteModal({
   open,
   title,
   name,
+  recoverable = false,
+  requireConfirmationText = true,
 }: DeleteModalProps) {
+  // The "type DELETE to confirm" step is shown only for a permanent,
+  // friction-worthy delete. Recoverable (archive) deletes drop it; an explicit
+  // `requireConfirmationText={false}` drops it for a plain danger confirm
+  // (e.g. "delete forever" from the archive).
+  const showConfirmationInput = !recoverable && requireConfirmationText;
   const [disableChange, setDisableChange] = useState(true);
   const [confirmation, setConfirmation] = useState<string>('');
   const inputRef = useRef<InputRef>(null);
@@ -74,32 +81,34 @@ export function DeleteModal({
 
   return (
     <Modal
-      disablePrimaryButton={disableChange}
+      disablePrimaryButton={showConfirmationInput ? disableChange : false}
       onHide={hide}
       onHandledPrimaryAction={confirm}
-      primaryButtonName={t('Delete')}
-      primaryButtonStyle="danger"
+      primaryButtonName={recoverable ? t('Archive') : t('Delete')}
+      primaryButtonStyle={recoverable ? 'primary' : 'danger'}
       show={open}
       name={name}
       title={title}
       centered
     >
       {description}
-      <StyledDiv>
-        <FormLabel htmlFor="delete">
-          {t('Type "%s" to confirm', t('DELETE'))}
-        </FormLabel>
-        <Input
-          data-test="delete-modal-input"
-          type="text"
-          id="delete"
-          autoComplete="off"
-          value={confirmation}
-          onChange={onChange}
-          onPressEnter={onPressEnter}
-          ref={inputRef}
-        />
-      </StyledDiv>
+      {showConfirmationInput && (
+        <StyledDiv>
+          <FormLabel htmlFor="delete">
+            {t('Type "%s" to confirm', t('DELETE'))}
+          </FormLabel>
+          <Input
+            data-test="delete-modal-input"
+            type="text"
+            id="delete"
+            autoComplete="off"
+            value={confirmation}
+            onChange={onChange}
+            onPressEnter={onPressEnter}
+            ref={inputRef}
+          />
+        </StyledDiv>
+      )}
     </Modal>
   );
 }

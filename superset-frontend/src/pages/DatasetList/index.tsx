@@ -73,6 +73,7 @@ import type { SelectOption } from 'src/components/ListView/types';
 import { Typography } from '@superset-ui/core/components/Typography';
 import handleResourceExport from 'src/utils/export';
 import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
+import { archiveConfirmDescription } from 'src/utils/softDeleteCopy';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
 import Subject from 'src/types/Subject';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -546,6 +547,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
+  // When soft-delete is on, deleting archives the dataset (recoverable), so the
+  // confirmation drops the type-DELETE friction and explains the archive (the
+  // linked charts/dashboards warning is preserved).
+  const softDelete = isFeatureEnabled(FeatureFlag.SoftDelete);
   const canCreate = hasPerm('can_write');
   const canDuplicate = hasPerm('can_duplicate');
   const canExport = hasPerm('can_export');
@@ -988,7 +993,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               {canDelete && (
                 <Tooltip
                   id="delete-action-tooltip"
-                  title={t('Delete')}
+                  title={softDelete ? t('Archive') : t('Delete')}
                   placement="bottom"
                 >
                   <span
@@ -1303,11 +1308,17 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       () => {
         refreshData();
         setDatasetCurrentlyDeleting(null);
-        addSuccessToast(t('Deleted: %s', tableName));
+        addSuccessToast(
+          softDelete
+            ? t('Archived: %s', tableName)
+            : t('Deleted: %s', tableName),
+        );
       },
       createErrorHandler(errMsg =>
         addDangerToast(
-          t('There was an issue deleting %s: %s', tableName, errMsg),
+          softDelete
+            ? t('There was an issue archiving %s: %s', tableName, errMsg)
+            : t('There was an issue deleting %s: %s', tableName, errMsg),
         ),
       ),
     );
@@ -1348,13 +1359,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       // Always refresh so the list reflects whatever actually got deleted.
       refreshData();
       if (failures.length === 0) {
-        addSuccessToast(t('Deleted %s item(s)', datasetsToDelete.length));
+        addSuccessToast(
+          softDelete
+            ? t('Archived %s item(s)', datasetsToDelete.length)
+            : t('Deleted %s item(s)', datasetsToDelete.length),
+        );
       } else {
         addDangerToast(
-          t(
-            'There was an issue deleting the selected %s',
-            datasetsLabelLower(),
-          ),
+          softDelete
+            ? t(
+                'There was an issue archiving the selected %s',
+                datasetsLabelLower(),
+              )
+            : t(
+                'There was an issue deleting the selected %s',
+                datasetsLabelLower(),
+              ),
         );
       }
     });
@@ -1395,8 +1415,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       <SubMenu {...menuData} />
       {datasetCurrentlyDeleting && (
         <DeleteModal
+          recoverable={softDelete}
           description={
             <>
+              {softDelete && <p>{archiveConfirmDescription(t('dataset'))}</p>}
               <p>
                 {t('The %s', datasetLabelLower())}
                 <b> {datasetCurrentlyDeleting.table_name} </b>
@@ -1506,7 +1528,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           }}
           onHide={closeDatasetDeleteModal}
           open
-          title={t('Delete %s?', datasetLabel())}
+          title={
+            softDelete
+              ? t('Archive %(name)s?', {
+                  name: datasetCurrentlyDeleting.table_name,
+                })
+              : t('Delete %s?', datasetLabel())
+          }
         />
       )}
       {svCurrentlyDeleting && (
@@ -1550,11 +1578,18 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         addSuccessToast={addSuccessToast}
       />
       <ConfirmStatusChange
-        title={t('Please confirm')}
-        description={t(
-          'Are you sure you want to delete the selected %s?',
-          datasetsLabelLower(),
-        )}
+        recoverable={softDelete}
+        title={
+          softDelete ? t('Archive selected datasets?') : t('Please confirm')
+        }
+        description={
+          softDelete
+            ? archiveConfirmDescription(t('datasets'), true)
+            : t(
+                'Are you sure you want to delete the selected %s?',
+                datasetsLabelLower(),
+              )
+        }
         onConfirm={handleBulkDatasetDelete}
       >
         {confirmDelete => {
@@ -1562,7 +1597,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           if (canDelete) {
             bulkActions.push({
               key: 'delete',
-              name: t('Delete'),
+              name: softDelete ? t('Archive') : t('Delete'),
               onSelect: confirmDelete,
               type: 'danger',
             });
