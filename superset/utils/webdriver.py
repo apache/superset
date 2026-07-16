@@ -225,14 +225,17 @@ class WebDriverPlaywright(WebDriverProxy):
         )
 
     @staticmethod
-    def find_unexpected_errors(page: Page) -> list[str]:
+    def find_unexpected_errors(page: Page, log_context: str | None = None) -> list[str]:
         error_messages = []
+        context_suffix = f" [{log_context}]" if log_context else ""
 
         try:
             alert_divs = page.get_by_role("alert").all()
 
             logger.debug(
-                "%i alert elements have been found in the screenshot", len(alert_divs)
+                "%i alert elements have been found in the screenshot%s",
+                len(alert_divs),
+                context_suffix,
             )
 
             for alert_div in alert_divs:
@@ -262,9 +265,12 @@ class WebDriverPlaywright(WebDriverProxy):
                         [error_as_html],
                     )
                 except PlaywrightError:
-                    logger.exception("Failed to update error messages using alert_div")
+                    logger.exception(
+                        "Failed to update error messages using alert_div%s",
+                        context_suffix,
+                    )
         except PlaywrightError:
-            logger.exception("Failed to capture unexpected errors")
+            logger.exception("Failed to capture unexpected errors%s", context_suffix)
 
         return error_messages
 
@@ -282,12 +288,14 @@ class WebDriverPlaywright(WebDriverProxy):
         user: User | None = None,
         log_context: str | None = None,
     ) -> bytes | None:
+        context_suffix = f" [{log_context}]" if log_context else ""
         if not PLAYWRIGHT_AVAILABLE:
             logger.info(
                 "Playwright not available - falling back to Selenium. "
                 "Note: WebGL/Canvas charts may not render correctly with Selenium. "
-                "%s",
+                "%s%s",
                 PLAYWRIGHT_INSTALL_MESSAGE,
+                context_suffix,
             )
             return None
 
@@ -317,50 +325,66 @@ class WebDriverPlaywright(WebDriverProxy):
                 )
             except PlaywrightTimeout:
                 logger.exception(
-                    "Web event %s not detected. Page %s might not have been fully loaded",  # noqa: E501
+                    "Web event %s not detected. Page %s might not have been fully loaded%s",  # noqa: E501
                     app.config["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"],
                     url,
+                    context_suffix,
                 )
 
             selenium_headstart = app.config["SCREENSHOT_SELENIUM_HEADSTART"]
-            logger.debug("Sleeping for %i seconds", selenium_headstart)
+            logger.debug(
+                "Sleeping for %i seconds%s", selenium_headstart, context_suffix
+            )
             page.wait_for_timeout(selenium_headstart * 1000)
             element: Locator
             try:
                 try:
                     # page didn't load
                     logger.debug(
-                        "Wait for the presence of %s at url: %s", element_name, url
+                        "Wait for the presence of %s at url: %s%s",
+                        element_name,
+                        url,
+                        context_suffix,
                     )
                     element = page.locator(f".{element_name}")
                     element.wait_for()
                 except PlaywrightTimeout:
-                    logger.exception("Timed out requesting url %s", url)
+                    logger.exception(
+                        "Timed out requesting url %s%s", url, context_suffix
+                    )
                     raise
 
                 try:
                     # chart containers didn't render
-                    logger.debug("Wait for chart containers to draw at url: %s", url)
+                    logger.debug(
+                        "Wait for chart containers to draw at url: %s%s",
+                        url,
+                        context_suffix,
+                    )
                     slice_container_locator = page.locator(".chart-container")
                     for slice_container_elem in slice_container_locator.all():
                         slice_container_elem.wait_for()
                 except PlaywrightTimeout:
                     logger.exception(
-                        "Timed out waiting for chart containers to draw at url %s",
+                        "Timed out waiting for chart containers to draw at url %s%s",
                         url,
+                        context_suffix,
                     )
                     raise
                 selenium_animation_wait = app.config[
                     "SCREENSHOT_SELENIUM_ANIMATION_WAIT"
                 ]
                 if app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"]:
-                    unexpected_errors = WebDriverPlaywright.find_unexpected_errors(page)
+                    unexpected_errors = WebDriverPlaywright.find_unexpected_errors(
+                        page, log_context=log_context
+                    )
                     if unexpected_errors:
                         logger.warning(
-                            "%i errors found in the screenshot. URL: %s. Errors are: %s",  # noqa: E501
+                            "%i errors found in the screenshot. URL: %s. Errors are: %s%s",  # noqa: E501
                             len(unexpected_errors),
                             url,
                             unexpected_errors,
+                            context_suffix,
                         )
                 # Detect large dashboards and use tiled screenshots if enabled
                 tiled_enabled = app.config.get("SCREENSHOT_TILED_ENABLED", False)
@@ -388,9 +412,11 @@ class WebDriverPlaywright(WebDriverProxy):
                     if dashboard_height == 0:
                         logger.warning(
                             "Could not determine dashboard height for element %s "
-                            "at url %s; falling back to standard screenshot behavior",
+                            "at url %s; falling back to standard screenshot "
+                            "behavior.%s",
                             element_name,
                             url,
+                            context_suffix,
                         )
 
                     # Use tiled screenshots for large dashboards
@@ -402,9 +428,10 @@ class WebDriverPlaywright(WebDriverProxy):
                     if use_tiled:
                         logger.info(
                             "Large dashboard detected: %s charts, %spx height. "
-                            "Using tiled screenshots.",
+                            "Using tiled screenshots.%s",
                             chart_count,
                             dashboard_height,
+                            context_suffix,
                         )
                         # set viewport height to tile height for easier calculations
                         page.set_viewport_size(
@@ -420,27 +447,28 @@ class WebDriverPlaywright(WebDriverProxy):
                         )
                         if not img:
                             logger.warning(
-                                (
-                                    "Tiled screenshot failed, "
-                                    "falling back to standard screenshot"
-                                )
+                                "Tiled screenshot failed, falling back to "
+                                "standard screenshot.%s",
+                                context_suffix,
                             )
                             img = WebDriverPlaywright._get_screenshot(
                                 page, element, element_name
                             )
                         logger.debug(
-                            "Tiled screenshot result: %d bytes for url: %s",
+                            "Tiled screenshot result: %d bytes for url: %s%s",
                             len(img) if img else 0,
                             url,
+                            context_suffix,
                         )
                     else:
                         logger.debug(
                             "Dashboard below tiling threshold "
                             "(%s charts, %spx height); using standard screenshot "
-                            "for url: %s",
+                            "for url: %s%s",
                             chart_count,
                             dashboard_height,
                             url,
+                            context_suffix,
                         )
                         # Standard screenshot captures the full element including
                         # below-the-fold content, so wait for all spinners globally.
@@ -467,28 +495,32 @@ class WebDriverPlaywright(WebDriverProxy):
                         logger.debug("All spinners cleared for url: %s", url)
                         if selenium_animation_wait > 0:
                             logger.debug(
-                                "Wait %i seconds for chart animation",
+                                "Wait %i seconds for chart animation%s",
                                 selenium_animation_wait,
+                                context_suffix,
                             )
                             page.wait_for_timeout(selenium_animation_wait * 1000)
                         logger.debug(
-                            "Taking screenshot of url %s as user %s",
+                            "Taking screenshot of url %s as user %s%s",
                             url,
                             user.username if user else "None",
+                            context_suffix,
                         )
                         img = WebDriverPlaywright._get_screenshot(
                             page, element, element_name
                         )
                         logger.debug(
-                            "Screenshot result: %d bytes for url: %s",
+                            "Screenshot result: %d bytes for url: %s%s",
                             len(img) if img else 0,
                             url,
+                            context_suffix,
                         )
                 else:
                     logger.debug(
                         "Tiled screenshots disabled; using standard screenshot "
-                        "for url: %s",
+                        "for url: %s%s",
                         url,
+                        context_suffix,
                     )
                     # Standard screenshot captures the full element including
                     # below-the-fold content, so wait for all spinners globally.
@@ -514,29 +546,34 @@ class WebDriverPlaywright(WebDriverProxy):
                     logger.debug("All spinners cleared for url: %s", url)
                     if selenium_animation_wait > 0:
                         logger.debug(
-                            "Wait %i seconds for chart animation",
+                            "Wait %i seconds for chart animation%s",
                             selenium_animation_wait,
+                            context_suffix,
                         )
                         page.wait_for_timeout(selenium_animation_wait * 1000)
                     logger.debug(
-                        "Taking screenshot of url %s as user %s",
+                        "Taking screenshot of url %s as user %s%s",
                         url,
                         user.username if user else "None",
+                        context_suffix,
                     )
                     img = WebDriverPlaywright._get_screenshot(
                         page, element, element_name
                     )
                     logger.debug(
-                        "Screenshot result: %d bytes for url: %s",
+                        "Screenshot result: %d bytes for url: %s%s",
                         len(img) if img else 0,
                         url,
+                        context_suffix,
                     )
 
             except PlaywrightTimeout:
                 raise
             except PlaywrightError:
                 logger.exception(
-                    "Encountered an unexpected error when requesting url %s", url
+                    "Encountered an unexpected error when requesting url %s%s",
+                    url,
+                    context_suffix,
                 )
         finally:
             context.close()
@@ -740,13 +777,18 @@ class WebDriverSelenium(WebDriverProxy):
         self._driver = None
 
     @staticmethod
-    def find_unexpected_errors(driver: WebDriver) -> list[str]:
+    def find_unexpected_errors(
+        driver: WebDriver, log_context: str | None = None
+    ) -> list[str]:
         error_messages = []
+        context_suffix = f" [{log_context}]" if log_context else ""
 
         try:
             alert_divs = driver.find_elements(By.XPATH, "//div[@role = 'alert']")
             logger.debug(
-                "%i alert elements have been found in the screenshot", len(alert_divs)
+                "%i alert elements have been found in the screenshot%s",
+                len(alert_divs),
+                context_suffix,
             )
 
             for alert_div in alert_divs:
@@ -789,9 +831,12 @@ class WebDriverSelenium(WebDriverProxy):
                         f"arguments[0].innerHTML = '{error_as_html}'", alert_div
                     )
                 except WebDriverException:
-                    logger.exception("Failed to update error messages using alert_div")
+                    logger.exception(
+                        "Failed to update error messages using alert_div%s",
+                        context_suffix,
+                    )
         except WebDriverException:
-            logger.exception("Failed to capture unexpected errors")
+            logger.exception("Failed to capture unexpected errors%s", context_suffix)
 
         return error_messages
 
@@ -802,6 +847,10 @@ class WebDriverSelenium(WebDriverProxy):
         user: User | None = None,
         log_context: str | None = None,
     ) -> bytes | None:
+        # Selenium doesn't take tiled screenshots (only WebDriverPlaywright
+        # does), but log_context is still used below to trace the rest of
+        # this method's logging back to the run that triggered it.
+        context_suffix = f" [{log_context}]" if log_context else ""
         # If a user is passed explicitly and differs from the stored user,
         # update and re-authenticate
         if user and user != self._user:
@@ -812,7 +861,7 @@ class WebDriverSelenium(WebDriverProxy):
         driver.get(url)
         img: bytes | None = None
         selenium_headstart = app.config["SCREENSHOT_SELENIUM_HEADSTART"]
-        logger.debug("Sleeping for %i seconds", selenium_headstart)
+        logger.debug("Sleeping for %i seconds%s", selenium_headstart, context_suffix)
         sleep(selenium_headstart)
 
         # WebDriver cleanup is intentionally not performed in this method. When the
@@ -823,27 +872,37 @@ class WebDriverSelenium(WebDriverProxy):
             try:
                 # page didn't load
                 logger.debug(
-                    "Wait for the presence of %s at url: %s", element_name, url
+                    "Wait for the presence of %s at url: %s%s",
+                    element_name,
+                    url,
+                    context_suffix,
                 )
                 element = WebDriverWait(driver, self._screenshot_locate_wait).until(
                     EC.presence_of_element_located((By.CLASS_NAME, element_name))
                 )
             except TimeoutException:
                 logger.warning(
-                    "Selenium timed out requesting url %s", url, exc_info=True
+                    "Selenium timed out requesting url %s%s",
+                    url,
+                    context_suffix,
+                    exc_info=True,
                 )
                 raise
 
             try:
                 # chart containers didn't render
-                logger.debug("Wait for chart containers to draw at url: %s", url)
+                logger.debug(
+                    "Wait for chart containers to draw at url: %s%s",
+                    url,
+                    context_suffix,
+                )
                 WebDriverWait(driver, self._screenshot_locate_wait).until(
                     EC.visibility_of_all_elements_located(
                         (By.CLASS_NAME, "chart-container")
                     )
                 )
             except TimeoutException:
-                logger.info("Timeout Exception caught")
+                logger.info("Timeout Exception caught%s", context_suffix)
                 # Fallback to allow a screenshot of an empty dashboard
                 try:
                     WebDriverWait(driver, 0).until(
@@ -853,8 +912,9 @@ class WebDriverSelenium(WebDriverProxy):
                     )
                 except Exception:
                     logger.warning(
-                        "Selenium timed out waiting for dashboard to draw at url %s",
+                        "Selenium timed out waiting for dashboard to draw at url %s%s",
                         url,
+                        context_suffix,
                         exc_info=True,
                     )
                     raise
@@ -876,22 +936,30 @@ class WebDriverSelenium(WebDriverProxy):
                 raise
 
             selenium_animation_wait = app.config["SCREENSHOT_SELENIUM_ANIMATION_WAIT"]
-            logger.debug("Wait %i seconds for chart animation", selenium_animation_wait)
+            logger.debug(
+                "Wait %i seconds for chart animation%s",
+                selenium_animation_wait,
+                context_suffix,
+            )
             sleep(selenium_animation_wait)
             logger.debug(
-                "Taking a PNG screenshot of url %s as user %s",
+                "Taking a PNG screenshot of url %s as user %s%s",
                 url,
                 self._user.username if self._user else "None",
+                context_suffix,
             )
 
             if app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"]:
-                unexpected_errors = WebDriverSelenium.find_unexpected_errors(driver)
+                unexpected_errors = WebDriverSelenium.find_unexpected_errors(
+                    driver, log_context=log_context
+                )
                 if unexpected_errors:
                     logger.warning(
-                        "%i errors found in the screenshot. URL: %s. Errors are: %s",
+                        "%i errors found in the screenshot. URL: %s. Errors are: %s%s",
                         len(unexpected_errors),
                         url,
                         unexpected_errors,
+                        context_suffix,
                     )
 
             img = element.screenshot_as_png
@@ -900,19 +968,21 @@ class WebDriverSelenium(WebDriverProxy):
             raise
         except StaleElementReferenceException:
             logger.warning(
-                "Selenium got a stale element while requesting url %s",
+                "Selenium got a stale element while requesting url %s%s",
                 url,
+                context_suffix,
                 exc_info=True,
             )
             raise
         except WebDriverException:
             logger.warning(
-                "Encountered an unexpected error when requesting url %s",
+                "Encountered an unexpected error when requesting url %s%s",
                 url,
+                context_suffix,
                 exc_info=True,
             )
             raise
         except Exception as ex:
-            logger.warning("exception in webdriver", exc_info=ex)
+            logger.warning("exception in webdriver%s", context_suffix, exc_info=ex)
             raise
         return img

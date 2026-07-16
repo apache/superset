@@ -627,7 +627,7 @@ class TestWebDriverPlaywrightErrorHandling:
 
         assert result == []
         mock_logger.exception.assert_called_once_with(
-            "Failed to capture unexpected errors"
+            "Failed to capture unexpected errors%s", ""
         )
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
@@ -820,7 +820,7 @@ class TestWebDriverPlaywrightErrorHandling:
         # not installed) accepting unrelated exceptions.
         assert exc_info.value is timeout
         mock_logger.exception.assert_any_call(
-            "Timed out requesting url %s", "http://example.com"
+            "Timed out requesting url %s%s", "http://example.com", ""
         )
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
@@ -901,9 +901,10 @@ class TestWebDriverPlaywrightErrorHandling:
         assert result == b"fake_screenshot"
         mock_logger.warning.assert_any_call(
             "Could not determine dashboard height for element %s at url %s; "
-            "falling back to standard screenshot behavior",
+            "falling back to standard screenshot behavior.%s",
             "dashboard",
             "http://example.com",
+            "",
         )
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
@@ -970,7 +971,8 @@ class TestWebDriverPlaywrightErrorHandling:
         assert result == b"fallback_screenshot"
         mock_take_tiled.assert_called_once()
         mock_logger.warning.assert_any_call(
-            ("Tiled screenshot failed, falling back to standard screenshot"),
+            "Tiled screenshot failed, falling back to standard screenshot.%s",
+            "",
         )
 
 

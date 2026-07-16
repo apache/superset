@@ -184,10 +184,10 @@ class TestTakeTiledScreenshot:
 
                 # Should log dashboard dimensions with lazy logging format
                 mock_logger.info.assert_any_call(
-                    "Dashboard: %sx%spx at (%s, %s)", 800, 5000, 50, 100
+                    "Dashboard: %sx%spx at (%s, %s)%s", 800, 5000, 50, 100, ""
                 )
                 # Should log number of tiles with lazy logging format
-                mock_logger.info.assert_any_call("Taking %s screenshot tiles", 3)
+                mock_logger.info.assert_any_call("Taking %s screenshot tiles%s", 3, "")
 
     def test_exception_handling_returns_none(self):
         """Test that exceptions are handled and None is returned."""
