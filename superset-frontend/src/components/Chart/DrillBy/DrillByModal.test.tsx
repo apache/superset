@@ -40,6 +40,34 @@ jest.mock('src/dashboard/util/isEmbedded', () => ({
   isEmbedded: jest.fn(() => false),
 }));
 
+const mockAddDangerToast = jest.fn();
+jest.mock('src/components/MessageToasts/withToasts', () => {
+  const actual = jest.requireActual('src/components/MessageToasts/withToasts');
+  return {
+    __esModule: true,
+    ...actual,
+    useToasts: () => ({
+      addDangerToast: mockAddDangerToast,
+      addSuccessToast: jest.fn(),
+      addInfoToast: jest.fn(),
+      addWarningToast: jest.fn(),
+    }),
+  };
+});
+
+jest.mock('src/explore/exploreUtils', () => {
+  const actual = jest.requireActual('src/explore/exploreUtils');
+  return {
+    ...actual,
+    exportChart: jest.fn(),
+  };
+});
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { exportChart: exportChartMock } = jest.requireMock(
+  'src/explore/exploreUtils',
+) as { exportChart: jest.Mock };
+
 const CHART_DATA_ENDPOINT = 'glob:*/api/v1/chart/data*';
 const FORM_DATA_KEY_ENDPOINT = 'glob:*/api/v1/explore/form_data';
 
@@ -552,5 +580,125 @@ describe('Table view with pagination', () => {
 
     // Table should still be rendered without crashes
     expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
+  });
+
+  test('CSV download calls exportChart with drilledFormData', async () => {
+    exportChartMock.mockClear();
+    await renderModal({
+      column: { column_name: 'state', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    const tableRadio = await screen.findByRole('radio', { name: /table/i });
+    userEvent.click(tableRadio);
+    await waitFor(() =>
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument(),
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Download' }),
+    );
+    await userEvent.click(await screen.findByText('Export to CSV'));
+
+    expect(exportChartMock).toHaveBeenCalledTimes(1);
+    expect(exportChartMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resultFormat: 'csv',
+        resultType: 'full',
+        formData: expect.objectContaining({ slice_id: 0 }),
+      }),
+    );
+  });
+
+  test('XLSX download calls exportChart with xlsx format', async () => {
+    exportChartMock.mockClear();
+    await renderModal({
+      column: { column_name: 'state', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    const tableRadio = await screen.findByRole('radio', { name: /table/i });
+    userEvent.click(tableRadio);
+    await waitFor(() =>
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument(),
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Download' }),
+    );
+    await userEvent.click(await screen.findByText('Export to Excel'));
+
+    expect(exportChartMock).toHaveBeenCalledTimes(1);
+    expect(exportChartMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resultFormat: 'xlsx',
+        resultType: 'full',
+        formData: expect.objectContaining({ slice_id: 0 }),
+      }),
+    );
+  });
+
+  test('shows a danger toast when exportChart fails', async () => {
+    exportChartMock.mockClear();
+    mockAddDangerToast.mockClear();
+    exportChartMock.mockRejectedValueOnce(new Error('boom'));
+    await renderModal({
+      column: { column_name: 'state', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    const tableRadio = await screen.findByRole('radio', { name: /table/i });
+    userEvent.click(tableRadio);
+    await waitFor(() =>
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument(),
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Download' }),
+    );
+    await userEvent.click(await screen.findByText('Export to CSV'));
+
+    await waitFor(() =>
+      expect(mockAddDangerToast).toHaveBeenCalledWith(
+        'Failed to generate download: boom',
+      ),
+    );
+  });
+
+  test('reload re-fetches chart data', async () => {
+    await renderModal({
+      column: { column_name: 'state', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    const tableRadio = await screen.findByRole('radio', { name: /table/i });
+    userEvent.click(tableRadio);
+    await waitFor(() =>
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument(),
+    );
+
+    const callsBefore = fetchMock.callHistory.calls(CHART_DATA_ENDPOINT).length;
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Reload' }),
+    );
+
+    await waitFor(() =>
+      expect(
+        fetchMock.callHistory.calls(CHART_DATA_ENDPOINT).length,
+      ).toBeGreaterThan(callsBefore),
+    );
   });
 });

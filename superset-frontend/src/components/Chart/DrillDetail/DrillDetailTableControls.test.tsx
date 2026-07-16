@@ -17,20 +17,27 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import TableControls from './DrillDetailTableControls';
+import TableControls, { TableControlsProps } from './DrillDetailTableControls';
 
 const setFilters = jest.fn();
 const onReload = jest.fn();
-const setup = (overrides: Record<string, any> = {}) => {
+const onDownloadCSV = jest.fn();
+const onDownloadXLSX = jest.fn();
+const setup = (overrides: Partial<TableControlsProps> = {}) => {
   const props = {
     filters: [],
     setFilters,
     onReload,
     loading: false,
     totalCount: 0,
+    canDownload: true,
+    onDownloadCSV,
+    onDownloadXLSX,
+    data: [],
+    columnNames: [],
     ...overrides,
   };
-  return render(<TableControls {...props} />);
+  return render(<TableControls {...props} />, { useRedux: true });
 };
 test('should render', () => {
   const { container } = setup();
@@ -52,6 +59,21 @@ test('should show the correct amount of rows', () => {
 test('should render the reload button', () => {
   setup();
   expect(screen.getByRole('button', { name: 'Reload' })).toBeInTheDocument();
+});
+
+test('should render the download button when canDownload is true', () => {
+  setup();
+  expect(screen.getByRole('button', { name: 'Download' })).toBeInTheDocument();
+});
+
+test('should hide download and copy buttons when canDownload is false', () => {
+  setup({ canDownload: false });
+  expect(
+    screen.queryByRole('button', { name: 'Download' }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Copy' }),
+  ).not.toBeInTheDocument();
 });
 
 test('should show the loading indicator', () => {
