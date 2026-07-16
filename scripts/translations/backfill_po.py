@@ -138,6 +138,22 @@ def _lang_name(code: str) -> str:
     return LANGUAGE_NAMES.get(code, code)
 
 
+# An ISO 639-1/639-2 code, optionally followed by an ISO 3166 region
+# (``_BR``, two uppercase) or an ISO 15924 script (``_Latn``, titlecase). The
+# script subtag matters for catalogs like ``sr_Latn`` (Serbian in Latin script);
+# without it the code was rejected and the catalog silently skipped.
+_LANG_CODE_RE = re.compile(r"[a-z]{2,3}(_([A-Z]{2}|[A-Z][a-z]{3}))?")
+
+
+def _is_valid_lang_code(lang: str) -> bool:
+    """Validate a language code before it lands, unsanitized, in a filesystem path.
+
+    Guards against path traversal while allowing the region and script subtags
+    Superset actually ships (e.g. ``pt_BR``, ``sr_Latn``).
+    """
+    return bool(_LANG_CODE_RE.fullmatch(lang))
+
+
 def _plural_key(msgid: str, msgid_plural: str) -> str:
     """Build the translation index key used for pluralized entries."""
     return f"{msgid}\x00{msgid_plural}"
@@ -667,13 +683,11 @@ def backfill(
     mark_fuzzy: bool = True,
 ) -> None:
     """Backfill missing translations in the target language's .po file."""
-    # Defense against path traversal: ``lang`` lands in a filesystem path
-    # without further sanitization, so reject anything that isn't an
-    # ISO 639-1/639-2 code with an optional ISO 3166 region (e.g. ``pt_BR``).
-    if not re.fullmatch(r"[a-z]{2,3}(_[A-Z]{2})?", lang):
+    if not _is_valid_lang_code(lang):
         print(
             f"Invalid language code: {lang!r} "
-            "(expected ISO 639 code, optionally with _<REGION>, e.g. 'fr' or 'pt_BR')",
+            "(expected ISO 639 code, optionally with a _<REGION> or _<Script> "
+            "subtag, e.g. 'fr', 'pt_BR', or 'sr_Latn')",
             file=sys.stderr,
         )
         sys.exit(1)
