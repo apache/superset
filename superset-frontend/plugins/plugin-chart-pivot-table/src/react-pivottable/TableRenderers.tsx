@@ -168,7 +168,11 @@ function displayHeaderCell(
       : parsedLabel;
   return needToggle ? (
     <span className="toggle-wrapper">
-      <button type="button" className="toggle" onClick={onArrowClick || undefined}>
+      <button
+        type="button"
+        className="toggle"
+        onClick={onArrowClick || undefined}
+      >
         {ArrowIcon}
       </button>
       <span className="toggle-val">{labelContent}</span>

@@ -17,7 +17,11 @@
  * under the License.
  */
 
-import { FeatureFlag, isFeatureEnabled, SupersetClient } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  SupersetClient,
+} from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { useMemo, useCallback, useState } from 'react';
