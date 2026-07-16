@@ -27,6 +27,7 @@ import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import DashboardListComponent from 'src/pages/DashboardList';
 import handleResourceExport from 'src/utils/export';
+import { SubjectType } from 'src/types/Subject';
 
 // Cast to accept partial mock props in tests
 const DashboardList = DashboardListComponent as unknown as React.FC<
@@ -36,10 +37,24 @@ const DashboardList = DashboardListComponent as unknown as React.FC<
 export const mockHandleResourceExport =
   handleResourceExport as jest.MockedFunction<typeof handleResourceExport>;
 
+const adminEditor = { id: 1, label: 'Admin User', type: SubjectType.User };
+const dataAnalystEditor = {
+  id: 2,
+  label: 'Data Analyst',
+  type: SubjectType.User,
+};
+const alphaEditor = { id: 3, label: 'Alpha', type: SubjectType.Role };
+const marketingEditor = {
+  id: 4,
+  label: 'Marketing Lead',
+  type: SubjectType.User,
+};
+const opsEditor = { id: 5, label: 'Ops Engineer', type: SubjectType.User };
+
 export const mockDashboards = [
   {
     id: 1,
-    url: '/superset/dashboard/1/',
+    url: '/dashboard/1/',
     dashboard_title: 'Sales Dashboard',
     published: true,
     changed_by_name: 'admin',
@@ -51,8 +66,7 @@ export const mockDashboards = [
     },
     changed_on_utc: new Date().toISOString(),
     changed_on_delta_humanized: '1 day ago',
-    owners: [{ id: 1, first_name: 'Admin', last_name: 'User' }],
-    roles: [{ id: 1, name: 'Admin' }],
+    editors: [adminEditor],
     tags: [{ id: 1, name: 'production', type: 'TagTypes.custom' }],
     thumbnail_url: '/thumbnail',
     certified_by: 'Data Team',
@@ -61,7 +75,7 @@ export const mockDashboards = [
   },
   {
     id: 2,
-    url: '/superset/dashboard/2/',
+    url: '/dashboard/2/',
     dashboard_title: 'Analytics Dashboard',
     published: false,
     changed_by_name: 'analyst',
@@ -73,11 +87,7 @@ export const mockDashboards = [
     },
     changed_on_utc: new Date().toISOString(),
     changed_on_delta_humanized: '2 days ago',
-    owners: [
-      { id: 1, first_name: 'Admin', last_name: 'User' },
-      { id: 2, first_name: 'Data', last_name: 'Analyst' },
-    ],
-    roles: [],
+    editors: [dataAnalystEditor],
     tags: [],
     thumbnail_url: '/thumbnail',
     certified_by: null,
@@ -86,7 +96,7 @@ export const mockDashboards = [
   },
   {
     id: 3,
-    url: '/superset/dashboard/3/',
+    url: '/dashboard/3/',
     dashboard_title: 'Executive Overview',
     published: true,
     changed_by_name: 'admin',
@@ -98,8 +108,7 @@ export const mockDashboards = [
     },
     changed_on_utc: new Date().toISOString(),
     changed_on_delta_humanized: '3 days ago',
-    owners: [],
-    roles: [{ id: 2, name: 'Alpha' }],
+    editors: [adminEditor, alphaEditor],
     tags: [
       { id: 2, name: 'executive', type: 'TagTypes.custom' },
       { id: 3, name: 'quarterly', type: 'TagTypes.custom' },
@@ -111,7 +120,7 @@ export const mockDashboards = [
   },
   {
     id: 4,
-    url: '/superset/dashboard/4/',
+    url: '/dashboard/4/',
     dashboard_title: 'Marketing Metrics',
     published: false,
     changed_by_name: 'marketing',
@@ -123,8 +132,7 @@ export const mockDashboards = [
     },
     changed_on_utc: new Date().toISOString(),
     changed_on_delta_humanized: '5 days ago',
-    owners: [{ id: 3, first_name: 'Marketing', last_name: 'Lead' }],
-    roles: [],
+    editors: [marketingEditor],
     tags: [],
     thumbnail_url: '/thumbnail',
     certified_by: null,
@@ -133,7 +141,7 @@ export const mockDashboards = [
   },
   {
     id: 5,
-    url: '/superset/dashboard/5/',
+    url: '/dashboard/5/',
     dashboard_title: 'Ops Monitor',
     published: true,
     changed_by_name: 'ops',
@@ -145,11 +153,7 @@ export const mockDashboards = [
     },
     changed_on_utc: new Date().toISOString(),
     changed_on_delta_humanized: '1 week ago',
-    owners: [
-      { id: 4, first_name: 'Ops', last_name: 'Engineer' },
-      { id: 1, first_name: 'Admin', last_name: 'User' },
-    ],
-    roles: [],
+    editors: [opsEditor],
     tags: [{ id: 4, name: 'monitoring', type: 'TagTypes.custom' }],
     thumbnail_url: '/thumbnail',
     certified_by: null,
@@ -199,7 +203,7 @@ export const API_ENDPOINTS = {
   DASHBOARDS: 'glob:*/api/v1/dashboard/?*',
   DASHBOARD_GET: 'glob:*/api/v1/dashboard/*',
   DASHBOARD_FAVORITE_STATUS: 'glob:*/api/v1/dashboard/favorite_status*',
-  DASHBOARD_RELATED_OWNERS: 'glob:*/api/v1/dashboard/related/owners*',
+  DASHBOARD_RELATED_EDITORS: 'glob:*/api/v1/dashboard/related/editors*',
   DASHBOARD_RELATED_CHANGED_BY: 'glob:*/api/v1/dashboard/related/changed_by*',
   THUMBNAIL: '/thumbnail',
   CATCH_ALL: 'glob:*',
@@ -306,9 +310,9 @@ export const setupMocks = (
   );
 
   fetchMock.get(
-    API_ENDPOINTS.DASHBOARD_RELATED_OWNERS,
+    API_ENDPOINTS.DASHBOARD_RELATED_EDITORS,
     { result: [], count: 0 },
-    { name: API_ENDPOINTS.DASHBOARD_RELATED_OWNERS },
+    { name: API_ENDPOINTS.DASHBOARD_RELATED_EDITORS },
   );
 
   fetchMock.get(

@@ -18,20 +18,23 @@
  */
 import { Link, useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  handleKeyboardActivation,
+} from '@superset-ui/core';
 import { CardStyles } from 'src/views/CRUD/utils';
 import {
-  Dropdown,
-  Button,
   FaveStar,
+  Icons,
   PublishedLabel,
   ListViewCard,
 } from '@superset-ui/core/components';
 import { MenuItem } from '@superset-ui/core/components/Menu';
-import { Icons } from '@superset-ui/core/components/Icons';
 import { Dashboard } from 'src/views/CRUD/types';
 import { assetUrl } from 'src/utils/assetUrl';
-import { FacePile } from 'src/components';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
+import { KebabMenuButton } from 'src/components';
 
 interface DashboardCardProps {
   isChart?: boolean;
@@ -81,6 +84,9 @@ function DashboardCard({
           tabIndex={0}
           className="action-button"
           onClick={() => openDashboardEditModal(dashboard)}
+          onKeyDown={handleKeyboardActivation(() =>
+            openDashboardEditModal(dashboard),
+          )}
           data-test="dashboard-card-option-edit-button"
         >
           <Icons.EditOutlined iconSize="l" data-test="edit-alt" /> {t('Edit')}
@@ -97,6 +103,9 @@ function DashboardCard({
           role="button"
           tabIndex={0}
           onClick={() => handleBulkDashboardExport([dashboard])}
+          onKeyDown={handleKeyboardActivation(() =>
+            handleBulkDashboardExport([dashboard]),
+          )}
           className="action-button"
           data-test="dashboard-card-option-export-button"
         >
@@ -115,6 +124,7 @@ function DashboardCard({
           tabIndex={0}
           className="action-button"
           onClick={() => onDelete(dashboard)}
+          onKeyDown={handleKeyboardActivation(() => onDelete(dashboard))}
           data-test="dashboard-card-option-delete-button"
         >
           <Icons.DeleteOutlined iconSize="l" /> {t('Delete')}
@@ -149,7 +159,7 @@ function DashboardCard({
           '/static/assets/images/dashboard-card-fallback.svg',
         )}
         description={t('Modified %s', dashboard.changed_on_delta_humanized)}
-        coverLeft={<FacePile users={dashboard.owners || []} />}
+        coverLeft={<SubjectPile subjects={dashboard.editors || []} />}
         actions={
           <ListViewCard.Actions
             onClick={e => {
@@ -164,11 +174,10 @@ function DashboardCard({
                 isStarred={favoriteStatus}
               />
             )}
-            <Dropdown menu={{ items: menuItems }} trigger={['hover', 'click']}>
-              <Button buttonSize="xsmall" buttonStyle="link">
-                <Icons.MoreOutlined iconSize="xl" />
-              </Button>
-            </Dropdown>
+            <KebabMenuButton
+              menuItems={menuItems}
+              dataTest="dashboard-card-menu"
+            />
           </ListViewCard.Actions>
         }
       />

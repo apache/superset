@@ -255,3 +255,84 @@ async def test_list_charts_passes_changed_by_fk_filter_to_dao(mock_list, mcp_ser
     forwarded_filters = mock_list.call_args.kwargs.get("column_operators")
     assert forwarded_filters is not None
     assert any(getattr(f, "col", None) == "changed_by_fk" for f in forwarded_filters)
+
+
+# ---------------------------------------------------------------------------
+# LIKE wildcard escaping tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_find_users_escapes_percent_wildcard(mcp_server):
+    """query='%' must not enumerate all users; the LIKE pattern must be escaped."""
+    session, _ = _patch_user_query([])
+    with (
+        patch.object(find_users_module, "db") as mock_db,
+        patch.object(find_users_module, "security_manager") as mock_sm,
+        patch.object(find_users_module, "or_") as mock_or,
+    ):
+        mock_db.session = session
+        user_model = MagicMock()
+        mock_sm.user_model = user_model
+        mock_or.return_value = MagicMock()
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("find_users", {"request": {"query": "%"}})
+
+    data = json.loads(result.content[0].text)
+    assert data["count"] == 0
+    # Needle must be "%\%%" (escaped %) not "%%%" (all-rows wildcard)
+    ilike_call = user_model.username.ilike.call_args
+    assert ilike_call is not None
+    assert ilike_call.args[0] == "%\\%%"
+    assert ilike_call.kwargs.get("escape") == "\\"
+
+
+@pytest.mark.asyncio
+async def test_find_users_escapes_underscore_wildcard(mcp_server):
+    """query='_' must not match single-character strings via SQL LIKE wildcard."""
+    session, _ = _patch_user_query([])
+    with (
+        patch.object(find_users_module, "db") as mock_db,
+        patch.object(find_users_module, "security_manager") as mock_sm,
+        patch.object(find_users_module, "or_") as mock_or,
+    ):
+        mock_db.session = session
+        user_model = MagicMock()
+        mock_sm.user_model = user_model
+        mock_or.return_value = MagicMock()
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("find_users", {"request": {"query": "_"}})
+
+    data = json.loads(result.content[0].text)
+    assert data["count"] == 0
+    ilike_call = user_model.username.ilike.call_args
+    assert ilike_call is not None
+    assert ilike_call.args[0] == "%\\_%"
+    assert ilike_call.kwargs.get("escape") == "\\"
+
+
+@pytest.mark.asyncio
+async def test_find_users_escapes_literal_backslash(mcp_server):
+    """A literal backslash in the query must be doubled in the LIKE pattern."""
+    session, _ = _patch_user_query([])
+    with (
+        patch.object(find_users_module, "db") as mock_db,
+        patch.object(find_users_module, "security_manager") as mock_sm,
+        patch.object(find_users_module, "or_") as mock_or,
+    ):
+        mock_db.session = session
+        user_model = MagicMock()
+        mock_sm.user_model = user_model
+        mock_or.return_value = MagicMock()
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("find_users", {"request": {"query": "\\"}})
+
+    data = json.loads(result.content[0].text)
+    assert data["count"] == 0
+    ilike_call = user_model.username.ilike.call_args
+    assert ilike_call is not None
+    assert ilike_call.args[0] == "%\\\\%"
+    assert ilike_call.kwargs.get("escape") == "\\"

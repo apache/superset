@@ -21,7 +21,7 @@ from typing import Any
 
 import pytest
 from sqlalchemy import Column, create_engine, Date, Integer, MetaData, String, Table
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.extensions import db

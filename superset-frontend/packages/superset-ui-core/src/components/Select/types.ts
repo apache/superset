@@ -71,12 +71,24 @@ export type AntdExposedProps = Pick<
   | 'virtual'
   | 'getPopupContainer'
   | 'menuItemSelectedIcon'
-  | 'dropdownAlign'
 >;
 
 export type SelectOptionsType = Exclude<AntdProps['options'], undefined>;
 
 export interface BaseSelectProps extends AntdExposedProps {
+  /**
+   * Whether the select is searchable. antd 6 also accepts a `SearchConfig`
+   * object here, but Superset's Select manages search behavior itself
+   * (filtering, sorting, "create option" handling), so only the boolean
+   * form is supported — an object would be silently discarded.
+   */
+  showSearch?: boolean;
+  /**
+   * Separators used to tokenize pasted text into multiple values.
+   * antd 6 also accepts a function form, but Superset's paste handling
+   * only supports the array form.
+   */
+  tokenSeparators?: string[];
   /**
    * Optional CSS class name to apply to the select container
    */

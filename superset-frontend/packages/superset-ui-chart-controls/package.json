@@ -27,10 +27,11 @@
     "@apache-superset/core": "*",
     "@types/react": "*",
     "lodash": "^4.18.1",
-    "tinycolor2": "*"
+    "tinycolor2": "*",
+    "lodash-es": "^4.18.1"
   },
   "peerDependencies": {
-    "@ant-design/icons": "^5.6.1",
+    "@ant-design/icons": "^5.6.1 || ^6.0.0",
     "@emotion/react": "^11.4.1",
     "@superset-ui/core": "*",
     "@testing-library/dom": "^9.3.4",

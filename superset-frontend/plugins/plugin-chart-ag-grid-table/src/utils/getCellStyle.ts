@@ -24,6 +24,7 @@ import {
 } from '@superset-ui/chart-controls';
 import { CellClassParams } from '@superset-ui/core/components/ThemedAgGridReact';
 import { BasicColorFormatterType, InputColumn } from '../types';
+import getRowBasicColorFormatter from './getRowBasicColorFormatter';
 
 type CellStyleParams = CellClassParams & {
   hasColumnColorFormatters: boolean | undefined;
@@ -84,8 +85,11 @@ const getCellStyle = (params: CellStyleParams) => {
     col?.metricName &&
     node?.rowPinned !== 'bottom'
   ) {
-    backgroundColor =
-      basicColorFormatters?.[rowIndex]?.[col.metricName]?.backgroundColor;
+    backgroundColor = getRowBasicColorFormatter(
+      node,
+      rowIndex,
+      basicColorFormatters,
+    )?.[col.metricName]?.backgroundColor;
   }
 
   const textAlign =

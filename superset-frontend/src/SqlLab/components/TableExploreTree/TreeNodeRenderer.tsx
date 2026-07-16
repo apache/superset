@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { handleKeyboardActivation } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import type { NodeRendererProps } from 'react-arborist';
@@ -101,7 +102,6 @@ export interface TreeNodeRendererProps extends NodeRendererProps<TreeNodeData> {
 const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
   node,
   style,
-  manuallyOpenedNodes,
   loadingNodes,
   searchTerm,
   catalog,
@@ -187,6 +187,7 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
             <span
               className="col-copy-action"
               onClick={e => e.stopPropagation()}
+              onKeyDown={e => e.stopPropagation()}
             >
               <ActionButton
                 label={`copy-col-${data.name}`}
@@ -216,6 +217,13 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
           node.toggle();
         }
       }}
+      onKeyDown={handleKeyboardActivation(() => {
+        if (node.isLeaf) {
+          node.select();
+        } else {
+          node.toggle();
+        }
+      })}
     >
       <span
         className="tree-node-icon"
@@ -239,8 +247,8 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
       {identifier === 'schema' && (
         <div
           className="side-action-container"
-          role="menu"
           onClick={e => e.stopPropagation()}
+          onKeyDown={e => e.stopPropagation()}
         >
           {pinnedSchemas.has(schema) && (
             <div className="action-static">
@@ -307,8 +315,8 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
           return (
             <div
               className="side-action-container"
-              role="menu"
               onClick={e => e.stopPropagation()}
+              onKeyDown={e => e.stopPropagation()}
             >
               {isPinned && (
                 <div className="action-static">
@@ -348,9 +356,9 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
                     <Icons.SortAscendingOutlined
                       iconSize="m"
                       css={css`
-                        color: ${sortedTables[data.id]
-                          ? theme.colorPrimary
-                          : 'inherit'};
+                        color: ${
+                          sortedTables[data.id] ? theme.colorPrimary : 'inherit'
+                        };
                       `}
                     />
                   }

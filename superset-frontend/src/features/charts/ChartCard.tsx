@@ -17,21 +17,24 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  handleKeyboardActivation,
+} from '@superset-ui/core';
 import { css } from '@apache-superset/core/theme';
 import { Link, useHistory } from 'react-router-dom';
 import {
   ConfirmStatusChange,
-  Button,
-  Dropdown,
   FaveStar,
+  Icons,
   Label,
   ListViewCard,
-  Icons,
   MenuItem,
 } from '@superset-ui/core/components';
 import Chart from 'src/types/Chart';
-import { FacePile } from 'src/components';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
+import { KebabMenuButton } from 'src/components';
 import { handleChartDelete, CardStyles } from 'src/views/CRUD/utils';
 import { assetUrl } from 'src/utils/assetUrl';
 import type { ListViewFetchDataConfig as FetchDataConfig } from 'src/components';
@@ -87,6 +90,7 @@ export default function ChartCard({
           role="button"
           tabIndex={0}
           onClick={() => openChartEditModal(chart)}
+          onKeyDown={handleKeyboardActivation(() => openChartEditModal(chart))}
         >
           <Icons.EditOutlined
             iconSize="l"
@@ -108,6 +112,9 @@ export default function ChartCard({
           role="button"
           tabIndex={0}
           onClick={() => handleBulkChartExport([chart])}
+          onKeyDown={handleKeyboardActivation(() =>
+            handleBulkChartExport([chart]),
+          )}
         >
           <Icons.UploadOutlined
             iconSize="l"
@@ -151,6 +158,7 @@ export default function ChartCard({
               tabIndex={0}
               className="action-button"
               onClick={confirmDelete}
+              onKeyDown={handleKeyboardActivation(confirmDelete)}
             >
               <Icons.DeleteOutlined
                 iconSize="l"
@@ -190,7 +198,7 @@ export default function ChartCard({
           '/static/assets/images/chart-card-fallback.svg',
         )}
         description={t('Modified %s', chart.changed_on_delta_humanized)}
-        coverLeft={<FacePile users={chart.owners || []} />}
+        coverLeft={<SubjectPile subjects={chart.editors || []} />}
         coverRight={<Label>{chart.datasource_name_text}</Label>}
         linkComponent={Link}
         actions={
@@ -207,11 +215,7 @@ export default function ChartCard({
                 isStarred={favoriteStatus}
               />
             )}
-            <Dropdown menu={{ items: menuItems }} trigger={['click', 'hover']}>
-              <Button buttonSize="xsmall" type="link" buttonStyle="link">
-                <Icons.MoreOutlined iconSize="xl" />
-              </Button>
-            </Dropdown>
+            <KebabMenuButton menuItems={menuItems} dataTest="chart-card-menu" />
           </ListViewCard.Actions>
         }
       />
