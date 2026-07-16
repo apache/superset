@@ -30,10 +30,10 @@ from flask import current_app
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
 
-NANOSECONDS_PER_MILLISECOND = 1_000_000
-SOURCE_TRACE_VERSION = 2
-MAX_SOURCE_TRACE_DEPTH = 8
-MAX_SOURCE_TRACE_NODES = 64
+NANOSECONDS_PER_MILLISECOND: int = 1_000_000
+SOURCE_TRACE_VERSION: int = 2
+MAX_SOURCE_TRACE_DEPTH: int = 8
+MAX_SOURCE_TRACE_NODES: int = 64
 
 SourcePhase = Literal["planning", "execution", "processing"]
 

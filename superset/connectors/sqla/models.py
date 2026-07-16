@@ -104,6 +104,7 @@ from superset.models.helpers import (
     QueryResult,
     SoftDeleteMixin,
     SQLA_QUERY_KEYS,
+    SqlaQuery,
     validate_adhoc_subquery,
 )
 from superset.models.slice import Slice
@@ -2187,7 +2188,7 @@ class SqlaTable(
             filtered_query_obj = {
                 k: v for k, v in query_obj.items() if k in SQLA_QUERY_KEYS
             }
-            sqla_query = self.get_sqla_query(
+            sqla_query: SqlaQuery = self.get_sqla_query(
                 **cast(Any, filtered_query_obj),
                 defer_source_queries=True,
             )

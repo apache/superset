@@ -252,7 +252,7 @@ def _materialize_full(
     ] + rejected_time_columns
 
     if result_type == ChartDataResultType.RESULTS and status != QueryStatus.FAILED:
-        result = {
+        result: dict[str, Any] = {
             "data": payload.get("data"),
             "colnames": payload.get("colnames"),
             "coltypes": payload.get("coltypes"),
@@ -307,7 +307,7 @@ def acquire_query_data(
 ) -> AcquiredQuery | None:
     """Prepare and acquire dataframe-backed query data without materializing it."""
 
-    prepared = query_obj
+    prepared: QueryObject = query_obj
     if result_type == ChartDataResultType.SAMPLES:
         prepared = _prepare_samples_query(query_context, query_obj)
     elif result_type == ChartDataResultType.DRILL_DETAIL:
@@ -355,7 +355,7 @@ def materialize_acquired_query(
 def cache_acquired_query(acquired: AcquiredQuery) -> QueryDataResult:
     """Return cache-only metadata without serializing the acquired dataframe."""
 
-    cache_payload = {
+    cache_payload: dict[str, Any] = {
         key: value for key, value in acquired.acquisition.payload.items() if key != "df"
     }
     return QueryDataResult(

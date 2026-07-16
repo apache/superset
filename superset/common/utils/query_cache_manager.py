@@ -77,7 +77,7 @@ class QueryCacheManager:
         queried_dttm: str | None = None,
         source_trace: tuple[SourceTiming, ...] | None = None,
     ) -> None:
-        self.df = DataFrame() if df is None else df
+        self.df: DataFrame = DataFrame() if df is None else df
         self.query = query
         self.annotation_data = {} if annotation_data is None else annotation_data
         self.applied_template_filters = applied_template_filters or []

@@ -98,8 +98,8 @@ class StreamingCSVExportCommand(BaseStreamingCSVExportCommand):
             raise QueryObjectValidationError(
                 _("Streaming CSV export requires a SQL datasource")
             )
-        database = datasource.database
-        sql_query = datasource.get_query_str_extended(query_obj.to_dict()).sql
+        database: Database = datasource.database
+        sql_query: str = datasource.get_query_str_extended(query_obj.to_dict()).sql
         if not isinstance(sql_query, str) or not sql_query.strip():
             raise QueryObjectValidationError(
                 _("Streaming CSV export requires executable SQL")
