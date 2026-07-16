@@ -28,6 +28,8 @@ import pytest
 from fastmcp import Client, FastMCP
 
 from superset.mcp_service.app import mcp
+from superset.mcp_service.auth import is_tool_visible_to_current_user
+from superset.mcp_service.privacy import tool_requires_data_model_metadata_access
 from superset.utils import json
 
 query_dataset_module = importlib.import_module(
@@ -829,3 +831,61 @@ async def test_query_dataset_metadata_access_denied_nonexistent_dataset(
     # Must receive restricted error, not a NotFound that leaks existence
     assert data["error_type"] == "DataModelMetadataRestricted"
     assert data["error_type"] != "NotFound"
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_registered_tool_requires_metadata_access(
+    mcp_server: FastMCP,
+) -> None:
+    """The tool object FastMCP actually registers carries the data-model
+    metadata marker, so ``is_tool_visible_to_current_user`` can hide it from
+    restricted users at ``tools/list`` time — matching list_datasets and
+    get_dataset_info.
+    """
+    tool = await mcp_server.get_tool("query_dataset")
+    assert tool is not None
+    assert tool_requires_data_model_metadata_access(tool.fn) is True
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_hidden_from_tools_list_when_metadata_restricted(
+    mcp_server: FastMCP, app: Any
+) -> None:
+    """query_dataset is hidden from tools/list for metadata-restricted users,
+    mirroring list_datasets and get_dataset_info.
+    """
+    from flask import g
+
+    tool = await mcp_server.get_tool("query_dataset")
+    assert tool is not None
+
+    app.config["MCP_RBAC_ENABLED"] = True
+    try:
+        with app.app_context():
+            g.user = Mock(username="restricted-user")
+
+            with (
+                patch(
+                    "superset.mcp_service.auth.security_manager.can_access",
+                    return_value=True,
+                ),
+                patch(
+                    "superset.mcp_service.privacy.user_can_view_data_model_metadata",
+                    return_value=False,
+                ),
+            ):
+                assert is_tool_visible_to_current_user(tool) is False
+
+            with (
+                patch(
+                    "superset.mcp_service.auth.security_manager.can_access",
+                    return_value=True,
+                ),
+                patch(
+                    "superset.mcp_service.privacy.user_can_view_data_model_metadata",
+                    return_value=True,
+                ),
+            ):
+                assert is_tool_visible_to_current_user(tool) is True
+    finally:
+        app.config.pop("MCP_RBAC_ENABLED", None)

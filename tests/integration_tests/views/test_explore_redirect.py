@@ -37,6 +37,7 @@ from unittest import mock
 from urllib.parse import quote
 
 import pytest
+from flask import current_app
 
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -62,9 +63,7 @@ class TestExploreRedirect(SupersetTestCase):
         wins shapes which view's body runs and which `request.endpoint`
         value the helper's loop guard compares against.
         """
-        from superset.extensions import appbuilder
-
-        adapter = appbuilder.app.url_map.bind("")
+        adapter = current_app.url_map.bind("")
         endpoint, _ = adapter.match("/explore/", method="GET")
         assert endpoint == "ExploreView.root"
 
