@@ -179,6 +179,84 @@ def test_get_inline_files_with_screenshots(mock_header_data) -> None:
 
     assert result == ("png", [b"screenshot1", b"screenshot2"])
 
+
+def test_get_inline_files_with_csv(mock_header_data: HeaderDataType) -> None:
+    """
+    Test the _get_inline_files function to ensure it returns the correct tuple
+    when content has a CSV attachment
+    """
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.slack import SlackNotification
+
+    content = NotificationContent(
+        name="test alert",
+        header_data=mock_header_data,
+        csv=b"csv_content",
+    )
+    slack_notification = SlackNotification(
+        recipient=ReportRecipients(
+            type=ReportRecipientType.SLACK,
+            recipient_config_json='{"target": "some_channel"}',
+        ),
+        content=content,
+    )
+
+    result = slack_notification._get_inline_files()
+
+    assert result == ("csv", [b"csv_content"])
+
+
+def test_get_inline_files_with_xlsx(mock_header_data: HeaderDataType) -> None:
+    """
+    Test the _get_inline_files function to ensure it returns the correct tuple
+    when content has an Excel attachment
+    """
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.slack import SlackNotification
+
+    content = NotificationContent(
+        name="test alert",
+        header_data=mock_header_data,
+        xlsx=b"xlsx_content",
+    )
+    slack_notification = SlackNotification(
+        recipient=ReportRecipients(
+            type=ReportRecipientType.SLACK,
+            recipient_config_json='{"target": "some_channel"}',
+        ),
+        content=content,
+    )
+
+    result = slack_notification._get_inline_files()
+
+    assert result == ("xlsx", [b"xlsx_content"])
+
+
+def test_get_inline_files_with_xlsx_slackv2(mock_header_data: HeaderDataType) -> None:
+    """SlackV2 _get_inline_files returns the xlsx tuple when content has Excel."""
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.slackv2 import SlackV2Notification
+
+    content = NotificationContent(
+        name="test alert",
+        header_data=mock_header_data,
+        xlsx=b"xlsx_content",
+    )
+    slack_notification = SlackV2Notification(
+        recipient=ReportRecipients(
+            type=ReportRecipientType.SLACKV2,
+            recipient_config_json='{"target": "some_channel"}',
+        ),
+        content=content,
+    )
+
+    result = slack_notification._get_inline_files()
+
+    assert result == ("xlsx", [b"xlsx_content"])
+
     # Ensure _get_inline_files function returns None when content has no screenshots or csv  # noqa: E501
 
 
