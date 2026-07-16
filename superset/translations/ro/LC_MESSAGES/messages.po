@@ -2488,7 +2488,7 @@ msgid ""
 "Are you sure you want to revoke this API key? This action cannot be "
 "undone."
 msgstr ""
-"Ești sigur că vrei să revoce această cheie API? Această acțiune nu poate "
+"Ești sigur că vrei să revoci această cheie API? Această acțiune nu poate "
 "fi anulată."
 
 msgid "Are you sure you want to save and apply changes?"
@@ -2570,13 +2570,13 @@ msgstr "Zoom Automat"
 # sr_Latn]
 #, fuzzy, python-format
 msgid "Auto refresh paused (set to %s seconds)"
-msgstr "Reîmprospătare automată pausată (setată la %s secunde)"
+msgstr "Reîmprospătare automată pauzată (setată la %s secunde)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
 #, fuzzy, python-format
 msgid "Auto refresh paused - tab inactive (set to %s seconds)"
-msgstr "Reîmprospătare automată pausată - fila inactivă (setată la %s secunde)"
+msgstr "Reîmprospătare automată pauzată - fila inactivă (setată la %s secunde)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]
