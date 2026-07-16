@@ -46,7 +46,7 @@ class UserAttribute(Model, AuditMixinNullable):
     # session-invalidation upsert depends on this for race safety.
     __table_args__ = (UniqueConstraint("user_id", name="uq_user_attribute_user_id"),)
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("ab_user.id"))
+    user_id = Column(Integer, ForeignKey("ab_user.id", ondelete="CASCADE"))
     user = relationship(
         security_manager.user_model, backref="extra_attributes", foreign_keys=[user_id]
     )

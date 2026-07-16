@@ -569,7 +569,7 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
 
     # basic info
     id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("ab_user.id"))
+    user_id = Column(Integer, ForeignKey("ab_user.id", ondelete="CASCADE"))
     label = Column(String(256))
     active = Column(Boolean, default=False)
 
