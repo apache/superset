@@ -210,11 +210,16 @@ class BaseScreenshot:
         return WebDriverSelenium(self.driver_type, window_size, user)
 
     def get_screenshot(
-        self, user: User, window_size: WindowSize | None = None
+        self,
+        user: User,
+        window_size: WindowSize | None = None,
+        execution_id: str | None = None,
     ) -> bytes | None:
         driver = self.driver(window_size, user)
         try:
-            self.screenshot = driver.get_screenshot(self.url, self.element, user)
+            self.screenshot = driver.get_screenshot(
+                self.url, self.element, user, execution_id=execution_id
+            )
         finally:
             if isinstance(driver, WebDriverSelenium):
                 driver.destroy()

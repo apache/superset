@@ -203,10 +203,17 @@ class WebDriverProxy(ABC):
 
     @abstractmethod
     def get_screenshot(
-        self, url: str, element_name: str, user: User | None = None
+        self,
+        url: str,
+        element_name: str,
+        user: User | None = None,
+        execution_id: str | None = None,
     ) -> bytes | None:
         """
         Run webdriver and return a screenshot
+
+        :param execution_id: Report execution id, for log correlation. None
+            for callers outside the report pipeline (e.g. thumbnails).
         """
 
 
@@ -269,7 +276,11 @@ class WebDriverPlaywright(WebDriverProxy):
             return element.screenshot()
 
     def get_screenshot(  # pylint: disable=too-many-locals, too-many-statements  # noqa: C901
-        self, url: str, element_name: str, user: User | None = None
+        self,
+        url: str,
+        element_name: str,
+        user: User | None = None,
+        execution_id: str | None = None,
     ) -> bytes | None:
         if not PLAYWRIGHT_AVAILABLE:
             logger.info(
@@ -405,6 +416,7 @@ class WebDriverPlaywright(WebDriverProxy):
                             tile_height,
                             load_wait=self._screenshot_load_wait,
                             animation_wait=selenium_animation_wait,
+                            execution_id=execution_id,
                         )
                         if not img:
                             logger.warning(
@@ -784,7 +796,11 @@ class WebDriverSelenium(WebDriverProxy):
         return error_messages
 
     def get_screenshot(  # noqa: C901
-        self, url: str, element_name: str, user: User | None = None
+        self,
+        url: str,
+        element_name: str,
+        user: User | None = None,
+        execution_id: str | None = None,
     ) -> bytes | None:
         # If a user is passed explicitly and differs from the stored user,
         # update and re-authenticate

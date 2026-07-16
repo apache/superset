@@ -199,8 +199,25 @@ class TestTakeTiledScreenshot:
             assert result is None
             # The exception object is passed, not the string
             call_args = mock_logger.exception.call_args
-            assert call_args[0][0] == "Tiled screenshot failed: %s"
+            assert call_args[0][0] == "Tiled screenshot failed: %s%s"
             assert str(call_args[0][1]) == "Unexpected error"
+            assert call_args[0][2] == ""  # no execution_id passed
+
+    def test_exception_handling_logs_execution_id(self):
+        """Genuine system faults (not a customer chart-loading issue) stay at
+        ERROR/exception level, and still carry the execution id for
+        correlation with the report that triggered this screenshot."""
+        mock_page = MagicMock()
+        mock_page.locator.side_effect = Exception("Unexpected error")
+
+        with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+            result = take_tiled_screenshot(
+                mock_page, "dashboard", tile_height=2000, execution_id="abc-123"
+            )
+
+            assert result is None
+            call_args = mock_logger.exception.call_args
+            assert "abc-123" in call_args[0][2]
 
     def test_screenshot_clip_parameters(self, mock_page):
         """Test that screenshot clipping parameters are correct."""
@@ -353,7 +370,7 @@ class TestTakeTiledScreenshot:
         mock_page.evaluate.side_effect = [
             {"height": 5000, "top": 100, "left": 50, "width": 800},  # dimensions
             None,  # window.scrollTo(...) for tile 1
-            ["42"],  # unready chart ids, gathered after the timeout
+            [{"chartId": "42", "state": "waiting_on_database"}],  # diagnostics
         ]
 
         with patch("superset.utils.screenshot_utils.logger") as mock_logger:
@@ -371,14 +388,51 @@ class TestTakeTiledScreenshot:
         # aborts before any subsequent tile is processed).
         assert mock_page.wait_for_function.call_count == 1
 
-        mock_logger.error.assert_called_once()
-        error_args = mock_logger.error.call_args[0]
-        assert "unready" in error_args[0].lower()
-        assert error_args[1] == 1  # count of unready chart containers
-        assert error_args[2] == 1  # tile index
-        assert error_args[3] == 3  # total tiles
-        assert error_args[4] == 30  # load_wait
-        assert error_args[5] == ["42"]
+        # A chart failing to load in time is a customer chart-loading issue,
+        # not a Superset system fault -- WARNING, not ERROR (#38130, #38441).
+        # The report still fails loudly via the raise, asserted above.
+        mock_logger.error.assert_not_called()
+        mock_logger.warning.assert_called_once()
+        warning_args = mock_logger.warning.call_args[0]
+        assert "unready" in warning_args[0].lower()
+        elapsed = warning_args[1]
+        assert isinstance(elapsed, float)
+        assert elapsed >= 0
+        assert warning_args[2] == 1  # count of unready chart containers
+        assert warning_args[3] == 1  # tile index
+        assert warning_args[4] == 3  # total tiles
+        assert warning_args[5] == 30  # load_wait
+        assert warning_args[6] == ""  # no execution_id passed
+        # Diagnostic payload identifies chart id AND the state it's stuck in
+        # (spinner mounted vs nothing mounted vs waiting-on-database) so a
+        # slow query can be told apart from the virtualization race.
+        assert warning_args[7] == [{"chartId": "42", "state": "waiting_on_database"}]
+
+    def test_timeout_warning_includes_execution_id(self, mock_page):
+        """The execution id is threaded through for log correlation with the
+        report that triggered this screenshot."""
+        from superset.utils.screenshot_utils import PlaywrightTimeout
+
+        mock_page.wait_for_function.side_effect = PlaywrightTimeout("timed out")
+        mock_page.evaluate.side_effect = [
+            {"height": 2000, "top": 0, "left": 0, "width": 800},
+            None,
+            [{"chartId": "7", "state": "nothing_mounted"}],
+        ]
+
+        with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+            with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                with pytest.raises(PlaywrightTimeout):
+                    take_tiled_screenshot(
+                        mock_page,
+                        "dashboard",
+                        tile_height=2000,
+                        load_wait=5,
+                        execution_id="abc-123",
+                    )
+
+        warning_args = mock_logger.warning.call_args[0]
+        assert "abc-123" in warning_args[6]
 
     def test_chart_holder_with_nothing_mounted_blocks_wait(self, mock_page):
         """Regression test for the vacuous-pass race (PR #39895).
@@ -402,7 +456,7 @@ class TestTakeTiledScreenshot:
         mock_page.evaluate.side_effect = [
             {"height": 2000, "top": 0, "left": 0, "width": 800},  # dimensions
             None,  # window.scrollTo(...) for tile 1
-            ["7"],  # the un-mounted holder's chart id
+            [{"chartId": "7", "state": "nothing_mounted"}],  # diagnostics
         ]
 
         with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
@@ -413,6 +467,55 @@ class TestTakeTiledScreenshot:
 
         assert js_call_count["n"] == 1
         mock_page.screenshot.assert_not_called()
+
+    def test_unready_holder_state_classification_embedded_in_js(self, mock_page):
+        """The readiness JS classifies *why* a holder isn't ready.
+
+        Distinguishing "spinner_mounted" (query done, not yet in the
+        virtualization viewport), "waiting_on_database" (initial query still
+        in flight), and "nothing_mounted" (the vacuous-pass race) is what
+        lets a slow query be told apart from the race during an incident.
+        """
+        from superset.utils.screenshot_utils import (
+            _FIND_UNREADY_CHART_HOLDERS_JS,
+            _TILE_READY_CHECK_JS,
+        )
+
+        for js in (_TILE_READY_CHECK_JS, _FIND_UNREADY_CHART_HOLDERS_JS):
+            assert "spinner_mounted" in js
+            assert "waiting_on_database" in js
+            assert "nothing_mounted" in js
+            assert "slice-container" in js
+
+    def test_per_tile_timing_logged_at_debug(self, mock_page):
+        """Each tile logs how long it waited for readiness, for profiling."""
+        with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+            with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                take_tiled_screenshot(
+                    mock_page,
+                    "dashboard",
+                    tile_height=2000,
+                    load_wait=30,
+                    execution_id="abc-123",
+                )
+
+        # 3 tiles, all ready immediately (mock_page.wait_for_function is a
+        # no-op MagicMock by default) -> one timing line per tile.
+        timing_calls = [
+            call
+            for call in mock_logger.debug.call_args_list
+            if "ready after" in call[0][0]
+        ]
+        assert len(timing_calls) == 3
+
+        first_call_args = timing_calls[0][0]
+        assert first_call_args[1] == 1  # tile index
+        assert first_call_args[2] == 3  # total tiles
+        elapsed = first_call_args[3]
+        assert isinstance(elapsed, float)
+        assert elapsed >= 0
+        assert first_call_args[4] == 30  # load_wait
+        assert "abc-123" in first_call_args[5]
 
     def test_all_chart_holders_ready_passes(self, mock_page):
         """All chart holders rendered or errored -> wait passes, tile captured."""
