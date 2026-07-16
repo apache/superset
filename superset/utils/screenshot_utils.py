@@ -39,6 +39,54 @@ if TYPE_CHECKING:
     except ImportError:
         Page = None
 
+# Selectors used to build a positive per-tile readiness check. A chart holder
+# is only "ready" once it shows a terminal state (a rendered chart or an
+# error/empty state) -- the mere absence of a `.loading` element is not
+# sufficient, since a chart holder that intersects the viewport but hasn't
+# mounted anything yet (e.g. its IntersectionObserver callback hasn't fired)
+# would otherwise pass vacuously.
+# See superset-frontend/src/dashboard/components/gridComponents/ChartHolder/
+# ChartHolder.tsx for `data-test="dashboard-component-chart-holder"`,
+# superset-frontend/src/components/Chart/Chart.tsx for `.slice_container`
+# (rendered chart container) and `.loading` (spinner, via the shared Loading
+# component), and superset-frontend/packages/superset-ui-core/src/components/
+# EmptyState for `.ant-empty` (e.g. "no results"/"add required control
+# values" states).
+_UNREADY_CHART_HOLDERS_JS_BODY = """
+    const holders = document.querySelectorAll(
+        '[data-test="dashboard-component-chart-holder"]'
+    );
+    const unready = [];
+    for (const holder of holders) {
+        const r = holder.getBoundingClientRect();
+        if (!(r.top < window.innerHeight && r.bottom > 0)) {
+            continue;
+        }
+        const stillLoading = holder.querySelector('.loading') !== null;
+        const isReady = holder.querySelector(
+            '.slice_container, [role="alert"], .ant-empty, .missing-chart-container'
+        ) !== null;
+        if (stillLoading || !isReady) {
+            const chartIdEl = holder.querySelector('[data-test-chart-id]');
+            unready.push(
+                chartIdEl ? chartIdEl.getAttribute('data-test-chart-id') : 'unknown'
+            );
+        }
+    }
+"""
+
+# Predicate for page.wait_for_function: true once every viewport-visible chart
+# holder has reached a terminal state.
+_TILE_READY_CHECK_JS = (
+    f"() => {{ {_UNREADY_CHART_HOLDERS_JS_BODY} return unready.length === 0; }}"
+)
+
+# Diagnostic query for page.evaluate: identities of chart holders (by
+# data-test-chart-id) still not ready, used to build the timeout log message.
+_FIND_UNREADY_CHART_HOLDERS_JS = (
+    f"() => {{ {_UNREADY_CHART_HOLDERS_JS_BODY} return unready; }}"
+)
+
 
 def combine_screenshot_tiles(screenshot_tiles: list[bytes]) -> bytes:
     """
@@ -150,31 +198,31 @@ def take_tiled_screenshot(
             )
             # Wait for scroll to settle and content to load
             page.wait_for_timeout(SCROLL_SETTLE_TIMEOUT_MS)
-            # Wait for any loading spinners visible in the current viewport to clear.
-            # Only check viewport-visible spinners to avoid blocking on
-            # virtualization placeholders rendered for off-screen charts.
+            # Wait for every chart holder visible in the current viewport to reach
+            # a terminal state (rendered chart or error/empty state). Only check
+            # viewport-visible chart holders to avoid blocking on virtualization
+            # placeholders rendered for off-screen charts. A holder that hasn't
+            # mounted anything yet does not satisfy this check -- unlike checking
+            # for the absence of `.loading`, which passes vacuously in that case.
             try:
                 page.wait_for_function(
-                    """() => {
-                        const els = document.querySelectorAll('.loading');
-                        for (const el of els) {
-                            const r = el.getBoundingClientRect();
-                            if (r.top < window.innerHeight && r.bottom > 0) {
-                                return false;
-                            }
-                        }
-                        return true;
-                    }""",
+                    _TILE_READY_CHECK_JS,
                     timeout=load_wait * 1000,
                 )
             except PlaywrightTimeout:
-                logger.warning(
-                    "Timed out waiting for visible spinners to clear on tile %s/%s "
-                    "(load_wait=%ss)",
+                unready_chart_ids = page.evaluate(_FIND_UNREADY_CHART_HOLDERS_JS)
+                logger.error(
+                    "Timed out waiting for %s chart container(s) to become ready "
+                    "on tile %s/%s (load_wait=%ss); unready chart ids: %s. "
+                    "Aborting tiled screenshot rather than capturing a blank or "
+                    "partially-loaded tile.",
+                    len(unready_chart_ids),
                     i + 1,
                     num_tiles,
                     load_wait,
+                    unready_chart_ids,
                 )
+                raise
 
             # Wait for chart animations (e.g. ECharts) to finish after spinner clears.
             # The global animation wait before tiling only covers the first tile;
@@ -229,6 +277,10 @@ def take_tiled_screenshot(
 
         return combined_screenshot
 
+    except PlaywrightTimeout:
+        # Let per-tile readiness timeouts propagate so the caller fails the
+        # report instead of silently falling back to a degraded screenshot.
+        raise
     except Exception as e:
         logger.exception("Tiled screenshot failed: %s", e)
         return None

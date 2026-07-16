@@ -321,8 +321,8 @@ class TestTakeTiledScreenshot:
             for call in mock_page.wait_for_timeout.call_args_list:
                 assert call[0][0] == SCROLL_SETTLE_TIMEOUT_MS
 
-    def test_per_tile_spinner_wait_uses_viewport_check(self, mock_page):
-        """wait_for_function polls viewport-visible spinners after each scroll."""
+    def test_per_tile_readiness_wait_uses_viewport_check(self, mock_page):
+        """wait_for_function polls viewport-visible chart holders after each scroll."""
         with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
             take_tiled_screenshot(
                 mock_page, "dashboard", tile_height=2000, load_wait=30
@@ -336,32 +336,96 @@ class TestTakeTiledScreenshot:
             js = call[0][0]
             assert "getBoundingClientRect" in js
             assert "window.innerHeight" in js
+            assert "dashboard-component-chart-holder" in js
             assert call[1]["timeout"] == 30 * 1000
 
-    def test_per_tile_spinner_timeout_logs_warning_and_continues(self, mock_page):
-        """A per-tile spinner timeout logs a warning but still takes the screenshot."""
+    def test_per_tile_readiness_timeout_raises_and_skips_capture(self, mock_page):
+        """A per-tile readiness timeout raises and does not capture that tile.
+
+        This is a product decision (fail loudly, never snapshot spinners or
+        blank charts): a per-tile timeout must abort the tiled screenshot
+        instead of warning and continuing.
+        """
         from superset.utils.screenshot_utils import PlaywrightTimeout
 
-        timeout = PlaywrightTimeout()
+        timeout = PlaywrightTimeout("Timeout waiting for chart holders")
         mock_page.wait_for_function.side_effect = timeout
+        mock_page.evaluate.side_effect = [
+            {"height": 5000, "top": 100, "left": 50, "width": 800},  # dimensions
+            None,  # window.scrollTo(...) for tile 1
+            ["42"],  # unready chart ids, gathered after the timeout
+        ]
 
         with patch("superset.utils.screenshot_utils.logger") as mock_logger:
             with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
-                result = take_tiled_screenshot(
-                    mock_page, "dashboard", tile_height=2000, load_wait=30
+                with pytest.raises(PlaywrightTimeout):
+                    take_tiled_screenshot(
+                        mock_page, "dashboard", tile_height=2000, load_wait=30
+                    )
+
+        # No tile should have been captured -- fail loudly, don't snapshot
+        # a blank or partially-loaded tile.
+        mock_page.screenshot.assert_not_called()
+
+        # Only the first tile's wait_for_function is attempted (the timeout
+        # aborts before any subsequent tile is processed).
+        assert mock_page.wait_for_function.call_count == 1
+
+        mock_logger.error.assert_called_once()
+        error_args = mock_logger.error.call_args[0]
+        assert "unready" in error_args[0].lower()
+        assert error_args[1] == 1  # count of unready chart containers
+        assert error_args[2] == 1  # tile index
+        assert error_args[3] == 3  # total tiles
+        assert error_args[4] == 30  # load_wait
+        assert error_args[5] == ["42"]
+
+    def test_chart_holder_with_nothing_mounted_blocks_wait(self, mock_page):
+        """Regression test for the vacuous-pass race (PR #39895).
+
+        A chart holder that intersects the viewport but has not yet mounted
+        a spinner or a chart (e.g. its IntersectionObserver callback hasn't
+        fired) must not satisfy the readiness predicate.
+        """
+        from superset.utils.screenshot_utils import PlaywrightTimeout
+
+        js_call_count = {"n": 0}
+
+        def fake_wait_for_function(js, timeout=None):
+            js_call_count["n"] += 1
+            # Simulate evaluating the predicate against a DOM with a chart
+            # holder in viewport that has mounted nothing at all.
+            assert "dashboard-component-chart-holder" in js
+            raise PlaywrightTimeout("Timeout waiting for chart holders")
+
+        mock_page.wait_for_function.side_effect = fake_wait_for_function
+        mock_page.evaluate.side_effect = [
+            {"height": 2000, "top": 0, "left": 0, "width": 800},  # dimensions
+            None,  # window.scrollTo(...) for tile 1
+            ["7"],  # the un-mounted holder's chart id
+        ]
+
+        with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+            with pytest.raises(PlaywrightTimeout):
+                take_tiled_screenshot(
+                    mock_page, "dashboard", tile_height=2000, load_wait=5
                 )
 
-        # Screenshot should still proceed (non-fatal)
+        assert js_call_count["n"] == 1
+        mock_page.screenshot.assert_not_called()
+
+    def test_all_chart_holders_ready_passes(self, mock_page):
+        """All chart holders rendered or errored -> wait passes, tile captured."""
+        with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+            result = take_tiled_screenshot(
+                mock_page, "dashboard", tile_height=2000, load_wait=5
+            )
+
+        # mock_page.wait_for_function is a MagicMock by default and does not
+        # raise, i.e. the readiness check passes immediately for every tile.
+        assert mock_page.wait_for_function.call_count == 3
+        assert mock_page.screenshot.call_count == 3
         assert result is not None
-        # Warning logged for each tile that timed out
-        assert mock_logger.warning.call_count == 3
-        mock_logger.warning.assert_any_call(
-            "Timed out waiting for visible spinners to clear on tile %s/%s "
-            "(load_wait=%ss)",
-            1,
-            3,
-            30,
-        )
 
     def test_load_wait_default_is_sixty_seconds(self):
         """load_wait defaults to 60 to match SCREENSHOT_LOAD_WAIT config default."""
