@@ -265,6 +265,9 @@ class BaseReportState:
         """
         Get the url for this report schedule: chart or dashboard
         """
+        chart = self._report_schedule.chart
+        dashboard = self._report_schedule.dashboard
+
         # Soft delete removed the FK-level guarantee that a report's target
         # chart exists: ``chart`` is a visibility-filtered relationship, so a
         # chart soft-deleted after this report was created (or attached via a
@@ -276,23 +279,29 @@ class BaseReportState:
         # Every content path (_get_screenshots, _get_csv_data,
         # _get_embedded_data, _get_notification_content) funnels through this
         # method, so this is the single choke point.
-        if (
-            self._report_schedule.chart_id is not None
-            and self._report_schedule.chart is None
-        ):
-            raise ReportScheduleTargetChartDeletedError()
-        # Symmetric guard for dashboard targets. Dashboard soft delete lands
-        # in the sibling rollout; until then this cannot fire (a dashboard
-        # with dependent reports cannot be deleted), which makes it inert
-        # rather than wrong — and it keeps the report-target error vocabulary
-        # parallel across entities from day one.
-        if (
-            self._report_schedule.dashboard_id is not None
-            and self._report_schedule.dashboard is None
-        ):
-            raise ReportScheduleTargetDashboardDeletedError()
+        if chart is None and dashboard is None:
+            if self._report_schedule.chart_id is not None:
+                raise ReportScheduleTargetChartDeletedError()
+            # Symmetric guard for dashboard targets. Dashboard soft delete lands
+            # in the sibling rollout; until then this cannot fire (a dashboard
+            # with dependent reports cannot be deleted), which makes it inert
+            # rather than wrong — and it keeps the report-target error vocabulary
+            # parallel across entities from day one.
+            if self._report_schedule.dashboard_id is not None:
+                raise ReportScheduleTargetDashboardDeletedError()
+            # Defensive fallback for a malformed report with no target IDs.
+            # Missing relationships with a target ID are handled by the
+            # dedicated deleted-target errors above.
+            raise ReportScheduleUnexpectedError(
+                f"Report schedule {self._report_schedule.id} "
+                f"({self._report_schedule.name!r}) has no resolvable target "
+                f"(chart_id={self._report_schedule.chart_id}, "
+                f"dashboard_id={self._report_schedule.dashboard_id}); "
+                "the report has neither a chart nor a dashboard."
+            )
+
         force = "true" if self._report_schedule.force_screenshot else "false"
-        if self._report_schedule.chart:
+        if chart:
             if result_format in {
                 ChartDataResultFormat.CSV,
                 ChartDataResultFormat.XLSX,
@@ -318,9 +327,8 @@ class BaseReportState:
         ) and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS"):
             return self._get_tab_url(dashboard_state, user_friendly=user_friendly)
 
-        dashboard = self._report_schedule.dashboard
         dashboard_id_or_slug = (
-            dashboard.uuid if dashboard and dashboard.uuid else dashboard.id
+            dashboard.uuid if dashboard.uuid is not None else dashboard.id
         )
         return get_url_path(
             "Superset.dashboard",
