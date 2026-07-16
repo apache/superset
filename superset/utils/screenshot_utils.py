@@ -272,17 +272,26 @@ def take_tiled_screenshot(
             # later) tile is actually ready to capture -- fail loudly instead
             # of silently snapshotting a spinner or blank chart, or running
             # past the Celery task time limit and getting SIGKILLed.
-            elapsed = time.monotonic() - start_time
+            tile_start = time.monotonic()
+            elapsed = tile_start - start_time
             remaining_budget = TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS - elapsed
             if remaining_budget <= 0:
-                logger.error(
-                    "Tiled screenshot time budget exhausted: %s/%s tiles captured, "
-                    "%.1fs elapsed against a %ss budget. Aborting instead of "
-                    "capturing remaining tiles unchecked.",
+                # A customer-side chart-loading issue (a slow/hung dashboard),
+                # not a Superset system fault, so this is a WARNING rather
+                # than an ERROR -- consistent with #38130/#38441, which
+                # deliberately downgraded screenshot timeout logs the same way.
+                logger.warning(
+                    "Tiled screenshot time budget exhausted on tile %s/%s: "
+                    "%s/%s tiles captured so far, %.1fs elapsed of a %ss "
+                    "budget. Aborting instead of capturing remaining tiles "
+                    "unchecked.%s",
+                    i + 1,
+                    num_tiles,
                     len(screenshot_tiles),
                     num_tiles,
                     elapsed,
                     TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS,
+                    context_suffix,
                 )
                 raise TiledScreenshotBudgetExceededError(
                     f"Tiled screenshot budget of "
@@ -325,15 +334,20 @@ def take_tiled_screenshot(
                 logger.warning(
                     "Timed out after %.2fs waiting for %s chart container(s) to "
                     "become ready on tile %s/%s (waited %ss of a %ss requested "
-                    "load_wait)%s; unready chart holders (chart id, state): %s. "
-                    "Aborting tiled screenshot rather than capturing a blank or "
-                    "partially-loaded tile.",
+                    "load_wait; %.1fs elapsed of a %ss total budget; %s/%s tiles "
+                    "captured so far)%s; unready chart holders (chart id, state): "
+                    "%s. Aborting tiled screenshot rather than capturing a blank "
+                    "or partially-loaded tile.",
                     elapsed,
                     len(unready_chart_holders),
                     i + 1,
                     num_tiles,
                     tile_load_wait,
                     load_wait,
+                    time.monotonic() - start_time,
+                    TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS,
+                    len(screenshot_tiles),
+                    num_tiles,
                     context_suffix,
                     unready_chart_holders,
                 )
@@ -349,6 +363,7 @@ def take_tiled_screenshot(
                     load_wait,
                     context_suffix,
                 )
+            spinner_wait_elapsed = time.monotonic() - tile_wait_start
 
             # Wait for chart animations (e.g. ECharts) to finish after spinner clears.
             # The global animation wait before tiling only covers the first tile;
@@ -356,12 +371,28 @@ def take_tiled_screenshot(
             # whatever remains of the budget; unlike the spinner wait above this
             # is cosmetic settling, not a readiness check, so we simply skip it
             # (rather than raise) once the budget runs out.
+            animation_wait_elapsed = 0.0
             if animation_wait > 0:
                 elapsed = time.monotonic() - start_time
                 remaining_budget = TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS - elapsed
                 tile_animation_wait = max(0, min(animation_wait, remaining_budget))
                 if tile_animation_wait > 0:
+                    animation_wait_start = time.monotonic()
                     page.wait_for_timeout(tile_animation_wait * 1000)
+                    animation_wait_elapsed = time.monotonic() - animation_wait_start
+
+            # Per-tile timing breakdown so slow dashboards can be profiled from
+            # logs alone. DEBUG rather than INFO: this fires once per tile, and
+            # large dashboards can have dozens of tiles per report run.
+            logger.debug(
+                "Tile %s/%s timing: %.2fs waiting for spinners to clear, "
+                "%.2fs waiting for animations.%s",
+                i + 1,
+                num_tiles,
+                spinner_wait_elapsed,
+                animation_wait_elapsed,
+                context_suffix,
+            )
 
             # Calculate what portion of the element we want to capture for this tile
             tile_start_in_element = i * tile_height

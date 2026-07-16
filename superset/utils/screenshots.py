@@ -314,7 +314,11 @@ class BaseScreenshot:
                     with event_logger.log_context(
                         f"screenshot.compute.{self.thumbnail_type}"
                     ):
-                        image = self.get_screenshot(user=user, window_size=window_size)
+                        image = self.get_screenshot(
+                            user=user,
+                            window_size=window_size,
+                            log_context=f"cache_key={cache_key}",
+                        )
                 except Exception as ex:  # pylint: disable=broad-except
                     logger.warning(
                         "Failed at generating thumbnail %s", ex, exc_info=True

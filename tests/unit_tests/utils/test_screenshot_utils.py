@@ -408,11 +408,15 @@ class TestTakeTiledScreenshot:
         assert warning_args[4] == 3  # total tiles
         assert warning_args[5] == 30  # tile_load_wait (uncapped: budget remains)
         assert warning_args[6] == 30  # requested load_wait
-        assert warning_args[7] == ""  # no log_context passed
+        assert isinstance(warning_args[7], float)  # total elapsed vs budget
+        assert warning_args[8] == 1440  # total budget (default)
+        assert warning_args[9] == 0  # tiles captured so far
+        assert warning_args[10] == 3  # total tiles
+        assert warning_args[11] == ""  # no log_context passed
         # Diagnostic payload identifies chart id AND the state it's stuck in
         # (spinner mounted vs nothing mounted vs waiting-on-database) so a
         # slow query can be told apart from the virtualization race.
-        assert warning_args[8] == [{"chartId": "42", "state": "waiting_on_database"}]
+        assert warning_args[12] == [{"chartId": "42", "state": "waiting_on_database"}]
 
     def test_timeout_warning_includes_log_context(self, mock_page):
         """The log context (e.g. report execution id) is threaded through for
@@ -438,7 +442,7 @@ class TestTakeTiledScreenshot:
                     )
 
         warning_args = mock_logger.warning.call_args[0]
-        assert warning_args[7] == " [execution_id=abc-123]"
+        assert warning_args[11] == " [execution_id=abc-123]"
 
     def test_chart_holder_with_nothing_mounted_blocks_wait(self, mock_page):
         """Regression test for the vacuous-pass race (PR #39895).
@@ -661,14 +665,72 @@ class TestTileWaitBudget:
         # Tiles were never combined -- the function raised before that point.
         mock_combine.assert_not_called()
 
-        mock_logger.error.assert_called_once()
-        error_args = mock_logger.error.call_args[0]
-        assert "budget exhausted" in error_args[0]
-        # tiles captured, tiles total, elapsed seconds, budget seconds
-        assert error_args[1] == 1
-        assert error_args[2] == 3
-        assert error_args[3] == 1000
-        assert error_args[4] == 1000
+        # Budget exhaustion is a customer chart-loading issue, not a Superset
+        # system fault, so it must log at WARNING (not ERROR) -- consistent
+        # with the #38130/#38441 precedent for screenshot timeout logging.
+        assert mock_logger.error.call_count == 0
+        mock_logger.warning.assert_called_once()
+        warning_args = mock_logger.warning.call_args[0]
+        assert "budget exhausted" in warning_args[0]
+        # tile index, tiles total, tiles captured, tiles total,
+        # elapsed seconds, budget seconds, log-context suffix
+        assert warning_args[1] == 2
+        assert warning_args[2] == 3
+        assert warning_args[3] == 1
+        assert warning_args[4] == 3
+        assert warning_args[5] == 1000
+        assert warning_args[6] == 1000
+        assert warning_args[7] == ""
+
+    def test_budget_exhausted_warning_includes_log_context(
+        self, mock_page, monkeypatch
+    ):
+        """log_context (e.g. report execution id) is appended to the warning."""
+        monkeypatch.setattr(
+            "superset.utils.screenshot_utils.TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS",  # noqa: E501
+            1000,
+        )
+        clock = self._FakeClock()
+        # Tile 0's readiness wait consumes the whole budget; tile 1's budget
+        # check then sees remaining <= 0 and raises.
+        mock_page.wait_for_function.side_effect = (
+            lambda *args, **kwargs: setattr(clock, "now", 1000.0)
+        )
+        with patch("superset.utils.screenshot_utils.time.monotonic", new=clock):
+            with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+                    with pytest.raises(TiledScreenshotBudgetExceededError):
+                        take_tiled_screenshot(
+                            mock_page,
+                            "dashboard",
+                            tile_height=2000,
+                            load_wait=100,
+                            log_context="execution_id=abc-123",
+                        )
+
+        warning_args = mock_logger.warning.call_args[0]
+        assert warning_args[-1] == " [execution_id=abc-123]"
+
+    def test_per_tile_timing_debug_line_logged(self, mock_page):
+        """Each tile logs a DEBUG timing breakdown (spinner wait, animation wait)."""
+        with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+            with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                take_tiled_screenshot(
+                    mock_page,
+                    "dashboard",
+                    tile_height=2000,
+                    log_context="cache_key=xyz",
+                )
+
+        timing_calls = [
+            call for call in mock_logger.debug.call_args_list if "timing" in call[0][0]
+        ]
+        assert len(timing_calls) == 3
+        for i, call in enumerate(timing_calls):
+            args = call[0]
+            assert args[1] == i + 1  # tile index
+            assert args[2] == 3  # total tiles
+            assert args[-1] == " [cache_key=xyz]"
 
     def test_fast_dashboard_matches_default_behavior(self, mock_page):
         """Well under budget, waits are not capped and behavior is unchanged."""
