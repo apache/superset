@@ -60,6 +60,36 @@ export function ensureAppRoot(path: string | null | undefined): string {
 }
 
 /**
+ * Prefixes a router-relative path with the application root, unconditionally.
+ *
+ * Unlike `ensureAppRoot`, this does not skip paths that already start with the
+ * application root. That guard is only safe for paths that may already have been
+ * prefixed; it misfires on genuine routes that happen to collide with the root.
+ * With an application root of `/superset`, `ensureAppRoot('/superset/dashboard/1/')`
+ * returns the path unchanged, silently producing a broken link.
+ *
+ * Use this for paths that are known to be router-relative and never pre-prefixed
+ * — e.g. the `url` fields the backend emits (`/superset/dashboard/{id}/`,
+ * `/explore/?slice_id={id}`) and literal route strings in components. It matches
+ * what `<Link to={url}>` renders via the router's `basename`.
+ *
+ * Absolute URLs with safe schemes and protocol-relative URLs are returned
+ * unchanged.
+ *
+ * @param path A router-relative path, or an absolute URL to pass through
+ */
+export function prefixAppRoot(path: string | null | undefined): string {
+  if (path && (SAFE_ABSOLUTE_URL_RE.test(path) || path.startsWith('//'))) {
+    return path;
+  }
+  if (path == null) {
+    return applicationRoot() || '/';
+  }
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${applicationRoot()}${normalizedPath}`;
+}
+
+/**
  * Creates a URL suitable for navigation, API calls, or file downloads. Relative
  * paths are prefixed with the application root for subdirectory deployments.
  * Absolute URLs (e.g. https://...) and protocol-relative URLs (e.g. //example.com)

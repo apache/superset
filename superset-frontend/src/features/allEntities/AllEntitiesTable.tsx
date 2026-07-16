@@ -26,6 +26,7 @@ import { EmptyState } from '@superset-ui/core/components';
 import { FacePile, TagsList, type TagType } from 'src/components';
 import { TaggedObject, TaggedObjects } from 'src/types/TaggedObject';
 import { Typography } from '@superset-ui/core/components/Typography';
+import { prefixAppRoot } from 'src/utils/pathUtils';
 
 const MAX_TAGS_TO_SHOW = 3;
 const PAGE_SIZE = 10;
@@ -72,7 +73,9 @@ export default function AllEntitiesTable({
 
   const renderTable = (type: objectType) => {
     const data = objects[type].map((o: TaggedObject) => ({
-      [type]: <Typography.Link href={o.url}>{o.name}</Typography.Link>,
+      [type]: (
+        <Typography.Link href={prefixAppRoot(o.url)}>{o.name}</Typography.Link>
+      ),
       modified: extendedDayjs.utc(o.changed_on).fromNow(),
       tags: o.tags,
       owners: o.owners,

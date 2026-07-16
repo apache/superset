@@ -259,3 +259,70 @@ test('ensureAppRoot should fall back to "/" when path is null and no application
   expect(ensureAppRoot(null)).toBe('/');
   expect(ensureAppRoot(undefined)).toBe('/');
 });
+
+test('prefixAppRoot should leave paths unchanged when no application root is configured', async () => {
+  const { prefixAppRoot } = await loadPathUtils();
+
+  expect(prefixAppRoot('/chart/add?dashboard_id=1')).toBe(
+    '/chart/add?dashboard_id=1',
+  );
+  expect(prefixAppRoot('/superset/dashboard/5/')).toBe(
+    '/superset/dashboard/5/',
+  );
+});
+
+test('prefixAppRoot should prefix a route that collides with the application root', async () => {
+  const { prefixAppRoot, ensureAppRoot } = await loadPathUtils('/superset/');
+
+  // The dashboard route is literally /superset/dashboard/<id>/, so under an
+  // application root of /superset the prefixed URL legitimately repeats the
+  // segment. This is what `<Link to>` renders via the router's basename.
+  expect(prefixAppRoot('/superset/dashboard/5/')).toBe(
+    '/superset/superset/dashboard/5/',
+  );
+  // ensureAppRoot mistakes the route for an already-prefixed path and no-ops,
+  // which is the bug this helper exists to avoid.
+  expect(ensureAppRoot('/superset/dashboard/5/')).toBe(
+    '/superset/dashboard/5/',
+  );
+});
+
+test('prefixAppRoot should prefix router-relative paths for any application root', async () => {
+  const { prefixAppRoot } = await loadPathUtils('/analytics/');
+
+  expect(prefixAppRoot('/explore/?slice_id=42')).toBe(
+    '/analytics/explore/?slice_id=42',
+  );
+  expect(prefixAppRoot('/chart/add?dashboard_id=1')).toBe(
+    '/analytics/chart/add?dashboard_id=1',
+  );
+  expect(prefixAppRoot('sqllab?savedQueryId=7')).toBe(
+    '/analytics/sqllab?savedQueryId=7',
+  );
+});
+
+test('prefixAppRoot should prefix paths for nested application roots', async () => {
+  const { prefixAppRoot } = await loadPathUtils('/a/b/c/');
+
+  expect(prefixAppRoot('/chart/add?dashboard_id=1')).toBe(
+    '/a/b/c/chart/add?dashboard_id=1',
+  );
+});
+
+test('prefixAppRoot should pass absolute and protocol-relative URLs through unchanged', async () => {
+  const { prefixAppRoot } = await loadPathUtils('/superset/');
+
+  expect(prefixAppRoot(HTTPS_URL)).toBe(HTTPS_URL);
+  expect(prefixAppRoot(HTTP_URL)).toBe(HTTP_URL);
+  expect(prefixAppRoot(PROTOCOL_RELATIVE_URL)).toBe(PROTOCOL_RELATIVE_URL);
+  expect(prefixAppRoot(FTP_URL)).toBe(FTP_URL);
+  expect(prefixAppRoot(MAILTO_URL)).toBe(MAILTO_URL);
+  expect(prefixAppRoot(TEL_URL)).toBe(TEL_URL);
+});
+
+test('prefixAppRoot should fall back to the application root when path is null or undefined', async () => {
+  const { prefixAppRoot } = await loadPathUtils('/superset/');
+
+  expect(prefixAppRoot(null)).toBe('/superset');
+  expect(prefixAppRoot(undefined)).toBe('/superset');
+});
