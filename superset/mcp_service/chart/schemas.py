@@ -2042,7 +2042,9 @@ class WaterfallChartConfig(UnknownFieldCheckMixin):
     show_total: bool = Field(
         True, description="Append a total bar per period (frontend default)"
     )
-    show_legend: bool = Field(True, description="Show the legend")
+    show_legend: bool = Field(
+        False, description="Show the legend (frontend default: off)"
+    )
     increase_label: str = Field("Increase", max_length=50)
     decrease_label: str = Field("Decrease", max_length=50)
     total_label: str = Field("Total", max_length=50)
