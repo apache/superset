@@ -271,6 +271,12 @@ export const getColorFunction = (
     const { cutoffValue, extremeValue } = compareResult;
 
     if (typeof colorScheme === 'string') {
+      if (alpha === undefined || alpha) {
+        return addAlpha(
+          colorScheme,
+          getOpacity(value, cutoffValue, extremeValue, minOpacity, maxOpacity),
+        );
+      }
       return colorScheme;
     }
     const baseHexColor = rgbaToHex(colorScheme);

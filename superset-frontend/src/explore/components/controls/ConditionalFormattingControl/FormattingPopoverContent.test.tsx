@@ -21,6 +21,7 @@ import {
   screen,
   fireEvent,
   waitFor,
+  userEvent,
 } from 'spec/helpers/testing-library';
 import { Comparator, ColorSchemeEnum } from '@superset-ui/chart-controls';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -67,8 +68,8 @@ test('renders FormattingPopoverContent component', () => {
 
   // Assert that the component renders correctly
   expect(screen.getByLabelText('Column')).toBeInTheDocument();
-  expect(screen.getByLabelText('Color scheme')).toBeInTheDocument();
-  expect(screen.getByLabelText('Operator')).toBeInTheDocument();
+  expect(screen.getAllByText('Color scheme')).toHaveLength(1);
+  expect(screen.getAllByText('Operator')).toHaveLength(1);
   expect(screen.queryByLabelText('Left value')).not.toBeInTheDocument();
   expect(screen.queryByLabelText('Right value')).not.toBeInTheDocument();
   expect(screen.getByText('Apply')).toBeInTheDocument();
@@ -113,7 +114,7 @@ test('renders the correct input fields based on the selected operator', async ()
 });
 
 test('renders None for operator when Green for increase is selected', async () => {
-  render(
+  const { container } = render(
     <FormattingPopoverContent
       onChange={mockOnChange}
       columns={columns}
@@ -121,12 +122,23 @@ test('renders None for operator when Green for increase is selected', async () =
     />,
   );
 
-  // Select the 'Green for increase' color scheme
-  fireEvent.change(screen.getAllByLabelText(/color scheme/i)[0], {
-    target: { value: ColorSchemeEnum.Green },
+  const colorPickerTrigger = container.querySelector(
+    '.ant-color-picker-trigger',
+  );
+  expect(colorPickerTrigger).toBeInTheDocument();
+  await userEvent.click(colorPickerTrigger!);
+
+  await waitFor(() => {
+    expect(
+      document.querySelector('.ant-color-picker-presets-items'),
+    ).toBeInTheDocument();
   });
 
-  fireEvent.click(await screen.findByTitle(/green for increase/i));
+  const presets = document.querySelectorAll('.ant-color-picker-presets-color');
+  const greenPreset = presets[0];
+
+  expect(greenPreset).toBeInTheDocument();
+  await userEvent.click(greenPreset);
 
   // Assert that the operator is set to 'None'
   expect(screen.getByText(/none/i)).toBeInTheDocument();
