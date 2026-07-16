@@ -411,7 +411,7 @@ def test_get_offset_custom_or_inherit_with_inherit(processor):
     ],
 )
 def test_get_offset_custom_or_inherit_shifts_by_full_range(
-    processor, hours: int
+    processor: QueryContextProcessor, hours: int
 ) -> None:
     """
     'inherit' compares a range against the period immediately preceding it,
