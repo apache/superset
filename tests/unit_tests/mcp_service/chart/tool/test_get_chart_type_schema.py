@@ -21,6 +21,7 @@ import pytest
 
 from superset.mcp_service.chart.tool.get_chart_type_schema import (
     _CHART_EXAMPLES,
+    _CHART_TYPE_ADAPTERS,
     _get_chart_type_schema_impl as _call_schema,
     VALID_CHART_TYPES,
 )
@@ -94,9 +95,11 @@ class TestGetChartTypeSchema:
             assert example["chart_type"] == "pie"
 
     def test_valid_chart_types_constant(self) -> None:
-        assert len(VALID_CHART_TYPES) == 10
-        assert "xy" in VALID_CHART_TYPES
-        assert "table" in VALID_CHART_TYPES
+        # Parity with the adapter registry rather than a brittle magic number,
+        # so adding a chart type doesn't fail this test spuriously.
+        assert set(VALID_CHART_TYPES) == set(_CHART_TYPE_ADAPTERS)
+        # A few load-bearing members that must always be present.
+        assert {"xy", "table", "pie", "waterfall"} <= set(VALID_CHART_TYPES)
 
     def test_all_chart_types_have_examples(self) -> None:
         for chart_type in VALID_CHART_TYPES:

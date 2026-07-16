@@ -272,7 +272,8 @@ class DatasetValidator:
 
         Previously only handled TableChartConfig and XYChartConfig, causing
         most chart types to silently skip column validation. Now delegates
-        to the plugin for each chart type so all types are covered.
+        to the plugin for each registered chart type; a config whose type has
+        no registered plugin yields no refs (rather than raising).
         """
         # Local import: plugins call DatasetValidator helpers from
         # normalize_column_refs().

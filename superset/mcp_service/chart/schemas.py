@@ -2032,6 +2032,13 @@ class WaterfallChartConfig(UnknownFieldCheckMixin):
         "x-axis period into per-category steps (form_data 'groupby'; the "
         "frontend Breakdowns control is single-select)",
     )
+    time_grain: TimeGrain | None = Field(
+        None,
+        description="Time bucket for a temporal x_axis (PT1H, P1D, P1W, "
+        "P1M, P1Y); each bucket becomes one waterfall step. Ignored for a "
+        "non-temporal x_axis.",
+        validation_alias=AliasChoices("time_grain", "time_grain_sqla"),
+    )
     show_total: bool = Field(
         True, description="Append a total bar per period (frontend default)"
     )
@@ -2060,6 +2067,29 @@ class WaterfallChartConfig(UnknownFieldCheckMixin):
         ge=1,
         le=50000,
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def unwrap_list_breakdown(cls, data: Any) -> Any:
+        """Accept the native form_data shape where ``groupby`` is a list.
+
+        The frontend Breakdowns control is single-select but stores its value
+        as a one-item list (e.g. ``["region"]``), so a config round-tripped
+        from existing waterfall form_data sends a list. Unwrap a length-1
+        list to the single value; reject longer lists rather than silently
+        dropping breakdowns.
+        """
+        if isinstance(data, dict):
+            for key in ("groupby", "breakdown"):
+                value = data.get(key)
+                if isinstance(value, list):
+                    if len(value) > 1:
+                        raise ValueError(
+                            "waterfall breakdown is single-select; pass at "
+                            "most one column"
+                        )
+                    data[key] = value[0] if value else None
+        return data
 
     @model_validator(mode="after")
     def reject_metric_style_dimensions(self) -> "WaterfallChartConfig":

@@ -238,8 +238,8 @@ def get_chart_type_schema(
     for a chart configuration before calling generate_chart or update_chart.
 
     Valid chart_type values: xy, table, pie, pivot_table,
-    mixed_timeseries, handlebars, big_number, histogram, box_plot.
-    mixed_timeseries, handlebars, big_number, waterfall.
+    mixed_timeseries, handlebars, big_number, histogram, box_plot,
+    waterfall.
 
     Returns the JSON Schema for the requested chart type, optionally
     with working examples.

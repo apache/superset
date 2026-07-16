@@ -160,3 +160,70 @@ class TestWaterfallPluginRegistry:
         assert error is not None
         assert "x_axis" in error.message
         assert "metric" in error.message
+
+
+class TestWaterfallTemporalAndNativeShape:
+    """time_grain bucketing and native form_data groupby-list handling."""
+
+    def test_time_grain_maps_to_time_grain_sqla(self) -> None:
+        config = WaterfallChartConfig(
+            chart_type="waterfall",
+            x_axis={"name": "order_date"},
+            metric={"name": "revenue", "aggregate": "SUM"},
+            time_grain="P1M",
+        )
+        assert map_waterfall_config(config)["time_grain_sqla"] == "P1M"
+
+    def test_time_grain_omitted_when_unset(self) -> None:
+        config = WaterfallChartConfig(
+            chart_type="waterfall",
+            x_axis={"name": "category"},
+            metric={"name": "revenue", "aggregate": "SUM"},
+        )
+        assert "time_grain_sqla" not in map_waterfall_config(config)
+
+    def test_time_grain_sqla_alias(self) -> None:
+        config = WaterfallChartConfig.model_validate(
+            {
+                "chart_type": "waterfall",
+                "x_axis": {"name": "order_date"},
+                "metric": {"name": "revenue", "aggregate": "SUM"},
+                "time_grain_sqla": "P1D",
+            }
+        )
+        assert config.time_grain == "P1D"
+
+    def test_groupby_list_unwrapped(self) -> None:
+        """Native form_data stores the single breakdown as a one-item list."""
+        config = WaterfallChartConfig.model_validate(
+            {
+                "chart_type": "waterfall",
+                "x_axis": {"name": "month"},
+                "metric": {"name": "revenue", "aggregate": "SUM"},
+                "groupby": [{"name": "region"}],
+            }
+        )
+        assert config.breakdown is not None
+        assert config.breakdown.name == "region"
+
+    def test_empty_groupby_list_is_no_breakdown(self) -> None:
+        config = WaterfallChartConfig.model_validate(
+            {
+                "chart_type": "waterfall",
+                "x_axis": {"name": "month"},
+                "metric": {"name": "revenue", "aggregate": "SUM"},
+                "groupby": [],
+            }
+        )
+        assert config.breakdown is None
+
+    def test_multi_item_groupby_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            WaterfallChartConfig.model_validate(
+                {
+                    "chart_type": "waterfall",
+                    "x_axis": {"name": "month"},
+                    "metric": {"name": "revenue", "aggregate": "SUM"},
+                    "groupby": [{"name": "region"}, {"name": "product"}],
+                }
+            )
