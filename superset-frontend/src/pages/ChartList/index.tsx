@@ -86,6 +86,9 @@ import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { Tag } from 'src/components/Tag';
 import { datasetLabel } from 'src/features/semanticLayers/label';
+import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
+import IconButton from 'src/dashboard/components/IconButton';
+import type { CellProps } from 'react-table';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -160,23 +163,16 @@ const createFetchDatasets = async (
 interface ChartListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  user: {
-    userId: string | number;
-    firstName: string;
-    lastName: string;
-  };
+  user?: UserWithPermissionsAndRoles;
 }
 
-const StyledActions = styled.div`
+const Actions = styled.div`
   color: ${({ theme }) => theme.colorIcon};
 `;
 
 function ChartList(props: ChartListProps) {
-  const {
-    addDangerToast,
-    addSuccessToast,
-    user: { userId },
-  } = props;
+  const { addDangerToast, addSuccessToast, user } = props;
+  const userId = user?.userId;
 
   const history = useHistory();
 
@@ -229,9 +225,11 @@ function ChartList(props: ChartListProps) {
   // TODO: Fix usage of localStorage keying on the user id
   const userSettings = useMemo(
     () =>
-      dangerouslyGetItemDoNotUse(userId?.toString(), null) as {
-        thumbnails: boolean;
-      },
+      userId === undefined
+        ? null
+        : (dangerouslyGetItemDoNotUse(userId.toString(), null) as {
+            thumbnails: boolean;
+          }),
     [userId],
   );
 
@@ -517,7 +515,8 @@ function ChartList(props: ChartListProps) {
         id: 'changed_on_delta_humanized',
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({ row: { original } }: CellProps<Chart>) => {
+          const allowEdit = isUserEditorOrAdmin(user, original.editors);
           const handleDelete = () =>
             handleChartDelete(
               original,
@@ -532,23 +531,28 @@ function ChartList(props: ChartListProps) {
           }
 
           return (
-            <StyledActions className="actions">
+            <Actions className="actions">
               {canEdit && (
                 <Tooltip
                   id="edit-action-tooltip"
-                  title={t('Edit')}
+                  title={
+                    allowEdit
+                      ? t('Edit')
+                      : t(
+                          'You must be a chart editor in order to edit. Please reach out to a chart editor to request modifications or edit access.',
+                        )
+                  }
                   placement="bottom"
                 >
-                  <span
+                  <IconButton
                     data-test="chart-row-edit"
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
+                    disabled={!allowEdit}
                     onClick={openEditModal}
                     onKeyDown={handleKeyboardActivation(openEditModal)}
-                  >
-                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
-                  </span>
+                    icon={
+                      <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
+                    }
+                  />
                 </Tooltip>
               )}
               {canExport && (
@@ -557,16 +561,12 @@ function ChartList(props: ChartListProps) {
                   title={t('Export')}
                   placement="bottom"
                 >
-                  <span
+                  <IconButton
                     data-test="chart-row-export"
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
                     onClick={handleExport}
                     onKeyDown={handleKeyboardActivation(handleExport)}
-                  >
-                    <Icons.UploadOutlined iconSize="l" />
-                  </span>
+                    icon={<Icons.UploadOutlined iconSize="l" />}
+                  />
                 </Tooltip>
               )}
               {canDelete && (
@@ -583,24 +583,27 @@ function ChartList(props: ChartListProps) {
                   {confirmDelete => (
                     <Tooltip
                       id="delete-action-tooltip"
-                      title={t('Delete')}
+                      title={
+                        allowEdit
+                          ? t('Delete')
+                          : t(
+                              'You must be a chart editor in order to delete. Please reach out to a chart editor to request modifications or edit access.',
+                            )
+                      }
                       placement="bottom"
                     >
-                      <span
+                      <IconButton
                         data-test="chart-row-delete"
-                        role="button"
-                        tabIndex={0}
-                        className="action-button"
+                        disabled={!allowEdit}
                         onClick={confirmDelete}
                         onKeyDown={handleKeyboardActivation(confirmDelete)}
-                      >
-                        <Icons.DeleteOutlined iconSize="l" />
-                      </span>
+                        icon={<Icons.DeleteOutlined iconSize="l" />}
+                      />
                     </Tooltip>
                   )}
                 </ConfirmStatusChange>
               )}
-            </StyledActions>
+            </Actions>
           );
         },
         Header: t('Actions'),
@@ -616,6 +619,7 @@ function ChartList(props: ChartListProps) {
       },
     ],
     [
+      user,
       userId,
       canEdit,
       canDelete,
@@ -849,7 +853,7 @@ function ChartList(props: ChartListProps) {
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
         refreshData={refreshData}
-        userId={userId}
+        user={user}
         loading={loading}
         favoriteStatus={favoriteStatus[chart.id]}
         saveFavoriteStatus={saveFavoriteStatus}
@@ -867,7 +871,7 @@ function ChartList(props: ChartListProps) {
       openChartEditModal,
       refreshData,
       saveFavoriteStatus,
-      userId,
+      user,
       userSettings,
     ],
   );

@@ -225,6 +225,11 @@ export const mockAdminUser = {
   userId: 1,
   firstName: 'Admin',
   lastName: 'User',
+  username: 'admin',
+  permissions: {
+    database_access: [],
+    datasource_access: [],
+  },
   roles: {
     Admin: [
       ['can_read', 'Dataset'],

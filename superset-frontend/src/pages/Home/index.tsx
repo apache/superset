@@ -27,7 +27,7 @@ import {
 import { styled } from '@apache-superset/core/theme';
 import rison from 'rison';
 import { Collapse, ListViewCard } from '@superset-ui/core/components';
-import { User } from 'src/types/bootstrapTypes';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { reject } from 'lodash-es';
 import {
   dangerouslyGetItemDoNotUse,
@@ -59,7 +59,7 @@ import DashboardTable from 'src/features/home/DashboardTable';
 const extensionsRegistry = getExtensionsRegistry();
 
 interface WelcomeProps {
-  user: User;
+  user: UserWithPermissionsAndRoles;
   addDangerToast: (arg0: string) => void;
 }
 
