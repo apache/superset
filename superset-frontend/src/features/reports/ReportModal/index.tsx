@@ -284,6 +284,10 @@ function ReportModal({
               label: t('Formatted CSV attached in email'),
               value: NotificationFormats.CSV,
             },
+            {
+              label: t('Formatted Excel attached in email'),
+              value: NotificationFormats.XLSX,
+            },
           ]}
         />
       </div>

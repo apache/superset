@@ -62,7 +62,6 @@ _NO_SAVED_METRICS_HINT = (
 )
 
 
-@requires_data_model_metadata_access
 @tool(
     tags=["data"],
     class_permission_name="Dataset",
@@ -72,6 +71,7 @@ _NO_SAVED_METRICS_HINT = (
         destructiveHint=False,
     ),
 )
+@requires_data_model_metadata_access
 async def query_dataset(  # noqa: C901
     request: QueryDatasetRequest, ctx: Context
 ) -> QueryDatasetResponse | DatasetError:

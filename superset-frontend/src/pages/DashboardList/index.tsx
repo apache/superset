@@ -21,6 +21,7 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   SupersetClient,
+  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { useSelector } from 'react-redux';
@@ -503,6 +504,7 @@ function DashboardList(props: DashboardListProps) {
                     tabIndex={0}
                     className="action-button"
                     onClick={handleEdit}
+                    onKeyDown={handleKeyboardActivation(handleEdit)}
                   >
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
                   </span>
@@ -520,6 +522,7 @@ function DashboardList(props: DashboardListProps) {
                     tabIndex={0}
                     className="action-button"
                     onClick={handleExport}
+                    onKeyDown={handleKeyboardActivation(handleExport)}
                   >
                     <Icons.UploadOutlined iconSize="l" />
                   </span>
@@ -548,6 +551,7 @@ function DashboardList(props: DashboardListProps) {
                         tabIndex={0}
                         className="action-button"
                         onClick={confirmDelete}
+                        onKeyDown={handleKeyboardActivation(confirmDelete)}
                       >
                         <Icons.DeleteOutlined
                           iconSize="l"

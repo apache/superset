@@ -247,11 +247,12 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
         </Typography.Title>
       </StyledCssTemplateTitle>
       <TemplateContainer>
-        <div className="control-label">
+        <label className="control-label" htmlFor="css-template-name">
           {t('Name')}
           <span className="required">*</span>
-        </div>
+        </label>
         <Input
+          id="css-template-name"
           name="template_name"
           onChange={onTemplateNameChange}
           type="text"

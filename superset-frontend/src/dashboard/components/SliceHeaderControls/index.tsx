@@ -50,12 +50,17 @@ import {
 } from '@superset-ui/core/components';
 import { useShareMenuItems } from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
+import downloadAsPdf from 'src/utils/downloadAsPdf';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { Icons } from '@superset-ui/core/components/Icons';
 import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
 import { ResultsPaneOnDashboard } from 'src/explore/components/DataTablesPane';
 import { useDrillDetailMenuItems } from 'src/components/Chart/useDrillDetailMenuItems';
-import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
+import {
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF,
+} from 'src/logger/LogUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
 import { openInNewTab } from 'src/utils/navigationUtils';
@@ -302,25 +307,86 @@ const SliceHeaderControls = (
         props.exportXLSX?.(props.slice.slice_id);
         break;
       case MenuKeys.DownloadAsImage: {
-        // menu closes with a delay, we need to hide it manually,
-        // so that we don't capture it on the screenshot
+        // Hide the dropdown menu so it is not captured in the screenshot
         const menu = document.querySelector(
           '.ant-dropdown:not(.ant-dropdown-hidden)',
-        ) as HTMLElement;
+        ) as HTMLElement | null;
         if (menu) {
           menu.style.visibility = 'hidden';
         }
-        downloadAsImage(
-          getScreenshotNodeSelector(props.slice.slice_id),
-          props.slice.slice_name,
-          true,
-          theme,
-        )(domEvent).then(() => {
+        Promise.resolve(
+          downloadAsImage(
+            getScreenshotNodeSelector(props.slice.slice_id),
+            props.slice.slice_name,
+            true,
+            theme,
+          )(domEvent),
+        ).finally(() => {
           if (menu) {
             menu.style.visibility = 'visible';
           }
         });
+        // eslint-disable-next-line no-unused-expressions
         props.logEvent?.(LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE, {
+          chartId: props.slice.slice_id,
+        });
+        break;
+      }
+      case MenuKeys.DownloadAsPngTransparent:
+      case MenuKeys.DownloadAsPngSolid: {
+        const menu = document.querySelector(
+          '.ant-dropdown:not(.ant-dropdown-hidden)',
+        ) as HTMLElement | null;
+        if (menu) {
+          menu.style.visibility = 'hidden';
+        }
+
+        const backgroundType =
+          key === MenuKeys.DownloadAsPngTransparent ? 'transparent' : 'solid';
+
+        Promise.resolve(
+          downloadAsImage(
+            getScreenshotNodeSelector(props.slice.slice_id),
+            props.slice.slice_name,
+            true,
+            theme,
+            { format: 'png', backgroundType },
+          )(domEvent),
+        ).finally(() => {
+          if (menu) {
+            menu.style.visibility = 'visible';
+          }
+        });
+
+        // eslint-disable-next-line no-unused-expressions
+        props.logEvent?.(LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG, {
+          chartId: props.slice.slice_id,
+          backgroundType,
+        });
+        break;
+      }
+      case MenuKeys.DownloadAsPdf: {
+        const menu = document.querySelector(
+          '.ant-dropdown:not(.ant-dropdown-hidden)',
+        ) as HTMLElement | null;
+        if (menu) {
+          menu.style.visibility = 'hidden';
+        }
+
+        Promise.resolve(
+          downloadAsPdf(
+            getScreenshotNodeSelector(props.slice.slice_id),
+            props.slice.slice_name,
+            true,
+          )(domEvent),
+        ).finally(() => {
+          if (menu) {
+            menu.style.visibility = 'visible';
+          }
+        });
+
+        // eslint-disable-next-line no-unused-expressions
+        props.logEvent?.(LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF, {
           chartId: props.slice.slice_id,
         });
         break;
@@ -614,8 +680,29 @@ const SliceHeaderControls = (
           : []),
         {
           key: MenuKeys.DownloadAsImage,
-          label: t('Download as image'),
+          label: t('Export screenshot (jpeg)'),
           icon: <Icons.FileImageOutlined css={dropdownIconsStyles} />,
+        },
+        {
+          type: 'submenu',
+          key: 'download_as_png_submenu',
+          label: t('Export screenshot (png)'),
+          icon: <Icons.FileImageOutlined css={dropdownIconsStyles} />,
+          children: [
+            {
+              key: MenuKeys.DownloadAsPngTransparent,
+              label: t('Transparent background'),
+            },
+            {
+              key: MenuKeys.DownloadAsPngSolid,
+              label: t('Solid background'),
+            },
+          ],
+        },
+        {
+          key: MenuKeys.DownloadAsPdf,
+          label: t('Export as PDF'),
+          icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
         },
       ],
     });

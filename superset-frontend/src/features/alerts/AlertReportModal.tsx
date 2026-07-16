@@ -232,6 +232,10 @@ const FORMAT_OPTIONS = {
     label: t('Send as CSV'),
     value: 'CSV',
   },
+  xlsx: {
+    label: t('Send as Excel'),
+    value: 'XLSX',
+  },
   txt: {
     label: t('Send as text'),
     value: 'TEXT',
@@ -2407,7 +2411,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   </StyledInputContainer>
                   <StyledInputContainer
                     css={
-                      ['PDF', 'TEXT', 'CSV'].includes(reportFormat) &&
+                      ['PDF', 'TEXT', 'CSV', 'XLSX'].includes(reportFormat) &&
                       noMarginBottom
                     }
                   >
@@ -2433,7 +2437,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                                     chartVizType,
                                   )
                                 ? Object.values(FORMAT_OPTIONS)
-                                : ['pdf', 'png', 'csv'].map(
+                                : ['pdf', 'png', 'csv', 'xlsx'].map(
                                     key =>
                                       FORMAT_OPTIONS[key as FORMAT_OPTIONS_KEY],
                                   )

@@ -144,3 +144,35 @@ def test_email_subject_with_datetime() -> None:
         subject = notification._get_subject()
     assert datetime_pattern not in subject
     assert frozen_now.strftime(datetime_pattern) in subject
+
+
+def test_email_content_with_xlsx_attachment() -> None:
+    """Email content attaches xlsx bytes under an ``.xlsx`` filename."""
+    # `superset.models.helpers`, a dependency of following imports,
+    # requires app context
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    content = NotificationContent(
+        name="test report",
+        xlsx=b"xlsx_content",
+        header_data={
+            "notification_format": "XLSX",
+            "notification_type": "Report",
+            "editors": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": None,
+            "execution_id": "test-execution-id",
+        },
+    )
+    email_content = EmailNotification(
+        recipient=ReportRecipients(type=ReportRecipientType.EMAIL), content=content
+    )._get_content()
+
+    assert email_content.data is not None
+    attachment_name = list(email_content.data.keys())[0]
+    assert attachment_name.endswith(".xlsx")
+    assert email_content.data[attachment_name] == b"xlsx_content"

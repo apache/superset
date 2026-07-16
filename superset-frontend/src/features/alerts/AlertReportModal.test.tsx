@@ -807,6 +807,29 @@ test('does not show screenshot width when csv is selected', async () => {
   expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
 });
 
+test('does not show screenshot width when Excel is selected', async () => {
+  render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
+    useRedux: true,
+  });
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test chart/i);
+  const contentTypeSelector = screen.getByRole('combobox', {
+    name: /select content type/i,
+  });
+  await comboboxSelect(contentTypeSelector, 'Chart', () =>
+    screen.getByText(/select chart/i),
+  );
+  const reportFormatSelector = screen.getByRole('combobox', {
+    name: /select format/i,
+  });
+  await comboboxSelect(
+    reportFormatSelector,
+    'Excel',
+    () => screen.getAllByText(/Send as Excel/i)[0],
+  );
+  expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
+});
+
 test('clearing the chart selection resets the combobox value', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
     useRedux: true,
@@ -861,9 +884,9 @@ test('opens Schedule Section on click', async () => {
     useRedux: true,
   });
   userEvent.click(screen.getByTestId('schedule-panel'));
-  const scheduleHeader = within(
+  const [scheduleHeader] = within(
     screen.getByRole('tab', { expanded: true }),
-  ).queryAllByText(/schedule/i)[0];
+  ).queryAllByText(/schedule/i);
   expect(scheduleHeader).toBeInTheDocument();
 });
 test('renders default Schedule fields', async () => {
@@ -929,9 +952,9 @@ test('opens Notification Method Section on click', async () => {
     useRedux: true,
   });
   userEvent.click(screen.getByTestId('notification-method-panel'));
-  const notificationMethodHeader = within(
+  const [notificationMethodHeader] = within(
     screen.getByRole('tab', { expanded: true }),
-  ).queryAllByText(/notification method/i)[0];
+  ).queryAllByText(/notification method/i);
   expect(notificationMethodHeader).toBeInTheDocument();
 });
 
