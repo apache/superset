@@ -72,7 +72,9 @@ ORDINAL_MAP: dict[str, int] = {
 # linear on user-provided strings (every suffix of an unbounded digit run
 # would be re-scanned) and keep the int() conversion small; longer digit
 # runs fall through to parsedatetime like any other unparseable phrase.
-_QUARTERS_PATTERN = re.compile(r"(?<![0-9])([0-9]{1,10})\s+quarters?\b", re.IGNORECASE)
+_QUARTERS_PATTERN: re.Pattern[str] = re.compile(
+    r"(?<![0-9])([0-9]{1,10})\s+quarters?\b", re.IGNORECASE
+)
 
 
 def parse_human_datetime(human_readable: str) -> datetime:

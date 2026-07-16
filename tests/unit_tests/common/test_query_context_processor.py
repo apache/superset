@@ -1024,7 +1024,9 @@ def test_processing_time_offsets_updates_temporal_filter_with_adhoc_x_axis(proce
     assert "2025-06-01" in val, f"Expected shifted-to-dttm in val, got: {val!r}"
 
 
-def test_processing_time_offsets_quarter_offset_shifts_query_window(processor):
+def test_processing_time_offsets_quarter_offset_shifts_query_window(
+    processor: QueryContextProcessor,
+) -> None:
     """A quarter offset must shift the offset query's window, not just the
     join keys. parsedatetime does not understand "1 quarter ago", so without
     rewriting quarters to months the offset subquery silently runs against
@@ -1035,15 +1037,18 @@ def test_processing_time_offsets_quarter_offset_shifts_query_window(processor):
     from superset.common.query_object import QueryObject
     from superset.models.helpers import ExploreMixin
 
+    # The fixture's datasource is a MagicMock, not a real Explorable
+    datasource: Any = processor._qc_datasource
+
     for method in (
         "processing_time_offsets",
         "_align_offset_without_time_grain",
         "_coalesce_offset_index",
     ):
         setattr(
-            processor._qc_datasource,
+            datasource,
             method,
-            getattr(ExploreMixin, method).__get__(processor._qc_datasource),
+            getattr(ExploreMixin, method).__get__(datasource),
         )
 
     df = pd.DataFrame(
@@ -1085,8 +1090,8 @@ def test_processing_time_offsets_quarter_offset_shifts_query_window(processor):
         result.query = "SELECT 1"
         return result
 
-    processor._qc_datasource.query = fake_query
-    processor._qc_datasource.normalize_df = MagicMock(
+    datasource.query = fake_query
+    datasource.normalize_df = MagicMock(
         side_effect=lambda offset_df, _query_object: offset_df
     )
 
@@ -1099,7 +1104,7 @@ def test_processing_time_offsets_quarter_offset_shifts_query_window(processor):
             "superset.common.utils.query_cache_manager.QueryCacheManager"
         ) as mock_cache_manager,
         patch.object(
-            processor._qc_datasource,
+            datasource,
             "get_time_grain",
             return_value=None,
         ),
@@ -1108,9 +1113,7 @@ def test_processing_time_offsets_quarter_offset_shifts_query_window(processor):
         mock_cache.is_loaded = False
         mock_cache_manager.get.return_value = mock_cache
 
-        result = processor._qc_datasource.processing_time_offsets(
-            df, query_object, None, None, False
-        )
+        result = datasource.processing_time_offsets(df, query_object, None, None, False)
 
     assert len(captured) == 1
     assert captured[0]["from_dttm"] == pd.Timestamp("2024-01-01")
@@ -1118,7 +1121,9 @@ def test_processing_time_offsets_quarter_offset_shifts_query_window(processor):
     assert result["df"]["sum__num__1 quarter ago"].tolist() == [1.0, 2.0, 3.0]
 
 
-def test_processing_time_offsets_rejects_unparseable_offset(processor):
+def test_processing_time_offsets_rejects_unparseable_offset(
+    processor: QueryContextProcessor,
+) -> None:
     """An offset no parser understands must fail with a validation error
     instead of querying an unshifted window and presenting the current
     period's rows as the comparison series.
@@ -1127,8 +1132,11 @@ def test_processing_time_offsets_rejects_unparseable_offset(processor):
     from superset.exceptions import QueryObjectValidationError
     from superset.models.helpers import ExploreMixin
 
-    processor._qc_datasource.processing_time_offsets = (
-        ExploreMixin.processing_time_offsets.__get__(processor._qc_datasource)
+    # The fixture's datasource is a MagicMock, not a real Explorable
+    datasource: Any = processor._qc_datasource
+
+    datasource.processing_time_offsets = ExploreMixin.processing_time_offsets.__get__(
+        datasource
     )
 
     df = pd.DataFrame(
@@ -1154,7 +1162,7 @@ def test_processing_time_offsets_rejects_unparseable_offset(processor):
         ],
     )
 
-    processor._qc_datasource.query = MagicMock()
+    datasource.query = MagicMock()
 
     with (
         patch(
@@ -1162,7 +1170,7 @@ def test_processing_time_offsets_rejects_unparseable_offset(processor):
             return_value=(pd.Timestamp("2024-04-01"), pd.Timestamp("2024-07-01")),
         ),
         patch.object(
-            processor._qc_datasource,
+            datasource,
             "get_time_grain",
             return_value=None,
         ),
@@ -1170,11 +1178,9 @@ def test_processing_time_offsets_rejects_unparseable_offset(processor):
         with pytest.raises(
             QueryObjectValidationError, match="Unable to interpret the time offset"
         ):
-            processor._qc_datasource.processing_time_offsets(
-                df, query_object, None, None, False
-            )
+            datasource.processing_time_offsets(df, query_object, None, None, False)
 
-    processor._qc_datasource.query.assert_not_called()
+    datasource.query.assert_not_called()
 
 
 def test_ensure_totals_available_updates_cache_values():

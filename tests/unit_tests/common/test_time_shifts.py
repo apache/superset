@@ -18,7 +18,7 @@ import logging
 
 from pandas import DataFrame, Series, Timestamp
 from pandas.testing import assert_frame_equal
-from pytest import fixture, mark  # noqa: PT013
+from pytest import fixture, LogCaptureFixture, mark  # noqa: PT013
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
@@ -507,7 +507,7 @@ def test_join_offset_dfs_no_time_grain_uninterpretable_offset() -> None:
 
 
 def test_join_offset_dfs_no_time_grain_uninterpretable_offset_subsecond(
-    caplog,
+    caplog: LogCaptureFixture,
 ) -> None:
     """
     The unparseable-offset probe compares against a truncated copy of the
