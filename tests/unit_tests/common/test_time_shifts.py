@@ -14,17 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import logging
-
 from pandas import DataFrame, Series, Timestamp
 from pandas.testing import assert_frame_equal
-from pytest import fixture, LogCaptureFixture, mark  # noqa: PT013
+from pytest import fixture, mark, raises  # noqa: PT013
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
 from superset.common.query_context_processor import QueryContextProcessor
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import TimeGrain
+from superset.exceptions import QueryObjectValidationError
 from superset.models.helpers import ExploreMixin
 
 # Create processor and bind ExploreMixin methods to datasource
@@ -491,24 +490,21 @@ def test_join_offset_dfs_no_time_grain_free_form_offset_tz_microseconds() -> Non
 
 def test_join_offset_dfs_no_time_grain_uninterpretable_offset() -> None:
     """
-    An offset that no parser can interpret falls back to joining on the raw
-    keys (an empty comparison series) instead of crashing.
+    An offset that no parser can interpret cannot be aligned without a time
+    grain, and fails with the error that points at the missing grain rather
+    than silently producing an unshifted or empty comparison.
     """
     df = DataFrame({"ds": [Timestamp("2021-01-01")], "D": [1]})
     offset_df = DataFrame({"ds": [Timestamp("2020-01-01")], "B": [5]})
     offset_dfs = {"not a real offset": offset_df}
 
-    result = query_context_processor.join_offset_dfs(
-        df, offset_dfs, time_grain=None, join_keys=["ds"]
-    )
-
-    assert "B" in result.columns
-    assert result["B"].isna().all()
+    with raises(QueryObjectValidationError, match="Time Grain must be"):
+        query_context_processor.join_offset_dfs(
+            df, offset_dfs, time_grain=None, join_keys=["ds"]
+        )
 
 
-def test_join_offset_dfs_no_time_grain_uninterpretable_offset_subsecond(
-    caplog: LogCaptureFixture,
-) -> None:
+def test_join_offset_dfs_no_time_grain_uninterpretable_offset_subsecond() -> None:
     """
     Sub-second timestamps must not mask an uninterpretable offset:
     unparseability is detected from the parser's parse flag, not by
@@ -519,13 +515,124 @@ def test_join_offset_dfs_no_time_grain_uninterpretable_offset_subsecond(
     offset_df = DataFrame({"ds": [Timestamp("2020-01-01 00:00:00.123456")], "B": [5]})
     offset_dfs = {"not a real offset": offset_df}
 
-    with caplog.at_level(logging.WARNING, logger="superset.models.helpers"):
-        result = query_context_processor.join_offset_dfs(
+    with raises(QueryObjectValidationError, match="Time Grain must be"):
+        query_context_processor.join_offset_dfs(
             df, offset_dfs, time_grain=None, join_keys=["ds"]
         )
 
-    assert "Cannot interpret time offset" in caplog.text
+
+@mark.parametrize("offset", ["yesterday", "last month"])
+def test_join_offset_dfs_no_time_grain_anchor_offset(offset: str) -> None:
+    """
+    Phrases that parsedatetime resolves to a fixed point rather than a shift
+    are rejected. Applied per row they would move each timestamp by a
+    different amount -- parsedatetime anchors both of these rows onto the same
+    09:00 timestamp -- collapsing distinct buckets onto one join key.
+    """
+    df = DataFrame(
+        {
+            "ds": [Timestamp("2021-06-15 03:00"), Timestamp("2021-06-15 21:00")],
+            "D": [1, 2],
+        }
+    )
+    offset_df = DataFrame({"ds": [Timestamp("2021-06-14 03:00")], "B": [5]})
+
+    with raises(QueryObjectValidationError, match="Time Grain must be"):
+        query_context_processor.join_offset_dfs(
+            df, {offset: offset_df}, time_grain=None, join_keys=["ds"]
+        )
+
+
+def test_join_offset_dfs_no_time_grain_free_form_delta_offset() -> None:
+    """
+    Free-form phrasing that does denote a fixed shift still aligns: it misses
+    the normalize_time_delta grammar but shifts every row equally, which is
+    all the join needs.
+    """
+    df = DataFrame({"ds": [Timestamp("2021-06-15 03:00")], "D": [1]})
+    offset_df = DataFrame({"ds": [Timestamp("2020-06-15 03:00")], "B": [5]})
+
+    result = query_context_processor.join_offset_dfs(
+        df, {"one year ago": offset_df}, time_grain=None, join_keys=["ds"]
+    )
+
+    assert result["B"].tolist() == [5]
+
+
+def test_join_offset_dfs_no_time_grain_dst_nonexistent_hour() -> None:
+    """
+    A shift landing on a local hour that DST skips must not raise: 02:30 never
+    occurs on 2021-03-14 in US/Eastern, so no row can carry that reading and
+    the comparison is simply empty. Shifting the tz-aware timestamp directly
+    raised NonExistentTimeError out of pandas instead.
+    """
+    df = DataFrame({"ds": [Timestamp("2021-04-14 02:30", tz="US/Eastern")], "D": [1]})
+    offset_df = DataFrame(
+        {"ds": [Timestamp("2021-03-15 02:30", tz="US/Eastern")], "B": [5]}
+    )
+
+    result = query_context_processor.join_offset_dfs(
+        df, {"1 month ago": offset_df}, time_grain=None, join_keys=["ds"]
+    )
+
     assert result["B"].isna().all()
+
+
+def test_join_offset_dfs_no_time_grain_dst_ambiguous_hour() -> None:
+    """
+    A shift landing on a local hour that DST repeats aligns on the wall clock
+    the offset query returned. 01:30 occurs twice on 2021-11-07 in US/Eastern;
+    shifting the tz-aware timestamp directly raised AmbiguousTimeError out of
+    pandas rather than picking either reading.
+    """
+    df = DataFrame({"ds": [Timestamp("2021-12-07 01:30", tz="US/Eastern")], "D": [1]})
+    offset_df = DataFrame(
+        {
+            "ds": [
+                Timestamp("2021-11-07 01:30").tz_localize("US/Eastern", ambiguous=True)
+            ],
+            "B": [5],
+        }
+    )
+
+    result = query_context_processor.join_offset_dfs(
+        df, {"1 month ago": offset_df}, time_grain=None, join_keys=["ds"]
+    )
+
+    assert result["B"].tolist() == [5]
+
+
+@mark.parametrize(
+    "offset",
+    [
+        # shifts via DateOffset
+        "2 weeks ago",
+        # misses the normalize_time_delta grammar, shifts via the parser
+        "two weeks ago",
+    ],
+)
+def test_join_offset_dfs_no_time_grain_tz_aware_preserves_wall_clock(
+    offset: str,
+) -> None:
+    """
+    A tz-aware shift crossing a DST boundary matches the same wall clock on
+    the other side, rather than drifting by the hour the UTC offset changed.
+    The offset query's own time range is shifted with naive arithmetic, so its
+    rows carry the source wall clock and only a wall-clock join finds them.
+    Both shift paths have to agree on that.
+    """
+    df = DataFrame({"ds": [Timestamp("2021-03-20 12:00", tz="US/Eastern")], "D": [1]})
+    # Two weeks before 2021-03-20 EDT is 2021-03-06 EST: same 12:00 wall
+    # clock, one hour further from UTC.
+    offset_df = DataFrame(
+        {"ds": [Timestamp("2021-03-06 12:00", tz="US/Eastern")], "B": [5]}
+    )
+
+    result = query_context_processor.join_offset_dfs(
+        df, {offset: offset_df}, time_grain=None, join_keys=["ds"]
+    )
+
+    assert result["B"].tolist() == [5]
 
 
 def test_join_offset_dfs_no_time_grain_prefers_x_axis_label() -> None:

@@ -140,6 +140,7 @@ from superset.utils.core import (
 )
 from superset.utils.date_parser import (
     get_past_or_future,
+    is_constant_human_timedelta,
     is_parseable_human_timedelta,
     normalize_time_delta,
     TimeDeltaAmbiguousError,
@@ -171,6 +172,16 @@ OFFSET_JOIN_COLUMN_SUFFIX = "__offset_join_column_"
 
 # Right suffix used for joining offset results
 R_SUFFIX = "__right_suffix"
+
+
+def _as_wall_clock(series: pd.Series) -> pd.Series:
+    """
+    Return a datetime series as local wall-clock readings, dropping any
+    timezone. Series of other dtypes are returned unchanged.
+    """
+    if isinstance(series.dtype, pd.DatetimeTZDtype):
+        return series.dt.tz_localize(None)
+    return series
 
 
 class CachedTimeOffset(TypedDict):
@@ -2190,8 +2201,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :returns: The time offset.
         """
         if offset == "inherit":
-            # return the difference in days between the from and the to dttm formatted as a string with the " days ago" suffix  # noqa: E501
-            return f"{(outer_to_dttm - outer_from_dttm).days} days ago"
+            # Shift back by the full length of the range, so the comparison
+            # covers the period immediately preceding it. The duration is
+            # expressed in seconds rather than days because ``timedelta.days``
+            # truncates: a 12-hour range would yield "0 days ago" and compare
+            # the range against itself, and a 36-hour range would shift by a
+            # single day and overlap it. Whole-day ranges resolve to the same
+            # instant either way.
+            duration = outer_to_dttm - outer_from_dttm
+            return f"{int(duration.total_seconds())} seconds ago"
         if self.is_valid_date(offset):
             # return the offset as the difference in days between the outer from dttm and the offset date (which is a YYYY-MM-DD string) formatted as a string with the " days ago" suffix  # noqa: E501
             offset_date = datetime.strptime(offset, "%Y-%m-%d")
@@ -2353,8 +2371,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         offsets). Timestamps without an exact counterpart in the offset series
         produce nulls, mirroring the grain-based join, and null timestamps in
         the two series join to each other (both stringify to "NaT"). When
-        there is no temporal join key, or the offset cannot be interpreted as
-        a time delta, the original join keys are used as-is.
+        there is no temporal join key the original join keys are used as-is.
+
+        The shift is computed on wall-clock time, with any timezone dropped for
+        the duration of the alignment. The offset query's own time range was
+        shifted the same way -- ``get_past_or_future`` reads naive timestamps
+        -- so the rows it returns carry the source wall clock, and matching on
+        it is what aligns the two series. Re-localizing the result would only
+        reintroduce the DST edge cases that wall-clock arithmetic sidesteps:
+        shifting onto a skipped or repeated local hour raises out of pandas.
+        Both sides are normalized identically, so the two readings of a
+        repeated hour still align with each other.
 
         Month, quarter, and year offsets shift via ``DateOffset``, which clamps
         to a valid calendar day (e.g. Mar 29, 30, and 31 all shift back one
@@ -2379,6 +2406,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if not temporal_join_key:
             return offset_df, join_keys
 
+        source = _as_wall_clock(df[temporal_join_key])
+
         try:
             delta: DateOffset | None = DateOffset(**normalize_time_delta(offset))
         except (ValueError, TimeDeltaAmbiguousError):
@@ -2388,41 +2417,38 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if delta is not None:
             # DateOffset addition is vectorized over the datetime column; NaT
             # rows shift to NaT (they join to the offset series' NaT rows).
-            shifted = df[temporal_join_key] + delta
+            shifted = source + delta
         else:
             # Free-form offsets (e.g. "one year ago") don't match the
             # normalize_time_delta grammar; shift with the same parser that
-            # shifted the offset query's time range. parsedatetime only
-            # handles naive timestamps at second resolution, so compute each
-            # row's delta from a truncated copy and apply it to the original
-            # value, preserving timezone and sub-second precision.
-            def truncate(value: datetime) -> datetime:
-                timestamp = pd.Timestamp(value)
-                if timestamp.tzinfo is not None:
-                    timestamp = timestamp.tz_localize(None)
-                return timestamp.floor("s").to_pydatetime()
-
-            if not is_parseable_human_timedelta(offset):
-                logger.warning(
-                    "Cannot interpret time offset %r without a time grain; "
-                    "the time comparison may be incorrect.",
-                    offset,
+            # shifted the offset query's time range. parsedatetime resolves
+            # second resolution only, so compute each row's delta from a
+            # truncated copy and apply it to the original value, preserving
+            # sub-second precision.
+            if not is_constant_human_timedelta(offset):
+                # Anchors such as "yesterday" resolve every source time within
+                # a day onto one timestamp rather than shifting each by a
+                # fixed amount, so they cannot align two series row by row:
+                # distinct timestamps would collapse onto a single join key.
+                # A time grain gives the join a truncated column to match on
+                # instead of a shifted one.
+                raise QueryObjectValidationError(
+                    _("Time Grain must be specified when using Time Comparison.")
                 )
-                return offset_df, join_keys
 
-            def shift(value: datetime) -> datetime:
+            def shift(value: pd.Timestamp) -> pd.Timestamp:
                 if pd.isna(value):
                     return value
-                truncated = truncate(value)
+                truncated = value.floor("s").to_pydatetime()
                 return value + (get_past_or_future(offset, truncated) - truncated)
 
-            shifted = df[temporal_join_key].map(shift)
+            shifted = source.map(shift)
 
         # Join on string values so that mismatched key dtypes (e.g. an empty
         # offset series materializes its join keys as NaN floats) cannot break
         # the merge.
         df[column_name] = shifted.map(str)
-        offset_df[column_name] = offset_df[temporal_join_key].map(str)
+        offset_df[column_name] = _as_wall_clock(offset_df[temporal_join_key]).map(str)
 
         remaining_keys = [key for key in join_keys if key != temporal_join_key]
         return offset_df, [column_name, *remaining_keys]

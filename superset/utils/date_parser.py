@@ -60,6 +60,17 @@ logging.getLogger("parsedatetime").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
+# Source times used by ``is_constant_human_timedelta`` to tell a delta from an
+# anchor. They share a date -- mid-month and mid-year, away from any month or
+# year boundary a shift could clamp against -- and differ only in the hour, so
+# that the sole thing the comparison can detect is sensitivity to time of day.
+# Neither hour is parsedatetime's 09:00 default, so an anchor cannot coincide
+# with a probe and masquerade as a zero shift.
+_SHIFT_PROBE_TIMES: tuple[datetime, datetime] = (
+    datetime(2024, 6, 15, 3, 0, 0),
+    datetime(2024, 6, 15, 21, 0, 0),
+)
+
 # Mapping of ordinal words to their numeric values for date expressions
 ORDINAL_MAP: dict[str, int] = {
     "first": 1,
@@ -156,6 +167,31 @@ def is_parseable_human_timedelta(human_readable: str | None) -> bool:
     """
     cal = parsedatetime.Calendar()
     return cal.parse(_rewrite_quarters_as_months(human_readable))[1] != 0
+
+
+def is_constant_human_timedelta(human_readable: str | None) -> bool:
+    """
+    Returns whether the phrase shifts every source time by the same amount.
+
+    ``is_parseable_human_timedelta`` accepts anchors such as "yesterday" and
+    "last month" alongside true deltas such as "1 year ago", but the two
+    behave differently when applied per row: an anchor resolves to a single
+    timestamp (parsedatetime defaults to 09:00) no matter where the source
+    time sits within the day, so it shifts each row by a different amount.
+
+    Probing two source times within the same day separates the two. A delta
+    shifts both probes equally; an anchor maps both onto one timestamp, which
+    -- the probes being distinct -- necessarily yields differing shifts. Both
+    probes share a date, so calendar irregularities such as leap years and
+    month lengths apply to them identically and cannot skew the comparison.
+    """
+    if not is_parseable_human_timedelta(human_readable):
+        return False
+    deltas = {
+        get_past_or_future(human_readable, probe) - probe
+        for probe in _SHIFT_PROBE_TIMES
+    }
+    return len(deltas) == 1
 
 
 def parse_human_timedelta(

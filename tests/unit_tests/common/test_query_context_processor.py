@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -26,6 +27,7 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_context_processor import QueryContextProcessor
 from superset.utils.core import GenericDataType
+from superset.utils.date_parser import get_past_or_future
 
 
 @pytest.fixture
@@ -389,8 +391,45 @@ def test_get_offset_custom_or_inherit_with_inherit(processor):
         "inherit", from_dttm, to_dttm
     )
 
-    # Should return the difference in days
-    assert result == "9 days ago"
+    # Should shift back by the length of the range: 9 days, in seconds
+    assert result == "777600 seconds ago"
+
+
+@pytest.mark.parametrize(
+    "hours",
+    [
+        # Sub-day ranges truncated to "0 days ago" and compared the range
+        # against itself.
+        1,
+        12,
+        # Ranges that are not a whole number of days truncated downwards and
+        # overlapped the range they were compared against.
+        36,
+        # Whole-day ranges were already correct and must stay so.
+        24,
+        48,
+    ],
+)
+def test_get_offset_custom_or_inherit_shifts_by_full_range(
+    processor, hours: int
+) -> None:
+    """
+    'inherit' compares a range against the period immediately preceding it,
+    for any range length. The offset must not be truncated to whole days: it
+    has to reproduce the range's exact duration, so that the comparison window
+    neither overlaps the range nor leaves a gap before it.
+    """
+    from_dttm = datetime(2024, 3, 10, 6, 0)
+    to_dttm = from_dttm + timedelta(hours=hours)
+
+    offset = processor._qc_datasource.get_offset_custom_or_inherit(
+        "inherit", from_dttm, to_dttm
+    )
+
+    shifted_from = get_past_or_future(offset, from_dttm)
+    shifted_to = get_past_or_future(offset, to_dttm)
+    assert shifted_to == from_dttm
+    assert shifted_to - shifted_from == to_dttm - from_dttm
 
 
 def test_get_offset_custom_or_inherit_with_date(processor):

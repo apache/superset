@@ -32,6 +32,7 @@ from superset.utils.date_parser import (
     datetime_eval,
     get_past_or_future,
     get_since_until,
+    is_constant_human_timedelta,
     is_parseable_human_timedelta,
     normalize_time_delta,
     parse_human_datetime,
@@ -607,6 +608,45 @@ def test_is_parseable_human_timedelta() -> None:
     # absurdly long digit runs are not rewritten to months; they are
     # unparseable like any other unintelligible phrase
     assert not is_parseable_human_timedelta("9" * 100_000 + " quarters ago")
+
+
+def test_is_constant_human_timedelta() -> None:
+    # phrases that shift every source time by the same amount
+    assert is_constant_human_timedelta("1 week ago")
+    assert is_constant_human_timedelta("one year ago")
+    assert is_constant_human_timedelta("1 quarter ago")
+    assert is_constant_human_timedelta("2 days later")
+    # a zero shift is still a constant one
+    assert is_constant_human_timedelta("0 days ago")
+    # anchors resolve to a fixed point instead: how far they move a source
+    # time depends on where in the day that source time falls
+    assert not is_constant_human_timedelta("yesterday")
+    assert not is_constant_human_timedelta("last month")
+    assert not is_constant_human_timedelta("noon")
+    # a phrase nothing can parse is not a delta either
+    assert not is_constant_human_timedelta("not a real offset")
+    assert not is_constant_human_timedelta("")
+    assert not is_constant_human_timedelta(None)
+
+
+def test_is_constant_human_timedelta_matches_applied_shift() -> None:
+    """
+    The probes stand in for real source timestamps, so the verdict has to hold
+    for source times they never looked at: an accepted phrase shifts arbitrary
+    timestamps equally, a rejected one does not.
+    """
+    sources = [
+        datetime(2021, 3, 14, 2, 30),
+        datetime(2021, 11, 7, 1, 30),
+        datetime(2024, 2, 29, 23, 59, 59),
+        datetime(2020, 1, 1, 0, 0),
+    ]
+
+    deltas = {get_past_or_future("1 week ago", src) - src for src in sources}
+    assert deltas == {timedelta(days=-7)}
+
+    anchored = {get_past_or_future("yesterday", src) - src for src in sources}
+    assert len(anchored) > 1
 
 
 def test_normalize_time_delta() -> None:
