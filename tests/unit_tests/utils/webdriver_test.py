@@ -1121,7 +1121,7 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
             600,
             load_wait=30,
             animation_wait=2,
-            execution_id=None,
+            log_context=None,
         )
         # The only wait_for_timeout call should be the 0ms headstart; no global
         # animation wait should be issued (handled per-tile by take_tiled_screenshot)

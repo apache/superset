@@ -201,23 +201,27 @@ class TestTakeTiledScreenshot:
             call_args = mock_logger.exception.call_args
             assert call_args[0][0] == "Tiled screenshot failed: %s%s"
             assert str(call_args[0][1]) == "Unexpected error"
-            assert call_args[0][2] == ""  # no execution_id passed
+            assert call_args[0][2] == ""  # no log_context passed
 
-    def test_exception_handling_logs_execution_id(self):
+    def test_exception_handling_logs_context(self):
         """Genuine system faults (not a customer chart-loading issue) stay at
-        ERROR/exception level, and still carry the execution id for
-        correlation with the report that triggered this screenshot."""
+        ERROR/exception level, and still carry the log context (e.g. report
+        execution id) for correlation with the run that triggered this
+        screenshot."""
         mock_page = MagicMock()
         mock_page.locator.side_effect = Exception("Unexpected error")
 
         with patch("superset.utils.screenshot_utils.logger") as mock_logger:
             result = take_tiled_screenshot(
-                mock_page, "dashboard", tile_height=2000, execution_id="abc-123"
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                log_context="execution_id=abc-123",
             )
 
             assert result is None
             call_args = mock_logger.exception.call_args
-            assert "abc-123" in call_args[0][2]
+            assert call_args[0][2] == " [execution_id=abc-123]"
 
     def test_screenshot_clip_parameters(self, mock_page):
         """Test that screenshot clipping parameters are correct."""
@@ -402,15 +406,15 @@ class TestTakeTiledScreenshot:
         assert warning_args[3] == 1  # tile index
         assert warning_args[4] == 3  # total tiles
         assert warning_args[5] == 30  # load_wait
-        assert warning_args[6] == ""  # no execution_id passed
+        assert warning_args[6] == ""  # no log_context passed
         # Diagnostic payload identifies chart id AND the state it's stuck in
         # (spinner mounted vs nothing mounted vs waiting-on-database) so a
         # slow query can be told apart from the virtualization race.
         assert warning_args[7] == [{"chartId": "42", "state": "waiting_on_database"}]
 
-    def test_timeout_warning_includes_execution_id(self, mock_page):
-        """The execution id is threaded through for log correlation with the
-        report that triggered this screenshot."""
+    def test_timeout_warning_includes_log_context(self, mock_page):
+        """The log context (e.g. report execution id) is threaded through for
+        correlation with the run that triggered this screenshot."""
         from superset.utils.screenshot_utils import PlaywrightTimeout
 
         mock_page.wait_for_function.side_effect = PlaywrightTimeout("timed out")
@@ -428,11 +432,11 @@ class TestTakeTiledScreenshot:
                         "dashboard",
                         tile_height=2000,
                         load_wait=5,
-                        execution_id="abc-123",
+                        log_context="execution_id=abc-123",
                     )
 
         warning_args = mock_logger.warning.call_args[0]
-        assert "abc-123" in warning_args[6]
+        assert warning_args[6] == " [execution_id=abc-123]"
 
     def test_chart_holder_with_nothing_mounted_blocks_wait(self, mock_page):
         """Regression test for the vacuous-pass race (PR #39895).
@@ -496,7 +500,7 @@ class TestTakeTiledScreenshot:
                     "dashboard",
                     tile_height=2000,
                     load_wait=30,
-                    execution_id="abc-123",
+                    log_context="execution_id=abc-123",
                 )
 
         # 3 tiles, all ready immediately (mock_page.wait_for_function is a
@@ -515,7 +519,7 @@ class TestTakeTiledScreenshot:
         assert isinstance(elapsed, float)
         assert elapsed >= 0
         assert first_call_args[4] == 30  # load_wait
-        assert "abc-123" in first_call_args[5]
+        assert first_call_args[5] == " [execution_id=abc-123]"
 
     def test_all_chart_holders_ready_passes(self, mock_page):
         """All chart holders rendered or errored -> wait passes, tile captured."""

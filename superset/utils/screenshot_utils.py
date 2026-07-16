@@ -165,7 +165,7 @@ def take_tiled_screenshot(
     tile_height: int,
     load_wait: int = 60,
     animation_wait: int = 0,
-    execution_id: str | None = None,
+    log_context: str | None = None,
 ) -> bytes | None:
     """
     Take a tiled screenshot of a large dashboard by scrolling and capturing sections.
@@ -176,14 +176,14 @@ def take_tiled_screenshot(
         tile_height: Height of each tile in pixels
         load_wait: Seconds to wait for charts to load per tile (default 60)
         animation_wait: Seconds to wait for chart animations per tile (default 0)
-        execution_id: Report execution id, included in log lines for
-            correlation with the report that triggered this screenshot.
-            None for callers outside the report pipeline (e.g. thumbnails).
+        log_context: Optional identifier (e.g. report execution id, or a
+            cache key for thumbnails) appended to log lines so a slow/timed-out
+            capture can be traced back to the run that produced it.
 
     Returns:
         Combined screenshot bytes or None if failed
     """
-    exec_id_suffix = f" - execution_id: {execution_id}" if execution_id else ""
+    context_suffix = f" [{log_context}]" if log_context else ""
     try:
         # Get the target element
         element = page.locator(f".{element_name}")
@@ -260,7 +260,7 @@ def take_tiled_screenshot(
                     i + 1,
                     num_tiles,
                     load_wait,
-                    exec_id_suffix,
+                    context_suffix,
                     unready_chart_holders,
                 )
                 raise
@@ -272,7 +272,7 @@ def take_tiled_screenshot(
                     num_tiles,
                     elapsed,
                     load_wait,
-                    exec_id_suffix,
+                    context_suffix,
                 )
 
             # Wait for chart animations (e.g. ECharts) to finish after spinner clears.
@@ -336,5 +336,5 @@ def take_tiled_screenshot(
         # Unlike the readiness-timeout warning above, this is a genuine
         # system-level fault (unexpected error, not a customer chart taking
         # too long to load), so it stays at ERROR/exception level.
-        logger.exception("Tiled screenshot failed: %s%s", e, exec_id_suffix)
+        logger.exception("Tiled screenshot failed: %s%s", e, context_suffix)
         return None

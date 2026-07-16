@@ -213,12 +213,12 @@ class BaseScreenshot:
         self,
         user: User,
         window_size: WindowSize | None = None,
-        execution_id: str | None = None,
+        log_context: str | None = None,
     ) -> bytes | None:
         driver = self.driver(window_size, user)
         try:
             self.screenshot = driver.get_screenshot(
-                self.url, self.element, user, execution_id=execution_id
+                self.url, self.element, user, log_context=log_context
             )
         finally:
             if isinstance(driver, WebDriverSelenium):

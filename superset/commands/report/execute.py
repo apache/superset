@@ -564,7 +564,7 @@ class BaseReportState:
             imges = []
             for screenshot in screenshots:
                 imge = screenshot.get_screenshot(
-                    user=user, execution_id=str(self._execution_id)
+                    user=user, log_context=f"execution_id={self._execution_id}"
                 )
                 if imge is None:
                     raise ReportScheduleScreenshotFailedError(

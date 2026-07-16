@@ -207,13 +207,13 @@ class WebDriverProxy(ABC):
         url: str,
         element_name: str,
         user: User | None = None,
-        execution_id: str | None = None,
+        log_context: str | None = None,
     ) -> bytes | None:
         """
         Run webdriver and return a screenshot
 
-        :param execution_id: Report execution id, for log correlation. None
-            for callers outside the report pipeline (e.g. thumbnails).
+        :param log_context: Optional identifier (e.g. report execution id, or
+            a cache key for thumbnails) included in log lines for tracing.
         """
 
 
@@ -280,7 +280,7 @@ class WebDriverPlaywright(WebDriverProxy):
         url: str,
         element_name: str,
         user: User | None = None,
-        execution_id: str | None = None,
+        log_context: str | None = None,
     ) -> bytes | None:
         if not PLAYWRIGHT_AVAILABLE:
             logger.info(
@@ -416,7 +416,7 @@ class WebDriverPlaywright(WebDriverProxy):
                             tile_height,
                             load_wait=self._screenshot_load_wait,
                             animation_wait=selenium_animation_wait,
-                            execution_id=execution_id,
+                            log_context=log_context,
                         )
                         if not img:
                             logger.warning(
@@ -800,7 +800,7 @@ class WebDriverSelenium(WebDriverProxy):
         url: str,
         element_name: str,
         user: User | None = None,
-        execution_id: str | None = None,
+        log_context: str | None = None,
     ) -> bytes | None:
         # If a user is passed explicitly and differs from the stored user,
         # update and re-authenticate
