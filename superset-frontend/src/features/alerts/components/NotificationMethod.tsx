@@ -33,6 +33,7 @@ import {
   JsonResponse,
   SupersetClient,
   isFeatureEnabled,
+  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -580,6 +581,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                 tabIndex={0}
                 className="delete-button"
                 onClick={() => onRemove(index)}
+                onKeyDown={handleKeyboardActivation(() => onRemove(index))}
                 aria-label={t('Remove notification method')}
               >
                 <Icons.DeleteOutlined iconSize="l" />
@@ -782,6 +784,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                   role="button"
                   tabIndex={0}
                   onClick={() => setCcVisible(true)}
+                  onKeyDown={handleKeyboardActivation(() => setCcVisible(true))}
                   style={{ display: ccVisible ? 'none' : 'inline-flex' }}
                 >
                   <Icons.MailOutlined iconSize="xs" className="icon" />
@@ -792,6 +795,9 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                   role="button"
                   tabIndex={0}
                   onClick={() => setBccVisible(true)}
+                  onKeyDown={handleKeyboardActivation(() =>
+                    setBccVisible(true),
+                  )}
                   style={{ display: bccVisible ? 'none' : 'inline-flex' }}
                 >
                   <Icons.MailOutlined iconSize="xs" className="icon" />

@@ -253,6 +253,20 @@ class ListDashboardsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheCont
             "Cannot be used together with 'filters'.",
         ),
     ]
+    deleted_state: Annotated[
+        Literal["include", "only"] | None,
+        Field(
+            default=None,
+            description=(
+                "Surface soft-deleted (trashed) dashboards: 'only' returns "
+                "just trashed dashboards, 'include' returns live and trashed "
+                "together. Omit for live dashboards only (default). Trashed "
+                "rows carry a non-null deleted_at and are limited to "
+                "dashboards the caller owns (admins see all); requires the "
+                "SOFT_DELETE feature flag to have produced trashed rows."
+            ),
+        ),
+    ]
     order_column: Annotated[
         str | None, Field(default=None, description="Column to order results by")
     ]
@@ -443,6 +457,13 @@ class DashboardInfo(BaseModel):
     created_on: str | datetime | None = None
     changed_on: str | datetime | None = None
     uuid: str | None = None
+    deleted_at: str | datetime | None = Field(
+        None,
+        description=(
+            "When the dashboard was moved to trash (soft-deleted); null for "
+            "live dashboards. Only populated when listing with deleted_state."
+        ),
+    )
     embedded_uuid: str | None = Field(
         None,
         description=(
@@ -1730,6 +1751,7 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
             css=getattr(dashboard, "css", None),
             certified_by=getattr(dashboard, "certified_by", None),
             certification_details=getattr(dashboard, "certification_details", None),
+            deleted_at=getattr(dashboard, "deleted_at", None),
             native_filters=_extract_native_filters(
                 json_metadata_str,
                 include_data_model_metadata=include_data_model_metadata,
@@ -2313,4 +2335,47 @@ def dashboard_datasets_serializer(dashboard: "Dashboard") -> DashboardDatasets:
         dataset_count=len(datasets),
         inaccessible_dataset_count=inaccessible_count,
         datasets=datasets,
+    )
+
+
+# ---------------------------------------------------------------------------
+# restore_dashboard schemas
+# ---------------------------------------------------------------------------
+
+
+class RestoreDashboardRequest(BaseModel):
+    """Request schema for restore_dashboard."""
+
+    identifier: int | str = Field(
+        ...,
+        description="Dashboard identifier - numeric ID or UUID string.",
+    )
+
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so identifier=true would coerce to
+        dashboard ID 1 and target the wrong object; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID or UUID string")
+        return value
+
+
+class RestoreDashboardResponse(BaseModel):
+    """Result of a restore_dashboard operation."""
+
+    success: bool = Field(description="Whether the dashboard was restored from trash")
+    restored_id: int | None = Field(None, description="ID of the restored dashboard")
+    restored_name: str | None = Field(
+        None, description="Title of the restored dashboard"
+    )
+    message: str | None = Field(None, description="Human-readable outcome message")
+    error: str | None = Field(None, description="Error message if the restore failed")
+    error_type: str | None = Field(None, description="Type of error if failed")
+    permission_denied: bool = Field(
+        False,
+        description=(
+            "True when the caller lacks permission to restore the dashboard (do "
+            "not retry; ask the user)."
+        ),
     )

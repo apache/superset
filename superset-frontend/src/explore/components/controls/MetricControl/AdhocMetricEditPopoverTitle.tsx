@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { handleKeyboardActivation } from '@superset-ui/core';
 import {
   ChangeEventHandler,
   FocusEvent,
@@ -120,6 +121,7 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
         onMouseOut={handleMouseOut}
         onFocus={handleMouseOver}
         onClick={handleClick}
+        onKeyDown={handleKeyboardActivation(handleClick)}
         onBlur={handleBlur}
         role="button"
         tabIndex={0}
