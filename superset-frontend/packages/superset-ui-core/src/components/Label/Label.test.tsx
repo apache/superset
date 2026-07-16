@@ -18,6 +18,7 @@
  */
 import { fireEvent, render } from '@superset-ui/core/spec';
 
+import { Icons } from '../Icons';
 import { Label } from '.';
 import { LabelGallery, options } from './Label.stories';
 
@@ -37,6 +38,21 @@ test('works with an onClick handler', () => {
 test('renders with monospace prop', () => {
   const { getByText } = render(<Label monospace>monospace text</Label>);
   expect(getByText('monospace text')).toBeInTheDocument();
+});
+
+// Regression: Ant Design v6's Tag clones the element passed via its `icon` prop
+// and overwrites that element's inline `style`, which silently dropped the
+// icon's own color. Label wraps the icon in a span so the wrapper (not the
+// icon) is Tag's clone target and the icon keeps its explicit color.
+test('preserves a custom icon color (antd v6 Tag icon-style regression)', () => {
+  const { container } = render(
+    <Label icon={<Icons.CheckCircleOutlined iconColor="#aabbcc" />}>
+      labeled
+    </Label>,
+  );
+  expect(container.querySelector('[role="img"]')).toHaveStyle({
+    color: '#aabbcc',
+  });
 });
 
 // test stories from the storybook!

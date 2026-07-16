@@ -52,10 +52,6 @@
     //           require-default-props, sort-comp, static-property-placement
     //           (prefer-stateless-function / function-component-definition
     //            are represented by react/prefer-function-component below)
-    //   jsx-a11y: interactive-supports-focus,
-    //             no-interactive-element-to-noninteractive-role,
-    //             no-noninteractive-element-interactions,
-    //             no-noninteractive-element-to-interactive-role
     //   typescript: naming-convention
     //   unicorn: prevent-abbreviations
 
@@ -196,6 +192,7 @@
 
     // === JSX-a11y rules ===
     "jsx-a11y/alt-text": "error",
+    "jsx-a11y/anchor-ambiguous-text": "error",
     "jsx-a11y/anchor-has-content": "error",
     "jsx-a11y/anchor-is-valid": "error",
     "jsx-a11y/aria-activedescendant-has-tabindex": "error",
@@ -203,20 +200,31 @@
     "jsx-a11y/aria-proptypes": "error",
     "jsx-a11y/aria-role": ["error", { "ignoreNonDOM": false }],
     "jsx-a11y/aria-unsupported-elements": "error",
-    "jsx-a11y/click-events-have-key-events": "off",
+    "jsx-a11y/autocomplete-valid": "error",
+    "jsx-a11y/click-events-have-key-events": "error",
+    "jsx-a11y/control-has-associated-label": "error",
     "jsx-a11y/heading-has-content": "error",
     "jsx-a11y/html-has-lang": "error",
     "jsx-a11y/iframe-has-title": "error",
     "jsx-a11y/img-redundant-alt": "error",
+    "jsx-a11y/interactive-supports-focus": "error",
     "jsx-a11y/label-has-associated-control": "error",
     "jsx-a11y/lang": "error",
     "jsx-a11y/media-has-caption": "error",
-    "jsx-a11y/mouse-events-have-key-events": "off",
+    "jsx-a11y/mouse-events-have-key-events": "error",
     "jsx-a11y/no-access-key": "error",
+    "jsx-a11y/no-aria-hidden-on-focusable": "error",
     "jsx-a11y/no-autofocus": ["error", { "ignoreNonDOM": true }],
     "jsx-a11y/no-distracting-elements": "error",
+    "jsx-a11y/no-interactive-element-to-noninteractive-role": "error",
+    "jsx-a11y/no-noninteractive-element-interactions": "error",
+    "jsx-a11y/no-noninteractive-element-to-interactive-role": "error",
     "jsx-a11y/no-noninteractive-tabindex": "error",
     "jsx-a11y/no-redundant-roles": "error",
+    // TODO: Graduate to "error" — remaining violations are event-boundary
+    // wrappers (divs/spans whose handlers only stopPropagation) and test
+    // scaffolding where adding a role is semantically wrong. Needs a
+    // dedicated pass; see PR enabling the other jsx-a11y interactive rules.
     "jsx-a11y/no-static-element-interactions": "off",
     "jsx-a11y/role-has-required-aria-props": "error",
     "jsx-a11y/role-supports-aria-props": "error",
@@ -288,6 +296,16 @@
       ],
       "rules": {
         "jsx-a11y/no-redundant-roles": "off"
+      }
+    },
+    {
+      // The pivot table intentionally exposes `role="grid"` on its <table>
+      // for interactive grid semantics (asserted by tableRenders.test.tsx).
+      "files": [
+        "plugins/plugin-chart-pivot-table/src/react-pivottable/TableRenderers.tsx"
+      ],
+      "rules": {
+        "jsx-a11y/no-noninteractive-element-to-interactive-role": "off"
       }
     }
   ],

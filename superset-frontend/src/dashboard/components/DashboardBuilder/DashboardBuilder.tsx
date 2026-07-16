@@ -27,6 +27,7 @@ import { EmptyState, Loading } from '@superset-ui/core/components';
 import { ErrorBoundary, BasicErrorAlert } from 'src/components';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/components/Header';
+import HeadlessAutoRefresh from 'src/dashboard/components/Header/HeadlessAutoRefresh';
 import { Icons } from '@superset-ui/core/components/Icons';
 import IconButton from 'src/dashboard/components/IconButton';
 import { Droppable } from 'src/dashboard/components/dnd/DragDroppable';
@@ -519,6 +520,10 @@ const DashboardBuilder = () => {
     () => (
       <>
         {!hideDashboardHeader && <DashboardHeader />}
+        {/* Report mode is a one-shot screenshot render (reports, thumbnails),
+            so it must never start a refresh timer that could re-fetch charts
+            mid-capture. */}
+        {hideDashboardHeader && !isReport && <HeadlessAutoRefresh />}
         {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.Horizontal && (
             <FilterBar

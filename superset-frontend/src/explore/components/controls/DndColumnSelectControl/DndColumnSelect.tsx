@@ -108,7 +108,7 @@ function DndColumnSelect(props: DndColumnSelectProps) {
 
   const onShiftOptions = useCallback(
     (dragIndex: number, hoverIndex: number) => {
-      optionSelector.swap(dragIndex, hoverIndex);
+      optionSelector.move(dragIndex, hoverIndex);
       onChange(optionSelector.getValues());
     },
     [onChange, optionSelector],

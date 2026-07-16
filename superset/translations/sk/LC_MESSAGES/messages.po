@@ -232,15 +232,15 @@ msgstr "\"%s\" je teraz tmavé téma systému"
 msgid "\"%s\" is now the system default theme"
 msgstr "\"%s\" je teraz predvolený téma systému"
 
-#, python-format
+#, no-python-format
 msgid "% calculation"
 msgstr "Výpočet v %"
 
-#, python-format
+#, no-python-format
 msgid "% of parent"
 msgstr "% z nadradenej položky"
 
-#, python-format
+#, no-python-format
 msgid "% of total"
 msgstr "% z celku"
 
@@ -1356,7 +1356,7 @@ msgstr "Pridané"
 #, python-format
 msgid "Added 1 new column to the virtual dataset"
 msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Do virtuálnej sady dát bol pridaný 1 nový stĺpec"
+msgstr[0] "Do virtuálnej sady dát bol pridaný %s nový stĺpec"
 msgstr[1] "Do virtuálnej sady dát boli pridané %s nové stĺpce"
 msgstr[2] "Do virtuálnej sady dat bolo pridané %s nových stĺpcov"
 
@@ -9176,7 +9176,7 @@ msgstr "Zmenené %s"
 #, python-format
 msgid "Modified 1 column in the virtual dataset"
 msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Upraven 1 stĺpec ve virtuálnej sade dat"
+msgstr[0] "Upraven %s stĺpec ve virtuálnej sade dat"
 msgstr[1] "Upraveny %s stĺpce ve virtuálnej sade dat"
 msgstr[2] "Upraveno %s stĺpcov ve virtuálnej sade dat"
 
@@ -11073,7 +11073,7 @@ msgstr "Odstrániť dotaz z protokolu"
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
 msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Odstranen 1 stĺpec z virtuálnej sady dat"
+msgstr[0] "Odstranen %s stĺpec z virtuálnej sady dat"
 msgstr[1] "Odstraneny %s stĺpce z virtuálnej sady dat"
 msgstr[2] "Odstránené %s stĺpcov z virtuálnej sady dat"
 

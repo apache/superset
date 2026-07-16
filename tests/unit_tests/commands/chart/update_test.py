@@ -17,10 +17,11 @@
 import pytest
 from pytest_mock import MockerFixture
 
-from superset.commands.chart.exceptions import ChartForbiddenError
+from superset.commands.chart.exceptions import ChartForbiddenError, ChartInvalidError
 from superset.commands.chart.update import UpdateChartCommand
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.utils import json
 
 
 def _editorship_exc() -> SupersetSecurityException:
@@ -149,3 +150,91 @@ def test_update_chart_editor_can_perform_regular_update(
     exceptions = compute_subjects.call_args.args[2]
     assert properties["editors"] == [2]
     assert exceptions == []
+
+
+def _query_context_payload(datasource: object) -> dict[str, object]:
+    """Build a query-context-only update payload targeting ``datasource``."""
+    return {
+        "query_context": json.dumps({"datasource": datasource, "queries": []}),
+        "query_context_generation": True,
+    }
+
+
+@pytest.mark.parametrize(
+    "datasource_type",
+    [
+        "table",
+        "query",  # non-table datasource types must also be accepted when matching
+    ],
+)
+def test_update_chart_query_context_matching_datasource_is_allowed(
+    mocker: MockerFixture,
+    datasource_type: str,
+) -> None:
+    """A query context that targets the chart's own datasource is accepted."""
+    find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    find_by_id.return_value = mocker.MagicMock(
+        id=1,
+        tags=[],
+        dashboards=[],
+        datasource_id=42,
+        datasource_type=datasource_type,
+    )
+    mocker.patch("superset.commands.chart.update.security_manager.raise_for_editorship")
+    mocker.patch("superset.commands.chart.update.security_manager.raise_for_access")
+
+    UpdateChartCommand(
+        1, _query_context_payload({"id": 42, "type": datasource_type})
+    ).validate()
+
+
+@pytest.mark.parametrize(
+    "datasource",
+    [
+        {"id": 99, "type": "table"},  # different id
+        {"id": 42, "type": "query"},  # different type
+        {"id": "99", "type": "table"},  # different id as string
+        {"id": 42},  # matching id but missing type
+        {"id": "5f7b3c1a-...-uuid", "type": "table"},  # non-numeric id
+    ],
+)
+def test_update_chart_query_context_mismatched_datasource_is_rejected(
+    mocker: MockerFixture,
+    datasource: dict[str, object],
+) -> None:
+    """A query context pointing at a different datasource is rejected with a 4xx."""
+    find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    find_by_id.return_value = mocker.MagicMock(
+        id=1, tags=[], dashboards=[], datasource_id=42, datasource_type="table"
+    )
+    mocker.patch("superset.commands.chart.update.security_manager.raise_for_editorship")
+    mocker.patch("superset.commands.chart.update.security_manager.raise_for_access")
+
+    with pytest.raises(ChartInvalidError):
+        UpdateChartCommand(1, _query_context_payload(datasource)).validate()
+
+
+@pytest.mark.parametrize(
+    "query_context",
+    [
+        "{}",  # no datasource key
+        '{"datasource": null}',  # null datasource
+        "not-json",  # unparseable payload
+    ],
+)
+def test_update_chart_query_context_without_datasource_is_allowed(
+    mocker: MockerFixture,
+    query_context: str,
+) -> None:
+    """Payloads with no verifiable datasource fall back to the chart's own."""
+    find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    find_by_id.return_value = mocker.MagicMock(
+        id=1, tags=[], dashboards=[], datasource_id=42, datasource_type="table"
+    )
+    mocker.patch("superset.commands.chart.update.security_manager.raise_for_editorship")
+    mocker.patch("superset.commands.chart.update.security_manager.raise_for_access")
+
+    UpdateChartCommand(
+        1,
+        {"query_context": query_context, "query_context_generation": True},
+    ).validate()

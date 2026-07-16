@@ -36,7 +36,7 @@ from sqlalchemy import (  # noqa: E402
     String,
     Text,
 )
-from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402
 from superset.utils import json  # noqa: E402

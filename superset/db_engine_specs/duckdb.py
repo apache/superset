@@ -470,9 +470,10 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
         database: Database,
         inspector: Inspector,
     ) -> set[str]:
-        return {
-            catalog
-            for (catalog,) in inspector.bind.execute(
-                text("SELECT alias FROM MD_ALL_DATABASES() WHERE is_attached;")
-            )
-        }
+        with inspector.engine.connect() as conn:
+            return {
+                catalog
+                for (catalog,) in conn.execute(
+                    text("SELECT alias FROM MD_ALL_DATABASES() WHERE is_attached;")
+                )
+            }

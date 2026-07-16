@@ -48,10 +48,10 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     backref,
+    declared_attr,
     foreign,
     Mapped,
     Query,
