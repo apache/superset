@@ -22,9 +22,11 @@ import pytest
 from PIL import Image
 
 from superset.utils.screenshot_utils import (
+    _resolve_wait_budget_seconds,
     combine_screenshot_tiles,
     SCROLL_SETTLE_TIMEOUT_MS,
     take_tiled_screenshot,
+    TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS,
     TiledScreenshotBudgetExceededError,
 )
 
@@ -755,3 +757,98 @@ class TestTileWaitBudget:
             if call[0][0] == 5 * 1000
         ]
         assert len(animation_calls) == 3
+
+
+class TestResolveWaitBudgetSeconds:
+    """The budget is derived from the running Celery task's own time limit
+    when available, and falls back to the fixed constant otherwise."""
+
+    def _mock_task(self, soft=None, hard=None):
+        task = MagicMock()
+        task.request.timelimit = (soft, hard)
+        return task
+
+    def test_derives_budget_from_soft_time_limit(self):
+        """soft_time_limit is preferred over the hard time_limit when both are set."""
+        task = self._mock_task(soft=90, hard=120)
+        with patch("superset.utils.screenshot_utils.current_task", task):
+            budget = _resolve_wait_budget_seconds()
+
+        # margin = min(300, 90 * 0.2) = 18; budget = 90 - 18 = 72
+        assert budget == 72
+
+    def test_small_task_limit_yields_positive_scaled_margin_budget(self):
+        """A 120s thumbnail-task limit (superset-shell#4389) still gets a
+        usable, positive budget via the scaled-down margin, not the fixed
+        300s margin that would otherwise wipe it out."""
+        task = self._mock_task(soft=None, hard=120)
+        with patch("superset.utils.screenshot_utils.current_task", task):
+            budget = _resolve_wait_budget_seconds()
+
+        # margin = min(300, 120 * 0.2) = 24; budget = 120 - 24 = 96
+        assert budget == 96
+        assert budget > 0
+        assert budget < 120
+
+    def test_no_task_context_falls_back_to_constant(self):
+        """Outside of a Celery task, the fixed fallback budget is used."""
+        with patch("superset.utils.screenshot_utils.current_task", None):
+            budget = _resolve_wait_budget_seconds()
+
+        assert budget == TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS
+
+    def test_task_with_no_timelimit_falls_back_to_constant(self):
+        """A task with no soft or hard limit set falls back to the constant."""
+        task = self._mock_task(soft=None, hard=None)
+        with patch("superset.utils.screenshot_utils.current_task", task):
+            budget = _resolve_wait_budget_seconds()
+
+        assert budget == TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS
+
+    def test_derivation_exception_falls_back_to_constant(self):
+        """Any failure while inspecting the task context must never break a
+        screenshot -- fall back to the constant and log at DEBUG."""
+
+        class _BrokenTask:
+            """Simulates a task-like object whose .request raises."""
+
+            @property
+            def request(self):
+                raise RuntimeError("boom")
+
+        with patch("superset.utils.screenshot_utils.current_task", _BrokenTask()):
+            with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+                budget = _resolve_wait_budget_seconds(log_context="execution_id=abc")
+
+        assert budget == TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS
+        mock_logger.debug.assert_called_once()
+        debug_args = mock_logger.debug.call_args
+        assert "Failed to derive" in debug_args[0][0]
+        assert debug_args[1]["exc_info"] is True
+
+    def test_take_tiled_screenshot_uses_derived_budget_from_task_limit(self):
+        """take_tiled_screenshot caps waits using the task-derived budget."""
+        mock_page = MagicMock()
+        mock_page.locator.return_value = MagicMock()
+        mock_page.evaluate.return_value = {
+            "height": 5000,
+            "top": 100,
+            "left": 50,
+            "width": 800,
+        }
+        mock_page.screenshot.return_value = b"fake_screenshot_data"
+
+        task = self._mock_task(soft=None, hard=120)
+        with patch("superset.utils.screenshot_utils.current_task", task):
+            with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                take_tiled_screenshot(
+                    mock_page, "dashboard", tile_height=2000, load_wait=200
+                )
+
+        # load_wait=200s requested, but the derived 96s budget caps the very
+        # first tile's wait well below that (allow a small tolerance for the
+        # real wall-clock time elapsed between deriving the budget and
+        # capping the first tile's wait).
+        first_timeout = mock_page.wait_for_function.call_args_list[0][1]["timeout"]
+        assert first_timeout == pytest.approx(96 * 1000, abs=1000)
+        assert first_timeout < 200 * 1000

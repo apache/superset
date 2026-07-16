@@ -22,6 +22,7 @@ import logging
 import time
 from typing import TYPE_CHECKING
 
+from celery import current_task
 from PIL import Image
 
 logger = logging.getLogger(__name__)
@@ -29,33 +30,107 @@ logger = logging.getLogger(__name__)
 # Time to wait after scrolling for content to settle and load (in milliseconds)
 SCROLL_SETTLE_TIMEOUT_MS = 1000
 
-# Total wall-clock budget, in seconds, for the entire tiled-screenshot
+# Fallback wall-clock budget, in seconds, for the entire tiled-screenshot
 # operation (element lookup plus all per-tile spinner/animation waits
-# combined). Each tile's wait is capped at whatever remains of this budget
-# so a slow dashboard degrades gracefully instead of running past the
-# Celery task time limit and getting SIGKILLed mid-capture.
+# combined), used when the budget can't be derived from the currently
+# running Celery task's own time limit (see _resolve_wait_budget_seconds).
+# Each tile's wait is capped at whatever remains of the budget so a slow
+# dashboard degrades gracefully instead of running past the task's time
+# limit and getting SIGKILLed mid-capture.
 #
-# This is a conservative fixed constant rather than a value derived from
-# Celery's configured task time limit at runtime, because that limit isn't
-# reliably reachable from here: superset/tasks/scheduler.py sets it
-# per-report-schedule via `apply_async(time_limit=..., soft_time_limit=...)`
-# only when a schedule defines `working_timeout`
-# (ALERT_REPORTS_WORKING_TIME_OUT_KILL); there is no static config value
-# that always reflects the limit actually enforced, and this function can
-# also run outside of a Celery task entirely (e.g. synchronous thumbnail
-# generation).
+# A static config value isn't a reliable substitute for runtime derivation:
+# superset/tasks/scheduler.py sets a report's limit per-schedule via
+# `apply_async(time_limit=..., soft_time_limit=...)`, and per-task
+# `task_annotations` (e.g. an operator giving thumbnail tasks a much
+# shorter limit than reports) are Celery worker configuration invisible to
+# any Superset config key -- only the running task itself knows its
+# effective limit.
 #
 # Production has observed a Celery hard task_time_limit of 1740s (29 min)
 # for report execution (2026-07-13 incident: a tiled screenshot was killed
-# mid-capture with SoftTimeLimitExceeded). This budget leaves a 300s margin
-# under that ceiling for the rest of the pipeline that runs after tiling
-# completes: combining tiles into one image, building the PDF, and
-# uploading/delivering the notification.
+# mid-capture with SoftTimeLimitExceeded). This fallback leaves a 300s
+# margin under that ceiling for the rest of the pipeline that runs after
+# tiling completes: combining tiles into one image, building the PDF, and
+# uploading/delivering the notification. It applies when there's no Celery
+# task context at all (e.g. synchronous thumbnail generation) or the task
+# exposes no usable limit.
 TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS = 1440  # 1740s limit - 300s margin
+
+# Safety margin taken off a runtime-derived budget: min(this cap, this
+# fraction of the task's own limit). The 300s cap matches the fallback
+# budget's margin for large limits (e.g. the 1740s report limit); the
+# fraction scales the margin down for small limits (e.g. a 120s thumbnail
+# task limit) so it doesn't eat the whole budget or push it negative.
+TILED_SCREENSHOT_BUDGET_MARGIN_FRACTION = 0.2
+TILED_SCREENSHOT_BUDGET_MAX_MARGIN_SECONDS = 300
+
+# Floor for a runtime-derived budget. Guards against a pathologically small
+# task limit (well under a minute) yielding a near-zero or negative budget
+# that would abort before capturing a single tile; a small positive budget
+# is still capped by -- and will still be killed by -- the task's actual
+# limit if it's smaller than this floor, but at least gives the tile loop a
+# chance to capture what it can before that happens.
+TILED_SCREENSHOT_MIN_BUDGET_SECONDS = 30
 
 
 class TiledScreenshotBudgetExceededError(RuntimeError):
     """Raised when the tiled-screenshot time budget runs out mid-capture."""
+
+
+def _resolve_wait_budget_seconds(log_context: str | None = None) -> float:
+    """
+    Derive the tiled-screenshot time budget from the currently running
+    Celery task's own soft/hard time limit, if one is running and exposes
+    one. This reflects per-task overrides (e.g. task_annotations giving
+    thumbnail tasks a shorter limit than reports) that no static config
+    value can see, since those overrides only exist at the Celery worker/
+    runtime level.
+
+    Falls back to TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS if there's no
+    task context, the task exposes no usable limit, or anything goes wrong
+    while inspecting it -- this must never be able to break a screenshot.
+    """
+    context_suffix = f" [{log_context}]" if log_context else ""
+    try:
+        if current_task:
+            soft_limit, hard_limit = current_task.request.timelimit or (
+                None,
+                None,
+            )
+            limit = soft_limit or hard_limit
+            if limit:
+                margin = min(
+                    TILED_SCREENSHOT_BUDGET_MAX_MARGIN_SECONDS,
+                    limit * TILED_SCREENSHOT_BUDGET_MARGIN_FRACTION,
+                )
+                budget = max(TILED_SCREENSHOT_MIN_BUDGET_SECONDS, limit - margin)
+                logger.info(
+                    "Tiled screenshot budget derived from Celery task %s=%.1fs: "
+                    "%.1fs (margin=%.1fs).%s",
+                    "soft_time_limit" if soft_limit else "time_limit",
+                    limit,
+                    budget,
+                    margin,
+                    context_suffix,
+                )
+                return budget
+    except Exception:
+        logger.debug(
+            "Failed to derive tiled screenshot budget from the Celery task "
+            "context; using fallback budget of %ss.%s",
+            TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS,
+            context_suffix,
+            exc_info=True,
+        )
+        return TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS
+
+    logger.debug(
+        "No usable Celery task time limit found; using fallback tiled "
+        "screenshot budget of %ss.%s",
+        TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS,
+        context_suffix,
+    )
+    return TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS
 
 
 try:
@@ -234,6 +309,7 @@ def take_tiled_screenshot(
     # match `except PlaywrightTimeout` and incorrectly propagate instead of
     # degrading to `None` like every other unexpected error in this function.
     readiness_timeout = False
+    wait_budget_seconds = _resolve_wait_budget_seconds(log_context)
     start_time = time.monotonic()
     try:
         # Get the target element
@@ -280,7 +356,7 @@ def take_tiled_screenshot(
             # past the Celery task time limit and getting SIGKILLed.
             tile_start = time.monotonic()
             elapsed = tile_start - start_time
-            remaining_budget = TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS - elapsed
+            remaining_budget = wait_budget_seconds - elapsed
             if remaining_budget <= 0:
                 # A customer-side chart-loading issue (a slow/hung dashboard),
                 # not a Superset system fault, so this is a WARNING rather
@@ -288,7 +364,7 @@ def take_tiled_screenshot(
                 # deliberately downgraded screenshot timeout logs the same way.
                 logger.warning(
                     "Tiled screenshot time budget exhausted on tile %s/%s: "
-                    "%s/%s tiles captured so far, %.1fs elapsed of a %ss "
+                    "%s/%s tiles captured so far, %.1fs elapsed of a %.1fs "
                     "budget. Aborting instead of capturing remaining tiles "
                     "unchecked.%s",
                     i + 1,
@@ -296,12 +372,12 @@ def take_tiled_screenshot(
                     len(screenshot_tiles),
                     num_tiles,
                     elapsed,
-                    TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS,
+                    wait_budget_seconds,
                     context_suffix,
                 )
                 raise TiledScreenshotBudgetExceededError(
                     f"Tiled screenshot budget of "
-                    f"{TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS}s exhausted "
+                    f"{wait_budget_seconds:.1f}s exhausted "
                     f"after {len(screenshot_tiles)}/{num_tiles} tiles"
                 )
 
@@ -343,11 +419,11 @@ def take_tiled_screenshot(
                 # made the same call for the other screenshot timeout paths.
                 logger.warning(
                     "Timed out after %.2fs waiting for %s chart container(s) to "
-                    "become ready on tile %s/%s (waited %ss of a %ss requested "
-                    "load_wait; %.1fs elapsed of a %ss total budget; %s/%s tiles "
-                    "captured so far)%s; unready chart holders (chart id, state): "
-                    "%s. Aborting tiled screenshot rather than capturing a blank "
-                    "or partially-loaded tile.",
+                    "become ready on tile %s/%s (waited %.1fs of a %ss requested "
+                    "load_wait; %.1fs elapsed of a %.1fs total budget; %s/%s "
+                    "tiles captured so far)%s; unready chart holders (chart id, "
+                    "state): %s. Aborting tiled screenshot rather than capturing "
+                    "a blank or partially-loaded tile.",
                     elapsed,
                     len(unready_chart_holders),
                     i + 1,
@@ -355,7 +431,7 @@ def take_tiled_screenshot(
                     tile_load_wait,
                     load_wait,
                     time.monotonic() - start_time,
-                    TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS,
+                    wait_budget_seconds,
                     len(screenshot_tiles),
                     num_tiles,
                     context_suffix,
@@ -384,7 +460,7 @@ def take_tiled_screenshot(
             animation_wait_elapsed = 0.0
             if animation_wait > 0:
                 elapsed = time.monotonic() - start_time
-                remaining_budget = TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS - elapsed
+                remaining_budget = wait_budget_seconds - elapsed
                 tile_animation_wait = max(0, min(animation_wait, remaining_budget))
                 if tile_animation_wait > 0:
                     animation_wait_start = time.monotonic()
