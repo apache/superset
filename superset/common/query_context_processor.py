@@ -61,6 +61,7 @@ from superset.constants import CACHE_DISABLED_TIMEOUT, CacheRegion
 from superset.daos.annotation_layer import AnnotationLayerDAO
 from superset.daos.chart import ChartDAO
 from superset.exceptions import (
+    CacheLoadError,
     QueryObjectValidationError,
     SupersetException,
 )
@@ -123,6 +124,30 @@ class _ContributionDependencies:
     totals_by_producer: dict[int, _ContributionTotals]
 
 
+def _enforce_query_cache_contract(
+    query_obj: QueryObject,
+    cache_key: str | None,
+    cache: QueryCacheManager,
+    force_cached: bool | None,
+) -> None:
+    """Validate query-specific cache metadata before allowing source execution."""
+
+    if (
+        cache_key
+        and cache.is_loaded
+        and not cache.has_applied_filter_columns
+        and query_obj.filter
+    ):
+        cache.discard_loaded_value()
+
+    if force_cached and not cache.is_loaded:
+        logger.warning(
+            "force_cached (QueryContext): value is unusable for key %s",
+            cache_key,
+        )
+        raise CacheLoadError("Error loading data from cache")
+
+
 class QueryContextProcessor:
     """
     The query context contains the query object and additional fields necessary
@@ -174,17 +199,7 @@ class QueryContextProcessor:
         )
         cache_read_ns = max(0, time.perf_counter_ns() - cache_read_start_ns)
 
-        # If cache is loaded but missing applied_filter_columns and query has filters,
-        # treat as cache miss to ensure fresh query with proper applied_filter_columns
-        if (
-            query_obj
-            and cache_key
-            and cache.is_loaded
-            and not getattr(cache, "has_applied_filter_columns", False)
-            and query_obj.filter
-            and len(query_obj.filter) > 0
-        ):
-            cache.discard_loaded_value()
+        _enforce_query_cache_contract(query_obj, cache_key, cache, force_cached)
 
         source_ns = 0
         cache_write_ns: int | None = None

@@ -1363,7 +1363,7 @@ def test_force_cached_separates_dependency_and_producer_cache_identity():
     assert captured_limits == [None, 1000]
     assert totals_query.row_limit == 1000
     assert "contribution_totals" not in main_query.post_processing[0]["options"]
-    mock_query_context.get_query_result.assert_not_called()
+    mock_datasource.get_query_result.assert_not_called()
 
 
 def test_query_cache_manager_discards_every_loaded_value() -> None:
@@ -1487,6 +1487,180 @@ def test_get_df_payload_invalidates_all_stale_cache_data() -> None:
     assert result["sql_rowcount"] is None
     assert result["stacktrace"] is None
     assert result["warning"] is None
+
+
+def test_get_df_payload_force_cached_rejects_legacy_filtered_entry() -> None:
+    """Reject a semantically stale cache entry without querying its datasource."""
+    from superset.common.query_object import QueryObject
+    from superset.exceptions import CacheLoadError
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_datasource = MagicMock()
+    mock_datasource.column_names = ["col1"]
+
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["col1"],
+        filters=[{"col": "col1", "op": "IN", "val": ["value1"]}],
+    )
+    legacy_cache = QueryCacheManager(
+        df=pd.DataFrame({"col1": ["value1"]}),
+        query="SELECT col1 FROM table",
+        status=QueryStatus.SUCCESS,
+        is_loaded=True,
+        is_cached=True,
+    )
+    legacy_cache.has_applied_filter_columns = False
+
+    with patch(
+        "superset.common.query_context_processor.QueryCacheManager"
+    ) as mock_cache_manager:
+        mock_cache_manager.get.return_value = legacy_cache
+        with patch.object(query_obj, "validate", return_value=None):
+            with patch.object(processor, "query_cache_key", return_value="key"):
+                with patch.object(processor, "get_cache_timeout", return_value=3600):
+                    with pytest.raises(CacheLoadError):
+                        processor.get_df_payload(query_obj, force_cached=True)
+
+    mock_datasource.get_query_result.assert_not_called()
+    assert legacy_cache.is_loaded is False
+
+
+def test_get_df_payload_force_cached_rejects_forced_source_execution() -> None:
+    """Keep cache-only execution authoritative over a forced source refresh."""
+    from superset.common.query_object import QueryObject
+    from superset.exceptions import CacheLoadError
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = True
+    mock_datasource = MagicMock()
+    mock_datasource.column_names = ["col1"]
+
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["col1"],
+    )
+
+    with patch(
+        "superset.common.query_context_processor.QueryCacheManager"
+    ) as mock_cache_manager:
+        mock_cache_manager.get.return_value = QueryCacheManager()
+        with patch.object(query_obj, "validate", return_value=None):
+            with patch.object(processor, "query_cache_key", return_value="key"):
+                with patch.object(processor, "get_cache_timeout", return_value=3600):
+                    with pytest.raises(CacheLoadError):
+                        processor.get_df_payload(query_obj, force_cached=True)
+
+    mock_datasource.get_query_result.assert_not_called()
+    assert mock_cache_manager.get.call_args.kwargs["force_query"] is True
+    assert mock_cache_manager.get.call_args.kwargs["force_cached"] is True
+
+
+def test_query_cache_manager_rejects_forced_cache_only_execution() -> None:
+    """Reject contradictory cache controls at the cache ownership boundary."""
+    from superset.constants import CacheRegion
+    from superset.exceptions import CacheLoadError
+
+    cache_backend = MagicMock()
+    with patch.dict(
+        "superset.common.utils.query_cache_manager._cache",
+        {CacheRegion.DATA: cache_backend},
+    ):
+        with pytest.raises(CacheLoadError):
+            QueryCacheManager.get(
+                "key",
+                CacheRegion.DATA,
+                force_query=True,
+                force_cached=True,
+            )
+
+    cache_backend.get.assert_not_called()
+
+
+def test_get_df_payload_forced_refresh_executes_when_cache_is_not_required() -> None:
+    """Preserve datasource refreshes when the caller does not require cache."""
+    from datetime import timedelta
+
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import QueryResult
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = True
+    mock_query_context.form_data = {}
+    mock_datasource = MagicMock()
+    mock_datasource.column_names = ["col1"]
+    mock_datasource.get_query_result.return_value = QueryResult(
+        df=pd.DataFrame({"col1": [1]}),
+        query="SELECT col1 FROM table",
+        duration=timedelta(),
+    )
+
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+    query_obj = QueryObject(datasource=mock_datasource, columns=["col1"])
+    cache = QueryCacheManager()
+
+    with patch(
+        "superset.common.query_context_processor.QueryCacheManager"
+    ) as mock_cache_manager:
+        mock_cache_manager.get.return_value = cache
+        with (
+            patch.object(query_obj, "validate", return_value=None),
+            patch.object(processor, "query_cache_key", return_value="key"),
+            patch.object(processor, "get_cache_timeout", return_value=3600),
+            patch.object(
+                processor,
+                "_write_loaded_query_result",
+                return_value=(None, CacheWriteOutcome.NOT_ATTEMPTED),
+            ),
+        ):
+            result = processor.get_df_payload(query_obj, force_cached=False)
+
+    mock_datasource.get_query_result.assert_called_once_with(query_obj)
+    assert result["status"] == QueryStatus.SUCCESS
+
+
+def test_get_df_payload_force_cached_serves_unfiltered_legacy_entry() -> None:
+    """Do not require filter metadata when no filters need reporting."""
+    from superset.common.query_object import QueryObject
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_query_context.form_data = {}
+    mock_datasource = MagicMock()
+    mock_datasource.column_names = ["col1"]
+
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+    query_obj = QueryObject(datasource=mock_datasource, columns=["col1"])
+    legacy_cache = QueryCacheManager(
+        df=pd.DataFrame({"col1": [1]}),
+        query="SELECT col1 FROM table",
+        status=QueryStatus.SUCCESS,
+        is_loaded=True,
+        is_cached=True,
+    )
+    legacy_cache.has_applied_filter_columns = False
+
+    with patch(
+        "superset.common.query_context_processor.QueryCacheManager"
+    ) as mock_cache_manager:
+        mock_cache_manager.get.return_value = legacy_cache
+        with (
+            patch.object(query_obj, "validate", return_value=None),
+            patch.object(processor, "query_cache_key", return_value="key"),
+            patch.object(processor, "get_cache_timeout", return_value=3600),
+        ):
+            result = processor.get_df_payload(query_obj, force_cached=True)
+
+    mock_datasource.get_query_result.assert_not_called()
+    assert legacy_cache.is_loaded is True
+    assert result["status"] == QueryStatus.SUCCESS
 
 
 def test_get_df_payload_bq_memory_limited_warning() -> None:

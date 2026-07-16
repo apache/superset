@@ -262,6 +262,11 @@ class QueryCacheManager:
         """
         query_cache = cls()
         if not key or not _cache[region] or force_query:
+            if force_cached:
+                logger.warning(
+                    "force_cached (QueryContext): value not found for key %s", key
+                )
+                raise CacheLoadError("Error loading data from cache")
             return query_cache
 
         cache_value: dict[str, Any] | None = _cache[region].get(key)
