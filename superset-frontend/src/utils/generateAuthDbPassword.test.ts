@@ -25,6 +25,15 @@ import {
   satisfiesDefaultAuthDbPasswordPolicy,
 } from './generateAuthDbPassword';
 
+const POLICY_WITH_ONLY_MIN_LENGTH = {
+  ...AUTH_DB_DEFAULT_PASSWORD_POLICY,
+  password_require_uppercase: false,
+  password_require_lowercase: false,
+  password_require_digit: false,
+  password_require_special: false,
+  password_common_list_check: false,
+};
+
 test('generateAuthDbPassword returns policy-compliant passwords', () => {
   for (let i = 0; i < 20; i += 1) {
     const pwd = generateAuthDbPassword();
@@ -49,13 +58,8 @@ test('generateAuthDbPassword honors a custom minimum length policy', () => {
 
 test('getAuthDbPasswordPolicyChecks counts Unicode code points for min length', () => {
   const policy = {
-    ...AUTH_DB_DEFAULT_PASSWORD_POLICY,
+    ...POLICY_WITH_ONLY_MIN_LENGTH,
     password_min_length: 2,
-    password_require_uppercase: false,
-    password_require_lowercase: false,
-    password_require_digit: false,
-    password_require_special: false,
-    password_common_list_check: false,
   };
   expect(getAuthDbPasswordPolicyChecks('a😀', policy).minLength).toBe(true);
   expect(getAuthDbPasswordPolicyChecks('😀', policy).minLength).toBe(false);
@@ -77,13 +81,8 @@ test('getAuthDbPasswordPolicyError rejects bcrypt passwords over the byte limit'
 
 test('getAuthDbPasswordPolicyError skips bcrypt byte limit for argon2', () => {
   const policy = {
-    ...AUTH_DB_DEFAULT_PASSWORD_POLICY,
+    ...POLICY_WITH_ONLY_MIN_LENGTH,
     password_hash_algorithm: 'argon2' as const,
-    password_require_uppercase: false,
-    password_require_lowercase: false,
-    password_require_digit: false,
-    password_require_special: false,
-    password_common_list_check: false,
     password_min_length: 1,
   };
   const password = 'A'.repeat(80);
@@ -112,13 +111,8 @@ test('getAuthDbPasswordPolicyChecks still requires a true special character', ()
 
 test('getAuthDbPasswordPolicyChecks accepts any length when min length is zero', () => {
   const policy = {
-    ...AUTH_DB_DEFAULT_PASSWORD_POLICY,
+    ...POLICY_WITH_ONLY_MIN_LENGTH,
     password_min_length: 0,
-    password_require_uppercase: false,
-    password_require_lowercase: false,
-    password_require_digit: false,
-    password_require_special: false,
-    password_common_list_check: false,
   };
   expect(getAuthDbPasswordPolicyChecks('', policy).minLength).toBe(true);
   expect(getAuthDbPasswordPolicyChecks('a', policy).minLength).toBe(true);
@@ -127,13 +121,8 @@ test('getAuthDbPasswordPolicyChecks accepts any length when min length is zero',
 
 test('generateAuthDbPassword never returns empty when policy allows zero length', () => {
   const policy = {
-    ...AUTH_DB_DEFAULT_PASSWORD_POLICY,
+    ...POLICY_WITH_ONLY_MIN_LENGTH,
     password_min_length: 0,
-    password_require_uppercase: false,
-    password_require_lowercase: false,
-    password_require_digit: false,
-    password_require_special: false,
-    password_common_list_check: false,
   };
   for (let i = 0; i < 10; i += 1) {
     const pwd = generateAuthDbPassword(policy);

@@ -24,6 +24,7 @@ import {
 } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import {
+  Flex,
   Icons,
   Popover,
   Progress,
@@ -41,23 +42,9 @@ interface AuthDbPasswordPolicyIndicatorProps {
   policy?: AuthDbPasswordPolicy;
 }
 
-const StrengthWrapper = styled.div`
-  ${({ theme }) => css`
-    display: flex;
-    align-items: center;
-    gap: ${theme.sizeUnit * 2}px;
-  `}
-`;
-
 const StrengthBarContainer = styled.div`
-  ${({ theme }) => css`
-    flex: 1;
-    cursor: help;
-
-    .ant-progress {
-      margin-bottom: 0;
-    }
-  `}
+  flex: 1;
+  cursor: help;
 `;
 
 const Checklist = styled.div`
@@ -168,7 +155,7 @@ export default function AuthDbPasswordPolicyIndicator({
   const strength = getStrengthState(percent, theme);
 
   return (
-    <StrengthWrapper>
+    <Flex align="center" gap={theme.sizeUnit * 2}>
       <Popover
         trigger="hover"
         placement="topLeft"
@@ -193,10 +180,11 @@ export default function AuthDbPasswordPolicyIndicator({
             showInfo={false}
             strokeColor={strength.color}
             size="small"
+            style={{ marginBottom: 0 }}
           />
         </StrengthBarContainer>
       </Popover>
       <Typography.Text type="secondary">{strength.label}</Typography.Text>
-    </StrengthWrapper>
+    </Flex>
   );
 }
