@@ -29,15 +29,16 @@ jobs:
         uses: ./.github/actions/setup-backend/
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Enable brew and helm-docs
-        # Add brew to the path - see https://github.com/actions/runner-images/issues/6283
-        run: |
-          echo "/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin" >> $GITHUB_PATH
-          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          echo "HOMEBREW_PREFIX=$HOMEBREW_PREFIX" >>"${GITHUB_ENV}"
-          echo "HOMEBREW_CELLAR=$HOMEBREW_CELLAR" >>"${GITHUB_ENV}"
-          echo "HOMEBREW_REPOSITORY=$HOMEBREW_REPOSITORY" >>"${GITHUB_ENV}"
-          brew install norwoodj/tap/helm-docs
+      - name: Setup Go
+        uses: actions/setup-go@v5
+      - name: Install helm-docs
+        # Previously `brew install norwoodj/tap/helm-docs`, but Homebrew now
+        # refuses to install from untrusted third-party taps ("Skipping
+        # norwoodj/tap because it is not trusted"), which breaks CI. Install the
+        # pinned binary directly with Go instead — this matches apache/superset
+        # upstream and keeps the version aligned with the helm-docs pre-commit
+        # hook rev in .pre-commit-config.yaml.
+        run: go install github.com/norwoodj/helm-docs/cmd/helm-docs@v1.14.2
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
