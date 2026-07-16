@@ -45,7 +45,7 @@ import re
 
 from superset.models.helpers import ExploreMixin
 
-_SOURCE = inspect.getsource(ExploreMixin.processing_time_offsets)
+_SOURCE: str = inspect.getsource(ExploreMixin.processing_time_offsets)
 
 
 def test_relative_offset_leaves_inner_dttm_none() -> None:
