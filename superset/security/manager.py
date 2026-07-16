@@ -35,8 +35,8 @@ from typing import (
 
 from flask import current_app, Flask, g, has_app_context, Request, Response
 from flask_appbuilder import Model
-from flask_appbuilder.const import LOGMSG_WAR_SEC_LOGIN_FAILED
 from flask_appbuilder.api import expose, protect, safe
+from flask_appbuilder.const import LOGMSG_WAR_SEC_LOGIN_FAILED
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.security.sqla.apis import GroupApi, RoleApi, UserApi
 from flask_appbuilder.security.sqla.apis.permission_view_menu.api import (
