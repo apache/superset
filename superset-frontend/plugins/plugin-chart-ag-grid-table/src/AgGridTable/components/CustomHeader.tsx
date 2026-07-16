@@ -68,7 +68,7 @@ const getSortIcon = (sortState: SortState[], colId: string | null) => {
 const autoOpenFilterAndFocus = async (
   column: Column,
   api: GridApi,
-  filterRef: React.RefObject<HTMLDivElement>,
+  filterRef: React.RefObject<HTMLDivElement | null>,
   setFilterVisible: (visible: boolean) => void,
   lastFilteredInputPosition?: FilterInputPosition,
 ) => {

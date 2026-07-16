@@ -32,6 +32,7 @@ import {
   useCallback,
   useRef,
   Key,
+  type ReactElement,
 } from 'react';
 import type { CellProps } from 'react-table';
 import { Link, useHistory } from 'react-router-dom';
@@ -719,7 +720,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           // avoid a doubled `/superset/superset/...`. External
           // `default_endpoint` URLs pass through unchanged.
           const exploreTo = stripAppRoot(exploreURL);
-          let titleLink: JSX.Element;
+          let titleLink: ReactElement;
           if (PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET) {
             titleLink = (
               <Link data-test="internal-link" to={exploreTo}>

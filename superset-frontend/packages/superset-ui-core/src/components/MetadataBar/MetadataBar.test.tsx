@@ -43,14 +43,14 @@ const TWO_DAYS_AGO = '2 days ago';
 
 const runWithBarCollapsed = async (func: Function) => {
   const spy = jest.spyOn(resizeDetector, 'useResizeDetector');
-  let width: number;
-  spy.mockImplementation(props => {
+  let width = 0;
+  spy.mockImplementation(((props: any) => {
     if (props?.onResize && !width) {
       width = 80;
-      props.onResize(width);
+      props.onResize({ width, height: 0, entry: null as unknown });
     }
-    return { ref: { current: undefined } };
-  });
+    return { ref: () => {} };
+  }) as never);
   await func();
   spy.mockRestore();
 };

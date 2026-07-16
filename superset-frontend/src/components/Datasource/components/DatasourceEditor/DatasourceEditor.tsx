@@ -25,6 +25,7 @@ import {
   useEffect,
   useRef,
   useMemo,
+  type ReactElement,
 } from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import type { AnyAction } from 'redux';
@@ -469,7 +470,7 @@ function CollectionTabTitle({
   title,
   collection,
   count,
-}: CollectionTabTitleProps): JSX.Element {
+}: CollectionTabTitleProps): ReactElement {
   const displayCount =
     count !== undefined ? count : collection ? collection.length : 0;
   return (
@@ -482,7 +483,7 @@ function CollectionTabTitle({
   );
 }
 
-function FormContainer({ children }: FormContainerProps): JSX.Element {
+function FormContainer({ children }: FormContainerProps): ReactElement {
   return (
     <Card padded style={{ backgroundColor: themeObject.theme.colorBgLayout }}>
       {children}
@@ -505,7 +506,7 @@ function ColumnCollectionTable({
   columnLabelTooltips,
   filterTerm,
   filterFields,
-}: ColumnCollectionTableProps): JSX.Element {
+}: ColumnCollectionTableProps): ReactElement {
   return (
     <CollectionTable
       tableColumns={
@@ -751,7 +752,7 @@ function ColumnCollectionTable({
   );
 }
 
-function StackedField({ label, formElement }: StackedFieldProps): JSX.Element {
+function StackedField({ label, formElement }: StackedFieldProps): ReactElement {
   return (
     <div>
       <div>
@@ -765,7 +766,7 @@ function StackedField({ label, formElement }: StackedFieldProps): JSX.Element {
 function EditorsSelector({
   datasource,
   onChange,
-}: EditorsSelectorProps): JSX.Element {
+}: EditorsSelectorProps): ReactElement {
   return (
     <SubjectPicker
       relatedUrl="/api/v1/dataset/related/editors"

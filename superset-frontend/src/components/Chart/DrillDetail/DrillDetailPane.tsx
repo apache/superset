@@ -68,7 +68,11 @@ interface DataType {
 // Must be outside of the main component due to problems in
 // react-resize-detector with conditional rendering
 // https://github.com/maslianok/react-resize-detector/issues/178
-function Resizable({ children }: { children: ReactElement }) {
+function Resizable({
+  children,
+}: {
+  children: ReactElement<{ height?: number }>;
+}) {
   const { ref, height } = useResizeDetector();
   return (
     <div ref={ref} css={{ flex: 1 }}>

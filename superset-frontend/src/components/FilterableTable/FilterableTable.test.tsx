@@ -21,6 +21,7 @@ import {
   render,
   screen,
   userEvent,
+  waitFor,
   within,
 } from 'spec/helpers/testing-library';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
@@ -44,80 +45,82 @@ describe('FilterableTable', () => {
   test('is valid element', () => {
     expect(isValidElement(<FilterableTable {...mockedProps} />)).toBe(true);
   });
-  test('renders a grid with 3 Table rows', () => {
-    const { getByRole, getByText } = render(
+  test('renders a grid with 3 Table rows', async () => {
+    const { getByRole, findByText } = render(
       <FilterableTable {...mockedProps} />,
     );
     expect(getByRole('grid')).toBeInTheDocument();
-    mockedProps.data.forEach(({ b: columnBContent }) => {
-      expect(getByText(columnBContent)).toBeInTheDocument();
-    });
+    await Promise.all(
+      mockedProps.data.map(async ({ b: columnBContent }) =>
+        expect(await findByText(columnBContent)).toBeInTheDocument(),
+      ),
+    );
   });
-  test('filters on a string', () => {
+  test('filters on a string', async () => {
     const props = {
       ...mockedProps,
       filterText: 'b1',
     };
-    const { getByText, queryByText } = render(<FilterableTable {...props} />);
-    expect(getByText(props.filterText)).toBeInTheDocument();
+    const { findByText, queryByText } = render(<FilterableTable {...props} />);
+    expect(await findByText(props.filterText)).toBeInTheDocument();
     expect(queryByText('b2')).not.toBeInTheDocument();
     expect(queryByText('b3')).not.toBeInTheDocument();
   });
-  test('filters on a number', () => {
+  test('filters on a number', async () => {
     const props = {
       ...mockedProps,
       filterText: '100',
     };
-    const { getByText, queryByText } = render(<FilterableTable {...props} />);
-    expect(getByText('b2')).toBeInTheDocument();
+    const { findByText, queryByText } = render(<FilterableTable {...props} />);
+    expect(await findByText('b2')).toBeInTheDocument();
     expect(queryByText('b1')).not.toBeInTheDocument();
     expect(queryByText('b3')).not.toBeInTheDocument();
   });
 
-  test('shows all rows when filterText is empty', () => {
+  test('shows all rows when filterText is empty', async () => {
     const props = {
       ...mockedProps,
       filterText: '',
     };
-    const { getByText } = render(<FilterableTable {...props} />);
-    expect(getByText('b1')).toBeInTheDocument();
-    expect(getByText('b2')).toBeInTheDocument();
-    expect(getByText('b3')).toBeInTheDocument();
+    const { findByText } = render(<FilterableTable {...props} />);
+    expect(await findByText('b1')).toBeInTheDocument();
+    expect(await findByText('b2')).toBeInTheDocument();
+    expect(await findByText('b3')).toBeInTheDocument();
   });
 
-  test('updates filtered rows when filterText prop changes', () => {
+  test('updates filtered rows when filterText prop changes', async () => {
     const props = {
       ...mockedProps,
       filterText: 'b1',
     };
-    const { getByText, queryByText, rerender } = render(
+    const { findByText, queryByText, rerender } = render(
       <FilterableTable {...props} />,
     );
-    expect(getByText('b1')).toBeInTheDocument();
+    expect(await findByText('b1')).toBeInTheDocument();
     expect(queryByText('b2')).not.toBeInTheDocument();
     expect(queryByText('b3')).not.toBeInTheDocument();
 
     rerender(<FilterableTable {...mockedProps} filterText="b2" />);
+    expect(await findByText('b2')).toBeInTheDocument();
     expect(queryByText('b1')).not.toBeInTheDocument();
-    expect(getByText('b2')).toBeInTheDocument();
     expect(queryByText('b3')).not.toBeInTheDocument();
   });
 
-  test('shows all rows when filterText is cleared', () => {
+  test('shows all rows when filterText is cleared', async () => {
     const props = {
       ...mockedProps,
       filterText: 'b1',
     };
-    const { getByText, queryByText, rerender } = render(
+    const { findByText, queryByText, rerender } = render(
       <FilterableTable {...props} />,
     );
-    expect(getByText('b1')).toBeInTheDocument();
+    expect(await findByText('b1')).toBeInTheDocument();
     expect(queryByText('b2')).not.toBeInTheDocument();
 
     rerender(<FilterableTable {...mockedProps} filterText="" />);
-    expect(getByText('b1')).toBeInTheDocument();
-    expect(getByText('b2')).toBeInTheDocument();
-    expect(getByText('b3')).toBeInTheDocument();
+    expect(await findByText('b2')).toBeInTheDocument();
+    expect(await findByText('b1')).toBeInTheDocument();
+    expect(await findByText('b3')).toBeInTheDocument();
   });
 });
 
@@ -137,7 +140,7 @@ describe('FilterableTable sorting - RTL', () => {
       .map(cell => cell.textContent)
       .join('');
 
-  test('sorts strings correctly', () => {
+  test('sorts strings correctly', async () => {
     const stringProps = {
       orderedColumnKeys: ['columnA'],
       data: [
@@ -149,13 +152,15 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...stringProps} />);
 
-    const stringColumn = within(screen.getByRole('grid'))
-      .getByText('columnA')
-      .closest('[role=button]');
+    const stringColumn = (
+      await within(screen.getByRole('grid')).findByText('columnA')
+    ).closest('[role=button]');
 
     // Original order
-    expect(getColumnCellsText('columnA')).toEqual(
-      ['Bravo', 'Alpha', 'Charlie'].join(''),
+    await waitFor(() =>
+      expect(getColumnCellsText('columnA')).toEqual(
+        ['Bravo', 'Alpha', 'Charlie'].join(''),
+      ),
     );
 
     if (stringColumn) {
@@ -163,8 +168,10 @@ describe('FilterableTable sorting - RTL', () => {
       userEvent.click(stringColumn);
     }
 
-    expect(getColumnCellsText('columnA')).toEqual(
-      ['Alpha', 'Bravo', 'Charlie'].join(''),
+    await waitFor(() =>
+      expect(getColumnCellsText('columnA')).toEqual(
+        ['Alpha', 'Bravo', 'Charlie'].join(''),
+      ),
     );
 
     if (stringColumn) {
@@ -172,20 +179,24 @@ describe('FilterableTable sorting - RTL', () => {
       userEvent.click(stringColumn);
     }
 
-    expect(getColumnCellsText('columnA')).toEqual(
-      ['Charlie', 'Bravo', 'Alpha'].join(''),
+    await waitFor(() =>
+      expect(getColumnCellsText('columnA')).toEqual(
+        ['Charlie', 'Bravo', 'Alpha'].join(''),
+      ),
     );
 
     if (stringColumn) {
       // Third click to clear sorting
       userEvent.click(stringColumn);
     }
-    expect(getColumnCellsText('columnA')).toEqual(
-      ['Bravo', 'Alpha', 'Charlie'].join(''),
+    await waitFor(() =>
+      expect(getColumnCellsText('columnA')).toEqual(
+        ['Bravo', 'Alpha', 'Charlie'].join(''),
+      ),
     );
   });
 
-  test('sorts integers correctly', () => {
+  test('sorts integers correctly', async () => {
     const integerProps = {
       orderedColumnKeys: ['columnB'],
       data: [{ columnB: 21 }, { columnB: 0 }, { columnB: 623 }],
@@ -193,33 +204,49 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...integerProps} />);
 
-    const integerColumn = within(screen.getByRole('grid'))
-      .getByText('columnB')
-      .closest('[role=button]');
+    const integerColumn = (
+      await within(screen.getByRole('grid')).findByText('columnB')
+    ).closest('[role=button]');
 
     // Original order
-    expect(getColumnCellsText('columnB')).toEqual(['21', '0', '623'].join(''));
+    await waitFor(() =>
+      expect(getColumnCellsText('columnB')).toEqual(
+        ['21', '0', '623'].join(''),
+      ),
+    );
 
     // First click to sort ascending
     if (integerColumn) {
       userEvent.click(integerColumn);
     }
-    expect(getColumnCellsText('columnB')).toEqual(['0', '21', '623'].join(''));
+    await waitFor(() =>
+      expect(getColumnCellsText('columnB')).toEqual(
+        ['0', '21', '623'].join(''),
+      ),
+    );
 
     // Second click to sort descending
     if (integerColumn) {
       userEvent.click(integerColumn);
     }
-    expect(getColumnCellsText('columnB')).toEqual(['623', '21', '0'].join(''));
+    await waitFor(() =>
+      expect(getColumnCellsText('columnB')).toEqual(
+        ['623', '21', '0'].join(''),
+      ),
+    );
 
     // Third click to clear sorting
     if (integerColumn) {
       userEvent.click(integerColumn);
     }
-    expect(getColumnCellsText('columnB')).toEqual(['21', '0', '623'].join(''));
+    await waitFor(() =>
+      expect(getColumnCellsText('columnB')).toEqual(
+        ['21', '0', '623'].join(''),
+      ),
+    );
   });
 
-  test('sorts floating numbers correctly', () => {
+  test('sorts floating numbers correctly', async () => {
     const floatProps = {
       orderedColumnKeys: ['columnC'],
       data: [{ columnC: 45.67 }, { columnC: 1.23 }, { columnC: 89.0000001 }],
@@ -227,41 +254,49 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...floatProps} />);
 
-    const floatColumn = within(screen.getByRole('grid'))
-      .getByText('columnC')
-      .closest('[role=button]');
+    const floatColumn = (
+      await within(screen.getByRole('grid')).findByText('columnC')
+    ).closest('[role=button]');
 
     // Original order
-    expect(getColumnCellsText('columnC')).toEqual(
-      ['45.67', '1.23', '89.0000001'].join(''),
+    await waitFor(() =>
+      expect(getColumnCellsText('columnC')).toEqual(
+        ['45.67', '1.23', '89.0000001'].join(''),
+      ),
     );
 
     // First click to sort ascending
     if (floatColumn) {
       userEvent.click(floatColumn);
     }
-    expect(getColumnCellsText('columnC')).toEqual(
-      ['1.23', '45.67', '89.0000001'].join(''),
+    await waitFor(() =>
+      expect(getColumnCellsText('columnC')).toEqual(
+        ['1.23', '45.67', '89.0000001'].join(''),
+      ),
     );
 
     // Second click to sort descending
     if (floatColumn) {
       userEvent.click(floatColumn);
     }
-    expect(getColumnCellsText('columnC')).toEqual(
-      ['89.0000001', '45.67', '1.23'].join(''),
+    await waitFor(() =>
+      expect(getColumnCellsText('columnC')).toEqual(
+        ['89.0000001', '45.67', '1.23'].join(''),
+      ),
     );
 
     // Third click to clear sorting
     if (floatColumn) {
       userEvent.click(floatColumn);
     }
-    expect(getColumnCellsText('columnC')).toEqual(
-      ['45.67', '1.23', '89.0000001'].join(''),
+    await waitFor(() =>
+      expect(getColumnCellsText('columnC')).toEqual(
+        ['45.67', '1.23', '89.0000001'].join(''),
+      ),
     );
   });
 
-  test('sorts rows properly when floating numbers have mixed types', () => {
+  test('sorts rows properly when floating numbers have mixed types', async () => {
     const mixedFloatProps = {
       orderedColumnKeys: ['columnD'],
       data: [
@@ -281,88 +316,96 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...mixedFloatProps} />);
 
-    const mixedFloatColumn = within(screen.getByRole('grid'))
-      .getByText('columnD')
-      .closest('[role=button]');
+    const mixedFloatColumn = (
+      await within(screen.getByRole('grid')).findByText('columnD')
+    ).closest('[role=button]');
 
     // Original order
-    expect(getColumnCellsText('columnD')).toEqual(
-      [
-        '48710.92',
-        '145776.56',
-        '72212.86',
-        '144729.96000000002',
-        '26260.210000000003',
-        '152718.97999999998',
-        '28550.59',
-        '24078.610000000004',
-        '98089.08000000002',
-        '3439718.0300000007',
-        '4528047.219999993',
-      ].join(''),
+    await waitFor(() =>
+      expect(getColumnCellsText('columnD')).toEqual(
+        [
+          '48710.92',
+          '145776.56',
+          '72212.86',
+          '144729.96000000002',
+          '26260.210000000003',
+          '152718.97999999998',
+          '28550.59',
+          '24078.610000000004',
+          '98089.08000000002',
+          '3439718.0300000007',
+          '4528047.219999993',
+        ].join(''),
+      ),
     );
     // First click to sort ascending
     if (mixedFloatColumn) {
       userEvent.click(mixedFloatColumn);
     }
-    expect(getColumnCellsText('columnD')).toEqual(
-      [
-        '24078.610000000004',
-        '26260.210000000003',
-        '28550.59',
-        '48710.92',
-        '72212.86',
-        '98089.08000000002',
-        '144729.96000000002',
-        '145776.56',
-        '152718.97999999998',
-        '3439718.0300000007',
-        '4528047.219999993',
-      ].join(''),
+    await waitFor(() =>
+      expect(getColumnCellsText('columnD')).toEqual(
+        [
+          '24078.610000000004',
+          '26260.210000000003',
+          '28550.59',
+          '48710.92',
+          '72212.86',
+          '98089.08000000002',
+          '144729.96000000002',
+          '145776.56',
+          '152718.97999999998',
+          '3439718.0300000007',
+          '4528047.219999993',
+        ].join(''),
+      ),
     );
 
     // Second click to sort descending
     if (mixedFloatColumn) {
       userEvent.click(mixedFloatColumn);
     }
-    expect(getColumnCellsText('columnD')).toEqual(
-      [
-        '4528047.219999993',
-        '3439718.0300000007',
-        '152718.97999999998',
-        '145776.56',
-        '144729.96000000002',
-        '98089.08000000002',
-        '72212.86',
-        '48710.92',
-        '28550.59',
-        '26260.210000000003',
-        '24078.610000000004',
-      ].join(''),
+    await waitFor(() =>
+      expect(getColumnCellsText('columnD')).toEqual(
+        [
+          '4528047.219999993',
+          '3439718.0300000007',
+          '152718.97999999998',
+          '145776.56',
+          '144729.96000000002',
+          '98089.08000000002',
+          '72212.86',
+          '48710.92',
+          '28550.59',
+          '26260.210000000003',
+          '24078.610000000004',
+        ].join(''),
+      ),
     );
 
     // Third click to clear sorting
     if (mixedFloatColumn) {
       userEvent.click(mixedFloatColumn);
     }
-    expect(getColumnCellsText('columnD')).toEqual(
-      [
-        '48710.92',
-        '145776.56',
-        '72212.86',
-        '144729.96000000002',
-        '26260.210000000003',
-        '152718.97999999998',
-        '28550.59',
-        '24078.610000000004',
-        '98089.08000000002',
-        '3439718.0300000007',
-        '4528047.219999993',
-      ].join(''),
+    await waitFor(() =>
+      expect(getColumnCellsText('columnD')).toEqual(
+        [
+          '48710.92',
+          '145776.56',
+          '72212.86',
+          '144729.96000000002',
+          '26260.210000000003',
+          '152718.97999999998',
+          '28550.59',
+          '24078.610000000004',
+          '98089.08000000002',
+          '3439718.0300000007',
+          '4528047.219999993',
+        ].join(''),
+      ),
     );
   });
 
-  test('sorts YYYY-MM-DD properly', () => {
+  test('sorts YYYY-MM-DD properly', async () => {
     const dsProps = {
       orderedColumnKeys: ['columnDS'],
       data: [
@@ -378,69 +421,77 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...dsProps} />);
 
-    const dsColumn = within(screen.getByRole('grid'))
-      .getByText('columnDS')
-      .closest('[role=button]');
+    const dsColumn = (
+      await within(screen.getByRole('grid')).findByText('columnDS')
+    ).closest('[role=button]');
 
     // Original order
-    expect(getColumnCellsText('columnDS')).toEqual(
-      [
-        '2021-01-01',
-        '2022-01-01',
-        '2021-01-02',
-        '2021-01-03',
-        '2021-12-01',
-        '2021-10-01',
-        '2022-01-02',
-      ].join(''),
+    await waitFor(() =>
+      expect(getColumnCellsText('columnDS')).toEqual(
+        [
+          '2021-01-01',
+          '2022-01-01',
+          '2021-01-02',
+          '2021-01-03',
+          '2021-12-01',
+          '2021-10-01',
+          '2022-01-02',
+        ].join(''),
+      ),
     );
 
     // First click to sort ascending
     if (dsColumn) {
       userEvent.click(dsColumn);
     }
-    expect(getColumnCellsText('columnDS')).toEqual(
-      [
-        '2021-01-01',
-        '2021-01-02',
-        '2021-01-03',
-        '2021-10-01',
-        '2021-12-01',
-        '2022-01-01',
-        '2022-01-02',
-      ].join(''),
+    await waitFor(() =>
+      expect(getColumnCellsText('columnDS')).toEqual(
+        [
+          '2021-01-01',
+          '2021-01-02',
+          '2021-01-03',
+          '2021-10-01',
+          '2021-12-01',
+          '2022-01-01',
+          '2022-01-02',
+        ].join(''),
+      ),
     );
 
     // Second click to sort descending
     if (dsColumn) {
       userEvent.click(dsColumn);
     }
-    expect(getColumnCellsText('columnDS')).toEqual(
-      [
-        '2022-01-02',
-        '2022-01-01',
-        '2021-12-01',
-        '2021-10-01',
-        '2021-01-03',
-        '2021-01-02',
-        '2021-01-01',
-      ].join(''),
+    await waitFor(() =>
+      expect(getColumnCellsText('columnDS')).toEqual(
+        [
+          '2022-01-02',
+          '2022-01-01',
+          '2021-12-01',
+          '2021-10-01',
+          '2021-01-03',
+          '2021-01-02',
+          '2021-01-01',
+        ].join(''),
+      ),
     );
 
     // Third click to clear sorting
     if (dsColumn) {
       userEvent.click(dsColumn);
     }
-    expect(getColumnCellsText('columnDS')).toEqual(
-      [
-        '2021-01-01',
-        '2022-01-01',
-        '2021-01-02',
-        '2021-01-03',
-        '2021-12-01',
-        '2021-10-01',
-        '2022-01-02',
-      ].join(''),
+    await waitFor(() =>
+      expect(getColumnCellsText('columnDS')).toEqual(
+        [
+          '2021-01-01',
+          '2022-01-01',
+          '2021-01-02',
+          '2021-01-03',
+          '2021-12-01',
+          '2021-10-01',
+          '2022-01-02',
+        ].join(''),
+      ),
     );
   });
 });

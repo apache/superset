@@ -28,8 +28,8 @@ const BASE_SCROLL_SPEED = 8;
 const MAX_SPEED_MULTIPLIER = 3;
 
 interface UseAutoScrollOptions {
-  listRef: React.RefObject<List>;
-  containerRef: React.RefObject<HTMLDivElement>;
+  listRef: React.RefObject<List | null>;
+  containerRef: React.RefObject<HTMLDivElement | null>;
   isDragging: boolean;
   listHeight: number;
 }

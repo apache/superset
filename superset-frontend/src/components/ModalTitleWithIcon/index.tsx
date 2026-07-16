@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isValidElement, cloneElement } from 'react';
+import { isValidElement, cloneElement, type ReactElement } from 'react';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Typography, Icons, TitleProps } from '@superset-ui/core/components';
 import type { IconType } from '@superset-ui/core/components/Icons/types';
+import type { SerializedStyles } from '@emotion/react';
 
 type ModalTitleWithIconProps = Omit<TitleProps, 'title'> & {
   isEditMode?: boolean;
@@ -46,7 +47,10 @@ export const ModalTitleWithIcon = ({
   `;
 
   const renderedIcon = isValidElement(icon) ? (
-    cloneElement(icon as React.ReactElement, { iconSize: 'l', css: iconStyles })
+    cloneElement(
+      icon as ReactElement<{ iconSize?: string; css?: SerializedStyles }>,
+      { iconSize: 'l', css: iconStyles },
+    )
   ) : isEditMode === true ? (
     <Icons.EditOutlined iconSize="l" css={iconStyles} />
   ) : isEditMode === false ? (

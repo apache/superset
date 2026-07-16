@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { memo } from 'react';
+import { memo, type Ref } from 'react';
 import cx from 'classnames';
 import { css, styled } from '@apache-superset/core/theme';
 import { DragDroppable } from 'src/dashboard/components/dnd/DragDroppable';
@@ -82,7 +82,10 @@ function DraggableNewComponent({
       editMode
     >
       {({ dragSourceRef }: { dragSourceRef: ConnectDragSource }) => (
-        <NewComponent ref={dragSourceRef} data-test="new-component">
+        <NewComponent
+          ref={dragSourceRef as unknown as Ref<HTMLDivElement>}
+          data-test="new-component"
+        >
           <NewComponentPlaceholder
             className={cx('new-component-placeholder', className)}
           >

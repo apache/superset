@@ -97,8 +97,11 @@ const toAceAnnotation = (annotation: EditorAnnotation) => ({
  * Creates an EditorHandle implementation backed by an Ace editor instance.
  */
 const createAceEditorHandle = (
-  aceEditorRef: React.RefObject<AceEditor>,
-  completionProviders: React.MutableRefObject<Map<string, CompletionProvider>>,
+  aceEditorRef: React.RefObject<AceEditor | null>,
+  completionProviders: React.MutableRefObject<Map<
+    string,
+    CompletionProvider
+  > | null>,
 ): EditorHandle => ({
   focus: () => {
     aceEditorRef.current?.editor?.focus();
@@ -183,9 +186,9 @@ const createAceEditorHandle = (
   },
 
   registerCompletionProvider: (provider: CompletionProvider): Disposable => {
-    completionProviders.current.set(provider.id, provider);
+    completionProviders.current?.set(provider.id, provider);
     return new Disposable(() => {
-      completionProviders.current.delete(provider.id);
+      completionProviders.current?.delete(provider.id);
     });
   },
 

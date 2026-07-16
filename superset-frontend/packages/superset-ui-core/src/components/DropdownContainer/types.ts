@@ -57,7 +57,7 @@ export interface DropdownContainerProps {
   /**
    * Dropdown ref.
    */
-  dropdownRef?: RefObject<HTMLDivElement>;
+  dropdownRef?: RefObject<HTMLDivElement | null>;
   /**
    * Dropdown additional style properties.
    */

@@ -179,7 +179,7 @@ function SliceAdder({
   dashboardId,
 }: SliceAdderProps) {
   const theme = useTheme();
-  const slicesRequestRef = useRef<AbortController | Promise<void>>();
+  const slicesRequestRef = useRef<AbortController | Promise<void> | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<keyof Slice>(DEFAULT_SORT_KEY);

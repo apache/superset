@@ -52,7 +52,7 @@ interface PluginFilterGroupByCustomizeProps {
   canSelectMultiple?: boolean;
   aggregation?: string;
   enableEmptyFilter?: boolean;
-  inputRef?: RefObject<HTMLInputElement>;
+  inputRef?: RefObject<HTMLInputElement | null>;
 }
 
 export type PluginFilterGroupByQueryFormData = QueryFormData &
@@ -69,7 +69,7 @@ export type PluginFilterGroupByProps = PluginFilterStylesProps & {
   data: (ColumnOption | ColumnData)[];
   filterState: FilterState;
   formData: PluginFilterGroupByQueryFormData;
-  inputRef: RefObject<RefSelectProps>;
+  inputRef: RefObject<RefSelectProps | null>;
 } & PluginFilterHooks;
 
 export const DEFAULT_FORM_DATA: PluginFilterGroupByCustomizeProps = {

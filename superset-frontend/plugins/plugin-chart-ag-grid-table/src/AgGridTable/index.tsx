@@ -24,9 +24,10 @@ import {
   memo,
   FunctionComponent,
   useState,
-  ChangeEvent,
+  FormEvent,
   useEffect,
   type RefObject,
+  ReactElement,
 } from 'react';
 
 import { Constants, ThemedAgGridReact } from '@superset-ui/core/components';
@@ -102,14 +103,14 @@ export interface AgGridTableProps {
   handleCellClicked: (event: CellClickedEvent) => void;
   handleSelectionChanged: (event: SelectionChangedEvent) => void;
   filters?: Record<string, DataRecordValue[]> | null;
-  renderTimeComparisonDropdown: () => JSX.Element | null;
+  renderTimeComparisonDropdown: () => ReactElement | null;
   cleanedTotals: DataRecord;
   showTotals: boolean;
   width: number;
   onColumnStateChange?: (state: AgGridChartStateWithMetadata) => void;
   onFilterChanged?: (filterModel: Record<string, any>) => void;
   metricColumns?: string[];
-  gridRef?: RefObject<AgGridReact>;
+  gridRef?: RefObject<AgGridReact | null>;
   chartState?: AgGridChartState;
 }
 
@@ -246,7 +247,8 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     }, []);
 
     const onFilterTextBoxChanged = useCallback(
-      ({ target: { value } }: ChangeEvent<HTMLInputElement>) => {
+      (event: FormEvent<HTMLInputElement>) => {
+        const value = (event.target as HTMLInputElement).value;
         if (serverPagination) {
           setSearchValue(value);
           debouncedSearch(value);

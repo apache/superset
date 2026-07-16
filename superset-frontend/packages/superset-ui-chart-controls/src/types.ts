@@ -17,7 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactElement, ReactNode, ReactText, ComponentType } from 'react';
+import { ReactElement, ReactNode, ComponentType } from 'react';
 
 import type {
   AdhocColumn,
@@ -38,6 +38,9 @@ import type {
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { sharedControls, sharedControlComponents } from './shared-controls';
+
+// React 19 removed the ReactText type.
+type ReactText = string | number;
 
 export type { Metric } from '@superset-ui/core';
 export type { ControlComponentProps } from './shared-controls/components/types';

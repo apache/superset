@@ -30,12 +30,12 @@
   },
   "dependencies": {
     "d3": "^3.5.17",
-    "prop-types": "^15.8.1",
-    "react": "^19.2.7"
+    "prop-types": "^15.8.1"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "@apache-superset/core": "*"
+    "@apache-superset/core": "*",
+    "react": "^18.2.0 || ^19.0.0"
   }
 }

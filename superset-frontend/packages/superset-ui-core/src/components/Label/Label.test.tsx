@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type React from 'react';
 import { fireEvent, render } from '@superset-ui/core/spec';
 
 import { Icons } from '../Icons';
@@ -57,7 +58,11 @@ test('preserves a custom icon color (antd v6 Tag icon-style regression)', () => 
 
 // test stories from the storybook!
 test('renders all the storybook gallery variants', () => {
-  const { container } = render(<LabelGallery />);
+  // Cast the storybook fn — its render signature changed in storybook 8
+  const GalleryComponent = LabelGallery as unknown as React.FC<
+    Record<string, never>
+  >;
+  const { container } = render(<GalleryComponent />);
   const nonInteractiveLabelCount = 4;
   const renderedLabelCount = options.length * 2 + nonInteractiveLabelCount;
   expect(container.querySelectorAll('.ant-tag')).toHaveLength(

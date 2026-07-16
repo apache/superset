@@ -138,7 +138,7 @@ export default function Login() {
 
   const getAuthIconElement = (
     providerName: string,
-  ): React.JSX.Element | undefined => {
+  ): React.ReactElement | undefined => {
     if (!providerName || typeof providerName !== 'string') {
       return undefined;
     }

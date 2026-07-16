@@ -101,7 +101,7 @@ export interface ChartPropsConfig {
   /** is the chart refreshing its contents */
   isRefreshing?: boolean;
   /** chart ref */
-  inputRef?: RefObject<any>;
+  inputRef?: RefObject<any | null>;
   /** Theme object */
   theme: SupersetTheme;
   /* legend index */
@@ -152,7 +152,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
 
   isRefreshing?: boolean;
 
-  inputRef?: RefObject<any>;
+  inputRef?: RefObject<any | null>;
 
   inContextMenu?: boolean;
 

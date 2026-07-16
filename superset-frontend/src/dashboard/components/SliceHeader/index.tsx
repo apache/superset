@@ -68,7 +68,7 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   height: number;
   queriedDttm?: string | null;
   exportPivotExcel?: (arg0: string) => void;
-  chartHolderRef?: RefObject<HTMLDivElement>;
+  chartHolderRef?: RefObject<HTMLDivElement | null>;
 };
 
 const annotationsLoading = t('Annotation layers are still loading.');

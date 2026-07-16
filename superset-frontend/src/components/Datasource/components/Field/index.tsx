@@ -31,7 +31,11 @@ export interface FieldProps<V> {
   value?: V;
   label: string;
   description?: ReactNode;
-  control: ReactElement;
+  control: ReactElement<{
+    value?: unknown;
+    onChange?: (...args: unknown[]) => void;
+    label?: ReactNode;
+  }>;
   additionalControl?: ReactElement;
   onChange?: (fieldKey: string, newValue: V) => void;
   compact?: boolean;

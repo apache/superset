@@ -76,7 +76,7 @@ export function commonLayerProps({
     let currentTooltipContent: ReactNode = null;
 
     const isCustomTooltip = (content: ReactNode): boolean =>
-      isValidElement(content) &&
+      isValidElement<{ 'data-tooltip-type'?: string }>(content) &&
       content.props?.['data-tooltip-type'] === 'custom';
 
     onHover = (o: JsonObject) => {
@@ -245,7 +245,7 @@ export const getColorRange = ({
   defaultBreakpointsColor: { r: number; g: number; b: number; a: number };
   fixedColor?: { r: number; g: number; b: number; a: number };
   colorBreakpoints?: ColorBreakpointType[];
-  colorScale?: CategoricalColorScale | ScaleLinear<string, string>;
+  colorScale?: CategoricalColorScale | ScaleLinear<string, string, never>;
 }) => {
   let colorRange: Color[] | undefined;
   switch (colorSchemeType) {

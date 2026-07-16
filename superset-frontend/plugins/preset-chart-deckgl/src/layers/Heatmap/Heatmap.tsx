@@ -19,7 +19,9 @@
 import { HeatmapLayer } from '@deck.gl/aggregation-layers';
 import { Position } from '@deck.gl/core';
 import { t } from '@apache-superset/core/translation';
+import type { ScaleLinear } from 'd3-scale';
 import {
+  CategoricalColorScale,
   getSequentialSchemeRegistry,
   JsonObject,
   QueryFormData,
@@ -130,7 +132,8 @@ export const getLayer: GetLayerType<HeatmapLayer> = ({
     colorBreakpoints: fd.color_breakpoints,
     fixedColor: fd.color_picker,
     colorSchemeType,
-    colorScale,
+    colorScale: colorScale as
+      CategoricalColorScale | ScaleLinear<string, string, never> | undefined,
   })?.reverse();
 
   const tooltipContent = setTooltipContent(fd);

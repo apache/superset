@@ -165,7 +165,7 @@ function Echart(
     refs.divRef = divRef;
   }
   const [didMount, setDidMount] = useState(false);
-  const chartRef = useRef<EChartsType>();
+  const chartRef = useRef<EChartsType | null>(null);
   const previousQueryEventHandlers = useRef<QueryEventHandlers>([]);
   const currentSelection = useMemo(
     () => Object.keys(selectedValues) || [],
@@ -174,7 +174,7 @@ function Echart(
   const previousSelection = useRef<string[]>([]);
 
   useImperativeHandle(ref, () => ({
-    getEchartInstance: () => chartRef.current,
+    getEchartInstance: () => chartRef.current ?? undefined,
   }));
 
   const locale = useSelector(

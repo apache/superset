@@ -26,11 +26,21 @@ import {
 } from 'react';
 import type {
   ComponentType,
-  WeakValidationMap,
   ForwardRefExoticComponent,
   PropsWithoutRef,
   RefAttributes,
 } from 'react';
+import type { Validator } from 'prop-types';
+
+// React 19 dropped `WeakValidationMap` from its type exports; keep the original
+// shape so `renderFn.propTypes` still type-checks.
+type WeakValidationMap<T> = {
+  [K in keyof T]?: null extends T[K]
+    ? Validator<T[K] | null | undefined>
+    : undefined extends T[K]
+      ? Validator<T[K] | null | undefined>
+      : Validator<T[K]>;
+};
 
 // TODO: Note that id and className can collide between Props and ReactifyProps
 // leading to (likely) unexpected behaviors. We should either require Props to not
@@ -69,6 +79,24 @@ export type ReactifiedComponent<Props> = ForwardRefExoticComponent<
   PropsWithoutRef<Props & ReactifyProps> & RefAttributes<ReactifiedComponentRef>
 >;
 
+// Mirrors React's own `defaultProps` rule: a default fills in only where the
+// caller passed `undefined`.
+function applyDefaultProps<P extends object>(
+  props: P,
+  defaultProps?: object,
+): P {
+  if (!defaultProps) {
+    return props;
+  }
+  const merged = { ...props } as Record<string, unknown>;
+  Object.entries(defaultProps).forEach(([key, value]) => {
+    if (merged[key] === undefined) {
+      merged[key] = value;
+    }
+  });
+  return merged as P;
+}
+
 // Return the widest public type that covers "use it as a React component" so
 // TypeScript JSX callers and `ComponentType<...>`-typed variables still compile;
 // callers with explicit `ComponentClass<...>` annotations must widen to
@@ -77,11 +105,18 @@ export type ReactifiedComponent<Props> = ForwardRefExoticComponent<
 export default function reactify<Props extends object>(
   renderFn: RenderFuncType<Props>,
   callbacks?: LifeCycleCallbacks,
-): ComponentType<Props & ReactifyProps> {
+): ComponentType<Props & ReactifyProps> & {
+  // Copied off `renderFn` for introspection. React 19 no longer applies these
+  // itself — `applyDefaultProps` does.
+  defaultProps?: Partial<Props & ReactifyProps>;
+} {
   const ReactifiedComponent = forwardRef<
     ReactifiedComponentRef,
     Props & ReactifyProps
-  >(function ReactifiedComponent(props, ref) {
+  >(function ReactifiedComponent(incomingProps, ref) {
+    // React 19 no longer applies `defaultProps` to function components, so the
+    // defaults declared on `renderFn` are merged here instead.
+    const props = applyDefaultProps(incomingProps, renderFn.defaultProps);
     const containerRef = useRef<HTMLDivElement>(null);
     // Keep the latest props available to the unmount callback — legacy
     // consumers read values off `this.props` (e.g. ReactNVD3 uses id).

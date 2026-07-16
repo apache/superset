@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createContext, useContext, useState, FC } from 'react';
+import { createContext, useContext, useState, FC, ReactElement } from 'react';
 
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -31,7 +31,7 @@ interface UiConfigType {
   showRowLimitWarning: boolean; // show the row limit warning
 }
 interface EmbeddedUiConfigProviderProps {
-  children: JSX.Element;
+  children: ReactElement;
 }
 
 export const UiConfigContext = createContext<UiConfigType>({

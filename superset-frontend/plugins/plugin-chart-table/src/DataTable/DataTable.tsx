@@ -27,6 +27,7 @@ import {
   DragEvent,
   useEffect,
   useMemo,
+  ReactElement,
 } from 'react';
 import { typedMemo, usePrevious } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
@@ -79,10 +80,10 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   noResults?: string | ((filterString: string) => ReactNode);
   sticky?: boolean;
   rowCount: number;
-  wrapperRef?: MutableRefObject<HTMLDivElement>;
+  wrapperRef?: MutableRefObject<HTMLDivElement | null>;
   onColumnOrderChange?: () => void;
-  renderGroupingHeaders?: () => JSX.Element;
-  renderTimeComparisonDropdown?: () => JSX.Element;
+  renderGroupingHeaders?: () => ReactElement;
+  renderTimeComparisonDropdown?: () => ReactElement;
   handleSortByChange: (sortBy: SortByItem[]) => void;
   sortByFromParent: SortByItem[];
   manualSearch?: boolean;
@@ -138,7 +139,7 @@ export default typedMemo(function DataTable<D extends object>({
   onFilteredDataChange,
   onFilteredRowsChange,
   ...moreUseTableOptions
-}: DataTableProps<D>): JSX.Element {
+}: DataTableProps<D>): ReactElement {
   const tableHooks: PluginHook<D>[] = [
     useGlobalFilter,
     useSortBy,
@@ -343,7 +344,7 @@ export default typedMemo(function DataTable<D extends object>({
   if (!columns || columns.length === 0) {
     return (
       wrapStickyTable ? wrapStickyTable(getNoResults) : getNoResults()
-    ) as JSX.Element;
+    ) as ReactElement;
   }
 
   const shouldRenderFooter = columns.some(x => !!x.Footer);

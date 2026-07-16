@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { FC } from 'react';
+import type { ComponentProps, FC } from 'react';
 import { css, styled } from '@apache-superset/core/theme';
 import { Tabs as AntdTabs, TabsProps as AntdTabsProps } from 'antd';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -132,18 +132,22 @@ const StyledEditableTabs = styled(StyledTabs)`
 const StyledCloseOutlined = styled(Icons.CloseOutlined)`
   color: ${({ theme }) => theme.colorIcon};
 `;
-export const EditableTabs = Object.assign(StyledEditableTabs, {
-  TabPane: StyledTabPane,
+const EditableTabsBase: FC<TabsProps> = ({
+  type = 'editable-card',
+  animated = { inkBar: true, tabPane: false },
+  ...rest
+}: TabsProps) => (
+  <StyledEditableTabs type={type} animated={animated} {...rest} />
+);
+
+const EditableTabPane: FC<ComponentProps<typeof StyledTabPane>> = ({
+  closeIcon = <StyledCloseOutlined iconSize="s" role="button" tabIndex={0} />,
+  ...rest
+}) => <StyledTabPane closeIcon={closeIcon} {...rest} />;
+
+export const EditableTabs = Object.assign(EditableTabsBase, {
+  TabPane: EditableTabPane,
 });
-
-EditableTabs.defaultProps = {
-  type: 'editable-card',
-  animated: { inkBar: true, tabPane: false },
-};
-
-EditableTabs.TabPane.defaultProps = {
-  closeIcon: <StyledCloseOutlined iconSize="s" role="button" tabIndex={0} />,
-};
 
 export const StyledLineEditableTabs = styled(EditableTabs)`
   &.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {

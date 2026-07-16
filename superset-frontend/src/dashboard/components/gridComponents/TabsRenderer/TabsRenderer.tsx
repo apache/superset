@@ -98,7 +98,7 @@ export interface TabsRendererProps {
   tabItems: TabItem[];
   editMode: boolean;
   renderHoverMenu?: boolean;
-  tabsDragSourceRef?: RefObject<HTMLDivElement>;
+  tabsDragSourceRef?: RefObject<HTMLDivElement | null>;
   handleDeleteComponent: () => void;
   tabsComponent: TabsComponent;
   activeKey: string;
@@ -142,12 +142,18 @@ const DraggableTabNode: React.FC<Readonly<DraggableTabNodeProps>> = ({
     opacity: 1,
   };
 
-  return cloneElement(props.children as React.ReactElement, {
-    ref: setNodeRef,
-    style,
-    ...attributes,
-    ...(disabled ? {} : listeners),
-  });
+  return cloneElement(
+    props.children as React.ReactElement<{
+      ref?: React.Ref<HTMLElement>;
+      style?: React.CSSProperties;
+    }>,
+    {
+      ref: setNodeRef,
+      style,
+      ...attributes,
+      ...(disabled ? {} : listeners),
+    },
+  );
 };
 
 /**

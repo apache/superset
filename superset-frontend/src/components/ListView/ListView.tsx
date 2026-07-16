@@ -315,7 +315,7 @@ export interface ListViewProps<T extends object = any> {
   filtersRef?: React.RefObject<{
     clearFilters: () => void;
     clearFilterById: (id: string) => void;
-  }>;
+  } | null>;
   /** Optional expandable row configuration, passed through to antd Table. */
   expandable?: Record<string, unknown>;
   /** Content rendered between the filter bar and the table/card body. */

@@ -92,7 +92,7 @@ const ChartContextMenu = (
     displayedItems = ContextMenuItem.All,
     additionalConfig,
   }: ChartContextMenuProps,
-  ref: RefObject<ChartContextMenuRef>,
+  ref: RefObject<ChartContextMenuRef | null>,
 ) => {
   const dispatch = useDispatch();
   const theme = useTheme();

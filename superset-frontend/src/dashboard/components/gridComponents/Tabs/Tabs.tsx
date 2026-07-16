@@ -114,7 +114,7 @@ const CloseIconWithDropIndicator = (
 );
 
 interface DraggableChildProps {
-  dragSourceRef: React.RefObject<HTMLDivElement>;
+  dragSourceRef: React.RefObject<HTMLDivElement | null>;
 }
 
 const Tabs = (props: TabsProps): ReactElement => {

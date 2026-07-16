@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { fireEvent, render } from '@superset-ui/core/spec';
+import { fireEvent, render, screen } from '@superset-ui/core/spec';
 import Tabs, { EditableTabs, LineEditableTabs } from './Tabs';
 
 const defaultItems = [
@@ -163,12 +163,14 @@ describe('Tabs', () => {
       expect(onEditMock).toHaveBeenCalledWith(expect.any(String), 'remove');
     });
 
-    test('should have default props set correctly', () => {
-      expect(EditableTabs.defaultProps?.type).toBe('editable-card');
-      expect(EditableTabs.defaultProps?.animated).toEqual({
-        inkBar: true,
-        tabPane: false,
-      });
+    test('renders with editable-card defaults', () => {
+      render(
+        <EditableTabs
+          items={[{ key: '1', label: 'Tab 1', children: 'one' }]}
+        />,
+      );
+      const container = screen.getByText('Tab 1').closest('.ant-tabs');
+      expect(container).toHaveClass('ant-tabs-editable-card');
     });
   });
 
