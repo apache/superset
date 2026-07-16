@@ -21,6 +21,7 @@ import { t } from '@apache-superset/core/translation';
 import { ensureIsArray } from '@superset-ui/core';
 import { datasetLabelLower } from 'src/features/semanticLayers/label';
 import { styled } from '@apache-superset/core/theme';
+import { Alert } from '@apache-superset/core/components';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { GenericDataType } from '@apache-superset/core/common';
 import { GridTable } from 'src/components/GridTable';
@@ -35,7 +36,7 @@ import {
 import { TableControls, ROW_LIMIT_OPTIONS } from './DataTableControls';
 import { SamplesPaneProps } from '../types';
 
-const Error = styled.pre`
+const ErrorAlertWrapper = styled.div`
   margin-top: ${({ theme }) => `${theme.sizeUnit * 4}px`};
 `;
 
@@ -140,22 +141,14 @@ export const SamplesPane = ({
 
   if (responseError) {
     return (
-      <>
-        <TableControls
-          data={data}
-          columnNames={colnames}
-          columnTypes={coltypes}
-          rowcount={rowcount}
-          datasourceId={datasourceId}
-          onInputChange={handleInputChange}
-          isLoading={isLoading}
-          canDownload={canDownload}
-          rowLimit={rowLimit}
-          rowLimitOptions={ROW_LIMIT_OPTIONS}
-          onRowLimitChange={handleRowLimitChange}
+      <ErrorAlertWrapper>
+        <Alert
+          type="error"
+          showIcon
+          message={t('Failed to load samples')}
+          description={responseError}
         />
-        <Error>{responseError}</Error>
-      </>
+      </ErrorAlertWrapper>
     );
   }
 

@@ -653,6 +653,14 @@ def test_semantic_view_data(
         assert data["table_name"] == "Orders View"
         assert data["datasource_name"] == "Orders View"
         assert data["offset"] == 0
+        assert data["supports_samples"] is False
+        assert data["supports_drill_to_detail"] is False
+
+
+def test_semantic_view_raw_row_capabilities_are_disabled() -> None:
+    """Semantic views opt out of both independent raw-row capabilities."""
+    assert SemanticView.supports_samples is False
+    assert SemanticView.supports_drill_to_detail is False
 
 
 @pytest.fixture

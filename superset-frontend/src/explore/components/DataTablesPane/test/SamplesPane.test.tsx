@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { render, waitFor } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { SamplesPane } from '../components';
 import { createSamplesPaneProps } from './fixture';
@@ -88,7 +88,12 @@ describe('SamplesPane', () => {
       useRedux: true,
     });
 
+    expect(await screen.findByRole('alert')).toBeVisible();
+    expect(await findByText('Failed to load samples')).toBeVisible();
     expect(await findByText('Error: Bad request')).toBeVisible();
+    expect(screen.queryByLabelText('Copy')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Reload')).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 
   test('force query, render', async () => {

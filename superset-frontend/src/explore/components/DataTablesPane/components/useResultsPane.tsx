@@ -27,13 +27,14 @@ import {
   QueryData,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
+import { Alert } from '@apache-superset/core/components';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { ResultsPaneProps, QueryResultInterface } from '../types';
 import { SingleQueryResultPane } from './SingleQueryResultPane';
-import { TableControls, ROW_LIMIT_OPTIONS } from './DataTableControls';
+import { ROW_LIMIT_OPTIONS } from './DataTableControls';
 
-const Error = styled.pre`
+const ErrorAlertWrapper = styled.div`
   margin-top: ${({ theme }) => `${theme.sizeUnit * 4}px`};
 `;
 
@@ -77,8 +78,6 @@ export const useResultsPane = ({
   const [responseError, setResponseError] = useState<string>('');
   const queryCount = metadata?.queryObjectCount ?? 1;
   const isQueryCountDynamic = metadata?.dynamicQueryObjectCount;
-
-  const noOpInputChange = useCallback(() => {}, []);
 
   // Never exceed the chart's own row_limit
   const effectiveRowLimit = Math.min(rowLimit, chartRowLimit);
@@ -188,19 +187,14 @@ export const useResultsPane = ({
 
   if (responseError) {
     const err = (
-      <>
-        <TableControls
-          data={[]}
-          columnNames={[]}
-          columnTypes={[]}
-          rowcount={0}
-          datasourceId={queryFormData.datasource}
-          onInputChange={noOpInputChange}
-          isLoading={false}
-          canDownload={canDownload}
+      <ErrorAlertWrapper>
+        <Alert
+          type="error"
+          showIcon
+          message={t('Failed to load results')}
+          description={responseError}
         />
-        <Error>{responseError}</Error>
-      </>
+      </ErrorAlertWrapper>
     );
     return Array(queryCount).fill(err);
   }

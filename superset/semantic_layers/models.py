@@ -200,6 +200,10 @@ class SemanticView(AuditMixinNullable, Model):
 
     __tablename__ = "semantic_views"
 
+    # Semantic views expose governed dimensions and metrics rather than raw rows.
+    supports_samples: bool = False
+    supports_drill_to_detail: bool = False
+
     # Use integer as the primary key for cross-database auto-increment
     # compatibility (sa.Identity() is not supported in MySQL or SQLite).
     # The uuid column is a secondary unique identifier used in URLs and perms.
@@ -424,6 +428,8 @@ class SemanticView(AuditMixinNullable, Model):
             "filter_select_enabled": True,
             "sql": None,
             "select_star": None,
+            "supports_samples": self.supports_samples,
+            "supports_drill_to_detail": self.supports_drill_to_detail,
             "editors": [],
             "description": self.description,
             "table_name": self.name,

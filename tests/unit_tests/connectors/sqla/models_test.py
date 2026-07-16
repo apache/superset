@@ -1001,6 +1001,8 @@ def test_sqla_table_data_includes_currency_code_column(mocker: MockerFixture) ->
     data = table.data
     assert data["currency_code_column"] == "currency_code"
     assert data["main_dttm_col"] == "ds"
+    assert data["supports_samples"] is True
+    assert data["supports_drill_to_detail"] is True
 
 
 def test_sqla_table_link_escapes_url(mocker: MockerFixture) -> None:

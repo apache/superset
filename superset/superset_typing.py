@@ -338,6 +338,8 @@ class ExplorableData(TypedDict, total=False):
     extra: str | None
     always_filter_main_dttm: bool
     normalize_columns: bool
+    supports_samples: bool
+    supports_drill_to_detail: bool
 
 
 VizData: TypeAlias = list[Any] | dict[Any, Any] | None

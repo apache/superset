@@ -22,7 +22,8 @@ from unittest import mock
 
 import pytest
 import rison
-from flask import current_app
+from flask import current_app, Response
+from flask.testing import FlaskClient
 from sqlalchemy import text
 
 from superset import db, security_manager as sm
@@ -638,7 +639,6 @@ def test_get_samples(test_client, login_as_admin, virtual_dataset):
         region=CacheRegion.DATA,
     )
     assert not rv2.json["result"]["is_cached"]
-
     # 3. data precision
     assert "colnames" in rv2.json["result"]
     assert "coltypes" in rv2.json["result"]
@@ -654,6 +654,22 @@ def test_get_samples(test_client, login_as_admin, virtual_dataset):
     eager_samples["col3"] = eager_samples["col3"].apply(float)
     eager_samples = eager_samples.to_dict(orient="records")
     assert eager_samples == rv2.json["result"]["data"]
+
+
+def test_get_samples_rejects_semantic_view(
+    test_client: FlaskClient,
+    login_as_admin: None,
+) -> None:
+    """Datasource API returns the canonical error for semantic views."""
+    response: Response = test_client.post(
+        "/datasource/samples?datasource_id=1&datasource_type=semantic_view",
+        json={},
+    )
+
+    assert response.status_code == 400
+    assert response.json == {
+        "error": "Samples are not available for this datasource type"
+    }
 
 
 def test_get_samples_with_incorrect_cc(test_client, login_as_admin, virtual_dataset):

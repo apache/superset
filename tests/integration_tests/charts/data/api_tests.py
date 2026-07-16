@@ -28,9 +28,11 @@ from zipfile import ZipFile
 import pytest
 from flask import g, Response
 from flask.ctx import AppContext
+from flask.testing import FlaskClient
 
 from superset.charts.data.api import ChartDataRestApi
 from superset.commands.chart.data.get_data_command import ChartDataCommand
+from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.constants import CACHE_DISABLED_TIMEOUT
@@ -162,6 +164,32 @@ class BaseTestChartDataApi(SupersetTestCase):
             if target_column and original_groupby_value is not False:
                 target_column.groupby = original_groupby_value
                 db.session.commit()
+
+
+@mock.patch("superset.charts.data.api.ChartDataCommand")
+@mock.patch.object(ChartDataRestApi, "_create_query_context_from_form")
+def test_drill_detail_query_failure_maps_to_400(
+    create_query_context: mock.MagicMock,
+    chart_data_command: mock.MagicMock,
+    test_client: FlaskClient,
+    login_as_admin: None,
+) -> None:
+    """Chart data API maps the canonical drill failure to HTTP 400."""
+    query_context: mock.MagicMock = create_query_context.return_value
+    query_context.get_cache_timeout.return_value = CACHE_DISABLED_TIMEOUT
+    query_context.result_format = ChartDataResultFormat.JSON
+    query_context.result_type = ChartDataResultType.DRILL_DETAIL
+    chart_data_command.return_value.run.side_effect = ChartDataQueryFailedError(
+        "Drill to detail is not available for this datasource type"
+    )
+
+    response: Response = test_client.post(CHART_DATA_URI, json={})
+
+    assert response.status_code == 400
+    assert (
+        response.json["message"]
+        == "Drill to detail is not available for this datasource type"
+    )
 
 
 @pytest.mark.chart_data_flow

@@ -49,7 +49,7 @@ const waitForRender = (overrides: Record<string, any> = {}) =>
   waitFor(() => setup(overrides));
 
 const SAMPLES_ENDPOINT =
-  'end:/datasource/samples?force=false&datasource_type=table&datasource_id=7&per_page=50&page=1';
+  'glob:*/datasource/samples?force=false&datasource_type=table&datasource_id=7&per_page=50&page=1*';
 
 const DATASET_ENDPOINT = 'glob:*/api/v1/dataset/*';
 
@@ -147,6 +147,7 @@ const fetchWithPaginatedData = () => {
 afterEach(() => {
   fetchMock.clearHistory().removeRoutes();
   supersetGetCache.clear();
+  jest.restoreAllMocks();
 });
 
 test('should render', async () => {
@@ -212,16 +213,35 @@ test('should render the metadata bar', async () => {
 });
 
 test('should render the error', async () => {
-  jest
+  const postSpy = jest
     .spyOn(SupersetClient, 'post')
     .mockRejectedValue(new Error('Something went wrong'));
   await waitForRender();
+  expect(await screen.findByRole('alert')).toBeVisible();
+  expect(screen.getByText('Failed to load drill-to-detail rows')).toBeVisible();
   expect(screen.getByText('Error: Something went wrong')).toBeInTheDocument();
+  expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('Copy')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('Reload')).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Download' }),
+  ).not.toBeInTheDocument();
+  postSpy.mockRestore();
 });
 
 describe('download actions', () => {
-  const renderWithDownloadPermission = () =>
-    render(
+  const renderWithDownloadPermission = () => {
+    jest.spyOn(SupersetClient, 'post').mockResolvedValue({
+      json: {
+        result: {
+          total_count: 3,
+          data: [{ year: 1996, na_sales: 11.27, eu_sales: 8.89 }],
+          colnames: ['year', 'na_sales', 'eu_sales'],
+          coltypes: [0, 0, 0],
+        },
+      },
+    } as never);
+    return render(
       <DrillDetailPane
         initialFilters={[]}
         formData={chart.form_data as unknown as QueryFormData}
@@ -235,6 +255,7 @@ describe('download actions', () => {
         },
       },
     );
+  };
 
   const clickDownloadItem = async (label: string) => {
     await userEvent.click(
