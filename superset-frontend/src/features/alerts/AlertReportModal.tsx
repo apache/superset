@@ -2252,7 +2252,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                             <div className="input-container">
                               <InputNumber
                                 disabled={conditionNotNull}
-                                type="number"
                                 name="threshold"
                                 value={
                                   currentAlert?.validator_config_json
@@ -2522,7 +2521,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       </div>
                       <div className="input-container">
                         <InputNumber
-                          type="number"
                           name="custom_width"
                           value={currentAlert?.custom_width || undefined}
                           min={600}
