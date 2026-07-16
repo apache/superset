@@ -18,10 +18,17 @@ import pytest
 
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.exceptions import QueryClauseValidationException
+from superset.sql.dialects.postgres import normalize_date_trunc_units
 from superset.sql.metric_normalization import (
     normalize_custom_metric,
     SqlCommentConverter,
 )
+
+
+def test_normalize_date_trunc_units_preserves_unparseable_expression() -> None:
+    expression: str = "DATE_TRUNC('QUARTER"
+
+    assert normalize_date_trunc_units(expression) == expression
 
 
 @pytest.mark.parametrize(
