@@ -1291,51 +1291,64 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         expression: Optional[str],
         context: SqlExpressionContext,
     ) -> Optional[str]:
-        return self._process_normalized_sql_expression(
-            expression,
-            context,
-            lambda source: source,
-        )
+        return self._process_validated_sql_expression(expression, context)
 
     def _process_metric_sql_expression(
         self,
         expression: Optional[str],
         context: SqlExpressionContext,
     ) -> Optional[str]:
-        return self._process_normalized_sql_expression(
+        if context.template_processor and expression:
+            expression = context.template_processor.process_template(expression)
+        if not expression:
+            return expression
+
+        expression = validate_adhoc_subquery(
             expression,
-            context,
+            self.database,
+            self.catalog,
+            context.schema,
+            context.engine,
+        )
+        normalized_metric = normalize_custom_metric(
+            expression,
+            context.engine,
             self.database.db_engine_spec.normalize_custom_sql_metric,
         )
+        return self._process_validated_sql_expression(
+            normalized_metric.expression,
+            context,
+            preserve_source=normalized_metric.may_preserve_source,
+            render_template=False,
+            validate_subquery=False,
+        )
 
-    def _process_normalized_sql_expression(  # noqa: C901
+    def _process_validated_sql_expression(  # noqa: C901
         self,
         expression: Optional[str],
         context: SqlExpressionContext,
-        normalizer: Callable[[str], str],
+        *,
+        preserve_source: bool = False,
+        render_template: bool = True,
+        validate_subquery: bool = True,
     ) -> Optional[str]:
-        if context.template_processor and expression:
+        if render_template and context.template_processor and expression:
             expression = context.template_processor.process_template(expression)
         if expression:
-            expression = validate_adhoc_subquery(
-                expression,
-                self.database,
-                self.catalog,
-                context.schema,
-                context.engine,
-            )
-            normalized_metric = normalize_custom_metric(
-                expression,
-                context.engine,
-                normalizer,
-            )
-            expression = normalized_metric.expression
+            if validate_subquery:
+                expression = validate_adhoc_subquery(
+                    expression,
+                    self.database,
+                    self.catalog,
+                    context.schema,
+                    context.engine,
+                )
             source_expression = expression
             try:
                 expression = sanitize_clause(expression, context.engine)
             except QueryClauseValidationException as ex:
                 raise QueryObjectValidationError(ex.message) from ex
-            if normalized_metric.may_preserve_source:
+            if preserve_source:
                 expression = source_expression.rstrip().rstrip(";").rstrip()
             # Adhoc expressions are user-controlled SQL that ends up inside a
             # `literal_column(...)`. Apply the operator-configured

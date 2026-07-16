@@ -57,7 +57,7 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 )
 def test_normalize_custom_sql_metric_date_trunc_unit(unit: str) -> None:
     """DATE_TRUNC unit casing matches PostgreSQL time-grain templates."""
-    expression = (
+    expression: str = (
         f"CASE WHEN DATE_TRUNC('{unit}', created_at) = '2024-01-01' "
         "THEN COUNT(*) / 1000 END"
     )
@@ -87,7 +87,7 @@ def test_normalize_custom_sql_metric_does_not_rewrite_unrelated_sql(
 
 
 def test_normalize_custom_sql_metric_preserves_source_around_multiple_calls() -> None:
-    expression = (
+    expression: str = (
         "/* lead */ CASE WHEN DATE_TRUNC('QUARTER', created_at) = start_date\n"
         "THEN DATE_TRUNC('MONTH', created_at) END /* tail */"
     )
@@ -95,6 +95,14 @@ def test_normalize_custom_sql_metric_preserves_source_around_multiple_calls() ->
     assert spec.normalize_custom_sql_metric(expression) == (
         "/* lead */ CASE WHEN DATE_TRUNC('quarter', created_at) = start_date\n"
         "THEN DATE_TRUNC('month', created_at) END /* tail */"
+    )
+
+
+def test_normalize_custom_sql_metric_normalizes_pg_catalog_date_trunc() -> None:
+    expression: str = "pg_catalog.DATE_TRUNC('QUARTER', created_at)"
+
+    assert spec.normalize_custom_sql_metric(expression) == (
+        "pg_catalog.DATE_TRUNC('quarter', created_at)"
     )
 
 

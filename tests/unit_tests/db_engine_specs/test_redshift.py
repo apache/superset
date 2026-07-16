@@ -84,7 +84,7 @@ def test_normalize_table_name_for_upload(
 
 
 def test_normalize_custom_sql_metric_date_trunc_unit() -> None:
-    expression = "DATE_TRUNC('QUARTER', created_at)"
+    expression: str = "DATE_TRUNC('QUARTER', created_at)"
 
     assert RedshiftEngineSpec.normalize_custom_sql_metric(expression) == (
         "DATE_TRUNC('quarter', created_at)"
@@ -92,20 +92,22 @@ def test_normalize_custom_sql_metric_date_trunc_unit() -> None:
 
 
 def test_date_trunc_metric_matches_quarter_grouping_in_complete_query() -> None:
-    metric = sa.literal_column(
+    metric: sa.ColumnElement = sa.literal_column(
         RedshiftEngineSpec.normalize_custom_sql_metric(
             "CASE WHEN DATE_TRUNC('QUARTER', created_at) = '2024-01-01' "
             "THEN COUNT(*) END"
         )
     ).label("quarter_metric")
-    quarter = RedshiftEngineSpec.get_timestamp_expr(
+    quarter: sa.ColumnElement = RedshiftEngineSpec.get_timestamp_expr(
         col=sa.column("created_at"),
         pdf=None,
         time_grain="P3M",
     )
-    query = sa.select(quarter, metric).select_from(sa.table("orders")).group_by(quarter)
+    query: sa.Select = (
+        sa.select(quarter, metric).select_from(sa.table("orders")).group_by(quarter)
+    )
 
-    sql = str(query.compile(dialect=postgresql.dialect()))
+    sql: str = str(query.compile(dialect=postgresql.dialect()))
 
     assert "DATE_TRUNC('QUARTER'" not in sql
     assert sql.count("DATE_TRUNC('quarter'") >= 2

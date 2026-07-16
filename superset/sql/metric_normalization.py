@@ -20,6 +20,10 @@ from dataclasses import dataclass
 
 from superset.sql.parse import sanitize_clause
 
+POSTGRES_FAMILY_ENGINES: frozenset[str] = frozenset(
+    {"postgres", "postgresql", "redshift"}
+)
+
 
 @dataclass(frozen=True)
 class NormalizedMetric:
@@ -47,7 +51,8 @@ class SqlCommentConverter:
                 continue
             self.result.append(self.expression[self.index])
             self.index += 1
-        return NormalizedMetric("".join(self.result), True)
+        expression = "".join(self.result).rstrip().rstrip(";").rstrip()
+        return NormalizedMetric(expression, True)
 
     def _copy_block_comment(self) -> bool:
         if not self.expression.startswith("/*", self.index):
@@ -134,7 +139,7 @@ def normalize_custom_metric(
 ) -> NormalizedMetric:
     """Normalize custom metric SQL and determine whether source can be preserved."""
     normalized_expression = normalizer(expression)
-    if engine not in {"postgresql", "redshift"}:
+    if engine not in POSTGRES_FAMILY_ENGINES:
         return NormalizedMetric(normalized_expression, False)
 
     try:

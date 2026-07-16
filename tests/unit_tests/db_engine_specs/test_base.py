@@ -87,7 +87,7 @@ def test_get_text_clause_with_colon() -> None:
 
 def test_normalize_custom_sql_metric_is_identity_by_default() -> None:
     """Unconfigured engines preserve custom metric SQL exactly."""
-    expression = "DATE_TRUNC('QUARTER', created_at) /* keep */"
+    expression: str = "DATE_TRUNC('QUARTER', created_at) /* keep */"
 
     assert BaseEngineSpec.normalize_custom_sql_metric(expression) == expression
 

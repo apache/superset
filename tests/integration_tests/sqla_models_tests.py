@@ -84,11 +84,18 @@ def test_saved_postgresql_metric_preserves_normalized_source_and_comments(
     expression: str,
     expected_comment: str,
 ) -> None:
-    database = Database(database_name="postgres", sqlalchemy_uri="postgresql://")
-    table = SqlaTable(table_name="orders", database=database)
-    metric = SqlMetric(metric_name="quarter", expression=expression, table=table)
+    database: Database = Database(
+        database_name="postgres",
+        sqlalchemy_uri="postgresql://",
+    )
+    table: SqlaTable = SqlaTable(table_name="orders", database=database)
+    metric: SqlMetric = SqlMetric(
+        metric_name="quarter",
+        expression=expression,
+        table=table,
+    )
 
-    compiled = str(metric.get_sqla_col())
+    compiled: str = str(metric.get_sqla_col())
 
     assert "DATE_TRUNC('quarter', created_at)" in compiled
     assert expected_comment in compiled
@@ -106,15 +113,18 @@ def test_adhoc_postgresql_metric_preserves_normalized_source_and_comments(
     expression: str,
     expected_comment: str,
 ) -> None:
-    database = Database(database_name="postgres", sqlalchemy_uri="postgresql://")
-    table = SqlaTable(table_name="orders", database=database)
+    database: Database = Database(
+        database_name="postgres",
+        sqlalchemy_uri="postgresql://",
+    )
+    table: SqlaTable = SqlaTable(table_name="orders", database=database)
     metric: AdhocMetric = {
         "expressionType": "SQL",
         "sqlExpression": expression,
         "label": "quarter",
     }
 
-    compiled = str(table.adhoc_metric_to_sqla(metric, {}))
+    compiled: str = str(table.adhoc_metric_to_sqla(metric, {}))
 
     assert "DATE_TRUNC('quarter', created_at)" in compiled
     assert expected_comment in compiled
