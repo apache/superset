@@ -432,7 +432,6 @@ def test_latest_sub_partition_rejects_unknown_field(
     database: mock.MagicMock = mocker.MagicMock()
     database.get_indexes.return_value = [{"column_names": ["ds", "event_type"]}]
     table: mock.MagicMock = mocker.MagicMock()
-
     with pytest.raises(SupersetTemplateException) as exc_info:
         PrestoBaseEngineSpec.latest_sub_partition(
             database,
