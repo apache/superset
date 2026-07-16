@@ -86,7 +86,7 @@
     "@babel/preset-env": "^7.29.7",
     "@babel/preset-react": "^7.29.7",
     "@babel/preset-typescript": "^7.29.7",
-    "typescript": "^5.0.0",
+    "typescript": "^7.0.2",
     "@emotion/styled": "^11.14.1",
     "@types/lodash": "^4.17.24",
     "@testing-library/dom": "^9.3.4",
