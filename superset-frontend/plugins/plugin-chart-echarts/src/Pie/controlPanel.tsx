@@ -129,7 +129,11 @@ const config: ControlPanelConfig = {
               max: 360,
               step: 10,
               label: t('Start angle'),
-              description: t('The angle at which the progress arc begins'),
+              description: t(
+                'The angle at which the progress arc begins. ' +
+                  'For half-donut layouts, use 180° (top) or 0°/360° (bottom). ' +
+                  'Side orientations (90°/270°) are not recentered automatically.',
+              ),
               renderTrigger: true,
               default: DEFAULT_FORM_DATA.startAngle,
             },
@@ -144,7 +148,11 @@ const config: ControlPanelConfig = {
               max: 360,
               step: 10,
               label: t('Swept angle'),
-              description: t('The total angle covered by the progress arc'),
+              description: t(
+                'The total angle covered by the progress arc. ' +
+                  'Values ≤ 180° create a half-donut layout with automatic recentering ' +
+                  'when the start angle is 0°/360° (bottom) or 180° (top).',
+              ),
               renderTrigger: true,
               default: DEFAULT_FORM_DATA.sweptAngle,
             },

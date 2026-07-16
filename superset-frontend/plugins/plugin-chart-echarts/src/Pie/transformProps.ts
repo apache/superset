@@ -78,6 +78,17 @@ export function parseParams({
 
 const HALF_DONUT_SWEEP_LIMIT = 180;
 
+/**
+ * Geometric configuration for each type of semi-circular layout.
+ *
+ * - `centerOffset`  — Y-axis offset of the chart center from the baseline of 50%.
+ *                     Resulting position: `50% + centerOffset`.
+ * - `totalTopBase`  — baseline vertical position of the "Total" text (as a percentage).
+ *
+ * The values ​​are selected so that the "Total" text visually remains
+ * at the geometric center of the arc after the chart is re-centered.
+ */
+
 const HALF_DONUT_LAYOUT: Record<
   HalfDonut,
   { centerOffset: number; totalTopBase: number }
@@ -86,6 +97,18 @@ const HALF_DONUT_LAYOUT: Record<
   bottom: { centerOffset: -20, totalTopBase: 30 },
   none: { centerOffset: 0, totalTopBase: 50 },
 };
+
+/**
+ * Determines the type of semicircular layout based on the start angle and sweep angle.
+ *
+ * Only two semicircle orientations are supported:
+ * - `'top'`    — the arc is positioned at the top; the chart center shifts downwards.
+ * - `'bottom'` — the arc is positioned at the bottom; the chart center shifts upwards.
+ *
+ * @param startAngle - The starting angle of the arc in degrees (0–360).
+ * @param sweptAngle - The sweep angle of the arc in degrees (10–360).
+ * @returns The semicircular layout type.
+ */
 
 export const getHalfDonut = (
   startAngle: number,

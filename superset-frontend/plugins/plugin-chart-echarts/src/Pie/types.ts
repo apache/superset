@@ -125,4 +125,13 @@ export interface PaddingResult {
   left?: string;
 }
 
+/**
+ * Semicircular chart layout type.
+ *
+ * - `'top'`    — arc at the top, center shifted downwards.
+ * - `'bottom'` — arc at the bottom, center shifted upwards.
+ * - `'none'`   — full circle or side orientation (no recentering).
+ *
+ * @see getHalfDonut
+ */
 export type HalfDonut = 'top' | 'bottom' | 'none';
