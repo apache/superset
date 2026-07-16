@@ -639,197 +639,195 @@ describe('legend sorting', () => {
   });
 });
 
-describe('Half-donut', () => {
-  const getAngleChartProps = (
-    donut: boolean,
-    sweptAngle: number,
-    startAngle: number = 180,
-  ) => {
-    const formData: SqlaFormData = {
-      colorScheme: 'bnbColors',
-      datasource: '3__table',
-      granularity_sqla: 'ds',
-      metric: 'sum__num',
-      groupby: ['category'],
-      viz_type: 'pie',
-      donut,
-      startAngle,
-      sweptAngle,
-      show_total: true,
-    };
-
-    return new ChartProps({
-      formData,
-      width: 800,
-      height: 600,
-      queriesData: [
-        {
-          data: [
-            { category: 'A', sum__num: 10, sum__num__contribution: 0.5 },
-            { category: 'B', sum__num: 10, sum__num__contribution: 0.5 },
-          ],
-        },
-      ],
-      theme: supersetTheme,
-    }) as EchartsPieChartProps;
+const getAngleChartProps = (
+  donut: boolean,
+  sweptAngle: number,
+  startAngle: number = 180,
+) => {
+  const formData: SqlaFormData = {
+    colorScheme: 'bnbColors',
+    datasource: '3__table',
+    granularity_sqla: 'ds',
+    metric: 'sum__num',
+    groupby: ['category'],
+    viz_type: 'pie',
+    donut,
+    startAngle,
+    sweptAngle,
+    show_total: true,
   };
 
-  test('sets center to 70% for half-donut', () => {
-    const props = getAngleChartProps(true, 180);
-    const transformed = transformProps(props);
-    const series = transformed.echartOptions.series as PieSeriesOption[];
-    expect(series[0].center).toEqual(['50%', '70%']);
-  });
-
-  test('keeps center at 50% for full donut', () => {
-    const props = getAngleChartProps(true, 360);
-    const transformed = transformProps(props);
-    const series = transformed.echartOptions.series as PieSeriesOption[];
-    expect(series[0].center).toEqual(['50%', '50%']);
-  });
-
-  test('calculates endAngle for a quarter donut', () => {
-    const props = getAngleChartProps(true, 90);
-    const transformed = transformProps(props);
-    const series = transformed.echartOptions.series as PieSeriesOption[];
-    expect(series[0].endAngle).toBe(90);
-  });
-
-  test('sets center to 30% for bottom half-donut (startAngle=0)', () => {
-    const props = getAngleChartProps(true, 180, 0);
-    const transformed = transformProps(props);
-    const series = transformed.echartOptions.series as PieSeriesOption[];
-    expect(series[0].center).toEqual(['50%', '30%']);
-  });
-
-  test('sets center to 30% for bottom half-donut (startAngle=360)', () => {
-    const props = getAngleChartProps(true, 180, 360);
-    const transformed = transformProps(props);
-    const series = transformed.echartOptions.series as PieSeriesOption[];
-    expect(series[0].center).toEqual(['50%', '30%']);
-  });
-
-  test.each([
-    [180, 180, 'top'],
-    [180, 90, 'top'],
-    [180, 45, 'top'],
-    [0, 180, 'bottom'],
-    [360, 180, 'bottom'],
-    [360, 90, 'bottom'],
-    [90, 180, 'none'],
-    [270, 180, 'none'],
-    [180, 360, 'none'],
-    [0, 360, 'none'],
-  ])('startAngle=%i, sweptAngle=%i → %s (%s)', (start, swept, expected) => {
-    expect(getHalfDonut(start, swept)).toBe(expected);
-  });
-
-  const baseProps = {
-    donut: true,
+  return new ChartProps({
+    formData,
     width: 800,
     height: 600,
-    startAngle: 180,
-    sweptAngle: 360,
-  };
+    queriesData: [
+      {
+        data: [
+          { category: 'A', sum__num: 10, sum__num__contribution: 0.5 },
+          { category: 'B', sum__num: 10, sum__num__contribution: 0.5 },
+        ],
+      },
+    ],
+    theme: supersetTheme,
+  }) as EchartsPieChartProps;
+};
 
-  test('returns "middle" for donut without padding and not half', () => {
-    const result = getTotalValuePadding({
-      ...baseProps,
-      chartPadding: { top: 0, bottom: 0, left: 0, right: 0 },
-    });
-    expect(result.top).toBe('middle');
-  });
+test('sets center to 70% for half-donut', () => {
+  const props = getAngleChartProps(true, 180);
+  const transformed = transformProps(props);
+  const series = transformed.echartOptions.series as PieSeriesOption[];
+  expect(series[0].center).toEqual(['50%', '70%']);
+});
 
-  test('returns "0" for non-donut without padding and not half', () => {
-    const result = getTotalValuePadding({
-      ...baseProps,
-      donut: false,
-      chartPadding: { top: 0, bottom: 0, left: 0, right: 0 },
-    });
-    expect(result.top).toBe('0');
-  });
+test('keeps center at 50% for full donut', () => {
+  const props = getAngleChartProps(true, 360);
+  const transformed = transformProps(props);
+  const series = transformed.echartOptions.series as PieSeriesOption[];
+  expect(series[0].center).toEqual(['50%', '50%']);
+});
 
-  test('adjusts top for donut with bottom padding', () => {
-    const result = getTotalValuePadding({
-      ...baseProps,
-      chartPadding: { top: 0, bottom: 60, left: 0, right: 0 },
-    });
-    expect(result.top).toBe('45%');
-  });
+test('calculates endAngle for a quarter donut', () => {
+  const props = getAngleChartProps(true, 90);
+  const transformed = transformProps(props);
+  const series = transformed.echartOptions.series as PieSeriesOption[];
+  expect(series[0].endAngle).toBe(90);
+});
 
-  test('returns "0" for non-donut with bottom padding', () => {
-    const result = getTotalValuePadding({
-      ...baseProps,
-      donut: false,
-      chartPadding: { top: 0, bottom: 60, left: 0, right: 0 },
-    });
-    expect(result.top).toBe('0');
-  });
+test('sets center to 30% for bottom half-donut (startAngle=0)', () => {
+  const props = getAngleChartProps(true, 180, 0);
+  const transformed = transformProps(props);
+  const series = transformed.echartOptions.series as PieSeriesOption[];
+  expect(series[0].center).toEqual(['50%', '30%']);
+});
 
-  test('adjusts top for donut with top padding', () => {
-    const result = getTotalValuePadding({
-      ...baseProps,
-      chartPadding: { top: 60, bottom: 0, left: 0, right: 0 },
-    });
-    expect(result.top).toBe('55%');
-  });
+test('sets center to 30% for bottom half-donut (startAngle=360)', () => {
+  const props = getAngleChartProps(true, 180, 360);
+  const transformed = transformProps(props);
+  const series = transformed.echartOptions.series as PieSeriesOption[];
+  expect(series[0].center).toEqual(['50%', '30%']);
+});
 
-  test('adjusts top for non-donut with top padding', () => {
-    const result = getTotalValuePadding({
-      ...baseProps,
-      donut: false,
-      chartPadding: { top: 60, bottom: 0, left: 0, right: 0 },
-    });
-    expect(result.top).toBe('10%');
-  });
+test.each([
+  [180, 180, 'top'],
+  [180, 90, 'top'],
+  [180, 45, 'top'],
+  [0, 180, 'bottom'],
+  [360, 180, 'bottom'],
+  [360, 90, 'bottom'],
+  [90, 180, 'none'],
+  [270, 180, 'none'],
+  [180, 360, 'none'],
+  [0, 360, 'none'],
+])('startAngle=%i, sweptAngle=%i → %s', (start, swept, expected) => {
+  expect(getHalfDonut(start, swept)).toBe(expected);
+});
 
-  test('uses HALF_DONUT_OFFSET (68.5) when isHalf is true and no top padding', () => {
-    const result = getTotalValuePadding({
-      ...baseProps,
-      sweptAngle: 180,
-      chartPadding: { top: 0, bottom: 0, left: 0, right: 0 },
-    });
-    expect(result.top).toBe('68.5%');
-  });
+const baseProps = {
+  donut: true,
+  width: 800,
+  height: 600,
+  startAngle: 180,
+  sweptAngle: 360,
+};
 
-  test('adjusts top from HALF_DONUT_OFFSET when isHalf is true and has top padding', () => {
-    const result = getTotalValuePadding({
-      ...baseProps,
-      sweptAngle: 180,
-      chartPadding: { top: 60, bottom: 0, left: 0, right: 0 },
-    });
-    expect(result.top).toBe('73.5%');
+test('returns "middle" for donut without padding and not half', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    chartPadding: { top: 0, bottom: 0, left: 0, right: 0 },
   });
+  expect(result.top).toBe('middle');
+});
 
-  test('returns "center" when no left/right padding', () => {
-    const result = getTotalValuePadding({
-      ...baseProps,
-      chartPadding: { top: 0, bottom: 0, left: 0, right: 0 },
-    });
-    expect(result.left).toBe('center');
+test('returns "0" for non-donut without padding and not half', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    donut: false,
+    chartPadding: { top: 0, bottom: 0, left: 0, right: 0 },
   });
+  expect(result.top).toBe('0');
+});
 
-  test('adjusts left for left padding', () => {
-    const result = getTotalValuePadding({
-      ...baseProps,
-      chartPadding: { top: 0, bottom: 0, left: 80, right: 0 },
-    });
-    expect(result.left).toBe('52.5%');
+test('adjusts top for donut with bottom padding', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    chartPadding: { top: 0, bottom: 60, left: 0, right: 0 },
   });
+  expect(result.top).toBe('45%');
+});
 
-  test('adjusts left for right padding', () => {
-    const result = getTotalValuePadding({
-      ...baseProps,
-      chartPadding: { top: 0, bottom: 0, left: 0, right: 80 },
-    });
-    expect(result.left).toBe('42.5%');
+test('returns "0" for non-donut with bottom padding', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    donut: false,
+    chartPadding: { top: 0, bottom: 60, left: 0, right: 0 },
   });
+  expect(result.top).toBe('0');
+});
 
-  test('prioritizes right padding over left padding', () => {
-    const result = getTotalValuePadding({
-      ...baseProps,
-      chartPadding: { top: 0, bottom: 0, left: 80, right: 80 },
-    });
-    expect(result.left).toBe('42.5%');
+test('adjusts top for donut with top padding', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    chartPadding: { top: 60, bottom: 0, left: 0, right: 0 },
   });
+  expect(result.top).toBe('55%');
+});
+
+test('adjusts top for non-donut with top padding', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    donut: false,
+    chartPadding: { top: 60, bottom: 0, left: 0, right: 0 },
+  });
+  expect(result.top).toBe('10%');
+});
+
+test('positions total at 68.5% for top half-donut without padding', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    sweptAngle: 180,
+    chartPadding: { top: 0, bottom: 0, left: 0, right: 0 },
+  });
+  expect(result.top).toBe('68.5%');
+});
+
+test('adjusts total position from 68.5% base for top half-donut with top padding', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    sweptAngle: 180,
+    chartPadding: { top: 60, bottom: 0, left: 0, right: 0 },
+  });
+  expect(result.top).toBe('73.5%');
+});
+
+test('returns "center" when no left/right padding', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    chartPadding: { top: 0, bottom: 0, left: 0, right: 0 },
+  });
+  expect(result.left).toBe('center');
+});
+
+test('adjusts left for left padding', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    chartPadding: { top: 0, bottom: 0, left: 80, right: 0 },
+  });
+  expect(result.left).toBe('52.5%');
+});
+
+test('adjusts left for right padding', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    chartPadding: { top: 0, bottom: 0, left: 0, right: 80 },
+  });
+  expect(result.left).toBe('42.5%');
+});
+
+test('prioritizes right padding over left padding', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    chartPadding: { top: 0, bottom: 0, left: 80, right: 80 },
+  });
+  expect(result.left).toBe('42.5%');
 });
