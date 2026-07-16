@@ -23,7 +23,8 @@ import cx from 'classnames';
 
 interface HoverMenuProps {
   position?: 'left' | 'top';
-  innerRef?: RefObject<HTMLDivElement> | null;
+  // React 19's useRef<T>(null) yields RefObject<T | null>.
+  innerRef?: RefObject<HTMLDivElement | null> | null;
   children?: ReactNode;
   onHover?: (data: { isHovered: boolean }) => void;
 }

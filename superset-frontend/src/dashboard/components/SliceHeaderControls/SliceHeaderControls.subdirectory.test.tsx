@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import { VizType } from '@superset-ui/core';
 import mockState from 'spec/fixtures/mockState';
 import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
@@ -146,7 +151,7 @@ describe('SliceHeaderControls — Cmd-click "Edit chart" under subdirectory depl
 
     userEvent.click(screen.getByRole('button', { name: 'More Options' }));
     const editChart = await screen.findByText('Edit chart');
-    userEvent.click(editChart, { metaKey: true });
+    fireEvent.click(editChart, { metaKey: true });
 
     expect(openSpy).toHaveBeenCalledWith(
       '/explore/?dashboard_page_id=abc&slice_id=371',
@@ -161,7 +166,7 @@ describe('SliceHeaderControls — Cmd-click "Edit chart" under subdirectory depl
 
     userEvent.click(screen.getByRole('button', { name: 'More Options' }));
     const editChart = await screen.findByText('Edit chart');
-    userEvent.click(editChart, { metaKey: true });
+    fireEvent.click(editChart, { metaKey: true });
 
     expect(openSpy).toHaveBeenCalledWith(
       '/superset/explore/?dashboard_page_id=abc&slice_id=371',

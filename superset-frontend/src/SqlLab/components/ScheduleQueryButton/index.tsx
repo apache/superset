@@ -26,7 +26,7 @@ import { styled } from '@apache-superset/core/theme';
 import { parseDate } from 'chrono-node';
 import {
   ModalTrigger,
-  type ModalTriggerImperativeApi,
+  type ModalTriggerRef,
 } from '@superset-ui/core/components/ModalTrigger';
 import {
   Input,
@@ -155,7 +155,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
   const [description, setDescription] = useState('');
   const [label, setLabel] = useState(defaultLabel);
   const [showSchedule, setShowSchedule] = useState(false);
-  const saveModal = useRef<ModalTriggerImperativeApi | null>(null);
+  const saveModal = useRef<ModalTriggerRef['current']>(null);
 
   const onScheduleSubmit = ({
     formData,

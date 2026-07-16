@@ -25,8 +25,7 @@ import {
   useMemo,
   MouseEvent,
   ReactNode,
-  memo,
-} from 'react';
+  memo, type ReactElement } from 'react';
 import {
   SuperChart,
   Behavior,
@@ -184,7 +183,7 @@ function ChartRendererComponent({
   initialValues = BLANK,
   setControlValue = () => {},
   ...restProps
-}: ChartRendererProps): JSX.Element | null {
+}: ChartRendererProps): ReactElement | null {
   const {
     annotationData,
     actions,

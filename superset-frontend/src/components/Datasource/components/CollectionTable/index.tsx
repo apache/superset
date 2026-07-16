@@ -106,7 +106,7 @@ export default function CRUDCollection({
   // Seed both pieces of state from a single createKeyedCollection() pass so
   // that items lacking an `id` get one consistent set of synthetic ids
   // (matching the prior class component, which keyed the collection once).
-  const initialKeyed = useRef<ReturnType<typeof createKeyedCollection>>();
+  const initialKeyed = useRef<ReturnType<typeof createKeyedCollection> | null>(null);
   if (!initialKeyed.current) {
     initialKeyed.current = createKeyedCollection(propsCollection);
   }

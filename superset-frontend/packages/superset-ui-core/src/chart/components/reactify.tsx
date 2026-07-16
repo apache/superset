@@ -105,7 +105,11 @@ function applyDefaultProps<P extends object>(
 export default function reactify<Props extends object>(
   renderFn: RenderFuncType<Props>,
   callbacks?: LifeCycleCallbacks,
-): ComponentType<Props & ReactifyProps> {
+): ComponentType<Props & ReactifyProps> & {
+  // Copied off `renderFn` for introspection. React 19 no longer applies these
+  // itself — `applyDefaultProps` does.
+  defaultProps?: Partial<Props & ReactifyProps>;
+} {
   const ReactifiedComponent = forwardRef<
     ReactifiedComponentRef,
     Props & ReactifyProps

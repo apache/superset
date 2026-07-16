@@ -23,7 +23,14 @@ import {
   getTimeFormatterForGranularity,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+  type ReactElement,
+} from 'react';
 import { isEqual } from 'lodash-es';
 
 import {
@@ -439,7 +446,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [setDataMask, serverPagination],
   );
 
-  const renderTimeComparisonVisibility = (): JSX.Element => (
+  const renderTimeComparisonVisibility = (): ReactElement => (
     <TimeComparisonVisibility
       comparisonColumns={comparisonColumns}
       selectedComparisonColumns={selectedComparisonColumns}

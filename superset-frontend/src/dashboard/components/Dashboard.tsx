@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useCallback, useContext, useEffect, useRef } from 'react';
+import { ReactNode, useCallback, useContext, useEffect, useRef, type ReactElement } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { JsonObject } from '@superset-ui/core';
 
@@ -115,7 +115,7 @@ function Dashboard({
   ownDataCharts,
   layout,
   children,
-}: DashboardProps): JSX.Element {
+}: DashboardProps): ReactElement {
   const context = useContext(PluginContext) as PluginContextType;
 
   // Use refs to track mutable values that persist across renders

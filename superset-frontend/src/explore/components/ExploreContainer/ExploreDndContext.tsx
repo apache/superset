@@ -114,7 +114,7 @@ export const DropzoneContext = createContext<[DropzoneSet, Dispatch<Action>]>([
   () => {},
 ]);
 
-const dropzoneReducer = (state: DropzoneSet = {}, action: Action) => {
+const dropzoneReducer = (state: DropzoneSet, action: Action) => {
   if (action.canDrop) {
     return {
       ...state,

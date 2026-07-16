@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ErrorInfo, useCallback, useEffect, useRef } from 'react';
+import { ErrorInfo, useCallback, useEffect, useRef, type ReactElement } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
 import {
@@ -186,7 +186,7 @@ function Chart({
   force = false,
   isInView = true,
   ...restProps
-}: ChartProps): JSX.Element {
+}: ChartProps): ReactElement {
   const {
     actions,
     chartId,
