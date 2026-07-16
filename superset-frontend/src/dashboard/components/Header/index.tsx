@@ -17,7 +17,14 @@
  * under the License.
  */
 /* eslint-env browser */
-import { useCallback, useEffect, useMemo, useRef, useState , ReactElement} from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  ReactElement,
+} from 'react';
 import {
   isFeatureEnabled,
   FeatureFlag,

@@ -141,9 +141,7 @@ const EditableTabsBase: FC<TabsProps> = ({
 );
 
 const EditableTabPane: FC<ComponentProps<typeof StyledTabPane>> = ({
-  closeIcon = (
-    <StyledCloseOutlined iconSize="s" role="button" tabIndex={0} />
-  ),
+  closeIcon = <StyledCloseOutlined iconSize="s" role="button" tabIndex={0} />,
   ...rest
 }) => <StyledTabPane closeIcon={closeIcon} {...rest} />;
 

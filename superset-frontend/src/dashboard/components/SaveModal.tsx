@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-env browser */
-import { useRef, useState , ReactElement} from 'react';
+import { useRef, useState, ReactElement } from 'react';
 import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
 import {
   Button,

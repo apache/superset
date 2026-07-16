@@ -25,7 +25,9 @@ import {
   useMemo,
   MouseEvent,
   ReactNode,
-  memo, type ReactElement } from 'react';
+  memo,
+  type ReactElement,
+} from 'react';
 import {
   SuperChart,
   Behavior,

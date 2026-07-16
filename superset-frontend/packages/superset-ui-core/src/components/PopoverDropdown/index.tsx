@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Key , ReactElement} from 'react';
+import { Key, ReactElement } from 'react';
 import cx from 'classnames';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';

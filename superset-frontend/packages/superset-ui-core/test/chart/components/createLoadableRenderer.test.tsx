@@ -18,7 +18,7 @@
  */
 
 import '@testing-library/jest-dom';
-import { ComponentType , ReactElement} from 'react';
+import { ComponentType, ReactElement } from 'react';
 import { render as renderTestComponent, screen } from '@testing-library/react';
 import createLoadableRenderer, {
   LoadableRenderer as LoadableRendererType,

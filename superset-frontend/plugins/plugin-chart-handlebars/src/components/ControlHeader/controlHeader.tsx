@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode , ReactElement} from 'react';
+import { ReactNode, ReactElement } from 'react';
 
 interface ControlHeaderProps {
   children: ReactNode;

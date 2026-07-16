@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ErrorInfo, useCallback, useEffect, useRef, type ReactElement } from 'react';
+import {
+  ErrorInfo,
+  useCallback,
+  useEffect,
+  useRef,
+  type ReactElement,
+} from 'react';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
 import {

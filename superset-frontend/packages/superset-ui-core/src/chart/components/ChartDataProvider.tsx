@@ -17,7 +17,14 @@
  * under the License.
  */
 
-import { ReactNode, useCallback, useEffect, useMemo, useState , ReactElement} from 'react';
+import {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  ReactElement,
+} from 'react';
 import {
   SupersetClientInterface,
   RequestConfig,

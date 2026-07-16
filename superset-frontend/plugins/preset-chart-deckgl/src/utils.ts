@@ -137,8 +137,7 @@ export function getBreakPointColorScaler(
     return () => TRANSPARENT_COLOR_ARRAY;
   }
   let scaler:
-    | ScaleLinear<string, string, never>
-    | ScaleThreshold<number, string>;
+    ScaleLinear<string, string, never> | ScaleThreshold<number, string>;
   let maskPoint: (v: number | undefined) => boolean;
   if (breakPoints !== null) {
     // bucket colors into discrete colors

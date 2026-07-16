@@ -31,7 +31,9 @@ import {
   useMemo,
   useCallback,
   useRef,
-  Key, type ReactElement } from 'react';
+  Key,
+  type ReactElement,
+} from 'react';
 import type { CellProps } from 'react-table';
 import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';

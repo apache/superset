@@ -165,7 +165,9 @@ describe('Tabs', () => {
 
     test('renders with editable-card defaults', () => {
       render(
-        <EditableTabs items={[{ key: '1', label: 'Tab 1', children: 'one' }]} />,
+        <EditableTabs
+          items={[{ key: '1', label: 'Tab 1', children: 'one' }]}
+        />,
       );
       const container = screen.getByText('Tab 1').closest('.ant-tabs');
       expect(container).toHaveClass('ant-tabs-editable-card');

@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { RefObject, useEffect, useRef, KeyboardEvent , ReactElement} from 'react';
+import {
+  RefObject,
+  useEffect,
+  useRef,
+  KeyboardEvent,
+  ReactElement,
+} from 'react';
 
 import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
@@ -167,8 +173,8 @@ const DetailsPanelPopover = ({
                   <List.Item>
                     <FilterIndicator
                       ref={el => {
-                    indicatorRefs.current.push(el);
-                  }}
+                        indicatorRefs.current.push(el);
+                      }}
                       key={indicatorKey(indicator)}
                       indicator={indicator}
                       onClick={onHighlightFilterSource}

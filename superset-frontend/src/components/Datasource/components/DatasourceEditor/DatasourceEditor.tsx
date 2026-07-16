@@ -24,7 +24,9 @@ import {
   useState,
   useEffect,
   useRef,
-  useMemo, type ReactElement } from 'react';
+  useMemo,
+  type ReactElement,
+} from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';

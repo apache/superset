@@ -158,7 +158,9 @@ describe('FilterableTable sorting - RTL', () => {
 
     // Original order
     await waitFor(() =>
-      expect(getColumnCellsText('columnA')).toEqual(['Bravo', 'Alpha', 'Charlie'].join('')),
+      expect(getColumnCellsText('columnA')).toEqual(
+        ['Bravo', 'Alpha', 'Charlie'].join(''),
+      ),
     );
 
     if (stringColumn) {
@@ -167,7 +169,9 @@ describe('FilterableTable sorting - RTL', () => {
     }
 
     await waitFor(() =>
-      expect(getColumnCellsText('columnA')).toEqual(['Alpha', 'Bravo', 'Charlie'].join('')),
+      expect(getColumnCellsText('columnA')).toEqual(
+        ['Alpha', 'Bravo', 'Charlie'].join(''),
+      ),
     );
 
     if (stringColumn) {
@@ -176,7 +180,9 @@ describe('FilterableTable sorting - RTL', () => {
     }
 
     await waitFor(() =>
-      expect(getColumnCellsText('columnA')).toEqual(['Charlie', 'Bravo', 'Alpha'].join('')),
+      expect(getColumnCellsText('columnA')).toEqual(
+        ['Charlie', 'Bravo', 'Alpha'].join(''),
+      ),
     );
 
     if (stringColumn) {
@@ -184,7 +190,9 @@ describe('FilterableTable sorting - RTL', () => {
       userEvent.click(stringColumn);
     }
     await waitFor(() =>
-      expect(getColumnCellsText('columnA')).toEqual(['Bravo', 'Alpha', 'Charlie'].join('')),
+      expect(getColumnCellsText('columnA')).toEqual(
+        ['Bravo', 'Alpha', 'Charlie'].join(''),
+      ),
     );
   });
 
@@ -202,7 +210,9 @@ describe('FilterableTable sorting - RTL', () => {
 
     // Original order
     await waitFor(() =>
-      expect(getColumnCellsText('columnB')).toEqual(['21', '0', '623'].join('')),
+      expect(getColumnCellsText('columnB')).toEqual(
+        ['21', '0', '623'].join(''),
+      ),
     );
 
     // First click to sort ascending
@@ -210,7 +220,9 @@ describe('FilterableTable sorting - RTL', () => {
       userEvent.click(integerColumn);
     }
     await waitFor(() =>
-      expect(getColumnCellsText('columnB')).toEqual(['0', '21', '623'].join('')),
+      expect(getColumnCellsText('columnB')).toEqual(
+        ['0', '21', '623'].join(''),
+      ),
     );
 
     // Second click to sort descending
@@ -218,7 +230,9 @@ describe('FilterableTable sorting - RTL', () => {
       userEvent.click(integerColumn);
     }
     await waitFor(() =>
-      expect(getColumnCellsText('columnB')).toEqual(['623', '21', '0'].join('')),
+      expect(getColumnCellsText('columnB')).toEqual(
+        ['623', '21', '0'].join(''),
+      ),
     );
 
     // Third click to clear sorting
@@ -226,7 +240,9 @@ describe('FilterableTable sorting - RTL', () => {
       userEvent.click(integerColumn);
     }
     await waitFor(() =>
-      expect(getColumnCellsText('columnB')).toEqual(['21', '0', '623'].join('')),
+      expect(getColumnCellsText('columnB')).toEqual(
+        ['21', '0', '623'].join(''),
+      ),
     );
   });
 
@@ -244,7 +260,9 @@ describe('FilterableTable sorting - RTL', () => {
 
     // Original order
     await waitFor(() =>
-      expect(getColumnCellsText('columnC')).toEqual(['45.67', '1.23', '89.0000001'].join('')),
+      expect(getColumnCellsText('columnC')).toEqual(
+        ['45.67', '1.23', '89.0000001'].join(''),
+      ),
     );
 
     // First click to sort ascending
@@ -252,7 +270,9 @@ describe('FilterableTable sorting - RTL', () => {
       userEvent.click(floatColumn);
     }
     await waitFor(() =>
-      expect(getColumnCellsText('columnC')).toEqual(['1.23', '45.67', '89.0000001'].join('')),
+      expect(getColumnCellsText('columnC')).toEqual(
+        ['1.23', '45.67', '89.0000001'].join(''),
+      ),
     );
 
     // Second click to sort descending
@@ -260,7 +280,9 @@ describe('FilterableTable sorting - RTL', () => {
       userEvent.click(floatColumn);
     }
     await waitFor(() =>
-      expect(getColumnCellsText('columnC')).toEqual(['89.0000001', '45.67', '1.23'].join('')),
+      expect(getColumnCellsText('columnC')).toEqual(
+        ['89.0000001', '45.67', '1.23'].join(''),
+      ),
     );
 
     // Third click to clear sorting
@@ -268,7 +290,9 @@ describe('FilterableTable sorting - RTL', () => {
       userEvent.click(floatColumn);
     }
     await waitFor(() =>
-      expect(getColumnCellsText('columnC')).toEqual(['45.67', '1.23', '89.0000001'].join('')),
+      expect(getColumnCellsText('columnC')).toEqual(
+        ['45.67', '1.23', '89.0000001'].join(''),
+      ),
     );
   });
 
@@ -298,38 +322,42 @@ describe('FilterableTable sorting - RTL', () => {
 
     // Original order
     await waitFor(() =>
-      expect(getColumnCellsText('columnD')).toEqual([
-        '48710.92',
-        '145776.56',
-        '72212.86',
-        '144729.96000000002',
-        '26260.210000000003',
-        '152718.97999999998',
-        '28550.59',
-        '24078.610000000004',
-        '98089.08000000002',
-        '3439718.0300000007',
-        '4528047.219999993',
-      ].join('')),
+      expect(getColumnCellsText('columnD')).toEqual(
+        [
+          '48710.92',
+          '145776.56',
+          '72212.86',
+          '144729.96000000002',
+          '26260.210000000003',
+          '152718.97999999998',
+          '28550.59',
+          '24078.610000000004',
+          '98089.08000000002',
+          '3439718.0300000007',
+          '4528047.219999993',
+        ].join(''),
+      ),
     );
     // First click to sort ascending
     if (mixedFloatColumn) {
       userEvent.click(mixedFloatColumn);
     }
     await waitFor(() =>
-      expect(getColumnCellsText('columnD')).toEqual([
-        '24078.610000000004',
-        '26260.210000000003',
-        '28550.59',
-        '48710.92',
-        '72212.86',
-        '98089.08000000002',
-        '144729.96000000002',
-        '145776.56',
-        '152718.97999999998',
-        '3439718.0300000007',
-        '4528047.219999993',
-      ].join('')),
+      expect(getColumnCellsText('columnD')).toEqual(
+        [
+          '24078.610000000004',
+          '26260.210000000003',
+          '28550.59',
+          '48710.92',
+          '72212.86',
+          '98089.08000000002',
+          '144729.96000000002',
+          '145776.56',
+          '152718.97999999998',
+          '3439718.0300000007',
+          '4528047.219999993',
+        ].join(''),
+      ),
     );
 
     // Second click to sort descending
@@ -337,19 +365,21 @@ describe('FilterableTable sorting - RTL', () => {
       userEvent.click(mixedFloatColumn);
     }
     await waitFor(() =>
-      expect(getColumnCellsText('columnD')).toEqual([
-        '4528047.219999993',
-        '3439718.0300000007',
-        '152718.97999999998',
-        '145776.56',
-        '144729.96000000002',
-        '98089.08000000002',
-        '72212.86',
-        '48710.92',
-        '28550.59',
-        '26260.210000000003',
-        '24078.610000000004',
-      ].join('')),
+      expect(getColumnCellsText('columnD')).toEqual(
+        [
+          '4528047.219999993',
+          '3439718.0300000007',
+          '152718.97999999998',
+          '145776.56',
+          '144729.96000000002',
+          '98089.08000000002',
+          '72212.86',
+          '48710.92',
+          '28550.59',
+          '26260.210000000003',
+          '24078.610000000004',
+        ].join(''),
+      ),
     );
 
     // Third click to clear sorting
@@ -357,19 +387,21 @@ describe('FilterableTable sorting - RTL', () => {
       userEvent.click(mixedFloatColumn);
     }
     await waitFor(() =>
-      expect(getColumnCellsText('columnD')).toEqual([
-        '48710.92',
-        '145776.56',
-        '72212.86',
-        '144729.96000000002',
-        '26260.210000000003',
-        '152718.97999999998',
-        '28550.59',
-        '24078.610000000004',
-        '98089.08000000002',
-        '3439718.0300000007',
-        '4528047.219999993',
-      ].join('')),
+      expect(getColumnCellsText('columnD')).toEqual(
+        [
+          '48710.92',
+          '145776.56',
+          '72212.86',
+          '144729.96000000002',
+          '26260.210000000003',
+          '152718.97999999998',
+          '28550.59',
+          '24078.610000000004',
+          '98089.08000000002',
+          '3439718.0300000007',
+          '4528047.219999993',
+        ].join(''),
+      ),
     );
   });
 
@@ -395,15 +427,17 @@ describe('FilterableTable sorting - RTL', () => {
 
     // Original order
     await waitFor(() =>
-      expect(getColumnCellsText('columnDS')).toEqual([
-        '2021-01-01',
-        '2022-01-01',
-        '2021-01-02',
-        '2021-01-03',
-        '2021-12-01',
-        '2021-10-01',
-        '2022-01-02',
-      ].join('')),
+      expect(getColumnCellsText('columnDS')).toEqual(
+        [
+          '2021-01-01',
+          '2022-01-01',
+          '2021-01-02',
+          '2021-01-03',
+          '2021-12-01',
+          '2021-10-01',
+          '2022-01-02',
+        ].join(''),
+      ),
     );
 
     // First click to sort ascending
@@ -411,15 +445,17 @@ describe('FilterableTable sorting - RTL', () => {
       userEvent.click(dsColumn);
     }
     await waitFor(() =>
-      expect(getColumnCellsText('columnDS')).toEqual([
-        '2021-01-01',
-        '2021-01-02',
-        '2021-01-03',
-        '2021-10-01',
-        '2021-12-01',
-        '2022-01-01',
-        '2022-01-02',
-      ].join('')),
+      expect(getColumnCellsText('columnDS')).toEqual(
+        [
+          '2021-01-01',
+          '2021-01-02',
+          '2021-01-03',
+          '2021-10-01',
+          '2021-12-01',
+          '2022-01-01',
+          '2022-01-02',
+        ].join(''),
+      ),
     );
 
     // Second click to sort descending
@@ -427,15 +463,17 @@ describe('FilterableTable sorting - RTL', () => {
       userEvent.click(dsColumn);
     }
     await waitFor(() =>
-      expect(getColumnCellsText('columnDS')).toEqual([
-        '2022-01-02',
-        '2022-01-01',
-        '2021-12-01',
-        '2021-10-01',
-        '2021-01-03',
-        '2021-01-02',
-        '2021-01-01',
-      ].join('')),
+      expect(getColumnCellsText('columnDS')).toEqual(
+        [
+          '2022-01-02',
+          '2022-01-01',
+          '2021-12-01',
+          '2021-10-01',
+          '2021-01-03',
+          '2021-01-02',
+          '2021-01-01',
+        ].join(''),
+      ),
     );
 
     // Third click to clear sorting
@@ -443,15 +481,17 @@ describe('FilterableTable sorting - RTL', () => {
       userEvent.click(dsColumn);
     }
     await waitFor(() =>
-      expect(getColumnCellsText('columnDS')).toEqual([
-        '2021-01-01',
-        '2022-01-01',
-        '2021-01-02',
-        '2021-01-03',
-        '2021-12-01',
-        '2021-10-01',
-        '2022-01-02',
-      ].join('')),
+      expect(getColumnCellsText('columnDS')).toEqual(
+        [
+          '2021-01-01',
+          '2022-01-01',
+          '2021-01-02',
+          '2021-01-03',
+          '2021-12-01',
+          '2021-10-01',
+          '2022-01-02',
+        ].join(''),
+      ),
     );
   });
 });

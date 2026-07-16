@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useCallback, useState , ReactElement} from 'react';
+import { useCallback, useState, ReactElement } from 'react';
 import { useDispatch } from 'react-redux';
 import { setFilterConfiguration } from 'src/dashboard/actions/nativeFilters';
 import { saveChartCustomization } from 'src/dashboard/actions/chartCustomizationActions';

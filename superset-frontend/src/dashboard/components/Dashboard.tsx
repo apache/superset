@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useCallback, useContext, useEffect, useRef, type ReactElement } from 'react';
+import {
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  type ReactElement,
+} from 'react';
 import { t } from '@apache-superset/core/translation';
 import { JsonObject } from '@superset-ui/core';
 

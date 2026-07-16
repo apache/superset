@@ -133,9 +133,7 @@ export const getLayer: GetLayerType<HeatmapLayer> = ({
     fixedColor: fd.color_picker,
     colorSchemeType,
     colorScale: colorScale as
-      | CategoricalColorScale
-      | ScaleLinear<string, string, never>
-      | undefined,
+      CategoricalColorScale | ScaleLinear<string, string, never> | undefined,
   })?.reverse();
 
   const tooltipContent = setTooltipContent(fd);
