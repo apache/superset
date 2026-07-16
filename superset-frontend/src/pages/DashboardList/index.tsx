@@ -17,7 +17,11 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { isFeatureEnabled, FeatureFlag, SupersetClient } from '@superset-ui/core';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  SupersetClient,
+} from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { useSelector } from 'react-redux';
 import { useState, useMemo, useCallback } from 'react';
