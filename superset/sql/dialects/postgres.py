@@ -23,16 +23,22 @@ _DATE_TRUNC_UNITS: frozenset[str] = frozenset(
 )
 
 
-def _is_unqualified_date_trunc(
+def _is_postgres_date_trunc(
     tokens: list[Token],
     index: int,
     function: Token,
     left_parenthesis: Token,
 ) -> bool:
+    is_unqualified = index == 0 or tokens[index - 1].token_type is not TokenType.DOT
+    is_pg_catalog_qualified = (
+        index >= 2
+        and tokens[index - 1].token_type is TokenType.DOT
+        and tokens[index - 2].text.lower() == "pg_catalog"
+    )
     return (
         function.token_type is TokenType.VAR
         and function.text.upper() == "DATE_TRUNC"
-        and (index == 0 or tokens[index - 1].token_type is not TokenType.DOT)
+        and (is_unqualified or is_pg_catalog_qualified)
         and left_parenthesis.token_type is TokenType.L_PAREN
     )
 
@@ -46,7 +52,7 @@ def _normalized_date_trunc_unit(
     normalized_unit = unit.text.lower()
     raw_literal = expression[unit.start : unit.end + 1]
     if (
-        _is_unqualified_date_trunc(tokens, index, function, left_parenthesis)
+        _is_postgres_date_trunc(tokens, index, function, left_parenthesis)
         and unit.token_type is TokenType.STRING
         and normalized_unit in _DATE_TRUNC_UNITS
         and raw_literal == f"'{unit.text}'"
