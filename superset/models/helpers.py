@@ -2352,6 +2352,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         the two series join to each other (both stringify to "NaT"). When
         there is no temporal join key, or the offset cannot be interpreted as
         a time delta, the original join keys are used as-is.
+
+        Month, quarter, and year offsets shift via ``DateOffset``, which clamps
+        to a valid calendar day (e.g. Mar 29, 30, and 31 all shift back one
+        month to Feb 28), so on daily/irregular data several end-of-month rows
+        can align to the same offset timestamp. This mirrors the inherent
+        ambiguity of "the same day N months ago" without a time grain to
+        truncate against.
         """
         # Prefer the query's temporal x-axis when it is a join key; otherwise
         # use the first datetime join key.
@@ -2376,7 +2383,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         column_name = OFFSET_JOIN_COLUMN_SUFFIX + offset
         if delta is not None:
-            shifted = df[temporal_join_key].map(lambda value: value + delta)
+            # DateOffset addition is vectorized over the datetime column; NaT
+            # rows shift to NaT (they join to the offset series' NaT rows).
+            shifted = df[temporal_join_key] + delta
         else:
             # Free-form offsets (e.g. "one year ago") don't match the
             # normalize_time_delta grammar; shift with the same parser that
