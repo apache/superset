@@ -1163,7 +1163,7 @@ msgstr ""
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
 "Una lista separata da virgole di colonne che dovrebbero "
-"essereinterpretate come date"
+"essere interpretate come date"
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
@@ -2538,8 +2538,7 @@ msgstr "Si è verificato un errore nel rendering della visualizzazione: %s"
 
 msgid "An error occurred while saving the semantic view"
 msgstr ""
-"Si è verificato un errore nel caricare nel salvataggio della vista "
-"semantica"
+"Si è verificato un errore durante il salvataggio della vista semantica"
 
 msgid "An error occurred while starring this chart"
 msgstr ""
@@ -4302,7 +4301,7 @@ msgid "Chart type requires a dataset"
 msgstr "Il tipo di grafico richiede un dataset"
 
 msgid "Chart was saved but could not be added to the selected tab."
-msgstr "IL grafico è stato salvato ma non può essere aggiunto al tab selezionato."
+msgstr "Il grafico è stato salvato ma non può essere aggiunto al tab selezionato."
 
 msgid "Chart width"
 msgstr "Larghezza grafico"
