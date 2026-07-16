@@ -517,22 +517,21 @@ const FilterBar: FC<FiltersBarProps> = ({
       // Only clear in-scope filters
       if (!inScopeFilterIds.has(id)) return;
 
-      // Range filters use [null, null] as the cleared value; others use undefined
-      const clearedValue =
-        filterType === 'filter_range' ? [null, null] : undefined;
+      // Cleared values stage as explicit null ([null, null] for ranges), never
+      // undefined: the select plugin's init effect treats undefined as
+      // "uninitialized" and would re-apply default values once the clear-all
+      // trigger completes.
+      const clearedValue = filterType === 'filter_range' ? [null, null] : null;
       const isRequired = !!filter.controlValues?.enableEmptyFilter;
       if (dataMaskSelected[id]) {
         // Stage the cleared value locally; do NOT dispatch to Redux here.
         // Persistence happens when the user clicks Apply.
         setDataMaskSelected(draft => {
-          if (draft[id].filterState?.value !== undefined) {
-            draft[id].filterState!.value = clearedValue;
-          }
           draft[id].extraFormData = {};
-          if (draft[id].filterState) {
-            draft[id].filterState!.validateStatus = isRequired
-              ? 'error'
-              : undefined;
+          const { filterState } = draft[id];
+          if (filterState) {
+            filterState.value = clearedValue;
+            filterState.validateStatus = isRequired ? 'error' : undefined;
           }
         });
         newClearAllTriggers[id] = true;
