@@ -27,14 +27,11 @@ from flask_babel import gettext as __
 from sqlalchemy.types import NVARCHAR
 
 from superset.db_engine_specs.base import BasicParametersMixin, DatabaseCategory
-from superset.db_engine_specs.postgres import (
-    normalize_date_trunc_units,
-    PostgresBaseEngineSpec,
-)
+from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
 from superset.models.sql_lab import Query
-from superset.sql.parse import Table
+from superset.sql.parse import normalize_date_trunc_units, Table
 from superset.utils import json
 
 # sqlalchemy-redshift's own __init__ still imports pkg_resources (#36082);

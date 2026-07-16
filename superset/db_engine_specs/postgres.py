@@ -30,9 +30,6 @@ from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.types import Date, DateTime, String
-from sqlglot import Tokenizer
-from sqlglot.errors import TokenError
-from sqlglot.tokens import TokenType
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import (
@@ -43,7 +40,7 @@ from superset.db_engine_specs.base import (
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.sql_lab import Query
-from superset.sql.parse import process_jinja_sql
+from superset.sql.parse import normalize_date_trunc_units, process_jinja_sql
 from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType, QuerySource
 
@@ -51,41 +48,6 @@ if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
 
 logger = logging.getLogger()
-
-_DATE_TRUNC_UNITS: frozenset[str] = frozenset(
-    {"second", "minute", "hour", "day", "week", "month", "quarter", "year"}
-)
-
-
-def normalize_date_trunc_units(expression: str) -> str:
-    """Lowercase recognized DATE_TRUNC unit literals without regenerating SQL."""
-    try:
-        tokens = Tokenizer(dialect="postgres").tokenize(expression)
-    except TokenError:
-        return expression
-
-    replacements: list[tuple[int, int, str]] = []
-    for index, (function, left_paren, unit) in enumerate(
-        zip(tokens, tokens[1:], tokens[2:], strict=False)
-    ):
-        normalized_unit = unit.text.lower()
-        raw_literal = expression[unit.start : unit.end + 1]
-        if (
-            function.token_type is TokenType.VAR
-            and function.text.upper() == "DATE_TRUNC"
-            and (index == 0 or tokens[index - 1].token_type is not TokenType.DOT)
-            and left_paren.token_type is TokenType.L_PAREN
-            and unit.token_type is TokenType.STRING
-            and normalized_unit in _DATE_TRUNC_UNITS
-            and raw_literal == f"'{unit.text}'"
-            and normalized_unit != unit.text
-        ):
-            replacements.append((unit.start + 1, unit.end, normalized_unit))
-
-    for start, end, replacement in reversed(replacements):
-        expression = f"{expression[:start]}{replacement}{expression[end:]}"
-    return expression
-
 
 # Regular expressions to catch custom errors
 CONNECTION_INVALID_USERNAME_REGEX = re.compile(

@@ -29,14 +29,14 @@ from typing import Any, Generic, Optional, TYPE_CHECKING, TypeVar
 import sqlglot
 from flask import current_app, has_app_context
 from jinja2 import nodes, Template
-from sqlglot import exp
+from sqlglot import exp, Tokenizer
 from sqlglot.dialects.dialect import (
     Dialect,
     Dialects,
     DialectType,
 )
 from sqlglot.dialects.singlestore import SingleStore
-from sqlglot.errors import ParseError
+from sqlglot.errors import ParseError, TokenError
 from sqlglot.generator import Generator
 from sqlglot.optimizer.pushdown_predicates import (
     pushdown_predicates,
@@ -46,6 +46,7 @@ from sqlglot.optimizer.scope import (
     ScopeType,
     traverse_scope,
 )
+from sqlglot.tokens import TokenType
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
 from superset.sql.dialects import DB2, Dremio, Firebolt, OpenSearch, Pinot, Vertica
@@ -55,6 +56,40 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+_DATE_TRUNC_UNITS: frozenset[str] = frozenset(
+    {"second", "minute", "hour", "day", "week", "month", "quarter", "year"}
+)
+
+
+def normalize_date_trunc_units(expression: str) -> str:
+    """Lowercase recognized DATE_TRUNC unit literals without regenerating SQL."""
+    try:
+        tokens = Tokenizer(dialect="postgres").tokenize(expression)
+    except TokenError:
+        return expression
+
+    replacements: list[tuple[int, int, str]] = []
+    for index, (function, left_paren, unit) in enumerate(
+        zip(tokens, tokens[1:], tokens[2:], strict=False)
+    ):
+        normalized_unit = unit.text.lower()
+        raw_literal = expression[unit.start : unit.end + 1]
+        if (
+            function.token_type is TokenType.VAR
+            and function.text.upper() == "DATE_TRUNC"
+            and (index == 0 or tokens[index - 1].token_type is not TokenType.DOT)
+            and left_paren.token_type is TokenType.L_PAREN
+            and unit.token_type is TokenType.STRING
+            and normalized_unit in _DATE_TRUNC_UNITS
+            and raw_literal == f"'{unit.text}'"
+            and normalized_unit != unit.text
+        ):
+            replacements.append((unit.start + 1, unit.end, normalized_unit))
+
+    for start, end, replacement in reversed(replacements):
+        expression = f"{expression[:start]}{replacement}{expression[end:]}"
+    return expression
 
 
 def _check_script_length(script: str, engine: str | None) -> None:
