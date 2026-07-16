@@ -715,7 +715,7 @@ export default function sqlLabReducer(
           {
             hideLeftBar: action.hideLeftBar,
           },
-          action.queryEditor!.id!,
+          action.queryEditorId!,
         ),
       };
     },

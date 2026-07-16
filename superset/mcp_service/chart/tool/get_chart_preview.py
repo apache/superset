@@ -548,7 +548,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             "scatter": ["echarts_timeseries_scatter", "scatter"],
             "pie": ["pie"],
             "big_number": ["big_number", "big_number_total"],
-            "histogram": ["histogram"],
+            "histogram": ["histogram", "histogram_v2"],
             "box_plot": ["box_plot"],
             "heatmap": ["heatmap", "heatmap_v2", "cal_heatmap"],
             "funnel": ["funnel"],

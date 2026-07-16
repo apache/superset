@@ -326,6 +326,45 @@ describe('sqlLabReducer', () => {
         newQueryEditor.tabViewId,
       );
     });
+    test('should toggle hideLeftBar via queryEditorId for the active editor', () => {
+      const action = {
+        type: actions.QUERY_EDITOR_TOGGLE_LEFT_BAR,
+        queryEditorId: qe!.id,
+        hideLeftBar: true,
+      };
+      newState = sqlLabReducer(newState, action as SqlLabAction);
+      expect(newState.unsavedQueryEditor.hideLeftBar).toBe(true);
+      expect(newState.unsavedQueryEditor.id).toBe(qe!.id);
+    });
+
+    test('should toggle hideLeftBar back to false via queryEditorId', () => {
+      // first set to true
+      newState = sqlLabReducer(newState, {
+        type: actions.QUERY_EDITOR_TOGGLE_LEFT_BAR,
+        queryEditorId: qe!.id,
+        hideLeftBar: true,
+      } as SqlLabAction);
+      // then back to false
+      newState = sqlLabReducer(newState, {
+        type: actions.QUERY_EDITOR_TOGGLE_LEFT_BAR,
+        queryEditorId: qe!.id,
+        hideLeftBar: false,
+      } as SqlLabAction);
+      expect(newState.unsavedQueryEditor.hideLeftBar).toBe(false);
+    });
+
+    test('should toggle hideLeftBar in queryEditors array for non-active editor', () => {
+      const nonActiveId = defaultQueryEditor.id;
+      const action = {
+        type: actions.QUERY_EDITOR_TOGGLE_LEFT_BAR,
+        queryEditorId: nonActiveId,
+        hideLeftBar: true,
+      };
+      newState = sqlLabReducer(newState, action as SqlLabAction);
+      const updated = newState.queryEditors.find(e => e.id === nonActiveId);
+      expect(updated?.hideLeftBar).toBe(true);
+    });
+
     test('should clear the destroyed query editors', () => {
       const expectedQEId = '1233289';
       const action = {
