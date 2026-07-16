@@ -221,11 +221,7 @@
     "jsx-a11y/no-noninteractive-element-to-interactive-role": "error",
     "jsx-a11y/no-noninteractive-tabindex": "error",
     "jsx-a11y/no-redundant-roles": "error",
-    // TODO: Graduate to "error" — remaining violations are event-boundary
-    // wrappers (divs/spans whose handlers only stopPropagation) and test
-    // scaffolding where adding a role is semantically wrong. Needs a
-    // dedicated pass; see PR enabling the other jsx-a11y interactive rules.
-    "jsx-a11y/no-static-element-interactions": "off",
+    "jsx-a11y/no-static-element-interactions": "error",
     "jsx-a11y/role-has-required-aria-props": "error",
     "jsx-a11y/role-supports-aria-props": "error",
     "jsx-a11y/scope": "error",
