@@ -807,9 +807,9 @@ def test_get_raw_connection_prequery_cursor_closed_on_exception(
     mock_cursor = mocker.MagicMock()
     mock_cursor.execute.side_effect = Exception("invalid schema")
     mock_dbapi_conn.cursor.return_value = mock_cursor
-    
+
     mock_engine.raw_connection.return_value = mock_dbapi_conn
-    
+
     database = Database(database_name="my_db", sqlalchemy_uri="postgresql://")
     with pytest.raises(Exception, match="invalid schema"):
         with database.get_raw_connection(schema="bad_schema"):
@@ -817,19 +817,18 @@ def test_get_raw_connection_prequery_cursor_closed_on_exception(
     mock_cursor.close.assert_called_once()
 
 
-def test_prequery_engine_bypasses_shared_cache(
+def test_prequeries_do_not_affect_engine_caching(
     app_context: None,
     mocker: MockerFixture,
 ) -> None:
     """
     Regression for the ``deque mutated during iteration`` race.
 
-    ``get_sqla_engine`` attaches (and later removes) a per-call ``connect``
-    listener when prequeries exist. SQLAlchemy stores listeners in an
-    unlocked deque, so mutating a *shared* engine's listeners races with
-    concurrent connection checkouts iterating the same deque. The engine
-    used for prequery calls must therefore be private: never served from,
-    nor stored in, ``_ENGINE_CACHE``.
+    ``get_sqla_engine`` no longer attaches a per-call ``connect`` listener for
+    prequeries (they run directly on the connection in ``get_raw_connection``),
+    so there is no shared-engine listener mutation left to race with concurrent
+    connection checkouts. The engine is therefore served from, and stored in,
+    ``_ENGINE_CACHE`` regardless of whether prequeries are present.
     """
     from superset.db_engine_specs.sqlite import SqliteEngineSpec
     from superset.models.core import _ENGINE_CACHE
@@ -841,16 +840,17 @@ def test_prequery_engine_bypasses_shared_cache(
     )
 
     database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
-    database.id = 1  # saved instance: normally eligible for the cache
+    database.id = 1  # saved instance: eligible for the cache
 
-    # Control: without prequeries the engine is shared via the cache.
+    # Without prequeries the engine is shared via the cache.
     with database.get_sqla_engine() as engine_a:
         with database.get_sqla_engine() as engine_b:
             assert engine_a is engine_b
     assert len(_ENGINE_CACHE) == 1
     cached_engine = next(iter(_ENGINE_CACHE.values()))
 
-    # With prequeries: a private engine per call, and the cache untouched.
+    # With prequeries the same shared engine is reused: no private engine, no
+    # listener mutation, and nothing new added to the cache.
     mocker.patch.object(
         SqliteEngineSpec,
         "get_prequeries",
@@ -858,9 +858,8 @@ def test_prequery_engine_bypasses_shared_cache(
     )
     with database.get_sqla_engine() as engine_c:
         with database.get_sqla_engine() as engine_d:
-            assert engine_c is not cached_engine
-            assert engine_d is not cached_engine
-            assert engine_c is not engine_d
+            assert engine_c is cached_engine
+            assert engine_d is cached_engine
     assert list(_ENGINE_CACHE.values()) == [cached_engine]
 
 
@@ -870,10 +869,11 @@ def test_prequeries_execute_on_real_connections(
     tmp_path: Any,
 ) -> None:
     """
-    Behavioural guard: prequeries still run on every new DBAPI connection
-    even though the prequery path uses a private, uncached engine. Uses a
-    file-backed SQLite database and a table-creating prequery so the effect
-    is observable from a later query on the same connection.
+    Behavioural guard: prequeries run on the connection returned by
+    ``get_raw_connection``. Uses a file-backed SQLite database and a
+    table-creating prequery so the effect is observable from a later query on
+    the same connection. The engine itself is still served from the shared
+    ``_ENGINE_CACHE`` — prequeries run on the connection, not via a listener.
     """
     from superset.db_engine_specs.sqlite import SqliteEngineSpec
     from superset.models.core import _ENGINE_CACHE
@@ -902,7 +902,8 @@ def test_prequeries_execute_on_real_connections(
         assert cursor.fetchone() is not None, (
             "prequery did not run on the new connection"
         )
-    assert _ENGINE_CACHE == {}
+    # The engine is a saved instance served from the shared cache.
+    assert len(_ENGINE_CACHE) == 1
 
 
 def test_concurrent_prequery_connections_do_not_race(
@@ -1233,7 +1234,6 @@ def test_engine_context_manager(mocker: MockerFixture, app_context: None) -> Non
         nullpool=True,
         source=None,
         sqlalchemy_uri="trino://",
-        cacheable=True,
     )
 
 
