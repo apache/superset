@@ -571,7 +571,7 @@ class BaseReportState:
                         "Screenshot failed; aborting to avoid sending a partial report"
                     )
                 imges.append(imge)
-            elapsed_seconds = (
+            elapsed_seconds: float = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
             ).total_seconds()
             logger.info(
@@ -767,7 +767,7 @@ class BaseReportState:
                     request_payload=request_payload,
                     timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
                 )
-            elapsed_seconds = (
+            elapsed_seconds: float = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
             ).total_seconds()
             logger.info(
@@ -824,7 +824,7 @@ class BaseReportState:
                 auth_cookies,
                 timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
             )
-            elapsed_seconds = (
+            elapsed_seconds: float = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
             ).total_seconds()
             logger.info(
@@ -1476,7 +1476,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                     self._execution_id, self._model, self._scheduled_dttm
                 ).run()
 
-            elapsed_seconds = (
+            elapsed_seconds: float = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
             ).total_seconds()
             logger.info(

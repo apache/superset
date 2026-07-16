@@ -73,7 +73,9 @@ def set_and_log_cache(
     if timeout == CACHE_DISABLED_TIMEOUT:
         return
     try:
-        dttm = datetime.now(timezone.utc).replace(tzinfo=None).isoformat().split(".")[0]
+        dttm: str = (
+            datetime.now(timezone.utc).replace(tzinfo=None).isoformat().split(".")[0]
+        )
         value = {**cache_value, "dttm": dttm}
         cache_instance.set(cache_key, value, timeout=timeout)
         stats_logger = app.config["STATS_LOGGER"]
