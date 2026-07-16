@@ -125,6 +125,13 @@ def dttm_from_timetuple(date_: struct_time) -> datetime:
     )
 
 
+def _rewrite_quarters_as_months(human_readable: str | None) -> str:
+    return _QUARTERS_PATTERN.sub(
+        lambda match: f"{int(match[1]) * 3} months",
+        human_readable or "",
+    )
+
+
 def get_past_or_future(
     human_readable: str | None,
     source_time: datetime | None = None,
@@ -133,11 +140,22 @@ def get_past_or_future(
     source_dttm = dttm_from_timetuple(
         source_time.timetuple() if source_time else datetime.now().timetuple()
     )
-    human_readable = _QUARTERS_PATTERN.sub(
-        lambda match: f"{int(match[1]) * 3} months",
-        human_readable or "",
-    )
+    human_readable = _rewrite_quarters_as_months(human_readable)
     return dttm_from_timetuple(cal.parse(human_readable, source_dttm)[0])
+
+
+def is_parseable_human_timedelta(human_readable: str | None) -> bool:
+    """
+    Returns whether parsedatetime understands the phrase.
+
+    parsedatetime echoes the source time back for phrases it cannot parse,
+    so a zero ``parse_human_timedelta`` result cannot distinguish an
+    uninterpretable phrase from one that legitimately parses to no shift
+    (e.g. "0 days ago"). The parse flag makes that distinction: it is 0
+    only when nothing in the phrase was understood.
+    """
+    cal = parsedatetime.Calendar()
+    return cal.parse(_rewrite_quarters_as_months(human_readable))[1] != 0
 
 
 def parse_human_timedelta(

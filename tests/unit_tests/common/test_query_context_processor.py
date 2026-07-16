@@ -1121,6 +1121,102 @@ def test_processing_time_offsets_quarter_offset_shifts_query_window(
     assert result["df"]["sum__num__1 quarter ago"].tolist() == [1.0, 2.0, 3.0]
 
 
+def test_processing_time_offsets_accepts_zero_shift_offset(
+    processor: QueryContextProcessor,
+) -> None:
+    """An offset that legitimately parses to no shift (e.g. "0 days ago")
+    must render a self-comparison instead of being rejected as
+    uninterpretable: a zero delta is not a parse failure.
+    """
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import ExploreMixin
+
+    # The fixture's datasource is a MagicMock, not a real Explorable
+    datasource: Any = processor._qc_datasource
+
+    for method in (
+        "processing_time_offsets",
+        "_align_offset_without_time_grain",
+        "_coalesce_offset_index",
+    ):
+        setattr(
+            datasource,
+            method,
+            getattr(ExploreMixin, method).__get__(datasource),
+        )
+
+    df = pd.DataFrame(
+        {
+            "__timestamp": pd.to_datetime(["2024-04-01", "2024-05-01", "2024-06-01"]),
+            "sum__num": [100, 200, 300],
+        }
+    )
+
+    query_object = QueryObject(
+        datasource=MagicMock(),
+        granularity="ds",
+        columns=[],
+        metrics=["sum__num"],
+        is_timeseries=True,
+        time_offsets=["0 days ago"],
+        filters=[
+            {
+                "col": "ds",
+                "op": "TEMPORAL_RANGE",
+                "val": "2024-04-01 : 2024-07-01",
+            }
+        ],
+    )
+
+    captured: list[dict[str, Any]] = []
+
+    def fake_query(dct: dict[str, Any]) -> MagicMock:
+        captured.append(dct)
+        result = MagicMock()
+        result.df = pd.DataFrame(
+            {
+                "__timestamp": pd.date_range(
+                    start=dct["from_dttm"], periods=3, freq="MS"
+                ),
+                "sum__num": [1.0, 2.0, 3.0],
+            }
+        )
+        result.query = "SELECT 1"
+        return result
+
+    datasource.query = fake_query
+    datasource.normalize_df = MagicMock(
+        side_effect=lambda offset_df, _query_object: offset_df
+    )
+
+    with (
+        patch(
+            "superset.models.helpers.get_since_until_from_query_object",
+            return_value=(pd.Timestamp("2024-04-01"), pd.Timestamp("2024-07-01")),
+        ),
+        patch(
+            "superset.common.utils.query_cache_manager.QueryCacheManager"
+        ) as mock_cache_manager,
+        patch.object(
+            datasource,
+            "get_time_grain",
+            return_value=None,
+        ),
+    ):
+        mock_cache = MagicMock()
+        mock_cache.is_loaded = False
+        mock_cache_manager.get.return_value = mock_cache
+
+        result = datasource.processing_time_offsets(df, query_object, None, None, False)
+
+    # The offset query runs against the unshifted window and its rows join
+    # back onto the main series one-to-one
+    assert len(captured) == 1
+    assert captured[0]["from_dttm"] == pd.Timestamp("2024-04-01")
+    assert captured[0]["to_dttm"] == pd.Timestamp("2024-07-01")
+    assert result["df"]["sum__num__0 days ago"].tolist() == [1.0, 2.0, 3.0]
+
+
 def test_processing_time_offsets_rejects_unparseable_offset(
     processor: QueryContextProcessor,
 ) -> None:

@@ -510,10 +510,10 @@ def test_join_offset_dfs_no_time_grain_uninterpretable_offset_subsecond(
     caplog: LogCaptureFixture,
 ) -> None:
     """
-    The unparseable-offset probe compares against a truncated copy of the
-    probed timestamp; sub-second values must not mask an uninterpretable
-    offset (the parser echoes a truncated time, which would look like a
-    successful parse and silently join truncated keys).
+    Sub-second timestamps must not mask an uninterpretable offset:
+    unparseability is detected from the parser's parse flag, not by
+    comparing shifted values, so value precision cannot fake a
+    successful parse.
     """
     df = DataFrame({"ds": [Timestamp("2021-01-01 00:00:00.123456")], "D": [1]})
     offset_df = DataFrame({"ds": [Timestamp("2020-01-01 00:00:00.123456")], "B": [5]})

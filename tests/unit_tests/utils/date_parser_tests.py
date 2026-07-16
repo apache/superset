@@ -32,6 +32,7 @@ from superset.utils.date_parser import (
     datetime_eval,
     get_past_or_future,
     get_since_until,
+    is_parseable_human_timedelta,
     normalize_time_delta,
     parse_human_datetime,
     parse_human_timedelta,
@@ -587,9 +588,25 @@ def test_get_past_or_future_quarters() -> None:
 
 def test_parse_human_timedelta_unparseable_is_zero() -> None:
     # the parser leaves unparseable phrases as the source time, so their
-    # delta is zero; callers rely on this to detect invalid offsets
+    # delta is zero; a zero delta alone cannot distinguish them from
+    # legitimate zero-shift phrases (see is_parseable_human_timedelta)
     dttm = datetime(2024, 5, 15)
     assert parse_human_timedelta("not a real offset", dttm) == timedelta(0)
+
+
+def test_is_parseable_human_timedelta() -> None:
+    assert is_parseable_human_timedelta("1 week ago")
+    assert is_parseable_human_timedelta("one year ago")
+    assert is_parseable_human_timedelta("1 quarter ago")
+    # zero-shift phrases parse successfully even though their delta is zero
+    assert is_parseable_human_timedelta("0 days ago")
+    assert not is_parseable_human_timedelta("not a real offset")
+    assert not is_parseable_human_timedelta("invalid-date-range")
+    assert not is_parseable_human_timedelta("")
+    assert not is_parseable_human_timedelta(None)
+    # absurdly long digit runs are not rewritten to months; they are
+    # unparseable like any other unintelligible phrase
+    assert not is_parseable_human_timedelta("9" * 100_000 + " quarters ago")
 
 
 def test_normalize_time_delta() -> None:

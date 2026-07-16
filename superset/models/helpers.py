@@ -140,8 +140,8 @@ from superset.utils.core import (
 )
 from superset.utils.date_parser import (
     get_past_or_future,
+    is_parseable_human_timedelta,
     normalize_time_delta,
-    parse_human_timedelta,
     TimeDeltaAmbiguousError,
 )
 from superset.utils.dates import datetime_to_epoch
@@ -1913,11 +1913,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             outer_from_dttm,
                             outer_to_dttm,
                         )
-                    elif parse_human_timedelta(offset, outer_from_dttm) == timedelta():
+                    elif not is_parseable_human_timedelta(offset):
                         # get_past_or_future silently returns the source time
                         # for offsets it cannot parse; querying with an
                         # unshifted window would present the current period's
-                        # data as the comparison series.
+                        # data as the comparison series. The parse flag (not
+                        # a zero delta) is the unparseability signal, so
+                        # legitimate zero-shift offsets like "0 days ago"
+                        # pass through.
                         raise QueryObjectValidationError(
                             _(
                                 "Unable to interpret the time offset: "
@@ -2399,16 +2402,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     timestamp = timestamp.tz_localize(None)
                 return timestamp.floor("s").to_pydatetime()
 
-            probe = df[temporal_join_key].dropna()
-            if not probe.empty:
-                probe_value = truncate(probe.iloc[0])
-                if get_past_or_future(offset, probe_value) == probe_value:
-                    logger.warning(
-                        "Cannot interpret time offset %r without a time grain; "
-                        "the time comparison may be incorrect.",
-                        offset,
-                    )
-                    return offset_df, join_keys
+            if not is_parseable_human_timedelta(offset):
+                logger.warning(
+                    "Cannot interpret time offset %r without a time grain; "
+                    "the time comparison may be incorrect.",
+                    offset,
+                )
+                return offset_df, join_keys
 
             def shift(value: datetime) -> datetime:
                 if pd.isna(value):
