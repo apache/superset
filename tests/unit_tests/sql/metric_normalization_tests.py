@@ -18,7 +18,10 @@ import pytest
 
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.exceptions import QueryClauseValidationException
-from superset.sql.metric_normalization import normalize_custom_metric
+from superset.sql.metric_normalization import (
+    normalize_custom_metric,
+    SqlCommentConverter,
+)
 
 
 @pytest.mark.parametrize(
@@ -89,3 +92,52 @@ def test_invalid_fallback_expression_raises_validation_error() -> None:
             "postgresql",
             PostgresEngineSpec.normalize_custom_sql_metric,
         )
+
+
+@pytest.mark.parametrize(
+    "expression, expected",
+    [
+        ("SUM(value) /* block */", "SUM(value) /* block */"),
+        ("SUM('$tag$ -- text $tag$'::text)", "SUM('$tag$ -- text $tag$'::text)"),
+        ("SUM($tag$ -- text $tag$::text)", "SUM($tag$ -- text $tag$::text)"),
+        ("SUM($$ -- text $$::text)", "SUM($$ -- text $$::text)"),
+        ("SUM('it''s -- text'::text)", "SUM('it''s -- text'::text)"),
+        ("SUM(E'it\\'s -- text'::text)", "SUM(E'it\\'s -- text'::text)"),
+        ('SUM("quoted--identifier")', 'SUM("quoted--identifier")'),
+        ("SUM(value) -- first\rSUM(other)", "SUM(value) /* first */\rSUM(other)"),
+        ("$not_a_tag", "$not_a_tag"),
+    ],
+)
+def test_comment_converter_preserves_quoted_regions(
+    expression: str,
+    expected: str,
+) -> None:
+    converted = SqlCommentConverter(expression).convert()
+
+    assert converted.expression == expected
+    assert converted.may_preserve_source
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "SUM(value) /* unterminated",
+        "SUM($tag$ unterminated)",
+        "SUM('unterminated)",
+        'SUM("unterminated)',
+    ],
+)
+def test_comment_converter_rejects_unterminated_regions(expression: str) -> None:
+    with pytest.raises(ValueError, match="Unterminated SQL"):
+        SqlCommentConverter(expression).convert()
+
+
+def test_non_postgres_engine_uses_normalizer_without_source_preservation() -> None:
+    normalized_metric = normalize_custom_metric(
+        "CUSTOM(value)",
+        "sqlite",
+        str.lower,
+    )
+
+    assert normalized_metric.expression == "custom(value)"
+    assert not normalized_metric.may_preserve_source

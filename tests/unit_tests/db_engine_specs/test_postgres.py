@@ -106,6 +106,12 @@ def test_normalize_custom_sql_metric_normalizes_pg_catalog_date_trunc() -> None:
     )
 
 
+def test_normalize_custom_sql_metric_preserves_unparseable_expression() -> None:
+    expression: str = "DATE_TRUNC('QUARTER"
+
+    assert spec.normalize_custom_sql_metric(expression) == expression
+
+
 @pytest.mark.parametrize(
     "target_type,expected_result",
     [
