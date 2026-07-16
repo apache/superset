@@ -68,8 +68,11 @@ ORDINAL_MAP: dict[str, int] = {
 
 # parsedatetime does not understand "N quarters" (it leaves the source time
 # unchanged), so such phrases are rewritten to the equivalent number of months
-# before parsing.
-_QUARTERS_PATTERN = re.compile(r"([0-9]+)\s+quarters?\b", re.IGNORECASE)
+# before parsing. The lookbehind and the bounded repetition keep matching
+# linear on user-provided strings (every suffix of an unbounded digit run
+# would be re-scanned) and keep the int() conversion small; longer digit
+# runs fall through to parsedatetime like any other unparseable phrase.
+_QUARTERS_PATTERN = re.compile(r"(?<![0-9])([0-9]{1,10})\s+quarters?\b", re.IGNORECASE)
 
 
 def parse_human_datetime(human_readable: str) -> datetime:

@@ -579,6 +579,10 @@ def test_get_past_or_future_quarters() -> None:
     assert get_past_or_future("1 QUARTER ago", dttm) == datetime(
         2024, 2, 15, 10, 30, 45
     )
+    # absurdly long digit runs are not rewritten (bounded to keep matching
+    # linear and the month count small); they parse like any other
+    # unintelligible phrase, i.e. the source time comes back unchanged
+    assert get_past_or_future("0" * 100_000 + " quarters ago", dttm) == dttm
 
 
 def test_parse_human_timedelta_unparseable_is_zero() -> None:
