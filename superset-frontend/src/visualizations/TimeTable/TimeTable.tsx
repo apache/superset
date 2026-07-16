@@ -34,7 +34,7 @@ const TimeTableStyles = styled.div<{ height?: number }>`
   overflow: auto;
 
   th {
-    z-index: 11 !important; // to cover sparkline
+    z-index: 11 !important; /* to cover sparkline */
   }
 `;
 
@@ -85,12 +85,6 @@ const TimeTable = ({
       const valueField = row.label || row.metric_name || '';
       const cellValues = columnConfigs.reduce<Record<string, ReactNode>>(
         (acc, columnConfig) => {
-          const { value, errorMsg } = calculateCellValue(
-            valueField,
-            columnConfig,
-            reversedEntries,
-          );
-
           if (columnConfig.colType === 'spark') {
             return {
               ...acc,
