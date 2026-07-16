@@ -17,18 +17,11 @@
  * under the License.
  */
 
-import { Page, Download, Locator, expect } from '@playwright/test';
+import { Page, Download, Locator } from '@playwright/test';
 import { Menu } from '../components/core';
 import { NativeFiltersConfigModal } from '../components/modals';
 import { gotoWithRetry } from '../helpers/navigation';
 import { TIMEOUT } from '../utils/constants';
-
-/**
- * The states a dashboard chart settles into, plus `pending` while it is still
- * loading. `rendered`, `no-results` and `failed` are all terminal: a chart that
- * reaches one of them will not move to another without new input.
- */
-export type ChartRenderState = 'rendered' | 'no-results' | 'failed' | 'pending';
 
 /**
  * Dashboard Page object for interacting with dashboards.
@@ -74,6 +67,15 @@ export class DashboardPage {
     await this.page.waitForSelector(DashboardPage.SELECTORS.DASHBOARD_HEADER, {
       timeout,
     });
+  }
+
+  /**
+   * Get a chart grid component by its chart ID.
+   */
+  getChart(chartId: number): Locator {
+    return this.page.locator(
+      `[data-test="chart-grid-component"][data-test-chart-id="${chartId}"]`,
+    );
   }
 
   /**
@@ -149,75 +151,6 @@ export class DashboardPage {
     }
 
     await applyButton.click();
-  }
-
-  /**
-   * Resolve a chart's current state from the markup each outcome actually emits.
-   *
-   * The presence of `#chart-id-<id>` proves nothing on its own: `SuperChartCore`
-   * emits that container up front and mounts the viz plugin lazily *inside* it,
-   * so the element is visible while the plugin is still loading — and stays
-   * visible, holding an error alert, when the plugin fails to load altogether. A
-   * no-results chart is the mirror image: `SuperChart` renders the empty state as
-   * a fragment that never receives the id at all. So the id is checked for
-   * *content* rather than existence, and it is checked last: a rendered plugin
-   * and an empty state can both contain an `<svg>` (EmptyState's image is inlined
-   * by `@svgr/webpack`), so the empty and failed markers have to be ruled out
-   * first or an empty chart reads as a rendered one.
-   *
-   * Deliberately viz-type agnostic — `big_number_total` renders plain text,
-   * ECharts renders a canvas, Table renders a grid — so this asserts that the
-   * plugin mounted and painted *something*, not which tag it chose.
-   */
-  async getChartRenderState(chartId: number): Promise<ChartRenderState> {
-    const chart = this.page.locator(
-      `[data-test="chart-grid-component"][data-test-chart-id="${chartId}"]`,
-    );
-
-    // A failed query renders ChartErrorMessage; a plugin that fails to load
-    // renders SuperChartCore's warning. Both carry role="alert".
-    if (await chart.locator('[role="alert"]').count()) {
-      return 'failed';
-    }
-    // A valid query that returned no rows renders EmptyState.
-    if (await chart.locator('[role="img"][aria-label="empty"]').count()) {
-      return 'no-results';
-    }
-    // Visible content inside the SuperChartCore container means the lazy plugin
-    // mounted and painted — the one signal that separates a rendered chart from
-    // one whose renderer is still on its way.
-    if (await chart.locator(`#chart-id-${chartId} > *`).first().isVisible()) {
-      return 'rendered';
-    }
-    return 'pending';
-  }
-
-  /**
-   * Wait for every expected chart on the dashboard to reach the `rendered` state.
-   *
-   * The expected chart IDs are passed in rather than discovered from the DOM, so
-   * a chart that never mounts fails this wait instead of being silently skipped,
-   * and there is no partial-count race from snapshotting the holder count after
-   * only the first chart has attached.
-   *
-   * Polling the resolved state (rather than waiting on a locator) means a chart
-   * that errors or comes back empty is reported as `failed` / `no-results` rather
-   * than as an unexplained timeout.
-   */
-  async waitForAllChartsRendered(
-    expectedChartIds: number[],
-    options?: { timeout?: number },
-  ): Promise<void> {
-    // Charts issue real backend queries; allow generous time for slow viz types.
-    const timeout = options?.timeout ?? TIMEOUT.API_RESPONSE * 2;
-    for (const chartId of expectedChartIds) {
-      await expect
-        .poll(() => this.getChartRenderState(chartId), {
-          timeout,
-          message: `chart ${chartId} should finish rendering`,
-        })
-        .toBe('rendered');
-    }
   }
 
   /**

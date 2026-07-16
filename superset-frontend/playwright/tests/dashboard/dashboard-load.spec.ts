@@ -26,16 +26,21 @@
  * send-log-data) only assert DOM/URL state with no backend round-trip and belong
  * in component/RTL coverage instead.
  *
- * The dashboard is built from scratch via the API (rather than relying on a
- * seeded example) so the test is hermetic, self-cleaning, and deterministic.
+ * The dashboard and charts are built via the API and cleaned up by the fixture;
+ * the chart queries use the repository's read-only birth_names example dataset.
  *
  * CI green => the dashboard route mounts, every chart POSTs /api/v1/chart/data
- *             successfully, and each chart's render marker becomes visible.
+ *             successfully, and each chart paints its expected output.
  * CI red   => the dashboard failed to load or a chart never rendered.
  */
+import type { Locator } from '@playwright/test';
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiPostChart, apiPutChart } from '../../helpers/api/chart';
-import { apiPostDashboard } from '../../helpers/api/dashboard';
+import {
+  apiPostDashboard,
+  buildSingleRowDashboardLayout,
+  type DashboardLayoutChart,
+} from '../../helpers/api/dashboard';
 import { getDatasetByName } from '../../helpers/api/dataset';
 import { extractIdFromResponse } from '../../helpers/api/assertions';
 import { TIMEOUT } from '../../utils/constants';
@@ -43,64 +48,52 @@ import { DashboardPage } from '../../pages/DashboardPage';
 
 const DATASET_NAME = 'birth_names';
 
-/** Superset's dashboard grid is 12 columns wide (see dashboard/util/constants). */
-const GRID_COLUMN_COUNT = 12;
-const CHART_WIDTH = 4;
-const CHART_HEIGHT = 50;
+type ChartOutput = 'big-number' | 'table' | 'echarts';
+type CreatedChart = DashboardLayoutChart & { output: ChartOutput };
 
-/**
- * Build a v2 `position_json` laying every chart out in a single row.
- *
- * Deliberately local. This is the only spec that builds a layout from scratch,
- * and one fixed-width row is all it needs; the sibling dashboard specs hand-roll
- * their own scaffolds with different sizing, so hoisting this into a shared
- * helper would add a parallel implementation rather than retire one. If a second
- * caller ever wants it, generalize it then — with per-chart sizing and row
- * wrapping — and migrate the siblings in the same change.
- */
-function buildSingleRowPositionJson(
-  charts: { id: number; sliceName: string }[],
-): Record<string, unknown> {
-  if (charts.length * CHART_WIDTH > GRID_COLUMN_COUNT) {
-    throw new Error(
-      `${charts.length} charts of width ${CHART_WIDTH} overflow the ` +
-        `${GRID_COLUMN_COUNT}-column grid; add row wrapping before growing this layout`,
+async function canvasHasPaintedPixels(canvas: Locator): Promise<boolean> {
+  return canvas.evaluate((element: HTMLCanvasElement) => {
+    const context = element.getContext('2d');
+    if (!context || element.width === 0 || element.height === 0) {
+      return false;
+    }
+    const pixels = context.getImageData(0, 0, element.width, element.height);
+    for (let index = 3; index < pixels.data.length; index += 4) {
+      if (pixels.data[index] !== 0) {
+        return true;
+      }
+    }
+    return false;
+  });
+}
+
+async function expectChartOutput(
+  chart: Locator,
+  output: ChartOutput,
+): Promise<void> {
+  if (output === 'big-number') {
+    const value = chart.locator(
+      '.superset-legacy-chart-big-number .header-line',
     );
+    await expect(value).toBeVisible();
+    await expect(value).toHaveText(/\d/);
+    return;
+  }
+  if (output === 'table') {
+    await expect(
+      chart.locator('table tbody tr:not(:has(.dt-no-results))').first(),
+    ).toBeVisible();
+    return;
   }
 
-  const chartKeys = charts.map(chart => `CHART-${chart.id}`);
-  const positionJson: Record<string, unknown> = {
-    DASHBOARD_VERSION_KEY: 'v2',
-    ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['GRID_ID'] },
-    GRID_ID: {
-      type: 'GRID',
-      id: 'GRID_ID',
-      children: ['ROW-1'],
-      parents: ['ROOT_ID'],
-    },
-    'ROW-1': {
-      type: 'ROW',
-      id: 'ROW-1',
-      children: chartKeys,
-      parents: ['ROOT_ID', 'GRID_ID'],
-      meta: { background: 'BACKGROUND_TRANSPARENT' },
-    },
-  };
-  charts.forEach((chart, index) => {
-    positionJson[chartKeys[index]] = {
-      type: 'CHART',
-      id: chartKeys[index],
-      children: [],
-      parents: ['ROOT_ID', 'GRID_ID', 'ROW-1'],
-      meta: {
-        chartId: chart.id,
-        width: CHART_WIDTH,
-        height: CHART_HEIGHT,
-        sliceName: chart.sliceName,
-      },
-    };
-  });
-  return positionJson;
+  const canvas = chart.locator('canvas').first();
+  await expect(canvas).toBeVisible();
+  await expect
+    .poll(() => canvasHasPaintedPixels(canvas), {
+      timeout: TIMEOUT.API_RESPONSE * 2,
+      message: 'ECharts canvas should contain painted pixels',
+    })
+    .toBe(true);
 }
 
 testWithAssets(
@@ -117,13 +110,19 @@ testWithAssets(
     const datasource = `${datasetId}__table`;
 
     // A spread of viz types that all render cleanly from the birth_names dataset.
-    const chartSpecs = [
+    const chartSpecs: {
+      viz_type: string;
+      output: ChartOutput;
+      params: Record<string, unknown>;
+    }[] = [
       {
         viz_type: 'big_number_total',
+        output: 'big-number',
         params: { datasource, viz_type: 'big_number_total', metric: 'count' },
       },
       {
         viz_type: 'table',
+        output: 'table',
         params: {
           datasource,
           viz_type: 'table',
@@ -135,6 +134,7 @@ testWithAssets(
       },
       {
         viz_type: 'echarts_timeseries_line',
+        output: 'echarts',
         params: {
           datasource,
           viz_type: 'echarts_timeseries_line',
@@ -151,7 +151,7 @@ testWithAssets(
     const uniqueSuffix = `${Date.now()}_${testWithAssets.info().parallelIndex}`;
 
     // Create each chart via the API.
-    const charts: { id: number; sliceName: string }[] = [];
+    const charts: CreatedChart[] = [];
     for (const spec of chartSpecs) {
       const sliceName = `load_smoke_${spec.viz_type}_${uniqueSuffix}`;
       const resp = await apiPostChart(page, {
@@ -164,12 +164,12 @@ testWithAssets(
       expect(resp.ok()).toBe(true);
       const chartId = await extractIdFromResponse(resp);
       testAssets.trackChart(chartId);
-      charts.push({ id: chartId, sliceName });
+      charts.push({ id: chartId, sliceName, output: spec.output });
     }
     const chartIds = charts.map(chart => chart.id);
 
     // Lay all charts out in a single row.
-    const positionJson = buildSingleRowPositionJson(charts);
+    const positionJson = buildSingleRowDashboardLayout(charts);
 
     const dashResp = await apiPostDashboard(page, {
       dashboard_title: `load_smoke_${uniqueSuffix}`,
@@ -217,9 +217,11 @@ testWithAssets(
     await dashboard.gotoById(dashboardId);
     await dashboard.waitForLoad();
 
-    // Each expected chart must reach its rendered state; a chart that never
-    // renders makes this time out and fail rather than passing silently.
-    await dashboard.waitForAllChartsRendered(chartIds);
+    // Assert the real terminal output for each known visualization rather than
+    // inferring completion from a generic wrapper shared by loading and errors.
+    for (const chart of charts) {
+      await expectChartOutput(dashboard.getChart(chart.id), chart.output);
+    }
 
     // The render came from real backend queries: every chart issued its own
     // chart-data POST and each one was accepted. 202 counts as accepted — with
