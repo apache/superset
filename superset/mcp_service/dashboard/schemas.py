@@ -253,6 +253,20 @@ class ListDashboardsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheCont
             "Cannot be used together with 'filters'.",
         ),
     ]
+    deleted_state: Annotated[
+        Literal["include", "only"] | None,
+        Field(
+            default=None,
+            description=(
+                "Surface soft-deleted (trashed) dashboards: 'only' returns "
+                "just trashed dashboards, 'include' returns live and trashed "
+                "together. Omit for live dashboards only (default). Trashed "
+                "rows carry a non-null deleted_at and are limited to "
+                "dashboards the caller owns (admins see all); requires the "
+                "SOFT_DELETE feature flag to have produced trashed rows."
+            ),
+        ),
+    ]
     order_column: Annotated[
         str | None, Field(default=None, description="Column to order results by")
     ]
@@ -443,6 +457,13 @@ class DashboardInfo(BaseModel):
     created_on: str | datetime | None = None
     changed_on: str | datetime | None = None
     uuid: str | None = None
+    deleted_at: str | datetime | None = Field(
+        None,
+        description=(
+            "When the dashboard was moved to trash (soft-deleted); null for "
+            "live dashboards. Only populated when listing with deleted_state."
+        ),
+    )
     embedded_uuid: str | None = Field(
         None,
         description=(
@@ -1730,6 +1751,7 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
             css=getattr(dashboard, "css", None),
             certified_by=getattr(dashboard, "certified_by", None),
             certification_details=getattr(dashboard, "certification_details", None),
+            deleted_at=getattr(dashboard, "deleted_at", None),
             native_filters=_extract_native_filters(
                 json_metadata_str,
                 include_data_model_metadata=include_data_model_metadata,

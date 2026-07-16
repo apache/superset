@@ -82,6 +82,8 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
     ) -> tuple[Union[str, None], Sequence[Union[str, IOBase, bytes]]]:
         if self._content.csv:
             return ("csv", [self._content.csv])
+        if self._content.xlsx:
+            return ("xlsx", [self._content.xlsx])
         if self._content.screenshots:
             return ("png", self._content.screenshots)
         if self._content.pdf:
