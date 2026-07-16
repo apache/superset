@@ -25,17 +25,22 @@ generation that can be used by both generate_chart and generate_explore_link too
 import hashlib
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any, Dict, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from superset.connectors.sqla.models import SqlaTable
 
 from superset.constants import NO_TIME_RANGE
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
+    BoxPlotChartConfig,
     ChartCapabilities,
     ChartSemantics,
     ColumnRef,
     CurrencyFormat,
     FilterConfig,
     HandlebarsChartConfig,
+    HistogramChartConfig,
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
@@ -266,7 +271,28 @@ def generate_explore_link(
         return f"{base_url}/explore/?datasource_type=table&datasource_id={dataset_id}"
 
 
-def is_column_truly_temporal(column_name: str, dataset_id: int | str | None) -> bool:
+def _find_dataset_by_id_or_uuid(dataset_id: int | str | None) -> "SqlaTable | None":
+    """Look up a dataset by numeric ID or UUID string.
+
+    Shared by callers that resolve a dataset from the ``dataset_id | str | None``
+    shape accepted throughout this module; each caller decides its own behavior
+    for a missing dataset_id or dataset (raise vs. default vs. None).
+
+    Delegates to ``DatasetDAO.find_by_id_or_uuid`` (also used by the dataset
+    API) instead of reimplementing the id/uuid dispatch here.
+    """
+    if not dataset_id:
+        return None
+    from superset.daos.dataset import DatasetDAO  # avoid circular import
+
+    return DatasetDAO.find_by_id_or_uuid(str(dataset_id))
+
+
+def is_column_truly_temporal(
+    column_name: str,
+    dataset_id: int | str | None,
+    dataset: "SqlaTable | None" = None,
+) -> bool:
     """
     Check if a column is truly temporal based on its SQL data type.
 
@@ -280,24 +306,20 @@ def is_column_truly_temporal(column_name: str, dataset_id: int | str | None) -> 
     Args:
         column_name: Name of the column to check
         dataset_id: Dataset ID to look up column metadata
+        dataset: Optional pre-fetched dataset, reused as-is to avoid a
+            redundant DAO lookup when the caller already resolved it.
 
     Returns:
         True if the column has a real temporal SQL type, False otherwise
     """
-    from superset.daos.dataset import DatasetDAO
     from superset.utils.core import GenericDataType
 
-    if not dataset_id:
+    if not dataset_id and dataset is None:
         return True  # Default to temporal if we can't check (backward compatible)
 
     try:
-        # Find dataset
-        if isinstance(dataset_id, int) or (
-            isinstance(dataset_id, str) and dataset_id.isdigit()
-        ):
-            dataset = DatasetDAO.find_by_id(int(dataset_id))
-        else:
-            dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
+        if dataset is None:
+            dataset = _find_dataset_by_id_or_uuid(dataset_id)
 
         if not dataset:
             return True  # Default to temporal if dataset not found
@@ -717,21 +739,21 @@ def _ensure_temporal_adhoc_filter(form_data: Dict[str, Any], column: str) -> Non
 
 def _resolve_default_x_axis(
     config: XYChartConfig, dataset_id: int | str | None
-) -> XYChartConfig:
-    """Resolve x-axis to the dataset's main_dttm_col when x is omitted."""
+) -> tuple[XYChartConfig, "SqlaTable | None"]:
+    """Resolve x-axis to the dataset's main_dttm_col when x is omitted.
+
+    Returns the (possibly updated) config alongside the dataset fetched while
+    resolving the default, if any, so callers can reuse it (e.g. passing it
+    into is_column_truly_temporal) instead of re-querying DatasetDAO for the
+    same dataset_id.
+    """
     if config.x is not None:
-        return config
+        return config, None
 
     if not dataset_id:
         raise ValueError("x-axis column is required when dataset_id is not provided")
-    from superset.daos.dataset import DatasetDAO
 
-    if isinstance(dataset_id, int) or (
-        isinstance(dataset_id, str) and dataset_id.isdigit()
-    ):
-        dataset = DatasetDAO.find_by_id(int(dataset_id))
-    else:
-        dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
+    dataset = _find_dataset_by_id_or_uuid(dataset_id)
 
     if not dataset or not dataset.main_dttm_col:
         raise ValueError(
@@ -741,7 +763,10 @@ def _resolve_default_x_axis(
         )
     from superset.mcp_service.chart.schemas import ColumnRef
 
-    return config.model_copy(update={"x": ColumnRef(name=dataset.main_dttm_col)})
+    return (
+        config.model_copy(update={"x": ColumnRef(name=dataset.main_dttm_col)}),
+        dataset,
+    )
 
 
 def _add_xy_limits(form_data: Dict[str, Any], config: XYChartConfig) -> None:
@@ -759,14 +784,17 @@ def map_xy_config(  # noqa: C901
         raise ValueError("XY chart must have at least one Y-axis metric")
 
     # Resolve x-axis default: use dataset's main_dttm_col when x is omitted.
-    config = _resolve_default_x_axis(config, dataset_id)
+    config, resolved_dataset = _resolve_default_x_axis(config, dataset_id)
 
     # ``_resolve_default_x_axis`` guarantees x is set.
     if config.x is None or config.x.name is None:
         raise ValueError("XY chart requires an x-axis with a resolvable column name")
 
-    # Check if x-axis column is truly temporal (based on actual SQL type)
-    x_is_temporal = is_column_truly_temporal(config.x.name, dataset_id)
+    # Check if x-axis column is truly temporal (based on actual SQL type).
+    # Reuse the dataset fetched above (if any) to avoid a second DAO lookup.
+    x_is_temporal = is_column_truly_temporal(
+        config.x.name, dataset_id, dataset=resolved_dataset
+    )
 
     # Map chart kind to viz_type - always use the same viz types
     # The temporal vs non-temporal handling is done via form_data configuration
@@ -865,7 +893,67 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
     return form_data
 
 
-def map_big_number_config(config: BigNumberChartConfig) -> Dict[str, Any]:
+def map_histogram_config(config: "HistogramChartConfig") -> Dict[str, Any]:
+    """Map histogram config to Superset form_data (viz_type histogram_v2).
+
+    Matches the frontend Histogram buildQuery contract: a single ``column``
+    string to bin, ``groupby`` name list for series, plus bins/normalize/
+    cumulative passed straight through to the histogram post-processing
+    operator.
+    """
+    form_data: Dict[str, Any] = {
+        "viz_type": "histogram_v2",
+        "column": config.column.name,
+        "groupby": [g.name for g in (config.groupby or [])],
+        "bins": config.bins,
+        "normalize": config.normalize,
+        "cumulative": config.cumulative,
+        "row_limit": config.row_limit,
+    }
+    _add_adhoc_filters(form_data, config.filters)
+    return form_data
+
+
+# The exact strings the frontend boxplotOperator understands; the percentile
+# variant must match its PERCENTILE_REGEX: "<low>/<high> percentiles".
+_WHISKER_TYPE_TO_OPTION = {
+    "tukey": "Tukey",
+    "min_max": "Min/max (no outliers)",
+}
+
+
+def map_box_plot_config(config: "BoxPlotChartConfig") -> Dict[str, Any]:
+    """Map box plot config to Superset form_data (viz_type box_plot).
+
+    Matches the frontend BoxPlot buildQuery contract: ``columns`` are the
+    distribute-across values (one box per value), ``groupby`` the series
+    dimensions, and ``whiskerOptions`` one of the strings the
+    boxplotOperator post-processor parses.
+    """
+    if config.whisker_type == "percentile":
+        whisker_options = (
+            f"{config.percentile_low}/{config.percentile_high} percentiles"
+        )
+    else:
+        whisker_options = _WHISKER_TYPE_TO_OPTION[config.whisker_type]
+
+    form_data: Dict[str, Any] = {
+        "viz_type": "box_plot",
+        "columns": [c.name for c in config.distribute_across],
+        "groupby": [d.name for d in (config.dimensions or [])],
+        "metrics": [create_metric_object(m) for m in config.metrics],
+        "whiskerOptions": whisker_options,
+        "row_limit": config.row_limit,
+        "number_format": config.number_format,
+        "date_format": config.date_format,
+    }
+    _add_adhoc_filters(form_data, config.filters)
+    return form_data
+
+
+def map_big_number_config(
+    config: BigNumberChartConfig, dataset_id: int | str | None = None
+) -> Dict[str, Any]:
     """Map big number chart config to Superset form_data."""
     # Determine viz_type: big_number (with trendline) or big_number_total
     if config.show_trendline and config.temporal_column:
@@ -911,7 +999,39 @@ def map_big_number_config(config: BigNumberChartConfig) -> Dict[str, Any]:
 
     _add_adhoc_filters(form_data, config.filters)
 
+    # Bind a TEMPORAL_RANGE adhoc filter so dashboard time-range filters have
+    # a column to apply to — mirrors the Explore UI's `BigNumberTotal` control
+    # panel, which exposes an `adhoc_filters` control even though there's no
+    # dedicated time-column control for the total variant.
+    if temporal_column := _resolve_big_number_temporal_column(config, dataset_id):
+        _ensure_temporal_adhoc_filter(form_data, temporal_column)
+
     return form_data
+
+
+def _resolve_big_number_temporal_column(
+    config: BigNumberChartConfig, dataset_id: int | str | None
+) -> str | None:
+    """Resolve the column to bind a Big Number's TEMPORAL_RANGE filter to.
+
+    Falls back to the dataset's main_dttm_col when the caller didn't specify
+    temporal_column, and guards the result with is_column_truly_temporal (same
+    check map_xy_config applies to its x-axis) so a non-temporal column never
+    gets a TEMPORAL_RANGE filter. The dataset is fetched at most once here and
+    reused by is_column_truly_temporal instead of letting it re-query by
+    dataset_id.
+    """
+    dataset = None
+    if not config.temporal_column:
+        dataset = _find_dataset_by_id_or_uuid(dataset_id)
+    temporal_column = config.temporal_column or (
+        dataset.main_dttm_col if dataset else None
+    )
+    if temporal_column and is_column_truly_temporal(
+        temporal_column, dataset_id, dataset=dataset
+    ):
+        return temporal_column
+    return None
 
 
 def map_handlebars_config(config: HandlebarsChartConfig) -> Dict[str, Any]:

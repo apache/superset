@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import difflib
 import logging
+import re
 from datetime import datetime
 from typing import Annotated, Any, cast, Dict, List, Literal, Protocol
 
@@ -45,16 +46,21 @@ from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import (
     CacheStatus,
     CreatedByMeMixin,
+    EditedByMeMixin,
     FormDataCacheControl,
     MetadataCacheControl,
-    OwnedByMeMixin,
     QueryCacheControl,
 )
 from superset.mcp_service.common.error_schemas import ChartGenerationError, MCPBaseError
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from superset.mcp_service.privacy import filter_user_directory_fields
+from superset.mcp_service.privacy import (
+    filter_user_directory_fields,
+    strip_user_directory_fields_from_schema,
+)
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
+    serialize_subject_object,
+    SubjectInfo,
     TagInfo,
 )
 from superset.mcp_service.utils import (
@@ -97,7 +103,7 @@ class ChartLike(Protocol):
     created_on_humanized: str | None
     uuid: str | None
     tags: List[Any] | None
-    owners: List[Any] | None
+    editors: List[Any] | None
 
 
 class ChartInfo(BaseModel):
@@ -136,7 +142,17 @@ class ChartInfo(BaseModel):
         None, description="Certification details or reason"
     )
     uuid: str | None = Field(None, description="Chart UUID")
+    deleted_at: str | datetime | None = Field(
+        None,
+        description=(
+            "When the chart was moved to trash (soft-deleted); null for live "
+            "charts. Only populated when listing with deleted_state."
+        ),
+    )
     tags: List[TagInfo] = Field(default_factory=list, description="Chart tags")
+    editors: List[SubjectInfo] = Field(
+        default_factory=list, description="Chart editors"
+    )
 
     # Filters extracted from form_data for easy inspection
     filters: ChartFiltersInfo | None = Field(
@@ -173,7 +189,11 @@ class ChartInfo(BaseModel):
         ),
     )
 
-    model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
+    model_config = ConfigDict(
+        from_attributes=True,
+        ser_json_timedelta="iso8601",
+        json_schema_extra=strip_user_directory_fields_from_schema,
+    )
 
     @model_serializer(mode="wrap")
     def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:
@@ -294,6 +314,8 @@ class GetChartInfoRequest(BaseModel):
     current chart configuration from cache.
     """
 
+    model_config = ConfigDict(populate_by_name=True)
+
     identifier: Annotated[
         int | str | None,
         Field(
@@ -302,6 +324,7 @@ class GetChartInfoRequest(BaseModel):
                 "Chart identifier - can be numeric ID or UUID string. "
                 "Optional when form_data_key is provided (for unsaved charts)."
             ),
+            validation_alias=AliasChoices("identifier", "id", "chart_id"),
         ),
     ]
     form_data_key: str | None = Field(
@@ -332,6 +355,7 @@ class GetChartInfoRequest(BaseModel):
                 "set that excludes 'form_data' (the full chart config, can be 50KB+). "
                 "Add 'form_data' explicitly when you need the raw chart configuration."
             ),
+            validation_alias=AliasChoices("select_columns", "columns"),
         ),
     ]
 
@@ -609,11 +633,19 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
             uuid=str(getattr(chart, "uuid", ""))
             if getattr(chart, "uuid", None)
             else None,
+            deleted_at=getattr(chart, "deleted_at", None),
             tags=[
                 TagInfo.model_validate(tag, from_attributes=True)
                 for tag in getattr(chart, "tags", [])
             ]
             if getattr(chart, "tags", None)
+            else [],
+            editors=[
+                info
+                for editor in getattr(chart, "editors", [])
+                if (info := serialize_subject_object(editor)) is not None
+            ]
+            if getattr(chart, "editors", None)
             else [],
         )
     )
@@ -631,6 +663,7 @@ class ChartFilter(ColumnOperator):
         "slice_name",
         "viz_type",
         "datasource_name",
+        "editor",
         "created_by_fk",
         "changed_by_fk",
         "dashboards",
@@ -1385,8 +1418,10 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
     temporal_column: str | None = Field(
         None,
         description=(
-            "Temporal column for the trendline x-axis. "
-            "Required when show_trendline is True."
+            "Temporal column for the trendline x-axis. Required when "
+            "show_trendline is True. Also used (whether or not a trendline is "
+            "shown) to bind the chart's dashboard time-range filter; when "
+            "omitted, the dataset's main temporal column is used instead."
         ),
         min_length=1,
         max_length=255,
@@ -1824,6 +1859,164 @@ class XYChartConfig(UnknownFieldCheckMixin):
         return self
 
 
+class HistogramChartConfig(UnknownFieldCheckMixin):
+    """Config for histogram charts (viz_type ``histogram_v2``)."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["histogram"] = "histogram"
+    column: ColumnRef = Field(
+        ...,
+        description="Numeric column to bin (a physical dataset column)",
+    )
+    groupby: List[ColumnRef] | None = Field(
+        None,
+        description="Optional dimensions to split the distribution into series",
+    )
+    bins: int = Field(5, description="Number of histogram bins", ge=1, le=1000)
+    normalize: bool = Field(False, description="Normalize bin counts to proportions")
+    cumulative: bool = Field(False, description="Accumulate bin counts left to right")
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    row_limit: int = Field(10000, description="Max rows sampled", ge=1, le=100000)
+
+    @model_validator(mode="after")
+    def reject_metric_style_column(self) -> "HistogramChartConfig":
+        """The binned column is a physical column, not a metric."""
+        _reject_sql_expression_on_dimension(self.column, "column")
+        if self.column and self.column.saved_metric:
+            raise ValueError(
+                "column cannot use saved_metric=True; histograms bin a "
+                "physical numeric column"
+            )
+        for i, col in enumerate(self.groupby or []):
+            _reject_sql_expression_on_dimension(col, f"groupby[{i}]")
+            if col.saved_metric:
+                raise ValueError(
+                    f"groupby[{i}] cannot use saved_metric=True; "
+                    "saved metrics are not dimensions"
+                )
+        return self
+
+
+class BoxPlotChartConfig(UnknownFieldCheckMixin):
+    """Config for box plot charts (viz_type ``box_plot``)."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["box_plot"] = "box_plot"
+    metrics: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description="Metrics whose distributions are plotted (use aggregate "
+        "e.g. AVG, SUM for ad-hoc, or saved_metric=True for saved metrics)",
+    )
+    distribute_across: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        validation_alias=AliasChoices("distribute_across", "columns"),
+        description="Columns whose distinct values form the SAMPLES inside "
+        "each box (typically a temporal column such as month) — the "
+        "distribution is computed across these values; maps to the "
+        "frontend's 'Distribute across' control (form_data 'columns'). "
+        "This does NOT split boxes; use 'dimensions' for that.",
+    )
+    dimensions: List[ColumnRef] | None = Field(
+        None,
+        validation_alias=AliasChoices("dimensions", "groupby"),
+        description="Columns whose values split the chart into boxes — one "
+        "box per value on the x-axis (form_data 'groupby'). Omit for a "
+        "single box showing each metric's overall distribution.",
+    )
+    whisker_type: Literal["tukey", "min_max", "percentile"] = Field(
+        "tukey",
+        description="Whisker algorithm: 'tukey' (1.5 IQR), 'min_max' (no "
+        "outliers), or 'percentile' (requires percentile_low/percentile_high)",
+    )
+    percentile_low: int | None = Field(
+        None, description="Lower whisker percentile (0-100)", ge=0, le=100
+    )
+    percentile_high: int | None = Field(
+        None, description="Upper whisker percentile (0-100)", ge=0, le=100
+    )
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    row_limit: int = Field(
+        10000,
+        description="Max grouped rows (frontend shared default)",
+        ge=1,
+        le=50000,
+    )
+    number_format: str = Field("SMART_NUMBER", max_length=50)
+    date_format: str = Field("smart_date", max_length=50)
+
+    @model_validator(mode="before")
+    @classmethod
+    def accept_frontend_whisker_options(cls, data: Any) -> Any:
+        """Translate the frontend's whiskerOptions strings ('Tukey',
+        'Min/max (no outliers)', '<low>/<high> percentiles') so configs
+        copied from existing Superset form_data are accepted rather than
+        refused."""
+        if isinstance(data, dict) and "whiskerOptions" in data:
+            raw = str(data.pop("whiskerOptions"))
+            if "whisker_type" in data:
+                # Explicit whisker_type wins; the alias is consumed so the
+                # unknown-field check doesn't reject the request.
+                return data
+            if raw == "Tukey":
+                data["whisker_type"] = "tukey"
+            elif raw == "Min/max (no outliers)":
+                data["whisker_type"] = "min_max"
+            else:
+                match = re.fullmatch(r"(\d{1,3})/(\d{1,3}) percentiles", raw)
+                if not match:
+                    raise ValueError(
+                        f"Unsupported whiskerOptions value: {raw!r}. Use "
+                        "whisker_type ('tukey'|'min_max'|'percentile') instead."
+                    )
+                data["whisker_type"] = "percentile"
+                data.setdefault("percentile_low", int(match.group(1)))
+                data.setdefault("percentile_high", int(match.group(2)))
+        return data
+
+    @model_validator(mode="after")
+    def validate_percentiles_and_dimensions(self) -> "BoxPlotChartConfig":
+        if self.whisker_type == "percentile":
+            if self.percentile_low is None or self.percentile_high is None:
+                raise ValueError(
+                    "whisker_type='percentile' requires both percentile_low "
+                    "and percentile_high"
+                )
+            if self.percentile_low >= self.percentile_high:
+                raise ValueError("percentile_low must be less than percentile_high")
+        elif self.percentile_low is not None or self.percentile_high is not None:
+            raise ValueError(
+                "percentile_low/percentile_high only apply when "
+                "whisker_type='percentile'"
+            )
+        for i, col in enumerate(self.distribute_across):
+            _reject_sql_expression_on_dimension(col, f"distribute_across[{i}]")
+            if col.saved_metric:
+                raise ValueError(
+                    f"distribute_across[{i}] cannot use saved_metric=True; "
+                    "saved metrics belong in the 'metrics' field"
+                )
+        for i, col in enumerate(self.dimensions or []):
+            _reject_sql_expression_on_dimension(col, f"dimensions[{i}]")
+            if col.saved_metric:
+                raise ValueError(
+                    f"dimensions[{i}] cannot use saved_metric=True; "
+                    "saved metrics belong in the 'metrics' field"
+                )
+        return self
+
+
 # Discriminated union for runtime validation (not exposed in JSON Schema)
 ChartConfig = Annotated[
     XYChartConfig
@@ -1832,13 +2025,15 @@ ChartConfig = Annotated[
     | PivotTableChartConfig
     | MixedTimeseriesChartConfig
     | HandlebarsChartConfig
-    | BigNumberChartConfig,
+    | BigNumberChartConfig
+    | HistogramChartConfig
+    | BoxPlotChartConfig,
     Field(
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
             "'pie', 'pivot_table', 'mixed_timeseries', 'handlebars', "
-            "or 'big_number'"
+            "'big_number', 'histogram', or 'box_plot'"
         ),
     ),
 ]
@@ -1866,6 +2061,7 @@ _VIZ_TYPE_TO_CHART_TYPE: dict[str, tuple[str, str | None]] = {
     "ag-grid-table": ("table", None),
     "big_number_total": ("big_number", None),
     "pivot_table_v2": ("pivot_table", None),
+    "histogram_v2": ("histogram", None),
 }
 
 
@@ -1912,8 +2108,10 @@ class ChartRequestNormalizerMixin(BaseModel):
         return _normalize_chart_request_input(data)
 
 
-class ListChartsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
+class ListChartsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
     """Request schema for list_charts with clear, unambiguous types."""
+
+    model_config = ConfigDict(populate_by_name=True)
 
     filters: Annotated[
         List[ChartFilter],
@@ -1930,6 +2128,7 @@ class ListChartsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
             default_factory=list,
             description="List of columns to select. Defaults to common columns if not "
             "specified.",
+            validation_alias=AliasChoices("select_columns", "columns"),
         ),
     ]
 
@@ -1968,6 +2167,20 @@ class ListChartsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
             default=None,
             description="Text search string to match against chart fields. Cannot be "
             "used together with 'filters'.",
+        ),
+    ]
+    deleted_state: Annotated[
+        Literal["include", "only"] | None,
+        Field(
+            default=None,
+            description=(
+                "Surface soft-deleted (trashed) charts: 'only' returns just "
+                "trashed charts, 'include' returns live and trashed charts "
+                "together. Omit for live charts only (default). Trashed rows "
+                "carry a non-null deleted_at and are limited to charts the "
+                "caller owns (admins see all); requires the SOFT_DELETE "
+                "feature flag to have produced trashed rows."
+            ),
         ),
     ]
     order_column: Annotated[
@@ -2107,6 +2320,8 @@ class GenerateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
 
 
 class GenerateExploreLinkRequest(ChartRequestNormalizerMixin, FormDataCacheControl):
+    model_config = ConfigDict(populate_by_name=True)
+
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
     config: ChartConfig | None = Field(
         None,
@@ -2121,7 +2336,11 @@ class GenerateExploreLinkRequest(ChartRequestNormalizerMixin, FormDataCacheContr
 class UpdateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
     model_config = ConfigDict(populate_by_name=True)
 
-    identifier: int | str = Field(..., description="Chart ID or UUID")
+    identifier: int | str = Field(
+        ...,
+        description="Chart ID or UUID",
+        validation_alias=AliasChoices("identifier", "id", "chart_id"),
+    )
     config: ChartConfig | None = Field(
         None,
         description="Chart configuration. Optional; omit to only update chart_name.",
@@ -2166,6 +2385,8 @@ class UpdateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
 
 
 class UpdateChartPreviewRequest(ChartRequestNormalizerMixin, FormDataCacheControl):
+    model_config = ConfigDict(populate_by_name=True)
+
     form_data_key: str | None = Field(
         None,
         description=(
@@ -2193,12 +2414,15 @@ class GetChartDataRequest(QueryCacheControl):
     the current chart configuration from cache.
     """
 
+    model_config = ConfigDict(populate_by_name=True)
+
     identifier: int | str | None = Field(
         default=None,
         description=(
             "Chart identifier (ID, UUID). "
             "Optional when form_data_key is provided (for unsaved charts)."
         ),
+        validation_alias=AliasChoices("identifier", "id", "chart_id"),
     )
     form_data_key: str | None = Field(
         default=None,
@@ -2323,12 +2547,15 @@ class GetChartPreviewRequest(QueryCacheControl):
     using the current chart configuration from cache.
     """
 
+    model_config = ConfigDict(populate_by_name=True)
+
     identifier: int | str | None = Field(
         default=None,
         description=(
             "Chart identifier (ID, UUID). "
             "Optional when form_data_key is provided (for unsaved charts)."
         ),
+        validation_alias=AliasChoices("identifier", "id", "chart_id"),
     )
     form_data_key: str | None = Field(
         default=None,
@@ -2542,12 +2769,15 @@ class GetChartSqlRequest(BaseModel):
     to get the SQL for the unsaved chart state from the Explore view.
     """
 
+    model_config = ConfigDict(populate_by_name=True)
+
     identifier: int | str | None = Field(
         default=None,
         description=(
             "Chart identifier - can be numeric ID or UUID string. "
             "Optional when form_data_key is provided (for unsaved charts)."
         ),
+        validation_alias=AliasChoices("identifier", "id", "chart_id"),
     )
     form_data_key: str | None = Field(
         default=None,
@@ -2703,5 +2933,89 @@ class ChartFiltersInfo(BaseModel):
     )
 
 
+class RestoreChartRequest(BaseModel):
+    """Request schema for restore_chart."""
+
+    identifier: int | str = Field(
+        ...,
+        description=(
+            "Chart identifier - numeric ID or UUID string (charts have no slug)."
+        ),
+    )
+
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so identifier=true would coerce to
+        chart ID 1 and target the wrong object; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID or UUID string")
+        return value
+
+
+class RestoreChartResponse(BaseModel):
+    """Result of a restore_chart operation."""
+
+    success: bool = Field(description="Whether the chart was restored from trash")
+    restored_id: int | None = Field(None, description="ID of the restored chart")
+    restored_name: str | None = Field(None, description="Name of the restored chart")
+    message: str | None = Field(None, description="Human-readable outcome message")
+    error: str | None = Field(None, description="Error message if the restore failed")
+    error_type: str | None = Field(None, description="Type of error if failed")
+    permission_denied: bool = Field(
+        False,
+        description=(
+            "True when the caller lacks permission to restore the chart (do not "
+            "retry; ask the user)."
+        ),
+    )
+
+
 # Rebuild ChartInfo so Pydantic can resolve the ChartFiltersInfo forward reference.
 ChartInfo.model_rebuild()
+
+
+class DeleteChartRequest(BaseModel):
+    """Request schema for delete_chart."""
+
+    identifier: int | str = Field(
+        ...,
+        description=(
+            "Chart identifier - numeric ID or UUID string (charts have no slug)."
+        ),
+    )
+
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so identifier=true would coerce to
+        chart ID 1 and delete the wrong object; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID or UUID string")
+        return value
+
+
+class DeleteChartResponse(BaseModel):
+    """Result of a delete_chart operation."""
+
+    success: bool = Field(description="Whether the chart was deleted")
+    deleted_id: int | None = Field(None, description="ID of the deleted chart")
+    deleted_name: str | None = Field(None, description="Name of the deleted chart")
+    soft_deleted: bool = Field(
+        False,
+        description=(
+            "True when the chart was soft-deleted (moved to trash, because the "
+            "SOFT_DELETE feature flag is enabled) and can be restored by an "
+            "owner or Admin. False means the delete was permanent."
+        ),
+    )
+    message: str | None = Field(None, description="Human-readable outcome message")
+    error: str | None = Field(None, description="Error message if the delete failed")
+    error_type: str | None = Field(None, description="Type of error if failed")
+    permission_denied: bool = Field(
+        False,
+        description=(
+            "True when the caller lacks permission to delete the chart (do not "
+            "retry; ask the user)."
+        ),
+    )

@@ -545,13 +545,16 @@ def test_raise_for_access_chart_on_admin(
         )
 
 
-def test_raise_for_access_chart_owner(
+def test_raise_for_access_chart_editor(
+    mocker: MockerFixture,
     app_context: None,
 ) -> None:
     """
-    Test that the security manager can raise an exception for chart access,
-    when the user does not have access to the chart datasource
+    Test that the security manager allows chart access for editors,
+    even when the user does not have direct datasource access.
     """
+    from tests.integration_tests.base_tests import subjects_from_users
+
     sm = SupersetSecurityManager(appbuilder)
     session = sm.session
 
@@ -583,13 +586,19 @@ def test_raise_for_access_chart_owner(
             alpha.roles.append(alpha_role)
             session.commit()
 
+    # Sync the Subject row for alpha (same as production hook)
+    from superset.subjects.sync import sync_user_subject
+
+    sync_user_subject(alpha)
+    session.commit()
+
     slice = Slice(
         id=1,
         datasource_id=1,
         datasource_type="table",
         datasource_name="tmp_perm_table",
         slice_name="slice_name",
-        owners=[alpha],
+        editors=subjects_from_users([alpha]),
     )
     session.add(slice)
 
@@ -2210,9 +2219,10 @@ def test_get_rls_filters_uses_table_id_directly(
 
     # Mock user context
     mock_user = mocker.MagicMock()
+    mock_user.id = 1
     mock_user.roles = [mocker.MagicMock(id=1)]
     mocker.patch("superset.security.manager.g", user=mock_user)
-    mocker.patch.object(sm, "get_user_roles", return_value=mock_user.roles)
+    mocker.patch("superset.subjects.utils.get_user_subject_ids", return_value=[1])
 
     # Call get_rls_filters - if it accesses table.data, the PropertyMock will raise
     # If it uses table.id directly (correct behavior), it will complete successfully
@@ -2237,7 +2247,7 @@ def test_get_rls_filters_returns_cached_result(
     mock_g = SimpleNamespace(user=mock_user)
     mocker.patch("superset.security.manager.g", new=mock_g)
     mocker.patch("superset.security.manager.get_username", return_value="admin")
-    mocker.patch.object(sm, "get_user_roles", return_value=mock_user.roles)
+    mocker.patch("superset.subjects.utils.get_user_subject_ids", return_value=[1])
 
     table = mocker.MagicMock()
     table.id = 42
@@ -2277,7 +2287,7 @@ def test_prefetch_rls_filters_populates_cache(
     mock_g = SimpleNamespace(user=mock_user)
     mocker.patch("superset.security.manager.g", new=mock_g)
     mocker.patch("superset.security.manager.get_username", return_value="admin")
-    mocker.patch.object(sm, "get_user_roles", return_value=mock_user.roles)
+    mocker.patch("superset.subjects.utils.get_user_subject_ids", return_value=[10])
 
     # Mock the batch query to return filters for table 1 but not table 2
     mock_query = mocker.MagicMock()
@@ -2367,6 +2377,7 @@ def test_get_rls_filters_cache_works_for_guest_user(
     sm = SupersetSecurityManager(appbuilder)
 
     mock_guest = mocker.MagicMock()
+    mock_guest.id = 1
     mock_guest.username = "guest_user"
     mock_guest.roles = [mocker.MagicMock(id=99)]
 
@@ -2407,6 +2418,7 @@ def test_prefetch_rls_filters_works_for_guest_user(
     sm = SupersetSecurityManager(appbuilder)
 
     mock_guest = mocker.MagicMock()
+    mock_guest.id = 1
     mock_guest.username = "guest_user"
     mock_guest.roles = [mocker.MagicMock(id=99)]
 
@@ -2916,3 +2928,40 @@ def test_query_context_modified_orderby_non_bool_direction_blocked(
     query_context.queries = []
 
     assert query_context_modified(query_context)
+
+
+def test_validate_guest_token_resources_rejects_non_embedded_int_id(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """A raw int dashboard id must reference an embedded dashboard, else a guest
+    token could be scoped to a non-embedded dashboard."""
+    from superset.commands.dashboard.embedded.exceptions import (
+        EmbeddedDashboardNotFoundError,
+    )
+    from superset.security.guest_token import GuestTokenResourceType
+
+    sm = SupersetSecurityManager(appbuilder)
+    non_embedded = MagicMock()
+    non_embedded.embedded = []  # not embedded
+    mocker.patch("superset.models.dashboard.Dashboard.get", return_value=non_embedded)
+
+    with pytest.raises(EmbeddedDashboardNotFoundError):
+        sm.validate_guest_token_resources(
+            [{"type": GuestTokenResourceType.DASHBOARD, "id": 5}]
+        )
+
+
+def test_validate_guest_token_resources_accepts_embedded_int_id(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """A raw int id for an embedded dashboard is accepted."""
+    from superset.security.guest_token import GuestTokenResourceType
+
+    sm = SupersetSecurityManager(appbuilder)
+    embedded_dash = MagicMock()
+    embedded_dash.embedded = [MagicMock()]  # embedded
+    mocker.patch("superset.models.dashboard.Dashboard.get", return_value=embedded_dash)
+
+    sm.validate_guest_token_resources(
+        [{"type": GuestTokenResourceType.DASHBOARD, "id": 5}]
+    )

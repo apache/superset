@@ -141,11 +141,6 @@ class TableNotFoundValidationError(ValidationError):
         )
 
 
-class OwnersNotFoundValidationError(ValidationError):
-    def __init__(self) -> None:
-        super().__init__([_("Owners are invalid")], field_name="owners")
-
-
 class DatasetDataAccessIsNotAllowed(ValidationError):  # noqa: N818
     status = 422
 

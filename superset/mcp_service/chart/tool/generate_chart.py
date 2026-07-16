@@ -106,7 +106,8 @@ async def generate_chart(  # noqa: C901
     - LLM clients MUST display returned chart URL to users
     - Use numeric dataset ID or UUID (NOT schema.table_name format)
     - MUST include chart_type in config (one of: 'xy', 'table', 'pie',
-      'pivot_table', 'mixed_timeseries', 'handlebars', 'big_number')
+      'pivot_table', 'mixed_timeseries', 'handlebars', 'big_number',
+      'histogram', 'box_plot')
 
     IMPORTANT: The 'chart_type' field in the config is a DISCRIMINATOR that determines
     which chart configuration schema to use. It MUST be included and MUST match the
@@ -132,6 +133,15 @@ async def generate_chart(  # noqa: C901
 
     - Use chart_type='big_number' for single KPI metric displays
       Required fields: metric
+
+    - Use chart_type='histogram' for value-distribution charts
+      Required fields: column (numeric); optional: bins, groupby, normalize,
+      cumulative
+
+    - Use chart_type='box_plot' for statistical spread comparisons
+      Required fields: metrics, distribute_across (the sample axis, e.g. a
+      temporal column); use dimensions to split into one box per value;
+      optional whisker_type ('tukey'|'min_max'|'percentile')
 
     Example usage for XY chart:
     ```json
@@ -743,17 +753,18 @@ async def generate_chart(  # noqa: C901
             from superset.models.slice import Slice
 
             # Re-fetch with eager-loaded relationships to avoid detached
-            # instance errors when serialize_chart_object accesses .tags.
-            # The preceding commit may invalidate the session
+            # instance errors when serialize_chart_object accesses .tags
+            # and .editors.  The preceding commit may invalidate the session
             # in multi-tenant environments; on failure, build a minimal
             # chart_data dict from scalar attributes that are already loaded
-            # — relationship fields like tags would trigger lazy-loading on
-            # the same dead session.
+            # — relationship fields (editors, tags) would trigger
+            # lazy-loading on the same dead session.
             try:
                 chart = (
                     ChartDAO.find_by_id(
                         chart.id,
                         query_options=[
+                            joinedload(Slice.editors),
                             joinedload(Slice.tags),
                         ],
                     )

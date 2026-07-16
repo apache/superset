@@ -22,6 +22,7 @@ import {
   SupersetClient,
   isFeatureEnabled,
   FeatureFlag,
+  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -70,7 +71,7 @@ import { DatabaseObject } from 'src/features/databases/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
-import type Owner from 'src/types/Owner';
+import type User from 'src/types/User';
 import {
   databaseLabel,
   databaseLabelLower,
@@ -91,7 +92,7 @@ const SEMANTIC_LAYERS_FLAG = 'SEMANTIC_LAYERS' as FeatureFlag;
 type ConnectionItem = DatabaseObject & {
   source_type?: 'database' | 'semantic_layer';
   sl_type?: string;
-  changed_by?: Owner;
+  changed_by?: User;
   changed_on_delta_humanized?: string;
 };
 
@@ -697,6 +698,9 @@ function DatabaseList({
                       tabIndex={0}
                       className="action-button"
                       onClick={() => setSlCurrentlyDeleting(original)}
+                      onKeyDown={handleKeyboardActivation(() =>
+                        setSlCurrentlyDeleting(original),
+                      )}
                     >
                       <Icons.DeleteOutlined iconSize="l" />
                     </span>
@@ -715,6 +719,9 @@ function DatabaseList({
                       onClick={() =>
                         setSlCurrentlyEditing(original.uuid ?? null)
                       }
+                      onKeyDown={handleKeyboardActivation(() =>
+                        setSlCurrentlyEditing(original.uuid ?? null),
+                      )}
                     >
                       <Icons.EditOutlined iconSize="l" />
                     </span>
@@ -746,6 +753,7 @@ function DatabaseList({
                     tabIndex={0}
                     className="action-button"
                     onClick={handleEdit}
+                    onKeyDown={handleKeyboardActivation(handleEdit)}
                   >
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
                   </span>
@@ -762,6 +770,7 @@ function DatabaseList({
                     tabIndex={0}
                     className="action-button"
                     onClick={handleExport}
+                    onKeyDown={handleKeyboardActivation(handleExport)}
                   >
                     <Icons.UploadOutlined iconSize="l" />
                   </span>
@@ -779,6 +788,7 @@ function DatabaseList({
                     tabIndex={0}
                     className="action-button"
                     onClick={handleSync}
+                    onKeyDown={handleKeyboardActivation(handleSync)}
                   >
                     <Icons.SyncOutlined iconSize="l" />
                   </span>
@@ -791,6 +801,7 @@ function DatabaseList({
                   className="action-button"
                   data-test="database-delete"
                   onClick={handleDelete}
+                  onKeyDown={handleKeyboardActivation(handleDelete)}
                 >
                   <Tooltip
                     id="delete-action-tooltip"

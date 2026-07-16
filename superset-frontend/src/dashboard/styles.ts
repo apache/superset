@@ -88,7 +88,7 @@ export const chartContextMenuStyles = (theme: SupersetTheme) => css`
 
 export const focusStyle = (theme: SupersetTheme) => css`
   a,
-  .ant-tabs-tabpane,
+  .ant-tabs-content,
   .ant-tabs-tab-btn,
   .superset-button,
   .superset-button.ant-dropdown-trigger,
@@ -104,7 +104,7 @@ export const focusStyle = (theme: SupersetTheme) => css`
       .ant-menu-item,
       a,
       .fave-unfave-icon,
-      .ant-tabs-tabpane,
+      .ant-tabs-content,
       .header-controls span
     ) {
       &:focus-visible {

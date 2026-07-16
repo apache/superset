@@ -106,7 +106,7 @@ cachelib==0.13.0
     #   -c requirements/base-constraint.txt
     #   flask-caching
     #   flask-session
-cachetools==6.2.1
+cachetools==7.1.4
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -117,7 +117,7 @@ cattrs==25.1.1
     # via
     #   -c requirements/base-constraint.txt
     #   requests-cache
-celery==5.5.2
+celery==5.6.3
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -140,7 +140,7 @@ charset-normalizer==3.4.2
     # via
     #   -c requirements/base-constraint.txt
     #   requests
-click==8.4.1
+click==8.4.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -248,9 +248,9 @@ et-xmlfile==2.0.0
     #   openpyxl
 exceptiongroup==1.3.0
     # via fastmcp-slim
-fastmcp==3.4.2
+fastmcp==3.4.4
     # via apache-superset
-fastmcp-slim==3.4.2
+fastmcp-slim==3.4.4
     # via fastmcp
 filelock==3.20.3
     # via
@@ -417,7 +417,7 @@ hashids==1.3.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-holidays==0.82
+holidays==0.100
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -513,7 +513,7 @@ keyring==25.7.0
     # via py-key-value-aio
 kiwisolver==1.4.7
     # via matplotlib
-kombu==5.5.3
+kombu==5.6.2
     # via
     #   -c requirements/base-constraint.txt
     #   celery
@@ -645,6 +645,7 @@ packaging==25.0
     #   fastmcp-slim
     #   google-cloud-bigquery
     #   gunicorn
+    #   kombu
     #   limits
     #   matplotlib
     #   pytest
@@ -968,7 +969,7 @@ six==1.17.0
     #   python-dateutil
     #   rfc3339-validator
     #   wtforms-json
-slack-sdk==3.42.0
+slack-sdk==3.43.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -993,16 +994,21 @@ sqlalchemy==1.4.54
     #   marshmallow-sqlalchemy
     #   shillelagh
     #   sqlalchemy-bigquery
+    #   sqlalchemy-continuum
     #   sqlalchemy-utils
 sqlalchemy-bigquery==1.17.0
     # via apache-superset
+sqlalchemy-continuum==1.6.0
+    # via
+    #   -c requirements/base-constraint.txt
+    #   apache-superset
 sqlalchemy-utils==0.42.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   apache-superset-core
     #   flask-appbuilder
-sqlglot==30.8.0
+sqlglot==30.12.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -1021,7 +1027,7 @@ starlette==1.3.1
     #   mcp
 statsd==4.0.1
     # via apache-superset
-syntaqlite==0.4.2
+syntaqlite==0.7.1
     # via apache-superset
 tabulate==0.10.0
     # via
@@ -1037,7 +1043,7 @@ tqdm==4.67.1
     # via
     #   cmdstanpy
     #   prophet
-trino==0.337.0
+trino==0.338.0
     # via apache-superset
 trio==0.33.0
     # via
@@ -1082,8 +1088,11 @@ tzdata==2025.2
     #   -c requirements/base-constraint.txt
     #   kombu
     #   pandas
-tzlocal==5.2
-    # via trino
+tzlocal==5.4.4
+    # via
+    #   -c requirements/base-constraint.txt
+    #   celery
+    #   trino
 uncalled-for==0.2.0
     # via fastmcp-slim
 url-normalize==2.2.1

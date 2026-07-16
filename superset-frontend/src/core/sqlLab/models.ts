@@ -176,7 +176,7 @@ export class QueryResultContext
       requestedLimit?: number;
     } = {},
   ) {
-    const { appliedLimit, appliedLimitingFactor, ...opt } = options;
+    const { appliedLimit, ...opt } = options;
     super(clientId, tab, runAsync, startDttm, opt);
     this.remoteId = remoteId;
     this.executedSql = executedSql;
@@ -219,7 +219,7 @@ export class QueryErrorResultContext
       queryId?: number;
     } = {},
   ) {
-    const { queryId, executedSql, endDttm, ...opt } = options;
+    const { executedSql, endDttm, ...opt } = options;
     super(clientId, tab, runAsync, startDttm, opt);
     this.executedSql = executedSql ?? null;
     this.errorMessage = errorMessage;

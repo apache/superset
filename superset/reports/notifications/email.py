@@ -205,9 +205,13 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             </html>
             """
         )
-        csv_data = None
+        # CSV and Excel are mutually exclusive (a report has a single format),
+        # so at most one tabular attachment is present in the data dict.
+        attachment_data: dict[str, bytes] | None = None
         if self._content.csv:
-            csv_data = {__("%(name)s.csv", name=self._name): self._content.csv}
+            attachment_data = {__("%(name)s.csv", name=self._name): self._content.csv}
+        elif self._content.xlsx:
+            attachment_data = {__("%(name)s.xlsx", name=self._name): self._content.xlsx}
 
         pdf_data = None
         if self._content.pdf:
@@ -217,7 +221,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             body=body,
             images=images,
             pdf=pdf_data,
-            data=csv_data,
+            data=attachment_data,
             header_data=self._content.header_data,
         )
 

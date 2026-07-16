@@ -48,9 +48,11 @@ from superset.semantic_layers.mapper import (
     _convert_time_grain,
     _get_filters_from_extras,
     _get_filters_from_query_object,
+    _get_grain_time_axis_column,
     _get_group_limit_filters,
     _get_group_limit_from_query_object,
     _get_order_from_query_object,
+    _get_time_axis_column,
     _get_time_bounds,
     _get_time_filter,
     _normalize_column,
@@ -372,6 +374,28 @@ def test_convert_query_object_filter_in(mock_datasource: MagicMock) -> None:
             value=frozenset({"Electronics", "Books"}),
         )
     }
+
+
+def test_convert_query_object_filter_ilike_rejected(
+    mock_datasource: MagicMock,
+) -> None:
+    """
+    Case-insensitive operators are rejected explicitly rather than silently
+    collapsed into LIKE — that collapse would let the backend's collation
+    decide case sensitivity, silently diverging from the filter the dashboard
+    author selected.
+    """
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+    for op in (FilterOperator.ILIKE.value, FilterOperator.NOT_ILIKE.value):
+        filter_: ValidatedQueryObjectFilterClause = {
+            "op": op,
+            "col": "category",
+            "val": "%book%",
+        }
+        with pytest.raises(ValueError, match="case-insensitive"):
+            _convert_query_object_filter(filter_, all_dimensions)
 
 
 def test_convert_query_object_filter_is_null(mock_datasource: MagicMock) -> None:
@@ -1002,6 +1026,379 @@ def test_map_query_object_with_time_offsets(mock_datasource: MagicMock) -> None:
             value=datetime(2025, 9, 22, 0, 0),
         ),
     }
+
+
+def _make_grain_variant_datasource(
+    mocker: MockerFixture,
+    granularity_dim_grain: Grain | None,
+    extra_dim_grain: Grain | None = None,
+) -> MagicMock:
+    """Datasource with raw + Hour + Day variants on ``order_date``."""
+    datasource = mocker.Mock()
+    base = {
+        "id": "orders.order_date",
+        "name": "order_date",
+        "type": pa.timestamp("us"),
+        "description": "Order date",
+        "definition": "order_date",
+    }
+    date_variants = {
+        Dimension(**base, grain=None),
+        Dimension(**base, grain=Grains.HOUR),
+        Dimension(**base, grain=Grains.DAY),
+    }
+    category = Dimension(
+        id="products.category",
+        name="category",
+        type=pa.utf8(),
+        description="Product category",
+        definition="category",
+    )
+    sales = Metric(
+        id="orders.total_sales",
+        name="total_sales",
+        type=pa.float64(),
+        definition="SUM(amount)",
+        description="Total sales",
+    )
+    implementation = MockSemanticView(
+        dimensions=date_variants | {category},
+        metrics={sales},
+        features=frozenset(),
+    )
+    datasource.implementation = implementation
+    datasource.fetch_values_predicate = None
+    return datasource
+
+
+def test_map_query_object_picks_grain_variant_matching_user_selection(
+    mocker: MockerFixture,
+) -> None:
+    """Only the variant matching the user's grain is sent through."""
+    datasource = _make_grain_variant_datasource(
+        mocker, granularity_dim_grain=Grains.DAY
+    )
+    query_object = ValidatedQueryObject(
+        datasource=datasource,
+        metrics=["total_sales"],
+        columns=["category", "order_date"],
+        granularity="order_date",
+        extras={"time_grain_sqla": "P1D"},
+    )
+
+    result = map_query_object(query_object)
+
+    selected_grains = {dim.grain for dim in result[0].dimensions}
+    assert selected_grains == {
+        Grains.DAY,
+        None,
+    }  # day for order_date, None for category
+
+
+def test_map_query_object_picks_raw_variant_when_no_grain_selected(
+    mocker: MockerFixture,
+) -> None:
+    """
+    No grain selected — the time-axis column must collapse to the raw (grain=None)
+    variant rather than passing all grain variants through to the semantic view.
+    """
+    datasource = _make_grain_variant_datasource(mocker, granularity_dim_grain=None)
+    query_object = ValidatedQueryObject(
+        datasource=datasource,
+        metrics=["total_sales"],
+        columns=["category", "order_date"],
+        granularity="order_date",
+        # No time_grain_sqla in extras
+    )
+
+    result = map_query_object(query_object)
+
+    order_date_dims = [dim for dim in result[0].dimensions if dim.name == "order_date"]
+    assert len(order_date_dims) == 1
+    assert order_date_dims[0].grain is None
+
+
+def test_map_query_object_falls_back_when_no_grain_variant_matches(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Regression: when the time-axis column exposes only grained variants (no
+    ``grain=None``) and the user picks a grain that isn't in the list, the
+    old code silently dropped the axis. It must now fall back to a variant
+    so the axis stays on the query.
+    """
+    datasource = mocker.Mock()
+    base = {
+        "id": "orders.order_date",
+        "name": "order_date",
+        "type": pa.timestamp("us"),
+        "description": "Order date",
+        "definition": "order_date",
+    }
+    # HOUR and DAY only — no grain=None, no MONTH.
+    variants = {
+        Dimension(**base, grain=Grains.HOUR),
+        Dimension(**base, grain=Grains.DAY),
+    }
+    sales = Metric(
+        id="orders.total_sales",
+        name="total_sales",
+        type=pa.float64(),
+        definition="SUM(amount)",
+        description="Total sales",
+    )
+    implementation = MockSemanticView(
+        dimensions=variants,
+        metrics={sales},
+        features=frozenset(),
+    )
+    datasource.implementation = implementation
+    datasource.fetch_values_predicate = None
+
+    query_object = ValidatedQueryObject(
+        datasource=datasource,
+        metrics=["total_sales"],
+        columns=["order_date"],
+        granularity="order_date",
+        extras={"time_grain_sqla": "P1M"},  # MONTH — not in variants
+    )
+
+    result = map_query_object(query_object)
+
+    order_date_dims = [d for d in result[0].dimensions if d.name == "order_date"]
+    assert len(order_date_dims) == 1
+    # Deterministic fallback: alphabetically first grain name — "Day" < "Hour".
+    assert order_date_dims[0].grain == Grains.DAY
+
+
+def test_map_query_object_falls_back_to_raw_when_no_grain_variant_matches(
+    mocker: MockerFixture,
+) -> None:
+    """
+    When no grained variant matches the requested grain but a ``grain=None``
+    variant exists, the raw variant is preferred over any other grained
+    fallback.
+    """
+    datasource = mocker.Mock()
+    base = {
+        "id": "orders.order_date",
+        "name": "order_date",
+        "type": pa.timestamp("us"),
+        "description": "Order date",
+        "definition": "order_date",
+    }
+    variants = {
+        Dimension(**base, grain=None),
+        Dimension(**base, grain=Grains.HOUR),
+    }
+    sales = Metric(
+        id="orders.total_sales",
+        name="total_sales",
+        type=pa.float64(),
+        definition="SUM(amount)",
+        description="Total sales",
+    )
+    implementation = MockSemanticView(
+        dimensions=variants,
+        metrics={sales},
+        features=frozenset(),
+    )
+    datasource.implementation = implementation
+    datasource.fetch_values_predicate = None
+
+    query_object = ValidatedQueryObject(
+        datasource=datasource,
+        metrics=["total_sales"],
+        columns=["order_date"],
+        granularity="order_date",
+        extras={"time_grain_sqla": "P1D"},  # DAY — not in variants
+    )
+
+    result = map_query_object(query_object)
+
+    order_date_dims = [d for d in result[0].dimensions if d.name == "order_date"]
+    assert len(order_date_dims) == 1
+    assert order_date_dims[0].grain is None
+
+
+def test_map_query_object_picks_raw_variant_for_non_axis_time_dim(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Multiple grain variants of a *non-axis* time dimension collapse to the raw
+    (grain=None) variant. ``order_date`` is the granularity axis here so
+    ``shipped_at`` falls through to the non-axis branch with several variants
+    competing — exercising both arms of the ``existing is None or ...`` guard
+    in ``map_query_object``.
+    """
+    datasource = mocker.Mock()
+    shipped_base = {
+        "id": "shipments.shipped_at",
+        "name": "shipped_at",
+        "type": pa.timestamp("us"),
+        "description": "Ship time",
+        "definition": "shipped_at",
+    }
+    shipped_variants = {
+        Dimension(**shipped_base, grain=None),
+        Dimension(**shipped_base, grain=Grains.HOUR),
+        Dimension(**shipped_base, grain=Grains.DAY),
+    }
+    order_date = Dimension(
+        id="orders.order_date",
+        name="order_date",
+        type=pa.timestamp("us"),
+        description="Order date",
+        definition="order_date",
+        grain=None,
+    )
+    sales = Metric(
+        id="orders.total_sales",
+        name="total_sales",
+        type=pa.float64(),
+        definition="SUM(amount)",
+        description="Total sales",
+    )
+    implementation = MockSemanticView(
+        dimensions=shipped_variants | {order_date},
+        metrics={sales},
+        features=frozenset(),
+    )
+    datasource.implementation = implementation
+    datasource.fetch_values_predicate = None
+
+    query_object = ValidatedQueryObject(
+        datasource=datasource,
+        metrics=["total_sales"],
+        columns=["order_date", "shipped_at"],
+        granularity="order_date",
+    )
+
+    result = map_query_object(query_object)
+
+    shipped_dims = [d for d in result[0].dimensions if d.name == "shipped_at"]
+    assert len(shipped_dims) == 1
+    assert shipped_dims[0].grain is None
+
+
+def test_get_grain_time_axis_column_returns_granularity_when_set(
+    mocker: MockerFixture,
+) -> None:
+    """Legacy path: ``granularity`` short-circuits scanning ``columns``."""
+    qo = mocker.Mock()
+    qo.granularity = "order_date"
+    assert _get_grain_time_axis_column(qo, {}) == "order_date"
+
+
+def test_get_grain_time_axis_column_finds_temporal_in_columns(
+    mocker: MockerFixture,
+) -> None:
+    """Modern x_axis path: the sole temporal dim in ``columns`` is the axis."""
+    all_dims = {
+        "category": Dimension(
+            id="products.category",
+            name="category",
+            type=pa.utf8(),
+            definition="category",
+        ),
+        "order_date": Dimension(
+            id="orders.order_date",
+            name="order_date",
+            type=pa.timestamp("us"),
+            definition="order_date",
+        ),
+    }
+    qo = mocker.Mock()
+    qo.granularity = None
+    qo.columns = ["category", "order_date"]
+    assert _get_grain_time_axis_column(qo, all_dims) == "order_date"
+
+
+def test_get_grain_time_axis_column_skips_unknown_columns(
+    mocker: MockerFixture,
+) -> None:
+    """A column not present in the semantic view is silently skipped."""
+    all_dims = {
+        "category": Dimension(
+            id="products.category",
+            name="category",
+            type=pa.utf8(),
+            definition="category",
+        ),
+    }
+    qo = mocker.Mock()
+    qo.granularity = None
+    qo.columns = ["does_not_exist", "category"]
+    # No temporal dim in columns — returns None.
+    assert _get_grain_time_axis_column(qo, all_dims) is None
+
+
+def test_get_grain_time_axis_column_skips_unparseable_adhoc_columns(
+    mocker: MockerFixture,
+) -> None:
+    """An adhoc column that ``_normalize_column`` rejects is silently skipped."""
+    all_dims = {
+        "order_date": Dimension(
+            id="orders.order_date",
+            name="order_date",
+            type=pa.timestamp("us"),
+            definition="order_date",
+        ),
+    }
+    qo = mocker.Mock()
+    qo.granularity = None
+    # First column is an adhoc dict without ``isColumnReference`` — raises in
+    # ``_normalize_column`` and the loop should keep going.
+    qo.columns = [{"label": "unsupported", "sqlExpression": "lower(x)"}, "order_date"]
+    assert _get_grain_time_axis_column(qo, all_dims) == "order_date"
+
+
+def test_get_grain_time_axis_column_returns_none_on_multiple_temporal_columns(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Ambiguity guard: with ``granularity`` unset and more than one temporal
+    column selected, ``QueryObject`` alone cannot identify the x-axis
+    (``form_data`` is not carried through). We return ``None`` rather than
+    picking one arbitrarily, and the grain-application path falls back to
+    raw variants for every column.
+    """
+    all_dims = {
+        "created_at": Dimension(
+            id="orders.created_at",
+            name="created_at",
+            type=pa.timestamp("us"),
+            definition="created_at",
+        ),
+        "shipped_at": Dimension(
+            id="orders.shipped_at",
+            name="shipped_at",
+            type=pa.timestamp("us"),
+            definition="shipped_at",
+        ),
+    }
+    qo = mocker.Mock()
+    qo.granularity = None
+    qo.columns = ["created_at", "shipped_at"]
+    assert _get_grain_time_axis_column(qo, all_dims) is None
+
+
+def test_get_grain_time_axis_column_returns_none_when_no_temporal_columns(
+    mocker: MockerFixture,
+) -> None:
+    """Without ``granularity`` and without a temporal column we return None."""
+    all_dims = {
+        "category": Dimension(
+            id="products.category",
+            name="category",
+            type=pa.utf8(),
+            definition="category",
+        ),
+    }
+    qo = mocker.Mock()
+    qo.granularity = None
+    qo.columns = ["category"]
+    assert _get_grain_time_axis_column(qo, all_dims) is None
 
 
 def test_convert_query_object_filter_unknown_operator(
@@ -3025,20 +3422,22 @@ def test_get_group_limit_filters_granularity_missing_inner_to(
     assert result is None
 
 
-def test_get_group_limit_filters_no_granularity(
+def test_get_group_limit_filters_no_time_axis(
     mocker: MockerFixture,
 ) -> None:
     """
-    Test _get_group_limit_filters when granularity is None/empty.
-    This explicitly covers the branch 704->729 where granularity is Falsy.
+    Test _get_group_limit_filters when no time axis can be identified.
+
+    Without a granularity, temporal column in ``columns``, or a TEMPORAL_RANGE
+    filter, ``_get_time_axis_column`` returns ``None`` and the inner-bound
+    filters are not emitted.
     """
-    # Create dimensions
     category_dim = Dimension("category", "category", pa.utf8(), "category", "Category")
     all_dimensions = {"category": category_dim}
 
-    # Create mock query object with no granularity
     query_object = mocker.Mock()
-    query_object.granularity = None  # No granularity
+    query_object.granularity = None
+    query_object.columns = []
     query_object.inner_from_dttm = datetime(2025, 9, 22)
     query_object.inner_to_dttm = datetime(2025, 10, 22)
     query_object.extras = {}
@@ -3049,7 +3448,6 @@ def test_get_group_limit_filters_no_granularity(
 
     result = _get_group_limit_filters(query_object, all_dimensions)
 
-    # Should return None - no granularity means no time filters added
     assert result is None
 
 
@@ -3255,3 +3653,366 @@ def test_coerce_time_invalid_string_raises() -> None:
 def test_coerce_time_rejects_other_types() -> None:
     with pytest.raises(ValueError, match="Invalid time value"):
         _coerce_scalar_filter_value(123, _dim(pa.time64("us")))
+
+
+# ---------------------------------------------------------------------------
+# _get_time_axis_column — resolves the temporal column the offset applies to
+# ---------------------------------------------------------------------------
+
+
+def test_get_time_axis_column_returns_granularity_when_set(
+    mocker: MockerFixture,
+) -> None:
+    """Legacy path: ``granularity`` short-circuits the rest of the lookup."""
+    qo = mocker.Mock()
+    qo.granularity = "order_date"
+    assert _get_time_axis_column(qo, {}) == "order_date"
+
+
+def test_get_time_axis_column_finds_temporal_in_columns(
+    mocker: MockerFixture,
+) -> None:
+    """Modern x_axis path: first temporal dim from ``columns`` wins."""
+    all_dims = {
+        "category": Dimension(
+            id="products.category",
+            name="category",
+            type=pa.utf8(),
+            definition="category",
+        ),
+        "order_date": Dimension(
+            id="orders.order_date",
+            name="order_date",
+            type=pa.timestamp("us"),
+            definition="order_date",
+        ),
+    }
+    qo = mocker.Mock()
+    qo.granularity = None
+    qo.columns = ["category", "order_date"]
+    qo.filter = []
+    assert _get_time_axis_column(qo, all_dims) == "order_date"
+
+
+def test_get_time_axis_column_finds_temporal_in_temporal_range_filter(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Aggregate-only charts that only reference the temporal column inside a
+    ``TEMPORAL_RANGE`` adhoc filter (no granularity, empty ``columns``) are
+    still resolvable so the offset-aware filter path can shift the bounds.
+    """
+    all_dims = {
+        "order_date": Dimension(
+            id="orders.order_date",
+            name="order_date",
+            type=pa.timestamp("us"),
+            definition="order_date",
+        ),
+    }
+    qo = mocker.Mock()
+    qo.granularity = None
+    qo.columns = []
+    qo.filter = [
+        # A non-TEMPORAL_RANGE filter is skipped so the loop reaches the
+        # TEMPORAL_RANGE entry that follows it.
+        {"col": "status", "op": FilterOperator.EQUALS.value, "val": "completed"},
+        {
+            "col": "order_date",
+            "op": FilterOperator.TEMPORAL_RANGE.value,
+            "val": "2020-01-01 : 2020-12-31",
+        },
+    ]
+    assert _get_time_axis_column(qo, all_dims) == "order_date"
+
+
+def test_get_time_axis_column_ignores_temporal_range_on_non_temporal_col(
+    mocker: MockerFixture,
+) -> None:
+    """Defensive: a TEMPORAL_RANGE filter on a non-temporal column is not
+    used as the time axis (malformed payload)."""
+    all_dims = {
+        "category": Dimension(
+            id="products.category",
+            name="category",
+            type=pa.utf8(),
+            definition="category",
+        ),
+    }
+    qo = mocker.Mock()
+    qo.granularity = None
+    qo.columns = []
+    qo.filter = [
+        {
+            "col": "category",
+            "op": FilterOperator.TEMPORAL_RANGE.value,
+            "val": "2020-01-01 : 2020-12-31",
+        },
+    ]
+    assert _get_time_axis_column(qo, all_dims) is None
+
+
+def test_get_time_axis_column_returns_none_when_no_temporal_signal(
+    mocker: MockerFixture,
+) -> None:
+    """Without ``granularity``, a temporal column in ``columns``, or a
+    ``TEMPORAL_RANGE`` filter we return ``None`` and the caller skips."""
+    all_dims = {
+        "category": Dimension(
+            id="products.category",
+            name="category",
+            type=pa.utf8(),
+            definition="category",
+        ),
+    }
+    qo = mocker.Mock()
+    qo.granularity = None
+    qo.columns = ["category"]
+    qo.filter = []
+    assert _get_time_axis_column(qo, all_dims) is None
+
+
+def test_get_time_axis_column_skips_unparseable_adhoc_columns(
+    mocker: MockerFixture,
+) -> None:
+    """An adhoc column that ``_normalize_column`` rejects is silently skipped."""
+    all_dims = {
+        "order_date": Dimension(
+            id="orders.order_date",
+            name="order_date",
+            type=pa.timestamp("us"),
+            definition="order_date",
+        ),
+    }
+    qo = mocker.Mock()
+    qo.granularity = None
+    qo.filter = []
+    # First column is an adhoc dict without ``isColumnReference`` — raises in
+    # ``_normalize_column`` and the loop should keep going.
+    qo.columns = [
+        {"label": "unsupported", "sqlExpression": "lower(x)"},
+        "order_date",
+    ]
+    assert _get_time_axis_column(qo, all_dims) == "order_date"
+
+
+# ---------------------------------------------------------------------------
+# Time-offset application via TEMPORAL_RANGE adhoc filter
+# ---------------------------------------------------------------------------
+
+
+def test_map_query_object_shifts_time_offset_via_temporal_range_filter(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Regression: an aggregate-only modern SV chart that carries the time
+    column only inside a ``TEMPORAL_RANGE`` adhoc filter (no granularity, no
+    temporal entry in ``columns``) used to emit identical main + offset
+    queries because ``_get_time_filter`` short-circuited on empty granularity
+    and the TEMPORAL_RANGE filter was passed through verbatim. The fix
+    routes the time column through ``_get_time_axis_column`` so the offset
+    bounds are computed and the TEMPORAL_RANGE pass-through is skipped.
+    """
+    datasource = mocker.Mock()
+    order_date = Dimension(
+        id="orders.order_date",
+        name="order_date",
+        type=pa.timestamp("us"),
+        description="Order date",
+        definition="order_date",
+    )
+    status = Dimension(
+        id="orders.status",
+        name="status",
+        type=pa.utf8(),
+        description="Order status",
+        definition="status",
+    )
+    count_metric = Metric(
+        id="orders.count",
+        name="count",
+        type=pa.int64(),
+        definition="count",
+        description="Order count",
+    )
+    implementation = MockSemanticView(
+        dimensions={order_date, status},
+        metrics={count_metric},
+        features=frozenset(),
+    )
+    datasource.implementation = implementation
+    datasource.fetch_values_predicate = None
+
+    query_object = ValidatedQueryObject(
+        datasource=datasource,
+        from_dttm=datetime(2020, 1, 1),
+        to_dttm=datetime(2020, 12, 31),
+        metrics=["count"],
+        columns=["status"],
+        # granularity intentionally NOT set — the modern x_axis SV shape.
+        filters=[
+            {
+                "col": "order_date",
+                "op": FilterOperator.TEMPORAL_RANGE.value,
+                "val": "2020-01-01 : 2020-12-31",
+            }
+        ],
+        time_offsets=["1 month ago"],
+    )
+
+    queries = map_query_object(query_object)
+    assert len(queries) == 2
+    main_query, offset_query = queries[0], queries[1]
+
+    def time_filter_bounds(query: SemanticQuery) -> tuple[datetime, datetime]:
+        assert query.filters is not None
+        gte = next(
+            f.value
+            for f in query.filters
+            if f.column is not None
+            and f.column.name == "order_date"
+            and f.operator == Operator.GREATER_THAN_OR_EQUAL
+        )
+        lt = next(
+            f.value
+            for f in query.filters
+            if f.column is not None
+            and f.column.name == "order_date"
+            and f.operator == Operator.LESS_THAN
+        )
+        assert isinstance(gte, datetime)
+        assert isinstance(lt, datetime)
+        return gte, lt
+
+    main_gte, main_lt = time_filter_bounds(main_query)
+    offset_gte, offset_lt = time_filter_bounds(offset_query)
+
+    assert main_gte == datetime(2020, 1, 1)
+    assert main_lt == datetime(2020, 12, 31)
+
+    # The offset bounds are shifted backwards by one month on both ends.
+    # Compare against ``get_past_or_future`` rather than hand-rolled date math
+    # so the assertion doesn't entangle the regression with "1 month ago"
+    # quirks (e.g. Dec 31 − 1 month → Nov 30, not Dec 1).
+    from superset.utils.date_parser import get_past_or_future
+
+    assert offset_gte == get_past_or_future("1 month ago", datetime(2020, 1, 1))
+    assert offset_lt == get_past_or_future("1 month ago", datetime(2020, 12, 31))
+    assert offset_gte != main_gte
+    assert offset_lt != main_lt
+
+
+def test_get_group_limit_filters_uses_time_axis_from_temporal_range(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Regression: the group-limit subquery used to gate its inner-bound time
+    filter and its ``TEMPORAL_RANGE`` skip on ``query_object.granularity``.
+    A modern aggregate-only chart carries the temporal column only inside a
+    ``TEMPORAL_RANGE`` adhoc filter, so under time comparison the group-limit
+    subquery either got no time bounds at all or picked up the *outer* bounds
+    via the pass-through — never the inner bounds. Now both paths resolve the
+    temporal column via ``_get_time_axis_column``.
+    """
+    order_date = Dimension(
+        id="orders.order_date",
+        name="order_date",
+        type=pa.timestamp("us"),
+        description="Order date",
+        definition="order_date",
+    )
+    status = Dimension(
+        id="orders.status",
+        name="status",
+        type=pa.utf8(),
+        description="Order status",
+        definition="status",
+    )
+    all_dimensions = {"order_date": order_date, "status": status}
+
+    datasource = mocker.Mock()
+    datasource.fetch_values_predicate = None
+
+    query_object = ValidatedQueryObject(
+        datasource=datasource,
+        from_dttm=datetime(2020, 1, 1),
+        to_dttm=datetime(2020, 12, 31),
+        inner_from_dttm=datetime(2019, 12, 1),
+        inner_to_dttm=datetime(2020, 11, 30),
+        metrics=["count"],
+        columns=["status"],
+        # granularity intentionally NOT set — the modern x_axis SV shape.
+        filters=[
+            {
+                "col": "order_date",
+                "op": FilterOperator.TEMPORAL_RANGE.value,
+                "val": "2020-01-01 : 2020-12-31",
+            }
+        ],
+    )
+
+    result = _get_group_limit_filters(query_object, all_dimensions)
+
+    assert result is not None
+    order_date_bounds = {
+        (f.operator, f.value)
+        for f in result
+        if f.column is not None and f.column.name == "order_date"
+    }
+    # Inner bounds — not the outer 2020-01-01 / 2020-12-31 — must be present,
+    # and the outer TEMPORAL_RANGE pass-through must be skipped.
+    assert order_date_bounds == {
+        (Operator.GREATER_THAN_OR_EQUAL, datetime(2019, 12, 1)),
+        (Operator.LESS_THAN, datetime(2020, 11, 30)),
+    }
+
+
+def test_get_filters_from_query_object_preserves_open_ended_temporal_range(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Regression: the ``TEMPORAL_RANGE`` skip in ``_get_filters_from_query_object``
+    must not drop one-sided ranges. ``_get_time_filter`` only emits bounds when
+    both ``from_dttm`` and ``to_dttm`` resolve, so an open-ended range like
+    ``"2020-01-01 : "`` needs to fall through to ``_convert_query_object_filter``
+    (which emits the single bounded predicate). Otherwise the query silently
+    widens the scan.
+    """
+    order_date = Dimension(
+        id="orders.order_date",
+        name="order_date",
+        type=pa.timestamp("us"),
+        description="Order date",
+        definition="order_date",
+    )
+    all_dimensions = {"order_date": order_date}
+
+    datasource = mocker.Mock()
+    datasource.fetch_values_predicate = None
+
+    query_object = ValidatedQueryObject(
+        datasource=datasource,
+        from_dttm=datetime(2020, 1, 1),
+        to_dttm=None,  # open-ended → ``_get_time_filter`` returns nothing
+        metrics=["count"],
+        columns=[],
+        filters=[
+            {
+                "col": "order_date",
+                "op": FilterOperator.TEMPORAL_RANGE.value,
+                "val": "2020-01-01 : ",
+            }
+        ],
+        extras={},
+    )
+
+    result = _get_filters_from_query_object(query_object, None, all_dimensions)
+
+    assert result == {
+        Filter(
+            type=PredicateType.WHERE,
+            column=order_date,
+            operator=Operator.GREATER_THAN_OR_EQUAL,
+            value=datetime(2020, 1, 1),
+        ),
+    }

@@ -45,7 +45,6 @@ export function GridTable<RecordType extends object>({
   showRowNumber,
   enableActions,
   size = GridSize.Middle,
-  striped,
   themeOverrides,
 }: TableProps<RecordType>) {
   const theme = useTheme();

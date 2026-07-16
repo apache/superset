@@ -128,7 +128,7 @@ from superset.dashboards.commands.create import CreateDashboardCommand
 def test_create_dashboard_success():
     properties = {
         "dashboard_title": "Test Dashboard",
-        "owners": [1]
+        "editors": [1]
     }
 
     command = CreateDashboardCommand(properties)
@@ -275,9 +275,11 @@ def handle_validation_error(error):
 from typing import List, Optional, Dict, Any
 from superset.models.dashboard import Dashboard
 
-def get_dashboards_by_owner(owner_id: int) -> List[Dashboard]:
-    """Get all dashboards owned by a specific user"""
-    return db.session.query(Dashboard).filter_by(owner_id=owner_id).all()
+def get_dashboards_by_editor(editor_id: int) -> List[Dashboard]:
+    """Get all dashboards editable by a specific subject"""
+    return db.session.query(Dashboard).filter(
+        Dashboard.editors.any(id=editor_id)
+    ).all()
 
 def create_dashboard(properties: Dict[str, Any]) -> Optional[Dashboard]:
     """Create a new dashboard with the given properties"""
