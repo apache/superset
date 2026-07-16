@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useMemo, useState } from 'react';
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import {
   AdhocColumn,
   isAdhocColumn,
@@ -27,7 +27,6 @@ import {
   QueryFormMetric,
   QueryFormData,
 } from '@superset-ui/core';
-import { tn } from '@apache-superset/core/translation';
 import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
 import { arrayMove } from '@dnd-kit/sortable';
 import { isString } from 'lodash-es';

@@ -23,7 +23,7 @@
   },
   "settings": {
     "react": {
-      "version": "17.0.2"
+      "version": "18.3.1"
     }
   },
   "rules": {
@@ -124,8 +124,7 @@
     "import/no-mutable-exports": "error",
     "import/no-amd": "error",
     "import/first": "error",
-    // TODO: Consolidate duplicate imports in DatasetList and other files
-    "import/no-duplicates": "warn",
+    "import/no-duplicates": "error",
     "import/no-absolute-path": "error",
     "import/no-dynamic-require": "error",
     "import/no-webpack-loader-syntax": "error",

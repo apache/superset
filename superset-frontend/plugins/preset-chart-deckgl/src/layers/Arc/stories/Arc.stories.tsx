@@ -21,9 +21,8 @@
 /* eslint-disable no-magic-numbers */
 import { SuperChart } from '@superset-ui/core';
 import { ArcChartPlugin } from '@superset-ui/preset-chart-deckgl';
-import { withResizableChartDemo } from '@storybook-shared';
+import { withResizableChartDemo, dummyDatasource } from '@storybook-shared';
 import payload from './payload';
-import { dummyDatasource } from '@storybook-shared';
 
 new ArcChartPlugin().configure({ key: 'deck_arc' }).register();
 
