@@ -1935,6 +1935,62 @@ def test_pivot_table_v2_applies_per_metric_format_when_metrics_combined():
     assert formatted[("x", "sales")].tolist() == ["100.00", "200.00"]
 
 
+def test_pivot_table_v2_applies_per_metric_format_when_metrics_on_rows():
+    """
+    Per-metric formats apply when `metricsLayout` is "ROWS" and the metric is
+    on the index instead of the columns.
+    """
+    df = pd.DataFrame(
+        {
+            "dept": ["A", "B"],
+            "region": ["x", "x"],
+            "sales": [100.0, 200.0],
+            "qty": [1111.0, 2222.0],
+        }
+    )
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["dept"],
+        "groupbyColumns": ["region"],
+        "metrics": ["sales", "qty"],
+        "aggregateFunction": "Sum",
+        "metricsLayout": "ROWS",
+        "valueFormat": ",.2f",
+        "columnFormats": {"qty": ",d"},
+        "currencyFormats": {"sales": {"symbol": "USD", "symbolPosition": "prefix"}},
+    }
+    formatted = pivot_table_v2(df, form_data)
+    assert formatted[("x",)].tolist() == ["$ 100.00", "$ 200.00", "1,111", "2,222"]
+
+
+def test_pivot_table_v2_applies_per_metric_format_when_metrics_on_rows_combined():
+    """
+    Per-metric formats apply when `metricsLayout` is "ROWS" and `combineMetric`
+    moves the metric to the last index level.
+    """
+    df = pd.DataFrame(
+        {
+            "dept": ["A", "B"],
+            "region": ["x", "x"],
+            "sales": [100.0, 200.0],
+            "qty": [1111.0, 2222.0],
+        }
+    )
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["dept"],
+        "groupbyColumns": ["region"],
+        "metrics": ["sales", "qty"],
+        "aggregateFunction": "Sum",
+        "metricsLayout": "ROWS",
+        "combineMetric": True,
+        "valueFormat": ",.2f",
+        "columnFormats": {"qty": ",d"},
+    }
+    formatted = pivot_table_v2(df, form_data)
+    assert formatted[("x",)].tolist() == ["100.00", "1,111", "200.00", "2,222"]
+
+
 def test_format_column_applies_d3_and_currency():
     df = pd.DataFrame({"amount": [1234.5, 6789.0]})
     format_column(df, "amount", ",.2f", {})

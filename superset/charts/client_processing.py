@@ -303,15 +303,18 @@ def apply_pivot_number_formats(
     Apply `valueFormat`/`columnFormats` and currency config to pivot values.
 
     The metric name is the first column level, or the last when `combineMetric`
-    moves it there; per-metric overrides fall back to the global value format. In
-    the ROWS metrics layout the metric is on the index, so every value column
-    uses the global format.
+    moves it there; in the ROWS metrics layout it is on the index instead.
+    Per-metric overrides fall back to the global value format.
     """
     value_format = form_data.get("valueFormat")
     column_formats = form_data.get("columnFormats") or {}
     currency_format = form_data.get("currencyFormat") or {}
     currency_formats = form_data.get("currencyFormats") or {}
     metric_level = -1 if form_data.get("combineMetric") else 0
+    metrics_on_rows = form_data.get("metricsLayout") == "ROWS"
+
+    if metrics_on_rows:
+        df = df.T
 
     for column in df.columns:
         metric = column[metric_level] if isinstance(column, tuple) else column
@@ -322,7 +325,7 @@ def apply_pivot_number_formats(
             currency_formats.get(metric) or currency_format,
         )
 
-    return df
+    return df.T if metrics_on_rows else df
 
 
 def table(
