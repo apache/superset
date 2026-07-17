@@ -17,8 +17,8 @@
  * under the License.
  */
 /* eslint-disable react/no-array-index-key, react/jsx-no-bind */
-import dist from 'distributions';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { studentTwoSidedPValue } from './statistics';
 import { Table, Tr, Td, Thead, Th } from 'reactable';
 
 interface DataPointValue {
@@ -100,9 +100,8 @@ function TTestTable({
           ),
       );
       try {
-        return (2 * new dist.Studentt(finiteCount - 1).cdf(tvalue)).toFixed(
-          pValPrec,
-        ); // two-sided test
+        // two-sided test
+        return studentTwoSidedPValue(tvalue, finiteCount - 1).toFixed(pValPrec);
       } catch (error) {
         return NaN;
       }
