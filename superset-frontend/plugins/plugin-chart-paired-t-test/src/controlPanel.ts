@@ -18,10 +18,14 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { validateNonEmpty } from '@superset-ui/core';
-import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
+    // The paired t-test is a timeseries query (buildQuery sets
+    // is_timeseries), so it needs a datetime column. Without this section the
+    // backend rejects the query with "Datetime column not provided...".
+    sections.legacyTimeseriesTime,
     {
       label: t('Query'),
       expanded: true,
