@@ -104,8 +104,10 @@ const processComparisonTotals = (
     Object.keys(totalRecord).forEach(key => {
       if (totalRecord[key] !== undefined && !key.includes(comparisonSuffix)) {
         transformedTotals[`${t('Main')} ${key}`] =
-          parseInt(transformedTotals[`${t('Main')} ${key}`]?.toString() || '0', 10) +
-          parseInt(totalRecord[key]?.toString() || '0', 10);
+          parseInt(
+            transformedTotals[`${t('Main')} ${key}`]?.toString() || '0',
+            10,
+          ) + parseInt(totalRecord[key]?.toString() || '0', 10);
         transformedTotals[`# ${key}`] =
           parseInt(transformedTotals[`# ${key}`]?.toString() || '0', 10) +
           parseInt(
