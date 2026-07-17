@@ -103,6 +103,10 @@ class AnnotationInfo(BaseModel):
 
 
 class AnnotationList(PaginatedResponse[ColumnOperator]):
+    # Parametrized by ColumnOperator (not AnnotationFilter) because
+    # list_layer_annotations prepends a "layer_id" scoping filter to
+    # filters_applied, and "layer_id" is outside AnnotationFilter's col
+    # Literal (which only allows "short_descr").
     annotations: list[AnnotationInfo]
     # layer_id defaults to 0; the tool sets it after ModelListCore constructs this
     # object. ModelListCore does not know about this domain-specific field.
