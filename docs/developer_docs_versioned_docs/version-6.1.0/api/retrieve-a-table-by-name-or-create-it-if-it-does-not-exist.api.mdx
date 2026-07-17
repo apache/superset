@@ -1,0 +1,66 @@
+---
+id: retrieve-a-table-by-name-or-create-it-if-it-does-not-exist
+title: "Retrieve a table by name, or create it if it does not exist"
+description: "Retrieve a table by name, or create it if it does not exist"
+sidebar_label: "Retrieve a table by name, or create it if it does not exist"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFWG1v2zYQ/ivEYUATTImTYAUKFfmQpu2armiC2tkGRIFLS2ebDUWqJOXEFfTfiyNlSX5pVzQY+sWxybvjPQ+fO51SgcHPJVr3QmdLiCtItXKoHH3lRSFFyp3QavDJakVrNp1jzulbYXSBxgm03lbe86UdT4V0aMY5F2qcOZfTVoZTXkoH8ZRLixG4ZYEQw0RriVxBHUHKHZd6FoxtakRBZ0IMozmyZpO5OTLHJxLZBKVWM8uchghy/vAO1czNIT55ehRBLtTq91EEqpSSfCB2puzOts4INaOjM+74hFsci2z7+IuXTE/ZymTX6U08oRzO0FBApU3OpfiC41TLMlf2xyjoeN1mIOz9TwT4iGPFc9w+/D3PkRjwNrDLGfNCcofjghue2x3pNwYsGLCpNh2O7Yh15OUoDGYQ36xdzlqmt62nnnzC1NGucIQS/kR3ac4NcocvueMW3TBQW0eADzwvJH5Xr4GmVpGr1DaUcrzzooPv6io71z7HvdVN8joa1nigqH7BFlrZUG4nR0ePKFaD1qtxcz3kGSphU9n1JuU7VtYY7g7pwh7XHtu2xEOldcqoI/jjURBztJbPsIekp7Hvpd06wguesaY5xuxCLbgUWdAxOjSWFUYvRIYZ7MDU8w1Yjn8tlmvFSzfXRnzBLGZnpZujcs35rJXaDiB9R4/k5ORXIymMTukndUJC4ZYx+5suJ6BBY7TZBeVclzJjSjvWRGi86ainv1psF8qhUVwyi2aBJqCI2ZlipcKHAlOHWVhkOk1L843rek19q6UgAotpaQhjfFPBp3sH8c1tTd2Tzyx12KZFWuqoDwepznDok7PeQXJFLTC9/vAOIpB8grL7aXVpUko9LY1kB/+yq8vhiCUwd66IBwOpUy7n2rr42dGzZwNeiMHieJCF8wYzdGNtxqnv04MEWJIkirGDNyyBs0ZwnvuYvUBu0LDfzs7PXw2H49HlX6/erzuch1s7GC0LjNnmxXW2GXtSJXCHywRilsCCyxITqJ9AHbVYr5ZurlUPbbvQ4hV5oY1blbdNVKJWvZmdtsuHhbZuj85lP0tKFLznyDM09rTaoCagaOhJgP3OeEqyHjt9h6puvImC012wE7WfqMII5fZW6R+S8d7+fp+Qt3zBh15hPVLWFjshaGWJl5YLfs+FY1N06dwz8RgeqgAnRzfXGeEguW1yFK/M2KaOCPvHlZSqQNTI8/Qx6lz6SgpsbaspWK/onehsGbO3w8v3h6HmxXS5V7E7XPa4ZvU+WRPlzxMVaCKwLUUbF9AYaYmHUs/2yHT/OVDdrlf7B3RG4AIZXw2GS0ZTRsS0YYE+JhwTU/rMNFrf/fBBWLq3QCXEQEqFCApOMyN8/zbovn2HCh2iNCSHnbcKm9m+o22W4QKlLnJUrul1Xm0hUFUY7XSqZR0PBhWFquOKqq3einZeWqfzVYgIFtwI4sA27dmHWZu9fZoQAaoyp97X/KQ/vv+tx38zGl2xNk4dAWWzHq/Fu5XcMDRx2lN+hjbs4oqCEJb1IDupavy9dV3Txa8auR9mA0jfziuYeFG/pmmU4r39ZwTNDOpfMfxuN2l70HVEzmODU4N2/rNBKIrV6kP3/vjqB+br5g3ovwbso50DduP8+Ak7AqGmevt9ZVgWaCz2Xyh6SyT7YLc4DrdpXc79aNAc/biKXMulnSUcPrhBIbnwL4q+UKqmWG+AF4ISO274C3mulSxEQOoO8r2BqiKOr42sa1r+XKKh6eC2qyA/I0QQWqqv8jtc+vmpa46+4GRJ6W0NSlTOweMsTdE/Ir5te9vrQ9TRIYJJ85+IXGfkY/g9RP4zBohAe3rCawythQdVGaaoEJOUSVNrj8NWwc0XQtVscbXsZVhVwSI8G6jtBCj+mQr1bV3XXwH4HvKT
+sidebar_class_name: "post api-method"
+info_path: developer-docs/api/superset
+custom_edit_url: null
+hide_send_button: true
+show_extensions: true
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Retrieve a table by name, or create it if it does not exist"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/api/v1/dataset/get_or_create/"}
+  context={"endpoint"}
+>
+
+</MethodEndpoint>
+
+
+
+Retrieve a table by name, or create it if it does not exist
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails>
+
+</ParamsDetails>
+
+<RequestSchema
+  {...require("./retrieve-a-table-by-name-or-create-it-if-it-does-not-exist.RequestSchema.json")}
+>
+
+</RequestSchema>
+
+<StatusCodes
+  {...require("./retrieve-a-table-by-name-or-create-it-if-it-does-not-exist.StatusCodes.json")}
+>
+
+</StatusCodes>

@@ -486,6 +486,70 @@ test('sets comparator to undefined when operator is IS_NULL or IS_NOT_NULL', () 
   });
 });
 
+test('hides the value input when operator is IS_NULL', () => {
+  setup({
+    adhocFilter: new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'value',
+      operatorId: Operators.IsNull,
+      operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.IsNull].operation,
+      comparator: undefined,
+      clause: Clauses.Where,
+    }),
+  });
+  expect(
+    screen.queryByPlaceholderText('Filter value (case sensitive)'),
+  ).not.toBeInTheDocument();
+});
+
+test('hides the value input when operator is IS_NOT_NULL', () => {
+  setup({
+    adhocFilter: new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'value',
+      operatorId: Operators.IsNotNull,
+      operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.IsNotNull].operation,
+      comparator: undefined,
+      clause: Clauses.Where,
+    }),
+  });
+  expect(
+    screen.queryByPlaceholderText('Filter value (case sensitive)'),
+  ).not.toBeInTheDocument();
+});
+
+test('hides the value input when operator is IS_TRUE', () => {
+  setup({
+    adhocFilter: new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'value',
+      operatorId: Operators.IsTrue,
+      operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.IsTrue].operation,
+      comparator: undefined,
+      clause: Clauses.Where,
+    }),
+  });
+  expect(
+    screen.queryByPlaceholderText('Filter value (case sensitive)'),
+  ).not.toBeInTheDocument();
+});
+
+test('hides the value input when operator is IS_FALSE', () => {
+  setup({
+    adhocFilter: new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'value',
+      operatorId: Operators.IsFalse,
+      operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.IsFalse].operation,
+      comparator: undefined,
+      clause: Clauses.Where,
+    }),
+  });
+  expect(
+    screen.queryByPlaceholderText('Filter value (case sensitive)'),
+  ).not.toBeInTheDocument();
+});
+
 test('should not call API when column has no advanced data type', async () => {
   const props = getAdvancedDataTypeTestProps();
 
@@ -661,7 +725,7 @@ test('advanced data type operator list should update after API response', async 
 
   expect(
     await screen.findByText('Equal to (=)', {
-      selector: '.ant-select-selection-item',
+      selector: '.ant-select-content-has-value, .ant-select-selection-item',
     }),
   ).toBeInTheDocument();
 });

@@ -91,8 +91,29 @@ async def list_charts(
     Returns chart metadata including id, name, viz_type, URL, and last
     modified time.
 
-    Sortable columns for order_column: id, slice_name, viz_type, description,
-    changed_on, created_on
+    **IMPORTANT**: All parameters must be wrapped in a ``request`` object.
+    Do NOT pass ``search``, ``page``, ``page_size``, etc. as top-level
+    keyword arguments — they will be rejected. Use the ``request`` wrapper::
+
+        # Correct usage
+        list_charts(request={"search": "revenue", "page": 1, "page_size": 10})
+        list_charts(request={"filters": [{"col": "slice_name", "opr": "sw", "value": "sales"}]})
+        list_charts()  # no arguments returns first page with defaults
+
+        # Wrong — causes pydantic validation errors
+        list_charts(search="revenue", page=1)  # DO NOT DO THIS
+
+    Valid filter columns for ``filters[].col``:
+        ``slice_name``, ``viz_type``, ``datasource_name``,
+        ``created_by_fk``, ``changed_by_fk``, ``dashboards``
+
+    Sortable columns for ``order_column``:
+        ``id``, ``slice_name``, ``viz_type``, ``description``,
+        ``changed_on``, ``created_on``
+
+    To filter by a person, call find_users to resolve the name to a user ID,
+    then pass it as a filter: filters=[{"col": "created_by_fk", "opr": "eq",
+    "value": <id>}] (or "changed_by_fk"). Do not pass the name as search.
     """
     request = request or _DEFAULT_LIST_CHARTS_REQUEST.model_copy(deep=True)
     await ctx.info(
@@ -112,6 +133,7 @@ async def list_charts(
         )
     )
 
+    from superset.charts.filters import ChartDeletedStateFilter
     from superset.daos.chart import ChartDAO
     from superset.mcp_service.common.schema_discovery import (
         CHART_SORTABLE_COLUMNS,
@@ -161,6 +183,7 @@ async def list_charts(
         all_columns=all_columns,
         sortable_columns=sortable_columns,
         logger=logger,
+        deleted_state_filter=ChartDeletedStateFilter,
     )
 
     try:
@@ -174,7 +197,8 @@ async def list_charts(
                 page=max(request.page - 1, 0),
                 page_size=request.page_size,
                 created_by_me=request.created_by_me,
-                owned_by_me=request.owned_by_me,
+                edited_by_me=request.edited_by_me,
+                deleted_state=request.deleted_state,
             )
         count = len(result.charts) if hasattr(result, "charts") else 0
         total_pages = getattr(result, "total_pages", None)

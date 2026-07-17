@@ -17,7 +17,7 @@
  * under the License.
  */
 import { DataRecord, DataRecordValue } from '@superset-ui/core';
-import { groupBy as _groupBy, transform } from 'lodash';
+import { groupBy as _groupBy, transform } from 'lodash-es';
 
 export type TreeNode = {
   name: DataRecordValue;
@@ -36,10 +36,11 @@ export function treeBuilder(
   groupBy: string[],
   metric: string,
   secondaryMetric?: string,
+  filterNullNames?: boolean,
 ): TreeNode[] {
   const [curGroupBy, ...restGroupby] = groupBy;
   const curData = _groupBy(data, curGroupBy);
-  return transform(
+  const nodes = transform(
     curData,
     (result, value, key) => {
       const name = curData[key][0][curGroupBy]!;
@@ -58,11 +59,15 @@ export function treeBuilder(
           result.push(item);
         });
       } else {
+        // Children are already null-filtered by the recursive call, so the
+        // parent's value/secondaryValue exclude hidden nulls. This keeps the
+        // parent arc sized to its visible children (no empty gap).
         const children = treeBuilder(
           value,
           restGroupby,
           metric,
           secondaryMetric,
+          filterNullNames,
         );
         const metricValue = children.reduce(
           (prev, cur) => prev + (cur.value as number),
@@ -85,4 +90,11 @@ export function treeBuilder(
     },
     [] as TreeNode[],
   );
+  // Filter at every level so single-level charts and root nodes are covered,
+  // not just nested children. A parent whose children were all null-filtered
+  // is dropped too: keeping it would leave a zero-value arc that yields a NaN
+  // secondaryValue/value ratio for coloring and tooltips.
+  return filterNullNames
+    ? nodes.filter(node => node.name !== null && node.children?.length !== 0)
+    : nodes;
 }

@@ -824,3 +824,244 @@ def test_error_responses_sanitize_prompt_facing_error_text(error_schema: type) -
         "Missing x [ESCAPED-UNTRUSTED-CONTENT-CLOSE] y\n"
         f"{LLM_CONTEXT_CLOSE_DELIMITER}"
     )
+
+
+# ---------------------------------------------------------------------------
+# sanitize_sql_expression — Ticket #3.
+#
+# Locks in three properties of the SQL-metric sanitizer:
+#   1. legitimate SQL aggregate expressions pass through unchanged,
+#   2. the on\w+= event-handler check is NOT inherited (would false-positive
+#      on `monthly = 12`),
+#   3. statement stacking / comments / DDL+DML / XSS are rejected, while
+#      subqueries pass through (subquery policy lives in Superset core's
+#      ALLOW_ADHOC_SUBQUERY feature flag, not here).
+# ---------------------------------------------------------------------------
+
+
+def _sanitize_sql():
+    """Import lazily so the import error surfaces as a per-test failure."""
+    from superset.mcp_service.utils.sanitization import sanitize_sql_expression
+
+    return sanitize_sql_expression
+
+
+def test_sanitize_sql_expression_allows_ticket_example():
+    sanitize_sql_expression = _sanitize_sql()
+    expr = "COUNT(CASE WHEN closed_won THEN 1 END)::numeric / NULLIF(COUNT(*),0)"
+    assert sanitize_sql_expression(expr, "sql_expression") == expr
+
+
+def test_sanitize_sql_expression_no_false_positive_on_equals():
+    """`monthly = 12` must pass; sanitize_user_input's on\\w+= check matches
+    `on`+`thly`+`=` and would block it. This locks in that the new sanitizer
+    is independent of sanitize_user_input."""
+    sanitize_sql_expression = _sanitize_sql()
+    expr = "SUM(CASE WHEN monthly = 12 THEN 1 END)"
+    assert sanitize_sql_expression(expr, "sql_expression") == expr
+
+
+def test_sanitize_sql_expression_allows_abs_and_casts():
+    sanitize_sql_expression = _sanitize_sql()
+    expr = "ABS(SUM(amount))::numeric / 100.0"
+    assert sanitize_sql_expression(expr, "sql_expression") == expr
+
+
+def test_sanitize_sql_expression_allows_subquery():
+    """Subquery policy belongs to Superset core (ALLOW_ADHOC_SUBQUERY).
+    The MCP-layer sanitizer must NOT block SELECT — otherwise it would
+    override the admin's feature-flag choice."""
+    sanitize_sql_expression = _sanitize_sql()
+    expr = "(SELECT AVG(x) FROM other_table)"
+    assert sanitize_sql_expression(expr, "sql_expression") == expr
+
+
+def test_sanitize_sql_expression_allows_backticks():
+    """MySQL/MariaDB use backticks for identifier quoting
+    (``SUM(`Order Date`)``). The SQL execution path has no shell, so the
+    shell-metacharacter concern that blocks backticks in filter values
+    does not apply here. Regression test for an earlier defensive block
+    that broke MySQL identifier syntax."""
+    sanitize_sql_expression = _sanitize_sql()
+    expr = "SUM(`Order Date`)"
+    assert sanitize_sql_expression(expr, "sql_expression") == expr
+
+
+def test_sanitize_sql_expression_blocks_statement_stacking():
+    sanitize_sql_expression = _sanitize_sql()
+    with pytest.raises(ValueError, match="statement stacking"):
+        sanitize_sql_expression("SUM(amount); DROP TABLE users", "sql_expression")
+
+
+def test_sanitize_sql_expression_blocks_line_comment():
+    sanitize_sql_expression = _sanitize_sql()
+    with pytest.raises(ValueError, match="comment"):
+        sanitize_sql_expression("SUM(amount) -- inject", "sql_expression")
+
+
+def test_sanitize_sql_expression_blocks_block_comment():
+    sanitize_sql_expression = _sanitize_sql()
+    with pytest.raises(ValueError, match="comment"):
+        sanitize_sql_expression("SUM(amount) /* inject */", "sql_expression")
+
+
+@pytest.mark.parametrize(
+    "expr",
+    [
+        "DROP TABLE users",
+        "DELETE FROM users",
+        "INSERT INTO users VALUES (1)",
+        "UPDATE users SET x=1",
+        "ALTER TABLE users ADD COLUMN x int",
+        "TRUNCATE users",
+        "GRANT ALL ON users TO public",
+        "EXEC sp_helpdb",
+    ],
+)
+def test_sanitize_sql_expression_blocks_ddl_dml(expr: str):
+    sanitize_sql_expression = _sanitize_sql()
+    with pytest.raises(ValueError, match="disallowed"):
+        sanitize_sql_expression(expr, "sql_expression")
+
+
+def test_sanitize_sql_expression_rejects_script_tag():
+    sanitize_sql_expression = _sanitize_sql()
+    with pytest.raises(ValueError, match="tag-like"):
+        sanitize_sql_expression(
+            "SUM(amount)<script>alert(1)</script>", "sql_expression"
+        )
+
+
+def test_sanitize_sql_expression_rejects_zwsp_smuggled_script_tag():
+    # Regression: `&lt;​script&gt;` previously reconstructed as `<script>`
+    # via the old nh3+bracket-restore pipeline.
+    sanitize_sql_expression = _sanitize_sql()
+    payload = "&lt;​script&gt;alert(1)&lt;/​script&gt;"
+    with pytest.raises(ValueError, match="tag-like"):
+        sanitize_sql_expression(payload, "sql_expression")
+
+
+def test_sanitize_sql_expression_preserves_lt_followed_by_column_name():
+    # Regression: `col_a<col_b` was previously truncated by nh3.
+    sanitize_sql_expression = _sanitize_sql()
+    expr = "SUM(CASE WHEN col_a<col_b THEN 1 END)"
+    assert sanitize_sql_expression(expr, "sql_expression") == expr
+
+
+def test_sanitize_sql_expression_preserves_not_equal_operator():
+    sanitize_sql_expression = _sanitize_sql()
+    expr = "COUNT(CASE WHEN status <> 'closed' THEN 1 END)"
+    assert sanitize_sql_expression(expr, "sql_expression") == expr
+
+
+def test_sanitize_sql_expression_rejects_html_attribute_pattern():
+    sanitize_sql_expression = _sanitize_sql()
+    with pytest.raises(ValueError, match="tag-like"):
+        sanitize_sql_expression(
+            "SUM(x) + <a href='javascript:alert(1)'>x</a>", "sql_expression"
+        )
+
+
+def test_sanitize_sql_expression_preserves_lt_with_digit():
+    sanitize_sql_expression = _sanitize_sql()
+    expr = "SUM(CASE WHEN x<5 THEN 1 ELSE 0 END)"
+    assert sanitize_sql_expression(expr, "sql_expression") == expr
+
+
+def test_sanitize_sql_expression_blocks_xp_cmdshell():
+    sanitize_sql_expression = _sanitize_sql()
+    # The EXEC keyword is blocked first as a DDL/DML guard; the xp_cmdshell
+    # check is a defense-in-depth fallback for inputs that bypass the keyword
+    # check (e.g. comment-stripped tokens).
+    with pytest.raises(ValueError, match="disallowed"):
+        sanitize_sql_expression("EXEC xp_cmdshell 'whoami'", "sql_expression")
+
+
+def test_sanitize_sql_expression_preserves_lt_gt_operators():
+    """nh3.clean re-encodes bare `<` / `>` as `&lt;` / `&gt;`; the sanitizer
+    must restore them because they are legitimate SQL comparison operators
+    that the ratio/conditional metric use case depends on."""
+    sanitize_sql_expression = _sanitize_sql()
+    expr = "SUM(CASE WHEN x < 5 AND y > 10 THEN 1 END)"
+    out = sanitize_sql_expression(expr, "sql_expression")
+    assert "<" in out
+    assert ">" in out
+    assert "&lt;" not in out
+    assert "&gt;" not in out
+    # Round-trip equality: no operator characters should have been mangled.
+    assert out == expr
+
+
+def test_sanitize_sql_expression_blocks_zwsp_smuggled_in_keyword():
+    """A zero-width space between letters of DROP must not bypass the
+    DDL/DML check. Regression for the ordering bug where
+    _remove_dangerous_unicode ran AFTER the keyword regex."""
+    sanitize_sql_expression = _sanitize_sql()
+    # U+200B between D and R
+    payload = "D​ROP TABLE users"
+    with pytest.raises(ValueError, match="disallowed"):
+        sanitize_sql_expression(payload, "sql_expression")
+
+
+def test_sanitize_sql_expression_blocks_line_separator_statement():
+    """U+2028 / U+2029 / U+0085 must be stripped before the ``;`` /
+    statement-stacking check so they cannot be used to smuggle a second
+    statement past the literal ``;`` check on dialects that treat them as
+    line terminators."""
+    sanitize_sql_expression = _sanitize_sql()
+    # Carrier is the ``;`` literal; the line separator is the bypass attempt.
+    # After strip the ``;`` remains and the statement-stacking check fires.
+    payload = "SUM(x) ; DROP TABLE users"
+    with pytest.raises(ValueError, match="statement stacking"):
+        sanitize_sql_expression(payload, "sql_expression")
+
+
+def test_sanitize_sql_expression_allows_url_scheme_in_string_literal():
+    """A SQL string literal that happens to contain ``javascript:`` is a
+    legitimate analytics query against URL-typed columns. The XSS vector
+    is already neutralized by ``_strip_html_tags`` stripping the
+    surrounding tag, so the URL-scheme regex should not block here."""
+    sanitize_sql_expression = _sanitize_sql()
+    expr = "COUNT(CASE WHEN url LIKE 'javascript:%' THEN 1 END)"
+    assert sanitize_sql_expression(expr, "sql_expression") == expr
+
+
+# ---------------------------------------------------------------------------
+# escape_like
+# ---------------------------------------------------------------------------
+
+
+def test_escape_like_plain_text():
+    from superset.mcp_service.utils.sanitization import escape_like
+
+    assert escape_like("maxime") == "maxime"
+
+
+def test_escape_like_percent():
+    from superset.mcp_service.utils.sanitization import escape_like
+
+    assert escape_like("%") == "\\%"
+
+
+def test_escape_like_underscore():
+    from superset.mcp_service.utils.sanitization import escape_like
+
+    assert escape_like("_") == "\\_"
+
+
+def test_escape_like_backslash():
+    from superset.mcp_service.utils.sanitization import escape_like
+
+    assert escape_like("\\") == "\\\\"
+
+
+def test_escape_like_mixed():
+    from superset.mcp_service.utils.sanitization import escape_like
+
+    assert escape_like("a%b_c\\") == "a\\%b\\_c\\\\"
+
+
+def test_escape_like_empty_string():
+    from superset.mcp_service.utils.sanitization import escape_like
+
+    assert escape_like("") == ""

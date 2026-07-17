@@ -23,7 +23,8 @@ import {
   within,
   screen,
 } from 'spec/helpers/testing-library';
-import { FeatureFlag } from '@superset-ui/core';
+import { addAlpha, FeatureFlag } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
 import {
   OPEN_FILTER_BAR_WIDTH,
   CLOSED_FILTER_BAR_WIDTH,
@@ -47,7 +48,7 @@ import * as useNativeFiltersModule from './state';
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 fetchMock.put('glob:*/api/v1/dashboard/*', {});
 // Add mock for logging endpoint
-fetchMock.post('glob:*/superset/log/?*', {});
+fetchMock.post('glob:*/log/?*', {});
 
 jest.mock('src/dashboard/actions/dashboardState', () => ({
   ...jest.requireActual('src/dashboard/actions/dashboardState'),
@@ -104,6 +105,15 @@ jest.mock('src/dashboard/containers/DashboardGrid', () => {
   MockDashboardGrid.displayName = 'MockDashboardGrid';
   return MockDashboardGrid;
 });
+// The real component renders null, so mock it with a visible marker to let
+// tests assert whether DashboardBuilder mounts it.
+jest.mock('src/dashboard/components/Header/HeadlessAutoRefresh', () => {
+  const MockHeadlessAutoRefresh = () => (
+    <div data-test="mock-headless-auto-refresh" />
+  );
+  MockHeadlessAutoRefresh.displayName = 'MockHeadlessAutoRefresh';
+  return MockHeadlessAutoRefresh;
+});
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DashboardBuilder', () => {
@@ -139,6 +149,7 @@ describe('DashboardBuilder', () => {
         ...overrideState,
       }),
       useDnd: true,
+      useRouter: true,
       useTheme: true,
     });
   }
@@ -161,6 +172,105 @@ describe('DashboardBuilder', () => {
     const { queryByTestId } = setup();
     const header = queryByTestId('dashboard-header-container');
     expect(header).toBeInTheDocument();
+  });
+
+  test('should hide DashboardHeader when standalone mode hides nav and title (?standalone=2)', () => {
+    // React-level equivalent of the legacy `cy.get('#app-menu').should('not.exist')`
+    // Cypress assertion. The `#app-menu` node lives in Flask's spa.html template,
+    // gated by `{% if standalone_mode %}`, so RTL cannot reach it directly.
+    // `?standalone=2` maps to DashboardStandaloneMode.HideNavAndTitle, which the
+    // DashboardBuilder honours by suppressing the React-side DashboardHeader.
+    const originalHref = window.location.href;
+    window.history.replaceState({}, '', '/?standalone=2');
+    try {
+      const { queryByTestId } = setup();
+      expect(
+        queryByTestId('dashboard-header-container'),
+      ).not.toBeInTheDocument();
+    } finally {
+      window.history.replaceState({}, '', originalHref);
+    }
+  });
+
+  test('should mount HeadlessAutoRefresh when the header is hidden (?standalone=2)', () => {
+    // Regression test for #25970: the auto-refresh timer lives in the header,
+    // so hiding the header must swap in the headless driver — reverting the
+    // conditional in DashboardBuilder would strand standalone dashboards with
+    // no refresh timer at all.
+    const originalHref = window.location.href;
+    window.history.replaceState({}, '', '/?standalone=2');
+    try {
+      const { queryByTestId } = setup();
+      expect(queryByTestId('mock-headless-auto-refresh')).toBeInTheDocument();
+      expect(
+        queryByTestId('dashboard-header-container'),
+      ).not.toBeInTheDocument();
+    } finally {
+      window.history.replaceState({}, '', originalHref);
+    }
+  });
+
+  test('should not mount HeadlessAutoRefresh when the header is visible', () => {
+    const { queryByTestId } = setup();
+    expect(queryByTestId('dashboard-header-container')).toBeInTheDocument();
+    expect(queryByTestId('mock-headless-auto-refresh')).not.toBeInTheDocument();
+  });
+
+  test('should not start any auto-refresh in report mode (?standalone=3)', () => {
+    // Report mode drives one-shot screenshot renders (email reports,
+    // thumbnails); a live refresh timer there could re-fetch charts
+    // mid-capture, so neither the header nor the headless driver may mount.
+    const originalHref = window.location.href;
+    window.history.replaceState({}, '', '/?standalone=3');
+    try {
+      const { queryByTestId } = setup();
+      expect(
+        queryByTestId('dashboard-header-container'),
+      ).not.toBeInTheDocument();
+      expect(
+        queryByTestId('mock-headless-auto-refresh'),
+      ).not.toBeInTheDocument();
+    } finally {
+      window.history.replaceState({}, '', originalHref);
+    }
+  });
+
+  test('should keep the DashboardHeader when standalone mode only hides nav (?standalone=1)', () => {
+    // `?standalone=1` maps to DashboardStandaloneMode.HideNav, which only hides the
+    // Flask-rendered global app menu (#app-menu) — it must NOT suppress the React-side
+    // DashboardHeader. This pins the boundary against HideNavAndTitle (?standalone=2).
+    const originalHref = window.location.href;
+    window.history.replaceState({}, '', '/?standalone=1');
+    try {
+      const { queryByTestId } = setup();
+      expect(queryByTestId('dashboard-header-container')).toBeInTheDocument();
+    } finally {
+      window.history.replaceState({}, '', originalHref);
+    }
+  });
+
+  test('should keep the header hidden in standalone mode (?standalone=2) while editMode is active', () => {
+    // Orthogonality analogue of the legacy `?edit=true&standalone=true` Cypress mount.
+    // editMode is sourced from Redux (state.dashboardState.editMode), not the URL —
+    // DashboardBuilder only reads URL_PARAMS.standalone — so the legacy `edit=true`
+    // param is inert here and is intentionally omitted. Contract under test:
+    // standalone=2 (HideNavAndTitle) suppresses DashboardHeader even while editMode
+    // drives the `dashboard--editing` class on the wrapper.
+    const originalHref = window.location.href;
+    window.history.replaceState({}, '', '/?standalone=2');
+    try {
+      const { getByTestId, queryByTestId } = setup({
+        dashboardState: { ...mockState.dashboardState, editMode: true },
+      });
+      expect(getByTestId('dashboard-content-wrapper')).toHaveClass(
+        'dashboard dashboard--editing',
+      );
+      expect(
+        queryByTestId('dashboard-header-container'),
+      ).not.toBeInTheDocument();
+    } finally {
+      window.history.replaceState({}, '', originalHref);
+    }
   });
 
   test('should render a Sticky top-level Tabs if the dashboard has tabs', async () => {
@@ -473,6 +583,7 @@ test('should render ParentSize wrapper with height 100% for tabs', async () => {
       dashboardLayout: undoableDashboardLayoutWithTabs,
     }),
     useDnd: true,
+    useRouter: true,
     useTheme: true,
   });
 
@@ -485,6 +596,92 @@ test('should render ParentSize wrapper with height 100% for tabs', async () => {
   expect(gridContainer).toBeInTheDocument();
   expect(parentSizeWrapper).toBeInTheDocument();
   expect(tabPanels.length).toBeGreaterThan(0);
+});
+
+test('should apply min-height to the top-level tab drop target so tabs can be dropped on dashboards with content', () => {
+  (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
+    100,
+    jest.fn(),
+  ]);
+  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
+  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
+
+  const { getByTestId } = render(<DashboardBuilder />, {
+    useRedux: true,
+    store: storeWithState({
+      ...mockState,
+      dashboardLayout: undoableDashboardLayout,
+      dashboardState: { ...mockState.dashboardState, editMode: true },
+    }),
+    useDnd: true,
+    useTheme: true,
+    useRouter: true,
+  });
+
+  const headerWrapper = getByTestId('dashboard-header-wrapper');
+
+  // The Droppable inside the header should have the empty-droptarget class
+  // when there are no top-level tabs and edit mode is active. Without this
+  // class (and its associated min-height CSS rule), the drop target has zero
+  // height and users cannot drag tabs onto dashboards that already have
+  // content.
+  const droptarget = headerWrapper.querySelector('.empty-droptarget');
+  expect(droptarget).toBeInTheDocument();
+
+  // Verify the StyledHeader CSS defines a non-zero min-height for
+  // .empty-droptarget, derived from theme.sizeUnit * 4 to stay in sync
+  // with the source rule in DashboardBuilder.tsx.
+  expect(headerWrapper).toHaveStyleRule(
+    'min-height',
+    `${supersetTheme.sizeUnit * 4}px`,
+    {
+      target: '.empty-droptarget',
+    },
+  );
+});
+
+test('should render chart tiles with a theme-driven border at rest, see https://github.com/apache/superset/issues/41618', () => {
+  (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
+    100,
+    jest.fn(),
+  ]);
+  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
+  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
+
+  const { container } = render(<DashboardBuilder />, {
+    useRedux: true,
+    store: storeWithState({
+      ...mockState,
+      dashboardLayout: undoableDashboardLayout,
+    }),
+    useDnd: true,
+    useTheme: true,
+    useRouter: true,
+  });
+
+  // StyledDashboardContent (className "dashboard-content") owns the nested
+  // `.dashboard-component-chart-holder` CSS, so it's the element to assert
+  // style rules against, not the individual chart holder nodes it renders.
+  const dashboardContent = container.querySelector('.dashboard-content');
+
+  expect(dashboardContent).toHaveStyleRule(
+    'border',
+    `1px solid ${supersetTheme.colorBorder}`,
+    { target: '.dashboard-component-chart-holder' },
+  );
+  expect(dashboardContent).toHaveStyleRule(
+    'border-radius',
+    `${supersetTheme.borderRadius}px`,
+    { target: '.dashboard-component-chart-holder' },
+  );
+
+  // .fade-out no longer re-declares border/border-radius (it inherits the
+  // base rule above); it should still layer its own hairline box-shadow.
+  expect(dashboardContent).toHaveStyleRule(
+    'box-shadow',
+    `0 0 0 1px ${addAlpha(supersetTheme.colorBorder, 0.5)}`,
+    { target: '.dashboard-component-chart-holder.fade-out' },
+  );
 });
 
 test('should maintain layout when switching between tabs', async () => {
@@ -506,6 +703,7 @@ test('should maintain layout when switching between tabs', async () => {
       dashboardLayout: undoableDashboardLayoutWithTabs,
     }),
     useDnd: true,
+    useRouter: true,
     useTheme: true,
   });
 

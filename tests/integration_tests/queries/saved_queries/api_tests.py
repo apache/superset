@@ -14,13 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=consider-using-transaction
 # isort:skip_file
 """Unit tests for Superset"""
 
 from datetime import datetime
 from io import BytesIO
 from typing import Optional
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from zipfile import is_zipfile, ZipFile
 
 import yaml
@@ -201,10 +202,7 @@ class TestSavedQueryApi(SupersetTestCase):
         """
         Saved Query API: Test get list saved query
         """
-        admin = self.get_user("admin")
-        saved_queries = (
-            db.session.query(SavedQuery).filter(SavedQuery.created_by == admin).all()
-        )
+        saved_queries = db.session.query(SavedQuery).all()
 
         self.login(ADMIN_USERNAME)
         uri = "api/v1/saved_query/"
@@ -250,12 +248,9 @@ class TestSavedQueryApi(SupersetTestCase):
         """
         Saved Query API: Test get list and sort saved query
         """
-        admin = self.get_user("admin")
         saved_queries = (
-            db.session.query(SavedQuery)
-            .filter(SavedQuery.created_by == admin)
-            .order_by(SavedQuery.schema.asc())
-        ).all()
+            db.session.query(SavedQuery).order_by(SavedQuery.schema.asc()).all()
+        )
         self.login(ADMIN_USERNAME)
         query_string = {"order_column": "schema", "order_direction": "asc"}
         uri = f"api/v1/saved_query/?q={rison.dumps(query_string)}"
@@ -306,13 +301,8 @@ class TestSavedQueryApi(SupersetTestCase):
         Saved Query API: Test get list and database saved query
         """
         example_db = get_example_database()
-        admin_user = self.get_user("admin")
-
         all_db_queries = (
-            db.session.query(SavedQuery)
-            .filter(SavedQuery.db_id == example_db.id)
-            .filter(SavedQuery.created_by_fk == admin_user.id)
-            .all()
+            db.session.query(SavedQuery).filter(SavedQuery.db_id == example_db.id).all()
         )
 
         self.login(ADMIN_USERNAME)
@@ -401,12 +391,8 @@ class TestSavedQueryApi(SupersetTestCase):
         Saved Query API: Test get list and custom filter (sql) saved query
         """
         self.login(ADMIN_USERNAME)
-        admin = self.get_user("admin")
         all_queries = (
-            db.session.query(SavedQuery)
-            .filter(SavedQuery.created_by == admin)
-            .filter(SavedQuery.sql.ilike("%table%"))
-            .all()
+            db.session.query(SavedQuery).filter(SavedQuery.sql.ilike("%table%")).all()
         )
         query_string = {
             "filters": [{"col": "label", "opr": "all_text", "value": "table"}],
@@ -423,10 +409,8 @@ class TestSavedQueryApi(SupersetTestCase):
         Saved Query API: Test get list and custom filter (description) saved query
         """
         self.login(ADMIN_USERNAME)
-        admin = self.get_user("admin")
         all_queries = (
             db.session.query(SavedQuery)
-            .filter(SavedQuery.created_by == admin)
             .filter(SavedQuery.description.ilike("%cool%"))
             .all()
         )
@@ -520,12 +504,7 @@ class TestSavedQueryApi(SupersetTestCase):
         # Test not favorite saves queries
         expected_models = (
             db.session.query(SavedQuery)
-            .filter(
-                and_(
-                    ~SavedQuery.id.in_(users_favorite_query),
-                    SavedQuery.created_by == admin,
-                )
-            )
+            .filter(and_(~SavedQuery.id.in_(users_favorite_query)))
             .order_by(SavedQuery.label.asc())
             .all()
         )
@@ -591,9 +570,11 @@ class TestSavedQueryApi(SupersetTestCase):
         """
         SavedQuery API: Test distinct schemas
         """
-        admin = self.get_user("admin")
-        saved_queries = (
-            db.session.query(SavedQuery).filter(SavedQuery.created_by == admin).all()
+        schemas = (
+            db.session.query(SavedQuery.schema)
+            .distinct()
+            .order_by(SavedQuery.schema)
+            .all()
         )
 
         self.login(ADMIN_USERNAME)
@@ -602,11 +583,8 @@ class TestSavedQueryApi(SupersetTestCase):
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         expected_response = {
-            "count": len(saved_queries),
-            "result": [
-                {"text": f"schema{i}", "value": f"schema{i}"}
-                for i in range(len(saved_queries))
-            ],
+            "count": len(schemas),
+            "result": [{"text": schema, "value": schema} for (schema,) in schemas],
         }
         assert data == expected_response
 
@@ -698,6 +676,69 @@ class TestSavedQueryApi(SupersetTestCase):
         # Rollback changes
         db.session.delete(model)
         db.session.commit()
+
+    def test_create_saved_query_blank_label(self) -> None:
+        """
+        Saved Query API: Test create rejects blank/whitespace-only labels
+        """
+        example_db = get_example_database()
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/saved_query/"
+
+        for label in ("", "   ", "\t\n"):
+            post_data = {
+                "schema": "schema1",
+                "label": label,
+                "description": "some description",
+                "sql": "SELECT col1, col2 from table1",
+                "db_id": example_db.id,
+            }
+            rv = self.client.post(uri, json=post_data)
+            data = json.loads(rv.data.decode("utf-8"))
+            assert rv.status_code == 422
+            assert "label" in data["message"]
+
+    def test_create_saved_query_strips_label(self) -> None:
+        """
+        Saved Query API: Test create trims surrounding whitespace from labels
+        """
+        example_db = get_example_database()
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/saved_query/"
+
+        post_data = {
+            "schema": "schema1",
+            "label": "  label1  ",
+            "description": "some description",
+            "sql": "SELECT col1, col2 from table1",
+            "db_id": example_db.id,
+        }
+        rv = self.client.post(uri, json=post_data)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 201
+
+        model = db.session.query(SavedQuery).get(data.get("id"))
+        assert model.label == "label1"
+
+        # Rollback changes
+        db.session.delete(model)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("create_saved_queries")
+    def test_update_saved_query_blank_label(self) -> None:
+        """
+        Saved Query API: Test update rejects blank/whitespace-only labels
+        """
+        saved_query = (
+            db.session.query(SavedQuery).filter(SavedQuery.label == "label1").all()[0]
+        )
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/saved_query/{saved_query.id}"
+
+        rv = self.client.put(uri, json={"label": "   "})
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 422
+        assert "label" in data["message"]
 
     @pytest.mark.usefixtures("create_saved_queries")
     def test_update_saved_query(self):
@@ -819,6 +860,29 @@ class TestSavedQueryApi(SupersetTestCase):
         assert rv.status_code == 400
 
     @pytest.mark.usefixtures("create_saved_queries")
+    @patch(
+        "superset.queries.saved_queries.filters.security_manager.can_access_all_queries"
+    )
+    def test_delete_bulk_saved_query_all_query_access_keeps_creator_filter(
+        self, mock_can_access_all_queries: Mock
+    ) -> None:
+        """
+        Saved Query API: Test all_query_access does not bypass creator scoping
+        for delete.
+        """
+        mock_can_access_all_queries.return_value = True
+        admin = self.get_user("admin")
+        sample_query = (
+            db.session.query(SavedQuery).filter(SavedQuery.created_by == admin).first()
+        )
+
+        self.login(GAMMA_SQLLAB_USERNAME)
+        uri = f"api/v1/saved_query/?q={rison.dumps([sample_query.id])}"
+        rv = self.delete_assert_metric(uri, "bulk_delete")
+        assert rv.status_code == 404
+        assert db.session.query(SavedQuery).get(sample_query.id) is not None
+
+    @pytest.mark.usefixtures("create_saved_queries")
     def test_delete_bulk_saved_query_not_found(self):
         """
         Saved Query API: Test delete bulk not found
@@ -848,6 +912,45 @@ class TestSavedQueryApi(SupersetTestCase):
         assert rv.status_code == 200
         buf = BytesIO(rv.data)
         assert is_zipfile(buf)
+
+    @pytest.mark.usefixtures("create_saved_queries")
+    def test_export_valid_token_sets_cookie(self):
+        """
+        Saved Query API: Test export echoes a valid token back as a cookie
+        """
+        admin = self.get_user("admin")
+        sample_query = (
+            db.session.query(SavedQuery).filter(SavedQuery.created_by == admin).first()
+        )
+
+        self.login(ADMIN_USERNAME)
+        argument = [sample_query.id]
+        token = "valid_token-123"  # noqa: S105
+        uri = f"api/v1/saved_query/export/?q={rison.dumps(argument)}&token={token}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        cookie = self.client.get_cookie(token)
+        assert cookie is not None
+        assert cookie.value == "done"
+
+    @pytest.mark.usefixtures("create_saved_queries")
+    def test_export_invalid_token_skips_cookie(self):
+        """
+        Saved Query API: Test export ignores an invalid token instead of
+        setting it as a cookie name
+        """
+        admin = self.get_user("admin")
+        sample_query = (
+            db.session.query(SavedQuery).filter(SavedQuery.created_by == admin).first()
+        )
+
+        self.login(ADMIN_USERNAME)
+        argument = [sample_query.id]
+        token = "bad token;with=chars"  # noqa: S105
+        uri = f"api/v1/saved_query/export/?q={rison.dumps(argument)}&token={token}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        assert self.client.get_cookie(token) is None
 
     @pytest.mark.usefixtures("create_saved_queries")
     def test_export_not_found(self):

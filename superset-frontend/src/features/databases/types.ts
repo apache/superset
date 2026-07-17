@@ -282,8 +282,7 @@ type CustomHTMLTextAreaElement = Omit<
   CustomTextType;
 
 export type CustomParametersChangeType<T = CustomTextType> =
-  | FormEvent<InputProps>
-  | { target: T };
+  FormEvent<InputProps> | { target: T };
 
 export type CustomEventHandlerType = EventHandler<
   ChangeEvent<CustomHTMLInputElement | CustomHTMLTextAreaElement>
@@ -308,6 +307,7 @@ export interface FieldPropTypes {
   } & {
     onExtraInputChange: (value: any) => void;
     onEncryptedExtraInputChange: (value: any) => void;
+    onClearEncryptedExtraKey: (name: string) => void;
     onSSHTunnelParametersChange: CustomEventHandlerType;
   };
   validationErrors: JsonObject | null;
@@ -323,6 +323,8 @@ export interface FieldPropTypes {
   defaultDBName?: string;
   editNewDb?: boolean;
   isValidating: boolean;
+  isPublic?: boolean;
+  setIsPublic?: (value: boolean) => void;
 }
 
 type ChangeMethodsType = FieldPropTypes['changeMethods'];
@@ -364,6 +366,7 @@ export interface DatabaseConnectionFormProps {
   onEncryptedExtraInputChange: (
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
+  onClearEncryptedExtraKey: (name: string) => void;
   onAddTableCatalog: () => void;
   onRemoveTableCatalog: (idx: number) => void;
   validationErrors: JsonObject | null;

@@ -30,6 +30,7 @@ import {
   QueryFormData,
   JsonObject,
   getExtensionsRegistry,
+  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
@@ -58,7 +59,9 @@ import { ExploreAlert } from '../ExploreAlert';
 import useResizeDetectorByObserver from './useResizeDetectorByObserver';
 
 const extensionsRegistry = getExtensionsRegistry();
-const DefaultHeader: React.FC = ({ children }) => <>{children}</>;
+const DefaultHeader: React.FC<{ children?: React.ReactNode }> = ({
+  children,
+}) => <>{children}</>;
 
 export interface ExploreChartPanelProps {
   actions: {
@@ -305,7 +308,7 @@ const ExploreChartPanel = ({
         css={css`
           min-height: 0;
           flex: 1;
-          overflow: auto;
+          overflow: hidden;
         `}
         ref={chartPanelRef}
       >
@@ -394,6 +397,9 @@ const ExploreChartPanel = ({
                   role="button"
                   tabIndex={0}
                   onClick={() => setShowDatasetModal(true)}
+                  onKeyDown={handleKeyboardActivation(() =>
+                    setShowDatasetModal(true),
+                  )}
                   css={{ textDecoration: 'underline' }}
                 >
                   {t('Create a dataset')}
@@ -418,7 +424,12 @@ const ExploreChartPanel = ({
                   {t(
                     'You updated the values in the control panel, but the chart was not updated automatically. Run the query by clicking on the "Update chart" button or',
                   )}{' '}
-                  <span role="button" tabIndex={0} onClick={onQuery}>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={onQuery}
+                    onKeyDown={handleKeyboardActivation(() => onQuery?.())}
+                  >
                     {t('click here')}
                   </span>
                   .
@@ -558,6 +569,7 @@ const ExploreChartPanel = ({
           errorMessage={errorMessage}
           setForceQuery={actions.setForceQuery}
           canDownload={canDownload}
+          queriesResponse={chart.queriesResponse}
         />
       </Split>
       {showDatasetModal && (

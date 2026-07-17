@@ -17,7 +17,7 @@
   {% import 'appbuilder/general/lib.html' as lib %}
   {% from 'superset/partials/asset_bundle.html' import css_bundle, js_bundle with context %}
   {% import "superset/macros.html" as macros %}
-  {% set favicons = appbuilder.app.config['FAVICONS'] %}
+  {% set favicons = config['FAVICONS'] %}
 
   <head>
     <title>
@@ -31,7 +31,11 @@
     </title>
 
     {% block head_meta %}
-      <link rel="manifest" href="{{ assets_prefix }}/static/assets/pwa-manifest.json?v=4">
+      {# Manifest is served dynamically by PwaManifestView so APPLICATION_ROOT
+         and STATIC_ASSETS_PREFIX resolve at request time. Do NOT use
+         `assets_prefix` here — that may point to a CDN host with no
+         Superset backend. See superset/views/pwa_manifest.py. #}
+      <link rel="manifest" href="{{ application_root_rstrip }}/pwa-manifest.json">
     {% endblock %}
 
     <style>
@@ -43,6 +47,13 @@
       body {
         background: {{ theme_tokens.colorBgBase | default('#fff') }};
         color: #000;
+      }
+      {% endif %}
+      {% if standalone_mode %}
+      /* Keep body sized so screenshot waits don't see it as hidden before React mounts. */
+      html, body.standalone {
+        min-height: 100vh;
+        margin: 0;
       }
       {% endif %}
     </style>
@@ -138,6 +149,36 @@
     {% endblock %}
 
     {% block tail_js %}
+      {#
+        Expose the language pack on window BEFORE the entry bundle loads,
+        so module-level `const X = t('...')` calls across webpack-split
+        chunks all find a configured translator on first access. The
+        bootstrap div is the single source of truth; we parse it once and
+        stash the pack on a global that the translator reads lazily.
+        See upstream issue #35330.
+
+        Trade-off: this ships the full Jed pack inline in every full-page
+        HTML response (only for non-English locales; English injects null)
+        rather than via the separately-cacheable `/language_pack/` fetch.
+        That synchronous availability is the whole point — the async fetch
+        can't guarantee the pack is configured before a code-split chunk
+        evaluates. Acceptable for an SPA where hard reloads are rare.
+      #}
+      <script nonce="{{ macros.get_nonce() }}">
+        (function () {
+          try {
+            var el = document.getElementById('app');
+            if (!el) return;
+            var data = JSON.parse(el.getAttribute('data-bootstrap') || '{}');
+            var pack = data && data.common && data.common.language_pack;
+            if (pack) {
+              window.__SUPERSET_LANGUAGE_PACK__ = pack;
+            }
+          } catch (e) {
+            /* swallow: fall back to async fetch in preamble.ts */
+          }
+        })();
+      </script>
       {% if entry %}
         {{ js_bundle(assets_prefix, entry) }}
       {% endif %}

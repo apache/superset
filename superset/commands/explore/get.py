@@ -123,10 +123,17 @@ class GetExploreCommand(BaseCommand, ABC):
 
         if datasource:
             datasource_name = datasource.name
-            security_manager.raise_for_access(datasource=datasource)
+            if slc:
+                security_manager.raise_for_access(chart=slc)
+            else:
+                security_manager.raise_for_access(datasource=datasource)
 
         viz_type = form_data.get("viz_type")
-        if not viz_type and datasource and datasource.default_endpoint:
+        if (
+            not viz_type
+            and datasource
+            and getattr(datasource, "default_endpoint", None)
+        ):
             raise WrongEndpointError(redirect=datasource.default_endpoint)
 
         form_data["datasource"] = (
@@ -159,7 +166,7 @@ class GetExploreCommand(BaseCommand, ABC):
             metadata = {
                 "created_on_humanized": slc.created_on_humanized,
                 "changed_on_humanized": slc.changed_on_humanized,
-                "owners": [owner.get_full_name() for owner in slc.owners],
+                "editors": [editor.label for editor in slc.editors],
                 "dashboards": [
                     {"id": dashboard.id, "dashboard_title": dashboard.dashboard_title}
                     for dashboard in slc.dashboards

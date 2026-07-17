@@ -16,8 +16,10 @@
 # under the License.
 
 import logging
+import secrets
 import time
 from collections import defaultdict
+from contextvars import ContextVar
 from typing import Any, Awaitable, Callable, Dict, Protocol, Sequence
 
 import mcp.types as mt
@@ -25,7 +27,7 @@ from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from fastmcp.server.middleware.middleware import CallNext
 from fastmcp.tools.tool import Tool, ToolResult
-from flask import has_app_context
+from flask import g, has_app_context
 from pydantic import ValidationError
 from sqlalchemy.exc import OperationalError, TimeoutError
 from starlette.exceptions import HTTPException
@@ -37,13 +39,28 @@ from superset.commands.exceptions import (
 )
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.extensions import event_logger
+from superset.mcp_service.auth import (
+    _get_app_context_manager,
+    get_user_from_request,
+    is_tool_visible_to_current_user,
+    MCPNoAuthSourceError,
+    MCPPermissionDeniedError,
+)
 from superset.mcp_service.constants import (
+    DEFAULT_MAX_LIST_ITEMS,
     DEFAULT_TOKEN_LIMIT,
     DEFAULT_WARN_THRESHOLD_PCT,
+)
+from superset.mcp_service.utils.token_utils import (
+    estimate_response_tokens,
+    format_size_limit_error,
+    INFO_TOOLS,
+    truncate_oversized_response,
 )
 from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
+_mcp_call_id_var: ContextVar[str | None] = ContextVar("mcp_call_id", default=None)
 
 
 def _sanitize_error_for_logging(error: Exception) -> str:
@@ -123,6 +140,7 @@ _USER_ERROR_TYPES = (
     ToolError,
     ValidationError,
     PermissionError,
+    MCPPermissionDeniedError,
     ValueError,
     FileNotFoundError,
     CommandInvalidError,
@@ -172,10 +190,15 @@ def _sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
     """Remove sensitive fields from params before logging."""
     if not isinstance(params, dict):
         return params
-    return {
-        k: "[REDACTED]" if k.lower() in _SENSITIVE_PARAM_KEYS else v
-        for k, v in params.items()
-    }
+    result: dict[str, Any] = {}
+    for k, v in params.items():
+        if k.lower() in _SENSITIVE_PARAM_KEYS:
+            result[k] = "[REDACTED]"
+        elif k == "arguments" and isinstance(v, dict):
+            result[k] = _sanitize_params(v)
+        else:
+            result[k] = v
+    return result
 
 
 class LoggingMiddleware(Middleware):
@@ -188,7 +211,16 @@ class LoggingMiddleware(Middleware):
     Tool calls are handled in on_call_tool() which wraps execution to capture
     duration_ms. Non-tool messages (resource reads, prompts, etc.) are handled
     in on_message().
+
+    When tool search is enabled (progressive discovery), the MCP client calls
+    ``call_tool`` proxies instead of individual tools.  This middleware resolves
+    the underlying tool name from ``call_tool`` arguments so that analytics
+    queries can filter by the actual tool (stored as ``mcp_tool`` in the curated
+    payload).
     """
+
+    #: Proxy name used by FastMCP tool-search transforms.
+    _CALL_TOOL_PROXY = "call_tool"
 
     def _is_error_response(self, result: ToolResult) -> bool:
         """Check if a tool result contains an error schema response.
@@ -228,6 +260,28 @@ class LoggingMiddleware(Middleware):
             dataset_id = params.get("dataset_id")
         return agent_id, user_id, dashboard_id, slice_id, dataset_id, params
 
+    @staticmethod
+    def _resolve_tool_name(tool_name: str | None, params: Any) -> str | None:
+        """Resolve the underlying tool name from call_tool proxy arguments.
+
+        When tool search is enabled, the MCP client uses the ``call_tool``
+        proxy and passes the real tool name as the ``name`` argument.  This
+        helper extracts that value so we can log which tool was actually
+        executed rather than just ``"call_tool"``.
+
+        Returns:
+            The resolved tool name if *tool_name* is the call_tool proxy and
+            ``params["name"]`` is a non-empty string, otherwise ``None``.
+        """
+        if (
+            tool_name == LoggingMiddleware._CALL_TOOL_PROXY
+            and isinstance(params, dict)
+            and isinstance(params.get("name"), str)
+            and params["name"]
+        ):
+            return params["name"]
+        return None
+
     async def on_call_tool(
         self,
         context: MiddlewareContext,
@@ -238,18 +292,45 @@ class LoggingMiddleware(Middleware):
             self._extract_context_info(context)
         )
         tool_name = getattr(context.message, "name", None)
+        mcp_tool = self._resolve_tool_name(tool_name, params)
 
+        mcp_call_id = secrets.token_hex(16)
+        _mcp_call_id_var.set(mcp_call_id)
         start_time = time.time()
         success = False
+        error_type: str | None = None
         try:
             result = await call_next(context)
             success = not self._is_error_response(result)
+            if isinstance(result, ToolResult):
+                existing_meta = result.meta or {}
+                result = ToolResult(
+                    content=result.content,
+                    meta={**existing_meta, "mcp_call_id": mcp_call_id},
+                    structured_content=result.structured_content,
+                )
             return result
-        except Exception:
+        except Exception as exc:
+            error_type = type(exc).__name__
             success = False
             raise
         finally:
             duration_ms = int((time.time() - start_time) * 1000)
+            payload: dict[str, Any] = {
+                "mcp_call_id": mcp_call_id,
+                "tool": tool_name,
+                "agent_id": agent_id,
+                "params": _sanitize_params(params),
+                "method": context.method,
+                "dashboard_id": dashboard_id,
+                "slice_id": slice_id,
+                "dataset_id": dataset_id,
+                "success": success,
+            }
+            if mcp_tool is not None:
+                payload["mcp_tool"] = mcp_tool
+            if error_type is not None:
+                payload["error_type"] = error_type
             if has_app_context():
                 event_logger.log(
                     user_id=user_id,
@@ -258,21 +339,18 @@ class LoggingMiddleware(Middleware):
                     duration_ms=duration_ms,
                     slice_id=slice_id,
                     referrer=None,
-                    curated_payload={
-                        "tool": tool_name,
-                        "agent_id": agent_id,
-                        "params": _sanitize_params(params),
-                        "method": context.method,
-                        "dashboard_id": dashboard_id,
-                        "slice_id": slice_id,
-                        "dataset_id": dataset_id,
-                        "success": success,
-                    },
+                    curated_payload=payload,
                 )
+            extra_parts = []
+            if mcp_tool is not None:
+                extra_parts.append(f"mcp_tool={mcp_tool}")
+            if error_type is not None:
+                extra_parts.append(f"error_type={error_type}")
+            extra = (", " + ", ".join(extra_parts)) if extra_parts else ""
             logger.info(
                 "MCP tool call: tool=%s, agent_id=%s, user_id=%s, method=%s, "
                 "dashboard_id=%s, slice_id=%s, dataset_id=%s, duration_ms=%s, "
-                "success=%s",
+                "success=%s, mcp_call_id=%s%s",
                 tool_name,
                 agent_id,
                 user_id,
@@ -282,6 +360,8 @@ class LoggingMiddleware(Middleware):
                 dataset_id,
                 duration_ms,
                 success,
+                mcp_call_id,
+                extra,
             )
 
     async def on_message(
@@ -361,7 +441,14 @@ class StructuredContentStripperMiddleware(Middleware):
         context: MiddlewareContext[mt.ListToolsRequest],
         call_next: CallNext[mt.ListToolsRequest, Sequence[Tool]],
     ) -> Sequence[Tool]:
-        tools = await call_next(context)
+        try:
+            tools = await call_next(context)
+        except Exception:
+            # ToolError raised by inner middleware (e.g. GlobalErrorHandlerMiddleware)
+            # cannot be encoded by the MCP SDK in a tools/list response — it expects a
+            # list, not an error object — causing "encoding without a string argument".
+            # Return an empty list; GlobalErrorHandlerMiddleware already logged it.
+            return []
         return [
             t.model_copy(update={"output_schema": None})
             if t.output_schema is not None
@@ -385,12 +472,74 @@ class StructuredContentStripperMiddleware(Middleware):
             # unhandled exception — including ToolError from
             # GlobalErrorHandlerMiddleware, ValueError, TypeError, etc. —
             # will cause encoding failures on the wire.
+            mcp_call_id = _mcp_call_id_var.get(None)
             return ToolResult(
                 content=[mt.TextContent(type="text", text=f"Error: {e}")],
+                meta={"mcp_call_id": mcp_call_id} if mcp_call_id else None,
             )
         if isinstance(result, ToolResult) and result.structured_content is not None:
             result = ToolResult(content=result.content, meta=result.meta)
         return result
+
+
+class RBACToolVisibilityMiddleware(Middleware):
+    """Filter tools/list response based on current user's RBAC permissions.
+
+    Intercepts every ``tools/list`` request and removes tools the calling user
+    is not permitted to execute. Public tools (no ``class_permission_name``) and
+    tools whose permission check passes are included; all others are hidden.
+
+    Fail-open vs fail-closed behaviour:
+    - No auth context at all (no Flask context, no auth header, no dev user
+      configured) → fail open (return all tools). Call-time RBAC enforces.
+    - Auth was attempted but credentials are invalid (bad API key, dev
+      username not in DB, etc.) → fail closed (return empty list).
+    - Unexpected errors → fail open. Call-time RBAC still enforces.
+    """
+
+    async def on_list_tools(
+        self,
+        context: MiddlewareContext[mt.ListToolsRequest],
+        call_next: CallNext[mt.ListToolsRequest, list[Tool]],
+    ) -> list[Tool]:
+        tools = await call_next(context)
+
+        try:
+            with _get_app_context_manager():
+                # Use get_user_from_request directly rather than
+                # _setup_user_context, which carries per-call execution
+                # overhead (retry loop, session management, error logging)
+                # that is unnecessary and noisy during tools/list.
+                try:
+                    user = get_user_from_request()
+                except ValueError as exc:
+                    if isinstance(exc, MCPNoAuthSourceError):
+                        # No auth source configured at all → fail open.
+                        # No log: this is expected in dev/internal deployments.
+                        return tools
+                    # Auth was attempted (e.g. MCP_DEV_USERNAME set) but the
+                    # user was not found in the DB → fail closed
+                    logger.warning(
+                        "MCP tool list: credential failure, hiding all tools: %s",
+                        exc,
+                    )
+                    return []
+                except PermissionError as exc:
+                    # API key present but invalid/expired → fail closed
+                    logger.warning(
+                        "MCP tool list: credential failure, hiding all tools: %s",
+                        exc,
+                    )
+                    return []
+
+                if user is None:
+                    return tools  # no Flask app context → fail open
+                g.user = user
+                return [t for t in tools if is_tool_visible_to_current_user(t)]
+        except Exception:  # noqa: BLE001
+            # Unexpected setup errors (ImportError, etc.) → fail open.
+            # Call-time RBAC still enforces permissions.
+            return tools
 
 
 class GlobalErrorHandlerMiddleware(Middleware):
@@ -485,6 +634,11 @@ class GlobalErrorHandlerMiddleware(Middleware):
         elif isinstance(error, HTTPException):
             # HTTP errors from screenshot endpoints or API calls
             raise ToolError(f"Service error in {tool_name}: {error.detail}") from error
+        elif isinstance(error, MCPPermissionDeniedError):
+            # MCP RBAC permission denied — convert to structured ToolError.
+            # Must come before the generic PermissionError branch because
+            # MCPPermissionDeniedError inherits from PermissionError.
+            raise ToolError(str(error)) from error
         elif isinstance(error, PermissionError):
             # Permission/authorization errors
             raise ToolError(
@@ -903,6 +1057,7 @@ class FieldPermissionsMiddleware(Middleware):
         "get_dashboard_info": "dashboard",
         "generate_dashboard": "dashboard",
         "add_chart_to_existing_dashboard": "dashboard",
+        "remove_chart_from_dashboard": "dashboard",
     }
 
     async def on_call_tool(
@@ -1020,6 +1175,7 @@ class ResponseSizeGuardMiddleware(Middleware):
     - enabled: Toggle the guard on/off (default: True)
     - token_limit: Maximum estimated tokens per response (default: 25,000)
     - warn_threshold_pct: Log warnings above this % of limit (default: 80%)
+    - max_list_items: Cap for list fields during dynamic truncation (default: 100)
     - excluded_tools: Tools to skip checking
     """
 
@@ -1028,6 +1184,7 @@ class ResponseSizeGuardMiddleware(Middleware):
         token_limit: int = DEFAULT_TOKEN_LIMIT,
         warn_threshold_pct: int = DEFAULT_WARN_THRESHOLD_PCT,
         excluded_tools: list[str] | str | None = None,
+        max_list_items: int = DEFAULT_MAX_LIST_ITEMS,
     ) -> None:
         self.token_limit = token_limit
         self.warn_threshold_pct = warn_threshold_pct
@@ -1035,6 +1192,7 @@ class ResponseSizeGuardMiddleware(Middleware):
         if isinstance(excluded_tools, str):
             excluded_tools = [excluded_tools]
         self.excluded_tools = set(excluded_tools or [])
+        self.max_list_items = max(1, max_list_items)
 
     @staticmethod
     def _extract_payload_from_tool_result(
@@ -1104,11 +1262,6 @@ class ResponseSizeGuardMiddleware(Middleware):
         ``content[0].text`` as a JSON string.  We parse that string, run the
         truncation phases on the resulting dict, then re-wrap the result.
         """
-        from superset.mcp_service.utils.token_utils import (
-            estimate_response_tokens,
-            truncate_oversized_response,
-        )
-
         # Unwrap ToolResult so truncation operates on the real payload
         extracted = self._extract_payload_from_tool_result(response)
         if extracted is not None:
@@ -1123,7 +1276,9 @@ class ResponseSizeGuardMiddleware(Middleware):
 
         try:
             truncated, was_truncated, notes = truncate_oversized_response(
-                truncation_target, self.token_limit
+                truncation_target,
+                self.token_limit,
+                max_list_items=self.max_list_items,
             )
         except (MemoryError, RecursionError) as trunc_error:
             logger.warning(
@@ -1191,12 +1346,6 @@ class ResponseSizeGuardMiddleware(Middleware):
         # Execute the tool
         response = await call_next(context)
 
-        # Estimate response token count (guard against huge responses causing OOM)
-        from superset.mcp_service.utils.token_utils import (
-            estimate_response_tokens,
-            format_size_limit_error,
-        )
-
         # When the response is a ToolResult, estimate tokens on the actual
         # payload inside content[0].text rather than on the ToolResult
         # wrapper (which would double-serialize the JSON string).
@@ -1233,8 +1382,6 @@ class ResponseSizeGuardMiddleware(Middleware):
             params = getattr(context.message, "params", {}) or {}
 
             # For info tools, try dynamic truncation before blocking
-            from superset.mcp_service.utils.token_utils import INFO_TOOLS
-
             if tool_name in INFO_TOOLS:
                 truncated = self._try_truncate_info_response(
                     tool_name, response, estimated_tokens
@@ -1279,6 +1426,27 @@ class ResponseSizeGuardMiddleware(Middleware):
         return response
 
 
+def _safe_int_config(config: Dict[str, Any], key: str, default: int) -> int:
+    """Best-effort int coercion for MCP_RESPONSE_SIZE_CONFIG values.
+
+    Falls back to ``default`` (with a warning log) when the configured value
+    can't be converted to an int, so a malformed ``superset_config.py``
+    setting doesn't crash middleware initialization.
+    """
+    value = config.get(key, default)
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        logger.warning(
+            "Invalid %s in MCP_RESPONSE_SIZE_CONFIG: %r is not a valid integer; "
+            "falling back to default %d",
+            key,
+            value,
+            default,
+        )
+        return default
+
+
 def create_response_size_guard_middleware() -> ResponseSizeGuardMiddleware | None:
     """
     Factory function to create ResponseSizeGuardMiddleware from config.
@@ -1304,12 +1472,17 @@ def create_response_size_guard_middleware() -> ResponseSizeGuardMiddleware | Non
             logger.info("Response size guard is disabled")
             return None
 
+        max_list_items: int = _safe_int_config(
+            config, "max_list_items", DEFAULT_MAX_LIST_ITEMS
+        )
+
         middleware = ResponseSizeGuardMiddleware(
-            token_limit=int(config.get("token_limit", DEFAULT_TOKEN_LIMIT)),
-            warn_threshold_pct=int(
-                config.get("warn_threshold_pct", DEFAULT_WARN_THRESHOLD_PCT)
+            token_limit=_safe_int_config(config, "token_limit", DEFAULT_TOKEN_LIMIT),
+            warn_threshold_pct=_safe_int_config(
+                config, "warn_threshold_pct", DEFAULT_WARN_THRESHOLD_PCT
             ),
             excluded_tools=config.get("excluded_tools"),
+            max_list_items=max_list_items,
         )
 
         logger.info(

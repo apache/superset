@@ -23,6 +23,7 @@ import {
   Behavior,
   ChartDataResponseResult,
   Column,
+  DatasourceType,
   isFeatureEnabled,
   FeatureFlag,
   Filter,
@@ -38,7 +39,7 @@ import {
 } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
-import { debounce, isEqual } from 'lodash';
+import { debounce, isEqual } from 'lodash-es';
 import {
   forwardRef,
   useCallback,
@@ -113,6 +114,8 @@ import {
   setNativeFilterFieldValues,
   shouldShowTimeRangePicker,
   useForceUpdate,
+  mapSemanticTypeToGenericDataType,
+  doesChartMatchFilterDatasource,
 } from './utils';
 import {
   CHART_CUSTOMIZATION_SUPPORTED_TYPES,
@@ -120,6 +123,7 @@ import {
   INPUT_WIDTH,
 } from './constants';
 import DependencyList from './DependencyList';
+import { datasetLabel } from 'src/features/semanticLayers/label';
 
 const FORM_ITEM_WIDTH = 260;
 
@@ -325,6 +329,11 @@ const FiltersConfigForm = (
   const filters = form.getFieldValue('filters');
   const formValues = filters?.[filterId];
   const formFilter = formValues || undoFormValues || defaultFormFilter;
+  const formFilterWithTimeGrains = formFilter as typeof formFilter & {
+    time_grains?: string[];
+  };
+  const savedTimeGrains =
+    filterToEdit?.time_grains ?? customizationToEdit?.time_grains;
 
   const handleModifyFilter = useCallback(() => {
     if (onModifyFilter) {
@@ -400,6 +409,21 @@ const FiltersConfigForm = (
 
   const datasetId = getDatasetId();
 
+  const getDatasourceType = (): DatasourceType => {
+    if (formFilter?.datasourceType) {
+      return formFilter.datasourceType;
+    }
+    if (isChartCustomization) {
+      return (
+        customizationToEdit?.targets?.[0]?.datasourceType ||
+        DatasourceType.Table
+      );
+    }
+    return filterToEdit?.targets?.[0]?.datasourceType || DatasourceType.Table;
+  };
+
+  const datasourceType = getDatasourceType();
+
   const formChanged = useCallback(() => {
     form.setFields([
       {
@@ -419,6 +443,7 @@ const FiltersConfigForm = (
     ? getControlItemsMap({
         expanded,
         datasetId,
+        datasourceType,
         disabled: false,
         forceUpdate,
         formChanged,
@@ -490,6 +515,7 @@ const FiltersConfigForm = (
       }
       const formData = getFormData({
         datasetId,
+        datasourceType,
         dashboardId,
         groupby: formFilter?.column,
         ...formFilter,
@@ -560,6 +586,7 @@ const FiltersConfigForm = (
 
   const newFormData = getFormData({
     datasetId,
+    datasourceType,
     groupby: hasColumn ? formFilter?.column : undefined,
     ...formFilter,
   });
@@ -587,7 +614,7 @@ const FiltersConfigForm = (
     !!filterToEdit?.time_range;
 
   const hasTimeGrainPreFilter = !!(
-    formFilter?.time_grains?.length || filterToEdit?.time_grains?.length
+    formFilterWithTimeGrains?.time_grains?.length || savedTimeGrains?.length
   );
 
   const hasEnableSingleValue =
@@ -735,45 +762,93 @@ const FiltersConfigForm = (
 
   useEffect(() => {
     if (datasetId) {
-      cachedSupersetGet({
-        endpoint: `/api/v1/dataset/${datasetId}?q=${rison.encode({
-          columns: [
-            'columns.column_name',
-            'columns.expression',
-            'columns.filterable',
-            'columns.is_dttm',
-            'columns.type',
-            'columns.type_generic',
-            'columns.verbose_name',
-            'database.id',
-            'database.database_name',
-            'datasource_type',
-            'filter_select_enabled',
-            'id',
-            'is_sqllab_view',
-            'main_dttm_col',
-            'metrics.metric_name',
-            'metrics.verbose_name',
-            'schema',
-            'sql',
-            'table_name',
-            'time_grain_sqla',
-          ],
-        })}`,
-      })
-        .then((response: JsonResponse) => {
-          setMetrics(response.json?.result?.metrics);
-          const dataset = response.json?.result;
-          // modify the response to fit structure expected by AdhocFilterControl
-          dataset.type = dataset.datasource_type;
-          dataset.filter_select = true;
-          setDatasetDetails(dataset);
+      if (datasourceType === DatasourceType.SemanticView) {
+        cachedSupersetGet({
+          endpoint: `/api/v1/semantic_view/${datasetId}/structure`,
         })
-        .catch((response: SupersetApiError) => {
-          addDangerToast(response.message);
-        });
+          .then((response: JsonResponse) => {
+            const {
+              name: svName,
+              dimensions = [],
+              metrics: svMetrics = [],
+            } = response.json?.result ?? {};
+            const columns = dimensions.map(
+              (dim: { name: string; type: string }) => {
+                const mappedType = mapSemanticTypeToGenericDataType(dim.type);
+                return {
+                  column_name: dim.name,
+                  type: dim.type,
+                  is_dttm: mappedType === GenericDataType.Temporal,
+                  filterable: true,
+                  type_generic: mappedType,
+                };
+              },
+            );
+            const mappedMetrics = svMetrics.map(
+              (m: { name: string; definition: string }) => ({
+                metric_name: m.name,
+                expression: m.definition,
+                verbose_name: null,
+              }),
+            );
+            setMetrics(mappedMetrics);
+            setDatasetDetails({
+              columns,
+              metrics: mappedMetrics,
+              datasource_type: DatasourceType.SemanticView,
+              type: DatasourceType.SemanticView,
+              filter_select: true,
+              filter_select_enabled: true,
+              time_grain_sqla: [],
+              main_dttm_col: null,
+              id: datasetId,
+              table_name: svName,
+            });
+          })
+          .catch((response: SupersetApiError) => {
+            addDangerToast(response.message);
+          });
+      } else {
+        cachedSupersetGet({
+          endpoint: `/api/v1/dataset/${datasetId}?q=${rison.encode({
+            columns: [
+              'columns.column_name',
+              'columns.expression',
+              'columns.filterable',
+              'columns.is_dttm',
+              'columns.type',
+              'columns.type_generic',
+              'columns.verbose_name',
+              'database.id',
+              'database.database_name',
+              'datasource_type',
+              'filter_select_enabled',
+              'id',
+              'is_sqllab_view',
+              'main_dttm_col',
+              'metrics.metric_name',
+              'metrics.verbose_name',
+              'schema',
+              'sql',
+              'table_name',
+              'time_grain_sqla',
+            ],
+          })}`,
+        })
+          .then((response: JsonResponse) => {
+            setMetrics(response.json?.result?.metrics);
+            const dataset = response.json?.result;
+            // modify the response to fit structure expected by AdhocFilterControl
+            dataset.type = dataset.datasource_type;
+            dataset.filter_select = true;
+            setDatasetDetails(dataset);
+          })
+          .catch((response: SupersetApiError) => {
+            addDangerToast(response.message);
+          });
+      }
     }
-  }, [datasetId]);
+  }, [datasetId, datasourceType]);
 
   useImperativeHandle(ref, () => ({
     changeTab(tab: 'configuration' | 'scoping') {
@@ -812,7 +887,15 @@ const FiltersConfigForm = (
       if (chartDatasetUid === undefined) {
         return;
       }
-      if (loadedDatasets[chartDatasetUid]?.id !== formFilter?.dataset?.value) {
+
+      const matchesFilterDatasource = doesChartMatchFilterDatasource(
+        chartDatasetUid,
+        loadedDatasets,
+        formFilter.dataset.value,
+        datasourceType,
+      );
+
+      if (!matchesFilterDatasource) {
         excluded.push(chart.id);
       }
     });
@@ -820,6 +903,7 @@ const FiltersConfigForm = (
   }, [
     JSON.stringify(Object.values(charts).map(chart => chart.id)),
     formFilter?.dataset?.value,
+    datasourceType,
     JSON.stringify(loadedDatasets),
   ]);
 
@@ -868,6 +952,7 @@ const FiltersConfigForm = (
         filterId={filterId}
         filterValues={(column: Column) => !!column.is_dttm}
         datasetId={datasetId}
+        datasourceType={datasourceType}
         onChange={column => {
           // We need reset default value when column changed
           setNativeFilterFieldValues(form, filterId, {
@@ -1052,27 +1137,37 @@ const FiltersConfigForm = (
                       <StyledFormItem
                         expanded={expanded}
                         name={['filters', filterId, 'dataset']}
-                        label={<StyledLabel>{t('Dataset')}</StyledLabel>}
+                        label={<StyledLabel>{datasetLabel()}</StyledLabel>}
                         initialValue={
                           datasetDetails
                             ? {
-                                label: DatasetSelectLabel({
-                                  id: datasetDetails.id,
-                                  table_name: datasetDetails.table_name,
-                                  schema: datasetDetails.schema,
-                                  database: {
-                                    database_name:
-                                      datasetDetails.database.database_name,
-                                  },
-                                }),
+                                label: datasetDetails.database
+                                  ? DatasetSelectLabel({
+                                      id: datasetDetails.id,
+                                      table_name: datasetDetails.table_name,
+                                      schema: datasetDetails.schema,
+                                      database: {
+                                        database_name:
+                                          datasetDetails.database.database_name,
+                                      },
+                                    })
+                                  : (datasetDetails.table_name ??
+                                    datasetDetails.id),
                                 value: datasetDetails.id,
+                                kind:
+                                  datasourceType === DatasourceType.SemanticView
+                                    ? 'semantic_view'
+                                    : undefined,
                               }
                             : undefined
                         }
                         rules={[
                           {
                             required: !isRemoved,
-                            message: t('Dataset is required'),
+                            message:
+                              datasetLabel() === t('Datasource')
+                                ? t('Datasource is required')
+                                : t('Dataset is required'),
                           },
                         ]}
                         {...getFiltersConfigModalTestId('datasource-input')}
@@ -1081,11 +1176,20 @@ const FiltersConfigForm = (
                           onChange={(value: {
                             label: string | React.ReactNode;
                             value: number;
+                            kind?: string;
                           }) => {
-                            if (value.value !== datasetId) {
+                            const newDatasourceType =
+                              value.kind === 'semantic_view'
+                                ? DatasourceType.SemanticView
+                                : DatasourceType.Table;
+                            if (
+                              value.value !== datasetId ||
+                              newDatasourceType !== datasourceType
+                            ) {
                               setNativeFilterFieldValues(form, filterId, {
                                 dataset: value,
                                 datasetInfo: value,
+                                datasourceType: newDatasourceType,
                                 defaultDataMask: null,
                                 column: null,
                               });
@@ -1098,7 +1202,7 @@ const FiltersConfigForm = (
                     ) : (
                       <StyledFormItem
                         expanded={expanded}
-                        label={<StyledLabel>{t('Dataset')}</StyledLabel>}
+                        label={<StyledLabel>{datasetLabel()}</StyledLabel>}
                       >
                         <Loading position="inline-centered" />
                       </StyledFormItem>
@@ -1286,7 +1390,9 @@ const FiltersConfigForm = (
                                     </CollapsibleControl>
                                   </FormItem>
                                 )}
-                                {itemTypeField === 'filter_timegrain' &&
+                                {(itemTypeField === 'filter_timegrain' ||
+                                  itemTypeField ===
+                                    'chart_customization_timegrain') &&
                                   hasDataset &&
                                   datasetDetails?.time_grain_sqla &&
                                   datasetDetails.time_grain_sqla.length > 0 && (
@@ -1321,9 +1427,7 @@ const FiltersConfigForm = (
                                             filterId,
                                             'time_grains',
                                           ]}
-                                          initialValue={
-                                            filterToEdit?.time_grains
-                                          }
+                                          initialValue={savedTimeGrains}
                                           {...getFiltersConfigModalTestId(
                                             'time-grain-allowlist',
                                           )}
@@ -1407,7 +1511,7 @@ const FiltersConfigForm = (
                                           }}
                                         />
                                       </StyledRowFormItem>
-                                      {hasMetrics && (
+                                      {hasMetrics && !isChartCustomization && (
                                         <StyledRowSubFormItem
                                           expanded={expanded}
                                           name={[
@@ -1640,6 +1744,11 @@ const FiltersConfigForm = (
                                 ? ChartCustomizationType.ChartCustomization
                                 : NativeFilterType.NativeFilter
                             }
+                          />
+                          <FormItem
+                            name={['filters', filterId, 'datasourceType']}
+                            hidden
+                            initialValue={datasourceType}
                           />
                           <FormItem
                             name={[
@@ -1889,10 +1998,12 @@ const FiltersConfigForm = (
                                             iconSize="xl"
                                             iconColor={theme.colorPrimary}
                                             css={css`
-                                              margin-left: ${theme.sizeUnit *
-                                              2}px;
-                                              margin-top: ${theme.sizeUnit *
-                                              1.5}px;
+                                              margin-left: ${
+                                                theme.sizeUnit * 2
+                                              }px;
+                                              margin-top: ${
+                                                theme.sizeUnit * 1.5
+                                              }px;
                                             `}
                                             onClick={() => refreshHandler(true)}
                                           />

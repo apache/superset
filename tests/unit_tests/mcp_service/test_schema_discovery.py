@@ -30,14 +30,14 @@ def test_get_columns_from_model_excludes_matching_extra_columns():
         Slice,
         default_columns=["id"],
         extra_columns={
-            "owners": ColumnMetadata(**CHART_EXTRA_COLUMNS["owners"].model_dump()),
+            "editors": ColumnMetadata(**CHART_EXTRA_COLUMNS["editors"].model_dump()),
             "url": ColumnMetadata(**CHART_EXTRA_COLUMNS["url"].model_dump()),
         },
-        exclude_columns={"owners"},
+        exclude_columns={"editors"},
     )
 
     column_names = {column.name for column in columns}
 
     assert "id" in column_names
     assert "url" in column_names
-    assert "owners" not in column_names
+    assert "editors" not in column_names

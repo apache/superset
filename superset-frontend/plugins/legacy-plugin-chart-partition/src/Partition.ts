@@ -27,6 +27,7 @@ import {
   getNumberFormatter,
   getTimeFormatter,
   CategoricalColorNamespace,
+  sanitizeHtml,
 } from '@superset-ui/core';
 
 interface PartitionDataNode {
@@ -345,7 +346,7 @@ function Icicle(element: HTMLElement, props: IcicleProps): void {
       t += '</tbody></table>';
       const [tipX, tipY] = d3.mouse(element);
       tip
-        .html(t)
+        .html(sanitizeHtml(t))
         .style('left', `${tipX + 15}px`)
         .style('top', `${tipY}px`);
     }

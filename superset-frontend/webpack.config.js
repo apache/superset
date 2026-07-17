@@ -26,8 +26,7 @@ const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
-const TerserPlugin = require('terser-webpack-plugin');
+const MinimizerPlugin = require('minimizer-webpack-plugin');
 const LightningCSS = require('lightningcss');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 const {
@@ -152,11 +151,7 @@ const plugins = [
   }),
 
   new CopyPlugin({
-    patterns: [
-      'package.json',
-      { from: 'src/assets/images', to: 'images' },
-      { from: 'src/pwa-manifest.json', to: 'pwa-manifest.json' },
-    ],
+    patterns: ['package.json', { from: 'src/assets/images', to: 'images' }],
   }),
 
   // static pages
@@ -203,9 +198,16 @@ if (!process.env.CI) {
 if (isDevMode) {
   plugins.push(
     new ReactRefreshWebpackPlugin({
-      // Exclude service worker from React Refresh - it runs in a worker context
-      // without DOM/window and doesn't need HMR
-      exclude: /service-worker/,
+      // Exclude:
+      //   - node_modules (the plugin's default — must be re-added when overriding
+      //     `exclude`, otherwise pre-bundled ESM packages such as
+      //     react-checkbox-tree get the refresh loader injected into their
+      //     nested webpack runtime, causing
+      //     `__webpack_require__.$Refresh$ is undefined` at module factory
+      //     execution time.
+      //   - service worker (runs in a worker context without DOM/window and
+      //     does not need HMR).
+      exclude: [/node_modules/, /service-worker/],
     }),
   );
 }
@@ -395,7 +397,6 @@ const config = {
               'react-dom',
               'redux',
               'react-redux',
-              'react-sortable-hoc',
               'react-table',
               'react-ace',
               'webpack.*',
@@ -424,20 +425,18 @@ const config = {
     },
     usedExports: 'global',
     minimizer: [
-      new CssMinimizerPlugin({
-        minify: CssMinimizerPlugin.lightningCssMinify,
+      new MinimizerPlugin({
+        test: /\.css(\?.*)?$/i,
+        minify: MinimizerPlugin.lightningCssMinify,
         minimizerOptions: {
-          targets: LightningCSS.browserslistToTargets([
-            'last 3 chrome versions',
-            'last 3 firefox versions',
-            'last 3 safari versions',
-            'last 3 edge versions',
-          ]),
+          targets: LightningCSS.browserslistToTargets(
+            packageConfig.browserslist,
+          ),
         },
       }),
-      new TerserPlugin({
-        minify: TerserPlugin.swcMinify,
-        terserOptions: {
+      new MinimizerPlugin({
+        minify: MinimizerPlugin.swcMinify,
+        minimizerOptions: {
           compress: {
             drop_console: false,
           },

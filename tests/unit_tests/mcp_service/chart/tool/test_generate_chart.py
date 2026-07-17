@@ -19,7 +19,7 @@
 Unit tests for MCP generate_chart tool
 """
 
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from sqlalchemy.orm.exc import DetachedInstanceError
@@ -37,6 +37,7 @@ from superset.mcp_service.chart.tool.generate_chart import (
     _compile_chart,
     _sanitize_generate_chart_form_data_for_llm_context,
     CompileResult,
+    generate_chart,
 )
 from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.utils import json as utils_json
@@ -44,6 +45,58 @@ from superset.utils import json as utils_json
 
 class TestGenerateChart:
     """Tests for generate_chart MCP tool."""
+
+    @pytest.mark.asyncio
+    async def test_generate_chart_returns_table_chart_type_label(self) -> None:
+        """Test chart generation response includes table chart type label."""
+        request = GenerateChartRequest(
+            dataset_id="1",
+            config=TableChartConfig(
+                chart_type="table",
+                columns=[ColumnRef(name="region")],
+            ),
+            preview_formats=["url"],
+        )
+        ctx = MagicMock()
+        ctx.info = AsyncMock()
+        ctx.debug = AsyncMock()
+        ctx.warning = AsyncMock()
+        ctx.error = AsyncMock()
+        ctx.report_progress = AsyncMock()
+        validation_result = Mock(
+            is_valid=True,
+            request=request,
+            warnings={},
+            error=None,
+        )
+        mock_user = Mock()
+        mock_user.id = 1
+        mock_user.username = "admin"
+        mock_user.roles = []
+        mock_user.groups = []
+
+        with (
+            patch(
+                "superset.mcp_service.auth.get_user_from_request",
+                return_value=mock_user,
+            ),
+            patch(
+                "superset.mcp_service.chart.validation.ValidationPipeline."
+                "validate_request_with_warnings",
+                return_value=validation_result,
+            ),
+            patch(
+                "superset.mcp_service.chart.chart_utils.generate_explore_link",
+                return_value=(
+                    "http://localhost:9001/explore/?"
+                    "form_data_key=test_form_data_key_123"
+                ),
+            ),
+            patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=None),
+        ):
+            result = await generate_chart(request, ctx=ctx)
+
+        assert result.chart_type_label == "table chart"
 
     @pytest.mark.asyncio
     async def test_generate_chart_request_structure(self):
@@ -379,8 +432,9 @@ def _make_mock_chart(chart_id: int = 42) -> Mock:
     chart.created_on = None
     chart.created_on_humanized = "2 days ago"
     chart.uuid = "test-uuid-42"
+    chart.deleted_at = None
     chart.tags = []
-    chart.owners = []
+    chart.editors = []
     return chart
 
 
@@ -388,7 +442,7 @@ class TestChartSerializationEagerLoading:
     """Tests for eager loading fix in generate_chart serialization path."""
 
     def test_serialize_chart_object_succeeds_with_loaded_relationships(self):
-        """serialize_chart_object works when tags/owners are already loaded."""
+        """serialize_chart_object works when tags/editors are already loaded."""
         from superset.mcp_service.chart.schemas import serialize_chart_object
 
         chart = _make_mock_chart()
@@ -398,7 +452,7 @@ class TestChartSerializationEagerLoading:
         assert result.id == 42
         assert result.slice_name == sanitize_for_llm_context("Test Chart")
         assert result.tags == []
-        assert "owners" not in result.model_dump()
+        assert "editors" not in result.model_dump()
 
     def test_serialize_chart_object_with_certification_fields(self):
         """serialize_chart_object correctly serializes non-None certification values."""
@@ -522,7 +576,7 @@ class TestChartSerializationEagerLoading:
 
     def test_generate_chart_refetches_via_dao(self):
         """The serialization path re-fetches the chart via
-        ChartDAO.find_by_id() with query_options for owners and tags."""
+        ChartDAO.find_by_id() with query_options for editors and tags."""
         refetched_chart = _make_mock_chart()
         refetched_chart.tags = [Mock(id=1, name="tag1", type="custom")]
         refetched_chart.tags[0].description = ""
@@ -582,6 +636,97 @@ class TestChartSerializationEagerLoading:
         assert chart_data["id"] == original_chart.id
         assert chart_data["slice_name"] == original_chart.slice_name
         assert chart_data["url"] == explore_url
-        # No tags/owners keys — those would require relationship access
+        # No tags/editors keys — those would require relationship access
         assert "tags" not in chart_data
-        assert "owners" not in chart_data
+        assert "editors" not in chart_data
+        assert "editors" not in chart_data
+
+
+# ---------------------------------------------------------------------------
+# Custom SQL metrics (sql_expression) — Ticket #3, generate_chart side.
+# ---------------------------------------------------------------------------
+
+
+_SQL_EXPR = "COUNT(CASE WHEN closed_won THEN 1 END)::numeric / NULLIF(COUNT(*),0)"
+
+
+class TestGenerateChartSqlMetric:
+    """generate_chart accepts a sql_expression on y[*] metrics."""
+
+    def test_generate_chart_request_accepts_sql_metric(self) -> None:
+        request = GenerateChartRequest(
+            dataset_id="1",
+            config=XYChartConfig(
+                chart_type="xy",
+                x=ColumnRef(name="ds"),
+                y=[ColumnRef(sql_expression=_SQL_EXPR, label="Win Rate")],
+                kind="line",
+            ),
+        )
+        # config.y[0] is the new SQL metric.
+        assert request.config.y[0].sql_expression == _SQL_EXPR
+        assert request.config.y[0].label == "Win Rate"
+        assert request.config.y[0].name is None
+        assert request.config.y[0].is_metric is True
+
+    def test_generate_chart_request_via_dict_accepts_sql_metric(self) -> None:
+        # The MCP tool receives a dict on the wire, so verify model_validate
+        # too — that's the path UnknownFieldCheckMixin guards.
+        request = GenerateChartRequest.model_validate(
+            {
+                "dataset_id": "1",
+                "config": {
+                    "chart_type": "xy",
+                    "x": {"name": "ds"},
+                    "y": [{"sql_expression": _SQL_EXPR, "label": "Win Rate"}],
+                    "kind": "line",
+                },
+            }
+        )
+        assert request.config.y[0].sql_expression == _SQL_EXPR
+
+    def test_generate_chart_request_rejects_sql_metric_without_label(self) -> None:
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="label"):
+            GenerateChartRequest.model_validate(
+                {
+                    "dataset_id": "1",
+                    "config": {
+                        "chart_type": "xy",
+                        "x": {"name": "ds"},
+                        "y": [{"sql_expression": _SQL_EXPR}],
+                        "kind": "line",
+                    },
+                }
+            )
+
+    def test_response_form_data_wraps_sql_metric_strings(self) -> None:
+        """Regression: previously the generate_chart response's top-level
+        ``form_data`` skipped the per-key SQL-metric wrap, shipping LLM-
+        controlled sqlExpression/label back unwrapped."""
+        from superset.mcp_service.chart.tool.generate_chart import (
+            _sanitize_generate_chart_form_data_for_llm_context,
+        )
+
+        wrapped = _sanitize_generate_chart_form_data_for_llm_context(
+            {
+                "viz_type": "echarts_timeseries_line",
+                "metrics": [
+                    {
+                        "expressionType": "SQL",
+                        "sqlExpression": _SQL_EXPR,
+                        "label": "Win Rate",
+                        "aggregate": None,
+                        "column": None,
+                        "optionName": "metric_sql_abcd1234",
+                        "hasCustomLabel": True,
+                        "datasourceWarning": False,
+                    }
+                ],
+            }
+        )
+        m = wrapped["metrics"][0]
+        assert "<UNTRUSTED-CONTENT>" in m["sqlExpression"]
+        assert "<UNTRUSTED-CONTENT>" in m["label"]
+        assert "<UNTRUSTED-CONTENT>" not in m["optionName"]

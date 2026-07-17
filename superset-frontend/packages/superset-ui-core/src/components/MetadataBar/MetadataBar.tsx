@@ -18,7 +18,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useResizeDetector } from 'react-resize-detector';
-import { uniqWith } from 'lodash';
+import { uniqWith } from 'lodash-es';
 import { styled } from '@apache-superset/core/theme';
 import { Tooltip } from '../Tooltip';
 import { TooltipPlacement } from '../Tooltip/types';
@@ -194,7 +194,7 @@ const MetadataBar = ({ items, tooltipPlacement = 'top' }: MetadataBarProps) => {
   }
 
   const onResize = useCallback(
-    width => {
+    (width: number | undefined) => {
       // Calculates the breakpoint width to collapse the bar.
       // The last item does not have a space, so we subtract SPACE_BETWEEN_ITEMS from the total.
       const breakpoint =

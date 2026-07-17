@@ -32,6 +32,7 @@ import {
   NativeFilterDivider,
   ChartCustomizationsFormItem,
 } from '../types';
+import { buildNativeFilterTarget } from './buildTarget';
 
 type FilterFormInput =
   | NativeFiltersFormItem
@@ -47,9 +48,7 @@ type NativeFilterFormOrSaved = NativeFiltersFormItem | Filter;
 function isCustomizationType(
   formInputs: FilterFormInput,
 ): formInputs is
-  | ChartCustomizationsFormItem
-  | ChartCustomization
-  | ChartCustomizationDivider {
+  ChartCustomizationsFormItem | ChartCustomization | ChartCustomizationDivider {
   return (
     'type' in formInputs &&
     (formInputs.type === ChartCustomizationType.ChartCustomization ||
@@ -88,20 +87,7 @@ function transformDivider(
 function buildFilterTarget(
   formInputs: NativeFiltersFormItem,
 ): Partial<NativeFilterTarget> {
-  const target: Partial<NativeFilterTarget> = {};
-
-  if (formInputs.dataset) {
-    target.datasetId =
-      typeof formInputs.dataset === 'object'
-        ? formInputs.dataset.value
-        : formInputs.dataset;
-  }
-
-  if (formInputs.dataset && formInputs.column) {
-    target.column = { name: formInputs.column };
-  }
-
-  return target;
+  return buildNativeFilterTarget(formInputs);
 }
 
 function transformFormInput(
@@ -113,7 +99,7 @@ function transformFormInput(
     excluded: [],
   };
 
-  return {
+  const result: Filter & { time_grains?: string[] } = {
     id,
     type: NativeFilterType.NativeFilter,
     name: formInputs.name,
@@ -127,14 +113,17 @@ function transformFormInput(
     adhoc_filters: formInputs.adhoc_filters,
     time_range: formInputs.time_range,
     granularity_sqla: formInputs.granularity_sqla,
-    time_grains: formInputs.time_grains?.length
-      ? formInputs.time_grains
-      : undefined,
     sortMetric: formInputs.sortMetric ?? null,
     requiredFirst: formInputs.requiredFirst
       ? Object.values(formInputs.requiredFirst).find(rf => rf)
       : undefined,
   };
+
+  if (formInputs.time_grains?.length) {
+    result.time_grains = formInputs.time_grains;
+  }
+
+  return result;
 }
 
 function transformSavedFilter(id: string, filter: Filter): Filter {

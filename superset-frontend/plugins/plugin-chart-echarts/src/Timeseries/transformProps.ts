@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { invert } from 'lodash';
+import { invert } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import {
   AnnotationLayer,
@@ -381,6 +381,15 @@ export default function transformProps(
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
 
+  // With the "full range" time-shift option, offset series are outer-joined onto
+  // the main series, which inserts null rows into the main series wherever the
+  // comparison period has data the current period lacks. Connect nulls so the
+  // main line stays continuous (matching the default left-join appearance) rather
+  // than fragmenting at every inserted gap.
+  const timeCompareFullRange = Boolean(
+    chartProps.rawFormData?.time_compare_full_range,
+  );
+
   const offsetLineWidths: { [key: string]: number } = {};
 
   // For horizontal bar charts, calculate min/max from data to avoid cutting off labels
@@ -478,7 +487,7 @@ export default function transformProps(
       colorScaleKey,
       {
         area,
-        connectNulls: derivedSeries,
+        connectNulls: derivedSeries || timeCompareFullRange,
         filterState,
         seriesContexts,
         markerEnabled,
@@ -861,7 +870,8 @@ export default function transformProps(
   // boundary that formats identically to the last data-point tick (e.g.
   // "2005" appears twice with Year grain). Wrap the formatter to suppress
   // consecutive duplicate labels.
-  const showMaxLabel = xAxisType === AxisType.Time && xAxisLabelRotation === 0;
+  const showMaxLabel =
+    xAxisType === AxisType.Time && xAxisLabelRotation === 0 && !!timeGrainSqla;
   const deduplicatedFormatter = showMaxLabel
     ? (() => {
         let lastLabel: string | undefined;
@@ -888,6 +898,10 @@ export default function transformProps(
     name: xAxisTitle,
     nameGap: convertInteger(xAxisTitleMargin),
     nameLocation: 'middle',
+    ...(xAxisType === AxisType.Category &&
+      groupBy.length === 0 && {
+        triggerEvent: true,
+      }),
     axisLabel: {
       // When rotation is applied on time axes, hideOverlap can
       // aggressively hide the last label. Rotated labels already
@@ -1015,8 +1029,12 @@ export default function transformProps(
       trigger: richTooltip ? 'axis' : 'item',
       formatter: (params: any) => {
         const [xIndex, yIndex] = isHorizontal ? [1, 0] : [0, 1];
+        // For axis tooltips, prefer axisValue/axisValueLabel which contains the full label
+        // even when the axis label is visually truncated
         const xValue: number = richTooltip
-          ? params[0].value[xIndex]
+          ? (params[0].axisValue ??
+            params[0].axisValueLabel ??
+            params[0].value[xIndex])
           : params.value[xIndex];
         const forecastValue: CallbackDataParams[] = richTooltip
           ? params

@@ -44,7 +44,7 @@ export default function Option({
 }: OptionProps) {
   const theme = useTheme();
   const onClickClose = useCallback(
-    e => {
+    (e: React.MouseEvent) => {
       e.stopPropagation();
       clickClose(index);
     },
@@ -58,6 +58,7 @@ export default function Option({
             text-align: center;
           `}
           role="button"
+          tabIndex={0}
           data-test="remove-control-button"
           onClick={onClickClose}
         >

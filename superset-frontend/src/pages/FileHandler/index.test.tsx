@@ -30,6 +30,8 @@ const mockAddDangerToast = jest.fn();
 const mockAddSuccessToast = jest.fn();
 const mockHistoryPush = jest.fn();
 
+jest.setTimeout(60000);
+
 type ToastInjectedProps = {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -114,20 +116,27 @@ type LaunchQueue = {
 };
 
 const pendingTimerIds = new Set<ReturnType<typeof setTimeout>>();
+const MAX_CONSUMER_POLL_ATTEMPTS = 50;
+const consumerPromises: Promise<void>[] = [];
 
+// Defer the consumer call to a macrotask so it doesn't fire synchronously inside
+// the component's useEffect — calling it inline deadlocks Jest because the
+// MessageChannel mock in jsDomWithFetchAPI forces React to schedule via setTimeout.
 const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
   let savedConsumer:
-    | ((params: { files?: MockFileHandle[] }) => void | Promise<void>)
-    | null = null;
+    ((params: { files?: MockFileHandle[] }) => void | Promise<void>) | null =
+    null;
   (window as unknown as Window & { launchQueue: LaunchQueue }).launchQueue = {
     setConsumer: (consumer: (params: { files?: MockFileHandle[] }) => void) => {
       savedConsumer = consumer;
       if (fileHandle) {
         const id = setTimeout(() => {
           pendingTimerIds.delete(id);
-          consumer({
-            files: [fileHandle],
-          });
+          consumerPromises.push(
+            Promise.resolve(consumer({ files: [fileHandle] })).then(
+              () => undefined,
+            ),
+          );
         }, 0);
         pendingTimerIds.add(id);
       }
@@ -135,20 +144,47 @@ const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
   };
   return {
     triggerConsumer: async (params: { files?: MockFileHandle[] }) => {
-      await savedConsumer?.(params);
+      // In slower CI runners, useEffect may not have registered the consumer yet.
+      // Wait briefly for it before triggering.
+      let attempts = 0;
+      while (!savedConsumer && attempts < MAX_CONSUMER_POLL_ATTEMPTS) {
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise(resolve => {
+          setTimeout(resolve, 0);
+        });
+        attempts += 1;
+      }
+      if (!savedConsumer) {
+        throw new Error(
+          `LaunchQueue consumer was never registered after ${MAX_CONSUMER_POLL_ATTEMPTS} polling attempts`,
+        );
+      }
+      await savedConsumer(params);
     },
   };
 };
 
 beforeEach(() => {
   jest.clearAllMocks();
-  delete (window as any).launchQueue;
+  delete (window as unknown as Window & { launchQueue?: LaunchQueue })
+    .launchQueue;
 });
 
-afterEach(() => {
+afterEach(async () => {
   pendingTimerIds.forEach(id => clearTimeout(id));
   pendingTimerIds.clear();
-  delete (window as any).launchQueue;
+  if (consumerPromises.length > 0) {
+    const results = await Promise.allSettled(consumerPromises);
+    results.forEach(r => {
+      if (r.status === 'rejected') {
+        // eslint-disable-next-line no-console
+        console.warn('LaunchQueue consumer rejected:', r.reason);
+      }
+    });
+    consumerPromises.length = 0;
+  }
+  delete (window as unknown as Window & { launchQueue?: LaunchQueue })
+    .launchQueue;
 });
 
 test('shows error when launchQueue is not supported', async () => {
@@ -165,7 +201,7 @@ test('shows error when launchQueue is not supported', async () => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
       'File handling is not supported in this browser. Please use a modern browser like Chrome or Edge.',
     );
-    expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');
+    expect(mockHistoryPush).toHaveBeenCalledWith('/welcome/');
   });
 });
 
@@ -185,7 +221,7 @@ test('redirects when no files are provided', async () => {
   await triggerConsumer({ files: [] });
 
   await waitFor(() => {
-    expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');
+    expect(mockHistoryPush).toHaveBeenCalledWith('/welcome/');
   });
 });
 
@@ -232,7 +268,7 @@ test('handles Excel (.xls) file correctly', async () => {
 
 test('handles Excel (.xlsx) file correctly', async () => {
   const fileHandle = createMockFileHandle('test.xlsx');
-  setupLaunchQueue(fileHandle);
+  const { triggerConsumer } = setupLaunchQueue();
 
   render(
     <MemoryRouter initialEntries={['/superset/file-handler']}>
@@ -243,11 +279,13 @@ test('handles Excel (.xlsx) file correctly', async () => {
     { useRedux: true },
   );
 
+  await triggerConsumer({ files: [fileHandle] });
+
   const modal = await screen.findByTestId('upload-modal');
   expect(modal).toBeInTheDocument();
   expect(screen.getByTestId('modal-type')).toHaveTextContent('excel');
   expect(screen.getByTestId('modal-extensions')).toHaveTextContent('xls,xlsx');
-});
+}, 60000);
 
 test('handles Parquet file correctly', async () => {
   const fileHandle = createMockFileHandle('test.parquet');
@@ -288,7 +326,7 @@ test('shows error for unsupported file type', async () => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
       'Unsupported file type. Please use CSV, Excel, or Columnar files.',
     );
-    expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');
+    expect(mockHistoryPush).toHaveBeenCalledWith('/welcome/');
   });
 });
 
@@ -340,7 +378,7 @@ test('handles errors during file processing', async () => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
       'Failed to open file. Please try again.',
     );
-    expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');
+    expect(mockHistoryPush).toHaveBeenCalledWith('/welcome/');
   });
 });
 
@@ -364,7 +402,7 @@ test('modal close redirects to welcome page', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Close' }));
 
   await waitFor(() => {
-    expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');
+    expect(mockHistoryPush).toHaveBeenCalledWith('/welcome/');
   });
 });
 

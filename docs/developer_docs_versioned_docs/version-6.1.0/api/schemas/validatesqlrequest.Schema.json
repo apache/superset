@@ -1,0 +1,1 @@
+{"schema":{"properties":{"catalog":{"nullable":true,"type":"string"},"schema":{"nullable":true,"type":"string"},"sql":{"description":"SQL statement to validate","type":"string"},"template_params":{"nullable":true,"type":"object"}},"required":["sql"],"type":"object","title":"ValidateSQLRequest"},"schemaType":"response"}

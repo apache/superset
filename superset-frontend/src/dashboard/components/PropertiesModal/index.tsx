@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { omit } from 'lodash';
+import { omit } from 'lodash-es';
 import jsonStringify from 'json-stringify-pretty-compact';
 import {
   Form,
@@ -39,9 +39,11 @@ import {
 
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
-  OWNER_TEXT_LABEL_PROP,
-  OWNER_EMAIL_PROP,
-} from 'src/features/owners/OwnerSelectLabel';
+  mapPickerValuesToSubjects,
+  mapSubjectValuesToIds,
+  type SubjectPickerValue,
+} from 'src/features/subjects/SubjectPicker';
+import Subject from 'src/types/Subject';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import {
   applyColors,
@@ -79,14 +81,6 @@ type PropertiesModalProps = {
   onlyApply?: boolean;
 };
 
-type Roles = { id: number; name: string }[];
-type Owners = {
-  id: number;
-  full_name?: string;
-  first_name?: string;
-  last_name?: string;
-  email?: string;
-}[];
 type DashboardInfo = {
   id: number;
   title: string;
@@ -127,8 +121,8 @@ const PropertiesModal = ({
   const jsonAnnotations = useJsonValidation(jsonMetadata, {
     errorPrefix: 'Invalid JSON metadata',
   });
-  const [owners, setOwners] = useState<Owners>([]);
-  const [roles, setRoles] = useState<Roles>([]);
+  const [editors, setEditors] = useState<Subject[]>([]);
+  const [viewers, setViewers] = useState<Subject[]>([]);
   const saveLabel = onlyApply ? t('Apply') : t('Save');
   const [tags, setTags] = useState<TagType[]>([]);
   const [customCss, setCustomCss] = useState('');
@@ -168,23 +162,25 @@ const PropertiesModal = ({
   };
 
   const handleDashboardData = useCallback(
-    dashboardData => {
+    (dashboardData: Record<string, any>) => {
       const {
         id,
         dashboard_title,
         slug,
         certified_by,
         certification_details,
-        owners,
-        roles,
+        editors,
+        viewers,
         metadata,
         is_managed_externally,
         theme,
         css,
+        description,
       } = dashboardData;
       const dashboardInfo = {
         id,
         title: dashboard_title,
+        description: description || '',
         slug: slug || '',
         certifiedBy: certified_by || '',
         certificationDetails: certification_details || '',
@@ -195,8 +191,8 @@ const PropertiesModal = ({
 
       form.setFieldsValue(dashboardInfo);
       setDashboardInfo(dashboardInfo);
-      setOwners(owners);
-      setRoles(roles);
+      setEditors(editors || []);
+      setViewers(viewers || []);
       setCustomCss(css || '');
       if (originalCss.current === null) {
         originalCss.current = css || '';
@@ -253,26 +249,12 @@ const PropertiesModal = ({
     }
   };
 
-  const handleOnChangeOwners = (
-    owners: { value: number; label: string }[],
-    options: Record<string, unknown>[],
-  ) => {
-    const parsedOwners: Owners = ensureIsArray(owners).map((o, i) => ({
-      id: o.value,
-      full_name:
-        (options?.[i]?.[OWNER_TEXT_LABEL_PROP] as string) ||
-        (typeof o.label === 'string' ? o.label : ''),
-      email: (options?.[i]?.[OWNER_EMAIL_PROP] as string) || '',
-    }));
-    setOwners(parsedOwners);
+  const handleOnChangeEditors = (values: SubjectPickerValue[]) => {
+    setEditors(mapPickerValuesToSubjects(values));
   };
 
-  const handleOnChangeRoles = (roles: { value: number; label: string }[]) => {
-    const parsedRoles: Roles = ensureIsArray(roles).map(r => ({
-      id: r.value,
-      name: r.label,
-    }));
-    setRoles(parsedRoles);
+  const handleOnChangeViewers = (values: SubjectPickerValue[]) => {
+    setViewers(mapPickerValuesToSubjects(values));
   };
 
   const handleOnCancel = () => {
@@ -317,8 +299,13 @@ const PropertiesModal = ({
   };
 
   const onFinish = () => {
-    const { title, slug, certifiedBy, certificationDetails } =
-      form.getFieldsValue();
+    const {
+      title,
+      description = '',
+      slug,
+      certifiedBy,
+      certificationDetails,
+    } = form.getFieldsValue();
     let currentJsonMetadata = jsonMetadata;
 
     // validate currentJsonMetadata
@@ -381,14 +368,17 @@ const PropertiesModal = ({
 
     currentJsonMetadata = jsonStringify(jsonMetadataObj);
 
-    const moreOnSubmitProps: { roles?: Roles; tags?: TagType[] } = {};
-    const morePutProps: {
-      roles?: number[];
-      tags?: (string | number | undefined)[];
+    const moreOnSubmitProps: {
+      tags?: TagType[];
+      viewers?: Subject[];
     } = {};
-    if (isFeatureEnabled(FeatureFlag.DashboardRbac)) {
-      moreOnSubmitProps.roles = roles;
-      morePutProps.roles = (roles || []).map(r => r.id);
+    const morePutProps: {
+      tags?: (string | number | undefined)[];
+      viewers?: number[];
+    } = {};
+    if (isFeatureEnabled(FeatureFlag.EnableViewers)) {
+      moreOnSubmitProps.viewers = viewers;
+      morePutProps.viewers = mapSubjectValuesToIds(viewers || []);
     }
     if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
       moreOnSubmitProps.tags = tags;
@@ -397,9 +387,10 @@ const PropertiesModal = ({
     const onSubmitProps = {
       id: dashboardId,
       title,
+      description,
       slug,
       jsonMetadata: currentJsonMetadata,
-      owners,
+      editors,
       colorScheme: currentColorScheme,
       colorNamespace,
       certifiedBy,
@@ -424,9 +415,10 @@ const PropertiesModal = ({
     } else {
       const saveData = {
         dashboard_title: title,
+        description: description || null,
         slug: slug || null,
         json_metadata: currentJsonMetadata || null,
-        owners: (owners || []).map(o => o.id),
+        editors: mapSubjectValuesToIds(editors || []),
         certified_by: certifiedBy || null,
         certification_details:
           certifiedBy && certificationDetails ? certificationDetails : null,
@@ -573,7 +565,7 @@ const PropertiesModal = ({
       },
       {
         key: 'access',
-        name: t('Access & ownership'),
+        name: t('Access'),
         validator: () => [],
       },
       {
@@ -733,8 +725,10 @@ const PropertiesModal = ({
               key: 'access',
               label: (
                 <CollapseLabelInModal
-                  title={t('Access & ownership')}
-                  subtitle={t('Manage dashboard owners and access permissions')}
+                  title={t('Access')}
+                  subtitle={t(
+                    'Manage dashboard editors and access permissions',
+                  )}
                   validateCheckStatus={!validationStatus.access?.hasErrors}
                   testId="access-section"
                 />
@@ -742,11 +736,11 @@ const PropertiesModal = ({
               children: (
                 <AccessSection
                   isLoading={isLoading}
-                  owners={owners}
-                  roles={roles}
                   tags={tags}
-                  onChangeOwners={handleOnChangeOwners}
-                  onChangeRoles={handleOnChangeRoles}
+                  editors={editors}
+                  viewers={viewers}
+                  onChangeEditors={handleOnChangeEditors}
+                  onChangeViewers={handleOnChangeViewers}
                   onChangeTags={handleChangeTags}
                   onClearTags={handleClearTags}
                 />

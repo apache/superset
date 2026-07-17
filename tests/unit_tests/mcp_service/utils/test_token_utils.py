@@ -20,9 +20,11 @@ Unit tests for MCP service token utilities.
 """
 
 from typing import Any, List
+from unittest.mock import patch
 
 from pydantic import BaseModel
 
+from superset.mcp_service.utils import token_utils
 from superset.mcp_service.utils.token_utils import (
     _replace_collections_with_summaries,
     _summarize_large_dicts,
@@ -45,29 +47,65 @@ class TestEstimateTokenCount:
     """Test estimate_token_count function."""
 
     def test_estimate_string(self) -> None:
-        """Should estimate tokens for a string."""
+        """Should produce a positive non-zero estimate for a normal string.
+
+        We don't assert on a specific number because the result depends on
+        which tokenizer is loaded (tiktoken when available, char heuristic
+        otherwise).
+        """
         text = "Hello world"
         result = estimate_token_count(text)
-        expected = int(len(text) / CHARS_PER_TOKEN)
-        assert result == expected
+        assert result > 0
 
     def test_estimate_bytes(self) -> None:
-        """Should estimate tokens for bytes."""
-        text = b"Hello world"
-        result = estimate_token_count(text)
-        expected = int(len(text) / CHARS_PER_TOKEN)
-        assert result == expected
+        """Bytes input should be decoded and produce the same count as the
+        equivalent string."""
+        text = "Hello world"
+        assert estimate_token_count(text.encode("utf-8")) == estimate_token_count(text)
 
     def test_empty_string(self) -> None:
-        """Should return 0 for empty string."""
+        """Should return 0 for empty string and empty bytes."""
         assert estimate_token_count("") == 0
+        assert estimate_token_count(b"") == 0
 
     def test_json_like_content(self) -> None:
-        """Should estimate tokens for JSON-like content."""
+        """JSON content should produce a positive estimate."""
         json_str = '{"name": "test", "value": 123, "items": [1, 2, 3]}'
-        result = estimate_token_count(json_str)
-        assert result > 0
-        assert result == int(len(json_str) / CHARS_PER_TOKEN)
+        assert estimate_token_count(json_str) > 0
+
+    def test_long_text_roughly_scales_with_length(self) -> None:
+        """A doubled string should produce roughly double the token count
+        (within ±10%)."""
+        small = "the quick brown fox jumps over the lazy dog. " * 20
+        large = small * 2
+        small_n = estimate_token_count(small)
+        large_n = estimate_token_count(large)
+        # Within 10% of 2x — both tokenizers (tiktoken and the char
+        # fallback) preserve length monotonicity.
+        assert 1.8 * small_n <= large_n <= 2.2 * small_n
+
+    def test_fallback_uses_chars_per_token_when_tiktoken_unavailable(
+        self,
+    ) -> None:
+        """When the tiktoken encoding is None (not installed), the
+        function falls back to len/CHARS_PER_TOKEN math."""
+        text = "x" * 100
+        with patch.object(token_utils, "_ENCODING", None):
+            result = estimate_token_count(text)
+        assert result == int(100 / CHARS_PER_TOKEN)
+
+    def test_fallback_when_tiktoken_encode_raises(self) -> None:
+        """A misbehaving encoding should fall back to the char heuristic
+        rather than raise — the size guard must never fail-open."""
+
+        class BoomEncoding:
+            def encode(self, text: str) -> list[int]:
+                raise ValueError("simulated tiktoken failure")
+
+        text = "abc" * 50
+        with patch.object(token_utils, "_ENCODING", BoomEncoding()):
+            result = estimate_token_count(text)
+        assert result == int(len(text) / CHARS_PER_TOKEN)
 
 
 class TestEstimateResponseTokens:
@@ -220,7 +258,7 @@ class TestGenerateSizeReductionSuggestions:
             token_limit=25000,
         )
         assert any("filter" in s.lower() for s in suggestions)
-        assert not any("owner" in s.lower() for s in suggestions)
+        assert not any("editor" in s.lower() for s in suggestions)
         assert any("non-user attributes" in s for s in suggestions)
 
     def test_tool_specific_suggestions_execute_sql(self) -> None:
@@ -639,3 +677,75 @@ class TestTruncateOversizedResponse:
         assert isinstance(result, dict)
         assert result["id"] == 1  # Scalar fields preserved
         assert len(notes) > 0
+
+    @staticmethod
+    def _build_large_dashboard_response() -> dict[str, Any]:
+        """A dashboard with 463 charts and 48 native_filters, shared by the
+        default- and custom-max_list_items regression tests below."""
+        return {
+            "id": 1,
+            "dashboard_title": "x" * 2000,  # forces Phase 2 to trigger
+            "charts": [{"id": i, "slice_name": f"chart_{i}"} for i in range(463)],
+            "native_filters": [{"id": i, "name": f"filter_{i}"} for i in range(48)],
+        }
+
+    def test_large_dashboard_respects_default_max_list_items(self) -> None:
+        """Regression test for the Medialab large-dashboard report.
+
+        A dashboard with 463 charts and 48 native_filters should have
+        native_filters (48 items) left untouched under the new default cap
+        of 100, while charts (463 items) is truncated to 100 — a clear
+        improvement over the old flat 30-item cap, which truncated both.
+        """
+        response: dict[str, Any] = self._build_large_dashboard_response()
+        result: Any
+        was_truncated: bool
+        notes: list[str]
+        result, was_truncated, notes = truncate_oversized_response(response, 3000)
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert len(result["charts"]) == 100
+        assert len(result["native_filters"]) == 48
+        assert any("charts" in n and "463" in n for n in notes)
+        assert not any("native_filters" in n for n in notes)
+
+    def test_large_dashboard_respects_custom_max_list_items(self) -> None:
+        """A custom max_list_items below both list sizes should truncate both fields."""
+        response: dict[str, Any] = self._build_large_dashboard_response()
+        result: Any
+        was_truncated: bool
+        notes: list[str]
+        result, was_truncated, notes = truncate_oversized_response(
+            response, 3000, max_list_items=30
+        )
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert len(result["charts"]) == 30
+        assert len(result["native_filters"]) == 30
+        assert any("charts" in n and "30" in n for n in notes)
+        assert any("native_filters" in n and "30" in n for n in notes)
+
+    def test_custom_max_list_items_below_phase_four_survives_phase_four(self) -> None:
+        """A max_list_items below Phase 4's hardcoded 10 should not be widened.
+
+        Phase 2 truncates ``charts`` to 5 first; the response is still over
+        budget because of the oversized ``form_data`` dict, so truncation
+        proceeds to Phase 4, whose ``_truncate_lists(..., max_items=10)``
+        call only shrinks lists larger than 10 — it must leave the
+        already-smaller 5-item list untouched rather than re-expanding it.
+        """
+        response: dict[str, Any] = {
+            "id": 1,
+            "charts": [{"id": i, "slice_name": f"chart_{i}"} for i in range(300)],
+            "form_data": {f"key_{i}": f"val_{i}" for i in range(50)},
+        }
+        result: Any
+        was_truncated: bool
+        notes: list[str]
+        result, was_truncated, notes = truncate_oversized_response(
+            response, 200, max_list_items=5
+        )
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert len(result["charts"]) == 5
+        assert any("form_data" in n for n in notes)

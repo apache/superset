@@ -502,6 +502,7 @@ All MCP settings go in `superset_config.py`. Defaults are defined in `superset/m
 | `MCP_DEBUG` | `False` | Enable debug logging |
 | `MCP_DEV_USERNAME` | -- | Superset username for development mode (no auth) |
 | `MCP_RBAC_ENABLED` | `True` | Enforce Superset's role-based access control on MCP tool calls. When `True`, each tool checks that the authenticated user has the required FAB permission before executing. Disable only for testing or trusted-network deployments. |
+| `MCP_DISABLED_TOOLS` | `set()` | Set of tool names to remove from the MCP server at startup. Disabled tools are never advertised to AI clients during tool discovery. Useful when a custom extension tool should replace a built-in Superset tool. See [Disabling built-in tools](#disabling-built-in-tools). |
 
 ### Authentication
 
@@ -528,6 +529,7 @@ MCP_RESPONSE_SIZE_CONFIG = {
     "enabled": True,
     "token_limit": 25000,
     "warn_threshold_pct": 80,
+    "max_list_items": 100,
     "excluded_tools": [
         "health_check",
         "get_chart_preview",
@@ -542,6 +544,7 @@ MCP_RESPONSE_SIZE_CONFIG = {
 | `enabled` | `True` | Enable response size checking |
 | `token_limit` | `25000` | Maximum estimated token count per response |
 | `warn_threshold_pct` | `80` | Warn when response exceeds this percentage of the limit |
+| `max_list_items` | `100` | Cap on list-field length (e.g. `charts`, `native_filters`) applied to the `get_*_info` tools before falling back to more aggressive truncation. Raised from a hardcoded 30 in earlier versions; the higher default only keeps more data before the same token-budget fallback kicks in, so it's not a breaking change, but tenants that tuned workflows around the old 30-item cap should lower this value explicitly. |
 | `excluded_tools` | See above | Tools exempt from size checking (e.g., tools that return URLs, not data) |
 
 ### Caching
@@ -824,6 +827,32 @@ while True:
         break
     page += 1
 ```
+
+## Disabling built-in tools
+
+If you have deployed a custom tool via a Superset extension that supersedes one of the built-in Superset tools, you can suppress the built-in version so AI clients only discover your replacement. Disabled tools are removed from the server at startup and are never advertised during tool discovery.
+
+Set `MCP_DISABLED_TOOLS` in your `superset_config.py` to a set of tool names:
+
+```python
+# superset_config.py
+
+# Disable one tool
+MCP_DISABLED_TOOLS = {"execute_sql"}
+
+# Disable multiple tools
+MCP_DISABLED_TOOLS = {"execute_sql", "health_check"}
+```
+
+Tool names match the function name used in the `@tool` decorator (e.g., `execute_sql`, `list_charts`, `health_check`). Extension-prefixed tools can also be disabled using their full prefixed name:
+
+```python
+MCP_DISABLED_TOOLS = {"extensions.myorg.myextension.some_tool"}
+```
+
+:::note
+Specifying a tool name that does not exist logs a warning at startup and is otherwise ignored — it will not prevent the server from starting.
+:::
 
 ## Security Best Practices
 

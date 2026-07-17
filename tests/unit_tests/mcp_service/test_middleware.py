@@ -34,11 +34,14 @@ from superset.commands.exceptions import (
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
+from superset.mcp_service.auth import MCPNoAuthSourceError, MCPPermissionDeniedError
+from superset.mcp_service.constants import DEFAULT_MAX_LIST_ITEMS
 from superset.mcp_service.mcp_config import MCP_RESPONSE_SIZE_CONFIG
 from superset.mcp_service.middleware import (
     _is_user_error,
     create_response_size_guard_middleware,
     GlobalErrorHandlerMiddleware,
+    RBACToolVisibilityMiddleware,
     ResponseSizeGuardMiddleware,
 )
 
@@ -53,6 +56,7 @@ class TestResponseSizeGuardMiddleware:
         assert middleware.warn_threshold_pct == 80
         assert middleware.warn_threshold == 20000
         assert middleware.excluded_tools == set()
+        assert middleware.max_list_items == 100
 
     def test_init_custom_values(self) -> None:
         """Should initialize with custom values."""
@@ -60,11 +64,13 @@ class TestResponseSizeGuardMiddleware:
             token_limit=10000,
             warn_threshold_pct=70,
             excluded_tools=["health_check", "get_chart_preview"],
+            max_list_items=50,
         )
         assert middleware.token_limit == 10000
         assert middleware.warn_threshold_pct == 70
         assert middleware.warn_threshold == 7000
         assert middleware.excluded_tools == {"health_check", "get_chart_preview"}
+        assert middleware.max_list_items == 50
 
     def test_init_excluded_tools_as_string(self) -> None:
         """Should handle excluded_tools as a single string."""
@@ -72,6 +78,14 @@ class TestResponseSizeGuardMiddleware:
             excluded_tools="health_check",
         )
         assert middleware.excluded_tools == {"health_check"}
+
+    @pytest.mark.parametrize("configured_value", [0, -1, -100])
+    def test_init_clamps_non_positive_max_list_items(
+        self, configured_value: int
+    ) -> None:
+        """A misconfigured max_list_items of 0 or negative should clamp to 1."""
+        middleware = ResponseSizeGuardMiddleware(max_list_items=configured_value)
+        assert middleware.max_list_items == 1
 
     @pytest.mark.asyncio
     async def test_allows_small_response(self) -> None:
@@ -146,7 +160,13 @@ class TestResponseSizeGuardMiddleware:
 
     @pytest.mark.asyncio
     async def test_logs_warning_at_threshold(self) -> None:
-        """Should log warning when approaching limit."""
+        """Should log warning when approaching limit.
+
+        Mocks the token estimator to return a specific value above the
+        warn threshold but below the hard limit, decoupling the test
+        from whichever tokenizer (tiktoken or char heuristic) happens
+        to be loaded.
+        """
         middleware = ResponseSizeGuardMiddleware(
             token_limit=1000, warn_threshold_pct=80
         )
@@ -155,18 +175,21 @@ class TestResponseSizeGuardMiddleware:
         context.message.name = "list_charts"
         context.message.params = {}
 
-        # Response at ~85% of limit (should trigger warning but not block)
-        response = {"data": "x" * 2900}  # ~828 tokens at 3.5 chars/token
+        response = {"data": "approaching the limit"}
         call_next = AsyncMock(return_value=response)
 
         with (
             patch("superset.mcp_service.middleware.get_user_id", return_value=1),
             patch("superset.mcp_service.middleware.event_logger"),
+            patch(
+                "superset.mcp_service.middleware.estimate_response_tokens",
+                return_value=850,
+            ),
             patch("superset.mcp_service.middleware.logger") as mock_logger,
         ):
             result = await middleware.on_call_tool(context, call_next)
 
-        # Should return response (not blocked)
+        # Should return response (not blocked at 85% of limit)
         assert result == response
         # Should log warning
         mock_logger.warning.assert_called()
@@ -320,6 +343,43 @@ class TestResponseSizeGuardMiddleware:
         call_args = mock_event_logger.log.call_args
         assert call_args.kwargs["action"] == "mcp_response_truncated"
 
+    @pytest.mark.asyncio
+    async def test_truncates_dashboard_info_with_custom_max_list_items(self) -> None:
+        """Should respect a custom max_list_items cap for get_dashboard_info.
+
+        Regression test for the Medialab large-dashboard report: with the
+        default hardcoded cap of 30, a dashboard's charts/native_filters
+        lists were always truncated to 30 regardless of configuration. This
+        verifies the cap is now threaded through from the middleware
+        constructor rather than hardcoded.
+        """
+        middleware = ResponseSizeGuardMiddleware(token_limit=3000, max_list_items=50)
+
+        context = MagicMock()
+        context.message.name = "get_dashboard_info"
+        context.message.params = {}
+
+        large_response = {
+            "id": 1,
+            "dashboard_title": "x" * 2000,
+            "charts": [{"id": i, "slice_name": f"chart_{i}"} for i in range(463)],
+            "native_filters": [{"id": i, "name": f"filter_{i}"} for i in range(48)],
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        assert result["_response_truncated"] is True
+        # Truncated to the custom cap (50), not the old hardcoded 30
+        assert len(result["charts"]) == 50
+        # native_filters (48 items) fits under the custom cap, untouched
+        assert len(result["native_filters"]) == 48
+
 
 class TestCreateResponseSizeGuardMiddleware:
     """Test create_response_size_guard_middleware factory function."""
@@ -394,6 +454,46 @@ class TestCreateResponseSizeGuardMiddleware:
         assert middleware is not None
         assert middleware.token_limit == 25_000  # Default
         assert middleware.warn_threshold_pct == 80  # Default
+
+    def test_falls_back_to_default_when_max_list_items_is_none(self) -> None:
+        """A config explicitly set to None (not just missing) shouldn't crash.
+
+        `dict.get(key, default)` only falls back when the key is absent, so
+        an operator setting MCP_RESPONSE_SIZE_CONFIG["max_list_items"] = None
+        would otherwise reach `int(None)` and raise TypeError.
+        """
+        mock_config = {"enabled": True, "max_list_items": None}
+
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_config
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            middleware = create_response_size_guard_middleware()
+
+        assert middleware is not None
+        assert middleware.max_list_items == DEFAULT_MAX_LIST_ITEMS
+
+    def test_falls_back_to_default_when_max_list_items_is_non_numeric(self) -> None:
+        """A non-numeric config value (e.g. a typo in superset_config.py)
+        should fall back to the default instead of raising ValueError and
+        aborting middleware initialization.
+        """
+        mock_config = {"enabled": True, "max_list_items": "many"}
+
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_config
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            middleware = create_response_size_guard_middleware()
+
+        assert middleware is not None
+        assert middleware.max_list_items == DEFAULT_MAX_LIST_ITEMS
 
     def test_handles_exception_gracefully(self) -> None:
         """Should return None on expected configuration exceptions."""
@@ -1021,12 +1121,216 @@ class TestGlobalErrorHandlerLogLevels:
         error.status = 500
         call_next = AsyncMock(side_effect=error)
 
+        mock_logger = MagicMock()
         with (
             patch("superset.mcp_service.middleware.get_user_id", return_value=1),
             patch("superset.mcp_service.middleware.event_logger"),
-            patch("superset.mcp_service.middleware.logger") as mock_logger,
+            patch("superset.mcp_service.middleware.logger", mock_logger),
             pytest.raises(ToolError, match="Internal error"),
         ):
             await middleware.on_message(context, call_next)
 
         mock_logger.error.assert_called()
+
+    @pytest.mark.asyncio
+    async def test_mcp_permission_denied_error_becomes_tool_error(self) -> None:
+        """MCPPermissionDeniedError must convert to ToolError, not a generic error."""
+        middleware = GlobalErrorHandlerMiddleware()
+
+        context = MagicMock()
+        context.message.name = "generate_dashboard"
+        context.method = "tools/call"
+
+        error = MCPPermissionDeniedError(
+            permission_name="can_write",
+            view_name="Dashboard",
+            user="viewer",
+            tool_name="generate_dashboard",
+        )
+        call_next = AsyncMock(side_effect=error)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=42),
+            patch("superset.mcp_service.middleware.event_logger"),
+            pytest.raises(ToolError) as exc_info,
+        ):
+            await middleware.on_message(context, call_next)
+
+        assert "can_write" in str(exc_info.value)
+        assert "Dashboard" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_mcp_permission_denied_error_is_user_error(self) -> None:
+        """MCPPermissionDeniedError must be classified as a user error (WARNING)."""
+        error = MCPPermissionDeniedError(
+            permission_name="can_write",
+            view_name="Chart",
+        )
+        assert _is_user_error(error) is True
+
+    @pytest.mark.asyncio
+    async def test_mcp_permission_denied_error_logs_at_warning(self) -> None:
+        """MCPPermissionDeniedError should log at WARNING, not ERROR."""
+        middleware = GlobalErrorHandlerMiddleware()
+
+        context = MagicMock()
+        context.message.name = "generate_chart"
+        context.method = "tools/call"
+
+        error = MCPPermissionDeniedError(
+            permission_name="can_write",
+            view_name="Chart",
+            user="reader",
+        )
+        call_next = AsyncMock(side_effect=error)
+
+        mock_logger = MagicMock()
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=5),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch("superset.mcp_service.middleware.logger", mock_logger),
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_message(context, call_next)
+
+        mock_logger.warning.assert_called()
+        mock_logger.error.assert_not_called()
+
+
+class TestRBACToolVisibilityMiddleware:
+    """Tests for RBACToolVisibilityMiddleware.on_list_tools."""
+
+    def _make_tool(self, name: str = "test_tool") -> Any:
+        """Create a minimal mock tool object."""
+        tool = MagicMock()
+        tool.name = name
+        return tool
+
+    @pytest.mark.asyncio
+    async def test_fails_open_on_exception(self) -> None:
+        """Returns all tools when unexpected setup exception occurs (fail open)."""
+        tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
+        call_next = AsyncMock(return_value=tools)
+        middleware = RBACToolVisibilityMiddleware()
+
+        with patch(
+            "superset.mcp_service.middleware._get_app_context_manager",
+            side_effect=RuntimeError("no app"),
+        ):
+            result = await middleware.on_list_tools(MagicMock(), call_next)
+
+        assert result == tools
+
+    @pytest.mark.asyncio
+    async def test_fails_open_when_user_is_none(self, app) -> None:
+        """Returns all tools when get_user_from_request returns None."""
+        tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
+        call_next = AsyncMock(return_value=tools)
+        middleware = RBACToolVisibilityMiddleware()
+
+        with (
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app", return_value=app
+            ),
+            patch(
+                "superset.mcp_service.middleware.get_user_from_request",
+                return_value=None,
+            ),
+        ):
+            result = await middleware.on_list_tools(MagicMock(), call_next)
+
+        assert result == tools
+
+    @pytest.mark.asyncio
+    async def test_filters_tools_by_rbac(self, app) -> None:
+        """Tools denied by is_tool_visible_to_current_user are removed."""
+        read_tool = self._make_tool("list_charts")
+        write_tool = self._make_tool("generate_chart")
+        tools = [read_tool, write_tool]
+        call_next = AsyncMock(return_value=tools)
+        middleware = RBACToolVisibilityMiddleware()
+
+        mock_user = MagicMock()
+
+        def _visible(tool: Any) -> bool:
+            return tool.name == "list_charts"
+
+        with (
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app", return_value=app
+            ),
+            patch(
+                "superset.mcp_service.middleware.get_user_from_request",
+                return_value=mock_user,
+            ),
+            patch(
+                "superset.mcp_service.middleware.is_tool_visible_to_current_user",
+                side_effect=_visible,
+            ),
+        ):
+            result = await middleware.on_list_tools(MagicMock(), call_next)
+
+        assert read_tool in result
+        assert write_tool not in result
+
+    @pytest.mark.asyncio
+    async def test_fails_closed_on_permission_error(self, app) -> None:
+        """Returns empty list when credentials are invalid (PermissionError)."""
+        tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
+        call_next = AsyncMock(return_value=tools)
+        middleware = RBACToolVisibilityMiddleware()
+
+        with (
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app", return_value=app
+            ),
+            patch(
+                "superset.mcp_service.middleware.get_user_from_request",
+                side_effect=PermissionError("Invalid API key"),
+            ),
+        ):
+            result = await middleware.on_list_tools(MagicMock(), call_next)
+
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_fails_closed_on_bad_credentials_value_error(self, app) -> None:
+        """Returns empty list when auth was attempted but user not found."""
+        tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
+        call_next = AsyncMock(return_value=tools)
+        middleware = RBACToolVisibilityMiddleware()
+
+        with (
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app", return_value=app
+            ),
+            patch(
+                "superset.mcp_service.middleware.get_user_from_request",
+                side_effect=ValueError("User 'ghost' not found in database"),
+            ),
+        ):
+            result = await middleware.on_list_tools(MagicMock(), call_next)
+
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_fails_open_when_no_auth_configured(self, app) -> None:
+        """Returns all tools when no auth source is configured at all."""
+        tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
+        call_next = AsyncMock(return_value=tools)
+        middleware = RBACToolVisibilityMiddleware()
+
+        with (
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app", return_value=app
+            ),
+            patch(
+                "superset.mcp_service.middleware.get_user_from_request",
+                side_effect=MCPNoAuthSourceError(
+                    "Authentication required. No valid credentials provided."
+                ),
+            ),
+        ):
+            result = await middleware.on_list_tools(MagicMock(), call_next)
+
+        assert result == tools

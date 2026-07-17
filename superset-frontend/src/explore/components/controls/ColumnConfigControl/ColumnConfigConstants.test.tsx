@@ -19,15 +19,24 @@
 
 import { SHARED_COLUMN_CONFIG_PROPS } from './constants';
 
-const tokenSeparators =
-  SHARED_COLUMN_CONFIG_PROPS.d3NumberFormat.tokenSeparators;
-
 test('should allow commas in D3 format inputs', () => {
-  expect(tokenSeparators).toBeDefined();
-  expect(tokenSeparators).not.toContain(',');
+  const { options } = SHARED_COLUMN_CONFIG_PROPS.d3NumberFormat;
+  const labels = (options ?? []).map((option: { label: unknown }) =>
+    String(option.label),
+  );
+  expect(labels.some((label: string) => label.includes(','))).toBe(true);
 });
 
-test('should have correct default token separators', () => {
-  const expectedSeparators = ['\r\n', '\n', '\t', ';'];
-  expect(tokenSeparators).toEqual(expectedSeparators);
+test('should use defaults from Select token separators', () => {
+  expect(
+    Object.prototype.hasOwnProperty.call(
+      SHARED_COLUMN_CONFIG_PROPS.d3NumberFormat,
+      'tokenSeparators',
+    ),
+  ).toBe(false);
+});
+
+test('d3NumberFormat and d3TimeFormat should allow free-text entry', () => {
+  expect(SHARED_COLUMN_CONFIG_PROPS.d3NumberFormat.allowNewOptions).toBe(true);
+  expect(SHARED_COLUMN_CONFIG_PROPS.d3TimeFormat.allowNewOptions).toBe(true);
 });

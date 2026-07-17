@@ -1,0 +1,1 @@
+{"schema":{"properties":{"column_name":{"description":"The name of the target column","example":"mycol","type":"string"},"type":{"description":"Type of target column","example":"BIGINT","type":"string"}},"type":"object","title":"ChartDataColumn"},"schemaType":"response"}

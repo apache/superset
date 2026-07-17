@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { act, renderHook } from '@testing-library/react-hooks';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { getExtensionsRegistry } from '@superset-ui/core';
 import {
   createWrapper,
@@ -44,13 +44,13 @@ const fakeTableApiResult = {
   result: [
     {
       id: 1,
-      value: 'fake api result1',
+      value: 'fake_api_result1',
       label: 'fake api label1',
       type: 'table',
     },
     {
       id: 2,
-      value: 'fake api result2',
+      value: 'fake_api_result2',
       label: 'fake api label2',
       type: 'table',
     },
@@ -104,7 +104,7 @@ test('returns keywords including fetched function_names data', async () => {
   const dbFunctionNamesApiRoute = `glob:*/api/v1/database/${expectDbId}/function_names/`;
   fetchMock.get(dbFunctionNamesApiRoute, fakeFunctionNamesApiResult);
 
-  const { result, waitFor } = renderHook(
+  const { result } = renderHook(
     () =>
       useKeywords({
         queryEditorId: 'testqueryid',
@@ -150,6 +150,64 @@ test('returns keywords including fetched function_names data', async () => {
       }),
     );
   });
+});
+
+test('quotes table identifiers that require quoting in the inserted value', async () => {
+  const dbFunctionNamesApiRoute = `glob:*/api/v1/database/${expectDbId}/function_names/`;
+  fetchMock.get(dbFunctionNamesApiRoute, fakeFunctionNamesApiResult);
+
+  act(() => {
+    store.dispatch(
+      tableApiUtil.upsertQueryData(
+        'tables',
+        { dbId: expectDbId, schema: expectSchema },
+        {
+          options: [
+            { value: 'COVID Vaccines', label: 'COVID Vaccines', type: 'table' },
+            { value: 'simple_table', label: 'simple_table', type: 'table' },
+          ],
+          hasMore: false,
+        },
+      ),
+    );
+  });
+
+  const { result } = renderHook(
+    () =>
+      useKeywords({
+        queryEditorId: 'testqueryid',
+        dbId: expectDbId,
+        schema: expectSchema,
+      }),
+    {
+      wrapper: createWrapper({
+        useRedux: true,
+        store,
+      }),
+    },
+  );
+
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(dbFunctionNamesApiRoute).length).toBe(1),
+  );
+
+  // A name that needs quoting is inserted as a double-quoted identifier,
+  // while its display name stays human-readable.
+  expect(result.current).toContainEqual(
+    expect.objectContaining({
+      name: 'COVID Vaccines',
+      value: '"COVID Vaccines"',
+      meta: 'table',
+    }),
+  );
+  // A simple identifier is inserted as-is, without quotes.
+  expect(result.current).toContainEqual(
+    expect.objectContaining({
+      name: 'simple_table',
+      value: 'simple_table',
+      meta: 'table',
+    }),
+  );
 });
 
 test('skip fetching if autocomplete skipped', () => {
@@ -241,7 +299,7 @@ test('returns column keywords among selected tables', async () => {
     );
   });
 
-  const { result, waitFor } = renderHook(
+  const { result } = renderHook(
     () =>
       useKeywords({
         queryEditorId: expectQueryEditorId,
@@ -302,7 +360,7 @@ test('returns long keywords with detail', async () => {
       ),
     );
   });
-  const { result, waitFor } = renderHook(
+  const { result } = renderHook(
     () =>
       useKeywords({
         queryEditorId: 'testqueryid',
