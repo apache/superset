@@ -443,6 +443,30 @@ def test_prepare_statement_blocks_raises_when_mutator_strips_all_statements(
         _prepare_statement_blocks(sql, mock_database.db_engine_spec, mock_database)
 
 
+def test_prepare_statement_blocks_raises_when_mutator_strips_single_block(
+    app_context: None, mock_database: MagicMock, mocker: MockerFixture
+) -> None:
+    """
+    The empty-statement guard must also cover engines that run all statements
+    as one block: with `MUTATE_AFTER_SPLIT=True` the per-statement mutator
+    outputs are joined into a single block, and a comment-only/empty result
+    must raise a clean error instead of reaching execution as an empty block.
+    """
+    from superset.sql.execution.celery_task import _prepare_statement_blocks
+
+    mocker.patch.dict(current_app.config, {"MUTATE_AFTER_SPLIT": True})
+    mock_database.db_engine_spec.run_multiple_statements_as_one = True
+    mocker.patch.object(
+        mock_database,
+        "mutate_sql_based_on_config",
+        side_effect=lambda sql, **kw: "-- just a comment",
+    )
+    sql = "SELECT * FROM users; SELECT * FROM orders;"
+
+    with pytest.raises(SupersetErrorException):
+        _prepare_statement_blocks(sql, mock_database.db_engine_spec, mock_database)
+
+
 # =============================================================================
 # Result Finalization Tests
 # =============================================================================

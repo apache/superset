@@ -57,6 +57,7 @@ from superset.exceptions import (
 from superset.extensions import celery_app, event_logger
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
+from superset.sql.execution.executor import build_statement_blocks
 from superset.sql.parse import BaseSQLStatement, CTASMethod, SQLScript, Table
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.utils import write_ipc_buffer
@@ -474,59 +475,13 @@ def execute_sql_statements(  # noqa: C901
     for statement in parsed_script.statements:
         apply_limit(query, statement)
 
-    # some databases (like BigQuery and Kusto) do not persist state across multiple
-    # statements if they're run separately (especially when using `NullPool`), so we run
-    # the query as a single block.
-    if db_engine_spec.run_multiple_statements_as_one:
-        if app.config["MUTATE_AFTER_SPLIT"]:
-            # These engines never actually execute statements individually, so the
-            # per-block mutation call further down (whose `is_split` is always
-            # `False` here) would never fire. Mutate each statement here, before
-            # joining them into the single block this engine requires, so
-            # `MUTATE_AFTER_SPLIT=True` still applies the mutator per statement.
-            blocks: list[str] = [
-                ";\n".join(
-                    database.mutate_sql_based_on_config(
-                        statement.format(comments=db_engine_spec.allows_sql_comments),
-                        is_split=True,
-                    )
-                    for statement in parsed_script.statements
-                )
-            ]
-        else:
-            blocks = [parsed_script.format(comments=db_engine_spec.allows_sql_comments)]
-    else:
-        if not app.config["MUTATE_AFTER_SPLIT"]:
-            # `MUTATE_AFTER_SPLIT=False` means the mutator should see the whole,
-            # un-split query, but this engine executes statements individually.
-            # Mutate the whole block up front and re-parse it, so the per-statement
-            # split below (and the per-block mutation call further down, which is a
-            # no-op here since its `is_split=True` no longer matches the config)
-            # operate on the already-mutated SQL.
-            mutated_sql: str = database.mutate_sql_based_on_config(
-                parsed_script.format(comments=db_engine_spec.allows_sql_comments),
-                is_split=False,
-            )
-            parsed_script = SQLScript(mutated_sql, engine=db_engine_spec.engine)
-            if not parsed_script.statements:
-                # A `SQL_QUERY_MUTATOR` that strips a query down to nothing
-                # (e.g. only comments/whitespace) would otherwise leave us with
-                # an empty `blocks` list, skipping the execution loop below and
-                # surfacing a confusing error instead of a clean one.
-                raise SupersetErrorException(
-                    SupersetError(
-                        message=__(
-                            "The SQL query mutator removed all executable "
-                            "statements from this query."
-                        ),
-                        error_type=SupersetErrorType.INVALID_SQL_ERROR,
-                        level=ErrorLevel.ERROR,
-                    )
-                )
-        blocks = [
-            statement.format(comments=db_engine_spec.allows_sql_comments)
-            for statement in parsed_script.statements
-        ]
+    # Build the execution blocks, applying `SQL_QUERY_MUTATOR` per
+    # `MUTATE_AFTER_SPLIT` (shared with the async path in `celery_task` so the
+    # `run_multiple_statements_as_one` × `MUTATE_AFTER_SPLIT` matrix behaves
+    # identically in both).
+    parsed_script, blocks = build_statement_blocks(
+        parsed_script, db_engine_spec, database
+    )
 
     with database.get_raw_connection(
         catalog=query.catalog,

@@ -49,7 +49,10 @@ from superset.exceptions import (
 from superset.extensions import celery_app
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
-from superset.sql.execution.executor import execute_sql_with_cursor
+from superset.sql.execution.executor import (
+    build_statement_blocks,
+    execute_sql_with_cursor,
+)
 from superset.sql.parse import SQLScript
 from superset.sqllab.utils import write_ipc_buffer
 from superset.utils import json
@@ -133,66 +136,12 @@ def _prepare_statement_blocks(
     """
     Parse SQL and build statement blocks for execution.
 
-    Some databases (like BigQuery and Kusto) do not persist state across multiple
-    statements if they're run separately (especially when using `NullPool`), so we run
-    the query as a single block when the database engine spec requires it.
+    Delegates to the shared ``build_statement_blocks`` so the sync
+    (``sql_lab``) and async (this module) SQL Lab paths apply
+    ``SQL_QUERY_MUTATOR``/``MUTATE_AFTER_SPLIT`` identically.
     """
     parsed_script = SQLScript(rendered_query, engine=db_engine_spec.engine)
-
-    # Build statement blocks for execution
-    if db_engine_spec.run_multiple_statements_as_one:
-        if app.config["MUTATE_AFTER_SPLIT"]:
-            # These engines never actually execute statements individually, so the
-            # per-block mutation call in `execute_sql_with_cursor` (whose `is_split`
-            # is always `False` here) would never fire. Mutate each statement here,
-            # before joining them into the single block this engine requires, so
-            # `MUTATE_AFTER_SPLIT=True` still applies the mutator per statement.
-            blocks = [
-                ";\n".join(
-                    database.mutate_sql_based_on_config(
-                        statement.format(comments=db_engine_spec.allows_sql_comments),
-                        is_split=True,
-                    )
-                    for statement in parsed_script.statements
-                )
-            ]
-        else:
-            blocks = [parsed_script.format(comments=db_engine_spec.allows_sql_comments)]
-    else:
-        if not app.config["MUTATE_AFTER_SPLIT"]:
-            # `MUTATE_AFTER_SPLIT=False` means the mutator should see the whole,
-            # un-split query, but this engine executes statements individually.
-            # Mutate the whole block up front and re-parse it, so the per-statement
-            # split below (and the later per-statement mutation call in
-            # `execute_sql_with_cursor`, which is a no-op here since its
-            # `is_split=True` no longer matches the config) operate on the
-            # already-mutated SQL.
-            mutated_sql: str = database.mutate_sql_based_on_config(
-                parsed_script.format(comments=db_engine_spec.allows_sql_comments),
-                is_split=False,
-            )
-            parsed_script = SQLScript(mutated_sql, engine=db_engine_spec.engine)
-            if not parsed_script.statements:
-                # A `SQL_QUERY_MUTATOR` that strips a query down to nothing
-                # (e.g. only comments/whitespace) would otherwise leave us with
-                # an empty `blocks` list, skipping the execution loop below and
-                # surfacing a confusing error instead of a clean one.
-                raise SupersetErrorException(
-                    SupersetError(
-                        message=__(
-                            "The SQL query mutator removed all executable "
-                            "statements from this query."
-                        ),
-                        error_type=SupersetErrorType.INVALID_SQL_ERROR,
-                        level=ErrorLevel.ERROR,
-                    )
-                )
-        blocks = [
-            statement.format(comments=db_engine_spec.allows_sql_comments)
-            for statement in parsed_script.statements
-        ]
-
-    return parsed_script, blocks
+    return build_statement_blocks(parsed_script, db_engine_spec, database)
 
 
 def _finalize_successful_query(

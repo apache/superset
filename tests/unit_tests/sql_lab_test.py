@@ -359,6 +359,50 @@ def test_execute_sql_statements_raises_when_mutator_strips_all_statements(
         )
 
 
+def test_execute_sql_statements_raises_when_mutator_strips_single_block(
+    mocker: MockerFixture, app: SupersetApp
+) -> None:
+    """
+    The empty-statement guard must also cover engines that run all statements
+    as one block: with `MUTATE_AFTER_SPLIT=True` the per-statement mutator
+    outputs are joined into a single block, and a comment-only/empty result
+    must raise a clean error instead of reaching execution as an empty block.
+    """
+    mocker.patch.dict(app.config, {"MUTATE_AFTER_SPLIT": True})
+
+    query = mocker.MagicMock()
+    query.limit = 1
+    query.database = mocker.MagicMock()
+    query.database.cache_timeout = 100
+    query.status = "RUNNING"
+    query.select_as_cta = False
+    query.database.allow_run_async = True
+    query.database.db_engine_spec.engine = "bigquery"
+    query.database.db_engine_spec.run_multiple_statements_as_one = True
+    query.database.db_engine_spec.allows_sql_comments = True
+
+    mocker.patch.object(
+        query.database,
+        "mutate_sql_based_on_config",
+        side_effect=lambda sql, **kw: "-- just a comment",
+    )
+
+    mocker.patch("superset.sql_lab.get_query", return_value=query)
+    mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
+    mocker.patch("superset.sql_lab.results_backend", return_value=True)
+
+    with pytest.raises(SupersetErrorException):
+        execute_sql_statements(
+            query_id=1,
+            rendered_query="SELECT 1; SELECT 2;",
+            return_results=True,
+            store_results=True,
+            start_time=None,
+            expand_data=False,
+            log_params={},
+        )
+
+
 @freeze_time("2021-04-01T00:00:00Z")
 def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
     """
