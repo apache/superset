@@ -1622,7 +1622,7 @@ def test_date_range_timeshift_multiple_periods(app_context, physical_dataset):
 
 @with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)
 def test_date_range_timeshift_invalid_format(app_context, physical_dataset):
-    """Test that invalid date range format raises appropriate error."""
+    """Test that an uninterpretable offset fails with a validation error."""
     qc = QueryContextFactory().create(
         datasource={
             "type": physical_dataset.type,
@@ -1659,11 +1659,12 @@ def test_date_range_timeshift_invalid_format(app_context, physical_dataset):
         force=True,
     )
 
-    # Should raise an error for invalid date range format
-    from superset.commands.chart.exceptions import TimeDeltaAmbiguousError
+    # An uninterpretable offset fails the query cleanly instead of leaking
+    # an unhandled TimeDeltaAmbiguousError out of get_df_payload
+    query_payload = qc.get_df_payload(qc.queries[0])
 
-    with pytest.raises(TimeDeltaAmbiguousError):
-        qc.get_df_payload(qc.queries[0])
+    assert query_payload["status"] == QueryStatus.FAILED
+    assert "Unable to interpret the time offset" in query_payload["error"]
 
 
 @with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)
