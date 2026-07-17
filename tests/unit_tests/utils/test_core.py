@@ -72,36 +72,40 @@ EXTRA_FILTER: QueryObjectFilterClause = {
 
 
 @pytest.mark.parametrize(
-    ("name", "content_type"),
+    ("name", "body", "expected_payload", "content_type"),
     [
         (
             "report.xlsx",
+            b"attachment",
+            b"attachment",
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         ),
-        ("report.zip", "application/zip"),
+        (
+            "report.zip",
+            "архив".encode("utf-8"),
+            "архив".encode("utf-8"),
+            "application/zip",
+        ),
+        (
+            "report.csv",
+            "город,value\nМосква,1",
+            "город,value\nМосква,1".encode("utf-8"),
+            "application/octet-stream",
+        ),
     ],
 )
 def test_build_email_attachment(
     name: str,
+    body: bytes | str,
+    expected_payload: bytes,
     content_type: str,
 ) -> None:
     """Email attachments should expose the expected MIME type and filename."""
-    attachment = build_email_attachment(name, b"attachment")
+    attachment = build_email_attachment(name, body)
 
     assert attachment.get_content_type() == content_type
     assert attachment.get_filename() == name
-    assert attachment.get_payload(decode=True) == b"attachment"
-
-
-def test_build_email_attachment_encodes_text_payload() -> None:
-    """Text attachment bodies should be encoded to stable UTF-8 bytes."""
-    attachment = build_email_attachment("report.csv", "город,value\nМосква,1")
-
-    assert attachment.get_content_type() == "application/octet-stream"
-    assert attachment.get_filename() == "report.csv"
-    assert attachment.get_payload(decode=True) == "город,value\nМосква,1".encode(
-        "utf-8"
-    )
+    assert attachment.get_payload(decode=True) == expected_payload
 
 
 @dataclass
