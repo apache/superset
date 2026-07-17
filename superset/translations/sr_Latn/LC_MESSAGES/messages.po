@@ -33,32 +33,51 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid ""
 "A soft-deleted dataset (uuid %(uuid)s) already references this table. "
-"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a new "
-"dataset over this table, or use a different table name."
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a "
+"new dataset over this table, or use a different table name."
 msgstr ""
+"Meko izbrisani skup podataka (uuid %(uuid)s) već referencira ovu tabelu. "
+"Vratite ga putem POST /api/v1/dataset/%(uuid)s/restore pre kreiranja "
+"novog skupa podataka na ovoj tabeli, ili koristite drugi naziv tabele."
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid ""
 "A soft-deleted dataset (uuid %(uuid)s) already references this table. "
-"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or "
-"upload to a different table name."
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or"
+" upload to a different table name."
 msgstr ""
+"Meko izbrisani skup podataka (uuid %(uuid)s) već referencira ovu tabelu. "
+"Vratite ga putem POST /api/v1/dataset/%(uuid)s/restore pre otpremanja, "
+"ili otpremite na drugi naziv tabele."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "Cannot delete a database whose only remaining datasets are soft-deleted. "
 "Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
 "permanently once a purge capability ships, or remove the underlying rows "
 "out-of-band, before deleting the database."
 msgstr ""
+"Nije moguće izbrisati bazu podataka čiji su jedini preostali skupovi "
+"podataka meko izbrisani. Vratite ih (POST /api/v1/dataset/<uuid>/restore)"
+" i trajno ih izbrišite kada bude dostupna mogućnost čišćenja, ili "
+"uklonite odgovarajuće redove van opsega, pre brisanja baze podataka."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
-"Dataset cannot be restored because another active dataset already references "
-"the same physical table (same database, catalog, schema, and table name). "
-"Delete the duplicate or rename the table before restoring."
+"Dataset cannot be restored because another active dataset already "
+"references the same physical table (same database, catalog, schema, and "
+"table name). Delete the duplicate or rename the table before restoring."
 msgstr ""
+"Skup podataka se ne može vratiti jer drugi aktivni skup podataka već "
+"referencira istu fizičku tabelu (ista baza podataka, katalog, šema i "
+"naziv tabele). Izbrišite duplikat ili preimenujte tabelu pre vraćanja."
 
 # es, fa, fr, ja, lv, mi, pt_BR, ru, sk, sl, uk]
 msgid ""
@@ -336,8 +355,12 @@ msgid_plural ""
 "%(firstSuggestions)s or %(lastSuggestion)s instead of "
 "\"%(undefinedParameter)s\"?"
 msgstr[0] "%(firstSuggestions)s %(lastSuggestion)s umesto „%(undefinedParameter)s“?"
-msgstr[1] "%(firstSuggestions)s ili %(lastSuggestion)s umesto „%(undefinedParameter)s“?"
-msgstr[2] "%(firstSuggestions)s ili %(lastSuggestion)s umesto „%(undefinedParameter)s“?"
+msgstr[1] ""
+"%(firstSuggestions)s ili %(lastSuggestion)s umesto "
+"„%(undefinedParameter)s“?"
+msgstr[2] ""
+"%(firstSuggestions)s ili %(lastSuggestion)s umesto "
+"„%(undefinedParameter)s“?"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
@@ -780,6 +803,7 @@ msgid "10/90 percentiles"
 msgstr "10/90 percentila"
 
 # fr, ja, lv, mi, pt_BR, sk, uk]
+#. do-not-translate
 msgid "10000"
 msgstr "10000"
 
@@ -1059,8 +1083,10 @@ msgstr "Baza podataka sa istim imenom već postoji."
 msgid "A date is required when using custom date shift"
 msgstr "Datum je obavezan kada se koristi prilagođeni pomak datuma"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "A description for your dashboard"
-msgstr ""
+msgstr "Opis vašeg kontrolnog panela"
 
 # es, fa, fr, ja, lv, mi, pt_BR, ru, sk, sl, uk]
 #, python-brace-format
@@ -1097,11 +1123,17 @@ msgstr ""
 "Lista imena domena koji mogu ugraditi ovu kontrolnu tablu. Ako ostavite "
 "ovo polje prazno, biće dozvoljeno ugrađivanje sa bilo kog domena."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
+#, fuzzy
 msgid "A list of subjects who can alter the chart. Searchable by name."
-msgstr ""
+msgstr "Lista subjekata koji mogu da menjaju grafikon. Pretraživo po imenu."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
+#, fuzzy
 msgid "A list of subjects who can view the chart. Searchable by name."
-msgstr ""
+msgstr "Lista subjekata koji mogu da pregledaju grafikon. Pretraživo po imenu."
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "A list of tags that have been applied to this chart."
@@ -1127,10 +1159,14 @@ msgstr ""
 msgid "A metric to use for color"
 msgstr "Metrika koja se koristi za boju"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "A multiplier applied to the point radius. Use this to uniformly scale all"
 " points."
 msgstr ""
+"Množilac koji se primenjuje na poluprecnik tačke. Koristite ovo za "
+"uniformno skaliranje svih tačaka."
 
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "A new chart and dashboard will be created."
@@ -1267,8 +1303,11 @@ msgstr "Prekidanje"
 msgid "About"
 msgstr "O programu"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
+#, fuzzy
 msgid "Access"
-msgstr ""
+msgstr "Pristup"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Access token"
@@ -2192,11 +2231,15 @@ msgstr "Došlo je do greške prilikom preuzimanja created by values: %s"
 
 #, python-format
 msgid "An error occurred while fetching dashboard editor values: %s"
-msgstr "Došlo je do greške prilikom preuzimanja vrednosti urednika kontrolne table: %s"
+msgstr ""
+"Došlo je do greške prilikom preuzimanja vrednosti urednika kontrolne "
+"table: %s"
 
 #, python-format
 msgid "An error occurred while fetching dashboard viewer values: %s"
-msgstr "Došlo je do greške prilikom preuzimanja vrednosti gledalaca kontrolne table: %s"
+msgstr ""
+"Došlo je do greške prilikom preuzimanja vrednosti gledalaca kontrolne "
+"table: %s"
 
 # de, es, fa, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "An error occurred while fetching dashboards"
@@ -2232,7 +2275,9 @@ msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching dataset editor values: %s"
-msgstr "Došlo je do greške prilikom preuzimanja vrednosti urednika skupa podataka: %s"
+msgstr ""
+"Došlo je do greške prilikom preuzimanja vrednosti urednika skupa "
+"podataka: %s"
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -2305,10 +2350,14 @@ msgstr "Došlo je do greške prilikom formatiranja SQL-a"
 msgid "An error occurred while importing %s: %s"
 msgstr "Došlo je do greške prilikom uvoza %s: %s"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "An error occurred while loading SQL Lab. This may be caused by a "
 "corrupted query state."
 msgstr ""
+"Došlo je do greške prilikom učitavanja SQL Lab-a. To može biti uzrokovano"
+" oštećenim stanjem upita."
 
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "An error occurred while loading dashboard information."
@@ -3347,6 +3396,11 @@ msgstr "CC primaoci"
 msgid "COPY QUERY"
 msgstr "KOPIRAJ UPIT"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
+#, fuzzy
+msgid "Copy query"
+msgstr "Kopiraj upit"
+
 msgid "CREATE TABLE AS"
 msgstr "CREATE TABLE AS"
 
@@ -3884,6 +3938,11 @@ msgstr "Izmene grafikona"
 # zh, zh_TW]
 msgid "Chart could not be created."
 msgstr "Grafikon nije mogao biti kreiran."
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid "Chart could not be restored."
+msgstr "Grafikon nije mogao biti vraćen."
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -4673,8 +4732,10 @@ msgstr ""
 "Granice intervala razdvojene zarezom, npr. 2,4,5 za intervale 0-2, 2-4 i "
 "4-5. Poslednji broj treba da odgovara vrednosti unetoj za MAX."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Common (unit per pixel at zoom 0)"
-msgstr ""
+msgstr "Uobičajeno (jedinica po pikselu pri zumu 0)"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Comparator option"
@@ -5052,8 +5113,10 @@ msgstr "Nije moguće preuzeti sve sačuvane grafikone"
 msgid "Could not find viz object"
 msgstr "Nije moguće pronaći objekat za vizualizaciju"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Could not load SQL Lab"
-msgstr ""
+msgstr "SQL Lab nije mogao biti učitan"
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -5470,6 +5533,7 @@ msgid "DEC"
 msgstr "DEC"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, sk, sl, tr, uk, zh, zh_TW]
+#. do-not-translate
 msgid "DELETE"
 msgstr "OBRIŠI"
 
@@ -5541,6 +5605,11 @@ msgstr "Konfiguraciju boja kontrolne table nije moguće ažurirati."
 # zh, zh_TW]
 msgid "Dashboard could not be deleted."
 msgstr "Kontrolna tabla nije mogla biti obrisana."
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid "Dashboard could not be restored."
+msgstr "Kontrolni panel nije mogao biti vraćen."
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -5823,8 +5892,12 @@ msgstr "Podešavanja baze podataka su ažurirana"
 msgid "Database type does not support file uploads."
 msgstr "Tip baze podataka ne podržava otpremanje fajlova."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Database upload file exceeds the maximum allowed size."
 msgstr ""
+"Datoteka za otpremanje u bazu podataka premašuje maksimalno dozvoljenu "
+"veličinu."
 
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Database upload file failed"
@@ -5869,6 +5942,11 @@ msgstr "Skup podataka nije mogao biti kreiran."
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Dataset could not be duplicated."
 msgstr "Skup podataka nije mogao biti dupliran."
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid "Dataset could not be restored."
+msgstr "Skup podataka nije mogao biti vraćen."
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -7196,6 +7274,7 @@ msgstr "Dinamički pretraži sve vrednosti filtera"
 msgid "Dynamically select grouping columns from a dataset"
 msgstr "Dinamički odaberi kolone za grupisanje iz skupa podataka"
 
+#. do-not-translate
 msgid "ECharts"
 msgstr "ECharts"
 
@@ -7203,6 +7282,7 @@ msgid "ECharts Options (JS object literals)"
 msgstr "ECharts opcije (JS object literals)"
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, sk, sl, uk]
+#. do-not-translate
 msgid "EMAIL_REPORTS_CTA"
 msgstr "EMAIL_REPORTS_CTA"
 
@@ -7375,8 +7455,11 @@ msgstr "Izmeni vremenski opseg"
 msgid "Edit user"
 msgstr "Izmeni korisnika"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
+#, fuzzy
 msgid "Editable"
-msgstr ""
+msgstr "Izmenljivo"
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -7399,7 +7482,9 @@ msgstr "Urednici su lista subjekata koji mogu da izmene kontrolnu tablu."
 msgid ""
 "Editors is a list of subjects who can alter the dashboard. Searchable by "
 "name."
-msgstr "Urednici su lista subjekata koji mogu da izmene kontrolnu tablu. Mogu se pretraživati po imenu."
+msgstr ""
+"Urednici su lista subjekata koji mogu da izmene kontrolnu tablu. Mogu se "
+"pretraživati po imenu."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Either the database is spelled incorrectly or does not exist."
@@ -7975,8 +8060,11 @@ msgstr "Učitavanje Excel fajla"
 msgid "Exclude selected values"
 msgstr "Izuzmi izabrane vrednosti"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
+#, fuzzy
 msgid "Excluded subjects"
-msgstr ""
+msgstr "Isključeni subjekti"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Executed SQL"
@@ -8237,6 +8325,11 @@ msgstr "FEB"
 # lv, mi, ru, sk, uk]
 msgid "FIT DATA"
 msgstr "PRILAGODI PODACIMA"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
+#, fuzzy
+msgid "Fit data"
+msgstr "Prilagodi podatke"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "FRI"
@@ -8729,11 +8822,17 @@ msgstr ""
 "Za više informacija o objektima koji su u kontekstu ove funkcije, "
 "pogledajte"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, tr]
+#, fuzzy
 msgid ""
 "For regular filters, these are the subjects (users, roles, groups) this "
 "filter will be applied to. For base filters, these are the subjects that "
 "the filter DOES NOT apply to, e.g. Admin if admin should see all data."
 msgstr ""
+"Za regularne filtere, ovo su subjekti (korisnici, uloge, grupe) na koje "
+"će se ovaj filter primeniti. Za osnovne filtere, ovo su subjekti na koje "
+"se filter NE primenjuje, npr. Admin ako administrator treba da vidi sve "
+"podatke."
 
 # lv, ru, sk, uk]
 msgid "Forbidden"
@@ -8929,6 +9028,7 @@ msgid "Further customize how to display each metric"
 msgstr "Dodatno prilagodite prikaz svake metrike"
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, sk, sl, uk]
+#. do-not-translate
 msgid "GROUP BY"
 msgstr "GRUPIŠI PO"
 
@@ -11272,7 +11372,9 @@ msgstr "Množitelj"
 msgid ""
 "Must be a chart editor to overwrite this chart. Save as a new chart "
 "instead."
-msgstr "Morate biti urednik grafikona da biste prepisali ovaj grafikon. Umesto toga ga sačuvajte kao novi grafikon."
+msgstr ""
+"Morate biti urednik grafikona da biste prepisali ovaj grafikon. Umesto "
+"toga ga sačuvajte kao novi grafikon."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Must be unique"
@@ -11312,6 +11414,7 @@ msgid "N/A"
 msgstr "N/A"
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, sk, sl, uk]
+#. do-not-translate
 msgid "NOT GROUPED BY"
 msgstr "NIJE GRUPISANO PO"
 
@@ -11977,6 +12080,7 @@ msgid "OR"
 msgstr "ILI"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, sk, sl, uk, zh, zh_TW]
+#. do-not-translate
 msgid "OVERWRITE"
 msgstr "PREPIŠI"
 
@@ -12144,11 +12248,15 @@ msgstr "Otvori karticu izvora podataka"
 msgid "Open SQL Lab in a new tab"
 msgstr "Otvori SQL Lab u novoj kartici"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Open chart in new tab"
-msgstr ""
+msgstr "Otvori grafikon u novoj kartici"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Open dashboard in new tab"
-msgstr ""
+msgstr "Otvori kontrolni panel u novoj kartici"
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -12464,9 +12572,10 @@ msgstr "Lozinka"
 msgid "Password is required"
 msgstr "Lozinka je obavezna"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid "Password must be at least %(min_length)s characters long."
-msgstr ""
+msgstr "Lozinka mora imati najmanje %(min_length)s karaktera."
 
 # ru, uk]
 msgid "Password:"
@@ -12913,8 +13022,10 @@ msgstr "Skala radijusa tačke"
 msgid "Point Radius Unit"
 msgstr "Jedinica radijusa tačke"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Point Radius Units"
-msgstr ""
+msgstr "Jedinice poluprecnika tačke"
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Point Size"
@@ -13494,8 +13605,10 @@ msgstr "Relativna količina"
 msgid "Reload"
 msgstr "Ponovo učitaj"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Reload SQL Lab"
-msgstr ""
+msgstr "Ponovo učitaj SQL Lab"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Remove"
@@ -13651,8 +13764,10 @@ msgstr "Izveštaj je aktivan"
 msgid "Report name"
 msgstr "Naziv izveštaja"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Report not yet run"
-msgstr ""
+msgstr "Izveštaj još nije pokrenut"
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Report schedule client error"
@@ -13725,9 +13840,10 @@ msgstr "Obavezne kontrolne vrednosti su uklonjene"
 msgid "Resample"
 msgstr "Ponovno uzorkovanje"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid "Resample method '%(method)s' is not supported."
-msgstr ""
+msgstr "Metoda resamplinga '%(method)s' nije podržana."
 
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Resample method should be in "
@@ -13780,8 +13896,11 @@ msgstr "Resurs već ima prikačen izveštaj."
 msgid "Resource was not found."
 msgstr "Resurs nije pronađen."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# fi, fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
+#, fuzzy
 msgid "Resource was removed before editorship could be verified"
-msgstr ""
+msgstr "Resurs je uklonjen pre nego što je pravo uređivanja moglo biti provereno"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Restore filter"
@@ -16297,8 +16416,10 @@ msgstr "Ulice"
 msgid "Streets (Carto)"
 msgstr "Ulice (Carto)"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Streets (OSM)"
-msgstr ""
+msgstr "Ulice (OSM)"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Strength to pull the graph toward center"
@@ -16345,17 +16466,29 @@ msgstr "Podkategorije"
 msgid "Subdomain"
 msgstr "Poddomen"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
+#, fuzzy
 msgid "Subject"
-msgstr ""
+msgstr "Subjekat"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
+#, fuzzy
 msgid "Subject type"
-msgstr ""
+msgstr "Tip subjekta"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
+#, fuzzy
 msgid "Subjects"
-msgstr ""
+msgstr "Subjekti"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
+#, fuzzy
 msgid "Subjects are invalid"
-msgstr ""
+msgstr "Subjekti nisu važeći"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Submit"
@@ -16539,6 +16672,7 @@ msgid "TABLES"
 msgstr "TABELE"
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, sk, sl, uk]
+#. do-not-translate
 msgid "TEMPORAL_RANGE"
 msgstr "TEMPORAL_RANGE"
 
@@ -16879,8 +17013,12 @@ msgstr ""
 "https://superset.apache.org/docs/configuration/async-queries-celery za "
 "detalje o konfiguraciji."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "The SSH server host key could not be verified against the expected key."
 msgstr ""
+"Ključ hosta SSH servera nije mogao biti proveren u odnosu na očekivani "
+"ključ."
 
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
 msgid ""
@@ -16937,10 +17075,14 @@ msgstr ""
 "Kategorija izvornih čvorova koja se koristi za dodeljivanje boja. Ako je "
 "čvor povezan sa više od jedne kategorije, koristiće se samo prva."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "The chart this report targets was deleted. Restore the chart, or update "
 "the report to point at an active chart."
 msgstr ""
+"Grafikon koji ovaj izveštaj cilja je izbrisan. Vratite grafikon ili "
+"ažurirajte izveštaj da pokazuje na aktivni grafikon."
 
 msgid "The chart is still loading. Please wait a moment and try again."
 msgstr "Grafikon se još učitava. Sačekajte trenutak i pokušajte ponovo."
@@ -17045,10 +17187,14 @@ msgstr "Standard koda zemlje koji Superset treba da očekuje u koloni [country]"
 msgid "The dashboard has been saved"
 msgstr "Kontrolna tabla je sačuvana"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "The dashboard this report targets was deleted. Restore the dashboard, or "
 "update the report to point at an active dashboard."
 msgstr ""
+"Kontrolni panel koji ovaj izveštaj cilja je izbrisan. Vratite kontrolni "
+"panel ili ažurirajte izveštaj da pokazuje na aktivni kontrolni panel."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The data source seems to have been deleted"
@@ -17641,10 +17787,15 @@ msgstr ""
 "Radijus pojedinačnih tačaka (onih koje nisu u klasteru). Bilo numerička "
 "kolona ili „Auto“, koja skalira tačku na osnovu najvećeg klastera"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "The radius of point features, in the units specified below. The final "
 "rendered size is this value multiplied by Point Radius Scale."
 msgstr ""
+"Poluprecnik elemenata tačke, u jedinicama navedenim ispod. Konačna "
+"prikazana veličina je ova vrednost pomnožena sa Skalom poluprecnika "
+"tačke."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The report has been created"
@@ -17887,10 +18038,14 @@ msgstr "Jedinica za veličinu ikone"
 msgid "The unit for label size"
 msgstr "Jedinica za veličinu oznake"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "The unit for point radius. Use \"pixels\" for consistent screen-space "
 "sizing regardless of zoom level."
 msgstr ""
+"Jedinica za poluprecnik tačke. Koristite \"piksele\" za konzistentno "
+"dimenzionisanje u prostoru ekrana bez obzira na nivo zuma."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The unit of measure for the specified point radius"
@@ -18641,6 +18796,11 @@ msgstr ""
 "Dinamički se generiše pri podešavanju veličine i pozicije vidžeta pomoću "
 "povlačenja i ispuštanja (drag & drop) u prikazu kontrolne table"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid "This link cannot be followed because its address is unsafe."
+msgstr "Ovaj link ne može biti otvoren jer je njegova adresa nesigurna."
+
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
@@ -18688,8 +18848,12 @@ msgstr ""
 "Ova stranica je namenjena da bude ugrađena u iframe, ali izgleda da to "
 "nije slučaj."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr ""
+"Ova lozinka je previše uobičajena; molimo izaberite lozinku koja se teže "
+"pogađa."
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid ""
@@ -19125,17 +19289,23 @@ msgstr "Da biste dobili čitljiv URL za svoju kontrolnu tablu"
 msgid "Token Request URI"
 msgstr "URI zahteva za token"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid ""
 "Too many sub-slices requested. The maximum allowed is %(max)s, but "
 "%(count)s were requested."
 msgstr ""
+"Zatraženo je previše pod-isečaka. Maksimalni dozvoljeni broj je %(max)s, "
+"ali je zatraženo %(count)s."
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid ""
 "Too many time comparisons requested. The maximum allowed is %(max)s, but "
 "%(count)s were requested."
 msgstr ""
+"Zatraženo je previše vremenskih poređenja. Maksimalni dozvoljeni broj je "
+"%(max)s, ali je zatraženo %(count)s."
 
 # uk]
 msgid "Tool Panel"
@@ -19644,6 +19814,11 @@ msgstr "Otkači sa panela rezultata"
 
 msgid "Unpin from top"
 msgstr "Otkači sa vrha"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid "Unsafe link blocked"
+msgstr "Nesigurni link je blokiran"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
@@ -20162,11 +20337,17 @@ msgstr "Gledalac"
 msgid "Viewers"
 msgstr "Gledaoci"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
+#, fuzzy
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
 "datasource permissions."
 msgstr ""
+"Pregledači su lista subjekata koji mogu da pregledaju kontrolni panel. "
+"Ako nijedan pregledač nije definisan, kontrolni panel je dostupan svim "
+"korisnicima sa odgovarajućim dozvolama za izvor podataka."
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Viewport"
@@ -20329,10 +20510,12 @@ msgid "WED"
 msgstr "SRE"
 
 # fr, ja, lv, mi, sk, uk]
+#. do-not-translate
 msgid "WFS"
 msgstr "WFS"
 
 # fr, ja, lv, mi, sk, uk]
+#. do-not-translate
 msgid "WMS"
 msgstr "WMS"
 
@@ -20996,6 +21179,7 @@ msgid "X-scale interval"
 msgstr "Interval skale X"
 
 # fr, ja, lv, mi, sk, uk]
+#. do-not-translate
 msgid "XYZ"
 msgstr "XYZ"
 
@@ -21285,8 +21469,10 @@ msgstr "Nemate dozvole za uređivanje ove kontrolne table."
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "Nemate dovoljno dozvola za uređivanje grafikona"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "You don't have access to one or more of the referenced datasources."
-msgstr ""
+msgstr "Nemate pristup jednom ili više referenciranih izvora podataka."
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "You don't have access to this chart."
@@ -21381,15 +21567,22 @@ msgstr ""
 msgid ""
 "You must be a %s editor in order to edit. Please reach out to a %s editor"
 " to request modifications or edit access."
-msgstr "Morate biti urednik za %s da biste uređivali. Obratite se uredniku za %s da biste zatražili izmene ili pristup za uređivanje."
+msgstr ""
+"Morate biti urednik za %s da biste uređivali. Obratite se uredniku za %s "
+"da biste zatražili izmene ili pristup za uređivanje."
 
 msgid ""
 "You must be a dataset editor in order to edit. Please reach out to a "
 "dataset editor to request modifications or edit access."
-msgstr "Morate biti urednik skupa podataka da biste uređivali. Obratite se uredniku skupa podataka da biste zatražili izmene ili pristup za uređivanje."
-
-msgid "You must change your password before continuing."
 msgstr ""
+"Morate biti urednik skupa podataka da biste uređivali. Obratite se "
+"uredniku skupa podataka da biste zatražili izmene ili pristup za "
+"uređivanje."
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, tr]
+#, fuzzy
+msgid "You must change your password before continuing."
+msgstr "Morate promeniti lozinku pre nastavka."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "You must pick a name for the new dashboard"
@@ -21399,11 +21592,14 @@ msgstr "Morate izabrati naziv za novu kontrolnu tablu"
 msgid "You must run the query successfully first"
 msgstr "Morate prvo uspešno izvršiti upit"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid ""
 "You need access to the following tables: %(tables)s, "
 "'all_database_access' or 'all_datasource_access' permission"
 msgstr ""
+"Potreban vam je pristup sledećim tabelama: %(tables)s, dozvola "
+"'all_database_access' ili 'all_datasource_access'"
 
 msgid "You need to"
 msgstr "Morate"
@@ -21500,8 +21696,10 @@ msgstr "Vaš upit je ažuriran"
 msgid "Your report could not be deleted"
 msgstr "Vaš izveštaj nije mogao biti obrisan"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Your session has ended. Please sign in again."
-msgstr ""
+msgstr "Vaša sesija je završena. Molimo prijavite se ponovo."
 
 # uk]
 msgid "Your user information"
@@ -21605,9 +21803,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "Svojstvo `operation` objekta za post-obradu nije definisano"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid "`periods` must be between 1 and %(max)s"
-msgstr ""
+msgstr "`periods` mora biti između 1 i %(max)s"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "`prophet` package not installed"
@@ -21633,8 +21832,10 @@ msgstr "`row_offset` mora biti veći ili jednak 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "`width` mora biti veći ili jednak 0"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "`window` must be between 1 and 10000"
-msgstr ""
+msgstr "`window` mora biti između 1 i 10000"
 
 msgid "a few seconds"
 msgstr "nekoliko sekundi"
@@ -21677,8 +21878,10 @@ msgstr "anotacija"
 msgid "annotation_layer"
 msgstr "sloj_anotacije"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "apple"
-msgstr ""
+msgstr "jabuka"
 
 msgid "asfreq"
 msgstr "asfreq"
@@ -21698,8 +21901,10 @@ msgstr "pozadina"
 msgid "background color"
 msgstr "boja pozadine"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "banana"
-msgstr ""
+msgstr "banana"
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "basis"
@@ -21726,6 +21931,7 @@ msgid "bfill"
 msgstr "bfill"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, sk, sl, uk, zh, zh_TW]
+#. do-not-translate
 msgid "bolt"
 msgstr "zavrtka"
 
@@ -21838,6 +22044,7 @@ msgstr "kreiraj novi grafikon"
 msgid "create dataset from SQL query"
 msgstr "kreiraj skup podataka iz SQL upita"
 
+#. do-not-translate
 msgid "crontab"
 msgstr "crontab"
 
@@ -21921,6 +22128,7 @@ msgstr "deck.gl luk"
 msgid "deck.gl Contour"
 msgstr "deck.gl kontura"
 
+#. do-not-translate
 msgid "deck.gl Geojson"
 msgstr "deck.gl Geojson"
 
@@ -21983,6 +22191,7 @@ msgstr "dialect+driver://username:password@host:port/database"
 msgid "documentation"
 msgstr "dokumentacija"
 
+#. do-not-translate
 msgid "dttm"
 msgstr "dttm"
 
@@ -22068,6 +22277,7 @@ msgid "error"
 msgstr "greška"
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, sk, sl, uk]
+#. do-not-translate
 msgid "error_message"
 msgstr "poruka_o_grešci"
 
@@ -22428,18 +22638,22 @@ msgid "p-value precision"
 msgstr "tačnost p-vrednosti"
 
 # de, es, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#. do-not-translate
 msgid "p1"
 msgstr "p1"
 
 # de, es, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#. do-not-translate
 msgid "p5"
 msgstr "p5"
 
 # de, es, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#. do-not-translate
 msgid "p95"
 msgstr "p95"
 
 # de, es, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#. do-not-translate
 msgid "p99"
 msgstr "p99"
 
@@ -22459,6 +22673,7 @@ msgstr ""
 msgid "permalink state not found"
 msgstr "stanje trajne veze nije pronađeno"
 
+#. do-not-translate
 msgid "pivoted_xlsx"
 msgstr "pivoted_xlsx"
 
@@ -22541,6 +22756,7 @@ msgid "save"
 msgstr "sačuvaj"
 
 # sk, uk]
+#. do-not-translate
 msgid "schema1,schema2"
 msgstr "schema1,schema2"
 
@@ -22562,6 +22778,7 @@ msgstr ""
 "istu skalu; promena: prikaži promene u poređenju sa prvom tačkom podataka"
 " u svakoj seriji"
 
+#. do-not-translate
 msgid "sql"
 msgstr "sql"
 
@@ -22581,10 +22798,12 @@ msgid "std"
 msgstr "std"
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, sk, sl, uk]
+#. do-not-translate
 msgid "step-after"
 msgstr "korak-posle"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, sk, sl, uk, zh, zh_TW]
+#. do-not-translate
 msgid "step-before"
 msgstr "korak-pre"
 
@@ -22611,6 +22830,7 @@ msgstr "uspeh"
 msgid "sum"
 msgstr "suma"
 
+#. do-not-translate
 msgid "superset.example.com"
 msgstr "superset.example.com"
 
@@ -22752,6 +22972,7 @@ msgid "year"
 msgstr "godina"
 
 # sk, uk]
+#. do-not-translate
 msgid "your-project-1234-a1"
 msgstr "your-project-1234-a1"
 

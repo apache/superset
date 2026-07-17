@@ -18,7 +18,7 @@
  */
 /* eslint-disable no-param-reassign */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import {
   AppSection,
   DataMask,
@@ -28,7 +28,6 @@ import {
   JsonObject,
   finestTemporalGrainFormatter,
 } from '@superset-ui/core';
-import { tn } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
 import { debounce, isUndefined } from 'lodash-es';
