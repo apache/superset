@@ -243,6 +243,14 @@ class PreviewFormatStrategy:
         """Generate preview in the specific format."""
         raise NotImplementedError
 
+    def _authorize_guest_query(self, query_context: Any) -> None:
+        """For a guest, attach the dashboard context so raise_for_access
+        authorizes the preview query."""
+        from superset.mcp_service import guest_scope
+
+        if (dashboard_id := guest_scope.guest_dashboard_id(self.chart)) is not None:
+            guest_scope.authorize_query(query_context, dashboard_id, self.chart)
+
 
 class URLPreviewStrategy(PreviewFormatStrategy):
     """Generate URL-based preview with explore link."""
@@ -292,6 +300,7 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                 force=False,
             )
 
+            self._authorize_guest_query(query_context)
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
@@ -353,6 +362,7 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                 force=False,
             )
 
+            self._authorize_guest_query(query_context)
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
@@ -444,6 +454,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             )
 
             # Execute the query
+            self._authorize_guest_query(query_context)
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
@@ -537,7 +548,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             "scatter": ["echarts_timeseries_scatter", "scatter"],
             "pie": ["pie"],
             "big_number": ["big_number", "big_number_total"],
-            "histogram": ["histogram"],
+            "histogram": ["histogram", "histogram_v2"],
             "box_plot": ["box_plot"],
             "heatmap": ["heatmap", "heatmap_v2", "cal_heatmap"],
             "funnel": ["funnel"],
@@ -1243,9 +1254,11 @@ async def _get_chart_preview_internal(  # noqa: C901
         logger.info("Generating preview for chart %s", getattr(chart, "id", "NO_ID"))
         logger.info("Chart datasource_id: %s", getattr(chart, "datasource_id", "NONE"))
 
-        # Validate the chart's dataset is accessible before generating preview
-        # Skip validation for transient charts (no ID) - different data sources
-        if getattr(chart, "id", None) is not None:
+        # Skip the dataset pre-check for transient charts (no ID) and for guests
+        # (authorized via the dashboard context, not dataset RBAC).
+        from superset.mcp_service import guest_scope
+
+        if getattr(chart, "id", None) is not None and not guest_scope.is_guest_read():
             validation_result = validate_chart_dataset(chart, check_access=True)
             if not validation_result.is_valid:
                 await ctx.warning(

@@ -36,6 +36,7 @@ import {
   getChartMetadataRegistry,
   VizType,
   BinaryQueryObjectFilterClause,
+  JsonObject,
   QueryFormData,
 } from '@superset-ui/core';
 import { css, useTheme, styled } from '@apache-superset/core/theme';
@@ -49,12 +50,17 @@ import {
 } from '@superset-ui/core/components';
 import { useShareMenuItems } from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
+import downloadAsPdf from 'src/utils/downloadAsPdf';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { Icons } from '@superset-ui/core/components/Icons';
 import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
 import { ResultsPaneOnDashboard } from 'src/explore/components/DataTablesPane';
 import { useDrillDetailMenuItems } from 'src/components/Chart/useDrillDetailMenuItems';
-import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
+import {
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF,
+} from 'src/logger/LogUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
 import { openInNewTab } from 'src/utils/navigationUtils';
@@ -82,22 +88,18 @@ const RefreshTooltip = styled.div`
 const getScreenshotNodeSelector = (chartId: string | number) =>
   `.dashboard-chart-id-${chartId}`;
 
-const VerticalDotsTrigger = () => {
-  const theme = useTheme();
-  return (
-    <Icons.EllipsisOutlined
-      css={css`
-        transform: rotate(90deg);
-        &:hover {
-          cursor: pointer;
-        }
-      `}
-      iconSize="xl"
-      iconColor={theme.colorTextLabel}
-      className="dot"
-    />
-  );
-};
+const VerticalDotsTrigger = () => (
+  <Icons.EllipsisOutlined
+    css={css`
+      transform: rotate(90deg);
+      &:hover {
+        cursor: pointer;
+      }
+    `}
+    iconSize="xl"
+    className="dot"
+  />
+);
 
 export interface SliceHeaderControlsProps {
   chartHolderRef?: RefObject<HTMLDivElement>;
@@ -141,9 +143,11 @@ export interface SliceHeaderControlsProps {
 
   supersetCanExplore?: boolean;
   supersetCanShare?: boolean;
-  supersetCanCSV?: boolean;
+  supersetCanDownload?: boolean;
 
   crossFiltersEnabled?: boolean;
+
+  ownState?: JsonObject;
 }
 type SliceHeaderControlsPropsWithRouter = SliceHeaderControlsProps &
   RouteComponentProps;
@@ -303,25 +307,86 @@ const SliceHeaderControls = (
         props.exportXLSX?.(props.slice.slice_id);
         break;
       case MenuKeys.DownloadAsImage: {
-        // menu closes with a delay, we need to hide it manually,
-        // so that we don't capture it on the screenshot
+        // Hide the dropdown menu so it is not captured in the screenshot
         const menu = document.querySelector(
           '.ant-dropdown:not(.ant-dropdown-hidden)',
-        ) as HTMLElement;
+        ) as HTMLElement | null;
         if (menu) {
           menu.style.visibility = 'hidden';
         }
-        downloadAsImage(
-          getScreenshotNodeSelector(props.slice.slice_id),
-          props.slice.slice_name,
-          true,
-          theme,
-        )(domEvent).then(() => {
+        Promise.resolve(
+          downloadAsImage(
+            getScreenshotNodeSelector(props.slice.slice_id),
+            props.slice.slice_name,
+            true,
+            theme,
+          )(domEvent),
+        ).finally(() => {
           if (menu) {
             menu.style.visibility = 'visible';
           }
         });
+        // eslint-disable-next-line no-unused-expressions
         props.logEvent?.(LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE, {
+          chartId: props.slice.slice_id,
+        });
+        break;
+      }
+      case MenuKeys.DownloadAsPngTransparent:
+      case MenuKeys.DownloadAsPngSolid: {
+        const menu = document.querySelector(
+          '.ant-dropdown:not(.ant-dropdown-hidden)',
+        ) as HTMLElement | null;
+        if (menu) {
+          menu.style.visibility = 'hidden';
+        }
+
+        const backgroundType =
+          key === MenuKeys.DownloadAsPngTransparent ? 'transparent' : 'solid';
+
+        Promise.resolve(
+          downloadAsImage(
+            getScreenshotNodeSelector(props.slice.slice_id),
+            props.slice.slice_name,
+            true,
+            theme,
+            { format: 'png', backgroundType },
+          )(domEvent),
+        ).finally(() => {
+          if (menu) {
+            menu.style.visibility = 'visible';
+          }
+        });
+
+        // eslint-disable-next-line no-unused-expressions
+        props.logEvent?.(LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG, {
+          chartId: props.slice.slice_id,
+          backgroundType,
+        });
+        break;
+      }
+      case MenuKeys.DownloadAsPdf: {
+        const menu = document.querySelector(
+          '.ant-dropdown:not(.ant-dropdown-hidden)',
+        ) as HTMLElement | null;
+        if (menu) {
+          menu.style.visibility = 'hidden';
+        }
+
+        Promise.resolve(
+          downloadAsPdf(
+            getScreenshotNodeSelector(props.slice.slice_id),
+            props.slice.slice_name,
+            true,
+          )(domEvent),
+        ).finally(() => {
+          if (menu) {
+            menu.style.visibility = 'visible';
+          }
+        });
+
+        // eslint-disable-next-line no-unused-expressions
+        props.logEvent?.(LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF, {
           chartId: props.slice.slice_id,
         });
         break;
@@ -490,7 +555,12 @@ const SliceHeaderControls = (
             <div data-test="view-query-menu-item">{t('View query')}</div>
           }
           modalTitle={t('View query')}
-          modalBody={<ViewQueryModal latestQueryFormData={props.formData} />}
+          modalBody={
+            <ViewQueryModal
+              latestQueryFormData={props.formData}
+              ownState={props.ownState}
+            />
+          }
           draggable
           resizable
           responsive
@@ -519,7 +589,7 @@ const SliceHeaderControls = (
               dataSize={20}
               isRequest
               isVisible
-              canDownload={!!props.supersetCanCSV}
+              canDownload={!!props.supersetCanDownload}
               columnDisplayNames={datasetWithVerboseMap?.verbose_map}
             />
           }
@@ -562,7 +632,7 @@ const SliceHeaderControls = (
     newMenuItems.push(shareMenuItems);
   }
 
-  if (props.supersetCanCSV) {
+  if (props.supersetCanDownload) {
     newMenuItems.push({
       type: 'submenu',
       key: MenuKeys.Download,
@@ -593,7 +663,7 @@ const SliceHeaderControls = (
           icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
         },
         ...(isFeatureEnabled(FeatureFlag.AllowFullCsvExport) &&
-        props.supersetCanCSV &&
+        props.supersetCanDownload &&
         isTable
           ? [
               {
@@ -610,8 +680,29 @@ const SliceHeaderControls = (
           : []),
         {
           key: MenuKeys.DownloadAsImage,
-          label: t('Download as image'),
+          label: t('Export screenshot (jpeg)'),
           icon: <Icons.FileImageOutlined css={dropdownIconsStyles} />,
+        },
+        {
+          type: 'submenu',
+          key: 'download_as_png_submenu',
+          label: t('Export screenshot (png)'),
+          icon: <Icons.FileImageOutlined css={dropdownIconsStyles} />,
+          children: [
+            {
+              key: MenuKeys.DownloadAsPngTransparent,
+              label: t('Transparent background'),
+            },
+            {
+              key: MenuKeys.DownloadAsPngSolid,
+              label: t('Solid background'),
+            },
+          ],
+        },
+        {
+          key: MenuKeys.DownloadAsPdf,
+          label: t('Export as PDF'),
+          icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
         },
       ],
     });
@@ -671,8 +762,10 @@ const SliceHeaderControls = (
           aria-label={t('More Options')}
           aria-haspopup="true"
           css={theme => css`
-            padding: ${theme.sizeUnit * 2}px;
-            padding-right: 0px;
+            width: ${theme.sizeUnit * 8}px;
+            height: ${theme.sizeUnit * 8}px;
+            padding: 0;
+            margin-right: -${theme.sizeUnit * 2}px;
           `}
         >
           <VerticalDotsTrigger />

@@ -35,7 +35,7 @@ export const CellNull = styled('span')`
 export const CopyButton = styled(Button)`
   font-size: ${({ theme }) => theme.fontSizeSM}px;
 
-  // needed to override button's first-of-type margin: 0
+  /* needed to override button's first-of-type margin: 0 */
   && {
     margin: 0 ${({ theme }) => theme.sizeUnit * 2}px;
   }
@@ -98,9 +98,20 @@ export const FilterInput = ({
   const inputRef: RefObject<any> = useRef(null);
 
   useEffect(() => {
-    // Focus the input element when the component mounts
     if (inputRef.current && shouldFocus) {
-      inputRef.current.focus();
+      // Skip auto-focus only when an editable element already has focus (e.g.
+      // user is typing in a form control when this pane remounts after a data
+      // refresh). Non-editable focused elements like tabs/buttons still allow
+      // auto-focus so the search box focuses on first open.
+      const activeEl = document.activeElement;
+      const editableFocused =
+        activeEl instanceof HTMLElement &&
+        (activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.isContentEditable);
+      if (!editableFocused) {
+        inputRef.current.focus();
+      }
     }
   }, []);
 

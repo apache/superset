@@ -18,7 +18,11 @@
  */
 import { useMemo, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  handleKeyboardActivation,
+} from '@superset-ui/core';
 import {
   Actions,
   createErrorHandler,
@@ -35,6 +39,7 @@ import {
   ListView,
   ModifiedInfo,
   ListViewFilterOperator as FilterOperator,
+  type ListViewFilter,
   type ListViewFilters,
   type ListViewProps,
 } from 'src/components';
@@ -133,8 +138,9 @@ function TagList(props: TagListProps) {
   const emptyState = {
     title: t('No Tags created'),
     image: 'dashboard.svg',
-    description:
+    description: t(
       'Create a new tag and assign it to existing entities like charts or dashboards',
+    ),
     buttonAction: () => setShowTagModal(true),
     buttonIcon: <Icons.PlusOutlined iconSize="m" data-test="add-rule-empty" />,
     buttonText: t('Create a new Tag'),
@@ -217,6 +223,7 @@ function TagList(props: TagListProps) {
                         tabIndex={0}
                         className="action-button"
                         onClick={confirmDelete}
+                        onKeyDown={handleKeyboardActivation(confirmDelete)}
                       >
                         <Icons.DeleteOutlined
                           data-test="dashboard-list-trash-icon"
@@ -238,6 +245,7 @@ function TagList(props: TagListProps) {
                     tabIndex={0}
                     className="action-button"
                     onClick={handleEdit}
+                    onKeyDown={handleKeyboardActivation(handleEdit)}
                   >
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
                   </span>
@@ -268,6 +276,23 @@ function TagList(props: TagListProps) {
     ],
   );
 
+  const favoritesFilter: ListViewFilter = useMemo(
+    () => ({
+      Header: t('Favorite'),
+      key: 'favorite',
+      id: 'id',
+      urlDisplay: 'favorite',
+      input: 'select',
+      operator: FilterOperator.TagIsFav,
+      unfilteredLabel: t('Any'),
+      selects: [
+        { label: t('Yes'), value: true },
+        { label: t('No'), value: false },
+      ],
+    }),
+    [],
+  );
+
   const filters: ListViewFilters = useMemo(() => {
     const filters_list = [
       {
@@ -277,6 +302,7 @@ function TagList(props: TagListProps) {
         operator: FilterOperator.Contains,
         inputName: 'tag_list_search',
       },
+      ...(userId ? [favoritesFilter] : []),
       {
         Header: t('Modified by'),
         key: 'changed_by',
@@ -299,7 +325,7 @@ function TagList(props: TagListProps) {
       },
     ] as ListViewFilters;
     return filters_list;
-  }, [addDangerToast, props.user]);
+  }, [addDangerToast, props.user, userId, favoritesFilter]);
 
   const sortTypes = [
     {

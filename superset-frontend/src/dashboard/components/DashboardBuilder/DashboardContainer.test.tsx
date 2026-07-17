@@ -75,8 +75,7 @@ const defaultTestFilter = {
 function createTestState(overrides: Record<string, unknown> = {}) {
   const nativeFilterConfig = (
     overrides.dashboardInfo as
-      | { metadata?: { native_filter_configuration?: unknown[] } }
-      | undefined
+      { metadata?: { native_filter_configuration?: unknown[] } } | undefined
   )?.metadata?.native_filter_configuration ?? [defaultTestFilter];
 
   const nativeFiltersMap: Record<string, unknown> = {};
