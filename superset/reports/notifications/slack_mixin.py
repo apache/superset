@@ -23,33 +23,14 @@ from flask_babel import gettext as __
 from slack_sdk.errors import SlackApiError, SlackClientNotConnectedError
 
 from superset.reports.notifications.base import NotificationContent
+from superset.utils.slack import (
+    _get_slack_api_error_code,
+    _get_slack_api_status_code,
+    _is_transient_slack_api_error,
+)
 
 # Slack only allows Markdown messages up to 4k chars
 MAXIMUM_MESSAGE_SIZE = 4000
-
-_TRANSIENT_SLACK_API_ERROR_CODES = frozenset(
-    {
-        "fatal_error",
-        "internal_error",
-        "request_timeout",
-        "rollup_error",
-        "service_unavailable",
-        "timeout",
-    }
-)
-
-
-def _get_slack_api_error_code(ex: SlackApiError) -> str:
-    response = getattr(ex, "response", None)
-    data = getattr(response, "data", None)
-    if not isinstance(data, dict):
-        data = response if isinstance(response, dict) else {}
-    return str(data.get("error") or "")
-
-
-def _get_slack_api_status_code(ex: SlackApiError) -> int | None:
-    response = getattr(ex, "response", None)
-    return getattr(response, "status_code", None)
 
 
 def _give_up_slack_api_retry(ex: Exception) -> bool:
@@ -60,17 +41,14 @@ def _give_up_slack_api_retry(ex: Exception) -> bool:
     # WebClient's RateLimitErrorRetryHandler owns the operator-configured 429
     # retry budget. Retrying an exhausted 429 here would multiply that budget
     # by this helper's max_tries.
-    if status_code == 429:
+    error_code = _get_slack_api_error_code(ex)
+    if status_code == 429 or error_code == "ratelimited":
         return True
+    if _is_transient_slack_api_error(ex, error_code):
+        return False
     if status_code is not None and 400 <= status_code < 500:
         return True
-    if status_code is not None and 500 <= status_code < 600:
-        return False
-
-    error_code = _get_slack_api_error_code(ex)
-    if error_code == "ratelimited":
-        return True
-    return bool(error_code and error_code not in _TRANSIENT_SLACK_API_ERROR_CODES)
+    return bool(error_code)
 
 
 @backoff.on_exception(

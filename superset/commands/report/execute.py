@@ -75,23 +75,31 @@ from superset.reports.models import (
     ReportState,
 )
 from superset.reports.notifications import create_notification
-from superset.reports.notifications.base import BaseNotification, NotificationContent
+from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import (
     NotificationError,
     NotificationParamException,
     SlackV1NotificationError,
 )
-from superset.reports.notifications.slack import SlackNotification
+from superset.reports.notifications.slack import (
+    SLACK_V1_FILE_UPLOAD_MESSAGE,
+    SlackNotification,
+)
 from superset.subjects.types import SubjectType
 from superset.tasks.utils import get_executor
 from superset.utils import json
-from superset.utils.core import HeaderDataType, override_user, recipients_string_to_list
+from superset.utils.core import HeaderDataType, override_user
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.decorators import logs_context, transaction
 from superset.utils.file import sanitize_title
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
-from superset.utils.slack import get_channels_with_search, SlackChannelTypes
+from superset.utils.slack import (
+    get_channels_with_search,
+    NO_SLACK_RECIPIENTS_MESSAGE,
+    parse_slack_recipient_targets,
+    SlackChannelTypes,
+)
 from superset.utils.urls import get_url_path
 
 if TYPE_CHECKING:
@@ -140,6 +148,9 @@ class BaseReportState:
         self._start_dttm: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
         self._execution_id = execution_id
         self._filter_warnings: list[str] = []
+        self._slack_v2_upgrade_error: (
+            NotificationParamException | UpdateFailedError | None
+        ) = None
 
     def update_report_schedule_and_log(
         self,
@@ -199,16 +210,12 @@ class BaseReportState:
                     else None
                 )
                 if not isinstance(target, str):
-                    raise NotificationParamException(
-                        "No recipients saved in the report"
-                    )
+                    raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE)
                 # V1 method allowed to use leading `#` in the channel name
-                channel_names = target.replace("#", "")
-                channels_list = recipients_string_to_list(channel_names)
+                channels_list = parse_slack_recipient_targets(target.replace("#", ""))
                 if not channels_list:
-                    raise NotificationParamException(
-                        "No recipients saved in the report"
-                    )
+                    raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE)
+                channel_names = ",".join(channels_list)
                 # we need to ensure that existing reports can also fetch
                 # ids from private channels
                 channels = get_channels_with_search(
@@ -232,7 +239,7 @@ class BaseReportState:
                 resolved.append((recipient, json.dumps({"target": channel_ids})))
         except NotificationParamException as ex:
             msg = f"Failed to update slack recipients to v2: {str(ex)}"
-            logger.exception(msg)
+            logger.warning(msg)
             raise NotificationParamException(msg) from ex
         except Exception as ex:
             # No recipient has been mutated yet, so there is no partial upgrade
@@ -1035,36 +1042,91 @@ class BaseReportState:
             header_data=header_data,
         )
 
-    def _upgrade_and_send_slack_notification(
+    def _send_slack_v1_fallback(
         self,
-        notification: BaseNotification,
-        recipient: ReportRecipients,
+        notification: SlackNotification,
         notification_content: NotificationContent,
+        update_error: NotificationParamException | UpdateFailedError,
+        *,
+        record_upgrade_failure: bool,
     ) -> None:
-        """Upgrade a Slack recipient, falling back to text-only v1 delivery."""
-        try:
-            self.update_report_schedule_slack_v2()
-        except (NotificationParamException, UpdateFailedError) as update_error:
-            if notification_content.has_attachments and isinstance(
-                update_error, UpdateFailedError
-            ):
-                raise
+        """Deliver a text-only notification after one failed atomic v2 upgrade."""
+        if notification_content.has_attachments:
+            if isinstance(update_error, UpdateFailedError):
+                raise update_error
+            raise NotificationParamException(
+                f"{SLACK_V1_FILE_UPLOAD_MESSAGE} "
+                f"Slack v2 upgrade failed: {update_error}"
+            ) from update_error
+
+        if record_upgrade_failure and isinstance(update_error, UpdateFailedError):
+            app.config["STATS_LOGGER"].incr("reports.slack.v1_fallback.system_error")
+            logger.error(
+                "Slack v2 upgrade failed with a system error; delivering the "
+                "text-only report through Slack v1 for this execution: %s",
+                update_error,
+                extra={
+                    "execution_id": self._execution_id,
+                    "report_schedule_id": self._report_schedule.id,
+                },
+            )
+        elif record_upgrade_failure:
             logger.warning(
                 "Slack v2 upgrade unavailable; attempting a text-only Slack v1 "
                 "fallback for this execution: %s",
                 update_error,
             )
-            if not isinstance(notification, SlackNotification):
-                raise
-            notification.send(
-                force_v1=True,
-                v2_upgrade_error=str(update_error),
+        notification.send_legacy_text()
+
+    def _send_notification(
+        self,
+        notification_content: NotificationContent,
+        recipient: ReportRecipients,
+    ) -> None:
+        """Send one notification, upgrading Slack v1 recipients when required."""
+        notification = create_notification(recipient, notification_content)
+        if app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
+            logger.info(
+                "Would send notification for alert %s, to %s. "
+                "ALERT_REPORTS_NOTIFICATION_DRY_RUN is enabled, "
+                "set it to False to send notifications.",
+                self._report_schedule.name,
+                recipient.recipient_config_json,
             )
             return
 
-        recipient.type = ReportRecipientType.SLACKV2
-        notification = create_notification(recipient, notification_content)
-        notification.send()
+        if self._slack_v2_upgrade_error is not None and isinstance(
+            notification, SlackNotification
+        ):
+            self._send_slack_v1_fallback(
+                notification,
+                notification_content,
+                self._slack_v2_upgrade_error,
+                record_upgrade_failure=False,
+            )
+            return
+
+        try:
+            notification.send()
+        except SlackV1NotificationError as ex:
+            if not isinstance(notification, SlackNotification):
+                raise
+            logger.info("Attempting to upgrade the report to Slackv2: %s", str(ex))
+            try:
+                self.update_report_schedule_slack_v2()
+            except (
+                NotificationParamException,
+                UpdateFailedError,
+            ) as update_error:
+                self._slack_v2_upgrade_error = update_error
+                self._send_slack_v1_fallback(
+                    notification,
+                    notification_content,
+                    update_error,
+                    record_upgrade_failure=True,
+                )
+            else:
+                create_notification(recipient, notification_content).send()
 
     def _send(
         self,
@@ -1077,30 +1139,10 @@ class BaseReportState:
         :raises: CommandException
         """
         notification_errors: list[SupersetError] = []
+        self._slack_v2_upgrade_error = None
         for recipient in recipients:
-            notification = create_notification(recipient, notification_content)
             try:
-                try:
-                    if app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
-                        logger.info(
-                            "Would send notification for alert %s, to %s. "
-                            "ALERT_REPORTS_NOTIFICATION_DRY_RUN is enabled, "
-                            "set it to False to send notifications.",
-                            self._report_schedule.name,
-                            recipient.recipient_config_json,
-                        )
-                    else:
-                        notification.send()
-                except SlackV1NotificationError as ex:
-                    # The slack notification should be sent with the v2 api
-                    logger.info(
-                        "Attempting to upgrade the report to Slackv2: %s", str(ex)
-                    )
-                    self._upgrade_and_send_slack_notification(
-                        notification,
-                        recipient,
-                        notification_content,
-                    )
+                self._send_notification(notification_content, recipient)
             except (
                 UpdateFailedError,
                 NotificationParamException,

@@ -17,7 +17,7 @@
 
 import uuid
 from typing import Any, TYPE_CHECKING
-from unittest.mock import call, MagicMock, patch
+from unittest.mock import ANY, call, MagicMock, patch
 
 import pandas as pd
 import pytest
@@ -39,11 +39,11 @@ from superset.reports.notifications.exceptions import (
     NotificationParamException,
     NotificationUnprocessableException,
 )
-from superset.reports.notifications.slack_mixin import _call_slack_api
-from superset.reports.notifications.slackv2 import (
+from superset.reports.notifications.slack_mixin import (
+    _call_slack_api,
     _give_up_slack_api_retry,
-    SlackV2Notification,
 )
+from superset.reports.notifications.slackv2 import SlackV2Notification
 from superset.utils.core import HeaderDataType
 from superset.utils.slack import SlackV2ProbeError
 
@@ -61,7 +61,7 @@ def _skip_backoff_sleep():
     inside backoff's sync runner keeps the assertion semantics (call_count,
     raised exception type) without the wait.
     """
-    with patch("backoff._sync.time.sleep"):
+    with patch("time.sleep"):
         yield
 
 
@@ -104,10 +104,9 @@ def _make_v1_notification(
     )
 
 
-def test_get_channel_with_multi_recipients(mock_header_data) -> None:
+def test_get_channels_with_multi_recipients(mock_header_data) -> None:
     """
-    Test the _get_channel function to ensure it will return a string
-    with recipients separated by commas without interstitial spacing
+    Test _get_channels returns normalized recipients without duplicates.
     """
     from superset.reports.models import ReportRecipients, ReportRecipientType
     from superset.reports.notifications.base import NotificationContent
@@ -128,16 +127,69 @@ def test_get_channel_with_multi_recipients(mock_header_data) -> None:
     slack_notification = SlackNotification(
         recipient=ReportRecipients(
             type=ReportRecipientType.SLACK,
-            recipient_config_json='{"target": "some_channel; second_channel, third_channel"}',  # noqa: E501
+            recipient_config_json='{"target": "some_channel; second_channel, third_channel, some_channel"}',  # noqa: E501
         ),
         content=content,
     )
 
-    result = slack_notification._get_channel()
+    result = slack_notification._get_channels()
 
-    assert result == "some_channel,second_channel,third_channel"
+    assert result == ["some_channel", "second_channel", "third_channel"]
 
-    # Test if the recipient configuration JSON is valid when using a SlackV2 recipient type  # noqa: E501
+
+@pytest.mark.parametrize(
+    "recipient_config_json",
+    ["{not-json", '{"target": ["private-channel"]}'],
+    ids=["malformed-json", "non-string-target"],
+)
+def test_get_channels_rejects_invalid_recipient_config(
+    mock_header_data: HeaderDataType,
+    recipient_config_json: str,
+) -> None:
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.slack import SlackNotification
+
+    notification = SlackNotification(
+        recipient=ReportRecipients(
+            type=ReportRecipientType.SLACK,
+            recipient_config_json=recipient_config_json,
+        ),
+        content=NotificationContent(
+            name="test alert",
+            header_data=mock_header_data,
+        ),
+    )
+
+    with pytest.raises(NotificationParamException, match="No recipients"):
+        notification._get_channels()
+
+
+@pytest.mark.parametrize(
+    "recipient_config_json",
+    ["{not-json", '{"target": ["C12345"]}'],
+    ids=["malformed-json", "non-string-target"],
+)
+def test_slackv2_get_channels_rejects_invalid_recipient_config(
+    mock_header_data: HeaderDataType,
+    recipient_config_json: str,
+) -> None:
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+
+    notification = SlackV2Notification(
+        recipient=ReportRecipients(
+            type=ReportRecipientType.SLACKV2,
+            recipient_config_json=recipient_config_json,
+        ),
+        content=NotificationContent(
+            name="test alert",
+            header_data=mock_header_data,
+        ),
+    )
+
+    with pytest.raises(NotificationParamException, match="No recipients"):
+        notification._get_channels()
 
 
 def test_valid_recipient_config_json_slackv2(mock_header_data) -> None:
@@ -175,93 +227,31 @@ def test_valid_recipient_config_json_slackv2(mock_header_data) -> None:
     # Ensure _get_inline_files function returns the correct tuple when content has screenshots  # noqa: E501
 
 
-def test_get_inline_files_with_screenshots(mock_header_data) -> None:
-    """
-    Test the _get_inline_files function to ensure it will return the correct tuple
-    when content has screenshots
-    """
-    from superset.reports.models import ReportRecipients, ReportRecipientType
+@pytest.mark.parametrize(
+    "content_overrides,expected",
+    [
+        ({"screenshots": [b"screenshot"]}, True),
+        ({"csv": b"csv_content"}, True),
+        ({"xlsx": b"xlsx_content"}, True),
+        ({"pdf": b"pdf_content"}, True),
+        ({}, False),
+    ],
+    ids=["screenshots", "csv", "xlsx", "pdf", "none"],
+)
+def test_notification_content_has_attachments(
+    mock_header_data: HeaderDataType,
+    content_overrides: dict[str, Any],
+    expected: bool,
+) -> None:
     from superset.reports.notifications.base import NotificationContent
-    from superset.reports.notifications.slack import SlackNotification
 
     content = NotificationContent(
         name="test alert",
         header_data=mock_header_data,
-        embedded_data=pd.DataFrame(
-            {
-                "A": [1, 2, 3],
-                "B": [4, 5, 6],
-                "C": ["111", "222", '<a href="http://www.example.com">333</a>'],
-            }
-        ),
-        description='<p>This is <a href="#">a test</a> alert</p><br />',
-        screenshots=[b"screenshot1", b"screenshot2"],
-    )
-    slack_notification = SlackNotification(
-        recipient=ReportRecipients(
-            type=ReportRecipientType.SLACK,
-            recipient_config_json='{"target": "some_channel"}',
-        ),
-        content=content,
+        **content_overrides,
     )
 
-    result = slack_notification._get_inline_files()
-
-    assert result == ("png", [b"screenshot1", b"screenshot2"])
-
-
-def test_get_inline_files_with_csv(mock_header_data: HeaderDataType) -> None:
-    """
-    Test the _get_inline_files function to ensure it returns the correct tuple
-    when content has a CSV attachment
-    """
-    from superset.reports.models import ReportRecipients, ReportRecipientType
-    from superset.reports.notifications.base import NotificationContent
-    from superset.reports.notifications.slack import SlackNotification
-
-    content = NotificationContent(
-        name="test alert",
-        header_data=mock_header_data,
-        csv=b"csv_content",
-    )
-    slack_notification = SlackNotification(
-        recipient=ReportRecipients(
-            type=ReportRecipientType.SLACK,
-            recipient_config_json='{"target": "some_channel"}',
-        ),
-        content=content,
-    )
-
-    result = slack_notification._get_inline_files()
-
-    assert result == ("csv", [b"csv_content"])
-
-
-def test_get_inline_files_with_xlsx(mock_header_data: HeaderDataType) -> None:
-    """
-    Test the _get_inline_files function to ensure it returns the correct tuple
-    when content has an Excel attachment
-    """
-    from superset.reports.models import ReportRecipients, ReportRecipientType
-    from superset.reports.notifications.base import NotificationContent
-    from superset.reports.notifications.slack import SlackNotification
-
-    content = NotificationContent(
-        name="test alert",
-        header_data=mock_header_data,
-        xlsx=b"xlsx_content",
-    )
-    slack_notification = SlackNotification(
-        recipient=ReportRecipients(
-            type=ReportRecipientType.SLACK,
-            recipient_config_json='{"target": "some_channel"}',
-        ),
-        content=content,
-    )
-
-    result = slack_notification._get_inline_files()
-
-    assert result == ("xlsx", [b"xlsx_content"])
+    assert content.has_attachments is expected
 
 
 def test_get_inline_files_with_xlsx_slackv2(mock_header_data: HeaderDataType) -> None:
@@ -290,40 +280,6 @@ def test_get_inline_files_with_xlsx_slackv2(mock_header_data: HeaderDataType) ->
     # Ensure _get_inline_files function returns None when content has no screenshots or csv  # noqa: E501
 
 
-def test_get_inline_files_with_no_screenshots_or_csv(mock_header_data) -> None:
-    """
-    Test the _get_inline_files function to ensure it will return None
-    when content has no screenshots or csv
-    """
-    from superset.reports.models import ReportRecipients, ReportRecipientType
-    from superset.reports.notifications.base import NotificationContent
-    from superset.reports.notifications.slack import SlackNotification
-
-    content = NotificationContent(
-        name="test alert",
-        header_data=mock_header_data,
-        embedded_data=pd.DataFrame(
-            {
-                "A": [1, 2, 3],
-                "B": [4, 5, 6],
-                "C": ["111", "222", '<a href="http://www.example.com">333</a>'],
-            }
-        ),
-        description='<p>This is <a href="#">a test</a> alert</p><br />',
-    )
-    slack_notification = SlackNotification(
-        recipient=ReportRecipients(
-            type=ReportRecipientType.SLACK,
-            recipient_config_json='{"target": "some_channel"}',
-        ),
-        content=content,
-    )
-
-    result = slack_notification._get_inline_files()
-
-    assert result == (None, [])
-
-
 @patch("superset.reports.notifications.slack.g")
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=False)
 @patch("superset.reports.notifications.slack.get_slack_client")
@@ -341,6 +297,50 @@ def test_v1_send_without_channels_raises(
 
     should_use_v2_api_mock.assert_called_once_with(raise_on_error=False)
     slack_client_mock.return_value.chat_postMessage.assert_not_called()
+
+
+@patch("superset.reports.notifications.slack.g")
+@patch("superset.reports.notifications.slack.should_use_v2_api")
+@patch("superset.reports.notifications.slack.get_slack_client")
+def test_send_legacy_text_skips_v2_probe(
+    slack_client_mock: MagicMock,
+    should_use_v2_api_mock: MagicMock,
+    flask_global_mock: MagicMock,
+    mock_header_data: HeaderDataType,
+) -> None:
+    flask_global_mock.logs_context = {}
+    notification = _make_v1_notification(
+        mock_header_data,
+        target="private-channel",
+    )
+
+    notification.send_legacy_text()
+
+    should_use_v2_api_mock.assert_not_called()
+    slack_client_mock.return_value.chat_postMessage.assert_called_once_with(
+        channel="private-channel",
+        text=ANY,
+    )
+
+
+@patch("superset.reports.notifications.slack.get_slack_client")
+def test_send_legacy_text_rejects_attachments(
+    slack_client_mock: MagicMock,
+    mock_header_data: HeaderDataType,
+) -> None:
+    notification = _make_v1_notification(
+        mock_header_data,
+        target="private-channel",
+        screenshots=[b"screenshot"],
+    )
+
+    with pytest.raises(
+        NotificationParamException,
+        match="Slack v1 file uploads are no longer supported",
+    ):
+        notification.send_legacy_text()
+
+    slack_client_mock.assert_not_called()
 
 
 @patch("superset.reports.notifications.slack.g")
@@ -430,6 +430,30 @@ def test_v1_send_retries_only_the_failed_channel(
         slack_call.kwargs["channel"]
         for slack_call in slack_client_mock.return_value.chat_postMessage.call_args_list
     ] == ["private-a", "private-b", "private-b", "private-b"]
+
+
+@patch("superset.reports.notifications.slack.g")
+@patch("superset.reports.notifications.slack.should_use_v2_api", return_value=False)
+@patch("superset.reports.notifications.slack.get_slack_client")
+def test_v1_send_deduplicates_channels(
+    slack_client_mock: MagicMock,
+    should_use_v2_api_mock: MagicMock,
+    flask_global_mock: MagicMock,
+    mock_header_data: HeaderDataType,
+) -> None:
+    flask_global_mock.logs_context = {}
+    notification = _make_v1_notification(
+        mock_header_data,
+        target="private-a, private-a",
+    )
+
+    notification.send()
+
+    should_use_v2_api_mock.assert_called_once_with(raise_on_error=False)
+    slack_client_mock.return_value.chat_postMessage.assert_called_once_with(
+        channel="private-a",
+        text=ANY,
+    )
 
 
 @patch("superset.reports.notifications.slackv2.g")
@@ -844,6 +868,27 @@ def test_v2_send_to_multiple_channels_uploads_per_channel(
 
 @patch("superset.reports.notifications.slackv2.g")
 @patch("superset.reports.notifications.slackv2.get_slack_client")
+def test_v2_send_deduplicates_channels(
+    slack_client_mock: MagicMock,
+    flask_global_mock: MagicMock,
+    mock_header_data: HeaderDataType,
+) -> None:
+    flask_global_mock.logs_context = {}
+    notification = _make_v2_notification(
+        _make_content(mock_header_data),
+        target="C12345,C12345",
+    )
+
+    notification.send()
+
+    slack_client_mock.return_value.chat_postMessage.assert_called_once_with(
+        channel="C12345",
+        text=ANY,
+    )
+
+
+@patch("superset.reports.notifications.slackv2.g")
+@patch("superset.reports.notifications.slackv2.get_slack_client")
 def test_v2_send_text_only_uses_chat_post_message(
     slack_client_mock: MagicMock,
     flask_global_mock: MagicMock,
@@ -1123,6 +1168,17 @@ def test_give_up_slack_api_retry_retries_on_status_code(
     ex = SlackApiError(message="transient", response=response)
 
     # give_up == False -> the request WILL be retried by backoff.
+    assert _give_up_slack_api_retry(ex) is False
+
+
+def test_give_up_slack_api_retry_retries_http_408() -> None:
+    """Request timeout stays transient even though it is a 4xx response."""
+    response = _make_slack_response(
+        408,
+        {"ok": False, "error": "request_timeout"},
+    )
+    ex = SlackApiError(message="request timed out", response=response)
+
     assert _give_up_slack_api_retry(ex) is False
 
 

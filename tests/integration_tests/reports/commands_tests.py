@@ -1887,8 +1887,8 @@ def test_slack_text_fallback_persists_success_for_multiple_recipient_rows(
         for slack_call in slack_client_mock.return_value.chat_postMessage.call_args_list
     } == {"private-a", "private-b"}
     assert slack_client_mock.return_value.chat_postMessage.call_count == 2
-    assert slack_should_use_v2_api_mock.call_count == 2
-    assert get_channels_with_search_mock.call_count == 2
+    assert slack_should_use_v2_api_mock.call_count == 1
+    assert get_channels_with_search_mock.call_count == 1
 
 
 @pytest.mark.usefixtures(
@@ -1941,7 +1941,7 @@ def test_slack_text_fallback_persists_later_recipient_retry_exhaustion(
     slack_client_mock.return_value.chat_postMessage.side_effect = chat_side_effect
 
     with (
-        patch("backoff._sync.time.sleep"),
+        patch("time.sleep"),
         pytest.raises(ReportScheduleClientErrorsException),
     ):
         AsyncExecuteReportScheduleCommand(
@@ -1975,8 +1975,8 @@ def test_slack_text_fallback_persists_later_recipient_retry_exhaustion(
         .all()
     }
     assert {ReportState.WORKING, ReportState.ERROR} <= log_states
-    assert slack_should_use_v2_api_mock.call_count == 2
-    assert get_channels_with_search_mock.call_count == 2
+    assert slack_should_use_v2_api_mock.call_count == 1
+    assert get_channels_with_search_mock.call_count == 1
     email_mock.assert_called_once()
 
 
@@ -2099,6 +2099,9 @@ def test_report_schedule_success_grace_end(
 
     db.session.commit()
     assert create_alert_slack_chart_grace.last_state == ReportState.SUCCESS
+    recipient = create_alert_slack_chart_grace.recipients[0]
+    assert recipient.type == ReportRecipientType.SLACKV2
+    assert json.loads(recipient.recipient_config_json) == {"target": channel_id}
     slack_should_use_v2_api_mock.assert_called_once_with(raise_on_error=True)
     upload_call = slack_client_mock.return_value.files_upload_v2.call_args
     assert upload_call.kwargs["channel"] == channel_id

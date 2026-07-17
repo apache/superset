@@ -29,6 +29,7 @@ from slack_sdk.errors import (
 from superset.utils.slack import (
     _emit_v1_flag_off_deprecation,
     _emit_v1_scope_missing_deprecation,
+    _is_transient_slack_api_error,
     _SLACK_V1_DEPRECATION_MESSAGE,
     get_channels_with_search,
     should_use_v2_api,
@@ -39,8 +40,9 @@ from superset.utils.slack import (
 
 
 class MockResponse:
-    def __init__(self, data):
+    def __init__(self, data, status_code: int | None = None):
         self._data = data
+        self.status_code = status_code
 
     @property
     def data(self):
@@ -388,7 +390,7 @@ class TestShouldUseV2Api:
 
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
-            assert should_use_v2_api() is False
+            assert should_use_v2_api(raise_on_error=True) is False
             assert should_use_v2_api() is False
             assert should_use_v2_api() is False
 
@@ -436,6 +438,19 @@ class TestShouldUseV2Api:
         assert len(deprecation_warnings) == 1
         assert logger_mock.warning.call_count == 1
         assert "channels:read" in logger_mock.warning.call_args.args[0]
+
+    @pytest.mark.parametrize("status_code", [429, 503])
+    def test_transient_probe_error_detected_from_http_status(
+        self,
+        status_code: int,
+    ) -> None:
+        """Rate-limit and server HTTP statuses remain system failures."""
+        error = SlackApiError(
+            message="probe failed",
+            response=MockResponse({"ok": False}, status_code=status_code),
+        )
+
+        assert _is_transient_slack_api_error(error, "") is True
 
     @pytest.mark.parametrize(
         "error_code",
@@ -569,6 +584,9 @@ class TestShouldUseV2Api:
             should_use_v2_api(raise_on_error=True)
 
         assert exc_info.value.status == 422
+
+    def test_client_probe_error_has_common_probe_error_parent(self) -> None:
+        assert issubclass(SlackV2ProbeClientError, SlackV2ProbeError)
 
     def test_propagates_non_sdk_errors_from_probe(self, mocker):
         """A truly unexpected, non-SDK exception (e.g. a programming error) still
