@@ -748,7 +748,9 @@ def test_user_metadata_cache_keys_match_for_identical_users(
     second = _user_metadata_cache_keys(
         mocker, user_id=1, username="alice", email="alice@example.com", roles=["Admin"]
     )
-    assert first == second
+    # The real cache key is built from ``set(extra_cache_keys)``, so compare on
+    # the normalized set rather than the raw ordered list.
+    assert set(first) == set(second)
 
 
 def test_anonymous_user_never_collides_with_a_logged_in_user(
@@ -773,26 +775,43 @@ def test_anonymous_user_never_collides_with_a_logged_in_user(
     )
     # The absent id/username/email contribute nothing, so an anonymous request's
     # key carries only its role, never a stray value for the missing fields.
-    assert anon_first == [json.dumps(["Public"])]
+    assert set(anon_first) == {json.dumps(["Public"])}
     # Two anonymous requests share a cache entry; neither collides with a user.
-    assert anon_first == anon_second
+    assert set(anon_first) == set(anon_second)
     assert set(anon_first).isdisjoint(set(logged_in))
 
 
-def test_user_metadata_cache_keys_track_each_field_independently(
+@pytest.mark.parametrize(
+    "field, other_value",
+    [
+        ("user_id", 2),
+        ("username", "bob"),
+        ("email", "bob@example.com"),
+        ("roles", ["Gamma"]),
+    ],
+)
+def test_user_metadata_cache_keys_guard_each_field_independently(
     mocker: MockerFixture,
+    field: str,
+    other_value: Any,
 ) -> None:
     """
-    Two users who differ in a single field (here only the roles) still get
-    distinct cache keys, so a change in any one metadata field is reflected.
+    Two users who differ in exactly one metadata field get distinct cache keys.
+    Guarding each field on its own means a regression that stops any single
+    macro (``current_user_id`` / ``current_username`` / ``current_user_email`` /
+    ``current_user_roles``) from contributing to the key would fail its case here,
+    rather than hiding behind the other fields.
     """
-    admin = _user_metadata_cache_keys(
-        mocker, user_id=1, username="alice", email="alice@example.com", roles=["Admin"]
-    )
-    gamma = _user_metadata_cache_keys(
-        mocker, user_id=1, username="alice", email="alice@example.com", roles=["Gamma"]
-    )
-    assert admin != gamma
+    base = {
+        "user_id": 1,
+        "username": "alice",
+        "email": "alice@example.com",
+        "roles": ["Admin"],
+    }
+    variant = {**base, field: other_value}
+    base_keys = _user_metadata_cache_keys(mocker, **base)
+    variant_keys = _user_metadata_cache_keys(mocker, **variant)
+    assert set(base_keys) != set(variant_keys)
 
 
 def test_current_user_rls_rules_with_no_table(mocker: MockerFixture):
