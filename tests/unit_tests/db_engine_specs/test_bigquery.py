@@ -431,16 +431,17 @@ def test_get_default_catalog(mocker: MockerFixture) -> None:
 
 
 @pytest.mark.parametrize(
-    ("sqlalchemy_uri", "expected_project"),
+    ("sqlalchemy_uri", "schema", "expected_project"),
     [
-        ("bigquery://uri-project", "uri-project"),
-        ("bigquery:///uri-project", "uri-project"),
-        ("bigquery://", None),
+        ("bigquery://uri-project", None, "uri-project"),
+        ("bigquery:///uri-project", None, "uri-project"),
+        ("bigquery://", "dataset_name", None),
     ],
 )
 def test_get_client_resolves_uri_project_with_service_account_credentials(
     mocker: MockerFixture,
     sqlalchemy_uri: str,
+    schema: str | None,
     expected_project: str | None,
 ) -> None:
     """Test that service-account clients use the project from the engine URI."""
@@ -449,7 +450,9 @@ def test_get_client_resolves_uri_project_with_service_account_credentials(
     credentials_info = {"project_id": "credential-project"}
     credentials = mock.Mock()
     engine = mock.MagicMock()
-    engine.url = make_url(sqlalchemy_uri)
+    engine.url = BigQueryEngineSpec.adjust_engine_params(
+        make_url(sqlalchemy_uri), {}, schema=schema
+    )[0]
     engine.dialect.credentials_info = credentials_info
     create_credentials = mocker.patch(
         "superset.db_engine_specs.bigquery.service_account.Credentials."
@@ -465,16 +468,17 @@ def test_get_client_resolves_uri_project_with_service_account_credentials(
 
 
 @pytest.mark.parametrize(
-    ("sqlalchemy_uri", "expected_project"),
+    ("sqlalchemy_uri", "schema", "expected_project"),
     [
-        ("bigquery://uri-project", "uri-project"),
-        ("bigquery:///uri-project", "uri-project"),
-        ("bigquery://", None),
+        ("bigquery://uri-project", None, "uri-project"),
+        ("bigquery:///uri-project", None, "uri-project"),
+        ("bigquery://", "dataset_name", None),
     ],
 )
 def test_get_client_resolves_uri_project_with_application_default_credentials(
     mocker: MockerFixture,
     sqlalchemy_uri: str,
+    schema: str | None,
     expected_project: str | None,
 ) -> None:
     """Test that ADC clients use the project from the engine URI."""
@@ -482,7 +486,9 @@ def test_get_client_resolves_uri_project_with_application_default_credentials(
 
     credentials = mock.Mock()
     engine = mock.MagicMock()
-    engine.url = make_url(sqlalchemy_uri)
+    engine.url = BigQueryEngineSpec.adjust_engine_params(
+        make_url(sqlalchemy_uri), {}, schema=schema
+    )[0]
     engine.dialect.credentials_info = None
     get_default_credentials = mocker.patch(
         "superset.db_engine_specs.bigquery.google.auth.default",
