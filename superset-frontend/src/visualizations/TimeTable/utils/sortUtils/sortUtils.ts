@@ -97,19 +97,26 @@ export function sortNumberWithMixedTypes(
   const reversedEntriesA = propsA.entries?.slice().reverse();
   const reversedEntriesB = propsB.entries?.slice().reverse();
 
-  if (!reversedEntriesA || !reversedEntriesB) {
+  if (
+    !reversedEntriesA ||
+    !reversedEntriesB ||
+    !propsA.valueField ||
+    !propsA.column ||
+    !propsB.valueField ||
+    !propsB.column
+  ) {
     return 0;
   }
 
   const { value: valueA } = calculateCellValue(
-    propsA.valueField,
-    propsA.column,
+    propsA.valueField!,
+    propsA.column!,
     reversedEntriesA,
   );
 
   const { value: valueB } = calculateCellValue(
-    propsB.valueField,
-    propsB.column,
+    propsB.valueField!,
+    propsB.column!,
     reversedEntriesB,
   );
 
