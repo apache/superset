@@ -889,3 +889,157 @@ async def test_query_dataset_hidden_from_tools_list_when_metadata_restricted(
                 assert is_tool_visible_to_current_user(tool) is True
     finally:
         app.config.pop("MCP_RBAC_ENABLED", None)
+
+
+class TestQueryDatasetBracketShorthandNormalization:
+    """QueryDatasetRequest normalizes bracket-shorthand time ranges.
+
+    LLM clients sometimes pass values like '[year]' or '[quarter]' after
+    seeing grain tokens in dashboard filter contexts.  The schema validator
+    maps them to the canonical 'Last <unit>' form so get_since_until() can
+    parse them without raising TimeRangeParseFailError.
+    """
+
+    def test_year_bracket_normalized(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "[year]"}
+        )
+        assert req.time_range == "Last year"
+
+    def test_quarter_bracket_normalized(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "[quarter]"}
+        )
+        assert req.time_range == "Last quarter"
+
+    def test_month_bracket_normalized(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "[month]"}
+        )
+        assert req.time_range == "Last month"
+
+    def test_week_bracket_normalized(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "[week]"}
+        )
+        assert req.time_range == "Last week"
+
+    def test_day_bracket_normalized(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "[day]"}
+        )
+        assert req.time_range == "Last day"
+
+    def test_bracket_uppercase_normalized(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "[YEAR]"}
+        )
+        assert req.time_range == "Last year"
+
+    def test_bracket_with_whitespace_normalized(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "  [year]  "}
+        )
+        assert req.time_range == "Last year"
+
+    def test_valid_superset_range_unchanged(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "Last 7 days"}
+        )
+        assert req.time_range == "Last 7 days"
+
+    def test_iso_range_unchanged(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {
+                "dataset_id": 1,
+                "metrics": ["count"],
+                "time_range": "2024-01-01 : 2024-12-31",
+            }
+        )
+        assert req.time_range == "2024-01-01 : 2024-12-31"
+
+    def test_none_unchanged(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": None}
+        )
+        assert req.time_range is None
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_bracket_year_resolves_without_parse_error(
+    mcp_server: FastMCP,
+) -> None:
+    """'[year]' as time_range must not raise TimeRangeParseFailError.
+
+    Regression test for SC-113648: LLM clients passing '[year]' verbatim
+    triggered TimeRangeParseFailError because the raw token was forwarded to
+    parse_human_datetime() without normalization.  The schema validator now
+    maps it to 'Last year' before the query context is built.
+    """
+    dataset = _make_dataset(main_dttm_col="order_date")
+    result_data = _mock_command_result()
+    captured_queries: list[dict[str, Any]] = []
+
+    def capture_create(**kwargs):
+        captured_queries.extend(kwargs.get("queries", []))
+        return MagicMock()
+
+    with (
+        patch.object(
+            query_dataset_module,
+            "resolve_dataset",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=result_data,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            side_effect=capture_create,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "time_range": "[year]",
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    # Must succeed (no error_type) and forward the normalized value
+    assert "error_type" not in data or data.get("error_type") is None
+    assert len(captured_queries) == 1
+    temporal_filters = [
+        f for f in captured_queries[0]["filters"] if f["op"] == "TEMPORAL_RANGE"
+    ]
+    assert len(temporal_filters) == 1
+    assert temporal_filters[0]["val"] == "Last year"

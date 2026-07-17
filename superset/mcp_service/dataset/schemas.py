@@ -807,6 +807,22 @@ class QueryDatasetFilter(BaseModel):
     )
 
 
+# Bracket shorthands (e.g. "[year]", "[quarter]") are not a Superset
+# time-range grammar — they appear when an LLM copies a grain token from a
+# dashboard filter context.  Map them to the equivalent "Last <unit>" form
+# that get_since_until() does support.
+_BRACKET_SHORTHAND_TO_TIME_RANGE: dict[str, str] = {
+    "[second]": "Last second",
+    "[minute]": "Last minute",
+    "[hour]": "Last hour",
+    "[day]": "Last day",
+    "[week]": "Last week",
+    "[month]": "Last month",
+    "[quarter]": "Last quarter",
+    "[year]": "Last year",
+}
+
+
 class QueryDatasetRequest(QueryCacheControl):
     """Request schema for query_dataset tool."""
 
@@ -838,9 +854,12 @@ class QueryDatasetRequest(QueryCacheControl):
     time_range: str | None = Field(
         default=None,
         description=(
-            "Time range filter (e.g. 'Last 7 days', 'Last month', "
-            "'2024-01-01 : 2024-12-31'). Requires a temporal column "
-            "on the dataset."
+            "Time range filter. Use Superset relative shorthands like "
+            "'Last 7 days', 'Last month', 'Last year', 'Last quarter', "
+            "'this week', 'previous calendar year', or an ISO-8601 range "
+            "like '2024-01-01 : 2024-12-31'. Requires a temporal column "
+            "on the dataset. Do NOT use bracket shorthands like '[year]' "
+            "or '[quarter]' — use 'Last year' / 'Last quarter' instead."
         ),
     )
     time_column: str | None = Field(
@@ -864,6 +883,14 @@ class QueryDatasetRequest(QueryCacheControl):
         le=50000,
         description="Maximum number of rows to return (default 1000, max 50000).",
     )
+
+    @field_validator("time_range")
+    @classmethod
+    def normalize_time_range(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        canonical = _BRACKET_SHORTHAND_TO_TIME_RANGE.get(v.strip().lower())
+        return canonical if canonical is not None else v
 
     @model_validator(mode="after")
     def validate_metrics_or_columns(self) -> "QueryDatasetRequest":
