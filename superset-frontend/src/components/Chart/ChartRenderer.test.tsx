@@ -162,7 +162,6 @@ test('honors enableNoResults: false from the chart metadata (e.g. self-fetching 
     new ChartMetadata({
       name: 'chart that fetches its own data',
       thumbnail: '.png',
-      useLegacyApi: false,
       enableNoResults: false,
     }),
   );
