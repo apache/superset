@@ -26,7 +26,7 @@ from flask_appbuilder.const import (
     AUTH_SAML,
 )
 
-from superset.views.base import cached_common_bootstrap_data
+from superset.views.base import cached_common_bootstrap_data, common_bootstrap_payload
 
 
 @pytest.fixture(autouse=True)
@@ -133,3 +133,94 @@ def test_recaptcha_shown_for_non_federated_auth(
     payload = _get_bootstrap()
 
     assert payload["conf"]["RECAPTCHA_PUBLIC_KEY"] == "test-key"
+
+
+@pytest.mark.parametrize(
+    "auth_type",
+    [AUTH_DB, AUTH_LDAP],
+)
+def test_bootstrap_does_not_crash_without_recaptcha_key(
+    app_context: None,
+    auth_type: int,
+) -> None:
+    """Missing RECAPTCHA_PUBLIC_KEY must not crash bootstrap (#37008/#39364)."""
+    from flask import current_app
+
+    current_app.config["AUTH_TYPE"] = auth_type
+    current_app.config["AUTH_USER_REGISTRATION"] = True
+    current_app.config["AUTH_USER_REGISTRATION_ROLE"] = "Public"
+    current_app.config.pop("RECAPTCHA_PUBLIC_KEY", None)
+
+    payload = _get_bootstrap()
+
+    assert "RECAPTCHA_PUBLIC_KEY" not in payload["conf"]
+
+
+# --- language_pack injection --------------------------------------------
+#
+# The Jed pack is injected by `common_bootstrap_payload` (outside the
+# memoized `cached_common_bootstrap_data`) using the shared
+# `superset.translations.utils.get_language_pack`. Tests here cover the
+# wrapper to confirm the pack lands on the payload for non-English
+# locales and is None for English.
+
+
+def test_common_bootstrap_payload_includes_language_pack_for_non_english(
+    app_context: None,
+) -> None:
+    """common.language_pack carries the shared utility's pack for non-en."""
+    fake_pack = {"domain": "superset", "locale_data": {"superset": {}}}
+    with (
+        patch(
+            "superset.views.base.cached_common_bootstrap_data",
+            return_value={"locale": "fr"},
+        ),
+        patch(
+            "superset.views.base.get_language_pack",
+            return_value=fake_pack,
+        ) as mock_get,
+        patch("superset.views.base.utils.get_user_id", return_value=1),
+        patch("superset.views.base.get_locale", return_value="fr"),
+    ):
+        payload = common_bootstrap_payload()
+
+    assert payload["language_pack"] == fake_pack
+    mock_get.assert_called_once_with("fr")
+
+
+def test_common_bootstrap_payload_skips_pack_for_english(
+    app_context: None,
+) -> None:
+    """English short-circuits: pack is None and the utility is not called."""
+    with (
+        patch(
+            "superset.views.base.cached_common_bootstrap_data",
+            return_value={"locale": "en"},
+        ),
+        patch("superset.views.base.get_language_pack") as mock_get,
+        patch("superset.views.base.utils.get_user_id", return_value=1),
+        patch("superset.views.base.get_locale", return_value="en"),
+    ):
+        payload = common_bootstrap_payload()
+
+    assert payload["language_pack"] is None
+    mock_get.assert_not_called()
+
+
+def test_common_bootstrap_payload_does_not_mutate_memoized_dict(
+    app_context: None,
+) -> None:
+    """Injecting language_pack must not write back into the memoize cache."""
+    cached: dict[str, Any] = {"locale": "fr"}
+    with (
+        patch(
+            "superset.views.base.cached_common_bootstrap_data",
+            return_value=cached,
+        ),
+        patch("superset.views.base.get_language_pack", return_value={"x": 1}),
+        patch("superset.views.base.utils.get_user_id", return_value=1),
+        patch("superset.views.base.get_locale", return_value="fr"),
+    ):
+        common_bootstrap_payload()
+
+    assert "language_pack" not in cached

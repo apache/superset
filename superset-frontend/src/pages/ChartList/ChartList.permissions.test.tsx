@@ -17,7 +17,13 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
@@ -52,10 +58,19 @@ const PERMISSIONS = {
   NONE: [],
 };
 
+const getRoleName = (
+  permissions: (typeof PERMISSIONS)[keyof typeof PERMISSIONS],
+) => (permissions === PERMISSIONS.ADMIN ? 'Admin' : 'TestRole');
+
 const createMockUser = (overrides = {}) => ({
   userId: 1,
   firstName: 'Test',
   lastName: 'User',
+  username: 'testuser',
+  permissions: {
+    database_access: [],
+    datasource_access: [],
+  },
   roles: {
     Admin: [
       ['can_sqllab', 'Superset'],
@@ -69,9 +84,9 @@ const createMockUser = (overrides = {}) => ({
 const createMockStore = (initialState: any = {}) =>
   configureStore({
     reducer: {
-      user: (state = initialState.user || {}, action: any) => state,
-      common: (state = initialState.common || {}, action: any) => state,
-      charts: (state = initialState.charts || {}, action: any) => state,
+      user: (state = initialState.user || {}, _action: any) => state,
+      common: (state = initialState.common || {}, _action: any) => state,
+      charts: (state = initialState.charts || {}, _action: any) => state,
     },
     preloadedState: initialState,
     middleware: getDefaultMiddleware =>
@@ -88,7 +103,7 @@ const createStoreStateWithPermissions = (
   user: userId
     ? {
         ...createMockUser({ userId }),
-        roles: { TestRole: permissions },
+        roles: { [getRoleName(permissions)]: permissions },
       }
     : {},
   common: {
@@ -150,7 +165,7 @@ const renderWithPermissions = async (
     ? {
         user: {
           ...createMockUser({ userId }),
-          roles: { TestRole: permissions },
+          roles: { [getRoleName(permissions)]: permissions },
         },
       }
     : { user: { userId: undefined } }; // Explicitly set userId to undefined for logged-out state
@@ -225,6 +240,35 @@ describe('ChartList - Permission-based UI Tests', () => {
     // Check for action buttons using test-ids (delete, upload, edit-alt)
     const deleteButtons = screen.getAllByTestId('delete');
     expect(deleteButtons).toHaveLength(mockCharts.length);
+  });
+
+  test('enables table actions for an admin who is not a chart editor', async () => {
+    await renderWithPermissions(PERMISSIONS.ADMIN);
+    await screen.findByTestId('chart-list-view');
+
+    const row = (await screen.findByText(mockCharts[1].slice_name)).closest(
+      'tr',
+    );
+    const editButton = within(row!).getByTestId('chart-row-edit');
+    const deleteButton = within(row!).getByTestId('chart-row-delete');
+
+    expect(editButton).toHaveAttribute('aria-disabled', 'false');
+    expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
+  });
+
+  test('enables card actions for an admin who is not a chart editor', async () => {
+    await renderWithPermissions(PERMISSIONS.ADMIN, 1, { cardView: true });
+    await screen.findByTestId('chart-list-view');
+
+    const cardMenus = await screen.findAllByTestId('chart-card-menu');
+    fireEvent.click(cardMenus[1]);
+
+    expect(
+      (await screen.findByText('Edit')).closest('[role="menuitem"]'),
+    ).toHaveAttribute('aria-disabled', 'false');
+    expect(
+      screen.getByText('Delete').closest('[role="menuitem"]'),
+    ).toHaveAttribute('aria-disabled', 'false');
   });
 
   test('hides Actions column for users with read-only permissions', async () => {

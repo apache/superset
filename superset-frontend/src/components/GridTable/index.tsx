@@ -45,7 +45,7 @@ export function GridTable<RecordType extends object>({
   showRowNumber,
   enableActions,
   size = GridSize.Middle,
-  striped,
+  themeOverrides,
 }: TableProps<RecordType>) {
   const theme = useTheme();
   const isExternalFilterPresent = useCallback(
@@ -138,18 +138,20 @@ export function GridTable<RecordType extends object>({
     [columnReorderable, enableActions, sortable],
   );
 
-  const rowHeight = theme.sizeUnit * (size === GridSize.Middle ? 9 : 7);
+  const defaultRowHeight = theme.sizeUnit * (size === GridSize.Middle ? 9 : 7);
+  const rowHeight = themeOverrides?.rowHeight ?? defaultRowHeight;
+  const headerHeight = themeOverrides?.headerHeight ?? rowHeight;
 
   const gridOptions = useMemo<GridOptions>(
     () => ({
       enableCellTextSelection: true,
       ensureDomOrder: true,
       suppressFieldDotNotation: true,
-      headerHeight: rowHeight,
+      headerHeight,
       rowSelection: 'multiple',
       rowHeight,
     }),
-    [rowHeight],
+    [rowHeight, headerHeight],
   );
 
   return (
@@ -167,6 +169,24 @@ export function GridTable<RecordType extends object>({
           overflow: hidden;
         }
 
+        /* Preserve significant whitespace within cell values (e.g. option
+        symbols and other whitespace-sensitive data). ag-Grid's default
+        collapses runs of spaces, which can misrepresent the underlying
+        value.
+
+        'pre' is a deliberate trade-off over 'pre-wrap': it keeps values on a
+        single line so row heights and column sizing stay unchanged. CSS has no
+        value that preserves spaces while collapsing newlines, so an embedded
+        newline renders on multiple lines and is clipped by the fixed row
+        height; truncating such values to the visible row is acceptable here.
+        overflow/text-overflow keep over-long single-line values clipped with
+        an ellipsis rather than overflowing the cell. */
+        .ag-cell-value {
+          white-space: pre;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
         & [role='columnheader']:hover .customHeaderAction {
           display: flex;
         }
@@ -182,6 +202,7 @@ export function GridTable<RecordType extends object>({
         components={gridComponents}
         gridOptions={gridOptions}
         onCellKeyDown={onKeyDown}
+        themeOverrides={themeOverrides}
       />
     </div>
   );

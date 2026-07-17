@@ -17,6 +17,8 @@
  * under the License.
  */
 import { render } from '@testing-library/react';
+import { cloneDeep } from 'lodash-es';
+import { defaultSchema } from 'rehype-sanitize';
 import {
   getOverrideHtmlSchema,
   SafeMarkdown,
@@ -50,6 +52,36 @@ describe('getOverrideHtmlSchema', () => {
     expect(result.clobberPrefix).toEqual('custom-prefix');
     expect(result.attributes).toEqual({ '*': ['size', 'src'], h1: ['style'] });
     expect(result.tagNames).toEqual(['h1', 'h2', 'h3', 'iframe']);
+  });
+
+  test('should not mutate the original schema', () => {
+    const original = {
+      attributes: { '*': ['size'] },
+      tagNames: ['h1'],
+    };
+    getOverrideHtmlSchema(original, {
+      attributes: { '*': ['src'] },
+      tagNames: ['iframe'],
+    });
+    // The original passed in is left untouched.
+    expect(original.attributes).toEqual({ '*': ['size'] });
+    expect(original.tagNames).toEqual(['h1']);
+  });
+
+  test('should not mutate the shared defaultSchema import or accumulate across calls', () => {
+    const snapshot = cloneDeep(defaultSchema);
+    const overrides = { tagNames: ['iframe'] };
+
+    const first = getOverrideHtmlSchema(defaultSchema, overrides);
+    const second = getOverrideHtmlSchema(defaultSchema, overrides);
+
+    // The shared singleton is never modified...
+    expect(defaultSchema).toEqual(snapshot);
+    // ...and repeated calls do not accumulate the override (no growing arrays).
+    expect(first.tagNames).toEqual(second.tagNames);
+    expect(
+      (second.tagNames ?? []).filter(name => name === 'iframe'),
+    ).toHaveLength(1);
   });
 });
 

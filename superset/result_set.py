@@ -60,7 +60,11 @@ def dedup(l: list[str], suffix: str = "__", case_sensitive: bool = True) -> list
 
 
 def stringify(obj: Any) -> str:
-    return json.dumps(obj, default=json.json_iso_dttm_ser)
+    # ensure_ascii=False so non-ASCII characters in array/struct/JSON column
+    # values (e.g. Cyrillic or CJK text from array_agg) render verbatim in the
+    # result grid instead of as \uXXXX escape sequences. This only affects the
+    # query result payload, not metadata persisted to the database.
+    return json.dumps(obj, default=json.json_iso_dttm_ser, ensure_ascii=False)
 
 
 def stringify_values(array: NDArray[Any]) -> NDArray[Any]:
@@ -73,9 +77,21 @@ def stringify_values(array: NDArray[Any]) -> NDArray[Any]:
                 obj[na_obj] = None
             else:
                 try:
-                    # for simple string conversions
-                    # this handles odd character types better
-                    obj[...] = obj.astype(str)
+                    val = obj.item()
+                    if isinstance(val, (dict, list)):
+                        try:
+                            # Use json.dumps for valid double-quoted JSON.
+                            # str() gives single-quoted repr like {'a': 1}
+                            # which breaks the frontend cell viewer.
+                            obj[...] = stringify(val)
+                        except TypeError:
+                            # Non-JSON-serializable value (e.g. bytes, custom
+                            # objects): fall back to str() to avoid crashing.
+                            obj[...] = str(val)
+                    else:
+                        # for simple string conversions
+                        # this handles odd character types better
+                        obj[...] = obj.astype(str)
                 except ValueError:
                     obj[...] = stringify(obj)
 

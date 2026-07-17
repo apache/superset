@@ -472,6 +472,7 @@ export function transformFormulaAnnotation(
   return {
     name,
     id: name,
+    z: 10,
     itemStyle: {
       color: color || colorScale(name, sliceId),
     },
@@ -520,8 +521,7 @@ export function transformIntervalAnnotation(
   });
 
   const allIntervalData: (
-    | MarkArea1DDataItemOption
-    | MarkArea2DDataItemOption
+    MarkArea1DDataItemOption | MarkArea2DDataItemOption
   )[] = annotations.map(annotation => {
     const { intervalEnd, time = '' } = annotation;
     const combinedLabel = (intervalsByStartTime.get(time) || []).join('\n');
@@ -565,6 +565,7 @@ export function transformIntervalAnnotation(
     id: `Interval - ${name}`,
     type: 'line',
     animation: false,
+    z: 10,
     markArea: {
       silent: false,
       itemStyle: {
@@ -660,6 +661,7 @@ export function transformEventAnnotation(
     id: `Event - ${name}`,
     type: 'line',
     animation: false,
+    z: 10,
     markLine: {
       silent: false,
       symbol: 'none',
@@ -705,6 +707,7 @@ export function transformTimeseriesAnnotation(
       type: 'line',
       id: name,
       name,
+      z: 10,
       data,
       symbolSize: showMarkers ? markerSize : 0,
       itemStyle: computedStyle,

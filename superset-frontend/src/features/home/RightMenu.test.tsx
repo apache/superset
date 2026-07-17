@@ -24,8 +24,9 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, CACHE_KEY } from '@superset-ui/core';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
+import * as getBootstrapData from 'src/utils/getBootstrapData';
 import RightMenu from './RightMenu';
 import { GlobalMenuDataOptions, RightMenuProps } from './types';
 
@@ -105,7 +106,7 @@ const dropdownItems = [
   },
   {
     label: 'Dashboard',
-    url: '/dashboard/new',
+    url: '/dashboard/new/',
     icon: 'fa-fw fa-dashboard',
     perm: 'can_write',
     view: 'Dashboard',
@@ -401,17 +402,35 @@ test('Logs out and clears local storage item redux', async () => {
   expect(localStorage.getItem('redux')).not.toBeNull();
   expect(sessionStorage.getItem('login_attempted')).not.toBeNull();
 
-  await userEvent.hover(await screen.findByText(/Settings/i));
+  // Mock the Cache API so we can assert the namespaced store is purged.
+  const cacheGlobal = global as unknown as { caches?: CacheStorage };
+  const priorCaches = cacheGlobal.caches;
+  const deleteMock = jest.fn().mockResolvedValue(true);
+  cacheGlobal.caches = { delete: deleteMock } as unknown as CacheStorage;
 
-  // Simulate user clicking the logout button
-  const logoutButton = await screen.findByText('Logout');
-  await userEvent.click(logoutButton);
+  try {
+    await userEvent.hover(await screen.findByText(/Settings/i));
 
-  // Wait for local and session storage to be cleared
-  await waitFor(() => {
-    expect(localStorage.getItem('redux')).toBeNull();
-    expect(sessionStorage.getItem('login_attempted')).toBeNull();
-  });
+    // Simulate user clicking the logout button
+    const logoutButton = await screen.findByText('Logout');
+    await userEvent.click(logoutButton);
+
+    // Wait for local and session storage to be cleared
+    await waitFor(() => {
+      expect(localStorage.getItem('redux')).toBeNull();
+      expect(sessionStorage.getItem('login_attempted')).toBeNull();
+    });
+    // The namespaced Cache API store is purged on logout.
+    expect(deleteMock).toHaveBeenCalledWith(CACHE_KEY);
+  } finally {
+    // Restore the global so an early assertion failure cannot leak the mock
+    // into other tests.
+    if (priorCaches === undefined) {
+      delete cacheGlobal.caches;
+    } else {
+      cacheGlobal.caches = priorCaches;
+    }
+  }
 });
 
 test('shows logout button when not embedded', async () => {
@@ -476,4 +495,67 @@ test('hides logout button when embedded and flag is enabled', async () => {
 
   userEvent.hover(await screen.findByText(/Settings/i));
   expect(screen.queryByText('Logout')).not.toBeInTheDocument();
+});
+
+test('Info link href is single-prefixed under subdirectory deployment', async () => {
+  // Backend emits a bare leading-slash path (`/user_info/` or `/users/userinfo/`).
+  // RightMenu wraps it with ensureAppRoot, which reads applicationRoot()
+  // dynamically. Under SUPERSET_APP_ROOT=/superset the rendered href must
+  // be exactly `/superset/users/userinfo/` — not `/users/userinfo/` (no
+  // prefix → 404) or `/superset/superset/users/userinfo/` (double prefix).
+  const applicationRootSpy = jest
+    .spyOn(getBootstrapData, 'applicationRoot')
+    .mockReturnValue('/superset');
+
+  try {
+    resetUseSelectorMock();
+    render(<RightMenu {...createProps()} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+
+    userEvent.hover(await screen.findByText(/Settings/i));
+    const infoLink = await screen.findByText('Info');
+    expect(infoLink.closest('a')).toHaveAttribute(
+      'href',
+      '/superset/users/userinfo/',
+    );
+  } finally {
+    applicationRootSpy.mockRestore();
+  }
+});
+
+test('Logout link href is single-prefixed under subdirectory deployment', async () => {
+  // The logout URL is built by Flask-AppBuilder's get_url_for_logout, which
+  // is SCRIPT_NAME-aware and returns `/superset/logout/` under app_root.
+  // The frontend then routes it through ensureAppRoot, whose idempotence
+  // contract (see pathUtils.parity.test.ts) must prevent doubling.
+  const applicationRootSpy = jest
+    .spyOn(getBootstrapData, 'applicationRoot')
+    .mockReturnValue('/superset');
+
+  try {
+    const props = createProps();
+    // Mirror the SCRIPT_NAME-prefixed value the backend would emit under
+    // APPLICATION_ROOT=/superset.
+    props.navbarRight.user_logout_url = '/superset/logout/';
+    resetUseSelectorMock();
+    render(<RightMenu {...props} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+
+    userEvent.hover(await screen.findByText(/Settings/i));
+    const logoutLink = await screen.findByText('Logout');
+    expect(logoutLink.closest('a')).toHaveAttribute(
+      'href',
+      '/superset/logout/',
+    );
+  } finally {
+    applicationRootSpy.mockRestore();
+  }
 });

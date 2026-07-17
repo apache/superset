@@ -23,7 +23,10 @@ import pytest
 from pytest_mock import MockerFixture
 
 from superset.commands.report.alert import AlertCommand
-from superset.commands.report.exceptions import AlertValidatorConfigError
+from superset.commands.report.exceptions import (
+    AlertValidatorConfigError,
+    ReportScheduleExecutorNotFoundError,
+)
 from superset.reports.models import ReportScheduleValidatorType, ReportState
 
 
@@ -494,3 +497,38 @@ def test_not_null_validator_with_empty_result_does_not_trigger(
 
     assert triggered is False, "NOT_NULL with empty result should not trigger"
     assert command._result is None
+
+
+def test_execute_query_raises_when_executor_user_missing(
+    mocker: MockerFixture,
+) -> None:
+    """
+    When the configured executor user cannot be resolved
+    (``security_manager.find_user`` returns ``None``), the alert-query path
+    raises a dedicated ``ReportScheduleExecutorNotFoundError`` naming the
+    username, rather than swallowing it into an opaque ``AlertQueryError`` (or
+    surfacing a NoneType/AttributeError from the downstream auth flow).
+    """
+    mocker.patch(
+        "superset.commands.report.alert.jinja_context.get_template_processor",
+    )
+    mocker.patch(
+        "superset.commands.report.alert.get_executor",
+        return_value=("executor", "ghost_user"),
+    )
+    mocker.patch(
+        "superset.commands.report.alert.security_manager.find_user",
+        return_value=None,
+    )
+
+    report_schedule_mock = mocker.Mock()
+    report_schedule_mock.id = 1
+    report_schedule_mock.sql = "SELECT value FROM metrics"
+
+    command = AlertCommand(
+        report_schedule=report_schedule_mock,
+        execution_id=uuid4(),
+    )
+
+    with pytest.raises(ReportScheduleExecutorNotFoundError, match="ghost_user"):
+        command._execute_query()

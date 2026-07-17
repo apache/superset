@@ -1032,6 +1032,24 @@ class TestGetChartSqlTool:
             assert data["error_type"] == "NotFound"
             assert "999" in data["error"]
 
+    @pytest.mark.asyncio
+    async def test_guest_denied(self, mcp_server):
+        """An embedded guest is denied chart SQL (data-model metadata), even with
+        RBAC off — chart SQL exposes tables/columns/joins, like get_dataset_info."""
+        from fastmcp import Client
+
+        from superset.extensions import security_manager
+
+        with patch.object(security_manager, "is_guest_user", return_value=True):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "get_chart_sql", {"request": {"identifier": 123}}
+                )
+
+            data = result.structured_content.get("result", result.structured_content)
+            assert data["error_type"] == "Forbidden"
+            assert "guest" in data["error"].lower()
+
     @patch.object(_get_chart_sql_mod, "_sql_from_form_data")
     @patch.object(_get_chart_sql_mod, "_sql_from_saved_query_context")
     @patch.object(_get_chart_sql_mod, "_resolve_effective_form_data")

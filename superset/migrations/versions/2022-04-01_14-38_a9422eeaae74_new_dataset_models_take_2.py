@@ -29,10 +29,15 @@ from uuid import uuid4
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.exc import NoSuchModuleError
-from sqlalchemy.ext.declarative import declarative_base, declared_attr
-from sqlalchemy.orm import backref, relationship, Session
+from sqlalchemy.orm import (
+    backref,
+    declarative_base,
+    declared_attr,
+    relationship,
+    Session,
+)
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import functions as func
 from sqlalchemy.sql.expression import and_, or_
@@ -874,14 +879,14 @@ new_tables: sa.Table = [
 def reset_postgres_id_sequence(table: str) -> None:
     """Reset PostgreSQL sequence ID for a table's id column."""
     op.execute(
-        """
+        text("""
         SELECT setval(
             pg_get_serial_sequence(:table, 'id'),
             COALESCE(max(id) + 1, 1),
             false
         )
         FROM :table;
-        """,
+        """),
         {"table": table},
     )
 
