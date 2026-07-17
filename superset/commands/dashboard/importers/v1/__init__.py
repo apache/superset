@@ -49,6 +49,7 @@ from superset.extensions import feature_flag_manager
 from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.dashboard import Dashboard, dashboard_slices
 from superset.themes.schemas import ImportV1ThemeSchema
+from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +76,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
     # not sure if overriding run is the best approach here
     # it works fine and is better than a global variable imo
     # open to suggestions
+    @transaction()
     def run(self) -> None:
         self.validate()
 
@@ -85,11 +87,9 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 self.contents,
                 overwrite_all=self.overwrite_all,
             )
-            db.session.commit()
         except CommandException:
             raise
         except Exception as ex:
-            db.session.rollback()
             raise self.import_error() from ex
 
     # TODO (betodealmeida): refactor to use code from other commands
