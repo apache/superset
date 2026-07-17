@@ -18,7 +18,7 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2026-06-23 03:46-0700\n"
-"PO-Revision-Date: 2026-07-14 17:53+0100\n"
+"PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language-Team: Russian <>\n"
 "Language: ru\n"
@@ -263,11 +263,11 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "%s %s"
-msgstr "%s%s"
+msgstr "%s %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s ENCRYPTED EXTRA"
-msgstr "Безопасность"
+msgstr "%s ЗАШИФРОВАННЫЕ ДОП. ДАННЫЕ"
 
 #, python-format
 msgid "%s Error"
@@ -277,9 +277,9 @@ msgstr "%s Ошибка"
 msgid "%s PASSWORD"
 msgstr "%s ПАРОЛЬ"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s Physical"
-msgstr "Физический"
+msgstr "%s физических"
 
 #, python-format
 msgid "%s SSH TUNNEL PASSWORD"
@@ -317,20 +317,20 @@ msgstr "%s Представление аннотаций"
 msgid "%s URL"
 msgstr "%s ссылка"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s Virtual"
-msgstr "Виртуальный"
+msgstr "%s виртуальных"
 
 #, python-format
 msgid "%s aggregates(s)"
 msgstr "Агрегатных функций: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s column"
 msgid_plural "%s columns"
-msgstr[0] "Столбцов: %s"
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "%s столбец"
+msgstr[1] "%s столбца"
+msgstr[2] "%s столбцов"
 
 #, python-format
 msgid "%s column(s)"
@@ -350,9 +350,9 @@ msgstr[0] "%s час назад"
 msgstr[1] "%s часа назад"
 msgstr[2] "%s часов назад"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s imported"
-msgstr "Данные импортированы"
+msgstr "%s импортировано"
 
 #, python-format
 msgid "%s item"
@@ -369,12 +369,12 @@ msgstr "%s элемент(ов)"
 msgid "%s items could not be tagged because you don’t have edit permissions to all selected objects."
 msgstr "К %s элементам нельзя применить теги, так как у вас нет прав на их редактирование"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s metric"
 msgid_plural "%s metrics"
-msgstr[0] "Показатель для сортировки"
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "%s мера"
+msgstr[1] "%s меры"
+msgstr[2] "%s мер"
 
 #, python-format
 msgid "%s min ago"
@@ -398,23 +398,23 @@ msgstr[2] "%s вариантов"
 msgid "%s option(s)"
 msgstr "%s вариант(ов)"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s column"
 msgid_plural "%s out of %s columns"
-msgstr[0] "Автоподбор ширины столбца"
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "%s из %s столбца"
+msgstr[1] "%s из %s столбцов"
+msgstr[2] "%s из %s столбцов"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s metric"
 msgid_plural "%s out of %s metrics"
-msgstr[0] "Показатель для сортировки"
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "%s из %s меры"
+msgstr[1] "%s из %s мер"
+msgstr[2] "%s из %s мер"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s selected"
-msgstr "%s вкладка выбрана"
+msgstr "%s из %s выбрано"
 
 #, python-format
 msgid "%s recipients"
@@ -1114,9 +1114,8 @@ msgstr "Добавление данных об утверждении дашбо
 msgid "Add color for positive/negative change"
 msgstr "Добавить цвет для положительных/отрицательных изменений"
 
-#, fuzzy
 msgid "Add colors to cell bars for +/- for all columns"
-msgstr "Окрасить столбцы для +/-"
+msgstr "Окрасить полосы +/- во всех столбцах"
 
 msgid "Add cross-filter"
 msgstr "Добавить кросс-фильтр"
