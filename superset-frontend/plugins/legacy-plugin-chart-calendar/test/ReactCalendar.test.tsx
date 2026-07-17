@@ -83,6 +83,7 @@ jest.mock('../src/vendor/cal-heatmap', () => ({
 
 interface CalendarHarnessProps {
   firstMetricName: string;
+  secondMetricName?: string;
   showFirstCalendar?: boolean;
 }
 
@@ -118,16 +119,21 @@ function createCalendarProps(metricName: string) {
   };
 }
 
-const StableSecondCalendar = memo(function StableSecondCalendar() {
+const StableSecondCalendar = memo(function StableSecondCalendar({
+  metricName,
+}: {
+  metricName: string;
+}) {
   return (
     <div data-test="calendar-second">
-      <ReactCalendar {...createCalendarProps('second-metric')} />
+      <ReactCalendar {...createCalendarProps(metricName)} />
     </div>
   );
 });
 
 function CalendarHarness({
   firstMetricName,
+  secondMetricName = 'second-metric',
   showFirstCalendar = true,
 }: CalendarHarnessProps) {
   return (
@@ -137,7 +143,7 @@ function CalendarHarness({
           <ReactCalendar {...createCalendarProps(firstMetricName)} />
         </div>
       ) : null}
-      <StableSecondCalendar />
+      <StableSecondCalendar metricName={secondMetricName} />
     </>
   );
 }
@@ -275,6 +281,62 @@ test('rerender and unmount clean up only the affected calendar tooltips', () => 
   expect(
     getSingleTooltipInstanceId(getOwnerTooltips(secondTooltipOwnerId)),
   ).toEqual(secondInitialInstanceId);
+
+  unmount();
+});
+
+test('surviving calendar render synchronously sweeps disconnected sibling tooltips', () => {
+  jest.useFakeTimers();
+
+  const { rerender, unmount } = render(
+    <CalendarHarness
+      firstMetricName="first-metric-initial"
+      secondMetricName="second-metric-initial"
+    />,
+  );
+
+  const firstCalendarOwner = getCalendarOwner('calendar-first');
+  const secondCalendarOwner = getCalendarOwner('calendar-second');
+
+  const firstTooltipOwnerId = getTooltipOwnerId(firstCalendarOwner);
+  const secondTooltipOwnerId = getTooltipOwnerId(secondCalendarOwner);
+
+  const secondInitialInstanceId = getSingleTooltipInstanceId(
+    getOwnerTooltips(secondTooltipOwnerId),
+  );
+
+  rerender(
+    <CalendarHarness
+      firstMetricName="first-metric-initial"
+      secondMetricName="second-metric-initial"
+      showFirstCalendar={false}
+    />,
+  );
+
+  expect(getOwnerTooltips(firstTooltipOwnerId)).toHaveLength(2);
+  expect(getOwnerTooltips(secondTooltipOwnerId)).toHaveLength(2);
+  expect(document.querySelectorAll(`.${CALENDAR_TOOLTIP_CLASS}`)).toHaveLength(
+    4,
+  );
+
+  rerender(
+    <CalendarHarness
+      firstMetricName="first-metric-initial"
+      secondMetricName="second-metric-rerendered"
+      showFirstCalendar={false}
+    />,
+  );
+
+  const secondRerenderedTooltips = getOwnerTooltips(secondTooltipOwnerId);
+
+  expect(getOwnerTooltips(firstTooltipOwnerId)).toHaveLength(0);
+  expect(secondRerenderedTooltips).toHaveLength(2);
+  expect(document.querySelectorAll(`.${CALENDAR_TOOLTIP_CLASS}`)).toHaveLength(
+    2,
+  );
+  expect(getSingleTooltipInstanceId(secondRerenderedTooltips)).not.toEqual(
+    secondInitialInstanceId,
+  );
 
   unmount();
 });

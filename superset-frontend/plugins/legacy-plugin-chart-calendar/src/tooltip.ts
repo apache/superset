@@ -32,6 +32,8 @@ function removeTooltipsByClassName(className: string) {
 export function getCalendarTooltipClassName(element: HTMLElement) {
   const existingClassName = tooltipClassNames.get(element);
   if (existingClassName) {
+    // A disconnect sweep may have removed this owner while the WeakMap entry survived.
+    tooltipOwners.set(existingClassName, element);
     return existingClassName;
   }
 

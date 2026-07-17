@@ -23,6 +23,13 @@ import {
   removeDisconnectedCalendarTooltips,
 } from '../src/tooltip';
 
+function createCalendarTooltip(className: string) {
+  const tooltip = document.createElement('div');
+  tooltip.className = `d3-tip ${CALENDAR_TOOLTIP_CLASS} ${className}`;
+  document.body.appendChild(tooltip);
+  return tooltip;
+}
+
 afterEach(() => {
   document.body.innerHTML = '';
 });
@@ -88,6 +95,31 @@ test('removeDisconnectedCalendarTooltips removes only disconnected calendar tool
   expect(document.querySelector(`.${firstClassName}`)).toBeNull();
   expect(document.querySelector(`.${secondClassName}`)).toBe(secondTooltip);
   expect(document.querySelector('.tooltip-other-chart')).toBe(otherTooltip);
+});
+
+test('reused calendar owners are re-armed for disconnected tooltip cleanup', () => {
+  const calendar = document.createElement('div');
+  document.body.appendChild(calendar);
+
+  const className = getCalendarTooltipClassName(calendar);
+  const firstTooltip = createCalendarTooltip(className);
+
+  calendar.remove();
+  removeDisconnectedCalendarTooltips();
+
+  expect(firstTooltip.isConnected).toBe(false);
+
+  document.body.appendChild(calendar);
+
+  expect(getCalendarTooltipClassName(calendar)).toBe(className);
+
+  const secondTooltip = createCalendarTooltip(className);
+
+  calendar.remove();
+  removeDisconnectedCalendarTooltips();
+
+  expect(secondTooltip.isConnected).toBe(false);
+  expect(document.querySelector(`.${className}`)).toBeNull();
 });
 
 test('CalHeatMap tags tips per instance without removing other mounted calendars', () => {
