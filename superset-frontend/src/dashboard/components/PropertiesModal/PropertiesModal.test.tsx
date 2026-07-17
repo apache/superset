@@ -57,6 +57,7 @@ jest.mock('./sections/AdvancedSection', () => ({
     <div>
       <span>JSON Metadata</span>
       <textarea
+        aria-label="JSON metadata editor"
         data-test="mock-json-editor"
         value={jsonMetadata}
         onChange={e => onJsonMetadataChange(e.target.value)}
@@ -284,6 +285,19 @@ describe('PropertiesModal', () => {
   });
 
   test('preserves a refresh_frequency edited in the JSON editor on save (#42116)', async () => {
+    // Save (onlyApply: false) PUTs to the API before calling onSubmit, so the
+    // request must be mocked or onSubmit is never reached.
+    const put = jest.spyOn(SupersetCore.SupersetClient, 'put');
+    put.mockResolvedValue({
+      json: {
+        result: {
+          dashboard_title: 'dashboard_title',
+          slug: 'slug',
+          json_metadata: 'json_metadata',
+          editors: 'editors',
+        },
+      },
+    } as any);
     mockedIsFeatureEnabled.mockReturnValue(false);
     const props = createProps();
     const propsWithDashboardInfo = {
