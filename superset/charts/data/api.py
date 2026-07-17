@@ -450,6 +450,8 @@ class ChartDataRestApi(ChartRestApi):
             return self.response_404()
         except SupersetSecurityException:
             return self.response_403()
+        except QueryObjectValidationError as error:
+            return self.response_400(message=error.message)
         except ValidationError as error:
             return self.response_400(
                 message=_("Request is incorrect: %(error)s", error=error.messages)

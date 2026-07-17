@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 from contextlib import nullcontext
+from inspect import unwrap
 from typing import Any, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
@@ -38,6 +39,7 @@ from superset.common.chart_data_timing import (
     QueryDataResult,
     QueryTiming,
 )
+from superset.exceptions import QueryObjectValidationError
 from superset.jinja_context import ExtraCache
 from superset.utils import json
 
@@ -389,3 +391,23 @@ def test_chart_data_query_failure_returns_controlled_400(app: SupersetApp) -> No
     assert json.loads(response.get_data(as_text=True)) == {
         "message": "Annotation layer with ID 8 was not found."
     }
+
+
+def test_cached_chart_validation_failure_returns_controlled_400(
+    app: SupersetApp,
+) -> None:
+    api = ChartDataRestApi.__new__(ChartDataRestApi)
+    api._load_query_context_form_from_cache = MagicMock(return_value={})
+    api._create_query_context_from_form = MagicMock(return_value=MagicMock())
+    api.response_400 = MagicMock(return_value=Response(status=400))
+    command = MagicMock()
+    command.validate.side_effect = QueryObjectValidationError("Invalid query context")
+
+    with (
+        app.test_request_context("/api/v1/chart/data/cache-key"),
+        patch("superset.charts.data.api.ChartDataCommand", return_value=command),
+    ):
+        response = unwrap(ChartDataRestApi.data_from_cache)(api, "cache-key")
+
+    assert response.status_code == 400
+    api.response_400.assert_called_once_with(message="Invalid query context")
