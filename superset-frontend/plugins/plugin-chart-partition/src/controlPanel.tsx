@@ -27,11 +27,16 @@ import {
   D3_TIME_FORMAT_OPTIONS,
   DEFAULT_TIME_FORMAT,
   getStandardizedControls,
+  sections,
 } from '@superset-ui/chart-controls';
 import OptionDescription from './OptionDescription';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
+    // buildQuery emits is_timeseries when a Time Series option is selected, so
+    // the query needs a datetime column. Without this section the chart 500s
+    // with "Datetime column not provided...".
+    sections.legacyTimeseriesTime,
     {
       label: t('Query'),
       expanded: true,
