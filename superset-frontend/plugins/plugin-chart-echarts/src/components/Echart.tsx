@@ -124,12 +124,25 @@ use([
 const loadLocale = async (locale: string) => {
   let lang;
   try {
-    lang = await import(`echarts/lib/i18n/lang${locale}`);
+    lang = await import(`echarts/i18n/lang${locale}.js`);
   } catch {
     // Locale not supported in ECharts
   }
   return lang?.default;
 };
+
+// Report/thumbnail screenshots use standalone="true" (charts) or 3 (reports);
+// live embeds use 1/2 and keep animation. See superset/utils/screenshots.py.
+export function isReportScreenshotMode(): boolean {
+  try {
+    const standalone = new URLSearchParams(window.location.search).get(
+      'standalone',
+    );
+    return standalone === 'true' || standalone === '3';
+  } catch {
+    return false;
+  }
+}
 
 function Echart(
   {
@@ -278,13 +291,16 @@ function Echart(
         ? theme.echartsOptionsOverridesByChartType?.[vizType] || {}
         : {};
 
-      // Disable animations during auto-refresh to reduce visual noise
-      const animationOverride = isDashboardRefreshing
-        ? {
-            animation: false,
-            animationDuration: 0,
-          }
-        : {};
+      // Disable animation on auto-refresh and screenshots. Screenshots have no
+      // "render finished" signal, so a running draw can be captured mid-frame,
+      // producing partial/blank charts.
+      const animationOverride =
+        isDashboardRefreshing || isReportScreenshotMode()
+          ? {
+              animation: false,
+              animationDuration: 0,
+            }
+          : {};
 
       const themedEchartOptions = mergeEchartsThemeOverrides(
         baseTheme,

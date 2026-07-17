@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { handleKeyboardActivation } from '@superset-ui/core';
 import { useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
@@ -103,6 +104,7 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
             role="button"
             tabIndex={0}
             onClick={toggleDescription}
+            onKeyDown={handleKeyboardActivation(toggleDescription)}
             style={{ textDecoration: 'underline', cursor: 'pointer' }}
           >
             {isDescriptionVisible ? t('See less') : t('See more')}
@@ -127,7 +129,12 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
     return (
       <>
         <Tooltip title={`${errorType}: ${message}`}>
-          <span role="button" onClick={() => setShowModal(true)} tabIndex={0}>
+          <span
+            role="button"
+            onClick={() => setShowModal(true)}
+            onKeyDown={handleKeyboardActivation(() => setShowModal(true))}
+            tabIndex={0}
+          >
             {renderTrigger()}
           </span>
         </Tooltip>

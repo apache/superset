@@ -54,11 +54,13 @@ export const StyledSelect = styled(Select, {
     flex: ${headerPosition === 'left' ? 1 : 0};
     line-height: ${theme.sizeXL}px;
 
-    && .ant-select-selection-search {
+    && .ant-select-input {
       left: 0px;
     }
 
-    && .ant-select-selection-item, .ant-select-selection-placeholder {
+    && .ant-select-content,
+    && .ant-select-selection-item,
+    && .ant-select-placeholder {
       max-height: ${theme.sizeXL}px;
     }
     .ant-select-selection-item::after {
@@ -68,16 +70,16 @@ export const StyledSelect = styled(Select, {
     ${
       oneLine &&
       `
-        .ant-select-selection-overflow {
+        .ant-select-content {
           flex-wrap: nowrap;
         }
 
-        .ant-select-selection-overflow-item:not(.ant-select-selection-overflow-item-rest):not(.ant-select-selection-overflow-item-suffix) {
+        .ant-select-content-item:not(.ant-select-content-item-rest):not(.ant-select-content-item-suffix) {
           flex-shrink: 1;
           min-width: ${theme.sizeUnit * 13}px;
         }
 
-        .ant-select-selection-overflow-item-suffix {
+        .ant-select-content-item-suffix {
           flex: unset;
           min-width: 0px;
         }

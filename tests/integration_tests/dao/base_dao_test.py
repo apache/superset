@@ -35,7 +35,7 @@ import pytest
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy import Column, DateTime, Integer, String
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm.session import Session
 
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum

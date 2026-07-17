@@ -153,6 +153,16 @@ virtual-dataset SQL) raises a parse error in SQL Lab and dashboard-generated
 queries. Deployments that legitimately run queries above this size should raise
 the value, and `SQL_MAX_PARSE_LENGTH = None` disables the check entirely.
 
+### Ant Design upgraded from v5 to v6
+
+The frontend now builds against Ant Design 6, and `@superset-ui/core` / `@apache-superset/core` peer-depend on `antd ^6`. Custom plugins, extensions, and themes that interact with Ant Design need review:
+
+- **Internal DOM classes were renamed**, so any custom CSS targeting `.ant-*` internals silently stops matching. Notable renames: `.ant-tabs-content-holder` → `.ant-tabs-body-holder`, `.ant-tabs-content` → `.ant-tabs-body`, `.ant-tabs-tabpane` → `.ant-tabs-content`; `.ant-select-selector` → `.ant-select-content`, `.ant-select-selection-placeholder` → `.ant-select-placeholder`, `.ant-select-arrow` → `.ant-select-suffix`; `.ant-tooltip-inner` → `.ant-tooltip-container`; `.ant-popover-inner` → `.ant-popover-container`; `.ant-steps-item-tail` → `.ant-steps-item-rail`.
+- **Some component props changed or were removed** — e.g. `Select` no longer accepts `dropdownAlign`, `visible`/`onVisibleChange` are `open`/`onOpenChange`, `Dropdown` `overlay` is `menu`, `Steps.Step` children are the `items` prop, and `styles.body` on Tooltip/Popover is `styles.container`.
+- **CSS variables are on by default** in antd 6, and `ThemeConfig.cssVar` no longer accepts a boolean; Superset theme configs using `cssVar: true`/`false` are coerced (`true` → `{}`, `false` → omitted).
+
+Theme tokens are unaffected — antd 6 removed none of the tokens Superset exposes, so existing theme configurations continue to work. See the [Ant Design v6 migration guide](https://ant.design/docs/react/migration-v6) for the complete upstream list.
+
 ### Guest-token RLS rules reject unknown fields
 
 The `rls` rules passed to `POST /api/v1/security/guest_token/` are now validated strictly: a rule may only contain `dataset` and `clause`. Previously unknown fields were silently dropped, so a mistyped or legacy scope key (most commonly `datasource` instead of `dataset`) produced a rule with no `dataset`, which is treated as a *global* rule applied to every dataset the embedded resource can reach. Such a request now returns HTTP 400 identifying the offending field instead of issuing a token with an unintended global rule. Integrators that were sending extra fields in RLS rules must remove them; valid dataset-scoped (`{"dataset": 41, "clause": "..."}`) and global (`{"clause": "..."}`) rules are unaffected.
@@ -181,6 +191,10 @@ helm upgrade <release-name> superset/superset
 ```
 
 Alternatively, perform a fresh install. This is a one-time migration; subsequent upgrades are unaffected.
+
+### Time-series tooltips follow the selected time grain
+
+Tooltips on the Time-series and Mixed Time-series ECharts plugins now respect the chart's time grain (and any dashboard-level time-grain override delivered via `extra_form_data`) when the tooltip time format is left on Adaptive formatting (the default). Tooltips read grain-appropriate labels such as `Jan 2021` (month), `2021 Q1` (quarter), `2021` (year), and weekly date ranges, becoming grain-aware like the x-axis, though the two are formatted independently and their labels may not always match exactly. Only a custom, explicitly-set tooltip time format (a d3 format string) is unaffected — that always wins over the grain.
 
 ### Pivot table First/Last aggregations follow data order
 
