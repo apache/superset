@@ -20,8 +20,17 @@ import json
 import os
 import re
 import subprocess
+import time
 from typing import List, Optional
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+
+# The change detector gates the entire CI matrix, so a single transient GitHub
+# API hiccup should not fail the build. Retry server errors and network blips
+# with exponential backoff before giving up.
+MAX_RETRIES = 4
+RETRY_BACKOFF_SECONDS = 2
+REQUEST_TIMEOUT_SECONDS = 30
 
 # Define patterns for each group of files you're interested in
 PATTERNS = {
@@ -57,15 +66,33 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
 
 def fetch_files_github_api(url: str):  # type: ignore
-    """Fetches data using GitHub API."""
+    """Fetches data using GitHub API, retrying on transient failures."""
     req = Request(url)  # noqa: S310
     req.add_header("Authorization", f"Bearer {GITHUB_TOKEN}")
     req.add_header("Accept", "application/vnd.github.v3+json")
 
     print(f"Fetching from {url}")
-    with urlopen(req) as response:  # noqa: S310
-        body = response.read()
-        return json.loads(body)
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            with urlopen(req, timeout=REQUEST_TIMEOUT_SECONDS) as response:  # noqa: S310
+                body = response.read()
+                return json.loads(body)
+        except (HTTPError, URLError) as err:
+            # Only retry transient failures: 5xx responses and network errors
+            # (URLError has no status code). Client errors (4xx) are
+            # deterministic, so re-raise them immediately.
+            status = getattr(err, "code", None)
+            is_transient = status is None or status >= 500
+            if not is_transient or attempt == MAX_RETRIES:
+                raise
+            wait = RETRY_BACKOFF_SECONDS * 2 ** (attempt - 1)
+            print(
+                f"Attempt {attempt}/{MAX_RETRIES} failed ({err}); "
+                f"retrying in {wait}s..."
+            )
+            time.sleep(wait)
+    # The loop always returns or raises above; this satisfies type checkers.
+    raise RuntimeError(f"Exhausted retries fetching from {url}")
 
 
 def fetch_changed_files_pr(repo: str, pr_number: str) -> List[str]:
