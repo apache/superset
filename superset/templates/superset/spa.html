@@ -41,7 +41,7 @@
         <meta property="og:description" content="{{ dashboard_description }}" />
       {% endif %}
       <meta property="og:type" content="article" />
-      <meta property="og:url" content="{{ request.url }}" />
+      {% if request %}<meta property="og:url" content="{{ request.url }}" />{% endif %}
     {% endblock %}
 
     <style>
