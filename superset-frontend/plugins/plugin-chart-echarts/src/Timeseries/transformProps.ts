@@ -1015,10 +1015,10 @@ export default function transformProps(
     }
   }
 
-  const dynamicZoomBottom = Math.max(
-    TIMESERIES_CONSTANTS.zoomBottom,
-    Math.floor(height * 0.08),
-  );
+  const dynamicZoomBottom = Math.min(
+  TIMESERIES_CONSTANTS.zoomBottom,
+  Math.max(TIMESERIES_CONSTANTS.zoomBottomMin, Math.floor(height * 0.08)),
+);
 
   const echartOptions: EChartsCoreOption = {
     useUTC: true,

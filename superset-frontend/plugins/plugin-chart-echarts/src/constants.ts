@@ -39,6 +39,7 @@ export const TIMESERIES_CONSTANTS = {
   legendRightTopOffset: 30,
   legendTopRightOffset: 55,
   zoomBottom: 30,
+  zoomBottomMin: 10,
   toolboxTop: 0,
   toolboxRight: 5,
   dataZoomStart: 0,
