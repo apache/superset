@@ -107,13 +107,13 @@ const HALF_DONUT_LAYOUT: Record<
  * Determines the type of semicircular layout based on the start angle and swept angle.
  *
  * All four semicircle orientations are supported:
- * - `'top'`    — arc at the top, center shifted down (center Y = 70%).
- * - `'bottom'` — arc at the bottom, center shifted up (center Y = 30%).
- * - `'left'`   — arc on the left, center shifted right (center X = 70%).
- * - `'right'`  — arc on the right, center shifted left (center X = 30%).
+ * - `'top'`    — the arc is positioned at the top; the chart center shifts downwards.
+ * - `'bottom'` — the arc is positioned at the bottom; the chart center shifts upwards.
+ * - `'left'`   — the arc is positioned at the left; the chart center shifts right.
+ * - `'right'`  — the arc is positioned at the right; the chart center shifts left.
  *
  * @param startAngle - The start angle of the arc in degrees (0–360).
- * @param sweptAngle - The swept angle of the arc in degrees (0–360).
+ * @param sweptAngle - The swept angle of the arc in degrees (10–360).
  * @returns The type of semicircular layout.
  */
 
