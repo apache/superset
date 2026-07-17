@@ -162,14 +162,22 @@ export const getYAxisFormatter = (
 
 export function getTooltipTimeFormatter(
   format?: string,
+  timeGrain?: TimeGranularity,
 ): TimeFormatter | StringConstructor {
-  if (format === SMART_DATE_ID) {
-    return getSmartDateVerboseFormatter();
+  // When a time grain is active and the user hasn't pinned an explicit format,
+  // honor the grain so tooltips read "Jan 2021", "2021 Q1", "2021", weekly
+  // ranges, etc. instead of a fixed timestamp. An explicit custom format is
+  // always respected verbatim.
+  if (!format || format === SMART_DATE_ID) {
+    if (timeGrain) {
+      return getTimeFormatter(undefined, timeGrain);
+    }
+    if (format === SMART_DATE_ID) {
+      return getSmartDateVerboseFormatter();
+    }
+    return String;
   }
-  if (format) {
-    return getTimeFormatter(format);
-  }
-  return String;
+  return getTimeFormatter(format);
 }
 
 export function getXAxisFormatter(

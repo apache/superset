@@ -21,7 +21,7 @@ import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import type { ThunkDispatch } from 'redux-thunk';
 import type { AnyAction } from 'redux';
-import { waitFor } from 'spec/helpers/testing-library';
+import { waitFor, defaultStore } from 'spec/helpers/testing-library';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import type { QueryEditor, Table, SqlLabRootState } from 'src/SqlLab/types';
 import { LOG_EVENT } from 'src/logger/actions';
@@ -39,7 +39,6 @@ import {
   queryHistoryApi,
   type QueryResult,
 } from 'src/hooks/apiResources/queries';
-import { defaultStore } from 'spec/helpers/testing-library';
 import { ToastType } from '../../components/MessageToasts/types';
 
 const isFeatureEnabledMock = isFeatureEnabled as unknown as jest.Mock;

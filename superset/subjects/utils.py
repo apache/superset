@@ -141,6 +141,41 @@ def get_subject(id_: int) -> Subject | None:
     return db.session.get(Subject, id_)
 
 
+def get_role_subject(role_id: int) -> Subject | None:
+    """Get the ROLE-type Subject for a given role ID."""
+    return (
+        db.session.query(Subject)
+        .filter_by(
+            role_id=role_id,
+            type=SubjectType.ROLE,
+        )
+        .first()
+    )
+
+
+def get_or_create_role_subject(role_id: int) -> Subject | None:
+    """Get or create the ROLE-type Subject for a given role ID.
+
+    Mirrors ``get_or_create_user_subject``: a role that exists but has no
+    Subject row yet (e.g. created before the sync hooks were installed and
+    not yet backfilled) is synced on demand rather than treated as
+    nonexistent. Returns ``None`` only when no such role exists.
+    """
+    if subject := get_role_subject(role_id):
+        return subject
+
+    from superset import security_manager
+    from superset.subjects.sync import sync_role_subject
+
+    role = db.session.get(security_manager.role_model, role_id)
+    if not role:
+        return None
+
+    sync_role_subject(role)
+    db.session.flush()
+    return get_role_subject(role_id)
+
+
 def subjects_from_roles(roles: list[Role | int]) -> list[Subject]:
     """Convert a list of Role objects or role IDs to role-type Subjects.
 

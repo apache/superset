@@ -415,6 +415,8 @@ supersetNode:
           cpu: "250m"
           memory: "128Mi"
 
+  # -- Extra init containers appended after supersetNode initContainers
+  extraInitContainers: []
   # -- Launch additional containers into supersetNode pod
   extraContainers: []
   # -- Annotations to be added to supersetNode deployment
@@ -542,6 +544,8 @@ supersetWorker:
         requests:
           cpu: "250m"
           memory: "128Mi"
+  # -- Extra init containers appended after supersetWorker initContainers
+  extraInitContainers: []
   # -- Launch additional containers into supersetWorker pod
   extraContainers: []
   # -- Annotations to be added to supersetWorker deployment
@@ -663,6 +667,8 @@ supersetCeleryBeat:
         requests:
           cpu: "250m"
           memory: "128Mi"
+  # -- Extra init containers appended after supersetCeleryBeat initContainers
+  extraInitContainers: []
   # -- Launch additional containers into supersetCeleryBeat pods
   extraContainers: []
   # -- Annotations to be added to supersetCeleryBeat deployment
@@ -780,6 +786,8 @@ supersetCeleryFlower:
         requests:
           cpu: "250m"
           memory: "128Mi"
+  # -- Extra init containers appended after supersetCeleryFlower initContainers
+  extraInitContainers: []
   # -- Launch additional containers into supersetCeleryFlower pods
   extraContainers: []
   # -- Annotations to be added to supersetCeleryFlower deployment
@@ -967,6 +975,8 @@ init:
         requests:
           cpu: "250m"
           memory: "128Mi"
+  # -- Extra init containers appended after init job initContainers
+  extraInitContainers: []
   # -- DEPRECATED: this field is no longer used by the chart.
   # The init script is rendered entirely from the internal `superset.initScript` template
   # (which runs `superset db upgrade`, `superset init`, admin creation, and examples).
