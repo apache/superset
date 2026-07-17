@@ -325,6 +325,8 @@ def _read_excel_for_client_processing(
     first_column = df.columns[0]
     expected_columns = {
         *get_column_names(form_data.get("columns")),
+        *get_column_names(form_data.get("groupbyRows")),
+        *get_column_names(form_data.get("groupbyColumns")),
         *get_metric_names(form_data.get("metrics")),
     }
 

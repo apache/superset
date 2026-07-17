@@ -93,6 +93,17 @@ def test_build_email_attachment(
     assert attachment.get_payload(decode=True) == b"attachment"
 
 
+def test_build_email_attachment_encodes_text_payload() -> None:
+    """Text attachment bodies should be encoded to stable UTF-8 bytes."""
+    attachment = build_email_attachment("report.csv", "город,value\nМосква,1")
+
+    assert attachment.get_content_type() == "application/octet-stream"
+    assert attachment.get_filename() == "report.csv"
+    assert attachment.get_payload(decode=True) == "город,value\nМосква,1".encode(
+        "utf-8"
+    )
+
+
 @dataclass
 class MockZipInfo:
     file_size: int

@@ -1365,7 +1365,7 @@ def test_get_chart_data_rejects_non_table_format(mocker: MockerFixture) -> None:
         ReportScheduleExecuteUnexpectedError,
         match="Unsupported chart data result format: json",
     ):
-        report_state._get_chart_data(ChartDataResultFormat.JSON)
+        report_state._get_data(ChartDataResultFormat.JSON)
 
     get_url.assert_not_called()
 
@@ -1400,7 +1400,7 @@ def _mock_xlsx_chart_data_dependencies(
     return get_url, auth_cookies
 
 
-def test_get_xlsx_data_fetches_chart_data(
+def test_get_data_xlsx_fetches_chart_data(
     app: SupersetApp,
     mocker: MockerFixture,
 ) -> None:
@@ -1416,7 +1416,7 @@ def test_get_xlsx_data_fetches_chart_data(
         return_value=b"xlsx-data",
     )
 
-    assert report_state._get_xlsx_data() == b"xlsx-data"
+    assert report_state._get_data(ChartDataResultFormat.XLSX) == b"xlsx-data"
     get_url.assert_called_once_with(result_format=ChartDataResultFormat.XLSX)
     get_chart_csv_data.assert_called_once_with(
         chart_url="/api/v1/chart/1/data/xlsx",
@@ -1431,16 +1431,16 @@ def test_get_xlsx_data_fetches_chart_data(
         (
             SoftTimeLimitExceeded(),
             ReportScheduleXlsxTimeout,
-            "timeout occurred while generating an xlsx",
+            "timeout occurred while generating an Excel file",
         ),
         (
             RuntimeError("export failed"),
             ReportScheduleXlsxFailedError,
-            "Failed generating xlsx export failed",
+            "Failed generating excel export failed",
         ),
     ],
 )
-def test_get_xlsx_data_maps_errors(
+def test_get_data_xlsx_maps_errors(
     app: SupersetApp,
     mocker: MockerFixture,
     side_effect: Exception,
@@ -1460,12 +1460,12 @@ def test_get_xlsx_data_maps_errors(
     )
 
     with pytest.raises(expected_exception, match=expected_message) as exc_info:
-        report_state._get_xlsx_data()
+        report_state._get_data(ChartDataResultFormat.XLSX)
 
     assert exc_info.value.__cause__ is side_effect
 
 
-def test_get_xlsx_data_rejects_empty_result(
+def test_get_data_xlsx_rejects_empty_result(
     app: SupersetApp,
     mocker: MockerFixture,
 ) -> None:
@@ -1483,9 +1483,9 @@ def test_get_xlsx_data_rejects_empty_result(
 
     with pytest.raises(
         ReportScheduleXlsxFailedError,
-        match="Report Schedule execution failed when generating an xlsx",
+        match="Report Schedule execution failed when generating an Excel file",
     ) as exc_info:
-        report_state._get_xlsx_data()
+        report_state._get_data(ChartDataResultFormat.XLSX)
 
     assert exc_info.value.__cause__ is None
 
@@ -1505,9 +1505,9 @@ def test_notification_content_contains_xlsx(mocker: MockerFixture) -> None:
     )
     mocker.patch.object(report_state, "_get_url", return_value="/chart/1")
     mocker.patch.object(report_state, "_get_log_data", return_value={})
-    get_xlsx_data = mocker.patch.object(
+    get_data = mocker.patch.object(
         report_state,
-        "_get_xlsx_data",
+        "_get_data",
         return_value=b"xlsx-data",
     )
 
@@ -1515,7 +1515,7 @@ def test_notification_content_contains_xlsx(mocker: MockerFixture) -> None:
 
     assert content.xlsx == b"xlsx-data"
     assert content.csv is None
-    get_xlsx_data.assert_called_once_with()
+    get_data.assert_called_once_with(ChartDataResultFormat.XLSX)
 
 
 @pytest.mark.parametrize(

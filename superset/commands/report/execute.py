@@ -719,6 +719,11 @@ class BaseReportState:
         This reuses the export path's post-processing and index handling,
         keeping report output consistent with a chart's manual export.
         """
+        if result_format not in ChartDataResultFormat.table_like():
+            raise ReportScheduleExecuteUnexpectedError(
+                f"Unsupported chart data result format: {result_format}"
+            )
+
         timeout_error: type[CommandException]
         failed_error: type[CommandException]
         if result_format == ChartDataResultFormat.XLSX:

@@ -2896,6 +2896,41 @@ def test_apply_client_processing_xlsx_format_without_index_default_config() -> N
     _assert_xlsx_client_processing(index=False)
 
 
+@with_config({"EXCEL_EXPORT": {"index": False}})
+def test_apply_client_processing_xlsx_format_pivot_table_groupby_columns() -> None:
+    """XLSX post-processing should preserve pivot groupby columns."""
+    source_df = pd.DataFrame(
+        {
+            "city": ["Paris", "Paris", "London"],
+            "segment": ["Consumer", "Corporate", "Consumer"],
+            "value": [10, 20, 30],
+        },
+    )
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.XLSX,
+                "data": excel.df_to_excel(source_df, index=False),
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyColumns": ["segment"],
+        "groupbyRows": ["city"],
+        "metrics": ["value"],
+    }
+
+    processed_result = apply_client_processing(result, form_data)
+    query = processed_result["queries"][0]
+    output_df = pd.read_excel(BytesIO(query["data"]))
+
+    assert query["rowcount"] == 2
+    assert set(output_df["city"]) == {"London", "Paris"}
+    assert "Consumer" in output_df.columns
+    assert "Corporate" in output_df.columns
+
+
 @with_config({"CSV_EXPORT": {"sep": ";", "decimal": ","}})
 def test_apply_client_processing_csv_format_custom_delimiter():
     """

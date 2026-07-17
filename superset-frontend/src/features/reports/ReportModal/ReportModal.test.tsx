@@ -138,7 +138,7 @@ test('does not allow user to create a report without a name', () => {
 test('shows xlsx notification format option', () => {
   render(<ReportModal {...defaultProps} />, { useRedux: true });
   expect(
-    screen.getByText('Excel (XLSX) attached in email'),
+    screen.getByText('Formatted Excel attached in email'),
   ).toBeInTheDocument();
 });
 

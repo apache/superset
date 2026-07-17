@@ -132,8 +132,9 @@ def build_email_attachment(name: str, body: bytes | str) -> MIMEApplication:
     Create an email attachment part with stable filename metadata.
     """
     subtype = EMAIL_ATTACHMENT_SUBTYPES.get(os.path.splitext(name)[1].lower())
+    payload = body.encode("utf-8") if isinstance(body, str) else body
     attachment = MIMEApplication(
-        body,
+        payload,
         _subtype=subtype or "octet-stream",
         Name=name,
     )
