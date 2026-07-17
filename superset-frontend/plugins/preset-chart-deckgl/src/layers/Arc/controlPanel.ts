@@ -31,7 +31,6 @@ import {
 import {
   filterNulls,
   autozoom,
-  jsColumns,
   legendFormat,
   legendPosition,
   viewport,
@@ -162,10 +161,6 @@ const config: ControlPanelConfig = {
         [legendPosition],
         [legendFormat],
       ],
-    },
-    {
-      label: t('Advanced'),
-      controlSetRows: [[jsColumns]],
     },
   ],
   controlOverrides: {

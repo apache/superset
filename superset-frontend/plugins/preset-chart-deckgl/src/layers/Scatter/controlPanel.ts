@@ -23,7 +23,6 @@ import timeGrainSqlaAnimationOverrides from '../../utilities/controls';
 import {
   filterNulls,
   autozoom,
-  jsColumns,
   legendFormat,
   legendPosition,
   viewport,
@@ -140,10 +139,6 @@ const config: ControlPanelConfig = {
         [legendFormat],
         ...generateDeckGLColorSchemeControls({}),
       ],
-    },
-    {
-      label: t('Advanced'),
-      controlSetRows: [[jsColumns]],
     },
   ],
   controlOverrides: {

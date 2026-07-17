@@ -32,7 +32,6 @@ import {
   deckGLFixedColor,
   deckGLLinearColorSchemeSelect,
   filterNulls,
-  jsColumns,
   mapboxStyle,
   maplibreStyle,
   mapProvider,
@@ -144,10 +143,6 @@ const config: ControlPanelConfig = {
           },
         ],
       ],
-    },
-    {
-      label: t('Advanced'),
-      controlSetRows: [[jsColumns]],
     },
   ],
   controlOverrides: {

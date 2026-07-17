@@ -137,7 +137,6 @@ export const PolygonChartViz = ({
       toggle_polygons: true,
       legend_position: 'tr',
       legend_format: null,
-      js_columns: ['population', 'area'],
     }}
   />
 );

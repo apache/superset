@@ -54,7 +54,6 @@ export interface SpatialFormData extends QueryFormData {
   size?: string;
   grid_size?: number;
   js_agg_function?: string;
-  js_columns?: string[];
   color_scheme?: string;
   color_scheme_type?: string;
   color_breakpoints?: number[];
@@ -118,7 +117,7 @@ export function addSpatialNullFilters(
 }
 
 export function buildSpatialQuery(formData: SpatialFormData) {
-  const { spatial, size: metric, js_columns, tooltip_contents } = formData;
+  const { spatial, size: metric, tooltip_contents } = formData;
 
   if (!spatial) {
     throw new Error(`Spatial configuration is required for this chart`);
@@ -128,14 +127,6 @@ export function buildSpatialQuery(formData: SpatialFormData) {
       const spatialColumns = getSpatialColumns(spatial);
       let columns = [...(baseQueryObject.columns || []), ...spatialColumns];
       const metrics = metric ? [metric] : [];
-
-      if (js_columns?.length) {
-        js_columns.forEach(col => {
-          if (!columns.includes(col)) {
-            columns.push(col);
-          }
-        });
-      }
 
       columns = addTooltipColumnsToQuery(columns, tooltip_contents);
 
@@ -206,29 +197,10 @@ function reverseGeohashDecode(geohashCode: string): [number, number] | null {
   }
 }
 
-export function addJsColumnsToExtraProps<
-  T extends { extraProps?: Record<string, unknown> },
->(feature: T, record: DataRecord, jsColumns?: string[]): T {
-  if (!jsColumns?.length) {
-    return feature;
-  }
-
-  const extraProps: Record<string, unknown> = { ...feature.extraProps };
-
-  jsColumns.forEach(col => {
-    if (record[col] !== undefined) {
-      extraProps[col] = record[col];
-    }
-  });
-
-  return { ...feature, extraProps };
-}
-
 export function processSpatialData(
   records: DataRecord[],
   spatial: SpatialConfiguration,
   metricLabel?: string,
-  jsColumns?: string[],
 ): SpatialPoint[] {
   if (!spatial || !records.length) {
     return [];
@@ -236,7 +208,6 @@ export function processSpatialData(
 
   const features: SpatialPoint[] = [];
   const spatialColumns = getSpatialColumns(spatial);
-  const jsColumnsSet = jsColumns ? new Set(jsColumns) : null;
   const spatialColumnsSet = new Set(spatialColumns);
 
   for (const record of records) {
@@ -285,23 +256,18 @@ export function processSpatialData(
       }
     }
 
-    let spatialPoint: SpatialPoint = {
+    const spatialPoint: SpatialPoint = {
       position,
       weight,
       extraProps: {},
     };
 
-    spatialPoint = addJsColumnsToExtraProps(spatialPoint, record, jsColumns);
     Object.keys(record).forEach(key => {
       if (spatialColumnsSet.has(key)) {
         return;
       }
 
       if (key === metricLabel) {
-        return;
-      }
-
-      if (jsColumnsSet?.has(key)) {
         return;
       }
 
@@ -344,17 +310,12 @@ export function transformSpatialProps(chartProps: ChartProps) {
     setDataMask = NOOP,
   } = hooks;
 
-  const { spatial, size: metric, js_columns } = formData as SpatialFormData;
+  const { spatial, size: metric } = formData as SpatialFormData;
   const metricLabel = metric ? getMetricLabel(metric) : undefined;
 
   const queryData = queriesData[0];
   const records = queryData?.data || [];
-  const features = processSpatialData(
-    records,
-    spatial,
-    metricLabel,
-    js_columns,
-  );
+  const features = processSpatialData(records, spatial, metricLabel);
 
   return {
     datasource,

@@ -8,9 +8,6 @@
   "datasource": "12__table",
   "filters": [],
   "having": "",
-  "js_columns": [
-    "color"
-  ],
   "mapbox_style": "mapbox://styles/mapbox/light-v9",
   "reverse_long_lat": false,
   "row_limit": 5000,

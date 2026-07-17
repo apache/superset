@@ -26,8 +26,6 @@ params:
     g: 122
     r: 0
   datasource: 12__table
-  js_columns:
-  - color
   line_column: path_json
   line_type: json
   line_width: 150

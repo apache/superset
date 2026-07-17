@@ -234,7 +234,6 @@ class TestImportChartsCommand(SupersetTestCase):
             "annotation_layers": [],
             "color_picker": {"a": 1, "b": 135, "g": 122, "r": 0},
             "datasource": dataset.uid if dataset else None,
-            "js_columns": ["color"],
             "line_column": "path_json",
             "line_type": "json",
             "line_width": 150,

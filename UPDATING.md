@@ -47,6 +47,13 @@ JavaScript-mode generators) have been removed. These controls let users write ar
 JavaScript, sandboxed via Node's `vm` module, to customize deck.gl tooltips, click
 behavior, and data transforms; the flag defaulted off and the feature saw negligible use.
 
+The deck.gl "Extra data for JS" control (`js_columns`) has also been removed. It only
+ever existed to feed extra columns into the JavaScript controls above; deck.gl's
+built-in field-based tooltips and cross-filtering already pull in any columns they need
+via `tooltip_contents`/`cross_filter_column`, so this control had no remaining purpose.
+Any chart layer whose "Advanced" control panel section only contained this control no
+longer has an "Advanced" section.
+
 Any saved charts with these fields set will simply ignore them going forward and fall back
 to deck.gl's built-in field-based tooltips (`tooltip_contents`/`tooltip_template`) and
 native click/cross-filter behavior. No migration is required; the fields are dropped

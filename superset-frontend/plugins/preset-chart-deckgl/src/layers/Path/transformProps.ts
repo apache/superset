@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ChartProps, DTTM_ALIAS, getMetricLabel } from '@superset-ui/core';
-import { addJsColumnsToExtraProps, DataRecord } from '../spatialUtils';
+import { DataRecord } from '../spatialUtils';
 import {
   createBaseTransformResult,
   getRecordsFromQuery,
@@ -87,7 +87,6 @@ function processPathData(
   lineType: 'polyline' | 'json' | 'geohash' = 'json',
   reverseLongLat: boolean = false,
   metricLabel?: string,
-  jsColumns?: string[],
   widthMetricLabel?: string,
   fixedWidthValue?: number | string | null,
   categoryColumn?: string,
@@ -105,7 +104,6 @@ function processPathData(
       metricLabel,
       widthMetricLabel,
       categoryColumn,
-      ...(jsColumns || []),
     ].filter(Boolean) as string[],
   );
 
@@ -151,7 +149,6 @@ function processPathData(
       feature.cat_color = String(record[categoryColumn]);
     }
 
-    feature = addJsColumnsToExtraProps(feature, record, jsColumns);
     feature = addPropertiesToFeature(feature, record, excludeKeys);
     return feature;
   });
@@ -166,7 +163,6 @@ export default function transformProps(chartProps: ChartProps) {
     line_width,
     dimension,
     reverse_long_lat = false,
-    js_columns,
     breakpoint_metric,
   } = formData as DeckPathFormData;
 
@@ -201,7 +197,6 @@ export default function transformProps(chartProps: ChartProps) {
     line_type,
     reverse_long_lat,
     metricLabel,
-    js_columns,
     widthMetricLabel,
     fixedWidthValue,
     dimension,

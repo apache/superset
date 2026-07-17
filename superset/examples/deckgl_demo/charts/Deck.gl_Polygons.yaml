@@ -29,7 +29,6 @@ params:
     r: 3
   filled: true
   granularity_sqla: null
-  js_columns: []
   legend_format: .1s
   legend_position: tr
   line_column: contour

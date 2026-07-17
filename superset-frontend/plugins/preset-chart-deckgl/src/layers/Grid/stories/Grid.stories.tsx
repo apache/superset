@@ -92,7 +92,6 @@ export const GridChartViz = ({
       autozoom,
       grid_size: gridSize,
       extruded,
-      js_columns: [],
     }}
   />
 );

@@ -27,7 +27,6 @@ import {
   filterNulls,
   generateDeckGLColorSchemeControls,
   gridSize,
-  jsColumns,
   mapboxStyle,
   maplibreStyle,
   mapProvider,
@@ -97,10 +96,6 @@ const config: ControlPanelConfig = {
           },
         ],
       ],
-    },
-    {
-      label: t('Advanced'),
-      controlSetRows: [[jsColumns]],
     },
   ],
   formDataOverrides: formData => ({

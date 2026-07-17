@@ -21,7 +21,6 @@ import { t } from '@apache-superset/core/translation';
 import {
   filterNulls,
   autozoom,
-  jsColumns,
   viewport,
   lineType,
   reverseLongLat,
@@ -149,10 +148,6 @@ const config: ControlPanelConfig = {
           defaultSchemeType: COLOR_SCHEME_TYPES.fixed_color,
         }),
       ],
-    },
-    {
-      label: t('Advanced'),
-      controlSetRows: [[jsColumns]],
     },
   ],
 };

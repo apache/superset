@@ -106,7 +106,6 @@ export const ScatterChartViz = ({
       dimension: null,
       color_scheme: 'bnbColors',
       label_colors: {},
-      js_columns: [],
       granularity: null,
     }}
   />

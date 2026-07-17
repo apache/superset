@@ -183,18 +183,6 @@ export const dimension: CustomControlItem = {
   },
 };
 
-export const jsColumns = {
-  name: 'js_columns',
-  config: {
-    ...sharedControls.groupby,
-    label: t('Extra data for JS'),
-    default: [],
-    description: t(
-      'List of extra columns made available in JavaScript functions',
-    ),
-  },
-};
-
 export const crossFilterColumn: CustomControlItem = {
   name: 'cross_filter_column',
   config: {

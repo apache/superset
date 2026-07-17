@@ -26,7 +26,6 @@ import {
 import { formatSelectOptions } from '../../utilities/utils';
 import {
   filterNulls,
-  jsColumns,
   fillColorPicker,
   strokeColorPicker,
   filled,
@@ -289,7 +288,7 @@ const config: ControlPanelConfig = {
     },
     {
       label: t('Advanced'),
-      controlSetRows: [[crossFilterColumn], [jsColumns]],
+      controlSetRows: [[crossFilterColumn]],
     },
   ],
 };

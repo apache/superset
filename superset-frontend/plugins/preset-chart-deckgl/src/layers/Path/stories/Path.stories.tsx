@@ -97,7 +97,6 @@ export const PathChartViz = ({
         line_width: lineWidth,
         reverse_long_lat: false,
         autozoom,
-        js_columns: ['color'],
       }}
     />
   );

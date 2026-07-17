@@ -26,7 +26,6 @@ import { COLOR_SCHEME_TYPES, formatSelectOptions } from '../../utilities/utils';
 import {
   filterNulls,
   autozoom,
-  jsColumns,
   crossFilterColumn,
   legendFormat,
   legendPosition,
@@ -200,7 +199,7 @@ const config: ControlPanelConfig = {
     },
     {
       label: t('Advanced'),
-      controlSetRows: [[crossFilterColumn], [jsColumns]],
+      controlSetRows: [[crossFilterColumn]],
     },
   ],
   controlOverrides: {

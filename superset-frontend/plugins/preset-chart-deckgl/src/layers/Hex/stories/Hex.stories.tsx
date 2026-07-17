@@ -93,7 +93,6 @@ export const HexChartViz = ({
       grid_size: gridSize,
       extruded,
       js_agg_function: 'sum',
-      js_columns: [],
     }}
   />
 );
