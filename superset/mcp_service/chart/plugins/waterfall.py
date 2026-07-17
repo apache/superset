@@ -24,6 +24,7 @@ from typing import Any, ClassVar
 
 from superset.mcp_service.chart.chart_utils import (
     _summarize_filters,
+    is_column_truly_temporal,
     map_waterfall_config,
 )
 from superset.mcp_service.chart.plugin import BaseChartPlugin
@@ -98,6 +99,44 @@ class WaterfallChartPlugin(BaseChartPlugin):
             what += f" ({config.breakdown.label or config.breakdown.name})"
         context = _summarize_filters(config.filters)
         return self._with_context(what, context)
+
+    def post_map_validate(
+        self,
+        config: Any,
+        form_data: dict[str, Any],
+        dataset_id: int | str | None = None,
+    ) -> ChartGenerationError | None:
+        """Reject time_grain on a non-temporal x_axis.
+
+        The mapper sets time_grain_sqla/granularity_sqla when time_grain is
+        given; applying DATE_TRUNC to a non-temporal x_axis (e.g. a category
+        or a BIGINT year) errors or produces nonsense at query time. Only
+        validated when time_grain is set and dataset context is available.
+        """
+        if not isinstance(config, WaterfallChartConfig):
+            return None
+        if not config.time_grain or dataset_id is None:
+            return None
+        if is_column_truly_temporal(config.x_axis.name or "", dataset_id):
+            return None
+        return ChartGenerationError(
+            error_type="non_temporal_waterfall_grain",
+            message=(
+                f"time_grain='{config.time_grain}' requires a temporal "
+                f"x_axis, but '{config.x_axis.name}' is not a DATE/DATETIME/"
+                "TIMESTAMP column."
+            ),
+            details=(
+                "time_grain buckets a temporal x_axis; for a category or "
+                "numeric x_axis, omit time_grain (each value is already one "
+                "waterfall step)."
+            ),
+            suggestions=[
+                "Remove time_grain for a non-temporal x_axis",
+                "Use get_dataset_info to find a temporal column for x_axis",
+            ],
+            error_code="NON_TEMPORAL_WATERFALL_GRAIN",
+        )
 
     def resolve_viz_type(self, config: Any) -> str:
         return "waterfall"

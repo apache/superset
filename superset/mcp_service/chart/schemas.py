@@ -2080,7 +2080,8 @@ class WaterfallChartConfig(UnknownFieldCheckMixin):
         from existing waterfall form_data sends a list. Unwrap a length-1
         list to the single value; reject longer lists rather than silently
         dropping breakdowns. Native form_data also names physical columns as
-        bare strings, so a string is coerced to ``{"name": ...}``.
+        bare strings, so a bare string in groupby/breakdown/x_axis is coerced to
+        ``{"name": ...}``.
         """
 
         def _coerce(value: Any) -> Any:
@@ -2098,6 +2099,9 @@ class WaterfallChartConfig(UnknownFieldCheckMixin):
             for key in ("groupby", "breakdown"):
                 if key in data:
                     data[key] = _coerce(data[key])
+            # x_axis is a bare column name in native form_data too.
+            if isinstance(data.get("x_axis"), str):
+                data["x_axis"] = {"name": data["x_axis"]}
         return data
 
     @model_validator(mode="after")

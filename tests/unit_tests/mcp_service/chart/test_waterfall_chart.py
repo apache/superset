@@ -255,3 +255,62 @@ class TestWaterfallTemporalAndNativeShape:
         )
         assert config.breakdown is not None
         assert config.breakdown.name == "region"
+
+
+class TestWaterfallNativeXAxisAndTemporalValidation:
+    """x_axis string coercion, recommendation category, temporal grain check."""
+
+    def test_x_axis_string_coerced(self) -> None:
+        config = WaterfallChartConfig.model_validate(
+            {
+                "chart_type": "waterfall",
+                "x_axis": "order_date",
+                "metric": {"name": "revenue", "aggregate": "SUM"},
+            }
+        )
+        assert config.x_axis.name == "order_date"
+
+    def test_waterfall_in_recommendation_category_map(self) -> None:
+        from superset.mcp_service.chart.tool.get_chart_data import _VIZ_CATEGORY
+
+        assert _VIZ_CATEGORY.get("waterfall") == "waterfall"
+
+    def test_time_grain_on_non_temporal_x_axis_rejected(self) -> None:
+        from unittest.mock import patch
+
+        from superset.mcp_service.chart import registry
+
+        plugin = registry.get("waterfall")
+        assert plugin is not None
+        config = WaterfallChartConfig(
+            chart_type="waterfall",
+            x_axis={"name": "region"},
+            metric={"name": "revenue", "aggregate": "SUM"},
+            time_grain="P1M",
+        )
+        with patch(
+            "superset.mcp_service.chart.plugins.waterfall.is_column_truly_temporal",
+            return_value=False,
+        ):
+            error = plugin.post_map_validate(config, {}, dataset_id=1)
+        assert error is not None
+        assert error.error_type == "non_temporal_waterfall_grain"
+
+    def test_time_grain_on_temporal_x_axis_passes(self) -> None:
+        from unittest.mock import patch
+
+        from superset.mcp_service.chart import registry
+
+        plugin = registry.get("waterfall")
+        assert plugin is not None
+        config = WaterfallChartConfig(
+            chart_type="waterfall",
+            x_axis={"name": "order_date"},
+            metric={"name": "revenue", "aggregate": "SUM"},
+            time_grain="P1M",
+        )
+        with patch(
+            "superset.mcp_service.chart.plugins.waterfall.is_column_truly_temporal",
+            return_value=True,
+        ):
+            assert plugin.post_map_validate(config, {}, dataset_id=1) is None
