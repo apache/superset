@@ -755,21 +755,28 @@ def test_anonymous_user_never_collides_with_a_logged_in_user(
     mocker: MockerFixture,
 ) -> None:
     """
-    Refutes the "skip cache key when the value is absent" collision concern: an
-    anonymous render contributes nothing to the cache key, so its key can never
-    equal a logged-in user's, and no logged-in user's cached data is served to an
-    anonymous request. Every absent user also renders identically (the macros
-    return ``None``), so absent users correctly share one cache entry rather than
-    colliding.
+    Refutes the "skip cache key when the value is absent" collision concern. A
+    real anonymous request has no user object, so ``current_user_id`` /
+    ``current_username`` / ``current_user_email`` return ``None`` and add nothing
+    to the key, while ``current_user_roles`` still contributes the Public role.
+    Two anonymous requests therefore render identically and correctly share one
+    cache entry, and neither can be served a logged-in user's cached result.
     """
     logged_in = _user_metadata_cache_keys(
         mocker, user_id=1, username="alice", email="alice@example.com", roles=["Admin"]
     )
-    anonymous = _user_metadata_cache_keys(
-        mocker, user_id=None, username=None, email=None, roles=[]
+    anon_first = _user_metadata_cache_keys(
+        mocker, user_id=None, username=None, email=None, roles=["Public"]
     )
-    assert anonymous == []
-    assert logged_in != anonymous
+    anon_second = _user_metadata_cache_keys(
+        mocker, user_id=None, username=None, email=None, roles=["Public"]
+    )
+    # The absent id/username/email contribute nothing, so an anonymous request's
+    # key carries only its role, never a stray value for the missing fields.
+    assert anon_first == [json.dumps(["Public"])]
+    # Two anonymous requests share a cache entry; neither collides with a user.
+    assert anon_first == anon_second
+    assert set(anon_first).isdisjoint(set(logged_in))
 
 
 def test_user_metadata_cache_keys_track_each_field_independently(
