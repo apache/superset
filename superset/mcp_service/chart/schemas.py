@@ -3130,6 +3130,8 @@ class DeleteChartResponse(BaseModel):
             "retry; ask the user)."
         ),
     )
+
+
 class ShowChartRequest(BaseModel):
     """Request payload for the ``show_chart`` MCP tool."""
 
