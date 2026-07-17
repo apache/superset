@@ -187,9 +187,28 @@ class BaseReportState:
             for recipient in self._report_schedule.recipients:
                 if recipient.type != ReportRecipientType.SLACK:
                     continue
-                slack_recipients = json.loads(recipient.recipient_config_json)
+                try:
+                    slack_recipients = json.loads(recipient.recipient_config_json)
+                except (TypeError, ValueError) as ex:
+                    raise NotificationParamException(
+                        "Invalid Slack recipient configuration"
+                    ) from ex
+                target = (
+                    slack_recipients.get("target")
+                    if isinstance(slack_recipients, dict)
+                    else None
+                )
+                if not isinstance(target, str):
+                    raise NotificationParamException(
+                        "No recipients saved in the report"
+                    )
                 # V1 method allowed to use leading `#` in the channel name
-                channel_names = (slack_recipients["target"] or "").replace("#", "")
+                channel_names = target.replace("#", "")
+                channels_list = recipients_string_to_list(channel_names)
+                if not channels_list:
+                    raise NotificationParamException(
+                        "No recipients saved in the report"
+                    )
                 # we need to ensure that existing reports can also fetch
                 # ids from private channels
                 channels = get_channels_with_search(
@@ -200,7 +219,6 @@ class BaseReportState:
                     ],
                     exact_match=True,
                 )
-                channels_list = recipients_string_to_list(channel_names)
                 if len(channels_list) != len(channels):
                     missing_channels = set(channels_list) - {
                         channel["name"] for channel in channels
@@ -209,9 +227,13 @@ class BaseReportState:
                         "Could not find the following channels: "
                         f"{', '.join(missing_channels)}"
                     )
-                    raise UpdateFailedError(msg)
+                    raise NotificationParamException(msg)
                 channel_ids = ",".join(channel["id"] for channel in channels)
                 resolved.append((recipient, json.dumps({"target": channel_ids})))
+        except NotificationParamException as ex:
+            msg = f"Failed to update slack recipients to v2: {str(ex)}"
+            logger.exception(msg)
+            raise NotificationParamException(msg) from ex
         except Exception as ex:
             # No recipient has been mutated yet, so there is no partial upgrade
             # to revert; surface the failure so the configuration can be fixed
@@ -1022,7 +1044,11 @@ class BaseReportState:
         """Upgrade a Slack recipient, falling back to text-only v1 delivery."""
         try:
             self.update_report_schedule_slack_v2()
-        except UpdateFailedError as update_error:
+        except (NotificationParamException, UpdateFailedError) as update_error:
+            if notification_content.has_attachments and isinstance(
+                update_error, UpdateFailedError
+            ):
+                raise
             logger.warning(
                 "Slack v2 upgrade unavailable; attempting a text-only Slack v1 "
                 "fallback for this execution: %s",
@@ -1030,7 +1056,10 @@ class BaseReportState:
             )
             if not isinstance(notification, SlackNotification):
                 raise
-            notification.send(force_v1=True)
+            notification.send(
+                force_v1=True,
+                v2_upgrade_error=str(update_error),
+            )
             return
 
         recipient.type = ReportRecipientType.SLACKV2

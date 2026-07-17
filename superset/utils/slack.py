@@ -23,7 +23,11 @@ from typing import Any, Callable, Optional
 
 from flask import current_app as app
 from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError, SlackClientError as SlackSDKClientError
+from slack_sdk.errors import (
+    SlackApiError,
+    SlackClientError as SlackSDKClientError,
+    SlackClientNotConnectedError,
+)
 from slack_sdk.http_retry.builtin_handlers import RateLimitErrorRetryHandler
 
 from superset import feature_flag_manager
@@ -74,6 +78,39 @@ _SLACK_CONVERSATION_TYPES = ",".join(SlackChannelTypes)
 
 class SlackClientError(Exception):
     pass
+
+
+class SlackV2ProbeError(SupersetException):
+    """Slack v2 availability could not be determined due to a system failure."""
+
+
+class SlackV2ProbeClientError(SupersetException):
+    """Slack v2 availability failed due to permanent token or client setup."""
+
+    status = 422
+
+
+_TRANSIENT_SLACK_API_ERROR_CODES = frozenset(
+    {
+        "fatal_error",
+        "internal_error",
+        "ratelimited",
+        "request_timeout",
+        "rollup_error",
+        "service_unavailable",
+        "timeout",
+    }
+)
+
+
+def _is_transient_slack_api_error(ex: SlackApiError, error_code: str) -> bool:
+    response = getattr(ex, "response", None)
+    status_code = getattr(response, "status_code", None)
+    return bool(
+        status_code == 429
+        or (status_code is not None and 500 <= status_code < 600)
+        or error_code in _TRANSIENT_SLACK_API_ERROR_CODES
+    )
 
 
 def get_slack_client() -> WebClient:
@@ -261,7 +298,7 @@ _SCOPE_MISSING_ERROR_CODES = frozenset(
 )
 
 
-def should_use_v2_api() -> bool:
+def should_use_v2_api(*, raise_on_error: bool = False) -> bool:
     if not feature_flag_manager.is_feature_enabled("ALERT_REPORT_SLACK_V2"):
         _emit_v1_flag_off_deprecation()
         return False
@@ -305,11 +342,19 @@ def should_use_v2_api() -> bool:
             )
         else:
             logger.warning(
-                "Slack v2 probe failed with error %r; falling back to the "
-                "deprecated v1 API for this send. Investigate the underlying "
-                "Slack API error — this is not a missing-scope problem.",
+                "Slack v2 probe failed with error %r. Investigate the underlying "
+                "Slack API error; this is not a missing-scope problem.",
                 error_code or str(ex),
             )
+            if raise_on_error:
+                error_class = (
+                    SlackV2ProbeError
+                    if _is_transient_slack_api_error(ex, error_code)
+                    else SlackV2ProbeClientError
+                )
+                raise error_class(
+                    f"Slack v2 availability probe failed: {error_code or str(ex)}"
+                ) from ex
         return False
     except SlackSDKClientError as ex:
         # Non-API SDK failures (e.g. SlackClientNotConnectedError,
@@ -321,11 +366,19 @@ def should_use_v2_api() -> bool:
         # failure as "v2 unavailable" and fall back to the deprecated v1 API,
         # matching the SlackApiError behavior above.
         logger.warning(
-            "Slack v2 probe failed to connect (%s: %s); falling back to the "
-            "deprecated v1 API for this send.",
+            "Slack v2 probe failed (%s: %s).",
             type(ex).__name__,
             ex,
         )
+        if raise_on_error:
+            error_class = (
+                SlackV2ProbeError
+                if isinstance(ex, SlackClientNotConnectedError)
+                else SlackV2ProbeClientError
+            )
+            raise error_class(
+                f"Slack v2 availability probe failed: {type(ex).__name__}: {ex}"
+            ) from ex
         return False
 
 

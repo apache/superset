@@ -21,6 +21,7 @@ from typing import Optional
 from unittest.mock import call, Mock, patch
 from uuid import uuid4
 
+import pandas as pd
 import pytest
 from flask.ctx import AppContext
 from flask_appbuilder.security.sqla.models import User
@@ -73,6 +74,7 @@ from superset.models.slice import Slice
 from superset.reports.models import (
     ReportDataFormat,
     ReportExecutionLog,
+    ReportRecipients,
     ReportRecipientType,
     ReportSchedule,
     ReportScheduleType,
@@ -1574,8 +1576,11 @@ def test_slack_chart_report_schedule_failed_v2_conversion_rejects_v1_file_upload
 
         expected_message = (
             "Slack v1 file uploads are no longer supported because Slack retired "
-            "`files.upload`. Grant the Slack bot both the `channels:read` and "
-            "`groups:read` scopes so the recipient can be upgraded to Slack v2."
+            "`files.upload`. Enable `ALERT_REPORT_SLACK_V2` and grant the Slack bot "
+            "both the `channels:read` and `groups:read` scopes so the recipient can "
+            "be upgraded to Slack v2. Slack v2 upgrade failed: Failed to update "
+            "slack recipients to v2: Could not find the following channels: "
+            "my_member_ID"
         )
         assert_log(ReportState.ERROR, error_message=expected_message)
 
@@ -1697,9 +1702,7 @@ def test_slack_chart_report_schedule_with_csv(
     slack_should_use_v2_api_mock,
     create_report_slack_chart_with_csv,
 ):
-    """
-    ExecuteReport Command: Test chart slack report V1 schedule with CSV
-    """
+    """A v1 CSV report fails before calling Slack's retired upload API."""
     # setup csv mock
     response = Mock()
     mock_open.return_value = response
@@ -1707,28 +1710,20 @@ def test_slack_chart_report_schedule_with_csv(
     mock_urlopen.return_value.getcode.return_value = 200
     response.read.return_value = CSV_FILE
 
-    notification_targets = get_target_from_report_schedule(
-        create_report_slack_chart_with_csv
-    )
-
-    channel_name = notification_targets[0]
-
     with freeze_time("2020-01-01T00:00:00Z"):
-        AsyncExecuteReportScheduleCommand(
-            TEST_ID, create_report_slack_chart_with_csv.id, datetime.utcnow()
-        ).run()
+        with pytest.raises(ReportScheduleClientErrorsException):
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, create_report_slack_chart_with_csv.id, datetime.utcnow()
+            ).run()
 
-        assert (
-            slack_client_mock_class.return_value.files_upload.call_args[1]["channels"]
-            == channel_name
+        expected_message = (
+            "Slack v1 file uploads are no longer supported because Slack retired "
+            "`files.upload`. Enable `ALERT_REPORT_SLACK_V2` and grant the Slack bot "
+            "both the `channels:read` and `groups:read` scopes so the recipient can "
+            "be upgraded to Slack v2."
         )
-        assert (
-            slack_client_mock_class.return_value.files_upload.call_args[1]["file"]
-            == CSV_FILE
-        )
-
-        # Assert logs are correct
-        assert_log(ReportState.SUCCESS)
+        assert_log(ReportState.ERROR, error_message=expected_message)
+        slack_client_mock_class.assert_not_called()
 
 
 @pytest.mark.usefixtures(
@@ -1747,9 +1742,7 @@ def test_slack_chart_report_schedule_with_xlsx(
     slack_should_use_v2_api_mock: Mock,
     create_report_slack_chart_with_xlsx: ReportSchedule,
 ) -> None:
-    """
-    ExecuteReport Command: Test chart slack report V1 schedule with Excel
-    """
+    """A v1 XLSX report fails before calling Slack's retired upload API."""
     # setup xlsx mock
     response = Mock()
     mock_open.return_value = response
@@ -1757,28 +1750,20 @@ def test_slack_chart_report_schedule_with_xlsx(
     mock_urlopen.return_value.getcode.return_value = 200
     response.read.return_value = XLSX_FILE
 
-    notification_targets = get_target_from_report_schedule(
-        create_report_slack_chart_with_xlsx
-    )
-
-    channel_name = notification_targets[0]
-
     with freeze_time("2020-01-01T00:00:00Z"):
-        AsyncExecuteReportScheduleCommand(
-            TEST_ID, create_report_slack_chart_with_xlsx.id, datetime.utcnow()
-        ).run()
+        with pytest.raises(ReportScheduleClientErrorsException):
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, create_report_slack_chart_with_xlsx.id, datetime.utcnow()
+            ).run()
 
-        assert (
-            slack_client_mock_class.return_value.files_upload.call_args[1]["channels"]
-            == channel_name
+        expected_message = (
+            "Slack v1 file uploads are no longer supported because Slack retired "
+            "`files.upload`. Enable `ALERT_REPORT_SLACK_V2` and grant the Slack bot "
+            "both the `channels:read` and `groups:read` scopes so the recipient can "
+            "be upgraded to Slack v2."
         )
-        assert (
-            slack_client_mock_class.return_value.files_upload.call_args[1]["file"]
-            == XLSX_FILE
-        )
-
-        # Assert logs are correct
-        assert_log(ReportState.SUCCESS)
+        assert_log(ReportState.ERROR, error_message=expected_message)
+        slack_client_mock_class.assert_not_called()
 
 
 @pytest.mark.usefixtures(
@@ -1846,6 +1831,153 @@ def test_slack_chart_report_schedule_with_text(
 
         # Assert logs are correct
         assert_log(ReportState.SUCCESS)
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_slack_chart_with_text"
+)
+@patch("superset.commands.report.execute.get_channels_with_search", return_value=[])
+@patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
+@patch("superset.reports.notifications.slack.get_slack_client")
+@patch("superset.commands.report.execute.get_chart_dataframe")
+def test_slack_text_fallback_persists_success_for_multiple_recipient_rows(
+    dataframe_mock,
+    slack_client_mock,
+    slack_should_use_v2_api_mock,
+    get_channels_with_search_mock,
+    create_report_slack_chart_with_text,
+):
+    """Failed migration sends every text recipient and persists v1 success."""
+    dataframe_mock.return_value = pd.DataFrame({"value": [1]})
+    original_configs = [
+        json.dumps({"target": "private-a"}),
+        json.dumps({"target": "private-b"}),
+    ]
+    create_report_slack_chart_with_text.recipients[
+        0
+    ].recipient_config_json = original_configs[0]
+    create_report_slack_chart_with_text.recipients.append(
+        ReportRecipients(
+            type=ReportRecipientType.SLACK,
+            recipient_config_json=original_configs[1],
+        )
+    )
+    db.session.commit()
+    report_schedule_id = create_report_slack_chart_with_text.id
+
+    AsyncExecuteReportScheduleCommand(
+        TEST_ID,
+        report_schedule_id,
+        datetime.utcnow(),
+    ).run()
+
+    db.session.expire_all()
+    persisted_schedule = db.session.get(ReportSchedule, report_schedule_id)
+    assert persisted_schedule is not None
+    assert persisted_schedule.last_state == ReportState.SUCCESS
+    assert all(
+        recipient.type == ReportRecipientType.SLACK
+        for recipient in persisted_schedule.recipients
+    )
+    assert {
+        recipient.recipient_config_json for recipient in persisted_schedule.recipients
+    } == set(original_configs)
+    assert {
+        slack_call.kwargs["channel"]
+        for slack_call in slack_client_mock.return_value.chat_postMessage.call_args_list
+    } == {"private-a", "private-b"}
+    assert slack_client_mock.return_value.chat_postMessage.call_count == 2
+    assert slack_should_use_v2_api_mock.call_count == 2
+    assert get_channels_with_search_mock.call_count == 2
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_slack_chart_with_text"
+)
+@patch("superset.commands.report.execute.get_channels_with_search", return_value=[])
+@patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
+@patch("superset.reports.notifications.slack.get_slack_client")
+@patch("superset.commands.report.execute.get_chart_dataframe")
+@patch("superset.reports.notifications.email.send_email_smtp")
+def test_slack_text_fallback_persists_later_recipient_retry_exhaustion(
+    email_mock,
+    dataframe_mock,
+    slack_client_mock,
+    slack_should_use_v2_api_mock,
+    get_channels_with_search_mock,
+    create_report_slack_chart_with_text,
+):
+    """A later failed recipient does not duplicate an earlier successful send."""
+    dataframe_mock.return_value = pd.DataFrame({"value": [1]})
+    original_configs = [
+        json.dumps({"target": "private-a"}),
+        json.dumps({"target": "private-b"}),
+    ]
+    create_report_slack_chart_with_text.recipients[
+        0
+    ].recipient_config_json = original_configs[0]
+    create_report_slack_chart_with_text.recipients.append(
+        ReportRecipients(
+            type=ReportRecipientType.SLACK,
+            recipient_config_json=original_configs[1],
+        )
+    )
+    db.session.commit()
+    report_schedule_id = create_report_slack_chart_with_text.id
+
+    successful_channels: list[str] = []
+
+    def chat_side_effect(channel, text):
+        if not successful_channels:
+            successful_channels.append(channel)
+            return {"ok": True}
+        if channel != successful_channels[0]:
+            raise SlackApiError(
+                message="service unavailable",
+                response={"ok": False, "error": "service_unavailable"},
+            )
+        return {"ok": True}
+
+    slack_client_mock.return_value.chat_postMessage.side_effect = chat_side_effect
+
+    with (
+        patch("backoff._sync.time.sleep"),
+        pytest.raises(ReportScheduleClientErrorsException),
+    ):
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID,
+            report_schedule_id,
+            datetime.utcnow(),
+        ).run()
+
+    db.session.expire_all()
+    persisted_schedule = db.session.get(ReportSchedule, report_schedule_id)
+    assert persisted_schedule is not None
+    assert persisted_schedule.last_state == ReportState.ERROR
+    assert all(
+        recipient.type == ReportRecipientType.SLACK
+        for recipient in persisted_schedule.recipients
+    )
+    assert {
+        recipient.recipient_config_json for recipient in persisted_schedule.recipients
+    } == set(original_configs)
+    call_channels = [
+        slack_call.kwargs["channel"]
+        for slack_call in slack_client_mock.return_value.chat_postMessage.call_args_list
+    ]
+    successful_channel = call_channels[0]
+    failed_channel = ({"private-a", "private-b"} - {successful_channel}).pop()
+    assert call_channels == [successful_channel, *(failed_channel for _ in range(5))]
+    log_states = {
+        log.state
+        for log in db.session.query(ReportExecutionLog)
+        .filter(ReportExecutionLog.report_schedule_id == report_schedule_id)
+        .all()
+    }
+    assert {ReportState.WORKING, ReportState.ERROR} <= log_states
+    assert slack_should_use_v2_api_mock.call_count == 2
+    assert get_channels_with_search_mock.call_count == 2
+    email_mock.assert_called_once()
 
 
 @pytest.mark.usefixtures("create_report_slack_chart")
@@ -1924,18 +2056,18 @@ def test_report_schedule_success_grace(create_alert_slack_chart_success):
 
 
 @pytest.mark.usefixtures("create_alert_slack_chart_grace")
-@patch("superset.utils.slack.WebClient.files_upload")
+@patch("superset.commands.report.execute.get_channels_with_search")
+@patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
+@patch("superset.reports.notifications.slackv2.get_slack_client")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
-@patch("superset.reports.notifications.slack.get_slack_client")
 def test_report_schedule_success_grace_end(
-    slack_client_mock_class,
     screenshot_mock,
-    file_upload_mock,
+    slack_client_mock,
+    slack_should_use_v2_api_mock,
+    get_channels_with_search_mock,
     create_alert_slack_chart_grace,
 ):
-    """
-    ExecuteReport Command: Test report schedule on grace to noop
-    """
+    """A Slack alert leaving grace upgrades to v2 and sends successfully."""
 
     screenshot_mock.return_value = SCREENSHOT_FILE
 
@@ -1951,9 +2083,14 @@ def test_report_schedule_success_grace_end(
     channel_name = notification_targets[0]
     channel_id = "channel_id"
 
-    slack_client_mock_class.return_value.conversations_list.return_value = {
-        "channels": [{"id": channel_id, "name": channel_name}]
-    }
+    get_channels_with_search_mock.return_value = [
+        {
+            "id": channel_id,
+            "name": channel_name,
+            "is_member": True,
+            "is_private": True,
+        }
+    ]
 
     with freeze_time(current_time):
         AsyncExecuteReportScheduleCommand(
@@ -1962,6 +2099,10 @@ def test_report_schedule_success_grace_end(
 
     db.session.commit()
     assert create_alert_slack_chart_grace.last_state == ReportState.SUCCESS
+    slack_should_use_v2_api_mock.assert_called_once_with(raise_on_error=True)
+    upload_call = slack_client_mock.return_value.files_upload_v2.call_args
+    assert upload_call.kwargs["channel"] == channel_id
+    assert upload_call.kwargs["file"] == SCREENSHOT_FILE
 
 
 @pytest.mark.usefixtures("create_alert_email_chart")
