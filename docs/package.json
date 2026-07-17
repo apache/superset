@@ -96,7 +96,7 @@
     "eslint-plugin-prettier": "^5.5.6",
     "eslint-plugin-react": "^7.37.5",
     "globals": "^17.7.0",
-    "prettier": "^3.9.1",
+    "prettier": "^3.9.5",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.63.0",
     "webpack": "^5.108.2"
