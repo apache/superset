@@ -860,9 +860,10 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
                 # Fetch results from last statement if requested
                 if fetch_last_result and i == len(script.statements) - 1:
-                    # Capture cursor.description while it's still valid
-                    description = cursor.description
                     rows = self.db_engine_spec.fetch_data(cursor)
+                    # Some asynchronous DB-API drivers expose placeholder metadata
+                    # until fetching waits for the operation to finish.
+                    description = cursor.description
                 else:
                     # Consume results without storing
                     cursor.fetchall()
