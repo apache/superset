@@ -165,7 +165,13 @@ const AppContent = ({
     CHAT_PANEL_DEFAULT_WIDTH,
   );
 
-  const layoutContent = <OutPortal node={layoutPortalNode} />;
+  const layoutContent = (
+    <Layout css={isPanelOpen ? layoutCss : undefined}>
+      <Layout.Content css={isPanelOpen ? contentCss : pageScrollContentCss}>
+        <OutPortal node={layoutPortalNode} />
+      </Layout.Content>
+    </Layout>
+  );
 
   const content = isPanelOpen ? (
     <Splitter
@@ -227,11 +233,7 @@ const App = () => {
       <LocationPathnameLogger />
       <RootContextProviders>
         <InPortal node={layoutPortalNode}>
-          <Layout css={layoutCss}>
-            <Layout.Content css={contentCss}>
-              <RouteSwitch />
-            </Layout.Content>
-          </Layout>
+          <RouteSwitch />
         </InPortal>
         <AppContent />
         <ToastContainer />
