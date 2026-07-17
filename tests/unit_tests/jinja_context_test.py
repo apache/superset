@@ -684,6 +684,104 @@ def test_user_macros_without_user_info(mocker: MockerFixture):
     assert cache.current_user_rls_rules() is None
 
 
+def _user_metadata_cache_keys(
+    mocker: MockerFixture,
+    *,
+    user_id: int | None,
+    username: str | None,
+    email: str | None,
+    roles: list[str],
+) -> list[Any]:
+    """
+    Render the user-metadata macros for a given user and return the values they
+    contributed to the query cache key.
+    """
+    mock_g = mocker.patch("superset.utils.core.g")
+    if user_id is None:
+        mock_g.user = None
+    else:
+        mock_g.user.id = user_id
+        mock_g.user.username = username
+        mock_g.user.email = email
+    mocker.patch(
+        "superset.security_manager.get_user_roles",
+        return_value=[Role(name=name) for name in roles],
+    )
+    keys: list[Any] = []
+    cache = ExtraCache(extra_cache_keys=keys, table=mocker.MagicMock())
+    cache.current_user_id()
+    cache.current_username()
+    cache.current_user_email()
+    cache.current_user_roles()
+    return keys
+
+
+def test_user_metadata_cache_keys_isolate_distinct_users(mocker: MockerFixture):
+    """
+    Two different users contribute disjoint values to the cache key, so neither
+    can be served the other's cached result. This is the property that keeps the
+    ``current_user_*`` macro family safe for per-user (and multi-tenant) queries.
+    """
+    alice = _user_metadata_cache_keys(
+        mocker, user_id=1, username="alice", email="alice@example.com", roles=["Admin"]
+    )
+    bob = _user_metadata_cache_keys(
+        mocker, user_id=2, username="bob", email="bob@example.com", roles=["Gamma"]
+    )
+    assert alice
+    assert bob
+    assert set(alice).isdisjoint(set(bob))
+
+
+def test_user_metadata_cache_keys_match_for_identical_users(mocker: MockerFixture):
+    """
+    The same user always contributes the same values, so identical renders
+    correctly share a cache entry (no needless fragmentation).
+    """
+    first = _user_metadata_cache_keys(
+        mocker, user_id=1, username="alice", email="alice@example.com", roles=["Admin"]
+    )
+    second = _user_metadata_cache_keys(
+        mocker, user_id=1, username="alice", email="alice@example.com", roles=["Admin"]
+    )
+    assert first == second
+
+
+def test_anonymous_user_never_collides_with_a_logged_in_user(mocker: MockerFixture):
+    """
+    Refutes the "skip cache key when the value is absent" collision concern: an
+    anonymous render contributes nothing to the cache key, so its key can never
+    equal a logged-in user's, and no logged-in user's cached data is served to an
+    anonymous request. Every absent user also renders identically (the macros
+    return ``None``), so absent users correctly share one cache entry rather than
+    colliding.
+    """
+    logged_in = _user_metadata_cache_keys(
+        mocker, user_id=1, username="alice", email="alice@example.com", roles=["Admin"]
+    )
+    anonymous = _user_metadata_cache_keys(
+        mocker, user_id=None, username=None, email=None, roles=[]
+    )
+    assert anonymous == []
+    assert logged_in != anonymous
+
+
+def test_user_metadata_cache_keys_track_each_field_independently(
+    mocker: MockerFixture,
+):
+    """
+    Two users who differ in a single field (here only the roles) still get
+    distinct cache keys, so a change in any one metadata field is reflected.
+    """
+    admin = _user_metadata_cache_keys(
+        mocker, user_id=1, username="alice", email="alice@example.com", roles=["Admin"]
+    )
+    gamma = _user_metadata_cache_keys(
+        mocker, user_id=1, username="alice", email="alice@example.com", roles=["Gamma"]
+    )
+    assert admin != gamma
+
+
 def test_current_user_rls_rules_with_no_table(mocker: MockerFixture):
     """
     Test the ``current_user_rls_rules`` macro when no table is provided.
