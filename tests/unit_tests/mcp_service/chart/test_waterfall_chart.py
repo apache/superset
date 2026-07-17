@@ -231,7 +231,6 @@ class TestWaterfallTemporalAndNativeShape:
                 }
             )
 
-
     def test_groupby_string_list_coerced(self) -> None:
         """Native form_data names physical columns as bare strings."""
         config = WaterfallChartConfig.model_validate(

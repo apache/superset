@@ -2087,8 +2087,7 @@ class WaterfallChartConfig(UnknownFieldCheckMixin):
             if isinstance(value, list):
                 if len(value) > 1:
                     raise ValueError(
-                        "waterfall breakdown is single-select; pass at "
-                        "most one column"
+                        "waterfall breakdown is single-select; pass at most one column"
                     )
                 value = value[0] if value else None
             if isinstance(value, str):
