@@ -316,6 +316,7 @@ class ExtraCache:
         attribute_name: str,
         default: JsonValue = None,
         add_to_cache_keys: bool = True,
+        escape_result: bool = True,
     ) -> JsonValue:
         """
         Get a specific user attribute from guest user.
@@ -327,6 +328,10 @@ class ExtraCache:
             attribute_name: Name of the attribute to retrieve
             default: Default value if attribute not found (can be any JSON-native type)
             add_to_cache_keys: Whether the value should be included in the cache key
+            escape_result: Escape string values (and strings inside lists) using
+                the database dialect's quoting so they are safe to interpolate
+                into SQL, mirroring ``url_param``. Enabled by default; non-string
+                JSON types are returned unchanged. Set to False for the raw value.
 
         Returns:
             The attribute value from the guest user token, or the default value.
@@ -360,6 +365,11 @@ class ExtraCache:
             self.cache_key_wrapper(
                 f"guest_user_attribute:{attribute_name}:{cache_value}"
             )
+        # Guest attributes are interpolated into the rendered SQL, so escape
+        # string values (and strings within lists) with the dialect's quoting
+        # by default, mirroring url_param. Non-string JSON types pass through.
+        if escape_result:
+            result = self._escape_value(result)
         return result
 
     def filter_values(

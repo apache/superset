@@ -2035,6 +2035,45 @@ def test_get_guest_user_attribute_with_attributes(mocker: MockerFixture) -> None
     assert result == "default_value"
 
 
+def test_get_guest_user_attribute_escaped(mocker: MockerFixture) -> None:
+    """
+    Test that string attribute values are dialect-escaped by default so they are
+    safe to interpolate directly into SQL, mirroring ``url_param``.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {"username": "test_guest", "attributes": {"region": "O'Brien"}},
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache(dialect=dialect())
+    assert cache.get_guest_user_attribute("region") == "O''Brien"
+
+
+def test_get_guest_user_attribute_unescaped(mocker: MockerFixture) -> None:
+    """
+    Test that ``escape_result=False`` returns the raw attribute value.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {"username": "test_guest", "attributes": {"region": "O'Brien"}},
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache(dialect=dialect())
+    assert cache.get_guest_user_attribute("region", escape_result=False) == "O'Brien"
+
+
 def test_get_guest_user_attribute_without_attributes(mocker: MockerFixture) -> None:
     """
     Test that get_guest_user_attribute returns default when guest user has no
