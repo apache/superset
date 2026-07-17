@@ -716,7 +716,9 @@ def _user_metadata_cache_keys(
     return keys
 
 
-def test_user_metadata_cache_keys_isolate_distinct_users(mocker: MockerFixture):
+def test_user_metadata_cache_keys_isolate_distinct_users(
+    mocker: MockerFixture,
+) -> None:
     """
     Two different users contribute disjoint values to the cache key, so neither
     can be served the other's cached result. This is the property that keeps the
@@ -733,7 +735,9 @@ def test_user_metadata_cache_keys_isolate_distinct_users(mocker: MockerFixture):
     assert set(alice).isdisjoint(set(bob))
 
 
-def test_user_metadata_cache_keys_match_for_identical_users(mocker: MockerFixture):
+def test_user_metadata_cache_keys_match_for_identical_users(
+    mocker: MockerFixture,
+) -> None:
     """
     The same user always contributes the same values, so identical renders
     correctly share a cache entry (no needless fragmentation).
@@ -747,7 +751,9 @@ def test_user_metadata_cache_keys_match_for_identical_users(mocker: MockerFixtur
     assert first == second
 
 
-def test_anonymous_user_never_collides_with_a_logged_in_user(mocker: MockerFixture):
+def test_anonymous_user_never_collides_with_a_logged_in_user(
+    mocker: MockerFixture,
+) -> None:
     """
     Refutes the "skip cache key when the value is absent" collision concern: an
     anonymous render contributes nothing to the cache key, so its key can never
@@ -768,7 +774,7 @@ def test_anonymous_user_never_collides_with_a_logged_in_user(mocker: MockerFixtu
 
 def test_user_metadata_cache_keys_track_each_field_independently(
     mocker: MockerFixture,
-):
+) -> None:
     """
     Two users who differ in a single field (here only the roles) still get
     distinct cache keys, so a change in any one metadata field is reflected.
