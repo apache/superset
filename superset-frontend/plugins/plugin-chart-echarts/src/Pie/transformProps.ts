@@ -85,10 +85,12 @@ const HALF_DONUT_SWEEP_LIMIT = 180;
  *                    Resulting position: `50% + offset`.
  * - `totalBase`    — base position of the "Total" text as a percentage on the X and Y axes.
  *
- * The values ​​are selected so that the "Total" text visually remains
- * at the geometric center of the arc after the chart is re-centered.
+ * The values are empirically tuned so that the "Total" text visually remains
+ * at the geometric center of the arc after the chart is re-centered. The
+ * `left`/`right` totalBase values sit 5% inside the shifted chart center
+ * (60% and 40% respectively) to compensate for the text being positioned by
+ * its left edge rather than its midpoint.
  */
-
 const HALF_DONUT_LAYOUT: Record<
   HalfDonut,
   {
@@ -99,7 +101,7 @@ const HALF_DONUT_LAYOUT: Record<
   top: { centerOffset: { x: 0, y: 20 }, totalBase: { left: 50, top: 68.5 } },
   bottom: { centerOffset: { x: 0, y: -20 }, totalBase: { left: 50, top: 30 } },
   left: { centerOffset: { x: 10, y: 0 }, totalBase: { left: 55, top: 50 } },
-  right: { centerOffset: { x: -10, y: 0 }, totalBase: { left: 30, top: 50 } },
+  right: { centerOffset: { x: -10, y: 0 }, totalBase: { left: 35, top: 50 } },
   none: { centerOffset: { x: 0, y: 0 }, totalBase: { left: 50, top: 50 } },
 };
 
@@ -116,7 +118,6 @@ const HALF_DONUT_LAYOUT: Record<
  * @param sweptAngle - The swept angle of the arc in degrees (10–360).
  * @returns The type of semicircular layout.
  */
-
 export const getHalfDonut = (
   startAngle: number,
   sweptAngle: number,
@@ -477,6 +478,8 @@ export default function transformProps(
     effectiveLegendMargin,
   );
 
+  const { centerOffset } = getHalfDonutLayout(startAngle, sweptAngle);
+
   const series: PieSeriesOption[] = [
     {
       type: 'pie',
@@ -484,10 +487,7 @@ export default function transformProps(
       animation: false,
       roseType: roseType || undefined,
       radius: [`${donut ? innerRadius : 0}%`, `${outerRadius}%`],
-      center: [
-        `${50 + getHalfDonutLayout(startAngle, sweptAngle).centerOffset.x}%`,
-        `${50 + getHalfDonutLayout(startAngle, sweptAngle).centerOffset.y}%`,
-      ],
+      center: [`${50 + centerOffset.x}%`, `${50 + centerOffset.y}%`],
       startAngle,
       endAngle: startAngle - sweptAngle,
       avoidLabelOverlap: true,

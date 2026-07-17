@@ -708,6 +708,35 @@ test('sets center to 30% for bottom half-donut (startAngle=360)', () => {
   expect(series[0].center).toEqual(['50%', '30%']);
 });
 
+test('shifts center left for right half-donut (startAngle=90)', () => {
+  const props = getAngleChartProps(true, 180, 90);
+  const transformed = transformProps(props);
+  const series = transformed.echartOptions.series as PieSeriesOption[];
+  expect(series[0].center).toEqual(['40%', '50%']);
+});
+
+test('shifts center right for left half-donut (startAngle=270)', () => {
+  const props = getAngleChartProps(true, 180, 270);
+  const transformed = transformProps(props);
+  const series = transformed.echartOptions.series as PieSeriesOption[];
+  expect(series[0].center).toEqual(['60%', '50%']);
+});
+
+test('keeps center at 50% for non-cardinal start angle even when sweep ≤ 180', () => {
+  const props = getAngleChartProps(true, 180, 45);
+  const transformed = transformProps(props);
+  const series = transformed.echartOptions.series as PieSeriesOption[];
+  expect(series[0].center).toEqual(['50%', '50%']);
+});
+
+test('allows endAngle to go negative for right half-donut', () => {
+  const props = getAngleChartProps(true, 180, 90);
+  const transformed = transformProps(props);
+  const series = transformed.echartOptions.series as PieSeriesOption[];
+  expect(series[0].startAngle).toBe(90);
+  expect(series[0].endAngle).toBe(-90);
+});
+
 test.each([
   [180, 180, 'top'],
   [180, 90, 'top'],
@@ -716,8 +745,13 @@ test.each([
   [360, 180, 'bottom'],
   [360, 90, 'bottom'],
   [90, 180, 'right'],
+  [90, 90, 'right'],
   [270, 180, 'left'],
+  [270, 90, 'left'],
+  [45, 180, 'none'],
+  [170, 180, 'none'],
   [180, 360, 'none'],
+  [180, 181, 'none'],
   [0, 360, 'none'],
 ])('startAngle=%i, sweptAngle=%i → %s', (start, swept, expected) => {
   expect(getHalfDonut(start, swept)).toBe(expected);
@@ -830,4 +864,26 @@ test('prioritizes right padding over left padding', () => {
     chartPadding: { top: 0, bottom: 0, left: 80, right: 80 },
   });
   expect(result.left).toBe('42.5%');
+});
+
+test('positions total inside the shifted center for left half-donut', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    startAngle: 270,
+    sweptAngle: 180,
+    chartPadding: { top: 0, bottom: 0, left: 0, right: 0 },
+  });
+  expect(result.left).toBe('55%');
+  expect(result.top).toBe('50%');
+});
+
+test('positions total inside the shifted center for right half-donut', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    startAngle: 90,
+    sweptAngle: 180,
+    chartPadding: { top: 0, bottom: 0, left: 0, right: 0 },
+  });
+  expect(result.left).toBe('35%');
+  expect(result.top).toBe('50%');
 });
