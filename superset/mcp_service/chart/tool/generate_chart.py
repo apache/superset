@@ -318,7 +318,7 @@ async def generate_chart(  # noqa: C901
         form_data_key = None
         response_warnings: list[str] = form_data.pop("_mcp_warnings", [])
 
-        # Save chart by default (unless save_chart=False)
+        # Persist the chart only when explicitly requested (save_chart=False by default)
         if request.save_chart:
             await ctx.report_progress(2, 5, "Creating chart in database")
             from superset.commands.chart.create import CreateChartCommand
