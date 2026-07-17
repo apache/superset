@@ -229,6 +229,9 @@ export type Datasource = Dataset & {
   column_types: GenericDataType[];
   table_name: string;
   database?: Database;
+  // Populated by the dashboard datasets API alongside ``type``; declared here
+  // so callers can rely on structural typing instead of casting.
+  datasource_type?: DatasourceType;
 };
 export type DatasourcesState = {
   [key: string]: Datasource;
@@ -364,6 +367,9 @@ export interface SliceEntitiesState {
 
 export enum MenuKeys {
   DownloadAsImage = 'download_as_image',
+  DownloadAsPngTransparent = 'download_as_png_transparent',
+  DownloadAsPngSolid = 'download_as_png_solid',
+  DownloadAsPdf = 'download_as_pdf',
   ExploreChart = 'explore_chart',
   ExportCsv = 'export_csv',
   ExportPivotCsv = 'export_pivot_csv',

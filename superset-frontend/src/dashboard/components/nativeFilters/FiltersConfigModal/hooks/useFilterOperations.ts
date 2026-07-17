@@ -125,7 +125,7 @@ export function useFilterOperations({
   );
 
   const handleRearrangeFilters = useCallback(
-    (dragIndex: number, targetIndex: number, id: string) => {
+    (dragIndex: number, targetIndex: number, _id: string) => {
       const newOrderedIds = [...filterState.orderedIds];
       const [removed] = newOrderedIds.splice(dragIndex, 1);
       newOrderedIds.splice(targetIndex, 0, removed);

@@ -235,10 +235,17 @@ const tabsEndpoint = 'glob:*/api/v1/dashboard/1/tabs';
 
 fetchMock.get(editorsEndpoint, { result: [] });
 fetchMock.get(databaseEndpoint, { result: [] });
-fetchMock.get(dashboardEndpoint, { result: [] });
+// Named so tests can removeRoute() + re-register an override (an unnamed route
+// cannot be removed by its matcher string, so the override would be ignored).
+fetchMock.get(dashboardEndpoint, { result: [] }, { name: dashboardEndpoint });
 fetchMock.get(chartEndpoint, { result: [{ text: 'table chart', value: 1 }] });
 fetchMock.get(reportUsersEndpoint, { count: 0, result: [] });
-fetchMock.get(reportDashboardEndpoint, { result: [] });
+// Named for the same reason as dashboardEndpoint above.
+fetchMock.get(
+  reportDashboardEndpoint,
+  { result: [] },
+  { name: reportDashboardEndpoint },
+);
 fetchMock.get(reportChartEndpoint, {
   result: [{ text: 'table chart', value: 1 }],
 });
@@ -387,6 +394,11 @@ const generateMockedProps = (
     isReport,
   };
 };
+
+// Matches the antd Select's rendered selection, whether it renders as
+// content (single/tag mode) or as a selection item (default mode).
+const selectedValueSelector = (title: string) =>
+  `.ant-select-content-has-value[title="${title}"], .ant-select-selection-item[title="${title}"]`;
 
 // combobox selector for mocking user input
 const comboboxSelect = async (
@@ -603,6 +615,9 @@ test('renders all Alert Condition fields', async () => {
   expect(sql).toBeInTheDocument();
   expect(condition).toBeInTheDocument();
   expect(threshold).toBeInTheDocument();
+  // Guard against a double border: passing type="number" leaks onto the inner
+  // input and matches the StyledInputContainer input[type='number'] border rule.
+  expect(threshold).not.toHaveAttribute('type', 'number');
 });
 test('disables condition threshold if not null condition is selected', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
@@ -612,13 +627,13 @@ test('disables condition threshold if not null condition is selected', async () 
   await screen.findByText(/smaller than/i);
   const condition = screen.getByRole('combobox', { name: /condition/i });
   const spinButton = screen.getByRole('spinbutton');
-  expect(spinButton).toHaveValue(10);
+  expect(spinButton).toHaveValue('10');
   await comboboxSelect(
     condition,
     'not null',
     () => screen.getAllByText(/not null/i)[0],
   );
-  expect(spinButton).toHaveValue(null);
+  expect(spinButton).toHaveValue('');
   expect(spinButton).toBeDisabled();
 });
 
@@ -795,6 +810,29 @@ test('does not show screenshot width when csv is selected', async () => {
   expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
 });
 
+test('does not show screenshot width when Excel is selected', async () => {
+  render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
+    useRedux: true,
+  });
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test chart/i);
+  const contentTypeSelector = screen.getByRole('combobox', {
+    name: /select content type/i,
+  });
+  await comboboxSelect(contentTypeSelector, 'Chart', () =>
+    screen.getByText(/select chart/i),
+  );
+  const reportFormatSelector = screen.getByRole('combobox', {
+    name: /select format/i,
+  });
+  await comboboxSelect(
+    reportFormatSelector,
+    'Excel',
+    () => screen.getAllByText(/Send as Excel/i)[0],
+  );
+  expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
+});
+
 test('clearing the chart selection resets the combobox value', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
     useRedux: true,
@@ -840,7 +878,11 @@ test('shows screenshot width when PDF is selected', async () => {
     () => screen.getAllByText(/Send as PDF/i)[0],
   );
   expect(screen.getByText(/screenshot width/i)).toBeInTheDocument();
-  expect(screen.getByRole('spinbutton')).toBeInTheDocument();
+  const screenshotWidth = screen.getByRole('spinbutton');
+  expect(screenshotWidth).toBeInTheDocument();
+  // Guard against a double border: passing type="number" leaks onto the inner
+  // input and matches the StyledInputContainer input[type='number'] border rule.
+  expect(screenshotWidth).not.toHaveAttribute('type', 'number');
 });
 
 // Schedule Section
@@ -849,9 +891,9 @@ test('opens Schedule Section on click', async () => {
     useRedux: true,
   });
   userEvent.click(screen.getByTestId('schedule-panel'));
-  const scheduleHeader = within(
+  const [scheduleHeader] = within(
     screen.getByRole('tab', { expanded: true }),
-  ).queryAllByText(/schedule/i)[0];
+  ).queryAllByText(/schedule/i);
   expect(scheduleHeader).toBeInTheDocument();
 });
 test('renders default Schedule fields', async () => {
@@ -917,9 +959,9 @@ test('opens Notification Method Section on click', async () => {
     useRedux: true,
   });
   userEvent.click(screen.getByTestId('notification-method-panel'));
-  const notificationMethodHeader = within(
+  const [notificationMethodHeader] = within(
     screen.getByRole('tab', { expanded: true }),
-  ).queryAllByText(/notification method/i)[0];
+  ).queryAllByText(/notification method/i);
   expect(notificationMethodHeader).toBeInTheDocument();
 });
 
@@ -1096,9 +1138,13 @@ test('dashboard switching resets tab and filter selections', async () => {
     count: 2,
   };
   fetchMock.removeRoute(dashboardEndpoint);
-  fetchMock.get(dashboardEndpoint, dashboardOptions);
+  fetchMock.get(dashboardEndpoint, dashboardOptions, {
+    name: dashboardEndpoint,
+  });
   fetchMock.removeRoute(reportDashboardEndpoint);
-  fetchMock.get(reportDashboardEndpoint, dashboardOptions);
+  fetchMock.get(reportDashboardEndpoint, dashboardOptions, {
+    name: reportDashboardEndpoint,
+  });
 
   // Dashboard 1 has tabs and filters
   fetchMock.removeRoute(tabsEndpoint);
@@ -1145,13 +1191,30 @@ test('dashboard switching resets tab and filter selections', async () => {
   const dashboardSelect = screen.getByRole('combobox', {
     name: /dashboard/i,
   });
-  userEvent.clear(dashboardSelect);
-  userEvent.type(dashboardSelect, 'Other Dashboard{enter}');
+  // Open the async dashboard select, wait for the options to load, then click
+  // "Other Dashboard". Opening the AsyncSelect triggers an async fetch of the
+  // dashboard options; the option only appears once that fetch resolves.
+  await userEvent.click(dashboardSelect);
+  const otherDashboardOption = await screen.findByText(
+    'Other Dashboard',
+    {},
+    { timeout: 5000 },
+  );
+  await userEvent.click(otherDashboardOption);
 
-  // Tab selector should reset: "Other Dashboard" has no tabs, so disabled with placeholder
+  // Tab selector should reset: "Other Dashboard" has no tabs, so the tab
+  // TreeSelect becomes disabled with no selected value. (In antd v6 a disabled
+  // select does not render its placeholder text, so assert on the
+  // disabled + empty-value state instead of the "Select a tab" placeholder.)
   await waitFor(
     () => {
-      expect(screen.getByText(/select a tab/i)).toBeInTheDocument();
+      const treeSelect = document.querySelector('.ant-tree-select');
+      expect(treeSelect).toHaveClass('ant-select-disabled');
+      expect(
+        treeSelect?.querySelector(
+          '.ant-select-content-has-value, .ant-select-selection-item',
+        ),
+      ).not.toBeInTheDocument();
     },
     { timeout: 10000 },
   );
@@ -1165,16 +1228,22 @@ test('dashboard switching resets tab and filter selections', async () => {
     filterSelects.forEach(select => {
       const container = select.closest('.ant-select');
       expect(
-        container?.querySelector('.ant-select-selection-item'),
+        container?.querySelector(
+          '.ant-select-content-has-value, .ant-select-selection-item',
+        ),
       ).not.toBeInTheDocument();
     });
   });
 
   // Restore dashboard endpoints
   fetchMock.removeRoute(dashboardEndpoint);
-  fetchMock.get(dashboardEndpoint, { result: [] });
+  fetchMock.get(dashboardEndpoint, { result: [] }, { name: dashboardEndpoint });
   fetchMock.removeRoute(reportDashboardEndpoint);
-  fetchMock.get(reportDashboardEndpoint, { result: [] });
+  fetchMock.get(
+    reportDashboardEndpoint,
+    { result: [] },
+    { name: reportDashboardEndpoint },
+  );
   fetchMock.removeRoute(tabs99);
 }, 45000);
 
@@ -1690,7 +1759,9 @@ test('create mode defaults to dashboard content type with chart null', async () 
   // Default content type should be "Dashboard" (not "Chart")
   const selectedItem = contentTypeSelect
     .closest('.ant-select')
-    ?.querySelector('.ant-select-selection-item');
+    ?.querySelector(
+      '.ant-select-content-has-value, .ant-select-selection-item',
+    );
   expect(selectedItem).toBeInTheDocument();
   expect(selectedItem?.textContent).toBe('Dashboard');
 
@@ -1853,7 +1924,7 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
 
   await waitFor(() => {
     const selectionItem = document.querySelector(
-      '.ant-select-selection-item[title="Test Filter 1"]',
+      selectedValueSelector('Test Filter 1'),
     );
     expect(selectionItem).toBeInTheDocument();
   });
@@ -1875,7 +1946,7 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
 
   await waitFor(() => {
     const selectionItem = document.querySelector(
-      '.ant-select-selection-item[title="Test Filter 1"]',
+      selectedValueSelector('Test Filter 1'),
     );
     expect(selectionItem).not.toBeInTheDocument();
   });
@@ -2394,15 +2465,13 @@ test('edit mode shows friendly filter names instead of raw IDs', async () => {
 
   await waitFor(() => {
     const selectionItem = document.querySelector(
-      '.ant-select-selection-item[title="Country"]',
+      selectedValueSelector('Country'),
     );
     expect(selectionItem).toBeInTheDocument();
   });
 
   expect(
-    document.querySelector(
-      '.ant-select-selection-item[title="NATIVE_FILTER-abc123"]',
-    ),
+    document.querySelector(selectedValueSelector('NATIVE_FILTER-abc123')),
   ).not.toBeInTheDocument();
 });
 
@@ -2421,7 +2490,7 @@ test('edit mode falls back to raw ID when filterName is missing', async () => {
 
   await waitFor(() => {
     const selectionItem = document.querySelector(
-      '.ant-select-selection-item[title="NATIVE_FILTER-xyz789"]',
+      selectedValueSelector('NATIVE_FILTER-xyz789'),
     );
     expect(selectionItem).toBeInTheDocument();
   });
@@ -2528,9 +2597,7 @@ test('selecting filter triggers chart data request with correct params', async (
 
   // Select the Country Filter using comboboxSelect pattern
   await comboboxSelect(filterDropdown, 'Country Filter', () =>
-    document.querySelector(
-      '.ant-select-selection-item[title="Country Filter"]',
-    ),
+    document.querySelector(selectedValueSelector('Country Filter')),
   );
 
   // getChartDataRequest should have been called for filter values
@@ -2579,9 +2646,7 @@ test('selected filter excluded from other row dropdowns', async () => {
 
   // Select Country Filter in row 1
   await comboboxSelect(filterDropdown, 'Country Filter', () =>
-    document.querySelector(
-      '.ant-select-selection-item[title="Country Filter"]',
-    ),
+    document.querySelector(selectedValueSelector('Country Filter')),
   );
 
   // Wait for getChartDataRequest to complete AND state update to propagate.

@@ -63,27 +63,29 @@ def create_test_table_context(database: Database):
     full_table_name = f"{schema}.test_table" if schema else "test_table"
 
     with database.get_sqla_engine() as engine:
-        engine.execute(
-            text(f"""
-            CREATE TABLE IF NOT EXISTS {full_table_name} AS
-            SELECT 1 as first, 2 as second
-            """)
-        )
-        engine.execute(
-            text(f"""
-            INSERT INTO {full_table_name} (first, second) VALUES (1, 2)
-            """)  # noqa: S608
-        )
-        engine.execute(
-            text(f"""
-            INSERT INTO {full_table_name} (first, second) VALUES (3, 4)
-            """)  # noqa: S608
-        )
+        with engine.begin() as conn:
+            conn.execute(
+                text(f"""
+                CREATE TABLE IF NOT EXISTS {full_table_name} AS
+                SELECT 1 as first, 2 as second
+                """)
+            )
+            conn.execute(
+                text(f"""
+                INSERT INTO {full_table_name} (first, second) VALUES (1, 2)
+                """)  # noqa: S608
+            )
+            conn.execute(
+                text(f"""
+                INSERT INTO {full_table_name} (first, second) VALUES (3, 4)
+                """)  # noqa: S608
+            )
 
     yield db.session
 
     with database.get_sqla_engine() as engine:
-        engine.execute(text(f"DROP TABLE {full_table_name}"))
+        with engine.begin() as conn:
+            conn.execute(text(f"DROP TABLE {full_table_name}"))
 
 
 @contextmanager

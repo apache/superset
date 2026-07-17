@@ -554,8 +554,9 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         frontend_config["AUTH_USER_REGISTRATION_ROLE"] = app.config[
             "AUTH_USER_REGISTRATION_ROLE"
         ]
-    if should_show_recaptcha:
-        frontend_config["RECAPTCHA_PUBLIC_KEY"] = app.config["RECAPTCHA_PUBLIC_KEY"]
+    recaptcha_public_key = app.config.get("RECAPTCHA_PUBLIC_KEY")
+    if should_show_recaptcha and recaptcha_public_key:
+        frontend_config["RECAPTCHA_PUBLIC_KEY"] = recaptcha_public_key
 
     frontend_config["AUTH_TYPE"] = auth_type
     if auth_type == AUTH_OAUTH:
@@ -648,6 +649,27 @@ def get_spa_payload(extra_data: dict[str, Any] | None = None) -> dict[str, Any]:
     return payload
 
 
+def _ensure_static_assets_prefix(url_or_path: str) -> str:
+    """Add the configured static asset prefix to root-relative asset paths."""
+    static_assets_prefix = app.config.get("STATIC_ASSETS_PREFIX", "")
+
+    if (
+        url_or_path.startswith("//")
+        or not url_or_path.startswith("/")
+        or not static_assets_prefix
+    ):
+        return url_or_path
+
+    normalized_prefix = static_assets_prefix.rstrip("/")
+    if normalized_prefix and (
+        url_or_path == normalized_prefix
+        or url_or_path.startswith(f"{normalized_prefix}/")
+    ):
+        return url_or_path
+
+    return f"{normalized_prefix}{url_or_path}"
+
+
 def get_spa_template_context(
     entry: str | None = "spa",
     extra_bootstrap_data: dict[str, Any] | None = None,
@@ -692,6 +714,12 @@ def get_spa_template_context(
             if app_name_from_config != "Superset":
                 # User has customized APP_NAME, use it as brandAppName
                 theme_tokens["brandAppName"] = app_name_from_config
+
+        brand_spinner_url = theme_tokens.get("brandSpinnerUrl")
+        if isinstance(brand_spinner_url, str) and brand_spinner_url:
+            theme_tokens["brandSpinnerUrl"] = _ensure_static_assets_prefix(
+                brand_spinner_url
+            )
 
     # Write the modified theme data back to payload
     if "common" not in payload:

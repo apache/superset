@@ -66,6 +66,7 @@ from superset.extensions import (
     talisman,
 )
 from superset.extensions.context import extension_context
+from superset.openapi import SupersetOpenApi, SupersetSwaggerView
 from superset.security import SupersetSecurityManager
 from superset.semantic_layers.labels import database_connections_menu_label
 from superset.sql.parse import SQLGLOT_DIALECTS
@@ -193,6 +194,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         from superset.sqllab.api import SqlLabRestApi
         from superset.sqllab.permalink.api import SqlLabPermalinkRestApi
+        from superset.subjects.api import SubjectRestApi
         from superset.tags.api import TagRestApi
         from superset.themes.api import ThemeRestApi
         from superset.views.alerts import AlertView, ReportView
@@ -287,6 +289,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(TagRestApi)
         appbuilder.add_api(SqlLabRestApi)
         appbuilder.add_api(SqlLabPermalinkRestApi)
+        appbuilder.add_api(SubjectRestApi)
         appbuilder.add_api(LogRestApi)
 
         if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
@@ -394,17 +397,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             ),
         )
 
-        if feature_flag_manager.is_feature_enabled("ENABLE_VIEWERS"):
-            from superset.subjects.views import SubjectModelView
-
-            appbuilder.add_view(
-                SubjectModelView,
-                "Subjects",
-                label=_("Subjects"),
-                category="Security",
-                category_label=_("Security"),
-            )
-
         appbuilder.add_view(
             DynamicPluginsView,
             "Plugins",
@@ -483,6 +475,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(RedirectView)
         appbuilder.add_view_no_menu(RoleRestAPI)
         appbuilder.add_view_no_menu(UserInfoView)
+        # Only register the APPLICATION_ROOT-aware Swagger UI / OpenAPI spec when
+        # Swagger is enabled globally (``FAB_API_SWAGGER_UI``). This preserves the
+        # global disable contract so operators who turn Swagger off don't get the
+        # API documentation re-exposed by the prefix-aware variant.
+        if self.config.get("FAB_API_SWAGGER_UI") and self.config.get(
+            "FAB_API_SWAGGER_UI_SUPERSET_APP_ROOT", False
+        ):
+            appbuilder.add_api(SupersetOpenApi)
+            appbuilder.add_view_no_menu(SupersetSwaggerView)
 
         #
         # Add links
@@ -1215,6 +1216,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         appbuilder.indexview = SupersetIndexView
         appbuilder.security_manager_class = custom_sm
+
+        # The APPLICATION_ROOT-aware Swagger UI and OpenAPI spec replace FAB's
+        # default views at the same routes (``/api/<version>/_openapi`` and
+        # ``/swagger/<version>``). Suppress FAB's default registration so the two
+        # implementations don't create duplicate URL rules for the same path,
+        # which would otherwise leave FAB's (non-prefix-aware) handler in charge.
+        if self.config.get("FAB_API_SWAGGER_UI") and self.config.get(
+            "FAB_API_SWAGGER_UI_SUPERSET_APP_ROOT", False
+        ):
+            self.superset_app.config["FAB_ADD_OPENAPI_VIEWS"] = False
+
         appbuilder.init_app(self.superset_app, db.session)
 
     def configure_subjects(self) -> None:

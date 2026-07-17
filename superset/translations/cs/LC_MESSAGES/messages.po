@@ -30,32 +30,52 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid ""
 "A soft-deleted dataset (uuid %(uuid)s) already references this table. "
-"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a new "
-"dataset over this table, or use a different table name."
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a "
+"new dataset over this table, or use a different table name."
 msgstr ""
+"Měkce smazaná datová sada (uuid %(uuid)s) již odkazuje na tuto tabulku. "
+"Obnovte ji pomocí POST /api/v1/dataset/%(uuid)s/restore před vytvořením "
+"nové datové sady nad touto tabulkou, nebo použijte jiný název tabulky."
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid ""
 "A soft-deleted dataset (uuid %(uuid)s) already references this table. "
-"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or "
-"upload to a different table name."
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or"
+" upload to a different table name."
 msgstr ""
+"Měkce smazaná datová sada (uuid %(uuid)s) již odkazuje na tuto tabulku. "
+"Obnovte ji pomocí POST /api/v1/dataset/%(uuid)s/restore před nahráním, "
+"nebo nahrajte do jiného názvu tabulky."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "Cannot delete a database whose only remaining datasets are soft-deleted. "
 "Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
 "permanently once a purge capability ships, or remove the underlying rows "
 "out-of-band, before deleting the database."
 msgstr ""
+"Nelze smazat databázi, jejíž jediné zbývající datové sady jsou měkce "
+"smazány. Obnovte je (POST /api/v1/dataset/<uuid>/restore) a trvale je "
+"smažte po zavedení funkce vymazání, nebo před smazáním databáze odstraňte"
+" podkladové řádky mimo pásmo."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
-"Dataset cannot be restored because another active dataset already references "
-"the same physical table (same database, catalog, schema, and table name). "
-"Delete the duplicate or rename the table before restoring."
+"Dataset cannot be restored because another active dataset already "
+"references the same physical table (same database, catalog, schema, and "
+"table name). Delete the duplicate or rename the table before restoring."
 msgstr ""
+"Datová sada nemůže být obnovena, protože jiná aktivní datová sada již "
+"odkazuje na stejnou fyzickou tabulku (stejná databáze, katalog, schéma a "
+"název tabulky). Před obnovením odstraňte duplicitní sadu nebo přejmenujte"
+" tabulku."
 
 msgid ""
 "\n"
@@ -234,15 +254,15 @@ msgstr "\"%s\" je nyní tmavé téma systému"
 msgid "\"%s\" is now the system default theme"
 msgstr "\"%s\" je nyní výchozí téma systému"
 
-#, python-format
+#, no-python-format
 msgid "% calculation"
 msgstr "Výpočet v %"
 
-#, python-format
+#, no-python-format
 msgid "% of parent"
 msgstr "% z nadřazené položky"
 
-#, python-format
+#, no-python-format
 msgid "% of total"
 msgstr "% z celku"
 
@@ -692,6 +712,7 @@ msgstr "10 sekund"
 msgid "10/90 percentiles"
 msgstr "10/90 percentilů"
 
+#. do-not-translate
 msgid "10000"
 msgstr "10000"
 
@@ -908,8 +929,10 @@ msgstr "Databáze se stejným názvem již existuje."
 msgid "A date is required when using custom date shift"
 msgstr "Při použití vlastního posunu data je vyžadováno datum."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "A description for your dashboard"
-msgstr ""
+msgstr "Popis vašeho řídicího panelu"
 
 #, python-brace-format
 msgid ""
@@ -967,10 +990,14 @@ msgstr ""
 msgid "A metric to use for color"
 msgstr "Metrika pro určení barvy"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "A multiplier applied to the point radius. Use this to uniformly scale all"
 " points."
 msgstr ""
+"Násobitel aplikovaný na poloměr bodu. Pomocí tohoto nastavení lze "
+"rovnoměrně změnit měřítko všech bodů."
 
 msgid "A new chart and dashboard will be created."
 msgstr "Bude vytvořen nový graf a nová nástěnka."
@@ -1365,7 +1392,7 @@ msgstr "Přidáno"
 #, python-format
 msgid "Added 1 new column to the virtual dataset"
 msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Do virtuální sady dat byl přidán 1 nový sloupec"
+msgstr[0] "Do virtuální sady dat byl přidán %s nový sloupec"
 msgstr[1] "Do virtuální sady dat byly přidány %s nové sloupce"
 msgstr[2] "Do virtuální sady dat bylo přidáno %s nových sloupců"
 
@@ -1933,10 +1960,14 @@ msgstr "Při formátování SQL došlo k chybě"
 msgid "An error occurred while importing %s: %s"
 msgstr "Při importu %s došlo k chybě: %s"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "An error occurred while loading SQL Lab. This may be caused by a "
 "corrupted query state."
 msgstr ""
+"Při načítání SQL Lab došlo k chybě. Příčinou může být poškozený stav "
+"dotazu."
 
 msgid "An error occurred while loading dashboard information."
 msgstr "Při načítání informací o nástěnce došlo k chybě."
@@ -3200,8 +3231,10 @@ msgstr "Změny grafu"
 msgid "Chart could not be created."
 msgstr "Graf se nepodařilo vytvořit."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Chart could not be restored."
-msgstr ""
+msgstr "Nepodařilo se obnovit graf."
 
 msgid "Chart could not be updated."
 msgstr "Graf se nepodařilo aktualizovat."
@@ -3844,8 +3877,10 @@ msgstr ""
 "Čárkou oddělené hranice intervalů, např. 2,4,5 pro intervaly 0-2, 2-4 a "
 "4-5. Poslední číslo by se mělo shodovat s hodnotou zadanou pro MAX."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Common (unit per pixel at zoom 0)"
-msgstr ""
+msgstr "Společné (jednotka na pixel při přiblížení 0)"
 
 msgid "Comparator option"
 msgstr "Možnost komparátoru"
@@ -4140,8 +4175,10 @@ msgstr "Nepodařilo se načíst všechny uložené grafy"
 msgid "Could not find viz object"
 msgstr "Nelze najít objekt vizualizace"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Could not load SQL Lab"
-msgstr ""
+msgstr "Nepodařilo se načíst SQL Lab"
 
 msgid "Could not load database driver"
 msgstr "Nepodařilo se načíst ovladač databáze"
@@ -4473,6 +4510,7 @@ msgstr "Datové formáty DD/MM, mezinárodní a evropský formát"
 msgid "DEC"
 msgstr "PRO"
 
+#. do-not-translate
 msgid "DELETE"
 msgstr "SMAZAT"
 
@@ -4533,8 +4571,10 @@ msgstr "Konfiguraci barev nástěnky se nepodařilo aktualizovat."
 msgid "Dashboard could not be deleted."
 msgstr "Nástěnku se nepodařilo smazat."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Dashboard could not be restored."
-msgstr ""
+msgstr "Nepodařilo se obnovit řídicí panel."
 
 msgid "Dashboard could not be updated."
 msgstr "Nástěnku se nepodařilo aktualizovat."
@@ -4789,8 +4829,10 @@ msgstr "Sadu dat se nepodařilo vytvořit."
 msgid "Dataset could not be duplicated."
 msgstr "Sadu dat se nepodařilo duplikovat."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Dataset could not be restored."
-msgstr ""
+msgstr "Nepodařilo se obnovit datovou sadu."
 
 msgid "Dataset could not be updated."
 msgstr "Sadu dat se nepodařilo aktualizovat."
@@ -5902,6 +5944,7 @@ msgstr "Dynamicky prohledávat všechny hodnoty filtru"
 msgid "Dynamically select grouping columns from a dataset"
 msgstr "Dynamicky vybrat sloupce pro seskupování z datové sady"
 
+#. do-not-translate
 msgid "ECharts"
 msgstr "ECharts"
 
@@ -5911,6 +5954,7 @@ msgstr "ECharts"
 msgid "ECharts Options (JS object literals)"
 msgstr "Možnosti ECharts (objektové literály JS)"
 
+#. do-not-translate
 msgid "EMAIL_REPORTS_CTA"
 msgstr "EMAIL_REPORTS_CTA"
 
@@ -7329,6 +7373,7 @@ msgstr "Dále přizpůsobit, jak zobrazit každý sloupec"
 msgid "Further customize how to display each metric"
 msgstr "Dále přizpůsobit, jak zobrazit každou metriku"
 
+#. do-not-translate
 msgid "GROUP BY"
 msgstr "SESKUPIT PODLE"
 
@@ -9170,7 +9215,7 @@ msgstr "Změněno %s"
 #, python-format
 msgid "Modified 1 column in the virtual dataset"
 msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Upraven 1 sloupec ve virtuální sadě dat"
+msgstr[0] "Upraven %s sloupec ve virtuální sadě dat"
 msgstr[1] "Upraveny %s sloupce ve virtuální sadě dat"
 msgstr[2] "Upraveno %s sloupců ve virtuální sadě dat"
 
@@ -9249,7 +9294,9 @@ msgstr "Násobitel"
 msgid ""
 "Must be a chart editor to overwrite this chart. Save as a new chart "
 "instead."
-msgstr "Abyste mohli tento graf přepsat, musíte být editorem grafu. Místo toho jej uložte jako nový graf."
+msgstr ""
+"Abyste mohli tento graf přepsat, musíte být editorem grafu. Místo toho "
+"jej uložte jako nový graf."
 
 msgid "Must be unique"
 msgstr "Musí být jedinečný"
@@ -9278,6 +9325,7 @@ msgstr "Má metrika"
 msgid "N/A"
 msgstr "N/A"
 
+#. do-not-translate
 msgid "NOT GROUPED BY"
 msgstr "NESESKUPENO PODLE"
 
@@ -9811,6 +9859,7 @@ msgstr "OK"
 msgid "OR"
 msgstr "NEBO"
 
+#. do-not-translate
 msgid "OVERWRITE"
 msgstr "PŘEPSAT"
 
@@ -9945,11 +9994,15 @@ msgstr "Otevřít kartu Zdroje dat"
 msgid "Open SQL Lab in a new tab"
 msgstr "Otevřít SQL Lab v novém okně"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Open chart in new tab"
-msgstr ""
+msgstr "Otevřít graf na nové kartě"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Open dashboard in new tab"
-msgstr ""
+msgstr "Otevřít řídicí panel na nové kartě"
 
 msgid "Open in SQL Lab"
 msgstr "Otevřít v SQL Labu"
@@ -10201,9 +10254,10 @@ msgstr "Heslo"
 msgid "Password is required"
 msgstr "Heslo je povinné"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid "Password must be at least %(min_length)s characters long."
-msgstr ""
+msgstr "Heslo musí mít alespoň %(min_length)s znaků."
 
 #, fuzzy
 msgid "Password:"
@@ -10575,8 +10629,10 @@ msgstr "Měřítko poloměru bodu"
 msgid "Point Radius Unit"
 msgstr "Jednotka poloměru bodu"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Point Radius Units"
-msgstr ""
+msgstr "Jednotky poloměru bodu"
 
 msgid "Point Size"
 msgstr "Velikost bodu"
@@ -11033,8 +11089,10 @@ msgstr "Relativní množství"
 msgid "Reload"
 msgstr "Znovu načíst"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Reload SQL Lab"
-msgstr ""
+msgstr "Znovu načíst SQL Lab"
 
 msgid "Remove"
 msgstr "Odstranit"
@@ -11065,7 +11123,7 @@ msgstr "Odstranit dotaz z protokolu"
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
 msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Odstraněn 1 sloupec z virtuální sady dat"
+msgstr[0] "Odstraněn %s sloupec z virtuální sady dat"
 msgstr[1] "Odstraněny %s sloupce z virtuální sady dat"
 msgstr[2] "Odstraněno %s sloupců z virtuální sady dat"
 
@@ -11151,8 +11209,10 @@ msgstr "Report je aktivní"
 msgid "Report name"
 msgstr "Název reportu"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Report not yet run"
-msgstr ""
+msgstr "Sestava ještě nebyla spuštěna"
 
 msgid "Report schedule client error"
 msgstr "Chyba klienta plánu reportu"
@@ -11206,9 +11266,10 @@ msgstr "Požadované hodnoty ovládacích prvků byly odstraněny"
 msgid "Resample"
 msgstr "Převzorkovat"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid "Resample method '%(method)s' is not supported."
-msgstr ""
+msgstr "Metoda převzorkování '%(method)s' není podporována."
 
 msgid "Resample method should be in "
 msgstr "Metoda převzorkování by měla být v "
@@ -13367,8 +13428,10 @@ msgstr "Ulice"
 msgid "Streets (Carto)"
 msgstr "Stromový graf"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Streets (OSM)"
-msgstr ""
+msgstr "Ulice (OSM)"
 
 msgid "Strength to pull the graph toward center"
 msgstr "Síla pro přitahování grafu ke středu"
@@ -13565,6 +13628,7 @@ msgstr "Systémové výchozí téma odstraněno"
 msgid "TABLES"
 msgstr "TABULKY"
 
+#. do-not-translate
 msgid "TEMPORAL_RANGE"
 msgstr "ČASOVÝ_ROZSAH"
 
@@ -13862,8 +13926,10 @@ msgstr ""
 "konfiguraci naleznete na https://superset.apache.org/docs/configuration"
 "/async-queries-celery."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "The SSH server host key could not be verified against the expected key."
-msgstr ""
+msgstr "Klíč hostitele SSH serveru nebylo možné ověřit oproti očekávanému klíči."
 
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
@@ -13915,11 +13981,14 @@ msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
 msgid ""
 "The chart this report targets was deleted. Restore the chart, or update "
 "the report to point at an active chart."
 msgstr ""
+"Graf, na který tato sestava cílí, byl smazán. Obnovte graf nebo "
+"aktualizujte sestavu, aby ukazovala na aktivní graf."
 
 msgid "The chart is still loading. Please wait a moment and try again."
 msgstr "Graf se stále načítá. Chvíli počkejte a zkuste to znovu."
@@ -14007,10 +14076,14 @@ msgstr "Standard kódu země, který by měl Superset očekávat ve sloupci [zem
 msgid "The dashboard has been saved"
 msgstr "Nástěnka byla uložena"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "The dashboard this report targets was deleted. Restore the dashboard, or "
 "update the report to point at an active dashboard."
 msgstr ""
+"Řídicí panel, na který tato sestava cílí, byl smazán. Obnovte řídicí "
+"panel nebo aktualizujte sestavu, aby ukazovala na aktivní řídicí panel."
 
 msgid "The data source seems to have been deleted"
 msgstr "Zdá se, že zdroj dat byl smazán"
@@ -14519,10 +14592,14 @@ msgstr ""
 "Poloměr jednotlivých bodů (těch, které nejsou ve shluku). Buď číselný "
 "sloupec, nebo `Auto`, které škáluje bod na základě největšího shluku"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "The radius of point features, in the units specified below. The final "
 "rendered size is this value multiplied by Point Radius Scale."
 msgstr ""
+"Poloměr bodových prvků v níže uvedených jednotkách. Výsledná vykreslená "
+"velikost je tato hodnota vynásobená hodnotou Měřítko poloměru bodu."
 
 msgid "The report has been created"
 msgstr "Report byl vytvořen"
@@ -14726,10 +14803,14 @@ msgstr "Jednotka pro velikost ikony"
 msgid "The unit for label size"
 msgstr "Jednotka pro velikost popisku"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "The unit for point radius. Use \"pixels\" for consistent screen-space "
 "sizing regardless of zoom level."
 msgstr ""
+"Jednotka pro poloměr bodu. Použijte \"pixely\" pro konzistentní velikost "
+"v prostoru obrazovky bez ohledu na úroveň přiblížení."
 
 msgid "The unit of measure for the specified point radius"
 msgstr "Jednotka míry pro zadaný poloměr bodu"
@@ -15418,8 +15499,10 @@ msgid ""
 " is not the case."
 msgstr "Tato stránka je určena k vložení do iframe, ale zdá se, že tomu tak není."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "This password is too common; please choose a less guessable one."
-msgstr ""
+msgstr "Toto heslo je příliš běžné; zvolte prosím méně předvídatelné."
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -15770,17 +15853,23 @@ msgstr "Pro získání čitelné URL pro vaši nástěnku"
 msgid "Token Request URI"
 msgstr "URI žádosti o token"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid ""
 "Too many sub-slices requested. The maximum allowed is %(max)s, but "
 "%(count)s were requested."
 msgstr ""
+"Bylo vyžádáno příliš mnoho dílčích řezů. Maximální povolený počet je "
+"%(max)s, ale bylo vyžádáno %(count)s."
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid ""
 "Too many time comparisons requested. The maximum allowed is %(max)s, but "
 "%(count)s were requested."
 msgstr ""
+"Bylo vyžádáno příliš mnoho časových porovnání. Maximální povolený počet "
+"je %(max)s, ale bylo vyžádáno %(count)s."
 
 #, fuzzy
 msgid "Tool Panel"
@@ -16794,9 +16883,11 @@ msgstr "Typ vizualizace"
 msgid "WED"
 msgstr "ST"
 
+#. do-not-translate
 msgid "WFS"
 msgstr "WFS"
 
+#. do-not-translate
 msgid "WMS"
 msgstr "WMS"
 
@@ -17333,6 +17424,7 @@ msgstr "Osa X"
 msgid "X-scale interval"
 msgstr "Interval stupnice X"
 
+#. do-not-translate
 msgid "XYZ"
 msgstr "XYZ"
 
@@ -17566,8 +17658,10 @@ msgstr "Nemáte oprávnění k úpravě této nástěnky."
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "Nemáte dostatečná oprávnění k úpravě grafu"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "You don't have access to one or more of the referenced datasources."
-msgstr ""
+msgstr "Nemáte přístup k jednomu nebo více odkazovaným zdrojům dat."
 
 msgid "You don't have access to this chart."
 msgstr "K tomuto grafu nemáte přístup."
@@ -17651,15 +17745,21 @@ msgstr ""
 msgid ""
 "You must be a %s editor in order to edit. Please reach out to a %s editor"
 " to request modifications or edit access."
-msgstr "Abyste mohli upravovat, musíte být editorem %s. Obraťte se na editora %s a požádejte o úpravy nebo přístup k úpravám."
+msgstr ""
+"Abyste mohli upravovat, musíte být editorem %s. Obraťte se na editora %s "
+"a požádejte o úpravy nebo přístup k úpravám."
 
 msgid ""
 "You must be a dataset editor in order to edit. Please reach out to a "
 "dataset editor to request modifications or edit access."
-msgstr "Abyste mohli upravovat, musíte být editorem datové sady. Obraťte se na editora datové sady a požádejte o úpravy nebo přístup k úpravám."
-
-msgid "You must change your password before continuing."
 msgstr ""
+"Abyste mohli upravovat, musíte být editorem datové sady. Obraťte se na "
+"editora datové sady a požádejte o úpravy nebo přístup k úpravám."
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, tr]
+#, fuzzy
+msgid "You must change your password before continuing."
+msgstr "Před pokračováním musíte změnit heslo."
 
 msgid "You must pick a name for the new dashboard"
 msgstr "Musíte vybrat název pro novou nástěnku"
@@ -17667,11 +17767,14 @@ msgstr "Musíte vybrat název pro novou nástěnku"
 msgid "You must run the query successfully first"
 msgstr "Nejprve musíte úspěšně spustit dotaz"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid ""
 "You need access to the following tables: %(tables)s, "
 "'all_database_access' or 'all_datasource_access' permission"
 msgstr ""
+"Potřebujete přístup k následujícím tabulkám: %(tables)s, oprávnění "
+"'all_database_access' nebo 'all_datasource_access'"
 
 msgid "You need to"
 msgstr "Musíte"
@@ -17750,8 +17853,10 @@ msgstr "Váš dotaz byl aktualizován"
 msgid "Your report could not be deleted"
 msgstr "Váš report se nepodařilo smazat"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Your session has ended. Please sign in again."
-msgstr ""
+msgstr "Vaše relace skončila. Přihlaste se prosím znovu."
 
 #, fuzzy
 msgid "Your user information"
@@ -17859,8 +17964,10 @@ msgstr "`row_offset` musí být větší nebo roven 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "`width` musí být větší nebo roven 0"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "`window` must be between 1 and 10000"
-msgstr ""
+msgstr "`window` musí být v rozmezí 1 až 10000"
 
 #, fuzzy
 msgid "a few seconds"
@@ -17893,8 +18000,10 @@ msgstr "anotace"
 msgid "annotation_layer"
 msgstr "vrstva_anotací"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "apple"
-msgstr ""
+msgstr "jablko"
 
 msgid "asfreq"
 msgstr "asfreq"
@@ -17912,8 +18021,10 @@ msgstr "pozadí"
 msgid "background color"
 msgstr "Barva pozadí"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "banana"
-msgstr ""
+msgstr "banán"
 
 msgid "basis"
 msgstr "základ"
@@ -17935,6 +18046,7 @@ msgstr "mezi {down} a {up} {name}"
 msgid "bfill"
 msgstr "bfill"
 
+#. do-not-translate
 msgid "bolt"
 msgstr "šroub"
 
@@ -18023,6 +18135,7 @@ msgstr "vytvořit nový graf"
 msgid "create dataset from SQL query"
 msgstr "vytvořit sadu dat z SQL dotazu"
 
+#. do-not-translate
 msgid "crontab"
 msgstr "crontab"
 
@@ -18096,6 +18209,7 @@ msgstr "deck.gl Oblouk"
 msgid "deck.gl Contour"
 msgstr "deck.gl Obrys"
 
+#. do-not-translate
 msgid "deck.gl Geojson"
 msgstr "deck.gl Geojson"
 
@@ -18146,6 +18260,7 @@ msgstr "dialekt+ovladač://uživatelské_jméno:heslo@hostitel:port/databáze"
 msgid "documentation"
 msgstr "dokumentace"
 
+#. do-not-translate
 msgid "dttm"
 msgstr "dttm"
 
@@ -18217,6 +18332,7 @@ msgstr "položek na stránku"
 msgid "error"
 msgstr "chyba"
 
+#. do-not-translate
 msgid "error_message"
 msgstr "chybová_zpráva"
 
@@ -18537,15 +18653,19 @@ msgstr "celkově"
 msgid "p-value precision"
 msgstr "přesnost p-hodnoty"
 
+#. do-not-translate
 msgid "p1"
 msgstr "p1"
 
+#. do-not-translate
 msgid "p5"
 msgstr "p5"
 
+#. do-not-translate
 msgid "p95"
 msgstr "p95"
 
+#. do-not-translate
 msgid "p99"
 msgstr "p99"
 
@@ -18562,6 +18682,7 @@ msgstr ""
 msgid "permalink state not found"
 msgstr "stav trvalého odkazu nenalezen"
 
+#. do-not-translate
 #, fuzzy
 msgid "pivoted_xlsx"
 msgstr "pivoted_xlsx"
@@ -18624,6 +18745,7 @@ msgstr "běží"
 msgid "save"
 msgstr "uložit"
 
+#. do-not-translate
 msgid "schema1,schema2"
 msgstr "schema1,schema2"
 
@@ -18642,6 +18764,7 @@ msgstr ""
 " stejné měřítko; změna: Zobrazit změny v porovnání s prvním datovým bodem"
 " v každé sérii"
 
+#. do-not-translate
 msgid "sql"
 msgstr "sql"
 
@@ -18657,9 +18780,11 @@ msgstr "rozložený"
 msgid "std"
 msgstr "std"
 
+#. do-not-translate
 msgid "step-after"
 msgstr "krok-po"
 
+#. do-not-translate
 msgid "step-before"
 msgstr "krok-před"
 
@@ -18682,6 +18807,7 @@ msgstr "úspěch"
 msgid "sum"
 msgstr "součet"
 
+#. do-not-translate
 msgid "superset.example.com"
 msgstr "superset.example.com"
 
@@ -18800,6 +18926,7 @@ msgstr "y: hodnoty jsou normalizovány v rámci každého řádku"
 msgid "year"
 msgstr "rok"
 
+#. do-not-translate
 msgid "your-project-1234-a1"
 msgstr "your-project-1234-a1"
 

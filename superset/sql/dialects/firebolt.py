@@ -17,6 +17,8 @@
 
 from __future__ import annotations
 
+import typing as t
+
 from sqlglot import exp, generator, parser, tokens
 from sqlglot.dialects.dialect import Dialect
 from sqlglot.helper import csv
@@ -95,11 +97,12 @@ class FireboltOld(Firebolt):
             self,
             skip_join_token: bool = False,
             parse_bracket: bool = False,
+            alias_tokens: t.Collection[TokenType] | None = None,
         ) -> exp.Join | None:
             if unnest := self._parse_unnest():
                 return self.expression(exp.Join(this=unnest))
 
-            return super()._parse_join(skip_join_token, parse_bracket)
+            return super()._parse_join(skip_join_token, parse_bracket, alias_tokens)
 
         def _parse_unnest(self, with_alias: bool = True) -> exp.Unnest | None:
             if not self._match(TokenType.UNNEST):
