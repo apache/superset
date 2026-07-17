@@ -408,6 +408,8 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
   (metrics + distribute_across required — distribute_across is the sample
    axis, e.g. a temporal column; dimensions splits into one box per value;
    whisker_type: tukey | min_max | percentile)
+- chart_type="waterfall": Waterfall chart of cumulative increases/decreases
+  (x_axis + metric required; optional single breakdown column, show_total)
 
 Time grain for temporal x-axis (time_grain parameter):
 - PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P1Y (yearly)
@@ -415,9 +417,9 @@ Time grain for temporal x-axis (time_grain parameter):
 Chart Types in Existing Charts (viewable via list_charts/get_chart_info):
 Each chart returned by list_charts / get_chart_info includes a
 chart_type_display_name field with a human-readable name when available.
-This field is populated only for the 9 chart types supported by generate_chart
+This field is populated only for the 10 chart types supported by generate_chart
 (xy, pie, table, pivot_table, big_number, mixed_timeseries, handlebars,
-histogram, box_plot).
+histogram, box_plot, waterfall).
 For all other viz_types (Funnel, Gauge, Heatmap, etc.) it will be null —
 use the raw viz_type field instead when referring to those chart types.
 
