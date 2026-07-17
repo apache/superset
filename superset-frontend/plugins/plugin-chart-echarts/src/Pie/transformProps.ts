@@ -81,9 +81,9 @@ const HALF_DONUT_SWEEP_LIMIT = 180;
 /**
  * Geometric configuration for each type of semi-circular layout.
  *
- * - `centerOffset`  — Y-axis offset of the chart center from the baseline of 50%.
- *                     Resulting position: `50% + centerOffset`.
- * - `totalTopBase`  — baseline vertical position of the "Total" text (as a percentage).
+ * - `centerOffset` — offset of the chart center from the baseline 50% on the X and Y axes.
+ *                    Resulting position: `50% + offset`.
+ * - `totalBase`    — base position of the "Total" text as a percentage on the X and Y axes.
  *
  * The values ​​are selected so that the "Total" text visually remains
  * at the geometric center of the arc after the chart is re-centered.
@@ -91,23 +91,30 @@ const HALF_DONUT_SWEEP_LIMIT = 180;
 
 const HALF_DONUT_LAYOUT: Record<
   HalfDonut,
-  { centerOffset: number; totalTopBase: number }
+  {
+    centerOffset: { x: number; y: number };
+    totalBase: { left: number; top: number };
+  }
 > = {
-  top: { centerOffset: 20, totalTopBase: 68.5 },
-  bottom: { centerOffset: -20, totalTopBase: 30 },
-  none: { centerOffset: 0, totalTopBase: 50 },
+  top: { centerOffset: { x: 0, y: 20 }, totalBase: { left: 50, top: 68.5 } },
+  bottom: { centerOffset: { x: 0, y: -20 }, totalBase: { left: 50, top: 30 } },
+  left: { centerOffset: { x: 5, y: 0 }, totalBase: { left: 55, top: 50 } },
+  right: { centerOffset: { x: -5, y: 0 }, totalBase: { left: 30, top: 50 } },
+  none: { centerOffset: { x: 0, y: 0 }, totalBase: { left: 50, top: 50 } },
 };
 
 /**
- * Determines the type of semicircular layout based on the start angle and sweep angle.
+ * Determines the type of semicircular layout based on the start angle and swept angle.
  *
- * Only two semicircle orientations are supported:
- * - `'top'`    — the arc is positioned at the top; the chart center shifts downwards.
- * - `'bottom'` — the arc is positioned at the bottom; the chart center shifts upwards.
+ * All four semicircle orientations are supported:
+ * - `'top'`    — arc at the top, center shifted down (center Y = 70%).
+ * - `'bottom'` — arc at the bottom, center shifted up (center Y = 30%).
+ * - `'left'`   — arc on the left, center shifted right (center X = 70%).
+ * - `'right'`  — arc on the right, center shifted left (center X = 30%).
  *
- * @param startAngle - The starting angle of the arc in degrees (0–360).
- * @param sweptAngle - The sweep angle of the arc in degrees (10–360).
- * @returns The semicircular layout type.
+ * @param startAngle - The start angle of the arc in degrees (0–360).
+ * @param sweptAngle - The swept angle of the arc in degrees (0–360).
+ * @returns The type of semicircular layout.
  */
 
 export const getHalfDonut = (
@@ -120,6 +127,8 @@ export const getHalfDonut = (
 
   if (normalized === 180) return 'top';
   if (normalized === 0) return 'bottom';
+  if (normalized === 270) return 'left';
+  if (normalized === 90) return 'right';
 
   return 'none';
 };
@@ -139,19 +148,19 @@ export function getTotalValuePadding({
   const safeWidth = width || 1;
 
   const halfType = getHalfDonut(startAngle, sweptAngle);
-  const { totalTopBase } = HALF_DONUT_LAYOUT[halfType];
+  const layout = HALF_DONUT_LAYOUT[halfType];
   const isHalf = halfType !== 'none';
 
   const calculateTop = (): string => {
     if (chartPadding.bottom) {
       return donut
-        ? `${totalTopBase - (chartPadding.bottom / safeHeight) * 50}%`
+        ? `${layout.totalBase.top - (chartPadding.bottom / safeHeight) * 50}%`
         : '0';
     }
 
     if (chartPadding.top || isHalf) {
       if (donut) {
-        return `${totalTopBase + (chartPadding.top / safeHeight) * 50}%`;
+        return `${layout.totalBase.top + (chartPadding.top / safeHeight) * 50}%`;
       }
       return `${(chartPadding.top / safeHeight) * 100}%`;
     }
@@ -162,12 +171,16 @@ export function getTotalValuePadding({
   const calculateLeft = (): string => {
     if (chartPadding.right) {
       const rightPercent = (chartPadding.right / safeWidth) * 100;
-      return `${50 - rightPercent * 0.75}%`;
+      return `${layout.totalBase.left - rightPercent * 0.75}%`;
     }
 
     if (chartPadding.left) {
       const leftPercent = (chartPadding.left / safeWidth) * 100;
-      return `${50 + leftPercent * 0.25}%`;
+      return `${layout.totalBase.left + leftPercent * 0.25}%`;
+    }
+
+    if (isHalf && (halfType === 'left' || halfType === 'right')) {
+      return `${layout.totalBase.left}%`;
     }
 
     return 'center';
@@ -472,8 +485,8 @@ export default function transformProps(
       roseType: roseType || undefined,
       radius: [`${donut ? innerRadius : 0}%`, `${outerRadius}%`],
       center: [
-        '50%',
-        `${50 + getHalfDonutLayout(startAngle, sweptAngle).centerOffset}%`,
+        `${50 + getHalfDonutLayout(startAngle, sweptAngle).centerOffset.x}%`,
+        `${50 + getHalfDonutLayout(startAngle, sweptAngle).centerOffset.y}%`,
       ],
       startAngle,
       endAngle: startAngle - sweptAngle,

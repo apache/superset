@@ -130,8 +130,9 @@ export interface PaddingResult {
  *
  * - `'top'`    — arc at the top, center shifted downwards.
  * - `'bottom'` — arc at the bottom, center shifted upwards.
- * - `'none'`   — full circle or side orientation (no recentering).
- *
+ * - `'left'`   — arc on the left, center shifted to the right.
+ * - `'right'`  — arc on the right, center shifted to the left.
+ * - `'none'`   — full circle (no recentering).
  * @see getHalfDonut
  */
-export type HalfDonut = 'top' | 'bottom' | 'none';
+export type HalfDonut = 'top' | 'bottom' | 'left' | 'right' | 'none';
