@@ -343,7 +343,12 @@ const PropertiesModal = ({
         ? resettableCustomLabels
         : false;
     const jsonMetadataObj = getJsonMetadata();
-    jsonMetadataObj.refresh_frequency = refreshFrequency;
+    // A refresh_frequency edited directly in the Advanced JSON editor takes
+    // precedence over the Refresh dropdown state, mirroring how color_scheme is
+    // handled above. Nullish coalescing preserves an explicit 0 ("Don't
+    // refresh") rather than falling through to the dropdown value (#42116).
+    jsonMetadataObj.refresh_frequency =
+      jsonMetadataObj.refresh_frequency ?? refreshFrequency;
     jsonMetadataObj.show_chart_timestamps = Boolean(showChartTimestamps);
     const customLabelColors = jsonMetadataObj.label_colors || {};
     const updatedDashboardMetadata = {
@@ -537,8 +542,14 @@ const PropertiesModal = ({
 
   // Section handlers for extracted components
   const handleThemeChange = (value: any) => setSelectedThemeId(value || null);
-  const handleRefreshFrequencyChange = (value: number) =>
+  const handleRefreshFrequencyChange = (value: number) => {
     setRefreshFrequency(value);
+    // Keep the Advanced JSON editor in sync with the dropdown so the two
+    // sources can't diverge, mirroring onColorSchemeChange (#42116).
+    const jsonMetadataObj = getJsonMetadata();
+    jsonMetadataObj.refresh_frequency = value;
+    setJsonMetadata(jsonStringify(jsonMetadataObj));
+  };
 
   // Helper function for styling section
   const hasCustomLabelsColor = !!Object.keys(

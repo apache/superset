@@ -74,6 +74,46 @@ class TestDashboardDAO(SupersetTestCase):
             db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    def test_set_dash_metadata_preserves_unsent_fields(self, mock_sm_g, mock_g):
+        """
+        set_dash_metadata must not reset metadata fields that are absent from the
+        incoming payload, such as a ``refresh_frequency`` edited directly in the
+        Advanced JSON editor (#42116). Fields that are present still override.
+        """
+        mock_g.user = mock_sm_g.user = security_manager.find_user("admin")
+        with self.client.application.test_request_context():
+            dashboard = (
+                db.session.query(Dashboard).filter_by(slug="world_health").first()
+            )
+            original_json_metadata = dashboard.json_metadata
+            try:
+                # Seed an existing refresh_frequency in the stored metadata.
+                metadata = json.loads(dashboard.json_metadata or "{}")
+                metadata["refresh_frequency"] = 60
+                dashboard.json_metadata = json.dumps(metadata)
+                db.session.commit()
+
+                # Payload omits refresh_frequency: it must be preserved, not
+                # reset to 0.
+                DashboardDAO.set_dash_metadata(
+                    dashboard, {"color_scheme": "d3Category10"}
+                )
+                db.session.commit()
+                saved = json.loads(dashboard.json_metadata)
+                assert saved["refresh_frequency"] == 60
+                assert saved["color_scheme"] == "d3Category10"
+
+                # An explicitly-sent value still overrides.
+                DashboardDAO.set_dash_metadata(dashboard, {"refresh_frequency": 30})
+                db.session.commit()
+                assert json.loads(dashboard.json_metadata)["refresh_frequency"] == 30
+            finally:
+                dashboard.json_metadata = original_json_metadata
+                db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.daos.dashboard.g")
     @patch("superset.security.manager.g")
     def test_copy_dashboard(self, mock_sm_g, mock_g):
