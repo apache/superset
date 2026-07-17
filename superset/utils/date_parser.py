@@ -60,11 +60,32 @@ logging.getLogger("parsedatetime").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
+# Source times used by ``is_constant_human_timedelta`` to tell a delta from an
+# anchor. They share a date -- mid-month and mid-year, away from any month or
+# year boundary a shift could clamp against -- and differ only in the hour, so
+# that the sole thing the comparison can detect is sensitivity to time of day.
+# Neither hour is parsedatetime's 09:00 default, so an anchor cannot coincide
+# with a probe and masquerade as a zero shift.
+_SHIFT_PROBE_TIMES: tuple[datetime, datetime] = (
+    datetime(2024, 6, 15, 3, 0, 0),
+    datetime(2024, 6, 15, 21, 0, 0),
+)
+
 # Mapping of ordinal words to their numeric values for date expressions
 ORDINAL_MAP: dict[str, int] = {
     "first": 1,
     "1st": 1,
 }
+
+# parsedatetime does not understand "N quarters" (it leaves the source time
+# unchanged), so such phrases are rewritten to the equivalent number of months
+# before parsing. The lookbehind and the bounded repetition keep matching
+# linear on user-provided strings (every suffix of an unbounded digit run
+# would be re-scanned) and keep the int() conversion small; longer digit
+# runs fall through to parsedatetime like any other unparseable phrase.
+_QUARTERS_PATTERN: re.Pattern[str] = re.compile(
+    r"(?<![0-9])([0-9]{1,10})\s+quarters?\b", re.IGNORECASE
+)
 
 
 def parse_human_datetime(human_readable: str) -> datetime:
@@ -95,9 +116,12 @@ def normalize_time_delta(human_readable: str) -> dict[str, int]:
     if not matched:
         raise TimeDeltaAmbiguousError(human_readable)
 
-    key = matched[2] + "s"
+    key = matched[2].lower() + "s"
     value = int(matched[1])
-    value = -value if matched[3] == "ago" else value
+    value = -value if (matched[3] or "").lower() == "ago" else value
+    if key == "quarters":
+        # pd.DateOffset does not accept a `quarters` argument
+        key, value = "months", value * 3
     return {key: value}
 
 
@@ -112,6 +136,13 @@ def dttm_from_timetuple(date_: struct_time) -> datetime:
     )
 
 
+def _rewrite_quarters_as_months(human_readable: str | None) -> str:
+    return _QUARTERS_PATTERN.sub(
+        lambda match: f"{int(match[1]) * 3} months",
+        human_readable or "",
+    )
+
+
 def get_past_or_future(
     human_readable: str | None,
     source_time: datetime | None = None,
@@ -120,7 +151,47 @@ def get_past_or_future(
     source_dttm = dttm_from_timetuple(
         source_time.timetuple() if source_time else datetime.now().timetuple()
     )
-    return dttm_from_timetuple(cal.parse(human_readable or "", source_dttm)[0])
+    human_readable = _rewrite_quarters_as_months(human_readable)
+    return dttm_from_timetuple(cal.parse(human_readable, source_dttm)[0])
+
+
+def is_parseable_human_timedelta(human_readable: str | None) -> bool:
+    """
+    Returns whether parsedatetime understands the phrase.
+
+    parsedatetime echoes the source time back for phrases it cannot parse,
+    so a zero ``parse_human_timedelta`` result cannot distinguish an
+    uninterpretable phrase from one that legitimately parses to no shift
+    (e.g. "0 days ago"). The parse flag makes that distinction: it is 0
+    only when nothing in the phrase was understood.
+    """
+    cal = parsedatetime.Calendar()
+    return cal.parse(_rewrite_quarters_as_months(human_readable))[1] != 0
+
+
+def is_constant_human_timedelta(human_readable: str | None) -> bool:
+    """
+    Returns whether the phrase shifts every source time by the same amount.
+
+    ``is_parseable_human_timedelta`` accepts anchors such as "yesterday" and
+    "last month" alongside true deltas such as "1 year ago", but the two
+    behave differently when applied per row: an anchor resolves to a single
+    timestamp (parsedatetime defaults to 09:00) no matter where the source
+    time sits within the day, so it shifts each row by a different amount.
+
+    Probing two source times within the same day separates the two. A delta
+    shifts both probes equally; an anchor maps both onto one timestamp, which
+    -- the probes being distinct -- necessarily yields differing shifts. Both
+    probes share a date, so calendar irregularities such as leap years and
+    month lengths apply to them identically and cannot skew the comparison.
+    """
+    if not is_parseable_human_timedelta(human_readable):
+        return False
+    deltas = {
+        get_past_or_future(human_readable, probe) - probe
+        for probe in _SHIFT_PROBE_TIMES
+    }
+    return len(deltas) == 1
 
 
 def parse_human_timedelta(

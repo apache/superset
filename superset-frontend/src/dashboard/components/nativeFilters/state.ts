@@ -30,8 +30,7 @@ import {
 } from '@superset-ui/core';
 import { FilterElement } from './FilterBar/FilterControls/types';
 import { ActiveTabs, DashboardLayout, RootState } from '../../types';
-import { CHART_TYPE, TAB_TYPE, TABS_TYPE } from '../../util/componentTypes';
-import { DASHBOARD_ROOT_ID } from '../../util/constants';
+import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
 import { isChartCustomizationId } from './FiltersConfigModal/utils';
 import {
   migrateChartCustomizationArray,
@@ -184,62 +183,9 @@ export function useDashboardHasTabs() {
 }
 
 function useActiveDashboardTabs(): ActiveTabs {
-  const reduxTabs = useSelector<RootState, ActiveTabs>(
-    state => state.dashboardState?.activeTabs,
+  return useSelector<RootState, ActiveTabs>(
+    state => state.dashboardState?.activeTabs ?? EMPTY_ACTIVE_TABS,
   );
-  const dashboardLayout = useDashboardLayout();
-
-  return useMemo(() => {
-    const reduxList = reduxTabs ?? [];
-    const reduxFallback = reduxList.length ? reduxList : EMPTY_ACTIVE_TABS;
-    if (!dashboardLayout) return reduxFallback;
-
-    // Tabbed dashboards always nest the top-level TABS container as the first
-    // child of ROOT. If that invariant doesn't hold (no-tabs layout), no
-    // fallback applies and we use reduxTabs as-is.
-    const root = dashboardLayout[DASHBOARD_ROOT_ID];
-    if (!root?.children?.length) return reduxFallback;
-    const topContainer = dashboardLayout[root.children[0]];
-    if (topContainer?.type !== TABS_TYPE || !topContainer.children?.length) {
-      return reduxFallback;
-    }
-
-    // Walk every TABS container along the active path. For each container,
-    // pick the child Redux marked active; otherwise pick the first child (the
-    // default the live Tabs component would render). This handles:
-    //   - empty reduxTabs (hideTab:true, no permalink) → full default path
-    //   - reduxTabs missing an outer ancestor (hideTab:true skipped the
-    //     top-level Tabs, but a nested Tabs dispatched setActiveTab) → fill
-    //     in the missing ancestor so outer-tab scoping is preserved
-    //   - fully populated reduxTabs (normal hydration) → same result
-    const reduxSet = new Set(reduxList);
-    const result: ActiveTabs = [];
-    const queue: string[] = [
-      topContainer.children.find(c => reduxSet.has(c)) ??
-        topContainer.children[0],
-    ];
-    while (queue.length > 0) {
-      const tabId = queue.shift()!;
-      result.push(tabId);
-      const tab = dashboardLayout[tabId];
-      if (!tab?.children) continue;
-      for (const childId of tab.children) {
-        const child = dashboardLayout[childId];
-        if (child?.type !== TABS_TYPE || !child.children?.length) continue;
-        queue.push(
-          child.children.find(c => reduxSet.has(c)) ?? child.children[0],
-        );
-      }
-    }
-
-    // Preserve any reduxTabs entries that fell outside the traversed path so
-    // we never silently drop a redux-marked active tab id.
-    const resultSet = new Set(result);
-    for (const id of reduxList) {
-      if (!resultSet.has(id)) result.push(id);
-    }
-    return result;
-  }, [reduxTabs, dashboardLayout]);
 }
 
 function useSelectChartTabParents() {
