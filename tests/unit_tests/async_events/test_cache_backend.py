@@ -84,6 +84,7 @@ def test_redis_cache_backend_from_config_reads_timeout_keys(
     )
 
     kwargs = redis_mock.Redis.call_args.kwargs
+    assert kwargs["protocol"] == 2
     assert kwargs["socket_timeout"] == 15
     assert kwargs["socket_connect_timeout"] == 5
 
@@ -137,9 +138,11 @@ def test_redis_sentinel_cache_backend_from_config_reads_timeout_keys(
     )
 
     sentinel_kwargs = sentinel_mock.call_args.kwargs["sentinel_kwargs"]
+    assert sentinel_kwargs["protocol"] == 2
     assert sentinel_kwargs["socket_timeout"] == 20
     assert sentinel_kwargs["socket_connect_timeout"] == 4
 
     master_kwargs = sentinel_mock.return_value.master_for.call_args.kwargs
+    assert master_kwargs["protocol"] == 2
     assert master_kwargs["socket_timeout"] == 20
     assert master_kwargs["socket_connect_timeout"] == 4

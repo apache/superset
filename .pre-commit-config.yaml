@@ -31,10 +31,10 @@ repos:
             types-simplejson,
             types-python-dateutil,
             types-requests,
-            # types-redis is unmaintained (frozen at the 4.6.0.x API
-            # surface) now that redis-py ships its own bundled types
-            # (py.typed, since 4.6+/5.x); keeping it installed shadows
-            # those accurate, up-to-date inline types with a stale stub.
+            # types-redis is intentionally absent: redis-py ships its own
+            # bundled types (py.typed, since 4.6+/5.x), while the stub
+            # package is unmaintained (frozen at the 4.6.0.x API surface).
+            # Installing the stub would shadow the accurate inline types.
             types-pytz,
             types-croniter,
             types-PyYAML,
