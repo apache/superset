@@ -46,6 +46,34 @@ describe('Timeseries buildQuery', () => {
     expect(query.orderby).toEqual([['bar', false]]);
   });
 
+  test('should include anomalyDetectionOperator in post_processing when anomalyDetectionEnabled', () => {
+    const queryContext = buildQuery({
+      ...formData,
+      granularity_sqla: 'ds',
+      anomalyDetectionEnabled: true,
+      anomalyDetectionMethod: 'zscore',
+    });
+    const [query] = queryContext.queries;
+    const anomalyOp = query.post_processing?.find(
+      (op: any) => op && op.operation === 'anomaly_detection',
+    );
+    expect(anomalyOp).toBeDefined();
+    expect(anomalyOp).toMatchObject({ operation: 'anomaly_detection' });
+  });
+
+  test('should not include anomalyDetectionOperator when anomalyDetectionEnabled is false', () => {
+    const queryContext = buildQuery({
+      ...formData,
+      granularity_sqla: 'ds',
+      anomalyDetectionEnabled: false,
+    });
+    const [query] = queryContext.queries;
+    const anomalyOp = query.post_processing?.find(
+      (op: any) => op && op.operation === 'anomaly_detection',
+    );
+    expect(anomalyOp).toBeUndefined();
+  });
+
   test('should not order by timeseries limit if orderby provided', () => {
     const queryContext = buildQuery({
       ...formData,
