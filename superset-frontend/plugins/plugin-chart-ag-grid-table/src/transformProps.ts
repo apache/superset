@@ -100,12 +100,13 @@ const processComparisonTotals = (
     return totals;
   }
   const transformedTotals: DataRecord = {};
+  const mainLabel = t('Main');
   totals.map((totalRecord: DataRecord) =>
     Object.keys(totalRecord).forEach(key => {
       if (totalRecord[key] !== undefined && !key.includes(comparisonSuffix)) {
-        transformedTotals[`${t('Main')} ${key}`] =
+        transformedTotals[`${mainLabel} ${key}`] =
           parseInt(
-            transformedTotals[`${t('Main')} ${key}`]?.toString() || '0',
+            transformedTotals[`${mainLabel} ${key}`]?.toString() || '0',
             10,
           ) + parseInt(totalRecord[key]?.toString() || '0', 10);
         transformedTotals[`# ${key}`] =
@@ -115,7 +116,7 @@ const processComparisonTotals = (
             10,
           );
         const { valueDifference, percentDifferenceNum } = calculateDifferences(
-          transformedTotals[`${t('Main')} ${key}`] as number,
+          transformedTotals[`${mainLabel} ${key}`] as number,
           transformedTotals[`# ${key}`] as number,
         );
         transformedTotals[`△ ${key}`] = valueDifference;
@@ -174,6 +175,7 @@ const processComparisonDataRecords = memoizeOne(
     originalData: DataRecord[] | undefined,
     originalColumns: DataColumnMeta[],
     comparisonSuffix: string,
+    mainLabel: string,
   ) {
     // Transform data
     return originalData?.map(originalItem => {
@@ -195,7 +197,7 @@ const processComparisonDataRecords = memoizeOne(
               comparisonValue as number,
             );
 
-          transformedItem[`${t('Main')} ${origCol.key}`] = originalValue;
+          transformedItem[`${mainLabel} ${origCol.key}`] = originalValue;
           transformedItem[`# ${origCol.key}`] = comparisonValue;
           transformedItem[`△ ${origCol.key}`] = valueDifference;
           transformedItem[`% ${origCol.key}`] = percentDifferenceNum;
@@ -714,6 +716,7 @@ const transformProps = (
     baseQuery?.data,
     columns,
     comparisonSuffix,
+    t('Main'),
   );
 
   const passedData = isUsingTimeComparison ? comparisonData || [] : data;
@@ -789,7 +792,8 @@ const transformProps = (
 
   // Strip saved filter from chartState after initial application to prevent re-injection
   let chartState = serverPaginationData?.chartState as
-    AgGridChartState | undefined;
+    | AgGridChartState
+    | undefined;
   const chartStateHasFilter = !!(
     chartState?.filterModel && Object.keys(chartState.filterModel).length > 0
   );
