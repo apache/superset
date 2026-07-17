@@ -21,19 +21,12 @@ import '@testing-library/jest-dom';
 import TTestTable from '../src/TTestTable';
 import type { DataEntry } from '../src/TTestTable';
 
-// Mock the distributions module to return a predictable cdf value.
-// cdf returns 0.01 so that p-value = 2 * 0.01 = 0.02
-jest.mock('distributions', () => {
-  class MockStudentt {
-    cdf(_x: number): number {
-      return 0.01;
-    }
-  }
-  return {
-    __esModule: true,
-    default: { Studentt: MockStudentt },
-  };
-});
+// Mock the p-value computation to a predictable value (0.02) so the table's
+// formatting and significance thresholds are deterministic.
+jest.mock('../src/statistics', () => ({
+  __esModule: true,
+  studentTwoSidedPValue: () => 0.02,
+}));
 
 const mockData: DataEntry[] = [
   {
@@ -136,9 +129,8 @@ test('computes lift values correctly for non-control rows', async () => {
   });
 });
 
-test('computes p-value using the mocked distributions module', async () => {
-  // Mock cdf returns 0.01, so p-value = 2 * 0.01 = 0.02
-  // With pValPrec=6 => "0.020000"
+test('computes p-value from the statistics module', async () => {
+  // Mocked studentTwoSidedPValue returns 0.02, with pValPrec=6 => "0.020000"
   render(<TTestTable {...defaultProps} />);
 
   await waitFor(() => {
