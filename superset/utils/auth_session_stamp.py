@@ -150,6 +150,18 @@ def clear_flask_login_remember_cookie() -> None:
     session["_remember"] = "clear"
 
 
+def _invalidate_stale_auth_session() -> None:
+    """Log out, clear remember-me, and raise 401 for a stamp mismatch."""
+    from werkzeug.exceptions import Unauthorized
+
+    logout_user()
+    session.clear()
+    # ``session.clear()`` drops the remember marker; set it after so Flask-Login
+    # still deletes any remember-me cookie on the response.
+    session["_remember"] = "clear"
+    raise Unauthorized("Session invalidated")
+
+
 def sync_session_auth_stamp_on_login(user: Any) -> None:
     """Copy the DB stamp into the signed session cookie after a successful login."""
     if not has_request_context():
@@ -356,11 +368,17 @@ def validate_session_auth_stamp_for_request() -> None:
         db_stamp,
     )
     if sess_stamp is None or sess_stamp != db_stamp:
-        # Sessions authenticated before stamp tracking carry no session stamp.
-        # Adopt the current DB value so the request can proceed. This is bounded
-        # to the rollout window: the cookie is signed, so an attacker cannot
-        # strip the stamp to bypass invalidation after password rotation.
-        if sess_stamp is None and db_stamp is not None:
+        # Fresh interactive logins may omit the stamp during rollout (or right
+        # after ``login_user`` before ``on_user_login`` syncs it). Adopt the DB
+        # value only for those sessions. Non-fresh sessions — typically
+        # restored from a remember-me cookie — must not adopt after a password
+        # change, or a lingering remember token would re-authenticate without
+        # credentials.
+        if (
+            sess_stamp is None
+            and db_stamp is not None
+            and session.get("_fresh")
+        ):
             session[SESSION_AUTH_STAMP_SESSION_KEY] = db_stamp
             _mark_session_stamp_validated(db_stamp)
             _cache_user_session_stamp(user_id, db_stamp)
@@ -371,12 +389,6 @@ def validate_session_auth_stamp_for_request() -> None:
             flask_request.method,
             flask_request.path,
         )
-        logout_user()
-        session.clear()
-        # Immediately return 401 Unauthorized to reject the request with
-        # an invalid session, rather than relying on the @protect() decorator
-        from werkzeug.exceptions import Unauthorized
-
-        raise Unauthorized("Session invalidated")
+        _invalidate_stale_auth_session()
 
     _mark_session_stamp_validated(db_stamp)

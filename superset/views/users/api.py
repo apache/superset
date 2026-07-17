@@ -397,7 +397,14 @@ class CurrentUserRestApi(BaseSupersetApi):
 
         cache_user_session_auth_stamp(g.user.id, new_stamp)
         _reestablish_login_session(user_after)
-        _log_audit_event("UserPasswordChanged", {"user_id": g.user.id})
+        _log_audit_event(
+            "UserPasswordChanged",
+            {
+                "user_id": g.user.id,
+                "initiated_by": "self",
+                "source_ip": request.remote_addr,
+            },
+        )
         return self.response(200, result=user_response_schema.dump(user_after))
 
     @expose("/password/policy", methods=["GET"])

@@ -223,10 +223,14 @@ class TestCurrentUserApi(SupersetTestCase):
                 log for log in new_logs if log.action == "UserPasswordChanged"
             ]
             assert len(password_change_logs) == 1
-            assert (
-                password_change_logs[0].user_id
-                == security_manager.find_user(username=ADMIN_USERNAME).id
-            )
+            admin_user = security_manager.find_user(username=ADMIN_USERNAME)
+            assert password_change_logs[0].user_id == admin_user.id
+            payload = json.loads(password_change_logs[0].json or "{}")
+            assert payload["user_id"] == admin_user.id
+            assert payload["initiated_by"] == "self"
+            assert "source_ip" in payload
+            assert current_password not in str(payload)
+            assert new_password not in str(payload)
         finally:
             self._restore_admin_default_password()
 

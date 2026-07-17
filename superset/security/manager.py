@@ -33,7 +33,16 @@ from typing import (
     Union,
 )
 
-from flask import current_app, Flask, g, has_app_context, Request, Response
+from flask import (
+    current_app,
+    Flask,
+    g,
+    has_app_context,
+    has_request_context,
+    Request,
+    request,
+    Response,
+)
 from flask_appbuilder import Model
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.const import LOGMSG_WAR_SEC_LOGIN_FAILED
@@ -1393,6 +1402,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
 
             clear_password_must_change(target_user_id)
+
+        if target_user_id is not None:
+            _log_audit_event(
+                "UserPasswordChanged",
+                {
+                    "user_id": target_user_id,
+                    "initiated_by": "self" if is_self_service else "admin",
+                    "source_ip": (
+                        request.remote_addr if has_request_context() else None
+                    ),
+                },
+            )
 
     @staticmethod
     def _same_user(left: Any, right: Any) -> bool:

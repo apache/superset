@@ -2652,12 +2652,21 @@ def test_reset_password_self_service_clears_flag(
     mock_sync = mocker.patch(
         "superset.utils.auth_session_stamp.sync_session_auth_stamp_on_login"
     )
+    mock_audit = mocker.patch("superset.security.manager._log_audit_event")
 
     sm.reset_password(5, "new-password")
 
     mock_bump.assert_called_once_with(5)
     mock_sync.assert_called_once_with(acting_user)
     mock_clear.assert_called_once_with(5)
+    mock_audit.assert_called_once_with(
+        "UserPasswordChanged",
+        {
+            "user_id": 5,
+            "initiated_by": "self",
+            "source_ip": None,
+        },
+    )
 
 
 def test_reset_password_admin_does_not_clear_flag(
@@ -2689,12 +2698,21 @@ def test_reset_password_admin_does_not_clear_flag(
     mock_sync = mocker.patch(
         "superset.utils.auth_session_stamp.sync_session_auth_stamp_on_login"
     )
+    mock_audit = mocker.patch("superset.security.manager._log_audit_event")
 
     sm.reset_password("5", "temp-password")
 
     mock_bump.assert_called_once_with(5)
     mock_sync.assert_not_called()
     mock_clear.assert_not_called()
+    mock_audit.assert_called_once_with(
+        "UserPasswordChanged",
+        {
+            "user_id": 5,
+            "initiated_by": "admin",
+            "source_ip": None,
+        },
+    )
 
 
 def test_reset_password_self_service_pk_string_clears_flag(
@@ -2720,6 +2738,7 @@ def test_reset_password_self_service_pk_string_clears_flag(
     mock_sync = mocker.patch(
         "superset.utils.auth_session_stamp.sync_session_auth_stamp_on_login"
     )
+    mock_audit = mocker.patch("superset.security.manager._log_audit_event")
 
     sm.reset_password("5", "new-password")
 
@@ -2727,6 +2746,14 @@ def test_reset_password_self_service_pk_string_clears_flag(
     mock_sync.assert_called_once_with(acting_user)
     # Coerced to int when clearing, regardless of the inbound id type.
     mock_clear.assert_called_once_with(5)
+    mock_audit.assert_called_once_with(
+        "UserPasswordChanged",
+        {
+            "user_id": 5,
+            "initiated_by": "self",
+            "source_ip": None,
+        },
+    )
 
 
 # -----------------------------------------------------------------------------
