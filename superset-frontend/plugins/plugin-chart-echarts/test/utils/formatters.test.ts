@@ -231,3 +231,31 @@ test('getXAxisFormatter returns a string for an Invalid Date without throwing', 
   expect(() => customFormatter.format(invalid)).not.toThrow();
   expect(typeof customFormatter.format(invalid)).toBe('string');
 });
+
+test('getSmartDateFormatter MINUTE grain distinguishes different minutes', () => {
+  const formatter = getXAxisFormatter(SMART_DATE_ID, TimeGranularity.MINUTE) as TimeFormatter;
+  const date1 = new Date('2024-01-15T10:15:00Z');
+  const date2 = new Date('2024-01-15T10:30:00Z');
+  expect(formatter.format(date1)).not.toBe(formatter.format(date2));
+});
+
+test('getSmartDateFormatter FIFTEEN_MINUTES grain distinguishes different minutes', () => {
+  const formatter = getXAxisFormatter(SMART_DATE_ID, TimeGranularity.FIFTEEN_MINUTES) as TimeFormatter;
+  const date1 = new Date('2024-01-15T10:15:00Z');
+  const date2 = new Date('2024-01-15T10:30:00Z');
+  expect(formatter.format(date1)).not.toBe(formatter.format(date2));
+});
+
+test('getSmartDateFormatter HOUR grain collapses minutes to same label', () => {
+  const formatter = getXAxisFormatter(SMART_DATE_ID, TimeGranularity.HOUR) as TimeFormatter;
+  const date1 = new Date('2024-01-15T10:00:00Z');
+  const date2 = new Date('2024-01-15T10:35:00Z');
+  expect(formatter.format(date1)).toBe(formatter.format(date2));
+});
+
+test('getSmartDateFormatter SECOND grain distinguishes different seconds', () => {
+  const formatter = getXAxisFormatter(SMART_DATE_ID, TimeGranularity.SECOND) as TimeFormatter;
+  const date1 = new Date('2024-01-15T10:35:00Z');
+  const date2 = new Date('2024-01-15T10:35:45Z');
+  expect(formatter.format(date1)).not.toBe(formatter.format(date2));
+});
