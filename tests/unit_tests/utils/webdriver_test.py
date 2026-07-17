@@ -899,12 +899,184 @@ class TestWebDriverPlaywrightErrorHandling:
                 )
 
         assert result == b"fake_screenshot"
-        mock_logger.warning.assert_any_call(
-            "Could not determine dashboard height for element %s at url %s; "
-            "falling back to standard screenshot behavior",
+        # chart_count (1) is well below the tiling threshold (20), so this is
+        # the benign/expected case and must not be logged as a WARNING.
+        mock_logger.debug.assert_any_call(
+            "Could not determine dashboard height for element %s "
+            "at url %s (%s chart containers found); %s",
             "dashboard",
             "http://example.com",
+            1,
+            "falling back to standard screenshot behavior",
         )
+        assert not any(
+            call.args and "Could not determine dashboard height" in call.args[0]
+            for call in mock_logger.warning.call_args_list
+        )
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver._browser_manager")
+    @patch("superset.utils.webdriver.logger")
+    @patch("superset.utils.webdriver.take_tiled_screenshot")
+    def test_unknown_height_does_not_veto_tiling_for_large_dashboard(
+        self, mock_take_tiled, mock_logger, mock_browser_manager
+    ):
+        """
+        A large dashboard (by chart_count) whose height can't be measured
+        must still attempt tiling instead of being silently downgraded to a
+        standard screenshot, since below-the-fold charts may not have
+        rendered without the scroll-driven tiling pass.
+        """
+        mock_user = MagicMock()
+        mock_user.username = "test_user"
+
+        mock_browser = MagicMock()
+        mock_context = MagicMock()
+        mock_page = MagicMock()
+        mock_element = MagicMock()
+        mock_chart_container = MagicMock()
+
+        mock_browser_manager.get_browser.return_value = mock_browser
+        mock_browser.new_context.return_value = mock_context
+        mock_context.new_page.return_value = mock_page
+
+        def locator_side_effect(selector):
+            if selector == ".chart-container":
+                locator = MagicMock()
+                locator.all.return_value = [mock_chart_container]
+                return locator
+            return mock_element
+
+        mock_page.locator.side_effect = locator_side_effect
+        mock_element.wait_for.return_value = None
+        mock_chart_container.wait_for.return_value = None
+        mock_page.wait_for_timeout.return_value = None
+        mock_take_tiled.return_value = b"tiled_screenshot"
+
+        def evaluate_side_effect(script):
+            if script == 'document.querySelectorAll(".chart-container").length':
+                return 25  # chart_count >= threshold
+            if "const target = document.querySelector" in script:
+                return 0  # height could not be determined
+            return None
+
+        mock_page.evaluate.side_effect = evaluate_side_effect
+
+        with patch("superset.utils.webdriver.app") as mock_app:
+            mock_app.config = {
+                "WEBDRIVER_OPTION_ARGS": [],
+                "WEBDRIVER_WINDOW": {"pixel_density": 1},
+                "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": 30000,
+                "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "networkidle",
+                "SCREENSHOT_SELENIUM_HEADSTART": 5,
+                "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 1,
+                "SCREENSHOT_LOCATE_WAIT": 10,
+                "SCREENSHOT_LOAD_WAIT": 10,
+                "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
+                "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE": 10,
+                "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
+                "SCREENSHOT_TILED_ENABLED": True,
+                "SCREENSHOT_TILED_CHART_THRESHOLD": 20,
+                "SCREENSHOT_TILED_HEIGHT_THRESHOLD": 5000,
+                "SCREENSHOT_TILED_VIEWPORT_HEIGHT": 600,
+            }
+
+            with patch.object(WebDriverPlaywright, "auth") as mock_auth:
+                mock_auth.return_value = mock_context
+
+                driver = WebDriverPlaywright("chrome")
+                result = driver.get_screenshot(
+                    "http://example.com", "dashboard", mock_user
+                )
+
+        assert result == b"tiled_screenshot"
+        mock_take_tiled.assert_called_once()
+        mock_logger.warning.assert_any_call(
+            "Could not determine dashboard height for element %s "
+            "at url %s (%s chart containers found); %s",
+            "dashboard",
+            "http://example.com",
+            25,
+            "attempting tiled screenshot anyway",
+        )
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver._browser_manager")
+    @patch("superset.utils.webdriver.logger")
+    def test_chart_container_timeout_logs_warning_with_progress_and_raises(
+        self, mock_logger, mock_browser_manager
+    ):
+        """
+        Timing out while waiting for `.chart-container` elements to draw must
+        be logged as a WARNING (matching the other locate-wait timeouts in
+        this method, and the customer-side-slowness convention established
+        for these Playwright timeouts) with rendered/total progress, and must
+        still fail the screenshot by re-raising.
+        """
+        from superset.utils.webdriver import PlaywrightTimeout
+
+        mock_user = MagicMock()
+        mock_user.username = "test_user"
+
+        mock_browser = MagicMock()
+        mock_context = MagicMock()
+        mock_page = MagicMock()
+        mock_element = MagicMock()
+
+        mock_browser_manager.get_browser.return_value = mock_browser
+        mock_browser.new_context.return_value = mock_context
+        mock_context.new_page.return_value = mock_page
+
+        timeout = PlaywrightTimeout()
+        rendered_ok = MagicMock()
+        rendered_ok.wait_for.return_value = None
+        never_renders = MagicMock()
+        never_renders.wait_for.side_effect = timeout
+
+        def locator_side_effect(selector):
+            if selector == ".chart-container":
+                locator = MagicMock()
+                locator.all.return_value = [rendered_ok, never_renders]
+                return locator
+            return mock_element
+
+        mock_page.locator.side_effect = locator_side_effect
+        mock_element.wait_for.return_value = None
+
+        with patch("superset.utils.webdriver.app") as mock_app:
+            mock_app.config = {
+                "WEBDRIVER_OPTION_ARGS": [],
+                "WEBDRIVER_WINDOW": {"pixel_density": 1},
+                "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": 30000,
+                "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "networkidle",
+                "SCREENSHOT_SELENIUM_HEADSTART": 5,
+                "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 1,
+                "SCREENSHOT_LOCATE_WAIT": 10,
+                "SCREENSHOT_LOAD_WAIT": 10,
+                "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
+                "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE": 10,
+                "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
+                "SCREENSHOT_TILED_ENABLED": False,
+            }
+
+            with patch.object(WebDriverPlaywright, "auth") as mock_auth:
+                mock_auth.return_value = mock_context
+
+                driver = WebDriverPlaywright("chrome")
+                with pytest.raises(PlaywrightTimeout) as exc_info:
+                    driver.get_screenshot(
+                        "http://example.com", "test-element", mock_user
+                    )
+
+        assert exc_info.value is timeout
+        mock_logger.warning.assert_any_call(
+            "Timed out waiting for chart containers to draw at url %s "
+            "(%s of %s chart containers rendered before the timeout)",
+            "http://example.com",
+            1,
+            2,
+        )
+        mock_logger.exception.assert_not_called()
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")

@@ -327,16 +327,27 @@ class WebDriverPlaywright(WebDriverProxy):
                     logger.exception("Timed out requesting url %s", url)
                     raise
 
+                slice_container_elems: list[Locator] = []
+                rendered_chart_count = 0
                 try:
                     # chart containers didn't render
                     logger.debug("Wait for chart containers to draw at url: %s", url)
                     slice_container_locator = page.locator(".chart-container")
-                    for slice_container_elem in slice_container_locator.all():
+                    slice_container_elems = slice_container_locator.all()
+                    for slice_container_elem in slice_container_elems:
                         slice_container_elem.wait_for()
+                        rendered_chart_count += 1
                 except PlaywrightTimeout:
-                    logger.exception(
-                        "Timed out waiting for chart containers to draw at url %s",
+                    # Customer-side chart loading is often just slow, not a
+                    # Superset bug, so this is a WARNING (matching the other
+                    # locate-wait timeouts below) rather than an ERROR -- but
+                    # it still fails the screenshot; see the `raise` below.
+                    logger.warning(
+                        "Timed out waiting for chart containers to draw at url %s "
+                        "(%s of %s chart containers rendered before the timeout)",
                         url,
+                        rendered_chart_count,
+                        len(slice_container_elems),
                     )
                     raise
                 selenium_animation_wait = app.config[
@@ -374,19 +385,38 @@ class WebDriverPlaywright(WebDriverProxy):
                         "SCREENSHOT_TILED_VIEWPORT_HEIGHT", viewport_height
                     )
 
-                    if dashboard_height == 0:
-                        logger.warning(
+                    # A height of 0 means the DOM query above found no matching
+                    # element (or it hadn't laid out yet), not that the
+                    # dashboard is actually empty. Treat it as "unknown" rather
+                    # than "fits in a single tile": chart_count alone already
+                    # tells us whether this looks like a large dashboard, and
+                    # that signal must not be silently vetoed just because we
+                    # couldn't measure height, or a large dashboard could skip
+                    # tiling and ship with unrendered below-the-fold charts.
+                    height_unknown = dashboard_height == 0
+                    likely_large_dashboard = (
+                        chart_count >= chart_threshold
+                        or dashboard_height > height_threshold
+                    )
+                    if height_unknown:
+                        log_fn = (
+                            logger.warning if likely_large_dashboard else logger.debug
+                        )
+                        log_fn(
                             "Could not determine dashboard height for element %s "
-                            "at url %s; falling back to standard screenshot behavior",
+                            "at url %s (%s chart containers found); %s",
                             element_name,
                             url,
+                            chart_count,
+                            "attempting tiled screenshot anyway"
+                            if likely_large_dashboard
+                            else "falling back to standard screenshot behavior",
                         )
 
                     # Use tiled screenshots for large dashboards
-                    use_tiled = (
-                        chart_count >= chart_threshold
-                        or dashboard_height > height_threshold
-                    ) and dashboard_height > tile_height
+                    use_tiled = likely_large_dashboard and (
+                        height_unknown or dashboard_height > tile_height
+                    )
 
                     if use_tiled:
                         logger.info(
