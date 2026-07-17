@@ -172,7 +172,10 @@ class TestWaterfallTemporalAndNativeShape:
             metric={"name": "revenue", "aggregate": "SUM"},
             time_grain="P1M",
         )
-        assert map_waterfall_config(config)["time_grain_sqla"] == "P1M"
+        form_data = map_waterfall_config(config)
+        assert form_data["time_grain_sqla"] == "P1M"
+        # the grain needs a temporal column to apply to
+        assert form_data["granularity_sqla"] == "order_date"
 
     def test_time_grain_omitted_when_unset(self) -> None:
         config = WaterfallChartConfig(
@@ -227,3 +230,29 @@ class TestWaterfallTemporalAndNativeShape:
                     "groupby": [{"name": "region"}, {"name": "product"}],
                 }
             )
+
+
+    def test_groupby_string_list_coerced(self) -> None:
+        """Native form_data names physical columns as bare strings."""
+        config = WaterfallChartConfig.model_validate(
+            {
+                "chart_type": "waterfall",
+                "x_axis": {"name": "month"},
+                "metric": {"name": "revenue", "aggregate": "SUM"},
+                "groupby": ["region"],
+            }
+        )
+        assert config.breakdown is not None
+        assert config.breakdown.name == "region"
+
+    def test_breakdown_scalar_string_coerced(self) -> None:
+        config = WaterfallChartConfig.model_validate(
+            {
+                "chart_type": "waterfall",
+                "x_axis": {"name": "month"},
+                "metric": {"name": "revenue", "aggregate": "SUM"},
+                "breakdown": "region",
+            }
+        )
+        assert config.breakdown is not None
+        assert config.breakdown.name == "region"

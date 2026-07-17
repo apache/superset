@@ -2079,18 +2079,26 @@ class WaterfallChartConfig(UnknownFieldCheckMixin):
         as a one-item list (e.g. ``["region"]``), so a config round-tripped
         from existing waterfall form_data sends a list. Unwrap a length-1
         list to the single value; reject longer lists rather than silently
-        dropping breakdowns.
+        dropping breakdowns. Native form_data also names physical columns as
+        bare strings, so a string is coerced to ``{"name": ...}``.
         """
+
+        def _coerce(value: Any) -> Any:
+            if isinstance(value, list):
+                if len(value) > 1:
+                    raise ValueError(
+                        "waterfall breakdown is single-select; pass at "
+                        "most one column"
+                    )
+                value = value[0] if value else None
+            if isinstance(value, str):
+                return {"name": value}
+            return value
+
         if isinstance(data, dict):
             for key in ("groupby", "breakdown"):
-                value = data.get(key)
-                if isinstance(value, list):
-                    if len(value) > 1:
-                        raise ValueError(
-                            "waterfall breakdown is single-select; pass at "
-                            "most one column"
-                        )
-                    data[key] = value[0] if value else None
+                if key in data:
+                    data[key] = _coerce(data[key])
         return data
 
     @model_validator(mode="after")

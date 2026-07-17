@@ -974,10 +974,14 @@ def map_waterfall_config(config: WaterfallChartConfig) -> Dict[str, Any]:
         "y_axis_format": config.y_axis_format,
         "row_limit": config.row_limit,
     }
-    # Bucket a temporal x_axis; Superset ignores time_grain_sqla for
-    # non-temporal columns, matching the frontend control's behavior.
+    # Bucket a temporal x_axis: the grain (time_grain_sqla) needs the temporal
+    # column it applies to (granularity_sqla), mirroring the xy path's
+    # configure_temporal_handling and the frontend buildQuery's
+    # `x_axis || granularity_sqla`. Providing time_grain signals temporal
+    # intent; Superset ignores both for a non-temporal column.
     if config.time_grain:
         form_data["time_grain_sqla"] = config.time_grain
+        form_data["granularity_sqla"] = config.x_axis.name
     add_currency_format(form_data, config.currency_format)
     _add_adhoc_filters(form_data, config.filters)
     return form_data
