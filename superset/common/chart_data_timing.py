@@ -384,7 +384,7 @@ class SourceTimingCollector:
     """Collect a bounded source tree without retaining query content."""
 
     def __init__(self, clock: Callable[[], int] = time.perf_counter_ns) -> None:
-        self._clock = clock
+        self._clock: Callable[[], int] = clock
         self._roots: list[SourceTiming] = []
         self._stack: list[_MutableSourceTiming | None] = []
         self._phases: list[_MutableSourcePhase] = []

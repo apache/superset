@@ -153,7 +153,7 @@ def _acquire_currency_dependency(
 ) -> tuple[QueryAcquisitionResult, str | None, int]:
     """Acquire AUTO currency metadata through the normal cache-aware path."""
     datasource = _get_datasource(query_context, query_obj)
-    form_data = query_context.form_data or {}
+    form_data: dict[str, Any] = query_context.form_data or {}
     currency_format = form_data.get("currency_format", {})
     auto_enabled = (
         isinstance(currency_format, dict) and currency_format.get("symbol") == "AUTO"
@@ -176,7 +176,7 @@ def _acquire_currency_dependency(
             max(0, time.perf_counter_ns() - processing_start_ns),
         )
 
-    currency_query = copy.copy(query_obj)
+    currency_query: QueryObject = copy.copy(query_obj)
     currency_query.columns = [currency_column]
     currency_query.metrics = []
     currency_query.is_timeseries = False

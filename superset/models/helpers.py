@@ -4261,7 +4261,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 }
 
                 if defer_source_queries:
-                    prequery = self.get_query_str_extended(
+                    prequery: QueryStringExtended = self.get_query_str_extended(
                         prequery_obj,
                         mutate=False,
                         defer_source_queries=True,
