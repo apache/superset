@@ -36,6 +36,11 @@ class NotificationContent:
     url: Optional[str] = None  # url to chart/dashboard for this screenshot
     embedded_data: Optional[pd.DataFrame] = None
 
+    @property
+    def has_attachments(self) -> bool:
+        """Return whether the notification contains any file attachment."""
+        return bool(self.csv or self.xlsx or self.pdf or self.screenshots)
+
 
 class BaseNotification:  # pylint: disable=too-few-public-methods
     """

@@ -20,8 +20,10 @@ import warnings
 import pytest
 from slack_sdk.errors import (
     SlackApiError,
+    SlackClientConfigurationError,
     SlackClientNotConnectedError,
     SlackRequestError,
+    SlackTokenRotationError,
 )
 
 from superset.utils.slack import (
@@ -31,6 +33,8 @@ from superset.utils.slack import (
     get_channels_with_search,
     should_use_v2_api,
     SlackChannelTypes,
+    SlackV2ProbeClientError,
+    SlackV2ProbeError,
 )
 
 
@@ -502,7 +506,69 @@ class TestShouldUseV2Api:
 
         assert should_use_v2_api() is False
         assert logger_mock.warning.call_count == 1
-        assert "probe failed to connect" in logger_mock.warning.call_args.args[0]
+        assert "probe failed" in logger_mock.warning.call_args.args[0]
+
+    @pytest.mark.parametrize(
+        "exception",
+        [
+            SlackApiError(
+                message="service unavailable",
+                response={"ok": False, "error": "service_unavailable"},
+            ),
+            SlackApiError(
+                message="rate limited",
+                response={"ok": False, "error": "ratelimited"},
+            ),
+            SlackClientNotConnectedError("transport closed"),
+        ],
+    )
+    def test_raises_system_error_for_transient_probe_when_requested(
+        self,
+        exception: Exception,
+        mocker,
+    ) -> None:
+        """File sends preserve transient probe failures for system handling."""
+        mocker.patch(
+            "superset.utils.slack.feature_flag_manager.is_feature_enabled",
+            return_value=True,
+        )
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.side_effect = exception
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+
+        with pytest.raises(SlackV2ProbeError, match="probe failed"):
+            should_use_v2_api(raise_on_error=True)
+
+    @pytest.mark.parametrize(
+        "exception",
+        [
+            SlackApiError(
+                message="invalid auth",
+                response={"ok": False, "error": "invalid_auth"},
+            ),
+            SlackRequestError("bad request args"),
+            SlackClientConfigurationError("invalid client configuration"),
+            SlackTokenRotationError("token rotation failed"),
+        ],
+    )
+    def test_raises_client_error_for_permanent_probe_failure_when_requested(
+        self,
+        exception: Exception,
+        mocker,
+    ) -> None:
+        """Permanent probe failures remain operator-fixable client errors."""
+        mocker.patch(
+            "superset.utils.slack.feature_flag_manager.is_feature_enabled",
+            return_value=True,
+        )
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.side_effect = exception
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+
+        with pytest.raises(SlackV2ProbeClientError, match="probe failed") as exc_info:
+            should_use_v2_api(raise_on_error=True)
+
+        assert exc_info.value.status == 422
 
     def test_propagates_non_sdk_errors_from_probe(self, mocker):
         """A truly unexpected, non-SDK exception (e.g. a programming error) still

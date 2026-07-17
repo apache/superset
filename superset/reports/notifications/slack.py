@@ -19,7 +19,6 @@ from collections.abc import Sequence
 from io import IOBase
 from typing import Union
 
-import backoff
 from flask import g
 from slack_sdk import WebClient
 from slack_sdk.errors import (
@@ -42,7 +41,7 @@ from superset.reports.notifications.exceptions import (
     NotificationUnprocessableException,
     SlackV1NotificationError,
 )
-from superset.reports.notifications.slack_mixin import SlackMixin
+from superset.reports.notifications.slack_mixin import _call_slack_api, SlackMixin
 from superset.utils import json
 from superset.utils.core import recipients_string_to_list
 from superset.utils.decorators import statsd_gauge
@@ -55,9 +54,18 @@ logger = logging.getLogger(__name__)
 
 _SLACK_V1_FILE_UPLOAD_MESSAGE = (
     "Slack v1 file uploads are no longer supported because Slack retired "
-    "`files.upload`. Grant the Slack bot both the `channels:read` and "
-    "`groups:read` scopes so the recipient can be upgraded to Slack v2."
+    "`files.upload`. Enable `ALERT_REPORT_SLACK_V2` and grant the Slack bot "
+    "both the `channels:read` and `groups:read` scopes so the recipient can "
+    "be upgraded to Slack v2."
 )
+
+
+def _get_slack_v1_file_upload_message(v2_upgrade_error: str | None) -> str:
+    if not v2_upgrade_error:
+        return _SLACK_V1_FILE_UPLOAD_MESSAGE
+    return (
+        f"{_SLACK_V1_FILE_UPLOAD_MESSAGE} Slack v2 upgrade failed: {v2_upgrade_error}"
+    )
 
 
 # Deprecated: Slack v1 will be removed in the next major release. The Slack
@@ -80,7 +88,15 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
         channels. Multiple channels are demarcated by a comma.
         :returns: The comma separated list of channel(s)
         """
-        recipient_str = json.loads(self._recipient.recipient_config_json)["target"]
+        try:
+            recipient_str = json.loads(self._recipient.recipient_config_json)["target"]
+        except (KeyError, TypeError, ValueError) as ex:
+            raise NotificationParamException(
+                "No recipients saved in the report"
+            ) from ex
+
+        if not isinstance(recipient_str, str):
+            raise NotificationParamException("No recipients saved in the report")
 
         return ",".join(recipients_string_to_list(recipient_str))
 
@@ -100,40 +116,37 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
     @staticmethod
     def _send_text(client: WebClient, channel: str, body: str) -> None:
         """Send a text notification once to each configured channel."""
-        for target in recipients_string_to_list(channel):
-            client.chat_postMessage(channel=target, text=body)
+        targets = recipients_string_to_list(channel)
+        if not targets:
+            raise NotificationParamException("No recipients saved in the report")
+        for target in targets:
+            _call_slack_api(client.chat_postMessage, channel=target, text=body)
 
-    @backoff.on_exception(backoff.expo, SlackApiError, factor=10, base=2, max_tries=5)
     @statsd_gauge("reports.slack.send")
-    def send(self, *, force_v1: bool = False) -> None:
-        file_type, files = self._get_inline_files()
-        title = self._content.name
+    def send(
+        self,
+        *,
+        force_v1: bool = False,
+        v2_upgrade_error: str | None = None,
+    ) -> None:
+        _, files = self._get_inline_files()
         body = self._get_body(content=self._content)
         global_logs_context = getattr(g, "logs_context", {}) or {}
 
         # see if the v2 api will work
-        if not force_v1 and should_use_v2_api():
+        if not force_v1 and should_use_v2_api(raise_on_error=bool(files)):
             # if we can fetch channels, then raise an error and use the v2 api
             raise SlackV1NotificationError
 
-        if force_v1 and files:
-            raise NotificationParamException(_SLACK_V1_FILE_UPLOAD_MESSAGE)
+        if files:
+            raise NotificationParamException(
+                _get_slack_v1_file_upload_message(v2_upgrade_error)
+            )
 
         try:
             client = get_slack_client()
             channel = self._get_channel()
-            # files_upload returns SlackResponse as we run it in sync mode.
-            if files:
-                for file in files:
-                    client.files_upload(
-                        channels=channel,
-                        file=file,
-                        initial_comment=body,
-                        title=title,
-                        filetype=file_type,
-                    )
-            else:
-                self._send_text(client, channel, body)
+            self._send_text(client, channel, body)
             logger.info(
                 "Report sent to slack",
                 extra={
