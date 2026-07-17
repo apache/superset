@@ -802,13 +802,13 @@ def test_user_metadata_cache_keys_guard_each_field_independently(
     ``current_user_roles``) from contributing to the key would fail its case here,
     rather than hiding behind the other fields.
     """
-    base = {
+    base: dict[str, Any] = {
         "user_id": 1,
         "username": "alice",
         "email": "alice@example.com",
         "roles": ["Admin"],
     }
-    variant = {**base, field: other_value}
+    variant: dict[str, Any] = {**base, field: other_value}
     base_keys = _user_metadata_cache_keys(mocker, **base)
     variant_keys = _user_metadata_cache_keys(mocker, **variant)
     assert set(base_keys) != set(variant_keys)
