@@ -500,7 +500,7 @@ def test_import_directory(
 
     runner = current_app.test_cli_runner()
     with mock.patch.object(
-        superset.cli.importexport, "security_manager"
+        superset.cli.importexport, "security_manager", new_callable=mock.MagicMock
     ) as security_manager_mock:
         security_manager_mock.find_user.return_value = fake_user
         response = runner.invoke(
@@ -536,7 +536,7 @@ def test_import_directory_unknown_user(
 
     runner = current_app.test_cli_runner()
     with mock.patch.object(
-        superset.cli.importexport, "security_manager"
+        superset.cli.importexport, "security_manager", new_callable=mock.MagicMock
     ) as security_manager_mock:
         security_manager_mock.find_user.return_value = None
         response = runner.invoke(
@@ -573,7 +573,7 @@ def test_failing_import_directory(
 
     runner = current_app.test_cli_runner()
     with mock.patch.object(
-        superset.cli.importexport, "security_manager"
+        superset.cli.importexport, "security_manager", new_callable=mock.MagicMock
     ) as security_manager_mock:
         security_manager_mock.find_user.return_value = fake_user
         response = runner.invoke(
