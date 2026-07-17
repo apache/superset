@@ -56,6 +56,24 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
     time_groupby_inline = True
     supports_multivalues_insert = True
 
+    # ClickHouse enforces max_rows_to_read against a pre-execution estimate
+    # that ignores LIMIT, so bounded sampling queries on large tables are
+    # rejected with TOO_MANY_ROWS before reading begins. Break mode keeps the
+    # operator's row cap as the read bound and returns the partial result
+    # instead of erroring.
+    sampling_read_limit_override_suffix = " SETTINGS read_overflow_mode='break'"
+
+    @classmethod
+    def apply_sampling_read_limit_override(cls, sql: str) -> str:
+        """Append a read-overflow override so bounded sampling SQL succeeds.
+
+        Idempotent: SQL already carrying the override suffix is returned
+        unchanged.
+        """
+        if sql.rstrip().endswith(cls.sampling_read_limit_override_suffix.strip()):
+            return sql
+        return f"{sql.rstrip()}{cls.sampling_read_limit_override_suffix}"
+
     _time_grain_expressions = {
         None: "{col}",
         "PT1M": "toStartOfMinute(toDateTime({col}))",

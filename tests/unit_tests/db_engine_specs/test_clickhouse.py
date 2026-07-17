@@ -303,3 +303,50 @@ def test_base_engine_spec_has_no_column_description_retry_by_default() -> None:
     from superset.db_engine_specs.base import BaseEngineSpec
 
     assert BaseEngineSpec.get_column_description_retry_sql("SELECT 1") is None
+
+
+def test_sampling_read_limit_override_base_spec_is_noop() -> None:
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    sql = "SELECT col FROM tbl LIMIT 100"
+    assert BaseEngineSpec.apply_sampling_read_limit_override(sql) == sql
+
+
+@pytest.mark.parametrize(
+    "spec_name",
+    ["ClickHouseEngineSpec", "ClickHouseConnectEngineSpec"],
+)
+def test_sampling_read_limit_override_clickhouse_family(spec_name: str) -> None:
+    from superset.db_engine_specs import clickhouse
+
+    spec = getattr(clickhouse, spec_name)
+    sql = "SELECT col FROM tbl LIMIT 100"
+    assert spec.apply_sampling_read_limit_override(sql) == (
+        "SELECT col FROM tbl LIMIT 100 SETTINGS read_overflow_mode='break'"
+    )
+
+
+def test_sampling_read_limit_override_is_idempotent() -> None:
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    sql = "SELECT col FROM tbl LIMIT 100"
+    once = ClickHouseConnectEngineSpec.apply_sampling_read_limit_override(sql)
+    twice = ClickHouseConnectEngineSpec.apply_sampling_read_limit_override(once)
+    assert twice == once
+
+
+def test_database_sampling_read_limit_override_honors_opt_out() -> None:
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+    from superset.models.core import Database
+
+    database = Mock(spec=Database)
+    database.db_engine_spec = ClickHouseConnectEngineSpec
+    sql = "SELECT col FROM tbl LIMIT 100"
+
+    database.disable_sampling_read_limit_override = False
+    assert Database.apply_sampling_read_limit_override(database, sql).endswith(
+        "SETTINGS read_overflow_mode='break'"
+    )
+
+    database.disable_sampling_read_limit_override = True
+    assert Database.apply_sampling_read_limit_override(database, sql) == sql

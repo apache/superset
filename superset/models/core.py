@@ -292,6 +292,26 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         return self.get_extra().get("disable_drill_to_detail", False) is True
 
     @property
+    def disable_sampling_read_limit_override(self) -> bool:
+        return (
+            self.get_extra().get("disable_sampling_read_limit_override", False) is True
+        )
+
+    def apply_sampling_read_limit_override(self, sql: str) -> str:
+        """Adjust system-authored sampling SQL to survive engine read limits.
+
+        Sole entry point for sampling call sites: honors the per-database
+        ``disable_sampling_read_limit_override`` extra flag before delegating
+        to the engine spec, so operators can keep all reads governed by their
+        configured limits. Must only be applied to SQL authored entirely by
+        Superset (filter values, samples/preview, datetime format detection),
+        never to user-authored SQL or virtual-dataset queries.
+        """
+        if self.disable_sampling_read_limit_override:
+            return sql
+        return self.db_engine_spec.apply_sampling_read_limit_override(sql)
+
+    @property
     def allow_multi_catalog(self) -> bool:
         return self.get_extra().get("allow_multi_catalog", False)
 
@@ -973,7 +993,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
     ) -> str:
         """Generates a ``select *`` statement in the proper dialect"""
         dialect = self.get_dialect()
-        return self.db_engine_spec.select_star(
+        sql = self.db_engine_spec.select_star(
             self,
             table,
             dialect=dialect,
@@ -983,6 +1003,9 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             latest_partition=latest_partition,
             cols=cols,
         )
+        # Table previews target a physical table with a system-generated
+        # query, so they may run with the engine's bounded-read override.
+        return self.apply_sampling_read_limit_override(sql)
 
     def apply_limit_to_sql(
         self,

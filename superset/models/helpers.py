@@ -1509,6 +1509,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         )
         sql = self._apply_cte(sql, sqlaq.cte)
 
+        extras = query_obj.get("extras") or {}
+        if extras.get("system_sampling") and not self.sql:
+            # System-authored sampling over a physical table (e.g. the Samples
+            # tab) may run with the engine's bounded-read override. Applied
+            # before the operator's SQL mutator so mutations wrap the final
+            # query text.
+            sql = self.database.apply_sampling_read_limit_override(sql)
         if mutate:
             sql = self.database.mutate_sql_based_on_config(sql)
         return QueryStringExtended(
@@ -3328,6 +3335,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if engine.dialect.identifier_preparer._double_percents:
                 sql = sql.replace("%%", "%")
 
+            if not self.sql:
+                # Physical-table dataset: the query is authored entirely by
+                # Superset, so it may run with the engine's bounded-read
+                # override. Virtual datasets embed user-authored SQL and stay
+                # governed by operator read limits.
+                sql = self.database.apply_sampling_read_limit_override(sql)
             sql = self.database.mutate_sql_based_on_config(sql)
 
             with engine.connect() as con:

@@ -548,6 +548,24 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # fetched for cursor.description to be populated.
     type_probe_needs_row: bool = False
     requires_column_value_normalization: bool = False
+
+    @classmethod
+    def apply_sampling_read_limit_override(cls, sql: str) -> str:
+        """Adjust system-authored sampling SQL to survive engine read limits.
+
+        Some engines reject full-table-shaped queries from a pre-execution
+        row estimate that ignores LIMIT (e.g. ClickHouse `max_rows_to_read`),
+        which breaks Superset-authored sampling queries (filter values,
+        samples/preview, datetime format detection) on large tables. Engine
+        specs that support a bounded-read override return a modified query;
+        the base implementation returns the SQL unchanged. Must only be
+        applied to SQL authored entirely by Superset, never to user-authored
+        SQL, and callers go through
+        ``Database.apply_sampling_read_limit_override`` so the per-database
+        opt-out is honored.
+        """
+        return sql
+
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
     custom_errors: dict[
