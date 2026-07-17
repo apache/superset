@@ -271,6 +271,10 @@ msgid "%(label)s file"
 msgstr "Файл %(label)s"
 
 #, python-format
+msgid "%(name)s.%(extension)s"
+msgstr "%(name)s.%(extension)s"
+
+#, python-format
 msgid "%(name)s.csv"
 msgstr "%(name)s.csv"
 
@@ -1041,6 +1045,9 @@ msgstr "Превышен таймаут создания файла CSV"
 
 msgid "A timeout occurred while generating a dataframe."
 msgstr "Превышен таймаут создания датафрейма"
+
+msgid "A timeout occurred while generating an Excel file."
+msgstr "Превышен таймаут создания файла Excel"
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "Превышен таймаут создания скриншота"
@@ -7155,6 +7162,9 @@ msgstr ""
 msgid "Formatted CSV attached in email"
 msgstr "Форматированный CSV, прикрепленный к письму"
 
+msgid "Formatted Excel attached in email"
+msgstr "Форматированный Excel во вложении к письму"
+
 msgid "Formatted value"
 msgstr "Форматированное значение"
 
@@ -10934,6 +10944,11 @@ msgstr ""
 "Произошла ошибка при создании скриншота для отправки оповещения по "
 "расписанию"
 
+msgid "Report Schedule execution failed when generating an Excel file."
+msgstr ""
+"Произошла ошибка при создании файла Excel для отправки оповещения по "
+"расписанию"
+
 msgid "Report Schedule execution got an unexpected error."
 msgstr "Произошла неожиданная ошибка при отправке оповещения по расписанию"
 
@@ -12245,6 +12260,9 @@ msgstr "Семантические представления"
 
 msgid "Send as CSV"
 msgstr "Отправить как CSV"
+
+msgid "Send as Excel"
+msgstr "Отправить как Excel"
 
 msgid "Send as PDF"
 msgstr "Отправить как PDF"
