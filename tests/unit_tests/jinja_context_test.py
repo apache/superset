@@ -1985,29 +1985,6 @@ def test_extra_cache_regex(sql: str, expected: bool) -> None:
     assert bool(ExtraCache.regex.search(sql)) is expected
 
 
-def test_get_guest_user_attribute_no_request_context(mocker: MockerFixture) -> None:
-    """
-    Test that get_guest_user_attribute returns default when there is no guest user
-    (e.g. outside of a request context).
-    """
-    mocker.patch("superset.security_manager.is_guest_user", return_value=False)
-
-    cache = ExtraCache()
-    result = cache.get_guest_user_attribute("department", "default_dept")
-    assert result == "default_dept"
-
-
-def test_get_guest_user_attribute_no_user(mocker: MockerFixture) -> None:
-    """
-    Test that get_guest_user_attribute returns default when no user in context.
-    """
-    mocker.patch("superset.security_manager.is_guest_user", return_value=False)
-
-    cache = ExtraCache()
-    result = cache.get_guest_user_attribute("department", "default_dept")
-    assert result == "default_dept"
-
-
 def test_get_guest_user_attribute_not_guest_user(mocker: MockerFixture) -> None:
     """
     Test that get_guest_user_attribute returns default when user is not a guest user.

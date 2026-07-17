@@ -407,6 +407,17 @@ WHERE region = '{{ get_guest_user_attribute("user_region", default="global") }}'
   AND department = '{{ get_guest_user_attribute("department") }}'
 ```
 
+:::warning[Security Warning]
+
+Guest token attributes come from the embedding application and are **not** escaped by
+Superset. Interpolating `get_guest_user_attribute()` directly into a SQL string, as in the
+example above, can break the query or open a SQL injection hole if an attribute value
+contains quotes or other untrusted text. Validate or allowlist attribute values in your
+embedding backend before they are placed in the guest token, and avoid interpolating raw
+values into SQL you don't control.
+
+:::
+
 ### Explicitly Including Values in Cache Key
 
 The `{{ cache_key_wrapper() }}` function explicitly instructs Superset to add a value to the
