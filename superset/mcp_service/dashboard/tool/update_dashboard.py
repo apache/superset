@@ -284,7 +284,7 @@ def _validate_update_request(
     annotations=ToolAnnotations(
         title="Update dashboard layout/theme/CSS/metadata",
         readOnlyHint=False,
-        destructiveHint=False,
+        destructiveHint=True,
     ),
 )
 @mcp_auth_hook(class_permission_name="Dashboard", method_permission_name="write")

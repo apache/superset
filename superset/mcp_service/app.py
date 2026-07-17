@@ -165,9 +165,11 @@ Chart Management:
 - get_chart_preview: Get a visual preview of a chart as formatted content or URL
 - get_chart_data: Get underlying chart data in text-friendly format
 - get_chart_sql: Get the rendered SQL query for a chart (without executing it)
-- generate_chart: Create and save a new chart permanently (requires write access)
+- get_chart_type_schema: Get the JSON Schema and examples for a chart_type before calling generate_chart/update_chart
+- generate_chart: Create a chart preview, optionally saving it permanently with save_chart=True (requires write access)
 - generate_explore_link: Create an interactive explore URL (preferred for exploration)
-- update_chart: Update existing saved chart configuration (requires write access)
+- update_chart: Update existing saved chart configuration (requires write access;
+  by default returns an unsaved preview URL — pass generate_preview=False to persist)
 - update_chart_preview: Update cached chart preview without saving (requires write access)
 
 SQL Lab Integration:
@@ -192,6 +194,10 @@ System Information:
 Available Resources:
 - instance://metadata: Instance configuration, stats, and available dataset IDs
 - chart://configs: Valid chart configuration examples and best practices
+- superset://schema/chart: Filterable/sortable/select columns for the chart model
+- superset://schema/dataset: Filterable/sortable/select columns for the dataset model
+- superset://schema/dashboard: Filterable/sortable/select columns for the dashboard model
+- superset://schema/all: Combined schema metadata for chart, dataset, and dashboard
 
 Available Prompts:
 - quickstart: Interactive guide for getting started with the MCP service
@@ -369,7 +375,11 @@ To modify an existing chart (add filters, change metrics, etc.):
    -> examine current configuration
 2. update_chart(request={{
      "identifier": <chart_id>, "config": {{...}}
-   }}) -> apply changes
+   }}) -> by default (generate_preview=True) this only returns a preview
+   explore URL — nothing is persisted until the user clicks Save in Explore.
+   Pass generate_preview=False to persist the change immediately instead.
+   Do NOT tell the user the chart has been updated unless you called
+   update_chart with generate_preview=False.
 Do NOT use execute_sql for chart modifications.
 Use update_chart instead.
 
