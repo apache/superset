@@ -164,6 +164,25 @@ test('should sort by age', async () => {
   });
 });
 
+test('should paginate after sorting by a column', async () => {
+  render(<TableView {...mockedProps} />);
+
+  // Sort by age ascending: Kate (10) moves to page 1
+  await userEvent.click(screen.getAllByTestId('sort-header')[1]);
+
+  await waitFor(() => {
+    expect(screen.getByText('Kate')).toBeInTheDocument();
+    expect(screen.queryByText('Emily')).not.toBeInTheDocument();
+  });
+
+  await userEvent.click(screen.getByRole('listitem', { name: '2' }));
+
+  await waitFor(() => {
+    expect(screen.getByText('Emily')).toBeInTheDocument();
+    expect(screen.queryByText('Kate')).not.toBeInTheDocument();
+  });
+});
+
 test('should sort by initialSortBy DESC', () => {
   const initialSortByDescProps = {
     ...mockedProps,

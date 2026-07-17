@@ -26,8 +26,16 @@ import {
   TablePropGetter,
 } from 'react-table';
 import { styled } from '@superset-ui/core';
-import { Table, TableSize } from '@superset-ui/core/components/Table';
-import { TableRowSelection, SorterResult } from 'antd/es/table/interface';
+import {
+  Table,
+  TableSize,
+  ETableAction,
+} from '@superset-ui/core/components/Table';
+import {
+  TableRowSelection,
+  SorterResult,
+  TableCurrentDataSource,
+} from 'antd/es/table/interface';
 import { mapColumns, mapRows } from './utils';
 
 export interface TableCollectionProps<T extends object> {
@@ -230,7 +238,15 @@ function TableCollection<T extends object>({
   );
 
   const handleTableChange = useCallback(
-    (_pagination: any, _filters: any, sorter: SorterResult) => {
+    (
+      _pagination: any,
+      _filters: any,
+      sorter: SorterResult,
+      extra: TableCurrentDataSource,
+    ) => {
+      // onChange also fires for pagination and filter changes; re-dispatching
+      // the active sorter on those resets react-table's page index (autoResetPage)
+      if (extra?.action !== ETableAction.Sort) return;
       if (sorter && sorter.field) {
         // Convert array field back to dot notation for nested fields
         const fieldId = Array.isArray(sorter.field)

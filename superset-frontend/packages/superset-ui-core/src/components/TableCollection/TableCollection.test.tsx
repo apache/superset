@@ -241,6 +241,29 @@ test('should call setSortBy when clicking sortable column header', () => {
   ]);
 });
 
+test('should not dispatch setSortBy when paginating a sorted table', () => {
+  const setSortBy = jest.fn();
+  const onPageChange = jest.fn();
+  const sortedPaginationProps = {
+    ...defaultProps,
+    setSortBy,
+    pageSize: 2,
+    totalCount: 3,
+    pageIndex: 0,
+    onPageChange,
+  };
+
+  render(<TableCollection {...sortedPaginationProps} />);
+
+  fireEvent.click(screen.getAllByText('Nested Field')[0]);
+  expect(setSortBy).toHaveBeenCalledTimes(1);
+
+  fireEvent.click(screen.getByRole('listitem', { name: '2' }));
+
+  expect(onPageChange).toHaveBeenCalledWith(1, 2);
+  expect(setSortBy).toHaveBeenCalledTimes(1);
+});
+
 test('should not apply highlight class when highlightRowId is undefined', () => {
   const propsWithoutHighlight = {
     ...defaultProps,
