@@ -23,7 +23,6 @@
     "lib"
   ],
   "dependencies": {
-    "distributions": "^2.2.0",
     "prop-types": "^15.8.1",
     "reactable": "^1.1.0"
   },
