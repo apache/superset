@@ -463,7 +463,11 @@ function nvd3Vis(element, props) {
     }
 
     let xAxisFormatter;
-    if (isTimeSeries) {
+    // Time Pivot's x-axis is the elapsed offset within the period, not a
+    // timestamp, so it defaults x_axis_format to a number format (SMART_NUMBER).
+    // Running that through getTimeFormatter makes d3 treat "SMART_NUMBER" as a
+    // literal template and print it for every tick, so format it as a number.
+    if (isTimeSeries && vizType !== VizType.TimePivot) {
       xAxisFormatter = getTimeFormatter(xAxisFormat);
       // In tooltips, always use the verbose time format
       chart.interactiveLayer.tooltip.headerFormatter(smartDateVerboseFormatter);
