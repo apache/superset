@@ -215,11 +215,14 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
       Number(ownState.pageSize ?? formDataCopy.server_page_length) || 0;
     const configuredRowLimit = Number(formDataCopy.row_limit) || 0;
     // row_limit for the first page, capped by the configured row limit. Used
-    // when a filter change resets pagination back to page 0.
+    // when a filter change resets pagination back to page 0. A pageSize of 0
+    // means "no pagination", so the configured row limit applies directly.
     const firstPageRowLimit =
-      configuredRowLimit > 0
-        ? Math.min(pageSize, configuredRowLimit)
-        : pageSize;
+      pageSize > 0
+        ? configuredRowLimit > 0
+          ? Math.min(pageSize, configuredRowLimit)
+          : pageSize
+        : configuredRowLimit;
 
     // Build Query flag to check if its for either download as csv, excel or json
     const isDownloadQuery =
@@ -233,24 +236,36 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
     }
 
     if (!isDownloadQuery && formDataCopy.server_pagination) {
-      // Never page past the configured row limit. Clamping the page to the last
-      // one that still falls within the limit keeps the request inside the cap
-      // and avoids emitting row_limit: 0, which the backend treats as
-      // "no limit" rather than "no rows" (see helpers.py get_sqla_query).
-      const lastPage =
-        configuredRowLimit > 0 && pageSize > 0
-          ? Math.max(Math.ceil(configuredRowLimit / pageSize) - 1, 0)
-          : Number(ownState.currentPage) || 0;
-      const currentPage = Math.min(Number(ownState.currentPage) || 0, lastPage);
-      const rowOffset = currentPage * pageSize;
-      const remainingRows =
-        configuredRowLimit > 0
-          ? Math.max(configuredRowLimit - rowOffset, 0)
-          : pageSize;
+      if (pageSize > 0) {
+        // Never page past the configured row limit. Clamping the page to the
+        // last one that still falls within the limit keeps the request inside
+        // the cap and avoids emitting row_limit: 0, which the backend treats
+        // as "no limit" rather than "no rows" (see helpers.py get_sqla_query).
+        const lastPage =
+          configuredRowLimit > 0
+            ? Math.max(Math.ceil(configuredRowLimit / pageSize) - 1, 0)
+            : Number(ownState.currentPage) || 0;
+        const currentPage = Math.min(
+          Number(ownState.currentPage) || 0,
+          lastPage,
+        );
+        const rowOffset = currentPage * pageSize;
+        const remainingRows =
+          configuredRowLimit > 0
+            ? Math.max(configuredRowLimit - rowOffset, 0)
+            : pageSize;
 
-      moreProps.row_limit =
-        configuredRowLimit > 0 ? Math.min(pageSize, remainingRows) : pageSize;
-      moreProps.row_offset = rowOffset;
+        moreProps.row_limit =
+          configuredRowLimit > 0 ? Math.min(pageSize, remainingRows) : pageSize;
+        moreProps.row_offset = rowOffset;
+      } else {
+        // A pageSize of 0 means "no pagination" (server_page_length: 0), so
+        // request a single unpaginated result capped at the configured row
+        // limit. Feeding 0 into the paging math would emit row_limit: 0,
+        // which the backend treats as "no limit".
+        moreProps.row_limit = configuredRowLimit;
+        moreProps.row_offset = 0;
+      }
     }
 
     let sortByFromOwnState: QueryFormOrderBy[] | undefined;

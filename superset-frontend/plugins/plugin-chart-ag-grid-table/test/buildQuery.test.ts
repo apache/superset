@@ -1737,6 +1737,58 @@ describe('plugin-chart-ag-grid-table', () => {
       );
     });
 
+    test('applies the configured row limit when pagination is disabled via page size 0', () => {
+      // server_page_length: 0 means "no pagination"; the request must still
+      // honor the configured row limit instead of emitting row_limit: 0,
+      // which the backend treats as "no limit".
+      const { queries } = buildQuery(
+        {
+          ...serverPaginationFormData,
+          row_limit: 1000,
+          server_page_length: 0,
+          slice_id: 108,
+        },
+        {
+          ownState: {
+            currentPage: 0,
+            pageSize: 0,
+          },
+        },
+      );
+
+      expect(queries[0]).toMatchObject({
+        row_limit: 1000,
+        row_offset: 0,
+      });
+    });
+
+    test('restores the configured row limit on filter reset when pagination is disabled', () => {
+      const { queries } = buildQueryUncached(
+        {
+          ...serverPaginationFormData,
+          row_limit: 1000,
+          server_page_length: 0,
+          slice_id: 109,
+        },
+        {
+          ownState: {
+            currentPage: 0,
+            pageSize: 0,
+          },
+          extras: {
+            cachedChanges: {
+              109: [{ col: 'state', op: '==', val: 'previous' }],
+            },
+          },
+        },
+      );
+
+      expect(queries[0]).toMatchObject({
+        row_limit: 1000,
+        row_offset: 0,
+      });
+    });
+
     test('falls back to the page size when no row limit is configured', () => {
       const { queries } = buildQuery(
         {
