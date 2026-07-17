@@ -62,6 +62,21 @@ def test_import_dashboard_overwrite_charts_and_datasets(
         **copy.deepcopy(dashboards_config_1),
     }
 
+    # tweak the dashboard/chart/dataset payloads so the second import actually
+    # changes a column value. SQLAlchemy only touches `changed_on` (via
+    # `onupdate`) when a flush detects a real attribute diff, so re-importing
+    # byte-for-byte identical config, as `base_configs` and `new_configs`
+    # otherwise are, would not bump `changed_on` at all and this test would be
+    # asserting something that isn't true of the underlying overwrite
+    # mechanism.
+    new_configs["dashboards/Video_Game_Sales_11.yaml"]["description"] = (
+        "updated description"
+    )
+    new_configs["charts/Games_per_Genre_over_time_95.yaml"]["cache_timeout"] = 60
+    new_configs["datasets/examples/video_game_sales.yaml"]["description"] = (
+        "updated description"
+    )
+
     # gettings uuids
     dashboard_configs = list(dashboards_config_1.values())
     dashboard_uuid = dashboard_configs[0]["uuid"]
