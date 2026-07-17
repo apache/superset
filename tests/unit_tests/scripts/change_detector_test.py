@@ -24,14 +24,14 @@ from scripts import change_detector
 
 def _make_response(body: bytes) -> mock.MagicMock:
     """Builds a mock that mimics urlopen's context-manager response."""
-    response = mock.MagicMock()
+    response: mock.MagicMock = mock.MagicMock()
     response.__enter__.return_value.read.return_value = body
     return response
 
 
 def test_fetch_retries_transient_error_then_succeeds() -> None:
-    payload = [{"filename": "superset/foo.py"}]
-    side_effects = [
+    payload: list[dict[str, str]] = [{"filename": "superset/foo.py"}]
+    side_effects: list[object] = [
         HTTPError("http://api", 500, "Server Error", {}, None),  # type: ignore
         HTTPError("http://api", 502, "Bad Gateway", {}, None),  # type: ignore
         _make_response(b'[{"filename": "superset/foo.py"}]'),
@@ -47,6 +47,24 @@ def test_fetch_retries_transient_error_then_succeeds() -> None:
     assert result == payload
     assert urlopen_mock.call_count == 3
     assert sleep_mock.call_count == 2
+
+
+def test_fetch_retries_rate_limit_then_succeeds() -> None:
+    side_effects: list[object] = [
+        HTTPError("http://api", 429, "Too Many Requests", {}, None),  # type: ignore
+        _make_response(b"[]"),
+    ]
+    with (
+        mock.patch.object(
+            change_detector, "urlopen", side_effect=side_effects
+        ) as urlopen_mock,
+        mock.patch.object(change_detector.time, "sleep") as sleep_mock,
+    ):
+        result = change_detector.fetch_files_github_api("http://api")
+
+    assert result == []
+    assert urlopen_mock.call_count == 2
+    assert sleep_mock.call_count == 1
 
 
 def test_fetch_does_not_retry_client_error() -> None:

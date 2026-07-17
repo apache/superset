@@ -28,9 +28,12 @@ from urllib.request import Request, urlopen
 # The change detector gates the entire CI matrix, so a single transient GitHub
 # API hiccup should not fail the build. Retry server errors and network blips
 # with exponential backoff before giving up.
-MAX_RETRIES = 4
-RETRY_BACKOFF_SECONDS = 2
-REQUEST_TIMEOUT_SECONDS = 30
+MAX_RETRIES: int = 4
+RETRY_BACKOFF_SECONDS: int = 2
+REQUEST_TIMEOUT_SECONDS: int = 30
+# GitHub returns 429 (and 403 for secondary rate limits) when throttling, which
+# is transient and worth retrying alongside 5xx server errors.
+RETRYABLE_STATUS_CODES: frozenset[int] = frozenset({403, 429})
 
 # Define patterns for each group of files you're interested in
 PATTERNS = {
@@ -78,11 +81,14 @@ def fetch_files_github_api(url: str):  # type: ignore
                 body = response.read()
                 return json.loads(body)
         except (HTTPError, URLError) as err:
-            # Only retry transient failures: 5xx responses and network errors
-            # (URLError has no status code). Client errors (4xx) are
-            # deterministic, so re-raise them immediately.
+            # Retry transient failures: network errors (URLError has no status
+            # code), 5xx server errors, and GitHub rate-limit responses. Other
+            # 4xx client errors are deterministic, so re-raise immediately. Also
+            # re-raise once the retry budget is exhausted.
             status = getattr(err, "code", None)
-            is_transient = status is None or status >= 500
+            is_transient = (
+                status is None or status >= 500 or status in RETRYABLE_STATUS_CODES
+            )
             if not is_transient or attempt == MAX_RETRIES:
                 raise
             wait = RETRY_BACKOFF_SECONDS * 2 ** (attempt - 1)
@@ -91,8 +97,6 @@ def fetch_files_github_api(url: str):  # type: ignore
                 f"retrying in {wait}s..."
             )
             time.sleep(wait)
-    # The loop always returns or raises above; this satisfies type checkers.
-    raise RuntimeError(f"Exhausted retries fetching from {url}")
 
 
 def fetch_changed_files_pr(repo: str, pr_number: str) -> List[str]:
