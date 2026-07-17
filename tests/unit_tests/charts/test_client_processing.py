@@ -2923,10 +2923,11 @@ def test_apply_client_processing_xlsx_format_pivot_table_groupby_columns() -> No
 
     processed_result = apply_client_processing(result, form_data)
     query = processed_result["queries"][0]
-    output_df = pd.read_excel(BytesIO(query["data"]))
+    output_df = pd.read_excel(BytesIO(query["data"]), index_col=0)
 
     assert query["rowcount"] == 2
-    assert set(output_df["city"]) == {"London", "Paris"}
+    assert query["indexnames"] == ["London", "Paris"]
+    assert set(output_df.index) == {"London", "Paris"}
     assert "Consumer" in output_df.columns
     assert "Corporate" in output_df.columns
 
