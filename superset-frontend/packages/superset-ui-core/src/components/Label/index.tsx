@@ -77,6 +77,15 @@ export const Label = forwardRef<HTMLSpanElement, LabelProps>((props, ref) => {
       role={onClick ? 'button' : undefined}
       style={style}
       /*
+       * Ant Design v6's Tag renders the label text in a content span and spaces
+       * it from the icon via the `> .anticon + span` rule. That rule only matches
+       * when the icon is a direct `.anticon` child, which the wrapper span below
+       * breaks, so the gap is restored explicitly on the content span. antd only
+       * renders the content span when an icon is present, so this is a no-op for
+       * icon-less labels.
+       */
+      styles={{ content: { marginInlineStart: theme.sizeUnit * 2 } }}
+      /*
        * Ant Design v6's Tag clones the `icon` element and overrides its inline
        * `style` (see antd/es/tag: cloneElement(icon, { style: mergedStyles.icon })),
        * which would drop the icon's own color/size. Wrapping the icon in a span
