@@ -8,6 +8,11 @@ on:
     # Possible values: https://help.github.com/en/actions/reference/events-that-trigger-workflows#pull-request-event-pull_request
     types: [opened, edited, reopened, synchronize]
 
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   lint-check:
     runs-on: ubuntu-24.04
@@ -16,7 +21,7 @@ jobs:
       pull-requests: write
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           submodules: recursive
@@ -26,6 +31,5 @@ jobs:
           on-failed-regex-fail-action: true
           on-failed-regex-request-changes: false
           on-failed-regex-create-review: false
-          on-failed-regex-comment:
-            "Please format your PR title to match: `%regex%`!"
+          on-failed-regex-comment: "Please format your PR title to match: `%regex%`!"
           repo-token: "${{ github.token }}"

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from io import IOBase
 from typing import List, Union
 
@@ -48,6 +48,55 @@ from superset.utils.slack import get_slack_client
 
 logger = logging.getLogger(__name__)
 
+_TRANSIENT_SLACK_API_ERROR_CODES = frozenset(
+    {
+        "fatal_error",
+        "internal_error",
+        "ratelimited",
+        "request_timeout",
+        "rollup_error",
+        "service_unavailable",
+        "timeout",
+    }
+)
+
+
+def _get_slack_api_error_code(ex: SlackApiError) -> str:
+    response = getattr(ex, "response", None)
+    data = getattr(response, "data", None)
+    if not isinstance(data, dict):
+        data = response if isinstance(response, dict) else {}
+    return str(data.get("error") or "")
+
+
+def _get_slack_api_status_code(ex: SlackApiError) -> int | None:
+    response = getattr(ex, "response", None)
+    return getattr(response, "status_code", None)
+
+
+def _give_up_slack_api_retry(ex: Exception) -> bool:
+    if not isinstance(ex, SlackApiError):
+        return False
+
+    status_code = _get_slack_api_status_code(ex)
+    if status_code == 429 or (status_code is not None and 500 <= status_code < 600):
+        return False
+
+    error_code = _get_slack_api_error_code(ex)
+    return bool(error_code and error_code not in _TRANSIENT_SLACK_API_ERROR_CODES)
+
+
+@backoff.on_exception(
+    backoff.expo,
+    (SlackApiError, SlackClientNotConnectedError),
+    factor=10,
+    base=2,
+    max_tries=5,
+    giveup=_give_up_slack_api_retry,
+)
+def _call_slack_api(method: Callable[..., object], **kwargs: object) -> None:
+    method(**kwargs)
+
 
 class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-few-public-methods
     """
@@ -71,13 +120,14 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
     ) -> tuple[Union[str, None], Sequence[Union[str, IOBase, bytes]]]:
         if self._content.csv:
             return ("csv", [self._content.csv])
+        if self._content.xlsx:
+            return ("xlsx", [self._content.xlsx])
         if self._content.screenshots:
             return ("png", self._content.screenshots)
         if self._content.pdf:
             return ("pdf", [self._content.pdf])
         return (None, [])
 
-    @backoff.on_exception(backoff.expo, SlackApiError, factor=10, base=2, max_tries=5)
     @statsd_gauge("reports.slack.send")
     def send(self) -> None:
         global_logs_context = getattr(g, "logs_context", {}) or {}
@@ -98,7 +148,8 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
             for channel in channels:
                 if len(files) > 0:
                     for file in files:
-                        client.files_upload_v2(
+                        _call_slack_api(
+                            client.files_upload_v2,
                             channel=channel,
                             file=file,
                             initial_comment=body,
@@ -106,7 +157,7 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
                             filename=file_name,
                         )
                 else:
-                    client.chat_postMessage(channel=channel, text=body)
+                    _call_slack_api(client.chat_postMessage, channel=channel, text=body)
 
             logger.info(
                 "Report sent to slack",

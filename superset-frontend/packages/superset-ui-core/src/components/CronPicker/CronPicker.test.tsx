@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { render } from '@superset-ui/core/spec';
+import { render, waitFor } from '@superset-ui/core/spec';
 import * as ReactCronPicker from 'react-js-cron';
 import { CronPicker } from '.';
 
@@ -36,4 +36,26 @@ test('Should send correct props to ReactCronPicker', () => {
     }),
     expect.anything(),
   );
+});
+
+// The invalid-cron error styling was silently dead under antd 6 until
+// react-js-cron was bumped to v6 (its v5 stylesheet targeted antd 5 Select
+// classes that no longer exist). Pin the error contract: an invalid value
+// must fire onError and apply the vendor's error class — the hook that both
+// the vendor stylesheet and Superset's overrides style the error state
+// through.
+test('flags an invalid cron value with the error state', async () => {
+  const onError = jest.fn();
+  const { container } = render(
+    <CronPicker value="not a cron" setValue={jest.fn()} onError={onError} />,
+  );
+  await waitFor(() =>
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({ type: expect.any(String) }),
+    ),
+  );
+  expect(
+    // eslint-disable-next-line testing-library/no-node-access
+    container.querySelector('.react-js-cron-error'),
+  ).toBeInTheDocument();
 });

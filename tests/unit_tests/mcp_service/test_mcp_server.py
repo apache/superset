@@ -17,7 +17,16 @@
 
 """Tests for MCP server EventStore creation."""
 
+from collections.abc import Awaitable, Callable
+from typing import cast
 from unittest.mock import MagicMock, patch
+
+import pytest
+from starlette.requests import Request
+from starlette.responses import Response
+
+# A Starlette-style ASGI endpoint, matching FastMCP's custom_route contract.
+Endpoint = Callable[[Request], Awaitable[Response]]
 
 
 def test_create_event_store_returns_none_when_no_redis_url():
@@ -158,3 +167,134 @@ def test_create_event_store_returns_none_when_redis_store_fails():
         result = create_event_store(config)
 
         assert result is None
+
+
+@pytest.mark.asyncio
+async def test_register_health_endpoint_registers_get_health() -> None:
+    """/health is registered as an HTTP GET custom route on the MCP instance."""
+    from superset.mcp_service.server import _register_health_endpoint
+
+    captured: dict[str, object] = {}
+
+    def custom_route(path: str, methods: list[str]) -> Callable[[Endpoint], Endpoint]:
+        captured["path"] = path
+        captured["methods"] = methods
+
+        def decorator(fn: Endpoint) -> Endpoint:
+            captured["fn"] = fn
+            return fn
+
+        return decorator
+
+    mcp_instance = MagicMock()
+    mcp_instance.custom_route = custom_route
+
+    _register_health_endpoint(mcp_instance)
+
+    assert captured["path"] == "/health"
+    assert captured["methods"] == ["GET"]
+
+
+@pytest.mark.asyncio
+async def test_health_endpoint_returns_ok() -> None:
+    """The /health handler returns 200 with a JSON status body."""
+    from superset.mcp_service.server import _register_health_endpoint
+    from superset.utils import json
+
+    captured: dict[str, object] = {}
+
+    def custom_route(path: str, methods: list[str]) -> Callable[[Endpoint], Endpoint]:
+        def decorator(fn: Endpoint) -> Endpoint:
+            captured["fn"] = fn
+            return fn
+
+        return decorator
+
+    mcp_instance = MagicMock()
+    mcp_instance.custom_route = custom_route
+
+    _register_health_endpoint(mcp_instance)
+
+    handler = cast(Callable[..., Awaitable[Response]], captured["fn"])
+    response = await handler(MagicMock(spec=Request))
+
+    assert response.status_code == 200
+    assert json.loads(response.body) == {"status": "ok"}
+
+
+def test_create_auth_provider_uses_default_factory_for_mcp_api_key_only() -> None:
+    """MCP_API_KEY_ENABLED=True should install auth even when FAB API keys are off."""
+    from superset.mcp_service.server import _create_auth_provider
+
+    flask_app = MagicMock()
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": None,
+        "MCP_AUTH_ENABLED": False,
+        "MCP_API_KEY_ENABLED": True,
+        "FAB_API_KEY_ENABLED": False,
+    }.get(key, default)
+    auth_provider = MagicMock()
+
+    with patch(
+        "superset.mcp_service.mcp_config.create_default_mcp_auth_factory",
+        return_value=auth_provider,
+    ) as create_default_mcp_auth_factory:
+        result = _create_auth_provider(flask_app)
+
+    assert result is auth_provider
+    create_default_mcp_auth_factory.assert_called_once_with(flask_app)
+
+
+def test_create_auth_provider_propagates_auth_config_error() -> None:
+    """A fatal auth config error must propagate, not fall through to no auth.
+
+    The default factory raises MCPAuthConfigError for an unusable auth
+    configuration. _create_auth_provider must re-raise it so the service fails
+    to start instead of silently returning None (which would run unauthenticated).
+    """
+    from superset.mcp_service.mcp_config import MCPAuthConfigError
+    from superset.mcp_service.server import _create_auth_provider
+
+    flask_app = MagicMock()
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": None,
+        "MCP_AUTH_ENABLED": True,
+        "MCP_API_KEY_ENABLED": False,
+        "FAB_API_KEY_ENABLED": False,
+    }.get(key, default)
+
+    with patch(
+        "superset.mcp_service.mcp_config.create_default_mcp_auth_factory",
+        side_effect=MCPAuthConfigError("MCP_JWT_AUDIENCE must be set"),
+    ):
+        with pytest.raises(MCPAuthConfigError):
+            _create_auth_provider(flask_app)
+
+
+def test_create_auth_provider_fails_closed_on_insecure_guest_secret() -> None:
+    """Guest-only deployment with an insecure GUEST_TOKEN_JWT_SECRET must abort.
+
+    When only MCP_EMBEDDED_GUEST_AUTH_ENABLED is on and the default factory
+    raises MCPAuthConfigError (insecure default guest secret), _create_auth_provider
+    must re-raise it — otherwise the server would boot with no authentication.
+    """
+    from superset.mcp_service.mcp_config import MCPAuthConfigError
+    from superset.mcp_service.server import _create_auth_provider
+
+    flask_app = MagicMock()
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": None,
+        "MCP_AUTH_ENABLED": False,
+        "MCP_API_KEY_ENABLED": False,
+        "FAB_API_KEY_ENABLED": False,
+        "MCP_EMBEDDED_GUEST_AUTH_ENABLED": True,
+    }.get(key, default)
+
+    with patch(
+        "superset.mcp_service.mcp_config.create_default_mcp_auth_factory",
+        side_effect=MCPAuthConfigError(
+            "GUEST_TOKEN_JWT_SECRET is the insecure default"
+        ),
+    ):
+        with pytest.raises(MCPAuthConfigError):
+            _create_auth_provider(flask_app)

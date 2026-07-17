@@ -200,8 +200,8 @@ test('renders Name search filter', async () => {
 test('renders Type filter (Virtual/Physical dropdown)', async () => {
   renderDatasetList(mockAdminUser);
 
-  // Filter dropdowns should be present
-  const filters = await screen.findAllByRole('combobox');
+  // Filter pills should be present (compact pill UI)
+  const filters = await screen.findAllByTestId('compact-filter-pill');
   expect(filters.length).toBeGreaterThan(0);
 });
 
@@ -215,7 +215,6 @@ test('handles datasets with missing fields and renders gracefully', async () => 
       id: '1',
       database_name: 'PostgreSQL',
     },
-    owners: [],
     changed_by_name: 'Unknown',
     changed_by: null,
     changed_on_delta_humanized: 'Unknown',
@@ -235,7 +234,7 @@ test('handles datasets with missing fields and renders gracefully', async () => 
     expect(screen.getByText('Incomplete Dataset')).toBeInTheDocument();
   });
 
-  // Verify empty owners renders without crashing (no FacePile)
+  // Verify empty editors renders without crashing
   const table = screen.getByRole('table');
   expect(table).toBeInTheDocument();
 
@@ -445,7 +444,8 @@ test('selecting Database filter triggers API call with database relation filter'
 
   await waitForDatasetsPageReady();
 
-  const filtersContainers = screen.getAllByRole('combobox');
+  // Filter pills should be present (compact pill UI replaces comboboxes)
+  const filtersContainers = screen.getAllByTestId('compact-filter-pill');
   expect(filtersContainers.length).toBeGreaterThan(0);
 });
 
@@ -505,23 +505,23 @@ test('displays datasets with warning_markdown', async () => {
   expect(datasetRow).toBeInTheDocument();
 });
 
-test('displays dataset with multiple owners', async () => {
-  const datasetWithOwners = mockDatasets[1]; // Has 2 owners: Jane Smith, Bob Jones
+test('displays dataset with multiple editors', async () => {
+  const datasetWithEditors = mockDatasets[1];
 
   mockDatasetListEndpoints({
-    result: [datasetWithOwners],
+    result: [datasetWithEditors],
     count: 1,
   });
 
   renderDatasetList(mockAdminUser);
 
   await waitFor(() => {
-    expect(screen.getByText(datasetWithOwners.table_name)).toBeInTheDocument();
+    expect(screen.getByText(datasetWithEditors.table_name)).toBeInTheDocument();
   });
 
   // Verify row exists with the dataset
   const datasetRow = screen
-    .getByText(datasetWithOwners.table_name)
+    .getByText(datasetWithEditors.table_name)
     .closest('tr');
   expect(datasetRow).toBeInTheDocument();
 });

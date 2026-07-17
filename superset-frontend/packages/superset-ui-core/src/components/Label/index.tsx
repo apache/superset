@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { forwardRef } from 'react';
 import { Tag } from '@superset-ui/core/components/Tag';
 import { css } from '@emotion/react';
 import { useTheme, getColorVariants } from '@apache-superset/core/theme';
@@ -23,7 +24,7 @@ import { DatasetTypeLabel } from './reusable/DatasetTypeLabel';
 import { PublishedLabel } from './reusable/PublishedLabel';
 import type { LabelProps } from './types';
 
-export function Label(props: LabelProps) {
+export const Label = forwardRef<HTMLSpanElement, LabelProps>((props, ref) => {
   const theme = useTheme();
   // Use Ant Design's motion duration instead of deprecated transitionTiming
   const {
@@ -33,7 +34,7 @@ export function Label(props: LabelProps) {
     onClick,
     children,
     icon,
-    id,
+    id: _id,
     ...rest
   } = props;
 
@@ -52,7 +53,7 @@ export function Label(props: LabelProps) {
     overflow: hidden;
     text-overflow: ellipsis;
     background-color: ${backgroundColor};
-    border-radius: 8px;
+    border-radius: ${theme.labelBorderRadius ?? 8}px;
     border-color: ${borderColor};
     padding: 0.35em 0.8em;
     line-height: 1;
@@ -71,16 +72,37 @@ export function Label(props: LabelProps) {
 
   return (
     <Tag
+      ref={ref}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       style={style}
-      icon={icon}
+      /*
+       * Ant Design v6's Tag clones the `icon` element and overrides its inline
+       * `style` (see antd/es/tag: cloneElement(icon, { style: mergedStyles.icon })),
+       * which would drop the icon's own color/size. Wrapping the icon in a span
+       * lets Tag override the (empty) wrapper style while the real icon keeps its
+       * own inline styling.
+       */
+      icon={
+        icon ? (
+          <span
+            css={css`
+              display: inline-flex;
+              align-items: center;
+            `}
+          >
+            {icon}
+          </span>
+        ) : (
+          icon
+        )
+      }
       css={labelStyles}
       {...rest}
     >
       {children}
     </Tag>
   );
-}
+});
 export { DatasetTypeLabel, PublishedLabel };
 export type { LabelType } from './types';

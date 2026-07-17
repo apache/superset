@@ -34,7 +34,7 @@ from marshmallow import (
     validates,
     validates_schema,
 )
-from marshmallow.validate import Length, OneOf, Range, ValidationError
+from marshmallow.validate import Length, OneOf, Range, Regexp, ValidationError
 from sqlalchemy import MetaData
 from werkzeug.datastructures import FileStorage
 
@@ -89,8 +89,8 @@ database_name_description = "A database name to identify this connection."
 port_description = "Port number for the database connection."
 cache_timeout_description = (
     "Duration (in seconds) of the caching timeout for charts of this database. "
-    "A timeout of 0 indicates that the cache never expires. "
-    "Note this defaults to the global timeout if undefined."
+    "A timeout of 0 indicates that the cache never expires, and -1 bypasses the "
+    "cache. Note this defaults to the global timeout if undefined."
 )
 expose_in_sqllab_description = "Expose this database to SQLLab"
 allow_run_async_description = (
@@ -277,6 +277,53 @@ def extra_validator(value: str) -> str:
                         )
                     ]
                 )
+
+        # Only validate when the key is present. An absent key means "unset"
+        # (the cache is simply not configured), which is valid. When the key
+        # is present it must be a mapping — this rejects an explicit ``null``
+        # as well as other non-dict values (0, "", []), keeping the API in
+        # sync with ``ImportV1DatabaseExtraSchema`` (whose ``fields.Dict`` also
+        # rejects null) and avoiding a stored ``null`` that would break the
+        # ``Database.metadata_cache_timeout`` accessors.
+        if "metadata_cache_timeout" in extra_:
+            metadata_cache_timeout = extra_["metadata_cache_timeout"]
+            if not isinstance(metadata_cache_timeout, dict):
+                raise ValidationError(
+                    [
+                        _(
+                            "The metadata_cache_timeout must be a mapping from "
+                            "string keys to non-negative integer values."
+                        )
+                    ]
+                )
+            for key in (
+                "schema_cache_timeout",
+                "table_cache_timeout",
+                "catalog_cache_timeout",
+            ):
+                # An absent key is unset (valid). When the key is present the
+                # value must be a non-negative integer. A present ``null`` and
+                # booleans (``bool`` is a subclass of ``int`` in Python) are
+                # rejected too, matching the import schema's ``fields.Integer``
+                # (no ``allow_none``, rejects booleans) and preventing an
+                # enabled-but-invalid state in the model accessors.
+                if key not in metadata_cache_timeout:
+                    continue
+                timeout = metadata_cache_timeout[key]
+                if (
+                    isinstance(timeout, bool)
+                    or not isinstance(timeout, int)
+                    or timeout < 0
+                ):
+                    raise ValidationError(
+                        [
+                            _(
+                                "The %(key)s in metadata_cache_timeout must be a "
+                                "non-negative integer.",
+                                key=key,
+                            )
+                        ]
+                    )
     return value
 
 
@@ -443,22 +490,77 @@ class DatabaseValidateParametersSchema(Schema):
         required=True,
         metadata={"description": configuration_method_description},
     )
+    ssh_tunnel = fields.Nested("DatabaseSSHTunnelValidation", allow_none=True)
+
+
+class DatabaseSSHTunnelValidation(Schema):
+    """SSH Tunnel schema for validation.
+
+    Allows partial data without strict authentication requirements.
+    """
+
+    id = fields.Integer(
+        allow_none=True, metadata={"description": "SSH Tunnel ID (for updates)"}
+    )
+    server_address = fields.String(allow_none=True)
+    server_port = fields.Integer(allow_none=True)
+    username = fields.String(allow_none=True)
+    password = fields.String(required=False, allow_none=True)
+    private_key = fields.String(required=False, allow_none=True)
+    private_key_password = fields.String(required=False, allow_none=True)
+    # Databases with host-key verification configured include this field in
+    # their ``ssh_tunnel`` payload; without it the validate endpoint would
+    # reject them with an unknown-field error before validation runs.
+    server_host_key = fields.String(required=False, allow_none=True)
 
 
 class DatabaseSSHTunnel(Schema):
     id = fields.Integer(
         allow_none=True, metadata={"description": "SSH Tunnel ID (for updates)"}
     )
-    server_address = fields.String()
+    # Restrict the SSH tunnel host to a plausible hostname / IP literal. This
+    # rejects values carrying URL structure, whitespace, or path separators —
+    # defense in depth against using the tunnel host as an SSRF vector.
+    server_address = fields.String(
+        validate=[
+            Length(min=1, max=256),
+            Regexp(
+                r"^[A-Za-z0-9._:\-\[\]]+$",
+                error=(
+                    "server_address must be a valid hostname or IP address "
+                    "(letters, digits, and '.', '_', '-', ':', '[', ']' only)"
+                ),
+            ),
+        ]
+    )
     server_port = fields.Integer()
     username = fields.String()
 
     # Basic Authentication
-    password = fields.String(required=False)
+    # Credential fields are load-only: accepted on input but never serialized
+    # back in responses. Response paths that surface a masked placeholder do so
+    # explicitly (see SSHTunnel.data and mask_password_info).
+    password = fields.String(required=False, load_only=True)
 
     # password protected private key authentication
-    private_key = fields.String(required=False)
-    private_key_password = fields.String(required=False)
+    private_key = fields.String(required=False, load_only=True)
+    private_key_password = fields.String(required=False, load_only=True)
+
+    # Optional expected SSH server host key in authorized-key form
+    # (e.g. "ssh-rsa AAAA...", "ssh-ed25519 AAAA..."). When set, the SSH server's
+    # presented host key is verified against it before the tunnel is opened. This is
+    # a public key, so it is not sensitive and is not masked.
+    server_host_key = fields.String(
+        required=False,
+        allow_none=True,
+        metadata={
+            "description": (
+                "Expected SSH server host key in authorized-key form "
+                "(e.g. 'ssh-ed25519 AAAA...'). When set, the server's host key is "
+                "verified against it before the tunnel is opened."
+            )
+        },
+    )
 
     @validates_schema
     def validate_authentication(self, data: dict[str, Any], **kwargs: Any) -> None:
@@ -491,7 +593,9 @@ class DatabasePostSchema(DatabaseParametersSchemaMixin, Schema):
         validate=Length(1, 250),
     )
     cache_timeout = fields.Integer(
-        metadata={"description": cache_timeout_description}, allow_none=True
+        metadata={"description": cache_timeout_description},
+        allow_none=True,
+        validate=Range(min=-1),
     )
     expose_in_sqllab = fields.Boolean(
         metadata={"description": expose_in_sqllab_description}
@@ -548,7 +652,9 @@ class DatabasePutSchema(DatabaseParametersSchemaMixin, Schema):
         validate=Length(1, 250),
     )
     cache_timeout = fields.Integer(
-        metadata={"description": cache_timeout_description}, allow_none=True
+        metadata={"description": cache_timeout_description},
+        allow_none=True,
+        validate=Range(min=-1),
     )
     expose_in_sqllab = fields.Boolean(
         metadata={"description": expose_in_sqllab_description}
@@ -851,7 +957,10 @@ class ImportV1DatabaseExtraSchema(Schema):
 
     metadata_params = fields.Dict(keys=fields.Str(), values=fields.Raw())
     engine_params = fields.Dict(keys=fields.Str(), values=fields.Raw())
-    metadata_cache_timeout = fields.Dict(keys=fields.Str(), values=fields.Integer())
+    metadata_cache_timeout = fields.Dict(
+        keys=fields.Str(),
+        values=fields.Integer(validate=Range(min=0)),
+    )
     schemas_allowed_for_csv_upload = fields.List(fields.String())
     cost_estimate_enabled = fields.Boolean()
     allows_virtual_table_explore = fields.Boolean(required=False)
@@ -887,7 +996,7 @@ class ImportV1DatabaseSchema(Schema):
     masked_encrypted_extra = fields.String(
         allow_none=False, validate=masked_encrypted_extra_validator
     )
-    cache_timeout = fields.Integer(allow_none=True)
+    cache_timeout = fields.Integer(allow_none=True, validate=Range(min=-1))
     expose_in_sqllab = fields.Boolean()
     allow_run_async = fields.Boolean()
     allow_ctas = fields.Boolean()
@@ -1092,7 +1201,9 @@ class DatabaseConnectionSchema(Schema):
         allow_none=True, metadata={"description": "SQLAlchemy engine to use"}
     )
     cache_timeout = fields.Integer(
-        metadata={"description": cache_timeout_description}, allow_none=True
+        metadata={"description": cache_timeout_description},
+        allow_none=True,
+        validate=Range(min=-1),
     )
     configuration_method = fields.String(
         metadata={"description": configuration_method_description},
@@ -1175,7 +1286,7 @@ class DelimitedListField(fields.List):
 
 class BaseUploadFilePostSchemaMixin(Schema):
     @validates("file")
-    def validate_file_extension(self, file: FileStorage) -> None:
+    def validate_file_extension(self, file: FileStorage, **kwargs: Any) -> None:
         allowed_extensions = current_app.config["ALLOWED_EXTENSIONS"]
         file_suffix = Path(file.filename).suffix
         if not file_suffix:

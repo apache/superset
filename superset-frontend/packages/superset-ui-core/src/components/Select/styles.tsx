@@ -45,19 +45,22 @@ export const StyledContainer = styled.div<{ headerPosition: string }>`
 export const StyledSelect = styled(Select, {
   shouldForwardProp: prop => prop !== 'headerPosition' && prop !== 'oneLine',
 })<{ headerPosition?: string; oneLine?: boolean }>`
-  ${({ theme, headerPosition, oneLine }) => `
+  ${({ theme, headerPosition, oneLine }) => {
+    const useSubtleOptionHover = theme.selectOptionActiveOutline === false;
+    return `
     .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
-      outline: 2px solid ${theme.colorPrimary};
-      outline-offset: -2px;
+      ${useSubtleOptionHover ? 'outline: none;' : `outline: 2px solid ${theme.colorPrimary}; outline-offset: -2px;`}
     }
     flex: ${headerPosition === 'left' ? 1 : 0};
     line-height: ${theme.sizeXL}px;
 
-    && .ant-select-selection-search {
+    && .ant-select-input {
       left: 0px;
     }
 
-    && .ant-select-selection-item, .ant-select-selection-placeholder {
+    && .ant-select-content,
+    && .ant-select-selection-item,
+    && .ant-select-placeholder {
       max-height: ${theme.sizeXL}px;
     }
     .ant-select-selection-item::after {
@@ -67,22 +70,23 @@ export const StyledSelect = styled(Select, {
     ${
       oneLine &&
       `
-        .ant-select-selection-overflow {
+        .ant-select-content {
           flex-wrap: nowrap;
         }
 
-        .ant-select-selection-overflow-item:not(.ant-select-selection-overflow-item-rest):not(.ant-select-selection-overflow-item-suffix) {
+        .ant-select-content-item:not(.ant-select-content-item-rest):not(.ant-select-content-item-suffix) {
           flex-shrink: 1;
           min-width: ${theme.sizeUnit * 13}px;
         }
 
-        .ant-select-selection-overflow-item-suffix {
+        .ant-select-content-item-suffix {
           flex: unset;
           min-width: 0px;
         }
       `
     };
- `}
+  `;
+  }}
 `;
 
 export const NoElement = styled.span`

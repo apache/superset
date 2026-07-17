@@ -35,6 +35,7 @@ import {
   DatasourceType,
   Metric,
   QueryFormMetric,
+  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { styled, css } from '@apache-superset/core/theme';
 import { ColumnMeta, isSavedExpression } from '@superset-ui/chart-controls';
@@ -476,6 +477,9 @@ const ColumnSelectPopover = ({
                                   role="button"
                                   tabIndex={0}
                                   onClick={setDatasetAndClose}
+                                  onKeyDown={handleKeyboardActivation(
+                                    setDatasetAndClose,
+                                  )}
                                 >
                                   {t('Create a dataset')}
                                 </span>{' '}
@@ -487,6 +491,9 @@ const ColumnSelectPopover = ({
                                   role="button"
                                   tabIndex={0}
                                   onClick={setDatasetAndClose}
+                                  onKeyDown={handleKeyboardActivation(
+                                    setDatasetAndClose,
+                                  )}
                                 >
                                   {t('Create a dataset')}
                                 </span>{' '}
@@ -521,6 +528,9 @@ const ColumnSelectPopover = ({
                             role="button"
                             tabIndex={0}
                             onClick={setDatasetAndClose}
+                            onKeyDown={handleKeyboardActivation(
+                              setDatasetAndClose,
+                            )}
                           >
                             {t('Create a dataset')}
                           </span>{' '}

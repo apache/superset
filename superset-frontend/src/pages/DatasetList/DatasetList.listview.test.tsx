@@ -27,7 +27,7 @@ import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import rison from 'rison';
 import { SupersetClient } from '@superset-ui/core';
-import { selectOption } from 'spec/helpers/testing-library';
+import { selectPillOption } from 'spec/helpers/testing-library';
 import {
   setupMocks,
   renderDatasetList,
@@ -40,8 +40,23 @@ import {
   assertOnlyExpectedCalls,
   API_ENDPOINTS,
   mockDatasetListEndpoints,
+  mockDatasetEditors,
   getDeleteRouteName,
+  mockEditorUser,
 } from './DatasetList.testHelpers';
+
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    common: {
+      conf: {},
+      feature_flags: {},
+      user_subjects: [1],
+    },
+  })),
+  applicationRoot: jest.fn(() => ''),
+  staticAssetsPrefix: jest.fn(() => ''),
+}));
 
 const mockAddDangerToast = jest.fn();
 const mockAddSuccessToast = jest.fn();
@@ -190,7 +205,7 @@ test('renders all required column headers', async () => {
     within(table).getByRole('columnheader', { name: /Schema/i }),
   ).toBeInTheDocument();
   expect(
-    within(table).getByRole('columnheader', { name: /Owners/i }),
+    within(table).getByRole('columnheader', { name: /Editors/i }),
   ).toBeInTheDocument();
   expect(
     within(table).getByRole('columnheader', { name: /Last modified/i }),
@@ -991,10 +1006,10 @@ test('virtual dataset shows delete, export, edit, and duplicate actions', async 
   expect(duplicateButton).toBeInTheDocument();
 });
 
-test('edit action is enabled for dataset owner', async () => {
+test('edit action is enabled for dataset editor', async () => {
   const dataset = {
     ...mockDatasets[0],
-    owners: [{ id: mockAdminUser.userId, username: 'admin' }],
+    editors: [mockDatasetEditors.admin],
   };
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
@@ -1007,28 +1022,22 @@ test('edit action is enabled for dataset owner', async () => {
 
   const row = screen.getByText(dataset.table_name).closest('tr');
   const editIcon = within(row!).getByTestId('edit');
-  const editButton = editIcon.closest('.action-button, .disabled');
+  const editButton = editIcon.closest('[role="button"]');
 
-  // Should have action-button class (not disabled)
-  expect(editButton).toHaveClass('action-button');
-  expect(editButton).not.toHaveClass('disabled');
+  // Should be enabled (not disabled)
+  expect(editButton).toHaveAttribute('aria-disabled', 'false');
 });
 
-test('edit action is disabled for non-owner', async () => {
+test('edit action is disabled for non-editor', async () => {
   const dataset = {
     ...mockDatasets[0],
-    owners: [{ id: 999, username: 'other_user' }], // Different user
+    editors: [mockDatasetEditors.external],
   };
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
 
-  // Use a non-admin user to test ownership check
-  const regularUser = {
-    ...mockAdminUser,
-    roles: { Admin: [['can_read', 'Dataset']] },
-  };
-
-  renderDatasetList(regularUser);
+  // editors does not include mockEditorUser, so edit button should be disabled
+  renderDatasetList(mockEditorUser);
 
   await waitFor(() => {
     expect(screen.getByText(dataset.table_name)).toBeInTheDocument();
@@ -1036,17 +1045,15 @@ test('edit action is disabled for non-owner', async () => {
 
   const row = screen.getByText(dataset.table_name).closest('tr');
   const editIcon = within(row!).getByTestId('edit');
-  const editButton = editIcon.closest('.action-button, .disabled');
+  const editButton = editIcon.closest('[role="button"]');
 
-  // Should have disabled class (disabled buttons still have 'action-button' class)
-  expect(editButton).toHaveClass('disabled');
-  expect(editButton).toHaveClass('action-button');
+  // Should be disabled
+  expect(editButton).toHaveAttribute('aria-disabled', 'true');
 });
 
 test('all action buttons are clickable and enabled for admin user', async () => {
   const virtualDataset = {
     ...mockDatasets[1],
-    owners: [{ id: mockAdminUser.userId, username: 'admin' }],
   };
 
   mockDatasetListEndpoints({ result: [virtualDataset], count: 1 });
@@ -1065,22 +1072,16 @@ test('all action buttons are clickable and enabled for admin user', async () => 
   const editIcon = within(row!).getByTestId('edit');
   const duplicateIcon = within(row!).getByTestId('copy');
 
-  const deleteButton = deleteIcon.closest('.action-button, .disabled');
-  const exportButton = exportIcon.closest('.action-button, .disabled');
-  const editButton = editIcon.closest('.action-button, .disabled');
-  const duplicateButton = duplicateIcon.closest('.action-button, .disabled');
+  const deleteButton = deleteIcon.closest('[role="button"]');
+  const exportButton = exportIcon.closest('[role="button"]');
+  const editButton = editIcon.closest('[role="button"]');
+  const duplicateButton = duplicateIcon.closest('[role="button"]');
 
-  // All should have action-button class (enabled)
-  expect(deleteButton).toHaveClass('action-button');
-  expect(exportButton).toHaveClass('action-button');
-  expect(editButton).toHaveClass('action-button');
-  expect(duplicateButton).toHaveClass('action-button');
-
-  // None should be disabled
-  expect(deleteButton).not.toHaveClass('disabled');
-  expect(exportButton).not.toHaveClass('disabled');
-  expect(editButton).not.toHaveClass('disabled');
-  expect(duplicateButton).not.toHaveClass('disabled');
+  // None should be disabled (export/duplicate never set aria-disabled at all)
+  expect(deleteButton).not.toHaveAttribute('aria-disabled', 'true');
+  expect(exportButton).not.toHaveAttribute('aria-disabled', 'true');
+  expect(editButton).not.toHaveAttribute('aria-disabled', 'true');
+  expect(duplicateButton).not.toHaveAttribute('aria-disabled', 'true');
 });
 
 test('displays error when initial dataset fetch fails with 500', async () => {
@@ -1237,13 +1238,7 @@ test('delete action gracefully handles 500 internal server error', async () => {
 test('duplicate action shows error toast on 403 forbidden', async () => {
   const virtualDataset = {
     ...mockDatasets[1],
-    owners: [
-      {
-        first_name: mockAdminUser.firstName,
-        last_name: mockAdminUser.lastName,
-        id: mockAdminUser.userId as number,
-      },
-    ],
+    editors: [mockDatasetEditors.admin],
   };
 
   setupErrorTestScenario({
@@ -1295,13 +1290,7 @@ test('duplicate action shows error toast on 403 forbidden', async () => {
 test('duplicate action shows error toast on 500 internal server error', async () => {
   const virtualDataset = {
     ...mockDatasets[1],
-    owners: [
-      {
-        first_name: mockAdminUser.firstName,
-        last_name: mockAdminUser.lastName,
-        id: mockAdminUser.userId as number,
-      },
-    ],
+    editors: [mockDatasetEditors.admin],
   };
 
   setupErrorTestScenario({
@@ -1510,11 +1499,8 @@ test('bulk selection clears when filter changes', async () => {
     API_ENDPOINTS.DATASOURCE_COMBINED,
   ).length;
 
-  // Wait for filter combobox to be ready before applying filter
-  await screen.findByRole('combobox', { name: 'Type' });
-
-  // Apply a filter using selectOption helper
-  await selectOption('Virtual', 'Type');
+  // Apply a filter using selectPillOption helper (compact pill UI)
+  await selectPillOption('Virtual', 'Type');
 
   // Wait for filter API call to complete
   await waitFor(() => {
@@ -1556,16 +1542,13 @@ test('type filter API call includes correct filter parameter', async () => {
     expect(screen.getByTestId('listview-table')).toBeInTheDocument();
   });
 
-  // Wait for Type filter combobox
-  await screen.findByRole('combobox', { name: 'Type' });
-
   // Snapshot call count before filter
   const callsBeforeFilter = fetchMock.callHistory.calls(
     API_ENDPOINTS.DATASOURCE_COMBINED,
   ).length;
 
-  // Apply Type filter
-  await selectOption('Virtual', 'Type');
+  // Apply Type filter using compact pill UI
+  await selectPillOption('Virtual', 'Type');
 
   // Wait for filter API call to complete
   await waitFor(() => {
@@ -1606,16 +1589,13 @@ test('type filter persists after duplicating a dataset', async () => {
     expect(screen.getByTestId('listview-table')).toBeInTheDocument();
   });
 
-  // Wait for Type filter combobox
-  await screen.findByRole('combobox', { name: 'Type' });
-
   // Snapshot call count before filter
   const callsBeforeFilter = fetchMock.callHistory.calls(
     API_ENDPOINTS.DATASOURCE_COMBINED,
   ).length;
 
-  // Apply Type filter
-  await selectOption('Virtual', 'Type');
+  // Apply Type filter using compact pill UI
+  await selectPillOption('Virtual', 'Type');
 
   // Wait for filter API call to complete
   await waitFor(() => {
@@ -1713,19 +1693,13 @@ test('type filter persists after duplicating a dataset', async () => {
 
 test('edit action shows error toast when dataset fetch fails', async () => {
   const dataset = mockDatasets[0];
-  // Make the dataset owned by admin so edit button is enabled
-  const ownedDataset = {
+  // Make the dataset editable by admin so the edit button is enabled.
+  const editableDataset = {
     ...dataset,
-    owners: [
-      {
-        first_name: mockAdminUser.firstName,
-        last_name: mockAdminUser.lastName,
-        id: mockAdminUser.userId as number,
-      },
-    ],
+    editors: [mockDatasetEditors.admin],
   };
 
-  mockDatasetListEndpoints({ result: [ownedDataset], count: 1 });
+  mockDatasetListEndpoints({ result: [editableDataset], count: 1 });
 
   // Mock SupersetClient.get to fail for the specific dataset endpoint
   jest.spyOn(SupersetClient, 'get').mockImplementation(async request => {
@@ -1745,7 +1719,7 @@ test('edit action shows error toast when dataset fetch fails', async () => {
   });
 
   await waitFor(() => {
-    expect(screen.getByText(ownedDataset.table_name)).toBeInTheDocument();
+    expect(screen.getByText(editableDataset.table_name)).toBeInTheDocument();
   });
 
   const table = screen.getByTestId('listview-table');

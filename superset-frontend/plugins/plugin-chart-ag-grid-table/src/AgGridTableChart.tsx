@@ -24,7 +24,7 @@ import {
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 
 import {
   CellClickedEvent,
@@ -86,6 +86,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     onChartStateChange,
     chartState,
     metricSqlExpressions,
+    rawSummaryColumns,
+    showNumberedColumn,
   } = props;
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
@@ -112,26 +114,58 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     }
   }, [columns]);
 
+  // A single effect owns every ownState write derived from render state.
+  // updateTableOwnState replaces ownState wholesale, so separate effects that
+  // each spread serverPaginationData in the same render would clobber one
+  // another's keys: clamping the current page, priming the raw-mode summary
+  // columns and nudging a re-query for missing totals must be one combined
+  // delta.
   useEffect(() => {
-    if (!serverPagination || !serverPaginationData || !rowCount) return;
+    const nextOwnState = { ...serverPaginationData };
+    let changed = false;
 
-    const currentPage = serverPaginationData.currentPage ?? 0;
-    const currentPageSize = serverPaginationData.pageSize ?? serverPageLength;
-    const totalPages = Math.ceil(rowCount / currentPageSize);
+    if (serverPagination && serverPaginationData && rowCount !== undefined) {
+      const currentPage = serverPaginationData.currentPage ?? 0;
+      const currentPageSize = serverPaginationData.pageSize ?? serverPageLength;
+      const totalPages = Math.ceil(rowCount / currentPageSize);
+      // An empty result set clamps to page zero; a shrunken one clamps to its
+      // last remaining page.
+      const clampedPage = Math.max(0, Math.min(currentPage, totalPages - 1));
+      if (clampedPage !== currentPage) {
+        nextOwnState.currentPage = clampedPage;
+        changed = true;
+      }
+    }
 
-    if (currentPage >= totalPages && totalPages > 0) {
-      const validPage = Math.max(0, totalPages - 1);
-      const modifiedOwnState = {
-        ...serverPaginationData,
-        currentPage: validPage,
-      };
-      updateTableOwnState(setDataMask, modifiedOwnState);
+    const primed = (serverPaginationData?.rawSummaryColumns ?? []) as string[];
+    const requested = Boolean(serverPaginationData?.totalsRequested);
+    if (isRawRecords && showTotals && !isEqual(primed, rawSummaryColumns)) {
+      nextOwnState.rawSummaryColumns = rawSummaryColumns;
+      changed = true;
+    }
+    // A renderTrigger toggle re-renders without re-querying; requesting totals
+    // through ownState dispatches the standard re-query whose buildQuery
+    // carries the totals query for the active mode.
+    if (showTotals && totals === undefined && !requested) {
+      nextOwnState.totalsRequested = true;
+      changed = true;
+    } else if (!showTotals && requested) {
+      nextOwnState.totalsRequested = false;
+      changed = true;
+    }
+
+    if (changed) {
+      updateTableOwnState(setDataMask, nextOwnState);
     }
   }, [
-    rowCount,
     serverPagination,
-    serverPaginationData,
+    rowCount,
     serverPageLength,
+    isRawRecords,
+    showTotals,
+    totals,
+    rawSummaryColumns,
+    serverPaginationData,
     setDataMask,
   ]);
 
@@ -230,11 +264,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       : (columns as InputColumn[]),
     data,
     serverPagination,
+    serverPaginationData,
+    serverPageLength,
+    showNumberedColumn: showNumberedColumn && !emitCrossFilters,
     isRawRecords,
     defaultAlignPN: alignPositiveNegative,
     showCellBars,
     colorPositiveNegative,
-    totals,
     columnColorFormatters,
     allowRearrangeColumns,
     basicColorFormatters,
@@ -411,10 +447,18 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     />
   );
 
+  const columnsForKeys = isUsingTimeComparison
+    ? (filteredColumns as InputColumn[])
+    : (columns as InputColumn[]);
+  const descriptionsKey = columnsForKeys
+    .map(col => `${col.key}:${col.description ?? ''}`)
+    .join('|');
+
   return (
     <StyledChartContainer height={height}>
       <AgGridDataTable
         gridHeight={gridHeight}
+        key={descriptionsKey}
         data={data || []}
         colDefsFromProps={colDefs}
         includeSearch={!!includeSearch}
@@ -443,7 +487,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           isUsingTimeComparison ? renderTimeComparisonVisibility : () => null
         }
         cleanedTotals={totals || {}}
-        showTotals={showTotals}
+        showTotals={
+          showTotals && totals !== undefined && Object.keys(totals).length > 0
+        }
         width={width}
         onColumnStateChange={handleColumnStateChange}
         chartState={chartState}

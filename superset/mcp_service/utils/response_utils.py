@@ -56,7 +56,21 @@ Usage example::
 
 from __future__ import annotations
 
-from typing import Dict
+from datetime import datetime
+from typing import Any, Dict, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from superset.mcp_service.chart.schemas import DataColumn
+
+import humanize
+
+
+def humanize_timestamp(dt: datetime | None) -> str | None:
+    """Convert a datetime to a humanized string like '2 hours ago'."""
+    if dt is None:
+        return None
+    now = datetime.now(dt.tzinfo) if dt.tzinfo else datetime.now()
+    return humanize.naturaltime(now - dt)
 
 
 def _byte_size_label(value: str | None) -> str:
@@ -150,3 +164,56 @@ class OmittedFieldsBuilder:
     def build(self) -> Dict[str, str]:
         """Return the omission metadata dict."""
         return dict(self._fields)
+
+
+STATS_ROW_CAP: int = 5000
+
+
+def format_data_columns(
+    data: list[dict[str, Any]], raw_columns: list[str]
+) -> list[DataColumn]:
+    """Build column metadata from query result data.
+
+    Caps null_count/unique_count computation at STATS_ROW_CAP rows to avoid
+    O(rows*cols) overhead on large result sets. When the result exceeds the
+    cap, those counts are marked as sampled/approximate via ``statistics``
+    instead of being reported as exact full-dataset totals.
+    """
+    # Local import breaks the chart.schemas ↔ response_utils circular dependency.
+    from superset.mcp_service.chart.schemas import DataColumn  # noqa: PLC0415
+
+    stats_rows: list[dict[str, Any]] = data[:STATS_ROW_CAP]
+    is_sampled: bool = len(data) > STATS_ROW_CAP
+    columns_meta: list[DataColumn] = []
+    for col_name in raw_columns:
+        sample_values = [
+            row.get(col_name) for row in data[:3] if row.get(col_name) is not None
+        ]
+        data_type: str = "string"
+        if sample_values:
+            if all(isinstance(v, bool) for v in sample_values):
+                data_type = "boolean"
+            elif all(isinstance(v, (int, float)) for v in sample_values):
+                data_type = "numeric"
+
+        null_count = 0
+        unique_vals: set[str] = set()
+        for row in stats_rows:
+            val = row.get(col_name)
+            if val is None:
+                null_count += 1
+            else:
+                unique_vals.add(str(val))
+
+        columns_meta.append(
+            DataColumn(
+                name=col_name,
+                display_name=col_name.replace("_", " ").title(),
+                data_type=data_type,
+                sample_values=sample_values[:3],
+                null_count=null_count,
+                unique_count=len(unique_vals),
+                statistics={"sampled_rows": len(stats_rows)} if is_sampled else None,
+            )
+        )
+    return columns_meta

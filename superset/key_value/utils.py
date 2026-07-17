@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from hashlib import md5
 from secrets import token_urlsafe
 from typing import Any
@@ -30,16 +31,31 @@ from superset.key_value.exceptions import KeyValueParseKeyError
 from superset.key_value.types import Key, KeyValueFilter, KeyValueResource
 from superset.utils.json import json_dumps_w_dates
 
+logger = logging.getLogger(__name__)
+
 HASHIDS_MIN_LENGTH = 11
 
+# Minimum number of bytes of entropy for generated keys (128-bit).
+MIN_KEY_NBYTES = 16
 
-def random_key(nbytes: int = 8) -> str:
+
+def random_key(nbytes: int = MIN_KEY_NBYTES) -> str:
     """
     Generate a random URL-safe string.
 
     Args:
-        nbytes (int): Number of bytes to use for generating the key. Default is 8.
+        nbytes (int): Number of bytes of entropy to use for generating the key.
+            Defaults to 16 (128-bit). Values below 16 are rejected so that
+            security-sensitive keys cannot request weaker entropy.
+
+    Raises:
+        ValueError: If ``nbytes`` is smaller than the 128-bit minimum.
     """
+    if nbytes < MIN_KEY_NBYTES:
+        raise ValueError(
+            f"random_key requires at least {MIN_KEY_NBYTES} bytes of entropy "
+            f"(got {nbytes})"
+        )
     return token_urlsafe(nbytes)
 
 
@@ -69,7 +85,16 @@ def decode_permalink_id(key: str, salt: str) -> int:
 
 
 def _uuid_namespace_from_md5(seed: str) -> UUID:
-    """Generate UUID namespace from MD5 hash (legacy compatibility)."""
+    """Generate UUID namespace from MD5 hash (legacy compatibility).
+
+    The MD5 path is retained only for backwards compatibility with namespaces
+    generated before SHA-256 became the default. It is deprecated and should not
+    be selected for new deployments; prefer the SHA-256 generator instead.
+    """
+    logger.warning(
+        "The 'md5' HASH_ALGORITHM is deprecated and retained only for "
+        "backwards compatibility; prefer 'sha256' for namespace generation."
+    )
     md5_obj = md5()  # noqa: S324
     md5_obj.update(seed.encode("utf-8"))
     return UUID(md5_obj.hexdigest())

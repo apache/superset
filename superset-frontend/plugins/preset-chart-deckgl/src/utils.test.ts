@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getColorBreakpointsBuckets, getBreakPoints } from './utils';
+import { JsonObject, QueryFormData } from '@superset-ui/core';
+import {
+  getColorBreakpointsBuckets,
+  getBreakPoints,
+  getBuckets,
+  BucketsWithColorScale,
+} from './utils';
 import { ColorBreakpointType } from './types';
 
 describe('getColorBreakpointsBuckets', () => {
@@ -485,6 +491,45 @@ describe('getBreakPoints', () => {
         expect(firstBp).toBeLessThanOrEqual(minValue);
         expect(lastBp).toBeGreaterThanOrEqual(maxValue);
       }
+    });
+  });
+});
+
+describe('getBuckets', () => {
+  const accessor = (d: JsonObject) => d.value;
+
+  const buildFeatures = (values: number[]) => values.map(value => ({ value }));
+
+  test('produces non-overlapping bucket labels (no shared endpoints)', () => {
+    // With break points [1, 81, 212, 369] the legacy behavior produced
+    // "1 - 81", "81 - 212", "212 - 369" where each interior breakpoint
+    // (81, 212) appeared in two adjacent labels, reading as overlapping
+    // ranges. Labels should instead form a clean, non-overlapping partition.
+    const fd: QueryFormData & BucketsWithColorScale = {
+      datasource: '1__table',
+      viz_type: 'deck_polygon',
+      break_points: ['1', '81', '212', '369'],
+      num_buckets: '3',
+      linear_color_scheme: ['#000000', '#ffffff'],
+      opacity: 100,
+      metric: 'count',
+    };
+    const features = buildFeatures([1, 50, 100, 200, 300, 369]);
+
+    const buckets = getBuckets(fd, features, accessor);
+    const labels = Object.keys(buckets);
+
+    // Three buckets for four breakpoints
+    expect(labels).toHaveLength(3);
+
+    // Interval notation: half-open everywhere except the last bucket, which
+    // is closed so the maximum value is included.
+    expect(labels).toEqual(['[1, 81)', '[81, 212)', '[212, 369]']);
+
+    // No numeric endpoint should appear as both an upper bound of one bucket
+    // and a lower bound of the next in an ambiguous "a - b" form.
+    labels.forEach(label => {
+      expect(label).not.toMatch(/^\d+(\.\d+)?\s-\s\d+(\.\d+)?$/);
     });
   });
 });

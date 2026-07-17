@@ -34,10 +34,12 @@ import { t } from '@apache-superset/core/translation';
 import { ensureIsArray, formatNumber, usePrevious } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
 import {
+  BaseOptionType,
+  DefaultOptionType,
   LabeledValue as AntdLabeledValue,
   RefSelectProps,
 } from 'antd/es/select';
-import { debounce, isEqual, uniq } from 'lodash';
+import { debounce, isEqual, uniq } from 'lodash-es';
 import {
   dropDownRenderHelper,
   getOption,
@@ -64,7 +66,7 @@ import {
 } from './styles';
 import {
   DEFAULT_SORT_COMPARATOR,
-  DROPDOWN_ALIGN_BOTTOM,
+  DROPDOWN_BUILTIN_PLACEMENTS,
   EMPTY_OPTIONS,
   MAX_TAG_COUNT,
   TOKEN_SEPARATORS,
@@ -91,9 +93,10 @@ const Select = forwardRef(
       className,
       allowClear,
       allowNewOptions = false,
+      allowNewOptionsOnPaste = false,
       allowSelectAll = true,
       ariaLabel,
-      autoClearSearchValue = false,
+      autoClearSearchValue = true,
       filterOption = true,
       header = null,
       headerPosition = 'top',
@@ -127,7 +130,9 @@ const Select = forwardRef(
     ref: Ref<RefSelectProps>,
   ) => {
     const isSingleMode = mode === 'single';
-    const shouldShowSearch = allowNewOptions ? true : showSearch;
+    // antd v6 widened `showSearch` to `boolean | SearchConfig`; coerce to a
+    // plain boolean for Superset's internal toggles and helpers.
+    const shouldShowSearch = allowNewOptions ? true : Boolean(showSearch);
     const [selectValue, setSelectValue] = useState(value);
     const [inputValue, setInputValue] = useState('');
     const [isDropdownVisible, setIsDropdownVisible] = useState(false);
@@ -211,7 +216,17 @@ const Select = forwardRef(
     );
 
     const initialOptionsSorted = useMemo(
-      () => initialOptions.slice().sort(sortSelectedFirst),
+      () =>
+        initialOptions
+          .slice()
+          // Forward-compat: TS 6.0 infers stricter antd option types; widen the
+          // comparator to accept the broader DefaultOptionType shape.
+          .sort(
+            sortSelectedFirst as unknown as (
+              a: BaseOptionType | DefaultOptionType,
+              b: BaseOptionType | DefaultOptionType,
+            ) => number,
+          ),
       [initialOptions, sortSelectedFirst],
     );
 
@@ -239,7 +254,17 @@ const Select = forwardRef(
         missingValues.length > 0
           ? missingValues.concat(selectOptions)
           : selectOptions;
-      return result.slice().sort(sortSelectedFirst);
+      return (
+        result
+          .slice()
+          // Forward-compat: see note on initialOptionsSorted.
+          .sort(
+            sortSelectedFirst as unknown as (
+              a: BaseOptionType | DefaultOptionType,
+              b: BaseOptionType | DefaultOptionType,
+            ) => number,
+          )
+      );
     }, [selectOptions, selectValue, sortSelectedFirst]);
 
     const enabledOptions = useMemo(
@@ -332,6 +357,11 @@ const Select = forwardRef(
           return previousState;
         });
         fireOnChange();
+      }
+      if (autoClearSearchValue) {
+        setInputValue('');
+        setIsSearching(false);
+        setVisibleOptions(fullSelectOptions);
       }
       onSelect?.(selectedItem, option);
     };
@@ -519,7 +549,8 @@ const Select = forwardRef(
               handleSelectAll();
             }}
           >
-            {t('Select all')} {`(${formatNumber('SMART_NUMBER', bulkSelectCounts.selectable)})`}
+            {t('Select all')}{' '}
+            {`(${formatNumber('SMART_NUMBER', bulkSelectCounts.selectable)})`}
           </Button>
           <Button
             type="link"
@@ -536,7 +567,8 @@ const Select = forwardRef(
               handleDeselectAll();
             }}
           >
-            {t('Clear')} {`(${formatNumber('SMART_NUMBER', bulkSelectCounts.deselectable)})`}
+            {t('Clear')}{' '}
+            {`(${formatNumber('SMART_NUMBER', bulkSelectCounts.deselectable)})`}
           </Button>
         </StyledBulkActionsContainer>
       ),
@@ -689,21 +721,42 @@ const Select = forwardRef(
           setSelectValue(value);
         }
       } else {
-        const token = tokenSeparators.find(token => pastedText.includes(token));
-        const array = token ? uniq(pastedText.split(token)) : [pastedText];
+        // antd v6 widened `tokenSeparators` to `string[] | (input => string[])`;
+        // Superset always uses the array form.
+        const separators = Array.isArray(tokenSeparators)
+          ? tokenSeparators
+          : [];
+        const token = separators.find((token: string) =>
+          pastedText.includes(token),
+        );
+        const array = token
+          ? uniq(
+              pastedText
+                .split(token)
+                .map(item => item.trim())
+                .filter(Boolean),
+            )
+          : [pastedText.trim()].filter(Boolean);
 
         const newOptions: SelectOptionsType = [];
+        // When `allowNewOptionsOnPaste` is set, accept pasted values that are
+        // not in the loaded options even if `allowNewOptions` is false. The
+        // full option set is searched server-side and only partially loaded
+        // client-side, so a pasted value can legitimately exist in the dataset
+        // but fall outside the loaded page.
+        const keepUnknownValues = allowNewOptions || allowNewOptionsOnPaste;
 
         const values = array
           .map(item => {
             const option = getOption(item, fullSelectOptions, true);
-            if (!option && allowNewOptions) {
+            if (!option && keepUnknownValues) {
               const newOption = {
                 label: item,
                 value: item,
                 isNewOption: true,
               };
               newOptions.push(newOption);
+              return labelInValue ? { label: item, value: item } : item;
             }
             return getPastedTextValue(item);
           })
@@ -751,10 +804,26 @@ const Select = forwardRef(
           data-test={ariaLabel || name}
           autoClearSearchValue={autoClearSearchValue}
           popupRender={popupRender}
-          filterOption={handleFilterOption}
-          filterSort={sortComparatorWithSearch}
+          // Forward-compat: TS 6.0 infers stricter antd option types; local
+          // helpers typed against AntdLabeledValue are behaviorally compatible
+          // with the broader BaseOptionType/DefaultOptionType antd expects.
+          filterOption={
+            handleFilterOption as unknown as (
+              search: string,
+              option?: BaseOptionType | DefaultOptionType,
+            ) => boolean
+          }
+          filterSort={
+            sortComparatorWithSearch as unknown as (
+              a: BaseOptionType | DefaultOptionType,
+              b: BaseOptionType | DefaultOptionType,
+            ) => number
+          }
           getPopupContainer={
-            getPopupContainer || (triggerNode => triggerNode.parentNode)
+            getPopupContainer ||
+            ((triggerNode: HTMLElement) =>
+              (triggerNode?.closest('.ant-modal-content') as HTMLElement) ||
+              (triggerNode.parentNode as HTMLElement))
           }
           headerPosition={headerPosition}
           labelInValue={labelInValue}
@@ -763,13 +832,26 @@ const Select = forwardRef(
           mode={mappedMode}
           notFoundContent={isLoading ? t('Loading...') : notFoundContent}
           onBlur={handleOnBlur}
-          onDeselect={handleOnDeselect}
+          // Forward-compat: TS 6.0 narrows the Select value type handed to
+          // SelectHandler; our local handlers already accept the broader union.
+          onDeselect={
+            handleOnDeselect as unknown as (
+              value: unknown,
+              option: BaseOptionType | DefaultOptionType,
+            ) => void
+          }
           onOpenChange={handleOnDropdownVisibleChange}
-          // @ts-expect-error
+          // @ts-expect-error antd Select does not declare onPaste on its prop
+          // surface, but the underlying input accepts it and we rely on that.
           onPaste={onPaste}
           onPopupScroll={undefined}
           onSearch={shouldShowSearch ? handleOnSearch : undefined}
-          onSelect={handleOnSelect}
+          onSelect={
+            handleOnSelect as unknown as (
+              value: unknown,
+              option: BaseOptionType | DefaultOptionType,
+            ) => void
+          }
           onClear={handleClear}
           placeholder={placeholder}
           tokenSeparators={tokenSeparators}
@@ -795,8 +877,8 @@ const Select = forwardRef(
           optionRender={option => <Space>{option.label || option.value}</Space>}
           oneLine={oneLine}
           popupMatchSelectWidth={oneLine ? dropdownWidth : true}
+          builtinPlacements={DROPDOWN_BUILTIN_PLACEMENTS}
           css={props.css}
-          dropdownAlign={DROPDOWN_ALIGN_BOTTOM}
           {...props}
           showSearch={shouldShowSearch}
           ref={ref}

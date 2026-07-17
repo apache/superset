@@ -18,6 +18,7 @@
  */
 import { createRef } from 'react';
 import { render, screen, waitFor } from '@superset-ui/core/spec';
+import { supersetTheme } from '@apache-superset/core/theme';
 import type AceEditor from 'react-ace';
 import {
   AsyncAceEditor,
@@ -28,6 +29,7 @@ import {
   CssEditor,
   JsonEditor,
   ConfigEditor,
+  aceCompletionHighlightStyles,
 } from '.';
 
 import type { AceModule, AsyncAceEditorOptions } from './types';
@@ -40,6 +42,17 @@ test('renders SQLEditor', async () => {
   await waitFor(() => {
     expect(container.querySelector(selector)).toBeInTheDocument();
   });
+});
+
+test('themes the autocomplete completion highlight from the theme', () => {
+  // Ace ships a hardcoded `color: #000` for the matched-prefix highlight, which
+  // is invisible on the dark autocomplete popup. The shared editor overrides it
+  // from the theme so every Ace editor (SQL Lab, Explore Custom SQL, ...) stays
+  // consistent.
+  const { styles } = aceCompletionHighlightStyles(supersetTheme);
+
+  expect(styles).toContain('.ace_completion-highlight');
+  expect(styles).toContain(supersetTheme.colorPrimaryText);
 });
 
 test('SQLEditor uses fontFamilyCode from theme', async () => {
@@ -55,6 +68,199 @@ test('SQLEditor uses fontFamilyCode from theme', async () => {
   // Verify font family is set (not undefined) and contains a monospace font
   expect(fontFamily).toBeDefined();
   expect(fontFamily).toMatch(/mono|courier|consolas/i);
+});
+
+test('re-measures Ace font metrics on load and preserves a consumer onLoad (#41664)', async () => {
+  // Ace caches glyph width at construction; if the editor font settles later,
+  // the caret drifts. The editor forces a re-measure on load and again once
+  // `document.fonts.ready` resolves. Mock `document.fonts` so the re-measure
+  // path is deterministic regardless of the jsdom FontFaceSet implementation.
+  const originalFonts = Object.getOwnPropertyDescriptor(document, 'fonts');
+  const fontsReady = Promise.resolve();
+  Object.defineProperty(document, 'fonts', {
+    configurable: true,
+    value: { ready: fontsReady },
+  });
+
+  const ref = createRef<AceEditor>();
+  let updateFontSizeSpy: jest.SpyInstance | undefined;
+  // The spy is installed from inside the consumer onLoad, so it captures the
+  // asynchronous (post-fonts-ready) re-measure that runs after this callback.
+  const consumerOnLoad = jest.fn((editor: AceEditor['editor']) => {
+    // Cast to a minimal shape so `jest.spyOn` resolves cleanly; it is the
+    // same renderer instance the component re-measures, so the spy still
+    // observes the production calls.
+    const renderer = editor.renderer as unknown as {
+      updateFontSize: () => void;
+    };
+    updateFontSizeSpy = jest.spyOn(renderer, 'updateFontSize');
+  });
+
+  try {
+    const { container } = render(
+      <SQLEditor
+        ref={ref as React.Ref<never>}
+        onLoad={consumerOnLoad as never}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(container.querySelector(selector)).toBeInTheDocument();
+    });
+
+    // The wrapper must call through to the consumer's onLoad with the editor.
+    expect(consumerOnLoad).toHaveBeenCalledTimes(1);
+    expect(consumerOnLoad).toHaveBeenCalledWith(ref.current?.editor);
+
+    // Once fonts settle, the editor re-measures (Ace itself resizes and
+    // re-renders when the measured character size changed) so the caret
+    // realigns.
+    await fontsReady;
+    await waitFor(() => {
+      expect(updateFontSizeSpy).toHaveBeenCalled();
+    });
+  } finally {
+    updateFontSizeSpy?.mockRestore();
+    if (originalFonts) {
+      Object.defineProperty(document, 'fonts', originalFonts);
+    } else {
+      delete (document as { fonts?: unknown }).fonts;
+    }
+  }
+});
+
+test('does not crash when the Font Loading API is unavailable (#41697)', async () => {
+  // jsdom has no `document.fonts` by default; some embedded webviews don't
+  // either. The load-time re-measure must still run and the editor must mount.
+  const originalFonts = Object.getOwnPropertyDescriptor(document, 'fonts');
+  delete (document as { fonts?: unknown }).fonts;
+
+  const consumerOnLoad = jest.fn();
+  try {
+    const { container } = render(
+      <SQLEditor onLoad={consumerOnLoad as never} />,
+    );
+    await waitFor(() => {
+      expect(container.querySelector(selector)).toBeInTheDocument();
+    });
+    expect(consumerOnLoad).toHaveBeenCalledTimes(1);
+  } finally {
+    if (originalFonts) {
+      Object.defineProperty(document, 'fonts', originalFonts);
+    }
+  }
+});
+
+test('explicitly loads the editor font and re-measures when it resolves (#41664)', async () => {
+  // `fonts.ready` can settle BEFORE a lazily-referenced editor font even
+  // starts loading, so the fix must request the font itself via
+  // `fonts.load()` and re-measure when that specific load resolves.
+  const originalFonts = Object.getOwnPropertyDescriptor(document, 'fonts');
+  let resolveFontLoad: () => void = () => {};
+  const fontLoad = new Promise<void>(resolve => {
+    resolveFontLoad = resolve;
+  });
+  const load = jest.fn((_font: string) => fontLoad);
+  Object.defineProperty(document, 'fonts', {
+    configurable: true,
+    // `ready` already settled: the pre-fix code would never re-measure.
+    value: {
+      ready: Promise.resolve(),
+      load,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    },
+  });
+
+  let updateFontSizeSpy: jest.SpyInstance | undefined;
+  const consumerOnLoad = jest.fn((editor: AceEditor['editor']) => {
+    const renderer = editor.renderer as unknown as {
+      updateFontSize: () => void;
+    };
+    updateFontSizeSpy = jest.spyOn(renderer, 'updateFontSize');
+  });
+
+  try {
+    const { container } = render(
+      <SQLEditor onLoad={consumerOnLoad as never} />,
+    );
+    await waitFor(() => {
+      expect(container.querySelector(selector)).toBeInTheDocument();
+    });
+
+    // The editor font itself is requested (family from the theme's code font).
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(load.mock.calls[0][0]).toMatch(/^12px /);
+
+    const callsBefore = updateFontSizeSpy?.mock.calls.length ?? 0;
+    resolveFontLoad();
+    await waitFor(() => {
+      expect(updateFontSizeSpy!.mock.calls.length).toBeGreaterThan(callsBefore);
+    });
+  } finally {
+    updateFontSizeSpy?.mockRestore();
+    if (originalFonts) {
+      Object.defineProperty(document, 'fonts', originalFonts);
+    } else {
+      delete (document as { fonts?: unknown }).fonts;
+    }
+  }
+});
+
+test('re-measures on later loadingdone events and unsubscribes on unmount (#41664)', async () => {
+  const originalFonts = Object.getOwnPropertyDescriptor(document, 'fonts');
+  const listeners: Record<string, (() => void)[]> = {};
+  const addEventListener = jest.fn((event: string, handler: () => void) => {
+    (listeners[event] ??= []).push(handler);
+  });
+  const removeEventListener = jest.fn((event: string, handler: () => void) => {
+    listeners[event] = (listeners[event] ?? []).filter(h => h !== handler);
+  });
+  Object.defineProperty(document, 'fonts', {
+    configurable: true,
+    value: {
+      ready: Promise.resolve(),
+      load: jest.fn(() => Promise.resolve()),
+      addEventListener,
+      removeEventListener,
+    },
+  });
+
+  let updateFontSizeSpy: jest.SpyInstance | undefined;
+  const consumerOnLoad = jest.fn((editor: AceEditor['editor']) => {
+    const renderer = editor.renderer as unknown as {
+      updateFontSize: () => void;
+    };
+    updateFontSizeSpy = jest.spyOn(renderer, 'updateFontSize');
+  });
+
+  try {
+    const { container, unmount } = render(
+      <SQLEditor onLoad={consumerOnLoad as never} />,
+    );
+    await waitFor(() => {
+      expect(container.querySelector(selector)).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(listeners.loadingdone?.length ?? 0).toBeGreaterThan(0);
+    });
+
+    // A font finishing later (e.g. a user-config font) re-measures again.
+    const callsBefore = updateFontSizeSpy?.mock.calls.length ?? 0;
+    listeners.loadingdone.forEach(handler => handler());
+    expect(updateFontSizeSpy!.mock.calls.length).toBeGreaterThan(callsBefore);
+
+    // Unmount removes the listener so destroyed editors are not re-measured.
+    unmount();
+    expect(listeners.loadingdone?.length ?? 0).toBe(0);
+  } finally {
+    updateFontSizeSpy?.mockRestore();
+    if (originalFonts) {
+      Object.defineProperty(document, 'fonts', originalFonts);
+    } else {
+      delete (document as { fonts?: unknown }).fonts;
+    }
+  }
 });
 
 test('renders FullSQLEditor', async () => {
