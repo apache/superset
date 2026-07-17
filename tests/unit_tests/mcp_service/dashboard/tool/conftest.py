@@ -35,7 +35,7 @@ def mock_auth() -> Iterator[Mock]:
     """Mock authentication for all tests in this directory."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
         with patch("superset.security_manager.raise_for_editorship"):
-            mock_user = Mock()
+            mock_user: Mock = Mock()
             mock_user.id = 1
             mock_user.username = "admin"
             mock_get_user.return_value = mock_user
