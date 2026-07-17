@@ -19,8 +19,9 @@
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import dashboardStateReducer from './dashboardState';
+import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 import { setActiveTab, setActiveTabs } from '../actions/dashboardState';
-import { DashboardState } from '../types';
+import { DashboardState, RootState } from '../types';
 
 // Type the reducer function properly since it's imported from JS
 type DashboardStateReducer = (
@@ -176,8 +177,90 @@ describe('DashboardState reducer', () => {
         }),
       );
     });
+
+    test('preserves a hydrate-seeded outer ancestor across a nested-tab switch', () => {
+      const store = mockStore({
+        dashboardState: { activeTabs: ['TAB-Outer1', 'TAB-Inner1'] },
+        dashboardLayout: {
+          present: {
+            'TAB-Outer1': { parents: [] },
+            'TAB-Outer2': { parents: [] },
+            'TAB-Inner1': { parents: ['TAB-Outer1', 'TABS-2'] },
+            'TAB-Inner2': { parents: ['TAB-Outer1', 'TABS-2'] },
+          },
+        },
+      });
+      const request = setActiveTab('TAB-Inner2', 'TAB-Inner1');
+      const thunkAction = request(
+        store.dispatch,
+        store.getState as () => RootState,
+      );
+
+      const result = typedDashboardStateReducer(
+        createMockDashboardState({
+          activeTabs: ['TAB-Outer1', 'TAB-Inner1'],
+        }),
+        thunkAction,
+      );
+
+      expect(result.activeTabs).toContain('TAB-Outer1');
+      expect(result.activeTabs).toEqual(
+        expect.arrayContaining(['TAB-Outer1', 'TAB-Inner2']),
+      );
+    });
+
+    // Pins the exact seam that replaced the deleted useActiveDashboardTabs
+    // layout-walk reconstruction: the Tabs component's initial-mount
+    // dispatch (no prevTabId) must not drop a hydrate-seeded outer ancestor
+    // either. The prior test only covers a later prev→next switch.
+    test('preserves a hydrate-seeded outer ancestor on the initial mount dispatch (no prevTabId)', () => {
+      const store = mockStore({
+        dashboardState: { activeTabs: ['TAB-Outer1', 'TAB-Inner1'] },
+        dashboardLayout: {
+          present: {
+            'TAB-Outer1': { parents: [] },
+            'TAB-Outer2': { parents: [] },
+            'TAB-Inner1': { parents: ['TAB-Outer1', 'TABS-2'] },
+            'TAB-Inner2': { parents: ['TAB-Outer1', 'TABS-2'] },
+          },
+        },
+      });
+      const request = setActiveTab('TAB-Inner1', undefined);
+      const thunkAction = request(
+        store.dispatch,
+        store.getState as () => RootState,
+      );
+
+      const result = typedDashboardStateReducer(
+        createMockDashboardState({
+          activeTabs: ['TAB-Outer1', 'TAB-Inner1'],
+        }),
+        thunkAction,
+      );
+
+      expect(result.activeTabs).toContain('TAB-Outer1');
+      expect(result.activeTabs).toEqual(
+        expect.arrayContaining(['TAB-Outer1', 'TAB-Inner1']),
+      );
+    });
   });
-  it('SET_ACTIVE_TABS', () => {
+  // Pins a side effect of seeding activeTabs at hydration (see
+  // actions/hydrate.ts / util/getDefaultActiveTabs.ts): a non-empty seeded
+  // activeTabs now reaches HYDRATE_DASHBOARD with entries, which the
+  // existing "Initialize tab activation times for initially active tabs"
+  // branch below was already written to handle — previously unreachable in
+  // practice on a fresh load because activeTabs was always seeded `[]`.
+  test('HYDRATE_DASHBOARD populates tabActivationTimes for a seeded activeTabs value', () => {
+    const result = typedDashboardStateReducer(undefined, {
+      type: HYDRATE_DASHBOARD,
+      data: { dashboardState: { activeTabs: ['TAB-1'] } },
+    });
+
+    expect(result.activeTabs).toEqual(['TAB-1']);
+    expect(result.tabActivationTimes?.['TAB-1']).toEqual(expect.any(Number));
+  });
+
+  test('SET_ACTIVE_TABS', () => {
     expect(
       typedDashboardStateReducer(
         createMockDashboardState({ activeTabs: [] }),

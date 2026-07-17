@@ -38,6 +38,7 @@ import {
 } from '../../util/migrateChartCustomization';
 
 const EMPTY_ARRAY: ChartCustomizationConfiguration = [];
+const EMPTY_ACTIVE_TABS: ActiveTabs = [];
 const defaultFilterConfiguration: (Filter | Divider)[] = [];
 
 export const selectFilterConfiguration: (
@@ -180,9 +181,9 @@ export function useDashboardHasTabs() {
   );
 }
 
-function useActiveDashboardTabs() {
+function useActiveDashboardTabs(): ActiveTabs {
   return useSelector<RootState, ActiveTabs>(
-    state => state.dashboardState?.activeTabs,
+    state => state.dashboardState?.activeTabs ?? EMPTY_ACTIVE_TABS,
   );
 }
 
