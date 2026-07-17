@@ -98,8 +98,8 @@ const HALF_DONUT_LAYOUT: Record<
 > = {
   top: { centerOffset: { x: 0, y: 20 }, totalBase: { left: 50, top: 68.5 } },
   bottom: { centerOffset: { x: 0, y: -20 }, totalBase: { left: 50, top: 30 } },
-  left: { centerOffset: { x: 5, y: 0 }, totalBase: { left: 55, top: 50 } },
-  right: { centerOffset: { x: -5, y: 0 }, totalBase: { left: 30, top: 50 } },
+  left: { centerOffset: { x: 10, y: 0 }, totalBase: { left: 55, top: 50 } },
+  right: { centerOffset: { x: -10, y: 0 }, totalBase: { left: 30, top: 50 } },
   none: { centerOffset: { x: 0, y: 0 }, totalBase: { left: 50, top: 50 } },
 };
 
