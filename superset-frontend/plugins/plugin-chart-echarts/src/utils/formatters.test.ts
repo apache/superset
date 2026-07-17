@@ -20,33 +20,32 @@
 import { TimeGranularity } from '@superset-ui/core';
 import { getSmartDateFormatter } from './formatters';
 
-test('getSmartDateFormatter returns a formatter for MINUTE grain', () => {
+test('getSmartDateFormatter MINUTE grain distinguishes different minutes', () => {
   const formatter = getSmartDateFormatter(TimeGranularity.MINUTE);
-  // Verify formatter is defined and callable
-  expect(formatter).toBeDefined();
-  const date = new Date('2024-01-15T10:35:00Z');
-  expect(() => formatter(date)).not.toThrow();
+  const date1 = new Date('2024-01-15T10:15:00Z');
+  const date2 = new Date('2024-01-15T10:30:00Z');
+  expect(formatter(date1)).not.toBe(formatter(date2));
 });
 
-test('getSmartDateFormatter returns a formatter for FIFTEEN_MINUTES grain', () => {
+test('getSmartDateFormatter FIFTEEN_MINUTES grain distinguishes different minutes', () => {
   const formatter = getSmartDateFormatter(TimeGranularity.FIFTEEN_MINUTES);
-  expect(formatter).toBeDefined();
-  const date = new Date('2024-01-15T10:15:00Z');
-  expect(() => formatter(date)).not.toThrow();
+  const date1 = new Date('2024-01-15T10:15:00Z');
+  const date2 = new Date('2024-01-15T10:30:00Z');
+  expect(formatter(date1)).not.toBe(formatter(date2));
 });
 
-test('getSmartDateFormatter returns a formatter for HOUR grain', () => {
+test('getSmartDateFormatter HOUR grain collapses minutes to same label', () => {
   const formatter = getSmartDateFormatter(TimeGranularity.HOUR);
-  expect(formatter).toBeDefined();
-  const date = new Date('2024-01-15T10:00:00Z');
-  expect(() => formatter(date)).not.toThrow();
+  const date1 = new Date('2024-01-15T10:00:00Z');
+  const date2 = new Date('2024-01-15T10:35:00Z');
+  expect(formatter(date1)).toBe(formatter(date2));
 });
 
-test('getSmartDateFormatter returns a formatter for SECOND grain', () => {
+test('getSmartDateFormatter SECOND grain distinguishes different seconds', () => {
   const formatter = getSmartDateFormatter(TimeGranularity.SECOND);
-  expect(formatter).toBeDefined();
-  const date = new Date('2024-01-15T10:35:45Z');
-  expect(() => formatter(date)).not.toThrow();
+  const date1 = new Date('2024-01-15T10:35:00Z');
+  const date2 = new Date('2024-01-15T10:35:45Z');
+  expect(formatter(date1)).not.toBe(formatter(date2));
 });
 
 test('getSmartDateFormatter returns base formatter when no grain provided', () => {
