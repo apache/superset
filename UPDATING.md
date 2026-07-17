@@ -39,6 +39,19 @@ Update your environment (virtualenv, Docker base image, CI configuration, etc.) 
 Python 3.11+ before upgrading. The `apache/superset-cache:3.10-slim-trixie` and
 `py310` Docker image variants are no longer published.
 
+### Removed deck.gl JavaScript tooltip/data-mutator controls and ENABLE_JAVASCRIPT_CONTROLS
+
+The `ENABLE_JAVASCRIPT_CONTROLS` feature flag and the deck.gl chart controls it gated
+(`js_tooltip`, `js_onclick_href`, `js_data_mutator`, and the GeoJSON layer's label/icon
+JavaScript-mode generators) have been removed. These controls let users write arbitrary
+JavaScript, sandboxed via Node's `vm` module, to customize deck.gl tooltips, click
+behavior, and data transforms; the flag defaulted off and the feature saw negligible use.
+
+Any saved charts with these fields set will simply ignore them going forward and fall back
+to deck.gl's built-in field-based tooltips (`tooltip_contents`/`tooltip_template`) and
+native click/cross-filter behavior. No migration is required; the fields are dropped
+silently on next save.
+
 ### Owners, dashboard roles, and RLS roles replaced by Subjects
 
 Superset now uses subject-based access assignments for dashboards, charts, datasets,

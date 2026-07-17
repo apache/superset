@@ -39,12 +39,6 @@ declare global {
   }
 }
 
-export interface DeckPathTransformPropsFormData extends DeckPathFormData {
-  js_data_mutator?: string;
-  js_tooltip?: string;
-  js_onclick_href?: string;
-}
-
 interface PathFeature {
   path: [number, number][];
   metric?: number;
@@ -174,7 +168,7 @@ export default function transformProps(chartProps: ChartProps) {
     reverse_long_lat = false,
     js_columns,
     breakpoint_metric,
-  } = formData as DeckPathTransformPropsFormData;
+  } = formData as DeckPathFormData;
 
   // Check so legacy values still work
   const fixedWidthValue =

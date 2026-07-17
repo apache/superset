@@ -11,9 +11,6 @@
   "js_columns": [
     "color"
   ],
-  "js_datapoint_mutator": "d => {\n return {\n ...d,\n color: colors.hexToRGB(d.extraProps.color),\n }\n}",
-  "js_onclick_href": "",
-  "js_tooltip": "",
   "mapbox_style": "mapbox://styles/mapbox/light-v9",
   "reverse_long_lat": false,
   "row_limit": 5000,

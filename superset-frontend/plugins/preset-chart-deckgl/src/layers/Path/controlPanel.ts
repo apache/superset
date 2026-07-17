@@ -22,9 +22,6 @@ import {
   filterNulls,
   autozoom,
   jsColumns,
-  jsDataMutator,
-  jsTooltip,
-  jsOnclickHref,
   viewport,
   lineType,
   reverseLongLat,
@@ -155,12 +152,7 @@ const config: ControlPanelConfig = {
     },
     {
       label: t('Advanced'),
-      controlSetRows: [
-        [jsColumns],
-        [jsDataMutator],
-        [jsTooltip],
-        [jsOnclickHref],
-      ],
+      controlSetRows: [[jsColumns]],
     },
   ],
 };

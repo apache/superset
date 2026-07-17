@@ -98,9 +98,6 @@ export const PathChartViz = ({
         reverse_long_lat: false,
         autozoom,
         js_columns: ['color'],
-        js_data_mutator: '',
-        js_tooltip: '',
-        js_onclick_href: '',
       }}
     />
   );

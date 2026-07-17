@@ -53,7 +53,6 @@ export interface SpatialFormData extends QueryFormData {
   spatial: SpatialConfiguration;
   size?: string;
   grid_size?: number;
-  js_data_mutator?: string;
   js_agg_function?: string;
   js_columns?: string[];
   color_scheme?: string;

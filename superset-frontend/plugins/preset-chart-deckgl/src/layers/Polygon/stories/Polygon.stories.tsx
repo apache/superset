@@ -138,9 +138,6 @@ export const PolygonChartViz = ({
       legend_position: 'tr',
       legend_format: null,
       js_columns: ['population', 'area'],
-      js_data_mutator: '',
-      js_tooltip: '',
-      js_onclick_href: '',
     }}
   />
 );

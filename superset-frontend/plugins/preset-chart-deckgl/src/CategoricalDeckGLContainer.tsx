@@ -40,7 +40,6 @@ import type { Layer } from '@deck.gl/core';
 import Legend from './components/Legend';
 import { hexToRGB } from './utils/colors';
 import { getMapboxApiKey } from './utils/mapbox';
-import sandboxedEval from './utils/sandbox';
 import fitViewport, { Viewport } from './utils/fitViewport';
 import {
   DeckGLContainerHandle,
@@ -172,12 +171,6 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
 
     // Add colors from categories or fixed color
     features = addColor(features, fd, selectedColorScheme);
-
-    // Apply user defined data mutator if defined
-    if (fd.js_data_mutator) {
-      const jsFnMutator = sandboxedEval(fd.js_data_mutator);
-      features = jsFnMutator(features);
-    }
 
     // Show only categories selected in the legend
     if (fd.dimension) {

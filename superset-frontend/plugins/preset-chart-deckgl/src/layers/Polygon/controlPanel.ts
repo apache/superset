@@ -27,9 +27,6 @@ import {
   filterNulls,
   autozoom,
   jsColumns,
-  jsDataMutator,
-  jsTooltip,
-  jsOnclickHref,
   crossFilterColumn,
   legendFormat,
   legendPosition,
@@ -203,13 +200,7 @@ const config: ControlPanelConfig = {
     },
     {
       label: t('Advanced'),
-      controlSetRows: [
-        [crossFilterColumn],
-        [jsColumns],
-        [jsDataMutator],
-        [jsTooltip],
-        [jsOnclickHref],
-      ],
+      controlSetRows: [[crossFilterColumn], [jsColumns]],
     },
   ],
   controlOverrides: {

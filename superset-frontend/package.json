@@ -366,7 +366,6 @@
     "tsx": "^4.23.1",
     "typescript": "5.4.5",
     "unzipper": "^0.12.5",
-    "vm-browserify": "^1.1.2",
     "wait-on": "^9.0.10",
     "webpack": "^5.108.4",
     "webpack-bundle-analyzer": "^5.3.0",
@@ -424,6 +423,7 @@
     "jest-util": "^30.4.0",
     "jest-circus": "^30.4.0",
     "jest-environment-node": "^30.4.0",
+    "typescript-json-schema": "^0.68.0",
     "@babel/eslint-parser": {
       "eslint": "$eslint"
     },

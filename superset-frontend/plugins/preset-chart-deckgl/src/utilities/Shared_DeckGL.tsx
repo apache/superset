@@ -19,8 +19,6 @@
 
 import { t } from '@apache-superset/core/translation';
 import {
-  FeatureFlag,
-  isFeatureEnabled,
   validateNonEmpty,
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
@@ -151,49 +149,6 @@ const DEFAULT_VIEWPORT = {
   pitch: 0,
 };
 
-const sandboxUrl =
-  'https://github.com/apache/superset/' +
-  'blob/master/superset-frontend/plugins/preset-chart-deckgl/src/utils/sandbox.ts';
-const jsFunctionInfo = (
-  <div>
-    {t(
-      'For more information about objects are in context in the scope of this function, refer to the',
-    )}
-    <a href={sandboxUrl}>{t(" source code of Superset's sandboxed parser")}.</a>
-    .
-  </div>
-);
-
-export function jsFunctionControl(
-  label: string,
-  description: string,
-  extraDescr = null,
-  height = 100,
-  defaultText = '',
-) {
-  return {
-    type: 'TextAreaControl',
-    language: 'javascript',
-    label,
-    description,
-    height,
-    default: defaultText,
-    aboveEditorSection: (
-      <div>
-        <p>{description}</p>
-        <p>{jsFunctionInfo}</p>
-        {extraDescr}
-      </div>
-    ),
-    warning: !isFeatureEnabled(FeatureFlag.EnableJavascriptControls)
-      ? t(
-          'This functionality is disabled in your environment for security reasons.',
-        )
-      : null,
-    readOnly: !isFeatureEnabled(FeatureFlag.EnableJavascriptControls),
-  };
-}
-
 export const filterNulls = {
   name: 'filter_nulls',
   config: {
@@ -253,36 +208,6 @@ export const crossFilterColumn: CustomControlItem = {
         'falls back to the geometry column (legacy behavior, often unmatchable).',
     ),
   },
-};
-
-export const jsDataMutator = {
-  name: 'js_data_mutator',
-  config: jsFunctionControl(
-    t('JavaScript data interceptor'),
-    t(
-      'Define a javascript function that receives the data array used in the visualization ' +
-        'and is expected to return a modified version of that array. This can be used ' +
-        'to alter properties of the data, filter, or enrich the array.',
-    ),
-  ),
-};
-
-export const jsTooltip = {
-  name: 'js_tooltip',
-  config: jsFunctionControl(
-    t('JavaScript tooltip generator'),
-    t(
-      'Define a function that receives the input and outputs the content for a tooltip',
-    ),
-  ),
-};
-
-export const jsOnclickHref = {
-  name: 'js_onclick_href',
-  config: jsFunctionControl(
-    t('JavaScript onClick href'),
-    t('Define a function that returns a URL to navigate to when user clicks'),
-  ),
 };
 
 export const legendFormat = {
