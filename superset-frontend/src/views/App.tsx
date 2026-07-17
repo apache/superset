@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useMemo } from 'react';
 import {
   BrowserRouter as Router,
   Switch,
@@ -24,6 +24,12 @@ import {
   Redirect,
   useLocation,
 } from 'react-router-dom';
+import {
+  createHtmlPortalNode,
+  InPortal,
+  OutPortal,
+  type HtmlPortalNode,
+} from 'react-reverse-portal';
 import { bindActionCreators } from 'redux';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Flex, Layout, Loading } from '@superset-ui/core/components';
@@ -141,7 +147,11 @@ const pageScrollContentCss = css`
 
 // Renders the app shell and picks the scroll model: in chat panel mode <Layout>
 // sits in a Splitter beside the chat panel; otherwise the page scrolls normally.
-const AppContent = () => {
+const AppContent = ({
+  layoutPortalNode,
+}: {
+  layoutPortalNode: HtmlPortalNode;
+}) => {
   const isAuthenticated =
     isUser(bootstrapData.user) && !bootstrapData.user.isAnonymous;
   const chatExtensionsEnabled =
@@ -155,13 +165,7 @@ const AppContent = () => {
     CHAT_PANEL_DEFAULT_WIDTH,
   );
 
-  const layoutContent = (
-    <Layout css={isPanelOpen ? layoutCss : undefined}>
-      <Layout.Content css={isPanelOpen ? contentCss : pageScrollContentCss}>
-        <RouteSwitch />
-      </Layout.Content>
-    </Layout>
-  );
+  const layoutContent = <OutPortal node={layoutPortalNode} />;
 
   const content = isPanelOpen ? (
     <Splitter
@@ -214,15 +218,26 @@ const AppContent = () => {
   );
 };
 
-const App = () => (
-  <Router basename={applicationRoot()}>
-    <ScrollToTop />
-    <LocationPathnameLogger />
-    <RootContextProviders>
-      <AppContent />
-      <ToastContainer />
-    </RootContextProviders>
-  </Router>
-);
+const App = () => {
+  const layoutPortalNode = useMemo(() => createHtmlPortalNode(), []);
+
+  return (
+    <Router basename={applicationRoot()}>
+      <ScrollToTop />
+      <LocationPathnameLogger />
+      <RootContextProviders>
+        <InPortal node={layoutPortalNode}>
+          <Layout css={layoutCss}>
+            <Layout.Content css={contentCss}>
+              <RouteSwitch />
+            </Layout.Content>
+          </Layout>
+        </InPortal>
+        <AppContent />
+        <ToastContainer />
+      </RootContextProviders>
+    </Router>
+  );
+};
 
 export default App;
