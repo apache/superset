@@ -140,7 +140,7 @@ function GroupListModal({
             value: role.id,
             label: role.name,
           }))}
-          getPopupContainer={trigger => trigger.closest('.ant-modal-content')}
+          getPopupContainer={trigger => trigger.closest('.ant-modal-container')}
         />
       </FormItem>
       <FormItem name="users" label={t('Users')}>

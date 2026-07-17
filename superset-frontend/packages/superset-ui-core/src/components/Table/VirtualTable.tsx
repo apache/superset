@@ -61,7 +61,7 @@ const StyledTable = styled(AntTable)(
       text-overflow: ellipsis;
     }
 
-    .ant-spin-nested-loading .ant-spin .ant-spin-dot {
+    .ant-spin .ant-spin-dot {
       width: ${theme.sizeUnit * 12}px;
       height: unset;
     }

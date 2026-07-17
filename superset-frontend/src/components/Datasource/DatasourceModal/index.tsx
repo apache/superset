@@ -53,7 +53,7 @@ const StyledDatasourceModal = styled(Modal)`
   top: ${TOP_MARGIN_VH}vh;
   padding-bottom: 0;
 
-  && .ant-modal-content {
+  && .ant-modal-container {
     max-height: ${MODAL_HEIGHT_VH}vh;
     margin-top: 0;
     margin-bottom: 0;

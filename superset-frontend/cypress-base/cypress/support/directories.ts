@@ -97,7 +97,7 @@ export const databasesPage = {
     infoAlert: '.ant-alert',
     serviceAccountInput: '[name="credentials_info"]',
     connectionStep: {
-      modal: '.ant-modal-content',
+      modal: '.ant-modal-container',
       modalBody: '.ant-modal-body',
       stepTitle: '.css-7x6kk > h4',
       helperBottom: '.helper-bottom',
@@ -261,7 +261,7 @@ export const datasetsList = {
     },
   },
   deleteDatasetModal: {
-    modal: '.ant-modal-content',
+    modal: '.ant-modal-container',
     deleteInput: dataTestLocator('delete-modal-input'),
     deleteButton: dataTestLocator('modal-confirm-button'),
     text: '.css-kxmt87',
@@ -474,7 +474,7 @@ export const exploreView = {
   },
   chartAreaItem: '.nv-legend-text',
   viewQueryModal: {
-    container: '.ant-modal-content',
+    container: '.ant-modal-container',
     closeButton: 'button.ant-modal-close',
   },
   embedCodeModal: {
@@ -482,7 +482,7 @@ export const exploreView = {
     textfield: dataTestLocator('embed-code-textarea'),
   },
   saveModal: {
-    modal: '.ant-modal-content',
+    modal: '.ant-modal-container',
     chartNameInput: dataTestLocator('new-chart-name'),
     dashboardNameInput: '.ant-select-input',
     addToDashboardInput: dataTestLocator(
@@ -578,7 +578,7 @@ export const exploreView = {
     },
   },
   editDatasetModal: {
-    container: '.ant-modal-content',
+    container: '.ant-modal-container',
     datasetTabsContainer: dataTestLocator('edit-dataset-tabs'),
     saveButton: dataTestLocator('datasource-modal-save'),
     metricsTab: {
@@ -617,12 +617,12 @@ export const dashboardView = {
     closeButton: dataTestLocator('close-button'),
   },
   saveModal: {
-    modal: '.ant-modal-content',
+    modal: '.ant-modal-container',
     dashboardNameInput: '.ant-input',
     saveButton: dataTestLocator('modal-save-dashboard-button'),
   },
   dashboardProperties: {
-    modal: '.ant-modal-content',
+    modal: '.ant-modal-container',
     dashboardTitleInput: dataTestLocator('dashboard-title-input'),
     modalButton: '[type="button"]',
   },
