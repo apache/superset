@@ -241,7 +241,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         )
         # CSV and Excel are mutually exclusive (a report has a single format),
         # so at most one tabular attachment is present in the data dict.
-        attachment_data: dict[str, bytes] | None = None
+        attachment_data: dict[str, bytes | str] | None = None
         if self._content.csv:
             attachment_data = {__("%(name)s.csv", name=self._name): self._content.csv}
         elif self._content.xlsx:
