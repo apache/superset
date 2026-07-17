@@ -2710,9 +2710,10 @@ def test_prune_log_soft_time_out(bulk_delete_logs, create_report_email_dashboard
 def test__send_with_client_errors(notification_mock, logger_mock):
     notification_content = "I am some content"
     recipients = ["test@foo.com"]
+    report_state = BaseReportState(ReportSchedule(), datetime.utcnow(), uuid4())
     notification_mock.return_value.send.side_effect = NotificationParamException()
     with pytest.raises(ReportScheduleClientErrorsException) as excinfo:
-        BaseReportState._send(BaseReportState, notification_content, recipients)
+        report_state._send(notification_content, recipients)
 
     assert excinfo.errisinstance(SupersetException)
     logger_mock.warning.assert_called_with(
@@ -2725,13 +2726,14 @@ def test__send_with_client_errors(notification_mock, logger_mock):
 def test__send_with_multiple_errors(notification_mock, logger_mock):
     notification_content = "I am some content"
     recipients = ["test@foo.com", "test2@bar.com"]
+    report_state = BaseReportState(ReportSchedule(), datetime.utcnow(), uuid4())
     notification_mock.return_value.send.side_effect = [
         NotificationParamException(),
         NotificationError(),
     ]
     # it raises the error with a 500 status if present
     with pytest.raises(ReportScheduleSystemErrorsException) as excinfo:
-        BaseReportState._send(BaseReportState, notification_content, recipients)
+        report_state._send(notification_content, recipients)
 
     assert excinfo.errisinstance(SupersetException)
     # it logs both errors as warnings
@@ -2752,9 +2754,10 @@ def test__send_with_multiple_errors(notification_mock, logger_mock):
 def test__send_with_server_errors(notification_mock, logger_mock):
     notification_content = "I am some content"
     recipients = ["test@foo.com"]
+    report_state = BaseReportState(ReportSchedule(), datetime.utcnow(), uuid4())
     notification_mock.return_value.send.side_effect = NotificationError()
     with pytest.raises(ReportScheduleSystemErrorsException) as excinfo:
-        BaseReportState._send(BaseReportState, notification_content, recipients)
+        report_state._send(notification_content, recipients)
 
     assert excinfo.errisinstance(SupersetException)
     # it logs the error
