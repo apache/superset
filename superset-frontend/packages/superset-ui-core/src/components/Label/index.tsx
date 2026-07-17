@@ -82,6 +82,9 @@ export const Label = forwardRef<HTMLSpanElement, LabelProps>((props, ref) => {
        * which would drop the icon's own color/size. Wrapping the icon in a span
        * lets Tag override the (empty) wrapper style while the real icon keeps its
        * own inline styling.
+       *
+       * The wrapper also breaks Tag's own icon/text spacing rule
+       * (`> .anticon + span`), so the equivalent gap is re-applied here.
        */
       icon={
         icon ? (
@@ -89,6 +92,7 @@ export const Label = forwardRef<HTMLSpanElement, LabelProps>((props, ref) => {
             css={css`
               display: inline-flex;
               align-items: center;
+              ${children ? `margin-inline-end: ${theme.paddingXS}px;` : ''}
             `}
           >
             {icon}
