@@ -39,13 +39,40 @@ from superset.mcp_service.chart.chart_helpers import (
 from superset.mcp_service.chart.chart_utils import generate_explore_link
 from superset.mcp_service.chart.schemas import ShowChartRequest, ShowChartResponse
 from superset.mcp_service.utils.url_utils import get_superset_base_url
-from superset.security.guest_token import GuestTokenResourceType
+from superset.security.guest_token import GuestTokenResourceType, GuestTokenRlsRule
 from superset.utils import json as utils_json
 
 logger = logging.getLogger(__name__)
 
 
 CHART_VIEWER_RESOURCE_URI = "ui://superset/chart-viewer"
+
+
+def _inherit_rls_rules(datasource: Any) -> list[GuestTokenRlsRule]:
+    """Copy the calling user's RLS rules for the datasource into guest form.
+
+    RLS semantics: clauses sharing a ``group_key`` are OR'd together, and the
+    resulting groups (plus every ungrouped clause) are AND'd. Guest token RLS
+    rules are each applied individually (AND), so same-group clauses are
+    collapsed into a single ``(a) OR (b)`` clause to preserve semantics.
+    """
+    filters = security_manager.get_rls_filters(datasource)
+    grouped: dict[str, list[str]] = {}
+    clauses: list[str] = []
+    for rls_filter in filters:
+        if rls_filter.group_key:
+            grouped.setdefault(rls_filter.group_key, []).append(rls_filter.clause)
+        else:
+            clauses.append(rls_filter.clause)
+    for group_clauses in grouped.values():
+        if len(group_clauses) > 1:
+            clauses.append("(" + ") OR (".join(group_clauses) + ")")
+        else:
+            clauses.append(group_clauses[0])
+    return [
+        GuestTokenRlsRule(dataset=str(datasource.id), clause=clause)
+        for clause in clauses
+    ]
 
 
 def _merge_form_data(
@@ -196,6 +223,13 @@ async def show_chart(request: ShowChartRequest, ctx: Context) -> ShowChartRespon
         # Mint a chart-scoped guest token. Prefer UUID for stability across
         # environments; fall back to numeric id if uuid is unavailable.
         resource_id = str(chart.uuid) if chart.uuid is not None else str(chart.id)
+        # The viewer must never see more data than the MCP caller: copy the
+        # caller's RLS rules for the chart's datasource into the token, and
+        # pin the token to that single dataset via the ``datasets`` allowlist.
+        datasource = chart.datasource
+        rls_rules: list[GuestTokenRlsRule] = (
+            _inherit_rls_rules(datasource) if datasource is not None else []
+        )
         raw_token = security_manager.create_guest_access_token(
             user={
                 "username": "mcp_show_chart",
@@ -203,7 +237,8 @@ async def show_chart(request: ShowChartRequest, ctx: Context) -> ShowChartRespon
                 "last_name": "Viewer",
             },
             resources=[{"type": GuestTokenResourceType.CHART, "id": resource_id}],
-            rls=[],
+            rls=rls_rules,
+            datasets=[datasource.id] if datasource is not None else [],
         )
         if isinstance(raw_token, bytes):
             token_str = raw_token.decode("utf-8")
@@ -216,11 +251,15 @@ async def show_chart(request: ShowChartRequest, ctx: Context) -> ShowChartRespon
     query: dict[str, Any] = {
         "slice_id": chart.id,
         "standalone": 1,
-        "guest_token": token_str,
     }
     if form_data_key:
         query["form_data_key"] = form_data_key
-    explore_url = f"{base_url}/explore/?{urlencode(query)}"
+    # The guest token travels in the URL fragment, never the query string:
+    # fragments stay in the browser (absent from server/proxy logs and the
+    # Referer header). The frontend reads it, strips it from history, and
+    # sends it as the guest token header on every API request.
+    fragment = urlencode({"guest_token": token_str})
+    explore_url = f"{base_url}/explore/?{urlencode(query)}#{fragment}"
 
     await ctx.info(
         "show_chart: chart_id=%s form_data_key=%s" % (chart.id, form_data_key)

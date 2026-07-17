@@ -4508,11 +4508,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         :return: A guest user object
         """
-        raw_token = (
-            req.headers.get(get_conf()["GUEST_TOKEN_HEADER_NAME"])
-            or req.form.get("guest_token")
-            or req.args.get("guest_token")
-        )
+        raw_token = req.headers.get(
+            get_conf()["GUEST_TOKEN_HEADER_NAME"]
+        ) or req.form.get("guest_token")
         if raw_token is None:
             return None
 

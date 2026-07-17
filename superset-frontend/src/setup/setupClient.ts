@@ -26,14 +26,27 @@ const bootstrapData = getBootstrapData();
 function getGuestTokenConfig(): Partial<ClientConfig> {
   // Guest-rendered standalone pages (e.g. the chart viewer URL minted by
   // the MCP `show_chart` tool) carry a short-lived, resource-scoped guest
-  // token in the URL. Configure the client with it so every API request
-  // sends the guest token header, mirroring the embedded SDK behavior.
-  const guestToken = new URLSearchParams(window.location.search).get(
-    'guest_token',
+  // token in the URL *fragment* — fragments never reach the server, so the
+  // token stays out of access logs and the Referer header. Configure the
+  // client with it so every API request sends the guest token header,
+  // mirroring the embedded SDK behavior, then scrub it from the URL so it
+  // does not linger in browser history or copied links.
+  const fragmentParams = new URLSearchParams(
+    window.location.hash.replace(/^#/, ''),
   );
+  const guestToken = fragmentParams.get('guest_token');
   if (!guestToken) {
     return {};
   }
+  fragmentParams.delete('guest_token');
+  const remainingFragment = fragmentParams.toString();
+  window.history.replaceState(
+    window.history.state,
+    '',
+    window.location.pathname +
+      window.location.search +
+      (remainingFragment ? `#${remainingFragment}` : ''),
+  );
   return {
     guestToken,
     guestTokenHeaderName:

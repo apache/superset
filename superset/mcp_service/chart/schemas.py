@@ -3169,8 +3169,10 @@ class ShowChartResponse(BaseModel):
         ...,
         description=(
             "Absolute URL of the standalone Explore page that renders the "
-            "chart. Includes `slice_id`, `standalone=1`, a short-lived "
-            "`guest_token`, and (when overrides were supplied) a `form_data_key`."
+            "chart. Includes `slice_id`, `standalone=1`, and (when overrides "
+            "were supplied) a `form_data_key` in the query string; the "
+            "short-lived guest token travels in the URL fragment so it never "
+            "reaches server logs."
         ),
     )
     form_data_key: str | None = Field(
