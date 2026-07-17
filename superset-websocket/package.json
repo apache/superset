@@ -38,7 +38,7 @@
     "eslint": "^10.5.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.6.0",
-    "prettier": "^3.9.4",
+    "prettier": "^3.9.5",
     "tscw-config": "^1.1.2",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.63.0",
