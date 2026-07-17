@@ -15,9 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from collections.abc import Sequence
-from io import IOBase
-from typing import Union
 
 from flask import g
 from slack_sdk import WebClient
@@ -43,16 +40,17 @@ from superset.reports.notifications.exceptions import (
 )
 from superset.reports.notifications.slack_mixin import _call_slack_api, SlackMixin
 from superset.utils import json
-from superset.utils.core import recipients_string_to_list
 from superset.utils.decorators import statsd_gauge
 from superset.utils.slack import (
     get_slack_client,
+    NO_SLACK_RECIPIENTS_MESSAGE,
+    parse_slack_recipient_targets,
     should_use_v2_api,
 )
 
 logger = logging.getLogger(__name__)
 
-_SLACK_V1_FILE_UPLOAD_MESSAGE = (
+SLACK_V1_FILE_UPLOAD_MESSAGE = (
     "Slack v1 file uploads are no longer supported because Slack retired "
     "`files.upload`. Enable `ALERT_REPORT_SLACK_V2` and grant the Slack bot "
     "both the `channels:read` and `groups:read` scopes so the recipient can "
@@ -60,20 +58,12 @@ _SLACK_V1_FILE_UPLOAD_MESSAGE = (
 )
 
 
-def _get_slack_v1_file_upload_message(v2_upgrade_error: str | None) -> str:
-    if not v2_upgrade_error:
-        return _SLACK_V1_FILE_UPLOAD_MESSAGE
-    return (
-        f"{_SLACK_V1_FILE_UPLOAD_MESSAGE} Slack v2 upgrade failed: {v2_upgrade_error}"
-    )
-
-
 # Deprecated: Slack v1 will be removed in the next major release. The Slack
 # `files.upload` endpoint was retired in 2025, so file-bearing sends already
-# fail at the API level; only text-only `chat_postMessage` sends still work
-# here. When the Slack bot has the `channels:read` and `groups:read` scopes,
-# existing v1 recipients are auto-upgraded to SlackV2 on first send via
-# `update_report_schedule_slack_v2`.
+# fail before attempting the retired v1 upload; only text-only
+# `chat_postMessage` sends still work here. When the Slack bot has the
+# `channels:read` and `groups:read` scopes, existing v1 recipients are
+# auto-upgraded to SlackV2 on first send via `update_report_schedule_slack_v2`.
 class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-few-public-methods
     """
     Sends a slack notification for a report recipient
@@ -81,72 +71,40 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
 
     type = ReportRecipientType.SLACK
 
-    def _get_channel(self) -> str:
+    def _get_channels(self) -> list[str]:
         """
-        Get the recipient's channel(s).
-        Note Slack SDK uses "channel" to refer to one or more
-        channels. Multiple channels are demarcated by a comma.
-        :returns: The comma separated list of channel(s)
+        Get the recipient's normalized channel list.
+
+        :returns: channel names with duplicates removed in configured order
         """
         try:
             recipient_str = json.loads(self._recipient.recipient_config_json)["target"]
         except (KeyError, TypeError, ValueError) as ex:
-            raise NotificationParamException(
-                "No recipients saved in the report"
-            ) from ex
+            raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE) from ex
 
         if not isinstance(recipient_str, str):
-            raise NotificationParamException("No recipients saved in the report")
+            raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE)
 
-        return ",".join(recipients_string_to_list(recipient_str))
-
-    def _get_inline_files(
-        self,
-    ) -> tuple[Union[str, None], Sequence[Union[str, IOBase, bytes]]]:
-        if self._content.csv:
-            return ("csv", [self._content.csv])
-        if self._content.xlsx:
-            return ("xlsx", [self._content.xlsx])
-        if self._content.screenshots:
-            return ("png", self._content.screenshots)
-        if self._content.pdf:
-            return ("pdf", [self._content.pdf])
-        return (None, [])
+        return parse_slack_recipient_targets(recipient_str)
 
     @staticmethod
-    def _send_text(client: WebClient, channel: str, body: str) -> None:
+    def _send_text(client: WebClient, channels: list[str], body: str) -> None:
         """Send a text notification once to each configured channel."""
-        targets = recipients_string_to_list(channel)
-        if not targets:
-            raise NotificationParamException("No recipients saved in the report")
-        for target in targets:
+        if not channels:
+            raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE)
+        for target in channels:
             _call_slack_api(client.chat_postMessage, channel=target, text=body)
 
-    @statsd_gauge("reports.slack.send")
-    def send(
-        self,
-        *,
-        force_v1: bool = False,
-        v2_upgrade_error: str | None = None,
-    ) -> None:
-        _, files = self._get_inline_files()
+    def _send_legacy_text(self) -> None:
+        if self._content.has_attachments:
+            raise NotificationParamException(SLACK_V1_FILE_UPLOAD_MESSAGE)
+
         body = self._get_body(content=self._content)
         global_logs_context = getattr(g, "logs_context", {}) or {}
-
-        # see if the v2 api will work
-        if not force_v1 and should_use_v2_api(raise_on_error=bool(files)):
-            # if we can fetch channels, then raise an error and use the v2 api
-            raise SlackV1NotificationError
-
-        if files:
-            raise NotificationParamException(
-                _get_slack_v1_file_upload_message(v2_upgrade_error)
-            )
-
         try:
             client = get_slack_client()
-            channel = self._get_channel()
-            self._send_text(client, channel, body)
+            channels = self._get_channels()
+            self._send_text(client, channels, body)
             logger.info(
                 "Report sent to slack",
                 extra={
@@ -169,3 +127,14 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
             # this is the base class for all slack client errors
             # keep it last so that it doesn't interfere with @backoff
             raise NotificationUnprocessableException(str(ex)) from ex
+
+    @statsd_gauge("reports.slack.send")
+    def send_legacy_text(self) -> None:
+        """Send through Slack v1 without repeating the v2 availability probe."""
+        self._send_legacy_text()
+
+    @statsd_gauge("reports.slack.send")
+    def send(self) -> None:
+        if should_use_v2_api(raise_on_error=self._content.has_attachments):
+            raise SlackV1NotificationError
+        self._send_legacy_text()

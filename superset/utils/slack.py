@@ -81,10 +81,10 @@ class SlackClientError(Exception):
 
 
 class SlackV2ProbeError(SupersetException):
-    """Slack v2 availability could not be determined due to a system failure."""
+    """Slack v2 availability probe failed."""
 
 
-class SlackV2ProbeClientError(SupersetException):
+class SlackV2ProbeClientError(SlackV2ProbeError):
     """Slack v2 availability failed due to permanent token or client setup."""
 
     status = 422
@@ -103,11 +103,34 @@ _TRANSIENT_SLACK_API_ERROR_CODES = frozenset(
 )
 
 
-def _is_transient_slack_api_error(ex: SlackApiError, error_code: str) -> bool:
+NO_SLACK_RECIPIENTS_MESSAGE = "No recipients saved in the report"
+
+
+def parse_slack_recipient_targets(target: str) -> list[str]:
+    """Parse Slack targets, removing duplicates while preserving their order."""
+    return list(dict.fromkeys(recipients_string_to_list(target)))
+
+
+def _get_slack_api_error_data(ex: SlackApiError) -> dict[str, Any]:
     response = getattr(ex, "response", None)
-    status_code = getattr(response, "status_code", None)
+    data = getattr(response, "data", None)
+    if not isinstance(data, dict):
+        data = response if isinstance(response, dict) else {}
+    return data
+
+
+def _get_slack_api_error_code(ex: SlackApiError) -> str:
+    return str(_get_slack_api_error_data(ex).get("error") or "")
+
+
+def _get_slack_api_status_code(ex: SlackApiError) -> int | None:
+    return getattr(getattr(ex, "response", None), "status_code", None)
+
+
+def _is_transient_slack_api_error(ex: SlackApiError, error_code: str) -> bool:
+    status_code = _get_slack_api_status_code(ex)
     return bool(
-        status_code == 429
+        status_code in {408, 429}
         or (status_code is not None and 500 <= status_code < 600)
         or error_code in _TRANSIENT_SLACK_API_ERROR_CODES
     )
@@ -319,17 +342,11 @@ def should_use_v2_api(*, raise_on_error: bool = False) -> bool:
         # Only the scope-missing branch is a v1-deprecation signal; other
         # SlackApiError codes (invalid_auth, ratelimited, server errors, etc.)
         # are unrelated probe failures and should not be reported as a missing
-        # scope. We still fall back to v1 in both cases so a transient probe
-        # failure doesn't break sends — operators get an actionable log either
-        # way.
-        # `response` is normally a SlackResponse whose payload lives in `.data`,
-        # but the SDK (and our tests) can also hand back a plain dict. Read the
-        # error code in either shape so the scope-missing branch isn't missed.
-        response = getattr(ex, "response", None)
-        data = getattr(response, "data", None)
-        if not isinstance(data, dict):
-            data = response if isinstance(response, dict) else {}
-        error_code = data.get("error", "")
+        # scope. Scope errors continue through v1 for compatibility. Other
+        # failures also fall back for text-only reports, while file-bearing
+        # reports request an exception so monitoring retains the system/client
+        # classification.
+        error_code = _get_slack_api_error_code(ex)
         if error_code in _SCOPE_MISSING_ERROR_CODES:
             # The DeprecationWarning fires once per process, but the actionable
             # log line fires every send so operators see it in their report logs.
@@ -363,8 +380,8 @@ def should_use_v2_api(*, raise_on_error: bool = False) -> bool:
         # raw. The caller runs this probe *before* the mapped Slack send `try`,
         # so an un-caught probe error aborts the entire recipient loop instead
         # of failing a single recipient. Treat any probe connection/transport
-        # failure as "v2 unavailable" and fall back to the deprecated v1 API,
-        # matching the SlackApiError behavior above.
+        # failure as "v2 unavailable" for text reports. File-bearing reports
+        # request an exception so the command can retain error classification.
         logger.warning(
             "Slack v2 probe failed (%s: %s).",
             type(ex).__name__,

@@ -41,13 +41,15 @@ from superset.reports.notifications.exceptions import (
 )
 from superset.reports.notifications.slack_mixin import (
     _call_slack_api,
-    _give_up_slack_api_retry as _give_up_slack_api_retry,
     SlackMixin,
 )
 from superset.utils import json
-from superset.utils.core import recipients_string_to_list
 from superset.utils.decorators import statsd_gauge
-from superset.utils.slack import get_slack_client
+from superset.utils.slack import (
+    get_slack_client,
+    NO_SLACK_RECIPIENTS_MESSAGE,
+    parse_slack_recipient_targets,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -65,9 +67,15 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
         :returns: A list of channel ids: "EID676L"
         :raises NotificationParamException or SlackApiError: If the recipient is not found
         """  # noqa: E501
-        recipient_str = json.loads(self._recipient.recipient_config_json)["target"]
+        try:
+            recipient_str = json.loads(self._recipient.recipient_config_json)["target"]
+        except (KeyError, TypeError, ValueError) as ex:
+            raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE) from ex
 
-        return recipients_string_to_list(recipient_str)
+        if not isinstance(recipient_str, str):
+            raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE)
+
+        return parse_slack_recipient_targets(recipient_str)
 
     def _get_inline_files(
         self,
@@ -93,7 +101,7 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
             channels = self._get_channels()
 
             if not channels:
-                raise NotificationParamException("No recipients saved in the report")
+                raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE)
 
             file_type, files = self._get_inline_files()
             file_name = f"{title}.{file_type}"
