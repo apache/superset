@@ -195,6 +195,8 @@ class DashboardFilter(ColumnOperator):
 class ListDashboardsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
     """Request schema for list_dashboards with clear, unambiguous types."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     filters: Annotated[
         List[DashboardFilter],
         Field(
@@ -210,6 +212,7 @@ class ListDashboardsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheCont
             default_factory=list,
             description="List of columns to select. Defaults to common columns "
             "if not specified.",
+            validation_alias=AliasChoices("select_columns", "columns"),
         ),
     ]
 
@@ -248,6 +251,20 @@ class ListDashboardsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheCont
             default=None,
             description="Text search string to match against dashboard fields. "
             "Cannot be used together with 'filters'.",
+        ),
+    ]
+    deleted_state: Annotated[
+        Literal["include", "only"] | None,
+        Field(
+            default=None,
+            description=(
+                "Surface soft-deleted (trashed) dashboards: 'only' returns "
+                "just trashed dashboards, 'include' returns live and trashed "
+                "together. Omit for live dashboards only (default). Trashed "
+                "rows carry a non-null deleted_at and are limited to "
+                "dashboards the caller owns (admins see all); requires the "
+                "SOFT_DELETE feature flag to have produced trashed rows."
+            ),
         ),
     ]
     order_column: Annotated[
@@ -321,10 +338,15 @@ class GetDashboardInfoRequest(MetadataCacheControl):
     in a dashboard but the URL contains a permalink_key.
     """
 
+    model_config = ConfigDict(populate_by_name=True)
+
     identifier: Annotated[
         int | str,
         Field(
-            description="Dashboard identifier - can be numeric ID, UUID string, or slug"
+            description=(
+                "Dashboard identifier - can be numeric ID, UUID string, or slug"
+            ),
+            validation_alias=AliasChoices("identifier", "id", "dashboard_id"),
         ),
     ]
     permalink_key: str | None = Field(
@@ -347,6 +369,7 @@ class GetDashboardInfoRequest(MetadataCacheControl):
                 "to override, e.g. ['id','dashboard_title','charts'] for minimal "
                 "output, or add 'css' to include raw dashboard CSS."
             ),
+            validation_alias=AliasChoices("select_columns", "columns"),
         ),
     ]
 
@@ -434,6 +457,13 @@ class DashboardInfo(BaseModel):
     created_on: str | datetime | None = None
     changed_on: str | datetime | None = None
     uuid: str | None = None
+    deleted_at: str | datetime | None = Field(
+        None,
+        description=(
+            "When the dashboard was moved to trash (soft-deleted); null for "
+            "live dashboards. Only populated when listing with deleted_state."
+        ),
+    )
     embedded_uuid: str | None = Field(
         None,
         description=(
@@ -452,7 +482,20 @@ class DashboardInfo(BaseModel):
     chart_count: int = 0
     editors: List[SubjectInfo] = Field(default_factory=list)
     tags: List[TagInfo] = Field(default_factory=list)
-    charts: List[DashboardChartSummary] = Field(default_factory=list)
+    charts: List[DashboardChartSummary] = Field(
+        default_factory=list,
+        description=(
+            "Charts on this dashboard. May be capped below chart_count "
+            "(cap: MCP_RESPONSE_SIZE_CONFIG['max_list_items']) when the full "
+            "response would exceed the token budget. "
+            "Compare len(charts) to chart_count to detect this. For "
+            "dashboards with more charts than the cap, call list_charts "
+            "with filters=[{'col': 'dashboards', 'opr': 'eq', "
+            "'value': <this dashboard's id>}] and page through with "
+            "page/page_size to retrieve the complete list regardless of "
+            "size."
+        ),
+    )
 
     # Structured filter information extracted from json_metadata
     native_filters: List[NativeFilterSummary] = Field(
@@ -460,7 +503,11 @@ class DashboardInfo(BaseModel):
         description=(
             "Native filters configured on this dashboard. Extracted from "
             "json_metadata for LLM consumption. Includes filter name/type, "
-            "and target columns only when data-model metadata is allowed."
+            "and target columns only when data-model metadata is allowed. "
+            "Subject to the same max_list_items cap as charts, though "
+            "dashboards rarely have enough native filters to hit it; "
+            "operators can raise MCP_RESPONSE_SIZE_CONFIG['max_list_items'] "
+            "for tenants that do."
         ),
     )
     cross_filters_enabled: bool | None = Field(
@@ -568,10 +615,18 @@ class DashboardList(BaseModel):
 class AddChartToDashboardRequest(BaseModel):
     """Request schema for adding a chart to an existing dashboard."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     dashboard_id: int = Field(
-        ..., description="ID of the dashboard to add the chart to"
+        ...,
+        description="ID of the dashboard to add the chart to",
+        validation_alias=AliasChoices("dashboard_id", "dashboard", "id"),
     )
-    chart_id: int = Field(..., description="ID of the chart to add to the dashboard")
+    chart_id: int = Field(
+        ...,
+        description="ID of the chart to add to the dashboard",
+        validation_alias=AliasChoices("chart_id", "chart"),
+    )
     target_tab: str | None = Field(
         None,
         min_length=1,
@@ -1696,6 +1751,7 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
             css=getattr(dashboard, "css", None),
             certified_by=getattr(dashboard, "certified_by", None),
             certification_details=getattr(dashboard, "certification_details", None),
+            deleted_at=getattr(dashboard, "deleted_at", None),
             native_filters=_extract_native_filters(
                 json_metadata_str,
                 include_data_model_metadata=include_data_model_metadata,
@@ -2279,4 +2335,47 @@ def dashboard_datasets_serializer(dashboard: "Dashboard") -> DashboardDatasets:
         dataset_count=len(datasets),
         inaccessible_dataset_count=inaccessible_count,
         datasets=datasets,
+    )
+
+
+# ---------------------------------------------------------------------------
+# restore_dashboard schemas
+# ---------------------------------------------------------------------------
+
+
+class RestoreDashboardRequest(BaseModel):
+    """Request schema for restore_dashboard."""
+
+    identifier: int | str = Field(
+        ...,
+        description="Dashboard identifier - numeric ID or UUID string.",
+    )
+
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so identifier=true would coerce to
+        dashboard ID 1 and target the wrong object; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID or UUID string")
+        return value
+
+
+class RestoreDashboardResponse(BaseModel):
+    """Result of a restore_dashboard operation."""
+
+    success: bool = Field(description="Whether the dashboard was restored from trash")
+    restored_id: int | None = Field(None, description="ID of the restored dashboard")
+    restored_name: str | None = Field(
+        None, description="Title of the restored dashboard"
+    )
+    message: str | None = Field(None, description="Human-readable outcome message")
+    error: str | None = Field(None, description="Error message if the restore failed")
+    error_type: str | None = Field(None, description="Type of error if failed")
+    permission_denied: bool = Field(
+        False,
+        description=(
+            "True when the caller lacks permission to restore the dashboard (do "
+            "not retry; ask the user)."
+        ),
     )

@@ -86,6 +86,11 @@ class ReportDataFormat(StrEnum):
     XLSX = "XLSX"
     TEXT = "TEXT"
 
+    @classmethod
+    def tabular(cls: type["ReportDataFormat"]) -> set["ReportDataFormat"]:
+        """Formats produced from tabular chart data via the chart export path."""
+        return {cls.CSV, cls.XLSX}
+
 
 class ReportCreationMethod(StrEnum):
     CHARTS = "charts"

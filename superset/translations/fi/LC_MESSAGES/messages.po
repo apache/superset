@@ -28,32 +28,54 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid ""
 "A soft-deleted dataset (uuid %(uuid)s) already references this table. "
-"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a new "
-"dataset over this table, or use a different table name."
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a "
+"new dataset over this table, or use a different table name."
 msgstr ""
+"Pehmoisesti poistettu tietojoukko (uuid %(uuid)s) viittaa jo tähän "
+"tauluun. Palauta se POST /api/v1/dataset/%(uuid)s/restore -pyynnöllä "
+"ennen uuden tietojoukon luomista tälle taululle, tai käytä eri taulun "
+"nimeä."
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid ""
 "A soft-deleted dataset (uuid %(uuid)s) already references this table. "
-"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or "
-"upload to a different table name."
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or"
+" upload to a different table name."
 msgstr ""
+"Pehmoisesti poistettu tietojoukko (uuid %(uuid)s) viittaa jo tähän "
+"tauluun. Palauta se POST /api/v1/dataset/%(uuid)s/restore -pyynnöllä "
+"ennen lataamista, tai lataa eri taulun nimellä."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "Cannot delete a database whose only remaining datasets are soft-deleted. "
 "Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
 "permanently once a purge capability ships, or remove the underlying rows "
 "out-of-band, before deleting the database."
 msgstr ""
+"Tietokantaa, jonka ainoat jäljellä olevat tietojoukot on pehmoisesti "
+"poistettu, ei voi poistaa. Palauta ne (POST "
+"/api/v1/dataset/<uuid>/restore) ja poista ne pysyvästi, kun "
+"puhdistustoiminto on saatavilla, tai poista taustalla olevat rivit muuta "
+"kautta ennen tietokannan poistamista."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
-"Dataset cannot be restored because another active dataset already references "
-"the same physical table (same database, catalog, schema, and table name). "
-"Delete the duplicate or rename the table before restoring."
+"Dataset cannot be restored because another active dataset already "
+"references the same physical table (same database, catalog, schema, and "
+"table name). Delete the duplicate or rename the table before restoring."
 msgstr ""
+"Tietojoukkoa ei voi palauttaa, koska toinen aktiivinen tietojoukko "
+"viittaa jo samaan fyysiseen tauluun (sama tietokanta, luettelo, skeema ja"
+" taulun nimi). Poista kopio tai nimeä taulu uudelleen ennen "
+"palauttamista."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pt_BR, ru, sk, sl, uk]
@@ -303,19 +325,19 @@ msgstr "\"%s\" on nyt järjestelmän oletusteema"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% calculation"
 msgstr "% laskenta"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, es,
 # fa, fr, ja, lv, mi, ru, sk, sl, uk]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of parent"
 msgstr "% vanhemmasta"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, es,
 # fa, fr, ja, lv, mi, ru, sk, sl, uk]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of total"
 msgstr "% kokonaismäärästä"
 
@@ -958,6 +980,7 @@ msgstr "10 sekuntia"
 msgid "10/90 percentiles"
 msgstr "10/90 prosenttipisteet"
 
+#. do-not-translate
 msgid "10000"
 msgstr ""
 
@@ -1374,8 +1397,10 @@ msgstr "Samanniminen tietokanta on jo olemassa."
 msgid "A date is required when using custom date shift"
 msgstr "Päivämäärä vaaditaan käytettäessä mukautettua päivämääräsiirtymää"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "A description for your dashboard"
-msgstr ""
+msgstr "Kuvaus koontinäytöllesi"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pt_BR, ru, sk, sl, uk]
@@ -1474,10 +1499,14 @@ msgstr ""
 msgid "A metric to use for color"
 msgstr "Värin määrittämiseen käytettävä mittari"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "A multiplier applied to the point radius. Use this to uniformly scale all"
 " points."
 msgstr ""
+"Pisteen säteeseen sovellettava kerroin. Käytä tätä skaalataksesi kaikki "
+"pisteet yhtenäisesti."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -3174,10 +3203,14 @@ msgstr "SQL:n muotoilussa tapahtui virhe"
 msgid "An error occurred while importing %s: %s"
 msgstr "Kohteen %s tuomisessa tapahtui virhe: %s"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "An error occurred while loading SQL Lab. This may be caused by a "
 "corrupted query state."
 msgstr ""
+"SQL Labin latauksen aikana tapahtui virhe. Tämä saattaa johtua "
+"vioittuneesta kyselytilasta."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -5440,9 +5473,10 @@ msgstr "Kaaviota ei voitu luoda."
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
 msgid "Chart could not be restored."
-msgstr ""
+msgstr "Kaaviota ei voitu palauttaa."
 
 msgid "Chart could not be updated."
 msgstr "Kaaviota ei voitu päivittää."
@@ -6587,8 +6621,10 @@ msgstr ""
 "Pilkuilla erotetut välirajat, esim. 2,4,5 väleille 0–2, 2–4 ja 4–5. "
 "Viimeisen luvun on vastattava MAX-arvolle annettua arvoa."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Common (unit per pixel at zoom 0)"
-msgstr ""
+msgstr "Yleinen (yksikkö pikseliä kohti zoomilla 0)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -7140,8 +7176,10 @@ msgstr "Kaikkia tallennettuja kaavioita ei voitu hakea"
 msgid "Could not find viz object"
 msgstr "Visualisointiobjektia ei löydy"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Could not load SQL Lab"
-msgstr ""
+msgstr "SQL Labia ei voitu ladata"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
@@ -7751,6 +7789,7 @@ msgstr "PP/KK-muotoiset päivämäärät, kansainvälinen ja eurooppalainen muot
 msgid "DEC"
 msgstr "JOU"
 
+#. do-not-translate
 msgid "DELETE"
 msgstr ""
 
@@ -7862,9 +7901,10 @@ msgstr "Kojelautaa ei voitu poistaa."
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
 msgid "Dashboard could not be restored."
-msgstr ""
+msgstr "Koontinäyttöä ei voitu palauttaa."
 
 msgid "Dashboard could not be updated."
 msgstr "Kojelautaa ei voitu päivittää."
@@ -8341,9 +8381,10 @@ msgstr "Tietojoukkoa ei voitu monistaa."
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
 msgid "Dataset could not be restored."
-msgstr ""
+msgstr "Tietojoukkoa ei voitu palauttaa."
 
 msgid "Dataset could not be updated."
 msgstr "Tietojoukkoa ei voitu päivittää."
@@ -10174,6 +10215,7 @@ msgstr "Hae dynaamisesti kaikki suodatinarvot"
 msgid "Dynamically select grouping columns from a dataset"
 msgstr "Valitse ryhmittelysarakkeet dynaamisesti tietojoukosta"
 
+#. do-not-translate
 msgid "ECharts"
 msgstr ""
 
@@ -10183,6 +10225,7 @@ msgstr ""
 msgid "ECharts Options (JS object literals)"
 msgstr "ECharts-asetukset (JS-objektiliteraalit)"
 
+#. do-not-translate
 msgid "EMAIL_REPORTS_CTA"
 msgstr ""
 
@@ -10467,7 +10510,9 @@ msgstr "Muokkaajat"
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "Editors is a list of subjects who can alter the dashboard."
-msgstr "Muokkaajat on luettelo käyttäjistä, rooleista tai ryhmistä, jotka voivat muokata koontinäyttöä."
+msgstr ""
+"Muokkaajat on luettelo käyttäjistä, rooleista tai ryhmistä, jotka voivat "
+"muokata koontinäyttöä."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -10475,7 +10520,9 @@ msgstr "Muokkaajat on luettelo käyttäjistä, rooleista tai ryhmistä, jotka vo
 msgid ""
 "Editors is a list of subjects who can alter the dashboard. Searchable by "
 "name."
-msgstr "Muokkaajat on luettelo käyttäjistä, rooleista tai ryhmistä, jotka voivat muokata koontinäyttöä. Haettavissa nimen perusteella."
+msgstr ""
+"Muokkaajat on luettelo käyttäjistä, rooleista tai ryhmistä, jotka voivat "
+"muokata koontinäyttöä. Haettavissa nimen perusteella."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -12709,6 +12756,7 @@ msgstr "Mukauta edelleen kunkin sarakkeen näyttötapaa"
 msgid "Further customize how to display each metric"
 msgstr "Mukauta edelleen kunkin mittarin näyttötapaa"
 
+#. do-not-translate
 msgid "GROUP BY"
 msgstr ""
 
@@ -16169,7 +16217,9 @@ msgstr "Kerroin"
 msgid ""
 "Must be a chart editor to overwrite this chart. Save as a new chart "
 "instead."
-msgstr "Sinun on oltava kaavion muokkaaja, jotta voit korvata tämän kaavion. Tallenna se uutena kaaviona."
+msgstr ""
+"Sinun on oltava kaavion muokkaaja, jotta voit korvata tämän kaavion. "
+"Tallenna se uutena kaaviona."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -16226,6 +16276,7 @@ msgstr "Mittarini"
 msgid "N/A"
 msgstr "N/A"
 
+#. do-not-translate
 msgid "NOT GROUPED BY"
 msgstr ""
 
@@ -17208,6 +17259,7 @@ msgstr "OK"
 msgid "OR"
 msgstr "TAI"
 
+#. do-not-translate
 msgid "OVERWRITE"
 msgstr ""
 
@@ -17451,11 +17503,15 @@ msgstr "Avaa tietolähde-välilehti"
 msgid "Open SQL Lab in a new tab"
 msgstr "Avaa SQL Lab uuteen välilehteen"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Open chart in new tab"
-msgstr ""
+msgstr "Avaa kaavio uudessa välilehdessä"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Open dashboard in new tab"
-msgstr ""
+msgstr "Avaa koontinäyttö uudessa välilehdessä"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
@@ -17898,9 +17954,10 @@ msgstr "Salasana"
 msgid "Password is required"
 msgstr "Salasana on pakollinen"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid "Password must be at least %(min_length)s characters long."
-msgstr ""
+msgstr "Salasanan on oltava vähintään %(min_length)s merkkiä pitkä."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -18547,8 +18604,10 @@ msgstr "Pisteen säteen asteikko"
 msgid "Point Radius Unit"
 msgstr "Pisteen säteen yksikkö"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Point Radius Units"
-msgstr ""
+msgstr "Pisteen säteen yksiköt"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -19407,8 +19466,10 @@ msgstr "Suhteellinen määrä"
 msgid "Reload"
 msgstr "Lataa uudelleen"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Reload SQL Lab"
-msgstr ""
+msgstr "Lataa SQL Lab uudelleen"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -19630,8 +19691,10 @@ msgstr "Raportti on aktiivinen"
 msgid "Report name"
 msgstr "Raportin nimi"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Report not yet run"
-msgstr ""
+msgstr "Raporttia ei ole vielä suoritettu"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -19737,9 +19800,10 @@ msgstr "Pakolliset ohjausarvot on poistettu"
 msgid "Resample"
 msgstr "Uudelleennäytteistys"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid "Resample method '%(method)s' is not supported."
-msgstr ""
+msgstr "Uudelleennäytteistystapaa '%(method)s' ei tueta."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
@@ -23522,8 +23586,10 @@ msgstr "Kadut"
 msgid "Streets (Carto)"
 msgstr "Puukaavio"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Streets (OSM)"
-msgstr ""
+msgstr "Kadut (OSM)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -23882,6 +23948,7 @@ msgstr "Järjestelmän oletusoteema poistettu"
 msgid "TABLES"
 msgstr "TAULUKOT"
 
+#. do-not-translate
 msgid "TEMPORAL_RANGE"
 msgstr ""
 
@@ -24359,8 +24426,12 @@ msgstr ""
 "https://superset.apache.org/docs/configuration/async-queries-celery "
 "kokoonpanotiedoista."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "The SSH server host key could not be verified against the expected key."
 msgstr ""
+"SSH-palvelimen isäntäavainta ei voitu tarkistaa odotettuun avaimeen "
+"nähden."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
@@ -24433,11 +24504,14 @@ msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
 msgid ""
 "The chart this report targets was deleted. Restore the chart, or update "
 "the report to point at an active chart."
 msgstr ""
+"Kaavio, johon tämä raportti kohdistuu, on poistettu. Palauta kaavio tai "
+"päivitä raportti osoittamaan aktiiviseen kaavioon."
 
 msgid "The chart is still loading. Please wait a moment and try again."
 msgstr "Kaavio latautuu vielä. Odota hetki ja yritä uudelleen."
@@ -24578,10 +24652,14 @@ msgstr "Maakodistandardi, jonka Superset odottaa löytävänsä [country]-sarakk
 msgid "The dashboard has been saved"
 msgstr "Koontinäyttö on tallennettu"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "The dashboard this report targets was deleted. Restore the dashboard, or "
 "update the report to point at an active dashboard."
 msgstr ""
+"Koontinäyttö, johon tämä raportti kohdistuu, on poistettu. Palauta "
+"koontinäyttö tai päivitä raportti osoittamaan aktiiviseen koontinäyttöön."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -25364,10 +25442,14 @@ msgstr ""
 "Yksittäisten pisteiden (klusteriin kuulumattomien) säde. Joko numeerinen "
 "sarake tai `Auto`, joka skaalaa pisteen suurimman klusterin perusteella"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "The radius of point features, in the units specified below. The final "
 "rendered size is this value multiplied by Point Radius Scale."
 msgstr ""
+"Pisteominaisuuksien säde alla määritetyissä yksiköissä. Lopullinen "
+"renderöity koko on tämä arvo kerrottuna pisteen säteen asteikolla."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -25690,10 +25772,14 @@ msgstr "Kuvakekoon yksikkö"
 msgid "The unit for label size"
 msgstr "Selitekoon yksikkö"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "The unit for point radius. Use \"pixels\" for consistent screen-space "
 "sizing regardless of zoom level."
 msgstr ""
+"Pisteen säteen yksikkö. Käytä \"pikseleitä\" yhtenäiseen näyttötilan "
+"kokoon zoomitasosta riippumatta."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -26780,8 +26866,10 @@ msgstr ""
 "Tämä sivu on tarkoitettu upotettavaksi iframe-kehykseen, mutta näyttää "
 "siltä, että niin ei ole."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "This password is too common; please choose a less guessable one."
-msgstr ""
+msgstr "Tämä salasana on liian yleinen; valitse vaikeammin arvattava."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -27397,17 +27485,23 @@ msgstr "Saadaksesi luettavan URL-osoitteen koontinäytöllesi"
 msgid "Token Request URI"
 msgstr "Tunnuspyyntö-URI"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid ""
 "Too many sub-slices requested. The maximum allowed is %(max)s, but "
 "%(count)s were requested."
 msgstr ""
+"Liian monta aliviipaletta pyydetty. Suurin sallittu määrä on %(max)s, "
+"mutta pyydettiin %(count)s."
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid ""
 "Too many time comparisons requested. The maximum allowed is %(max)s, but "
 "%(count)s were requested."
 msgstr ""
+"Liian monta aikavertailua pyydetty. Suurin sallittu määrä on %(max)s, "
+"mutta pyydettiin %(count)s."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -28890,11 +28984,17 @@ msgstr "Katselija"
 msgid "Viewers"
 msgstr "Katselijat"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
+#, fuzzy
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
 "datasource permissions."
 msgstr ""
+"Katsojat on luettelo henkilöistä, jotka voivat tarkastella koontinäyttöä."
+" Jos katsojia ei ole määritelty, koontinäyttö on kaikkien käyttäjien "
+"käytettävissä, joilla on asianmukaiset tietolähteen käyttöoikeudet."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -29103,9 +29203,11 @@ msgstr "Visualisointityyppi"
 msgid "WED"
 msgstr "KE"
 
+#. do-not-translate
 msgid "WFS"
 msgstr ""
 
+#. do-not-translate
 msgid "WMS"
 msgstr ""
 
@@ -30033,6 +30135,7 @@ msgstr "X-akseli"
 msgid "X-scale interval"
 msgstr "X-asteikon väli"
 
+#. do-not-translate
 msgid "XYZ"
 msgstr ""
 
@@ -30423,8 +30526,10 @@ msgstr "Sinulla ei ole oikeuksia muokata tätä koontinäyttöä."
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "Sinulla ei ole riittäviä oikeuksia muokata kaaviota"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "You don't have access to one or more of the referenced datasources."
-msgstr ""
+msgstr "Sinulla ei ole pääsyä yhteen tai useampaan viitattuun tietolähteeseen."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
@@ -30564,15 +30669,21 @@ msgstr ""
 msgid ""
 "You must be a %s editor in order to edit. Please reach out to a %s editor"
 " to request modifications or edit access."
-msgstr "Sinun on oltava kohteen %s muokkaaja, jotta voit muokata. Pyydä muutoksia tai muokkausoikeutta kohteen %s muokkaajalta."
+msgstr ""
+"Sinun on oltava kohteen %s muokkaaja, jotta voit muokata. Pyydä muutoksia"
+" tai muokkausoikeutta kohteen %s muokkaajalta."
 
 msgid ""
 "You must be a dataset editor in order to edit. Please reach out to a "
 "dataset editor to request modifications or edit access."
-msgstr "Sinun on oltava tietojoukon muokkaaja, jotta voit muokata. Pyydä muutoksia tai muokkausoikeutta tietojoukon muokkaajalta."
-
-msgid "You must change your password before continuing."
 msgstr ""
+"Sinun on oltava tietojoukon muokkaaja, jotta voit muokata. Pyydä "
+"muutoksia tai muokkausoikeutta tietojoukon muokkaajalta."
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, tr]
+#, fuzzy
+msgid "You must change your password before continuing."
+msgstr "Sinun täytyy vaihtaa salasanasi ennen jatkamista."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -30586,11 +30697,14 @@ msgstr "Sinun täytyy valita nimi uudelle kojelaudalle"
 msgid "You must run the query successfully first"
 msgstr "Sinun täytyy ensin suorittaa kysely onnistuneesti"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid ""
 "You need access to the following tables: %(tables)s, "
 "'all_database_access' or 'all_datasource_access' permission"
 msgstr ""
+"Tarvitset pääsyn seuraaviin tauluihin: %(tables)s, 'all_database_access'-"
+" tai 'all_datasource_access'-käyttöoikeus"
 
 msgid "You need to"
 msgstr "Sinun täytyy"
@@ -30721,8 +30835,10 @@ msgstr "Kyselysi päivitettiin"
 msgid "Your report could not be deleted"
 msgstr "Raporttiasi ei voitu poistaa"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Your session has ended. Please sign in again."
-msgstr ""
+msgstr "Istuntosi on päättynyt. Kirjaudu uudelleen sisään."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -30908,8 +31024,10 @@ msgstr "`row_offset` täytyy olla suurempi tai yhtä suuri kuin 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "`width` täytyy olla suurempi tai yhtä suuri kuin 0"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "`window` must be between 1 and 10000"
-msgstr ""
+msgstr "`window` on oltava välillä 1–10000"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
@@ -30973,8 +31091,10 @@ msgstr "huomautus"
 msgid "annotation_layer"
 msgstr "annotation_layer"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "apple"
-msgstr ""
+msgstr "omena"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -31006,8 +31126,10 @@ msgstr "tausta"
 msgid "background color"
 msgstr "Taustaväri"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "banana"
-msgstr ""
+msgstr "banaani"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -31045,6 +31167,7 @@ msgstr "välillä {down} ja {up} {name}"
 msgid "bfill"
 msgstr "bfill"
 
+#. do-not-translate
 msgid "bolt"
 msgstr ""
 
@@ -31212,6 +31335,7 @@ msgstr "luo uusi kaavio"
 msgid "create dataset from SQL query"
 msgstr "luo tietojoukko SQL-kyselystä"
 
+#. do-not-translate
 msgid "crontab"
 msgstr ""
 
@@ -31350,6 +31474,7 @@ msgstr "deck.gl Korkeuskäyrä"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
+#. do-not-translate
 #, fuzzy
 msgid "deck.gl Geojson"
 msgstr "deck.gl Geojson"
@@ -31448,6 +31573,7 @@ msgstr "dokumentaatio"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
+#. do-not-translate
 #, fuzzy
 msgid "dttm"
 msgstr "dttm"
@@ -31578,6 +31704,7 @@ msgstr "merkintää sivulla"
 msgid "error"
 msgstr "virhe"
 
+#. do-not-translate
 msgid "error_message"
 msgstr ""
 
@@ -32108,24 +32235,28 @@ msgstr "p-arvon tarkkuus"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#. do-not-translate
 #, fuzzy
 msgid "p1"
 msgstr "p1"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#. do-not-translate
 #, fuzzy
 msgid "p5"
 msgstr "p5"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#. do-not-translate
 #, fuzzy
 msgid "p95"
 msgstr "p95"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#. do-not-translate
 #, fuzzy
 msgid "p99"
 msgstr "p99"
@@ -32152,6 +32283,7 @@ msgstr ""
 msgid "permalink state not found"
 msgstr "pysyvän linkin tilaa ei löydy"
 
+#. do-not-translate
 msgid "pivoted_xlsx"
 msgstr ""
 
@@ -32272,6 +32404,7 @@ msgstr "käynnissä"
 msgid "save"
 msgstr "tallenna"
 
+#. do-not-translate
 msgid "schema1,schema2"
 msgstr ""
 
@@ -32299,6 +32432,7 @@ msgstr ""
 "käyttävät samaa asteikkoa; muutos: Näytä muutokset verrattuna "
 "ensimmäiseen datapisteeseen kussakin sarjassa"
 
+#. do-not-translate
 msgid "sql"
 msgstr ""
 
@@ -32326,9 +32460,11 @@ msgstr "porrastettu"
 msgid "std"
 msgstr "std"
 
+#. do-not-translate
 msgid "step-after"
 msgstr ""
 
+#. do-not-translate
 msgid "step-before"
 msgstr ""
 
@@ -32368,6 +32504,7 @@ msgstr "onnistui"
 msgid "sum"
 msgstr "summa"
 
+#. do-not-translate
 msgid "superset.example.com"
 msgstr ""
 
@@ -32581,6 +32718,7 @@ msgstr "y: arvot normalisoidaan kussakin rivissä"
 msgid "year"
 msgstr "vuosi"
 
+#. do-not-translate
 msgid "your-project-1234-a1"
 msgstr ""
 

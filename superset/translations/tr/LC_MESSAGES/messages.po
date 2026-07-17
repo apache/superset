@@ -32,32 +32,54 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid ""
 "A soft-deleted dataset (uuid %(uuid)s) already references this table. "
-"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a new "
-"dataset over this table, or use a different table name."
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a "
+"new dataset over this table, or use a different table name."
 msgstr ""
+"Geçici olarak silinen bir veri kümesi (uuid %(uuid)s) zaten bu tabloya "
+"başvuruda bulunuyor. Bu tablo üzerinde yeni bir veri kümesi oluşturmadan "
+"önce POST /api/v1/dataset/%(uuid)s/restore aracılığıyla geri yükleyin "
+"veya farklı bir tablo adı kullanın."
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid ""
 "A soft-deleted dataset (uuid %(uuid)s) already references this table. "
-"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or "
-"upload to a different table name."
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or"
+" upload to a different table name."
 msgstr ""
+"Geçici olarak silinen bir veri kümesi (uuid %(uuid)s) zaten bu tabloya "
+"başvuruda bulunuyor. Yüklemeden önce POST "
+"/api/v1/dataset/%(uuid)s/restore aracılığıyla geri yükleyin veya farklı "
+"bir tablo adına yükleyin."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "Cannot delete a database whose only remaining datasets are soft-deleted. "
 "Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
 "permanently once a purge capability ships, or remove the underlying rows "
 "out-of-band, before deleting the database."
 msgstr ""
+"Yalnızca geçici olarak silinmiş veri kümelerine sahip bir veritabanı "
+"silinemez. Onları geri yükleyin (POST /api/v1/dataset/<uuid>/restore) ve "
+"temizleme özelliği sunulduğunda kalıcı olarak silin ya da veritabanını "
+"silmeden önce altta yatan satırları bant dışı olarak kaldırın."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
-"Dataset cannot be restored because another active dataset already references "
-"the same physical table (same database, catalog, schema, and table name). "
-"Delete the duplicate or rename the table before restoring."
+"Dataset cannot be restored because another active dataset already "
+"references the same physical table (same database, catalog, schema, and "
+"table name). Delete the duplicate or rename the table before restoring."
 msgstr ""
+"Başka bir etkin veri kümesi zaten aynı fiziksel tabloya (aynı veritabanı,"
+" katalog, şema ve tablo adı) başvurduğundan veri kümesi geri "
+"yüklenemiyor. Geri yüklemeden önce yinelenen veri kümesini silin veya "
+"tablonun adını değiştirin."
 
 msgid ""
 "\n"
@@ -226,15 +248,15 @@ msgstr "\"  %s \" şimdi sistem karanlık tema"
 msgid "\"%s\" is now the system default theme"
 msgstr "\"  %s \" şimdi sistem varsayılan tema"
 
-#, python-format
+#, no-python-format
 msgid "% calculation"
 msgstr "% c alculation"
 
-#, python-format
+#, no-python-format
 msgid "% of parent"
 msgstr "% o f ebeveyn"
 
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of total"
 msgstr "% o Toplamı göster"
 
@@ -683,6 +705,7 @@ msgstr "30 saniye"
 msgid "10/90 percentiles"
 msgstr "Yüzde 10/90"
 
+#. do-not-translate
 msgid "10000"
 msgstr "10000 10000 10000 10000"
 
@@ -899,8 +922,10 @@ msgstr "Aynı adı olan bir veritabanı zaten var."
 msgid "A date is required when using custom date shift"
 msgstr "Özel tarih değişikliği kullanırken bir tarih gereklidir"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "A description for your dashboard"
-msgstr ""
+msgstr "Panonuz için bir açıklama"
 
 #, python-brace-format
 msgid ""
@@ -958,10 +983,14 @@ msgstr ""
 msgid "A metric to use for color"
 msgstr "Renk için kullanmak için bir metrik"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "A multiplier applied to the point radius. Use this to uniformly scale all"
 " points."
 msgstr ""
+"Nokta yarıçapına uygulanan çarpan. Tüm noktaları eşit şekilde "
+"ölçeklendirmek için bunu kullanın."
 
 msgid "A new chart and dashboard will be created."
 msgstr "Yeni bir grafik ve pano oluşturulacak."
@@ -1936,21 +1965,11 @@ msgstr "Semantik katmanlar getirilirken bir hata oluştu"
 msgid "An error occurred while fetching tab state"
 msgstr "Bir hata, sekme devletini satın alırken gerçekleşti"
 
-msgid "An error occurred while fetching table metadata"
-msgstr "Masa metadata alırken bir hata meydana geldi"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr "%s için tablo meta verileri getirilirken bir hata oluştu"
-
-msgid ""
-"An error occurred while fetching table metadata. Please contact your "
-"administrator."
-msgstr ""
-"Masa metadata alırken bir hata meydana geldi. Lütfen yöneticinizle "
-"iletişime geçin."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -1996,10 +2015,14 @@ msgstr "Verisetini kaydederken bir hata oluştu"
 msgid "An error occurred while importing %s: %s"
 msgstr "%s ithal ederken bir hata oluştu:   %s "
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "An error occurred while loading SQL Lab. This may be caused by a "
 "corrupted query state."
 msgstr ""
+"SQL Lab yüklenirken bir hata oluştu. Bu, bozuk bir sorgu durumundan "
+"kaynaklanıyor olabilir."
 
 msgid "An error occurred while loading dashboard information."
 msgstr "Bir hata, yükleme pano bilgilerini yükleme sırasında gerçekleşti."
@@ -3308,8 +3331,10 @@ msgstr "Grafik değişiklikleri"
 msgid "Chart could not be created."
 msgstr "Grafik oluşturulamadı."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Chart could not be restored."
-msgstr ""
+msgstr "Grafik geri yüklenemedi."
 
 msgid "Chart could not be updated."
 msgstr "Grafik gencellenemedi."
@@ -3832,9 +3857,6 @@ msgstr ""
 msgid "Column Configuration"
 msgstr "Köşe Oluşturu"
 
-msgid "Column Formatting"
-msgstr "Köşe Biçimi"
-
 #, fuzzy
 msgid "Column Settings"
 msgstr "Ayarları Filtrele"
@@ -3980,8 +4002,10 @@ msgstr ""
 "Comma-separated interval bounds, e.g. 2,4,5 for intervals 0-2, 2-4 and "
 "4-5. Son sayı MAX için sağlanan değerle eşleşmelidir."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Common (unit per pixel at zoom 0)"
-msgstr ""
+msgstr "Ortak (0 zum seviyesinde piksel başına birim)"
 
 msgid "Comparator option"
 msgstr "Karşılaştırmacı seçenek"
@@ -4285,8 +4309,10 @@ msgstr "Tüm kayıtlı grafikler getirilemedi"
 msgid "Could not find viz object"
 msgstr "viz nesnesi bulamaz"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Could not load SQL Lab"
-msgstr ""
+msgstr "SQL Lab yüklenemedi"
 
 msgid "Could not load database driver"
 msgstr "Veritabanı sürücüsü yüklenemedi"
@@ -4642,6 +4668,7 @@ msgstr "DD/MM format tarihleri, uluslararası ve Avrupa formatları"
 msgid "DEC"
 msgstr "ARA"
 
+#. do-not-translate
 msgid "DELETE"
 msgstr "SİL"
 
@@ -4980,8 +5007,10 @@ msgstr "Veriseti oluşturulamadı."
 msgid "Dataset could not be duplicated."
 msgstr "Veriseti çoğaltılamadı."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Dataset could not be restored."
-msgstr ""
+msgstr "Veri kümesi geri yüklenemedi."
 
 msgid "Dataset could not be updated."
 msgstr "Veriseti güncellenemedi."
@@ -6089,6 +6118,7 @@ msgstr "Dinamik olarak tüm filtre değerlerini arama"
 msgid "Dynamically select grouping columns from a dataset"
 msgstr "Dinamik olarak bir şekilde bir veri kümesinden gruplama sütunları seçin"
 
+#. do-not-translate
 msgid "ECharts"
 msgstr "ECharts"
 
@@ -6098,6 +6128,7 @@ msgstr "ECharts"
 msgid "ECharts Options (JS object literals)"
 msgstr "ECharts Seçenekleri (JS nesne değişmezleri)"
 
+#. do-not-translate
 msgid "EMAIL_REPORTS_CTA"
 msgstr "EMAIL REPORTS CTA"
 
@@ -7516,9 +7547,6 @@ msgstr ""
 msgid "Formatted CSV attached in email"
 msgstr "E-postada eklenmiş olan CSV"
 
-msgid "Formatted date"
-msgstr "Formated date"
-
 msgid "Formatted value"
 msgstr "Şekillenmiş değer"
 
@@ -7582,6 +7610,7 @@ msgstr "Ayrıca her sütunu nasıl göstereceğinizi özel edin"
 msgid "Further customize how to display each metric"
 msgstr "Ayrıca her metrikleri nasıl göstereceğinizi özel edin"
 
+#. do-not-translate
 msgid "GROUP BY"
 msgstr "GROUP BY"
 
@@ -8433,9 +8462,6 @@ msgid "Keys are shown only once at creation. Store them securely."
 msgstr ""
 "Anahtarlar yalnızca oluşturulurken bir kez gösterilir. Bunları güvenli "
 "bir şekilde saklayın."
-
-msgid "Keys for table"
-msgstr "Masa için Anahtarlar"
 
 msgid "Kilometers"
 msgstr "Kilometers"
@@ -9558,7 +9584,9 @@ msgstr "Multiplier"
 msgid ""
 "Must be a chart editor to overwrite this chart. Save as a new chart "
 "instead."
-msgstr "Bu grafiğin üzerine yazmak için grafik düzenleyicisi olmalısınız. Bunun yerine yeni bir grafik olarak kaydedin."
+msgstr ""
+"Bu grafiğin üzerine yazmak için grafik düzenleyicisi olmalısınız. Bunun "
+"yerine yeni bir grafik olarak kaydedin."
 
 msgid "Must be unique"
 msgstr "eşsiz olmalıdır"
@@ -9587,6 +9615,7 @@ msgstr "My metric"
 msgid "N/A"
 msgstr "N/A"
 
+#. do-not-translate
 msgid "NOT GROUPED BY"
 msgstr "Grup değil"
 
@@ -10140,6 +10169,7 @@ msgstr "Tamam"
 msgid "OR"
 msgstr "saat"
 
+#. do-not-translate
 msgid "OVERWRITE"
 msgstr "GENEL"
 
@@ -10277,11 +10307,15 @@ msgstr "Open Datasource sekmesi"
 msgid "Open SQL Lab in a new tab"
 msgstr "Sorguyu yeni sekmede çalıştır"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Open chart in new tab"
-msgstr ""
+msgstr "Grafiği yeni sekmede aç"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Open dashboard in new tab"
-msgstr ""
+msgstr "Panoyu yeni sekmede aç"
 
 msgid "Open in SQL Lab"
 msgstr "SQL Lab’da aç"
@@ -10366,9 +10400,6 @@ msgstr "Ağaçlama"
 
 msgid "Original"
 msgstr "Orijinal"
-
-msgid "Original table column order"
-msgstr "Original table column order"
 
 msgid "Original value"
 msgstr "Orijinal değer"
@@ -10535,9 +10566,10 @@ msgstr "Şifre"
 msgid "Password is required"
 msgstr "İsim gereklidir"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid "Password must be at least %(min_length)s characters long."
-msgstr ""
+msgstr "Parola en az %(min_length)s karakter uzunluğunda olmalıdır."
 
 #, fuzzy
 msgid "Password:"
@@ -10916,8 +10948,10 @@ msgstr "Point Radius Scale"
 msgid "Point Radius Unit"
 msgstr "Point Radius Unit"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Point Radius Units"
-msgstr ""
+msgstr "Nokta Yarıçapı Birimleri"
 
 msgid "Point Size"
 msgstr "Nokta Boyutu"
@@ -11380,8 +11414,10 @@ msgstr "Relative miktar"
 msgid "Reload"
 msgstr "Reload"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Reload SQL Lab"
-msgstr ""
+msgstr "SQL Lab'ı Yeniden Yükle"
 
 msgid "Remove"
 msgstr "Kaldırın"
@@ -11412,9 +11448,6 @@ msgstr "öğeyi kaldır"
 
 msgid "Remove query from log"
 msgstr "Girişten Soruyu Kaldırın"
-
-msgid "Remove table preview"
-msgstr "Kaldır tablo Tanıtımı"
 
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
@@ -11504,8 +11537,10 @@ msgstr "Rapor aktiftir"
 msgid "Report name"
 msgstr "Rapor ismi"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Report not yet run"
-msgstr ""
+msgstr "Rapor henüz çalıştırılmadı"
 
 msgid "Report schedule client error"
 msgstr "Rapor zamanlama müşteri hatası"
@@ -11559,9 +11594,10 @@ msgstr "Gerekli kontrol değerleri kaldırıldı"
 msgid "Resample"
 msgstr "Resample"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid "Resample method '%(method)s' is not supported."
-msgstr ""
+msgstr "'%(method)s' yeniden örnekleme yöntemi desteklenmiyor."
 
 msgid "Resample method should be in "
 msgstr "Resample yöntemi içeride olmalıdır"
@@ -13812,8 +13848,10 @@ msgstr "Sokaklar"
 msgid "Streets (Carto)"
 msgstr "Sokaklar (Carto)"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Streets (OSM)"
-msgstr ""
+msgstr "Sokaklar (OSM)"
 
 msgid "Strength to pull the graph toward center"
 msgstr "Grafikleri merkeze doğru çekmek için güç"
@@ -14018,6 +14056,7 @@ msgstr "Sistem varsayılan tema kaldırıldı"
 msgid "TABLES"
 msgstr "TABLOLAR"
 
+#. do-not-translate
 msgid "TEMPORAL_RANGE"
 msgstr "TEMPORAL RANGE"
 
@@ -14334,8 +14373,10 @@ msgstr ""
 " ayrıntıları için bkz. https://superset.apache.org/docs/configuration"
 "/async-queries-celery."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "The SSH server host key could not be verified against the expected key."
-msgstr ""
+msgstr "SSH sunucusunun ana bilgisayar anahtarı, beklenen anahtarla doğrulanamadı."
 
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
@@ -14385,10 +14426,14 @@ msgstr ""
 "Renkler atamak için kullanılan kaynak düğümleri kategorisi. Eğer bir node"
 " bir kategoriden daha ilişkiliyse, sadece ilki kullanılacaktır."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "The chart this report targets was deleted. Restore the chart, or update "
 "the report to point at an active chart."
 msgstr ""
+"Bu raporun hedeflediği grafik silindi. Grafiği geri yükleyin veya raporu "
+"etkin bir grafiğe işaret edecek şekilde güncelleyin."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -14479,10 +14524,14 @@ msgstr "Superset'in [ülkede bulmayı beklemesi gereken ülke kodu standardı] s
 msgid "The dashboard has been saved"
 msgstr "Panel kurtarıldı"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "The dashboard this report targets was deleted. Restore the dashboard, or "
 "update the report to point at an active dashboard."
 msgstr ""
+"Bu raporun hedeflediği pano silindi. Panoyu geri yükleyin veya raporu "
+"etkin bir panoya işaret edecek şekilde güncelleyin."
 
 msgid "The data source seems to have been deleted"
 msgstr "Veri kaynağı silinmiş gibi görünüyor"
@@ -14991,10 +15040,14 @@ msgstr ""
 "Bireysel noktaların ikizi (bir kümede olmayan biri). Ya bir sayısal sütun"
 " ya da \"Auto\", en büyük kümeye dayanan noktayı ölçeklendirir"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "The radius of point features, in the units specified below. The final "
 "rendered size is this value multiplied by Point Radius Scale."
 msgstr ""
+"Aşağıda belirtilen birimlerde nokta özelliklerinin yarıçapı. Son işlenmiş"
+" boyut, bu değerin Nokta Yarıçapı Ölçeği ile çarpılmasıyla elde edilir."
 
 msgid "The report has been created"
 msgstr "Rapor oluşturuldu"
@@ -15196,10 +15249,14 @@ msgstr "ikon büyüklüğü için birim"
 msgid "The unit for label size"
 msgstr "Etiket büyüklüğü için birim"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "The unit for point radius. Use \"pixels\" for consistent screen-space "
 "sizing regardless of zoom level."
 msgstr ""
+"Nokta yarıçapı birimi. Zoom seviyesinden bağımsız olarak tutarlı ekran "
+"alanı boyutlandırması için \"piksel\" kullanın."
 
 msgid "The unit of measure for the specified point radius"
 msgstr "Belirtilen nokta ikizi için ölçü ünitesi"
@@ -15925,8 +15982,10 @@ msgstr ""
 "Bu sayfa bir iframe içinde gömülü olmak amaçlanmıştır, ancak durum böyle "
 "değil gibi görünüyor."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "This password is too common; please choose a less guessable one."
-msgstr ""
+msgstr "Bu parola çok yaygın; lütfen daha az tahmin edilebilir bir tane seçin."
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -16277,17 +16336,23 @@ msgstr "Panonuz için okunabilir bir URL almak için"
 msgid "Token Request URI"
 msgstr "Hediye İste URIRIRI"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid ""
 "Too many sub-slices requested. The maximum allowed is %(max)s, but "
 "%(count)s were requested."
 msgstr ""
+"Çok fazla alt dilim istendi. İzin verilen maksimum sayı %(max)s, ancak "
+"%(count)s istendi."
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid ""
 "Too many time comparisons requested. The maximum allowed is %(max)s, but "
 "%(count)s were requested."
 msgstr ""
+"Çok fazla zaman karşılaştırması istendi. İzin verilen maksimum sayı "
+"%(max)s, ancak %(count)s istendi."
 
 #, fuzzy
 msgid "Tool Panel"
@@ -17154,10 +17219,6 @@ msgstr "Tablo olarak gör"
 msgid "View in SQL Lab"
 msgstr "SQL Lab’da gör"
 
-#, python-format
-msgid "View keys & indexes (%s)"
-msgstr "Anahtarları ve indeksleri görüntüle (  %s )"
-
 msgid "View query"
 msgstr "Sorguyu gör"
 
@@ -17322,9 +17383,11 @@ msgstr "Viz tipi"
 msgid "WED"
 msgstr "ÇAR"
 
+#. do-not-translate
 msgid "WFS"
 msgstr "WFS"
 
+#. do-not-translate
 msgid "WMS"
 msgstr "WMS"
 
@@ -17846,6 +17909,7 @@ msgstr "X-axis"
 msgid "X-scale interval"
 msgstr "X-scale aralığı"
 
+#. do-not-translate
 msgid "XYZ"
 msgstr "XYZ"
 
@@ -18079,8 +18143,10 @@ msgstr "Bu gösterim paneliı değiştirmeye yetkiniz yok."
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "grafiği düzenlemek için yeterli izniniz yok"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "You don't have access to one or more of the referenced datasources."
-msgstr ""
+msgstr "Başvurulan veri kaynaklarından birine veya daha fazlasına erişiminiz yok."
 
 msgid "You don't have access to this chart."
 msgstr "Bu grafiğe erişemezsiniz."
@@ -18178,12 +18244,16 @@ msgstr ""
 msgid ""
 "You must be a %s editor in order to edit. Please reach out to a %s editor"
 " to request modifications or edit access."
-msgstr "Düzenlemek için %s düzenleyicisi olmalısınız. Değişiklik veya düzenleme erişimi istemek için bir %s düzenleyicisine ulaşın."
+msgstr ""
+"Düzenlemek için %s düzenleyicisi olmalısınız. Değişiklik veya düzenleme "
+"erişimi istemek için bir %s düzenleyicisine ulaşın."
 
 msgid ""
 "You must be a dataset editor in order to edit. Please reach out to a "
 "dataset editor to request modifications or edit access."
-msgstr "Düzenlemek için veri kümesi düzenleyicisi olmalısınız. Değişiklik veya düzenleme erişimi istemek için bir veri kümesi düzenleyicisine ulaşın."
+msgstr ""
+"Düzenlemek için veri kümesi düzenleyicisi olmalısınız. Değişiklik veya "
+"düzenleme erişimi istemek için bir veri kümesi düzenleyicisine ulaşın."
 
 msgid "You must change your password before continuing."
 msgstr ""
@@ -18196,11 +18266,14 @@ msgstr "Yeni pano için bir isim seçmelisiniz"
 msgid "You must run the query successfully first"
 msgstr "Önce sorguyu başarıyla çalıştırmalısınız"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid ""
 "You need access to the following tables: %(tables)s, "
 "'all_database_access' or 'all_datasource_access' permission"
 msgstr ""
+"Şu tablolara erişim iznine veya 'all_database_access' ya da "
+"'all_datasource_access' iznine ihtiyacınız var: %(tables)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18280,8 +18353,10 @@ msgstr "Sorgunuz güncellendi"
 msgid "Your report could not be deleted"
 msgstr "Raporunuz silinemez"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Your session has ended. Please sign in again."
-msgstr ""
+msgstr "Oturumunuz sona erdi. Lütfen tekrar oturum açın."
 
 #, fuzzy
 msgid "Your user information"
@@ -18389,8 +18464,10 @@ msgstr "\"row offset\" 0'dan fazla veya eşit olmalıdır"
 msgid "`width` must be greater or equal to 0"
 msgstr "“altın” 0'a daha büyük veya eşit olmalıdır"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "`window` must be between 1 and 10000"
-msgstr ""
+msgstr "`window` 1 ile 10000 arasında olmalıdır"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18426,8 +18503,10 @@ msgstr "Annotasyon"
 msgid "annotation_layer"
 msgstr "Annotation layer"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "apple"
-msgstr ""
+msgstr "elma"
 
 msgid "asfreq"
 msgstr "Asfreq"
@@ -18447,8 +18526,10 @@ msgstr "Arka plan"
 msgid "background color"
 msgstr "arka plan rengi"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "banana"
-msgstr ""
+msgstr "muz"
 
 msgid "basis"
 msgstr "Temel"
@@ -18470,6 +18551,7 @@ msgstr " {down}   ve   {up}     {name}  "
 msgid "bfill"
 msgstr "bfill"
 
+#. do-not-translate
 msgid "bolt"
 msgstr "Kurun"
 
@@ -18566,6 +18648,7 @@ msgstr "yeni grafik oluştur"
 msgid "create dataset from SQL query"
 msgstr "SQL sorgusundan veriseti oluştur"
 
+#. do-not-translate
 #, fuzzy
 msgid "crontab"
 msgstr "sayı"
@@ -18646,6 +18729,7 @@ msgstr "Güverte.gl Arc"
 msgid "deck.gl Contour"
 msgstr "Güverte.gl Contour"
 
+#. do-not-translate
 msgid "deck.gl Geojson"
 msgstr "Güverte.gl Geojson"
 
@@ -18695,6 +18779,7 @@ msgstr "lehçe+vid http://username:password@host:port/database"
 msgid "documentation"
 msgstr "Grafik Yönü"
 
+#. do-not-translate
 msgid "dttm"
 msgstr "dttm"
 
@@ -18768,6 +18853,7 @@ msgstr "Sayfa başına girişler"
 msgid "error"
 msgstr "hata"
 
+#. do-not-translate
 msgid "error_message"
 msgstr "hata message"
 
@@ -19090,15 +19176,19 @@ msgstr "Genel"
 msgid "p-value precision"
 msgstr "p-değer hassas"
 
+#. do-not-translate
 msgid "p1"
 msgstr "p1"
 
+#. do-not-translate
 msgid "p5"
 msgstr "p5"
 
+#. do-not-translate
 msgid "p95"
 msgstr "p95"
 
+#. do-not-translate
 msgid "p99"
 msgstr "p99"
 
@@ -19115,6 +19205,7 @@ msgstr ""
 msgid "permalink state not found"
 msgstr "permalink durumu bulunamadı"
 
+#. do-not-translate
 msgid "pivoted_xlsx"
 msgstr "1."
 
@@ -19180,6 +19271,7 @@ msgstr "çalışıyor"
 msgid "save"
 msgstr "Kaydet"
 
+#. do-not-translate
 msgid "schema1,schema2"
 msgstr "şema1,schema2"
 
@@ -19198,6 +19290,7 @@ msgstr ""
 "aynı ölçek kullanır; değişim: Her serideki ilk veri noktasına kıyasla "
 "değişiklikler göster"
 
+#. do-not-translate
 msgid "sql"
 msgstr "sql"
 
@@ -19213,9 +19306,11 @@ msgstr "Durmuş"
 msgid "std"
 msgstr "std"
 
+#. do-not-translate
 msgid "step-after"
 msgstr "adım sonra"
 
+#. do-not-translate
 msgid "step-before"
 msgstr "adımdan önce"
 
@@ -19240,6 +19335,7 @@ msgstr "Başarı başarısı"
 msgid "sum"
 msgstr "Toplam özet"
 
+#. do-not-translate
 msgid "superset.example.com"
 msgstr "süperset.ornek.com"
 
@@ -19363,6 +19459,7 @@ msgstr "y: değerler her satır içinde normalleşir"
 msgid "year"
 msgstr "yıl"
 
+#. do-not-translate
 msgid "your-project-1234-a1"
 msgstr "Projeniz-1234-a1"
 

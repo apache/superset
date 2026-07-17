@@ -135,7 +135,7 @@ Superset sends an HTTP POST with `Content-Type: application/json`:
 }
 ```
 
-When a report includes file attachments (CSV, PDF, or PNG screenshots), the request is sent as `multipart/form-data` instead. In that case, each top-level payload field (`name`, `text`, `description`, `url`) becomes its own form field, and nested structures like `header` are serialized as a JSON-encoded string in their own field. Every attachment is added as a repeated form field named `files`:
+When a report includes file attachments (CSV, Excel, PDF, or PNG screenshots), the request is sent as `multipart/form-data` instead. In that case, each top-level payload field (`name`, `text`, `description`, `url`) becomes its own form field, and nested structures like `header` are serialized as a JSON-encoded string in their own field. Every attachment is added as a repeated form field named `files`:
 
 ```
 POST /webhook HTTP/1.1

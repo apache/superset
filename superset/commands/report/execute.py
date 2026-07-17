@@ -265,6 +265,9 @@ class BaseReportState:
         """
         Get the url for this report schedule: chart or dashboard
         """
+        chart = self._report_schedule.chart
+        dashboard = self._report_schedule.dashboard
+
         # Soft delete removed the FK-level guarantee that a report's target
         # chart exists: ``chart`` is a visibility-filtered relationship, so a
         # chart soft-deleted after this report was created (or attached via a
@@ -276,25 +279,32 @@ class BaseReportState:
         # Every content path (_get_screenshots, _get_csv_data,
         # _get_embedded_data, _get_notification_content) funnels through this
         # method, so this is the single choke point.
-        if (
-            self._report_schedule.chart_id is not None
-            and self._report_schedule.chart is None
-        ):
-            raise ReportScheduleTargetChartDeletedError()
-        # Symmetric guard for dashboard targets. Dashboard soft delete lands
-        # in the sibling rollout; until then this cannot fire (a dashboard
-        # with dependent reports cannot be deleted), which makes it inert
-        # rather than wrong — and it keeps the report-target error vocabulary
-        # parallel across entities from day one.
-        if (
-            self._report_schedule.dashboard_id is not None
-            and self._report_schedule.dashboard is None
-        ):
-            raise ReportScheduleTargetDashboardDeletedError()
+        if chart is None and dashboard is None:
+            if self._report_schedule.chart_id is not None:
+                raise ReportScheduleTargetChartDeletedError()
+            # Symmetric guard for dashboard targets. Dashboard soft delete lands
+            # in the sibling rollout; until then this cannot fire (a dashboard
+            # with dependent reports cannot be deleted), which makes it inert
+            # rather than wrong — and it keeps the report-target error vocabulary
+            # parallel across entities from day one.
+            if self._report_schedule.dashboard_id is not None:
+                raise ReportScheduleTargetDashboardDeletedError()
+            # Defensive fallback for a malformed report with no target IDs.
+            # Missing relationships with a target ID are handled by the
+            # dedicated deleted-target errors above.
+            raise ReportScheduleUnexpectedError(
+                f"Report schedule {self._report_schedule.id} "
+                f"({self._report_schedule.name!r}) has no resolvable target "
+                f"(chart_id={self._report_schedule.chart_id}, "
+                f"dashboard_id={self._report_schedule.dashboard_id}); "
+                "the report has neither a chart nor a dashboard."
+            )
+
         force = "true" if self._report_schedule.force_screenshot else "false"
-        if self._report_schedule.chart:
+        if chart:
             if result_format in {
                 ChartDataResultFormat.CSV,
+                ChartDataResultFormat.XLSX,
                 ChartDataResultFormat.JSON,
                 ChartDataResultFormat.XLSX,
             }:
@@ -318,9 +328,8 @@ class BaseReportState:
         ) and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS"):
             return self._get_tab_url(dashboard_state, user_friendly=user_friendly)
 
-        dashboard = self._report_schedule.dashboard
         dashboard_id_or_slug = (
-            dashboard.uuid if dashboard and dashboard.uuid else dashboard.id
+            dashboard.uuid if dashboard.uuid is not None else dashboard.id
         )
         return get_url_path(
             "Superset.dashboard",
@@ -701,10 +710,28 @@ class BaseReportState:
                 raise URLError(response.getcode())
         return content or None
 
-    def _get_chart_data(self, result_format: ChartDataResultFormat) -> Optional[bytes]:
-        if result_format not in ChartDataResultFormat.table_like():
-            raise ReportScheduleExecuteUnexpectedError(
-                f"Unsupported chart data result format: {result_format}"
+    def _get_data(self, result_format: ChartDataResultFormat) -> bytes:
+        """
+        Fetch tabular chart data (CSV or Excel) as raw bytes.
+
+        Both formats are produced by the chart data export endpoint, so the
+        bytes are fetched the same way and only differ by ``result_format``.
+        This reuses the export path's post-processing and index handling,
+        keeping report output consistent with a chart's manual export.
+        """
+        timeout_error: type[CommandException]
+        failed_error: type[CommandException]
+        if result_format == ChartDataResultFormat.XLSX:
+            label, timeout_error, failed_error = (
+                "Excel",
+                ReportScheduleXlsxTimeout,
+                ReportScheduleXlsxFailedError,
+            )
+        else:
+            label, timeout_error, failed_error = (
+                "CSV",
+                ReportScheduleCsvTimeout,
+                ReportScheduleCsvFailedError,
             )
 
         start_time = datetime.utcnow()
@@ -713,89 +740,56 @@ class BaseReportState:
 
         if self._report_schedule.chart.query_context is None:
             logger.warning("No query context found, taking a screenshot to generate it")
-            self._update_query_context()
+            self._update_query_context(failed_error)
             db.session.refresh(self._report_schedule.chart)
-            url = self._get_url(result_format=result_format)
-            chart_data = get_chart_csv_data(
-                chart_url=url,
-                auth_cookies=auth_cookies,
-                timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
-            )
-        else:
-            request_payload = self._get_chart_data_request_payload(result_format)
-            url = get_url_path("ChartDataRestApi.data")
-            chart_data = self._post_chart_data(
-                chart_url=url,
-                auth_cookies=auth_cookies,
-                request_payload=request_payload,
-                timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
-            )
-        elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
-        logger.info(
-            "%s data generation from %s as user %s took %.2fs - execution_id: %s",
-            result_format.value.upper(),
-            url,
-            username,
-            elapsed_seconds,
-            self._execution_id,
-        )
-        return chart_data
 
-    def _get_csv_data(self) -> bytes:
-        start_time = datetime.utcnow()
         try:
-            csv_data = self._get_chart_data(ChartDataResultFormat.CSV)
+            if self._report_schedule.chart.query_context is None:
+                url = self._get_url(result_format=result_format)
+                data = get_chart_csv_data(
+                    chart_url=url,
+                    auth_cookies=auth_cookies,
+                    timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+                )
+            else:
+                request_payload = self._get_chart_data_request_payload(result_format)
+                url = get_url_path("ChartDataRestApi.data")
+                data = self._post_chart_data(
+                    chart_url=url,
+                    auth_cookies=auth_cookies,
+                    request_payload=request_payload,
+                    timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+                )
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.info(
+                "%s data generation from %s as user %s took %.2fs - execution_id: %s",
+                label,
+                url,
+                username,
+                elapsed_seconds,
+                self._execution_id,
+            )
         except SoftTimeLimitExceeded as ex:
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.warning(
-                "CSV generation timeout after %.2fs - execution_id: %s",
+                "%s generation timeout after %.2fs - execution_id: %s",
+                label,
                 elapsed_seconds,
                 self._execution_id,
             )
-            raise ReportScheduleCsvTimeout() from ex
-        except ReportScheduleExecutorNotFoundError:
-            raise
+            raise timeout_error() from ex
         except Exception as ex:
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.exception(
-                "CSV generation failed after %.2fs - execution_id: %s",
+                "%s generation failed after %.2fs - execution_id: %s",
+                label,
                 elapsed_seconds,
                 self._execution_id,
             )
-            raise ReportScheduleCsvFailedError(
-                f"Failed generating csv {str(ex)}"
-            ) from ex
-        if not csv_data:
-            raise ReportScheduleCsvFailedError()
-        return csv_data
-
-    def _get_xlsx_data(self) -> bytes:
-        start_time = datetime.utcnow()
-        try:
-            xlsx_data = self._get_chart_data(ChartDataResultFormat.XLSX)
-        except SoftTimeLimitExceeded as ex:
-            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
-            logger.warning(
-                "XLSX generation timeout after %.2fs - execution_id: %s",
-                elapsed_seconds,
-                self._execution_id,
-            )
-            raise ReportScheduleXlsxTimeout() from ex
-        except ReportScheduleExecutorNotFoundError:
-            raise
-        except Exception as ex:
-            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
-            logger.exception(
-                "XLSX generation failed after %.2fs - execution_id: %s",
-                elapsed_seconds,
-                self._execution_id,
-            )
-            raise ReportScheduleXlsxFailedError(
-                f"Failed generating xlsx {str(ex)}"
-            ) from ex
-        if not xlsx_data:
-            raise ReportScheduleXlsxFailedError()
-        return xlsx_data
+            raise failed_error(f"Failed generating {label.lower()} {str(ex)}") from ex
+        if not data:
+            raise failed_error()
+        return data
 
     def _get_embedded_data(self) -> pd.DataFrame:
         """
@@ -847,14 +841,18 @@ class BaseReportState:
             raise ReportScheduleCsvFailedError()
         return dataframe
 
-    def _update_query_context(self) -> None:
+    def _update_query_context(
+        self,
+        failed_error: type[CommandException] = ReportScheduleCsvFailedError,
+    ) -> None:
         """
         Update chart query context.
 
-        To load CSV data from the endpoint the chart must have been saved
+        To load data from the endpoint the chart must have been saved
         with its query context. For charts without saved query context we
         get a screenshot to force the chart to produce and save the query
-        context.
+        context. ``failed_error`` lets the caller surface a format-specific
+        failure (e.g. Excel vs CSV) when the screenshot fallback fails.
         """
         try:
             self._get_screenshots()
@@ -862,7 +860,7 @@ class BaseReportState:
             ReportScheduleScreenshotFailedError,
             ReportScheduleScreenshotTimeout,
         ) as ex:
-            raise ReportScheduleCsvFailedError(
+            raise failed_error(
                 "Unable to fetch data because the chart has no query context "
                 "saved, and an error occurred when fetching it via a screenshot. "
                 "Please try loading the chart and saving it again."
@@ -910,8 +908,8 @@ class BaseReportState:
 
         :raises: ReportScheduleScreenshotFailedError
         """
-        csv_data = None
-        xlsx_data = None
+        csv_data: bytes | None = None
+        xlsx_data: bytes | None = None
         screenshot_data = []
         pdf_data = None
         embedded_data = None
@@ -933,18 +931,16 @@ class BaseReportState:
                     error_text = "Unexpected missing pdf"
             elif (
                 self._report_schedule.chart
-                and self._report_schedule.report_format == ReportDataFormat.CSV
+                and self._report_schedule.report_format in ReportDataFormat.tabular()
             ):
-                csv_data = self._get_csv_data()
-                if not csv_data:
-                    error_text = "Unexpected missing csv file"
-            elif (
-                self._report_schedule.chart
-                and self._report_schedule.report_format == ReportDataFormat.XLSX
-            ):
-                xlsx_data = self._get_xlsx_data()
-                if not xlsx_data:
-                    error_text = "Unexpected missing xlsx file"
+                if self._report_schedule.report_format == ReportDataFormat.XLSX:
+                    xlsx_data = self._get_data(ChartDataResultFormat.XLSX)
+                    if not xlsx_data:
+                        error_text = "Unexpected missing Excel file"
+                else:
+                    csv_data = self._get_data(ChartDataResultFormat.CSV)
+                    if not csv_data:
+                        error_text = "Unexpected missing csv file"
             elif self._report_schedule.report_format == ReportDataFormat.XLSX:
                 raise ReportScheduleXlsxFailedError(
                     "XLSX reports are only supported for chart schedules"
@@ -1430,7 +1426,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             # user (find_user -> None) so the state machine still runs and its
             # error envelope writes the ERROR execution-log row and sends the
             # editor notification. The dedicated ReportScheduleExecutorNotFoundError
-            # guard lives at the content sites (_get_screenshots / _get_csv_data /
+            # guard lives at the content sites (_get_screenshots / _get_data /
             # _get_embedded_data), which raise inside that envelope. Guarding here
             # instead would surface the executor error above the state machine,
             # suppressing both the log row and the editor notification. The

@@ -189,15 +189,15 @@ msgstr ""
 msgid "\"%s\" is now the system default theme"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% calculation"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% of parent"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% of total"
 msgstr ""
 
@@ -898,7 +898,7 @@ msgstr ""
 msgid "A timeout occurred while generating a dataframe."
 msgstr ""
 
-msgid "A timeout occurred while generating an xlsx."
+msgid "A timeout occurred while generating an Excel file."
 msgstr ""
 
 msgid "A timeout occurred while taking a screenshot."
@@ -5826,9 +5826,6 @@ msgstr ""
 msgid "Examples"
 msgstr ""
 
-msgid "Excel (XLSX) attached in email"
-msgstr ""
-
 msgid "Excel Export"
 msgstr ""
 
@@ -6493,6 +6490,9 @@ msgid ""
 msgstr ""
 
 msgid "Formatted CSV attached in email"
+msgstr ""
+
+msgid "Formatted Excel attached in email"
 msgstr ""
 
 msgid "Formatted value"
@@ -9997,7 +9997,7 @@ msgstr ""
 msgid "Report Schedule execution failed when generating a screenshot."
 msgstr ""
 
-msgid "Report Schedule execution failed when generating an xlsx."
+msgid "Report Schedule execution failed when generating an Excel file."
 msgstr ""
 
 msgid "Report Schedule execution got an unexpected error."

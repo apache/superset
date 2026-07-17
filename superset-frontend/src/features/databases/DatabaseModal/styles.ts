@@ -205,7 +205,7 @@ export const formStyles = (theme: SupersetTheme) => css`
     font-size: ${theme.fontSizeSM}px;
     margin-top: ${theme.sizeUnit * 1.5}px;
   }
-  .ant-tabs-content-holder {
+  .ant-tabs-body-holder {
     overflow: auto;
     max-height: 480px;
   }
