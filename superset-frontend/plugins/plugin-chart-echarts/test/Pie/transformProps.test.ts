@@ -715,8 +715,8 @@ test.each([
   [0, 180, 'bottom'],
   [360, 180, 'bottom'],
   [360, 90, 'bottom'],
-  [90, 180, 'none'],
-  [270, 180, 'none'],
+  [90, 180, 'right'],
+  [270, 180, 'left'],
   [180, 360, 'none'],
   [0, 360, 'none'],
 ])('startAngle=%i, sweptAngle=%i → %s', (start, swept, expected) => {
