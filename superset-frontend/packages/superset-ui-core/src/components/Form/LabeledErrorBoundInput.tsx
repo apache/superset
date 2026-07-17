@@ -28,6 +28,10 @@ const StyledInput = styled(Input)`
   margin: ${({ theme }) => `${theme.sizeUnit}px 0 ${theme.sizeUnit * 2}px`};
 `;
 
+const StyledTextArea = styled(Input.TextArea)`
+  margin: ${({ theme }) => `${theme.sizeUnit}px 0 ${theme.sizeUnit * 2}px`};
+`;
+
 const StyledInputPassword = styled(Input.Password)`
   margin: ${({ theme }) => `${theme.sizeUnit}px 0 ${theme.sizeUnit * 2}px`};
 `;
@@ -62,6 +66,8 @@ export const LabeledErrorBoundInput = ({
   get_url,
   description,
   isValidating = false,
+  renderAsTextArea,
+  textAreaCss,
   ...props
 }: LabeledErrorBoundInputProps) => {
   const hasError = !!errorMessage;
@@ -79,7 +85,7 @@ export const LabeledErrorBoundInput = ({
           isValidating ? 'validating' : hasError ? 'error' : 'success'
         }
         help={errorMessage || helpText}
-        hasFeedback={!!hasError}
+        hasFeedback={isValidating || !!hasError}
       >
         {visibilityToggle || props.name === 'password' ? (
           <StyledInputPassword
@@ -98,6 +104,8 @@ export const LabeledErrorBoundInput = ({
             }
             role="textbox"
           />
+        ) : renderAsTextArea ? (
+          <StyledTextArea css={textAreaCss} {...props} {...validationMethods} />
         ) : (
           <StyledInput {...props} {...validationMethods} />
         )}

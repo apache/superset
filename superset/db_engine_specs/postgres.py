@@ -782,15 +782,16 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
 
         In Postgres, a catalog is called a "database".
         """
-        return {
-            catalog
-            for (catalog,) in inspector.bind.execute(
-                text("""
+        with inspector.engine.connect() as conn:
+            return {
+                catalog
+                for (catalog,) in conn.execute(
+                    text("""
 SELECT datname FROM pg_database
 WHERE datistemplate = false;
-                """)
-            )
-        }
+                    """)
+                )
+            }
 
     @classmethod
     def get_table_names(

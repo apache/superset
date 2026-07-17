@@ -19,7 +19,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
 import { useInView } from 'react-intersection-observer';
-import { omit } from 'lodash';
+import { omit } from 'lodash-es';
 import { EmptyState, Skeleton } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core/translation';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';

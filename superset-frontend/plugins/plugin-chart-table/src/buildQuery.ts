@@ -34,7 +34,7 @@ import {
   isTimeComparison,
   timeCompareOperator,
 } from '@superset-ui/chart-controls';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import { TableChartFormData } from './types';
 import { updateTableOwnState } from './DataTable/utils/externalAPIs';
 
@@ -227,7 +227,10 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
         formData?.result_type === 'results');
 
     if (isDownloadQuery) {
-      moreProps.row_limit = Number(formDataCopy.row_limit) || 0;
+      moreProps.row_limit =
+        formDataCopy.row_limit != null
+          ? Number(formDataCopy.row_limit)
+          : undefined;
       moreProps.row_offset = 0;
     }
 

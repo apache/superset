@@ -184,20 +184,22 @@ class TestSqlLab(SupersetTestCase):
             db.session.commit()
             examples_db = get_example_database()
             with examples_db.get_sqla_engine() as engine:
-                data = engine.execute(
-                    text(f"SELECT * FROM admin_database.{tmp_table_name}")  # noqa: S608
-                ).fetchall()
-                names_count = engine.execute(
-                    text(f"SELECT COUNT(*) FROM birth_names")  # noqa: F541, S608
-                ).first()
-                assert names_count[0] == len(
-                    data
-                )  # SQL_MAX_ROW not applied due to the SQLLAB_CTAS_NO_LIMIT set to True
+                with engine.connect() as conn:
+                    data = conn.execute(
+                        text(f"SELECT * FROM admin_database.{tmp_table_name}")  # noqa: S608
+                    ).fetchall()
+                    names_count = conn.execute(
+                        text(f"SELECT COUNT(*) FROM birth_names")  # noqa: F541, S608
+                    ).first()
+                    assert names_count[0] == len(data)
+                    # SQL_MAX_ROW not applied due to the SQLLAB_CTAS_NO_LIMIT set
+                    # to True
 
                 # cleanup
-                engine.execute(
-                    text(f"DROP {ctas_method.name} admin_database.{tmp_table_name}")
-                )
+                with engine.begin() as conn:
+                    conn.execute(
+                        text(f"DROP {ctas_method.name} admin_database.{tmp_table_name}")
+                    )
                 examples_db.allow_ctas = old_allow_ctas
                 db.session.commit()
 
@@ -294,12 +296,13 @@ class TestSqlLab(SupersetTestCase):
         )
 
         with examples_db.get_sqla_engine() as engine:
-            engine.execute(
-                text(f"""
-                CREATE TABLE IF NOT EXISTS {CTAS_SCHEMA_NAME}.test_table AS
-                SELECT 1 as c1, 2 as c2
-                """)  # noqa: E501
-            )
+            with engine.begin() as conn:
+                conn.execute(
+                    text(f"""
+                    CREATE TABLE IF NOT EXISTS {CTAS_SCHEMA_NAME}.test_table AS
+                    SELECT 1 as c1, 2 as c2
+                    """)  # noqa: E501
+                )
 
         # SQL Lab raw query access requires datasource_access on a registered
         # Superset dataset. schema_access alone is no longer sufficient, so
@@ -318,7 +321,10 @@ class TestSqlLab(SupersetTestCase):
 
         db.session.query(Query).delete()
         with get_example_database().get_sqla_engine() as engine:
-            engine.execute(text(f"DROP TABLE IF EXISTS {CTAS_SCHEMA_NAME}.test_table"))
+            with engine.begin() as conn:
+                conn.execute(
+                    text(f"DROP TABLE IF EXISTS {CTAS_SCHEMA_NAME}.test_table")
+                )
         db.session.commit()
 
     def test_alias_duplicate(self):

@@ -336,7 +336,7 @@ class TestGetSchemaToolViaClient:
         """
         mock_filters.return_value = {
             "dashboard_title": ["eq", "ilike"],
-            "owner": ["rel_m_m"],
+            "editors": ["rel_m_m"],
             "published": ["eq"],
             "created_by_fk": ["eq", "in"],
             "changed_by_fk": ["eq", "in"],
@@ -352,19 +352,17 @@ class TestGetSchemaToolViaClient:
         select_column_names = {column["name"] for column in info["select_columns"]}
 
         for field in (
-            "owners",
-            "roles",
+            "editors",
             "created_by",
             "created_by_fk",
             "changed_by",
             "changed_by_fk",
-            "owner",
         ):
             assert field not in select_column_names
             assert field not in info["sortable_columns"]
 
         # User-name and relationship fields stay out of filter_columns
-        for field in ("owners", "roles", "created_by", "changed_by", "owner"):
+        for field in ("editors", "created_by", "changed_by"):
             assert field not in info["filter_columns"]
 
         # ID-only filter columns are advertised so callers can filter via find_users
@@ -378,15 +376,15 @@ class TestGetSchemaToolViaClient:
     ):
         """Test that chart schema does not advertise self-referencing filter columns.
 
-        Even if the DAO returns owner or created_by_fk_or_owner, they must be
+        Even if the DAO returns editor or created_by_fk_or_editor, they must be
         excluded — these synthetic columns are generated server-side from the
-        owned_by_me flag and are not directly usable by LLM callers.
+        edited_by_me flag and are not directly usable by LLM callers.
         """
         mock_filters.return_value = {
             "slice_name": ["eq", "ilike"],
             "created_by_fk": ["eq"],
-            "owner": ["eq", "in"],
-            "created_by_fk_or_owner": ["eq"],
+            "editor": ["eq", "in"],
+            "created_by_fk_or_editor": ["eq"],
         }
 
         async with Client(mcp_server) as client:
@@ -398,7 +396,7 @@ class TestGetSchemaToolViaClient:
         info = data["schema_info"]
 
         assert "slice_name" in info["filter_columns"]
-        for field in ("owner", "created_by_fk_or_owner"):
+        for field in ("editor", "created_by_fk_or_editor"):
             assert field not in info["filter_columns"]
 
     @patch("superset.daos.dataset.DatasetDAO.get_filterable_columns_and_operators")
@@ -408,15 +406,15 @@ class TestGetSchemaToolViaClient:
     ):
         """Test that dataset schema does not advertise self-referencing filter columns.
 
-        Even if the DAO returns owner or created_by_fk_or_owner, they must be
+        Even if the DAO returns editor or created_by_fk_or_editor, they must be
         excluded — these synthetic columns are generated server-side from the
-        owned_by_me flag and are not directly usable by LLM callers.
+        edited_by_me flag and are not directly usable by LLM callers.
         """
         mock_filters.return_value = {
             "table_name": ["eq", "ilike"],
             "created_by_fk": ["eq"],
-            "owner": ["eq", "in"],
-            "created_by_fk_or_owner": ["eq"],
+            "editor": ["eq", "in"],
+            "created_by_fk_or_editor": ["eq"],
         }
 
         async with Client(mcp_server) as client:
@@ -428,7 +426,7 @@ class TestGetSchemaToolViaClient:
         info = data["schema_info"]
 
         assert "table_name" in info["filter_columns"]
-        for field in ("owner", "created_by_fk_or_owner"):
+        for field in ("editor", "created_by_fk_or_editor"):
             assert field not in info["filter_columns"]
 
     @patch("superset.daos.dashboard.DashboardDAO.get_filterable_columns_and_operators")
@@ -438,15 +436,15 @@ class TestGetSchemaToolViaClient:
     ):
         """Test dashboard schema omits self-referencing filter columns.
 
-        Even if the DAO returns owner or created_by_fk_or_owner, they must be
+        Even if the DAO returns editor or created_by_fk_or_editor, they must be
         excluded — these synthetic columns are generated server-side from the
-        owned_by_me flag and are not directly usable by LLM callers.
+        edited_by_me flag and are not directly usable by LLM callers.
         """
         mock_filters.return_value = {
             "dashboard_title": ["eq", "ilike"],
             "created_by_fk": ["eq"],
-            "owner": ["eq", "in"],
-            "created_by_fk_or_owner": ["eq"],
+            "editor": ["eq", "in"],
+            "created_by_fk_or_editor": ["eq"],
         }
 
         async with Client(mcp_server) as client:
@@ -458,7 +456,7 @@ class TestGetSchemaToolViaClient:
         info = data["schema_info"]
 
         assert "dashboard_title" in info["filter_columns"]
-        for field in ("owner", "created_by_fk_or_owner"):
+        for field in ("editor", "created_by_fk_or_editor"):
             assert field not in info["filter_columns"]
 
     @patch(
@@ -470,9 +468,9 @@ class TestGetSchemaToolViaClient:
     ):
         """Test that report schema does not advertise self-referencing filter columns.
 
-        Even if the DAO returns owners.id or created_by_fk_or_owner, they must be
+        Even if the DAO returns editor or created_by_fk_or_editor, they must be
         excluded — these synthetic columns are generated server-side from the
-        owned_by_me flag and are not directly usable by LLM callers.
+        edited_by_me flag and are not directly usable by LLM callers.
         """
         mock_filters.return_value = {
             "name": ["eq", "ilike"],
@@ -480,8 +478,8 @@ class TestGetSchemaToolViaClient:
             "active": ["eq"],
             "last_state": ["eq"],
             "creation_method": ["eq"],
-            "owners.id": ["eq", "in"],
-            "created_by_fk_or_owner": ["eq"],
+            "editor": ["eq", "in"],
+            "created_by_fk_or_editor": ["eq"],
         }
 
         with patch("superset.is_feature_enabled", return_value=True):
@@ -498,7 +496,7 @@ class TestGetSchemaToolViaClient:
         assert "active" in info["filter_columns"]
         assert "last_state" in info["filter_columns"]
         assert "creation_method" in info["filter_columns"]
-        for field in ("owners.id", "created_by_fk_or_owner"):
+        for field in ("editor", "created_by_fk_or_editor"):
             assert field not in info["filter_columns"]
 
     @pytest.mark.asyncio

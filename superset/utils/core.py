@@ -59,7 +59,7 @@ from typing import (
     TypedDict,
     TypeVar,
 )
-from urllib.parse import unquote_plus
+from urllib.parse import unquote_plus, urlparse
 from zipfile import ZipFile
 
 import markdown as md
@@ -210,7 +210,7 @@ class LoggerLevel(StrEnum):
 
 class HeaderDataType(TypedDict):
     notification_format: str
-    owners: list[int]
+    editors: list[int]
     notification_type: str
     notification_source: str | None
     chart_id: int | None
@@ -641,9 +641,7 @@ def generic_find_constraint_name(
     table: str, columns: set[str], referenced: str, database: SQLAlchemy
 ) -> str | None:
     """Utility to find a constraint name in alembic migrations"""
-    tbl = sa.Table(
-        table, database.metadata, autoload=True, autoload_with=database.engine
-    )
+    tbl = sa.Table(table, database.metadata, autoload_with=database.engine)
 
     for fk in tbl.foreign_key_constraints:
         if fk.referred_table.name == referenced and set(fk.column_keys) == columns:
@@ -1821,9 +1819,9 @@ def extract_dataframe_dtypes(
                 columns_by_name[column.column_name] = column
 
     generic_types: list[GenericDataType] = []
-    for column in df.columns:
+    for i, column in enumerate(df.columns):
         column_object = columns_by_name.get(str(column))
-        series = df[column]
+        series = df.iloc[:, i]
         inferred_type: str = ""
         if series.isna().all():
             sql_type: Optional[str] = ""
@@ -2187,11 +2185,21 @@ def to_int(v: Any, value_if_invalid: int = 0) -> int:
 def get_query_source_from_request() -> QuerySource | None:
     if not request or not request.referrer:
         return None
-    if "/superset/dashboard/" in request.referrer:
+    # Match on the referrer's path only, so query-string payloads (e.g.
+    # /explore/?next=/dashboard/1/) cannot misattribute the source. The bare
+    # segment covers legacy /superset/dashboard/ referrers and any
+    # application-root prefix (e.g. /myapp/dashboard/1/).
+    try:
+        referrer_path = urlparse(request.referrer).path
+    except ValueError:
+        # Client-controlled header; e.g. "http://[" raises on the IPv6
+        # bracket check and must not 500 the query path.
+        return None
+    if "/dashboard/" in referrer_path:
         return QuerySource.DASHBOARD
-    if "/explore/" in request.referrer:
+    if "/explore/" in referrer_path:
         return QuerySource.CHART
-    if "/sqllab/" in request.referrer:
+    if "/sqllab/" in referrer_path:
         return QuerySource.SQL_LAB
     return None
 

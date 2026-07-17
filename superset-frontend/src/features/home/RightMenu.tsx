@@ -29,7 +29,7 @@ import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import {
   SupersetClient,
@@ -53,7 +53,7 @@ import {
   TelemetryPixel,
 } from '@superset-ui/core/components';
 import type { ItemType, MenuItem } from '@superset-ui/core/components/Menu';
-import { ensureAppRoot } from 'src/utils/pathUtils';
+import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
@@ -104,10 +104,12 @@ const StyledMenuItem = styled.div<{ disabled?: boolean }>`
       color: ${!disabled && theme.colorPrimary};
       cursor: ${!disabled ? 'pointer' : 'not-allowed'};
     }
-    ${disabled &&
-    css`
-      color: ${theme.colorTextDisabled};
-    `}
+    ${
+      disabled &&
+      css`
+        color: ${theme.colorTextDisabled};
+      `
+    }
   `}
 `;
 
@@ -427,7 +429,7 @@ const RightMenu = ({
               items.push({
                 key: menu.label,
                 label: isFrontendRoute(menu.url) ? (
-                  <Link to={menu.url || ''}>{menu.label}</Link>
+                  <Link to={stripAppRoot(menu.url || '')}>{menu.label}</Link>
                 ) : (
                   <Typography.Link href={ensureAppRoot(menu.url || '')}>
                     {menu.label}
@@ -443,7 +445,7 @@ const RightMenu = ({
           items.push({
             key: menu.label,
             label: isFrontendRoute(menu.url) ? (
-              <Link to={menu.url || ''}>{menu.label}</Link>
+              <Link to={stripAppRoot(menu.url || '')}>{menu.label}</Link>
             ) : (
               <Typography.Link href={ensureAppRoot(menu.url || '')}>
                 {menu.label}
@@ -478,7 +480,9 @@ const RightMenu = ({
             sectionItems.push({
               key: child.label,
               label: isFrontendRoute(child.url) ? (
-                <Link to={child.url || ''}>{menuItemDisplay}</Link>
+                <Link to={stripAppRoot(child.url || '')}>
+                  {menuItemDisplay}
+                </Link>
               ) : (
                 <Typography.Link
                   href={child.url || ''}
@@ -751,6 +755,7 @@ const RightMenu = ({
             target="_blank"
             rel="noreferrer"
             title={navbarRight.documentation_text || t('Documentation')}
+            aria-label={navbarRight.documentation_text || t('Documentation')}
           >
             {navbarRight.documentation_icon ? (
               <Icons.BookOutlined />
@@ -768,6 +773,7 @@ const RightMenu = ({
             target="_blank"
             rel="noreferrer"
             title={navbarRight.bug_report_text || t('Report a bug')}
+            aria-label={navbarRight.bug_report_text || t('Report a bug')}
           >
             {navbarRight.bug_report_icon ? (
               <i className={navbarRight.bug_report_icon} />

@@ -40,6 +40,7 @@ from superset_core.common.models import Tag as CoreTag
 
 from superset import security_manager
 from superset.models.helpers import AuditMixinNullable
+from superset.subjects.types import SubjectType
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -63,8 +64,8 @@ class TagType(enum.Enum):
     Types for tags.
 
     Objects (queries, charts, dashboards, and datasets) will have with implicit tags based
-    on metadata: types, owners and who favorited them. This way, user "alice"
-    can find all their objects by querying for the tag `owner:alice`.
+    on metadata: types, editors and who favorited them. This way, user "alice"
+    can find all their objects by querying for the tag `editor:alice`.
     """  # noqa: E501
 
     # pylint: disable=invalid-name
@@ -73,7 +74,7 @@ class TagType(enum.Enum):
 
     # implicit tags, generated automatically
     type = 2
-    owner = 3
+    editor = 3
     favorited_by = 4
 
 
@@ -111,12 +112,14 @@ class TaggedObject(Model, AuditMixinNullable):
     __tablename__ = "tagged_object"
     id = Column(Integer, primary_key=True)
     tag_id = Column(Integer, ForeignKey("tag.id"))
-    object_id = Column(
-        Integer,
-        ForeignKey("dashboards.id"),
-        ForeignKey("slices.id"),
-        ForeignKey("saved_query.id"),
-    )
+    # ``object_id`` is a polymorphic reference disambiguated by ``object_type``;
+    # the same value can point at a dashboard, chart or saved query. It must not
+    # carry a foreign key to any single table: declaring FKs to dashboards,
+    # slices and saved_query at once is unsatisfiable (a row would have to exist
+    # in all three) and breaks tagging, e.g. tagging a dashboard fails the
+    # slices FK. The original migration (c82ee8a39623) defined no FK here. See
+    # issue #35941.
+    object_id = Column(Integer)
     object_type = Column(Enum(ObjectType))
 
     tag = relationship("Tag", back_populates="objects", overlaps="tags")
@@ -163,33 +166,33 @@ class ObjectUpdater:
     object_type: str = "default"
 
     @classmethod
-    def get_owners_ids(
+    def get_editor_user_ids(
         cls, target: Dashboard | FavStar | Slice | Query | SqlaTable
     ) -> list[int]:
-        raise NotImplementedError("Subclass should implement `get_owners_ids`")
+        raise NotImplementedError("Subclass should implement `get_editor_user_ids`")
 
     @classmethod
-    def get_owner_tag_ids(
+    def get_editor_tag_ids(
         cls,
         session: orm.Session,  # pylint: disable=disallowed-name
         target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> set[int]:
         tag_ids = set()
-        for owner_id in cls.get_owners_ids(target):
-            name = f"owner:{owner_id}"
-            tag = get_tag(name, session, TagType.owner)
+        for user_id in cls.get_editor_user_ids(target):
+            name = f"editor:{user_id}"
+            tag = get_tag(name, session, TagType.editor)
             tag_ids.add(tag.id)
         return tag_ids
 
     @classmethod
-    def _add_owners(
+    def _add_editors(
         cls,
         session: orm.Session,  # pylint: disable=disallowed-name
         target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> None:
-        for owner_id in cls.get_owners_ids(target):
-            name: str = f"owner:{owner_id}"
-            tag = get_tag(name, session, TagType.owner)
+        for user_id in cls.get_editor_user_ids(target):
+            name: str = f"editor:{user_id}"
+            tag = get_tag(name, session, TagType.editor)
             cls.add_tag_object_if_not_tagged(
                 session, tag_id=tag.id, object_id=target.id, object_type=cls.object_type
             )
@@ -225,8 +228,8 @@ class ObjectUpdater:
         target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> None:
         with Session(bind=connection) as session:  # pylint: disable=disallowed-name
-            # add `owner:` tags
-            cls._add_owners(session, target)
+            # add `editor:` tags
+            cls._add_editors(session, target)
 
             # add `type:` tags
             tag = get_tag(f"type:{cls.object_type}", session, TagType.type)
@@ -243,26 +246,26 @@ class ObjectUpdater:
         target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> None:
         with Session(bind=connection) as session:  # pylint: disable=disallowed-name
-            # Fetch current owner tags
+            # Fetch current editor tags
             existing_tags = (
                 session.query(TaggedObject)
                 .join(Tag)
                 .filter(
                     TaggedObject.object_type == cls.object_type,
                     TaggedObject.object_id == target.id,
-                    Tag.type == TagType.owner,
+                    Tag.type == TagType.editor,
                 )
                 .all()
             )
-            existing_owner_tag_ids = {tag.tag_id for tag in existing_tags}
+            existing_editor_tag_ids = {tag.tag_id for tag in existing_tags}
 
-            # Determine new owner IDs
-            new_owner_tag_ids = cls.get_owner_tag_ids(session, target)
+            # Determine new editor IDs
+            new_editor_tag_ids = cls.get_editor_tag_ids(session, target)
 
             # Add missing tags
-            for owner_tag_id in new_owner_tag_ids - existing_owner_tag_ids:
+            for editor_tag_id in new_editor_tag_ids - existing_editor_tag_ids:
                 tagged_object = TaggedObject(
-                    tag_id=owner_tag_id,
+                    tag_id=editor_tag_id,
                     object_id=target.id,
                     object_type=cls.object_type,
                 )
@@ -270,7 +273,7 @@ class ObjectUpdater:
 
             # Remove unnecessary tags
             for tag in existing_tags:
-                if tag.tag_id not in new_owner_tag_ids:
+                if tag.tag_id not in new_editor_tag_ids:
                     session.delete(tag)
             session.commit()
 
@@ -295,23 +298,27 @@ class ChartUpdater(ObjectUpdater):
     object_type = "chart"
 
     @classmethod
-    def get_owners_ids(cls, target: Slice) -> list[int]:
-        return [owner.id for owner in target.owners]
+    def get_editor_user_ids(cls, target: Slice) -> list[int]:
+        return [
+            s.user.id for s in target.editors if s.type == SubjectType.USER and s.user
+        ]
 
 
 class DashboardUpdater(ObjectUpdater):
     object_type = "dashboard"
 
     @classmethod
-    def get_owners_ids(cls, target: Dashboard) -> list[int]:
-        return [owner.id for owner in target.owners]
+    def get_editor_user_ids(cls, target: Dashboard) -> list[int]:
+        return [
+            s.user.id for s in target.editors if s.type == SubjectType.USER and s.user
+        ]
 
 
 class QueryUpdater(ObjectUpdater):
     object_type = "query"
 
     @classmethod
-    def get_owners_ids(cls, target: Query) -> list[int]:
+    def get_editor_user_ids(cls, target: Query) -> list[int]:
         return [target.user_id]
 
 
@@ -319,8 +326,10 @@ class DatasetUpdater(ObjectUpdater):
     object_type = "dataset"
 
     @classmethod
-    def get_owners_ids(cls, target: SqlaTable) -> list[int]:
-        return [owner.id for owner in target.owners]
+    def get_editor_user_ids(cls, target: SqlaTable) -> list[int]:
+        return [
+            s.user.id for s in target.editors if s.type == SubjectType.USER and s.user
+        ]
 
 
 class FavStarUpdater:
