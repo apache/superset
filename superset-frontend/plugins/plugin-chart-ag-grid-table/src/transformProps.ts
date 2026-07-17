@@ -628,7 +628,10 @@ const transformProps = (
                     percentDifferenceNum,
                     col.colorScheme || comparisonColorScheme,
                   );
-                item[col.column] = {
+                // Key by the metric column key (not the raw rule column) so the
+                // renderer's `col.metricName` lookup resolves it, identical to
+                // the comparison-color path below.
+                item[origCol.key] = {
                   mainArrow: arrow,
                   arrowColor,
                   backgroundColor,
@@ -717,8 +720,31 @@ const transformProps = (
   const passedData = isUsingTimeComparison ? comparisonData || [] : data;
   const passedColumns = isUsingTimeComparison ? comparisonColumns : columns;
 
-  const basicColorFormatters =
+  // Increase/decrease formatters from the "Comparison color" toggle, keyed by
+  // metric column key.
+  const comparisonColorFormatters =
     comparisonColorEnabled && getBasicColorFormatter(baseQuery?.data, columns);
+
+  // Custom conditional-formatting rules using the Green (increase) / Red
+  // (decrease) color scheme on a time-comparison table. These were computed but
+  // never consumed by the AG Grid renderer, so the colors/arrows never showed
+  // (the classic plugin-chart-table does consume them). Route them through the
+  // same increase/decrease path, keyed by metric column key (see above).
+  const basicColorColumnFormatters = getBasicColorFormatterForColumn(
+    baseQuery?.data,
+    columns,
+    conditionalFormatting,
+  );
+
+  // Merge both per-row into a single map so the existing row-attached formatter
+  // drives the renderer for either source.
+  const basicColorFormatters =
+    comparisonColorFormatters || basicColorColumnFormatters
+      ? (baseQuery?.data ?? []).map((_row, index) => ({
+          ...((comparisonColorFormatters || [])[index] || {}),
+          ...((basicColorColumnFormatters || [])[index] || {}),
+        }))
+      : comparisonColorFormatters;
 
   // Attach each row's basic (increase/decrease) color formatter to the row data
   // object so it travels with the row through AG Grid client-side sorting.
@@ -737,14 +763,20 @@ const transformProps = (
       });
     });
   }
-  const columnColorFormatters =
-    getColorFormatters(conditionalFormatting, passedData, theme) ?? [];
 
-  const basicColorColumnFormatters = getBasicColorFormatterForColumn(
-    baseQuery?.data,
-    columns,
-    conditionalFormatting,
-  );
+  // Green/Red custom rules are rendered via the increase/decrease path above, so
+  // exclude them here: getColorFormatters treats the scheme name as a hex color
+  // and would emit an invalid `'<scheme>FF'` background otherwise.
+  const columnColorFormatters =
+    getColorFormatters(
+      (conditionalFormatting || []).filter(
+        (config: ConditionalFormattingConfig) =>
+          config.colorScheme !== ColorSchemeEnum.Green &&
+          config.colorScheme !== ColorSchemeEnum.Red,
+      ),
+      passedData,
+      theme,
+    ) ?? [];
 
   const hasPageLength = isPositiveNumber(pageLength);
 
