@@ -741,8 +741,8 @@ const transformProps = (
   const basicColorFormatters =
     comparisonColorFormatters || basicColorColumnFormatters
       ? (baseQuery?.data ?? []).map((_row, index) => ({
-          ...((comparisonColorFormatters || [])[index] || {}),
-          ...((basicColorColumnFormatters || [])[index] || {}),
+          ...(comparisonColorFormatters || [])[index],
+          ...(basicColorColumnFormatters || [])[index],
         }))
       : comparisonColorFormatters;
 
