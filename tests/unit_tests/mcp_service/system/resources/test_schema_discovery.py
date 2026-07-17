@@ -31,7 +31,7 @@ from superset.mcp_service.system.resources.schema_discovery import (
 )
 from superset.utils import json
 
-RESOURCE_URIS = {
+RESOURCE_URIS: dict[str, str] = {
     "chart": "superset://schema/chart",
     "dataset": "superset://schema/dataset",
     "dashboard": "superset://schema/dashboard",
