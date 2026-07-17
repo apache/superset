@@ -84,7 +84,7 @@ class TestManageDashboardCertification:
     async def test_set_certified_by_only(
         self, mock_session: Mock, mock_get: Mock, mcp_server: object
     ) -> None:
-        dash = _mock_dashboard(certification_details="Existing details")
+        dash: Mock = _mock_dashboard(certification_details="Existing details")
         mock_get.return_value = dash
 
         async with Client(mcp_server) as client:
@@ -95,7 +95,7 @@ class TestManageDashboardCertification:
 
         assert dash.certified_by == "Analytics Guild"
         assert dash.certification_details == "Existing details"
-        payload = json.loads(result.content[0].text)
+        payload: dict[str, Any] = json.loads(result.content[0].text)
         assert payload["changed_fields"] == ["certified_by"]
 
     @patch(DAO_GET)
@@ -104,7 +104,7 @@ class TestManageDashboardCertification:
     async def test_clear_with_empty_string(
         self, mock_session: Mock, mock_get: Mock, mcp_server: object
     ) -> None:
-        dash = _mock_dashboard(
+        dash: Mock = _mock_dashboard(
             certified_by="Old Team", certification_details="Old details"
         )
         mock_get.return_value = dash
@@ -326,9 +326,11 @@ class TestManageDashboardCertification:
             ManageDashboardCertificationRequest,
         )
 
-        request = ManageDashboardCertificationRequest(
-            identifier=1,
-            certification_details="<script>alert(1)</script>Verified details",
+        request: ManageDashboardCertificationRequest = (
+            ManageDashboardCertificationRequest(
+                identifier=1,
+                certification_details="<script>alert(1)</script>Verified details",
+            )
         )
         assert "<script>" not in (request.certification_details or "")
 

@@ -255,9 +255,14 @@ class TestManageDashboardOwners:
 
     @patch(GET_OR_CREATE_USER_SUBJECT)
     @patch(DAO_GET)
+    @patch("superset.extensions.db.session")
     @pytest.mark.asyncio
     async def test_unknown_user_id_in_add_rejected(
-        self, mock_get: Mock, mock_get_or_create: Mock, mcp_server: object
+        self,
+        mock_session: Mock,
+        mock_get: Mock,
+        mock_get_or_create: Mock,
+        mcp_server: object,
     ) -> None:
         existing = _mock_subject(100, 1, "admin")
         dash = _mock_dashboard(editors=[existing])
@@ -270,6 +275,10 @@ class TestManageDashboardOwners:
                 {"request": {"identifier": 42, "add_owner_ids": [99999]}},
             )
 
+        # A rejected request must never leave uncommitted Subject rows
+        # (flushed by get_or_create_user_subject for earlier, valid user
+        # IDs in the same call) sitting in the session.
+        mock_session.rollback.assert_called_once()
         payload = json.loads(result.content[0].text)
         assert "not exist" in (payload.get("error") or "").lower()
         assert "find_users" in (payload.get("error") or "")
@@ -501,6 +510,10 @@ class TestManageDashboardOwners:
                 {"request": {"identifier": 42, "add_owner_ids": [7]}},
             )
 
+        # A rejected request must never leave uncommitted Subject rows
+        # (flushed by get_or_create_user_subject before populate_subject_list
+        # ran) sitting in the session.
+        mock_session.rollback.assert_called_once()
         payload = json.loads(result.content[0].text)
         assert "could not be resolved" in (payload.get("error") or "").lower()
         assert "find_users" in (payload.get("error") or "")

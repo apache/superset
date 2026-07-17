@@ -94,7 +94,9 @@ def test_get_current_user_subject_ids_guest_user(app_context):
 
 
 @patch("superset.subjects.utils.get_role_subject")
-def test_get_or_create_role_subject_returns_existing(mock_get_role_subject):
+def test_get_or_create_role_subject_returns_existing(
+    mock_get_role_subject: MagicMock,
+) -> None:
     """An already-synced role resolves to its Subject with no sync."""
     existing = _make_subject(10, SubjectType.ROLE)
     mock_get_role_subject.return_value = existing
@@ -103,7 +105,7 @@ def test_get_or_create_role_subject_returns_existing(mock_get_role_subject):
     mock_get_role_subject.assert_called_once_with(5)
 
 
-def test_get_or_create_role_subject_syncs_unsynced_role():
+def test_get_or_create_role_subject_syncs_unsynced_role() -> None:
     """A role that exists but has no Subject row yet is synced on demand
     rather than treated as nonexistent."""
     created = _make_subject(11, SubjectType.ROLE)
@@ -127,7 +129,7 @@ def test_get_or_create_role_subject_syncs_unsynced_role():
     assert mock_get_role_subject.call_count == 2
 
 
-def test_get_or_create_role_subject_missing_role_returns_none():
+def test_get_or_create_role_subject_missing_role_returns_none() -> None:
     """A role ID with no matching role at all resolves to None."""
     with (
         patch("superset.subjects.utils.get_role_subject", return_value=None),

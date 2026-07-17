@@ -221,9 +221,9 @@ class TestManageDashboardRoles:
         from sqlalchemy.exc import SQLAlchemyError
 
         class _ViewersRaise:
-            id = 42
-            dashboard_title = "Test Dashboard"
-            slug = "test-slug"
+            id: int = 42
+            dashboard_title: str = "Test Dashboard"
+            slug: str = "test-slug"
 
             @property
             def viewers(self) -> list[Mock]:
@@ -385,11 +385,42 @@ class TestManageDashboardRoles:
         assert payload.get("permission_denied") is True
 
     @patch(IS_FEATURE_ENABLED, return_value=True)
+    @patch(DAO_GET)
+    @pytest.mark.asyncio
+    async def test_editorship_check_db_fault_returns_database_error(
+        self, mock_get: Mock, mock_flag: Mock, mcp_server: object
+    ) -> None:
+        """``raise_for_editorship`` re-queries the editor relationship, so a
+        broken session there must surface as the structured database-error
+        response rather than an unhandled exception."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        dash = _mock_dashboard(viewers=[])
+        mock_get.return_value = dash
+
+        with patch(
+            "superset.security_manager.raise_for_editorship",
+            side_effect=SQLAlchemyError("connection lost"),
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "manage_dashboard_roles",
+                    {"request": {"identifier": 42, "add_role_ids": [5]}},
+                )
+
+        payload = json.loads(result.content[0].text)
+        assert "database error" in (payload.get("error") or "").lower()
+        # The raw exception text must never reach the LLM-facing response.
+        assert "connection lost" not in (payload.get("error") or "")
+
+    @patch(IS_FEATURE_ENABLED, return_value=True)
     @patch(GET_OR_CREATE_ROLE_SUBJECT)
     @patch(DAO_GET)
+    @patch("superset.extensions.db.session")
     @pytest.mark.asyncio
     async def test_unknown_role_id_in_add_rejected(
         self,
+        mock_session: Mock,
         mock_get: Mock,
         mock_get_or_create: Mock,
         mock_flag: Mock,
@@ -408,6 +439,10 @@ class TestManageDashboardRoles:
                 {"request": {"identifier": 42, "add_role_ids": [99999]}},
             )
 
+        # A rejected request must never leave uncommitted Subject rows
+        # (flushed by get_or_create_role_subject for earlier, valid role
+        # IDs in the same call) sitting in the session.
+        mock_session.rollback.assert_called_once()
         payload = json.loads(result.content[0].text)
         assert "do not exist" in (payload.get("error") or "").lower()
         assert "list_roles" in (payload.get("error") or "")

@@ -79,6 +79,7 @@ def manage_dashboard_certification(
     )
     if auth_error is not None:
         return auth_error
+    assert dashboard is not None  # narrows for mypy
 
     if request.certified_by is None and request.certification_details is None:
         return ManageDashboardCertificationResponse(
@@ -96,8 +97,8 @@ def manage_dashboard_certification(
     # and a failed `refresh()` below would otherwise leave a later
     # `dashboard.certified_by`/`certification_details` read free to raise an
     # unhandled `SQLAlchemyError` from a broken session.
-    final_certified_by = dashboard.certified_by
-    final_certification_details = dashboard.certification_details
+    final_certified_by: str | None = dashboard.certified_by
+    final_certification_details: str | None = dashboard.certification_details
 
     try:
         with event_logger.log_context(

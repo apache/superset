@@ -1219,7 +1219,7 @@ class ManageDashboardOwnersResponse(DashboardMutationErrorFields):
             if subject.label is None:
                 sanitized.append(subject)
                 continue
-            clean_label = sanitize_for_llm_context(
+            clean_label: str = sanitize_for_llm_context(
                 subject.label, field_path=("owners", "label")
             )
             if not clean_label:
@@ -1343,7 +1343,7 @@ class ManageDashboardRolesResponse(DashboardMutationErrorFields):
             if subject.label is None:
                 sanitized.append(subject)
                 continue
-            clean_label = sanitize_for_llm_context(
+            clean_label: str = sanitize_for_llm_context(
                 subject.label, field_path=("roles", "label")
             )
             if not clean_label:

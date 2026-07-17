@@ -27,7 +27,7 @@ response schema; unifying that shape is left to a follow-up.
 """
 
 import logging
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -39,6 +39,9 @@ from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.dashboard.schemas import DashboardMutationErrorFields
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 
+if TYPE_CHECKING:
+    from superset.models.dashboard import Dashboard
+
 logger: logging.Logger = logging.getLogger(__name__)
 
 ResponseT = TypeVar("ResponseT", bound=DashboardMutationErrorFields)
@@ -47,7 +50,7 @@ ResponseT = TypeVar("ResponseT", bound=DashboardMutationErrorFields)
 def find_and_authorize_dashboard(
     identifier: int | str,
     response_cls: type[ResponseT],
-) -> tuple[Any, ResponseT | None]:
+) -> tuple["Dashboard | None", ResponseT | None]:
     """Return (dashboard, None) on success or (None, error_response) on failure.
 
     ``response_cls`` is the calling tool's response schema; every failure
@@ -60,7 +63,7 @@ def find_and_authorize_dashboard(
     from superset.daos.dashboard import DashboardDAO
 
     try:
-        dashboard = DashboardDAO.get_by_id_or_slug(identifier)
+        dashboard: Dashboard | None = DashboardDAO.get_by_id_or_slug(identifier)
     except DashboardAccessDeniedError:
         # get_by_id_or_slug re-checks view access and raises access-denied
         # for dashboards the caller cannot see; surface it as the
@@ -98,10 +101,20 @@ def find_and_authorize_dashboard(
                 f"'{dashboard.dashboard_title}' (ID: {dashboard.id})."
             ),
         )
+    except SQLAlchemyError:
+        # raise_for_editorship re-queries the dashboard's editor
+        # relationship, so a broken session here is just as possible as in
+        # the lookup above.
+        logger.exception(
+            "Database error checking editorship for dashboard %r", identifier
+        )
+        return None, response_cls(
+            error="Failed to verify dashboard edit permission due to a database error.",
+        )
 
     return dashboard, None
 
 
-def dashboard_url(dashboard: Any) -> str:
+def dashboard_url(dashboard: "Dashboard") -> str:
     """Build the user-facing dashboard URL, preferring slug over id."""
     return f"{get_superset_base_url()}/dashboard/{dashboard.slug or dashboard.id}/"

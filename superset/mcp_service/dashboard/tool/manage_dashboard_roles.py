@@ -32,7 +32,7 @@ the dashboard are preserved untouched by this tool.
 """
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING
 
 from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
@@ -50,10 +50,14 @@ from superset.mcp_service.dashboard.tool.governance_utils import (
 from superset.mcp_service.system.schemas import serialize_subject_object
 from superset.subjects.types import SubjectType
 
+if TYPE_CHECKING:
+    from superset.models.dashboard import Dashboard
+    from superset.subjects.models import Subject
+
 logger: logging.Logger = logging.getLogger(__name__)
 
 
-def _viewer_role_ids(dashboard: Any) -> list[int]:
+def _viewer_role_ids(dashboard: "Dashboard") -> list[int]:
     """Role IDs behind the dashboard's ROLE-type viewer subjects."""
     return [
         subject.role_id
@@ -62,7 +66,7 @@ def _viewer_role_ids(dashboard: Any) -> list[int]:
     ]
 
 
-def _other_viewers(dashboard: Any) -> list[Any]:
+def _other_viewers(dashboard: "Dashboard") -> list["Subject"]:
     """Non-ROLE-type viewers (USER/GROUP subjects), preserved untouched."""
     return [
         subject for subject in dashboard.viewers if subject.type != SubjectType.ROLE
@@ -70,7 +74,7 @@ def _other_viewers(dashboard: Any) -> list[Any]:
 
 
 def _compute_new_role_ids(
-    dashboard: Any, request: ManageDashboardRolesRequest, viewers_enabled: bool
+    dashboard: "Dashboard", request: ManageDashboardRolesRequest, viewers_enabled: bool
 ) -> tuple[list[int] | None, list[int] | None, ManageDashboardRolesResponse | None]:
     """Load current viewer roles and apply add/remove operations.
 
@@ -124,7 +128,9 @@ def _compute_new_role_ids(
     return current_role_ids, new_role_ids, None
 
 
-def _resolve_role_subjects(new_role_ids: list[int]) -> tuple[list[Any], list[int]]:
+def _resolve_role_subjects(
+    new_role_ids: list[int],
+) -> tuple[list["Subject"], list[int]]:
     """Resolve role IDs to ROLE-type Subjects, one at a time.
 
     Mirrors the owners tool's ``get_or_create_user_subject`` loop: a role
@@ -135,7 +141,7 @@ def _resolve_role_subjects(new_role_ids: list[int]) -> tuple[list[Any], list[int
     """
     from superset.subjects.utils import get_or_create_role_subject
 
-    resolved_role_subjects: list[Any] = []
+    resolved_role_subjects: list["Subject"] = []
     missing_role_ids: list[int] = []
     for role_id in new_role_ids:
         subject = get_or_create_role_subject(role_id)
@@ -207,6 +213,7 @@ def manage_dashboard_roles(
     )
     if auth_error is not None:
         return auth_error
+    assert dashboard is not None  # narrows for mypy
 
     viewers_enabled = is_feature_enabled("ENABLE_VIEWERS")
     warnings: list[str] = []
@@ -248,6 +255,10 @@ def manage_dashboard_roles(
                 new_role_ids
             )
             if missing_role_ids:
+                # Roll back any Subject rows _resolve_role_subjects already
+                # flushed for earlier, valid role IDs so this all-or-nothing
+                # request never leaves an uncommitted partial sync behind.
+                db.session.rollback()  # pylint: disable=consider-using-transaction
                 return ManageDashboardRolesResponse(
                     viewers_enabled=viewers_enabled,
                     error=(
