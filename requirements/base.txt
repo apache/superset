@@ -164,7 +164,7 @@ google-auth==2.53.0
     # via
     #   -r requirements/base.in
     #   shillelagh
-greenlet==3.5.1
+greenlet==3.5.3
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh
