@@ -174,7 +174,7 @@
     "content-disposition": "^2.0.1",
     "d3-scale": "^4.0.2",
     "dayjs": "^1.11.21",
-    "dom-to-image-more": "^3.10.0",
+    "dom-to-image-more": "^3.10.2",
     "dom-to-pdf": "^0.3.2",
     "echarts": "^6.1.0",
     "fast-glob": "^3.3.2",
