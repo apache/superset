@@ -125,6 +125,13 @@ Alternatively, perform a fresh install. This is a one-time migration; subsequent
 | fullnameOverride | string | `nil` | Provide a name to override the full names of resources |
 | globalPodAnnotations | object | `{}` | Global pod annotations to be added to all pods Use this to set annotations that apply to all Superset components Component-specific podAnnotations will be merged with these global annotations |
 | hostAliases | list | `[]` | Custom hostAliases for all superset pods # https://kubernetes.io/docs/tasks/network/customize-hosts-file-for-pods/ |
+| httproute | object | see `values.yaml` | Gateway API HTTPRoute for exposing Superset via a Gateway. Requires the Gateway API CRDs (gateway.networking.k8s.io/v1) installed in the cluster. |
+| httproute.annotations | object | `{}` | Annotations to add to the HTTPRoute |
+| httproute.apiVersion | string | `"gateway.networking.k8s.io/v1"` | HTTPRoute apiVersion. Override to gateway.networking.k8s.io/v1beta1 for older Gateway API installations that have not promoted HTTPRoute to v1. |
+| httproute.hostnames | list | `[]` | Hostnames that match against the HTTP Host header (templated) |
+| httproute.labels | object | `{}` | Additional labels to add to the HTTPRoute |
+| httproute.parentRefs | list | `[]` | Gateways this HTTPRoute attaches to |
+| httproute.rules | list | `[{"matches":[{"path":{"type":"PathPrefix","value":"/"}}]}]` | Routing rules. Each rule is backed by the Superset service. Set `weight` per rule to leave room for traffic splitting (defaults to 1). When `supersetWebsockets.enabled` is true, an extra rule routing `supersetWebsockets.ingress.path` to the `-ws` service is appended automatically, mirroring the ingress behavior. |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.repository | string | `"apachesuperset.docker.scarf.sh/apache/superset"` |  |
 | image.tag | string | `nil` |  |
