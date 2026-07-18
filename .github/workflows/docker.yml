@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   changes:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -40,7 +40,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   setup_matrix:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     outputs:
       matrix_config: ${{ steps.set_matrix.outputs.matrix_config }}
@@ -58,7 +58,7 @@ jobs:
       needs.changes.outputs.python == 'true' ||
       needs.changes.outputs.frontend == 'true' ||
       needs.changes.outputs.docker == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 60
     strategy:
       matrix:
@@ -173,7 +173,7 @@ jobs:
     # goal is to check that building the latest image works, not required for all PR pushes
     needs: changes
     if: github.event_name == 'push' && github.ref == 'refs/heads/master' && needs.changes.outputs.docker == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"

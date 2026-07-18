@@ -28,7 +28,7 @@ concurrency:
 
 jobs:
   changes:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -301,7 +301,7 @@ jobs:
   cypress-matrix-required:
     needs: [changes, cypress-matrix]
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     permissions: {}
     steps:
@@ -323,7 +323,7 @@ jobs:
   playwright-tests-required:
     needs: [changes, playwright-tests]
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     permissions: {}
     steps:

@@ -15,7 +15,7 @@ jobs:
     # gate on. Restrict to the canonical repo: forks cannot mint a valid OIDC
     # token for this package and must not publish.
     if: github.repository == 'apache/superset'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       id-token: write # required for npm trusted publishing (OIDC)

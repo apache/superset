@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   config:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
@@ -29,7 +29,7 @@ jobs:
     needs: config
     if: needs.config.outputs.has-secrets
     name: Bump version and publish package(s)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
     steps:
