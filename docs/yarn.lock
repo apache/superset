@@ -7881,10 +7881,10 @@ docusaurus-plugin-openapi-docs@^5.1.1:
     swagger2openapi "^7.0.8"
     xml-formatter "^3.6.6"
 
-docusaurus-theme-openapi-docs@^5.1.1:
-  version "5.1.1"
-  resolved "https://registry.yarnpkg.com/docusaurus-theme-openapi-docs/-/docusaurus-theme-openapi-docs-5.1.1.tgz#6e404a60942c74dbf31ecabb3bb8276d91de811c"
-  integrity sha512-oGpHomo51qfKD8KM6gEfZRw98o8IRFpOhe3QnMljqy+L69vownXblJEMxZlXUMJML922NbN98tf3Bh4zKXqZTQ==
+docusaurus-theme-openapi-docs@^5.1.2:
+  version "5.1.2"
+  resolved "https://registry.yarnpkg.com/docusaurus-theme-openapi-docs/-/docusaurus-theme-openapi-docs-5.1.2.tgz#8591e3be971920c5eb347b9aab4bac77db5c7c31"
+  integrity sha512-uJx+a4qHmpOnl+e7YzsPJSga6d6TLGEVZZPtI7KkzC/PgG7bS8E4P8hknvWqmAEahxhLWEb8izIA3up/0g9RwA==
   dependencies:
     "@hookform/error-message" "^2.0.1"
     "@reduxjs/toolkit" "^2.8.2"
