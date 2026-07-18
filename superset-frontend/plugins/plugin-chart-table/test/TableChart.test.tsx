@@ -2292,6 +2292,96 @@ describe('plugin-chart-table', () => {
       });
     });
 
+    test('should not reset pagination when a cell is clicked (#42010)', async () => {
+      type DataRow = {
+        id: number;
+        name: string;
+        value: number;
+      };
+
+      const columns: Column<DataRow>[] = [
+        {
+          Header: 'ID',
+          accessor: 'id',
+          id: 'id',
+          Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
+        },
+        {
+          Header: 'Name',
+          accessor: 'name',
+          id: 'name',
+          Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
+        },
+        {
+          Header: 'Value',
+          accessor: 'value',
+          id: 'value',
+          Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
+        },
+      ];
+
+      // 30 rows with page size 10 = 3 pages
+      const data: DataRow[] = Array.from({ length: 30 }, (_, i) => ({
+        id: i + 1,
+        name: `User ${i + 1}`,
+        value: (i + 1) * 100,
+      }));
+
+      const { container } = render(
+        <ProviderWrapper>
+          <DataTable<DataRow>
+            columns={columns}
+            data={data}
+            rowCount={data.length}
+            pageSize={10}
+            serverPagination={false}
+            serverPaginationData={{}}
+            onServerPaginationChange={jest.fn()}
+            handleSortByChange={jest.fn()}
+            sortByFromParent={[]}
+            onSearchColChange={jest.fn()}
+            searchOptions={[]}
+            sticky={false}
+            searchInput={false}
+            selectPageSize={false}
+          />
+        </ProviderWrapper>,
+      );
+
+      // Verify we're on page 1 (showing rows 1-10)
+      const getRowTexts = () =>
+        Array.from(container.querySelectorAll('tbody td:nth-child(2)')).map(
+          td => td.textContent,
+        );
+      expect(getRowTexts()).toContain('User 1');
+      expect(getRowTexts()).not.toContain('User 11');
+
+      // Navigate to page 2 by clicking the page 2 link
+      const page2Link = container.querySelector('a[href="#page-1"]')!;
+      expect(page2Link).toBeTruthy();
+      fireEvent.click(page2Link);
+
+      // Wait for page 2 to render (showing rows 11-20)
+      await waitFor(() => {
+        expect(getRowTexts()).toContain('User 11');
+        expect(getRowTexts()).not.toContain('User 1');
+      });
+
+      // Click a cell on page 2
+      const cell = screen.getByText('User 11');
+      fireEvent.click(cell);
+
+      // Verify we're still on page 2 (the fix prevents reset to page 1)
+      await waitFor(() => {
+        expect(getRowTexts()).toContain('User 11');
+        expect(getRowTexts()).not.toContain('User 1');
+      });
+
+      // Also verify the active page indicator is still on page 2
+      const activePage = container.querySelector('li.active a')!;
+      expect(activePage).toHaveAttribute('href', '#page-1');
+    });
+
     test('should build columnLabelToNameMap for adhoc columns with custom labels', () => {
       const result = transformProps({
         ...testData.basic,
