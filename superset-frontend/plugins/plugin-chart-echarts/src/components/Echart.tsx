@@ -128,8 +128,16 @@ use([
 // ("Package path ./i18n is exported ... but no valid target file was
 // found"). A static map is also the only thing that lets bundlers
 // code-split exactly the locales listed here. Keys are Superset locales
-// uppercased; echarts locales absent from this map fall back to English.
-const LOCALE_LOADERS: Record<string, () => Promise<{ default: object }>> = {
+// uppercased (see LANGUAGES in superset/config.py); values point at the
+// echarts bundle, whose naming differs for some locales (Slovenian is
+// langSI, Brazilian Portuguese is langPT-br). Superset locales absent
+// from this map fall back to English.
+type EChartsLocaleOption = Parameters<typeof registerLocale>[1];
+
+const LOCALE_LOADERS: Record<
+  string,
+  () => Promise<{ default: EChartsLocaleOption }>
+> = {
   AR: () => import('echarts/i18n/langAR.js'),
   CS: () => import('echarts/i18n/langCS.js'),
   DE: () => import('echarts/i18n/langDE.js'),
@@ -147,8 +155,9 @@ const LOCALE_LOADERS: Record<string, () => Promise<{ default: object }>> = {
   NL: () => import('echarts/i18n/langNL.js'),
   PL: () => import('echarts/i18n/langPL.js'),
   RO: () => import('echarts/i18n/langRO.js'),
+  PT_BR: () => import('echarts/i18n/langPT-br.js'),
   RU: () => import('echarts/i18n/langRU.js'),
-  SI: () => import('echarts/i18n/langSI.js'),
+  SL: () => import('echarts/i18n/langSI.js'),
   SV: () => import('echarts/i18n/langSV.js'),
   TH: () => import('echarts/i18n/langTH.js'),
   TR: () => import('echarts/i18n/langTR.js'),
