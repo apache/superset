@@ -31,7 +31,7 @@ describe('sqlLabReducer', () => {
   test('should merge databases instead of replacing existing database state', () => {
     const existingDb = {
       ...databases.result[0],
-      extra: databases.result[0].extra || '{}',
+      extra: '{}',
     };
     const existingDbId = Number(existingDb.id);
 
