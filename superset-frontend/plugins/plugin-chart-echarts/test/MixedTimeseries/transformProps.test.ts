@@ -1766,7 +1766,6 @@ test('hides the ticks on the x axis and both y axes', () => {
   expect(yAxis[1].axisTick.show).toBe(false);
 });
 
-
 test('should apply a dashed lineStyle to derived (time comparison) series only', () => {
   const queryAData = createTestQueryData(
     [
