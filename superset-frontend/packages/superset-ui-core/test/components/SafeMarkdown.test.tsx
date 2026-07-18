@@ -115,7 +115,7 @@ describe('getOverrideHtmlSchema', () => {
     expect(result.attributes?.li).toEqual(['className']);
   });
 
-  test('a "*" wildcard override allows classes on li even though li has its own default definition', () => {
+  test('a "*" wildcard override alone does not widen li, which has its own default definition', () => {
     const result = getOverrideHtmlSchema(taskListSchemaFixture, {
       attributes: { '*': ['className'] },
     });
@@ -126,6 +126,22 @@ describe('getOverrideHtmlSchema', () => {
     // `li` entry first, this alone documents why an `li`-specific override
     // is required to unblock arbitrary classes on `li` -- a `'*'` override
     // does not, by itself, widen a tag that already has its own definition.
+    expect(result.attributes?.li).toEqual(taskListSchemaFixture.attributes?.li);
+  });
+
+  test('a malformed (non-array) attribute override for a tag falls back to the default definition instead of throwing', () => {
+    expect(() =>
+      getOverrideHtmlSchema(taskListSchemaFixture, {
+        // Runtime config isn't guaranteed to match the expected shape; a
+        // string here (rather than an array of attribute definitions) must
+        // not crash markdown rendering.
+        attributes: { li: 'className' as unknown as string[] },
+      }),
+    ).not.toThrow();
+
+    const result = getOverrideHtmlSchema(taskListSchemaFixture, {
+      attributes: { li: 'className' as unknown as string[] },
+    });
     expect(result.attributes?.li).toEqual(taskListSchemaFixture.attributes?.li);
   });
 
