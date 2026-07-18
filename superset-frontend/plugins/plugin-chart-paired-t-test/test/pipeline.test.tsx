@@ -81,7 +81,8 @@ test('the full pipeline renders a body row per group for each metric table', () 
   // two metric tables, each with two group rows (boy / girl)
   const bodyRows = container.querySelectorAll('tbody tr');
   expect(bodyRows).toHaveLength(4);
-  expect(container.querySelectorAll('td[label="gender"]')).toHaveLength(4);
+  // each row leads with its group value; boy/girl appears once per table
+  expect(container.querySelectorAll('tbody tr td:first-child')).toHaveLength(4);
 });
 
 test('renders rows even when precision/significance controls are absent from formData', () => {

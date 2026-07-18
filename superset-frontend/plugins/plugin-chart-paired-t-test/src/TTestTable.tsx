@@ -17,9 +17,8 @@
  * under the License.
  */
 /* eslint-disable react/no-array-index-key, react/jsx-no-bind */
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, KeyboardEvent } from 'react';
 import { studentTwoSidedPValue } from './statistics';
-import { Table, Tr, Td, Thead, Th } from 'reactable';
 
 interface DataPointValue {
   x: number;
@@ -40,6 +39,58 @@ interface TTestTableProps {
   pValPrec?: number;
 }
 
+const P_VALUE = 'pValue';
+const LIFT_VALUE = 'liftValue';
+const SIGNIFICANT = 'significant';
+
+type Comparator = (a: string, b: string) => number;
+
+// Column comparators ported from the previous reactable `sortable` config.
+// 'control' always sorts to the top in ascending order (the table toggles to
+// descending on a second click, mirroring the old behavior).
+const COMPARATORS: Record<string, Comparator> = {
+  [P_VALUE]: (a, b) => {
+    if (a === 'control') return -1;
+    if (b === 'control') return 1;
+    if (a === b) return 0;
+    return a > b ? 1 : -1; // p-values ascending
+  },
+  [LIFT_VALUE]: (a, b) => {
+    if (a === 'control') return -1;
+    if (b === 'control') return 1;
+    const liftA = parseFloat(a);
+    const liftB = parseFloat(b);
+    const aFinite = Number.isFinite(liftA);
+    const bFinite = Number.isFinite(liftB);
+    // Non-finite (Infinity/NaN) lift values sort ahead of finite ones,
+    // consistently regardless of comparison order, to avoid an antisymmetric
+    // comparator.
+    if (!aFinite && !bFinite) return 0;
+    if (!aFinite) return -1;
+    if (!bFinite) return 1;
+    if (liftA === liftB) return 0;
+    return liftA > liftB ? -1 : 1; // lift values descending
+  },
+  [SIGNIFICANT]: (a, b) => {
+    if (a === 'control') return -1;
+    if (b === 'control') return 1;
+    if (a === b) return 0;
+    return a > b ? -1 : 1; // significant values first
+  },
+};
+
+// Default comparator for the group columns: numeric when both values parse as
+// numbers, lexicographic otherwise.
+const defaultCompare: Comparator = (a, b) => {
+  const na = Number(a);
+  const nb = Number(b);
+  if (a !== '' && b !== '' && !Number.isNaN(na) && !Number.isNaN(nb)) {
+    return na - nb;
+  }
+  if (a === b) return 0;
+  return a < b ? -1 : 1;
+};
+
 function TTestTable({
   alpha = 0.05,
   data,
@@ -54,6 +105,8 @@ function TTestTable({
   const controlRef = useRef(0);
   const [liftValues, setLiftValues] = useState<(string | number)[]>([]);
   const [pValues, setPValues] = useState<(string | number)[]>([]);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDesc, setSortDesc] = useState(false);
 
   const computeLift = useCallback(
     (values: DataPointValue[], controlValues: DataPointValue[]): string => {
@@ -207,160 +260,109 @@ function TTestTable({
     [computeTTest],
   );
 
-  // When sorted ascending, 'control' will always be at top
-  type SortConfigItem =
-    string | { column: string; sortFunction: (a: string, b: string) => number };
-
-  const sortConfig: SortConfigItem[] = useMemo(
-    () =>
-      (groups as SortConfigItem[]).concat([
-        {
-          column: 'pValue',
-          sortFunction: (a: string, b: string) => {
-            if (a === 'control') {
-              return -1;
-            }
-            if (b === 'control') {
-              return 1;
-            }
-            if (a === b) {
-              return 0;
-            }
-
-            return a > b ? 1 : -1; // p-values ascending
-          },
-        },
-        {
-          column: 'liftValue',
-          sortFunction: (a: string, b: string) => {
-            if (a === 'control') {
-              return -1;
-            }
-            if (b === 'control') {
-              return 1;
-            }
-
-            const liftA = parseFloat(a);
-            const liftB = parseFloat(b);
-            const aFinite = Number.isFinite(liftA);
-            const bFinite = Number.isFinite(liftB);
-            // Non-finite (Infinity/NaN) lift values sort ahead of finite ones,
-            // consistently regardless of comparison order, to avoid an
-            // antisymmetric comparator
-            if (!aFinite && !bFinite) {
-              return 0;
-            }
-            if (!aFinite) {
-              return -1;
-            }
-            if (!bFinite) {
-              return 1;
-            }
-            if (liftA === liftB) {
-              return 0;
-            }
-
-            return liftA > liftB ? -1 : 1; // lift values descending
-          },
-        },
-        {
-          column: 'significant',
-          sortFunction: (a: string, b: string) => {
-            if (a === 'control') {
-              return -1;
-            }
-            if (b === 'control') {
-              return 1;
-            }
-            if (a === b) {
-              return 0;
-            }
-
-            return a > b ? -1 : 1; // significant values first
-          },
-        },
-      ]),
-    [groups],
-  );
+  const handleSort = useCallback((column: string) => {
+    setSortColumn(prev => {
+      if (prev === column) {
+        setSortDesc(desc => !desc);
+        return prev;
+      }
+      setSortDesc(false);
+      return column;
+    });
+  }, []);
 
   if (!Array.isArray(groups) || groups.length === 0) {
     throw new Error('Group by param is required');
   }
 
-  // Render column header for each group
-  const columns = groups.map((group, i) => (
-    <Th key={i} column={group}>
-      {group}
-    </Th>
-  ));
-  const numGroups = groups.length;
-  // Columns for p-value, lift-value, and significance (true/false)
-  columns.push(
-    <Th key={numGroups + 1} column="pValue">
-      p-value
-    </Th>,
-  );
-  columns.push(
-    <Th key={numGroups + 2} column="liftValue">
-      Lift %
-    </Th>,
-  );
-  columns.push(
-    <Th key={numGroups + 3} column="significant">
-      Significant
-    </Th>,
-  );
+  const columns = [
+    ...groups.map(group => ({ key: group, label: group })),
+    { key: P_VALUE, label: 'p-value' },
+    { key: LIFT_VALUE, label: 'Lift %' },
+    { key: SIGNIFICANT, label: 'Significant' },
+  ];
 
-  const rows = (data ?? []).map((entry, i) => {
-    const values = groups.map(
-      (
-        group,
-        j, // group names
-      ) => <Td key={j} column={group} data={entry.group[j]} />,
-    );
-    values.push(
-      <Td
-        key={numGroups + 1}
-        className={getPValueStatus(i)}
-        column="pValue"
-        data={pValues[i]}
-      />,
-    );
-    values.push(
-      <Td
-        key={numGroups + 2}
-        className={getLiftStatus(i)}
-        column="liftValue"
-        data={liftValues[i]}
-      />,
-    );
-    values.push(
-      <Td
-        key={numGroups + 3}
-        className={getSignificance(i).toString()}
-        column="significant"
-        data={getSignificance(i)}
-      />,
-    );
+  // Value used to sort a row by the active column.
+  const sortValueOf = (index: number): string => {
+    if (sortColumn === null) {
+      return '';
+    }
+    const groupIndex = groups.indexOf(sortColumn);
+    if (groupIndex >= 0) {
+      return String(data[index].group[groupIndex]);
+    }
+    if (sortColumn === P_VALUE) {
+      return String(pValues[index]);
+    }
+    if (sortColumn === LIFT_VALUE) {
+      return String(liftValues[index]);
+    }
+    return String(getSignificance(index));
+  };
 
-    return (
-      <Tr
-        key={i}
-        className={i === control ? 'control' : ''}
-        onClick={() => handleRowClick(i)}
-      >
-        {values}
-      </Tr>
-    );
-  });
+  const rowOrder = (data ?? []).map((_, i) => i);
+  if (sortColumn !== null) {
+    const compare = COMPARATORS[sortColumn] ?? defaultCompare;
+    rowOrder.sort((a, b) => {
+      const result = compare(sortValueOf(a), sortValueOf(b));
+      return sortDesc ? -result : result;
+    });
+  }
 
   return (
     <div>
       <h3>{metric}</h3>
-      <Table className="table" id={`table_${metric}`} sortable={sortConfig}>
-        <Thead>{columns}</Thead>
-        {rows}
-      </Table>
+      <table className="table" id={`table_${metric}`}>
+        <thead>
+          <tr className="reactable-column-header">
+            {columns.map(column => {
+              const sortClass =
+                sortColumn === column.key
+                  ? sortDesc
+                    ? ' reactable-header-sort-desc'
+                    : ' reactable-header-sort-asc'
+                  : '';
+              return (
+                <th
+                  key={column.key}
+                  className={`reactable-header-sortable${sortClass}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleSort(column.key)}
+                  onKeyDown={(e: KeyboardEvent<HTMLTableCellElement>) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleSort(column.key);
+                    }
+                  }}
+                >
+                  {column.label}
+                </th>
+              );
+            })}
+          </tr>
+        </thead>
+        <tbody className="reactable-data">
+          {rowOrder.map(i => {
+            const entry = data[i];
+            const significance = getSignificance(i);
+            return (
+              <tr
+                key={i}
+                className={i === control ? 'control' : ''}
+                onClick={() => handleRowClick(i)}
+              >
+                {groups.map((group, j) => (
+                  <td key={j}>{entry.group[j]}</td>
+                ))}
+                <td className={getPValueStatus(i)}>{pValues[i]}</td>
+                <td className={getLiftStatus(i)}>{liftValues[i]}</td>
+                <td className={String(significance)}>{String(significance)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
