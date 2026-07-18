@@ -1903,7 +1903,8 @@ msgid "An error occurred while fetching schema values: %s"
 msgstr "Une erreur s'est produite lors de l'extraction des valeurs du schéma : %s"
 
 msgid "An error occurred while fetching semantic layer types"
-msgstr "Une erreur s'est produite lors de la récupération des Thèmes "
+msgstr "Une erreur s'est produite lors de la récupération des "
+"types de couches sémantiques"
 
 msgid "An error occurred while fetching semantic layers"
 msgstr "Une erreur s'est produite lors de la récupération des couches sémantiques"
@@ -1929,7 +1930,8 @@ msgid "An error occurred while fetching the semantic layer"
 msgstr "Une erreur s'est produite lors de la récupération de l'état de l'onglet"
 
 msgid "An error occurred while fetching the semantic view structure"
-msgstr "Une erreur s'est produite lors de la récupération de l'état de l'onglet"
+msgstr "Une erreur s'est produite lors de la récupération de la structure de "
+"la vue sémantique"
 
 #, python-format
 msgid "An error occurred while fetching theme datasource values: %s"
@@ -4869,7 +4871,7 @@ msgstr ""
 "table avant de restaurer."
 
 msgid "Dataset column delete failed."
-msgstr "La suppression du jeu de données a échoué."
+msgstr "La suppression de la colonne du jeu de données a échoué."
 
 msgid "Dataset column not found."
 msgstr "Colonne du jeu de données introuvable."
