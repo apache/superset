@@ -1826,10 +1826,10 @@ def test_get_df_captures_description_after_fetch(mocker: MockerFixture) -> None:
     database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
 
     cursor = mocker.MagicMock()
-    placeholder_description = [
+    placeholder_description: list[tuple[str, str, None, None, None, None, None]] = [
         ("Result", "STRING", None, None, None, None, None),
     ]
-    result_description = [
+    result_description: list[tuple[str, str, None, None, None, None, None]] = [
         ("value", "BIGINT", None, None, None, None, None),
     ]
     cursor.description = placeholder_description
