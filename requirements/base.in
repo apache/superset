@@ -52,11 +52,11 @@ marshmallow-sqlalchemy>=1.5.0
 # needed for python 3.12 support
 openapi-schema-validator>=0.6.3
 
-# Pin setuptools <81 until all dependencies migrate from pkg_resources to importlib.metadata
+# Pin setuptools <84 until all dependencies migrate from pkg_resources to importlib.metadata
 # pkg_resources is deprecated and will be removed in setuptools 81+ (around 2025-11-30)
 # Known affected packages: Preset's 'clients' package
 # See docs/docs/contributing/pkg-resources-migration.md for details
-setuptools<81
+setuptools<84
 
 # google-auth 2.53+ dropped its transitive dependency on cachetools, which is
 # imported directly by superset.db_engine_specs.aws_iam. We declare cachetools
