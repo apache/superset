@@ -230,17 +230,17 @@ msgstr "\"%s\" est maintenant le thème sombre du système"
 msgid "\"%s\" is now the system default theme"
 msgstr "\"%s\" est maintenant le thème par défaut du système"
 
-#, python-format
-msgid "%% calculation"
-msgstr "%% calcul"
+#, no-python-format
+msgid "% calculation"
+msgstr "% calcul"
 
-#, python-format
-msgid "%% of parent"
-msgstr "%% du parent"
+#, no-python-format
+msgid "% of parent"
+msgstr "% du parent"
 
-#, python-format
-msgid "%% of total"
-msgstr "%% du total"
+#, no-python-format
+msgid "% of total"
+msgstr "% du total"
 
 #, python-format
 msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
