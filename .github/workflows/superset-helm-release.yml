@@ -134,26 +134,60 @@ jobs:
               base: "gh-pages",
             });
 
+            let current;
             if (existing.length > 0) {
-              core.info(`Reusing existing pull request: ${existing[0].html_url}`);
-              return;
+              current = existing[0];
+              core.info(`Reusing existing pull request: ${current.html_url}`);
+            } else {
+              const { data: pr } = await github.rest.pulls.create({
+                owner,
+                repo,
+                title: "Helm chart release",
+                head: branchName,
+                base: "gh-pages", // Adjust if the target branch is different
+                body: [
+                  "This PR releases Helm charts to the gh-pages branch.",
+                  "",
+                  "It is force-updated from the tip of `gh-pages` by every release run,",
+                  "so it always contains every chart released since the last merge and",
+                  "never needs to be closed as superseded.",
+                ].join("\n"),
+              });
+              current = pr;
+              core.info(`Pull request created: ${current.html_url}`);
             }
 
-            const pr = await github.rest.pulls.create({
+            // Sweep release PRs left open by older runs (per-SHA helm-publish-*
+            // branches from the previous scheme). Their content is a subset of
+            // the evergreen PR, so close them with a pointer to it.
+            const { data: openPrs } = await github.rest.pulls.list({
               owner,
               repo,
-              title: "Helm chart release",
-              head: branchName,
-              base: "gh-pages", // Adjust if the target branch is different
-              body: [
-                "This PR releases Helm charts to the gh-pages branch.",
-                "",
-                "It is force-updated from the tip of `gh-pages` by every release run,",
-                "so it always contains every chart released since the last merge and",
-                "never needs to be closed as superseded.",
-              ].join("\n"),
+              state: "open",
+              base: "gh-pages",
+              per_page: 100,
             });
 
-            core.info(`Pull request created: ${pr.data.html_url}`);
+            for (const stale of openPrs) {
+              if (
+                stale.number !== current.number &&
+                stale.head.repo?.full_name === process.env.GITHUB_REPOSITORY &&
+                stale.head.ref.startsWith("helm-publish")
+              ) {
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: stale.number,
+                  body: `Superseded by #${current.number}, which now carries all unreleased charts. Closing.`,
+                });
+                await github.rest.pulls.update({
+                  owner,
+                  repo,
+                  pull_number: stale.number,
+                  state: "closed",
+                });
+                core.info(`Closed superseded release PR #${stale.number}`);
+              }
+            }
         env:
           BRANCH_NAME: ${{ env.branch_name }}
