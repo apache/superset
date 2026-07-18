@@ -83,6 +83,65 @@ describe('getOverrideHtmlSchema', () => {
       (second.tagNames ?? []).filter(name => name === 'iframe'),
     ).toHaveLength(1);
   });
+
+  // Regression tests for #34191: hast-util-sanitize's real default schema
+  // restricts `li`/`ul`/`ol` `className` to specific task-list values, e.g.
+  // `li: [['className', 'task-list-item']]` (see hast-util-sanitize's
+  // `lib/schema.js`). `rehype-sanitize` is mocked globally in this jest
+  // project (see NOTE above), so `defaultSchema` isn't usable here; this
+  // fixture mirrors just the shape that matters for these tests.
+  //
+  // findDefinition only ever returns the FIRST definition it finds for a
+  // given property name, so simply concatenating the operator's override
+  // after the default restrictive tuple left the default in charge: any
+  // other class value was silently dropped, and (since a failed allowlist
+  // check returns `[]` rather than `undefined`) hast-util-sanitize's own
+  // `'*'` wildcard fallback never kicked in either.
+  const taskListSchemaFixture: typeof defaultSchema = {
+    attributes: {
+      li: [['className', 'task-list-item']],
+      ul: [['className', 'contains-task-list']],
+      ol: [['className', 'contains-task-list']],
+    },
+  };
+
+  test('an override for a property replaces the same-named default definition', () => {
+    const result = getOverrideHtmlSchema(taskListSchemaFixture, {
+      attributes: { li: ['className'] },
+    });
+
+    // The override should fully replace the default `li` className
+    // restriction, not merely be appended after it.
+    expect(result.attributes?.li).toEqual(['className']);
+  });
+
+  test('a "*" wildcard override allows classes on li even though li has its own default definition', () => {
+    const result = getOverrideHtmlSchema(taskListSchemaFixture, {
+      attributes: { '*': ['className'] },
+    });
+
+    expect(result.attributes?.['*']).toContainEqual('className');
+    // The restrictive `li`-specific default is still present (untouched by
+    // this override), but since findDefinition matches on the specific
+    // `li` entry first, this alone documents why an `li`-specific override
+    // is required to unblock arbitrary classes on `li` -- a `'*'` override
+    // does not, by itself, widen a tag that already has its own definition.
+    expect(result.attributes?.li).toEqual(taskListSchemaFixture.attributes?.li);
+  });
+
+  test('the default task-list class restriction on li/ul/ol still applies with no override', () => {
+    const result = getOverrideHtmlSchema(taskListSchemaFixture, {});
+
+    expect(result.attributes?.li).toEqual([['className', 'task-list-item']]);
+    expect(result.attributes?.ul).toContainEqual([
+      'className',
+      'contains-task-list',
+    ]);
+    expect(result.attributes?.ol).toContainEqual([
+      'className',
+      'contains-task-list',
+    ]);
+  });
 });
 
 describe('transformLinkUri', () => {
