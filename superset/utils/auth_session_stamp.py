@@ -374,11 +374,7 @@ def validate_session_auth_stamp_for_request() -> None:
         # restored from a remember-me cookie — must not adopt after a password
         # change, or a lingering remember token would re-authenticate without
         # credentials.
-        if (
-            sess_stamp is None
-            and db_stamp is not None
-            and session.get("_fresh")
-        ):
+        if sess_stamp is None and db_stamp is not None and session.get("_fresh"):
             session[SESSION_AUTH_STAMP_SESSION_KEY] = db_stamp
             _mark_session_stamp_validated(db_stamp)
             _cache_user_session_stamp(user_id, db_stamp)
