@@ -311,5 +311,9 @@ def test_deck_multi_skips_child_layers_without_datasource_access() -> None:
         ]
         obj.get_data(_resample_df())
 
-    assert ds_allowed in constructed
-    assert ds_denied not in constructed
+    # Compare by table_name: BaseDatasource equality is uid-based, and both
+    # unpersisted tables share a null-id uid, so identity-style membership is
+    # unreliable here.
+    constructed_names = [d.table_name for d in constructed]
+    assert "allowed" in constructed_names
+    assert "denied" not in constructed_names
