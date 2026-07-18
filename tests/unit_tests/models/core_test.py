@@ -1375,6 +1375,85 @@ def test_purge_oauth2_tokens(session: Session) -> None:
     assert database.name == "my_oauth2_db"
 
 
+def test_purge_oauth2_tokens_scoped_by_database_id(session: Session) -> None:
+    """
+    Ensure `purge_oauth2_tokens` filters by ``database_id``, not by the
+    token-table primary key.
+
+    The existing ``test_purge_oauth2_tokens`` case inserts a single token per
+    database in an empty schema, so token PKs and database PKs align 1:1 by
+    coincidence. This regression test inserts several tokens on ``database1``
+    first so token PKs advance past 1, then creates ``database2`` and purges
+    it. All of ``database1``'s tokens must remain untouched.
+    """
+    from flask_appbuilder.security.sqla.models import Role, User  # noqa: F401
+
+    from superset.models.core import Database, DatabaseUserOAuth2Tokens
+
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+
+    user = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe2@example.org",
+        username="adoe2",
+    )
+    session.add(user)
+    session.flush()
+
+    database1 = Database(database_name="db1_pk_drift", sqlalchemy_uri="sqlite://")
+    session.add(database1)
+    session.flush()
+
+    # Insert several tokens on database1 so token PKs advance past 1 and drift
+    # away from any single database PK.
+    for i in range(5):
+        session.add(
+            DatabaseUserOAuth2Tokens(
+                user_id=user.id,
+                database_id=database1.id,
+                access_token=f"db1_access_{i}",  # noqa: S106
+                access_token_expiration=datetime(2023, 1, 1),
+                refresh_token=f"db1_refresh_{i}",  # noqa: S106
+            )
+        )
+    session.flush()
+
+    database2 = Database(database_name="db2_pk_drift", sqlalchemy_uri="sqlite://")
+    session.add(database2)
+    session.flush()
+
+    assert (
+        session.query(DatabaseUserOAuth2Tokens)
+        .filter_by(database_id=database1.id)
+        .count()
+        == 5
+    )
+    assert (
+        session.query(DatabaseUserOAuth2Tokens)
+        .filter_by(database_id=database2.id)
+        .count()
+        == 0
+    )
+
+    # Purging database2 must not touch database1's tokens, even though one
+    # of database1's token PKs will collide with database2's PK.
+    database2.purge_oauth2_tokens()
+
+    assert (
+        session.query(DatabaseUserOAuth2Tokens)
+        .filter_by(database_id=database1.id)
+        .count()
+        == 5
+    )
+    assert (
+        session.query(DatabaseUserOAuth2Tokens)
+        .filter_by(database_id=database2.id)
+        .count()
+        == 0
+    )
+
+
 def test_compile_sqla_query_no_optimization(query: Select) -> None:
     """
     Test the `compile_sqla_query` method.

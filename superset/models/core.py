@@ -1446,7 +1446,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         scope or in the endpoints.
         """
         db.session.query(DatabaseUserOAuth2Tokens).filter(
-            DatabaseUserOAuth2Tokens.id == self.id
+            DatabaseUserOAuth2Tokens.database_id == self.id
         ).delete()
 
     def execute(
