@@ -27,6 +27,7 @@ from flask import Flask
 from superset.constants import CHANGE_ME_GUEST_TOKEN_JWT_SECRET
 from superset.mcp_service.composite_token_verifier import CompositeTokenVerifier
 from superset.mcp_service.constants import (
+    DEFAULT_MAX_LIST_ITEMS,
     DEFAULT_TOKEN_LIMIT,
     DEFAULT_WARN_THRESHOLD_PCT,
 )
@@ -337,6 +338,12 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
 # - token_limit: Maximum estimated tokens per response (default: 25,000)
 # - excluded_tools: Tools to skip checking (e.g., streaming tools)
 # - warn_threshold_pct: Log warnings above this % of limit (default: 80%)
+# - max_list_items: Cap applied to list fields (e.g. ``charts``,
+#   ``native_filters``) during Phase 2 of dynamic truncation for the "info"
+#   tools (get_chart_info, get_dataset_info, get_dashboard_info,
+#   get_instance_info) when a response exceeds token_limit (default: 100).
+#   Operators with tenants that have unusually large dashboards (hundreds of
+#   charts/filters) can raise this value to return more complete responses.
 #
 # Token Estimation:
 # -----------------
@@ -347,6 +354,7 @@ MCP_RESPONSE_SIZE_CONFIG: dict[str, Any] = {
     "enabled": True,  # Enabled by default to protect LLM clients
     "token_limit": DEFAULT_TOKEN_LIMIT,
     "warn_threshold_pct": DEFAULT_WARN_THRESHOLD_PCT,
+    "max_list_items": DEFAULT_MAX_LIST_ITEMS,
     "excluded_tools": [  # Tools to skip size checking
         "health_check",  # Always small
         "generate_explore_link",  # Returns URLs
@@ -388,14 +396,17 @@ MCP_RESPONSE_SIZE_CONFIG: dict[str, Any] = {
 #
 # Summary Mode (include_schemas):
 # --------------------------------
-# When include_schemas=False (default), search results omit inputSchema
-# entirely and include a lightweight "parameters_hint" field listing
-# top-level parameter names (e.g. "page, page_size, search, filters").
-# This reduces per-search token cost by ~80% vs compact mode while still
-# conveying what parameters a tool accepts.  Full schemas remain available
-# when invoking the tool via call_tool.
-# - Set include_schemas=True to restore full inputSchema in search results.
-# - compact_schemas is ignored when include_schemas=False (no schema to
+# When include_schemas=False, search results omit inputSchema entirely and
+# include a lightweight "parameters_hint" field listing top-level parameter
+# names (e.g. "page, page_size, search, filters"). This reduces per-search
+# token cost by ~80% vs compact mode while still conveying what parameters
+# a tool accepts. Full schemas remain available when invoking the tool via
+# call_tool.
+# - include_schemas defaults to True: search results carry full inputSchema
+#   so LLMs can see structured/discriminated-union configs (e.g. chart
+#   generation) without a second round trip. Set include_schemas=False to
+#   switch to summary mode if search_tools response size becomes a problem
+#   again; compact_schemas is ignored when include_schemas=False (no schema to
 #   compact); max_description_length still applies in summary mode.
 # =============================================================================
 MCP_TOOL_SEARCH_CONFIG: dict[str, Any] = {

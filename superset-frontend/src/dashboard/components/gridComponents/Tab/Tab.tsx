@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { handleKeyboardActivation } from '@superset-ui/core';
 import {
   Fragment,
   useCallback,
@@ -351,6 +352,9 @@ const Tab = (props: TabProps): ReactElement => {
                           role="button"
                           tabIndex={0}
                           onClick={() => dispatch(setEditMode(true))}
+                          onKeyDown={handleKeyboardActivation(() =>
+                            dispatch(setEditMode(true)),
+                          )}
                         >
                           {t('edit mode')}
                         </span>

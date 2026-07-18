@@ -344,24 +344,25 @@ class StarRocksEngineSpec(MySQLEngineSpec):
         The command returns columns: Catalog, Type, Comment
         """
         try:
-            result = inspector.bind.execute(text("SHOW CATALOGS"))
-            catalogs = set()
+            with inspector.engine.connect() as conn:
+                result = conn.execute(text("SHOW CATALOGS"))
+                catalogs = set()
 
-            for row in result:
-                try:
-                    if hasattr(row, "keys") and "Catalog" in row.keys():
-                        catalogs.add(row["Catalog"])
-                    elif hasattr(row, "Catalog"):
-                        catalogs.add(row.Catalog)
-                    else:
-                        catalogs.add(row[0])
-                except (AttributeError, TypeError, IndexError, KeyError) as ex:
-                    logger.warning(
-                        "Unable to extract catalog name from row: %s (%s)", row, ex
-                    )
-                    continue
+                for row in result:
+                    try:
+                        if hasattr(row, "keys") and "Catalog" in row.keys():
+                            catalogs.add(row["Catalog"])
+                        elif hasattr(row, "Catalog"):
+                            catalogs.add(row.Catalog)
+                        else:
+                            catalogs.add(row[0])
+                    except (AttributeError, TypeError, IndexError, KeyError) as ex:
+                        logger.warning(
+                            "Unable to extract catalog name from row: %s (%s)", row, ex
+                        )
+                        continue
 
-            return catalogs
+                return catalogs
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception("Error fetching catalog names from SHOW CATALOGS: %s", ex)
             return set()
@@ -375,8 +376,9 @@ class StarRocksEngineSpec(MySQLEngineSpec):
         (e.g., "catalog." sets the context to that catalog).
         """
         try:
-            result = inspector.bind.execute(text("SHOW DATABASES"))
-            return {row[0] for row in result}
+            with inspector.engine.connect() as conn:
+                result = conn.execute(text("SHOW DATABASES"))
+                return {row[0] for row in result}
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception("Error fetching schema names from SHOW DATABASES: %s", ex)
             return set()
