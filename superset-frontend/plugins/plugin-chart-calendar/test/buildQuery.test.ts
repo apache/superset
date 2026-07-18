@@ -43,3 +43,11 @@ test('defaults the time grain to minutes like the legacy backend', () => {
   }).queries;
   expect(query.extras?.time_grain_sqla).toEqual('PT1M');
 });
+
+test('falls back to minutes for an unrecognized subdomain granularity', () => {
+  const [query] = buildQuery({
+    ...formData,
+    subdomain_granularity: 'fortnight',
+  }).queries;
+  expect(query.extras?.time_grain_sqla).toEqual('PT1M');
+});
