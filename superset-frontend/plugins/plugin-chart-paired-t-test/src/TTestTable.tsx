@@ -16,8 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable react/no-array-index-key, react/jsx-no-bind */
-import { useState, useEffect, useCallback, useRef, KeyboardEvent } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTheme } from '@apache-superset/core/theme';
+import {
+  Table,
+  TableSize,
+  type ColumnsType,
+} from '@superset-ui/core/components/Table';
 import { studentTwoSidedPValue } from './statistics';
 
 interface DataPointValue {
@@ -39,6 +44,14 @@ interface TTestTableProps {
   pValPrec?: number;
 }
 
+type TTestRow = {
+  key: number;
+  index: number;
+  pValue: string | number;
+  liftValue: string | number;
+  significant: string;
+} & Record<string, string | number>;
+
 const P_VALUE = 'pValue';
 const LIFT_VALUE = 'liftValue';
 const SIGNIFICANT = 'significant';
@@ -46,8 +59,7 @@ const SIGNIFICANT = 'significant';
 type Comparator = (a: string, b: string) => number;
 
 // Column comparators ported from the previous reactable `sortable` config.
-// 'control' always sorts to the top in ascending order (the table toggles to
-// descending on a second click, mirroring the old behavior).
+// 'control' always sorts to the top in ascending order.
 const COMPARATORS: Record<string, Comparator> = {
   [P_VALUE]: (a, b) => {
     if (a === 'control') return -1;
@@ -99,14 +111,13 @@ function TTestTable({
   metric,
   pValPrec = 6,
 }: TTestTableProps) {
+  const theme = useTheme();
   const [control, setControl] = useState(0);
   // Mirrors `control` so the data-change effect can read the latest value
   // without re-running (and recomputing) after every row click
   const controlRef = useRef(0);
   const [liftValues, setLiftValues] = useState<(string | number)[]>([]);
   const [pValues, setPValues] = useState<(string | number)[]>([]);
-  const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDesc, setSortDesc] = useState(false);
 
   const computeLift = useCallback(
     (values: DataPointValue[], controlValues: DataPointValue[]): string => {
@@ -155,7 +166,7 @@ function TTestTable({
       try {
         // two-sided test
         return studentTwoSidedPValue(tvalue, finiteCount - 1).toFixed(pValPrec);
-      } catch (error) {
+      } catch {
         return NaN;
       }
     },
@@ -209,12 +220,10 @@ function TTestTable({
 
   const getLiftStatus = useCallback(
     (row: number): string => {
-      // Get a css class name for coloring
       if (row === control) {
         return 'control';
       }
-      const liftVal = liftValues[row];
-      const numericLiftVal = Number(liftVal);
+      const numericLiftVal = Number(liftValues[row]);
       if (Number.isNaN(numericLiftVal) || !Number.isFinite(numericLiftVal)) {
         return 'invalid'; // infinite or NaN values
       }
@@ -229,8 +238,7 @@ function TTestTable({
       if (row === control) {
         return 'control';
       }
-      const pVal = pValues[row];
-      const numericPVal = Number(pVal);
+      const numericPVal = Number(pValues[row]);
       if (Number.isNaN(numericPVal) || !Number.isFinite(numericPVal)) {
         return 'invalid';
       }
@@ -242,7 +250,6 @@ function TTestTable({
 
   const getSignificance = useCallback(
     (row: number): string | boolean => {
-      // Color significant as green, else red
       if (row === control) {
         return 'control';
       }
@@ -260,109 +267,105 @@ function TTestTable({
     [computeTTest],
   );
 
-  const handleSort = useCallback((column: string) => {
-    setSortColumn(prev => {
-      if (prev === column) {
-        setSortDesc(desc => !desc);
-        return prev;
-      }
-      setSortDesc(false);
-      return column;
-    });
-  }, []);
-
   if (!Array.isArray(groups) || groups.length === 0) {
     throw new Error('Group by param is required');
   }
 
-  const columns = [
-    ...groups.map(group => ({ key: group, label: group })),
-    { key: P_VALUE, label: 'p-value' },
-    { key: LIFT_VALUE, label: 'Lift %' },
-    { key: SIGNIFICANT, label: 'Significant' },
-  ];
-
-  // Value used to sort a row by the active column.
-  const sortValueOf = (index: number): string => {
-    if (sortColumn === null) {
-      return '';
+  // Map a status keyword to its theme color; the control/significant/lift
+  // states reuse the semantic antd tokens.
+  const statusColor = (status: string): string | undefined => {
+    switch (status) {
+      case 'control':
+        return theme.colorPrimary;
+      case 'true':
+        return theme.colorSuccess;
+      case 'false':
+        return theme.colorError;
+      case 'invalid':
+        return theme.colorWarning;
+      default:
+        return undefined;
     }
-    const groupIndex = groups.indexOf(sortColumn);
-    if (groupIndex >= 0) {
-      return String(data[index].group[groupIndex]);
-    }
-    if (sortColumn === P_VALUE) {
-      return String(pValues[index]);
-    }
-    if (sortColumn === LIFT_VALUE) {
-      return String(liftValues[index]);
-    }
-    return String(getSignificance(index));
   };
 
-  const rowOrder = (data ?? []).map((_, i) => i);
-  if (sortColumn !== null) {
-    const compare = COMPARATORS[sortColumn] ?? defaultCompare;
-    rowOrder.sort((a, b) => {
-      const result = compare(sortValueOf(a), sortValueOf(b));
-      return sortDesc ? -result : result;
+  const rows: TTestRow[] = (data ?? []).map((entry, i) => {
+    const row = {
+      key: i,
+      index: i,
+      pValue: pValues[i],
+      liftValue: liftValues[i],
+      significant: String(getSignificance(i)),
+    } as TTestRow;
+    groups.forEach((group, j) => {
+      row[group] = entry.group[j];
     });
-  }
+    return row;
+  });
+
+  const columns: ColumnsType<TTestRow> = [
+    ...groups.map(group => ({
+      title: group,
+      dataIndex: group,
+      key: group,
+      sorter: (a: TTestRow, b: TTestRow) =>
+        defaultCompare(String(a[group]), String(b[group])),
+    })),
+    {
+      title: 'p-value',
+      dataIndex: P_VALUE,
+      key: P_VALUE,
+      sorter: (a: TTestRow, b: TTestRow) =>
+        COMPARATORS[P_VALUE](String(a.pValue), String(b.pValue)),
+      render: (value: string | number, row: TTestRow) => (
+        <span style={{ color: statusColor(getPValueStatus(row.index)) }}>
+          {value}
+        </span>
+      ),
+    },
+    {
+      title: 'Lift %',
+      dataIndex: LIFT_VALUE,
+      key: LIFT_VALUE,
+      sorter: (a: TTestRow, b: TTestRow) =>
+        COMPARATORS[LIFT_VALUE](String(a.liftValue), String(b.liftValue)),
+      render: (value: string | number, row: TTestRow) => (
+        <span style={{ color: statusColor(getLiftStatus(row.index)) }}>
+          {value}
+        </span>
+      ),
+    },
+    {
+      title: 'Significant',
+      dataIndex: SIGNIFICANT,
+      key: SIGNIFICANT,
+      sorter: (a: TTestRow, b: TTestRow) =>
+        COMPARATORS[SIGNIFICANT](String(a.significant), String(b.significant)),
+      render: (value: string) => (
+        <span style={{ color: statusColor(value) }}>{value}</span>
+      ),
+    },
+  ];
 
   return (
     <div>
       <h3>{metric}</h3>
-      <table className="table" id={`table_${metric}`}>
-        <thead>
-          <tr className="reactable-column-header">
-            {columns.map(column => {
-              const sortClass =
-                sortColumn === column.key
-                  ? sortDesc
-                    ? ' reactable-header-sort-desc'
-                    : ' reactable-header-sort-asc'
-                  : '';
-              return (
-                <th
-                  key={column.key}
-                  className={`reactable-header-sortable${sortClass}`}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => handleSort(column.key)}
-                  onKeyDown={(e: KeyboardEvent<HTMLTableCellElement>) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleSort(column.key);
-                    }
-                  }}
-                >
-                  {column.label}
-                </th>
-              );
-            })}
-          </tr>
-        </thead>
-        <tbody className="reactable-data">
-          {rowOrder.map(i => {
-            const entry = data[i];
-            const significance = getSignificance(i);
-            return (
-              <tr
-                key={i}
-                className={i === control ? 'control' : ''}
-                onClick={() => handleRowClick(i)}
-              >
-                {groups.map((group, j) => (
-                  <td key={j}>{entry.group[j]}</td>
-                ))}
-                <td className={getPValueStatus(i)}>{pValues[i]}</td>
-                <td className={getLiftStatus(i)}>{liftValues[i]}</td>
-                <td className={String(significance)}>{String(significance)}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <Table<TTestRow>
+        data={rows}
+        columns={columns}
+        size={TableSize.Small}
+        rowKey="key"
+        usePagination={false}
+        sticky={false}
+        onRow={row => ({
+          onClick: () => handleRowClick(row.index),
+          style: {
+            cursor: 'pointer',
+            ...(row.index === control
+              ? { backgroundColor: theme.colorFillTertiary }
+              : {}),
+          },
+        })}
+      />
     </div>
   );
 }

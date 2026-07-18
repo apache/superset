@@ -33,77 +33,24 @@ interface PairedTTestProps {
 
 const StyledDiv = styled.div`
   ${({ theme }) => `
-    /* Fill the chart's allotted height and scroll when the tables overflow */
-    /* it (e.g. many groups across multiple metrics). */
+    /* Fill the chart's allotted height and scroll when the tables overflow it
+       (e.g. many groups across multiple metrics). */
     height: 100%;
     overflow: auto;
+    padding: 0 ${theme.sizeUnit}px;
 
-    .paired-ttest-table .scrollbar-content {
-      padding-left: ${theme.sizeUnit}px;
-      padding-right: ${theme.sizeUnit}px;
-      margin-bottom: 0;
-    }
-
-    .paired-ttest-table table {
-      margin-bottom: 0;
-    }
-
-    .paired-ttest-table h1 {
+    h3 {
       margin-left: ${theme.sizeUnit}px;
     }
 
-    .reactable-data tr {
+    /* Space the per-metric tables apart */
+    & > div + div {
+      margin-top: ${theme.sizeUnit * 2}px;
+    }
+
+    /* Keep the numeric columns aligned with tabular figures */
+    td {
       font-feature-settings: 'tnum' 1;
-    }
-
-    .reactable-data tr,
-    .reactable-header-sortable {
-      -webkit-transition: ease-in-out 0.1s;
-      transition: ease-in-out 0.1s;
-    }
-
-    .reactable-data tr:hover {
-      background-color: ${theme.colorFillTertiary};
-    }
-
-    .reactable-data tr .false {
-      color: ${theme.colorError};
-    }
-
-    .reactable-data tr .true {
-      color: ${theme.colorSuccess};
-    }
-
-    .reactable-data tr .control {
-      color: ${theme.colorPrimary};
-    }
-
-    .reactable-data tr .invalid {
-      color: ${theme.colorWarning};
-    }
-
-    .reactable-data .control td {
-      background-color: ${theme.colorFillTertiary};
-    }
-
-    .reactable-header-sortable:hover,
-    .reactable-header-sortable:focus,
-    .reactable-header-sort-asc,
-    .reactable-header-sort-desc {
-      background-color: ${theme.colorFillTertiary};
-      position: relative;
-    }
-
-    .reactable-header-sort-asc:after {
-      content: '\\25bc';
-      position: absolute;
-      right: ${theme.sizeUnit * 3}px;
-    }
-
-    .reactable-header-sort-desc:after {
-      content: '\\25b2';
-      position: absolute;
-      right: ${theme.sizeUnit * 3}px;
     }
   `}
 `;
@@ -118,24 +65,18 @@ function PairedTTest({
   pValPrec = 6,
 }: PairedTTestProps) {
   return (
-    <StyledDiv>
-      <div className={`superset-legacy-chart-paired-t-test ${className}`}>
-        <div className="paired-ttest-table">
-          <div className="scrollbar-content">
-            {metrics.map((metric, i) => (
-              <TTestTable
-                key={i}
-                metric={metric}
-                groups={groups}
-                data={data[metric]}
-                alpha={alpha}
-                pValPrec={Math.min(pValPrec, 32)}
-                liftValPrec={Math.min(liftValPrec, 32)}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
+    <StyledDiv className={className}>
+      {metrics.map((metric, i) => (
+        <TTestTable
+          key={i}
+          metric={metric}
+          groups={groups}
+          data={data[metric]}
+          alpha={alpha}
+          pValPrec={Math.min(pValPrec, 32)}
+          liftValPrec={Math.min(liftValPrec, 32)}
+        />
+      ))}
     </StyledDiv>
   );
 }

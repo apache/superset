@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { render } from 'spec/helpers/testing-library';
+import { supersetTheme } from '@apache-superset/core/theme';
 import TTestTable from '../src/TTestTable';
 import type { DataEntry } from '../src/TTestTable';
 
@@ -54,24 +56,20 @@ const defaultProps = {
   pValPrec: 6,
 };
 
+const dataRows = () =>
+  document.querySelectorAll<HTMLTableRowElement>('tr.ant-table-row');
+
 test('renders the metric name as an h3 heading', async () => {
   render(<TTestTable {...defaultProps} />);
 
-  await waitFor(() => {
-    expect(screen.getByText('revenue')).toBeInTheDocument();
-  });
-
-  const heading = screen.getByText('revenue');
+  const heading = await screen.findByText('revenue');
   expect(heading.tagName).toBe('H3');
 });
 
 test('renders a table with the correct column headers', async () => {
   render(<TTestTable {...defaultProps} />);
 
-  await waitFor(() => {
-    expect(screen.getByRole('table')).toBeInTheDocument();
-  });
-
+  await waitFor(() => expect(dataRows()).toHaveLength(2));
   expect(screen.getByText('category')).toBeInTheDocument();
   expect(screen.getByText('p-value')).toBeInTheDocument();
   expect(screen.getByText('Lift %')).toBeInTheDocument();
@@ -80,14 +78,8 @@ test('renders a table with the correct column headers', async () => {
 
 test('renders group columns matching the groups prop', async () => {
   const multiGroupData: DataEntry[] = [
-    {
-      group: ['group-A', 'sub-1'],
-      values: [{ x: 1, y: 10 }],
-    },
-    {
-      group: ['group-B', 'sub-2'],
-      values: [{ x: 1, y: 15 }],
-    },
+    { group: ['group-A', 'sub-1'], values: [{ x: 1, y: 10 }] },
+    { group: ['group-B', 'sub-2'], values: [{ x: 1, y: 15 }] },
   ];
 
   render(
@@ -98,65 +90,52 @@ test('renders group columns matching the groups prop', async () => {
     />,
   );
 
-  await waitFor(() => {
-    expect(screen.getByRole('table')).toBeInTheDocument();
-  });
-
+  await waitFor(() => expect(dataRows()).toHaveLength(2));
   expect(screen.getByText('category')).toBeInTheDocument();
   expect(screen.getByText('subcategory')).toBeInTheDocument();
 });
 
-test('first row is treated as control by default and shows "control" for p-value and lift columns', async () => {
+test('first row is treated as control by default and shows "control" for the computed columns', async () => {
   render(<TTestTable {...defaultProps} />);
 
-  // After componentDidMount, the first row should be control
+  // The control row renders "control" in its p-value, lift and significance cells
   await waitFor(() => {
-    const controlTexts = screen.getAllByText('control');
-    // The control row has "control" in pValue and liftValue columns
-    expect(controlTexts.length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText('control').length).toBeGreaterThanOrEqual(2);
   });
 });
 
 test('computes lift values correctly for non-control rows', async () => {
-  // Control (group-A): sum of y = 10 + 20 = 30
-  // group-B: sum of y = 15 + 25 = 40
-  // Lift = ((40 - 30) / 30) * 100 = 33.3333%
-  // With liftValPrec=4 => "33.3333"
+  // Control (group-A): sum of y = 30, group-B: sum of y = 40
+  // Lift = ((40 - 30) / 30) * 100 = 33.3333 with liftValPrec=4
   render(<TTestTable {...defaultProps} />);
 
-  await waitFor(() => {
-    expect(screen.getByText('33.3333')).toBeInTheDocument();
-  });
+  expect(await screen.findByText('33.3333')).toBeInTheDocument();
 });
 
 test('computes p-value from the statistics module', async () => {
   // Mocked studentTwoSidedPValue returns 0.02, with pValPrec=6 => "0.020000"
   render(<TTestTable {...defaultProps} />);
 
-  await waitFor(() => {
-    expect(screen.getByText('0.020000')).toBeInTheDocument();
-  });
+  expect(await screen.findByText('0.020000')).toBeInTheDocument();
 });
 
 test('marks non-control row as significant when p-value is below alpha', async () => {
-  // p-value = 0.02 < alpha = 0.05, so significance is true
+  // p-value 0.02 < alpha 0.05, so significance is true
   render(<TTestTable {...defaultProps} />);
 
-  await waitFor(() => {
-    expect(screen.getByText('true')).toBeInTheDocument();
-  });
+  const cell = await screen.findByText('true');
+  expect(cell).toHaveStyle({ color: supersetTheme.colorSuccess });
 });
 
 test('marks non-control row as not significant when p-value is above alpha', async () => {
-  // p-value = 0.02 > alpha = 0.01, so significance is false
+  // p-value 0.02 > alpha 0.01, so significance is false
   render(<TTestTable {...defaultProps} alpha={0.01} />);
 
-  await waitFor(() => {
-    expect(screen.getByText('false')).toBeInTheDocument();
-  });
+  const cell = await screen.findByText('false');
+  expect(cell).toHaveStyle({ color: supersetTheme.colorError });
 });
 
-test('renders Infinity lift when control values sum to zero', async () => {
+test('renders Infinity lift when control values sum to zero, colored as invalid', async () => {
   const zeroControlData: DataEntry[] = [
     {
       group: ['zero-group'],
@@ -176,24 +155,16 @@ test('renders Infinity lift when control values sum to zero', async () => {
 
   render(<TTestTable {...defaultProps} data={zeroControlData} />);
 
-  // The lift computation: ((sumValues - sumControl) / sumControl) * 100
-  // = ((30 - 0) / 0) * 100 = Infinity
-  // Infinity.toFixed(4) returns "Infinity", and the component renders it.
-  // getLiftStatus classifies this as "invalid" (non-finite).
-  await waitFor(() => {
-    expect(screen.getByText('Infinity')).toBeInTheDocument();
-  });
-  expect(screen.getByText('Infinity')).toHaveClass('invalid');
+  // ((30 - 0) / 0) * 100 = Infinity; getLiftStatus classifies non-finite as invalid
+  const cell = await screen.findByText('Infinity');
+  expect(cell).toHaveStyle({ color: supersetTheme.colorWarning });
 });
 
-test('colors finite lift cells with true/false status classes', async () => {
+test('colors finite positive lift cells with the success token', async () => {
   render(<TTestTable {...defaultProps} />);
 
-  // group-B lift vs control group-A: ((40 - 30) / 30) * 100 = 33.3333 (>= 0)
-  await waitFor(() => {
-    expect(screen.getByText('33.3333')).toBeInTheDocument();
-  });
-  expect(screen.getByText('33.3333')).toHaveClass('true');
+  const cell = await screen.findByText('33.3333');
+  expect(cell).toHaveStyle({ color: supersetTheme.colorSuccess });
 });
 
 test('recomputes and clamps the control index when data shrinks', async () => {
@@ -207,35 +178,28 @@ test('recomputes and clamps the control index when data shrinks', async () => {
   );
 
   // Make the last row (index 2) the control
-  await waitFor(() => {
-    expect(screen.getByText('row-2')).toBeInTheDocument();
-  });
-  fireEvent.click(screen.getByText('row-2').closest('tr')!);
+  const row2 = await screen.findByText('row-2');
+  fireEvent.click(row2.closest('tr')!);
 
   // row-0 lift vs row-2 control: ((10 - 40) / 40) * 100 = -75.0000
-  await waitFor(() => {
-    expect(screen.getByText('-75.0000')).toBeInTheDocument();
-  });
+  expect(await screen.findByText('-75.0000')).toBeInTheDocument();
 
   // Shrink the data so the control index (2) is out of range
   rerender(<TTestTable {...defaultProps} data={threeRowData.slice(0, 2)} />);
 
   // Control clamps to the last remaining row (index 1) and values recompute:
   // row-0 lift vs row-1 control: ((10 - 20) / 20) * 100 = -50.0000
-  await waitFor(() => {
-    expect(screen.getByText('-50.0000')).toBeInTheDocument();
-  });
+  expect(await screen.findByText('-50.0000')).toBeInTheDocument();
   expect(screen.queryByText('row-2')).not.toBeInTheDocument();
 });
 
 test('sorts a non-finite lift value deterministically regardless of comparison order', async () => {
-  // Control sum is non-zero (finite denominator), so row-normal gets a
-  // finite lift while row-huge overflows to a non-finite ("Infinity") lift,
-  // exercising a mixed finite/non-finite comparison.
+  // Control sum is non-zero, so row-normal gets a finite lift while row-huge
+  // overflows to a non-finite ("Infinity") lift.
   const mixedLiftData: DataEntry[] = [
     { group: ['control'], values: [{ x: 1, y: 100 }] },
     { group: ['row-normal'], values: [{ x: 1, y: 200 }] },
-    { group: ['row-huge'], values: [{ x: 1, y: 1e309 }] },
+    { group: ['row-huge'], values: [{ x: 1, y: Infinity }] },
   ];
 
   render(
@@ -250,13 +214,9 @@ test('sorts a non-finite lift value deterministically regardless of comparison o
   fireEvent.click(screen.getByText('Lift %'));
 
   await waitFor(() => {
-    const rowLabels = screen
-      .getAllByRole('row')
-      .slice(1) // drop the header row
-      .map(row => row.textContent);
-    // Sorting is antisymmetric and stable: the same relative order results
-    // whichever pair of rows is compared first, with the non-finite value
-    // consistently ordered ahead of the finite one.
+    const rowLabels = Array.from(dataRows()).map(row => row.textContent);
+    // Non-finite value is consistently ordered ahead of the finite one, with
+    // the control pinned to the top.
     expect(rowLabels).toEqual([
       expect.stringContaining('control'),
       expect.stringContaining('row-huge'),
@@ -279,39 +239,22 @@ test('throws an error when groups array is empty', () => {
 test('clicking a non-control row changes it to the new control', async () => {
   render(<TTestTable {...defaultProps} />);
 
-  // Wait for initial render with group-A as control
-  await waitFor(() => {
-    expect(screen.getByText('group-A')).toBeInTheDocument();
-    expect(screen.getByText('group-B')).toBeInTheDocument();
-  });
+  // Initially group-A is control, group-B shows the computed lift
+  const groupB = await screen.findByText('group-B');
+  expect(await screen.findByText('33.3333')).toBeInTheDocument();
 
-  // Initially group-A is control, so its row shows "control" in p-value and lift columns.
-  // The non-control row (group-B) shows computed values.
-  await waitFor(() => {
-    expect(screen.getByText('33.3333')).toBeInTheDocument();
-  });
+  // Click the group-B row to make it the new control
+  fireEvent.click(groupB.closest('tr')!);
 
-  // Click the group-B row to make it the new control.
-  // The row containing "group-B" text is what we need to click.
-  const groupBCell = screen.getByText('group-B');
-  const groupBRow = groupBCell.closest('tr');
-  expect(groupBRow).not.toBeNull();
-  fireEvent.click(groupBRow!);
-
-  // After clicking, group-B becomes control.
-  // group-A lift: ((30 - 40) / 40) * 100 = -25.0000
-  await waitFor(() => {
-    expect(screen.getByText('-25.0000')).toBeInTheDocument();
-  });
+  // group-A lift vs group-B control: ((30 - 40) / 40) * 100 = -25.0000
+  expect(await screen.findByText('-25.0000')).toBeInTheDocument();
 });
 
 test('renders group name data in the table cells', async () => {
   render(<TTestTable {...defaultProps} />);
 
-  await waitFor(() => {
-    expect(screen.getByText('group-A')).toBeInTheDocument();
-    expect(screen.getByText('group-B')).toBeInTheDocument();
-  });
+  expect(await screen.findByText('group-A')).toBeInTheDocument();
+  expect(screen.getByText('group-B')).toBeInTheDocument();
 });
 
 test('renders with three data rows and computes values for each non-control row', async () => {
@@ -341,17 +284,9 @@ test('renders with three data rows and computes values for each non-control row'
 
   render(<TTestTable {...defaultProps} data={threeRowData} />);
 
-  await waitFor(() => {
-    expect(screen.getByText('control-group')).toBeInTheDocument();
-    expect(screen.getByText('test-group-1')).toBeInTheDocument();
-    expect(screen.getByText('test-group-2')).toBeInTheDocument();
-  });
-
+  await waitFor(() => expect(dataRows()).toHaveLength(3));
   // control-group: sum = 20
-  // test-group-1: sum = 30, lift = ((30-20)/20)*100 = 50.0000
-  // test-group-2: sum = 40, lift = ((40-20)/20)*100 = 100.0000
-  await waitFor(() => {
-    expect(screen.getByText('50.0000')).toBeInTheDocument();
-    expect(screen.getByText('100.0000')).toBeInTheDocument();
-  });
+  // test-group-1: sum = 30, lift = 50.0000; test-group-2: sum = 40, lift = 100.0000
+  expect(screen.getByText('50.0000')).toBeInTheDocument();
+  expect(screen.getByText('100.0000')).toBeInTheDocument();
 });
