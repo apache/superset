@@ -1935,6 +1935,73 @@ def test_pivot_table_v2_applies_per_metric_format_when_metrics_combined():
     assert formatted[("x", "sales")].tolist() == ["100.00", "200.00"]
 
 
+def test_table_auto_currency_uses_detected_currency():
+    """
+    AUTO currency resolves to the payload's `detected_currency`, or falls back
+    to the plain number when detection found mixed currencies.
+    """
+    form_data = {
+        "viz_type": "table",
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+            }
+        },
+    }
+    df = pd.DataFrame.from_dict({"amount": {0: 1234.5}})
+    formatted = table(df, form_data, detected_currency="USD")
+    assert formatted["amount"].tolist() == ["$ 1,234.50"]
+
+    df = pd.DataFrame.from_dict({"amount": {0: 1234.5}})
+    formatted = table(df, form_data, detected_currency=None)
+    assert formatted["amount"].tolist() == ["1,234.50"]
+
+
+def test_pivot_table_v2_auto_currency_uses_detected_currency():
+    """
+    AUTO currency in pivot tables resolves to the payload's `detected_currency`.
+    """
+    df = pd.DataFrame({"region": ["A", "B"], "sales": [1234.5, 6789.0]})
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["sales"],
+        "aggregateFunction": "Sum",
+        "valueFormat": ",.2f",
+        "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+    }
+    formatted = pivot_table_v2(df, form_data, detected_currency="EUR")
+    assert formatted[("sales",)].tolist() == ["€ 1,234.50", "€ 6,789.00"]
+
+
+def test_apply_client_processing_passes_detected_currency():
+    """
+    The query payload's `detected_currency` reaches the number formatters.
+    """
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "detected_currency": "USD",
+                "data": [{"amount": 1234.5}],
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "table",
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+            }
+        },
+    }
+    processed = apply_client_processing(result, form_data)
+    assert processed["queries"][0]["data"] == {"amount": {0: "$ 1,234.50"}}
+
+
 def test_pivot_table_v2_applies_per_metric_format_when_metrics_on_rows():
     """
     Per-metric formats apply when `metricsLayout` is "ROWS" and the metric is

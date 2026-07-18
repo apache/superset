@@ -42,7 +42,10 @@ from superset.utils.core import (
     get_column_names,
     get_metric_names,
 )
-from superset.utils.number_format import format_number_with_config
+from superset.utils.number_format import (
+    format_number_with_config,
+    resolve_auto_currency,
+)
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
@@ -259,9 +262,14 @@ pivot_v2_aggfunc_map = {
 
 
 def format_column(
-    df: pd.DataFrame, column: Any, d3_format: Optional[str], currency: dict[str, Any]
+    df: pd.DataFrame,
+    column: Any,
+    d3_format: Optional[str],
+    currency: dict[str, Any],
+    detected_currency: Optional[str] = None,
 ) -> None:
     """Format a column in place when a number or currency format is configured."""
+    currency = resolve_auto_currency(currency, detected_currency)
     if d3_format or currency.get("symbol"):
         df[column] = df[column].apply(
             partial(format_number_with_config, d3_format, currency)
@@ -273,6 +281,7 @@ def pivot_table_v2(
     form_data: dict[str, Any],
     datasource: Optional[Union["BaseDatasource", "Query"]] = None,
     apply_number_format: bool = True,
+    detected_currency: Optional[str] = None,
 ) -> pd.DataFrame:
     """
     Pivot table v2.
@@ -292,12 +301,14 @@ def pivot_table_v2(
         apply_metrics_on_rows=form_data.get("metricsLayout") == "ROWS",
     )
     if apply_number_format:
-        return apply_pivot_number_formats(pivoted, form_data)
+        return apply_pivot_number_formats(pivoted, form_data, detected_currency)
     return pivoted
 
 
 def apply_pivot_number_formats(
-    df: pd.DataFrame, form_data: dict[str, Any]
+    df: pd.DataFrame,
+    form_data: dict[str, Any],
+    detected_currency: Optional[str] = None,
 ) -> pd.DataFrame:
     """
     Apply `valueFormat`/`columnFormats` and currency config to pivot values.
@@ -323,6 +334,7 @@ def apply_pivot_number_formats(
             column,
             column_formats.get(metric, value_format),
             currency_formats.get(metric) or currency_format,
+            detected_currency,
         )
 
     return df.T if metrics_on_rows else df
@@ -335,6 +347,7 @@ def table(
         Union["BaseDatasource", "Query"]
     ] = None,
     apply_number_format: bool = True,
+    detected_currency: Optional[str] = None,
 ) -> pd.DataFrame:
     """
     Table.
@@ -350,6 +363,7 @@ def table(
                 column,
                 config.get("d3NumberFormat"),
                 config.get("currencyFormat") or {},
+                detected_currency,
             )
 
     return df
@@ -408,7 +422,13 @@ def apply_client_processing(  # noqa: C901
             df.rename(columns=datasource.data["verbose_map"], inplace=True)
 
         apply_number_format = query["result_format"] == ChartDataResultFormat.JSON
-        processed_df = post_processor(df, form_data, datasource, apply_number_format)
+        processed_df = post_processor(
+            df,
+            form_data,
+            datasource,
+            apply_number_format,
+            query.get("detected_currency"),
+        )
 
         query["colnames"] = list(processed_df.columns)
         query["indexnames"] = list(processed_df.index)

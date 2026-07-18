@@ -27,6 +27,10 @@ Only d3-format specifiers (and the ``SMART_NUMBER`` pseudo-formats) are ported.
 Non-d3 presets such as ``DURATION``, ``DURATION_SUB`` and the ``MEMORY_*``
 formatters are not supported: they do not parse as a d3 specifier and fall back
 to the raw value, so a column using one of those renders unformatted in reports.
+The fill/align/zero/width specifier flags (absent from every preset, reachable
+only by hand-typed formats) are parsed but not rendered: the numeric content
+(precision, grouping, sign) is still formatted correctly, only the padding is
+omitted.
 """
 
 from __future__ import annotations
@@ -71,6 +75,21 @@ D3_FORMAT_RE = re.compile(
     r"^(?:(.)?([<>=^]))?([+\-( ])?([$#])?(0)?(\d+)?(,)?(?:\.(\d+))?(~)?([a-z%])?$",
     re.IGNORECASE,
 )
+
+
+def resolve_auto_currency(
+    currency: dict[str, Any], detected_currency: str | None
+) -> dict[str, Any]:
+    """
+    Resolve an ``AUTO`` currency to the code detected from the data.
+
+    Mirrors the frontend's ``resolveAutoCurrency``: without a detected currency
+    (mixed-currency data) the config stays ``AUTO``, which renders the bare
+    number.
+    """
+    if currency.get("symbol") == AUTO_CURRENCY and detected_currency:
+        return {**currency, "symbol": detected_currency}
+    return currency
 
 
 def format_number_with_config(
