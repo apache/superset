@@ -21,13 +21,46 @@ import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import type { SqlLabAction } from 'src/SqlLab/actions/sqlLab';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import { table, initialState as mockState } from '../fixtures';
+import { table, databases, initialState as mockState } from '../fixtures';
 
 type SqlLabState = SqlLabRootState['sqlLab'];
 const initialState = mockState.sqlLab as unknown as SqlLabState;
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('sqlLabReducer', () => {
+  test('should merge databases instead of replacing existing database state', () => {
+    const existingDb = {
+      ...databases.result[0],
+      extra: '{}',
+    };
+    const existingDbId = Number(existingDb.id);
+
+    const incomingDb = {
+      ...databases.result[0],
+      id: existingDbId + 1,
+      database_name: 'new database',
+      extra: '{}',
+    };
+    const incomingDbId = Number(incomingDb.id);
+
+    const state = {
+      ...initialState,
+      databases: {
+        [existingDbId]: existingDb,
+      },
+    } as any;
+
+    const action = actions.setDatabases([incomingDb] as any);
+
+    const newState = sqlLabReducer(state, action);
+
+    expect(newState.databases[existingDbId]).toEqual(existingDb);
+    expect(newState.databases[incomingDbId]).toEqual({
+      ...incomingDb,
+      extra_json: {},
+    });
+  });
+
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Query editors actions', () => {
     let newState: SqlLabState;
@@ -293,6 +326,45 @@ describe('sqlLabReducer', () => {
         newQueryEditor.tabViewId,
       );
     });
+    test('should toggle hideLeftBar via queryEditorId for the active editor', () => {
+      const action = {
+        type: actions.QUERY_EDITOR_TOGGLE_LEFT_BAR,
+        queryEditorId: qe!.id,
+        hideLeftBar: true,
+      };
+      newState = sqlLabReducer(newState, action as SqlLabAction);
+      expect(newState.unsavedQueryEditor.hideLeftBar).toBe(true);
+      expect(newState.unsavedQueryEditor.id).toBe(qe!.id);
+    });
+
+    test('should toggle hideLeftBar back to false via queryEditorId', () => {
+      // first set to true
+      newState = sqlLabReducer(newState, {
+        type: actions.QUERY_EDITOR_TOGGLE_LEFT_BAR,
+        queryEditorId: qe!.id,
+        hideLeftBar: true,
+      } as SqlLabAction);
+      // then back to false
+      newState = sqlLabReducer(newState, {
+        type: actions.QUERY_EDITOR_TOGGLE_LEFT_BAR,
+        queryEditorId: qe!.id,
+        hideLeftBar: false,
+      } as SqlLabAction);
+      expect(newState.unsavedQueryEditor.hideLeftBar).toBe(false);
+    });
+
+    test('should toggle hideLeftBar in queryEditors array for non-active editor', () => {
+      const nonActiveId = defaultQueryEditor.id;
+      const action = {
+        type: actions.QUERY_EDITOR_TOGGLE_LEFT_BAR,
+        queryEditorId: nonActiveId,
+        hideLeftBar: true,
+      };
+      newState = sqlLabReducer(newState, action as SqlLabAction);
+      const updated = newState.queryEditors.find(e => e.id === nonActiveId);
+      expect(updated?.hideLeftBar).toBe(true);
+    });
+
     test('should clear the destroyed query editors', () => {
       const expectedQEId = '1233289';
       const action = {

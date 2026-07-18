@@ -18,7 +18,7 @@
  */
 import { useState, useCallback, useRef, useEffect, ChangeEvent } from 'react';
 import { legacyValidateNumber, legacyValidateInteger } from '@superset-ui/core';
-import { debounce } from 'lodash';
+import { debounce } from 'lodash-es';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Constants, Input } from '@superset-ui/core/components';
 
@@ -27,6 +27,7 @@ type InputValueType = string | number;
 export interface TextControlProps<T extends InputValueType = InputValueType> {
   name?: string;
   label?: string;
+  ariaLabel?: string;
   description?: string;
   disabled?: boolean;
   isFloat?: boolean;
@@ -48,6 +49,7 @@ const safeStringify = (value?: InputValueType | null) =>
 function TextControl<T extends InputValueType = InputValueType>({
   name,
   label,
+  ariaLabel,
   description,
   disabled,
   isFloat,
@@ -56,11 +58,9 @@ function TextControl<T extends InputValueType = InputValueType>({
   onFocus,
   placeholder,
   value,
-  controlId,
   renderTrigger,
   validationErrors,
   hovered,
-  showHeader,
 }: TextControlProps<T>) {
   const [localValue, setLocalValue] = useState<string>(safeStringify(value));
   const prevValueRef = useRef<T | null | undefined>(value);
@@ -124,7 +124,6 @@ function TextControl<T extends InputValueType = InputValueType>({
     displayValue = safeStringify(value);
   }
 
-  // Note: controlId and showHeader props are not used by ControlHeader
   return (
     <div>
       <ControlHeader
@@ -143,7 +142,7 @@ function TextControl<T extends InputValueType = InputValueType>({
         onFocus={onFocus}
         value={displayValue}
         disabled={disabled}
-        aria-label={label}
+        aria-label={ariaLabel ?? label}
       />
     </div>
   );

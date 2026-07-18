@@ -30,7 +30,7 @@ const TimeTableStyles = styled.div<{ height?: number }>`
   overflow: auto;
 
   th {
-    z-index: 11 !important; // to cover sparkline
+    z-index: 11 !important; /* to cover sparkline */
   }
 `;
 

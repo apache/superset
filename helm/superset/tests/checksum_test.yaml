@@ -1,0 +1,132 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+suite: config checksums + global pod annotations
+templates:
+  - deployment.yaml
+  - deployment-worker.yaml
+  - deployment-beat.yaml
+  - deployment-flower.yaml
+  - deployment-ws.yaml
+tests:
+  - it: main deployment has new config checksums, not the old connections checksum
+    template: deployment.yaml
+    asserts:
+      - exists:
+          path: 'spec.template.metadata.annotations["checksum/database"]'
+      - exists:
+          path: 'spec.template.metadata.annotations["checksum/config"]'
+      - notExists:
+          path: 'spec.template.metadata.annotations["checksum/connections"]'
+  - it: main deployment applies globalPodAnnotations
+    template: deployment.yaml
+    set:
+      globalPodAnnotations:
+        team: data
+    asserts:
+      - equal:
+          path: 'spec.template.metadata.annotations.team'
+          value: data
+  - it: globalPodAnnotations coexist with per-component podAnnotations on deployment.yaml
+    template: deployment.yaml
+    set:
+      globalPodAnnotations:
+        global: "yes"
+      supersetNode:
+        podAnnotations:
+          component: "yes"
+    asserts:
+      - equal:
+          path: 'spec.template.metadata.annotations.global'
+          value: "yes"
+      - equal:
+          path: 'spec.template.metadata.annotations.component'
+          value: "yes"
+  - it: worker deployment has config and database checksums
+    template: deployment-worker.yaml
+    asserts:
+      - exists:
+          path: 'spec.template.metadata.annotations["checksum/database"]'
+      - exists:
+          path: 'spec.template.metadata.annotations["checksum/config"]'
+  - it: worker deployment applies globalPodAnnotations
+    template: deployment-worker.yaml
+    set:
+      globalPodAnnotations:
+        team: data
+    asserts:
+      - equal:
+          path: 'spec.template.metadata.annotations.team'
+          value: data
+  - it: beat deployment has config and database checksums
+    template: deployment-beat.yaml
+    set:
+      supersetCeleryBeat:
+        enabled: true
+    asserts:
+      - exists:
+          path: 'spec.template.metadata.annotations["checksum/database"]'
+      - exists:
+          path: 'spec.template.metadata.annotations["checksum/config"]'
+  - it: beat deployment applies globalPodAnnotations
+    template: deployment-beat.yaml
+    set:
+      supersetCeleryBeat:
+        enabled: true
+      globalPodAnnotations:
+        team: data
+    asserts:
+      - equal:
+          path: 'spec.template.metadata.annotations.team'
+          value: data
+  - it: flower deployment has config checksum
+    template: deployment-flower.yaml
+    set:
+      supersetCeleryFlower:
+        enabled: true
+    asserts:
+      - exists:
+          path: 'spec.template.metadata.annotations["checksum/config"]'
+  - it: flower deployment applies globalPodAnnotations
+    template: deployment-flower.yaml
+    set:
+      supersetCeleryFlower:
+        enabled: true
+      globalPodAnnotations:
+        team: data
+    asserts:
+      - equal:
+          path: 'spec.template.metadata.annotations.team'
+          value: data
+  - it: websockets deployment has wsconfig checksum
+    template: deployment-ws.yaml
+    set:
+      supersetWebsockets:
+        enabled: true
+    asserts:
+      - exists:
+          path: 'spec.template.metadata.annotations["checksum/wsconfig"]'
+  - it: websockets deployment applies globalPodAnnotations
+    template: deployment-ws.yaml
+    set:
+      supersetWebsockets:
+        enabled: true
+      globalPodAnnotations:
+        team: data
+    asserts:
+      - equal:
+          path: 'spec.template.metadata.annotations.team'
+          value: data

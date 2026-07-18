@@ -27,7 +27,7 @@ test('useDashboard excludes thumbnail_url from request', async () => {
       dashboard_title: 'Test',
       json_metadata: '{}',
       position_json: '{}',
-      owners: [],
+      editors: [],
     },
   });
 

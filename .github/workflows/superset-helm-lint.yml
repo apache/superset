@@ -2,17 +2,20 @@ name: "Helm: lint and test charts"
 
 on:
   pull_request:
-    types: [opened, edited, reopened, synchronize]
+    types: [opened, reopened, synchronize]
     paths:
       - "helm/**"
 
 permissions:
   contents: read
 
-# cancel previous workflow jobs for PRs
+# Serialize runs per PR without cancelling: when a first-time contributor's
+# queued runs are approved together, cancel-in-progress lets an older run
+# cancel a newer one, leaving a permanently-cancelled required check on the
+# head SHA. Queued runs are cheap here, so let them all complete.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   lint-test:
@@ -26,7 +29,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Helm
-        uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
         with:
           version: v3.16.4
 

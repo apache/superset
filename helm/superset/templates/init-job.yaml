@@ -24,13 +24,7 @@ metadata:
   name: {{ template "superset.fullname" . }}-init-db
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "superset.name" . }}
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
-    {{- if .Values.extraLabels }}
-      {{- toYaml .Values.extraLabels | nindent 4 }}
-    {{- end }}
+    {{- include "superset.componentLabels" (dict "component" "init" "root" .) | nindent 4 }}
   {{- if .Values.init.jobAnnotations }}
   annotations: {{- toYaml .Values.init.jobAnnotations | nindent 4 }}
   {{- end }}
@@ -42,9 +36,7 @@ spec:
       annotations: {{- toYaml .Values.init.podAnnotations | nindent 8 }}
       {{- end }}
       labels:
-        app: {{ template "superset.name" . }}
-        chart: {{ template "superset.chart" . }}
-        release: {{ .Release.Name }}
+        {{- include "superset.componentSelectorLabels" (dict "component" "init" "root" .) | nindent 8 }}
         job: {{ template "superset.fullname" . }}-init-db
         {{- if .Values.extraLabels }}
           {{- toYaml .Values.extraLabels | nindent 8 }}
@@ -64,8 +56,14 @@ spec:
         {{- if .Values.init.podSecurityContext }}
           {{- toYaml .Values.init.podSecurityContext | nindent 8 }}
         {{- end }}
+      {{- if or .Values.init.initContainers .Values.init.extraInitContainers }}
+      initContainers:
       {{- if .Values.init.initContainers }}
-      initContainers: {{-  tpl (toYaml .Values.init.initContainers) . | nindent 6 }}
+      {{-  tpl (toYaml .Values.init.initContainers) . | nindent 6 }}
+      {{- end }}
+      {{- if .Values.init.extraInitContainers }}
+      {{-  tpl (toYaml .Values.init.extraInitContainers) . | nindent 6 }}
+      {{- end }}
       {{- end }}
       {{- with .Values.hostAliases }}
       hostAliases: {{- toYaml . | nindent 6 }}

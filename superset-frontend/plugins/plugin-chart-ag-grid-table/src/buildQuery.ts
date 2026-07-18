@@ -38,7 +38,7 @@ import {
   isTimeComparison,
   timeCompareOperator,
 } from '@superset-ui/chart-controls';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import { TableChartFormData } from './types';
 import { updateTableOwnState } from './utils/externalAPIs';
 
@@ -624,11 +624,28 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     // Create totals query AFTER all filters (including AG Grid filters) are applied
     // This ensures we can properly exclude AG Grid WHERE filters from the totals
-    if (
+    // In raw records mode the summary is a SUM over the numeric columns primed
+    // into ownState by the chart (see rawSummaryColumns in transformProps).
+    // Own state can outlive a datasource or column-selection change, so bound
+    // the primed summary columns to the current raw selection: a stale name
+    // must never reach a SUM metric or the whole chart query fails before the
+    // chart can re-prime its own state.
+    const selectedRawColumns = new Set(
+      ensureIsArray(formData.all_columns).map(getColumnLabel),
+    );
+    const rawSummaryColumns =
+      queryMode === QueryMode.Raw && formData.show_totals
+        ? ensureIsArray(
+            ownState.rawSummaryColumns as string[] | undefined,
+          ).filter(columnName => selectedRawColumns.has(columnName))
+        : [];
+    const showAggregateTotals = Boolean(
       metrics?.length &&
       formData.show_totals &&
-      queryMode === QueryMode.Aggregate
-    ) {
+      queryMode === QueryMode.Aggregate,
+    );
+
+    if (showAggregateTotals || rawSummaryColumns.length > 0) {
       // Create a copy of extras without the AG Grid WHERE clause
       // AG Grid filters in extras.where can reference calculated columns
       // which aren't available in the totals subquery
@@ -661,6 +678,14 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       extraQueries.push({
         ...queryObject,
         columns: [],
+        ...(rawSummaryColumns.length > 0 && {
+          metrics: rawSummaryColumns.map(columnName => ({
+            expressionType: 'SIMPLE' as const,
+            aggregate: 'SUM' as const,
+            column: { column_name: columnName },
+            label: columnName,
+          })),
+        }),
         extras: totalsExtras, // Use extras with AG Grid WHERE removed
         row_limit: 0,
         row_offset: 0,

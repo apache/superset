@@ -86,8 +86,16 @@ function CopyToClip({
           cursor,
         },
         onClick: disabled ? undefined : onClick,
+        onKeyDown: disabled
+          ? undefined
+          : (event: KeyboardEvent<HTMLElement>) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onClick();
+              }
+            },
         'aria-disabled': disabled || undefined,
-        tabIndex: disabled ? -1 : node.props.tabIndex,
+        tabIndex: disabled ? -1 : (node.props.tabIndex ?? 0),
       });
     }
     const handleKeyDown = disabled

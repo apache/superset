@@ -19,7 +19,7 @@
 
 import { useState } from 'react';
 import fetchMock from 'fetch-mock';
-import { omit, omitBy } from 'lodash';
+import { omit, omitBy } from 'lodash-es';
 import {
   render,
   screen,
@@ -79,12 +79,7 @@ const dataset = {
   created_on_humanized: '01-01-2001',
   description: 'desc',
   table_name: 'my_dataset',
-  owners: [
-    {
-      first_name: 'Sarah',
-      last_name: 'Connor',
-    },
-  ],
+  editors: [{ id: 1, label: 'Sarah Connor', type: 1 }],
   columns: [
     {
       column_name: 'gender',

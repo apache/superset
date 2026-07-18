@@ -25,18 +25,52 @@ import * as CoreTheme from '@apache-superset/core/theme';
 import { Menu } from './Menu';
 import * as getBootstrapData from 'src/utils/getBootstrapData';
 
+// Capture what `<GenericLink to={...}>` receives so the SPA-route regression
+// tests can assert on the value handed to react-router-dom (which applies its
+// own basename in production via `<Router basename={applicationRoot()}>` in
+// src/views/App.tsx). The test harness's `<BrowserRouter>` has no basename,
+// so asserting on the rendered `<a href>` wouldn't catch the double-prefix.
+let observedGenericLinkTo: unknown = null;
+jest.mock('src/components/GenericLink', () => ({
+  __esModule: true,
+  GenericLink: ({
+    to,
+    children,
+    ...rest
+  }: {
+    to: unknown;
+    children: React.ReactNode;
+    [k: string]: unknown;
+  }) => {
+    observedGenericLinkTo = to;
+    return (
+      <a
+        href={typeof to === 'string' ? to : '#'}
+        {...(rest as Record<string, unknown>)}
+      >
+        {children}
+      </a>
+    );
+  },
+}));
+
 jest.mock('@apache-superset/core/theme', () => ({
   ...jest.requireActual('@apache-superset/core/theme'),
   useTheme: jest.fn(),
 }));
 
-jest.mock('antd', () => ({
-  ...jest.requireActual('antd'),
-  Grid: {
-    ...jest.requireActual('antd').Grid,
-    useBreakpoint: () => ({ md: true }),
-  },
-}));
+const mockUseBreakpoint = jest.fn<{ md?: boolean }, []>(() => ({ md: true }));
+
+jest.mock('antd', () => {
+  const actual = jest.requireActual('antd');
+  return {
+    ...actual,
+    Grid: {
+      ...actual.Grid,
+      useBreakpoint: () => mockUseBreakpoint(),
+    },
+  };
+});
 
 const dropdownItems = [
   {
@@ -273,6 +307,8 @@ beforeEach(() => {
   applicationRootMock.mockReturnValue('');
   // By default useTheme returns the real default theme (brandLogoUrl is falsy)
   useThemeMock.mockReturnValue(CoreTheme.supersetTheme);
+  // By default simulate a desktop viewport (md breakpoint active)
+  mockUseBreakpoint.mockReturnValue({ md: true });
 });
 
 test('should render', async () => {
@@ -797,6 +833,161 @@ test('brand link falls back to brand.path when theme brandLogoUrl is absent', as
   expect(brandLink).toHaveAttribute('href', '/superset/welcome/');
 });
 
+// Regression: the real backend emits `brand.path` and `brand.icon` already
+// carrying the app root (because they pass through `url_for`). The frontend
+// must not double-prefix them — neither via
+// `ensureAppRoot`/`ensureStaticPrefix` nor via React Router's `basename`
+// re-prepend.
+//
+// In production the SPA-route branch goes through `<GenericLink to={...}> ->
+// react-router-dom <Link>`, and the Router's `basename={applicationRoot()}`
+// (src/views/App.tsx) re-prepends the app root to the rendered `href`. The
+// test harness's `<BrowserRouter>` has no basename, so asserting on the
+// rendered `<a href>` wouldn't catch the bug. Instead we mock `GenericLink`
+// at module load (top of this file) and assert the path *handed to it*
+// already has the root stripped — the value the production Router will then
+// safely re-prepend.
+
+describe('brand link single-prefix regressions (subdirectory deployment)', () => {
+  beforeEach(() => {
+    observedGenericLinkTo = null;
+  });
+
+  test('brand link hands a root-stripped path to GenericLink when brand.path arrives already rooted (SPA route)', async () => {
+    applicationRootMock.mockReturnValue('/superset');
+    staticAssetsPrefixMock.mockReturnValue('/superset');
+    useSelectorMock.mockReturnValue({ roles: user.roles });
+
+    const propsWithRootedBrand = {
+      ...mockedProps,
+      isFrontendRoute: () => true,
+      data: {
+        ...mockedProps.data,
+        brand: {
+          ...mockedProps.data.brand,
+          path: '/superset/welcome/',
+          icon: '/superset/static/assets/images/superset-logo-horiz.png',
+        },
+      },
+    };
+
+    render(<Menu {...propsWithRootedBrand} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+
+    // Wait for the mocked GenericLink to render.
+    await screen.findByRole('link', {
+      name: new RegExp(propsWithRootedBrand.data.brand.alt, 'i'),
+    });
+    expect(observedGenericLinkTo).toBe('/welcome/');
+  });
+
+  test('brand link is single-prefix when brand.path arrives already rooted (non-SPA route)', async () => {
+    applicationRootMock.mockReturnValue('/superset');
+    staticAssetsPrefixMock.mockReturnValue('/superset');
+    useSelectorMock.mockReturnValue({ roles: user.roles });
+
+    const propsWithRootedBrand = {
+      ...mockedProps,
+      isFrontendRoute: () => false,
+      data: {
+        ...mockedProps.data,
+        brand: {
+          ...mockedProps.data.brand,
+          path: '/superset/welcome/',
+          icon: '/superset/static/assets/images/superset-logo-horiz.png',
+        },
+      },
+    };
+
+    render(<Menu {...propsWithRootedBrand} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+
+    const brandLink = await screen.findByRole('link', {
+      name: new RegExp(propsWithRootedBrand.data.brand.alt, 'i'),
+    });
+    expect(brandLink).toHaveAttribute('href', '/superset/welcome/');
+    const brandImg = brandLink.querySelector('img');
+    expect(brandImg).toHaveAttribute(
+      'src',
+      '/superset/static/assets/images/superset-logo-horiz.png',
+    );
+  });
+
+  test('brand link strips a nested application root before handing to GenericLink', async () => {
+    applicationRootMock.mockReturnValue('/preset/superset');
+    staticAssetsPrefixMock.mockReturnValue('/preset/superset');
+    useSelectorMock.mockReturnValue({ roles: user.roles });
+
+    const propsWithRootedBrand = {
+      ...mockedProps,
+      isFrontendRoute: () => true,
+      data: {
+        ...mockedProps.data,
+        brand: {
+          ...mockedProps.data.brand,
+          path: '/preset/superset/welcome/',
+          icon: '/preset/superset/static/assets/images/superset-logo-horiz.png',
+        },
+      },
+    };
+
+    render(<Menu {...propsWithRootedBrand} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+
+    await screen.findByRole('link', {
+      name: new RegExp(propsWithRootedBrand.data.brand.alt, 'i'),
+    });
+    expect(observedGenericLinkTo).toBe('/welcome/');
+  });
+
+  test('brand link from theme.brandLogoHref hands a root-stripped path to GenericLink when already rooted', async () => {
+    applicationRootMock.mockReturnValue('/superset');
+    staticAssetsPrefixMock.mockReturnValue('/superset');
+    useSelectorMock.mockReturnValue({ roles: user.roles });
+
+    useThemeMock.mockReturnValue({
+      ...CoreTheme.supersetTheme,
+      brandLogoUrl: '/superset/static/assets/images/custom-logo.png',
+      brandLogoHref: '/superset/welcome/',
+    });
+
+    render(<Menu {...mockedProps} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+
+    const brandLink = await screen.findByRole('link', {
+      name: /apache superset/i,
+    });
+    // The internal brand logo link goes through StyledBrandLink -> GenericLink
+    // -> react-router <Link>. The production Router re-prepends the app root, so
+    // the value handed to GenericLink must already be stripped to avoid a
+    // doubled /superset/superset/... href. (Real-basename coverage of the
+    // resulting rendered href lives in Menu.subdirectory.test.tsx.)
+    expect(observedGenericLinkTo).toBe('/welcome/');
+    expect(brandLink).toHaveAttribute('href', '/welcome/');
+    const brandImg = brandLink.querySelector('img');
+    expect(brandImg).toHaveAttribute(
+      'src',
+      '/superset/static/assets/images/custom-logo.png',
+    );
+  });
+});
+
 // --- Active tab highlighting (regression tests for issue #36403) ---
 //
 // The active top-level tab is highlighted by matching the current route to a
@@ -903,4 +1094,67 @@ describe('active tab highlighting (regression #36403)', () => {
       'ant-menu-submenu-selected',
     );
   });
+});
+
+test('navbar renders horizontal when breakpoints are not yet measured on a wide viewport (regression for layout flash)', async () => {
+  // Simulate first paint: useBreakpoint returns {} before the viewport is
+  // measured, so the layout falls back to the viewport width (jsdom defaults
+  // to 1024px, above the md threshold) → mode="horizontal".
+  mockUseBreakpoint.mockReturnValue({});
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+  const navbar = await screen.findByTestId('navbar-top');
+  expect(navbar).toHaveClass('ant-menu-horizontal');
+  expect(navbar).not.toHaveClass('ant-menu-inline');
+});
+
+test('navbar renders inline when breakpoints are not yet measured on a narrow viewport', async () => {
+  // Simulate first paint on a mobile-sized window: useBreakpoint returns {}
+  // and the viewport-width fallback (below the md threshold) → mode="inline",
+  // so mobile users don't see a horizontal flash either.
+  const originalInnerWidth = window.innerWidth;
+  Object.defineProperty(window, 'innerWidth', {
+    configurable: true,
+    writable: true,
+    value: 500,
+  });
+  try {
+    mockUseBreakpoint.mockReturnValue({});
+    useSelectorMock.mockReturnValue({ roles: user.roles });
+    render(<Menu {...mockedProps} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+    const navbar = await screen.findByTestId('navbar-top');
+    expect(navbar).toHaveClass('ant-menu-inline');
+    expect(navbar).not.toHaveClass('ant-menu-horizontal');
+  } finally {
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: originalInnerWidth,
+    });
+  }
+});
+
+test('navbar renders inline on mobile viewport (md: false)', async () => {
+  // Simulate a mobile viewport where the md breakpoint has resolved to false,
+  // which takes precedence over the viewport-width fallback → mode="inline".
+  mockUseBreakpoint.mockReturnValue({ md: false });
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+  const navbar = await screen.findByTestId('navbar-top');
+  expect(navbar).toHaveClass('ant-menu-inline');
 });
