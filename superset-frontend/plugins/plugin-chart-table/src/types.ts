@@ -129,5 +129,3 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   // emit the correct column name in cross-filter data masks
   columnLabelToNameMap?: Record<string, string>;
 }
-
-export default {};

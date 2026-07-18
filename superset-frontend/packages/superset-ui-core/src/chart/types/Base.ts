@@ -146,5 +146,3 @@ export enum AxisType {
 export interface LegendState {
   [key: string]: boolean;
 }
-
-export default {};

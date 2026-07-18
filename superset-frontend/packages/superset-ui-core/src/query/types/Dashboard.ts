@@ -264,5 +264,3 @@ export interface LegacyChartCustomizationItem {
   chartId?: number;
   customization: LegacyChartCustomizationConfig;
 }
-
-export default {};

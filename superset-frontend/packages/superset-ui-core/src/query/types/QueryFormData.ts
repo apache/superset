@@ -211,5 +211,3 @@ export type LatestQueryFormData = Partial<QueryFormData>;
 //---------------------------------------------------
 // Type guards
 //---------------------------------------------------
-
-export default {};
