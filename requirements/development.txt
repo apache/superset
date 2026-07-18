@@ -1043,7 +1043,7 @@ trio-websocket==0.12.2
     # via
     #   -c requirements/base-constraint.txt
     #   selenium
-typing-extensions==4.15.0
+typing-extensions==4.16.0
     # via
     #   -c requirements/base-constraint.txt
     #   alembic
