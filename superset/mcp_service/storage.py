@@ -130,7 +130,9 @@ def _create_redis_store(
             except ValueError:
                 db = 0
 
-        redis_client: Redis[str]
+        # redis-py 8 dropped the generic type parameter from the async
+        # client (it now uses distinct sync/async overloads internally).
+        redis_client: Redis
         if use_ssl:
             # For ElastiCache with self-signed certs, disable cert verification.
             # NOTE: ssl_cert_reqs="none" disables certificate verification.
@@ -144,6 +146,11 @@ def _create_redis_store(
                 decode_responses=True,
                 ssl=True,
                 ssl_cert_reqs="none",
+                # Pin RESP2/no-timeout (redis-py<8 behavior) so a future
+                # library bump doesn't silently require RESP3 server
+                # support or introduce a new default socket timeout.
+                socket_timeout=None,
+                protocol=2,
             )
             logger.info("Created async Redis client with SSL")
         else:
@@ -154,6 +161,8 @@ def _create_redis_store(
                 username=parsed.username,  # Support Redis 6+ ACLs
                 password=parsed.password,
                 decode_responses=True,
+                socket_timeout=None,
+                protocol=2,
             )
             logger.info("Created async Redis client")
 

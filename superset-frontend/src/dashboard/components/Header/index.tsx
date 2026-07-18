@@ -177,7 +177,7 @@ const actionButtonsStyle = (theme: SupersetTheme) => css`
 `;
 
 const StyledUndoRedoButton = styled(Button)`
-  // TODO: check if we need this
+  /* TODO: check if we need this */
   padding: 0;
   &:hover {
     background: transparent;

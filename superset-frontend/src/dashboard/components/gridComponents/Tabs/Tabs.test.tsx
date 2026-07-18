@@ -136,7 +136,7 @@ test('Should render editMode:true', () => {
       .getAllByRole('tab')
       .filter(tab => !tab.classList.contains('ant-tabs-tab-remove')),
   ).toHaveLength(3);
-  expect(screen.getAllByRole('tab', { name: 'remove' })).toHaveLength(3);
+  expect(screen.getAllByRole('button', { name: 'remove' })).toHaveLength(3);
   expect(screen.getAllByRole('button', { name: 'Add tab' })).toHaveLength(1);
   expect(DashboardComponent).toHaveBeenCalledTimes(4);
   expect(DeleteComponentButton).toHaveBeenCalledTimes(1);
@@ -241,7 +241,7 @@ test('Removing a tab', async () => {
 
   expect(props.deleteComponent).not.toHaveBeenCalled();
   expect(screen.queryByText('Delete dashboard tab?')).not.toBeInTheDocument();
-  userEvent.click(screen.getAllByRole('tab', { name: 'remove' })[0]);
+  userEvent.click(screen.getAllByRole('button', { name: 'remove' })[0]);
   expect(props.deleteComponent).not.toHaveBeenCalled();
 
   expect(await screen.findByText('Delete dashboard tab?')).toBeInTheDocument();

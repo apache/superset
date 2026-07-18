@@ -17,14 +17,15 @@
  * under the License.
  */
 
-import { groupingValueSort } from '../../src/react-pivottable/utilities';
-
 import type { ReactElement } from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import { TableRenderer } from '../../src/react-pivottable/TableRenderers';
-import { aggregatorTemplates } from '../../src/react-pivottable/utilities';
+import {
+  aggregatorTemplates,
+  groupingValueSort,
+} from '../../src/react-pivottable/utilities';
 
 jest.mock(
   'react-icons/fa',

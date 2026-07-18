@@ -28,8 +28,29 @@ nameOverride: ~
 # -- Provide a name to override the full names of resources
 fullnameOverride: ~
 
+# -- Kubernetes cluster configuration
+# Used for constructing service URLs between chart components
+cluster:
+  # -- Kubernetes cluster domain (default: .svc.cluster.local)
+  # Override if using a custom cluster domain
+  domain: ".svc.cluster.local"
+  # -- Database service name (default: {{ .Release.Name }}-postgresql)
+  # Override if using a different service name for the database
+  databaseServiceName: ~
+  # -- Redis service name (default: {{ .Release.Name }}-redis-headless)
+  # Override if using a different service name for Redis
+  redisServiceName: ~
+  # -- WebSocket service name (default: {{ .Release.Name }}-ws)
+  # Override if using a different service name for the WebSocket service
+  websocketServiceName: ~
+
 # -- Labels to be added to all resources
 extraLabels: {}
+
+# -- Global pod annotations to be added to all pods
+# Use this to set annotations that apply to all Superset components
+# Component-specific podAnnotations will be merged with these global annotations
+globalPodAnnotations: {}
 
 # -- User ID directive. This user must have enough permissions to run the bootstrap script
 # Running containers as root is not recommended in production. Change this to another UID - e.g. 1000 to be more secure
@@ -46,6 +67,8 @@ serviceAccountName: ~
 serviceAccount:
   # -- Create custom service account for Superset. If create: true and serviceAccountName is not provided, `superset.fullname` will be used.
   create: false
+  # -- Service account name to use (if not specified, defaults to release name + chart name)
+  name: ""
   annotations: {}
 
 # -- Install additional packages and do any other bootstrap configuration in this script
@@ -244,6 +267,89 @@ hostAliases: []
 #   - nodns.my.lan
 #   ip: 18.27.36.45
 
+# -- Database connection configuration for the Superset metadata database
+database:
+  # -- Full database URI (overrides host/port/user/pass/name if set)
+  # Example: "postgresql+psycopg2://user:pass@host:5432/dbname"
+  uri: ~
+  # -- Database driver used when uri is not set (default: postgresql+psycopg2 when unset;
+  # legacy supersetNode.connections.db_type is honored when this is unset)
+  driver: ~
+  # -- Database host (default: {{ .Release.Name }}-postgresql)
+  host: ~
+  # -- Database port (default: 5432 when unset; legacy supersetNode.connections.db_port is honored)
+  port: ~
+  # -- Database user (default: superset, resolved via superset.db.user)
+  user: ~
+  # -- Database password (default: superset, resolved via superset.db.password)
+  # ⚠️ CHANGE THIS for production
+  password: ~
+  # -- Database name (default: superset, resolved via superset.db.name)
+  name: ~
+  # -- Database SSL configuration
+  ssl:
+    enabled: false
+    mode: require
+
+# -- Redis cache configuration for Superset
+# Redis is optional but recommended for caching and Celery.
+# If redis.enabled (chart dependency) is true, defaults point to the chart's Redis instance.
+cache:
+  # -- Enable Redis-based features (cache, Celery). Set to false to disable Redis usage entirely.
+  enabled: true
+  # -- Full Redis cache URL (overrides host/port/user/pass if set)
+  cacheUrl: ~
+  # -- Full Redis Celery URL (overrides host/port/user/pass if set)
+  celeryUrl: ~
+  # -- Redis host (default: {{ .Release.Name }}-redis-headless)
+  host: ~
+  # -- Redis port (default: 6379 when unset; legacy supersetNode.connections.redis_port is honored)
+  port: ~
+  # -- Redis user (optional, for Redis ACL)
+  user: ""
+  # -- Redis password
+  password: ~
+  # -- Redis database number for cache (default: 1 when unset; legacy redis_cache_db is honored)
+  cacheDb: ~
+  # -- Redis database number for Celery (default: 0 when unset; legacy redis_celery_db is honored)
+  celeryDb: ~
+  # -- Cache key prefix
+  keyPrefix: "superset_"
+  # -- Default cache timeout in seconds
+  defaultTimeout: 86400
+  # -- Results backend key prefix
+  resultsBackendKeyPrefix: "superset_results"
+  # -- Async queries configuration
+  asyncQueries:
+    keyPrefix: "qc-"
+    timeout: 86400
+  # -- Redis Sentinel configuration (optional)
+  sentinel: ~
+  # -- Redis SSL configuration
+  ssl:
+    enabled: false
+    ssl_cert_reqs: required
+    certfile: ~
+    keyfile: ~
+    ca_certs: ~
+  # -- Custom Redis driver (e.g. TLS/managed variants); overrides the redis proto in URLs when set.
+  # Ports the legacy supersetNode.connections.redis_driver escape hatch.
+  driver: ""
+
+# -- Superset configuration properties
+# Set any configuration property from superset/config.py here
+# See https://github.com/apache/superset/blob/master/superset/config.py for all available options
+config: {}
+  # SECRET_KEY: "your-secret-key-here"
+  # ROW_LIMIT: 50000
+  # DEBUG: false
+
+# -- Feature flags configuration
+# See https://github.com/apache/superset/blob/master/RESOURCES/FEATURE_FLAGS.md
+featureFlags: {}
+  # ALERT_REPORTS: true
+  # DASHBOARD_RBAC: true
+
 # Superset node configuration
 supersetNode:
   replicas:
@@ -270,28 +376,8 @@ supersetNode:
     - "/bin/sh"
     - "-c"
     - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; exec /usr/bin/run-server.sh"
-  connections:
-    # -- Change in case of bringing your own redis and then also set redis.enabled:false
-    redis_host: "{{ .Release.Name }}-redis-headless"
-    redis_port: "6379"
-    redis_user: ""
-    # redis_password: superset
-    redis_cache_db: "1"
-    redis_celery_db: "0"
-    # Or SSL port is usually 6380
-    # Update following for using Redis with SSL
-    redis_ssl:
-      enabled: false
-      ssl_cert_reqs: CERT_NONE
-    redis_driver: ""
-    # You need to change below configuration incase bringing own PostgresSQL instance and also set postgresql.enabled:false
-    # -- Database type for Superset metadata (Supported types: "postgresql", "mysql")
-    db_type: "postgresql"
-    db_host: "{{ .Release.Name }}-postgresql"
-    db_port: "5432"
-    db_user: superset
-    db_pass: superset
-    db_name: superset
+  # DEPRECATED: use database.* and cache.* instead (still honored if set). See UPGRADING.md
+  connections: {}
   env: {}
   # -- If true, forces deployment to reload on each upgrade
   forceReload: false
@@ -329,6 +415,8 @@ supersetNode:
           cpu: "250m"
           memory: "128Mi"
 
+  # -- Extra init containers appended after supersetNode initContainers
+  extraInitContainers: []
   # -- Launch additional containers into supersetNode pod
   extraContainers: []
   # -- Annotations to be added to supersetNode deployment
@@ -456,6 +544,8 @@ supersetWorker:
         requests:
           cpu: "250m"
           memory: "128Mi"
+  # -- Extra init containers appended after supersetWorker initContainers
+  extraInitContainers: []
   # -- Launch additional containers into supersetWorker pod
   extraContainers: []
   # -- Annotations to be added to supersetWorker deployment
@@ -508,6 +598,17 @@ supersetWorker:
   startupProbe: {}
   # -- No startup/readiness probes by default since we don't really care about its startup time (it doesn't serve traffic)
   readinessProbe: {}
+  # -- Celery worker file-based health check (worker writes readiness/liveness files via signals;
+  #    point supersetWorker.readinessProbe/livenessProbe at these files to use them)
+  healthCheck:
+    # -- Enable the file-based Celery worker health check
+    enabled: false
+    # -- Readiness file (created when the worker is ready, removed on shutdown)
+    readinessFile: "/tmp/celery_worker_ready"
+    # -- Liveness file (touched periodically by a heartbeat thread)
+    livenessFile: "/tmp/celery_worker_alive"
+    # -- Seconds between liveness heartbeats
+    livenessHeartbeatInterval: 10
   # -- Set priorityClassName for supersetWorker pods
   priorityClassName: ~
 
@@ -566,6 +667,8 @@ supersetCeleryBeat:
         requests:
           cpu: "250m"
           memory: "128Mi"
+  # -- Extra init containers appended after supersetCeleryBeat initContainers
+  extraInitContainers: []
   # -- Launch additional containers into supersetCeleryBeat pods
   extraContainers: []
   # -- Annotations to be added to supersetCeleryBeat deployment
@@ -683,6 +786,8 @@ supersetCeleryFlower:
         requests:
           cpu: "250m"
           memory: "128Mi"
+  # -- Extra init containers appended after supersetCeleryFlower initContainers
+  extraInitContainers: []
   # -- Launch additional containers into supersetCeleryFlower pods
   extraContainers: []
   # -- Annotations to be added to supersetCeleryFlower deployment
@@ -870,8 +975,13 @@ init:
         requests:
           cpu: "250m"
           memory: "128Mi"
-  # -- A Superset init script
-  # @default -- a script to create admin user and initialize roles
+  # -- Extra init containers appended after init job initContainers
+  extraInitContainers: []
+  # -- DEPRECATED: this field is no longer used by the chart.
+  # The init script is rendered entirely from the internal `superset.initScript` template
+  # (which runs `superset db upgrade`, `superset init`, admin creation, and examples).
+  # Any customization placed here is silently ignored. See UPGRADING.md.
+  # @default -- unused; kept for backwards-compatibility only
   initscript: |-
     #!/bin/sh
     set -eu

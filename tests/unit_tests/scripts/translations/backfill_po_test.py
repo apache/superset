@@ -40,6 +40,24 @@ backfill_po = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(backfill_po)
 
 
+@pytest.mark.parametrize(
+    "lang",
+    ["fr", "de", "pt_BR", "zh_TW", "sr_Latn", "eng"],
+)
+def test_is_valid_lang_code_accepts_region_and_script_subtags(lang: str) -> None:
+    """Region (``pt_BR``) and script (``sr_Latn``) subtags are both valid."""
+    assert backfill_po._is_valid_lang_code(lang)
+
+
+@pytest.mark.parametrize(
+    "lang",
+    ["", "e", "EN", "fr_", "fr_br", "fr_BRA", "../etc", "en_US_x", "sr-Latn"],
+)
+def test_is_valid_lang_code_rejects_malformed_and_traversal(lang: str) -> None:
+    """Malformed codes and path-traversal attempts are rejected."""
+    assert not backfill_po._is_valid_lang_code(lang)
+
+
 def test_parse_response_singular_strings() -> None:
     """A flat object of int-keyed strings is returned as-is."""
     text = '{"0": "hola", "1": "mundo"}'

@@ -44,10 +44,13 @@ spec:
     metadata:
       annotations:
         # Force reload on config changes
-        checksum/superset_config.py: {{ include "superset-config" . | sha256sum }}
-        checksum/superset_init.sh: {{ tpl .Values.init.initscript . | sha256sum }}
+        checksum/superset_config.py: {{ include "superset.config" . | sha256sum }}
+        checksum/superset_init.sh: {{ include "superset.initScript" . | sha256sum }}
         checksum/superset_bootstrap.sh: {{ tpl .Values.bootstrapScript . | sha256sum }}
-        checksum/connections: {{ .Values.supersetNode.connections | toYaml | sha256sum }}
+        checksum/database: {{ .Values.database | toYaml | sha256sum }}
+        checksum/redis: {{ .Values.cache | toYaml | sha256sum }}
+        checksum/config: {{ .Values.config | toYaml | sha256sum }}
+        checksum/featureFlags: {{ .Values.featureFlags | toYaml | sha256sum }}
         checksum/extraConfigs: {{ .Values.extraConfigs | toYaml | sha256sum }}
         checksum/extraSecrets: {{ .Values.extraSecrets | toYaml | sha256sum }}
         checksum/extraSecretEnv: {{ .Values.extraSecretEnv | toYaml | sha256sum }}
@@ -59,6 +62,9 @@ spec:
         {{- end }}
         {{- if .Values.supersetNode.podAnnotations }}
           {{- toYaml .Values.supersetNode.podAnnotations | nindent 8 }}
+        {{- end }}
+        {{- with .Values.globalPodAnnotations }}
+          {{- toYaml . | nindent 8 }}
         {{- end }}
       labels:
         {{- include "supersetNode.selectorLabels" . | nindent 8 }}
@@ -77,8 +83,14 @@ spec:
         {{- if .Values.supersetNode.podSecurityContext }}
           {{- toYaml .Values.supersetNode.podSecurityContext | nindent 8 }}
         {{- end }}
+      {{- if or .Values.supersetNode.initContainers .Values.supersetNode.extraInitContainers }}
+      initContainers:
       {{- if .Values.supersetNode.initContainers }}
-      initContainers: {{- tpl (toYaml .Values.supersetNode.initContainers) . | nindent 6 }}
+      {{- tpl (toYaml .Values.supersetNode.initContainers) . | nindent 6 }}
+      {{- end }}
+      {{- if .Values.supersetNode.extraInitContainers }}
+      {{- tpl (toYaml .Values.supersetNode.extraInitContainers) . | nindent 6 }}
+      {{- end }}
       {{- end }}
       {{- with .Values.hostAliases }}
       hostAliases: {{- toYaml . | nindent 6 }}

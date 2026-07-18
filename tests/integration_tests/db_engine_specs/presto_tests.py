@@ -80,14 +80,16 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
         assert result == {"a", "d"}
 
     def verify_presto_column(self, column, expected_results):
-        inspector = mock.Mock()
+        inspector = mock.MagicMock()
         preparer = inspector.engine.dialect.identifier_preparer
         preparer.quote_identifier = preparer.quote = preparer.quote_schema = (
             lambda x: f'"{x}"'
         )
         row = mock.Mock()
         row.Column, row.Type, row.Null = column
-        inspector.bind.execute.return_value.fetchall = mock.Mock(return_value=[row])
+        inspector.engine.connect().__enter__().execute().fetchall = mock.Mock(
+            return_value=[row]
+        )
         results = PrestoEngineSpec.get_columns(inspector, Table("", ""))
         assert len(expected_results) == len(results)
         for expected_result, result in zip(expected_results, results, strict=False):
@@ -831,16 +833,17 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
         preparer.quote_identifier = preparer.quote = preparer.quote_schema = (
             lambda x: f'"{x}"'
         )
-        inspector.bind.execute.return_value.fetchall = mock.MagicMock(
-            return_value=["a", "b"]
+        inspector.engine.connect().__enter__().execute.return_value.fetchall = (
+            mock.MagicMock(return_value=["a", "b"])
         )
         table_name = "table_name"
         result = PrestoEngineSpec._show_columns(inspector, Table(table_name))
         assert result == ["a", "b"]
-        assert_called_once_with_text(
-            inspector.bind.execute,
-            f'SHOW COLUMNS FROM "{table_name}"',
-        )
+        with inspector.engine.connect() as conn:
+            assert_called_once_with_text(
+                conn.execute,
+                f'SHOW COLUMNS FROM "{table_name}"',
+            )
 
     def test_show_columns_with_schema(self):
         inspector = mock.MagicMock()
@@ -848,16 +851,17 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
         preparer.quote_identifier = preparer.quote = preparer.quote_schema = (
             lambda x: f'"{x}"'
         )
-        inspector.bind.execute.return_value.fetchall = mock.MagicMock(
-            return_value=["a", "b"]
+        inspector.engine.connect().__enter__().execute.return_value.fetchall = (
+            mock.MagicMock(return_value=["a", "b"])
         )
         table_name = "table_name"
         schema = "schema"
         result = PrestoEngineSpec._show_columns(inspector, Table(table_name, schema))
         assert result == ["a", "b"]
-        assert_called_once_with_text(
-            inspector.bind.execute, f'SHOW COLUMNS FROM "{schema}"."{table_name}"'
-        )
+        with inspector.engine.connect() as conn:
+            assert_called_once_with_text(
+                conn.execute, f'SHOW COLUMNS FROM "{schema}"."{table_name}"'
+            )
 
     def test_is_column_name_quoted(self):
         column_name = "mock"
