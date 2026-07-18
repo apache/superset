@@ -48,7 +48,7 @@
     "@docusaurus/faster": "^3.10.1",
     "@docusaurus/plugin-client-redirects": "^3.10.1",
     "@docusaurus/preset-classic": "3.10.1",
-    "@docusaurus/theme-live-codeblock": "^3.10.1",
+    "@docusaurus/theme-live-codeblock": "^3.10.2",
     "@docusaurus/theme-mermaid": "^3.10.1",
     "@emotion/core": "^11.0.0",
     "@emotion/react": "^11.13.3",
