@@ -698,4 +698,48 @@ describe('sqlLabReducer', () => {
       expect(newState.queries.abcd.state).toBe(QueryState.Success);
     });
   });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('SET_DATABASES', () => {
+    test('should merge databases instead of replacing', () => {
+      const db1 = { id: 1, database_name: 'db1', allow_run_async: false, extra: '{}' };
+      const db2 = { id: 2, database_name: 'db2', allow_run_async: false, extra: '{}' };
+      const db3 = { id: 3, database_name: 'db3', allow_run_async: false, extra: '{}' };
+
+      let state = sqlLabReducer(initialState, {
+        type: actions.SET_DATABASES,
+        databases: [db1, db2],
+      });
+      expect(Object.keys(state.databases)).toHaveLength(2);
+      expect(state.databases[1].database_name).toBe('db1');
+      expect(state.databases[2].database_name).toBe('db2');
+
+      state = sqlLabReducer(state, {
+        type: actions.SET_DATABASES,
+        databases: [db2, db3],
+      });
+      expect(Object.keys(state.databases)).toHaveLength(3);
+      expect(state.databases[1].database_name).toBe('db1');
+      expect(state.databases[2].database_name).toBe('db2');
+      expect(state.databases[3].database_name).toBe('db3');
+    });
+
+    test('should overwrite existing database entries with updated data', () => {
+      const db1 = { id: 1, database_name: 'db1', allow_run_async: false, extra: '{}' };
+      const db1Updated = { id: 1, database_name: 'db1_renamed', allow_run_async: true, extra: '{}' };
+
+      let state = sqlLabReducer(initialState, {
+        type: actions.SET_DATABASES,
+        databases: [db1],
+      });
+      expect(state.databases[1].database_name).toBe('db1');
+
+      state = sqlLabReducer(state, {
+        type: actions.SET_DATABASES,
+        databases: [db1Updated],
+      });
+      expect(state.databases[1].database_name).toBe('db1_renamed');
+      expect(state.databases[1].allow_run_async).toBe(true);
+    });
+  });
 });
