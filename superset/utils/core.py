@@ -120,6 +120,28 @@ if TYPE_CHECKING:
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
 
+EMAIL_ATTACHMENT_SUBTYPES: dict[str, str] = {
+    ".pdf": "pdf",
+    ".zip": "zip",
+    ".xlsx": "vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+}
+
+
+def build_email_attachment(name: str, body: bytes | str) -> MIMEApplication:
+    """
+    Create an email attachment part with stable filename metadata.
+    """
+    subtype = EMAIL_ATTACHMENT_SUBTYPES.get(os.path.splitext(name)[1].lower())
+    payload = body.encode("utf-8") if isinstance(body, str) else body
+    attachment = MIMEApplication(
+        payload,
+        _subtype=subtype or "octet-stream",
+        Name=name,
+    )
+    attachment.add_header("Content-Disposition", "attachment", filename=name)
+    return attachment
+
+
 DTTM_ALIAS = "__timestamp"
 
 TIME_COMPARISON = "__"
@@ -210,7 +232,7 @@ class LoggerLevel(StrEnum):
 
 class HeaderDataType(TypedDict):
     notification_format: str
-    owners: list[int]
+    editors: list[int]
     notification_type: str
     notification_source: str | None
     chart_id: int | None
@@ -641,9 +663,7 @@ def generic_find_constraint_name(
     table: str, columns: set[str], referenced: str, database: SQLAlchemy
 ) -> str | None:
     """Utility to find a constraint name in alembic migrations"""
-    tbl = sa.Table(
-        table, database.metadata, autoload=True, autoload_with=database.engine
-    )
+    tbl = sa.Table(table, database.metadata, autoload_with=database.engine)
 
     for fk in tbl.foreign_key_constraints:
         if fk.referred_table.name == referenced and set(fk.column_keys) == columns:
@@ -832,7 +852,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     html_content: str,
     config: dict[str, Any],
     files: list[str] | None = None,
-    data: dict[str, str] | None = None,
+    data: dict[str, bytes | str] | None = None,
     pdf: dict[str, bytes] | None = None,
     images: dict[str, bytes] | None = None,
     dryrun: bool = False,
@@ -879,30 +899,14 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     for fname in files or []:
         basename = os.path.basename(fname)
         with open(fname, "rb") as f:
-            msg.attach(
-                MIMEApplication(
-                    f.read(),
-                    Content_Disposition=f"attachment; filename='{basename}'",
-                    Name=basename,
-                )
-            )
+            msg.attach(build_email_attachment(basename, f.read()))
 
     # Attach any files passed directly
     for name, body in (data or {}).items():
-        msg.attach(
-            MIMEApplication(
-                body, Content_Disposition=f"attachment; filename='{name}'", Name=name
-            )
-        )
+        msg.attach(build_email_attachment(name, body))
 
     for name, body_pdf in (pdf or {}).items():
-        msg.attach(
-            MIMEApplication(
-                body_pdf,
-                Content_Disposition=f"attachment; filename='{name}'",
-                Name=name,
-            )
-        )
+        msg.attach(build_email_attachment(name, body_pdf))
 
     # Attach any inline images, which may be required for display in
     # HTML content (inline)
@@ -1821,9 +1825,9 @@ def extract_dataframe_dtypes(
                 columns_by_name[column.column_name] = column
 
     generic_types: list[GenericDataType] = []
-    for column in df.columns:
+    for i, column in enumerate(df.columns):
         column_object = columns_by_name.get(str(column))
-        series = df[column]
+        series = df.iloc[:, i]
         inferred_type: str = ""
         if series.isna().all():
             sql_type: Optional[str] = ""

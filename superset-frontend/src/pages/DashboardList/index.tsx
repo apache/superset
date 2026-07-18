@@ -21,6 +21,7 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   SupersetClient,
+  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { useSelector } from 'react-redux';
@@ -29,11 +30,14 @@ import { Link } from 'react-router-dom';
 import rison from 'rison';
 import {
   createFetchRelated,
-  createFetchOwners,
+  createFetchEditors,
+  createFetchViewers,
   createErrorHandler,
   handleDashboardDelete,
 } from 'src/views/CRUD/utils';
-import { OWNER_OPTION_FILTER_PROPS } from 'src/features/owners/OwnerSelectLabel';
+import Subject from 'src/types/Subject';
+import { SUBJECT_OPTION_FILTER_PROPS } from 'src/features/subjects/SubjectSelectLabel';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import {
   CertifiedBadge,
@@ -46,7 +50,6 @@ import {
   Tooltip,
 } from '@superset-ui/core/components';
 import {
-  FacePile,
   TagType,
   TagsList,
   ModifiedInfo,
@@ -60,7 +63,6 @@ import {
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
-import Owner from 'src/types/Owner';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Icons } from '@superset-ui/core/components/Icons';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
@@ -78,6 +80,9 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
 import { navigateTo } from 'src/utils/navigationUtils';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
+import IconButton from 'src/dashboard/components/IconButton';
+import type { CellProps } from 'react-table';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -96,11 +101,7 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 interface DashboardListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  user: {
-    userId: string | number;
-    firstName: string;
-    lastName: string;
-  };
+  user?: UserWithPermissionsAndRoles;
 }
 
 export interface Dashboard {
@@ -112,7 +113,11 @@ export interface Dashboard {
   id: number;
   published: boolean;
   url: string;
-  owners: Owner[];
+  changed_on_utc?: string;
+  description?: string;
+  thumbnail_url?: string | null;
+  editors?: Subject[];
+  viewers?: Subject[];
   tags: TagType[];
   created_by: object;
 }
@@ -151,10 +156,10 @@ const DASHBOARD_COLUMNS_TO_FETCH = [
   'changed_by.first_name',
   'changed_by.last_name',
   'changed_on_delta_humanized',
-  'owners',
-  'owners.id',
-  'owners.first_name',
-  'owners.last_name',
+  'editors.id',
+  'editors.label',
+  'editors.img',
+  'editors.type',
   'tags.id',
   'tags.name',
   'tags.type',
@@ -162,6 +167,9 @@ const DASHBOARD_COLUMNS_TO_FETCH = [
   'certified_by',
   'certification_details',
   'changed_on',
+  ...(isFeatureEnabled(FeatureFlag.EnableViewers)
+    ? ['viewers.id', 'viewers.label', 'viewers.img', 'viewers.type']
+    : []),
 ];
 
 function DashboardList(props: DashboardListProps) {
@@ -235,7 +243,10 @@ function DashboardList(props: DashboardListProps) {
   };
 
   // TODO: Fix usage of localStorage keying on the user id
-  const userKey = dangerouslyGetItemDoNotUse(user?.userId?.toString(), null);
+  const userKey =
+    user?.userId === undefined
+      ? null
+      : dangerouslyGetItemDoNotUse(user.userId.toString(), null);
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
@@ -267,7 +278,8 @@ function DashboardList(props: DashboardListProps) {
                 url = '',
                 certified_by: certifiedBy = '',
                 certification_details: certificationDetails = '',
-                owners,
+                editors,
+                viewers,
                 tags,
               } = json.result;
               return {
@@ -282,7 +294,8 @@ function DashboardList(props: DashboardListProps) {
                 url,
                 certified_by: certifiedBy,
                 certification_details: certificationDetails,
-                owners,
+                editors,
+                viewers,
                 tags,
               };
             }
@@ -431,14 +444,29 @@ function DashboardList(props: DashboardListProps) {
       {
         Cell: ({
           row: {
-            original: { owners = [] },
+            original: { editors = [] },
           },
-        }: any) => <FacePile users={owners} />,
-        Header: t('Owners'),
-        accessor: 'owners',
+        }: any) => <SubjectPile subjects={editors} />,
+        Header: t('Editors'),
+        accessor: 'editors',
         disableSortBy: true,
-        id: 'owners',
+        id: 'editors',
       },
+      ...(isFeatureEnabled(FeatureFlag.EnableViewers)
+        ? [
+            {
+              Cell: ({
+                row: {
+                  original: { viewers = [] },
+                },
+              }: any) => <SubjectPile subjects={viewers} />,
+              Header: t('Viewers'),
+              accessor: 'viewers',
+              disableSortBy: true,
+              id: 'viewers',
+            },
+          ]
+        : []),
       {
         Cell: ({
           row: {
@@ -453,7 +481,8 @@ function DashboardList(props: DashboardListProps) {
         id: 'changed_on_delta_humanized',
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({ row: { original } }: CellProps<Dashboard>) => {
+          const allowEdit = isUserEditorOrAdmin(user, original.editors);
           const handleDelete = () =>
             handleDashboardDelete(
               original,
@@ -469,18 +498,24 @@ function DashboardList(props: DashboardListProps) {
               {canEdit && (
                 <Tooltip
                   id="edit-action-tooltip"
-                  title={t('Edit')}
+                  title={
+                    allowEdit
+                      ? t('Edit')
+                      : t(
+                          'You must be a dashboard editor in order to edit. Please reach out to a dashboard editor to request modifications or edit access.',
+                        )
+                  }
                   placement="bottom"
                 >
-                  <span
+                  <IconButton
                     data-test="dashboard-row-edit"
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
+                    disabled={!allowEdit}
                     onClick={handleEdit}
-                  >
-                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
-                  </span>
+                    onKeyDown={handleKeyboardActivation(handleEdit)}
+                    icon={
+                      <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
+                    }
+                  />
                 </Tooltip>
               )}
               {canExport && (
@@ -489,15 +524,12 @@ function DashboardList(props: DashboardListProps) {
                   title={t('Export')}
                   placement="bottom"
                 >
-                  <span
+                  <IconButton
                     data-test="dashboard-row-export"
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
                     onClick={handleExport}
-                  >
-                    <Icons.UploadOutlined iconSize="l" />
-                  </span>
+                    onKeyDown={handleKeyboardActivation(handleExport)}
+                    icon={<Icons.UploadOutlined iconSize="l" />}
+                  />
                 </Tooltip>
               )}
               {canDelete && (
@@ -514,21 +546,27 @@ function DashboardList(props: DashboardListProps) {
                   {confirmDelete => (
                     <Tooltip
                       id="delete-action-tooltip"
-                      title={t('Delete')}
+                      title={
+                        allowEdit
+                          ? t('Delete')
+                          : t(
+                              'You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access.',
+                            )
+                      }
                       placement="bottom"
                     >
-                      <span
+                      <IconButton
                         data-test="dashboard-row-delete"
-                        role="button"
-                        tabIndex={0}
-                        className="action-button"
+                        disabled={!allowEdit}
                         onClick={confirmDelete}
-                      >
-                        <Icons.DeleteOutlined
-                          iconSize="l"
-                          data-test="dashboard-list-trash-icon"
-                        />
-                      </span>
+                        onKeyDown={handleKeyboardActivation(confirmDelete)}
+                        icon={
+                          <Icons.DeleteOutlined
+                            iconSize="l"
+                            data-test="dashboard-list-trash-icon"
+                          />
+                        }
+                      />
                     </Tooltip>
                   )}
                 </ConfirmStatusChange>
@@ -548,7 +586,7 @@ function DashboardList(props: DashboardListProps) {
       },
     ],
     [
-      user?.userId,
+      user,
       canEdit,
       canDelete,
       canExport,
@@ -614,28 +652,55 @@ function DashboardList(props: DashboardListProps) {
           ]
         : []),
       {
-        Header: t('Owner'),
-        key: 'owner',
-        id: 'owners',
+        Header: t('Editor'),
+        key: 'editor',
+        id: 'editors',
         input: 'select',
         operator: FilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
-        fetchSelects: createFetchOwners(
+        fetchSelects: createFetchEditors(
           'dashboard',
           createErrorHandler(errMsg =>
             addDangerToast(
               t(
-                'An error occurred while fetching dashboard owner values: %s',
+                'An error occurred while fetching dashboard editor values: %s',
                 errMsg,
               ),
             ),
           ),
           user,
         ),
-        optionFilterProps: OWNER_OPTION_FILTER_PROPS,
+        optionFilterProps: SUBJECT_OPTION_FILTER_PROPS,
         paginate: true,
         popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
+      ...(isFeatureEnabled(FeatureFlag.EnableViewers)
+        ? [
+            {
+              Header: t('Viewer'),
+              key: 'viewer',
+              id: 'viewers',
+              input: 'select',
+              operator: FilterOperator.RelationManyMany,
+              unfilteredLabel: t('All'),
+              fetchSelects: createFetchViewers(
+                'dashboard',
+                createErrorHandler(errMsg =>
+                  addDangerToast(
+                    t(
+                      'An error occurred while fetching dashboard viewer values: %s',
+                      errMsg,
+                    ),
+                  ),
+                ),
+                user,
+              ),
+              optionFilterProps: SUBJECT_OPTION_FILTER_PROPS,
+              paginate: true,
+              popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+            },
+          ]
+        : []),
       ...(user?.userId ? [favoritesFilter] : []),
       {
         Header: t('Certified'),
@@ -707,7 +772,7 @@ function DashboardList(props: DashboardListProps) {
             ? userKey.thumbnails
             : isFeatureEnabled(FeatureFlag.Thumbnails)
         }
-        userId={user?.userId}
+        user={user}
         loading={loading}
         openDashboardEditModal={openDashboardEditModal}
         saveFavoriteStatus={saveFavoriteStatus}
@@ -721,7 +786,7 @@ function DashboardList(props: DashboardListProps) {
       favoriteStatus,
       hasPerm,
       loading,
-      user?.userId,
+      user,
       saveFavoriteStatus,
       userKey,
       handleBulkDashboardExport,

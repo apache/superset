@@ -620,15 +620,15 @@ test('useChartCustomizationConfiguration ignores undefined items in metadata', (
   );
 });
 
-// --- Embedded / hideTab: activeTabs is empty ---
+// --- Embedded / hideTab: seeded default tab path ---
 // When an embedded dashboard uses hideTab:true, the Tabs component never
-// mounts, so setActiveTab never fires and activeTabs stays []. The same
-// empty state occurs transiently on first render of any tabbed dashboard.
-//
-// useActiveDashboardTabs derives the default first tab from the layout when
-// Redux activeTabs is empty, so scope evaluation uses the correct default
-// tab instead of either "no tabs active" (blank filter bar) or "all tabs"
-// (showing out-of-scope filters).
+// mounts, so setActiveTab never fires. Previously this left activeTabs at its
+// empty hydration default and useActiveDashboardTabs reconstructed the
+// default tab path from the layout on every read. Now dashboard hydration
+// seeds the default (first) tab path directly into Redux (see
+// actions/hydrate.ts and util/getDefaultActiveTabs.ts), so
+// useActiveDashboardTabs is a plain Redux read and these mocks inject the
+// path hydration would have supplied.
 
 // Helper: build a layout with ROOT_ID → TABS container → TAB children
 function embeddedLayout(extras: Record<string, Record<string, unknown>> = {}) {
@@ -672,10 +672,10 @@ function embeddedLayout(extras: Record<string, Record<string, unknown>> = {}) {
   };
 }
 
-test('useIsFilterInScope: filter scoped to default tab is in-scope when activeTabs is empty', () => {
+test('useIsFilterInScope: filter scoped to default tab is in-scope for the seeded default tab', () => {
   (useSelector as jest.Mock).mockImplementation((selector: Function) => {
     const mockState = {
-      dashboardState: { activeTabs: [] },
+      dashboardState: { activeTabs: ['TAB-Company'] },
       dashboardLayout: { present: embeddedLayout() },
     };
     return selector(mockState);
@@ -699,10 +699,10 @@ test('useIsFilterInScope: filter scoped to default tab is in-scope when activeTa
   expect(result.current(filter)).toBe(true);
 });
 
-test('useIsFilterInScope: filter scoped only to non-default tab is out-of-scope when activeTabs is empty', () => {
+test('useIsFilterInScope: filter scoped only to non-default tab is out-of-scope for the seeded default tab', () => {
   (useSelector as jest.Mock).mockImplementation((selector: Function) => {
     const mockState = {
-      dashboardState: { activeTabs: [] },
+      dashboardState: { activeTabs: ['TAB-Company'] },
       dashboardLayout: { present: embeddedLayout() },
     };
     return selector(mockState);
@@ -726,10 +726,10 @@ test('useIsFilterInScope: filter scoped only to non-default tab is out-of-scope 
   expect(result.current(filter)).toBe(false);
 });
 
-test('useIsFilterInScope: filter with rootPath to default tab is in-scope when activeTabs is empty', () => {
+test('useIsFilterInScope: filter with rootPath to default tab is in-scope for the seeded default tab', () => {
   (useSelector as jest.Mock).mockImplementation((selector: Function) => {
     const mockState = {
-      dashboardState: { activeTabs: [] },
+      dashboardState: { activeTabs: ['TAB-Company'] },
       dashboardLayout: { present: embeddedLayout() },
     };
     return selector(mockState);
@@ -752,10 +752,10 @@ test('useIsFilterInScope: filter with rootPath to default tab is in-scope when a
   expect(result.current(filter)).toBe(true);
 });
 
-test('useSelectFiltersInScope: only default-tab filters are in scope when activeTabs is empty (embedded hideTab)', () => {
+test('useSelectFiltersInScope: only default-tab filters are in scope for the seeded default tab (embedded hideTab)', () => {
   (useSelector as jest.Mock).mockImplementation((selector: Function) => {
     const mockState = {
-      dashboardState: { activeTabs: [] },
+      dashboardState: { activeTabs: ['TAB-Company'] },
       dashboardLayout: { present: embeddedLayout() },
     };
     return selector(mockState);
@@ -801,10 +801,10 @@ test('useSelectFiltersInScope: only default-tab filters are in scope when active
   );
 });
 
-test('useSelectFiltersInScope: dividers are always in scope even when activeTabs is empty', () => {
+test('useSelectFiltersInScope: dividers are always in scope for the seeded default tab', () => {
   (useSelector as jest.Mock).mockImplementation((selector: Function) => {
     const mockState = {
-      dashboardState: { activeTabs: [] },
+      dashboardState: { activeTabs: ['TAB-Company'] },
       dashboardLayout: { present: embeddedLayout() },
     };
     return selector(mockState);
@@ -958,6 +958,40 @@ test('useIsFilterInScope: missing dashboardLayout falls back without crashing', 
   expect(() => result.current(filter)).not.toThrow();
 });
 
+test('useIsFilterInScope: dashboardState with no activeTabs key falls back to [] without throwing', () => {
+  // DashboardStateShape.activeTabs is optional; on a partial store (e.g.
+  // pre-hydration render, a story, or a test that doesn't seed activeTabs at
+  // all) the plain Redux read can return undefined. useActiveDashboardTabs
+  // must normalize that to [] so downstream `.includes()` calls don't throw.
+  (useSelector as jest.Mock).mockImplementation((selector: Function) => {
+    const mockState = {
+      dashboardState: {},
+      dashboardLayout: { present: embeddedLayout() },
+    };
+    return selector(mockState);
+  });
+
+  const filter: Filter = {
+    id: 'filter_no_active_tabs_key',
+    name: 'No activeTabs key',
+    filterType: 'filter_select',
+    type: NativeFilterType.NativeFilter,
+    chartsInScope: [1],
+    scope: { rootPath: ['TAB-Company'], excluded: [] },
+    controlValues: {},
+    defaultDataMask: {},
+    cascadeParentIds: [],
+    targets: [{ column: { name: 'col' }, datasetId: 1 }],
+    description: 'Filter scoped to a tab, with no activeTabs key in state',
+  };
+
+  const { result } = renderHook(() => useIsFilterInScope());
+  expect(() => result.current(filter)).not.toThrow();
+  // With no activeTabs, a tab-scoped filter is out-of-scope, not "in scope
+  // by default" — falling back to [] must not be mistaken for "all tabs".
+  expect(result.current(filter)).toBe(false);
+});
+
 // Shared fixture for the two nested-tabs tests below. Layout is identical;
 // only the redux activeTabs differs (empty for the default-path test,
 // inner-only for the hideTab ancestor-merge test).
@@ -1015,12 +1049,14 @@ const mockNestedTabsState = (activeTabs: string[]) => ({
   dashboardLayout: { present: nestedTabsLayout() },
 });
 
-test('useIsFilterInScope: deeply nested tabs — default path includes inner-tab default', () => {
+test('useIsFilterInScope: deeply nested tabs — scopes filters against an injected nested active-tab path', () => {
   // ROOT → TABS-1 → [TAB-Outer1, TAB-Outer2]
   //                  └─ TAB-Outer1 → TABS-2 → [TAB-Inner1, TAB-Inner2]
-  // Default path should be ['TAB-Outer1', 'TAB-Inner1'].
+  // activeTabs ['TAB-Outer1', 'TAB-Inner1'] mirrors the path hydration seeds
+  // into Redux (util/getDefaultActiveTabs.ts), injected here directly since
+  // this suite mocks useSelector rather than exercising hydration.
   (useSelector as jest.Mock).mockImplementation((selector: Function) =>
-    selector(mockNestedTabsState([])),
+    selector(mockNestedTabsState(['TAB-Outer1', 'TAB-Inner1'])),
   );
 
   const innerDefaultFilter: Filter = {
@@ -1052,13 +1088,18 @@ test('useIsFilterInScope: deeply nested tabs — default path includes inner-tab
   expect(result.current(innerNonDefaultFilter)).toBe(false);
 });
 
-test('useIsFilterInScope: nested Tabs mounted under hideTab:true — outer ancestor merged so outer-tab scoping is preserved', () => {
-  // hideTab:true skips the top-level Tabs but a nested Tabs can still mount
-  // and dispatch setActiveTab. activeTabs holds only the inner id; without
-  // ancestor merging, filters whose charts have tabParents=[outer, inner]
-  // would be marked out-of-scope because the outer id is missing.
+test('useIsFilterInScope: nested tabs — full Redux-supplied path keeps outer-tab scoping intact', () => {
+  // Formerly proved useActiveDashboardTabs reconstructed a missing outer
+  // ancestor from a partial Redux value (['TAB-Inner1'] only). That
+  // reconstruction responsibility no longer lives in the hook: hydrate
+  // seeding (util/getDefaultActiveTabs.ts) and the SET_ACTIVE_TAB reducer's
+  // ancestor-preservation property (see the mid-session regression guard in
+  // reducers/dashboardState.test.ts) now guarantee Redux always carries the
+  // full active-tab path, outer ancestor included. This test pins that a
+  // plain Redux read of that full path still scopes outer-tab filters
+  // correctly.
   (useSelector as jest.Mock).mockImplementation((selector: Function) =>
-    selector(mockNestedTabsState(['TAB-Inner1'])),
+    selector(mockNestedTabsState(['TAB-Outer1', 'TAB-Inner1'])),
   );
 
   const innerActiveFilter: Filter = {
@@ -1090,7 +1131,7 @@ test('useIsFilterInScope: nested Tabs mounted under hideTab:true — outer ances
   };
 
   const { result } = renderHook(() => useIsFilterInScope());
-  // Outer ancestor TAB-Outer1 is merged into the active path → in scope.
+  // Outer ancestor TAB-Outer1 is present in the seeded path → in scope.
   expect(result.current(innerActiveFilter)).toBe(true);
   // TAB-Outer2 is not in the active path → out of scope, scoping preserved.
   expect(result.current(otherOuterFilter)).toBe(false);

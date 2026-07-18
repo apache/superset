@@ -144,9 +144,8 @@ def test_legacy_get_redirects_308_under_subdir(legacy: str, canonical: str) -> N
     `Location` is built from the construction-time `app_root` capture,
     not from `environ["SCRIPT_NAME"]`.
 
-    The `/superset` deployment collides with
-    `_LEGACY_PREFIX` → covered separately by
-    `test_degenerate_app_root_equals_superset_disables_shim`."""
+    The `/superset` app root, where this prefix and `_LEGACY_PREFIX` are the
+    same token, is covered separately in Section A.1."""
     client = _build_client(app_root="/myapp")
     resp = client.get(legacy)
     assert resp.status_code == 308
@@ -242,6 +241,59 @@ def test_app_root_prefixed_legacy_post_against_get_only_canonical_410(
     assert "Location" not in resp.headers
 
 
+# ---------------------------------------------------------------------------
+# Section A.0 — HEAD is folded to GET.
+#
+# HEAD is "GET without a response body" (RFC 9110 §9.3.2): a resource that
+# serves GET must serve HEAD, and Werkzeug registers HEAD implicitly on every
+# GET rule. `LEGACY_REDIRECT_MAP` therefore lists only the *explicit* methods
+# from each canonical `@expose` decorator and never spells HEAD — so the shim
+# has to fold HEAD→GET before the method check. Without the fold, every legacy
+# HEAD probe falls into the `method not in allowed_methods` branch and gets a
+# spurious 410 Gone, which is what link-checkers, uptime monitors and
+# `curl -I` all send.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(("legacy", "canonical"), _GET_REDIRECT_ROWS)
+def test_legacy_head_redirects_308_like_get(legacy: str, canonical: str) -> None:
+    """HEAD against a GET-capable canonical → the same 308 a GET gets."""
+    client = _build_client(app_root="/")
+    resp = client.head(legacy)
+    assert resp.status_code == 308
+    assert resp.headers["Location"] == canonical
+
+
+@pytest.mark.parametrize(("legacy", "canonical"), _GET_REDIRECT_ROWS)
+def test_app_root_prefixed_legacy_head_redirects_308_like_get(
+    legacy: str, canonical: str
+) -> None:
+    """The HEAD fold applies to the app-root-prefixed form too."""
+    client = _build_client(app_root="/myapp")
+    resp = client.head(f"/myapp{legacy}")
+    assert resp.status_code == 308
+    assert resp.headers["Location"] == f"/myapp{canonical}"
+
+
+def test_legacy_head_against_post_only_canonical_410() -> None:
+    """`/log/` is the one POST-only row. HEAD folds to GET, which the
+    canonical does not serve, so 410 is correct here — the fold must not
+    blanket-allow HEAD, only make it track GET."""
+    client = _build_client(app_root="/")
+    resp = client.head("/superset/log/")
+    assert resp.status_code == 410
+    assert "Location" not in resp.headers
+
+
+def test_legacy_sql_deep_link_head_redirects_308() -> None:
+    """The SQL Lab deep-link branch has its own method check
+    (`!= "GET"`); HEAD must fold there as well, not 410."""
+    client = _build_client(app_root="/")
+    resp = client.head("/superset/sql/5/")
+    assert resp.status_code == 308
+    assert resp.headers["Location"] == "/sqllab/?dbid=5"
+
+
 def test_unenumerated_superset_path_passes_through() -> None:
     """A `/superset/<not-in-table>` path passes through to the inner app
     (closed-set discipline — the shim is not an open-prefix rewriter)."""
@@ -285,65 +337,156 @@ def test_canonical_path_without_legacy_prefix_passes_through() -> None:
         assert resp.data == _SENTINEL_BODY, canonical
 
 
-def test_legacy_sql_route_passes_through_not_308() -> None:
-    """`/superset/sql/<id>/` has **no** row in `LEGACY_REDIRECT_MAP` —
-    `Database.sql_url` reshaped to `/sqllab/?dbid=<id>` so no 1:1 path
-    mapping exists. UPDATING.md documents the hard re-bookmark break."""
+def test_legacy_sql_deep_link_redirects_to_sqllab_dbid() -> None:
+    """`/superset/sql/<id>/` has **no** 1:1 path row — `Database.sql_url`
+    reshaped to `/sqllab/?dbid=<id>`. The shim special-cases the numeric
+    deep link (via `_LEGACY_SQL_RE`) and 308s to the migrated query-string
+    shape so legacy SQL Lab bookmarks survive one release cycle instead of
+    hard-404ing."""
     client = _build_client(app_root="/")
     resp = client.get("/superset/sql/5/")
-    # Pass-through: inner app reached, not a 308 from the shim.
-    assert resp.status_code == 200
-    assert resp.data == _SENTINEL_BODY
-    # Belt-and-braces: the path is not in the map either.
+    assert resp.status_code == 308
+    assert resp.headers["Location"] == "/sqllab/?dbid=5"
+    # Handled by the special case, NOT the closed-set map.
     assert "/sql/" not in LEGACY_REDIRECT_MAP
 
 
-def test_degenerate_app_root_equals_superset_disables_shim() -> None:
-    """When `APPLICATION_ROOT == "/superset"`,
-    legacy and canonical prefixes coincide. If the shim were active, an
-    inbound `/superset/welcome/` would 308 to `/superset/welcome/` — the
-    same URL → infinite redirect loop.
+def test_legacy_sql_deep_link_without_trailing_slash() -> None:
+    """The historical route was `@expose("/sql/<int:database_id>/")`; the
+    trailing slash is optional on the inbound bookmark. Both forms 308 to the
+    same target."""
+    client = _build_client(app_root="/")
+    resp = client.get("/superset/sql/5")
+    assert resp.status_code == 308
+    assert resp.headers["Location"] == "/sqllab/?dbid=5"
 
-    The shim short-circuits in that deployment shape via `_enabled = False`
-    and falls through to the inner app, which routes the path through the
-    canonical Flask routes."""
-    shim = LegacyPrefixRedirectMiddleware(_sentinel_inner_app, "/superset")
-    assert shim._enabled is False  # noqa: SLF001
-    client = Client(shim, response_wrapper=Response)
-    # Inbound legacy path falls through to inner app (no 308).
-    resp = client.get("/superset/welcome/")
+
+def test_legacy_sql_deep_link_under_subdir() -> None:
+    """Under a subdir deployment the dbid target carries the single app-root
+    prefix — `/myapp/sqllab/?dbid=<id>`, never `/myapp/superset/...`."""
+    client = _build_client(app_root="/myapp")
+    resp = client.get("/myapp/superset/sql/12/")
+    assert resp.status_code == 308
+    assert resp.headers["Location"] == "/myapp/sqllab/?dbid=12"
+
+
+def test_legacy_sql_deep_link_merges_query_string_with_ampersand() -> None:
+    """An inbound query string is merged onto the already-present `?dbid=<id>`
+    with `&` — never a second `?`. Guards against re-introducing the
+    `SqlaTable.sql_url` double-`?` bug shape (`/sqllab/?dbid=5?table_name=…`)."""
+    client = _build_client(app_root="/")
+    resp = client.get("/superset/sql/5/?table_name=foo&schema=bar")
+    assert resp.status_code == 308
+    assert resp.headers["Location"] == "/sqllab/?dbid=5&table_name=foo&schema=bar"
+    # Exactly one `?` in the Location.
+    assert resp.headers["Location"].count("?") == 1
+
+
+def test_legacy_sql_post_returns_410() -> None:
+    """The old `/superset/sql/<id>/` route was GET-only; a POST 308 would
+    re-POST against `/sqllab/` (a GET view) → 405. Emit 410 instead, matching
+    the disposition of every other GET-only canonical."""
+    client = _build_client(app_root="/")
+    resp = client.post("/superset/sql/5/", data={"k": "v"})
+    assert resp.status_code == 410
+    assert "Location" not in resp.headers
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/superset/sql/",  # no id
+        "/superset/sql/abc/",  # non-numeric id
+        "/superset/sql/5/extra/",  # trailing extra segment
+    ],
+)
+def test_legacy_sql_non_numeric_passes_through(path: str) -> None:
+    """Closed-set discipline: only a bare numeric `<database_id>` is
+    special-cased. Anything else is not a real legacy SQL Lab deep link and
+    falls through to the inner app (→ 404 in production) rather than being
+    coerced into a `?dbid=<garbage>` redirect."""
+    client = _build_client(app_root="/")
+    resp = client.get(path)
+    assert resp.status_code == 200
+    assert resp.data == _SENTINEL_BODY
+
+
+@pytest.mark.parametrize(("legacy", "canonical"), _GET_REDIRECT_ROWS)
+def test_app_root_superset_redirects_doubled_legacy_path(
+    legacy: str, canonical: str
+) -> None:
+    """`APPLICATION_ROOT == "/superset"` is the one deployment where the
+    app-root prefix and the legacy prefix are the same token, so a legacy
+    bookmark carries it twice: `/superset/superset/welcome/`.
+
+    The app-root strip runs first, leaving `/superset/welcome/` — a genuine
+    legacy path — so the doubled form 308s to the single-prefixed canonical.
+    Previously the shim disabled itself wholesale in this deployment shape
+    and these URLs hard-404'd."""
+    client = _build_client(app_root="/superset")
+    resp = client.get(f"/superset{legacy}")
+    assert resp.status_code == 308
+    assert resp.headers["Location"] == f"/superset{canonical}"
+
+
+@pytest.mark.parametrize(("legacy", "canonical"), _GET_REDIRECT_ROWS)
+def test_app_root_superset_canonical_path_passes_through(
+    legacy: str, canonical: str
+) -> None:
+    """The redirect target from the test above must itself pass through
+    rather than redirect again — this is what makes the doubled-path 308
+    converge instead of looping.
+
+    Inbound `/superset/welcome/` strips its app root to `/welcome/`, which
+    is not a legacy path, so it falls through to the inner app. A canonical
+    URL cannot re-enter the redirect branch, because the app-root strip
+    happens *before* the legacy-prefix check."""
+    client = _build_client(app_root="/superset")
+    resp = client.get(f"/superset{canonical}")
+    assert resp.status_code == 200
+    assert resp.data == _SENTINEL_BODY
+
+
+def test_app_root_superset_doubled_sql_deep_link_redirects() -> None:
+    """The SQL Lab deep-link branch also survives the `/superset` app root."""
+    client = _build_client(app_root="/superset")
+    resp = client.get("/superset/superset/sql/5/")
+    assert resp.status_code == 308
+    assert resp.headers["Location"] == "/superset/sqllab/?dbid=5"
+
+
+def test_bare_app_root_superset_passes_through() -> None:
+    """Inbound `/superset` (bare, no trailing slash) under the `/superset`
+    app root does not hit the segment-boundary strip, so it reaches the
+    legacy check as the bare prefix. It maps to no row and passes through
+    — it must not be mistaken for a legacy path with an empty tail."""
+    client = _build_client(app_root="/superset")
+    resp = client.get("/superset")
     assert resp.status_code == 200
     assert resp.data == _SENTINEL_BODY
 
 
 @pytest.mark.parametrize(
     "app_root",
-    ["/", "", "/superset/", "/other", "/a/b"],
+    ["/", "", "/superset", "/superset/", "/other", "/a/b"],
 )
-def test_shim_enabled_for_non_legacy_app_roots(app_root: str) -> None:
-    """The disable-shim short-circuit is targeted at the exact
-    `/superset` collision case — every other `APPLICATION_ROOT` (including
-    root, empty, `/superset/` with trailing slash that strips to
-    `/superset`, and arbitrary subdirs) keeps the shim active."""
-    shim = LegacyPrefixRedirectMiddleware(_sentinel_inner_app, app_root)
-    if shim.app_root_prefix == "/superset":
-        # `/superset/` strips to `/superset`, also a collision → disabled.
-        assert shim._enabled is False  # noqa: SLF001
-    else:
-        assert shim._enabled is True  # noqa: SLF001
+def test_shim_active_for_every_app_root(app_root: str) -> None:
+    """The shim performs its rewrite under every `APPLICATION_ROOT`,
+    including `/superset` itself. No deployment shape disables it."""
+    client = _build_client(app_root=app_root)
+    prefix = app_root.rstrip("/")
+    resp = client.get(f"{prefix}/superset/welcome/")
+    assert resp.status_code == 308
+    assert resp.headers["Location"] == f"{prefix}/welcome/"
 
 
 # ---------------------------------------------------------------------------
-# Section A.1 — APPLICATION_ROOT case-sensitivity.
-# A deferred MEDIUM review finding noted that `_enabled` uses byte-equality
-# rather than `casefold()`.
-# These tests pin TODAY's documented behaviour so that:
-#   - A future `casefold()` introduction is a deliberate contract change
-#     (test updates alongside the code change).
-#   - An operator who deploys under `APPLICATION_ROOT=/Superset` or
-#     `/SUPERSET` (which is unusual but legal) gets the documented shape
-#     today: the shim stays enabled, and lowercase `/superset/...` inbound
-#     paths still 308 to the operator's casing.
+# Section A.1 — APPLICATION_ROOT casing and trailing-slash shapes.
+# `_LEGACY_PREFIX` is the lowercase literal `/superset` and the inbound-path
+# check is byte-comparison, so the shim recognises exactly the legacy URL
+# token Superset used to emit — no casefold(). These tests pin that the
+# app-root value's own shape (casing, trailing slashes) only affects the
+# prefix that gets stripped and re-attached, never whether the shim runs.
 # ---------------------------------------------------------------------------
 
 
@@ -351,47 +494,36 @@ def test_shim_enabled_for_non_legacy_app_roots(app_root: str) -> None:
     "app_root",
     ["/Superset", "/SUPERSET", "/SuperSet"],
 )
-def test_shim_enabled_for_mixed_case_app_roots(app_root: str) -> None:
-    """Mixed-case APPLICATION_ROOT values are NOT treated as the legacy
-    prefix — `_LEGACY_PREFIX` is the lowercase literal `/superset`, and
-    `_enabled` is computed via byte-equality (no `casefold()`). The shim
-    therefore stays active under any non-lowercase casing.
-
-    Pinning the case-sensitive comparison serves two purposes:
-      1. Documents the deliberate scope choice — the shim targets the
-         hardcoded `/superset/*` legacy URL pattern, not arbitrary casing
-         of the app-root config value.
-      2. Anchors the deferred MEDIUM finding: if a future commit graduates
-         the comparison to `casefold()` so `/Superset` == `/superset`, this
-         test fires and forces the contract change to be explicit.
-    """
-    shim = LegacyPrefixRedirectMiddleware(_sentinel_inner_app, app_root)
-    assert shim._enabled is True  # noqa: SLF001
-    assert shim.app_root_prefix == app_root
+def test_mixed_case_app_root_is_not_the_legacy_prefix(app_root: str) -> None:
+    """A mixed-case APPLICATION_ROOT is an ordinary subdirectory as far as
+    the shim is concerned — it is not the lowercase `/superset` legacy
+    token, so a legacy bookmark under it carries both prefixes and 308s to
+    the operator's casing."""
+    client = _build_client(app_root=app_root)
+    resp = client.get(f"{app_root}/superset/welcome/")
+    assert resp.status_code == 308
+    assert resp.headers["Location"] == f"{app_root}/welcome/"
 
 
 @pytest.mark.parametrize(
     "app_root",
-    [
-        # Multiple trailing slashes — rstrip("/") strips all of them, so
-        # both collapse to `/superset` and the shim disables.
-        "/superset/",
-        "/superset//",
-        "/superset///",
-    ],
+    ["/superset/", "/superset//", "/superset///"],
 )
-def test_shim_disabled_for_trailing_slash_variants(app_root: str) -> None:
-    """Trailing-slash variants of `/superset` all collapse to `/superset`
-    via `rstrip("/")` and disable the shim — the collision short-
-    circuit catches every shape an operator might write the app root as.
+def test_trailing_slash_app_root_variants_normalise(app_root: str) -> None:
+    """Trailing-slash variants all collapse to `/superset` via `rstrip("/")`,
+    so they behave identically to the bare `/superset` app root: the doubled
+    legacy path 308s to the single-prefixed canonical.
 
     Pinning the multi-slash branch protects against a future maintainer
-    swapping `rstrip("/")` for `removesuffix("/")` (which strips only one)
-    and silently re-enabling the self-loop under `/superset//`.
+    swapping `rstrip("/")` for `removesuffix("/")`, which strips only one and
+    would leave a stray slash in every `Location`.
     """
     shim = LegacyPrefixRedirectMiddleware(_sentinel_inner_app, app_root)
     assert shim.app_root_prefix == "/superset"
-    assert shim._enabled is False  # noqa: SLF001
+    client = Client(shim, response_wrapper=Response)
+    resp = client.get("/superset/superset/welcome/")
+    assert resp.status_code == 308
+    assert resp.headers["Location"] == "/superset/welcome/"
 
 
 @pytest.mark.parametrize(
@@ -483,10 +615,7 @@ def test_query_string_preserved_in_location() -> None:
 
 
 def test_query_string_preserved_under_subdir() -> None:
-    """Subdir + query string: single prefix, query intact.
-
-    Uses a non-colliding subdir (`/myapp`) — the shim is disabled under
-    `/superset` (see `test_degenerate_app_root_equals_superset_disables_shim`)."""
+    """Subdir + query string: single prefix, query intact."""
     client = _build_client(app_root="/myapp")
     resp = client.get("/superset/explore/?form_data=%7B%7D")
     assert resp.status_code == 308

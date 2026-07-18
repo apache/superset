@@ -613,8 +613,7 @@ export default function sqlLabReducer(
           ? actionId
           : ((
               getFromArr(state.queryEditors, actionId, 'tabViewId') as
-                | QueryEditor
-                | undefined
+                QueryEditor | undefined
             )?.id ?? actionId);
       if (
         unsavedQueryEditor?.id === normalizedId &&
@@ -716,7 +715,7 @@ export default function sqlLabReducer(
           {
             hideLeftBar: action.hideLeftBar,
           },
-          action.queryEditor!.id!,
+          action.queryEditorId!,
         ),
       };
     },

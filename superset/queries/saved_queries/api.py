@@ -62,7 +62,7 @@ from superset.views.base_api import (
     requires_form_data,
     statsd_metrics,
 )
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
 
@@ -183,8 +183,8 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
 
     related_field_filters = {
         "database": "database_name",
-        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
-        "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
     }
     base_related_field_filters = {
         "database": [["id", DatabaseFilter, lambda: []]],

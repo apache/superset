@@ -117,12 +117,6 @@ const createProps = (additionalProps = {}) =>
         y_axis_label: 'count',
       },
       modified: '<span class="no-wrap">7 days ago</span>',
-      owners: [
-        {
-          text: 'Superset Admin',
-          value: 1,
-        },
-      ],
       slice_id: 318,
       slice_name: 'Age distribution of respondents',
       slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20318%7D',
@@ -141,7 +135,7 @@ const createProps = (additionalProps = {}) =>
     metadata: {
       created_on_humanized: 'a week ago',
       changed_on_humanized: '2 days ago',
-      owners: ['John Doe'],
+      editors: ['John Doe'],
       created_by: 'John Doe',
       changed_by: 'John Doe',
       dashboards: [{ id: 1, dashboard_title: 'Test' }],

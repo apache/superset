@@ -44,6 +44,7 @@ from superset.mcp_service.dashboard.schemas import (
     serialize_tag_object,
 )
 from superset.mcp_service.privacy import user_can_view_data_model_metadata
+from superset.mcp_service.system.schemas import serialize_subject_object
 from superset.mcp_service.utils.response_utils import humanize_timestamp
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
@@ -346,7 +347,11 @@ def generate_dashboard(  # noqa: C901
                     .first()
                 )
                 if current_user:
-                    dashboard.owners = [current_user]
+                    from superset.subjects.utils import get_user_subject
+
+                    subj = get_user_subject(current_user.id)
+                    if subj:
+                        dashboard.editors = [subj]
 
                 fresh_charts = (
                     db.session.query(Slice)
@@ -433,7 +438,7 @@ def generate_dashboard(  # noqa: C901
         # environments, causing "Can't reconnect until invalid transaction
         # is rolled back".  Wrap the DAO re-fetch in try/except; on failure,
         # return a minimal response using only scalar attributes that are
-        # already loaded — relationship fields (tags, slices) would
+        # already loaded — relationship fields (editors, tags, slices) would
         # trigger lazy-loading on the same dead session.
         from superset.daos.dashboard import DashboardDAO
 
@@ -442,7 +447,9 @@ def generate_dashboard(  # noqa: C901
                 DashboardDAO.find_by_id(
                     dashboard.id,
                     query_options=[
+                        subqueryload(Dashboard.slices).subqueryload(Slice.editors),
                         subqueryload(Dashboard.slices).subqueryload(Slice.tags),
+                        subqueryload(Dashboard.editors),
                         subqueryload(Dashboard.tags),
                     ],
                 )
@@ -496,6 +503,11 @@ def generate_dashboard(  # noqa: C901
             uuid=str(dashboard.uuid) if dashboard.uuid else None,
             url=dashboard_url,
             chart_count=len(request.chart_ids),
+            editors=[
+                serialize_subject_object(editor)
+                for editor in getattr(dashboard, "editors", [])
+                if serialize_subject_object(editor) is not None
+            ],
             tags=[
                 serialize_tag_object(tag)
                 for tag in getattr(dashboard, "tags", [])
