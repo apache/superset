@@ -18,12 +18,13 @@
 
 from __future__ import annotations
 
-from typing import Protocol, runtime_checkable, TYPE_CHECKING
+from typing import cast, Protocol, runtime_checkable, TYPE_CHECKING
 
 from flask_babel import gettext as _
 
 from superset.commands.streaming_export.base import BaseStreamingCSVExportCommand
 from superset.exceptions import QueryObjectValidationError
+from superset.models.sql_lab import Query as SqlLabQuery
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -90,22 +91,33 @@ class StreamingCSVExportCommand(BaseStreamingCSVExportCommand):
         # Note: datasource should already be attached to a session from query_context
         datasource = self._query_context.datasource
         query_obj = self._query_context.queries[0]
-        if (
-            not isinstance(datasource, _SQLDatasource)
-            or not callable(datasource.get_query_str_extended)
-            or datasource.database is None
-        ):
+        database = cast("Database | None", getattr(datasource, "database", None))
+        if database is None:
             raise QueryObjectValidationError(
                 _("Streaming CSV export requires a SQL datasource")
             )
-        database: Database = datasource.database
-        sql_query: str = datasource.get_query_str_extended(query_obj.to_dict()).sql
+        sql_query: str
+        if isinstance(datasource, SqlLabQuery):
+            sql_query = datasource.get_rendered_sql()
+        elif isinstance(datasource, _SQLDatasource) and callable(
+            datasource.get_query_str_extended
+        ):
+            sql_query = datasource.get_query_str_extended(query_obj.to_dict()).sql
+        else:
+            raise QueryObjectValidationError(
+                _("Streaming CSV export requires a SQL datasource")
+            )
         if not isinstance(sql_query, str) or not sql_query.strip():
             raise QueryObjectValidationError(
                 _("Streaming CSV export requires executable SQL")
             )
 
-        return sql_query, database, datasource.catalog, datasource.schema
+        return (
+            sql_query,
+            database,
+            cast("str | None", getattr(datasource, "catalog", None)),
+            cast("str | None", getattr(datasource, "schema", None)),
+        )
 
     def _get_row_limit(self) -> int | None:
         """

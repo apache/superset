@@ -16,6 +16,9 @@
 # under the License.
 """Unit tests for Chart Streaming CSV Export Command."""
 
+from datetime import datetime
+from types import SimpleNamespace
+
 import pytest
 from pytest_mock import MockerFixture
 
@@ -23,6 +26,9 @@ from superset.commands.chart.data.streaming_export_command import (
     StreamingCSVExportCommand,
 )
 from superset.exceptions import QueryObjectValidationError
+from superset.models.core import Database
+from superset.models.sql_lab import Query
+from superset.utils.core import QueryStatus
 
 
 def _setup_chart_mocks(
@@ -71,14 +77,54 @@ def test_streaming_export_rejects_non_sql_datasource(
     mocker: MockerFixture,
 ) -> None:
     """Fail before streaming when a datasource cannot compile executable SQL."""
-    _, query_context, datasource = _setup_chart_mocks(mocker)
-    datasource.get_query_str_extended = None
+    mocker.patch("superset.commands.streaming_export.base.db")
+    query_context = mocker.MagicMock()
+    query_context.datasource = SimpleNamespace(
+        database=mocker.MagicMock(),
+        catalog=None,
+        schema=None,
+    )
+    query_context.queries = [mocker.MagicMock()]
 
     with pytest.raises(
         QueryObjectValidationError,
         match="Streaming CSV export requires a SQL datasource",
     ):
         StreamingCSVExportCommand(query_context)._get_sql_and_database()
+
+
+def test_streaming_export_uses_frozen_sql_lab_query_source(
+    mocker: MockerFixture,
+) -> None:
+    """Query-backed chart exports stream the same frozen source Explore uses."""
+    mocker.patch("superset.commands.streaming_export.base.db")
+    database = Database(id=3, database_name="db", sqlalchemy_uri="sqlite://")
+    query = Query(
+        id=17,
+        client_id="client-id",
+        database=database,
+        database_id=database.id,
+        sql="SELECT {{ value }} AS value",
+        schema="main",
+        catalog="catalog",
+        status=QueryStatus.SUCCESS,
+        user_id=7,
+        changed_on=datetime(2026, 1, 1),
+    )
+    query.extra = {"columns": []}
+    query.set_explore_source("SELECT 42 AS value")
+    query_context = mocker.MagicMock()
+    query_context.datasource = query
+    query_context.queries = [mocker.MagicMock()]
+
+    sql, returned_database, catalog, schema = StreamingCSVExportCommand(
+        query_context
+    )._get_sql_and_database()
+
+    assert sql == "SELECT 42 AS value"
+    assert returned_database is database
+    assert catalog == "catalog"
+    assert schema == "main"
 
 
 def test_streaming_csv_export_command_init(mocker: MockerFixture) -> None:
