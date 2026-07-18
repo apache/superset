@@ -38,9 +38,10 @@ from __future__ import annotations
 import math
 import re
 from decimal import Decimal, ROUND_HALF_UP
+from functools import lru_cache
 from typing import Any
 
-from babel.numbers import get_currency_symbol
+from babel.numbers import format_currency, get_currency_symbol
 
 SMART_NUMBER = "SMART_NUMBER"
 SMART_NUMBER_SIGNED = "SMART_NUMBER_SIGNED"
@@ -123,7 +124,10 @@ def format_number_with_config(
             formatted = format_numeric(number_format, value)
             if currency["symbol"] == AUTO_CURRENCY:
                 return formatted
-            return apply_currency(formatted, currency)
+            try:
+                return apply_currency(formatted, currency)
+            except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+                return formatted
         if not d3_format:
             return raw_string(value)
         return format_numeric(d3_format, value)
@@ -331,11 +335,28 @@ def normalize_exponent(formatted: str) -> str:
     return re.sub(r"([eE][+-])0*(\d)", r"\1\2", formatted)
 
 
+@lru_cache(maxsize=None)
+def resolve_symbol_position(code: str) -> str:
+    """
+    Derive the symbol position from the locale's convention for the currency,
+    mirroring the frontend's ``resolveSymbolPosition``.
+    """
+    try:
+        sample = format_currency(1, code, locale=LOCALE)
+        first_digit = next(i for i, char in enumerate(sample) if char.isdigit())
+        return "prefix" if first_digit > 0 else "suffix"
+    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+        return "prefix"
+
+
 def apply_currency(formatted: str, currency: dict[str, Any]) -> str:
     normalized = formatted.replace("%", "")
     code = currency["symbol"]
     symbol = get_currency_symbol(code, locale=LOCALE) or code
-    if currency.get("symbolPosition") == "prefix":
+    position = currency.get("symbolPosition")
+    if position not in ("prefix", "suffix"):
+        position = resolve_symbol_position(code)
+    if position == "prefix":
         return f"{symbol} {normalized}"
     return f"{normalized} {symbol}"
 

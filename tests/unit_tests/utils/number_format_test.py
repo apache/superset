@@ -45,8 +45,8 @@ def test_format_number(d3_format, value, expected):
     [
         ({"symbol": "USD", "symbolPosition": "prefix"}, 1234.5, "$ 1,234.50"),
         ({"symbol": "EUR", "symbolPosition": "suffix"}, 1234.5, "1,234.50 €"),
-        # unknown symbolPosition defaults to suffix, mirroring the frontend
-        ({"symbol": "BRL", "symbolPosition": None}, 1234.5, "1,234.50 R$"),
+        ({"symbol": "BRL", "symbolPosition": None}, 1234.5, "R$ 1,234.50"),
+        ({"symbol": "ZZZ", "symbolPosition": None}, 1234.5, "ZZZ 1,234.50"),
     ],
 )
 def test_format_number_with_currency(currency, value, expected):
@@ -74,6 +74,15 @@ def test_auto_currency_formats_without_symbol():
 def test_non_numeric_value_is_returned_as_is():
     assert format_number_with_config(",.2f", None, "abc") == "abc"
     assert format_number_with_config(",.2f", None, None) == ""
+
+
+def test_currency_error_keeps_formatted_number():
+    assert (
+        format_number_with_config(
+            ",.2f", {"symbol": {"bad": 1}, "symbolPosition": "prefix"}, 1234.5
+        )
+        == "1,234.50"
+    )
 
 
 def test_decimal_values_are_formatted():
