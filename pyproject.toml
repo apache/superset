@@ -126,7 +126,7 @@ dependencies = [
 athena = ["pyathena[pandas]>=2, <4"]
 aurora-data-api = ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"]
 bigquery = [
-    "pandas-gbq>=0.19.1",
+    "pandas-gbq>=0.35.0",
     "sqlalchemy-bigquery>=1.17.0",
     "google-cloud-bigquery>=3.42.1",
 ]
