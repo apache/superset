@@ -137,6 +137,11 @@ export function getOverrideHtmlSchema(
       // the schema (e.g. `tagNames`, `protocols.href`) is a plain list where
       // concatenation is the correct merge.
       if (object === target.attributes) {
+        // htmlSchemaOverrides comes from runtime config and isn't guaranteed
+        // to match the expected shape; fall back to the default definitions
+        // for a tag rather than throwing if an operator supplies something
+        // other than an array of attribute definitions.
+        if (!Array.isArray(srcValue)) return objValue;
         return mergeAttributeDefinitions(objValue, srcValue);
       }
       return objValue.concat(srcValue);
