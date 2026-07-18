@@ -690,7 +690,8 @@ set -eu
 # (whether successfully or via `set -e`), so that the Job can reach the
 # Completed state instead of hanging on a still-running envoy-proxy.
 # See https://github.com/apache/superset/issues/25798
-trap 'rc=$?; curl -fsS -m 5 -X POST {{ dig "istio" "quitEndpoint" "http://localhost:15020/quitquitquit" .Values.init | quote }} >/dev/null 2>&1 || true; exit $rc' EXIT
+ISTIO_QUIT_ENDPOINT={{ dig "istio" "quitEndpoint" "http://localhost:15020/quitquitquit" .Values.init | squote }}
+trap 'rc=$?; curl -fsS -m 5 -X POST "$ISTIO_QUIT_ENDPOINT" >/dev/null 2>&1 || true; exit $rc' EXIT
 {{- end }}
 echo "Upgrading DB schema..."
 superset db upgrade
