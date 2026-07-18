@@ -40,7 +40,6 @@ import {
   DEFAULT_FORM_DATA,
   EchartsMixedTimeseriesFormData,
   EchartsMixedTimeseriesProps,
-  DEFAULT_FORM_DATA,
 } from '../../src/MixedTimeseries/types';
 import { createEchartsTimeseriesTestChartProps } from '../helpers';
 import type { SeriesOption } from 'echarts';
@@ -1144,6 +1143,7 @@ test('should apply a dashed lineStyle to derived (time comparison) series only',
       groupby: [],
       time_compare: ['1 week ago'],
       comparison_type: ComparisonType.Values,
+      timeShiftColor: true,
     },
     queriesData: [queryAData, queriesData[1]],
   });
@@ -1201,6 +1201,57 @@ test('should not apply a dashed lineStyle when comparison_type is not Values', (
       groupby: [],
       time_compare: ['1 week ago'],
       comparison_type: ComparisonType.Difference,
+    },
+    queriesData: [queryAData, queriesData[1]],
+  });
+
+  const transformed = transformProps(chartProps);
+  const series = (transformed.echartOptions.series as SeriesOption[]) || [];
+
+  const derivedSeries = series.find(s => s.name === 'sum__num__1 week ago') as
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
+
+  expect(derivedSeries).toBeDefined();
+  expect(derivedSeries?.lineStyle?.type).toBeUndefined();
+});
+
+test('should not apply a dashed lineStyle when timeShiftColor is disabled', () => {
+  const queryAData = createTestQueryData(
+    [
+      {
+        sum__num: 100,
+        'sum__num__1 week ago': 80,
+        ds: 599616000000,
+      },
+      {
+        sum__num: 150,
+        'sum__num__1 week ago': 120,
+        ds: 599916000000,
+      },
+    ],
+    {
+      label_map: {
+        ds: ['ds'],
+        sum__num: ['sum__num'],
+        'sum__num__1 week ago': ['sum__num__1 week ago'],
+      },
+    },
+  );
+
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [queryAData, queriesData[1]],
+    formData: {
+      ...formData,
+      metrics: ['sum__num'],
+      groupby: [],
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Values,
+      timeShiftColor: false,
     },
     queriesData: [queryAData, queriesData[1]],
   });

@@ -45,6 +45,7 @@ import {
 import { GenericDataType } from '@apache-superset/core/common';
 import {
   getOriginalSeries,
+  getTimeOffset,
   isDerivedSeries,
 } from '@superset-ui/chart-controls';
 import type { EChartsCoreOption } from 'echarts/core';
@@ -449,7 +450,10 @@ export default function transformProps(
 
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
-  let patternIncrement = 0;
+  // Tracks a stable pattern index per time offset so that derived series
+  // sharing the same comparison window (across both queries A and B) get
+  // the same dash pattern, mirroring the regular Timeseries transform.
+  const offsetPatterns: { [key: string]: number } = {};
 
   // The rendered ECharts series names are display names that can diverge from
   // the backend `label_map` keys: the metric display name is prepended when
@@ -462,16 +466,24 @@ export default function transformProps(
   const displayLabelMapB: Record<string, string[]> = {};
 
   rawSeriesA.forEach(entry => {
-    const derivedSeries = isDerivedSeries(entry, chartProps.rawFormData);
-    const lineStyle: LineStyleOption = {};
-    if (derivedSeries) {
-      patternIncrement += 1;
-      // use a combination of dash and dot for the line style
-      lineStyle.type = [(patternIncrement % 5) + 1, (patternIncrement % 3) + 1];
-      lineStyle.opacity = OpacityEnum.DerivedSeries;
-    }
     const entryName = String(entry.name || '');
     const seriesName = inverted[entryName] || entryName;
+    const derivedSeries = isDerivedSeries(
+      entry,
+      chartProps.rawFormData,
+      seriesName,
+    );
+    const lineStyle: LineStyleOption = {};
+    if (derivedSeries && timeShiftColor) {
+      const offset = getTimeOffset(entry, array) || seriesName;
+      if (!offsetPatterns[offset]) {
+        offsetPatterns[offset] = Object.keys(offsetPatterns).length + 1;
+      }
+      const patternIndex = offsetPatterns[offset];
+      // use a combination of dash and dot for the line style
+      lineStyle.type = [(patternIndex % 5) + 1, (patternIndex % 3) + 1];
+      lineStyle.opacity = OpacityEnum.DerivedSeries;
+    }
     const colorScaleKey = getOriginalSeries(seriesName, array);
 
     let displayName: string;
@@ -550,17 +562,25 @@ export default function transformProps(
   });
 
   rawSeriesB.forEach(entry => {
-    const derivedSeries = isDerivedSeries(entry, chartProps.rawFormData);
+    const entryName = String(entry.name || '');
+    const seriesEntry = inverted[entryName] || entryName;
+    const derivedSeries = isDerivedSeries(
+      entry,
+      chartProps.rawFormData,
+      seriesEntry,
+    );
     const lineStyle: LineStyleOption = {};
-    if (derivedSeries) {
-      patternIncrement += 1;
+    if (derivedSeries && timeShiftColor) {
+      const offset = getTimeOffset(entry, array) || seriesEntry;
+      if (!offsetPatterns[offset]) {
+        offsetPatterns[offset] = Object.keys(offsetPatterns).length + 1;
+      }
+      const patternIndex = offsetPatterns[offset];
       // use a combination of dash and dot for the line style
-      lineStyle.type = [(patternIncrement % 5) + 1, (patternIncrement % 3) + 1];
+      lineStyle.type = [(patternIndex % 5) + 1, (patternIndex % 3) + 1];
       lineStyle.opacity = OpacityEnum.DerivedSeries;
     }
 
-    const entryName = String(entry.name || '');
-    const seriesEntry = inverted[entryName] || entryName;
     const colorScaleKey = getOriginalSeries(seriesEntry, array);
 
     let displayName: string;
