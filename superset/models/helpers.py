@@ -1906,7 +1906,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         time_grain = self.get_time_grain(query_object)
         metric_names = get_metric_names(query_object.metrics)
         # use columns that are not metrics as join keys
-        join_keys = [col for col in df.columns if col not in metric_names]
+        join_keys: list[str] = [col for col in df.columns if col not in metric_names]
 
         for offset in query_object.time_offsets:
             # Each offset must start from the original request state.
@@ -2132,7 +2132,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             # Call the unified query method on the datasource
             with source_timing(SourceKind.TIME_OFFSET, SourceProvider.SQL):
-                result = self.query(query_object_clone_dct)
+                result: QueryResult = self.query(query_object_clone_dct)
 
                 if result.status == QueryStatus.FAILED:
                     raise QueryObjectValidationError(

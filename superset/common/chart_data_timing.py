@@ -389,7 +389,7 @@ class SourceTimingCollector:
         self._stack: list[_MutableSourceTiming | None] = []
         self._phases: list[_MutableSourcePhase] = []
         self._activation_parents: list[SourceTimingCollector | None] = []
-        self._node_count = 0
+        self._node_count: int = 0
 
     def _pause_active_phases(self) -> list[_MutableSourcePhase]:
         now_ns = self._clock()

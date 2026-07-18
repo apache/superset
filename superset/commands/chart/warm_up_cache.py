@@ -107,8 +107,8 @@ class ChartWarmUpCacheCommand(BaseCommand):
 
         # Report the first error.
         for query_result in execution.queries:
-            error = query_result.payload.get("error")
-            status = query_result.payload.get("status")
+            error: Any = query_result.payload.get("error")
+            status: Any = query_result.payload.get("status")
             if error is not None:
                 return error, status
 

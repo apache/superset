@@ -22,7 +22,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import Literal, ParamSpec, TypeVar
+from typing import Any, Literal, ParamSpec, TypeVar
 
 from flask import current_app, Response
 
@@ -67,7 +67,7 @@ _request_timing: ContextVar[ChartRequestTiming | None] = ContextVar(
 @contextmanager
 def chart_timing_phase(phase: ChartTimingPhase) -> Iterator[None]:
     """Measure one fixed chart API phase when request collection is active."""
-    timing = _request_timing.get()
+    timing: ChartRequestTiming | None = _request_timing.get()
     if timing is None:
         yield
         return
@@ -127,7 +127,7 @@ def _server_timing_value(timing: ChartRequestTiming, total_ns: int) -> str:
 
 def _emit_request_metrics(timing: ChartRequestTiming, total_ns: int) -> None:
     try:
-        stats_logger = current_app.config.get("STATS_LOGGER")
+        stats_logger: Any = current_app.config.get("STATS_LOGGER")
         if not stats_logger or not hasattr(stats_logger, "timing"):
             return
         for phase in _PHASE_NAMES:
