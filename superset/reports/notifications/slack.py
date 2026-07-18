@@ -20,10 +20,8 @@ from flask import g
 from slack_sdk import WebClient
 from slack_sdk.errors import (
     BotUserAccessError,
-    SlackApiError,
     SlackClientConfigurationError,
     SlackClientError,
-    SlackClientNotConnectedError,
     SlackObjectFormationError,
     SlackRequestError,
     SlackTokenRotationError,
@@ -38,7 +36,11 @@ from superset.reports.notifications.exceptions import (
     NotificationUnprocessableException,
     SlackV1NotificationError,
 )
-from superset.reports.notifications.slack_mixin import _call_slack_api, SlackMixin
+from superset.reports.notifications.slack_mixin import (
+    _call_slack_api,
+    _send_to_slack_channels,
+    SlackMixin,
+)
 from superset.utils import json
 from superset.utils.decorators import statsd_gauge
 from superset.utils.slack import (
@@ -92,8 +94,14 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
         """Send a text notification once to each configured channel."""
         if not channels:
             raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE)
-        for target in channels:
-            _call_slack_api(client.chat_postMessage, channel=target, text=body)
+        _send_to_slack_channels(
+            channels,
+            lambda target: _call_slack_api(
+                client.chat_postMessage,
+                channel=target,
+                text=body,
+            ),
+        )
 
     def _send_legacy_text(self) -> None:
         if self._content.has_attachments:
@@ -121,8 +129,6 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
             raise NotificationMalformedException(str(ex)) from ex
         except SlackTokenRotationError as ex:
             raise NotificationAuthorizationException(str(ex)) from ex
-        except (SlackClientNotConnectedError, SlackApiError) as ex:
-            raise NotificationUnprocessableException(str(ex)) from ex
         except SlackClientError as ex:
             # this is the base class for all slack client errors
             # keep it last so that it doesn't interfere with @backoff

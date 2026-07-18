@@ -23,6 +23,10 @@ from flask_babel import gettext as __
 from slack_sdk.errors import SlackApiError, SlackClientNotConnectedError
 
 from superset.reports.notifications.base import NotificationContent
+from superset.reports.notifications.exceptions import (
+    NotificationError,
+    NotificationUnprocessableException,
+)
 from superset.utils.slack import (
     _get_slack_api_error_code,
     _get_slack_api_status_code,
@@ -42,7 +46,7 @@ def _give_up_slack_api_retry(ex: Exception) -> bool:
     # retry budget. Retrying an exhausted 429 here would multiply that budget
     # by this helper's max_tries.
     error_code = _get_slack_api_error_code(ex)
-    if status_code == 429 or error_code == "ratelimited":
+    if status_code == 429:
         return True
     if _is_transient_slack_api_error(ex, error_code):
         return False
@@ -61,6 +65,38 @@ def _give_up_slack_api_retry(ex: Exception) -> bool:
 )
 def _call_slack_api(method: Callable[..., object], **kwargs: object) -> None:
     method(**kwargs)
+
+
+def _send_to_slack_channels(
+    channels: list[str],
+    send_to_channel: Callable[[str], None],
+) -> None:
+    """Send to every channel and raise one channel-aware aggregate error."""
+    failures: list[tuple[str, SlackApiError | SlackClientNotConnectedError]] = []
+    for channel in channels:
+        try:
+            send_to_channel(channel)
+        except (SlackApiError, SlackClientNotConnectedError) as ex:
+            failures.append((channel, ex))
+
+    if not failures:
+        return
+
+    details = "; ".join(f"{channel}: {error}" for channel, error in failures)
+    message = f"Slack delivery failed for the following channels: {details}"
+    if any(
+        isinstance(error, SlackClientNotConnectedError)
+        or (
+            isinstance(error, SlackApiError)
+            and _is_transient_slack_api_error(
+                error,
+                _get_slack_api_error_code(error),
+            )
+        )
+        for _, error in failures
+    ):
+        raise NotificationError(message) from failures[0][1]
+    raise NotificationUnprocessableException(message) from failures[0][1]
 
 
 # pylint: disable=too-few-public-methods
