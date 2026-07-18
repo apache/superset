@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from decimal import Decimal
+
 import pytest
 
 from superset.utils.number_format import format_number_with_config
@@ -72,6 +74,17 @@ def test_auto_currency_formats_without_symbol():
 def test_non_numeric_value_is_returned_as_is():
     assert format_number_with_config(",.2f", None, "abc") == "abc"
     assert format_number_with_config(",.2f", None, None) == ""
+
+
+def test_decimal_values_are_formatted():
+    assert format_number_with_config(",.2f", None, Decimal("1234.5")) == "1,234.50"
+    assert (
+        format_number_with_config(
+            ",.2f", {"symbol": "USD", "symbolPosition": "prefix"}, Decimal("1234.5")
+        )
+        == "$ 1,234.50"
+    )
+    assert format_number_with_config(",.2f", None, Decimal("NaN")) == ""
 
 
 # --- Parity with the frontend d3-format --------------------------------------

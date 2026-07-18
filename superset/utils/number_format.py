@@ -89,8 +89,10 @@ def format_number_with_config(
     """
     if value is None:
         return ""
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
+    if isinstance(value, bool) or not isinstance(value, (int, float, Decimal)):
         return value
+    if isinstance(value, Decimal):
+        value = float(value)
     if math.isnan(value) or math.isinf(value):
         return ""
 
