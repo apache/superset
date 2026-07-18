@@ -35,6 +35,14 @@ import transformProps, {
 import { EchartsPieChartProps, PieChartDataItem } from '../../src/Pie/types';
 import { LegendOrientation, LegendType } from '../../src/types';
 
+const getGraphic = (transformed: ReturnType<typeof transformProps>) =>
+  transformed.echartOptions.graphic as {
+    type: string;
+    x: number;
+    y: number;
+    style: { text: string; align: string; verticalAlign: string };
+  };
+
 describe('Pie transformProps', () => {
   const formData: SqlaFormData = {
     colorScheme: 'bnbColors',
@@ -349,14 +357,6 @@ describe('Total value positioning with legends', () => {
       theme: supersetTheme,
     }) as EchartsPieChartProps;
   };
-
-  const getGraphic = (transformed: ReturnType<typeof transformProps>) =>
-    transformed.echartOptions.graphic as {
-      type: string;
-      x: number;
-      y: number;
-      style: { text: string; align: string; verticalAlign: string };
-    };
 
   test('should center total text when legend is on the right', () => {
     const props = getChartPropsWithLegend(true, true, 'right', true);
@@ -686,11 +686,9 @@ test('passes startAngle through and derives endAngle from the sweep', () => {
 });
 
 test('anchors the total on the pie origin for a top half-donut', () => {
-  const transformed = transformProps(getAngleChartProps(true, 180, 180));
-  const graphic = transformed.echartOptions.graphic as {
-    x: number;
-    y: number;
-  };
+  const graphic = getGraphic(
+    transformProps(getAngleChartProps(true, 180, 180)),
+  );
   expect(graphic.x).toBe(400);
   expect(graphic.y).toBe(440);
 });
@@ -738,11 +736,7 @@ test('getPieLayout centers the bounding box within legend padding', () => {
 test('clamps the total anchor into the arc box for narrow arcs', () => {
   // A 20-degree sliver's pie origin falls far below the drawn wedge; the
   // anchor must stay within the arc's bounding box so the text is visible.
-  const transformed = transformProps(getAngleChartProps(true, 20, 100));
-  const graphic = transformed.echartOptions.graphic as {
-    x: number;
-    y: number;
-  };
+  const graphic = getGraphic(transformProps(getAngleChartProps(true, 20, 100)));
   expect(graphic.x).toBe(400);
   expect(graphic.y).toBeCloseTo(421.37, 1);
 });
