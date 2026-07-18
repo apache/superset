@@ -35,6 +35,7 @@ from slack_sdk.web.slack_response import SlackResponse
 
 from superset.reports.notifications.exceptions import (
     NotificationAuthorizationException,
+    NotificationError,
     NotificationMalformedException,
     NotificationParamException,
     NotificationUnprocessableException,
@@ -430,6 +431,44 @@ def test_v1_send_retries_only_the_failed_channel(
         slack_call.kwargs["channel"]
         for slack_call in slack_client_mock.return_value.chat_postMessage.call_args_list
     ] == ["private-a", "private-b", "private-b", "private-b"]
+
+
+@patch("superset.reports.notifications.slack.g")
+@patch("superset.reports.notifications.slack.should_use_v2_api", return_value=False)
+@patch("superset.reports.notifications.slack.get_slack_client")
+def test_v1_send_reports_failed_channel_and_continues_later_channels(
+    slack_client_mock: MagicMock,
+    should_use_v2_api_mock: MagicMock,
+    flask_global_mock: MagicMock,
+    mock_header_data: HeaderDataType,
+) -> None:
+    flask_global_mock.logs_context = {}
+
+    def chat_side_effect(channel: str, text: str) -> dict[str, bool]:
+        if channel == "private-b":
+            raise SlackApiError(
+                message="channel not found",
+                response={"ok": False, "error": "channel_not_found"},
+            )
+        return {"ok": True}
+
+    slack_client_mock.return_value.chat_postMessage.side_effect = chat_side_effect
+    notification = _make_v1_notification(
+        mock_header_data,
+        target="private-a,private-b,private-c",
+    )
+
+    with pytest.raises(
+        NotificationUnprocessableException,
+        match="private-b",
+    ):
+        notification.send()
+
+    should_use_v2_api_mock.assert_called_once_with(raise_on_error=False)
+    assert [
+        slack_call.kwargs["channel"]
+        for slack_call in slack_client_mock.return_value.chat_postMessage.call_args_list
+    ] == ["private-a", "private-b", "private-c"]
 
 
 @patch("superset.reports.notifications.slack.g")
@@ -965,7 +1004,7 @@ def test_v2_inline_files_precedence(mock_header_data) -> None:
         ),
         (
             lambda: SlackClientNotConnectedError("offline"),
-            NotificationUnprocessableException,
+            NotificationError,
         ),
         (
             # Fallback: any other SlackClientError becomes Unprocessable.
@@ -1010,7 +1049,7 @@ def test_v2_send_retries_on_transient_slack_api_error(
     content = _make_content(mock_header_data)
     notification = _make_v2_notification(content, target="C12345")
 
-    with pytest.raises(NotificationUnprocessableException):
+    with pytest.raises(NotificationError, match="C12345"):
         notification.send()
 
     assert slack_client_mock.return_value.chat_postMessage.call_count == 5
@@ -1104,6 +1143,50 @@ def test_v2_send_does_not_retry_permanent_slack_api_error(
     assert slack_client_mock.return_value.chat_postMessage.call_count == 1
 
 
+@pytest.mark.parametrize(
+    ("content_overrides", "method_name"),
+    [
+        ({}, "chat_postMessage"),
+        ({"screenshots": [b"screenshot"]}, "files_upload_v2"),
+    ],
+    ids=["text", "file"],
+)
+@patch("superset.reports.notifications.slackv2.g")
+@patch("superset.reports.notifications.slackv2.get_slack_client")
+def test_v2_send_reports_failed_channel_and_continues_later_channels(
+    slack_client_mock: MagicMock,
+    flask_global_mock: MagicMock,
+    content_overrides: dict[str, Any],
+    method_name: str,
+    mock_header_data: HeaderDataType,
+) -> None:
+    flask_global_mock.logs_context = {}
+
+    def send_side_effect(channel: str, **kwargs: object) -> dict[str, bool]:
+        if channel == "C2":
+            raise SlackApiError(
+                message="channel not found",
+                response={"ok": False, "error": "channel_not_found"},
+            )
+        return {"ok": True}
+
+    method = getattr(slack_client_mock.return_value, method_name)
+    method.side_effect = send_side_effect
+    notification = _make_v2_notification(
+        _make_content(mock_header_data, **content_overrides),
+        target="C1,C2,C3",
+    )
+
+    with pytest.raises(NotificationUnprocessableException, match="C2"):
+        notification.send()
+
+    assert [slack_call.kwargs["channel"] for slack_call in method.call_args_list] == [
+        "C1",
+        "C2",
+        "C3",
+    ]
+
+
 @patch("superset.reports.notifications.slackv2.g")
 @patch("superset.reports.notifications.slackv2.get_slack_client")
 def test_v2_send_does_not_retry_param_errors(
@@ -1193,6 +1276,20 @@ def test_give_up_slack_api_retry_delegates_rate_limits_to_sdk() -> None:
     assert _give_up_slack_api_retry(ex) is True
 
 
+def test_call_slack_api_retries_ratelimited_code_without_http_429() -> None:
+    """A ratelimited response without HTTP 429 uses application backoff."""
+    ex = SlackApiError(
+        message="rate limited",
+        response={"ok": False, "error": "ratelimited"},
+    )
+    method = MagicMock(side_effect=ex)
+
+    with pytest.raises(SlackApiError):
+        _call_slack_api(method)
+
+    assert method.call_count == 5
+
+
 @patch("superset.reports.notifications.slackv2.g")
 @patch("superset.reports.notifications.slackv2.get_slack_client")
 def test_v2_send_does_not_stack_retries_after_sdk_rate_limit_exhaustion(
@@ -1215,7 +1312,7 @@ def test_v2_send_does_not_stack_retries_after_sdk_rate_limit_exhaustion(
         target="C12345",
     )
 
-    with pytest.raises(NotificationUnprocessableException):
+    with pytest.raises(NotificationError, match="C12345"):
         notification.send()
 
     slack_client_mock.return_value.chat_postMessage.assert_called_once()

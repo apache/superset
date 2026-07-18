@@ -108,6 +108,48 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _get_slack_channels_by_target(
+    search_string: str,
+    *,
+    force: bool = False,
+) -> dict[str, Any]:
+    """Fetch Slack channels and index them by case-insensitive name and id."""
+    force_kwargs = {"force": True} if force else {}
+    channels = get_channels_with_search(
+        search_string=search_string,
+        types=[
+            SlackChannelTypes.PRIVATE,
+            SlackChannelTypes.PUBLIC,
+        ],
+        exact_match=True,
+        **force_kwargs,
+    )
+    return {
+        target.casefold(): channel
+        for channel in channels
+        for target in (channel["name"], channel["id"])
+    }
+
+
+def _resolve_slack_channel_targets(targets: list[str]) -> dict[str, Any]:
+    """Resolve configured Slack names or ids after one forced cache refresh."""
+    search_string = ",".join(targets)
+    channels_by_target = _get_slack_channels_by_target(search_string)
+    missing_channels = [
+        target for target in targets if target.casefold() not in channels_by_target
+    ]
+    if missing_channels:
+        channels_by_target = _get_slack_channels_by_target(search_string, force=True)
+        missing_channels = [
+            target for target in targets if target.casefold() not in channels_by_target
+        ]
+    if missing_channels:
+        raise NotificationParamException(
+            f"Could not find the following channels: {', '.join(missing_channels)}"
+        )
+    return channels_by_target
+
+
 def resolve_executor_user(model: ReportSchedule) -> tuple["User", str]:
     """
     Resolve the executor user for a report schedule.
@@ -215,27 +257,13 @@ class BaseReportState:
                 channels_list = parse_slack_recipient_targets(target.replace("#", ""))
                 if not channels_list:
                     raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE)
-                channel_names = ",".join(channels_list)
                 # we need to ensure that existing reports can also fetch
                 # ids from private channels
-                channels = get_channels_with_search(
-                    search_string=channel_names,
-                    types=[
-                        SlackChannelTypes.PRIVATE,
-                        SlackChannelTypes.PUBLIC,
-                    ],
-                    exact_match=True,
+                channels_by_target = _resolve_slack_channel_targets(channels_list)
+                channel_ids = ",".join(
+                    channels_by_target[channel.casefold()]["id"]
+                    for channel in channels_list
                 )
-                if len(channels_list) != len(channels):
-                    missing_channels = set(channels_list) - {
-                        channel["name"] for channel in channels
-                    }
-                    msg = (
-                        "Could not find the following channels: "
-                        f"{', '.join(missing_channels)}"
-                    )
-                    raise NotificationParamException(msg)
-                channel_ids = ",".join(channel["id"] for channel in channels)
                 resolved.append((recipient, json.dumps({"target": channel_ids})))
         except NotificationParamException as ex:
             msg = f"Failed to update slack recipients to v2: {str(ex)}"
@@ -1053,29 +1081,36 @@ class BaseReportState:
         """Deliver a text-only notification after one failed atomic v2 upgrade."""
         if notification_content.has_attachments:
             if isinstance(update_error, UpdateFailedError):
-                raise update_error
+                raise UpdateFailedError(
+                    f"{SLACK_V1_FILE_UPLOAD_MESSAGE} "
+                    f"Slack v2 upgrade failed: {update_error}"
+                ) from update_error
             raise NotificationParamException(
                 f"{SLACK_V1_FILE_UPLOAD_MESSAGE} "
                 f"Slack v2 upgrade failed: {update_error}"
             ) from update_error
 
-        if record_upgrade_failure and isinstance(update_error, UpdateFailedError):
-            app.config["STATS_LOGGER"].incr("reports.slack.v1_fallback.system_error")
-            logger.error(
-                "Slack v2 upgrade failed with a system error; delivering the "
-                "text-only report through Slack v1 for this execution: %s",
-                update_error,
-                extra={
-                    "execution_id": self._execution_id,
-                    "report_schedule_id": self._report_schedule.id,
-                },
-            )
-        elif record_upgrade_failure:
-            logger.warning(
-                "Slack v2 upgrade unavailable; attempting a text-only Slack v1 "
-                "fallback for this execution: %s",
-                update_error,
-            )
+        if record_upgrade_failure:
+            app.config["STATS_LOGGER"].incr("reports.slack.v1_fallback")
+            if isinstance(update_error, UpdateFailedError):
+                app.config["STATS_LOGGER"].incr(
+                    "reports.slack.v1_fallback.system_error"
+                )
+                logger.error(
+                    "Slack v2 upgrade failed with a system error; delivering the "
+                    "text-only report through Slack v1 for this execution: %s",
+                    update_error,
+                    extra={
+                        "execution_id": self._execution_id,
+                        "report_schedule_id": self._report_schedule.id,
+                    },
+                )
+            else:
+                logger.warning(
+                    "Slack v2 upgrade unavailable; attempting a text-only Slack v1 "
+                    "fallback for this execution: %s",
+                    update_error,
+                )
         notification.send_legacy_text()
 
     def _send_notification(

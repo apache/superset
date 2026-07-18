@@ -22,10 +22,8 @@ from typing import List, Union
 from flask import g
 from slack_sdk.errors import (
     BotUserAccessError,
-    SlackApiError,
     SlackClientConfigurationError,
     SlackClientError,
-    SlackClientNotConnectedError,
     SlackObjectFormationError,
     SlackRequestError,
     SlackTokenRotationError,
@@ -41,6 +39,7 @@ from superset.reports.notifications.exceptions import (
 )
 from superset.reports.notifications.slack_mixin import (
     _call_slack_api,
+    _send_to_slack_channels,
     SlackMixin,
 )
 from superset.utils import json
@@ -106,8 +105,7 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
             file_type, files = self._get_inline_files()
             file_name = f"{title}.{file_type}"
 
-            # files_upload returns SlackResponse as we run it in sync mode.
-            for channel in channels:
+            def send_to_channel(channel: str) -> None:
                 if len(files) > 0:
                     for file in files:
                         _call_slack_api(
@@ -120,6 +118,9 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
                         )
                 else:
                     _call_slack_api(client.chat_postMessage, channel=channel, text=body)
+
+            # files_upload returns SlackResponse as we run it in sync mode.
+            _send_to_slack_channels(channels, send_to_channel)
 
             logger.info(
                 "Report sent to slack",
@@ -137,8 +138,6 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
             raise NotificationMalformedException(str(ex)) from ex
         except SlackTokenRotationError as ex:
             raise NotificationAuthorizationException(str(ex)) from ex
-        except (SlackClientNotConnectedError, SlackApiError) as ex:
-            raise NotificationUnprocessableException(str(ex)) from ex
         except SlackClientError as ex:
             # this is the base class for all slack client errors
             # keep it last so that it doesn't interfere with @backoff

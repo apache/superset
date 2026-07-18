@@ -1888,7 +1888,7 @@ def test_slack_text_fallback_persists_success_for_multiple_recipient_rows(
     } == {"private-a", "private-b"}
     assert slack_client_mock.return_value.chat_postMessage.call_count == 2
     assert slack_should_use_v2_api_mock.call_count == 1
-    assert get_channels_with_search_mock.call_count == 1
+    assert get_channels_with_search_mock.call_count == 2
 
 
 @pytest.mark.usefixtures(
@@ -1942,7 +1942,7 @@ def test_slack_text_fallback_persists_later_recipient_retry_exhaustion(
 
     with (
         patch("time.sleep"),
-        pytest.raises(ReportScheduleClientErrorsException),
+        pytest.raises(ReportScheduleSystemErrorsException),
     ):
         AsyncExecuteReportScheduleCommand(
             TEST_ID,
@@ -1976,7 +1976,7 @@ def test_slack_text_fallback_persists_later_recipient_retry_exhaustion(
     }
     assert {ReportState.WORKING, ReportState.ERROR} <= log_states
     assert slack_should_use_v2_api_mock.call_count == 1
-    assert get_channels_with_search_mock.call_count == 1
+    assert get_channels_with_search_mock.call_count == 2
     email_mock.assert_called_once()
 
 
