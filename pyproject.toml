@@ -152,7 +152,7 @@ duckdb = ["duckdb>=1.5.4,<2", "duckdb-engine>=0.17.0"]
 dynamodb = ["pydynamodb>=0.8.2"]
 solr = ["sqlalchemy-solr >= 0.2.4.3"]
 elasticsearch = ["elasticsearch-dbapi>=0.2.13, <0.3.0"]
-exasol = ["sqlalchemy-exasol>=2.4.0, <8.0"]
+exasol = ["sqlalchemy-exasol>=7.1.1, <8.0"]
 excel = ["xlrd>=2.0.2, <2.1"]
 fastmcp = [
     "fastmcp>=3.4.3,<4.0",
