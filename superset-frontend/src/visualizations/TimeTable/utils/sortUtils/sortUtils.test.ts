@@ -105,7 +105,7 @@ describe('sortNumberWithMixedTypes', () => {
   });
 
   test('should sort ValueCell-like props numerically', () => {
-    const createValueCellRow = (value: number | null) => ({
+    const createValueCellMock = (value: number | null) => ({
       values: {
         testColumn: {
           props: {
@@ -115,8 +115,8 @@ describe('sortNumberWithMixedTypes', () => {
       },
     });
 
-    const smaller = createValueCellRow(1);
-    const larger = createValueCellRow(5);
+    const smaller = createValueCellMock(1);
+    const larger = createValueCellMock(5);
 
     const result = sortNumberWithMixedTypes(smaller, larger, 'testColumn');
 

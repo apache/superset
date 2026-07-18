@@ -49,7 +49,6 @@ function compareValues(
  * @param rowA - First row to compare
  * @param rowB - Second row to compare
  * @param columnId - Column identifier for sorting
- * @param descending - Whether to sort in descending order
  * @returns Numeric comparison result for react-table
  * react-table handles the asc/desc direction flip internally after calling
  * this function, so we only return the raw comparison result.
@@ -63,9 +62,9 @@ export function sortNumberWithMixedTypes(
   const cellB = rowB.values?.[columnId];
 
   // Both ValueCell and Sparkline cells pass React elements here.
-  // ValueCell uses { valueField, column, reversedEntries }
-  // Sparkline/SparklineCell uses { valueField, column, entries }
-  // Normalize to reversedEntries before delegating to calculateCellValue.
+  // ValueCell provides the precomputed value directly.
+  // Sparkline provides { valueField, column, entries } and requires
+  // calculating the sortable value from its entries.
   const propsA = cellA?.props as
     | {
         value?: number | null;
@@ -109,14 +108,14 @@ export function sortNumberWithMixedTypes(
   }
 
   const { value: valueA } = calculateCellValue(
-    propsA.valueField!,
-    propsA.column!,
+    propsA.valueField,
+    propsA.column,
     reversedEntriesA,
   );
 
   const { value: valueB } = calculateCellValue(
-    propsB.valueField!,
-    propsB.column!,
+    propsB.valueField,
+    propsB.column,
     reversedEntriesB,
   );
 

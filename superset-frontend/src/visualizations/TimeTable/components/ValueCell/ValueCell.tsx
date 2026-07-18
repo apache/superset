@@ -27,8 +27,8 @@ interface ValueCellProps {
   column: ColumnConfig;
 }
 /**
- * Renders a value cell with different calculation types (time, contrib, avg)
- * and applies color coding based on bounds
+ * Renders a precomputed value or error message and applies color coding
+ * based on the configured column bounds.
  */
 const ValueCell = ({
   value,
