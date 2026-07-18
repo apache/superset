@@ -4411,6 +4411,7 @@ def test_backtick_fallback_logs_warning(caplog: pytest.LogCaptureFixture) -> Non
         ("COUNT(*)", True),
         ("SUM(x) OVER (PARTITION BY y)", False),
         ("ROW_NUMBER() OVER ()", False),
+        ("SUM(SUM(x)) OVER ()", True),
         ("a + b", False),
         (")(", True),
         ("MY_CUSTOM_AGG(x)", True),
@@ -4419,8 +4420,9 @@ def test_backtick_fallback_logs_warning(caplog: pytest.LogCaptureFixture) -> Non
 )
 def test_has_aggregate(expression: str, expected: bool) -> None:
     """
-    ``has_aggregate`` should detect top-level (non-windowed) aggregates and
-    fail open (return True) when the expression can't be parsed or uses a
-    function sqlglot can't model (a possible unknown aggregate).
+    ``has_aggregate`` detects any aggregate that is not itself directly windowed
+    -- one nested inside a windowed aggregate or a subquery still counts -- and
+    fails open (returns True) when the expression can't be parsed or uses a
+    function sqlglot can't model.
     """
     assert has_aggregate(expression) is expected
