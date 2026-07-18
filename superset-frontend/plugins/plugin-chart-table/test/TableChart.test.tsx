@@ -2292,92 +2292,95 @@ describe('plugin-chart-table', () => {
       });
     });
 
-    test('should not reset pagination when a cell is clicked (#42010)', async () => {
-      type DataRow = {
-        id: number;
-        name: string;
-        value: number;
-      };
-
-      const columns: Column<DataRow>[] = [
-        {
-          Header: 'ID',
-          accessor: 'id',
-          id: 'id',
-          Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
-        },
-        {
-          Header: 'Name',
-          accessor: 'name',
-          id: 'name',
-          Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
-        },
-        {
-          Header: 'Value',
-          accessor: 'value',
-          id: 'value',
-          Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
-        },
-      ];
-
-      // 30 rows with page size 10 = 3 pages
-      const data: DataRow[] = Array.from({ length: 30 }, (_, i) => ({
-        id: i + 1,
+    test('should not reset pagination when a cell is clicked and data re-renders (#42010)', async () => {
+      const setDataMask = jest.fn();
+      const data30 = Array.from({ length: 30 }, (_, i) => ({
         name: `User ${i + 1}`,
-        value: (i + 1) * 100,
+        sum__num: (i + 1) * 100,
       }));
+      const filteredData = data30.slice(0, 15);
 
-      const { container } = render(
+      const props = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          page_length: 10,
+          metrics: ['sum__num'],
+          groupby: ['name'],
+        },
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['name', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: data30,
+          },
+        ],
+        hooks: { setDataMask },
+        emitCrossFilters: true,
+      });
+
+      const { container, rerender } = render(
         <ProviderWrapper>
-          <DataTable<DataRow>
-            columns={columns}
-            data={data}
-            rowCount={data.length}
-            pageSize={10}
-            serverPagination={false}
-            serverPaginationData={{}}
-            onServerPaginationChange={jest.fn()}
-            handleSortByChange={jest.fn()}
-            sortByFromParent={[]}
-            onSearchColChange={jest.fn()}
-            searchOptions={[]}
+          <TableChart
+            {...props}
+            emitCrossFilters
+            setDataMask={setDataMask}
             sticky={false}
-            searchInput={false}
-            selectPageSize={false}
           />
         </ProviderWrapper>,
       );
 
-      // Verify we're on page 1 (showing rows 1-10)
-      const getRowTexts = () =>
-        Array.from(container.querySelectorAll('tbody td:nth-child(2)')).map(
-          td => td.textContent,
-        );
-      expect(getRowTexts()).toContain('User 1');
-      expect(getRowTexts()).not.toContain('User 11');
+      expect(screen.getByText('User 1')).toBeInTheDocument();
+      expect(screen.queryByText('User 11')).not.toBeInTheDocument();
 
-      // Navigate to page 2 by clicking the page 2 link
       const page2Link = container.querySelector('a[href="#page-1"]')!;
       expect(page2Link).toBeTruthy();
       fireEvent.click(page2Link);
 
-      // Wait for page 2 to render (showing rows 11-20)
       await waitFor(() => {
-        expect(getRowTexts()).toContain('User 11');
-        expect(getRowTexts()).not.toContain('User 1');
+        expect(screen.getByText('User 11')).toBeInTheDocument();
       });
 
-      // Click a cell on page 2
-      const cell = screen.getByText('User 11');
-      fireEvent.click(cell);
+      fireEvent.click(screen.getByText('User 11'));
+      expect(setDataMask).toHaveBeenCalled();
 
-      // Verify we're still on page 2 (the fix prevents reset to page 1)
-      await waitFor(() => {
-        expect(getRowTexts()).toContain('User 11');
-        expect(getRowTexts()).not.toContain('User 1');
+      const filteredProps = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          page_length: 10,
+          metrics: ['sum__num'],
+          groupby: ['name'],
+        },
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['name', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: filteredData,
+          },
+        ],
+        hooks: { setDataMask },
+        emitCrossFilters: true,
       });
 
-      // Also verify the active page indicator is still on page 2
+      rerender(
+        <ProviderWrapper>
+          <TableChart
+            {...filteredProps}
+            emitCrossFilters
+            setDataMask={setDataMask}
+            sticky={false}
+          />
+        </ProviderWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('User 11')).toBeInTheDocument();
+        expect(screen.queryByText('User 1')).not.toBeInTheDocument();
+      });
+
       const activePage = container.querySelector('li.active a')!;
       expect(activePage).toHaveAttribute('href', '#page-1');
     });
