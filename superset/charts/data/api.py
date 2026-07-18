@@ -495,13 +495,19 @@ class ChartDataRestApi(ChartRestApi):
                     result, form_data, filename=filename, expected_rows=expected_rows
                 )
 
+            export_filename = filename or self._get_default_export_filename(form_data)
+
             if len(result["queries"]) == 1:
                 # return single query results
                 data = result["queries"][0]["data"]
                 if is_csv_format:
-                    return CsvResponse(data, headers=generate_download_headers("csv"))
+                    return CsvResponse(
+                        data, headers=generate_download_headers("csv", export_filename)
+                    )
 
-                return XlsxResponse(data, headers=generate_download_headers("xlsx"))
+                return XlsxResponse(
+                    data, headers=generate_download_headers("xlsx", export_filename)
+                )
 
             # return multi-query results bundled as a zip file
             def _process_data(query_data: Any) -> Any:
@@ -519,7 +525,7 @@ class ChartDataRestApi(ChartRestApi):
             }
             return Response(
                 create_zip(files),
-                headers=generate_download_headers("zip"),
+                headers=generate_download_headers("zip", export_filename),
                 mimetype="application/zip",
             )
 
@@ -544,6 +550,26 @@ class ChartDataRestApi(ChartRestApi):
             return resp
 
         return self.response_400(message=f"Unsupported result_format: {result_format}")
+
+    @staticmethod
+    def _get_default_export_filename(form_data: dict[str, Any] | None) -> str:
+        """
+        Build a fallback export filename (without extension) from the chart's
+        name so downloaded files are easy to identify, instead of the
+        generic timestamp-only default used by ``generate_download_headers``.
+
+        Used whenever the client hasn't supplied an explicit filename, by
+        both the streaming and non-streaming chart data export responses.
+        """
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        chart_name = "export"
+
+        if form_data and form_data.get("slice_name"):
+            chart_name = form_data["slice_name"]
+        elif form_data and form_data.get("viz_type"):
+            chart_name = form_data["viz_type"]
+
+        return secure_filename(f"superset_{chart_name}_{timestamp}")
 
     def _log_is_cached(
         self,
@@ -709,16 +735,7 @@ class ChartDataRestApi(ChartRestApi):
 
         # Use filename from frontend if provided, otherwise generate one
         if not filename:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            chart_name = "export"
-
-            if form_data and form_data.get("slice_name"):
-                chart_name = form_data["slice_name"]
-            elif form_data and form_data.get("viz_type"):
-                chart_name = form_data["viz_type"]
-
-            # Sanitize chart name for filename
-            filename = secure_filename(f"superset_{chart_name}_{timestamp}.csv")
+            filename = f"{self._get_default_export_filename(form_data)}.csv"
         else:
             # Sanitize the client-provided filename before placing it in the
             # Content-Disposition header to avoid header/path injection.
