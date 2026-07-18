@@ -62,6 +62,7 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
     from superset.models.sql_lab import Query
+    from superset.security.guest_token import GuestToken
 
 logger = logging.getLogger(__name__)
 
@@ -302,11 +303,9 @@ class ExtraCache:
             result = url_params.get(param, default)
         # Escape the value regardless of its source (request args or form
         # data); both are interpolated into the rendered SQL.
-        if result and escape_result and self.dialect:
-            # use the dialect specific quoting logic to escape string
-            result = String().literal_processor(dialect=self.dialect)(value=result)[
-                1:-1
-            ]
+        if result and escape_result:
+            # use the dialect-specific literal rendering to escape the string
+            result = self._escape_value(result)
         if add_to_cache_keys:
             self.cache_key_wrapper(result)
         return result
@@ -327,11 +326,17 @@ class ExtraCache:
         Args:
             attribute_name: Name of the attribute to retrieve
             default: Default value if attribute not found (can be any JSON-native type)
-            add_to_cache_keys: Whether the value should be included in the cache key
-            escape_result: Escape string values (and strings inside lists) using
-                the database dialect's quoting so they are safe to interpolate
-                into SQL, mirroring ``url_param``. Enabled by default; non-string
-                JSON types are returned unchanged. Set to False for the raw value.
+            add_to_cache_keys: Whether the resolved value should be included in the
+                cache key. The resolved value is keyed on every branch (including
+                the default and null) so two principals whose tokens render
+                different SQL never share a cache entry. Opting out is only safe
+                when the value cannot affect the query results.
+            escape_result: Escape string values (including strings nested inside
+                lists and object values) through the database dialect's literal
+                rendering so they are safe to interpolate into SQL, mirroring
+                ``url_param``. Enabled by default; non-string JSON types are
+                returned unchanged. Set to False for the raw value, in which case
+                the template author is responsible for validating the value.
 
         Returns:
             The attribute value from the guest user token, or the default value.
@@ -346,28 +351,30 @@ class ExtraCache:
             {{ get_guest_user_attribute('missing', 'default') }} # Returns: "default"
         """
 
+        result: JsonValue = default
         # The macro only applies to guest users (embedded). is_guest_user()
         # handles the feature-flag and request-context checks internally.
-        if not security_manager.is_guest_user():
-            return default
+        if security_manager.is_guest_user():
+            token: GuestToken = g.user.guest_token
+            user_attributes: dict[str, JsonValue] = (
+                token.get("user", {}).get("attributes") or {}
+            )
+            result = user_attributes.get(attribute_name, default)
 
-        token = g.user.guest_token
-        user_attributes = token.get("user", {}).get("attributes") or {}
-
-        # Only add to the cache key if the attribute exists in the guest token
-        if attribute_name not in user_attributes:
-            return default
-
-        result = user_attributes[attribute_name]
-        if add_to_cache_keys and result is not None:
-            # Use json.dumps for consistent serialization of all JSON-native types
+        if add_to_cache_keys:
+            # Key the resolved value on every branch (attribute, default, or
+            # null); a guest whose attribute is absent renders different SQL
+            # than one whose attribute is set, so both must contribute to the
+            # cache key. json.dumps gives a stable serialization for all
+            # JSON-native types.
             cache_value = json.dumps(result, sort_keys=True)
             self.cache_key_wrapper(
                 f"guest_user_attribute:{attribute_name}:{cache_value}"
             )
-        # Guest attributes are interpolated into the rendered SQL, so escape
-        # string values (and strings within lists) with the dialect's quoting
-        # by default, mirroring url_param. Non-string JSON types pass through.
+        # Guest attributes (and caller-supplied defaults) are interpolated into
+        # the rendered SQL, so escape strings with the dialect's literal
+        # rendering by default, mirroring url_param. Non-string JSON types pass
+        # through.
         if escape_result:
             result = self._escape_value(result)
         return result
@@ -416,22 +423,32 @@ class ExtraCache:
     def _escape_value(self, val: Any) -> Any:
         """Return a dialect-quoted form of ``val`` suitable for direct SQL
         interpolation. When no dialect is configured the value is returned
-        unchanged so callers see the raw value as before. Strings are
-        passed through SQLAlchemy's ``String`` literal processor (with the
-        surrounding quotes stripped, mirroring ``url_param``). Lists are
-        processed element-wise; non-string members are left as-is.
+        unchanged so callers see the raw value as before.
+
+        Strings are rendered through the dialect compiler's
+        ``render_literal_value`` (with the surrounding quotes stripped),
+        which applies dialect-specific escaping beyond quote doubling; in
+        particular, MySQL/MariaDB treat the backslash as an escape
+        character, so backslashes are doubled there to prevent a trailing
+        ``\\'`` from re-opening the string literal. Dialects whose escaping
+        mode cannot be introspected without a live connection err on the
+        side of over-escaping, which can distort a backslash-containing
+        value but can never widen the query.
+
+        Lists are processed element-wise and dict values recursively, so
+        strings nested inside JSON structures are also escaped; dict keys
+        are left untouched since they are used for member lookups, not
+        interpolation. Non-string leaf values are left as-is.
         """
         if not self.dialect:
             return val
         if isinstance(val, str):
-            return String().literal_processor(dialect=self.dialect)(value=val)[1:-1]
+            compiler = self.dialect.statement_compiler(self.dialect, None)
+            return compiler.render_literal_value(val, String())[1:-1]
         if isinstance(val, list):
-            return [
-                String().literal_processor(dialect=self.dialect)(value=v)[1:-1]
-                if isinstance(v, str)
-                else v
-                for v in val
-            ]
+            return [self._escape_value(v) for v in val]
+        if isinstance(val, dict):
+            return {k: self._escape_value(v) for k, v in val.items()}
         return val
 
     def get_filters(self, column: str, remove_filter: bool = False) -> list[Filter]:

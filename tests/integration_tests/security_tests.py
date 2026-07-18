@@ -2345,7 +2345,7 @@ class TestGuestTokens(SupersetTestCase):
         assert guest_user is not None
         assert "test_guest" == guest_user.username
 
-    def create_guest_token_with_attributes(self):
+    def create_guest_token_with_attributes(self) -> bytes:
         user = {
             "username": "test_guest_with_attrs",
             "first_name": "Test",
@@ -2361,7 +2361,7 @@ class TestGuestTokens(SupersetTestCase):
         rls = [{"dataset": 1, "clause": "access = 1"}]
         return security_manager.create_guest_access_token(user, resources, rls)
 
-    def test_create_guest_access_token_with_attributes(self):
+    def test_create_guest_access_token_with_attributes(self) -> None:
         """Test creating guest access token with user attributes."""
         user_with_attributes = {
             "username": "test_guest_attrs",
@@ -2400,7 +2400,7 @@ class TestGuestTokens(SupersetTestCase):
         assert user["attributes"]["projects"] == ["analytics", "ml-platform"]
         assert user["attributes"]["team_lead"] is True
 
-    def test_get_guest_user_with_attributes(self):
+    def test_get_guest_user_with_attributes(self) -> None:
         """Test that guest user properly retains attributes from token."""
         token = self.create_guest_token_with_attributes()
         fake_request = FakeRequest()
@@ -2420,7 +2420,7 @@ class TestGuestTokens(SupersetTestCase):
         assert token_user["attributes"]["role"] == "developer"
         assert token_user["attributes"]["team"] == "data-platform"
 
-    def test_create_guest_access_token_without_attributes(self):
+    def test_create_guest_access_token_without_attributes(self) -> None:
         """Test creating guest access token without user attributes.
 
         This test ensures backward compatibility.
@@ -2451,7 +2451,7 @@ class TestGuestTokens(SupersetTestCase):
         assert "attributes" not in user
         assert user["username"] == "test_guest_no_attrs"
 
-    def test_create_guest_access_token_with_empty_attributes(self):
+    def test_create_guest_access_token_with_empty_attributes(self) -> None:
         """Test creating guest access token with empty attributes."""
         user_with_empty_attributes = {
             "username": "test_guest_empty_attrs",
@@ -2480,7 +2480,7 @@ class TestGuestTokens(SupersetTestCase):
         assert "attributes" in user
         assert user["attributes"] == {}
 
-    def test_create_guest_access_token_with_null_attributes(self):
+    def test_create_guest_access_token_with_null_attributes(self) -> None:
         """Test creating guest access token with null attributes."""
         user_with_null_attributes = {
             "username": "test_guest_null_attrs",

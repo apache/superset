@@ -12049,6 +12049,13 @@
       },
       "User3": {
         "properties": {
+          "attributes": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
+          },
           "first_name": {
             "type": "string"
           },

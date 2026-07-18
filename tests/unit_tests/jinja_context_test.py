@@ -2074,6 +2074,121 @@ def test_get_guest_user_attribute_unescaped(mocker: MockerFixture) -> None:
     assert cache.get_guest_user_attribute("region", escape_result=False) == "O'Brien"
 
 
+def test_get_guest_user_attribute_mysql_backslash_escaped(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that backslashes are escaped on MySQL, where the backslash is an
+    escape character. Without doubling it, a value like ``x\\' OR 1=1 -- ``
+    would render to ``'x\\'' OR 1=1 -- '``, which MySQL parses as the string
+    ``x'`` followed by an injected predicate.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {"username": "test_guest", "attributes": {"attr": "x\\' OR 1=1 -- "}},
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache(dialect=mysql.dialect())
+    # Both the backslash and the quote are doubled, so the rendered literal
+    # stays a single string on MySQL
+    assert cache.get_guest_user_attribute("attr") == "x\\\\'' OR 1=1 -- "
+
+
+def test_get_guest_user_attribute_default_escaped(mocker: MockerFixture) -> None:
+    """
+    Test that a caller-supplied default is routed through the same escaping as
+    attribute values, so the macro's contract holds on every branch.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=False)
+
+    cache = ExtraCache(dialect=dialect())
+    assert cache.get_guest_user_attribute("attr", "O'Brien") == "O''Brien"
+    assert (
+        cache.get_guest_user_attribute("attr", "O'Brien", escape_result=False)
+        == "O'Brien"
+    )
+
+
+def test_get_guest_user_attribute_nested_strings_escaped(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that strings nested inside lists and dict values are escaped, while
+    dict keys (used for member lookups, not interpolation) are left untouched.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {
+            "username": "test_guest",
+            "attributes": {
+                "tenant": {"id": "foo' OR 1=1 --", "names": ["O'Brien", 42]},
+            },
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache(dialect=dialect())
+    assert cache.get_guest_user_attribute("tenant") == {
+        "id": "foo'' OR 1=1 --",
+        "names": ["O''Brien", 42],
+    }
+
+
+def test_get_guest_user_attribute_cache_keys_collision_free(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the resolved value is keyed on every branch, so principals whose
+    tokens render different SQL never produce the same extra cache keys.
+
+    Mirrors the collision-free guarantees proven for the ``current_user_*``
+    macros: distinct attribute values, a null attribute, a missing attribute
+    falling back to the default, and the non-guest branch must all key
+    distinctly from one another.
+    """
+    mock_g = mocker.patch("superset.jinja_context.g")
+
+    def keys_for(is_guest: bool, attributes: Any) -> list[Any]:
+        mocker.patch("superset.security_manager.is_guest_user", return_value=is_guest)
+        guest_user = mocker.Mock()
+        guest_user.guest_token = {
+            "user": {"username": "test_guest", "attributes": attributes},
+            "resources": [{"type": "dashboard", "id": "test-id"}],
+            "rls_rules": [],
+        }
+        mock_g.user = guest_user
+        cache = ExtraCache(extra_cache_keys=[])
+        cache.get_guest_user_attribute("tenant", "fallback")
+        return cache.extra_cache_keys or []
+
+    scenarios = [
+        keys_for(True, {"tenant": "acme"}),
+        keys_for(True, {"tenant": "initech"}),
+        keys_for(True, {"tenant": None}),
+        keys_for(True, {}),  # falls back to the default
+        keys_for(False, None),  # non-guest branch, also the default
+    ]
+    # Every branch contributes a key
+    assert all(len(keys) == 1 for keys in scenarios)
+    # Distinct resolved values yield distinct keys
+    assert len({keys[0] for keys in scenarios[:3]}) == 3
+    # The default-resolving branches key identically (identical rendered SQL)
+    # but differently from any set or null attribute
+    assert scenarios[3] == scenarios[4]
+    assert scenarios[3][0] not in {keys[0] for keys in scenarios[:3]}
+
+
 def test_get_guest_user_attribute_without_attributes(mocker: MockerFixture) -> None:
     """
     Test that get_guest_user_attribute returns default when guest user has no
@@ -2178,15 +2293,27 @@ def test_get_guest_user_attribute_cache_key_behavior(mocker: MockerFixture) -> N
     # Reset mock
     mock_cache_wrapper.reset_mock()
 
+    # A missing attribute resolving to the default is still keyed, so a guest
+    # with the attribute set never shares a cache entry with one without it
+    result = cache.get_guest_user_attribute("missing", "fallback")
+    assert result == "fallback"
+    mock_cache_wrapper.assert_called_once_with(
+        'guest_user_attribute:missing:"fallback"'
+    )
+
+    # Reset mock
+    mock_cache_wrapper.reset_mock()
+
     # Test with add_to_cache_keys=False
     result = cache.get_guest_user_attribute("region", add_to_cache_keys=False)
     assert result == "US"
     mock_cache_wrapper.assert_not_called()
 
 
-def test_get_guest_user_attribute_none_value_no_cache(mocker: MockerFixture) -> None:
+def test_get_guest_user_attribute_none_value_cached(mocker: MockerFixture) -> None:
     """
-    Test that None values are not added to cache keys.
+    Test that None values are added to cache keys, so a guest whose attribute
+    is null does not collide with a guest whose attribute is set.
     """
     mocker.patch("superset.security_manager.is_guest_user", return_value=True)
     mock_g = mocker.patch("superset.jinja_context.g")
@@ -2209,10 +2336,12 @@ def test_get_guest_user_attribute_none_value_no_cache(mocker: MockerFixture) -> 
     mock_cache_wrapper = mocker.Mock()
     cache.cache_key_wrapper = mock_cache_wrapper  # type: ignore
 
-    # Test None value doesn't get cached
+    # Test None value gets keyed
     result = cache.get_guest_user_attribute("nullable_field")
     assert result is None
-    mock_cache_wrapper.assert_not_called()
+    mock_cache_wrapper.assert_called_once_with(
+        "guest_user_attribute:nullable_field:null"
+    )
 
 
 def test_get_guest_user_attribute_various_data_types(mocker: MockerFixture) -> None:
@@ -2747,10 +2876,10 @@ def test_get_guest_user_attribute_json_cache_key_serialization(
         'guest_user_attribute:dict_attr:{"key1": "value1", "key2": "value2"}'
     )
 
-    # Test None value (should not be added to cache)
+    # Test None value serialization
     mock_cache_wrapper.reset_mock()
     cache.get_guest_user_attribute("null_attr")
-    mock_cache_wrapper.assert_not_called()
+    mock_cache_wrapper.assert_called_with("guest_user_attribute:null_attr:null")
 
     # Test nested dict serialization
     mock_cache_wrapper.reset_mock()
@@ -2903,7 +3032,7 @@ def test_guest_token_serialization_with_attributes() -> None:
     """
     Test that guest tokens with attributes can be serialized/deserialized.
     """
-    guest_token_data = {
+    guest_token_data: dict[str, Any] = {
         "user": {
             "username": "test_user",
             "first_name": "Test",

@@ -196,7 +196,7 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         assert resource == decoded_token["resources"][0]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_post_guest_token_with_attributes(self):
+    def test_post_guest_token_with_attributes(self) -> None:
         """
         Security API: Create a guest token with user attributes
         """
@@ -251,7 +251,7 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         assert resource == decoded_token["resources"][0]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_post_guest_token_with_empty_attributes(self):
+    def test_post_guest_token_with_empty_attributes(self) -> None:
         """
         Security API: Create a guest token with empty user attributes
         """
@@ -289,7 +289,7 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         assert resource == decoded_token["resources"][0]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_post_guest_token_with_null_attributes(self):
+    def test_post_guest_token_with_null_attributes(self) -> None:
         """
         Security API: Create a guest token with null user attributes
         """
@@ -327,7 +327,7 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         assert resource == decoded_token["resources"][0]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_post_guest_token_without_attributes_backward_compatibility(self):
+    def test_post_guest_token_without_attributes_backward_compatibility(self) -> None:
         """
         Security API: Create a guest token without attributes (backward compatibility)
         """
