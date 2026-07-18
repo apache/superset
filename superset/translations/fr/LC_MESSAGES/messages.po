@@ -19176,4 +19176,3 @@ msgstr "N°"
 
 #~ msgid "Select owners"
 #~ msgstr "Sélectionner les propriétaires"
-
