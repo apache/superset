@@ -1442,9 +1442,9 @@ describe('grouped options search', () => {
   });
 });
 
-test('calls onSearch with typed text before unmount', async () => {
+test('cancels pending debounce on unmount', async () => {
   const mockOnSearch = jest.fn();
-  const { unmount, rerender } = render(
+  const { unmount } = render(
     <Select
       {...defaultProps}
       allowNewOptions
@@ -1452,21 +1452,19 @@ test('calls onSearch with typed text before unmount', async () => {
       onSearch={mockOnSearch}
     />,
   );
-  await type('12', 0);
+
+  await type('test', 0);
   await new Promise(resolve => setTimeout(resolve, 300));
-  expect(mockOnSearch).toHaveBeenCalledWith('12');
-  rerender(
-    <Select
-      {...defaultProps}
-      allowNewOptions
-      mode="multiple"
-      onSearch={mockOnSearch}
-    />,
-  );
-  await type('1234', 0);
+  expect(mockOnSearch).toHaveBeenCalledWith('test');
+
+  mockOnSearch.mockClear();
+
+  await type('unmounted', 0);
   unmount();
-  await new Promise(resolve => setTimeout(resolve, 300));
-  expect(mockOnSearch).toHaveBeenCalledWith('1234');
+
+  await new Promise(resolve => setTimeout(resolve, 400));
+
+  expect(mockOnSearch).not.toHaveBeenCalled();
 });
 /*
  TODO: Add tests that require scroll interaction. Needs further investigation.

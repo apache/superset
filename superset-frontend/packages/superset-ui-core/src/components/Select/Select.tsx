@@ -414,69 +414,99 @@ const Select = forwardRef(
     const handleFilterOption = (search: string, option: AntdLabeledValue) =>
       handleFilterOptionHelper(search, option, optionFilterProps, filterOption);
 
-    const handleOnSearch = debounce((search: string) => {
-      const searchValue = search.trim();
-      setIsSearching(!!searchValue);
+    const stateRef = useRef({
+      selectOptions,
+      allowNewOptions,
+      fullSelectOptions,
+      selectValue,
+      handleFilterOption,
+      onSearch,
+    });
 
-      let updatedOptions = selectOptions;
+    useEffect(() => {
+      stateRef.current = {
+        selectOptions,
+        allowNewOptions,
+        fullSelectOptions,
+        selectValue,
+        handleFilterOption,
+        onSearch,
+      };
+    });
 
-      if (allowNewOptions) {
-        const optionsWithoutTemporary = ensureIsArray(fullSelectOptions).filter(
-          opt => !opt.isNewOption,
-        );
-        const shouldCreateNewOption =
-          searchValue && !hasOption(searchValue, optionsWithoutTemporary, true);
+    const handleOnSearch = useMemo(
+      () =>
+        debounce((search: string) => {
+          const {
+            selectOptions,
+            allowNewOptions,
+            fullSelectOptions,
+            selectValue,
+            handleFilterOption,
+            onSearch,
+          } = stateRef.current;
 
-        const newOption = shouldCreateNewOption && {
-          label: searchValue,
-          value: searchValue,
-          isNewOption: true,
-        };
-        const cleanSelectOptions = ensureIsArray(fullSelectOptions).filter(
-          opt => !opt.isNewOption || hasOption(opt.value, selectValue),
-        );
-        updatedOptions = newOption
-          ? [newOption, ...cleanSelectOptions]
-          : cleanSelectOptions;
-        setSelectOptions(updatedOptions);
-      }
+          const searchValue = search.trim();
+          setIsSearching(!!searchValue);
 
-      const filteredOptions = updatedOptions
-        .map((option: any) => {
-          /*
-          If it's a group, filter its nested options and only return it
-          if it has matching options
-          */
-          if ('options' in option && Array.isArray(option.options)) {
-            const filteredGroupOptions = option.options.filter(
-              (subOption: AntdLabeledValue) =>
-                handleFilterOption(search, subOption),
+          let updatedOptions = selectOptions;
+
+          if (allowNewOptions) {
+            const optionsWithoutTemporary = ensureIsArray(
+              fullSelectOptions,
+            ).filter(opt => !opt.isNewOption);
+            const shouldCreateNewOption =
+              searchValue &&
+              !hasOption(searchValue, optionsWithoutTemporary, true);
+
+            const newOption = shouldCreateNewOption && {
+              label: searchValue,
+              value: searchValue,
+              isNewOption: true,
+            };
+            const cleanSelectOptions = ensureIsArray(fullSelectOptions).filter(
+              opt => !opt.isNewOption || hasOption(opt.value, selectValue),
             );
-            return filteredGroupOptions.length > 0
-              ? { ...option, options: filteredGroupOptions }
-              : null;
+            updatedOptions = newOption
+              ? [newOption, ...cleanSelectOptions]
+              : cleanSelectOptions;
+            setSelectOptions(updatedOptions);
           }
 
-          return handleFilterOption(search, option as AntdLabeledValue)
-            ? option
-            : null;
-        })
-        .filter((option): option is AntdLabeledValue => option !== null);
+          const filteredOptions = updatedOptions
+            .map((option: any) => {
+              /*
+              If it's a group, filter its nested options and only return it
+              if it has matching options
+              */
+              if ('options' in option && Array.isArray(option.options)) {
+                const filteredGroupOptions = option.options.filter(
+                  (subOption: AntdLabeledValue) =>
+                    handleFilterOption(search, subOption),
+                );
+                return filteredGroupOptions.length > 0
+                  ? { ...option, options: filteredGroupOptions }
+                  : null;
+              }
 
-      setVisibleOptions(filteredOptions);
-      setInputValue(searchValue);
-      onSearch?.(searchValue);
-    }, Constants.FAST_DEBOUNCE);
+              return handleFilterOption(search, option as AntdLabeledValue)
+                ? option
+                : null;
+            })
+            .filter((option): option is AntdLabeledValue => option !== null);
 
-    const memoizedHandleOnSearch = useMemo(
-      () => handleOnSearch,
-      [handleOnSearch],
+          setVisibleOptions(filteredOptions);
+          setInputValue(searchValue);
+          onSearch?.(searchValue);
+        }, Constants.FAST_DEBOUNCE),
+      [],
     );
+
     useEffect(() => {
-      if (memoizedHandleOnSearch?.cancel) {
-        memoizedHandleOnSearch.cancel();
-      }
-    }, [memoizedHandleOnSearch]);
+      return () => {
+        handleOnSearch.cancel?.();
+      };
+    }, [handleOnSearch]);
 
     const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
       setIsDropdownVisible(isDropdownVisible);
