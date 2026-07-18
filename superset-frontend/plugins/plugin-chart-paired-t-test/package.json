@@ -22,9 +22,6 @@
     "esm",
     "lib"
   ],
-  "dependencies": {
-    "prop-types": "^15.8.1"
-  },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
