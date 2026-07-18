@@ -16,6 +16,7 @@
 # under the License.
 
 from datetime import datetime, timedelta
+from decimal import Decimal
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -1711,6 +1712,20 @@ def test_query_cache_manager_discards_every_loaded_value() -> None:
     assert cache.cache_write_outcome == CacheWriteOutcome.NOT_ATTEMPTED
     assert cache.bq_memory_limited is False
     assert cache.bq_memory_limited_row_count == 0
+
+
+def test_contribution_totals_include_decimal_object_columns() -> None:
+    """Object-dtype Decimal metrics participate in cross-query totals."""
+    totals = QueryContextProcessor._totals_from_df(
+        pd.DataFrame(
+            {
+                "region": ["North", "South"],
+                "sales": [Decimal("12.25"), Decimal("7.75")],
+            }
+        )
+    )
+
+    assert totals == {"sales": Decimal("20.00")}
 
 
 def test_get_df_payload_invalidates_all_stale_cache_data() -> None:
