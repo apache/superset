@@ -167,6 +167,7 @@ def get_extra_editor_subject_ids(resource: Model) -> list[int]:
             seen.add(subject_id)
     return subject_ids
 
+
 def _render_permission_instructions_link(
     *,
     datasource_id: str = "",
