@@ -33,9 +33,10 @@ interface PairedTTestProps {
 
 const StyledDiv = styled.div`
   ${({ theme }) => `
-    .superset-legacy-chart-paired-t-test .scrollbar-container {
-      overflow: auto;
-    }
+    /* Fill the chart's allotted height and scroll when the tables overflow */
+    /* it (e.g. many groups across multiple metrics). */
+    height: 100%;
+    overflow: auto;
 
     .paired-ttest-table .scrollbar-content {
       padding-left: ${theme.sizeUnit}px;
