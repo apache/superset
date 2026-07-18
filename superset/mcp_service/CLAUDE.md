@@ -243,11 +243,15 @@ async def my_tool(request: MyRequest, ctx: Context) -> MyResponse:
     # g.user is set automatically before this runs
     ...
 
-# Public tool (no auth) - use sparingly
+# Public tool (no auth) - use sparingly, and add the tool name to
+# ALLOWED_UNPROTECTED in app.py (e.g. generate_bug_report)
 @tool(protect=False)
-async def health_check(ctx: Context) -> dict:
+async def public_status(ctx: Context) -> dict:
     return {"status": "healthy"}
 ```
+
+Note: `health_check` is a protected, authenticated tool (`@tool(tags=["core"], ...)`,
+no `protect=False`) — it is not an example of a public tool.
 
 **Authentication priority order** (in `auth.py`):
 1. JWT context (per-request ContextVar from FastMCP). Also resolves a verified

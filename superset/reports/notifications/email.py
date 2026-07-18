@@ -19,7 +19,9 @@ import textwrap
 from dataclasses import dataclass
 from datetime import datetime
 from email.utils import make_msgid, parseaddr
-from typing import Any, Optional
+from io import BytesIO
+from typing import IO, Optional
+from zipfile import BadZipFile, ZipFile
 
 import nh3
 from flask import current_app
@@ -66,15 +68,47 @@ ALLOWED_ATTRIBUTES = {
     "acronym": {"title"},
     **ALLOWED_TABLE_ATTRIBUTES,
 }
+ZIP_LOCAL_FILE_HEADER = b"PK\x03\x04"
 
 
 @dataclass
 class EmailContent:
     body: str
     header_data: Optional[HeaderDataType] = None
-    data: Optional[dict[str, Any]] = None
+    data: Optional[dict[str, bytes | str]] = None
     pdf: Optional[dict[str, bytes]] = None
     images: Optional[dict[str, bytes]] = None
+
+
+def _get_xlsx_attachment_extension(content: bytes) -> str:
+    """
+    Return the attachment extension for bytes returned by the XLSX export endpoint.
+    """
+    try:
+        with ZipFile(BytesIO(content)) as zip_file:
+            names = zip_file.namelist()
+            if _is_xlsx_zip(names):
+                return "xlsx"
+
+            files = [name for name in names if not name.endswith("/")]
+            if files and all(name.lower().endswith(".xlsx") for name in files):
+                for name in files:
+                    with zip_file.open(name) as xlsx_file:
+                        if not _has_zip_signature(xlsx_file):
+                            return "xlsx"
+                return "zip"
+    except BadZipFile:
+        return "xlsx"
+
+    return "xlsx"
+
+
+def _is_xlsx_zip(names: list[str]) -> bool:
+    return "[Content_Types].xml" in names and "xl/workbook.xml" in names
+
+
+def _has_zip_signature(content: IO[bytes]) -> bool:
+    return content.read(len(ZIP_LOCAL_FILE_HEADER)) == ZIP_LOCAL_FILE_HEADER
 
 
 class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-methods
@@ -207,11 +241,18 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         )
         # CSV and Excel are mutually exclusive (a report has a single format),
         # so at most one tabular attachment is present in the data dict.
-        attachment_data: dict[str, bytes] | None = None
+        attachment_data: dict[str, bytes | str] | None = None
         if self._content.csv:
             attachment_data = {__("%(name)s.csv", name=self._name): self._content.csv}
         elif self._content.xlsx:
-            attachment_data = {__("%(name)s.xlsx", name=self._name): self._content.xlsx}
+            extension = _get_xlsx_attachment_extension(self._content.xlsx)
+            attachment_data = {
+                __(
+                    "%(name)s.%(extension)s",
+                    name=self._name,
+                    extension=extension,
+                ): self._content.xlsx
+            }
 
         pdf_data = None
         if self._content.pdf:
