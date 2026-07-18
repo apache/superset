@@ -266,10 +266,7 @@ test('AgGridTableChart does not render Search by dropdown if includeSearch is tr
       {
         ...testData.basic.queriesData[0],
         colnames: ['__timestamp', 'sum__num'],
-        coltypes: [
-          GenericDataType.Temporal,
-          GenericDataType.Numeric,
-        ],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
         data: [
           {
             __timestamp: '2020-01-01T12:34:56',
@@ -310,7 +307,6 @@ test('AgGridTableChart does not render Search by dropdown if includeSearch is tr
 
   expect(screen.queryByText(/Search by/i)).not.toBeInTheDocument();
 });
-
 
 test('AgGridTableChart renders with totals', async () => {
   const props = transformProps({
