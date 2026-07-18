@@ -112,6 +112,35 @@ const COLOR_AWARE_LAYER_DEFAULTS: Record<string, ColorSchemeType> = {
   deck_arc: COLOR_SCHEME_TYPES.fixed_color,
 };
 
+// Maps each layer viz_type to the helper that extracts its lat/lng points, so
+// the viewport can be fitted to the combined data. In the v1 path the features
+// are not pre-merged into one payload, so points are collected per layer as
+// each one is fetched.
+const GET_POINTS_BY_VIZ_TYPE: Record<
+  string,
+  (features: JsonObject[]) => [number, number][]
+> = {
+  deck_polygon: getPointsPolygon,
+  deck_path: getPointsPath,
+  deck_grid: getPointsGrid,
+  deck_scatter: getPointsScatter,
+  deck_contour: getPointsContour,
+  deck_heatmap: getPointsHeatmap,
+  deck_hex: getPointsHex,
+  deck_arc: getPointsArc,
+  deck_geojson: getPointsGeojson,
+  deck_screengrid: getPointsScreengrid,
+};
+
+// Collect every layer's points from a { [vizType]: features[] } map.
+const collectPoints = (
+  featuresByVizType: Record<string, JsonObject[]>,
+): [number, number][] =>
+  Object.entries(featuresByVizType).flatMap(([vizType, features]) => {
+    const getPoints = GET_POINTS_BY_VIZ_TYPE[vizType];
+    return getPoints ? getPoints(features || []) : [];
+  });
+
 const selectDataMask = createSelector(
   (state: { dataMask?: DataMaskState }) => state.dataMask,
   dataMask => dataMask || {},
@@ -138,18 +167,7 @@ const DeckMulti = (props: DeckMultiProps) => {
     // fetches every layer client-side, so there may be none here
     const features = props.payload?.data?.features || {};
     if (props.formData.autozoom !== false) {
-      const points = [
-        ...getPointsPolygon(features.deck_polygon || []),
-        ...getPointsPath(features.deck_path || []),
-        ...getPointsGrid(features.deck_grid || []),
-        ...getPointsScatter(features.deck_scatter || []),
-        ...getPointsContour(features.deck_contour || []),
-        ...getPointsHeatmap(features.deck_heatmap || []),
-        ...getPointsHex(features.deck_hex || []),
-        ...getPointsArc(features.deck_arc || []),
-        ...getPointsGeojson(features.deck_geojson || []),
-        ...getPointsScreengrid(features.deck_screengrid || []),
-      ];
+      const points = collectPoints(features);
 
       if (props.formData && points.length > 0) {
         viewport = fitViewport(viewport, {
@@ -171,6 +189,12 @@ const DeckMulti = (props: DeckMultiProps) => {
     {},
   );
   const [layerOrder, setLayerOrder] = useState<number[]>([]);
+  // Accumulates each layer's fetched features (keyed by viz_type) so autozoom
+  // can fit the viewport to the combined data. In the v1 path the features are
+  // fetched per layer rather than pre-merged into props.payload, so the initial
+  // getAdjustedViewport has nothing to fit to and the viewport is recomputed
+  // here as each layer arrives.
+  const layerFeaturesRef = useRef<Record<string, JsonObject[]>>({});
 
   const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
     const { current } = containerRef;
@@ -379,6 +403,26 @@ const DeckMulti = (props: DeckMultiProps) => {
               ...subSlicesLayers,
               [subsliceCopy.slice_id]: layer,
             }));
+
+            // Refit the viewport to the data now that this layer's features are
+            // known (unless autozoom is off). The initial getAdjustedViewport
+            // could not do this because the v1 payload carries no features.
+            const layerFeatures = (layerProps.payload as JsonObject | undefined)
+              ?.data?.features;
+            if (formData.autozoom !== false && Array.isArray(layerFeatures)) {
+              layerFeaturesRef.current = {
+                ...layerFeaturesRef.current,
+                [vizType]: layerFeatures,
+              };
+              const points = collectPoints(layerFeaturesRef.current);
+              if (points.length > 0) {
+                const fitted = fitViewport(
+                  { ...props.viewport },
+                  { width: props.width, height: props.height, points },
+                );
+                setViewport(fitted.zoom < 0 ? { ...fitted, zoom: 0 } : fitted);
+              }
+            }
           });
         })
         .catch(error => {
@@ -394,6 +438,7 @@ const DeckMulti = (props: DeckMultiProps) => {
       props.width,
       props.height,
       props.datasource,
+      props.viewport,
       theme,
     ],
   );
@@ -406,6 +451,8 @@ const DeckMulti = (props: DeckMultiProps) => {
     ): void => {
       setViewport(getAdjustedViewport());
       setSubSlicesLayers({});
+      // Start a fresh feature accumulation for the incremental autozoom refit.
+      layerFeaturesRef.current = {};
 
       let visibleDeckLayers = visibleLayers;
 
