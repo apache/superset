@@ -21,7 +21,6 @@ from __future__ import annotations
 import logging
 import os
 import threading
-import time
 from pathlib import Path
 from typing import Any
 
@@ -139,7 +138,7 @@ def _get_file_handler_class() -> Any:  # noqa: C901
                     )
                     logger.info("Triggering restart by touching %s", RELOAD_TRIGGER)
                     try:
-                        os.utime(RELOAD_TRIGGER, (time.time(), time.time()))
+                        RELOAD_TRIGGER.touch()
                     except OSError as e:
                         logger.warning(
                             "Failed to touch reload trigger %s: %s", RELOAD_TRIGGER, e
@@ -300,7 +299,7 @@ def setup_local_extensions_watcher(app: Flask) -> None:  # noqa: C901
     if not watch_dirs:
         return
 
-    # Ensure the sentinel exists so os.utime() and Flask's --extra-files watcher
+    # Ensure the sentinel exists so touch() and Flask's --extra-files watcher
     # both have a real path to operate on.
     try:
         RELOAD_TRIGGER.touch(exist_ok=True)
