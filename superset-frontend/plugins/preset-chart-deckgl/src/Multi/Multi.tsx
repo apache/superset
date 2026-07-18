@@ -34,6 +34,7 @@ import {
   FilterState,
   getChartBuildQueryRegistry,
   getChartTransformPropsRegistry,
+  getClientErrorObject,
   HandlerFunction,
   isDefined,
   JsonObject,
@@ -44,7 +45,9 @@ import {
   getMapProviderMapStyle,
   usePrevious,
 } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { styled, useTheme } from '@apache-superset/core/theme';
+import { Alert } from '@apache-superset/core/components';
 import { Layer } from '@deck.gl/core';
 
 import {
@@ -177,6 +180,9 @@ const DeckMulti = (props: DeckMultiProps) => {
     {},
   );
   const [layerOrder, setLayerOrder] = useState<number[]>([]);
+  // Per-slice error messages for layers that failed to load, so the failure is
+  // surfaced in the chart instead of only the browser console.
+  const [layerErrors, setLayerErrors] = useState<Record<number, string>>({});
   // Accumulates each layer's fetched features (keyed by viz_type) so autozoom
   // can fit the viewport to the combined data. In the v1 path the features are
   // fetched per layer rather than pre-merged into props.payload, so the initial
@@ -413,10 +419,17 @@ const DeckMulti = (props: DeckMultiProps) => {
             }
           });
         })
-        .catch(error => {
-          throw new Error(
-            `Error loading layer for slice ${subsliceCopy.slice_id}: ${error}`,
-          );
+        .catch(async error => {
+          // Surface the failure in the chart (e.g. a layer bound to a dataset
+          // that is missing the columns it needs) rather than only throwing to
+          // the console.
+          const { message, error: errorText } =
+            await getClientErrorObject(error);
+          setLayerErrors(layerErrors => ({
+            ...layerErrors,
+            [subsliceCopy.slice_id]:
+              message || errorText || 'Failed to load layer',
+          }));
         });
     },
     [
@@ -439,6 +452,7 @@ const DeckMulti = (props: DeckMultiProps) => {
     ): void => {
       setViewport(getAdjustedViewport());
       setSubSlicesLayers({});
+      setLayerErrors({});
       // Start a fresh feature accumulation for the incremental autozoom refit.
       layerFeaturesRef.current = {};
 
@@ -572,8 +586,26 @@ const DeckMulti = (props: DeckMultiProps) => {
     legacyMapStyle: formData.map_style,
   });
 
+  const errorMessages = Object.values(layerErrors);
+
   return (
     <MultiWrapper height={height} width={width}>
+      {errorMessages.length > 0 && (
+        <Alert
+          type="warning"
+          showIcon
+          closable
+          message={t('Some layers could not be loaded')}
+          description={errorMessages.join(' ')}
+          css={{
+            position: 'absolute',
+            top: theme.sizeUnit * 2,
+            left: theme.sizeUnit * 2,
+            right: theme.sizeUnit * 2,
+            zIndex: 1,
+          }}
+        />
+      )}
       <DeckGLContainerStyledWrapper
         ref={containerRef}
         viewport={viewport}

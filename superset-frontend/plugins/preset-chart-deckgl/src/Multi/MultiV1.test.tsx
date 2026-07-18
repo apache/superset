@@ -159,3 +159,23 @@ test('fits the viewport to the fetched layer data when autozoom is on (v1 path)'
     expect(viewport.latitude).toBeGreaterThan(30);
   });
 });
+
+test('surfaces a warning in the chart when a layer fails to load', async () => {
+  // e.g. a layer bound to a dataset missing its columns: the server rejects
+  // the layer query and the failure should be visible, not console-only.
+  (SupersetClient.post as jest.Mock).mockRejectedValue(
+    new Response(
+      JSON.stringify({ message: "Columns missing in dataset: ['LON', 'LAT']" }),
+      { status: 400 },
+    ),
+  );
+
+  renderV1();
+
+  expect(
+    await screen.findByText('Some layers could not be loaded'),
+  ).not.toBeNull();
+  expect(screen.getByText(/Columns missing in dataset/)).not.toBeNull();
+  // The map still renders alongside the warning.
+  expect(screen.getByTestId('deckgl-container')).not.toBeNull();
+});
