@@ -89,5 +89,3 @@ export function isQueryFormMetric(metric: any): metric is QueryFormMetric {
     isAdhocMetricSQL(metric)
   );
 }
-
-export default {};

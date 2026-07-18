@@ -97,5 +97,3 @@ export interface TimeseriesChartDataResponseResult extends ChartDataResponseResu
 export interface ChartDataResponse {
   queries: ChartDataResponseResult[];
 }
-
-export default {};

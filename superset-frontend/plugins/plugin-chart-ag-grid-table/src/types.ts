@@ -231,5 +231,3 @@ export type Dataset = {
   metrics?: Metric[];
   verbose_map?: Record<string, string>;
 };
-
-export default {};
