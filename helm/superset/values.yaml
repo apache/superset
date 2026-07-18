@@ -867,6 +867,38 @@ supersetWebsockets:
       # -- (int)
       http: nil
   command: []
+  # -- List of initContainers
+  # @default -- a container waiting for redis
+  initContainers:
+    - name: wait-for-redis
+      image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+      imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+      envFrom:
+        - secretRef:
+            name: "{{ tpl .Values.envFromSecret . }}"
+      command:
+        - /bin/bash
+        - -c
+        - |
+          # See supersetNode.initContainers for the rationale.
+          SECONDS=0
+          until (exec 3<>/dev/tcp/"$REDIS_HOST"/"$REDIS_PORT") 2>/dev/null; do
+            if [ "$SECONDS" -ge 120 ]; then
+              echo "timeout waiting for redis at $REDIS_HOST:$REDIS_PORT after 120s" >&2
+              exit 1
+            fi
+            echo "waiting for redis at $REDIS_HOST:$REDIS_PORT (elapsed ${SECONDS}s)"
+            sleep 2
+          done
+          echo "redis at $REDIS_HOST:$REDIS_PORT is up"
+      resources:
+        limits:
+          memory: "256Mi"
+        requests:
+          cpu: "250m"
+          memory: "128Mi"
+  # -- Extra init containers appended after supersetWebsockets initContainers
+  extraInitContainers: []
   resources: {}
   # -- Launch additional containers into supersetWebsockets pods
   extraContainers: []
