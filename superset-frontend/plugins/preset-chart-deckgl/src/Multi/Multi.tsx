@@ -112,34 +112,22 @@ const COLOR_AWARE_LAYER_DEFAULTS: Record<string, ColorSchemeType> = {
   deck_arc: COLOR_SCHEME_TYPES.fixed_color,
 };
 
-// Maps each layer viz_type to the helper that extracts its lat/lng points, so
-// the viewport can be fitted to the combined data. In the v1 path the features
-// are not pre-merged into one payload, so points are collected per layer as
-// each one is fetched.
-const GET_POINTS_BY_VIZ_TYPE: Record<
-  string,
-  (features: JsonObject[]) => [number, number][]
-> = {
-  deck_polygon: getPointsPolygon,
-  deck_path: getPointsPath,
-  deck_grid: getPointsGrid,
-  deck_scatter: getPointsScatter,
-  deck_contour: getPointsContour,
-  deck_heatmap: getPointsHeatmap,
-  deck_hex: getPointsHex,
-  deck_arc: getPointsArc,
-  deck_geojson: getPointsGeojson,
-  deck_screengrid: getPointsScreengrid,
-};
-
-// Collect every layer's points from a { [vizType]: features[] } map.
-const collectPoints = (
-  featuresByVizType: Record<string, JsonObject[]>,
-): [number, number][] =>
-  Object.entries(featuresByVizType).flatMap(([vizType, features]) => {
-    const getPoints = GET_POINTS_BY_VIZ_TYPE[vizType];
-    return getPoints ? getPoints(features || []) : [];
-  });
+// Collect every layer's lat/lng points from a features map keyed by viz_type,
+// so the viewport can be fitted to the combined data. In the v1 path the
+// features are not pre-merged into one payload, so they are accumulated per
+// layer as each one is fetched and passed here in the same shape.
+const collectPoints = (features: JsonObject) => [
+  ...getPointsPolygon(features.deck_polygon || []),
+  ...getPointsPath(features.deck_path || []),
+  ...getPointsGrid(features.deck_grid || []),
+  ...getPointsScatter(features.deck_scatter || []),
+  ...getPointsContour(features.deck_contour || []),
+  ...getPointsHeatmap(features.deck_heatmap || []),
+  ...getPointsHex(features.deck_hex || []),
+  ...getPointsArc(features.deck_arc || []),
+  ...getPointsGeojson(features.deck_geojson || []),
+  ...getPointsScreengrid(features.deck_screengrid || []),
+];
 
 const selectDataMask = createSelector(
   (state: { dataMask?: DataMaskState }) => state.dataMask,
@@ -194,7 +182,7 @@ const DeckMulti = (props: DeckMultiProps) => {
   // fetched per layer rather than pre-merged into props.payload, so the initial
   // getAdjustedViewport has nothing to fit to and the viewport is recomputed
   // here as each layer arrives.
-  const layerFeaturesRef = useRef<Record<string, JsonObject[]>>({});
+  const layerFeaturesRef = useRef<JsonObject>({});
 
   const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
     const { current } = containerRef;
