@@ -105,15 +105,13 @@ const processComparisonTotals = (
     Object.keys(totalRecord).forEach(key => {
       if (totalRecord[key] !== undefined && !key.includes(comparisonSuffix)) {
         transformedTotals[`${mainLabel} ${key}`] =
-          parseInt(
+          parseFloat(
             transformedTotals[`${mainLabel} ${key}`]?.toString() || '0',
-            10,
-          ) + parseInt(totalRecord[key]?.toString() || '0', 10);
+          ) + parseFloat(totalRecord[key]?.toString() || '0');
         transformedTotals[`# ${key}`] =
-          parseInt(transformedTotals[`# ${key}`]?.toString() || '0', 10) +
-          parseInt(
+          parseFloat(transformedTotals[`# ${key}`]?.toString() || '0') +
+          parseFloat(
             totalRecord[`${key}__${comparisonSuffix}`]?.toString() || '0',
-            10,
           );
         const { valueDifference, percentDifferenceNum } = calculateDifferences(
           transformedTotals[`${mainLabel} ${key}`] as number,
