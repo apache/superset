@@ -340,7 +340,6 @@ gevent==26.4.0
 google-api-core==2.23.0
     # via
     #   google-cloud-bigquery
-    #   google-cloud-bigquery-storage
     #   google-cloud-core
     #   pandas-gbq
     #   sqlalchemy-bigquery
@@ -350,7 +349,6 @@ google-auth==2.53.0
     #   google-api-core
     #   google-auth-oauthlib
     #   google-cloud-bigquery
-    #   google-cloud-bigquery-storage
     #   google-cloud-core
     #   pandas-gbq
     #   pydata-google-auth
@@ -365,8 +363,6 @@ google-cloud-bigquery==3.42.1
     #   apache-superset
     #   pandas-gbq
     #   sqlalchemy-bigquery
-google-cloud-bigquery-storage==2.26.0
-    # via pandas-gbq
 google-cloud-core==2.4.1
     # via google-cloud-bigquery
 google-crc32c==1.6.0
@@ -377,7 +373,7 @@ googleapis-common-protos==1.66.0
     # via
     #   google-api-core
     #   grpcio-status
-greenlet==3.5.1
+greenlet==3.5.3
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -638,6 +634,7 @@ packaging==25.0
     #   kombu
     #   limits
     #   matplotlib
+    #   pandas-gbq
     #   pytest
     #   shillelagh
     #   sqlalchemy-bigquery
@@ -649,7 +646,7 @@ pandas==2.1.4
     #   db-dtypes
     #   pandas-gbq
     #   prophet
-pandas-gbq==0.19.1
+pandas-gbq==0.35.0
     # via apache-superset
 parameterized==0.9.0
     # via apache-superset
@@ -705,18 +702,17 @@ prompt-toolkit==3.0.51
 prophet==1.2.0
     # via apache-superset
 proto-plus==1.25.0
-    # via
-    #   google-api-core
-    #   google-cloud-bigquery-storage
+    # via google-api-core
 protobuf==5.29.6
     # via
     #   google-api-core
-    #   google-cloud-bigquery-storage
     #   googleapis-common-protos
     #   grpcio-status
     #   proto-plus
 psutil==6.1.0
-    # via apache-superset
+    # via
+    #   apache-superset
+    #   pandas-gbq
 psycopg2-binary==2.9.12
     # via apache-superset
 py-key-value-aio==0.4.4
@@ -1043,7 +1039,7 @@ trio-websocket==0.12.2
     # via
     #   -c requirements/base-constraint.txt
     #   selenium
-typing-extensions==4.15.0
+typing-extensions==4.16.0
     # via
     #   -c requirements/base-constraint.txt
     #   alembic
