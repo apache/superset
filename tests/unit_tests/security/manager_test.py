@@ -2121,6 +2121,55 @@ def test_raise_for_access_catalog(
     )
 
 
+def test_raise_for_access_does_not_render_executed_sql(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    process_jinja = mocker.patch(
+        "superset.security.manager.process_jinja_sql",
+        side_effect=AssertionError("executed SQL must not enter Jinja"),
+    )
+    database = mocker.MagicMock()
+    database.get_default_catalog.return_value = None
+    database.get_default_schema_for_rendered_query.return_value = "public"
+    database.db_engine_spec.engine = "postgresql"
+    query = mocker.MagicMock(
+        database=database,
+        sql="SELECT {{ original_template }}",
+        executed_sql="SELECT '{{ preserved_literal }}' AS value",
+        schema="public",
+        catalog=None,
+    )
+
+    sm.raise_for_access(query=query, force_dataset_match=True)
+
+    database.get_default_schema_for_rendered_query.assert_called_once()
+    process_jinja.assert_not_called()
+
+
+def test_raise_for_access_rejects_query_without_sql(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    database = mocker.MagicMock()
+    database.get_default_catalog.return_value = None
+    query = mocker.MagicMock(
+        database=database,
+        sql=None,
+        executed_sql=None,
+        schema="public",
+        catalog=None,
+    )
+
+    with pytest.raises(SupersetSecurityException, match="SQL query text is required"):
+        sm.raise_for_access(query=query, force_dataset_match=True)
+
+
 def test_get_datasources_accessible_by_user_schema_access(
     mocker: MockerFixture,
     app_context: None,

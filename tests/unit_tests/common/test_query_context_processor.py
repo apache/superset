@@ -2105,3 +2105,22 @@ def test_raise_for_access_evaluates_access_before_validate():
             processor.raise_for_access()
 
     query.validate.assert_not_called()
+
+
+def test_query_datasource_uses_its_explore_access_contract() -> None:
+    from superset.utils.core import DatasourceType
+
+    query = MagicMock()
+    datasource = MagicMock()
+    datasource.type = DatasourceType.QUERY
+    query_context = MagicMock(datasource=datasource, queries=[query])
+    processor = QueryContextProcessor(query_context)
+
+    with patch(
+        "superset.common.query_context_processor.security_manager.raise_for_access"
+    ) as generic_access:
+        processor.raise_for_access()
+
+    datasource.raise_for_explore_access.assert_called_once_with()
+    generic_access.assert_not_called()
+    query.validate.assert_called_once_with()

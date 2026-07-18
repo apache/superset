@@ -401,3 +401,55 @@ def test_explore_command_uses_chart_access_when_slice_exists(app_context):
     ):
         cmd.run()
         mock_sm.raise_for_access.assert_called_once_with(chart=mock_slc)
+
+
+def test_explore_command_uses_query_replay_access_for_query_datasource(app_context):
+    """Query datasources use their replay-specific access contract."""
+    from superset.commands.explore.get import GetExploreCommand
+    from superset.commands.explore.parameters import CommandParameters
+    from superset.models.sql_lab import Query
+
+    params = CommandParameters(
+        permalink_key=None,
+        form_data_key=None,
+        datasource_id=17,
+        datasource_type="query",
+        slice_id=None,
+    )
+    cmd = GetExploreCommand(params)
+
+    query = Query()
+    query.id = 17
+    query.client_id = "client-id"
+    query.tab_name = "SQL Lab result"
+    query.database_id = 1
+    query.database = MagicMock()
+    query.database.grains.return_value = []
+    query.database.backend = "postgresql"
+    query.extra = {"columns": []}
+    query.raise_for_explore_access = MagicMock()
+
+    mock_request = MagicMock()
+    mock_request.args = {}
+
+    with (
+        patch(
+            "superset.commands.explore.get.get_form_data",
+            return_value=({"datasource": "17__query", "viz_type": "table"}, None),
+        ),
+        patch(
+            "superset.commands.explore.get.get_datasource_info",
+            return_value=(17, "query"),
+        ),
+        patch(
+            "superset.commands.explore.get.DatasourceDAO.get_datasource",
+            return_value=query,
+        ),
+        patch("superset.commands.explore.get.security_manager") as mock_sm,
+        patch("superset.commands.explore.get.sanitize_datasource_data"),
+        patch("superset.commands.explore.get.request", mock_request),
+    ):
+        cmd.run()
+
+    query.raise_for_explore_access.assert_called_once_with()
+    mock_sm.raise_for_access.assert_not_called()

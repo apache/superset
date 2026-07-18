@@ -91,6 +91,7 @@ from superset.viz import viz_types
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
+    from superset.models.sql_lab import Query as SqlLabQuery
 
 logger = logging.getLogger(__name__)
 
@@ -1012,7 +1013,7 @@ class QueryContextProcessor:
         # come first to avoid rendering caller-supplied input for a resource the
         # caller is not allowed to access.
         if self._qc_datasource.type == DatasourceType.QUERY:
-            security_manager.raise_for_access(query=self._qc_datasource)
+            cast("SqlLabQuery", self._qc_datasource).raise_for_explore_access()
         else:
             security_manager.raise_for_access(query_context=self._query_context)
 

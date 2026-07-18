@@ -30,13 +30,14 @@ from superset.commands.explore.form_data.parameters import (
 )
 from superset.commands.explore.parameters import CommandParameters
 from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
-from superset.connectors.sqla.models import BaseDatasource, SqlaTable
-from superset.daos.datasource import DatasourceDAO
+from superset.connectors.sqla.models import SqlaTable
+from superset.daos.datasource import Datasource, DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import SupersetException
 from superset.explore.exceptions import WrongEndpointError
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.extensions import security_manager
+from superset.models.sql_lab import Query
 from superset.superset_typing import ExplorableData
 from superset.utils import core as utils, json
 from superset.views.utils import (
@@ -111,7 +112,7 @@ class GetExploreCommand(BaseCommand, ABC):
             # fallback unknown datasource to table type
             self._datasource_type = SqlaTable.type
 
-        datasource: Optional[BaseDatasource] = None
+        datasource: Optional[Datasource] = None
 
         if self._datasource_id is not None:
             with contextlib.suppress(DatasourceNotFound):
@@ -125,16 +126,17 @@ class GetExploreCommand(BaseCommand, ABC):
             datasource_name = datasource.name
             if slc:
                 security_manager.raise_for_access(chart=slc)
+            elif isinstance(datasource, Query):
+                datasource.raise_for_explore_access()
             else:
                 security_manager.raise_for_access(datasource=datasource)
 
         viz_type = form_data.get("viz_type")
-        if (
-            not viz_type
-            and datasource
-            and getattr(datasource, "default_endpoint", None)
-        ):
-            raise WrongEndpointError(redirect=datasource.default_endpoint)
+        default_endpoint: Optional[str] = (
+            getattr(datasource, "default_endpoint", None) if datasource else None
+        )
+        if not viz_type and default_endpoint:
+            raise WrongEndpointError(redirect=default_endpoint)
 
         form_data["datasource"] = (
             str(self._datasource_id) + "__" + cast(str, self._datasource_type)

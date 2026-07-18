@@ -53,7 +53,7 @@ def check_query_access(query_id: int) -> Optional[bool]:
         # Access checks below, no need to validate them twice as they can be expensive.
         query = QueryDAO.find_by_id(query_id, skip_base_filter=True)
         if query:
-            security_manager.raise_for_access(query=query)
+            query.raise_for_explore_access()
             return True
     raise QueryNotFoundValidationError()
 

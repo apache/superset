@@ -720,6 +720,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             self, query, template_params
         )
 
+    def get_default_schema_for_rendered_query(self, query: Query) -> str | None:
+        """Resolve a query schema without interpreting its SQL as a template."""
+
+        return self.db_engine_spec.get_default_schema_for_rendered_query(self, query)
+
     def resolve_query_default_schema(
         self,
         sql: str,

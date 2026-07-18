@@ -86,7 +86,7 @@ from superset.security.guest_token import (
     GuestTokenUser,
     GuestUser,
 )
-from superset.sql.parse import process_jinja_sql, Table
+from superset.sql.parse import process_jinja_sql, SQLScript, Table
 from superset.tasks.utils import get_current_user
 from superset.utils import json
 from superset.utils.core import (
@@ -3639,6 +3639,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         table: Optional["Table"] = None,
         viz: Optional["BaseViz"] = None,
         sql: Optional[str] = None,
+        rendered_sql: Optional[str] = None,
         catalog: Optional[str] = None,
         schema: Optional[str] = None,
         template_params: Optional[dict[str, Any]] = None,
@@ -3654,6 +3655,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param table: The Superset table (requires database)
         :param viz: The visualization
         :param sql: The SQL string (requires database)
+        :param rendered_sql: SQL whose template phase is complete (requires database)
         :param catalog: Optional catalog name
         :param schema: Optional schema name
         :param template_params: Optional template parameters for Jinja templating
@@ -3694,10 +3696,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 )
                 return
 
-        if sql and database:
+        if (sql or rendered_sql) and database:
             query = Query(
                 database=database,
-                sql=sql,
+                sql=rendered_sql or cast(str, sql),
+                executed_sql=rendered_sql,
                 schema=schema,
                 catalog=catalog,
                 client_id=shortid()[:10],
@@ -3740,12 +3743,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # not choke on unrendered ``{{ ... }}`` Jinja.
                 typed_query = cast(Query, query)
                 executed_sql = getattr(typed_query, "executed_sql", None)
-                sql_for_parse = (
-                    executed_sql
-                    if isinstance(executed_sql, str) and executed_sql
-                    else typed_query.sql
-                )
-                use_executed_sql = sql_for_parse is executed_sql
+                use_executed_sql = isinstance(executed_sql, str) and bool(executed_sql)
+                sql_candidate = executed_sql if use_executed_sql else typed_query.sql
+                if not isinstance(sql_candidate, str) or not sql_candidate.strip():
+                    raise SupersetSecurityException(
+                        SupersetError(
+                            error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                            message=_("SQL query text is required for access checks."),
+                            level=ErrorLevel.ERROR,
+                        )
+                    )
+                sql_for_parse = sql_candidate
                 parse_template_params = None if use_executed_sql else template_params
                 parse_query: Any = (
                     SimpleNamespace(
@@ -3757,13 +3765,29 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     else typed_query
                 )
 
-                default_schema = database.get_default_schema_for_query(
-                    cast(Query, parse_query),
-                    parse_template_params,
-                )
-                parse_result = process_jinja_sql(
-                    sql_for_parse, database, parse_template_params
-                )
+                if use_executed_sql:
+                    default_schema = database.get_default_schema_for_rendered_query(
+                        cast(Query, parse_query)
+                    )
+                    parsed_script = SQLScript(
+                        sql_for_parse,
+                        engine=database.db_engine_spec.engine,
+                    )
+                    referenced_tables = {
+                        table_
+                        for statement in parsed_script.statements
+                        for table_ in statement.tables
+                    }
+                else:
+                    default_schema = database.get_default_schema_for_query(
+                        cast(Query, parse_query),
+                        parse_template_params,
+                    )
+                    parse_result = process_jinja_sql(
+                        sql_for_parse, database, parse_template_params
+                    )
+                    parsed_script = parse_result.script
+                    referenced_tables = parse_result.tables
                 # Under strict scoping, refuse any statement the parser
                 # could not fully model: sqlglot ``exp.Command`` nodes
                 # (e.g. dynamic SQL inside a stored-procedure call) and
@@ -3771,10 +3795,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # classes do not produce a sqlglot AST. The per-table
                 # dataset-match check below would be blind to those
                 # references, so fail closed.
-                if (
-                    force_dataset_match
-                    and parse_result.script.has_unparseable_statement
-                ):
+                if force_dataset_match and parsed_script.has_unparseable_statement:
                     raise SupersetSecurityException(
                         SupersetError(
                             error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
@@ -3792,7 +3813,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         catalog=query.catalog or default_catalog,
                         schema=default_schema,
                     )
-                    for table_ in parse_result.tables
+                    for table_ in referenced_tables
                 }
             elif table:
                 # Make sure table has the default catalog, and (when an

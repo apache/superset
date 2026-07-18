@@ -24,6 +24,15 @@ assists people when migrating to a new version.
 
 ## Next
 
+### SQL Lab Query-to-Explore replay requires a fresh execution
+
+SQL Lab queries executed before this update do not contain the versioned source
+artifact required by the Query-to-Explore workflow. Existing result retrieval
+remains available, but opening one of these older queries in Explore is refused
+with an instruction to run it again. Re-run the query once before using
+**Explore**; newly executed queries persist the required replay source
+automatically.
+
 ### Owners, dashboard roles, and RLS roles replaced by Subjects
 
 Superset now uses subject-based access assignments for dashboards, charts, datasets,

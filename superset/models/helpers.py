@@ -1201,6 +1201,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         raise NotImplementedError()
 
     @property
+    def rls_exclusion_dataset_id(self) -> Optional[int]:
+        """Dataset id omitted from inner-SQL RLS to prevent double application."""
+
+        return getattr(self, "id", None)
+
+    @property
+    def requires_strict_rls_application(self) -> bool:
+        """Whether inability to apply inner-SQL RLS must abort the query."""
+
+        return False
+
+    @property
     def cache_timeout(self) -> int | None:
         raise NotImplementedError()
 
@@ -2765,17 +2777,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             default_schema = self.database.get_default_schema(self.catalog)
             try:
                 rls_applied = False
-                # ``id`` lives on concrete subclasses (e.g. SqlaTable), not on
-                # ExploreMixin itself. getattr keeps this safe for non-dataset
-                # subclasses (e.g. SQL Lab Query), which have no RLS to dedupe.
-                self_id = getattr(self, "id", None)
                 for statement in parsed_script.statements:
                     if apply_rls(
                         self.database,
                         self.catalog,
                         self.schema or default_schema or "",
                         statement,
-                        exclude_dataset_id=self_id,
+                        exclude_dataset_id=self.rls_exclusion_dataset_id,
                     ):
                         rls_applied = True
 
@@ -2787,7 +2795,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     from_sql = parsed_script.format()
 
             except Exception as ex:
-                # Log the error but don't fail - RLS application is best-effort
+                if self.requires_strict_rls_application:
+                    raise QueryObjectValidationError(
+                        _("Unable to apply row-level security to the query source.")
+                    ) from ex
                 logger.warning("Failed to apply RLS to virtual dataset SQL: %s", ex)
 
         cte = self.db_engine_spec.get_cte_query(from_sql)
