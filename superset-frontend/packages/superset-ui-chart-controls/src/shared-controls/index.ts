@@ -19,14 +19,7 @@
 export { default as sharedControls } from './sharedControls';
 // React control components
 export { default as sharedControlComponents } from './components';
-export {
-  aggregationControl,
-  aggregationChoices,
-  contributionModeControl,
-  xAxisSortControl,
-  xAxisSortAscControl,
-  xAxisForceCategoricalControl,
-} from './customControls';
+export * from './customControls';
 export * from './components';
 export * from './mixins';
 export * from './dndControls';
