@@ -259,6 +259,59 @@ test('AgGridTableChart renders Search by dropdown if includeSearch is true and t
   expect(screen.getByText(/Search by/i)).toBeInTheDocument();
 });
 
+test('AgGridTableChart does not render Search by dropdown if includeSearch is true but searchOptions is empty', async () => {
+  const noStringColumnsData = {
+    ...testData.basic,
+    queriesData: [
+      {
+        ...testData.basic.queriesData[0],
+        colnames: ['__timestamp', 'sum__num'],
+        coltypes: [
+          GenericDataType.Temporal,
+          GenericDataType.Numeric,
+        ],
+        data: [
+          {
+            __timestamp: '2020-01-01T12:34:56',
+            sum__num: 2467063,
+          },
+        ],
+      },
+    ],
+  };
+
+  const props = transformProps({
+    ...noStringColumnsData,
+    rawFormData: {
+      ...noStringColumnsData.rawFormData,
+      server_pagination: true,
+      include_search: true,
+    },
+  });
+  props.serverPagination = true;
+  props.includeSearch = true;
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    const grid = document.querySelector('.ag-container');
+    expect(grid).toBeInTheDocument();
+  });
+
+  expect(screen.queryByText(/Search by/i)).not.toBeInTheDocument();
+});
+
+
 test('AgGridTableChart renders with totals', async () => {
   const props = transformProps({
     ...testData.basic,
