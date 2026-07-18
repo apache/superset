@@ -26,6 +26,7 @@ from pytest_mock import MockerFixture
 from superset.commands.semantic_layer.exceptions import (
     SemanticLayerCreateFailedError,
     SemanticLayerDeleteFailedError,
+    SemanticLayerForbiddenError,
     SemanticLayerInvalidError,
     SemanticLayerNotFoundError,
     SemanticLayerUpdateFailedError,
@@ -2322,3 +2323,107 @@ def test_semantic_layer_views_flag_off_unwrapped() -> None:
 
     assert response == ("404", 404)
     api.response_404.assert_called_once()
+
+
+@SEMANTIC_LAYERS_APP
+def test_put_semantic_layer_forbidden(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test PUT /<uuid> returns 403 when the user lacks access to the layer."""
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.UpdateSemanticLayerCommand",
+    )
+    mock_command.return_value.run.side_effect = SemanticLayerForbiddenError()
+
+    response = client.put(
+        f"/api/v1/semantic_layer/{uuid_lib.uuid4()}",
+        json={"name": "New"},
+    )
+
+    assert response.status_code == 403
+
+
+@SEMANTIC_LAYERS_APP
+def test_delete_semantic_layer_forbidden(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test DELETE /<uuid> returns 403 when the user lacks access to the layer."""
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.DeleteSemanticLayerCommand",
+    )
+    mock_command.return_value.run.side_effect = SemanticLayerForbiddenError()
+
+    response = client.delete(f"/api/v1/semantic_layer/{uuid_lib.uuid4()}")
+
+    assert response.status_code == 403
+
+
+@SEMANTIC_LAYERS_APP
+def test_get_semantic_layer_forbidden(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test GET /<uuid> hides existence (404) when the user lacks access."""
+    layer = MagicMock()
+    access_error = MagicMock()
+    access_error.message = "Forbidden"
+    layer.raise_for_access.side_effect = SupersetSecurityException(access_error)
+
+    mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
+    mock_dao.find_by_uuid.return_value = layer
+
+    response = client.get(f"/api/v1/semantic_layer/{uuid_lib.uuid4()}")
+
+    assert response.status_code == 404
+    layer.raise_for_access.assert_called_once()
+
+
+@SEMANTIC_LAYERS_APP
+def test_get_semantic_layer_feature_disabled(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test GET /<uuid> returns 404 when the feature flag is disabled."""
+    mocker.patch(
+        "superset.semantic_layers.api.is_feature_enabled",
+        return_value=False,
+    )
+
+    response = client.get(f"/api/v1/semantic_layer/{uuid_lib.uuid4()}")
+
+    assert response.status_code == 404
+
+
+@SEMANTIC_LAYERS_APP
+def test_post_semantic_view_forbidden(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test POST / collects per-view forbidden errors without failing the batch."""
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.CreateSemanticViewCommand",
+    )
+    mock_command.return_value.run.side_effect = SemanticViewForbiddenError()
+
+    payload = {
+        "views": [
+            {
+                "name": "View 1",
+                "semantic_layer_uuid": str(uuid_lib.uuid4()),
+                "configuration": {},
+            },
+        ],
+    }
+    response = client.post("/api/v1/semantic_view/", json=payload)
+
+    assert response.status_code == 422
+    result = response.json["result"]
+    assert len(result["errors"]) == 1
+    assert result["errors"][0]["error"] == "Forbidden"
