@@ -25,7 +25,7 @@ import {
 import transformData from './transformData';
 
 export default function transformProps(chartProps: ChartProps) {
-  const { formData, queriesData } = chartProps;
+  const { formData, queriesData, height } = chartProps;
   const {
     groupby,
     liftvaluePrecision,
@@ -50,6 +50,7 @@ export default function transformProps(chartProps: ChartProps) {
     alpha: significanceLevel,
     data,
     groups: groupby,
+    height,
     liftValPrec: parseInt(liftvaluePrecision, 10),
     metrics: metricLabels,
     pValPrec: parseInt(pvaluePrecision, 10),

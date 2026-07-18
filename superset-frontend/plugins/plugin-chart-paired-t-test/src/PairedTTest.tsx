@@ -26,6 +26,7 @@ interface PairedTTestProps {
   className?: string;
   data: Record<string, DataEntry[]>;
   groups: string[];
+  height?: number;
   liftValPrec?: number;
   metrics: string[];
   pValPrec?: number;
@@ -33,9 +34,8 @@ interface PairedTTestProps {
 
 const StyledDiv = styled.div`
   ${({ theme }) => `
-    /* Fill the chart's allotted height and scroll when the tables overflow it
-       (e.g. many groups across multiple metrics). */
-    height: 100%;
+    /* The chart's allotted height is applied inline; scroll when the tables
+       overflow it (e.g. many groups across multiple metrics). */
     overflow: auto;
     padding: 0 ${theme.sizeUnit}px;
 
@@ -60,12 +60,13 @@ function PairedTTest({
   className = '',
   data,
   groups,
+  height,
   liftValPrec = 4,
   metrics,
   pValPrec = 6,
 }: PairedTTestProps) {
   return (
-    <StyledDiv className={className}>
+    <StyledDiv className={className} style={{ height }}>
       {metrics.map((metric, i) => (
         <TTestTable
           key={i}
