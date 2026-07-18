@@ -2,6 +2,7 @@
   "name": "superset-websocket",
   "version": "0.0.1",
   "description": "Websocket sidecar application for Superset",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "start": "node dist/index.js start",
@@ -9,7 +10,7 @@
     "type": "tsc --noEmit",
     "eslint": "eslint",
     "lint": "npm run eslint -- . && npm run type",
-    "dev-server": "ts-node src/index.ts start",
+    "dev-server": "npm run build && npm run start",
     "build": "tsc",
     "prettier-check": "prettier --check .",
     "prettier-write": "prettier --write .",
@@ -17,11 +18,11 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "cookie": "^1.1.1",
+    "cookie": "^2.0.1",
     "hot-shots": "^16.0.0",
     "ioredis": "^5.11.1",
     "jsonwebtoken": "^9.0.3",
-    "lodash": "^4.18.1",
+    "lodash-es": "^4.18.1",
     "winston": "^3.19.0",
     "ws": "^8.21.0"
   },
@@ -29,27 +30,22 @@
     "@eslint/js": "^9.25.1",
     "@types/eslint__js": "^8.42.3",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/lodash": "^4.17.24",
-    "@types/node": "^26.0.0",
+    "@types/lodash-es": "^4.17.12",
+    "@types/node": "^26.1.1",
     "@types/ws": "^8.18.1",
-    "@typescript-eslint/eslint-plugin": "^8.62.0",
-    "@typescript-eslint/parser": "^8.62.0",
+    "@typescript-eslint/eslint-plugin": "^8.63.0",
+    "@typescript-eslint/parser": "^8.63.0",
     "eslint": "^10.5.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-lodash": "^8.0.0",
     "globals": "^17.6.0",
-    "prettier": "^3.8.4",
-    "ts-node": "^10.9.2",
+    "prettier": "^3.9.5",
     "tscw-config": "^1.1.2",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.62.0",
-    "vitest": "^4.1.5"
+    "typescript-eslint": "^8.63.0",
+    "vitest": "^4.1.10"
   },
   "engines": {
     "node": "^24.16.0",
     "npm": "^11.13.0"
-  },
-  "overrides": {
-    "@babel/core": "^7.29.6"
   }
 }

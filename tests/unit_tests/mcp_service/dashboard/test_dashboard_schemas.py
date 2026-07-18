@@ -31,10 +31,14 @@ from superset.mcp_service.dashboard.schemas import (
     _extract_cross_filters_enabled,
     _extract_native_filters,
     _safe_user_label,
+    AddChartToDashboardRequest,
     dashboard_serializer,
+    DashboardInfo,
     DuplicateDashboardRequest,
     DuplicateDashboardResponse,
     GenerateDashboardRequest,
+    GetDashboardInfoRequest,
+    ListDashboardsRequest,
     serialize_chart_summary,
     serialize_dashboard_object,
     UpdateDashboardRequest,
@@ -55,10 +59,9 @@ def _mock_dashboard(
     id: int = 1,
     title: str = "Test Dashboard",
     slug: str | None = None,
-    owners: list[Any] | None = None,
+    editors: list[Any] | None = None,
     slices: list[Any] | None = None,
     tags: list[Any] | None = None,
-    roles: list[Any] | None = None,
 ) -> MagicMock:
     """Create a mock Dashboard ORM object."""
     dashboard = MagicMock()
@@ -81,10 +84,9 @@ def _mock_dashboard(
     dashboard.is_managed_externally = False
     dashboard.external_url = None
     dashboard.uuid = None
-    dashboard.owners = owners or []
+    dashboard.editors = editors or []
     dashboard.slices = slices or []
     dashboard.tags = tags or []
-    dashboard.roles = roles or []
     return dashboard
 
 
@@ -130,7 +132,7 @@ class TestSerializeDashboardObject:
         dashboard = _mock_dashboard(id=42, slug=None)
         result = serialize_dashboard_object(dashboard)
 
-        assert result.url == "http://localhost:8088/superset/dashboard/42/"
+        assert result.url == "http://localhost:8088/dashboard/42/"
 
     @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
     def test_url_uses_slug_when_available(self, mock_base_url) -> None:
@@ -140,7 +142,7 @@ class TestSerializeDashboardObject:
         dashboard = _mock_dashboard(id=42, slug="my-dashboard")
         result = serialize_dashboard_object(dashboard)
 
-        assert result.url == "http://localhost:8088/superset/dashboard/my-dashboard/"
+        assert result.url == "http://localhost:8088/dashboard/my-dashboard/"
 
     @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
     def test_no_json_metadata_or_position_json_in_response(self, mock_base_url) -> None:
@@ -263,7 +265,7 @@ class TestSerializeDashboardObject:
         # Verify no heavy fields
         assert not hasattr(result.charts[0], "form_data")
         assert not hasattr(result.charts[0], "tags")
-        assert not hasattr(result.charts[0], "owners")
+        assert not hasattr(result.charts[0], "editors")
 
     @patch("superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata")
     @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
@@ -322,7 +324,7 @@ class TestSerializeDashboardObject:
             "cross_filters_enabled": True,
         }
         dashboard = _mock_dashboard(id=1, slices=[chart])
-        dashboard.url = "/superset/dashboard/1/"
+        dashboard.url = "/dashboard/1/"
         dashboard.json_metadata = json_dumps(metadata)
 
         result = dashboard_serializer(dashboard)
@@ -381,7 +383,7 @@ class TestSerializeDashboardObject:
         assert result.certified_by == _wrapped("Analytics Team")
         assert result.certification_details == _wrapped("Certified by analytics")
         assert result.slug == "safe-slug"
-        assert result.url == "http://localhost:8088/superset/dashboard/safe-slug/"
+        assert result.url == "http://localhost:8088/dashboard/safe-slug/"
         assert result.uuid == "dashboard-uuid-7"
         assert result.native_filters[0].id == "NATIVE_FILTER-abc123"
         assert result.native_filters[0].name == _wrapped("Region Filter")
@@ -885,6 +887,32 @@ class TestDuplicateDashboardRequestTitleSanitization:
         assert req.sanitization_warnings == []
 
 
+class TestDashboardInfoLargeListGuidance:
+    """DashboardInfo documents how agents can retrieve charts/native_filters
+    beyond the response-size guard's list-item cap.
+
+    Regression test for the Medialab large-dashboard report: with the old
+    hardcoded 30-item cap and no documented escape hatch, agents had no way
+    to retrieve the rest of a dashboard's charts. These field descriptions
+    are the "documented, agent-usable way to access items beyond the cap"
+    called for by the story's acceptance criteria.
+    """
+
+    def test_charts_field_documents_list_charts_escape_hatch(self) -> None:
+        """The charts field description points to list_charts pagination."""
+        description: str | None = DashboardInfo.model_fields["charts"].description
+        assert description is not None
+        assert "list_charts" in description
+
+    def test_native_filters_field_documents_max_list_items_config(self) -> None:
+        """The native_filters field description mentions the configurable cap."""
+        description: str | None = DashboardInfo.model_fields[
+            "native_filters"
+        ].description
+        assert description is not None
+        assert "max_list_items" in description
+
+
 class TestDuplicateDashboardResponse:
     """Serialization and error sanitization for DuplicateDashboardResponse."""
 
@@ -906,3 +934,46 @@ class TestDuplicateDashboardResponse:
         """A null error stays null rather than being wrapped."""
         resp = DuplicateDashboardResponse(dashboard_url="http://host/d/1/")
         assert resp.error is None
+
+
+class TestRequestSchemaAliasChoices:
+    """Test that LLM-friendly field name variants are accepted on the
+    dashboard MCP tool request schemas, so callers sending 'id'/'dashboard_id'
+    instead of 'identifier' (or 'columns' instead of 'select_columns')
+    don't silently have the field dropped."""
+
+    def test_get_dashboard_info_identifier_id_alias(self) -> None:
+        req = GetDashboardInfoRequest.model_validate({"id": 42})
+        assert req.identifier == 42
+
+    def test_get_dashboard_info_identifier_dashboard_id_alias(self) -> None:
+        req = GetDashboardInfoRequest.model_validate({"dashboard_id": 42})
+        assert req.identifier == 42
+
+    def test_get_dashboard_info_identifier_still_works(self) -> None:
+        req = GetDashboardInfoRequest.model_validate({"identifier": 42})
+        assert req.identifier == 42
+
+    def test_get_dashboard_info_select_columns_columns_alias(self) -> None:
+        req = GetDashboardInfoRequest.model_validate(
+            {"id": 42, "columns": ["id", "dashboard_title"]}
+        )
+        assert req.select_columns == ["id", "dashboard_title"]
+
+    def test_list_dashboards_select_columns_columns_alias(self) -> None:
+        req = ListDashboardsRequest.model_validate(
+            {"columns": ["id", "dashboard_title"]}
+        )
+        assert req.select_columns == ["id", "dashboard_title"]
+
+    def test_add_chart_to_dashboard_dashboard_alias(self) -> None:
+        req = AddChartToDashboardRequest.model_validate({"dashboard": 1, "chart_id": 2})
+        assert req.dashboard_id == 1
+
+    def test_add_chart_to_dashboard_id_alias(self) -> None:
+        req = AddChartToDashboardRequest.model_validate({"id": 1, "chart_id": 2})
+        assert req.dashboard_id == 1
+
+    def test_add_chart_to_dashboard_chart_alias(self) -> None:
+        req = AddChartToDashboardRequest.model_validate({"dashboard_id": 1, "chart": 2})
+        assert req.chart_id == 2

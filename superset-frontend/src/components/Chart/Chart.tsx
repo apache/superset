@@ -30,6 +30,7 @@ import {
   type FilterState,
   type JsonObject,
   type AgGridChartState,
+  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import type { ChartState, Datasource, ChartStatus } from 'src/explore/types';
@@ -465,7 +466,12 @@ function Chart({
             {t(
               'Click on "Create chart" button in the control panel on the left to preview a visualization or',
             )}{' '}
-            <span role="button" tabIndex={0} onClick={onQuery}>
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={onQuery}
+              onKeyDown={handleKeyboardActivation(() => onQuery?.())}
+            >
               {t('click here')}
             </span>
             .

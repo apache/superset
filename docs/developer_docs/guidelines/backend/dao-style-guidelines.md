@@ -153,10 +153,10 @@ class DashboardDAO:
         return db.session.query(Dashboard).filter_by(slug=slug).first()
 
     @classmethod
-    def find_by_owner(cls, owner_id: int) -> List[Dashboard]:
-        """Find all dashboards owned by a user"""
-        return db.session.query(Dashboard).filter_by(
-            created_by_fk=owner_id
+    def find_by_editor(cls, editor_id: int) -> List[Dashboard]:
+        """Find all dashboards editable by a subject"""
+        return db.session.query(Dashboard).filter(
+            Dashboard.editors.any(id=editor_id)
         ).all()
 
     @classmethod

@@ -452,9 +452,7 @@ def manage_native_filters(
                 request.dashboard_id, payload
             ).run()
 
-        dashboard_url = (
-            f"{get_superset_base_url()}/superset/dashboard/{request.dashboard_id}/"
-        )
+        dashboard_url = f"{get_superset_base_url()}/dashboard/{request.dashboard_id}/"
         logger.info(
             "Managed native filters on dashboard %s (added=%d updated=%d removed=%d)",
             request.dashboard_id,
@@ -485,7 +483,7 @@ def manage_native_filters(
             error=(
                 f"You don't have permission to edit dashboard "
                 f"{request.dashboard_id}. Changing native filters requires "
-                "ownership of the dashboard."
+                "editorship of the dashboard."
             ),
         )
     except TagForbiddenError as exc:

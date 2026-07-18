@@ -46,6 +46,7 @@ import {
 } from '@superset-ui/chart-controls';
 import isEqualColumns from './utils/isEqualColumns';
 import DateWithFormatter from './utils/DateWithFormatter';
+import { BASIC_COLOR_FORMATTERS_ROW_KEY } from './consts';
 import {
   DataColumnMeta,
   TableChartProps,
@@ -345,6 +346,7 @@ const processColumns = memoizeOne(function processColumns(
       column_config: columnConfig = {},
       query_mode: queryMode,
     },
+    rawDatasource,
     queriesData,
   } = props;
   const granularity = extractTimegrain(props.rawFormData);
@@ -383,6 +385,19 @@ const processColumns = memoizeOne(function processColumns(
       const currency = config.currencyFormat?.symbol
         ? config.currencyFormat
         : savedCurrency;
+
+      // Internal names of metrics expressed as percentages have a "%" prefix,
+      // however, their storage locations are defined in rawDatasource.metrics using the original names.
+      const metricLookupKey = key.startsWith('%') ? key.slice(1) : key;
+      const description =
+        rawDatasource.columns?.find(
+          (item: { column_name?: string; description?: string | null }) =>
+            item.column_name === key,
+        )?.description ??
+        rawDatasource.metrics?.find(
+          (item: { metric_name?: string; description?: string | null }) =>
+            item.metric_name === metricLookupKey,
+        )?.description;
 
       let formatter;
 
@@ -430,6 +445,7 @@ const processColumns = memoizeOne(function processColumns(
         isPercentMetric,
         formatter,
         config,
+        description,
       };
     })
     .sort((a, b) => {
@@ -612,7 +628,10 @@ const transformProps = (
                     percentDifferenceNum,
                     col.colorScheme || comparisonColorScheme,
                   );
-                item[col.column] = {
+                // Key by the metric column key (not the raw rule column) so the
+                // renderer's `col.metricName` lookup resolves it, identical to
+                // the comparison-color path below.
+                item[origCol.key] = {
                   mainArrow: arrow,
                   arrowColor,
                   backgroundColor,
@@ -701,25 +720,71 @@ const transformProps = (
   const passedData = isUsingTimeComparison ? comparisonData || [] : data;
   const passedColumns = isUsingTimeComparison ? comparisonColumns : columns;
 
-  const basicColorFormatters =
+  // Increase/decrease formatters from the "Comparison color" toggle, keyed by
+  // metric column key.
+  const comparisonColorFormatters =
     comparisonColorEnabled && getBasicColorFormatter(baseQuery?.data, columns);
-  const columnColorFormatters =
-    getColorFormatters(conditionalFormatting, passedData, theme) ?? [];
 
+  // Custom conditional-formatting rules using the Green (increase) / Red
+  // (decrease) color scheme on a time-comparison table. These were computed but
+  // never consumed by the AG Grid renderer, so the colors/arrows never showed
+  // (the classic plugin-chart-table does consume them). Route them through the
+  // same increase/decrease path, keyed by metric column key (see above).
   const basicColorColumnFormatters = getBasicColorFormatterForColumn(
     baseQuery?.data,
     columns,
     conditionalFormatting,
   );
 
+  // Merge both per-row into a single map so the existing row-attached formatter
+  // drives the renderer for either source.
+  const basicColorFormatters =
+    comparisonColorFormatters || basicColorColumnFormatters
+      ? (baseQuery?.data ?? []).map((_row, index) => ({
+          ...(comparisonColorFormatters || [])[index],
+          ...(basicColorColumnFormatters || [])[index],
+        }))
+      : comparisonColorFormatters;
+
+  // Attach each row's basic (increase/decrease) color formatter to the row data
+  // object so it travels with the row through AG Grid client-side sorting.
+  // basicColorFormatters is built in the original query order and was previously
+  // read positionally by the displayed rowIndex, which applied colors to the
+  // wrong rows once the table was sorted (#105973). The key is a Symbol so it
+  // can never collide with a real dataset column and never leaks into exports,
+  // cross-filters or spreads.
+  if (basicColorFormatters) {
+    passedData.forEach((row, index) => {
+      Object.defineProperty(row, BASIC_COLOR_FORMATTERS_ROW_KEY, {
+        value: basicColorFormatters[index],
+        enumerable: false,
+        configurable: true,
+        writable: true,
+      });
+    });
+  }
+
+  // Green/Red custom rules are rendered via the increase/decrease path above, so
+  // exclude them here: getColorFormatters treats the scheme name as a hex color
+  // and would emit an invalid `'<scheme>FF'` background otherwise.
+  const columnColorFormatters =
+    getColorFormatters(
+      (conditionalFormatting || []).filter(
+        (config: ConditionalFormattingConfig) =>
+          config.colorScheme !== ColorSchemeEnum.Green &&
+          config.colorScheme !== ColorSchemeEnum.Red,
+      ),
+      passedData,
+      theme,
+    ) ?? [];
+
   const hasPageLength = isPositiveNumber(pageLength);
 
-  const totals =
-    showTotals && queryMode === QueryMode.Aggregate
-      ? isUsingTimeComparison
-        ? processComparisonTotals(comparisonSuffix, totalQuery?.data)
-        : totalQuery?.data[0]
-      : undefined;
+  const totals = showTotals
+    ? isUsingTimeComparison
+      ? processComparisonTotals(comparisonSuffix, totalQuery?.data)
+      : totalQuery?.data[0]
+    : undefined;
 
   // Map saved metric/calculated column labels to their SQL expressions for filter resolution
   const metricSqlExpressions: Record<string, string> = {};
@@ -737,10 +802,24 @@ const transformProps = (
     }
   });
 
+  // Numeric raw-records columns eligible for the summary row. Only columns
+  // backed by a dataset (physical or calculated) column can be summed
+  // server-side; free-form SQL expression columns are excluded.
+  const datasetColumnNames = new Set(
+    chartProps.datasource.columns
+      .map(col => col.column_name)
+      .filter((name): name is string => Boolean(name)),
+  );
+  const rawSummaryColumns =
+    queryMode === QueryMode.Raw && showTotals
+      ? columns
+          .filter(col => col.isNumeric && datasetColumnNames.has(col.key))
+          .map(col => col.key)
+      : [];
+
   // Strip saved filter from chartState after initial application to prevent re-injection
   let chartState = serverPaginationData?.chartState as
-    | AgGridChartState
-    | undefined;
+    AgGridChartState | undefined;
   const chartStateHasFilter = !!(
     chartState?.filterModel && Object.keys(chartState.filterModel).length > 0
   );
@@ -784,6 +863,7 @@ const transformProps = (
     basicColorFormatters,
     formData,
     metricSqlExpressions,
+    rawSummaryColumns,
     chartState,
     onChartStateChange,
     showNumberedColumn,

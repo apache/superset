@@ -53,7 +53,8 @@ def load_energy_table_data():
     yield
     with app.app_context():
         with get_example_database().get_sqla_engine() as engine:
-            engine.execute(text("DROP TABLE IF EXISTS energy_usage"))
+            with engine.begin() as conn:
+                conn.execute(text("DROP TABLE IF EXISTS energy_usage"))
 
 
 @pytest.fixture

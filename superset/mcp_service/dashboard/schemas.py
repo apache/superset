@@ -27,6 +27,7 @@ Example usage:
         id=1,
         dashboard_title="Sales Dashboard",
         published=True,
+        editors=[SubjectInfo(id=1, label="admin", type="USER")],
         tags=[TagInfo(id=1, name="sales")],
         charts=[DashboardChartSummary(id=1, slice_name="Sales Chart")]
     )
@@ -87,17 +88,19 @@ if TYPE_CHECKING:
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import (
     CreatedByMeMixin,
+    EditedByMeMixin,
     MetadataCacheControl,
-    OwnedByMeMixin,
 )
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.privacy import (
     filter_user_directory_fields,
+    strip_user_directory_fields_from_schema,
     user_can_view_data_model_metadata,
 )
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
-    RoleInfo,
+    serialize_subject_object,
+    SubjectInfo,
     TagInfo,
 )
 from superset.mcp_service.utils import (
@@ -154,20 +157,6 @@ def serialize_tag_object(tag: Any) -> TagInfo | None:
     )
 
 
-def serialize_role_object(role: Any) -> RoleInfo | None:
-    """Serialize a role object to RoleInfo"""
-    if not role:
-        return None
-
-    return RoleInfo(
-        id=getattr(role, "id", None),
-        name=getattr(role, "name", None),
-        permissions=[perm.name for perm in getattr(role, "permissions", [])]
-        if hasattr(role, "permissions")
-        else None,
-    )
-
-
 class DashboardFilter(ColumnOperator):
     """
     Filter object for dashboard listing.
@@ -179,6 +168,7 @@ class DashboardFilter(ColumnOperator):
     col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         "dashboard_title",
         "published",
+        "editor",
         "favorite",
         "created_by_fk",
         "changed_by_fk",
@@ -202,8 +192,10 @@ class DashboardFilter(ColumnOperator):
     )
 
 
-class ListDashboardsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
+class ListDashboardsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
     """Request schema for list_dashboards with clear, unambiguous types."""
+
+    model_config = ConfigDict(populate_by_name=True)
 
     filters: Annotated[
         List[DashboardFilter],
@@ -220,6 +212,7 @@ class ListDashboardsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheContr
             default_factory=list,
             description="List of columns to select. Defaults to common columns "
             "if not specified.",
+            validation_alias=AliasChoices("select_columns", "columns"),
         ),
     ]
 
@@ -258,6 +251,20 @@ class ListDashboardsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheContr
             default=None,
             description="Text search string to match against dashboard fields. "
             "Cannot be used together with 'filters'.",
+        ),
+    ]
+    deleted_state: Annotated[
+        Literal["include", "only"] | None,
+        Field(
+            default=None,
+            description=(
+                "Surface soft-deleted (trashed) dashboards: 'only' returns "
+                "just trashed dashboards, 'include' returns live and trashed "
+                "together. Omit for live dashboards only (default). Trashed "
+                "rows carry a non-null deleted_at and are limited to "
+                "dashboards the caller owns (admins see all); requires the "
+                "SOFT_DELETE feature flag to have produced trashed rows."
+            ),
         ),
     ]
     order_column: Annotated[
@@ -331,10 +338,15 @@ class GetDashboardInfoRequest(MetadataCacheControl):
     in a dashboard but the URL contains a permalink_key.
     """
 
+    model_config = ConfigDict(populate_by_name=True)
+
     identifier: Annotated[
         int | str,
         Field(
-            description="Dashboard identifier - can be numeric ID, UUID string, or slug"
+            description=(
+                "Dashboard identifier - can be numeric ID, UUID string, or slug"
+            ),
+            validation_alias=AliasChoices("identifier", "id", "dashboard_id"),
         ),
     ]
     permalink_key: str | None = Field(
@@ -357,6 +369,7 @@ class GetDashboardInfoRequest(MetadataCacheControl):
                 "to override, e.g. ['id','dashboard_title','charts'] for minimal "
                 "output, or add 'css' to include raw dashboard CSS."
             ),
+            validation_alias=AliasChoices("select_columns", "columns"),
         ),
     ]
 
@@ -419,7 +432,7 @@ class DashboardChartSummary(BaseModel):
 
     Contains only the fields needed for LLMs to understand which charts
     are on a dashboard, omitting verbose fields like form_data, tags,
-    owners, and timestamps that bloat the response.
+    editors, and timestamps that bloat the response.
     """
 
     id: int | None = Field(None, description="Chart ID")
@@ -444,6 +457,13 @@ class DashboardInfo(BaseModel):
     created_on: str | datetime | None = None
     changed_on: str | datetime | None = None
     uuid: str | None = None
+    deleted_at: str | datetime | None = Field(
+        None,
+        description=(
+            "When the dashboard was moved to trash (soft-deleted); null for "
+            "live dashboards. Only populated when listing with deleted_state."
+        ),
+    )
     embedded_uuid: str | None = Field(
         None,
         description=(
@@ -460,8 +480,22 @@ class DashboardInfo(BaseModel):
     created_on_humanized: str | None = None
     changed_on_humanized: str | None = None
     chart_count: int = 0
+    editors: List[SubjectInfo] = Field(default_factory=list)
     tags: List[TagInfo] = Field(default_factory=list)
-    charts: List[DashboardChartSummary] = Field(default_factory=list)
+    charts: List[DashboardChartSummary] = Field(
+        default_factory=list,
+        description=(
+            "Charts on this dashboard. May be capped below chart_count "
+            "(cap: MCP_RESPONSE_SIZE_CONFIG['max_list_items']) when the full "
+            "response would exceed the token budget. "
+            "Compare len(charts) to chart_count to detect this. For "
+            "dashboards with more charts than the cap, call list_charts "
+            "with filters=[{'col': 'dashboards', 'opr': 'eq', "
+            "'value': <this dashboard's id>}] and page through with "
+            "page/page_size to retrieve the complete list regardless of "
+            "size."
+        ),
+    )
 
     # Structured filter information extracted from json_metadata
     native_filters: List[NativeFilterSummary] = Field(
@@ -469,7 +503,11 @@ class DashboardInfo(BaseModel):
         description=(
             "Native filters configured on this dashboard. Extracted from "
             "json_metadata for LLM consumption. Includes filter name/type, "
-            "and target columns only when data-model metadata is allowed."
+            "and target columns only when data-model metadata is allowed. "
+            "Subject to the same max_list_items cap as charts, though "
+            "dashboards rarely have enough native filters to hit it; "
+            "operators can raise MCP_RESPONSE_SIZE_CONFIG['max_list_items'] "
+            "for tenants that do."
         ),
     )
     cross_filters_enabled: bool | None = Field(
@@ -514,7 +552,11 @@ class DashboardInfo(BaseModel):
         ),
     )
 
-    model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
+    model_config = ConfigDict(
+        from_attributes=True,
+        ser_json_timedelta="iso8601",
+        json_schema_extra=strip_user_directory_fields_from_schema,
+    )
 
     @model_serializer(mode="wrap")
     def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:
@@ -573,10 +615,18 @@ class DashboardList(BaseModel):
 class AddChartToDashboardRequest(BaseModel):
     """Request schema for adding a chart to an existing dashboard."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     dashboard_id: int = Field(
-        ..., description="ID of the dashboard to add the chart to"
+        ...,
+        description="ID of the dashboard to add the chart to",
+        validation_alias=AliasChoices("dashboard_id", "dashboard", "id"),
     )
-    chart_id: int = Field(..., description="ID of the chart to add to the dashboard")
+    chart_id: int = Field(
+        ...,
+        description="ID of the chart to add to the dashboard",
+        validation_alias=AliasChoices("chart_id", "chart"),
+    )
     target_tab: str | None = Field(
         None,
         min_length=1,
@@ -706,8 +756,8 @@ class GenerateDashboardRequest(BaseModel):
         max_length=255,
         description=(
             "Optional URL slug for the dashboard. When set, the dashboard "
-            "is reachable at /superset/dashboard/<slug>/ instead of "
-            "/superset/dashboard/<id>/. Must be unique across the instance."
+            "is reachable at /dashboard/<slug>/ instead of "
+            "/dashboard/<id>/. Must be unique across the instance."
         ),
     )
     position_json: Dict[str, Any] | None = Field(
@@ -1031,6 +1081,385 @@ class UpdateDashboardResponse(BaseModel):
             "title was altered by sanitization."
         ),
     )
+
+
+class ManageDashboardOwnersRequest(BaseModel):
+    """Request schema for explicit add/remove dashboard owner management.
+
+    Unlike ``update_dashboard``'s dropped ``owners`` field (a full-replacement
+    list with no safety guard, so an empty or partial list could silently
+    orphan a dashboard), this tool takes explicit add/remove operations and
+    rejects any change that would leave the dashboard with zero owners.
+
+    "Owners" here means USER-type entries in the dashboard's Subject-based
+    ``editors`` list (the ownership model apache/superset#38831 introduced,
+    replacing the legacy ``owners`` relationship). Any ROLE- or GROUP-type
+    editors already on the dashboard are left untouched by this tool.
+    """
+
+    identifier: int | str = Field(
+        ...,
+        description=(
+            "Dashboard ID (integer), UUID, or slug. Same identifier shape "
+            "accepted by ``get_dashboard_info``."
+        ),
+    )
+    add_owner_ids: list[int] = Field(
+        default_factory=list,
+        description=(
+            "User IDs to add as dashboard owners. Discover IDs with ``find_users``."
+        ),
+    )
+    remove_owner_ids: list[int] = Field(
+        default_factory=list,
+        description=(
+            "User IDs to remove from dashboard owners. Rejected if it would "
+            "leave the dashboard with zero owners, or if an ID is not "
+            "currently an owner."
+        ),
+    )
+
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so identifier=true would coerce to
+        dashboard ID 1 and mutate the wrong dashboard; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID, UUID, or slug string")
+        return value
+
+    @field_validator("add_owner_ids", "remove_owner_ids", mode="before")
+    @classmethod
+    def reject_bool_owner_ids(cls, value: object) -> object:
+        """bool is a subclass of int, so a `true`/`false` list element would
+        coerce to owner ID 1/0 and add/remove the wrong owner; reject it."""
+        if isinstance(value, list) and any(isinstance(item, bool) for item in value):
+            raise ValueError("owner ID list items must be integers, not booleans")
+        return value
+
+    @model_validator(mode="after")
+    def _validate_operations(self) -> "ManageDashboardOwnersRequest":
+        if not self.add_owner_ids and not self.remove_owner_ids:
+            raise ValueError(
+                "At least one of add_owner_ids or remove_owner_ids is required."
+            )
+        overlap: list[int] = sorted(
+            set(self.add_owner_ids) & set(self.remove_owner_ids)
+        )
+        if overlap:
+            raise ValueError(
+                "User IDs cannot appear in both add_owner_ids and "
+                f"remove_owner_ids: {overlap}."
+            )
+        return self
+
+
+class DashboardMutationErrorFields(BaseModel):
+    """Shared ``error``/``permission_denied`` fields for dashboard governance
+    mutation responses (owners/roles/certification), including the
+    validator that wraps ``error`` before it is exposed to LLM context.
+    """
+
+    error: str | None = Field(None, description="Error message, if operation failed")
+    permission_denied: bool = Field(
+        default=False,
+        description=("True when the user lacks edit rights on the target dashboard."),
+    )
+
+    @field_validator("error")
+    @classmethod
+    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
+        """Wrap error text before it is exposed to LLM context."""
+        if value is None:
+            return value
+        return sanitize_for_llm_context(value, field_path=("error",))
+
+
+class ManageDashboardOwnersResponse(DashboardMutationErrorFields):
+    """Response schema for ``manage_dashboard_owners``."""
+
+    owners: list[SubjectInfo] = Field(
+        default_factory=list,
+        description=(
+            "Full list of USER-type editor subjects (dashboard owners) "
+            "after the operation. Any ROLE/GROUP-type editors on the "
+            "dashboard are not included here."
+        ),
+    )
+    dashboard_url: str | None = Field(None, description="URL to view the dashboard")
+    added_owner_ids: list[int] = Field(
+        default_factory=list,
+        description="User IDs actually added as owners by this call.",
+    )
+    removed_owner_ids: list[int] = Field(
+        default_factory=list,
+        description="User IDs actually removed from owners by this call.",
+    )
+    warnings: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Non-fatal advisory messages, e.g. that a non-admin caller was "
+            "automatically re-added as owner after trying to remove "
+            "themselves."
+        ),
+    )
+
+    @field_validator("owners", mode="after")
+    @classmethod
+    def sanitize_owners_for_llm_context(
+        cls, value: list[SubjectInfo]
+    ) -> list[SubjectInfo]:
+        """Wrap owner labels before LLM exposure; owner display names are
+        user-controlled and render as plain text in this response, so an
+        unsanitized label could inject content into LLM context (CWE-79
+        analog for LLM-facing output). Entries that sanitize to an empty
+        label are dropped rather than surfaced with a blank identity."""
+        sanitized: list[SubjectInfo] = []
+        for subject in value:
+            if subject.label is None:
+                sanitized.append(subject)
+                continue
+            clean_label: str = sanitize_for_llm_context(
+                subject.label, field_path=("owners", "label")
+            )
+            if not clean_label:
+                continue
+            sanitized.append(subject.model_copy(update={"label": clean_label}))
+        return sanitized
+
+
+class ManageDashboardRolesRequest(BaseModel):
+    """Request schema for explicit add/remove dashboard RBAC role management.
+
+    Unlike ``update_dashboard``'s dropped ``roles`` field (a full-replacement
+    access-control list), this tool takes explicit add/remove operations.
+
+    "Roles" here means ROLE-type entries in the dashboard's Subject-based
+    ``viewers`` list (the access model apache/superset#38831 introduced,
+    replacing the legacy ``roles``/``DASHBOARD_RBAC`` relationship). Any
+    USER- or GROUP-type viewers already on the dashboard are left untouched
+    by this tool.
+    """
+
+    identifier: int | str = Field(
+        ...,
+        description=(
+            "Dashboard ID (integer), UUID, or slug. Same identifier shape "
+            "accepted by ``get_dashboard_info``."
+        ),
+    )
+    add_role_ids: list[int] = Field(
+        default_factory=list,
+        description=(
+            "Role IDs to grant dashboard access to. Discover IDs with ``list_roles``."
+        ),
+    )
+    remove_role_ids: list[int] = Field(
+        default_factory=list,
+        description=(
+            "Role IDs to revoke dashboard access from. Rejected if an ID is "
+            "not currently assigned to the dashboard."
+        ),
+    )
+
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so identifier=true would coerce to
+        dashboard ID 1 and mutate the wrong dashboard; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID, UUID, or slug string")
+        return value
+
+    @field_validator("add_role_ids", "remove_role_ids", mode="before")
+    @classmethod
+    def reject_bool_role_ids(cls, value: object) -> object:
+        """bool is a subclass of int, so a `true`/`false` list element would
+        coerce to role ID 1/0 and grant/revoke the wrong role; reject it."""
+        if isinstance(value, list) and any(isinstance(item, bool) for item in value):
+            raise ValueError("role ID list items must be integers, not booleans")
+        return value
+
+    @model_validator(mode="after")
+    def _validate_operations(self) -> "ManageDashboardRolesRequest":
+        if not self.add_role_ids and not self.remove_role_ids:
+            raise ValueError(
+                "At least one of add_role_ids or remove_role_ids is required."
+            )
+        overlap: list[int] = sorted(set(self.add_role_ids) & set(self.remove_role_ids))
+        if overlap:
+            raise ValueError(
+                "Role IDs cannot appear in both add_role_ids and "
+                f"remove_role_ids: {overlap}."
+            )
+        return self
+
+
+class ManageDashboardRolesResponse(DashboardMutationErrorFields):
+    """Response schema for ``manage_dashboard_roles``."""
+
+    roles: list[SubjectInfo] = Field(
+        default_factory=list,
+        description=(
+            "Full list of ROLE-type viewer subjects (dashboard access "
+            "roles) after the operation. Any USER/GROUP-type viewers on "
+            "the dashboard are not included here."
+        ),
+    )
+    dashboard_url: str | None = Field(None, description="URL to view the dashboard")
+    added_role_ids: list[int] = Field(
+        default_factory=list,
+        description="Role IDs actually added by this call.",
+    )
+    removed_role_ids: list[int] = Field(
+        default_factory=list,
+        description="Role IDs actually removed by this call.",
+    )
+    viewers_enabled: bool = Field(
+        default=False,
+        description=(
+            "Whether the ENABLE_VIEWERS feature flag is enabled on this "
+            "instance. When False, dashboard viewers are stored but have no "
+            "effect on access control — access still follows normal "
+            "Superset permissions/editorship."
+        ),
+    )
+    warnings: list[str] = Field(
+        default_factory=list, description="Non-fatal advisory messages."
+    )
+
+    @field_validator("roles", mode="after")
+    @classmethod
+    def sanitize_roles_for_llm_context(
+        cls, value: list[SubjectInfo]
+    ) -> list[SubjectInfo]:
+        """Wrap role labels before LLM exposure; role display names are
+        user-controlled and render as plain text in this response, so an
+        unsanitized label could inject content into LLM context (CWE-79
+        analog for LLM-facing output). Entries that sanitize to an empty
+        label are dropped rather than surfaced with a blank identity."""
+        sanitized: list[SubjectInfo] = []
+        for subject in value:
+            if subject.label is None:
+                sanitized.append(subject)
+                continue
+            clean_label: str = sanitize_for_llm_context(
+                subject.label, field_path=("roles", "label")
+            )
+            if not clean_label:
+                continue
+            sanitized.append(subject.model_copy(update={"label": clean_label}))
+        return sanitized
+
+
+class ManageDashboardCertificationRequest(BaseModel):
+    """Request schema for setting or clearing dashboard certification.
+
+    ``certified_by`` and ``certification_details`` are independent optional
+    fields: omit (None) to leave a field unchanged, pass an empty string to
+    clear it, or pass a value to set it — mirrors the ``slug``/``css``
+    clear-with-empty-string convention on ``update_dashboard``.
+    """
+
+    identifier: int | str = Field(
+        ...,
+        description=(
+            "Dashboard ID (integer), UUID, or slug. Same identifier shape "
+            "accepted by ``get_dashboard_info``."
+        ),
+    )
+    certified_by: str | None = Field(
+        None,
+        max_length=500,
+        description=(
+            "Person or team certifying this dashboard. Pass an empty string "
+            "to clear. Omit (None) to leave unchanged."
+        ),
+    )
+    certification_details: str | None = Field(
+        None,
+        max_length=5000,
+        description=(
+            "Details of the certification (why/how it was certified). Pass "
+            "an empty string to clear. Omit (None) to leave unchanged."
+        ),
+    )
+
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so identifier=true would coerce to
+        dashboard ID 1 and mutate the wrong dashboard; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID, UUID, or slug string")
+        return value
+
+    @field_validator("certified_by")
+    @classmethod
+    def sanitize_certified_by(cls, v: str | None) -> str | None:
+        """Sanitize certified_by to prevent XSS; it renders as a UI badge."""
+        if v is None or v == "":
+            return v
+        sanitized: str | None = sanitize_user_input(
+            v, "certified_by", max_length=500, allow_empty=True
+        )
+        if not sanitized:
+            # Empty string means "clear the field", so an input that
+            # sanitizes down to nothing (HTML-only or whitespace-only) must
+            # not silently erase an existing certification.
+            raise ValueError(
+                "certified_by has no content left after sanitization; pass "
+                'an explicit empty string ("") to clear the field.'
+            )
+        return sanitized
+
+    @field_validator("certification_details")
+    @classmethod
+    def sanitize_certification_details(cls, v: str | None) -> str | None:
+        """Sanitize certification_details to prevent XSS; it renders in the
+        same CertifiedBadge tooltip as certified_by."""
+        if v is None or v == "":
+            return v
+        sanitized: str | None = sanitize_user_input(
+            v, "certification_details", max_length=5000, allow_empty=True
+        )
+        if not sanitized:
+            # Same guard as certified_by: only an explicit "" may clear.
+            raise ValueError(
+                "certification_details has no content left after "
+                'sanitization; pass an explicit empty string ("") to clear '
+                "the field."
+            )
+        return sanitized
+
+
+class ManageDashboardCertificationResponse(DashboardMutationErrorFields):
+    """Response schema for ``manage_dashboard_certification``."""
+
+    certified_by: str | None = Field(
+        None, description="Certifying person/team after the operation."
+    )
+    certification_details: str | None = Field(
+        None, description="Certification details after the operation."
+    )
+    dashboard_url: str | None = Field(None, description="URL to view the dashboard")
+    changed_fields: list[str] = Field(
+        default_factory=list,
+        description="Names of fields that were actually applied.",
+    )
+    warnings: list[str] = Field(
+        default_factory=list, description="Non-fatal advisory messages."
+    )
+
+    @field_validator("certified_by", "certification_details")
+    @classmethod
+    def sanitize_output_for_llm_context(
+        cls, value: str | None, info: Any
+    ) -> str | None:
+        """Wrap dashboard-controlled certification text before LLM exposure."""
+        if value is None:
+            return value
+        return sanitize_for_llm_context(value, field_path=(info.field_name,))
 
 
 class GenerateDashboardResponse(BaseModel):
@@ -1601,7 +2030,7 @@ def _safe_user_label(value: Any) -> str | None:
 def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
     include_data_model_metadata = user_can_view_data_model_metadata()
     base_url = get_superset_base_url()
-    relative_url = dashboard.url  # e.g. "/superset/dashboard/{slug_or_id}/"
+    relative_url = dashboard.url  # e.g. "/dashboard/{slug_or_id}/"
     absolute_url = f"{base_url}{relative_url}" if relative_url else None
     json_metadata_str = getattr(dashboard, "json_metadata", None)
     position_json_str = getattr(dashboard, "position_json", None)
@@ -1637,6 +2066,13 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
                 json_metadata_str,
                 position_json_str,
             ),
+            editors=[
+                info
+                for editor in dashboard.editors
+                if (info := serialize_subject_object(editor)) is not None
+            ]
+            if dashboard.editors
+            else [],
             tags=[
                 TagInfo.model_validate(tag, from_attributes=True)
                 for tag in dashboard.tags
@@ -1669,9 +2105,7 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
     slug = getattr(dashboard, "slug", None)
     dashboard_url = None
     if dashboard_id is not None:
-        dashboard_url = (
-            f"{get_superset_base_url()}/superset/dashboard/{slug or dashboard_id}/"
-        )
+        dashboard_url = f"{get_superset_base_url()}/dashboard/{slug or dashboard_id}/"
 
     json_metadata_str = getattr(dashboard, "json_metadata", None)
     position_json_str = getattr(dashboard, "position_json", None)
@@ -1696,6 +2130,7 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
             css=getattr(dashboard, "css", None),
             certified_by=getattr(dashboard, "certified_by", None),
             certification_details=getattr(dashboard, "certification_details", None),
+            deleted_at=getattr(dashboard, "deleted_at", None),
             native_filters=_extract_native_filters(
                 json_metadata_str,
                 include_data_model_metadata=include_data_model_metadata,
@@ -1708,6 +2143,13 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
             if getattr(dashboard, "uuid", None)
             else None,
             chart_count=len(getattr(dashboard, "slices", [])),
+            editors=[
+                info
+                for editor in getattr(dashboard, "editors", [])
+                if (info := serialize_subject_object(editor)) is not None
+            ]
+            if getattr(dashboard, "editors", None)
+            else [],
             tags=[
                 TagInfo.model_validate(tag, from_attributes=True)
                 for tag in getattr(dashboard, "tags", [])
@@ -1783,6 +2225,50 @@ def dashboard_layout_serializer(dashboard: "Dashboard") -> DashboardLayout:
             charts=charts,
             has_layout=bool(position_json_str),
         )
+    )
+
+
+class DeleteDashboardRequest(BaseModel):
+    """Request schema for delete_dashboard."""
+
+    identifier: int | str = Field(
+        ...,
+        description="Dashboard identifier - numeric ID, UUID string, or slug.",
+    )
+
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so identifier=true would coerce to
+        dashboard ID 1 and delete the wrong object; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID, UUID, or slug string")
+        return value
+
+
+class DeleteDashboardResponse(BaseModel):
+    """Result of a delete_dashboard operation."""
+
+    success: bool = Field(description="Whether the dashboard was deleted")
+    deleted_id: int | None = Field(None, description="ID of the deleted dashboard")
+    deleted_name: str | None = Field(None, description="Title of the deleted dashboard")
+    soft_deleted: bool = Field(
+        False,
+        description=(
+            "True when the dashboard was soft-deleted (moved to trash, because "
+            "the SOFT_DELETE feature flag is enabled) and can be restored by an "
+            "owner or Admin. False means the delete was permanent."
+        ),
+    )
+    message: str | None = Field(None, description="Human-readable outcome message")
+    error: str | None = Field(None, description="Error message if the delete failed")
+    error_type: str | None = Field(None, description="Type of error if failed")
+    permission_denied: bool = Field(
+        False,
+        description=(
+            "True when the caller lacks permission to delete the dashboard (do "
+            "not retry; ask the user)."
+        ),
     )
 
 
@@ -2228,4 +2714,47 @@ def dashboard_datasets_serializer(dashboard: "Dashboard") -> DashboardDatasets:
         dataset_count=len(datasets),
         inaccessible_dataset_count=inaccessible_count,
         datasets=datasets,
+    )
+
+
+# ---------------------------------------------------------------------------
+# restore_dashboard schemas
+# ---------------------------------------------------------------------------
+
+
+class RestoreDashboardRequest(BaseModel):
+    """Request schema for restore_dashboard."""
+
+    identifier: int | str = Field(
+        ...,
+        description="Dashboard identifier - numeric ID or UUID string.",
+    )
+
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so identifier=true would coerce to
+        dashboard ID 1 and target the wrong object; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID or UUID string")
+        return value
+
+
+class RestoreDashboardResponse(BaseModel):
+    """Result of a restore_dashboard operation."""
+
+    success: bool = Field(description="Whether the dashboard was restored from trash")
+    restored_id: int | None = Field(None, description="ID of the restored dashboard")
+    restored_name: str | None = Field(
+        None, description="Title of the restored dashboard"
+    )
+    message: str | None = Field(None, description="Human-readable outcome message")
+    error: str | None = Field(None, description="Error message if the restore failed")
+    error_type: str | None = Field(None, description="Type of error if failed")
+    permission_denied: bool = Field(
+        False,
+        description=(
+            "True when the caller lacks permission to restore the dashboard (do "
+            "not retry; ask the user)."
+        ),
     )
