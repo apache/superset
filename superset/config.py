@@ -25,6 +25,7 @@ at the end of this file.
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import logging
@@ -3041,6 +3042,27 @@ TASKS_ABORT_CHANNEL_PREFIX = "gtf:abort:"
 # -------------------------------------------------------------------
 # Don't add config values below this line since local configs won't be
 # able to override them.
+
+def _config_fingerprint(config_file: str | None) -> str:
+    """
+    A short digest of the config file's bytes as read at import time.
+
+    Auto-reloaders (e.g. werkzeug's) re-import this module when the config
+    file changes, and on some filesystems (notably macOS Docker mounts) the
+    re-read can race the write and observe stale content while still
+    "loading successfully". Logging the digest of what was *actually read*
+    makes that skew diagnosable: compare it against
+    ``md5 <path>`` on the host.
+    """
+    if not config_file:
+        return "unknown"
+    try:
+        with open(config_file, "rb") as fh:
+            return hashlib.md5(fh.read()).hexdigest()[:12]  # noqa: S324
+    except OSError:
+        return "unreadable"
+
+
 if CONFIG_PATH_ENV_VAR in os.environ:
     # Explicitly import config module that is not necessarily in pythonpath; useful
     # for case where app is being executed via pex.
@@ -3054,7 +3076,11 @@ if CONFIG_PATH_ENV_VAR in os.environ:
             if key.isupper():
                 setattr(module, key, getattr(override_conf, key))
 
-        click.secho(f"Loaded your LOCAL configuration at [{cfg_path}]", fg="cyan")
+        click.secho(
+            f"Loaded your LOCAL configuration at [{cfg_path}] "
+            f"(md5:{_config_fingerprint(cfg_path)})",
+            fg="cyan",
+        )
     except Exception:
         logger.exception(
             "Failed to import config for %s=%s", CONFIG_PATH_ENV_VAR, cfg_path
@@ -3067,7 +3093,8 @@ elif importlib.util.find_spec("superset_config"):
         from superset_config import *  # noqa: F403, F401
 
         click.secho(
-            f"Loaded your LOCAL configuration at [{superset_config.__file__}]",
+            f"Loaded your LOCAL configuration at [{superset_config.__file__}] "
+            f"(md5:{_config_fingerprint(superset_config.__file__)})",
             fg="cyan",
         )
     except Exception:
