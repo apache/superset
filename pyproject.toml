@@ -113,7 +113,7 @@ dependencies = [
     "sqlglot>=30.12.0, <31",
     # newer pandas needs 0.9+
     "tabulate>=0.10.0, <1.0",
-    "typing-extensions>=4, <5",
+    "typing-extensions>=4.16.0, <5",
     "waitress; sys_platform == 'win32'",
     "watchdog>=6.0.0",
     "wtforms>=3.2.2, <4",
