@@ -321,9 +321,10 @@ export const FormattingPopoverContent = ({
     () => allColumns.filter(col => col.dataType === GenericDataType.Numeric),
     [allColumns],
   );
-
+  const defaultColorToken = colors[0]?.colors?.[0];
   const defaultColorValue =
-    theme[colorScheme()[0]?.colors[0] as keyof typeof theme] || undefined;
+    (defaultColorToken && theme[defaultColorToken as keyof typeof theme]) ||
+    defaultColorToken;
 
   const visibleUseGradient = useMemo(
     () =>

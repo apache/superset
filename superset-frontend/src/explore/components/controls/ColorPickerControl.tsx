@@ -47,7 +47,7 @@ export interface ColorPickerControlProps {
 
 function toDisplayHex(
   value: ColorPickerValue | undefined,
-  theme?: any,
+  theme?: ReturnType<typeof useTheme>,
 ): string | undefined {
   if (!value) return undefined;
 

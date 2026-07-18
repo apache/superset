@@ -271,6 +271,9 @@ export const getColorFunction = (
     const { cutoffValue, extremeValue } = compareResult;
 
     if (typeof colorScheme === 'string') {
+      if (useGradient === false) {
+        return colorScheme;
+      }
       if (alpha === undefined || alpha) {
         return addAlpha(
           colorScheme,
