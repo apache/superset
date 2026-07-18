@@ -1739,7 +1739,7 @@ msgid "An error occurred while accessing the value."
 msgstr "Une erreur s'est produite durant l'accès à la valeur."
 
 msgid "An error occurred while adding semantic views"
-msgstr "Une erreur s'est produite lors du chargement de SQL"
+msgstr "Une erreur s'est produite lors de l'ajout des vues sémantiques"
 
 msgid ""
 "An error occurred while collapsing the table schema. Please contact your "
@@ -3029,7 +3029,7 @@ msgid "Captcha"
 msgstr "Captcha"
 
 msgid "Cartodiagram"
-msgstr "Diagramme cartographique\"es"
+msgstr "Diagramme cartographique"
 
 msgid "Catalog"
 msgstr "Catalogue"
@@ -3684,7 +3684,7 @@ msgid "Color By Y-Axis"
 msgstr "Colorer par axe Y"
 
 msgid "Color Metric"
-msgstr "Colour de la mesure"
+msgstr "Couleur de la mesure"
 
 msgid "Color Scheme"
 msgstr "Schéma de couleurs"
@@ -14409,7 +14409,7 @@ msgstr ""
 msgid ""
 "The minimum value of metrics. It is an optional configuration. If not "
 "set, it will be the minimum value of the data"
-msgstr "La valeur maximale des mesures. Il s'agit d'une configuration optionnelle"
+msgstr "La valeur minimale des mesures. Il s'agit d'une configuration optionnelle"
 
 msgid "The name of the geometry column"
 msgstr "Le nom de la colonne géométrique"
