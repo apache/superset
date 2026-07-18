@@ -26,6 +26,7 @@ import {
   IntervalAnnotationLayer,
   VizType,
   ChartDataResponseResult,
+  TimeGranularity,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
@@ -52,6 +53,12 @@ type LabelFormatterParams = {
 type SeriesWithLabelFormatter = SeriesOption & {
   label?: {
     formatter?: (params: LabelFormatterParams) => string | number;
+  };
+};
+
+type TooltipFormatterOptions = {
+  tooltip: {
+    formatter: (params: unknown) => string;
   };
 };
 
@@ -777,6 +784,198 @@ test('xAxisForceCategorical forces Category axis regardless of Numeric coltype',
   expect(xAxis.type).toBe(AxisType.Category);
 });
 
+// labelMap/labelMapB must be keyed by the rendered series names or the
+// cross-filter/drill lookups in EchartsMixedTimeseries miss (#41622);
+// see the re-key comment in transformProps.ts.
+test('cross-filter label maps are keyed by the rendered series names', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: { ...formData, showQueryIdentifiers: false },
+    queriesData,
+  });
+  const transformed = transformProps(chartProps);
+
+  // The backend label_map is keyed by the flattened column names
+  // ("boy"/"girl") while the rendered series are "sum__num, boy" etc.
+  expect(transformed.labelMap).toEqual({
+    'sum__num, boy': ['boy'],
+    'sum__num, girl': ['girl'],
+  });
+  expect(transformed.labelMapB).toEqual({
+    'sum__num, boy': ['boy'],
+    'sum__num, girl': ['girl'],
+  });
+});
+
+test('cross-filter label maps resolve every rendered series name', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: { ...formData, showQueryIdentifiers: true },
+    queriesData,
+  });
+  const transformed = transformProps(chartProps);
+
+  const names = (transformed.echartOptions.series as SeriesOption[]).map(
+    series => String(series.name),
+  );
+  expect(names).toHaveLength(4);
+  names
+    .slice(0, transformed.seriesBreakdown)
+    .forEach(name => expect(transformed.labelMap[name]).toBeDefined());
+  names
+    .slice(transformed.seriesBreakdown)
+    .forEach(name => expect(transformed.labelMapB[name]).toBeDefined());
+});
+
+test('cross-filter label maps resolve verbose series names to raw label_map values', () => {
+  const verboseRows = [
+    { ds: 599616000000, sum__num: 1 },
+    { ds: 599916000000, sum__num: 3 },
+  ];
+  const verboseQueryData = createTestQueryData(verboseRows, {
+    label_map: { ds: ['ds'], sum__num: ['sum__num'] },
+  });
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [verboseQueryData, verboseQueryData],
+    formData: { ...formData, groupby: [], groupbyB: [] },
+    queriesData: [verboseQueryData, verboseQueryData],
+    datasource: {
+      verboseMap: { sum__num: 'Total Births' },
+    },
+  });
+  const transformed = transformProps(chartProps);
+
+  // rebaseForecastDatum renames data columns to their verbose names, so the
+  // rendered series is "Total Births" while label_map stays keyed by
+  // "sum__num" — the display-keyed map bridges the two.
+  expect(transformed.labelMap['Total Births']).toEqual(['sum__num']);
+  expect(transformed.labelMapB['Total Births']).toEqual(['sum__num']);
+});
+
+test('tooltip resolves per-metric formats through the display-keyed label map', () => {
+  // Multi-metric so getCustomFormatter cannot short-circuit on a single
+  // saved metric: the formatter key must come from resolving the rendered
+  // series name through the display-keyed map.
+  const rows = [{ ds: 599616000000, 'sum__num, boy': 0.5, 'avg__num, boy': 1 }];
+  const queryData = createTestQueryData(rows, {
+    colnames: ['ds', 'sum__num, boy', 'avg__num, boy'],
+    coltypes: [
+      GenericDataType.Temporal,
+      GenericDataType.Numeric,
+      GenericDataType.Numeric,
+    ],
+    label_map: {
+      ds: ['ds'],
+      'sum__num, boy': ['sum__num', 'boy'],
+      'avg__num, boy': ['avg__num', 'boy'],
+    },
+  });
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [queryData, queryData],
+    formData: {
+      ...formData,
+      metrics: ['sum__num', 'avg__num'],
+      x_axis: 'ds',
+      yAxisFormat: undefined,
+    },
+    queriesData: [queryData, queryData],
+    datasource: {
+      columnFormats: { sum__num: '.2%' },
+    },
+  });
+  const transformed = transformProps(chartProps);
+
+  const formatter = (transformed.echartOptions.tooltip as any).formatter as (
+    params: unknown,
+  ) => string;
+  const html = formatter({
+    value: [599616000000, 0.5],
+    seriesId: 'sum__num, boy',
+    marker: '',
+    color: '#333',
+  });
+
+  expect(html).toContain('50.00%');
+});
+
+test('tooltip resolves per-metric formats for secondary-query series', () => {
+  const rowsA = [
+    { ds: 599616000000, 'sum__num, boy': 0.5, 'avg__num, boy': 1 },
+  ];
+  const queryDataA = createTestQueryData(rowsA, {
+    colnames: ['ds', 'sum__num, boy', 'avg__num, boy'],
+    coltypes: [
+      GenericDataType.Temporal,
+      GenericDataType.Numeric,
+      GenericDataType.Numeric,
+    ],
+    label_map: {
+      ds: ['ds'],
+      'sum__num, boy': ['sum__num', 'boy'],
+      'avg__num, boy': ['avg__num', 'boy'],
+    },
+  });
+  const rowsB = [{ ds: 599616000000, 'count__num, boy': 2.5 }];
+  const queryDataB = createTestQueryData(rowsB, {
+    colnames: ['ds', 'count__num, boy'],
+    coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+    label_map: {
+      ds: ['ds'],
+      'count__num, boy': ['count__num', 'boy'],
+    },
+  });
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [queryDataA, queryDataB],
+    formData: {
+      ...formData,
+      metrics: ['sum__num', 'avg__num'],
+      metricsB: ['count__num', 'max__num'],
+      x_axis: 'ds',
+      yAxisFormat: undefined,
+      yAxisFormatSecondary: undefined,
+      yAxisIndex: 0,
+      yAxisIndexB: 1,
+    },
+    queriesData: [queryDataA, queryDataB],
+    datasource: {
+      columnFormats: { count__num: '.1f' },
+    },
+  });
+  const transformed = transformProps(chartProps);
+
+  const formatter = (transformed.echartOptions.tooltip as any).formatter as (
+    params: unknown,
+  ) => string;
+  const html = formatter({
+    value: [599616000000, 2.5],
+    seriesId: 'count__num, boy',
+    marker: '',
+    color: '#333',
+  });
+
+  expect(html).toContain('2.5');
+});
+
 test('temporal x coltype wires the time formatter and Time axis', () => {
   // Regression guard: the happy path for mixed-timeseries charts. Ensures
   // Temporal coltype still routes through the TimeFormatter so the time axis
@@ -820,4 +1019,90 @@ test('temporal x coltype wires the time formatter and Time axis', () => {
   const label = xAxis.axisLabel.formatter(new Date(ts1));
   expect(typeof label).toBe('string');
   expect(label).not.toMatch(/NaN/);
+});
+
+test('tooltip time grain wiring: dashboard-level extraFormData time grain overrides the chart-level grain in the tooltip', () => {
+  const ts = Date.UTC(2021, 0, 7);
+  const temporalRows = [{ __timestamp: ts, metric: 100 }];
+  const temporalQueryData = createTestQueryData(temporalRows, {
+    colnames: ['__timestamp', 'metric'],
+    coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+    label_map: { __timestamp: ['__timestamp'], metric: ['metric'] },
+  });
+
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [temporalQueryData, temporalQueryData],
+    formData: {
+      ...formData,
+      x_axis: '__timestamp',
+      metrics: ['metric'],
+      metricsB: ['metric'],
+      groupby: [],
+      groupbyB: [],
+      // The chart itself is configured with a Day grain...
+      timeGrainSqla: TimeGranularity.DAY,
+      // ...but a dashboard-level filter/override resolves to Month.
+      extraFormData: { time_grain_sqla: TimeGranularity.MONTH },
+    },
+    queriesData: [temporalQueryData, temporalQueryData],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const tooltipFormatter = (echartOptions as unknown as TooltipFormatterOptions)
+    .tooltip.formatter;
+
+  const result = tooltipFormatter({
+    value: [ts, 100],
+    seriesName: 'metric',
+  });
+
+  // Month grain (the dashboard override) should win, so the tooltip title
+  // reads "Jan 2021" rather than the Day-grain "2021-01-07".
+  expect(result).toContain('Jan');
+  expect(result).toContain('2021');
+  expect(result).not.toContain('2021-01-07');
+});
+
+test('tooltip time grain wiring: chart-level time grain drives the tooltip when there is no dashboard override', () => {
+  const ts = Date.UTC(2021, 0, 7);
+  const temporalRows = [{ __timestamp: ts, metric: 100 }];
+  const temporalQueryData = createTestQueryData(temporalRows, {
+    colnames: ['__timestamp', 'metric'],
+    coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+    label_map: { __timestamp: ['__timestamp'], metric: ['metric'] },
+  });
+
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [temporalQueryData, temporalQueryData],
+    formData: {
+      ...formData,
+      x_axis: '__timestamp',
+      metrics: ['metric'],
+      metricsB: ['metric'],
+      groupby: [],
+      groupbyB: [],
+      timeGrainSqla: TimeGranularity.YEAR,
+    },
+    queriesData: [temporalQueryData, temporalQueryData],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const tooltipFormatter = (echartOptions as unknown as TooltipFormatterOptions)
+    .tooltip.formatter;
+
+  const result = tooltipFormatter({
+    value: [ts, 100],
+    seriesName: 'metric',
+  });
+
+  expect(result).toContain('2021');
+  expect(result).not.toContain('2021-01-07');
 });
