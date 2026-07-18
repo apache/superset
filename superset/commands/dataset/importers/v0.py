@@ -214,15 +214,19 @@ def import_from_dict(data: dict[str, Any], sync: Optional[list[str]] = None) -> 
         sync = []
     if isinstance(data, dict):
         databases = data.get(DATABASES_KEY, [])
-        if databases:
-            # This legacy path creates/updates the embedded database connections.
-            # Mirror the versioned (v1) import commands and require database write
-            # permission for the objects being created here. Only enforced when a
-            # request user is present so the CLI import paths keep working.
-            if get_user() and not security_manager.can_access("can_write", "Database"):
-                raise ImportFailedError(
-                    "User doesn't have permission to create or update databases"
-                )
+        # This legacy path creates/updates the embedded database connections.
+        # Mirror the versioned (v1) import commands and require database write
+        # permission for the objects being created here. Only enforced when there
+        # is something to import and a request user is present, so the CLI import
+        # paths keep working.
+        if (
+            databases
+            and get_user()
+            and not security_manager.can_access("can_write", "Database")
+        ):
+            raise ImportFailedError(
+                "User doesn't have permission to create or update databases"
+            )
         logger.info("Importing %d %s", len(databases), DATABASES_KEY)
         for database in databases:
             db_obj = Database.import_from_dict(database, sync=sync)

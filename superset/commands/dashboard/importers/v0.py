@@ -307,15 +307,18 @@ def import_dashboards(
     if not data:
         raise DashboardImportException(_("No data in file"))
     dataset_id_mapping: dict[int, int] = {}
-    if data["datasources"]:
-        # This legacy path creates/updates the embedded datasets. Mirror the
-        # versioned (v1) import commands and require dataset write permission
-        # for the objects being created here. Only enforced when a request user
-        # is present so the CLI import paths keep working.
-        if get_user() and not security_manager.can_access("can_write", "Dataset"):
-            raise ImportFailedError(
-                "User doesn't have permission to create or update datasets"
-            )
+    # This legacy path creates/updates the embedded datasets. Mirror the
+    # versioned (v1) import commands and require dataset write permission for the
+    # objects being created here. Only enforced when there is something to import
+    # and a request user is present, so the CLI import paths keep working.
+    if (
+        data["datasources"]
+        and get_user()
+        and not security_manager.can_access("can_write", "Dataset")
+    ):
+        raise ImportFailedError(
+            "User doesn't have permission to create or update datasets"
+        )
     for table in data["datasources"]:
         new_dataset_id = import_dataset(table, database_id, import_time=import_time)
         params = json.loads(table.params)
