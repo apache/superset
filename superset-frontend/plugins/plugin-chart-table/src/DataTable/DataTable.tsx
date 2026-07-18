@@ -583,7 +583,7 @@ export default typedMemo(function DataTable<D extends object>({
             <Flex wrap align="center" gap="middle">
               {searchInput && (
                 <>
-                  {serverPagination && (
+                  {serverPagination && searchOptions?.length > 0 && (
                     <Space direction="vertical" size={4}>
                       {t('Search by')}
                       <SearchSelectDropdown
