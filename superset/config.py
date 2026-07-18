@@ -990,6 +990,12 @@ USER_AGENT_FUNC: Callable[[Database, utils.QuerySource | None], str] | None = No
 # This is merely a default.
 FEATURE_FLAGS: dict[str, bool] = {}
 
+# Retention policy for soft-deleted dashboards, charts, and datasets. A value of
+# zero disables scheduled purging. Dry-run mode is enabled by default so operators
+# must explicitly opt in to irreversible deletion.
+SUPERSET_SOFT_DELETE_RETENTION_DAYS: int = 30
+SUPERSET_SOFT_DELETE_PURGE_DRY_RUN: bool = True
+
 # A function that receives a dict of all feature flags
 # (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)
 # can alter it, and returns a similar dict. Note the dict of feature
@@ -1630,6 +1636,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
     broker_url = "sqla+sqlite:///celerydb.sqlite"
     imports = (
         "superset.sql_lab",
+        "superset.tasks.deletion_retention",
         "superset.tasks.scheduler",
         "superset.tasks.thumbnails",
         "superset.tasks.cache",
@@ -1651,6 +1658,10 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         },
         "reports.prune_log": {
             "task": "reports.prune_log",
+            "schedule": crontab(minute=0, hour=0),
+        },
+        "deletion_retention.purge_soft_deleted": {
+            "task": "deletion_retention.purge_soft_deleted",
             "schedule": crontab(minute=0, hour=0),
         },
         # Uncomment to enable pruning of the query table
