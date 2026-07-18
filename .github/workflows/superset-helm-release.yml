@@ -1,6 +1,9 @@
 # This workflow automates the release process for Helm charts.
-# The workflow creates a new branch for the release and opens a pull request against the 'gh-pages' branch,
-# allowing the changes to be reviewed and merged manually.
+# Each run force-recreates a single 'helm-publish' branch from the tip of 'gh-pages' and
+# opens (or reuses) one pull request against 'gh-pages', allowing the changes to be
+# reviewed and merged manually. Because chart-releaser rebuilds index.yaml from all
+# published GitHub releases, the branch always contains every chart released since the
+# last merge, and the PR can never go stale or conflict with gh-pages.
 
 name: "Helm: release charts"
 
@@ -17,6 +20,12 @@ on:
         description: "The branch, tag, or commit SHA to check out"
         required: false
         default: "master"
+
+# Serialize runs: concurrent runs would race on force-pushing the shared
+# helm-publish branch while chart-releaser is mid-release.
+concurrency:
+  group: helm-release
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -57,9 +66,9 @@ jobs:
           echo "DEBUG TAGS"
           git show-ref --tags
 
-      - name: Create unique pages branch name
+      - name: Set pages branch name
         id: vars
-        run: echo "branch_name=helm-publish-${GITHUB_SHA:0:7}" >> $GITHUB_ENV
+        run: echo "branch_name=helm-publish" >> $GITHUB_ENV
 
       - name: Force recreate branch from gh-pages
         env:
@@ -102,7 +111,7 @@ jobs:
           CR_TOKEN: "${{ github.token }}"
           CR_RELEASE_NAME_TEMPLATE: "superset-helm-chart-{{ .Version }}"
 
-      - name: Open Pull Request
+      - name: Open or reuse Pull Request
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
@@ -113,13 +122,36 @@ jobs:
               throw new Error("Branch name is not defined.");
             }
 
+            // The branch is force-recreated from gh-pages on every run, so an
+            // already-open PR for it now reflects this run's charts; opening
+            // another would both fail (422) and recreate the stale-PR pileup
+            // this fixed branch exists to avoid.
+            const { data: existing } = await github.rest.pulls.list({
+              owner,
+              repo,
+              state: "open",
+              head: `${owner}:${branchName}`,
+              base: "gh-pages",
+            });
+
+            if (existing.length > 0) {
+              core.info(`Reusing existing pull request: ${existing[0].html_url}`);
+              return;
+            }
+
             const pr = await github.rest.pulls.create({
               owner,
               repo,
-              title: `Helm chart release for ${branchName}`,
+              title: "Helm chart release",
               head: branchName,
               base: "gh-pages", // Adjust if the target branch is different
-              body: `This PR releases Helm charts to the gh-pages branch.`,
+              body: [
+                "This PR releases Helm charts to the gh-pages branch.",
+                "",
+                "It is force-updated from the tip of `gh-pages` by every release run,",
+                "so it always contains every chart released since the last merge and",
+                "never needs to be closed as superseded.",
+              ].join("\n"),
             });
 
             core.info(`Pull request created: ${pr.data.html_url}`);
