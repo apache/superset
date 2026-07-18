@@ -32,6 +32,7 @@ from superset.common.query_actions import (
     acquire_query_data,
 )
 from superset.common.query_object import QueryObject
+from superset.utils.core import FilterOperator
 
 
 @pytest.fixture
@@ -104,6 +105,9 @@ def test_modern_currency_dependency_is_cache_aware_and_bounded(
 
     hidden_query = mock_query_context.get_df_payload_result.call_args.args[0]
     assert hidden_query.columns == ["currency_code"]
+    assert hidden_query.filter == [
+        {"col": "currency_code", "op": FilterOperator.IS_NOT_NULL, "val": ""}
+    ]
     assert hidden_query.row_limit == 2
     assert hidden_query.metrics == []
     assert hidden_query.is_timeseries is False
@@ -113,6 +117,56 @@ def test_modern_currency_dependency_is_cache_aware_and_bounded(
     }
     assert currency == "USD"
     assert combined.timing.source_ns == 6
+
+
+def test_currency_dependency_preserves_existing_filters_and_excludes_null_codes(
+    mock_query_context: MagicMock,
+    mock_query_obj: MagicMock,
+    mock_datasource: MagicMock,
+) -> None:
+    timing = QueryAcquisitionTiming(
+        cache_key_ns=0,
+        cache_read_ns=0,
+        source_ns=0,
+        cache_write_ns=None,
+        cache_write_outcome=CacheWriteOutcome.NOT_ATTEMPTED,
+        cache_hit=False,
+        sources=(),
+    )
+    primary = QueryAcquisitionResult(
+        payload={
+            "df": pd.DataFrame({"value": [1]}),
+            "status": QueryStatus.SUCCESS,
+        },
+        timing=timing,
+    )
+    dependency = QueryAcquisitionResult(
+        payload={
+            "df": pd.DataFrame({"currency_code": ["USD"]}),
+            "status": QueryStatus.SUCCESS,
+        },
+        timing=timing,
+    )
+    existing_filter = {"col": "region", "op": "IN", "val": ["EMEA"]}
+    mock_query_obj.filter = [existing_filter]
+    mock_query_obj.datasource = mock_datasource
+    mock_query_obj.annotation_layers = []
+    mock_query_obj.time_offsets = []
+    mock_query_context.get_df_payload_result.return_value = dependency
+
+    _acquire_currency_dependency(
+        mock_query_context,
+        mock_query_obj,
+        primary,
+        force_cached=False,
+    )
+
+    hidden_query = mock_query_context.get_df_payload_result.call_args.args[0]
+    assert hidden_query.filter == [
+        existing_filter,
+        {"col": "currency_code", "op": FilterOperator.IS_NOT_NULL, "val": ""},
+    ]
+    assert mock_query_obj.filter == [existing_filter]
 
 
 def test_acquisition_passes_additional_cache_identity() -> None:

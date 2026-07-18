@@ -43,6 +43,7 @@ from superset.utils.core import (
     extract_column_dtype,
     extract_dataframe_dtypes,
     ExtraFiltersReasonType,
+    FilterOperator,
     get_column_name,
     get_time_filter_status,
 )
@@ -178,6 +179,10 @@ def _acquire_currency_dependency(
 
     currency_query: QueryObject = copy.copy(query_obj)
     currency_query.columns = [currency_column]
+    currency_query.filter = [
+        *copy.deepcopy(query_obj.filter),
+        {"col": currency_column, "op": FilterOperator.IS_NOT_NULL, "val": ""},
+    ]
     currency_query.metrics = []
     currency_query.is_timeseries = False
     currency_query.orderby = []
