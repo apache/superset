@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import re
 from datetime import datetime
 from typing import Any, Callable, TYPE_CHECKING
 
@@ -496,6 +497,12 @@ class ChartDataRestApi(ChartRestApi):
                 )
 
             export_filename = filename or self._get_default_export_filename(form_data)
+            # `generate_download_headers` always appends the format extension,
+            # so strip a matching one here to avoid doubled extensions (e.g.
+            # "chart.csv.csv") if the caller already included it.
+            export_filename = re.sub(
+                r"\.(csv|xlsx|zip)$", "", export_filename, flags=re.IGNORECASE
+            )
 
             if len(result["queries"]) == 1:
                 # return single query results

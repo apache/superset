@@ -328,3 +328,38 @@ def test_send_chart_response_uses_chart_name_for_zip_filename() -> None:
 
     content_disposition = response.headers["Content-Disposition"]
     assert "My_Chart" in content_disposition
+
+
+def test_send_chart_response_does_not_double_extension_for_csv_filename() -> None:
+    """
+    Regression test: a client-supplied filename that already includes the
+    ``.csv`` extension must not be doubled (e.g. ``export.csv.csv``) by the
+    non-streaming CSV export branch of _send_chart_response.
+    """
+    from superset.charts.data.api import ChartDataRestApi
+    from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+
+    query_context = MagicMock()
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.result_format = ChartDataResultFormat.CSV
+
+    result = {
+        "query_context": query_context,
+        "queries": [{"data": "col_a,col_b\n1,2\n"}],
+    }
+
+    api = ChartDataRestApi()
+    with (
+        patch("superset.charts.data.api.security_manager") as mock_security_manager,
+        patch("superset.charts.data.api.is_feature_enabled", return_value=False),
+    ):
+        mock_security_manager.can_access.return_value = True
+        response = api._send_chart_response(
+            result,
+            form_data={"row_limit": 10},
+            filename="my_export.csv",
+        )
+
+    content_disposition = response.headers["Content-Disposition"]
+    assert "my_export.csv.csv" not in content_disposition
+    assert "my_export.csv" in content_disposition
