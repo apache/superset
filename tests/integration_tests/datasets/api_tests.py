@@ -261,7 +261,7 @@ class TestDatasetApi(SupersetTestCase):
 
         def count_datasets():
             uri = "api/v1/chart/"
-            rv = self.client.get(uri, "get_list")
+            rv = self.get_assert_metric(uri, "get_list")
             assert rv.status_code == 200
             data = rv.get_json()
             return data["count"]
