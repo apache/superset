@@ -638,7 +638,7 @@ packaging==25.0
     #   pytest
     #   shillelagh
     #   sqlalchemy-bigquery
-pandas==2.1.4
+pandas==2.3.3
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -819,6 +819,10 @@ pytest-mock==3.10.0
     # via
     #   apache-superset
     #   apache-superset-extensions-cli
+python-calamine==0.8.2
+    # via
+    #   -c requirements/base-constraint.txt
+    #   pandas
 python-dateutil==2.9.0.post0
     # via
     #   -c requirements/base-constraint.txt
