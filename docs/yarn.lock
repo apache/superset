@@ -7829,10 +7829,10 @@ doctrine@^2.1.0:
   dependencies:
     esutils "^2.0.2"
 
-docusaurus-plugin-openapi-docs@^5.1.1:
-  version "5.1.1"
-  resolved "https://registry.yarnpkg.com/docusaurus-plugin-openapi-docs/-/docusaurus-plugin-openapi-docs-5.1.1.tgz#78959b32222095408460aee3ee3e889082766d69"
-  integrity sha512-msmXMA6DuKUgGq2eGlsk++Gq58nvXAFghq4VAH4OCCLqNqtY3lGLJeHa5hMPM12x8gH3wBsZhLWRpC3CZi/mAQ==
+docusaurus-plugin-openapi-docs@^5.1.2:
+  version "5.1.2"
+  resolved "https://registry.yarnpkg.com/docusaurus-plugin-openapi-docs/-/docusaurus-plugin-openapi-docs-5.1.2.tgz#1ef66a26d80e2a3baf4caae4e72a0dcf85c6d608"
+  integrity sha512-xlgl/8+2iqSQWdhTJay0lfXqWduaGVTYrn+9i+uT3Uk5gkeDjfQOIVnHGnIHfKg0pUjIm008fvEQVAxk3TvgaQ==
   dependencies:
     "@apidevtools/json-schema-ref-parser" "^15.3.3"
     "@redocly/openapi-core" "^2.25.2"
