@@ -275,7 +275,7 @@ packaging==25.0
     #   kombu
     #   limits
     #   shillelagh
-pandas==2.1.4
+pandas==2.3.3
     # via apache-superset (pyproject.toml)
 paramiko==3.5.1
     # via
@@ -331,6 +331,8 @@ pyparsing==3.2.3
     # via apache-superset (pyproject.toml)
 pysocks==1.7.1
     # via urllib3
+python-calamine==0.8.2
+    # via pandas
 python-dateutil==2.9.0.post0
     # via
     #   apache-superset (pyproject.toml)
