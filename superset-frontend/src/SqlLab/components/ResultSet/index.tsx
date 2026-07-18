@@ -47,7 +47,7 @@ import {
 import type { GridThemeOverrides } from 'src/components/GridTable/types';
 import { buildResultsGridThemeOverrides } from './buildResultsGridThemeOverrides';
 import { nanoid } from 'nanoid';
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import {
   QueryState,
   usePrevious,
@@ -55,7 +55,6 @@ import {
   getExtensionsRegistry,
   ErrorTypeEnum,
 } from '@superset-ui/core';
-import { tn } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
 import {

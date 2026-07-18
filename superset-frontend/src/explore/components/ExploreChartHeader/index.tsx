@@ -19,7 +19,6 @@
 import { FC, memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { QueryFormData, JsonObject } from '@superset-ui/core';
 import {
   Tooltip,
   Button,
@@ -28,6 +27,8 @@ import {
 } from '@superset-ui/core/components';
 import { AlteredSliceTag } from 'src/components';
 import {
+  QueryFormData,
+  JsonObject,
   SupersetClient,
   isMatrixifyEnabled,
   MatrixifyFormData,

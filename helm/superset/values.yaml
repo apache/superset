@@ -415,6 +415,8 @@ supersetNode:
           cpu: "250m"
           memory: "128Mi"
 
+  # -- Extra init containers appended after supersetNode initContainers
+  extraInitContainers: []
   # -- Launch additional containers into supersetNode pod
   extraContainers: []
   # -- Annotations to be added to supersetNode deployment
@@ -542,6 +544,8 @@ supersetWorker:
         requests:
           cpu: "250m"
           memory: "128Mi"
+  # -- Extra init containers appended after supersetWorker initContainers
+  extraInitContainers: []
   # -- Launch additional containers into supersetWorker pod
   extraContainers: []
   # -- Annotations to be added to supersetWorker deployment
@@ -663,6 +667,8 @@ supersetCeleryBeat:
         requests:
           cpu: "250m"
           memory: "128Mi"
+  # -- Extra init containers appended after supersetCeleryBeat initContainers
+  extraInitContainers: []
   # -- Launch additional containers into supersetCeleryBeat pods
   extraContainers: []
   # -- Annotations to be added to supersetCeleryBeat deployment
@@ -780,6 +786,8 @@ supersetCeleryFlower:
         requests:
           cpu: "250m"
           memory: "128Mi"
+  # -- Extra init containers appended after supersetCeleryFlower initContainers
+  extraInitContainers: []
   # -- Launch additional containers into supersetCeleryFlower pods
   extraContainers: []
   # -- Annotations to be added to supersetCeleryFlower deployment
@@ -859,6 +867,38 @@ supersetWebsockets:
       # -- (int)
       http: nil
   command: []
+  # -- List of initContainers
+  # @default -- a container waiting for redis
+  initContainers:
+    - name: wait-for-redis
+      image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+      imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+      envFrom:
+        - secretRef:
+            name: "{{ tpl .Values.envFromSecret . }}"
+      command:
+        - /bin/bash
+        - -c
+        - |
+          # See supersetNode.initContainers for the rationale.
+          SECONDS=0
+          until (exec 3<>/dev/tcp/"$REDIS_HOST"/"$REDIS_PORT") 2>/dev/null; do
+            if [ "$SECONDS" -ge 120 ]; then
+              echo "timeout waiting for redis at $REDIS_HOST:$REDIS_PORT after 120s" >&2
+              exit 1
+            fi
+            echo "waiting for redis at $REDIS_HOST:$REDIS_PORT (elapsed ${SECONDS}s)"
+            sleep 2
+          done
+          echo "redis at $REDIS_HOST:$REDIS_PORT is up"
+      resources:
+        limits:
+          memory: "256Mi"
+        requests:
+          cpu: "250m"
+          memory: "128Mi"
+  # -- Extra init containers appended after supersetWebsockets initContainers
+  extraInitContainers: []
   resources: {}
   # -- Launch additional containers into supersetWebsockets pods
   extraContainers: []
@@ -967,6 +1007,8 @@ init:
         requests:
           cpu: "250m"
           memory: "128Mi"
+  # -- Extra init containers appended after init job initContainers
+  extraInitContainers: []
   # -- DEPRECATED: this field is no longer used by the chart.
   # The init script is rendered entirely from the internal `superset.initScript` template
   # (which runs `superset db upgrade`, `superset init`, admin creation, and examples).
