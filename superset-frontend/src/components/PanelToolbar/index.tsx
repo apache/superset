@@ -17,12 +17,11 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { useMenu } from 'src/core';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Button, Divider, Dropdown } from '@superset-ui/core/components';
 import { Menu, MenuItemType } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { commands } from 'src/core';
+import { commands, useMenu } from 'src/core';
 
 export interface PanelToolbarProps {
   viewId: string;

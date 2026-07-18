@@ -20,6 +20,7 @@ from functools import partial
 from typing import Any, Optional, TypedDict
 
 import pandas as pd
+from flask import current_app
 from flask_babel import lazy_gettext as _
 from werkzeug.datastructures import FileStorage
 
@@ -29,8 +30,10 @@ from superset.commands.database.exceptions import (
     DatabaseNotFoundError,
     DatabaseSchemaUploadNotAllowed,
     DatabaseUploadFailed,
+    DatabaseUploadFileTooLarge,
     DatabaseUploadNotSupported,
     DatabaseUploadSaveMetadataFailed,
+    DatabaseUploadSoftDeletedDatasetExistsError,
 )
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.database import DatabaseDAO
@@ -165,8 +168,6 @@ class UploadCommand(BaseCommand):
             )
         )
 
-        self._reader.read(self._file, self._model, self._table_name, self._schema)
-
         sqla_table = (
             db.session.query(SqlaTable)
             .filter_by(
@@ -177,16 +178,88 @@ class UploadCommand(BaseCommand):
             .one_or_none()
         )
         if not sqla_table:
+            from superset.subjects.utils import get_user_subject
+
+            user = get_user()
+            editors = []
+            if user:
+                subj = get_user_subject(user.id)
+                if subj:
+                    editors.append(subj)
+
+            # The lookup above runs through the soft-delete visibility filter,
+            # so a soft-deleted dataset over this table is invisible here.
+            # Without this guard the upload would create an active twin of the
+            # hidden row — permanently blocking its restore — or die on the
+            # legacy unique constraint. Check BEFORE ``reader.read`` writes
+            # the file's contents into the analytics database: that write is
+            # outside this command's metadata transaction and would not roll
+            # back. With SOFT_DELETE off, leftover soft-deleted rows are
+            # visible to the lookup above, so this branch is never reached
+            # for them (degraded-mode semantics, consistent with the create
+            # paths).
+            # Deferred import: daos.dataset pulls in views.base, which
+            # circularly imports back into the commands package at app init
+            # (same constraint documented in daos/dataset.py re: PR #40573).
+            from superset.daos.dataset import (  # noqa: PLC0415
+                DatasetDAO,
+            )
+
+            if soft_twin := DatasetDAO.find_soft_deleted_logical_duplicate(
+                self._model, Table(self._table_name, self._schema)
+            ):
+                raise DatabaseUploadSoftDeletedDatasetExistsError(str(soft_twin.uuid))
+
+        self._reader.read(self._file, self._model, self._table_name, self._schema)
+
+        if not sqla_table:
             sqla_table = SqlaTable(
                 table_name=self._table_name,
                 database=self._model,
                 database_id=self._model_id,
-                owners=[get_user()],
+                editors=editors,
                 schema=self._schema,
             )
             db.session.add(sqla_table)
 
         sqla_table.fetch_metadata()
+
+    @staticmethod
+    def _file_size_bytes(file: Any) -> Optional[int]:
+        """
+        Return the size of an uploaded file without consuming its stream.
+
+        Returns ``None`` when the stream is not seekable, in which case the
+        size cannot be determined cheaply and the size check is skipped in
+        favour of downstream guards.
+        """
+        stream = getattr(file, "stream", file)
+        try:
+            position = stream.tell()
+            stream.seek(0, 2)  # seek to end
+            size = stream.tell()
+            stream.seek(position)  # restore the original position
+        except (AttributeError, OSError):
+            return None
+        return size
+
+    @classmethod
+    def validate_file_size(cls, file: Any) -> None:
+        """
+        Reject a file whose size exceeds ``UPLOAD_MAX_FILE_SIZE_BYTES``.
+
+        Shared by the upload command and the metadata endpoint so oversized
+        files are rejected before their contents are read into memory,
+        regardless of which path is used.
+
+        :raises DatabaseUploadFileTooLarge: if the file is larger than the limit
+        """
+        max_file_size = current_app.config.get("UPLOAD_MAX_FILE_SIZE_BYTES")
+        if max_file_size is None or file is None:
+            return
+        size = cls._file_size_bytes(file)
+        if size is not None and size > max_file_size:
+            raise DatabaseUploadFileTooLarge()
 
     def validate(self) -> None:
         self._model = DatabaseDAO.find_by_id(self._model_id)
@@ -196,3 +269,5 @@ class UploadCommand(BaseCommand):
             raise DatabaseSchemaUploadNotAllowed()
         if not self._model.db_engine_spec.supports_file_upload:
             raise DatabaseUploadNotSupported()
+
+        self.validate_file_size(self._file)

@@ -28,6 +28,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 )
 
 import pytest
+from sqlalchemy import text
 
 import flask  # noqa: F401
 from flask import current_app, has_app_context  # noqa: F401
@@ -120,7 +121,8 @@ def drop_table_if_exists(table_name: str, table_type: CTASMethod) -> None:
     sql = f"DROP {table_type.name} IF EXISTS {table_name}"
     database = get_example_database()
     with database.get_sqla_engine() as engine:
-        engine.execute(sql)
+        with engine.begin() as conn:
+            conn.execute(text(sql))
 
 
 def quote_f(value: Optional[str]):
@@ -495,8 +497,44 @@ def test_in_app_context():
     )
 
 
+def test_teardown_without_app_context():
+    """Test teardown skips db.session.remove() outside app context.
+
+    Regression test for https://github.com/apache/superset/issues/36892
+    The task_postrun signal can fire after the app context is torn down,
+    so teardown() must check has_app_context() before calling db.session.remove().
+    """
+    # Guard: if superset.tasks.celery_app hasn't been imported yet, its module-level
+    # `flask_app = create_app()` would spin up a second Flask app and corrupt the
+    # Flask-AppBuilder view-registry singleton used by the rest of the test suite.
+    # Patching create_app to return the already-created test app prevents that.
+    with mock.patch("superset.create_app", return_value=app):
+        from superset.tasks.celery_app import teardown
+
+    with (
+        mock.patch("superset.tasks.celery_app.has_app_context", return_value=False),
+        mock.patch("superset.tasks.celery_app.db.session.remove") as mock_remove,
+    ):
+        teardown(retval="success")
+        mock_remove.assert_not_called()
+
+
+def test_teardown_with_app_context():
+    """Test teardown calls db.session.remove() inside app context."""
+    with mock.patch("superset.create_app", return_value=app):
+        from superset.tasks.celery_app import teardown
+
+    with (
+        mock.patch("superset.tasks.celery_app.has_app_context", return_value=True),
+        mock.patch("superset.tasks.celery_app.db.session.remove") as mock_remove,
+    ):
+        teardown(retval="success")
+        mock_remove.assert_called_once()
+
+
 def delete_tmp_view_or_table(name: str, ctas_method: CTASMethod):
-    db.get_engine().execute(f"DROP {ctas_method.name} IF EXISTS {name}")
+    with db.get_engine().begin() as conn:
+        conn.execute(text(f"DROP {ctas_method.name} IF EXISTS {name}"))
 
 
 def wait_for_success(result):

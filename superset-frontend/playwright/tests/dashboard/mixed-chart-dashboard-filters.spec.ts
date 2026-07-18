@@ -109,7 +109,12 @@ testWithAssets(
         id: chartLayoutKey,
         children: [],
         parents: ['ROOT_ID', 'GRID_ID', 'ROW-1'],
-        meta: { chartId, width: 8, height: 60, sliceName: 'mixed_filter_repro' },
+        meta: {
+          chartId,
+          width: 8,
+          height: 60,
+          sliceName: 'mixed_filter_repro',
+        },
       },
     };
     const jsonMetadata = {
@@ -130,9 +135,7 @@ testWithAssets(
           defaultDataMask: {
             filterState: { value: [FILTER_VALUE] },
             extraFormData: {
-              filters: [
-                { col: FILTER_COLUMN, op: 'IN', val: [FILTER_VALUE] },
-              ],
+              filters: [{ col: FILTER_COLUMN, op: 'IN', val: [FILTER_VALUE] }],
             },
           },
           cascadeParentIds: [],
@@ -158,15 +161,14 @@ testWithAssets(
     const dashboardId: number = dashBody.result?.id ?? dashBody.id;
     testAssets.trackDashboard(dashboardId);
 
-    await apiPut(page, `api/v1/chart/${chartId}`, { dashboards: [dashboardId] });
+    await apiPut(page, `api/v1/chart/${chartId}`, {
+      dashboards: [dashboardId],
+    });
 
     // Capture the Mixed chart's data request (the one with two queries).
     const twoQueryPayloads: any[] = [];
     page.on('request', req => {
-      if (
-        req.url().includes('/api/v1/chart/data') &&
-        req.method() === 'POST'
-      ) {
+      if (req.url().includes('/api/v1/chart/data') && req.method() === 'POST') {
         try {
           const body = req.postDataJSON();
           if (body?.queries?.length === 2) {

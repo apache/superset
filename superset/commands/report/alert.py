@@ -37,6 +37,7 @@ from superset.commands.report.exceptions import (
     AlertQueryMultipleRowsError,
     AlertQueryTimeout,
     AlertValidatorConfigError,
+    ReportScheduleExecutorNotFoundError,
 )
 from superset.reports.models import ReportSchedule, ReportScheduleValidatorType
 from superset.tasks.utils import get_executor
@@ -193,6 +194,7 @@ class AlertCommand(BaseCommand):
             database=self._report_schedule.database
         )
         rendered_sql = sql_template.process_template(self._report_schedule.sql)
+
         try:
             limited_rendered_sql = self._report_schedule.database.apply_limit_to_sql(
                 rendered_sql, ALERT_SQL_LIMIT
@@ -210,6 +212,13 @@ class AlertCommand(BaseCommand):
                 model=self._report_schedule,
             )
             user = security_manager.find_user(username)
+            # A deleted/disabled executor user makes find_user return None. Raise
+            # the dedicated error so the handler below re-surfaces it instead of
+            # masking it as an opaque AlertQueryError (or letting the missing user
+            # surface as a NoneType error from the downstream auth flow).
+            if user is None:
+                raise ReportScheduleExecutorNotFoundError(username)
+
             with override_user(user):
                 start = default_timer()
                 df = self._report_schedule.database.get_df(sql=limited_rendered_sql)
@@ -223,6 +232,10 @@ class AlertCommand(BaseCommand):
         except SoftTimeLimitExceeded as ex:
             logger.warning("A timeout occurred while executing the alert query: %s", ex)
             raise AlertQueryTimeout() from ex
+        except ReportScheduleExecutorNotFoundError:
+            # A missing executor user is a configuration problem, not a transient
+            # query error; surface the typed error rather than masking it.
+            raise
         except Exception as ex:
             logger.warning("An error occurred when running alert query")
             # The exception message here can reveal to much information to malicious
