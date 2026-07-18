@@ -49,7 +49,7 @@ const SF_FEATURES = [
 const { getChartBuildQueryRegistry, getChartTransformPropsRegistry } =
   jest.requireActual('@superset-ui/core');
 getChartBuildQueryRegistry().registerValue('deck_scatter', (fd: any) => ({
-  datasource: 'test_datasource',
+  datasource: fd.datasource,
   queries: [{}],
   form_data: fd,
 }));
@@ -103,9 +103,13 @@ beforeEach(() => {
     json: {
       result: {
         viz_type: 'deck_scatter',
+        // The chart's authoritative datasource, which differs from the stale
+        // value baked into params below.
+        datasource_id: 42,
+        datasource_type: 'table',
         params: JSON.stringify({
           viz_type: 'deck_scatter',
-          datasource: 'test_datasource',
+          datasource: '5__table',
         }),
       },
     },
@@ -125,6 +129,19 @@ test('fetches the saved sub-slice and renders its layer (v1 path)', async () => 
       screen.getByTestId('deckgl-container').getAttribute('data-layers-count'),
     ).toBe('1'),
   );
+});
+
+test('queries the layer against the chart real datasource, not the stale params one', async () => {
+  renderV1();
+
+  // The saved params say "5__table" but the chart is bound to
+  // datasource_id 42; the layer query must use the authoritative "42__table"
+  // so it hits the dataset that actually has the layer's columns.
+  await waitFor(() => expect(SupersetClient.post).toHaveBeenCalled());
+  const payload = (SupersetClient.post as jest.Mock).mock.calls[0][0]
+    .jsonPayload;
+  expect(payload.form_data.datasource).toBe('42__table');
+  expect(payload.datasource).toBe('42__table');
 });
 
 test('fits the viewport to the fetched layer data when autozoom is on (v1 path)', async () => {

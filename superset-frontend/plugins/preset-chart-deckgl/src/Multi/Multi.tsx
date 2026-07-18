@@ -498,10 +498,20 @@ const DeckMulti = (props: DeckMultiProps) => {
               } catch {
                 params = {};
               }
+              // The saved params carry a `datasource` string, but it can be
+              // stale (e.g. example charts hardcode an id that differs from the
+              // imported dataset's real id). Prefer the chart's authoritative
+              // datasource_id/datasource_type so the layer queries the dataset
+              // it is actually bound to, the same one it uses standalone.
+              const datasource =
+                result.datasource_id != null && result.datasource_type
+                  ? `${result.datasource_id}__${result.datasource_type}`
+                  : params.datasource;
               return {
                 slice_id: sliceId,
                 form_data: {
                   ...params,
+                  datasource,
                   slice_id: sliceId,
                   viz_type: result.viz_type ?? params.viz_type,
                 },
