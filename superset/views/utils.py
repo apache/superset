@@ -35,6 +35,7 @@ from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import _
 from sqlalchemy.exc import NoResultFound
+from werkzeug.exceptions import BadRequest
 
 from superset import appbuilder, dataframe, db, result_set, viz
 from superset.common.db_query_status import QueryStatus
@@ -197,6 +198,27 @@ def loads_request_json(request_json_data: str) -> dict[Any, Any]:
     return parsed if isinstance(parsed, dict) else {}
 
 
+def get_request_json_body() -> dict[Any, Any]:
+    """Parse the request body as JSON, coercing failures to ``{}``.
+
+    ``request.is_json`` only inspects the Content-Type header, not whether the
+    body is actually parseable JSON. Callers reaching ``get_form_data`` from a
+    non-HTTP-chart-data context (e.g. an MCP tool call rendering
+    ``filter_values()``) can have a request context whose Content-Type claims
+    JSON but whose body isn't a JSON chart-data payload, which makes Werkzeug
+    raise ``BadRequest`` from ``request.get_json()``. A well-formed but
+    non-object JSON body (e.g. ``null``, a scalar, or an array) is coerced to
+    ``{}`` too, since callers treat the result as a mapping.
+    """
+    if not request.is_json:
+        return {}
+    try:
+        data = request.get_json(cache=True)
+    except BadRequest:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
 #: Parameter names `url_for` interprets itself rather than appending to the
 #: query string. Request-supplied query keys matching these must never be
 #: forwarded as `url_for` kwargs.
@@ -345,7 +367,7 @@ def get_form_data(
     form_data: dict[str, Any] = initial_form_data or {}
 
     if has_request_context():
-        json_data = request.get_json(cache=True) if request.is_json else {}
+        json_data = get_request_json_body()
 
         # chart data API requests are JSON
         first_query = (
