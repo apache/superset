@@ -502,11 +502,12 @@ const Select = forwardRef(
       [],
     );
 
-    useEffect(() => 
-      () => {
+    useEffect(
+      () => () => {
         handleOnSearch.cancel?.();
-      }
-    , [handleOnSearch]);
+      },
+      [handleOnSearch],
+    );
 
     const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
       setIsDropdownVisible(isDropdownVisible);
