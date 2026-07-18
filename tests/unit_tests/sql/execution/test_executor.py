@@ -2301,3 +2301,37 @@ def test_cached_async_result_get_result_returns_cached(
     assert retrieved_result.status == QueryStatus.SUCCESS
     assert sum(s.row_count for s in retrieved_result.statements) == 3
     assert retrieved_result is cached_result
+
+
+def test_build_statement_blocks_skips_validation_for_unparseable_mutated_sql(
+    mocker: MockerFixture, mock_database: MagicMock, app_context: None
+) -> None:
+    """
+    A mutator may emit engine-specific SQL the parser can't handle. The
+    empty-statement validation on the joined block is skipped in that case
+    instead of blocking execution, leaving the database as the authority
+    on validity.
+    """
+    from superset.exceptions import SupersetParseError
+    from superset.sql.execution.executor import build_statement_blocks
+    from superset.sql.parse import SQLScript
+
+    mocker.patch.dict(current_app.config, {"MUTATE_AFTER_SPLIT": True})
+    mock_database.db_engine_spec.run_multiple_statements_as_one = True
+    mocker.patch.object(
+        mock_database,
+        "mutate_sql_based_on_config",
+        side_effect=lambda sql, **kw: f"ENGINE SPECIFIC {sql}",
+    )
+    parsed_script = SQLScript("SELECT 1; SELECT 2;", engine="bigquery")
+    mocker.patch(
+        "superset.sql.execution.executor.SQLScript",
+        side_effect=SupersetParseError("ENGINE SPECIFIC SQL"),
+    )
+
+    _, blocks = build_statement_blocks(
+        parsed_script, mock_database.db_engine_spec, mock_database
+    )
+
+    assert len(blocks) == 1
+    assert blocks[0].count("ENGINE SPECIFIC") == 2
