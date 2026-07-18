@@ -78,7 +78,7 @@ InteractiveTooltip.argTypes = {
     control: { type: 'color' },
     description: 'Custom background color for the tooltip.',
   },
-  onVisibleChange: { action: 'onVisibleChange' },
+  onOpenChange: { action: 'onOpenChange' },
 };
 
 InteractiveTooltip.parameters = {

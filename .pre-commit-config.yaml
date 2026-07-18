@@ -31,9 +31,10 @@ repos:
             types-simplejson,
             types-python-dateutil,
             types-requests,
-            # types-redis 4.6.0.5 is failing mypy
-            # because of https://github.com/python/typeshed/pull/10531
-            types-redis==4.6.0.4,
+            # types-redis is intentionally absent: redis-py ships its own
+            # bundled types (py.typed, since 4.6+/5.x), while the stub
+            # package is unmaintained (frozen at the 4.6.0.x API surface).
+            # Installing the stub would shadow the accurate inline types.
             types-pytz,
             types-croniter,
             types-PyYAML,
@@ -63,7 +64,7 @@ repos:
     hooks:
       - id: prettier-frontend
         name: prettier (frontend)
-        entry: bash -c 'cd superset-frontend && for file in "$@"; do npx prettier --write "${file#superset-frontend/}"; done'
+        entry: bash -c 'cd superset-frontend && files=(); for f in "$@"; do files+=("${f#superset-frontend/}"); done; npx prettier --write -- "${files[@]}"' --
         language: system
         pass_filenames: true
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx|css|scss|sass|json)$
@@ -78,6 +79,12 @@ repos:
       - id: custom-rules-frontend
         name: custom rules (frontend)
         entry: ./scripts/check-custom-rules.sh
+        language: system
+        pass_filenames: true
+        files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
+      - id: stylelint-frontend
+        name: stylelint (frontend css-in-js)
+        entry: ./scripts/stylelint.sh
         language: system
         pass_filenames: true
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
