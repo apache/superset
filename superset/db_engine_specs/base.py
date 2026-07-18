@@ -1236,6 +1236,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 )
             }
             if column_mutators:
+                data = list(data)
                 indexes = {row[0]: idx for idx, row in enumerate(description)}
                 for row_idx, row in enumerate(data):
                     new_row = list(row)
