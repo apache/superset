@@ -7829,10 +7829,10 @@ doctrine@^2.1.0:
   dependencies:
     esutils "^2.0.2"
 
-docusaurus-plugin-openapi-docs@^5.1.0:
-  version "5.1.0"
-  resolved "https://registry.yarnpkg.com/docusaurus-plugin-openapi-docs/-/docusaurus-plugin-openapi-docs-5.1.0.tgz#9732f81f45a5bc126bcafcb150332b7623ddece7"
-  integrity sha512-ocRemE3KmdhhPKaow5hja1m1NLIPfNlfRYFt7pja+nG26Wlp0MEC9ERS99gSWEWaxU+txDFBpUXsxo7nGlk8ZA==
+docusaurus-plugin-openapi-docs@^5.1.1:
+  version "5.1.1"
+  resolved "https://registry.yarnpkg.com/docusaurus-plugin-openapi-docs/-/docusaurus-plugin-openapi-docs-5.1.1.tgz#78959b32222095408460aee3ee3e889082766d69"
+  integrity sha512-msmXMA6DuKUgGq2eGlsk++Gq58nvXAFghq4VAH4OCCLqNqtY3lGLJeHa5hMPM12x8gH3wBsZhLWRpC3CZi/mAQ==
   dependencies:
     "@apidevtools/json-schema-ref-parser" "^15.3.3"
     "@redocly/openapi-core" "^2.25.2"
@@ -7850,10 +7850,10 @@ docusaurus-plugin-openapi-docs@^5.1.0:
     swagger2openapi "^7.0.8"
     xml-formatter "^3.6.6"
 
-docusaurus-theme-openapi-docs@^5.1.0:
-  version "5.1.0"
-  resolved "https://registry.yarnpkg.com/docusaurus-theme-openapi-docs/-/docusaurus-theme-openapi-docs-5.1.0.tgz#4b9b7024130bd299a56bffe238c584280851012f"
-  integrity sha512-SLHg1lodIM5AEGo0EJx4pJ+9szDDrN8Q+hNk5qqTVJ60k/zKjHAnwGCzVDT25K1CCMDPaUzuuruj43d7TRoQKw==
+docusaurus-theme-openapi-docs@^5.1.1:
+  version "5.1.1"
+  resolved "https://registry.yarnpkg.com/docusaurus-theme-openapi-docs/-/docusaurus-theme-openapi-docs-5.1.1.tgz#6e404a60942c74dbf31ecabb3bb8276d91de811c"
+  integrity sha512-oGpHomo51qfKD8KM6gEfZRw98o8IRFpOhe3QnMljqy+L69vownXblJEMxZlXUMJML922NbN98tf3Bh4zKXqZTQ==
   dependencies:
     "@hookform/error-message" "^2.0.1"
     "@reduxjs/toolkit" "^2.8.2"
@@ -13008,10 +13008,10 @@ prettier-linter-helpers@^1.0.1:
   dependencies:
     fast-diff "^1.1.2"
 
-prettier@^3.9.1:
-  version "3.9.4"
-  resolved "https://registry.yarnpkg.com/prettier/-/prettier-3.9.4.tgz#a9c477cf1614376bd1f6bbc593d8c0d414bcec87"
-  integrity sha512-yWG/o/4oJfo036EKAfK6ACAoDOfHeRHx4tuxkfBZiauURiaSmYwlpOr5LQqKtIkRD2z1PLteme2WoxEnj4tHTg==
+prettier@^3.9.5:
+  version "3.9.5"
+  resolved "https://registry.yarnpkg.com/prettier/-/prettier-3.9.5.tgz#4fec97736e33b9d0b620b48914fe93b530e835ad"
+  integrity sha512-/FVl766LpUfB5vXgCYOYa0MeV/441Ia99AeICQIQFTY/Nw0roZwULcXpku5i1/m5kt/baz+s4Zogspd839HSMg==
 
 pretty-error@^4.0.0:
   version "4.0.0"
