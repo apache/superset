@@ -173,6 +173,13 @@ def load_parquet_table(  # noqa: C901
 
     if not tbl:
         tbl = SqlaTable(table_name=table_name, database_id=database.id)
+        # Explicitly add the new table to the session. Assigning `tbl.database`
+        # below no longer implicitly adds `tbl` to the session (SQLAlchemy 2.0
+        # behavior, cascade_backrefs=False), so without this, the two
+        # `db.session.merge()` calls below (one inside `fetch_metadata()`, one
+        # at the end of this function) would each create a separate transient
+        # copy of `tbl`, resulting in two pending inserts for the same uuid.
+        db.session.add(tbl)
         # Set the database reference
         tbl.database = database
 
