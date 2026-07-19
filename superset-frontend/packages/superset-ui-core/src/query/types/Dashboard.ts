@@ -18,6 +18,7 @@
  */
 
 import { AdhocFilter, DataMask } from '@superset-ui/core';
+import { DatasourceType } from './Datasource';
 
 export interface ColumnOption {
   label: string;
@@ -38,6 +39,7 @@ export interface NativeFilterScope {
 export interface NativeFilterTarget {
   datasetId: number;
   column: NativeFilterColumn;
+  datasourceType?: DatasourceType;
 
   // maybe someday support this?
   // show values from these columns in the filter options selector
@@ -102,11 +104,11 @@ export type ChartCustomization = {
   defaultDataMask: DataMask;
   controlValues: {
     sortAscending?: boolean;
-    sortMetric?: string;
     [key: string]: any;
   };
   description?: string;
   removed?: boolean;
+  time_grains?: string[];
 };
 
 export type ChartCustomizationDivider = Partial<
@@ -186,10 +188,7 @@ export function isFilterDivider(
 
 export function isChartCustomization(
   filterElement:
-    | Filter
-    | Divider
-    | ChartCustomization
-    | ChartCustomizationDivider,
+    Filter | Divider | ChartCustomization | ChartCustomizationDivider,
 ): filterElement is ChartCustomization {
   return filterElement.type === ChartCustomizationType.ChartCustomization;
 }
@@ -204,10 +203,7 @@ export type FilterConfiguration = Array<Filter | Divider>;
 
 export type Filters = {
   [filterId: string]:
-    | Filter
-    | Divider
-    | ChartCustomization
-    | ChartCustomizationDivider;
+    Filter | Divider | ChartCustomization | ChartCustomizationDivider;
 };
 
 export type PartialFilters = {
@@ -226,8 +222,7 @@ export type ChartCustomizationConfiguration = Array<
 
 export type ChartCustomizations = {
   [chartCustomizationId: string]:
-    | ChartCustomization
-    | ChartCustomizationDivider;
+    ChartCustomization | ChartCustomizationDivider;
 };
 
 export type PartialChartCustomizations = {

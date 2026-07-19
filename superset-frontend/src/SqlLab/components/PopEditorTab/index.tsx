@@ -18,9 +18,9 @@
  */
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { useAppDispatch } from 'src/views/store';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import URI from 'urijs';
-import { pick } from 'lodash';
+import { pick } from 'lodash-es';
 import { useComponentDidUpdate } from '@superset-ui/core';
 import { Skeleton } from '@superset-ui/core/components';
 import useEffectEvent from 'src/hooks/useEffectEvent';

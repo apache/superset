@@ -20,8 +20,20 @@ import json
 import os
 import re
 import subprocess
+import time
 from typing import List, Optional
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+
+# The change detector gates the entire CI matrix, so a single transient GitHub
+# API hiccup should not fail the build. Retry server errors and network blips
+# with exponential backoff before giving up.
+MAX_RETRIES: int = 4
+RETRY_BACKOFF_SECONDS: int = 2
+REQUEST_TIMEOUT_SECONDS: int = 30
+# GitHub returns 429 (and 403 for secondary rate limits) when throttling, which
+# is transient and worth retrying alongside 5xx server errors.
+RETRYABLE_STATUS_CODES: frozenset[int] = frozenset({403, 429})
 
 # Define patterns for each group of files you're interested in
 PATTERNS = {
@@ -33,6 +45,7 @@ PATTERNS = {
         r"^setup\.py",
         r"^pyproject\.toml$",
         r"^requirements/.+\.txt",
+        r"^pyproject\.toml",
         r"^.pylintrc",
     ],
     "frontend": [
@@ -56,15 +69,34 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
 
 def fetch_files_github_api(url: str):  # type: ignore
-    """Fetches data using GitHub API."""
+    """Fetches data using GitHub API, retrying on transient failures."""
     req = Request(url)  # noqa: S310
     req.add_header("Authorization", f"Bearer {GITHUB_TOKEN}")
     req.add_header("Accept", "application/vnd.github.v3+json")
 
     print(f"Fetching from {url}")
-    with urlopen(req) as response:  # noqa: S310
-        body = response.read()
-        return json.loads(body)
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            with urlopen(req, timeout=REQUEST_TIMEOUT_SECONDS) as response:  # noqa: S310
+                body = response.read()
+                return json.loads(body)
+        except (HTTPError, URLError) as err:
+            # Retry transient failures: network errors (URLError has no status
+            # code), 5xx server errors, and GitHub rate-limit responses. Other
+            # 4xx client errors are deterministic, so re-raise immediately. Also
+            # re-raise once the retry budget is exhausted.
+            status = getattr(err, "code", None)
+            is_transient = (
+                status is None or status >= 500 or status in RETRYABLE_STATUS_CODES
+            )
+            if not is_transient or attempt == MAX_RETRIES:
+                raise
+            wait = RETRY_BACKOFF_SECONDS * 2 ** (attempt - 1)
+            print(
+                f"Attempt {attempt}/{MAX_RETRIES} failed ({err}); "
+                f"retrying in {wait}s..."
+            )
+            time.sleep(wait)
 
 
 def fetch_changed_files_pr(repo: str, pr_number: str) -> List[str]:
@@ -156,7 +188,7 @@ def main(event_type: str, sha: str, repo: str) -> None:
 
 def get_git_sha() -> str:
     return os.getenv("GITHUB_SHA") or subprocess.check_output(  # noqa: S603
-        ["git", "rev-parse", "HEAD"]  # noqa: S607
+        ["git", "rev-parse", "HEAD"]  # noqa: S603, S607
     ).strip().decode("utf-8")
 
 

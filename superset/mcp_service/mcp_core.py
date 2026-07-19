@@ -43,6 +43,7 @@ from superset.mcp_service.utils.schema_utils import (
     parse_json_or_list,
     parse_json_or_passthrough,
 )
+from superset.models.helpers import skip_visibility_filter
 from superset.utils import json
 
 
@@ -114,6 +115,28 @@ class BaseCore(ABC):
         self.logger.warning(message)
 
 
+class DeletedStateBoundFilter:
+    """Adapt a FAB deleted-state filter for ``BaseDAO.list`` custom_filters.
+
+    ``BaseDAO.list`` invokes custom filters as ``apply(query, None)``, but the
+    ``BaseDeletedStateFilter`` subclasses interpret ``None`` as "live rows
+    only". Binding the value at construction lets the DAO-side invocation
+    reach the FAB filter with the caller's actual ``include``/``only`` choice.
+
+    ``model`` re-exposes the FAB filter's SoftDeleteMixin model class so the
+    caller can scope the session visibility bypass without re-consulting the
+    (Optional) filter-class attribute.
+    """
+
+    def __init__(self, inner: Any, value: str, model: type) -> None:
+        self._inner = inner
+        self._value = value
+        self.model = model
+
+    def apply(self, query: Any, value: Any) -> Any:
+        return self._inner.apply(query, self._value)
+
+
 class ModelListCore(BaseCore, Generic[L]):
     """
     Generic tool for listing model objects with filtering, search, pagination, and
@@ -149,6 +172,8 @@ class ModelListCore(BaseCore, Generic[L]):
         logger: logging.Logger | None = None,
         all_columns: List[str] | None = None,
         sortable_columns: List[str] | None = None,
+        editor_filter_column: str = "editor",
+        deleted_state_filter: type | None = None,
     ) -> None:
         super().__init__(logger)
         self.dao_class = dao_class
@@ -159,12 +184,22 @@ class ModelListCore(BaseCore, Generic[L]):
         self.search_columns = filter_user_directory_columns(search_columns)
         self.list_field_name = list_field_name
         self.output_list_schema = output_list_schema
+        # Track whether an explicit allowlist was provided so _get_columns_to_load
+        # can skip the allowlist check for tools that did not declare one.
+        self._has_explicit_all_columns = all_columns is not None
         self._all_columns = filter_user_directory_columns(
             all_columns if all_columns else default_columns
         )
         self._sortable_columns = filter_user_directory_columns(
             sortable_columns if sortable_columns else []
         )
+        self._editor_filter_column = editor_filter_column
+        # A BaseDeletedStateFilter subclass (e.g. ChartDeletedStateFilter).
+        # The FAB filter owns the restore-audience scoping — only owners and
+        # admins may enumerate soft-deleted rows — so reusing it here keeps
+        # that cross-entity contract in one place. None means the resource
+        # does not support deleted_state listing.
+        self._deleted_state_filter = deleted_state_filter
 
     @property
     def all_columns(self) -> List[str]:
@@ -185,6 +220,15 @@ class ModelListCore(BaseCore, Generic[L]):
 
         parsed_columns = parse_json_or_list(select_columns, param_name="select_columns")
         columns_to_load = filter_user_directory_columns(parsed_columns)
+
+        # Restrict to the declared allowlist so callers cannot probe for columns
+        # excluded from columns_available (e.g. password, sqlalchemy_uri) that
+        # still exist on the ORM model. Only enforced when all_columns was
+        # explicitly provided; tools without an allowlist are not restricted.
+        if self._has_explicit_all_columns and self._all_columns:
+            allowed = set(self._all_columns)
+            columns_to_load = [col for col in columns_to_load if col in allowed]
+
         if not columns_to_load:
             raise ValueError("select_columns contains no valid columns")
 
@@ -207,22 +251,22 @@ class ModelListCore(BaseCore, Generic[L]):
                 f"Allowed columns: {', '.join(self._sortable_columns)}"
             )
 
-    @staticmethod
     def _prepend_self_lookup_filters(
+        self,
         filters: Any,
         created_by_me: bool,
-        owned_by_me: bool,
+        edited_by_me: bool,
         user: Any,
     ) -> Any:
-        """Translate created_by_me/owned_by_me flags into ColumnOperator filters.
+        """Translate created_by_me/edited_by_me flags into ColumnOperator filters.
 
         Validates authentication and injects the current user's ID in one step,
         so no placeholder value ever reaches the DAO layer.
 
         When both flags are set, a single combined OR filter is used so results
-        include items where the user is either the creator or an owner.
+        include items where the user is either the creator or an editor.
         """
-        if not (created_by_me or owned_by_me):
+        if not (created_by_me or edited_by_me):
             return filters
 
         if not user or not getattr(user, "is_authenticated", False):
@@ -230,20 +274,71 @@ class ModelListCore(BaseCore, Generic[L]):
 
         user_id: int = user.id
         extra: ColumnOperator
-        if created_by_me and owned_by_me:
+        if created_by_me and edited_by_me:
             extra = ColumnOperator(
-                col="created_by_fk_or_owner", opr="eq", value=user_id
+                col="created_by_fk_or_editor", opr="eq", value=user_id
             )
         elif created_by_me:
             extra = ColumnOperator(col="created_by_fk", opr="eq", value=user_id)
         else:
-            extra = ColumnOperator(col="owner", opr="eq", value=user_id)
+            extra = ColumnOperator(
+                col=self._editor_filter_column, opr="eq", value=user_id
+            )
 
         if filters is None:
             return [extra]
         if isinstance(filters, list):
             return [extra] + filters
         return [extra, filters]
+
+    def _call_dao_list(
+        self,
+        filters: Any,
+        order_column: str,
+        order_direction: str,
+        page: int,
+        page_size: int,
+        search: str | None,
+        columns_to_load: List[str],
+        custom_filters: Dict[str, Any] | None = None,
+    ) -> tuple[List[Any], int]:
+        """Call the DAO list method.
+
+        Subclasses may override to change the kwarg name used for filters.
+        """
+        return self.dao_class.list(
+            column_operators=filters,
+            order_column=order_column,
+            order_direction=order_direction,
+            page=page,
+            page_size=page_size,
+            search=search,
+            search_columns=self.search_columns,
+            columns=columns_to_load,
+            custom_filters=custom_filters,
+        )
+
+    def _build_deleted_state_filter(
+        self, deleted_state: str | None
+    ) -> DeletedStateBoundFilter | None:
+        """Validate deleted_state and bind it to the entity's FAB filter.
+
+        Returns None when trash listing was not requested. Raises for a
+        value other than ``include``/``only`` or when the resource has no
+        deleted-state filter configured.
+        """
+        if deleted_state is None:
+            return None
+        normalized = str(deleted_state).lower().strip()
+        if normalized not in {"include", "only"}:
+            raise ValueError("deleted_state must be 'include' or 'only'")
+        if self._deleted_state_filter is None:
+            raise ValueError("deleted_state is not supported for this resource")
+        # ``model`` is the ClassVar every BaseDeletedStateFilter subclass binds.
+        model = self._deleted_state_filter.model  # type: ignore[attr-defined]
+        datamodel = SQLAInterface(model, db.session)
+        inner = self._deleted_state_filter("id", datamodel)
+        return DeletedStateBoundFilter(inner, normalized, model)
 
     def run_tool(
         self,
@@ -255,16 +350,18 @@ class ModelListCore(BaseCore, Generic[L]):
         page: int = 0,
         page_size: int = 10,
         created_by_me: bool = False,
-        owned_by_me: bool = False,
+        edited_by_me: bool = False,
+        deleted_state: str | None = None,
     ) -> L:
         # Clamp page_size to MAX_PAGE_SIZE as defense-in-depth
         page_size = min(page_size, MAX_PAGE_SIZE)
 
         # Parse filters using generic utility (accepts JSON string or object)
         filters = parse_json_or_passthrough(filters, param_name="filters")
+        filters_applied = filters if isinstance(filters, list) else []
 
         filters = self._prepend_self_lookup_filters(
-            filters, created_by_me, owned_by_me, get_current_user()
+            filters, created_by_me, edited_by_me, get_current_user()
         )
 
         # Parse select_columns using generic utility (accepts JSON, list, or CSV)
@@ -276,6 +373,7 @@ class ModelListCore(BaseCore, Generic[L]):
         computed_deps: dict[str, str] = {
             "changed_on_humanized": "changed_on",
             "created_on_humanized": "created_on",
+            "last_eval_dttm_humanized": "last_eval_dttm",
         }
         for computed, dependency in computed_deps.items():
             if computed in columns_to_load and dependency not in columns_to_load:
@@ -283,18 +381,40 @@ class ModelListCore(BaseCore, Generic[L]):
 
         self._validate_order_column(order_column)
 
+        deleted_state_bound = self._build_deleted_state_filter(deleted_state)
+        if deleted_state_bound is not None:
+            # Trashed rows must be distinguishable from live ones (matters in
+            # "include" mode), so force deleted_at into the loaded columns
+            # and the serialization allowlist.
+            for column_list in (columns_requested, columns_to_load):
+                if "deleted_at" not in column_list:
+                    column_list.append("deleted_at")
+
         # Query the DAO
         items: List[Any]
-        items, total_count = self.dao_class.list(
-            column_operators=filters,
-            order_column=order_column or "changed_on",
-            order_direction=str(order_direction or "desc"),
-            page=page,
-            page_size=page_size,
-            search=search,
-            search_columns=self.search_columns,
-            columns=columns_to_load,
-        )
+        dao_kwargs = {
+            "filters": filters,
+            "order_column": order_column or "changed_on",
+            "order_direction": str(order_direction or "desc"),
+            "page": page,
+            "page_size": page_size,
+            "search": search,
+            "columns_to_load": columns_to_load,
+        }
+        if deleted_state_bound is not None:
+            # The soft-delete ORM listener appends ``deleted_at IS NULL`` at
+            # execution time, so the session-scoped bypass must span both
+            # executions inside DAO.list (count + fetch). The context manager
+            # guarantees release even on exceptions; the FAB filter's
+            # restore-audience scoping (applied via custom_filters) decides
+            # which unhidden rows the caller may actually see.
+            with skip_visibility_filter(db.session, deleted_state_bound.model):
+                items, total_count = self._call_dao_list(
+                    custom_filters={"deleted_state": deleted_state_bound},
+                    **dao_kwargs,
+                )
+        else:
+            items, total_count = self._call_dao_list(**dao_kwargs)
         # Serialize items
         item_objs = []
         for item in items:
@@ -330,7 +450,7 @@ class ModelListCore(BaseCore, Generic[L]):
             "sortable_columns": self.sortable_columns,
             "filters_applied": [
                 f
-                for f in (filters if isinstance(filters, list) else [])
+                for f in filters_applied
                 if (f.get("col") if isinstance(f, dict) else getattr(f, "col", None))
                 not in SELF_REFERENCING_FILTER_COLUMNS
             ],
@@ -733,6 +853,8 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
         default_sort: str = "changed_on",
         default_sort_direction: Literal["asc", "desc"] = "desc",
         exclude_filter_columns: set[str] | None = None,
+        filter_columns_override: dict[str, list[str]] | None = None,
+        include_filter_columns: frozenset[str] | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
         """
@@ -750,6 +872,13 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
             default_sort_direction: Default sort direction
             exclude_filter_columns: Column names to omit from filter discovery
                 (e.g., sensitive fields like passwords or connection URIs)
+            filter_columns_override: When set, use this mapping directly as the
+                filter_columns output instead of querying the DAO. Use this to
+                restrict advertised filters to the exact set the list tool accepts.
+            include_filter_columns: When set, only these column names are advertised
+                as filterable. Applied after exclude_filter_columns. Use this when
+                the list tool's filter schema accepts fewer columns than the DAO
+                exposes (e.g., ReportFilter vs. the full ReportSchedule ORM model).
             logger: Optional logger instance
         """
         super().__init__(logger)
@@ -770,9 +899,13 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
         # Hide user-directory columns from filter discovery, except the small
         # set callers may legitimately filter by ID (resolved via find_users).
         self.exclude_filter_columns.update(USER_DIRECTORY_FIELDS - USER_FILTER_FIELDS)
+        self.filter_columns_override = filter_columns_override
+        self.include_filter_columns = include_filter_columns
 
     def _get_filter_columns(self) -> Dict[str, List[str]]:
         """Get filterable columns and operators from the DAO."""
+        if self.filter_columns_override is not None:
+            return self.filter_columns_override
         try:
             filterable = self.dao_class.get_filterable_columns_and_operators()
             # Defensive handling: ensure we have a valid mapping
@@ -797,6 +930,11 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
                     k: v
                     for k, v in result.items()
                     if k not in self.exclude_filter_columns
+                }
+            # Apply allowlist: keep only explicitly permitted filter columns
+            if self.include_filter_columns is not None:
+                result = {
+                    k: v for k, v in result.items() if k in self.include_filter_columns
                 }
             return result
         except Exception as e:

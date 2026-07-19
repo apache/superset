@@ -1,6 +1,7 @@
 name: Translation Regression Comment
 
 on:
+  # zizmor: ignore[dangerous-triggers] - runs in base-branch context and only consumes the uploaded artifact; never checks out PR code (see note below)
   workflow_run:
     workflows: ["Translations"]
     types: [completed]

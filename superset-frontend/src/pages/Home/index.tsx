@@ -27,8 +27,8 @@ import {
 import { styled } from '@apache-superset/core/theme';
 import rison from 'rison';
 import { Collapse, ListViewCard } from '@superset-ui/core/components';
-import { User } from 'src/types/bootstrapTypes';
-import { reject } from 'lodash';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { reject } from 'lodash-es';
 import {
   dangerouslyGetItemDoNotUse,
   dangerouslySetItemDoNotUse,
@@ -41,7 +41,7 @@ import {
   CardContainer,
   createErrorHandler,
   getRecentActivityObjs,
-  getUserOwnedObjects,
+  getUserEditableObjects,
   loadingCardCount,
   mq,
 } from 'src/views/CRUD/utils';
@@ -59,7 +59,7 @@ import DashboardTable from 'src/features/home/DashboardTable';
 const extensionsRegistry = getExtensionsRegistry();
 
 interface WelcomeProps {
-  user: User;
+  user: UserWithPermissionsAndRoles;
   addDangerToast: (arg0: string) => void;
 }
 
@@ -251,7 +251,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
       },
     ];
     Promise.all([
-      getUserOwnedObjects(id, 'dashboard')
+      getUserEditableObjects(id, 'dashboard')
         .then(r => {
           setDashboardData(r);
           return Promise.resolve();
@@ -263,7 +263,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           );
           return Promise.resolve();
         }),
-      getUserOwnedObjects(id, 'chart')
+      getUserEditableObjects(id, 'chart')
         .then(r => {
           setChartData(r);
           return Promise.resolve();
@@ -274,7 +274,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           return Promise.resolve();
         }),
       canReadSavedQueries
-        ? getUserOwnedObjects(id, 'saved_query', ownSavedQueryFilters)
+        ? getUserEditableObjects(id, 'saved_query', ownSavedQueryFilters)
             .then(r => {
               setQueryData(r);
               return Promise.resolve();

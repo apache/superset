@@ -35,6 +35,7 @@ USER_DIRECTORY_FIELDS = frozenset(
         "created_by",
         "created_by_fk",
         "created_by_name",
+        "editors",
         "last_saved_by",
         "last_saved_by_fk",
         "last_saved_by_name",
@@ -51,13 +52,13 @@ USER_DIRECTORY_FIELDS = frozenset(
 USER_FILTER_FIELDS = frozenset({"created_by_fk", "changed_by_fk"})
 
 # Internal DAO filter column names generated server-side when translating the
-# created_by_me / owned_by_me boolean flags (see mcp_core._prepend_self_lookup_filters).
+# created_by_me/edited_by_me boolean flags (see mcp_core._prepend_self_lookup_filters).
 # These columns are never exposed to LLM callers; they are excluded from the
 # filters_applied response field to avoid leaking internal implementation details.
 # Note: ``created_by_fk`` is intentionally excluded — it is also a publicly
 # advertised filter column (see USER_FILTER_FIELDS) so callers can filter by a
 # user ID resolved via find_users.
-SELF_REFERENCING_FILTER_COLUMNS = frozenset({"owner", "created_by_fk_or_owner"})
+SELF_REFERENCING_FILTER_COLUMNS = frozenset({"editor", "created_by_fk_or_editor"})
 
 DATA_MODEL_METADATA_ACCESS_ATTR = "_requires_data_model_metadata_access"
 DATA_MODEL_METADATA_ERROR_TYPE = "DataModelMetadataRestricted"
@@ -119,13 +120,18 @@ def user_can_view_data_model_metadata() -> bool:
     """Return whether the current user can inspect data-model metadata.
 
     Dataset drill/write permissions indicate active data-model introspection access.
-    Dashboard-only viewers may have Dataset read access for chart rendering, but that
+    Dashboard-only access may include Dataset read access for chart rendering, but that
     should not expose dataset/database metadata through MCP tools.
     These resource-type permissions intentionally gate metadata globally rather
     than per dashboard chart.
     """
     try:
         from superset import security_manager
+
+        # Deny guests unconditionally: a PUBLIC_ROLE_LIKE=Gamma guest carries
+        # can_get_drill_info on Dataset, which would otherwise pass the check below.
+        if security_manager.is_guest_user():
+            return False
 
         return any(
             security_manager.can_access(permission_name, "Dataset")
@@ -140,10 +146,20 @@ def user_can_view_data_model_metadata() -> bool:
 
 
 def filter_user_directory_fields(data: dict[str, Any]) -> dict[str, Any]:
-    """Remove fields that expose users, roles, owners, or access metadata."""
+    """Remove fields that expose users, legacy owner fields, or access metadata."""
     return {
         key: value for key, value in data.items() if key not in USER_DIRECTORY_FIELDS
     }
+
+
+def strip_user_directory_fields_from_schema(schema: dict[str, Any]) -> None:
+    """Remove user-directory/access-list fields from generated JSON schemas."""
+    properties = schema.get("properties")
+    if not isinstance(properties, dict):
+        return
+
+    for field in USER_DIRECTORY_FIELDS:
+        properties.pop(field, None)
 
 
 def filter_user_directory_columns(columns: Iterable[str]) -> list[str]:

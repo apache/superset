@@ -16,6 +16,8 @@
 # under the License.
 from marshmallow import fields, Schema
 
+from superset.subjects.schemas import SubjectResponseSchema
+
 
 class RlsRoleSchema(Schema):
     id = fields.Integer(metadata={"description": "Role ID."})
@@ -105,8 +107,9 @@ class DatasetSchema(Schema):
         fields.List(fields.String()),
         metadata={"description": "List of order by columns."},
     )
-    owners = fields.List(
-        fields.Integer(), metadata={"description": "List of owners identifiers"}
+    editors = fields.List(
+        fields.Nested(SubjectResponseSchema),
+        metadata={"description": "List of editors"},
     )
     params = fields.Dict(metadata={"description": "Extra params for the dataset."})
     perm = fields.String(metadata={"description": "Permission expression."})
@@ -172,8 +175,9 @@ class SliceSchema(Schema):
     modified = fields.String(
         metadata={"description": "Last modification in human readable form."}
     )
-    owners = fields.List(
-        fields.Integer(), metadata={"description": "Owners identifiers."}
+    editors = fields.List(
+        fields.Nested(SubjectResponseSchema),
+        metadata={"description": "List of editors"},
     )
     query_context = fields.Dict(
         metadata={"description": "The context associated with the query."}

@@ -57,9 +57,12 @@ const mockUser = {
 const findFilterByLabel = (labelText: string) => {
   const containers = screen.getAllByTestId('select-filter-container');
   for (const container of containers) {
-    const label = container.querySelector('label');
-    if (label?.textContent === labelText) {
-      return container.querySelector('[role="combobox"], .ant-select');
+    // Compact pill filters show the label as button text
+    const pill = container.querySelector(
+      '[data-test="compact-filter-pill"]',
+    ) as HTMLElement | null;
+    if (pill && pill.textContent?.includes(labelText)) {
+      return pill;
     }
   }
   return null;
@@ -268,7 +271,7 @@ describe('ChartList - Global Filter Interactions', () => {
     const standardFilters = [
       'Type',
       'Dataset',
-      'Owner',
+      'Editor',
       'Certified',
       'Favorite',
       'Dashboard',
@@ -285,11 +288,7 @@ describe('ChartList - Global Filter Interactions', () => {
     // Mock feature flag to enable tags
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
-    ).mockImplementation(
-      (feature: string) =>
-        feature === 'TAGGING_SYSTEM' ||
-        feature !== 'LISTVIEWS_DEFAULT_CARD_VIEW',
-    );
+    ).mockImplementation((feature: string) => feature === 'TAGGING_SYSTEM');
 
     // Render with tag permissions
     const userWithTagPerms = {
@@ -314,11 +313,7 @@ describe('ChartList - Global Filter Interactions', () => {
   test('does not render Tags filter when TAGGING_SYSTEM is disabled', async () => {
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
-    ).mockImplementation(
-      (feature: string) =>
-        feature !== 'LISTVIEWS_DEFAULT_CARD_VIEW' &&
-        feature !== 'TAGGING_SYSTEM',
-    );
+    ).mockImplementation(() => false);
 
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');

@@ -38,6 +38,7 @@ import {
 } from '../../util/migrateChartCustomization';
 
 const EMPTY_ARRAY: ChartCustomizationConfiguration = [];
+const EMPTY_ACTIVE_TABS: ActiveTabs = [];
 const defaultFilterConfiguration: (Filter | Divider)[] = [];
 
 export const selectFilterConfiguration: (
@@ -52,10 +53,7 @@ export const selectFilterConfiguration: (
     return nativeFilterConfig.filter(
       (
         filter:
-          | Filter
-          | Divider
-          | ChartCustomization
-          | ChartCustomizationDivider,
+          Filter | Divider | ChartCustomization | ChartCustomizationDivider,
       ) =>
         filter.type !== 'CHART_CUSTOMIZATION' &&
         filter.type !== 'CHART_CUSTOMIZATION_DIVIDER',
@@ -175,14 +173,18 @@ export function useDashboardHasTabs() {
   const dashboardLayout = useDashboardLayout();
   return useMemo(
     () =>
-      Object.values(dashboardLayout).some(element => element.type === TAB_TYPE),
+      dashboardLayout
+        ? Object.values(dashboardLayout).some(
+            element => element.type === TAB_TYPE,
+          )
+        : false,
     [dashboardLayout],
   );
 }
 
-function useActiveDashboardTabs() {
+function useActiveDashboardTabs(): ActiveTabs {
   return useSelector<RootState, ActiveTabs>(
-    state => state.dashboardState?.activeTabs,
+    state => state.dashboardState?.activeTabs ?? EMPTY_ACTIVE_TABS,
   );
 }
 
@@ -190,7 +192,11 @@ function useSelectChartTabParents() {
   const dashboardLayout = useDashboardLayout();
   const layoutChartItems = useMemo(
     () =>
-      Object.values(dashboardLayout).filter(item => item.type === CHART_TYPE),
+      dashboardLayout
+        ? Object.values(dashboardLayout).filter(
+            item => item.type === CHART_TYPE,
+          )
+        : [],
     [dashboardLayout],
   );
   return useCallback(
@@ -199,7 +205,7 @@ function useSelectChartTabParents() {
         layoutItem => layoutItem.meta?.chartId === chartId,
       );
       return chartLayoutItem?.parents?.filter(
-        (parent: string) => dashboardLayout[parent]?.type === TAB_TYPE,
+        (parent: string) => dashboardLayout?.[parent]?.type === TAB_TYPE,
       );
     },
     [dashboardLayout, layoutChartItems],
@@ -324,14 +330,13 @@ export function useSelectCustomizationsInScope(
 
   return useMemo(() => {
     let customizationsInScope: (
-      | ChartCustomization
-      | ChartCustomizationDivider
+      ChartCustomization | ChartCustomizationDivider
     )[] = [];
     const customizationsOutOfScope: (
-      | ChartCustomization
-      | ChartCustomizationDivider
+      ChartCustomization | ChartCustomizationDivider
     )[] = [];
 
+    // we check customization scopes only on dashboards with tabs
     if (!dashboardHasTabs) {
       customizationsInScope = customizations;
     } else {

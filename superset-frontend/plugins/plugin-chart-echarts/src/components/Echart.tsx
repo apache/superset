@@ -64,7 +64,12 @@ import {
   MarkLineComponent,
 } from 'echarts/components';
 import { LabelLayout } from 'echarts/features';
-import { EchartsHandler, EchartsProps, EchartsStylesProps } from '../types';
+import {
+  EchartsHandler,
+  EchartsProps,
+  EchartsStylesProps,
+  QueryEventHandlers,
+} from '../types';
 import { DEFAULT_LOCALE } from '../constants';
 import { mergeEchartsThemeOverrides } from '../utils/themeOverrides';
 
@@ -119,12 +124,25 @@ use([
 const loadLocale = async (locale: string) => {
   let lang;
   try {
-    lang = await import(`echarts/lib/i18n/lang${locale}`);
+    lang = await import(`echarts/i18n/lang${locale}.js`);
   } catch {
     // Locale not supported in ECharts
   }
   return lang?.default;
 };
+
+// Report/thumbnail screenshots use standalone="true" (charts) or 3 (reports);
+// live embeds use 1/2 and keep animation. See superset/utils/screenshots.py.
+export function isReportScreenshotMode(): boolean {
+  try {
+    const standalone = new URLSearchParams(window.location.search).get(
+      'standalone',
+    );
+    return standalone === 'true' || standalone === '3';
+  } catch {
+    return false;
+  }
+}
 
 function Echart(
   {
@@ -132,6 +150,7 @@ function Echart(
     height,
     echartOptions,
     eventHandlers,
+    queryEventHandlers,
     zrEventHandlers,
     selectedValues = {},
     refs,
@@ -147,6 +166,7 @@ function Echart(
   }
   const [didMount, setDidMount] = useState(false);
   const chartRef = useRef<EChartsType>();
+  const previousQueryEventHandlers = useRef<QueryEventHandlers>([]);
   const currentSelection = useMemo(
     () => Object.keys(selectedValues) || [],
     [selectedValues],
@@ -196,10 +216,18 @@ function Echart(
 
   useEffect(() => {
     if (didMount) {
+      previousQueryEventHandlers.current.forEach(({ name, handler }) => {
+        chartRef.current?.off(name, handler);
+      });
       Object.entries(eventHandlers || {}).forEach(([name, handler]) => {
         chartRef.current?.off(name);
         chartRef.current?.on(name, handler);
       });
+
+      (queryEventHandlers || []).forEach(({ name, query, handler }) => {
+        chartRef.current?.on(name, query, handler);
+      });
+      previousQueryEventHandlers.current = queryEventHandlers || [];
 
       Object.entries(zrEventHandlers || {}).forEach(([name, handler]) => {
         chartRef.current?.getZr().off(name);
@@ -263,13 +291,16 @@ function Echart(
         ? theme.echartsOptionsOverridesByChartType?.[vizType] || {}
         : {};
 
-      // Disable animations during auto-refresh to reduce visual noise
-      const animationOverride = isDashboardRefreshing
-        ? {
-            animation: false,
-            animationDuration: 0,
-          }
-        : {};
+      // Disable animation on auto-refresh and screenshots. Screenshots have no
+      // "render finished" signal, so a running draw can be captured mid-frame,
+      // producing partial/blank charts.
+      const animationOverride =
+        isDashboardRefreshing || isReportScreenshotMode()
+          ? {
+              animation: false,
+              animationDuration: 0,
+            }
+          : {};
 
       const themedEchartOptions = mergeEchartsThemeOverrides(
         baseTheme,
@@ -284,8 +315,11 @@ function Echart(
       // setOption(notMerge:true) replaces the dataZoom config, dropping any
       // range the user has engaged. Preserve it across the call.
       const previousZoom = notMerge
-        ? (chartRef.current?.getOption() as { dataZoom?: DataZoomComponentOption[] })
-            ?.dataZoom
+        ? (
+            chartRef.current?.getOption() as {
+              dataZoom?: DataZoomComponentOption[];
+            }
+          )?.dataZoom
         : undefined;
       chartRef.current?.setOption(themedEchartOptions, {
         notMerge,
@@ -333,7 +367,15 @@ function Echart(
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- isDashboardRefreshing intentionally excluded to prevent extra setOption calls
-  }, [didMount, echartOptions, eventHandlers, zrEventHandlers, theme, vizType]);
+  }, [
+    didMount,
+    echartOptions,
+    eventHandlers,
+    queryEventHandlers,
+    zrEventHandlers,
+    theme,
+    vizType,
+  ]);
 
   // Clear tooltip on refresh start to avoid stale content (#39247)
   useEffect(() => {

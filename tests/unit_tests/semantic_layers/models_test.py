@@ -655,6 +655,118 @@ def test_semantic_view_data(
         assert data["offset"] == 0
 
 
+@pytest.fixture
+def mock_grain_variant_dimensions() -> list[Dimension]:
+    """Time column exposed as multiple Dimension variants, one per grain."""
+    base = {
+        "id": "orders.created_at",
+        "name": "created_at",
+        "type": pa.timestamp("us"),
+        "definition": "orders.created_at",
+        "description": "Order timestamp",
+    }
+    return [
+        Dimension(**base, grain=Grains.HOUR),
+        Dimension(**base, grain=Grains.DAY),
+        Dimension(**base, grain=Grains.MONTH),
+        Dimension(
+            id="products.category",
+            name="category",
+            type=pa.utf8(),
+            definition="products.category",
+            description="Product category",
+            grain=None,
+        ),
+    ]
+
+
+def test_semantic_view_columns_dedupes_grain_variants(
+    mock_grain_variant_dimensions: list[Dimension],
+) -> None:
+    """Multiple grain variants of the same time column collapse to one column."""
+    impl = MagicMock()
+    impl.get_dimensions.return_value = mock_grain_variant_dimensions
+    view = SemanticView()
+
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: impl),
+    ):
+        columns = view.columns
+        assert [c.column_name for c in columns] == ["created_at", "category"]
+        assert columns[0].is_dttm is True
+        assert view.column_names == ["created_at", "category"]
+
+
+def test_semantic_view_get_time_grains_dedupes_across_dimensions(
+    mock_grain_variant_dimensions: list[Dimension],
+) -> None:
+    """Grains shared across multiple time dimensions are returned once each."""
+    extra_dim = Dimension(
+        id="shipments.shipped_at",
+        name="shipped_at",
+        type=pa.timestamp("us"),
+        definition="shipments.shipped_at",
+        description=None,
+        grain=Grains.DAY,
+    )
+    impl = MagicMock()
+    impl.get_dimensions.return_value = mock_grain_variant_dimensions + [extra_dim]
+    view = SemanticView()
+
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: impl),
+    ):
+        grains = view.get_time_grains()
+
+    durations = sorted(grain["duration"] or "" for grain in grains)
+    assert durations == sorted(["PT1H", "P1D", "P1M"])
+
+
+def test_semantic_view_data_populates_time_grain_sqla(
+    mock_grain_variant_dimensions: list[Dimension],
+    mock_metrics: list[Metric],
+) -> None:
+    """``data['time_grain_sqla']`` mirrors ``get_time_grains`` for the explore UI."""
+    from superset.semantic_layers.models import SemanticLayer
+
+    impl = MagicMock()
+    impl.get_dimensions.return_value = mock_grain_variant_dimensions
+    impl.get_metrics.return_value = mock_metrics
+    impl.uid.return_value = "semantic_view_uid_123"
+
+    layer = SemanticLayer()
+    layer.name = "My Semantic Layer"
+    layer.uuid = uuid.UUID("87654321-4321-8765-4321-876543218765")
+    layer.perm = "[My Semantic Layer](id:87654321432187654321876543218765)"
+
+    view = SemanticView()
+    view.name = "Orders View"
+    view.description = "View of order data"
+    view.id = 1
+    view.uuid = uuid.UUID("12345678-1234-5678-1234-567812345678")
+    view.semantic_layer_uuid = uuid.UUID("87654321-4321-8765-4321-876543218765")
+    view.semantic_layer = layer
+    view.cache_timeout = 3600
+
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: impl),
+    ):
+        data = view.data
+
+    assert data["column_names"] == ["created_at", "category"]
+    assert len(data["columns"]) == 2
+    assert data["columns"][0]["is_dttm"] is True
+    # ``time_grain_sqla`` in ExplorableData is ``(duration, name)`` tuples.
+    grain_durations = sorted(entry[0] for entry in data["time_grain_sqla"])
+    assert grain_durations == sorted(["PT1H", "P1D", "P1M"])
+
+
 def test_semantic_view_get_query_result(
     mock_implementation: MagicMock,
 ) -> None:
@@ -662,6 +774,7 @@ def test_semantic_view_get_query_result(
     view = SemanticView()
 
     mock_query_object = MagicMock()
+    mock_query_object.post_processing = []
     mock_result = MagicMock()
 
     with patch(
@@ -671,7 +784,113 @@ def test_semantic_view_get_query_result(
         result = view.get_query_result(mock_query_object)
 
         mock_get_results.assert_called_once_with(mock_query_object)
+        mock_query_object.exec_post_processing.assert_not_called()
         assert result == mock_result
+
+
+def test_semantic_view_get_query_result_runs_post_processing(
+    mock_implementation: MagicMock,
+) -> None:
+    """
+    ``get_query_result`` must run ``query_object.exec_post_processing`` so that
+    features like ``percent_metrics`` (contribution) are applied to the semantic
+    layer's DataFrame — matching the dataset flow in
+    ``superset/models/helpers.py``.
+    """
+    import pandas as pd
+
+    view = SemanticView()
+
+    input_df = pd.DataFrame({"Orders Count": [40000.0]})
+    processed_df = pd.DataFrame({"Orders Count": [40000.0], "%Orders Count": [1.0]})
+
+    mock_query_object = MagicMock()
+    mock_query_object.post_processing = [
+        {
+            "operation": "contribution",
+            "options": {
+                "columns": ["Orders Count"],
+                "rename_columns": ["%Orders Count"],
+            },
+        }
+    ]
+    mock_query_object.exec_post_processing.return_value = processed_df
+
+    mock_result = MagicMock()
+    mock_result.df = input_df
+
+    with patch(
+        "superset.semantic_layers.models.get_results",
+        return_value=mock_result,
+    ):
+        result = view.get_query_result(mock_query_object)
+
+    mock_query_object.exec_post_processing.assert_called_once_with(input_df)
+    assert result is mock_result
+    assert list(result.df.columns) == ["Orders Count", "%Orders Count"]
+
+
+def test_semantic_view_get_query_result_wraps_post_processing_errors(
+    mock_implementation: MagicMock,
+) -> None:
+    """
+    ``InvalidPostProcessingError`` raised from post-processing must be re-raised
+    as ``QueryObjectValidationError`` so the API surfaces a clean 400 rather
+    than a 500.
+    """
+    import pandas as pd
+
+    from superset.exceptions import (
+        InvalidPostProcessingError,
+        QueryObjectValidationError,
+    )
+
+    view = SemanticView()
+
+    mock_query_object = MagicMock()
+    mock_query_object.post_processing = [{"operation": "bogus"}]
+    mock_query_object.exec_post_processing.side_effect = InvalidPostProcessingError(
+        "boom"
+    )
+
+    mock_result = MagicMock()
+    mock_result.df = pd.DataFrame({"count": [1]})
+
+    with (
+        patch(
+            "superset.semantic_layers.models.get_results",
+            return_value=mock_result,
+        ),
+        pytest.raises(QueryObjectValidationError, match="boom"),
+    ):
+        view.get_query_result(mock_query_object)
+
+
+def test_semantic_view_get_query_result_skips_post_processing_on_empty_df(
+    mock_implementation: MagicMock,
+) -> None:
+    """
+    Match the dataset flow's guard: skip post-processing when the DataFrame is
+    empty. Contribution and other ops assume at least one row.
+    """
+    import pandas as pd
+
+    view = SemanticView()
+
+    mock_query_object = MagicMock()
+    mock_query_object.post_processing = [{"operation": "contribution"}]
+
+    mock_result = MagicMock()
+    mock_result.df = pd.DataFrame()
+
+    with patch(
+        "superset.semantic_layers.models.get_results",
+        return_value=mock_result,
+    ):
+        result = view.get_query_result(mock_query_object)
+
+    mock_query_object.exec_post_processing.assert_not_called()
+    assert result is mock_result
 
 
 def test_semantic_view_data_for_slices(

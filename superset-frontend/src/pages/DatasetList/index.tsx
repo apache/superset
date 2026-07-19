@@ -22,6 +22,7 @@ import {
   SupersetClient,
   isFeatureEnabled,
   FeatureFlag,
+  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
 import {
@@ -38,10 +39,11 @@ import rison from 'rison';
 import {
   createFetchRelated,
   createFetchDistinct,
-  createFetchOwners,
+  createFetchEditors,
   createErrorHandler,
 } from 'src/views/CRUD/utils';
-import { OWNER_OPTION_FILTER_PROPS } from 'src/features/owners/OwnerSelectLabel';
+import { SUBJECT_OPTION_FILTER_PROPS } from 'src/features/subjects/SubjectSelectLabel';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { ColumnObject } from 'src/features/datasets/types';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
@@ -61,7 +63,6 @@ import {
 import {
   DatasourceModal,
   GenericLink,
-  FacePile,
   ImportModal as ImportModelsModal,
   ModifiedInfo,
   ListView,
@@ -73,12 +74,13 @@ import {
 import type { SelectOption } from 'src/components/ListView/types';
 import { Typography } from '@superset-ui/core/components/Typography';
 import handleResourceExport from 'src/utils/export';
+import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
-import Owner from 'src/types/Owner';
+import Subject from 'src/types/Subject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Icons } from '@superset-ui/core/components/Icons';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
-import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
+import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
 
 import {
   PAGE_SIZE,
@@ -100,7 +102,12 @@ import {
 import { useSelector } from 'react-redux';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
-import type { BootstrapData } from 'src/types/bootstrapTypes';
+import type {
+  BootstrapData,
+  UserWithPermissionsAndRoles,
+} from 'src/types/bootstrapTypes';
+import type User from 'src/types/User';
+import IconButton from 'src/dashboard/components/IconButton';
 
 const SEMANTIC_LAYERS_FLAG = 'SEMANTIC_LAYERS' as FeatureFlag;
 type DatasetExtra = {
@@ -131,33 +138,12 @@ const FlexRowContainer = styled.div`
 const Actions = styled.div`
   ${({ theme }) => css`
     color: ${theme.colorIcon};
-
-    .disabled {
-      svg,
-      i {
-        &:hover {
-          path {
-            fill: ${theme.colorText};
-          }
-        }
-      }
-      color: ${theme.colorTextDisabled};
-      &:hover {
-        cursor: not-allowed;
-      }
-      .ant-menu-item:hover {
-        cursor: default;
-      }
-      &::after {
-        color: ${theme.colorTextDisabled};
-      }
-    }
   `}
 `;
 
 type Dataset = {
   changed_by_name: string;
-  changed_by: Owner;
+  changed_by: User;
   changed_on_delta_humanized: string;
   database: {
     id: string;
@@ -167,7 +153,7 @@ type Dataset = {
   source_type?: 'database' | 'semantic_layer';
   explore_url: string;
   id: number;
-  owners: Array<Owner>;
+  editors: Array<Subject>;
   schema: string | null;
   table_name: string;
   description?: string | null;
@@ -186,11 +172,7 @@ interface VirtualDataset extends Dataset {
 interface DatasetListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  user: {
-    userId: string | number;
-    firstName: string;
-    lastName: string;
-  };
+  user?: UserWithPermissionsAndRoles;
 }
 
 type RelatedObjects = {
@@ -613,7 +595,39 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const handleBulkDatasetExport = useCallback(
     async (datasetsToExport: Dataset[]) => {
-      const ids = datasetsToExport.map(({ id }) => id);
+      // The combined Datasources list mixes regular datasets (SqlaTable) with
+      // semantic views, which live in their own table with an independent id
+      // sequence. The dataset export endpoint looks rows up by bare numeric
+      // id against ``tables`` only — passing a semantic-view id silently
+      // returns whatever SqlaTable happens to share that id. Until a proper
+      // semantic-view export path exists, partition the selection and only
+      // ship dataset ids over to ``/api/v1/dataset/export/``.
+      const datasetRows = datasetsToExport.filter(
+        ({ kind }) => kind !== 'semantic_view',
+      );
+      const semanticViewCount = datasetsToExport.length - datasetRows.length;
+
+      if (datasetRows.length === 0) {
+        addDangerToast(
+          t(
+            'Exporting semantic views is not supported yet. ' +
+              'Deselect the semantic-view rows and try again.',
+          ),
+        );
+        return;
+      }
+
+      if (semanticViewCount > 0) {
+        addDangerToast(
+          t(
+            'Exporting semantic views is not supported yet — ' +
+              '%s semantic-view row(s) were skipped.',
+            semanticViewCount,
+          ),
+        );
+      }
+
+      const ids = datasetRows.map(({ id }) => id);
       setPreparingExport(true);
       try {
         await handleResourceExport('dataset', ids, () => {
@@ -676,10 +690,17 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             },
           },
         }: CellProps<Dataset>) => {
+          // `explore_url` arrives router-relative from the backend (already
+          // carrying the application root under a subdirectory deployment).
+          // react-router's <Link>/<GenericLink> resolve `to` against the
+          // Router basename, which re-prefixes the root — so strip it here to
+          // avoid a doubled `/superset/superset/...`. External
+          // `default_endpoint` URLs pass through unchanged.
+          const exploreTo = stripAppRoot(exploreURL);
           let titleLink: JSX.Element;
           if (PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET) {
             titleLink = (
-              <Link data-test="internal-link" to={exploreURL}>
+              <Link data-test="internal-link" to={exploreTo}>
                 {datasetTitle}
               </Link>
             );
@@ -687,7 +708,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             titleLink = (
               // exploreUrl can be a link to Explore or an external link
               // in the first case use SPA routing, else use HTML anchor
-              <GenericLink to={exploreURL}>{datasetTitle}</GenericLink>
+              <GenericLink to={exploreTo}>{datasetTitle}</GenericLink>
             );
           }
           try {
@@ -773,11 +794,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       {
         Cell: ({
           row: {
-            original: { owners = [] },
+            original: { editors = [] },
           },
-        }: CellProps<Dataset>) => <FacePile users={owners} />,
-        Header: t('Owners'),
-        id: 'owners',
+        }: CellProps<Dataset>) => <SubjectPile subjects={editors} />,
+        Header: t('Editors'),
+        id: 'editors',
         disableSortBy: true,
         size: 'lg',
       },
@@ -813,6 +834,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Cell: ({ row: { original } }: CellProps<Dataset>) => {
           const isSemanticView = original.kind === 'semantic_view';
 
+          const allowEdit = isUserEditorOrAdmin(user, original.editors);
+
           // Semantic view: show edit and delete buttons
           if (isSemanticView) {
             if (!canEdit && !canDelete) return null;
@@ -821,33 +844,47 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 {canDelete && (
                   <Tooltip
                     id="delete-action-tooltip"
-                    title={t('Delete')}
+                    title={
+                      allowEdit
+                        ? t('Delete')
+                        : t(
+                            'You must be a dataset editor in order to delete. Please reach out to a dataset editor to request modifications or edit access.',
+                          )
+                    }
                     placement="bottom"
                   >
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      className="action-button"
+                    <IconButton
+                      data-test="dataset-row-delete"
+                      disabled={!allowEdit}
                       onClick={() => handleSemanticViewDelete(original)}
-                    >
-                      <Icons.DeleteOutlined iconSize="l" />
-                    </span>
+                      onKeyDown={handleKeyboardActivation(() =>
+                        handleSemanticViewDelete(original),
+                      )}
+                      icon={<Icons.DeleteOutlined iconSize="l" />}
+                    />
                   </Tooltip>
                 )}
                 {canEdit && (
                   <Tooltip
                     id="edit-action-tooltip"
-                    title={t('Edit')}
+                    title={
+                      allowEdit
+                        ? t('Edit')
+                        : t(
+                            'You must be a dataset editor in order to edit. Please reach out to a dataset editor to request modifications or edit access.',
+                          )
+                    }
                     placement="bottom"
                   >
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      className="action-button"
+                    <IconButton
+                      data-test="dataset-row-edit"
+                      disabled={!allowEdit}
                       onClick={() => setSvCurrentlyEditing(original)}
-                    >
-                      <Icons.EditOutlined iconSize="l" />
-                    </span>
+                      onKeyDown={handleKeyboardActivation(() =>
+                        setSvCurrentlyEditing(original),
+                      )}
+                      icon={<Icons.EditOutlined iconSize="l" />}
+                    />
                   </Tooltip>
                 )}
               </Actions>
@@ -855,11 +892,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           }
 
           // Dataset: full set of actions
-          const allowEdit =
-            original.owners
-              .map((o: Owner) => o.id)
-              .includes(Number(user.userId)) || isUserAdmin(user);
-
           const handleEdit = () => openDatasetEditModal(original);
           const handleDelete = () => openDatasetDeleteModal(original);
           const handleExport = () => handleBulkDatasetExport([original]);
@@ -880,19 +912,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     allowEdit
                       ? t('Edit')
                       : t(
-                          'You must be a dataset owner in order to edit. Please reach out to a dataset owner to request modifications or edit access.',
+                          'You must be a dataset editor in order to edit. Please reach out to a dataset editor to request modifications or edit access.',
                         )
                   }
                   placement="bottom"
                 >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className={`action-button ${allowEdit ? '' : 'disabled'}`}
-                    onClick={allowEdit ? handleEdit : undefined}
-                  >
-                    <Icons.EditOutlined iconSize="l" />
-                  </span>
+                  <IconButton
+                    data-test="dataset-row-edit"
+                    disabled={!allowEdit}
+                    onClick={handleEdit}
+                    onKeyDown={
+                      allowEdit
+                        ? handleKeyboardActivation(handleEdit)
+                        : undefined
+                    }
+                    icon={<Icons.EditOutlined iconSize="l" />}
+                  />
                 </Tooltip>
               )}
               {canExport && (
@@ -901,14 +936,12 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   title={t('Export')}
                   placement="bottom"
                 >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
+                  <IconButton
+                    data-test="dataset-row-export"
                     onClick={handleExport}
-                  >
-                    <Icons.UploadOutlined iconSize="l" />
-                  </span>
+                    onKeyDown={handleKeyboardActivation(handleExport)}
+                    icon={<Icons.UploadOutlined iconSize="l" />}
+                  />
                 </Tooltip>
               )}
               {canDuplicate && original.kind === 'virtual' && (
@@ -917,30 +950,33 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   title={t('Duplicate')}
                   placement="bottom"
                 >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
+                  <IconButton
+                    data-test="dataset-row-duplicate"
                     onClick={handleDuplicate}
-                  >
-                    <Icons.CopyOutlined iconSize="l" />
-                  </span>
+                    onKeyDown={handleKeyboardActivation(handleDuplicate)}
+                    icon={<Icons.CopyOutlined iconSize="l" />}
+                  />
                 </Tooltip>
               )}
               {canDelete && (
                 <Tooltip
                   id="delete-action-tooltip"
-                  title={t('Delete')}
+                  title={
+                    allowEdit
+                      ? t('Delete')
+                      : t(
+                          'You must be a dataset editor in order to delete. Please reach out to a dataset editor to request modifications or edit access.',
+                        )
+                  }
                   placement="bottom"
                 >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
+                  <IconButton
+                    data-test="dataset-row-delete"
+                    disabled={!allowEdit}
                     onClick={handleDelete}
-                  >
-                    <Icons.DeleteOutlined iconSize="l" />
-                  </span>
+                    onKeyDown={handleKeyboardActivation(handleDelete)}
+                    icon={<Icons.DeleteOutlined iconSize="l" />}
+                  />
                 </Tooltip>
               )}
             </Actions>
@@ -1072,24 +1108,23 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
-        Header: t('Owner'),
-        key: 'owner',
-        id: 'owners',
+        Header: t('Editor'),
+        key: 'editor',
+        id: 'editors',
         input: 'select',
         operator: FilterOperator.RelationManyMany,
         unfilteredLabel: 'All',
-        fetchSelects: createFetchOwners(
+        fetchSelects: createFetchEditors(
           'dataset',
           createErrorHandler(errMsg =>
             t(
-              'An error occurred while fetching %s owner values: %s',
-              datasetLabelLower(),
+              'An error occurred while fetching dataset editor values: %s',
               errMsg,
             ),
           ),
           user,
         ),
-        optionFilterProps: OWNER_OPTION_FILTER_PROPS,
+        optionFilterProps: SUBJECT_OPTION_FILTER_PROPS,
         paginate: true,
         popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
@@ -1365,7 +1400,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                           avatar={<span>•</span>}
                           title={
                             <Typography.Link
-                              href={`/superset/dashboard/${result.id}`}
+                              href={ensureAppRoot(`/dashboard/${result.id}`)}
                               target="_atRiskItem"
                             >
                               {result.title}
@@ -1408,7 +1443,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                           avatar={<span>•</span>}
                           title={
                             <Typography.Link
-                              href={`/explore/?slice_id=${result.id}`}
+                              href={ensureAppRoot(
+                                `/explore/?slice_id=${result.id}`,
+                              )}
                               target="_atRiskItem"
                             >
                               {result.slice_name}

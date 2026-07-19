@@ -17,12 +17,14 @@ runs:
     - name: Install supersetbot from npm
       if: ${{ inputs.from-npm == 'true' }}
       shell: bash
+      # zizmor: ignore[adhoc-packages] - supersetbot is a first-party Apache CLI (apache-superset/supersetbot) installed globally as a tool; a global CLI install has no application manifest/lockfile context
       run: npm install -g supersetbot
 
     - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
       if: ${{ inputs.from-npm == 'false' }}
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
+        persist-credentials: false
         repository: apache-superset/supersetbot
         path: supersetbot
 
@@ -30,6 +32,7 @@ runs:
       if: ${{ inputs.from-npm == 'false' }}
       shell: bash
       working-directory: supersetbot
+      # zizmor: ignore[adhoc-packages] - installs the locally packed supersetbot tarball built from the trusted apache-superset/supersetbot checkout; no lockfile applies to a global CLI install
       run: |
         # simple trick to install globally with dependencies
         npm pack
