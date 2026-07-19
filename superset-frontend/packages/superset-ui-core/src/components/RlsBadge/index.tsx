@@ -99,7 +99,7 @@ export function RlsBadge({ rlsFilters, size = 'l' }: RlsBadgeProps) {
   return (
     <Tooltip id="rls-badge-tooltip" title={tooltipContent}>
       <Icons.LockOutlined
-        data-test="rls-badge"
+        aria-label={t('Row-Level Security')}
         iconColor={theme.colorWarning}
         iconSize={size}
       />

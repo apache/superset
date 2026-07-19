@@ -576,8 +576,10 @@ test('shows RLS badge when dataset has rls_filters', async () => {
     expect(screen.getByText(dataset.table_name)).toBeInTheDocument();
   });
 
-  // RlsBadge renders a lock icon when filters are present
-  expect(screen.getByTestId('rls-badge')).toBeInTheDocument();
+  // RlsBadge renders a lock icon with accessible name when filters are present
+  expect(
+    screen.getByRole('img', { name: /row-level security/i }),
+  ).toBeInTheDocument();
 });
 
 test('does not show RLS badge when dataset has no rls_filters', async () => {
@@ -592,5 +594,7 @@ test('does not show RLS badge when dataset has no rls_filters', async () => {
   });
 
   // No RLS badge when rls_filters is absent
-  expect(screen.queryByTestId('rls-badge')).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('img', { name: /row-level security/i }),
+  ).not.toBeInTheDocument();
 });

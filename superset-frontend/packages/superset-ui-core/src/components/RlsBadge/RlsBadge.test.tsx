@@ -34,7 +34,9 @@ test('renders nothing when rlsFilters is empty', async () => {
 
 test('renders a lock icon when filters exist', async () => {
   await asyncRender({ rlsFilters: mockFilters });
-  expect(screen.getByTestId('rls-badge')).toBeInTheDocument();
+  expect(
+    screen.getByRole('img', { name: /row-level security/i }),
+  ).toBeInTheDocument();
 });
 
 test('renders a tooltip with filter details when hovered', async () => {
