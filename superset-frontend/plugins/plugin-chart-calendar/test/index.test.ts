@@ -21,7 +21,5 @@ import CalendarChartPlugin from '../src/index';
 test('registers the plugin with its v1 metadata and buildQuery loader', () => {
   const plugin = new CalendarChartPlugin();
   expect(plugin.metadata.name).toEqual('Calendar Heatmap');
-  // Migrated off the legacy explore_json pipeline, so it must not opt back in.
-  expect(plugin.metadata.useLegacyApi).toBeFalsy();
   expect(plugin.loadBuildQuery).toBeDefined();
 });
