@@ -961,6 +961,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
     table: Mapped["SqlaTable"] = relationship(
         "SqlaTable",
         back_populates="columns",
+        cascade_backrefs=False,
     )
 
     export_fields = [
@@ -1297,6 +1298,7 @@ class SqlaTable(
         TableColumn,
         back_populates="table",
         cascade="all, delete-orphan",
+        cascade_backrefs=False,
         passive_deletes=True,
     )
     metrics: Mapped[list[SqlMetric]] = relationship(
