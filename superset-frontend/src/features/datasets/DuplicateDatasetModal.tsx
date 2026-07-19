@@ -34,7 +34,7 @@ const DuplicateDatasetModal: FunctionComponent<DuplicateDatasetModalProps> = ({
   onDuplicate,
 }) => {
   const [show, setShow] = useState<boolean>(false);
-  const [disableSave, setDisableSave] = useState<boolean>(false);
+  const [disableSave, setDisableSave] = useState<boolean>(true);
   const [newDuplicateDatasetName, setNewDuplicateDatasetName] =
     useState<string>('');
 
@@ -50,6 +50,7 @@ const DuplicateDatasetModal: FunctionComponent<DuplicateDatasetModalProps> = ({
 
   useEffect(() => {
     setNewDuplicateDatasetName('');
+    setDisableSave(true);
     setShow(dataset !== null);
   }, [dataset]);
 

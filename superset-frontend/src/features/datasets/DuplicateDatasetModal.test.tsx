@@ -106,6 +106,19 @@ test('modal opens when dataset is provided', async () => {
   ).toBeInTheDocument();
 });
 
+test('duplicate button is disabled when modal first opens', async () => {
+  const onHide = jest.fn();
+  const onDuplicate = jest.fn();
+
+  renderModal(mockDataset, onHide, onDuplicate);
+
+  const duplicateButton = await screen.findByRole('button', {
+    name: /duplicate/i,
+  });
+
+  expect(duplicateButton).toBeDisabled();
+});
+
 test('modal does not open when dataset is null', () => {
   const onHide = jest.fn();
   const onDuplicate = jest.fn();
