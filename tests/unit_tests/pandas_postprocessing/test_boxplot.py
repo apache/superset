@@ -14,12 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import warnings
+
 import pytest
 
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import PostProcessingBoxplotWhiskerType
 from superset.utils.pandas_postprocessing import boxplot
 from tests.unit_tests.fixtures.dataframes import names_df
+from tests.unit_tests.pandas_postprocessing.utils import series_to_list
 
 
 def test_boxplot_tukey():
@@ -42,6 +45,27 @@ def test_boxplot_tukey():
         "region",
     }
     assert len(df) == 4
+
+
+def test_boxplot_mean_median_no_future_warning():
+    """mean/median must be passed as strings (not np.mean/np.median) to
+    GroupBy.agg, else pandas raises a FutureWarning. Also verify the values
+    match a plain pandas groupby, since the string and callable forms could
+    silently diverge on a future pandas version."""
+    expected = names_df.groupby("region")["cars"].agg(["mean", "median"])
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        df = boxplot(
+            df=names_df,
+            groupby=["region"],
+            whisker_type=PostProcessingBoxplotWhiskerType.TUKEY,
+            metrics=["cars"],
+        )
+
+    df = df.set_index("region")
+    assert series_to_list(df["cars__mean"]) == series_to_list(expected["mean"])
+    assert series_to_list(df["cars__median"]) == series_to_list(expected["median"])
 
 
 def test_boxplot_min_max():

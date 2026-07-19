@@ -171,7 +171,7 @@ google-auth==2.53.0
     # via
     #   -r requirements/base.in
     #   shillelagh
-greenlet==3.5.1
+greenlet==3.5.3
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh
@@ -282,7 +282,7 @@ packaging==25.0
     #   kombu
     #   limits
     #   shillelagh
-pandas==2.1.4
+pandas==2.3.3
     # via apache-superset (pyproject.toml)
 paramiko==3.5.1
     # via
@@ -328,7 +328,6 @@ pyjwt==2.13.0
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
     #   flask-jwt-extended
-    #   redis
 pynacl==1.6.2
     # via paramiko
 pyopenssl==26.3.0
@@ -339,6 +338,8 @@ pyparsing==3.2.3
     # via apache-superset (pyproject.toml)
 pysocks==1.7.1
     # via urllib3
+python-calamine==0.8.2
+    # via pandas
 python-dateutil==2.9.0.post0
     # via
     #   apache-superset (pyproject.toml)
@@ -360,7 +361,7 @@ pyyaml==6.0.3
     # via
     #   apache-superset (pyproject.toml)
     #   apispec
-redis==5.3.1
+redis==8.0.1
     # via apache-superset (pyproject.toml)
 referencing==0.36.2
     # via
@@ -435,7 +436,7 @@ trio==0.33.0
     #   trio-websocket
 trio-websocket==0.12.2
     # via selenium
-typing-extensions==4.15.0
+typing-extensions==4.16.0
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
