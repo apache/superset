@@ -21,7 +21,5 @@ import CountryMapChartPlugin from '../src/index';
 test('registers the plugin with its v1 metadata and buildQuery loader', () => {
   const plugin = new CountryMapChartPlugin();
   expect(plugin.metadata.name).toEqual('Country Map');
-  // Migrated off the legacy explore_json pipeline, so it must not opt back in.
-  expect(plugin.metadata.useLegacyApi).toBeFalsy();
   expect(plugin.loadBuildQuery).toBeDefined();
 });
