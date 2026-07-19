@@ -202,7 +202,6 @@ export const dropDownRenderHelper = (
 };
 
 // Strips surrounding double quotes from a string, e.g. `"foo"` → `foo`.
-// TODO(antd): drop once https://github.com/ant-design/ant-design/issues/57820 ships.
 export function stripSurroundingQuotes(text: string): string {
   const trimmed = text.trim();
   if (trimmed.length > 1 && trimmed.startsWith('"') && trimmed.endsWith('"')) {
@@ -262,7 +261,6 @@ export const mapOptions = (values: SelectOptionsType): Record<string, any>[] =>
   }));
 
 // Splits text by separators, preserving commas inside double quotes.
-// TODO(antd): drop once https://github.com/ant-design/ant-design/issues/57820 ships.
 export function splitWithQuoteEscaping(
   text: string,
   separators: string[],
@@ -297,20 +295,26 @@ export function splitWithQuoteEscaping(
   return results.filter(Boolean);
 }
 
-// Returns the index of the last separator not inside double quotes, or -1.
-// TODO(antd): drop once https://github.com/ant-design/ant-design/issues/57820 ships.
-export function findLastUnquotedSeparatorIndex(
-  text: string,
-  separator: string,
-): number {
+function hasUnquotedSeparator(text: string, separators: string[]): boolean {
   let inQuotes = false;
-  let lastIndex = -1;
   for (let i = 0; i < text.length; i += 1) {
     if (text[i] === '"') {
       inQuotes = !inQuotes;
-    } else if (!inQuotes && text[i] === separator) {
-      lastIndex = i;
+    } else if (!inQuotes && separators.some(sep => text.startsWith(sep, i))) {
+      return true;
     }
   }
-  return lastIndex;
+  return false;
+}
+
+// Quote-aware tokenizer for antd's function form of `tokenSeparators`.
+// Returning the input unchanged tells the Select not to tokenize, so typing
+// continues while quotes are open or separators only appear inside them.
+export function makeQuoteAwareTokenizer(
+  separators: string[],
+): (input: string) => string[] {
+  return (input: string) =>
+    hasUnquotedSeparator(input, separators)
+      ? splitWithQuoteEscaping(input, separators)
+      : [input];
 }

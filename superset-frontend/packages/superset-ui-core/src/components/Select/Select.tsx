@@ -49,12 +49,12 @@ import {
   hasOption,
   isLabeledValue,
   isObject,
+  makeQuoteAwareTokenizer,
   mapOptions,
   mapValues,
   sortComparatorWithSearchHelper,
   sortSelectedFirstHelper,
   splitWithQuoteEscaping,
-  findLastUnquotedSeparatorIndex,
   stripSurroundingQuotes,
   isEqual as utilsIsEqual,
 } from './utils';
@@ -195,12 +195,18 @@ const Select = forwardRef(
 
     const mappedMode = isSingleMode ? undefined : 'multiple';
 
-    // TODO(antd): drop manual comma tokenization once
-    // https://github.com/ant-design/ant-design/issues/57820 ships.
-    const antdTokenSeparators = useMemo(
-      () => tokenSeparators.filter(sep => sep !== ','),
-      [tokenSeparators],
-    );
+    const reconcileTokensRef = useRef<(tokens: string[]) => void>(() => {});
+
+    const quoteAwareTokenSeparators = useMemo(() => {
+      const tokenize = makeQuoteAwareTokenizer(tokenSeparators);
+      return (input: string) => {
+        const tokens = tokenize(input);
+        if (tokens.length !== 1 || tokens[0] !== input) {
+          reconcileTokensRef.current(tokens);
+        }
+        return tokens;
+      };
+    }, [tokenSeparators]);
 
     const sortSelectedFirst = useCallback(
       (a: AntdLabeledValue, b: AntdLabeledValue) =>
@@ -276,6 +282,11 @@ const Select = forwardRef(
           )
       );
     }, [selectOptions, selectValue, sortSelectedFirst]);
+
+    const fullSelectOptionsRef = useRef(fullSelectOptions);
+    fullSelectOptionsRef.current = fullSelectOptions;
+    const selectValueRef = useRef(selectValue);
+    selectValueRef.current = selectValue;
 
     const enabledOptions = useMemo(
       () => visibleOptions.filter(option => !option.disabled),
@@ -366,9 +377,6 @@ const Select = forwardRef(
           }
           return previousState;
         });
-        setInputValue('');
-        setIsSearching(false);
-        setVisibleOptions(fullSelectOptions);
         fireOnChange();
       }
       if (autoClearSearchValue) {
@@ -377,6 +385,42 @@ const Select = forwardRef(
         setVisibleOptions(fullSelectOptions);
       }
       onSelect?.(selectedItem, option);
+    };
+
+    // The underlying Select silently drops tokens it cannot match against the
+    // rendered options. That happens whenever tokenization outpaces the
+    // debounced option registration, e.g. dead-key keyboard layouts deliver a
+    // closing quote and a separator in a single input event.
+    reconcileTokensRef.current = (tokens: string[]) => {
+      if (isSingleMode || !allowNewOptions) {
+        return;
+      }
+      setTimeout(() => {
+        tokens.forEach(token => {
+          const matched = getOption(token, fullSelectOptionsRef.current, true);
+          const matchedValue = isObject(matched) ? matched.value : matched;
+          if (hasOption(matchedValue ?? token, selectValueRef.current)) {
+            return;
+          }
+          const option = isObject(matched)
+            ? (matched as AntdLabeledValue)
+            : { label: token, value: token, isNewOption: true };
+          if (!matched) {
+            const addOption = (previous: SelectOptionsType) =>
+              hasOption(token, previous, true)
+                ? previous
+                : [option, ...previous];
+            setSelectOptions(addOption);
+            setVisibleOptions(addOption);
+          }
+          handleOnSelect(
+            (labelInValue
+              ? { label: option.label, value: option.value }
+              : option.value) as string | AntdLabeledValue,
+            option as AntdLabeledValue,
+          );
+        });
+      });
     };
 
     const clear = () => {
@@ -427,13 +471,7 @@ const Select = forwardRef(
     const handleFilterOption = (search: string, option: AntdLabeledValue) =>
       handleFilterOptionHelper(search, option, optionFilterProps, filterOption);
 
-    const handleOnSearchDebounced = useRef(
-      debounce((fn: () => void) => fn(), Constants.FAST_DEBOUNCE),
-    ).current;
-
-    useEffect(() => () => handleOnSearchDebounced.cancel(), []);
-
-    const runSearchLogic = (search: string) => {
+    const handleOnSearch = debounce((search: string) => {
       const searchValue = search.trim();
       setIsSearching(!!searchValue);
 
@@ -464,6 +502,10 @@ const Select = forwardRef(
 
       const filteredOptions = updatedOptions
         .map((option: any) => {
+          /*
+          If it's a group, filter its nested options and only return it
+          if it has matching options
+          */
           if ('options' in option && Array.isArray(option.options)) {
             const filteredGroupOptions = option.options.filter(
               (subOption: AntdLabeledValue) =>
@@ -481,59 +523,11 @@ const Select = forwardRef(
         .filter((option): option is AntdLabeledValue => option !== null);
 
       setVisibleOptions(filteredOptions);
+      setInputValue(searchValue);
       onSearch?.(searchValue);
-    };
+    }, Constants.FAST_DEBOUNCE);
 
-    const selectTokenizedValues = (values: string[]) => {
-      const newOptions: SelectOptionsType = [];
-      values.forEach(item => {
-        const option = getOption(item, fullSelectOptions, true);
-        if (!option && !allowNewOptions) return;
-        if (!option) {
-          newOptions.push({ label: item, value: item, isNewOption: true });
-        }
-        const optValue = option
-          ? isObject(option)
-            ? option.value!
-            : option
-          : item;
-        const optLabel = option
-          ? isObject(option)
-            ? option.label
-            : option
-          : item;
-        handleOnSelect(
-          labelInValue ? { label: optLabel, value: optValue } : optValue,
-          { label: optLabel, value: optValue, isNewOption: !option },
-        );
-      });
-      if (newOptions.length > 0) {
-        setSelectOptions(prev => [...newOptions, ...prev]);
-        setVisibleOptions(prev => [...newOptions, ...prev]);
-      }
-    };
-
-    const onSearchChange = (search: string) => {
-      // Handle comma tokenization with quote escaping (multi-select only)
-      if (!isSingleMode && tokenSeparators.includes(',')) {
-        const lastCommaIdx = findLastUnquotedSeparatorIndex(search, ',');
-        if (lastCommaIdx !== -1) {
-          const before = search.slice(0, lastCommaIdx);
-          const after = search.slice(lastCommaIdx + 1);
-          const parts = splitWithQuoteEscaping(before, [','])
-            .map(p => p.trim())
-            .filter(Boolean);
-          if (parts.length > 0) {
-            selectTokenizedValues(parts);
-          }
-          setInputValue(after);
-          handleOnSearchDebounced(() => runSearchLogic(after));
-          return;
-        }
-      }
-      setInputValue(search);
-      handleOnSearchDebounced(() => runSearchLogic(search));
-    };
+    useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
 
     const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
       setIsDropdownVisible(isDropdownVisible);
@@ -786,9 +780,7 @@ const Select = forwardRef(
           setSelectValue(value);
         }
       } else {
-        e.preventDefault();
-        // antd v6 widened `tokenSeparators` to `string[] | (input => string[])`;
-        // Superset always uses the array form.
+        // Superset's prop is the array form; antd receives the function form
         const separators = Array.isArray(tokenSeparators)
           ? tokenSeparators
           : [];
@@ -901,7 +893,7 @@ const Select = forwardRef(
           // surface, but the underlying input accepts it and we rely on that.
           onPaste={onPaste}
           onPopupScroll={undefined}
-          onSearch={shouldShowSearch ? onSearchChange : undefined}
+          onSearch={shouldShowSearch ? handleOnSearch : undefined}
           onSelect={
             handleOnSelect as unknown as (
               value: unknown,
@@ -910,8 +902,7 @@ const Select = forwardRef(
           }
           onClear={handleClear}
           placeholder={placeholder}
-          searchValue={inputValue}
-          tokenSeparators={antdTokenSeparators}
+          tokenSeparators={quoteAwareTokenSeparators}
           value={selectValue}
           virtual={
             virtual !== undefined

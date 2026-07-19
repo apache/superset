@@ -19,7 +19,7 @@
 import {
   splitWithQuoteEscaping,
   stripSurroundingQuotes,
-  findLastUnquotedSeparatorIndex,
+  makeQuoteAwareTokenizer,
 } from './utils';
 
 test('stripSurroundingQuotes removes matching surrounding double quotes', () => {
@@ -86,20 +86,36 @@ test('splitWithQuoteEscaping supports multi-character separators', () => {
   expect(splitWithQuoteEscaping('a, b, c', [', '])).toEqual(['a', 'b', 'c']);
 });
 
-test('findLastUnquotedSeparatorIndex returns the index of the last unquoted separator', () => {
-  expect(findLastUnquotedSeparatorIndex('a,b,c', ',')).toBe(3);
+test('makeQuoteAwareTokenizer returns input unchanged while quotes are open', () => {
+  const tokenize = makeQuoteAwareTokenizer([',']);
+  expect(tokenize('"Australia, US')).toEqual(['"Australia, US']);
 });
 
-test('findLastUnquotedSeparatorIndex ignores separators inside double quotes', () => {
-  expect(findLastUnquotedSeparatorIndex('a,"b,c"', ',')).toBe(1);
-  expect(findLastUnquotedSeparatorIndex('"a,b"', ',')).toBe(-1);
+test('makeQuoteAwareTokenizer returns input unchanged when separators only appear inside quotes', () => {
+  const tokenize = makeQuoteAwareTokenizer([',']);
+  expect(tokenize('"Australia, US"')).toEqual(['"Australia, US"']);
 });
 
-test('findLastUnquotedSeparatorIndex returns -1 when no separator is present', () => {
-  expect(findLastUnquotedSeparatorIndex('abc', ',')).toBe(-1);
-  expect(findLastUnquotedSeparatorIndex('', ',')).toBe(-1);
+test('makeQuoteAwareTokenizer returns input unchanged when no separator is present', () => {
+  const tokenize = makeQuoteAwareTokenizer([',']);
+  expect(tokenize('Australia')).toEqual(['Australia']);
 });
 
-test('findLastUnquotedSeparatorIndex with unclosed quote keeps subsequent separators quoted', () => {
-  expect(findLastUnquotedSeparatorIndex('a,"b,c', ',')).toBe(1);
+test('makeQuoteAwareTokenizer splits on a trailing unquoted separator', () => {
+  const tokenize = makeQuoteAwareTokenizer([',']);
+  expect(tokenize('Australia,')).toEqual(['Australia']);
+});
+
+test('makeQuoteAwareTokenizer splits mixed quoted and unquoted values', () => {
+  const tokenize = makeQuoteAwareTokenizer([',']);
+  expect(tokenize('"Australia, Austria",Canada')).toEqual([
+    'Australia, Austria',
+    'Canada',
+  ]);
+});
+
+test('makeQuoteAwareTokenizer detects any separator from the list outside quotes', () => {
+  const tokenize = makeQuoteAwareTokenizer([',', '\n']);
+  expect(tokenize('a\nb')).toEqual(['a', 'b']);
+  expect(tokenize('"a\nb"')).toEqual(['"a\nb"']);
 });

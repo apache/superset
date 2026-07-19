@@ -57,11 +57,11 @@ import {
   getSuffixIcon,
   dropDownRenderHelper,
   handleFilterOptionHelper,
+  makeQuoteAwareTokenizer,
   mapOptions,
   getOption,
   isObject,
   splitWithQuoteEscaping,
-  findLastUnquotedSeparatorIndex,
   stripSurroundingQuotes,
   isEqual as utilsIsEqual,
 } from './utils';
@@ -177,12 +177,19 @@ const AsyncSelect = forwardRef(
     const inFlightFetchesRef = useRef(0);
     const mappedMode = isSingleMode ? undefined : 'multiple';
 
-    // TODO(antd): drop manual comma tokenization once
-    // https://github.com/ant-design/ant-design/issues/57820 ships.
-    const antdTokenSeparators = useMemo(
-      () => tokenSeparators.filter(sep => sep !== ','),
-      [tokenSeparators],
-    );
+    const reconcileTokensRef = useRef<(tokens: string[]) => void>(() => {});
+
+    const quoteAwareTokenSeparators = useMemo(() => {
+      const tokenize = makeQuoteAwareTokenizer(tokenSeparators);
+      return (input: string) => {
+        const tokens = tokenize(input);
+        if (tokens.length !== 1 || tokens[0] !== input) {
+          reconcileTokensRef.current(tokens);
+        }
+        return tokens;
+      };
+    }, [tokenSeparators]);
+
     const allowFetch = !fetchOnlyOnSearch || inputValue;
     const [maxTagCount, setMaxTagCount] = useState(
       propsMaxTagCount ?? MAX_TAG_COUNT,
@@ -280,8 +287,6 @@ const AsyncSelect = forwardRef(
           }
           return previousState;
         });
-        setInputValue('');
-        setSelectOptions(prev => prev.sort(sortComparatorForNoSearch));
         fireOnChange();
       }
       if (autoClearSearchValue) {
@@ -291,6 +296,39 @@ const AsyncSelect = forwardRef(
         }
       }
       onSelect?.(selectedItem, option);
+    };
+
+    // The underlying Select silently drops tokens it cannot match against the
+    // rendered options. That happens whenever tokenization outpaces the
+    // debounced option registration, e.g. dead-key keyboard layouts deliver a
+    // closing quote and a separator in a single input event.
+    reconcileTokensRef.current = (tokens: string[]) => {
+      if (isSingleMode || !allowNewOptions) {
+        return;
+      }
+      setTimeout(() => {
+        tokens.forEach(token => {
+          const matched = getOption(token, fullSelectOptionsRef.current, true);
+          const matchedValue = isObject(matched) ? matched.value : matched;
+          if (hasOption(matchedValue ?? token, selectValueRef.current)) {
+            return;
+          }
+          const option = isObject(matched)
+            ? (matched as AntdLabeledValue)
+            : { label: token, value: token, isNewOption: true };
+          if (!matched) {
+            setSelectOptions(previous =>
+              hasOption(token, previous, true)
+                ? previous
+                : [option, ...previous],
+            );
+          }
+          handleOnSelect(
+            { label: option.label, value: option.value } as AntdLabeledValue,
+            option as AntdLabeledValue,
+          );
+        });
+      });
     };
 
     const handleOnDeselect: SelectProps['onDeselect'] = (value, option) => {
@@ -329,6 +367,9 @@ const AsyncSelect = forwardRef(
         }),
       [onError],
     );
+
+    const fullSelectOptionsRef = useRef(fullSelectOptions);
+    fullSelectOptionsRef.current = fullSelectOptions;
 
     const mergeData = useCallback(
       (data: SelectOptionsType) => {
@@ -472,13 +513,7 @@ const AsyncSelect = forwardRef(
       [fetchPage],
     );
 
-    const handleOnSearchDebounced = useRef(
-      debounce((fn: () => void) => fn(), Constants.FAST_DEBOUNCE),
-    ).current;
-
-    useEffect(() => () => handleOnSearchDebounced.cancel(), []);
-
-    const runSearchLogic = (search: string) => {
+    const handleOnSearch = debounce((search: string) => {
       const searchValue = search.trim();
       if (allowNewOptions) {
         const unquotedSearch = stripSurroundingQuotes(searchValue);
@@ -501,55 +536,15 @@ const AsyncSelect = forwardRef(
         loadingEnabled &&
         !fetchedQueries.current.has(getQueryCacheKey(searchValue, 0, pageSize))
       ) {
+        // if fetch only on search but search value is empty, then should not be
+        // in loading state
         setIsLoading(!(fetchOnlyOnSearch && !searchValue));
       }
-      onSearch?.(searchValue);
-    };
-
-    const selectTokenizedValues = (values: string[]) => {
-      const newOptions: SelectOptionsType = [];
-      values.forEach(item => {
-        const option = getOption(item, fullSelectOptions, true);
-        if (!option && !allowNewOptions) return;
-        if (!option) {
-          newOptions.push({ label: item, value: item, isNewOption: true });
-        }
-        const value: AntdLabeledValue = { label: item, value: item };
-        if (option) {
-          value.label = isObject(option) ? option.label : option;
-          value.value = isObject(option) ? option.value! : option;
-        }
-        handleOnSelect(value, {
-          label: value.label,
-          value: value.value,
-          isNewOption: !option,
-        });
-      });
-      if (newOptions.length > 0) {
-        setSelectOptions(prev => [...newOptions, ...prev]);
-      }
-    };
-
-    const onSearchChange = (search: string) => {
-      if (!isSingleMode && tokenSeparators.includes(',')) {
-        const lastCommaIdx = findLastUnquotedSeparatorIndex(search, ',');
-        if (lastCommaIdx !== -1) {
-          const before = search.slice(0, lastCommaIdx);
-          const after = search.slice(lastCommaIdx + 1);
-          const parts = splitWithQuoteEscaping(before, [','])
-            .map(p => p.trim())
-            .filter(Boolean);
-          if (parts.length > 0) {
-            selectTokenizedValues(parts);
-          }
-          setInputValue(after);
-          handleOnSearchDebounced(() => runSearchLogic(after));
-          return;
-        }
-      }
       setInputValue(search);
-      handleOnSearchDebounced(() => runSearchLogic(search));
-    };
+      onSearch?.(searchValue);
+    }, Constants.FAST_DEBOUNCE);
+
+    useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
 
     const handlePagination = (e: UIEvent<HTMLElement>) => {
       const vScroll = e.currentTarget;
@@ -762,9 +757,7 @@ const AsyncSelect = forwardRef(
           setSelectValue(value);
         }
       } else {
-        e.preventDefault();
-        // antd v6 widened `tokenSeparators` to `string[] | (input => string[])`;
-        // Superset always uses the array form.
+        // Superset's prop is the array form; antd receives the function form
         const separators = Array.isArray(tokenSeparators)
           ? tokenSeparators
           : [];
@@ -837,7 +830,7 @@ const AsyncSelect = forwardRef(
           // surface, but the underlying input accepts it and we rely on that.
           onPaste={onPaste}
           onPopupScroll={handlePagination}
-          onSearch={shouldShowSearch ? onSearchChange : undefined}
+          onSearch={shouldShowSearch ? handleOnSearch : undefined}
           onSelect={
             handleOnSelect as unknown as (
               value: unknown,
@@ -849,8 +842,7 @@ const AsyncSelect = forwardRef(
           optionRender={option => <Space>{option.label || option.value}</Space>}
           placeholder={placeholder}
           showSearch={shouldShowSearch}
-          searchValue={inputValue}
-          tokenSeparators={antdTokenSeparators}
+          tokenSeparators={quoteAwareTokenSeparators}
           builtinPlacements={DROPDOWN_BUILTIN_PLACEMENTS}
           value={selectValue}
           suffixIcon={getSuffixIcon(
