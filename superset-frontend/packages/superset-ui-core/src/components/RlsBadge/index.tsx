@@ -98,7 +98,11 @@ export function RlsBadge({ rlsFilters, size = 'l' }: RlsBadgeProps) {
 
   return (
     <Tooltip id="rls-badge-tooltip" title={tooltipContent}>
-      <Icons.LockOutlined iconColor={theme.colorWarning} iconSize={size} />
+      <Icons.LockOutlined
+        data-test="rls-badge"
+        iconColor={theme.colorWarning}
+        iconSize={size}
+      />
     </Tooltip>
   );
 }

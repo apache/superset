@@ -835,6 +835,26 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         return physical_map, phys_rls
 
     @staticmethod
+    def _fetch_db_engines(
+        db_ids: set[int],
+    ) -> dict[int, str]:
+        """Return a mapping of database_id -> backend engine string."""
+        if not db_ids:
+            return {}
+        db_objs = (
+            db.session.query(Database)
+            .filter(Database.id.in_(db_ids))  # type: ignore[attr-defined,unused-ignore]
+            .all()
+        )
+        engines: dict[int, str] = {}
+        for database_obj in db_objs:
+            try:
+                engines[database_obj.id] = database_obj.backend
+            except Exception:  # noqa: BLE001
+                engines[database_obj.id] = ""
+        return engines
+
+    @staticmethod
     def _get_inherited_rls_for_virtual_datasets(
         virtual_datasets: list[tuple[int, str, str | None, int]],
     ) -> dict[int, list[dict[str, Any]]]:
@@ -844,20 +864,8 @@ class DatasetDAO(BaseDAO[SqlaTable]):
 
         Each tuple is (dataset_id, sql, schema, database_id).
         """
-        # Batch-fetch database engines for accurate SQL parsing
         unique_db_ids = {row[3] for row in virtual_datasets}
-        db_engines: dict[int, str] = {}
-        if unique_db_ids:
-            db_objs = (
-                db.session.query(Database)
-                .filter(Database.id.in_(unique_db_ids))  # type: ignore[attr-defined,unused-ignore]
-                .all()
-            )
-            for database_obj in db_objs:
-                try:
-                    db_engines[database_obj.id] = database_obj.backend
-                except Exception:  # noqa: BLE001
-                    db_engines[database_obj.id] = ""
+        db_engines = DatasetDAO._fetch_db_engines(unique_db_ids)
 
         ds_to_tables, ds_db_map = DatasetDAO._parse_tables_from_virtual_datasets(
             virtual_datasets, db_engines=db_engines
@@ -879,12 +887,16 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         result: dict[int, list[dict[str, Any]]] = {}
         for ds_id, table_refs in ds_to_tables.items():
             database_id = ds_db_map[ds_id]
+            seen_filter_ids: set[int] = set()
             for table_ref in table_refs:
                 phys_id = physical_map.get(
                     (table_ref.table, table_ref.schema, database_id)
                 )
                 if phys_id and phys_id in phys_rls:
-                    result.setdefault(ds_id, []).extend(phys_rls[phys_id])
+                    for f in phys_rls[phys_id]:
+                        if f["id"] not in seen_filter_ids:
+                            seen_filter_ids.add(f["id"])
+                            result.setdefault(ds_id, []).append(f)
 
         return result
 

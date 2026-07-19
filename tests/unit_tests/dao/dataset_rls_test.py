@@ -195,8 +195,13 @@ def test_get_rls_filters_inherited_from_virtual_dataset_detail(
     assert result[0]["clause"] == "1 = 0"
 
 
-def test_dedup_inherited_filters_list(session: Session) -> None:
-    """Same RLS filter inherited via two tables in SQL should appear only once."""
+def _make_two_table_dedup_scenario(
+    session: Session,
+) -> tuple[int, str]:
+    """
+    Shared fixture: one RLS filter attached to two physical tables (a, b),
+    and a virtual dataset whose SQL references both.  Returns (virtual_id,).
+    """
     from superset import db
     from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
     from superset.models.core import Database
@@ -206,7 +211,6 @@ def test_dedup_inherited_filters_list(session: Session) -> None:
     database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
     phys_a = SqlaTable(table_name="a", schema="main", database=database)
     phys_b = SqlaTable(table_name="b", schema="main", database=database)
-    # Same filter attached to both physical tables
     rls_filter = RowLevelSecurityFilter(
         name="shared_filter",
         filter_type="Regular",
@@ -222,41 +226,24 @@ def test_dedup_inherited_filters_list(session: Session) -> None:
     )
     db.session.add_all([database, phys_a, phys_b, virtual, rls_filter])
     db.session.flush()
+    return virtual.id, rls_filter.name
 
-    result = DatasetDAO.get_rls_filters_for_datasets([virtual.id])
-    assert virtual.id in result
-    assert len(result[virtual.id]) == 1, "Should deduplicate the shared filter"
-    assert result[virtual.id][0]["name"] == "shared_filter"
+
+def test_dedup_inherited_filters_list(session: Session) -> None:
+    """Same RLS filter inherited via two tables in SQL should appear only once."""
+    virtual_id, filter_name = _make_two_table_dedup_scenario(session)
+
+    result = DatasetDAO.get_rls_filters_for_datasets([virtual_id])
+    assert virtual_id in result
+    assert len(result[virtual_id]) == 1, "Should deduplicate the shared filter"
+    assert result[virtual_id][0]["name"] == filter_name
 
 
 def test_dedup_inherited_filters_detail(session: Session) -> None:
     """Detail dedup: same filter from two physical tables should appear once."""
-    from superset import db
-    from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
-    from superset.models.core import Database
+    virtual_id, _ = _make_two_table_dedup_scenario(session)
 
-    _setup_tables(session)
-
-    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
-    phys_a = SqlaTable(table_name="a", schema="main", database=database)
-    phys_b = SqlaTable(table_name="b", schema="main", database=database)
-    rls_filter = RowLevelSecurityFilter(
-        name="shared_filter",
-        filter_type="Regular",
-        group_key=None,
-        clause="1=1",
-        tables=[phys_a, phys_b],
-    )
-    virtual = SqlaTable(
-        table_name="v",
-        schema="main",
-        database=database,
-        sql="SELECT * FROM a JOIN b ON a.id = b.id",
-    )
-    db.session.add_all([database, phys_a, phys_b, virtual, rls_filter])
-    db.session.flush()
-
-    result = DatasetDAO.get_rls_filters_for_dataset(virtual.id)
+    result = DatasetDAO.get_rls_filters_for_dataset(virtual_id)
     assert len(result) == 1, "Should deduplicate the shared filter"
     assert result[0]["inherited"] is True
 
