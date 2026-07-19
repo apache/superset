@@ -114,7 +114,7 @@
     "import/named": "error",
     "import/export": "error",
     "import/no-named-as-default": "error",
-    "import/no-named-as-default-member": "off",
+    "import/no-named-as-default-member": "error",
     "import/no-mutable-exports": "error",
     "import/no-amd": "error",
     "import/first": "error",
