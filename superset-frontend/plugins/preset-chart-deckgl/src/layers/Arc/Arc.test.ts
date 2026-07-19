@@ -49,13 +49,13 @@ test('falls back to the default color when target_color_picker is missing', () =
 
   const layer = getLayer({ ...baseArgs, formData });
 
-  expect((layer.props.getSourceColor as ColorAccessor)(sampleDatum)).toEqual([
-    10, 20, 30, 255,
-  ]);
+  expect(
+    (layer.props.getSourceColor as unknown as ColorAccessor)(sampleDatum),
+  ).toEqual([10, 20, 30, 255]);
   // Missing target color resolves to PRIMARY_COLOR { r:0, g:122, b:135, a:1 }
-  expect((layer.props.getTargetColor as ColorAccessor)(sampleDatum)).toEqual([
-    0, 122, 135, 255,
-  ]);
+  expect(
+    (layer.props.getTargetColor as unknown as ColorAccessor)(sampleDatum),
+  ).toEqual([0, 122, 135, 255]);
 });
 
 test('uses the configured source and target colors when both are present', () => {
@@ -67,10 +67,10 @@ test('uses the configured source and target colors when both are present', () =>
 
   const layer = getLayer({ ...baseArgs, formData });
 
-  expect((layer.props.getSourceColor as ColorAccessor)(sampleDatum)).toEqual([
-    10, 20, 30, 255,
-  ]);
-  expect((layer.props.getTargetColor as ColorAccessor)(sampleDatum)).toEqual([
-    40, 50, 60, 255,
-  ]);
+  expect(
+    (layer.props.getSourceColor as unknown as ColorAccessor)(sampleDatum),
+  ).toEqual([10, 20, 30, 255]);
+  expect(
+    (layer.props.getTargetColor as unknown as ColorAccessor)(sampleDatum),
+  ).toEqual([40, 50, 60, 255]);
 });
