@@ -91,6 +91,11 @@ test('splitWithQuoteEscaping returns the original text when no separator is pres
   expect(splitWithQuoteEscaping('hello world', [','])).toEqual(['hello world']);
 });
 
+test('splitWithQuoteEscaping strips surrounding quotes when no separator is present', () => {
+  expect(splitWithQuoteEscaping('"Canada"', [','])).toEqual(['Canada']);
+  expect(splitWithQuoteEscaping('"Bob ""B"""', [','])).toEqual(['Bob "B"']);
+});
+
 test('splitWithQuoteEscaping uses the first separator from the list that appears in the text', () => {
   expect(splitWithQuoteEscaping('a;b,c', [',', ';'])).toEqual(['a;b', 'c']);
   expect(splitWithQuoteEscaping('a;b', [',', ';'])).toEqual(['a', 'b']);

@@ -452,6 +452,31 @@ test('typing a comma inside double quotes keeps the value as a single chip', asy
   expect(values[0]).toHaveTextContent('Australia, US');
 });
 
+test('prevents the default paste action when pasted values are consumed', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => `${OPTIONS[0].label},${OPTIONS[1].label}`,
+    },
+  });
+  fireEvent(input, paste);
+  await findAllSelectValues();
+  expect(paste.defaultPrevented).toBe(true);
+});
+
+test('allows the default paste action when nothing is consumable', async () => {
+  render(<Select {...defaultProps} mode="multiple" />);
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'zzz,yyy',
+    },
+  });
+  fireEvent(input, paste);
+  expect(paste.defaultPrevented).toBe(false);
+});
+
 test('trims whitespace from pasted comma-separated values', async () => {
   render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
   const input = getElementByClassName('.ant-select-input');

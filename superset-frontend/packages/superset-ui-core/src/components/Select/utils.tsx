@@ -267,7 +267,7 @@ export function splitWithQuoteEscaping(
 ): string[] {
   const separator = separators.find(sep => text.includes(sep));
   if (!separator) {
-    return [text.trim()].filter(Boolean);
+    return [stripSurroundingQuotes(text)].filter(Boolean);
   }
 
   const results: string[] = [];

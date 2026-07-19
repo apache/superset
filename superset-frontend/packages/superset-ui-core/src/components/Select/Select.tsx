@@ -810,6 +810,10 @@ const Select = forwardRef(
           })
           .filter(item => item !== undefined);
 
+        if (values.length > 0) {
+          e.preventDefault();
+        }
+
         if (newOptions.length > 0) {
           const updatedOptions = [...fullSelectOptions, ...newOptions];
           setSelectOptions(updatedOptions);
