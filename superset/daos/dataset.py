@@ -896,10 +896,10 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         referenced in the dataset's SQL.
         """
 
-        # Direct RLS filters on this dataset — eager-load roles to avoid N+1
+        # Direct RLS filters on this dataset — eager-load subjects to avoid N+1
         filters = (
             db.session.query(RowLevelSecurityFilter)
-            .options(joinedload(RowLevelSecurityFilter.roles))
+            .options(joinedload(RowLevelSecurityFilter.subjects))
             .join(
                 RLSFilterTables,
                 RLSFilterTables.c.rls_filter_id == RowLevelSecurityFilter.id,
@@ -915,7 +915,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 "filter_type": f.filter_type,
                 "group_key": f.group_key,
                 "clause": f.clause,
-                "roles": [{"id": r.id, "name": r.name} for r in f.roles],
+                "roles": [{"id": s.id, "name": s.label} for s in f.subjects],
             }
             for f in filters
         ]
@@ -971,7 +971,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                     if physical_ids:
                         inherited_filters = (
                             db.session.query(RowLevelSecurityFilter)
-                            .options(joinedload(RowLevelSecurityFilter.roles))
+                            .options(joinedload(RowLevelSecurityFilter.subjects))
                             .join(
                                 RLSFilterTables,
                                 RLSFilterTables.c.rls_filter_id
@@ -993,8 +993,8 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                                         "group_key": f.group_key,
                                         "clause": f.clause,
                                         "roles": [
-                                            {"id": r.id, "name": r.name}
-                                            for r in f.roles
+                                            {"id": s.id, "name": s.label}
+                                            for s in f.subjects
                                         ],
                                         "inherited": True,
                                     }
