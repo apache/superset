@@ -205,7 +205,7 @@ export const dropDownRenderHelper = (
 export function stripSurroundingQuotes(text: string): string {
   const trimmed = text.trim();
   if (trimmed.length > 1 && trimmed.startsWith('"') && trimmed.endsWith('"')) {
-    return trimmed.slice(1, -1);
+    return trimmed.slice(1, -1).replace(/""/g, '"');
   }
   return trimmed;
 }
@@ -278,7 +278,12 @@ export function splitWithQuoteEscaping(
     const char = text[i];
 
     if (char === '"') {
-      inQuotes = !inQuotes;
+      if (inQuotes && text[i + 1] === '"') {
+        current += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
     } else if (!inQuotes && text.startsWith(separator, i)) {
       results.push(current.trim());
       current = '';

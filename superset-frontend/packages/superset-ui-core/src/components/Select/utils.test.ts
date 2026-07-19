@@ -52,8 +52,22 @@ test('stripSurroundingQuotes returns an empty string for empty/whitespace input'
   expect(stripSurroundingQuotes('   ')).toBe('');
 });
 
+test('stripSurroundingQuotes unescapes doubled quotes when stripping', () => {
+  expect(stripSurroundingQuotes('"Bob ""The Builder"", Inc"')).toBe(
+    'Bob "The Builder", Inc',
+  );
+  expect(stripSurroundingQuotes('"a""b"')).toBe('a"b');
+});
+
 test('splitWithQuoteEscaping splits by separator and trims tokens', () => {
   expect(splitWithQuoteEscaping('a, b ,c', [','])).toEqual(['a', 'b', 'c']);
+});
+
+test('splitWithQuoteEscaping treats doubled quotes inside a quoted region as a literal quote', () => {
+  expect(splitWithQuoteEscaping('"Bob ""The Builder"", Inc"', [','])).toEqual([
+    'Bob "The Builder", Inc',
+  ]);
+  expect(splitWithQuoteEscaping('"a ""b""",c', [','])).toEqual(['a "b"', 'c']);
 });
 
 test('splitWithQuoteEscaping preserves separator characters inside double quotes', () => {
