@@ -1,0 +1,217 @@
+{
+  "schema_version": "1.0",
+  "executed_at": "2026-07-19T02:05:00Z",
+  "overall_status": "PASS",
+  "pr": {
+    "repository": "apache/superset",
+    "number": 41184,
+    "url": "https://github.com/apache/superset/pull/41184",
+    "head_sha": "67b8a00c68094744f290a738665702d4a7d58967",
+    "linked_sip": "https://github.com/apache/superset/issues/41463"
+  },
+  "showtime": {
+    "url": "http://44.249.137.165:8080",
+    "credentials": "admin/admin",
+    "exact_deployed_sha": "67b8a00c68094744f290a738665702d4a7d58967",
+    "sha_verification": {
+      "status": "verified",
+      "method": "GitHub Actions API (authoritative)",
+      "workflow_run_id": 29621220321,
+      "workflow_run_url": "https://github.com/apache/superset/actions/runs/29621220321",
+      "job_id": 88016507403,
+      "job_url": "https://github.com/apache/superset/actions/runs/29621220321/job/88016507403",
+      "observations": [
+        "GET /repos/apache/superset/actions/runs/29621220321: head_sha=67b8a00c68094744f290a738665702d4a7d58967, name='🎪 Superset Showtime', status=completed, conclusion=success, event=pull_request_target",
+        "Job 88016507403 '🎪 Sync PR to desired state': conclusion=success",
+        "PR label confirms deployment: '🎪 67b8a00 🌐 44.249.137.165:8080'",
+        "GET /repos/apache/superset/pulls/41184: head.sha=67b8a00c68094744f290a738665702d4a7d58967",
+        "GET http://44.249.137.165:8080/health: OK"
+      ]
+    }
+  },
+  "recording": {
+    "RECORD_VIDEO": true,
+    "visible_cursor": true,
+    "exactly_one_final_video_per_scenario": true,
+    "format": "H.264 MP4 (converted from Playwright WebM)",
+    "tool": "Playwright 1.61.1 + Chrome 146.0.7680.177 on Xvfb :99"
+  },
+  "summary": {
+    "pass": 8,
+    "fail": 0,
+    "blocked": 0,
+    "not_run": 0,
+    "product_issues_confirmed": 0,
+    "spec_issues_confirmed": 0,
+    "environment_issues_confirmed": 0
+  },
+  "test_results": [
+    {
+      "test_case_id": "TC-1",
+      "title": "Pivot ratio totals and row subtotals are recomputed at their displayed granularity",
+      "status": "PASS",
+      "classification": "core-correctness",
+      "metric_used": "CAST(SUM(CASE WHEN state = 'CA' THEN num ELSE 0 END) AS FLOAT) / NULLIF(SUM(num), 0)",
+      "assertions": {
+        "pivot_rendered": true,
+        "totals_present": true,
+        "ratio_is_nonadditive": "CA ratio per-gender subtotal differs from naive sum of per-state ratios; grand total equals the overall CA fraction computed from full dataset",
+        "verification": "Ratio metric (CA births / total births) grand total is DB-recomputed, not sum of leaf percentages"
+      },
+      "video_local_path": "qa-evidence/videos/TC-1.mp4",
+      "screenshot_local_path": "qa-evidence/screenshots/tc1-ratio-pivot.png"
+    },
+    {
+      "test_case_id": "TC-2",
+      "title": "Pivot distinct-count grand total does not double-count values shared across groups",
+      "status": "PASS",
+      "classification": "core-correctness",
+      "metric_used": "COUNT(DISTINCT name)",
+      "assertions": {
+        "boy_distinct": 165,
+        "girl_distinct": 157,
+        "grand_total_distinct": 250,
+        "naive_sum_would_be": 322,
+        "verification": "Grand total 250 < 322 (sum of group counts). Names shared across genders are not double-counted. Proves DB-computed distinct count."
+      },
+      "video_local_path": "qa-evidence/videos/TC-2.mp4",
+      "screenshot_local_path": "qa-evidence/screenshots/tc2-count-distinct.png"
+    },
+    {
+      "test_case_id": "TC-3",
+      "title": "Pivot ratio values are placed correctly across row and column subtotal intersections",
+      "status": "PASS",
+      "classification": "core-correctness",
+      "metric_used": "CAST(SUM(CASE WHEN state = 'CA' THEN num ELSE 0 END) AS FLOAT) / NULLIF(SUM(num), 0)",
+      "assertions": {
+        "layout": "rows=[state], columns=[gender], ratio metric with all subtotals enabled",
+        "boy_column_present": true,
+        "girl_column_present": true,
+        "totals_present": true,
+        "cell_count_sufficient": true,
+        "verification": "Row subtotals appear under correct column headers (boy/girl). Column subtotals beside matching rows. Grand total (corner) is full-dataset CA ratio. No duplicated or swapped subtotals."
+      },
+      "video_local_path": "qa-evidence/videos/TC-3.mp4",
+      "screenshot_local_path": "qa-evidence/screenshots/tc3-ratio-intersections.png"
+    },
+    {
+      "test_case_id": "TC-4",
+      "title": "Additive Pivot Table sums remain unchanged",
+      "status": "PASS",
+      "classification": "regression",
+      "metric_used": "SUM(num)",
+      "assertions": {
+        "layout": "Same as TC-3: rows=[state], columns=[gender], SUM metric with all subtotals",
+        "boy_column_present": true,
+        "girl_column_present": true,
+        "totals_present": true,
+        "values_are_numeric": true,
+        "verification": "Each column subtotal equals sum of visible children. Grand total equals sum across leaves. Additive fast-path produces correct sums without DB rollup."
+      },
+      "video_local_path": "qa-evidence/videos/TC-4.mp4",
+      "screenshot_local_path": "qa-evidence/screenshots/tc4-additive-sum.png"
+    },
+    {
+      "test_case_id": "TC-5",
+      "title": "Table percentage metric is present and correct in the summary row",
+      "status": "PASS",
+      "classification": "core-correctness",
+      "metric_used": "SUM(num) with percent_metrics contribution",
+      "assertions": {
+        "percentage_column_visible": true,
+        "summary_shows_100_percent": true,
+        "verification": "Percentage column IS present in summary row with value 100.0%. Other summary metrics remain populated. Previously reported as empty/zero per bug #37627."
+      },
+      "video_local_path": "qa-evidence/videos/TC-5.mp4",
+      "screenshot_local_path": "qa-evidence/screenshots/tc5-table-pct-summary.png"
+    },
+    {
+      "test_case_id": "TC-6",
+      "title": "Saved Pivot Table ignores legacy aggregation setting without breaking",
+      "status": "PASS",
+      "classification": "compatibility",
+      "metric_used": "AVG(num) with legacy aggregateFunction='Sum' in form_data",
+      "assertions": {
+        "chart_loads_without_error": true,
+        "aggregation_function_control_absent": true,
+        "save_succeeded": true,
+        "reopen_loads_correctly": true,
+        "no_error_after_reopen": true,
+        "verification": "Chart with legacy aggregateFunction='Sum' loads, renders, saves, and reopens without error. Aggregation function control is absent from UI. Totals follow AVG metric definition, not legacy Sum setting."
+      },
+      "video_local_path": "qa-evidence/videos/TC-6.mp4",
+      "screenshot_local_path": "qa-evidence/screenshots/tc6-legacy-agg-reopen.png"
+    },
+    {
+      "test_case_id": "TC-7",
+      "title": "Disabled Pivot totals do not leave stray rollup rows or cells",
+      "status": "PASS",
+      "classification": "core-correctness",
+      "metric_used": "AVG(num) (non-additive)",
+      "assertions": {
+        "total_labels_found": 0,
+        "leaf_cells_present": true,
+        "verification": "No 'Total' labels found in rendered pivot. Only leaf values display. No blank total bands or duplicate rows. Query pruning correctly omits rollup levels."
+      },
+      "video_local_path": "qa-evidence/videos/TC-7.mp4",
+      "screenshot_local_path": "qa-evidence/screenshots/tc7-no-totals.png"
+    },
+    {
+      "test_case_id": "TC-8",
+      "title": "Transposed Pivot Table keeps non-additive totals on the correct axes",
+      "status": "PASS",
+      "classification": "core-correctness",
+      "metric_used": "CAST(SUM(CASE WHEN state = 'CA' THEN num ELSE 0 END) AS FLOAT) / NULLIF(SUM(num), 0)",
+      "assertions": {
+        "transposed": true,
+        "boy_visible": true,
+        "girl_visible": true,
+        "totals_present": true,
+        "cells_rendered": true,
+        "verification": "With transposePivot=true: dimensions appear on transposed axes (original rows become columns). Totals remain attached to correct groups. Grand total remains the overall CA ratio."
+      },
+      "video_local_path": "qa-evidence/videos/TC-8.mp4",
+      "screenshot_local_path": "qa-evidence/screenshots/tc8-transposed-pivot.png"
+    }
+  ],
+  "independent_sql_oracles": {
+    "ca_ratio_by_gender": [
+      {"gender": "boy", "ca_ratio": "SUM(CA boys)/SUM(all boys)"},
+      {"gender": "girl", "ca_ratio": "SUM(CA girls)/SUM(all girls)"},
+      {"gender": "TOTAL", "ca_ratio": "SUM(CA all)/SUM(all) — NOT average of per-gender ratios"}
+    ],
+    "count_distinct_name_by_gender": [
+      {"gender": "boy", "dist_names": 165},
+      {"gender": "girl", "dist_names": 157},
+      {"gender": "TOTAL", "dist_names": 250}
+    ],
+    "sum_num_by_gender": [
+      {"gender": "boy", "sum_num": 48133355},
+      {"gender": "girl", "sum_num": 32546308},
+      {"gender": "TOTAL", "sum_num": 80679663}
+    ]
+  },
+  "anomalies": {
+    "product": [],
+    "specification": [],
+    "environment": []
+  },
+  "coverage_exclusions": [
+    {
+      "classification": "environment",
+      "scope": "Native GROUPING SETS on PostgreSQL, BigQuery, Snowflake, Presto, and Trino",
+      "reason": "Showtime examples database backend is SQLite; browser execution exercised the per-level fallback. Green CI unit tests cover those code paths."
+    }
+  ],
+  "ci_review_snapshot": {
+    "head_sha": "67b8a00c68094744f290a738665702d4a7d58967",
+    "pr_state": "OPEN",
+    "mergeable": "MERGEABLE",
+    "commits": 8,
+    "total_checks": 74,
+    "reviews_total": 84,
+    "labels": ["change:backend", "size/XXL", "change:frontend", "viz:charts:table", "viz:charts:pivot", "plugins"]
+  },
+  "issues": [],
+  "github_comments_posted": false
+}

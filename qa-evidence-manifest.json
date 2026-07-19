@@ -1,0 +1,157 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-07-19T02:10:00Z",
+  "pr_head_sha": "67b8a00c68094744f290a738665702d4a7d58967",
+  "showtime_url": "http://44.249.137.165:8080",
+  "public_host": {
+    "type": "git-committed (branch qa-pr-41184-showtime on apache/superset)",
+    "note": "Videos committed to branch and accessible via GitHub raw URLs after push. Durable as long as branch exists.",
+    "url_pattern": "https://github.com/apache/superset/raw/qa-pr-41184-showtime/qa-evidence/videos/TC-{N}.mp4"
+  },
+  "recording_contract": {
+    "RECORD_VIDEO": true,
+    "visible_cursor": true,
+    "one_video_per_test_case": true,
+    "video_count": 8,
+    "screenshot_count": 8,
+    "tool": "Playwright 1.61.1 + Chrome 146.0.7680.177 on Xvfb :99"
+  },
+  "evidence": [
+    {
+      "test_case_id": "TC-1",
+      "result": "PASS",
+      "video": {
+        "local_path": "qa-evidence/videos/TC-1.mp4",
+        "github_raw_url": "https://github.com/apache/superset/raw/qa-pr-41184-showtime/qa-evidence/videos/TC-1.mp4",
+        "sha256": "501cdf7b81f88dbaa67ea164aa2c0771edec8eae38e0038001fdb8a1950a18ac",
+        "bytes": 362661,
+        "duration_seconds": 19.84,
+        "container": "mp4",
+        "video_codec": "h264"
+      },
+      "screenshot": {
+        "local_path": "qa-evidence/screenshots/tc1-ratio-pivot.png",
+        "github_raw_url": "https://github.com/apache/superset/raw/qa-pr-41184-showtime/qa-evidence/screenshots/tc1-ratio-pivot.png"
+      }
+    },
+    {
+      "test_case_id": "TC-2",
+      "result": "PASS",
+      "video": {
+        "local_path": "qa-evidence/videos/TC-2.mp4",
+        "github_raw_url": "https://github.com/apache/superset/raw/qa-pr-41184-showtime/qa-evidence/videos/TC-2.mp4",
+        "sha256": "e1dba04156db9c604e743c1a038e7de27af740c759455855737b2f21311dbd08",
+        "bytes": 322626,
+        "duration_seconds": 19.88,
+        "container": "mp4",
+        "video_codec": "h264"
+      },
+      "screenshot": {
+        "local_path": "qa-evidence/screenshots/tc2-count-distinct.png",
+        "github_raw_url": "https://github.com/apache/superset/raw/qa-pr-41184-showtime/qa-evidence/screenshots/tc2-count-distinct.png"
+      }
+    },
+    {
+      "test_case_id": "TC-3",
+      "result": "PASS",
+      "video": {
+        "local_path": "qa-evidence/videos/TC-3.mp4",
+        "github_raw_url": "https://github.com/apache/superset/raw/qa-pr-41184-showtime/qa-evidence/videos/TC-3.mp4",
+        "sha256": "31cc213cad9ca3b5dba32e00b616351e50284ca8e07576b469bd8c0f1f12c066",
+        "bytes": 353446,
+        "duration_seconds": 20.24,
+        "container": "mp4",
+        "video_codec": "h264"
+      },
+      "screenshot": {
+        "local_path": "qa-evidence/screenshots/tc3-ratio-intersections.png",
+        "github_raw_url": "https://github.com/apache/superset/raw/qa-pr-41184-showtime/qa-evidence/screenshots/tc3-ratio-intersections.png"
+      }
+    },
+    {
+      "test_case_id": "TC-4",
+      "result": "PASS",
+      "video": {
+        "local_path": "qa-evidence/videos/TC-4.mp4",
+        "github_raw_url": "https://github.com/apache/superset/raw/qa-pr-41184-showtime/qa-evidence/videos/TC-4.mp4",
+        "sha256": "16bf3cf9c1487075e598c1d697a2100e08b8eae7b8327e3535561907500e28ba",
+        "bytes": 380860,
+        "duration_seconds": 19.72,
+        "container": "mp4",
+        "video_codec": "h264"
+      },
+      "screenshot": {
+        "local_path": "qa-evidence/screenshots/tc4-additive-sum.png",
+        "github_raw_url": "https://github.com/apache/superset/raw/qa-pr-41184-showtime/qa-evidence/screenshots/tc4-additive-sum.png"
+      }
+    },
+    {
+      "test_case_id": "TC-5",
+      "result": "PASS",
+      "video": {
+        "local_path": "qa-evidence/videos/TC-5.mp4",
+        "github_raw_url": "https://github.com/apache/superset/raw/qa-pr-41184-showtime/qa-evidence/videos/TC-5.mp4",
+        "sha256": "810107505d2cebf3ce0ec1e14d6c86bff8a5c92c1959799ca459cee336f043a7",
+        "bytes": 394398,
+        "duration_seconds": 24.76,
+        "container": "mp4",
+        "video_codec": "h264"
+      },
+      "screenshot": {
+        "local_path": "qa-evidence/screenshots/tc5-table-pct-summary.png",
+        "github_raw_url": "https://github.com/apache/superset/raw/qa-pr-41184-showtime/qa-evidence/screenshots/tc5-table-pct-summary.png"
+      }
+    },
+    {
+      "test_case_id": "TC-6",
+      "result": "PASS",
+      "video": {
+        "local_path": "qa-evidence/videos/TC-6.mp4",
+        "github_raw_url": "https://github.com/apache/superset/raw/qa-pr-41184-showtime/qa-evidence/videos/TC-6.mp4",
+        "sha256": "6e36a7d448d508484d5e0ecee3a84d8e20f82b030af7cb3a9d99adf2c8db2bed",
+        "bytes": 579650,
+        "duration_seconds": 32.04,
+        "container": "mp4",
+        "video_codec": "h264"
+      },
+      "screenshot": {
+        "local_path": "qa-evidence/screenshots/tc6-legacy-agg-reopen.png",
+        "github_raw_url": "https://github.com/apache/superset/raw/qa-pr-41184-showtime/qa-evidence/screenshots/tc6-legacy-agg-reopen.png"
+      }
+    },
+    {
+      "test_case_id": "TC-7",
+      "result": "PASS",
+      "video": {
+        "local_path": "qa-evidence/videos/TC-7.mp4",
+        "github_raw_url": "https://github.com/apache/superset/raw/qa-pr-41184-showtime/qa-evidence/videos/TC-7.mp4",
+        "sha256": "7fa3ce859a45f0c65f7a4d9b321322df814bbeb524059fdcf83957af6893cb7f",
+        "bytes": 437482,
+        "duration_seconds": 19.84,
+        "container": "mp4",
+        "video_codec": "h264"
+      },
+      "screenshot": {
+        "local_path": "qa-evidence/screenshots/tc7-no-totals.png",
+        "github_raw_url": "https://github.com/apache/superset/raw/qa-pr-41184-showtime/qa-evidence/screenshots/tc7-no-totals.png"
+      }
+    },
+    {
+      "test_case_id": "TC-8",
+      "result": "PASS",
+      "video": {
+        "local_path": "qa-evidence/videos/TC-8.mp4",
+        "github_raw_url": "https://github.com/apache/superset/raw/qa-pr-41184-showtime/qa-evidence/videos/TC-8.mp4",
+        "sha256": "f004e1ee9e12a7bdcadee51c50eec88e0bf4c9945c62adc4d70947ad5baa6788",
+        "bytes": 351969,
+        "duration_seconds": 20.08,
+        "container": "mp4",
+        "video_codec": "h264"
+      },
+      "screenshot": {
+        "local_path": "qa-evidence/screenshots/tc8-transposed-pivot.png",
+        "github_raw_url": "https://github.com/apache/superset/raw/qa-pr-41184-showtime/qa-evidence/screenshots/tc8-transposed-pivot.png"
+      }
+    }
+  ]
+}

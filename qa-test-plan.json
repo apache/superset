@@ -1,0 +1,214 @@
+{
+  "schema_version": "1.0",
+  "created_at": "2026-07-19T01:36:00Z",
+  "pr": {
+    "repository": "apache/superset",
+    "number": 41184,
+    "url": "https://github.com/apache/superset/pull/41184",
+    "head_sha": "67b8a00c68094744f290a738665702d4a7d58967",
+    "linked_sip": "https://github.com/apache/superset/issues/41463"
+  },
+  "environment": {
+    "type": "showtime",
+    "url": "http://44.249.137.165:8080",
+    "credentials": "admin/admin",
+    "deployment_claim_sha": "67b8a00c68094744f290a738665702d4a7d58967",
+    "exact_sha_verification_status": "verified",
+    "recording_requirements": {
+      "record_video": true,
+      "visible_cursor": true,
+      "videos_per_scenario": 1
+    },
+    "sha_verification_source": "GitHub Actions API: GET /repos/apache/superset/actions/runs/29621220321 returns head_sha=67b8a00c68094744f290a738665702d4a7d58967, status=completed, conclusion=success. Job 88016507403 ('Sync PR to desired state') conclusion=success. PR label '🎪 67b8a00 🌐 44.249.137.165:8080' confirms deployment target."
+  },
+  "strategy": {
+    "basis": [
+      "PR description and author instructions",
+      "SIP-216",
+      "complete 35-file diff",
+      "commits, CI, and review discussion"
+    ],
+    "highest_risks": [
+      "Non-additive mathematical correctness",
+      "Rollup placement across both axes",
+      "Additive fast-path regression",
+      "Table contribution summary regression",
+      "Legacy saved-chart compatibility"
+    ]
+  },
+  "test_cases": [
+    {
+      "test_case_id": "TC-1",
+      "priority": "P0",
+      "title": "Pivot ratio totals and row subtotals are recomputed at their displayed granularity",
+      "browser_scenario": {
+        "given": [
+          "Logged in as admin",
+          "Pivot Table on birth_names with rows gender then state",
+          "Ratio metric divides California names by all names",
+          "Grand totals and row subtotals enabled"
+        ],
+        "when": [
+          "Run the chart and expand both gender groups"
+        ],
+        "then": [
+          "Each gender subtotal equals the ratio recomputed from that gender's source rows",
+          "Grand total equals the ratio recomputed from all rows",
+          "Neither is the sum of displayed leaf percentages"
+        ]
+      },
+      "risk": "Core SIP correctness claim and canonical defect"
+    },
+    {
+      "test_case_id": "TC-2",
+      "priority": "P0",
+      "title": "Pivot distinct-count grand total does not double-count values shared across groups",
+      "browser_scenario": {
+        "given": [
+          "Logged in as admin",
+          "Groups share values in the distinct-count column",
+          "Metric is COUNT_DISTINCT",
+          "Grand totals enabled"
+        ],
+        "when": [
+          "Run the chart"
+        ],
+        "then": [
+          "Grand total equals the distinct count over the complete dataset",
+          "Grand total is not the sum of group-level distinct counts"
+        ]
+      },
+      "risk": "Distinct totals cannot be reconstructed client-side"
+    },
+    {
+      "test_case_id": "TC-3",
+      "priority": "P0",
+      "title": "Pivot ratio values are placed correctly across row and column subtotal intersections",
+      "browser_scenario": {
+        "given": [
+          "Logged in as admin",
+          "Pivot has row dimensions and column dimensions",
+          "Metric is a non-additive ratio",
+          "Row subtotals, column subtotals, and grand totals enabled"
+        ],
+        "when": [
+          "Run the chart and expand subtotal groups"
+        ],
+        "then": [
+          "Every row subtotal appears under its matching column",
+          "Every column subtotal appears beside its matching row",
+          "Corner grand total is the full-dataset ratio",
+          "No subtotal is duplicated, swapped, or omitted"
+        ]
+      },
+      "risk": "New passthrough maps precomputed rollup levels into cells"
+    },
+    {
+      "test_case_id": "TC-4",
+      "priority": "P0",
+      "title": "Additive Pivot Table sums remain unchanged",
+      "browser_scenario": {
+        "given": [
+          "Logged in as admin",
+          "Same dimensions as TC-3",
+          "Metric is SUM or COUNT",
+          "Subtotals and grand totals enabled"
+        ],
+        "when": [
+          "Run the chart"
+        ],
+        "then": [
+          "Each subtotal equals the sum of its visible children",
+          "Grand total equals the sum across leaf groups",
+          "Every expected total position renders"
+        ]
+      },
+      "risk": "Additive metrics use a separate client-side fast path"
+    },
+    {
+      "test_case_id": "TC-5",
+      "priority": "P0",
+      "title": "Table percentage metric is present and correct in the summary row",
+      "browser_scenario": {
+        "given": [
+          "Logged in as admin",
+          "Regular Table has a Percentage metrics contribution column",
+          "Show summary enabled"
+        ],
+        "when": [
+          "Run the chart"
+        ],
+        "then": [
+          "Percentage column has a visible summary value",
+          "Summary reflects the complete result rather than only the visible page",
+          "Other summary metrics remain populated"
+        ]
+      },
+      "risk": "Author instruction and linked defects report empty or zero values"
+    },
+    {
+      "test_case_id": "TC-6",
+      "priority": "P1",
+      "title": "Saved Pivot Table ignores legacy aggregation setting without breaking",
+      "browser_scenario": {
+        "given": [
+          "Logged in as admin",
+          "Saved Pivot has a legacy aggregateFunction value",
+          "It uses a non-additive metric and totals"
+        ],
+        "when": [
+          "Open in Explore, run, save, and reopen"
+        ],
+        "then": [
+          "Chart loads without error",
+          "Aggregation function control is absent",
+          "Totals follow metric definition, not legacy setting",
+          "Save and reopen succeeds"
+        ]
+      },
+      "risk": "Removed UI control has a migration-free compatibility promise"
+    },
+    {
+      "test_case_id": "TC-7",
+      "priority": "P2",
+      "title": "Disabled Pivot totals do not leave stray rollup rows or cells",
+      "browser_scenario": {
+        "given": [
+          "Logged in as admin",
+          "Pivot uses a non-additive metric",
+          "All subtotals and grand totals disabled"
+        ],
+        "when": [
+          "Run the chart"
+        ],
+        "then": [
+          "Only leaf values display",
+          "No Total labels, blank total bands, or duplicate leaves appear"
+        ]
+      },
+      "risk": "Query pruning should request only displayed levels"
+    },
+    {
+      "test_case_id": "TC-8",
+      "priority": "P2",
+      "title": "Transposed Pivot Table keeps non-additive totals on the correct axes",
+      "browser_scenario": {
+        "given": [
+          "Logged in as admin",
+          "Pivot has row and column dimensions",
+          "Metric is a non-additive ratio",
+          "Transpose pivot and totals enabled"
+        ],
+        "when": [
+          "Run the chart"
+        ],
+        "then": [
+          "Dimensions appear on transposed axes",
+          "Totals remain attached to corresponding transposed groups",
+          "Grand total remains correct"
+        ]
+      },
+      "risk": "Query builder and transform both handle display-oriented grouping"
+    }
+  ]
+}
