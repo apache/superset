@@ -3800,3 +3800,164 @@ def test_like_filter_on_string_column_does_not_cast(database: Database) -> None:
     assert not any(isinstance(node, Cast) for node in iterate(whereclause)), (
         f"Unexpected Cast node in the filter expression: {whereclause}"
     )
+
+
+def test_filter_by_adhoc_column_label_resolves_to_sql_expression(
+    database: Database,
+) -> None:
+    """
+    Regression for #38339: when a column label is renamed in the Table chart
+    (e.g. "CustomerID" → "Id"), the search filter sends {"col":"Id",...} but
+    the backend ``columns_by_name`` dict is keyed by physical names. The filter
+    must resolve the adhoc column label to its underlying SQL expression.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="employees",
+        columns=[
+            TableColumn(column_name="CustomerID", type="TEXT"),
+            TableColumn(column_name="FirstName", type="TEXT"),
+            TableColumn(column_name="LastName", type="TEXT"),
+        ],
+    )
+
+    # Simulates the Table chart sending a renamed column as an adhoc column
+    # and a search filter using the display label.
+    sqla_query = table.get_sqla_query(
+        columns=[
+            {"label": "Id", "sqlExpression": "CustomerID", "expressionType": "SQL"},
+            "FirstName",
+            "LastName",
+        ],
+        filter=[{"col": "Id", "op": "ILIKE", "val": "C001%"}],
+        is_timeseries=False,
+        row_limit=10,
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    # The filter should resolve to the underlying column name
+    assert "WHERE" in sql, f"Expected WHERE clause, got SQL: {sql}"
+    assert "CustomerID" in sql, f"Expected filter on 'CustomerID', got SQL: {sql}"
+    assert "'C001%'" in sql, f"Expected filter value 'C001%', got SQL: {sql}"
+    # The filter should NOT be rejected
+    assert not sqla_query.rejected_filter_columns, (
+        f"Expected no rejected filters, got: {sqla_query.rejected_filter_columns}"
+    )
+    assert "Id" in sqla_query.applied_filter_columns, (
+        f"Expected 'Id' in applied filters, got: {sqla_query.applied_filter_columns}"
+    )
+
+
+def test_adhoc_column_label_filter_not_in_rejected_columns(
+    database: Database,
+) -> None:
+    """
+    Regression for #38339: filter columns that match an adhoc column label
+    must not appear in rejected_filter_columns.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="real_col", type="TEXT")],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=[
+            {"label": "MyLabel", "sqlExpression": "real_col", "expressionType": "SQL"},
+        ],
+        filter=[{"col": "MyLabel", "op": "==", "val": "x"}],
+        is_timeseries=False,
+        row_limit=10,
+    )
+
+    assert "MyLabel" not in sqla_query.rejected_filter_columns
+    assert "MyLabel" in sqla_query.applied_filter_columns
+
+
+def test_unknown_column_still_rejected_without_adhoc_match(
+    database: Database,
+) -> None:
+    """
+    A filter on a column that matches neither a physical name nor an adhoc
+    label should still be rejected.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="TEXT")],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=[
+            {"label": "X", "sqlExpression": "a", "expressionType": "SQL"},
+        ],
+        filter=[{"col": "nonexistent", "op": "==", "val": "y"}],
+        is_timeseries=False,
+        row_limit=10,
+    )
+
+    assert "nonexistent" in sqla_query.rejected_filter_columns
+    assert "nonexistent" not in sqla_query.applied_filter_columns
+
+
+def test_mixed_adhoc_and_physical_column_filters(
+    database: Database,
+) -> None:
+    """
+    Both physical-column and adhoc-label filters should work simultaneously.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="name", type="TEXT"),
+            TableColumn(column_name="status", type="TEXT"),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=[
+            {"label": "DisplayName", "sqlExpression": "name", "expressionType": "SQL"},
+            "status",
+        ],
+        filter=[
+            {"col": "DisplayName", "op": "==", "val": "Alice"},
+            {"col": "status", "op": "==", "val": "active"},
+        ],
+        is_timeseries=False,
+        row_limit=10,
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert "WHERE" in sql
+    assert "name" in sql
+    assert "status" in sql
+    assert not sqla_query.rejected_filter_columns
+    assert "DisplayName" in sqla_query.applied_filter_columns
+    assert "status" in sqla_query.applied_filter_columns
