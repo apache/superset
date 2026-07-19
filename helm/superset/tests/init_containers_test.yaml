@@ -20,6 +20,8 @@ templates:
   - deployment-worker.yaml
   - deployment-beat.yaml
   - deployment-flower.yaml
+  - deployment-ws.yaml
+  - deployment-mcp.yaml
   - init-job.yaml
 tests:
   - it: renders only the default wait-for container by default
@@ -137,6 +139,42 @@ tests:
     set:
       supersetCeleryFlower.enabled: true
       supersetCeleryFlower.extraInitContainers:
+        - name: prepare-assets
+          image: busybox
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.initContainers
+          count: 2
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: wait-for-postgres-redis
+      - equal:
+          path: spec.template.spec.initContainers[1].name
+          value: prepare-assets
+
+  - it: appends websockets extraInitContainers after wait-for-redis
+    template: deployment-ws.yaml
+    set:
+      supersetWebsockets.enabled: true
+      supersetWebsockets.extraInitContainers:
+        - name: prepare-assets
+          image: busybox
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.initContainers
+          count: 2
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: wait-for-redis
+      - equal:
+          path: spec.template.spec.initContainers[1].name
+          value: prepare-assets
+
+  - it: appends mcp extraInitContainers after wait-for-postgres-redis
+    template: deployment-mcp.yaml
+    set:
+      supersetMcp.enabled: true
+      supersetMcp.extraInitContainers:
         - name: prepare-assets
           image: busybox
     asserts:

@@ -65,6 +65,11 @@ updates:
       lumagl:
         patterns:
           - "@luma.gl/*"
+      storybook:
+        patterns:
+          - "@storybook/*"
+          - "storybook"
+          - "eslint-plugin-storybook"
     open-pull-requests-limit: 30
     versioning-strategy: increase
     cooldown:
@@ -99,6 +104,22 @@ updates:
     directory: "/docs/"
     schedule:
       interval: "daily"
+    groups:
+      storybook:
+        patterns:
+          - "@storybook/*"
+          - "storybook"
+      docusaurus:
+        patterns:
+          - "@docusaurus/*"
+      docusaurus-openapi:
+        patterns:
+          - "docusaurus-plugin-openapi-docs"
+          - "docusaurus-theme-openapi-docs"
+      typescript-eslint:
+        patterns:
+          - "@typescript-eslint/*"
+          - "typescript-eslint"
     open-pull-requests-limit: 10
     versioning-strategy: increase
     cooldown:
