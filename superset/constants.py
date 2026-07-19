@@ -181,6 +181,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "restore": "write",
     "list_versions": "read",
     "get_version": "read",
+    "activity": "read",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {

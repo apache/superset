@@ -39,6 +39,9 @@ import {
   EchartsPieLabelType,
   PieChartDataItem,
   PieChartTransformedProps,
+  TotalValuePaddingProps,
+  PaddingResult,
+  HalfDonut,
 } from './types';
 import { DEFAULT_LEGEND_FORM_DATA, OpacityEnum } from '../constants';
 import {
@@ -73,52 +76,121 @@ export function parseParams({
   return [name, formattedValue, formattedPercent];
 }
 
-function getTotalValuePadding({
+const HALF_DONUT_SWEEP_LIMIT = 180;
+
+/**
+ * Geometric configuration for each type of semi-circular layout.
+ *
+ * - `centerOffset` — offset of the chart center from the baseline 50% on the X and Y axes.
+ *                    Resulting position: `50% + offset`.
+ * - `totalBase`    — base position of the "Total" text as a percentage on the X and Y axes.
+ *
+ * The values are empirically tuned so that the "Total" text visually remains
+ * at the geometric center of the arc after the chart is re-centered. The
+ * `left`/`right` totalBase values sit 5% inside the shifted chart center
+ * (60% and 40% respectively) to compensate for the text being positioned by
+ * its left edge rather than its midpoint.
+ */
+const HALF_DONUT_LAYOUT: Record<
+  HalfDonut,
+  {
+    centerOffset: { x: number; y: number };
+    totalBase: { left: number; top: number };
+  }
+> = {
+  top: { centerOffset: { x: 0, y: 20 }, totalBase: { left: 50, top: 68.5 } },
+  bottom: { centerOffset: { x: 0, y: -20 }, totalBase: { left: 50, top: 30 } },
+  left: { centerOffset: { x: 10, y: 0 }, totalBase: { left: 55, top: 50 } },
+  right: { centerOffset: { x: -10, y: 0 }, totalBase: { left: 35, top: 50 } },
+  none: { centerOffset: { x: 0, y: 0 }, totalBase: { left: 50, top: 50 } },
+};
+
+/**
+ * Determines the type of semicircular layout based on the start angle and swept angle.
+ *
+ * All four semicircle orientations are supported:
+ * - `'top'`    — the arc is positioned at the top; the chart center shifts downwards.
+ * - `'bottom'` — the arc is positioned at the bottom; the chart center shifts upwards.
+ * - `'left'`   — the arc is positioned at the left; the chart center shifts right.
+ * - `'right'`  — the arc is positioned at the right; the chart center shifts left.
+ *
+ * @param startAngle - The start angle of the arc in degrees (0–360).
+ * @param sweptAngle - The swept angle of the arc in degrees (10–360).
+ * @returns The type of semicircular layout.
+ */
+export const getHalfDonut = (
+  startAngle: number,
+  sweptAngle: number,
+): HalfDonut => {
+  if (sweptAngle > HALF_DONUT_SWEEP_LIMIT) return 'none';
+
+  const normalized = startAngle % 360;
+
+  if (normalized === 180) return 'top';
+  if (normalized === 0) return 'bottom';
+  if (normalized === 270) return 'left';
+  if (normalized === 90) return 'right';
+
+  return 'none';
+};
+
+const getHalfDonutLayout = (startAngle: number, sweptAngle: number) =>
+  HALF_DONUT_LAYOUT[getHalfDonut(startAngle, sweptAngle)];
+
+export function getTotalValuePadding({
   chartPadding,
   donut,
   width,
   height,
-}: {
-  chartPadding: {
-    bottom: number;
-    left: number;
-    right: number;
-    top: number;
+  startAngle,
+  sweptAngle,
+}: TotalValuePaddingProps): PaddingResult {
+  const safeHeight = height || 1;
+  const safeWidth = width || 1;
+
+  const halfType = getHalfDonut(startAngle, sweptAngle);
+  const layout = HALF_DONUT_LAYOUT[halfType];
+  const isHalf = halfType !== 'none';
+
+  const calculateTop = (): string => {
+    if (chartPadding.bottom) {
+      return donut
+        ? `${layout.totalBase.top - (chartPadding.bottom / safeHeight) * 50}%`
+        : '0';
+    }
+
+    if (chartPadding.top || isHalf) {
+      if (donut) {
+        return `${layout.totalBase.top + (chartPadding.top / safeHeight) * 50}%`;
+      }
+      return `${(chartPadding.top / safeHeight) * 100}%`;
+    }
+
+    return donut ? 'middle' : '0';
   };
-  donut: boolean;
-  width: number;
-  height: number;
-}) {
-  const padding: {
-    left?: string;
-    top?: string;
-  } = {
-    top: donut ? 'middle' : '0',
-    left: 'center',
+
+  const calculateLeft = (): string => {
+    if (chartPadding.right) {
+      const rightPercent = (chartPadding.right / safeWidth) * 100;
+      return `${layout.totalBase.left - rightPercent * 0.75}%`;
+    }
+
+    if (chartPadding.left) {
+      const leftPercent = (chartPadding.left / safeWidth) * 100;
+      return `${layout.totalBase.left + leftPercent * 0.25}%`;
+    }
+
+    if (isHalf && (halfType === 'left' || halfType === 'right')) {
+      return `${layout.totalBase.left}%`;
+    }
+
+    return 'center';
   };
-  if (chartPadding.top) {
-    padding.top = donut
-      ? `${50 + (chartPadding.top / height / 2) * 100}%`
-      : `${(chartPadding.top / height) * 100}%`;
-  }
-  if (chartPadding.bottom) {
-    padding.top = donut
-      ? `${50 - (chartPadding.bottom / height / 2) * 100}%`
-      : '0';
-  }
-  if (chartPadding.left) {
-    // When legend is on the left, shift text right to center it in the available space
-    const leftPaddingPercent = (chartPadding.left / width) * 100;
-    const adjustedLeftPercent = 50 + leftPaddingPercent * 0.25;
-    padding.left = `${adjustedLeftPercent}%`;
-  }
-  if (chartPadding.right) {
-    // When legend is on the right, shift text left to center it in the available space
-    const rightPaddingPercent = (chartPadding.right / width) * 100;
-    const adjustedLeftPercent = 50 - rightPaddingPercent * 0.75;
-    padding.left = `${adjustedLeftPercent}%`;
-  }
-  return padding;
+
+  return {
+    top: calculateTop(),
+    left: calculateLeft(),
+  };
 }
 
 export default function transformProps(
@@ -166,6 +238,8 @@ export default function transformProps(
     showLabels,
     showLegend,
     showLabelsThreshold,
+    startAngle,
+    sweptAngle,
     sliceId,
     showTotal,
     roseType,
@@ -404,6 +478,8 @@ export default function transformProps(
     effectiveLegendMargin,
   );
 
+  const { centerOffset } = getHalfDonutLayout(startAngle, sweptAngle);
+
   const series: PieSeriesOption[] = [
     {
       type: 'pie',
@@ -411,7 +487,9 @@ export default function transformProps(
       animation: false,
       roseType: roseType || undefined,
       radius: [`${donut ? innerRadius : 0}%`, `${outerRadius}%`],
-      center: ['50%', '50%'],
+      center: [`${50 + centerOffset.x}%`, `${50 + centerOffset.y}%`],
+      startAngle,
+      endAngle: startAngle - sweptAngle,
       avoidLabelOverlap: true,
       labelLine: labelsOutside && labelLine ? { show: true } : { show: false },
       minShowLabelAngle,
@@ -472,7 +550,14 @@ export default function transformProps(
     graphic: showTotal
       ? {
           type: 'text',
-          ...getTotalValuePadding({ chartPadding, donut, width, height }),
+          ...getTotalValuePadding({
+            chartPadding,
+            donut,
+            width,
+            height,
+            startAngle,
+            sweptAngle,
+          }),
           style: {
             text: t('Total: %s', numberFormatter(totalValue)),
             fontSize: 16,

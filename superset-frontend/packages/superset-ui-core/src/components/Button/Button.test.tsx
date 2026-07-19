@@ -17,13 +17,13 @@
  * under the License.
  */
 import { fireEvent, render } from '@superset-ui/core/spec';
-import { Button } from '.';
 import {
   ButtonGallery,
   SIZES as buttonSizes,
   STYLES as buttonStyles,
 } from './Button.stories';
 import {
+  Button,
   getSecondaryButtonStyle,
   getSecondaryButtonHoverStyles,
 } from './index';
