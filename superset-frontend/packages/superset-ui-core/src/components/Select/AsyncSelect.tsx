@@ -178,6 +178,7 @@ const AsyncSelect = forwardRef(
     const mappedMode = isSingleMode ? undefined : 'multiple';
 
     const reconcileTokensRef = useRef<(tokens: string[]) => void>(() => {});
+    const fullSelectOptionsRef = useRef<SelectOptionsType>(EMPTY_OPTIONS);
 
     const quoteAwareTokenSeparators = useMemo(() => {
       const tokenize = makeQuoteAwareTokenizer(tokenSeparators);
@@ -368,7 +369,6 @@ const AsyncSelect = forwardRef(
       [onError],
     );
 
-    const fullSelectOptionsRef = useRef(fullSelectOptions);
     fullSelectOptionsRef.current = fullSelectOptions;
 
     const mergeData = useCallback(
