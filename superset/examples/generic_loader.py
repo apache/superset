@@ -194,7 +194,7 @@ def load_parquet_table(  # noqa: C901
         tbl.fetch_metadata()
 
     db.session.merge(tbl)
-    db.session.commit()
+    db.session.commit()  # pylint: disable=consider-using-transaction
 
     return tbl
 
@@ -249,7 +249,7 @@ def create_generic_loader(
         if description and tbl:
             tbl.description = description
             db.session.merge(tbl)
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
     # Set function name and docstring
     loader.__name__ = f"load_{parquet_file}"
