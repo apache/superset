@@ -29,6 +29,8 @@ import {
   Tooltip,
   Button,
   ModalTrigger,
+  RlsBadge,
+  type RlsFilterSummary,
 } from '@superset-ui/core/components';
 import {
   ChangeDatasourceModal,
@@ -39,7 +41,6 @@ import SemanticViewEditModal from 'src/features/semanticViews/SemanticViewEditMo
 import { Menu } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
-import { RlsBadge, type RlsFilterSummary } from '@superset-ui/core/components';
 import { URL_PARAMS } from 'src/constants';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import {
