@@ -1207,6 +1207,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
     table: Mapped["SqlaTable"] = relationship(
         "SqlaTable",
         back_populates="metrics",
+        cascade_backrefs=False,
     )
 
     export_fields = [
@@ -1305,6 +1306,7 @@ class SqlaTable(
         SqlMetric,
         back_populates="table",
         cascade="all, delete-orphan",
+        cascade_backrefs=False,
         passive_deletes=True,
     )
     metric_class = SqlMetric
