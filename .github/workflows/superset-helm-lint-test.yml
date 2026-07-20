@@ -31,7 +31,7 @@ jobs:
       - name: Set up Helm
         uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
         with:
-          version: v3.16.4
+          version: v3.21.3
 
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
@@ -59,3 +59,9 @@ jobs:
           CT_LINT_CONF: lintconf.yaml
           CT_SINCE: HEAD
           CT_CHART_REPOS: bitnami=https://charts.bitnami.com/bitnami
+
+      - name: Set up helm-unittest
+        run: helm plugin install https://github.com/helm-unittest/helm-unittest --version v1.1.1
+
+      - name: Run helm-unittest
+        run: helm unittest helm/superset
