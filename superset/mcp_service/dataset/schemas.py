@@ -896,8 +896,9 @@ class QueryDatasetRequest(QueryCacheControl):
     def normalize_time_range(cls, v: str | None) -> str | None:
         if v is None:
             return v
-        canonical = _BRACKET_SHORTHAND_TO_TIME_RANGE.get(v.strip().lower())
-        return canonical if canonical is not None else v
+        stripped = v.strip()
+        canonical = _BRACKET_SHORTHAND_TO_TIME_RANGE.get(stripped.lower())
+        return canonical if canonical is not None else stripped
 
     @model_validator(mode="after")
     def validate_metrics_or_columns(self) -> "QueryDatasetRequest":

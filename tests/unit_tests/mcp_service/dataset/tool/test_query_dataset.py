@@ -1011,6 +1011,20 @@ class TestQueryDatasetBracketShorthandNormalization:
         )
         assert req.time_range == "2024-01-01 : 2024-12-31"
 
+    def test_non_bracket_value_is_stripped(self) -> None:
+        """Non-bracket values must be trimmed too, not just the lookup key.
+
+        Otherwise leading/trailing whitespace around an otherwise valid
+        relative range (e.g. from an LLM) would propagate to
+        get_since_until() and could cause avoidable parse failures.
+        """
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "  Last 7 days  "}
+        )
+        assert req.time_range == "Last 7 days"
+
     def test_none_unchanged(self) -> None:
         from superset.mcp_service.dataset.schemas import QueryDatasetRequest
 
