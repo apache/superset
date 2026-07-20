@@ -32,13 +32,15 @@ from superset.utils.decorators import transaction
 
 logger: logging.Logger = logging.getLogger(__name__)
 
-SESSION_AUTH_STAMP_SESSION_KEY = "_auth_session_stamp"
-SESSION_AUTH_STAMP_VALIDATED_AT_KEY = "_auth_session_stamp_validated_at"
-SESSION_AUTH_STAMP_VALIDATED_DB_STAMP_KEY = "_auth_session_stamp_validated_db_stamp"
+SESSION_AUTH_STAMP_SESSION_KEY: str = "_auth_session_stamp"
+SESSION_AUTH_STAMP_VALIDATED_AT_KEY: str = "_auth_session_stamp_validated_at"
+SESSION_AUTH_STAMP_VALIDATED_DB_STAMP_KEY: str = (
+    "_auth_session_stamp_validated_db_stamp"
+)
 
-_SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
-_STAMP_CACHE_KEY_PREFIX = "auth_session_stamp:"
-_DEFAULT_STAMP_CACHE_TIMEOUT_SECONDS = 300
+_SAFE_METHODS: frozenset[str] = frozenset({"GET", "HEAD", "OPTIONS"})
+_STAMP_CACHE_KEY_PREFIX: str = "auth_session_stamp:"
+_DEFAULT_STAMP_CACHE_TIMEOUT_SECONDS: int = 300
 
 
 def _stamp_cache_key(user_id: int) -> str:

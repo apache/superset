@@ -280,6 +280,47 @@ def test_auth_user_db_logs_single_user_logged_in_event(
     )
 
 
+@patch("superset.security.manager.verify_fake_auth_db_password")
+@patch("superset.security.manager._log_audit_event")
+def test_auth_user_db_balances_timing_for_missing_user(
+    mock_log: MagicMock,
+    mock_verify_fake: MagicMock,
+) -> None:
+    """A nonexistent username must run the fake-hash check (matching the
+    configured AUTH_DB algorithm's cost) rather than skip straight to failure,
+    so response time can't be used to enumerate valid usernames."""
+    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
+    sm.get_first_user = MagicMock(return_value=None)
+    sm.find_user = MagicMock(return_value=None)
+
+    result = sm.auth_user_db("nosuchuser", "whatever-they-typed")
+
+    assert result is None
+    mock_verify_fake.assert_called_once_with("whatever-they-typed")
+    mock_log.assert_not_called()
+
+
+@patch("superset.security.manager.verify_fake_auth_db_password")
+@patch("superset.security.manager._log_audit_event")
+def test_auth_user_db_balances_timing_for_inactive_user(
+    mock_log: MagicMock,
+    mock_verify_fake: MagicMock,
+) -> None:
+    """An inactive account must take the same fake-check path as a missing
+    user, not the real ``verify_auth_db_password`` check."""
+    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
+    user = MagicMock(spec=User)
+    user.is_active = False
+    sm.get_first_user = MagicMock(return_value=None)
+    sm.find_user = MagicMock(return_value=user)
+
+    result = sm.auth_user_db("disableduser", "whatever-they-typed")
+
+    assert result is None
+    mock_verify_fake.assert_called_once_with("whatever-they-typed")
+    mock_log.assert_not_called()
+
+
 @patch("superset.security.manager._log_audit_event")
 def test_on_user_login_failed_logs_event(mock_log: MagicMock) -> None:
     """on_user_login_failed logs a UserLoginFailed event."""

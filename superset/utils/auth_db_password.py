@@ -120,12 +120,15 @@ def get_auth_db_login_rate_limit_string() -> str:
     Return the configured AUTH_DB ``login_rate_limit`` string for Flask-Limiter.
 
     Used for endpoints that verify a password (for example ``PUT /api/v1/me/password``).
+    Falls back to the default when the configured value isn't a usable string (for
+    example ``None`` or a malformed override), so a misconfigured ``AUTH_DB_CONFIG``
+    can't break rate limiting at request time.
     """
-    return str(
-        get_merged_auth_db_config().get(
-            "login_rate_limit", AUTH_DB_DEFAULTS["login_rate_limit"]
-        )
-    )
+    default = str(AUTH_DB_DEFAULTS["login_rate_limit"])
+    raw = get_merged_auth_db_config().get("login_rate_limit", default)
+    if isinstance(raw, str) and raw.strip():
+        return raw
+    return default
 
 
 def get_public_auth_db_password_policy(
@@ -134,7 +137,7 @@ def get_public_auth_db_password_policy(
     """
     Return non-secret AUTH_DB password policy options for frontend validation UI.
     """
-    merged_cfg = cfg if cfg is not None else get_merged_auth_db_config()
+    merged_cfg: dict[str, Any] = cfg if cfg is not None else get_merged_auth_db_config()
     return {
         key: merged_cfg.get(key, AUTH_DB_DEFAULTS[key])
         for key in _PUBLIC_PASSWORD_POLICY_KEYS
@@ -152,7 +155,7 @@ def get_auth_db_password_hash_algorithm(cfg: dict[str, Any] | None = None) -> st
     raw_algorithm: Any = merged_cfg.get(
         "password_hash_algorithm", AUTH_DB_DEFAULTS["password_hash_algorithm"]
     )
-    algorithm = str(raw_algorithm).strip().lower()
+    algorithm: str = str(raw_algorithm).strip().lower()
     if algorithm not in _SUPPORTED_HASH_ALGORITHMS:
         supported = ", ".join(sorted(_SUPPORTED_HASH_ALGORITHMS))
         raise ValidationError(

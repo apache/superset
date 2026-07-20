@@ -78,7 +78,6 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql import exists
-from werkzeug.security import check_password_hash
 
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -100,7 +99,10 @@ from superset.security.guest_token import (
 from superset.sql.parse import process_jinja_sql, Table
 from superset.tasks.utils import get_current_user
 from superset.utils import json
-from superset.utils.auth_db_password_hash import verify_auth_db_password
+from superset.utils.auth_db_password_hash import (
+    verify_auth_db_password,
+    verify_fake_auth_db_password,
+)
 from superset.utils.core import (
     DatasourceName,
     DatasourceType,
@@ -130,15 +132,6 @@ if TYPE_CHECKING:
     from superset.viz import BaseViz
 
 logger = logging.getLogger(__name__)
-
-# Fallback werkzeug-format hash used to balance timing on failed logins when
-# ``AUTH_DB_FAKE_PASSWORD_HASH_CHECK`` is not provided by the Flask-AppBuilder
-# config defaults. Mirrors FAB's pbkdf2 default so ``check_password_hash`` does
-# comparable work whether or not the target user exists.
-DEFAULT_AUTH_DB_FAKE_PASSWORD_HASH_CHECK: str = (
-    "pbkdf2:sha256:150000$Z3t6fmj2$22da622d94a1f8118"  # noqa: S105
-    "c0976a03d2f18f680bfff877c9a965db9eedc51bc0be87c"
-)
 
 
 def get_conf() -> Any:
@@ -1389,10 +1382,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ):
             from superset.utils.auth_session_stamp import (
                 bump_user_session_auth_stamp,
+                cache_user_session_auth_stamp,
                 sync_session_auth_stamp_on_login,
             )
 
-            bump_user_session_auth_stamp(target_user_id)
+            new_stamp = bump_user_session_auth_stamp(target_user_id)
+            # Refresh the shared cache immediately so other sessions for this
+            # user stop passing the cached-stamp fast path right away, instead
+            # of continuing to validate against the stale stamp until the
+            # cache entry expires.
+            cache_user_session_auth_stamp(target_user_id, new_stamp)
             if is_self_service and acting_user is not None:
                 sync_session_auth_stamp_on_login(acting_user)
 
@@ -4879,14 +4878,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # Balance failure and success
             _ = self.find_user(email=username)
         if user is None or (not user.is_active):
-            # Balance failure and success
-            check_password_hash(
-                current_app.config.get(
-                    "AUTH_DB_FAKE_PASSWORD_HASH_CHECK",
-                    DEFAULT_AUTH_DB_FAKE_PASSWORD_HASH_CHECK,
-                ),
-                "password",
-            )
+            # Balance failure and success: verify against a fake hash using the
+            # same algorithm (and therefore the same cost) as a real AUTH_DB
+            # user, so response time can't be used to enumerate usernames.
+            verify_fake_auth_db_password(password)
             logger.info(LOGMSG_WAR_SEC_LOGIN_FAILED, username)
             if first_user:
                 self.noop_user_update(first_user)

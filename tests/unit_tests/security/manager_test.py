@@ -2756,6 +2756,38 @@ def test_reset_password_self_service_pk_string_clears_flag(
     )
 
 
+def test_reset_password_refreshes_stamp_cache(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """reset_password (the admin/legacy path) must refresh the shared session
+    stamp cache immediately after rotating the DB stamp, the same way the
+    self-service password-change endpoint does. Otherwise other sessions for
+    the target user keep passing the cached-stamp check until the cache entry
+    expires, even though the DB stamp already changed."""
+    sm = SupersetSecurityManager(appbuilder)
+    mock_g = SimpleNamespace(user=SimpleNamespace(id=1))
+    mocker.patch("superset.security.manager.g", new=mock_g)
+    mocker.patch.dict(appbuilder.app.config, {"AUTH_TYPE": AUTH_DB})
+    mocker.patch(
+        "flask_appbuilder.security.manager.BaseSecurityManager.reset_password",
+        return_value=None,
+    )
+    mocker.patch("superset.security.manager._log_audit_event")
+    mock_bump = mocker.patch(
+        "superset.utils.auth_session_stamp.bump_user_session_auth_stamp",
+        return_value="new-stamp-value",
+    )
+    mock_cache = mocker.patch(
+        "superset.utils.auth_session_stamp.cache_user_session_auth_stamp"
+    )
+
+    sm.reset_password("5", "temp-password")
+
+    mock_bump.assert_called_once_with(5)
+    mock_cache.assert_called_once_with(5, "new-stamp-value")
+
+
 # -----------------------------------------------------------------------------
 # Tests for orderby with invalid formats - unit tests
 # -----------------------------------------------------------------------------

@@ -89,7 +89,9 @@ function UserInfoModal({
     if (raw && typeof raw === 'object') {
       return (Object.values(raw).flat() as string[]).join(' ');
     }
-    return t('Something went wrong while saving the user info');
+    return isEditMode
+      ? t('Something went wrong while saving the user info')
+      : t('Something went wrong while changing the password');
   };
 
   const requiredFields = isEditMode
@@ -198,7 +200,17 @@ function UserInfoModal({
           suffix={
             <GeneratePasswordInputSuffix
               onGenerate={() => {
-                const pwd = generateAuthDbPassword(passwordPolicy);
+                let pwd: string;
+                try {
+                  pwd = generateAuthDbPassword(passwordPolicy);
+                } catch {
+                  addDangerToast(
+                    t(
+                      'Unable to generate a password that satisfies the current policy.',
+                    ),
+                  );
+                  return;
+                }
                 form.setFieldsValue({
                   new_password: pwd,
                   confirm_password: pwd,

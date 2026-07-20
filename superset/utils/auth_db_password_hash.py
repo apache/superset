@@ -24,6 +24,7 @@ from re import Pattern
 import bcrypt
 from argon2 import PasswordHasher
 from argon2.exceptions import Argon2Error
+from marshmallow import ValidationError
 from werkzeug.security import check_password_hash
 
 from superset.utils.auth_db_password import (
@@ -35,6 +36,22 @@ _BCRYPT_HASH_RE: Pattern[str] = re.compile(r"^\$2[aby]\$\d{2}\$")
 _ARGON2_HASH_PREFIX: str = "$argon2"
 
 _argon2_hasher: PasswordHasher = PasswordHasher()
+
+# Precomputed fake hashes used only to balance failed-login timing (see
+# ``verify_fake_auth_db_password``). Generated once with the same cost
+# parameters ``hash_auth_db_password`` uses (``bcrypt.gensalt()`` default
+# rounds, and the shared ``_argon2_hasher`` defaults) so verifying against
+# them costs the same as verifying a real bcrypt/argon2 user hash. The
+# plaintext behind these hashes is never used or checked.
+_FAKE_BCRYPT_HASH: str = "$2b$12$U.woMLPB.Z94fGjO/goHCOwxcdKnwwJb2Efy6.rB5nDZvKVx87FS2"  # noqa: S105
+_FAKE_ARGON2_HASH: str = (
+    "$argon2id$v=19$m=65536,t=3,p=4$Ujw4S5P275e1ag7wAJjVBg$"  # noqa: S105
+    "XkZ94mZLUFad1/7XHnVt6iWwHbcQ/qwDGBUjY2GnEzg"
+)
+_FAKE_HASH_BY_ALGORITHM: dict[str, str] = {
+    "bcrypt": _FAKE_BCRYPT_HASH,
+    "argon2": _FAKE_ARGON2_HASH,
+}
 
 
 def is_bcrypt_password_hash(password_hash: str) -> bool:
@@ -52,8 +69,15 @@ def hash_auth_db_password(password: str, algorithm: str | None = None) -> str:
     Hash a plaintext password for AUTH_DB storage.
 
     Uses ``AUTH_DB_CONFIG["password_hash_algorithm"]`` when ``algorithm`` is omitted.
+    An explicit ``algorithm`` is normalized (case/whitespace) the same way
+    config-derived values are, so direct callers get the same contract as
+    ``get_auth_db_password_hash_algorithm``.
     """
-    resolved: str = algorithm or get_auth_db_password_hash_algorithm()
+    resolved: str = (
+        algorithm.strip().lower()
+        if algorithm
+        else get_auth_db_password_hash_algorithm()
+    )
     if resolved == "argon2":
         return _argon2_hasher.hash(password)
     if resolved == "bcrypt":
@@ -102,3 +126,25 @@ def verify_auth_db_password(password_hash: str, password: str) -> bool:
         return check_password_hash(password_hash, password)
     except ValueError:
         return False
+
+
+def verify_fake_auth_db_password(password: str, algorithm: str | None = None) -> None:
+    """
+    Run a throwaway password verification to balance failed-login timing.
+
+    Callers use this when a username does not exist or an account is
+    inactive, so that branch costs the same as verifying a real user's
+    password. Verifies ``password`` against a precomputed fake hash using
+    ``algorithm`` (or ``AUTH_DB_CONFIG["password_hash_algorithm"]`` when
+    omitted), matching the cost of the ``verify_auth_db_password`` call a
+    real user would take. Falls back to bcrypt if ``AUTH_DB_CONFIG`` is
+    misconfigured, since this runs on a failed-login path that must not
+    raise. The result is intentionally discarded.
+    """
+    if algorithm is None:
+        try:
+            algorithm = get_auth_db_password_hash_algorithm()
+        except ValidationError:
+            algorithm = "bcrypt"
+    fake_hash = _FAKE_HASH_BY_ALGORITHM.get(algorithm, _FAKE_BCRYPT_HASH)
+    verify_auth_db_password(fake_hash, password)

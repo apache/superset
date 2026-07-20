@@ -19,11 +19,14 @@ import re
 from pathlib import Path
 
 import pytest
+from flask import current_app
 from marshmallow import ValidationError
+from pytest_mock import MockerFixture
 from werkzeug.security import generate_password_hash
 
 from superset.utils.auth_db_password import (
     _COMMON_PASSWORDS,
+    get_auth_db_login_rate_limit_string,
     get_auth_db_password_hash_algorithm,
     get_auth_db_password_hash_method,
     validate_auth_db_password,
@@ -226,3 +229,33 @@ def test_verify_auth_db_password_supports_legacy_werkzeug_hash() -> None:
     legacy_hash = generate_password_hash("legacy-password", method="scrypt")
     assert verify_auth_db_password(legacy_hash, "legacy-password")
     assert not verify_auth_db_password(legacy_hash, "wrong-password")
+
+
+def test_get_auth_db_login_rate_limit_string_default() -> None:
+    """With no override, the default rate-limit string is returned."""
+    assert get_auth_db_login_rate_limit_string() == "10 per 5 minutes"
+
+
+def test_get_auth_db_login_rate_limit_string_uses_override(
+    mocker: MockerFixture,
+) -> None:
+    """A valid string override is passed through unchanged."""
+    mocker.patch.dict(
+        current_app.config,
+        {"AUTH_DB_CONFIG": {"login_rate_limit": "3 per minute"}},
+    )
+    assert get_auth_db_login_rate_limit_string() == "3 per minute"
+
+
+@pytest.mark.parametrize("bad_value", [None, 123, [], "", "   "])
+def test_get_auth_db_login_rate_limit_string_falls_back_on_bad_value(
+    mocker: MockerFixture, bad_value: object
+) -> None:
+    """A missing/malformed override (e.g. None) must not be stringified into a
+    literal like "None" that would break Flask-Limiter parsing; fall back to
+    the default instead."""
+    mocker.patch.dict(
+        current_app.config,
+        {"AUTH_DB_CONFIG": {"login_rate_limit": bad_value}},
+    )
+    assert get_auth_db_login_rate_limit_string() == "10 per 5 minutes"

@@ -45,7 +45,6 @@ revision = "a7d3f1b9c2e4"
 down_revision = "78a40c08b4be"
 
 from alembic import op  # noqa: E402
-from sqlalchemy.exc import SQLAlchemyError  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
 from superset.migrations.shared.security_converge import (  # noqa: E402
@@ -97,24 +96,20 @@ def do_downgrade(session: Session) -> None:
 
 
 def upgrade() -> None:
+    # Flush only: this session shares Alembic's connection/transaction, so
+    # committing here would end that transaction early and let the permission
+    # changes land even if a later step (including Alembic's own revision
+    # stamp) fails. Alembic commits everything together when the migration
+    # run completes.
     bind = op.get_bind()
     session = Session(bind=bind)
     do_upgrade(session)
-    try:
-        session.commit()  # pylint: disable=consider-using-transaction
-    except SQLAlchemyError as ex:
-        session.rollback()  # pylint: disable=consider-using-transaction
-        raise Exception(f"An error occurred while upgrading permissions: {ex}") from ex
+    session.flush()
 
 
 def downgrade() -> None:
+    # See upgrade(): flush only, let Alembic own the commit.
     bind = op.get_bind()
     session = Session(bind=bind)
     do_downgrade(session)
-    try:
-        session.commit()  # pylint: disable=consider-using-transaction
-    except SQLAlchemyError as ex:
-        session.rollback()  # pylint: disable=consider-using-transaction
-        raise Exception(
-            f"An error occurred while downgrading permissions: {ex}"
-        ) from ex
+    session.flush()
