@@ -35,6 +35,11 @@ import type GlobalModel from 'echarts/types/src/model/Global';
 import type ComponentModel from 'echarts/types/src/model/Component';
 import { EchartsHandler, EventHandlers } from '../types';
 import Echart from '../components/Echart';
+import {
+  rebaseSeriesData,
+  snapToNearestX,
+  SeriesDataPoint,
+} from './percentChange';
 import { OrientationType, TimeseriesChartTransformedProps } from './types';
 import { formatSeriesName } from '../utils/series';
 import { ExtraControls } from '../components/ExtraControls';
@@ -67,6 +72,92 @@ export default function EchartsTimeseries({
   // eslint-disable-next-line no-param-reassign
   refs.echartRef = echartRef;
   const clickTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  // Draggable percent-change baseline: when the rebase view is active, a
+  // vertical line is drawn on the plot; dragging it re-indexes every series
+  // to the hovered point via the composable rebase, entirely client-side.
+  const rebaseEnabled = Boolean(
+    (formData as { rebasePercentChange?: boolean }).rebasePercentChange,
+  );
+  useEffect(() => {
+    if (!rebaseEnabled) return undefined;
+    const chart = echartRef.current?.getEchartInstance?.();
+    if (!chart) return undefined;
+
+    const option = chart.getOption() as {
+      series?: { data?: SeriesDataPoint[] }[];
+    };
+    const baseSeries = (option.series ?? []).map(s =>
+      Array.isArray(s.data) ? (s.data as SeriesDataPoint[]) : [],
+    );
+    const xs = Array.from(
+      new Set(baseSeries.flat().map(([x]) => Number(x))),
+    ).sort((a, b) => a - b);
+    if (xs.length === 0) return undefined;
+    let baselineX = xs[0];
+
+    const applyBaseline = (newX: number) => {
+      baselineX = newX;
+      chart.setOption({
+        series: baseSeries.map(data => ({
+          data: rebaseSeriesData(data, newX),
+        })),
+      });
+    };
+
+    const drawHandle = () => {
+      const gridRect = { top: 0, height: chart.getHeight() };
+      let px: number;
+      try {
+        [px] = [chart.convertToPixel({ xAxisIndex: 0 }, baselineX) as number];
+      } catch {
+        return;
+      }
+      chart.setOption({
+        graphic: [
+          {
+            id: 'percent-change-baseline',
+            type: 'rect',
+            x: px - 4,
+            y: gridRect.top,
+            shape: { width: 8, height: gridRect.height },
+            style: { fill: 'rgba(0, 0, 0, 0.02)' },
+            cursor: 'ew-resize',
+            draggable: true,
+            z: 100,
+            ondrag(this: { x: number; y: number }) {
+              this.y = gridRect.top;
+              const dataX = chart.convertFromPixel(
+                { xAxisIndex: 0 },
+                this.x + 4,
+              ) as number;
+              const snapped = snapToNearestX(xs, dataX);
+              if (snapped !== undefined && snapped !== baselineX) {
+                applyBaseline(snapped);
+              }
+            },
+            ondragend: () => drawHandle(),
+            children: [
+              {
+                type: 'rect',
+                left: 'center',
+                top: 0,
+                shape: { width: 2, height: gridRect.height },
+                style: { fill: '#666' },
+              },
+            ],
+          },
+        ],
+      });
+    };
+    drawHandle();
+
+    return () => {
+      chart.setOption({
+        graphic: [{ id: 'percent-change-baseline', $action: 'remove' }],
+      });
+    };
+  }, [rebaseEnabled, echartOptions, width, height]);
   const extraControlRef = useRef<HTMLDivElement>(null);
   const [extraControlHeight, setExtraControlHeight] = useState(0);
   useEffect(() => {
