@@ -18,6 +18,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from superset.exceptions import QueryObjectValidationError
+
 
 def _build_response(filename: str | None):
     from superset.charts.data.api import ChartDataRestApi
@@ -57,3 +59,23 @@ def test_blank_filename_falls_back_to_default() -> None:
     response = _build_response("...")
     disposition = response.headers["Content-Disposition"]
     assert 'filename="export.csv"' in disposition
+
+
+def test_streaming_validation_error_is_returned_as_bad_request() -> None:
+    from superset.charts.data.api import ChartDataRestApi
+
+    api = ChartDataRestApi.__new__(ChartDataRestApi)
+    command = MagicMock()
+    command.execute.return_value = MagicMock()
+
+    with patch.object(
+        api,
+        "_send_chart_response",
+        side_effect=QueryObjectValidationError(
+            "Streaming CSV export requires executable SQL"
+        ),
+    ):
+        response = api._get_data_response(command)
+
+    assert response.status_code == 400
+    assert b"Streaming CSV export requires executable SQL" in response.data

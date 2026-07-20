@@ -28,6 +28,7 @@ from flask_caching.backends import NullCache
 from werkzeug.wrappers import Response
 
 from superset import db
+from superset.common.chart_data_timing import CacheWriteOutcome
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.extensions import cache_manager
 from superset.models.cache import CacheKey
@@ -53,15 +54,17 @@ def generate_cache_key(values_dict: dict[str, Any], key_prefix: str = "") -> str
     return cache_key
 
 
-def set_and_log_cache(
+def set_and_log_cache_with_outcome(
     cache_instance: Cache,
     cache_key: str,
     cache_value: dict[str, Any],
     cache_timeout: int | None = None,
     datasource_uid: str | None = None,
-) -> None:
+) -> CacheWriteOutcome:
+    """Write a cache value and distinguish disabled, failed, and successful writes."""
+
     if isinstance(cache_instance.cache, NullCache):
-        return
+        return CacheWriteOutcome.SKIPPED
 
     timeout = (
         cache_timeout
@@ -71,34 +74,65 @@ def set_and_log_cache(
 
     # Skip caching if timeout is CACHE_DISABLED_TIMEOUT (no caching requested)
     if timeout == CACHE_DISABLED_TIMEOUT:
-        return
+        return CacheWriteOutcome.SKIPPED
     try:
         dttm = datetime.utcnow().isoformat().split(".")[0]
         value = {**cache_value, "dttm": dttm}
-        cache_instance.set(cache_key, value, timeout=timeout)
-        stats_logger = app.config["STATS_LOGGER"]
-        stats_logger.incr("set_cache_key")
+        if cache_instance.set(cache_key, value, timeout=timeout) is False:
+            logger.warning("Cache backend rejected key %s", cache_key)
+            return CacheWriteOutcome.FAILED
+    except Exception as ex:  # pylint: disable=broad-except
+        # cache.set call can fail if the backend is down or if
+        # the key is too large or whatever other reasons
+        logger.warning("Could not cache key %s", cache_key)
+        logger.exception(ex)
+        return CacheWriteOutcome.FAILED
 
-        # Log cache key details for debugging
-        logger.debug(
-            "CACHE SET - Key: %s, Datasource: %s, Timeout: %s",
-            cache_key,
-            datasource_uid,
-            timeout,
-        )
+    try:
+        app.config["STATS_LOGGER"].incr("set_cache_key")
+    except Exception:  # pylint: disable=broad-except
+        logger.exception("Unable to emit cache write metric")
 
-        if datasource_uid and app.config["STORE_CACHE_KEYS_IN_METADATA_DB"]:
+    # Log cache key details for debugging
+    logger.debug(
+        "CACHE SET - Key: %s, Datasource: %s, Timeout: %s",
+        cache_key,
+        datasource_uid,
+        timeout,
+    )
+
+    if datasource_uid and app.config["STORE_CACHE_KEYS_IN_METADATA_DB"]:
+        try:
             ck = CacheKey(
                 cache_key=cache_key,
                 cache_timeout=cache_timeout,
                 datasource_uid=datasource_uid,
             )
             db.session.add(ck)
-    except Exception as ex:  # pylint: disable=broad-except
-        # cache.set call can fail if the backend is down or if
-        # the key is too large or whatever other reasons
-        logger.warning("Could not cache key %s", cache_key)
-        logger.exception(ex)
+        except Exception:  # pylint: disable=broad-except
+            logger.exception("Unable to register cache key metadata")
+    return CacheWriteOutcome.SUCCEEDED
+
+
+def set_and_log_cache(
+    cache_instance: Cache,
+    cache_key: str,
+    cache_value: dict[str, Any],
+    cache_timeout: int | None = None,
+    datasource_uid: str | None = None,
+) -> bool:
+    """Compatibility wrapper for callers that only need boolean success."""
+
+    return (
+        set_and_log_cache_with_outcome(
+            cache_instance,
+            cache_key,
+            cache_value,
+            cache_timeout,
+            datasource_uid,
+        )
+        == CacheWriteOutcome.SUCCEEDED
+    )
 
 
 # If a user sets `max_age` to 0, for long the browser should cache the

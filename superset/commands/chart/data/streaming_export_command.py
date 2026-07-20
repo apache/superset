@@ -18,12 +18,35 @@
 
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+from typing import cast, Protocol, runtime_checkable, TYPE_CHECKING
+
+from flask_babel import gettext as _
 
 from superset.commands.streaming_export.base import BaseStreamingCSVExportCommand
+from superset.exceptions import QueryObjectValidationError
+from superset.models.sql_lab import Query as SqlLabQuery
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
+    from superset.models.core import Database
+    from superset.superset_typing import QueryObjectDict
+
+
+class _ExecutableQuery(Protocol):
+    sql: str
+
+
+@runtime_checkable
+class _SQLDatasource(Protocol):
+    """Structural contract required by the chart streaming exporter."""
+
+    database: Database | None
+    catalog: str | None
+    schema: str | None
+
+    def get_query_str_extended(
+        self, query_obj: QueryObjectDict
+    ) -> _ExecutableQuery: ...
 
 
 class StreamingCSVExportCommand(BaseStreamingCSVExportCommand):
@@ -55,7 +78,9 @@ class StreamingCSVExportCommand(BaseStreamingCSVExportCommand):
         """Validate permissions and query context."""
         self._query_context.raise_for_access()
 
-    def _get_sql_and_database(self) -> tuple[str, Any, str | None, str | None]:
+    def _get_sql_and_database(
+        self,
+    ) -> tuple[str, Database, str | None, str | None]:
         """
         Get the SQL query, database, catalog, and schema for chart export.
 
@@ -66,12 +91,33 @@ class StreamingCSVExportCommand(BaseStreamingCSVExportCommand):
         # Note: datasource should already be attached to a session from query_context
         datasource = self._query_context.datasource
         query_obj = self._query_context.queries[0]
-        sql_query = datasource.get_query_str(query_obj.to_dict())
-        database = getattr(datasource, "database", None)
-        catalog = getattr(datasource, "catalog", None)
-        schema = getattr(datasource, "schema", None)
+        database = cast("Database | None", getattr(datasource, "database", None))
+        if database is None:
+            raise QueryObjectValidationError(
+                _("Streaming CSV export requires a SQL datasource")
+            )
+        sql_query: str
+        if isinstance(datasource, SqlLabQuery):
+            sql_query = datasource.get_rendered_sql()
+        elif isinstance(datasource, _SQLDatasource) and callable(
+            datasource.get_query_str_extended
+        ):
+            sql_query = datasource.get_query_str_extended(query_obj.to_dict()).sql
+        else:
+            raise QueryObjectValidationError(
+                _("Streaming CSV export requires a SQL datasource")
+            )
+        if not isinstance(sql_query, str) or not sql_query.strip():
+            raise QueryObjectValidationError(
+                _("Streaming CSV export requires executable SQL")
+            )
 
-        return sql_query, database, catalog, schema
+        return (
+            sql_query,
+            database,
+            cast("str | None", getattr(datasource, "catalog", None)),
+            cast("str | None", getattr(datasource, "schema", None)),
+        )
 
     def _get_row_limit(self) -> int | None:
         """

@@ -49,3 +49,111 @@ def test_memoized_func(mocker: MockerFixture) -> None:
     cache.get.return_value = 43
     result = decorated(self, "public", cache=True)
     assert result == 43
+
+
+def test_set_and_log_cache_reports_backend_outcome(mocker: MockerFixture) -> None:
+    from superset.common.chart_data_timing import CacheWriteOutcome
+    from superset.utils.cache import (
+        set_and_log_cache,
+        set_and_log_cache_with_outcome,
+    )
+
+    cache = mocker.MagicMock()
+    cache.cache = object()
+    cache.set.return_value = True
+    mock_app = mocker.patch("superset.utils.cache.app")
+    mock_app.config = {
+        "CACHE_DEFAULT_TIMEOUT": 300,
+        "STATS_LOGGER": mocker.MagicMock(),
+        "STORE_CACHE_KEYS_IN_METADATA_DB": False,
+    }
+
+    assert (
+        set_and_log_cache_with_outcome(cache, "key", {"value": 1})
+        == CacheWriteOutcome.SUCCEEDED
+    )
+    assert set_and_log_cache(cache, "key", {"value": 1}) is True
+
+    cache.set.return_value = None
+    assert (
+        set_and_log_cache_with_outcome(cache, "key", {"value": 1})
+        == CacheWriteOutcome.SUCCEEDED
+    )
+    assert set_and_log_cache(cache, "key", {"value": 1}) is True
+
+    cache.set.return_value = False
+    assert (
+        set_and_log_cache_with_outcome(cache, "key", {"value": 1})
+        == CacheWriteOutcome.FAILED
+    )
+    assert set_and_log_cache(cache, "key", {"value": 1}) is False
+
+
+def test_set_and_log_cache_distinguishes_skipped_and_failed_writes(
+    mocker: MockerFixture,
+) -> None:
+    from flask_caching.backends import NullCache
+
+    from superset.common.chart_data_timing import CacheWriteOutcome
+    from superset.constants import CACHE_DISABLED_TIMEOUT
+    from superset.utils.cache import set_and_log_cache_with_outcome
+
+    cache = mocker.MagicMock()
+    cache.cache = NullCache()
+    assert (
+        set_and_log_cache_with_outcome(cache, "key", {"value": 1})
+        == CacheWriteOutcome.SKIPPED
+    )
+
+    cache.cache = object()
+    assert (
+        set_and_log_cache_with_outcome(
+            cache,
+            "key",
+            {"value": 1},
+            cache_timeout=CACHE_DISABLED_TIMEOUT,
+        )
+        == CacheWriteOutcome.SKIPPED
+    )
+
+    cache.set.side_effect = RuntimeError("cache unavailable")
+    mock_app = mocker.patch("superset.utils.cache.app")
+    mock_app.config = {
+        "CACHE_DEFAULT_TIMEOUT": 300,
+        "STATS_LOGGER": mocker.MagicMock(),
+        "STORE_CACHE_KEYS_IN_METADATA_DB": False,
+    }
+    assert (
+        set_and_log_cache_with_outcome(cache, "key", {"value": 1})
+        == CacheWriteOutcome.FAILED
+    )
+
+
+def test_cache_metadata_failure_does_not_change_write_outcome(
+    mocker: MockerFixture,
+) -> None:
+    from superset.utils.cache import set_and_log_cache
+
+    cache = mocker.MagicMock()
+    cache.cache = object()
+    cache.set.return_value = True
+    mock_app = mocker.patch("superset.utils.cache.app")
+    mock_app.config = {
+        "CACHE_DEFAULT_TIMEOUT": 300,
+        "STATS_LOGGER": mocker.MagicMock(),
+        "STORE_CACHE_KEYS_IN_METADATA_DB": True,
+    }
+    mocker.patch(
+        "superset.utils.cache.db.session.add",
+        side_effect=RuntimeError("metadata unavailable"),
+    )
+
+    assert (
+        set_and_log_cache(
+            cache,
+            "key",
+            {"value": 1},
+            datasource_uid="1__table",
+        )
+        is True
+    )

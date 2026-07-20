@@ -969,6 +969,24 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Determining the correct schema is crucial for managing access to data, so please
         make sure you understand this logic when working on a new DB engine spec.
         """  # noqa: E501
+        return cls._resolve_default_schema_for_query(database, query)
+
+    @classmethod
+    def get_default_schema_for_rendered_query(
+        cls,
+        database: Database,
+        query: Query,
+    ) -> str | None:
+        """Resolve a schema for SQL whose template phase already completed."""
+
+        return cls._resolve_default_schema_for_query(database, query)
+
+    @classmethod
+    def _resolve_default_schema_for_query(
+        cls,
+        database: Database,
+        query: Query,
+    ) -> str | None:
         # dynamic schema varies on a per-query basis
         if cls.supports_dynamic_schema:
             return query.schema

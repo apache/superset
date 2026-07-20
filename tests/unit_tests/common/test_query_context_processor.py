@@ -16,6 +16,7 @@
 # under the License.
 
 from datetime import datetime, timedelta
+from decimal import Decimal
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -24,8 +25,16 @@ import pandas as pd
 import pytest
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.chart_data_timing import (
+    CacheWriteOutcome,
+    SourceKind,
+    SourceOrigin,
+    SourceProvider,
+    SourceTiming,
+)
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_context_processor import QueryContextProcessor
+from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.utils.core import GenericDataType
 from superset.utils.date_parser import get_past_or_future
 
@@ -1318,169 +1327,6 @@ def test_processing_time_offsets_rejects_unparseable_offset(
     datasource.query.assert_not_called()
 
 
-def test_ensure_totals_available_updates_cache_values():
-    """
-    Test that ensure_totals_available() updates the query objects AND
-    cache_values to keep them in sync.
-
-    The issue was that ensure_totals_available() modified QueryObject instances
-    (e.g., setting row_limit=None on totals queries and adding contribution_totals
-    to post_processing), but cache_values still contained the original queries.
-    This caused cache key mismatches between worker execution and cache fetch.
-    """
-    import pandas as pd
-
-    from superset.common.query_object import QueryObject
-
-    # Create a mock datasource
-    mock_datasource = MagicMock()
-    mock_datasource.uid = "test_datasource"
-    mock_datasource.database.db_engine_spec.engine = "postgresql"
-    mock_datasource.cache_timeout = None
-    mock_datasource.changed_on = None
-
-    # Create QueryObjects that would trigger ensure_totals_available logic
-    # Query 1: Main query with contribution post-processing (needs totals)
-    main_query = QueryObject(
-        datasource=mock_datasource,
-        columns=["brokerage"],
-        metrics=["Net Amount In", "Amount Out", "Amount In"],
-        row_limit=50000,
-        orderby=[["Net Amount In", False]],
-        post_processing=[
-            {
-                "operation": "contribution",
-                "options": {
-                    "columns": ["Amount In", "Amount Out"],
-                    "rename_columns": ["%Amount In", "%Amount Out"],
-                },
-            }
-        ],
-    )
-
-    # Query 2: Totals query (no columns, has metrics, no post-processing)
-    totals_query = QueryObject(
-        datasource=mock_datasource,
-        columns=[],  # No columns = totals query
-        metrics=["Net Amount In", "Amount Out", "Amount In"],
-        row_limit=50000,
-        post_processing=[],  # No post-processing
-    )
-
-    # Create mock query context
-    mock_query_context = MagicMock()
-    mock_query_context.force = False
-    mock_query_context.datasource = mock_datasource
-    mock_query_context.queries = [main_query, totals_query]
-    mock_query_context.result_type = "full"
-    mock_query_context.cache_values = {
-        "datasource": {"type": "table", "id": 1},
-        "queries": [
-            # These are the original queries as they would be stored in cache_values
-            {
-                "columns": ["brokerage"],
-                "metrics": ["Net Amount In", "Amount Out", "Amount In"],
-                "row_limit": 50000,
-                "orderby": [("Net Amount In", False)],
-                "post_processing": [
-                    {
-                        "operation": "contribution",
-                        "options": {
-                            "columns": ["Amount In", "Amount Out"],
-                            "rename_columns": ["%Amount In", "%Amount Out"],
-                        },
-                    }
-                ],
-            },
-            {
-                "columns": [],
-                "metrics": ["Net Amount In", "Amount Out", "Amount In"],
-                "row_limit": 50000,
-                "post_processing": [],
-            },
-        ],
-        "result_type": "full",
-        "result_format": "json",
-    }
-
-    # Create processor
-    processor = QueryContextProcessor(mock_query_context)
-    processor._qc_datasource = mock_datasource
-
-    # Mock the query execution result for totals query
-    mock_query_result = MagicMock()
-    mock_df = pd.DataFrame(
-        {
-            "Net Amount In": [20228060486.838825],
-            "Amount Out": [-20543489614.980007],
-            "Amount In": [40771550101.81883],
-        }
-    )
-    mock_query_result.df = mock_df
-
-    with patch.object(
-        mock_query_context, "get_query_result", return_value=mock_query_result
-    ):
-        # Call ensure_totals_available
-        processor.ensure_totals_available()
-
-        # Now call get_payload which should update cache_values
-        with patch(
-            "superset.common.query_context_processor.get_query_results"
-        ) as mock_get_query_results:
-            # Mock the query results
-            mock_query_results_response = [
-                {
-                    "data": [{"brokerage": "Test", "Net Amount In": 100}],
-                    "query": "SELECT ...",
-                }
-            ]
-            mock_get_query_results.return_value = mock_query_results_response
-
-            # Mock cache manager to avoid actual caching
-            with patch(
-                "superset.common.query_context_processor.QueryCacheManager"
-            ) as mock_cache_manager:
-                mock_cache = MagicMock()
-                mock_cache.is_loaded = True
-                mock_cache.df = pd.DataFrame(
-                    {"brokerage": ["Test"], "Net Amount In": [100]}
-                )
-                mock_cache.query = "SELECT ..."
-                mock_cache.error_message = None
-                mock_cache.status = "success"
-                mock_cache_manager.get.return_value = mock_cache
-
-                # This should update cache_values to match the modified queries
-                processor.get_payload(cache_query_context=False)
-
-    # Verify that cache_values has been updated to reflect the modifications
-    updated_cache_queries = mock_query_context.cache_values["queries"]
-
-    # Check that totals query has row_limit=None (modified by ensure_totals_available)
-    assert updated_cache_queries[1]["row_limit"] is None, (
-        "Expected totals query to have row_limit=None after ensure_totals_available, "
-        f"but got: {updated_cache_queries[1]['row_limit']}"
-    )
-
-    # Check that the main query has contribution_totals in post_processing
-    assert (
-        "contribution_totals"
-        in updated_cache_queries[0]["post_processing"][0]["options"]
-    ), "Expected main query post_processing to have contribution_totals added"
-
-    # Verify the contribution_totals match what we mocked
-    expected_totals = {
-        "Net Amount In": 20228060486.838825,
-        "Amount Out": -20543489614.980007,
-        "Amount In": 40771550101.81883,
-    }
-    assert (
-        updated_cache_queries[0]["post_processing"][0]["options"]["contribution_totals"]
-        == expected_totals
-    )
-
-
 def test_get_df_payload_validates_before_cache_key_generation():
     """
     Test that get_df_payload calls validate() before generating cache key.
@@ -1559,141 +1405,13 @@ def test_get_df_payload_validates_before_cache_key_generation():
     )
 
 
-def test_cache_values_sync_after_ensure_totals_available():
-    """
-    Test that cache_values is synchronized with QueryObject modifications
-    after ensure_totals_available() runs.
-
-    This is a focused regression test for the cache key mismatch issue.
-    It verifies that when ensure_totals_available() modifies QueryObject
-    instances, those changes are reflected in cache_values before the
-    QueryContext cache key is generated.
-    """
-    import pandas as pd
-
-    from superset.common.query_object import QueryObject
-
-    # Create a mock datasource
-    mock_datasource = MagicMock()
-    mock_datasource.uid = "test_datasource_456"
-    mock_datasource.database.db_engine_spec.engine = "pinot"
-    mock_datasource.cache_timeout = None
-    mock_datasource.changed_on = None
-
-    # Create two queries: one totals query and one main query with contribution
-    totals_query = QueryObject(
-        datasource=mock_datasource,
-        columns=[],
-        metrics=["sales"],
-        row_limit=1000,
-        post_processing=[],
-    )
-
-    main_query = QueryObject(
-        datasource=mock_datasource,
-        columns=["region"],
-        metrics=["sales"],
-        row_limit=1000,
-        post_processing=[{"operation": "contribution", "options": {}}],
-    )
-
-    # Create mock query context with initial cache_values
-    mock_query_context = MagicMock()
-    mock_query_context.force = False
-    mock_query_context.datasource = mock_datasource
-    mock_query_context.queries = [main_query, totals_query]
-    mock_query_context.result_type = "full"
-    mock_query_context.cache_values = {
-        "datasource": {"type": "table", "id": 20},
-        "queries": [
-            {
-                "columns": ["region"],
-                "metrics": ["sales"],
-                "row_limit": 1000,
-                "post_processing": [{"operation": "contribution", "options": {}}],
-            },
-            {
-                "columns": [],
-                "metrics": ["sales"],
-                "row_limit": 1000,
-                "post_processing": [],
-            },
-        ],
-        "result_type": "full",
-        "result_format": "json",
-    }
-
-    # Create processor
-    processor = QueryContextProcessor(mock_query_context)
-    processor._qc_datasource = mock_datasource
-
-    # Mock query execution result (totals query execution)
-    mock_query_result = MagicMock()
-    mock_df = pd.DataFrame({"sales": [1000.0]})
-    mock_query_result.df = mock_df
-
-    # Patch methods to isolate the test
-    with patch.object(
-        mock_query_context, "get_query_result", return_value=mock_query_result
-    ):
-        # Mock cache management to prevent actual caching
-        with patch(
-            "superset.common.query_context_processor.QueryCacheManager"
-        ) as mock_cache_manager:
-            mock_cache = MagicMock()
-            mock_cache.is_loaded = True
-            mock_cache.df = pd.DataFrame({"region": ["North"], "sales": [100]})
-            mock_cache.query = "SELECT region, SUM(sales) FROM table GROUP BY region"
-            mock_cache.error_message = None
-            mock_cache.status = "success"
-            mock_cache_manager.get.return_value = mock_cache
-
-            # Mock the query results
-            with patch(
-                "superset.common.query_context_processor.get_query_results"
-            ) as mock_get_query_results:
-                mock_query_results_response = [
-                    {
-                        "data": [{"region": "North", "sales": 100}],
-                        "query": "SELECT region, SUM(sales) FROM table GROUP BY region",
-                    }
-                ]
-                mock_get_query_results.return_value = mock_query_results_response
-
-                # Call get_payload - this internally calls ensure_totals_available()
-                # and then should update cache_values
-                processor.get_payload(cache_query_context=False)
-
-    # Verify the fix: cache_values should now reflect the modifications
-    updated_cache_queries = mock_query_context.cache_values["queries"]
-    updated_totals_row_limit = updated_cache_queries[1]["row_limit"]
-
-    # Before the fix: row_limit would remain 1000 in cache_values
-    # After the fix: row_limit should be None (modified by
-    # ensure_totals_available)
-    assert updated_totals_row_limit is None, (
-        "Expected row_limit to be None after ensure_totals_available, "
-        f"but got: {updated_totals_row_limit}"
-    )
-
-    # Verify that contribution_totals was added to the main query
-    assert (
-        "contribution_totals"
-        in updated_cache_queries[0]["post_processing"][0]["options"]
-    )
-
-    # Verify that the main query row_limit is still 1000 (only totals query
-    # should be modified)
-    assert updated_cache_queries[0]["row_limit"] == 1000
-
-
 def test_cache_key_excludes_contribution_totals():
     """
     Test that cache_key() excludes contribution_totals from post_processing.
 
-    contribution_totals is computed at runtime by ensure_totals_available() and
-    varies per request. Including it in the cache key would cause mismatches
-    between workers that compute different totals for the same query.
+    contribution_totals is derived from a validated producer query and injected
+    into an execution-only clone. It is excluded so cache keys remain identical
+    when the same dependency plan is rehydrated by a worker.
     """
     from superset.common.query_object import QueryObject
 
@@ -1838,11 +1556,10 @@ def test_cache_key_non_contribution_post_processing_unchanged():
     )
 
 
-def test_force_cached_normalizes_totals_query_row_limit():
+def test_force_cached_separates_dependency_and_producer_cache_identity():
     """
-    When fetching from cache (force_cached=True), the totals query should still be
-    normalized so its cache key matches the cached entry, but the totals query should
-    not be executed.
+    A normalized totals dependency and its limited public producer use distinct cache
+    identities, without executing either source when both entries are cached.
     """
     from superset.common.query_object import QueryObject
 
@@ -1875,13 +1592,6 @@ def test_force_cached_normalizes_totals_query_row_limit():
 
     captured_limits: list[int | None] = []
 
-    def totals_cache_key(**kwargs: Any) -> str:
-        captured_limits.append(totals_query.row_limit)
-        return "totals-cache-key"
-
-    totals_query.cache_key = totals_cache_key
-    main_query.cache_key = lambda **kwargs: "main-cache-key"
-
     mock_query_context = MagicMock()
     mock_query_context.force = False
     mock_query_context.datasource = mock_datasource
@@ -1891,12 +1601,20 @@ def test_force_cached_normalizes_totals_query_row_limit():
     mock_query_context.cache_values = {
         "queries": [main_query.to_dict(), totals_query.to_dict()]
     }
+    mock_query_context.form_data = {}
     mock_query_context.get_query_result = MagicMock()
 
     processor = QueryContextProcessor(mock_query_context)
     processor._qc_datasource = mock_datasource
     mock_query_context.get_df_payload = processor.get_df_payload
+    mock_query_context.get_df_payload_result = processor.get_df_payload_result
     mock_query_context.get_data = processor.get_data
+
+    def query_cache_key(query: QueryObject, **kwargs: Any) -> str:
+        if not query.columns:
+            captured_limits.append(query.row_limit)
+            return "totals-cache-key"
+        return "main-cache-key"
 
     with patch(
         "superset.common.query_context_processor.security_manager"
@@ -1920,20 +1638,97 @@ def test_force_cached_normalizes_totals_query_row_limit():
                 cache.rejected_filter_columns = []
                 cache.annotation_data = {}
                 cache.is_cached = True
+                cache.has_applied_filter_columns = True
+                cache.source_trace = None
                 cache.sql_rowcount = len(df)
                 cache.cache_dttm = "2024-01-01T00:00:00"
+                cache.queried_dttm = "2024-01-01T00:00:00"
+                cache.stacktrace = None
                 cache.bq_memory_limited = False
+                cache.bq_memory_limited_row_count = 0
                 return cache
 
             mock_cache_manager.get.side_effect = cache_get
 
-            processor.get_payload(cache_query_context=False, force_cached=True)
+            with patch.object(
+                processor, "query_cache_key", side_effect=query_cache_key
+            ):
+                processor.get_payload(cache_query_context=False, force_cached=True)
 
-    assert captured_limits == [None], "Totals query should be normalized before caching"
-    mock_query_context.get_query_result.assert_not_called()
+    assert captured_limits == [None, 1000]
+    assert totals_query.row_limit == 1000
+    assert "contribution_totals" not in main_query.post_processing[0]["options"]
+    mock_datasource.get_query_result.assert_not_called()
 
 
-def test_get_df_payload_invalidates_cache_missing_applied_filter_columns():
+def test_query_cache_manager_discards_every_loaded_value() -> None:
+    source = SourceTiming(
+        kind=SourceKind.PRIMARY,
+        provider=SourceProvider.SQL,
+        origin=SourceOrigin.CACHE,
+        total_ns=1,
+    )
+    cache = QueryCacheManager(
+        df=pd.DataFrame({"stale": [1]}),
+        query="SELECT stale",
+        annotation_data={"stale": [1]},
+        applied_template_filters=["stale"],
+        applied_filter_columns=["stale"],
+        rejected_filter_columns=["stale"],
+        status=QueryStatus.SUCCESS,
+        error_message="stale error",
+        is_loaded=True,
+        stacktrace="stale trace",
+        is_cached=True,
+        cache_dttm="2024-01-01T00:00:00",
+        cache_value={"stale": True},
+        sql_rowcount=1,
+        queried_dttm="2024-01-01T00:00:00",
+        source_trace=(source,),
+    )
+    cache.cache_write_outcome = CacheWriteOutcome.SUCCEEDED
+    cache.bq_memory_limited = True
+    cache.bq_memory_limited_row_count = 1
+
+    cache.discard_loaded_value()
+
+    assert cache.df.empty
+    assert cache.query == ""
+    assert cache.annotation_data == {}
+    assert cache.applied_template_filters == []
+    assert cache.applied_filter_columns == []
+    assert cache.has_applied_filter_columns is False
+    assert cache.rejected_filter_columns == []
+    assert cache.status is None
+    assert cache.error_message is None
+    assert cache.is_loaded is False
+    assert cache.stacktrace is None
+    assert cache.is_cached is None
+    assert cache.cache_dttm is None
+    assert cache.cache_value is None
+    assert cache.sql_rowcount is None
+    assert cache.queried_dttm is None
+    assert cache.source_trace is None
+    assert cache.cache_write_outcome == CacheWriteOutcome.NOT_ATTEMPTED
+    assert cache.bq_memory_limited is False
+    assert cache.bq_memory_limited_row_count == 0
+
+
+def test_contribution_totals_include_decimal_object_columns() -> None:
+    """Object-dtype Decimal metrics participate in cross-query totals."""
+    totals = QueryContextProcessor._totals_from_df(
+        pd.DataFrame(
+            {
+                "region": ["North", "South"],
+                "sales": [Decimal("12.25"), Decimal("7.75")],
+            }
+        )
+    )
+
+    assert totals == {"sales": Decimal("20.00")}
+
+
+def test_get_df_payload_invalidates_all_stale_cache_data() -> None:
     """
     Test that get_df_payload invalidates cache when cache is loaded but missing
     applied_filter_columns and query has filters.
@@ -1955,35 +1750,29 @@ def test_get_df_payload_invalidates_cache_missing_applied_filter_columns():
     # Create query object with filters (note: `filters` kwarg, not `filter`)
     query_obj = QueryObject(
         datasource=mock_datasource,
-        columns=["col1"],
+        columns=["missing"],
         filters=[{"col": "col1", "op": "IN", "val": ["value1"]}],
     )
 
-    # Simple cache class that tracks is_loaded changes
-    class MockCache:
-        def __init__(self):
-            self.is_loaded = True
-            self.applied_filter_columns = []  # Empty = missing
-            self.df = pd.DataFrame()
-            self.query = ""
-            self.status = "success"
-            self.cache_dttm = "2024-01-01T00:00:00"
-            self.queried_dttm = "2024-01-01T00:00:00"
-            self.stacktrace = None
-            self.error_message = None
-            self.is_cached = True
-            self.sql_rowcount = 0
-            self.cache_value = None
-            self.cache_timeout = 3600
-            self.datasource_uid = "test_datasource"
-            self.applied_template_filters = []
-            self.rejected_filter_columns = []
-            self.annotation_data = {}
-            self.bq_memory_limited = False
-            self.bq_memory_limited_row_count = 0
-            self.set_query_result = MagicMock()
-
-    mock_cache = MockCache()
+    mock_cache = QueryCacheManager(
+        df=pd.DataFrame({"stale": [1]}),
+        query="SELECT stale",
+        annotation_data={"stale": [1]},
+        applied_template_filters=["stale"],
+        rejected_filter_columns=["stale"],
+        status=QueryStatus.SUCCESS,
+        error_message="stale error",
+        is_loaded=True,
+        stacktrace="stale trace",
+        is_cached=True,
+        cache_dttm="2024-01-01T00:00:00",
+        cache_value={"stale": True},
+        sql_rowcount=1,
+        queried_dttm="2024-01-01T00:00:00",
+    )
+    mock_cache.has_applied_filter_columns = False
+    mock_cache.bq_memory_limited = True
+    mock_cache.bq_memory_limited_row_count = 1
 
     with patch(
         "superset.common.query_context_processor.QueryCacheManager"
@@ -1995,12 +1784,192 @@ def test_get_df_payload_invalidates_cache_missing_applied_filter_columns():
             with patch.object(processor, "query_cache_key", return_value="key"):
                 with patch.object(processor, "get_cache_timeout", return_value=3600):
                     # Call get_df_payload - should invalidate cache
-                    processor.get_df_payload(query_obj, force_cached=False)
+                    result = processor.get_df_payload(query_obj, force_cached=False)
 
-    # Verify cache was invalidated
-    assert mock_cache.is_loaded is False, (
-        "Cache should be inv when no applied_filter_columns and query has filters"
+    assert result["status"] == QueryStatus.FAILED
+    assert "missing" in result["error"]
+    assert result["query"] == ""
+    assert result["rowcount"] == 0
+    assert result["annotation_data"] == {}
+    assert result["applied_template_filters"] == []
+    assert result["rejected_filter_columns"] == []
+    assert result["sql_rowcount"] is None
+    assert result["stacktrace"] is None
+    assert result["warning"] is None
+
+
+def test_get_df_payload_force_cached_rejects_legacy_filtered_entry() -> None:
+    """Reject a semantically stale cache entry without querying its datasource."""
+    from superset.common.query_object import QueryObject
+    from superset.exceptions import CacheLoadError
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_datasource = MagicMock()
+    mock_datasource.column_names = ["col1"]
+
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["col1"],
+        filters=[{"col": "col1", "op": "IN", "val": ["value1"]}],
     )
+    legacy_cache = QueryCacheManager(
+        df=pd.DataFrame({"col1": ["value1"]}),
+        query="SELECT col1 FROM table",
+        status=QueryStatus.SUCCESS,
+        is_loaded=True,
+        is_cached=True,
+    )
+    legacy_cache.has_applied_filter_columns = False
+
+    with patch(
+        "superset.common.query_context_processor.QueryCacheManager"
+    ) as mock_cache_manager:
+        mock_cache_manager.get.return_value = legacy_cache
+        with patch.object(query_obj, "validate", return_value=None):
+            with patch.object(processor, "query_cache_key", return_value="key"):
+                with patch.object(processor, "get_cache_timeout", return_value=3600):
+                    with pytest.raises(CacheLoadError):
+                        processor.get_df_payload(query_obj, force_cached=True)
+
+    mock_datasource.get_query_result.assert_not_called()
+    assert legacy_cache.is_loaded is False
+
+
+def test_get_df_payload_force_cached_rejects_forced_source_execution() -> None:
+    """Keep cache-only execution authoritative over a forced source refresh."""
+    from superset.common.query_object import QueryObject
+    from superset.exceptions import CacheLoadError
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = True
+    mock_datasource = MagicMock()
+    mock_datasource.column_names = ["col1"]
+
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["col1"],
+    )
+
+    with patch(
+        "superset.common.query_context_processor.QueryCacheManager"
+    ) as mock_cache_manager:
+        mock_cache_manager.get.return_value = QueryCacheManager()
+        with patch.object(query_obj, "validate", return_value=None):
+            with patch.object(processor, "query_cache_key", return_value="key"):
+                with patch.object(processor, "get_cache_timeout", return_value=3600):
+                    with pytest.raises(CacheLoadError):
+                        processor.get_df_payload(query_obj, force_cached=True)
+
+    mock_datasource.get_query_result.assert_not_called()
+    assert mock_cache_manager.get.call_args.kwargs["force_query"] is True
+    assert mock_cache_manager.get.call_args.kwargs["force_cached"] is True
+
+
+def test_query_cache_manager_rejects_forced_cache_only_execution() -> None:
+    """Reject contradictory cache controls at the cache ownership boundary."""
+    from superset.constants import CacheRegion
+    from superset.exceptions import CacheLoadError
+
+    cache_backend = MagicMock()
+    with patch.dict(
+        "superset.common.utils.query_cache_manager._cache",
+        {CacheRegion.DATA: cache_backend},
+    ):
+        with pytest.raises(CacheLoadError):
+            QueryCacheManager.get(
+                "key",
+                CacheRegion.DATA,
+                force_query=True,
+                force_cached=True,
+            )
+
+    cache_backend.get.assert_not_called()
+
+
+def test_get_df_payload_forced_refresh_executes_when_cache_is_not_required() -> None:
+    """Preserve datasource refreshes when the caller does not require cache."""
+    from datetime import timedelta
+
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import QueryResult
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = True
+    mock_query_context.form_data = {}
+    mock_datasource = MagicMock()
+    mock_datasource.column_names = ["col1"]
+    mock_datasource.get_query_result.return_value = QueryResult(
+        df=pd.DataFrame({"col1": [1]}),
+        query="SELECT col1 FROM table",
+        duration=timedelta(),
+    )
+
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+    query_obj = QueryObject(datasource=mock_datasource, columns=["col1"])
+    cache = QueryCacheManager()
+
+    with patch(
+        "superset.common.query_context_processor.QueryCacheManager"
+    ) as mock_cache_manager:
+        mock_cache_manager.get.return_value = cache
+        with (
+            patch.object(query_obj, "validate", return_value=None),
+            patch.object(processor, "query_cache_key", return_value="key"),
+            patch.object(processor, "get_cache_timeout", return_value=3600),
+            patch.object(
+                processor,
+                "_write_loaded_query_result",
+                return_value=(None, CacheWriteOutcome.NOT_ATTEMPTED),
+            ),
+        ):
+            result = processor.get_df_payload(query_obj, force_cached=False)
+
+    mock_datasource.get_query_result.assert_called_once_with(query_obj)
+    assert result["status"] == QueryStatus.SUCCESS
+
+
+def test_get_df_payload_force_cached_serves_unfiltered_legacy_entry() -> None:
+    """Do not require filter metadata when no filters need reporting."""
+    from superset.common.query_object import QueryObject
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_query_context.form_data = {}
+    mock_datasource = MagicMock()
+    mock_datasource.column_names = ["col1"]
+
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+    query_obj = QueryObject(datasource=mock_datasource, columns=["col1"])
+    legacy_cache = QueryCacheManager(
+        df=pd.DataFrame({"col1": [1]}),
+        query="SELECT col1 FROM table",
+        status=QueryStatus.SUCCESS,
+        is_loaded=True,
+        is_cached=True,
+    )
+    legacy_cache.has_applied_filter_columns = False
+
+    with patch(
+        "superset.common.query_context_processor.QueryCacheManager"
+    ) as mock_cache_manager:
+        mock_cache_manager.get.return_value = legacy_cache
+        with (
+            patch.object(query_obj, "validate", return_value=None),
+            patch.object(processor, "query_cache_key", return_value="key"),
+            patch.object(processor, "get_cache_timeout", return_value=3600),
+        ):
+            result = processor.get_df_payload(query_obj, force_cached=True)
+
+    mock_datasource.get_query_result.assert_not_called()
+    assert legacy_cache.is_loaded is True
+    assert result["status"] == QueryStatus.SUCCESS
 
 
 def test_get_df_payload_bq_memory_limited_warning() -> None:
@@ -2151,3 +2120,22 @@ def test_raise_for_access_evaluates_access_before_validate():
             processor.raise_for_access()
 
     query.validate.assert_not_called()
+
+
+def test_query_datasource_uses_its_explore_access_contract() -> None:
+    from superset.utils.core import DatasourceType
+
+    query = MagicMock()
+    datasource = MagicMock()
+    datasource.type = DatasourceType.QUERY
+    query_context = MagicMock(datasource=datasource, queries=[query])
+    processor = QueryContextProcessor(query_context)
+
+    with patch(
+        "superset.common.query_context_processor.security_manager.raise_for_access"
+    ) as generic_access:
+        processor.raise_for_access()
+
+    datasource.raise_for_explore_access.assert_called_once_with()
+    generic_access.assert_not_called()
+    query.validate.assert_called_once_with()

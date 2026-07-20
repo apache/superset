@@ -40,7 +40,7 @@ from superset.db_engine_specs.base import (
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.sql_lab import Query
-from superset.sql.parse import process_jinja_sql
+from superset.sql.parse import process_jinja_sql, SQLScript
 from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType, QuerySource
 
@@ -615,6 +615,23 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         malicious path setting in the query.
         """
         script = process_jinja_sql(query.sql, database, template_params).script
+        cls._raise_for_disallowed_search_path(script)
+
+        return super().get_default_schema_for_query(database, query, template_params)
+
+    @classmethod
+    def get_default_schema_for_rendered_query(
+        cls,
+        database: Database,
+        query: Query,
+    ) -> str | None:
+        script = SQLScript(query.sql, engine=database.db_engine_spec.engine)
+        cls._raise_for_disallowed_search_path(script)
+
+        return super().get_default_schema_for_rendered_query(database, query)
+
+    @classmethod
+    def _raise_for_disallowed_search_path(cls, script: SQLScript) -> None:
         settings = script.get_settings()
         if "search_path" in settings:
             raise SupersetSecurityException(
@@ -626,8 +643,6 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                     level=ErrorLevel.ERROR,
                 )
             )
-
-        return super().get_default_schema_for_query(database, query, template_params)
 
     @classmethod
     def adjust_engine_params(

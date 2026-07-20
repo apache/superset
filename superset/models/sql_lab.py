@@ -17,12 +17,12 @@
 """A collection of ORM sqlalchemy models for SQL Lab"""
 
 import builtins
+import hashlib
 import inspect
 import logging
 import re
-from collections.abc import Hashable
 from datetime import datetime
-from typing import Any, cast, Optional, TYPE_CHECKING
+from typing import Any, cast, Final, Literal, Optional, TYPE_CHECKING, TypedDict
 
 import sqlalchemy as sqla
 from flask import current_app as app
@@ -53,7 +53,9 @@ from superset_core.queries.models import (
 )
 
 from superset import security_manager
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    QueryObjectValidationError,
     SupersetException,
     SupersetParseError,
     SupersetSecurityException,
@@ -69,6 +71,7 @@ from superset.models.helpers import (
 from superset.sql.parse import (
     CTASMethod,
     process_jinja_sql,
+    SQLScript,
     Table,
 )
 from superset.sqllab.limiting_factor import LimitingFactor
@@ -77,6 +80,7 @@ from superset.utils import json
 from superset.utils.core import (
     GenericDataType,
     get_column_name,
+    get_user_id,
     LongText,
     MediumText,
     QueryStatus,
@@ -89,6 +93,14 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+_QUERY_EXPLORE_SOURCE_KEY: Final = "_explore_source"
+_QUERY_EXPLORE_SOURCE_VERSION: Final = 1
+
+
+class _QueryExploreSource(TypedDict):
+    version: Literal[1]
+    sql: str
 
 
 class SqlTablesMixin:  # pylint: disable=too-few-public-methods
@@ -200,6 +212,9 @@ class Query(
         return get_template_processor(query=self, database=self.database, **kwargs)
 
     def to_dict(self) -> dict[str, Any]:
+        extra: Any = self.extra
+        public_extra = dict(extra) if isinstance(extra, dict) else {}
+        public_extra.pop(_QUERY_EXPLORE_SOURCE_KEY, None)
         return {
             "changed_on": self.changed_on.isoformat(),
             "dbId": self.database_id,
@@ -228,7 +243,7 @@ class Query(
             "user": user_label(self.user),
             "resultsKey": self.results_key,
             "trackingUrl": self.tracking_url,
-            "extra": self.extra,
+            "extra": public_extra,
         }
 
     @property
@@ -305,18 +320,118 @@ class Query(
         """
         Raise an exception if the user cannot access the resource.
 
-        Re-validation of a SQL Lab query uses the same strict scoping as the
-        initial execute path (``force_dataset_match=True``) so that fetching
-        results, exporting CSV, and streaming-exporting all enforce the same
-        per-table dataset-match requirement. ``raise_for_access`` parses
-        ``executed_sql`` (the Jinja-rendered query that actually ran) when
-        set, keeping the table set aligned with execution even though the
-        original ``template_params`` are not persisted on the query record.
+        Re-validation uses the complete rendered source captured before query
+        transformations and the same strict dataset scoping as execution. Older
+        records without that versioned source retain the executed-SQL fallback.
+        This keeps result retrieval and exports compatible while preventing a
+        template from being rendered again during authorization.
 
         :raises SupersetSecurityException: If the user cannot access the resource
         """
 
-        security_manager.raise_for_access(query=self, force_dataset_match=True)
+        self._raise_for_query_owner_access()
+        if frozen_source := self._get_compatible_explore_source():
+            security_manager.raise_for_access(
+                database=self.database,
+                rendered_sql=frozen_source,
+                catalog=self.catalog,
+                schema=self.schema,
+                force_dataset_match=True,
+            )
+        else:
+            security_manager.raise_for_access(query=self, force_dataset_match=True)
+
+    def _raise_for_query_owner_access(self) -> None:
+        user_id = get_user_id()
+        if user_id is not None and (
+            user_id == self.user_id or security_manager.can_access_all_queries()
+        ):
+            return
+
+        raise SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                message=__("You do not have access to this query."),
+                level=ErrorLevel.ERROR,
+            )
+        )
+
+    def set_explore_source(self, sql: str) -> None:
+        """Persist the rendered SQL source that can later back Explore."""
+
+        artifact: _QueryExploreSource = {"version": 1, "sql": sql}
+        self.set_extra_json_key(_QUERY_EXPLORE_SOURCE_KEY, artifact)
+
+    def _get_compatible_explore_source(self) -> Optional[str]:
+        extra: Any = self.extra
+        artifact = (
+            extra.get(_QUERY_EXPLORE_SOURCE_KEY) if isinstance(extra, dict) else None
+        )
+        if (
+            not isinstance(artifact, dict)
+            or artifact.get("version") != _QUERY_EXPLORE_SOURCE_VERSION
+            or not isinstance(artifact.get("sql"), str)
+        ):
+            return None
+        return artifact["sql"].strip("\t\r\n; ") or None
+
+    def _get_explore_source(self) -> str:
+        if self.status != QueryStatus.SUCCESS:
+            raise QueryObjectValidationError(
+                __("Only successful SQL Lab queries can be explored.")
+            )
+        if self.select_as_cta or self.select_as_cta_used:
+            raise QueryObjectValidationError(
+                __("SQL Lab CTAS and CVAS queries cannot be explored as datasets.")
+            )
+
+        if not (sql := self._get_compatible_explore_source()):
+            raise QueryObjectValidationError(
+                __(
+                    "This SQL Lab query does not contain a compatible frozen "
+                    "source. Run the query again before opening it in Explore."
+                )
+            )
+
+        try:
+            script = SQLScript(sql, engine=self.db_engine_spec.engine)
+        except Exception as ex:
+            raise QueryObjectValidationError(
+                __("SQL Lab query source must be fully parseable before Explore.")
+            ) from ex
+        if len(script.statements) != 1:
+            raise QueryObjectValidationError(
+                __("Only single-statement SQL Lab queries can be explored.")
+            )
+        if script.has_unparseable_statement:
+            raise QueryObjectValidationError(
+                __("SQL Lab query source must be fully parseable before Explore.")
+            )
+        if script.has_mutation():
+            raise QueryObjectValidationError(
+                __("SQL Lab query source must be read-only before Explore.")
+            )
+        return sql
+
+    def get_rendered_sql(
+        self,
+        template_processor: Optional[BaseTemplateProcessor] = None,  # pylint: disable=unused-argument
+    ) -> str:
+        """Return the rendered source captured by the original SQL Lab run."""
+
+        return self._get_explore_source()
+
+    def raise_for_explore_access(self) -> None:
+        """Authorize replay of this query as an Explore datasource."""
+
+        self._raise_for_query_owner_access()
+        security_manager.raise_for_access(
+            database=self.database,
+            rendered_sql=self._get_explore_source(),
+            catalog=self.catalog,
+            schema=self.schema,
+            force_dataset_match=True,
+        )
 
     @property
     def db_engine_spec(
@@ -331,6 +446,14 @@ class Query(
     @property
     def is_rls_supported(self) -> bool:
         return False
+
+    @property
+    def rls_exclusion_dataset_id(self) -> None:
+        return None
+
+    @property
+    def requires_strict_rls_application(self) -> bool:
+        return True
 
     @property
     def cache_timeout(self) -> int:
@@ -367,8 +490,31 @@ class Query(
     def default_endpoint(self) -> str:
         return ""
 
-    def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
-        return []
+    def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Any]:
+        from superset.utils.rls import (  # pylint: disable=import-outside-toplevel
+            collect_rls_predicates_for_sql_or_raise,
+        )
+
+        source = self._get_explore_source()
+        default_schema = self.database.get_default_schema(self.catalog)
+        try:
+            predicates = collect_rls_predicates_for_sql_or_raise(
+                source,
+                self.database,
+                self.catalog,
+                self.schema or default_schema or "",
+                exclude_dataset_id=None,
+            )
+        except Exception as ex:
+            raise QueryObjectValidationError(
+                __("Unable to validate row-level security for this SQL Lab query.")
+            ) from ex
+
+        source_digest = hashlib.sha256(source.encode("utf-8")).hexdigest()
+        return [
+            f"query-explore-source:v{_QUERY_EXPLORE_SOURCE_VERSION}:{source_digest}",
+            *predicates,
+        ]
 
     def get_time_grains(self) -> list[TimeGrainDict]:
         """

@@ -61,6 +61,7 @@ import hashlib
 import logging
 import time
 import uuid
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, TYPE_CHECKING
 
@@ -89,6 +90,18 @@ if TYPE_CHECKING:
 
     from superset.models.core import Database
     from superset.result_set import SupersetResultSet
+
+
+@dataclass(frozen=True)
+class _PreparedSQL:
+    """SQL representations and resolution state produced before execution."""
+
+    rendered_sql: str
+    original_script: SQLScript
+    transformed_script: SQLScript
+    catalog: str | None
+    schema: str | None
+
 
 logger = logging.getLogger(__name__)
 
@@ -226,24 +239,24 @@ class SQLExecutor:
 
         try:
             # 1. Prepare SQL (assembly only, no security checks)
-            original_script, transformed_script, catalog, schema = self._prepare_sql(
-                sql, opts
-            )
+            prepared = self._prepare_sql(sql, opts)
 
             # 2. Security checks on transformed script
-            self._check_security(transformed_script, schema)
+            self._check_security(prepared.transformed_script, prepared.schema)
 
             # 3. Get mutation status and format SQL
-            has_mutation = transformed_script.has_mutation()
-            final_sql = transformed_script.format()
+            has_mutation = prepared.transformed_script.has_mutation()
+            final_sql = prepared.transformed_script.format()
 
             # DRY RUN: Return transformed SQL without execution
             if opts.dry_run:
                 total_execution_time_ms = (time.time() - start_time) * 1000
                 # Create a StatementResult for each statement in dry-run mode
-                original_sqls = [stmt.format() for stmt in original_script.statements]
+                original_sqls = [
+                    stmt.format() for stmt in prepared.original_script.statements
+                ]
                 transformed_sqls = [
-                    stmt.format() for stmt in transformed_script.statements
+                    stmt.format() for stmt in prepared.transformed_script.statements
                 ]
                 dry_run_statements = [
                     StatementResult(
@@ -272,7 +285,12 @@ class SQLExecutor:
 
             # 5. Create Query model for audit
             query = self._create_query_record(
-                final_sql, opts, catalog, schema, status=QueryStatus.RUNNING
+                final_sql,
+                opts,
+                prepared.catalog,
+                prepared.schema,
+                status=QueryStatus.RUNNING,
+                explore_source_sql=prepared.rendered_sql,
             )
 
             # 6. Execute with timeout
@@ -281,10 +299,10 @@ class SQLExecutor:
 
             with utils.timeout(seconds=timeout, error_message=timeout_msg):
                 statement_results = self._execute_statements(
-                    original_script,
-                    transformed_script,
-                    catalog,
-                    schema,
+                    prepared.original_script,
+                    prepared.transformed_script,
+                    prepared.catalog,
+                    prepared.schema,
                     query,
                 )
 
@@ -350,23 +368,25 @@ class SQLExecutor:
         opts: QueryOptionsType = options or QueryOptionsType()
 
         # 1. Prepare SQL (assembly only, no security checks)
-        original_script, transformed_script, catalog, schema = self._prepare_sql(
-            sql, opts
-        )
+        prepared = self._prepare_sql(sql, opts)
 
         # 2. Security checks on transformed script
-        self._check_security(transformed_script, schema)
+        self._check_security(prepared.transformed_script, prepared.schema)
 
         # 3. Get mutation status and format SQL
-        has_mutation = transformed_script.has_mutation()
-        final_sql = transformed_script.format()
+        has_mutation = prepared.transformed_script.has_mutation()
+        final_sql = prepared.transformed_script.format()
 
         # DRY RUN: Return transformed SQL as completed async handle
         if opts.dry_run:
             from superset_core.queries.types import StatementResult
 
-            original_sqls = [stmt.format() for stmt in original_script.statements]
-            transformed_sqls = [stmt.format() for stmt in transformed_script.statements]
+            original_sqls = [
+                stmt.format() for stmt in prepared.original_script.statements
+            ]
+            transformed_sqls = [
+                stmt.format() for stmt in prepared.transformed_script.statements
+            ]
             dry_run_statements = [
                 StatementResult(
                     original_sql=orig_sql,
@@ -394,7 +414,12 @@ class SQLExecutor:
 
         # 5. Create Query model for audit
         query = self._create_query_record(
-            final_sql, opts, catalog, schema, status=QueryStatus.PENDING
+            final_sql,
+            opts,
+            prepared.catalog,
+            prepared.schema,
+            status=QueryStatus.PENDING,
+            explore_source_sql=prepared.rendered_sql,
         )
 
         # 6. Submit to Celery
@@ -407,7 +432,7 @@ class SQLExecutor:
         self,
         sql: str,
         opts: QueryOptions,
-    ) -> tuple[SQLScript, SQLScript, str | None, str | None]:
+    ) -> _PreparedSQL:
         """
         Prepare SQL for execution (no side effects, no security checks).
 
@@ -423,7 +448,7 @@ class SQLExecutor:
 
         :param sql: Original SQL query
         :param opts: Query options
-        :returns: Tuple of (original_script, transformed_script, catalog, schema)
+        :returns: Named SQL representations and their resolved namespace
         """
         # 1. Render Jinja2 templates
         rendered_sql = self._render_sql_template(sql, opts.template_params)
@@ -459,7 +484,13 @@ class SQLExecutor:
         if not transformed_script.has_mutation():
             self._apply_limit_to_script(transformed_script, opts)
 
-        return original_script, transformed_script, catalog, schema
+        return _PreparedSQL(
+            rendered_sql=rendered_sql,
+            original_script=original_script,
+            transformed_script=transformed_script,
+            catalog=catalog,
+            schema=schema,
+        )
 
     def _check_security(self, script: SQLScript, schema: str | None = None) -> None:
         """
@@ -780,6 +811,8 @@ class SQLExecutor:
         catalog: str | None,
         schema: str | None,
         status: QueryStatus,
+        *,
+        explore_source_sql: str,
     ) -> Any:
         """
         Create Query model for audit/tracking.
@@ -789,6 +822,7 @@ class SQLExecutor:
         :param catalog: Catalog name
         :param schema: Schema name
         :param status: Initial QueryStatus (RUNNING for sync, PENDING for async)
+        :param explore_source_sql: Rendered SQL before RLS, limits, and mutation
         :returns: Query model instance
         """
         from superset.models.sql_lab import Query as QueryModel
@@ -810,6 +844,7 @@ class SQLExecutor:
             status=status.value,
             limit=opts.limit,
         )
+        query.set_explore_source(explore_source_sql)
         db.session.add(query)
         db.session.commit()  # pylint: disable=consider-using-transaction
 

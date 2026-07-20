@@ -21,7 +21,6 @@ import builtins
 import logging
 import re
 from collections import defaultdict
-from collections.abc import Hashable
 from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any, Callable, cast, Optional, Union
@@ -105,6 +104,7 @@ from superset.models.helpers import (
     QueryResult,
     SoftDeleteMixin,
     SQLA_QUERY_KEYS,
+    SqlaQuery,
     validate_adhoc_subquery,
 )
 from superset.models.slice import Slice
@@ -709,7 +709,7 @@ class BaseDatasource(
     def get_extra_cache_keys(
         self,
         query_obj: QueryObjectDict,  # pylint: disable=unused-argument
-    ) -> list[Hashable]:
+    ) -> list[Any]:
         """If a datasource needs to provide additional keys for calculation of
         cache keys, those can be provided via this method
 
@@ -1909,6 +1909,8 @@ class SqlaTable(
         groupby_exprs: dict[str, Any],
         columns_by_name: dict[str, TableColumn],
     ) -> ColumnElement:
+        if df.empty:
+            return sa.false()
         groups = []
         for _unused, row in df.iterrows():
             group = []
@@ -2167,7 +2169,7 @@ class SqlaTable(
                 return True
         return False
 
-    def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
+    def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Any]:
         """
         The cache key of a SqlaTable needs to consider any keys added by the parent
         class and any keys added via `ExtraCache`.
@@ -2186,7 +2188,10 @@ class SqlaTable(
             filtered_query_obj = {
                 k: v for k, v in query_obj.items() if k in SQLA_QUERY_KEYS
             }
-            sqla_query = self.get_sqla_query(**cast(Any, filtered_query_obj))
+            sqla_query: SqlaQuery = self.get_sqla_query(
+                **cast(Any, filtered_query_obj),
+                defer_source_queries=True,
+            )
             extra_cache_keys += sqla_query.extra_cache_keys
 
         # For virtual datasets, include RLS predicates in the cache key
@@ -2202,7 +2207,19 @@ class SqlaTable(
             # Add each predicate as a separate cache key component
             extra_cache_keys.extend(rls_predicates)
 
-        return list(set(extra_cache_keys))
+        deduplicated: list[Any] = []
+        seen: set[str] = set()
+        for cache_key in extra_cache_keys:
+            identity = json.dumps(
+                cache_key,
+                sort_keys=True,
+                default=json.json_int_dttm_ser,
+                ignore_nan=True,
+            )
+            if identity not in seen:
+                seen.add(identity)
+                deduplicated.append(cache_key)
+        return deduplicated
 
     @property
     def quote_identifier(self) -> Callable[[str], str]:

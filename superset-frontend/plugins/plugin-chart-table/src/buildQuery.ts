@@ -321,7 +321,8 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
       [formData.slice_id]: queryObject.filters,
     });
 
-    const extraQueries: QueryObject[] = [];
+    let contributionTotalsQuery: QueryObject | undefined;
+    let displayTotalsQuery: QueryObject | undefined;
 
     const calculationMode = formData.percent_metric_calculation || 'row_limit';
 
@@ -330,7 +331,7 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
       percentMetrics &&
       percentMetrics.length > 0
     ) {
-      extraQueries.push({
+      contributionTotalsQuery = {
         ...queryObject,
         columns: [],
         metrics: percentMetrics,
@@ -339,7 +340,7 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
         row_offset: 0,
         orderby: [],
         is_timeseries: false,
-      });
+      };
     }
 
     if (
@@ -347,7 +348,7 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
       formData.show_totals &&
       queryMode === QueryMode.Aggregate
     ) {
-      extraQueries.push({
+      displayTotalsQuery = {
         ...queryObject,
         columns: [],
         row_limit: 0,
@@ -361,7 +362,7 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
           : [],
         order_desc: undefined,
         orderby: undefined,
-      });
+      };
     }
 
     const interactiveGroupBy = formData.extra_form_data?.interactive_groupby;
@@ -371,25 +372,34 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
       ];
     }
 
-    // Now since row limit control is always visible even
-    // in case of server pagination
-    // we must use row limit from form data
+    const queryPlan: QueryObject[] = [queryObject];
+
+    // Now since row limit control is always visible even in case of server
+    // pagination, the row-count query must use the limit from form data.
     if (formData.server_pagination && !isDownloadQuery) {
-      return [
-        { ...queryObject },
-        {
-          ...queryObject,
-          time_offsets: [],
-          row_limit: Number(formData?.row_limit ?? 0),
-          row_offset: 0,
-          post_processing: [],
-          is_rowcount: true,
-        },
-        ...extraQueries,
-      ];
+      queryPlan.push({
+        ...queryObject,
+        time_offsets: [],
+        row_limit: Number(formData?.row_limit ?? 0),
+        row_offset: 0,
+        post_processing: [],
+        is_rowcount: true,
+      });
     }
 
-    return [queryObject, ...extraQueries];
+    if (displayTotalsQuery) {
+      queryPlan.push(displayTotalsQuery);
+    }
+
+    if (contributionTotalsQuery) {
+      queryPlan[0] = {
+        ...queryObject,
+        contribution_totals_query_index: queryPlan.length,
+      };
+      queryPlan.push(contributionTotalsQuery);
+    }
+
+    return queryPlan;
   });
 };
 

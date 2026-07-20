@@ -158,29 +158,48 @@ def collect_rls_predicates_for_sql(
         (kept consistent with what's actually applied at query time).
     :return: List of RLS predicate strings that would be applied
     """
-    from superset.sql.parse import SQLScript
 
     try:
-        parsed_script = SQLScript(sql, engine=database.db_engine_spec.engine)
-        tables = {
-            table.qualify(catalog=catalog, schema=schema)
-            for statement in parsed_script.statements
-            for table in statement.tables
-        }
-        default_catalog = database.get_default_catalog()
-        return sorted(
-            {
-                predicate
-                for table in tables
-                for predicate in get_predicates_for_table(
-                    table,
-                    database,
-                    default_catalog,
-                    exclude_dataset_id=exclude_dataset_id,
-                )
-            }
+        return collect_rls_predicates_for_sql_or_raise(
+            sql,
+            database,
+            catalog,
+            schema,
+            exclude_dataset_id,
         )
     except Exception:
         # If we can't parse the SQL, return empty list
         # This ensures RLS application failure doesn't break caching
         return []
+
+
+def collect_rls_predicates_for_sql_or_raise(
+    sql: str,
+    database: Database,
+    catalog: str | None,
+    schema: str,
+    exclude_dataset_id: int | None = None,
+) -> list[str]:
+    """Collect inner-SQL RLS predicates without suppressing validation failures."""
+
+    from superset.sql.parse import SQLScript
+
+    parsed_script = SQLScript(sql, engine=database.db_engine_spec.engine)
+    tables = {
+        table.qualify(catalog=catalog, schema=schema)
+        for statement in parsed_script.statements
+        for table in statement.tables
+    }
+    default_catalog = database.get_default_catalog()
+    return sorted(
+        {
+            predicate
+            for table in tables
+            for predicate in get_predicates_for_table(
+                table,
+                database,
+                default_catalog,
+                exclude_dataset_id=exclude_dataset_id,
+            )
+        }
+    )

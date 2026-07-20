@@ -16,14 +16,30 @@
 # under the License.
 from __future__ import annotations
 
+from contextlib import nullcontext
+from inspect import unwrap
 from typing import Any, TYPE_CHECKING
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
-from flask import Flask, g
+from flask import Flask, g, Response
 
+from superset.charts.data.api import (
+    _supports_async_execution,
+    ChartDataRestApi,
+)
 from superset.charts.data.dashboard_filter_context import (
     apply_dashboard_filter_context,
 )
+from superset.commands.chart.data.get_data_command import ChartDataExecutionOptions
+from superset.commands.chart.exceptions import ChartDataQueryFailedError
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.chart_data_timing import (
+    CacheWriteOutcome,
+    ChartDataExecutionResult,
+    QueryDataResult,
+    QueryTiming,
+)
+from superset.exceptions import QueryObjectValidationError
 from superset.jinja_context import ExtraCache
 from superset.utils import json
 
@@ -236,3 +252,162 @@ def test_extract_export_filename_preserves_normal_name() -> None:
 def test_extract_export_filename_all_special_falls_back_to_none() -> None:
     """A name with no usable characters becomes None (generated downstream)."""
     assert _extract_filename("***") is None
+
+
+def _chart_execution_result(
+    cache_values: tuple[bool | None, ...] = (False,),
+) -> ChartDataExecutionResult:
+    query_context = MagicMock()
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.result_format = ChartDataResultFormat.JSON
+    timing = QueryTiming(
+        cache_key_ns=1_000_000,
+        cache_read_ns=2_000_000,
+        source_ns=3_000_000,
+        cache_write_ns=None,
+        cache_write_outcome=CacheWriteOutcome.NOT_ATTEMPTED,
+        materialization_ns=4_000_000,
+        total_ns=10_000_000,
+        cache_hit=False,
+        sources=(),
+    )
+    return ChartDataExecutionResult(
+        query_context=query_context,
+        queries=tuple(
+            QueryDataResult({"data": [{"value": 1}], "is_cached": is_cached}, timing)
+            for is_cached in cache_values
+        ),
+    )
+
+
+def _send_chart_json_response(
+    execution: ChartDataExecutionResult, include_timing: bool
+) -> dict[str, Any]:
+    app = Flask(__name__)
+    app.config["CHART_DATA_INCLUDE_TIMING"] = include_timing
+    api = ChartDataRestApi.__new__(ChartDataRestApi)
+    event_logger = MagicMock()
+    event_logger.log_context = MagicMock(return_value=nullcontext())
+    security_manager = MagicMock()
+    security_manager.is_guest_user.return_value = False
+
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch("superset.charts.data.api.event_logger", event_logger),
+        patch("superset.charts.data.api.security_manager", security_manager),
+    ):
+        response = api._send_chart_response(execution)
+
+    return json.loads(response.get_data(as_text=True))
+
+
+def test_chart_response_keeps_timing_out_of_default_contract() -> None:
+    execution = _chart_execution_result()
+
+    payload = _send_chart_json_response(execution, include_timing=False)
+
+    assert payload == {"result": [{"data": [{"value": 1}], "is_cached": False}]}
+    assert "timing" not in execution.queries[0].payload
+
+
+def test_chart_response_projects_timing_without_mutating_execution() -> None:
+    execution = _chart_execution_result()
+
+    payload = _send_chart_json_response(execution, include_timing=True)
+
+    assert payload["result"][0]["timing"]["version"] == 1
+    assert payload["result"][0]["timing"]["query"]["total_ms"] == 10.0
+    assert "timing" not in execution.queries[0].payload
+
+
+def test_log_is_cached_uses_scalar_for_single_query() -> None:
+    add_extra_log_payload = MagicMock()
+
+    ChartDataRestApi._log_is_cached(
+        MagicMock(), _chart_execution_result((True,)), add_extra_log_payload
+    )
+
+    add_extra_log_payload.assert_called_once_with(is_cached=True)
+
+
+def test_log_is_cached_uses_list_for_multiple_queries() -> None:
+    add_extra_log_payload = MagicMock()
+
+    ChartDataRestApi._log_is_cached(
+        MagicMock(), _chart_execution_result((False, True)), add_extra_log_payload
+    )
+
+    add_extra_log_payload.assert_called_once_with(is_cached=[False, True])
+
+
+def test_async_execution_requires_nonempty_data_backed_queries() -> None:
+    query_context = MagicMock()
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.queries = []
+
+    assert _supports_async_execution(query_context) is False
+
+    query_context.queries = [MagicMock(result_type=None)]
+    assert _supports_async_execution(query_context) is True
+
+    query_context.queries.append(MagicMock(result_type=ChartDataResultType.QUERY))
+    assert _supports_async_execution(query_context) is False
+
+
+def test_async_cache_lookup_uses_typed_execution_options() -> None:
+    app = Flask(__name__)
+    api = ChartDataRestApi.__new__(ChartDataRestApi)
+    command = MagicMock()
+    execution = _chart_execution_result()
+    command.execute.return_value = execution
+    expected_response = Response("{}", status=200, mimetype="application/json")
+
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch.object(
+            api, "_send_chart_response", return_value=expected_response
+        ) as send_response,
+    ):
+        response = api._run_async({}, command)
+
+    assert response is expected_response
+    command.execute.assert_called_once_with(
+        ChartDataExecutionOptions(force_cached=True)
+    )
+    send_response.assert_called_once_with(execution)
+
+
+def test_chart_data_query_failure_returns_controlled_400(app: SupersetApp) -> None:
+    api = ChartDataRestApi.__new__(ChartDataRestApi)
+    command = MagicMock()
+    command.execute.side_effect = ChartDataQueryFailedError(
+        "Annotation layer with ID 8 was not found."
+    )
+
+    with app.test_request_context("/api/v1/chart/data"):
+        response = ChartDataRestApi._get_data_response.__wrapped__(api, command)
+
+    assert response.status_code == 400
+    assert json.loads(response.get_data(as_text=True)) == {
+        "message": "Annotation layer with ID 8 was not found."
+    }
+
+
+def test_cached_chart_validation_failure_returns_controlled_400(
+    app: SupersetApp,
+) -> None:
+    api = ChartDataRestApi.__new__(ChartDataRestApi)
+    api._load_query_context_form_from_cache = MagicMock(return_value={})
+    api._create_query_context_from_form = MagicMock(return_value=MagicMock())
+    api.response_400 = MagicMock(return_value=Response(status=400))
+    command = MagicMock()
+    command.validate.side_effect = QueryObjectValidationError("Invalid query context")
+
+    with (
+        app.test_request_context("/api/v1/chart/data/cache-key"),
+        patch("superset.charts.data.api.ChartDataCommand", return_value=command),
+    ):
+        response = unwrap(ChartDataRestApi.data_from_cache)(api, "cache-key")
+
+    assert response.status_code == 400
+    api.response_400.assert_called_once_with(message="Invalid query context")

@@ -155,6 +155,9 @@ class ExecuteSqlCommand(BaseCommand):
             self._query_dao.update(
                 query, {"limit": self._execution_context.query.limit}
             )
+            query.set_explore_source(rendered_query)
+            # The async worker can read the query immediately after dispatch.
+            db.session.commit()  # pylint: disable=consider-using-transaction
             return self._sql_json_executor.execute(
                 self._execution_context, rendered_query, self._log_params
             )

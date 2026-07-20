@@ -30,6 +30,7 @@ from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
     QueryNotFoundValidationError,
 )
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.utils.core import DatasourceType, override_user
 
@@ -42,10 +43,6 @@ can_access_datasource = (
     "superset.security.SupersetSecurityManager.can_access_datasource"
 )
 can_access = "superset.security.SupersetSecurityManager.can_access"
-raise_for_access = "superset.security.SupersetSecurityManager.raise_for_access"
-query_datasources_by_name = (
-    "superset.connectors.sqla.models.SqlaTable.query_datasources_by_name"
-)
 
 
 def test_unsaved_chart_no_dataset_id() -> None:
@@ -326,11 +323,9 @@ def test_query_has_access(mocker: MockerFixture) -> None:
     from superset.explore.utils import check_datasource_access
     from superset.models.sql_lab import Query
 
-    mocker.patch(query_find_by_id, return_value=Query())
-    mocker.patch(raise_for_access, return_value=True)
-    mocker.patch(is_admin, return_value=False)
-    mocker.patch(is_editor, return_value=False)
-    mocker.patch(can_access, return_value=True)
+    query = Query()
+    access = mocker.patch.object(query, "raise_for_explore_access")
+    mocker.patch(query_find_by_id, return_value=query)
     assert (
         check_datasource_access(  # noqa: E712
             datasource_id=1,
@@ -338,24 +333,26 @@ def test_query_has_access(mocker: MockerFixture) -> None:
         )
         is True
     )
+    access.assert_called_once_with()
 
 
 def test_query_no_access(mocker: MockerFixture, client) -> None:
-    from superset.connectors.sqla.models import SqlaTable
     from superset.explore.utils import check_datasource_access
     from superset.models.sql_lab import Query
 
-    database = mocker.MagicMock()
-    database.get_default_catalog.return_value = None
-    database.get_default_schema_for_query.return_value = "public"
-    mocker.patch(
-        query_find_by_id,
-        return_value=Query(database=database, sql="select * from foo"),
+    query = Query()
+    mocker.patch.object(
+        query,
+        "raise_for_explore_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                message="denied",
+                error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        ),
     )
-    mocker.patch(query_datasources_by_name, return_value=[SqlaTable()])
-    mocker.patch(is_admin, return_value=False)
-    mocker.patch(is_editor, return_value=False)
-    mocker.patch(can_access, return_value=False)
+    mocker.patch(query_find_by_id, return_value=query)
 
     with raises(SupersetSecurityException):
         check_datasource_access(

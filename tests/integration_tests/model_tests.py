@@ -23,7 +23,7 @@ from unittest import mock
 
 from superset import security_manager
 from superset.connectors.sqla.models import SqlaTable  # noqa: F401
-from superset.exceptions import SupersetException
+from superset.exceptions import QueryObjectValidationError, SupersetException
 from superset.utils.core import override_user
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
@@ -525,6 +525,72 @@ class TestSqlaTableModel(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_query_with_expr_groupby(self):
         self.query_with_expr_helper(is_timeseries=False)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_get_query_str_returns_executable_series_limit_query(self):
+        tbl = self.get_table(name="birth_names")
+        spec = tbl.database.db_engine_spec
+        old_allows_joins = spec.allows_joins
+        old_allows_subqueries = spec.allows_subqueries
+        spec.allows_joins = False
+        spec.allows_subqueries = False
+        query_obj = {
+            "groupby": ["state"],
+            "metrics": ["sum__num"],
+            "filter": [],
+            "is_timeseries": True,
+            "columns": [],
+            "granularity": "ds",
+            "from_dttm": None,
+            "to_dttm": None,
+            "extras": {"time_grain_sqla": "P1Y"},
+            "series_limit": 5,
+        }
+
+        try:
+            with mock.patch.object(tbl, "query", wraps=tbl.query) as source_query:
+                sql = tbl.get_query_str(query_obj)
+        finally:
+            spec.allows_joins = old_allows_joins
+            spec.allows_subqueries = old_allows_subqueries
+
+        source_query.assert_called_once()
+        statements = sql.removesuffix(";").split(";\n\n")
+        assert len(statements) == 2
+        assert all("SELECT" in statement.upper() for statement in statements)
+        assert "Main query is compiled after the series-limit prequery" not in sql
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_failed_series_limit_prequery_stops_main_query(self):
+        tbl = self.get_table(name="birth_names")
+        spec = tbl.database.db_engine_spec
+        old_allows_joins = spec.allows_joins
+        old_allows_subqueries = spec.allows_subqueries
+        spec.allows_joins = False
+        spec.allows_subqueries = False
+        failed_result = mock.MagicMock(
+            status=QueryStatus.FAILED,
+            error_message="series prequery failed",
+        )
+
+        try:
+            with mock.patch.object(tbl, "query", return_value=failed_result):
+                with pytest.raises(
+                    QueryObjectValidationError, match="series prequery failed"
+                ):
+                    tbl.get_sqla_query(
+                        groupby=["state"],
+                        metrics=["sum__num"],
+                        filter=[],
+                        is_timeseries=True,
+                        columns=[],
+                        granularity="ds",
+                        extras={"time_grain_sqla": "P1Y"},
+                        series_limit=5,
+                    )
+        finally:
+            spec.allows_joins = old_allows_joins
+            spec.allows_subqueries = old_allows_subqueries
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_mutator(self):

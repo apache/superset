@@ -16,23 +16,52 @@
 # under the License.
 from __future__ import annotations
 
+import copy
 import logging
 import re
-from typing import Any, cast, ClassVar, Sequence, TYPE_CHECKING
+import time
+from collections.abc import Mapping
+from contextvars import ContextVar
+from dataclasses import dataclass
+from decimal import Decimal
+from typing import Any, cast, ClassVar, TYPE_CHECKING
 
 import pandas as pd
 from flask import current_app
 from flask_babel import gettext as _
 
-from superset.common.chart_data import ChartDataResultFormat
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.chart_data_timing import (
+    active_source_collector,
+    CacheWriteOutcome,
+    QueryAcquisitionResult,
+    QueryAcquisitionTiming,
+    QueryContextExecutionResult,
+    QueryDataResult,
+    source_phase,
+    source_timing,
+    SourceKind,
+    SourceProvider,
+    SourceTimingCollector,
+)
 from superset.common.db_query_status import QueryStatus
-from superset.common.query_actions import get_query_results
+from superset.common.query_actions import (
+    acquire_query_data,
+    AcquiredQuery,
+    cache_acquired_query,
+    get_effective_result_type,
+    get_query_results_cache_only,
+    get_query_results_with_timing,
+    is_data_result_type,
+    materialize_acquired_query,
+)
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.constants import CACHE_DISABLED_TIMEOUT, CacheRegion
 from superset.daos.annotation_layer import AnnotationLayerDAO
 from superset.daos.chart import ChartDAO
 from superset.exceptions import (
+    CacheLoadError,
     QueryObjectValidationError,
     SupersetException,
 )
@@ -41,7 +70,10 @@ from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
 from superset.superset_typing import AdhocColumn, AdhocMetric
 from superset.utils import csv, excel
-from superset.utils.cache import generate_cache_key, set_and_log_cache
+from superset.utils.cache import (
+    generate_cache_key,
+    set_and_log_cache_with_outcome,
+)
 from superset.utils.core import (
     DatasourceType,
     DTTM_ALIAS,
@@ -59,8 +91,62 @@ from superset.viz import viz_types
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
+    from superset.models.sql_lab import Query as SqlLabQuery
 
 logger = logging.getLogger(__name__)
+
+_annotation_chart_stack: ContextVar[tuple[int, ...]] = ContextVar(
+    "chart_data_annotation_stack", default=()
+)
+
+_REUSABLE_CONTRIBUTION_RESULT_TYPES = frozenset(
+    {
+        ChartDataResultType.FULL,
+        ChartDataResultType.POST_PROCESSED,
+        ChartDataResultType.RESULTS,
+    }
+)
+
+
+@dataclass(frozen=True)
+class _ContributionTotals:
+    """Computed totals coupled to their producer cache identity."""
+
+    values: dict[str, Any]
+    cache_key: str
+
+
+@dataclass(frozen=True)
+class _ContributionDependencies:
+    """Acquired totals and outputs shared with the public query plan."""
+
+    consumer_to_producer: dict[int, int]
+    reusable_outputs: dict[int, AcquiredQuery]
+    totals_by_producer: dict[int, _ContributionTotals]
+
+
+def _enforce_query_cache_contract(
+    query_obj: QueryObject,
+    cache_key: str | None,
+    cache: QueryCacheManager,
+    force_cached: bool | None,
+) -> None:
+    """Validate query-specific cache metadata before allowing source execution."""
+
+    if (
+        cache_key
+        and cache.is_loaded
+        and not cache.has_applied_filter_columns
+        and query_obj.filter
+    ):
+        cache.discard_loaded_value()
+
+    if force_cached and not cache.is_loaded:
+        logger.warning(
+            "force_cached (QueryContext): value is unusable for key %s",
+            cache_key,
+        )
+        raise CacheLoadError("Error loading data from cache")
 
 
 class QueryContextProcessor:
@@ -82,66 +168,93 @@ class QueryContextProcessor:
     def get_df_payload(
         self, query_obj: QueryObject, force_cached: bool | None = False
     ) -> dict[str, Any]:
-        """Handles caching around the df payload retrieval"""
+        """Return the historical dataframe payload without timing metadata."""
+        return self.get_df_payload_result(query_obj, force_cached).payload
+
+    def get_df_payload_result(
+        self,
+        query_obj: QueryObject,
+        force_cached: bool | None = False,
+        source_kind: SourceKind = SourceKind.PRIMARY,
+        cache_key_extra: Mapping[str, Any] | None = None,
+    ) -> QueryAcquisitionResult:
+        """Acquire a dataframe and return timing as a typed sidecar."""
+
+        acquisition_start_ns = time.perf_counter_ns()
+        cache_key_start_ns = time.perf_counter_ns()
         if query_obj:
             # Always validate the query object before generating cache key
             # This ensures sanitize_clause() is called and extras are normalized
             query_obj.validate()
-
-        cache_key = self.query_cache_key(query_obj)
+        cache_key = self.query_cache_key(query_obj, **(cache_key_extra or {}))
         timeout = self.get_cache_timeout()
         force_query = self._query_context.force or timeout == CACHE_DISABLED_TIMEOUT
+        cache_key_ns = max(0, time.perf_counter_ns() - cache_key_start_ns)
+
+        cache_read_start_ns = time.perf_counter_ns()
         cache = QueryCacheManager.get(
             key=cache_key,
             region=CacheRegion.DATA,
             force_query=force_query,
             force_cached=force_cached,
         )
+        cache_read_ns = max(0, time.perf_counter_ns() - cache_read_start_ns)
 
-        # If cache is loaded but missing applied_filter_columns and query has filters,
-        # treat as cache miss to ensure fresh query with proper applied_filter_columns
-        if (
-            query_obj
-            and cache_key
-            and cache.is_loaded
-            and not cache.applied_filter_columns
-            and query_obj.filter
-            and len(query_obj.filter) > 0
-        ):
-            cache.is_loaded = False
+        _enforce_query_cache_contract(query_obj, cache_key, cache, force_cached)
+
+        source_ns = 0
+        cache_write_ns: int | None = None
+        cache_write_outcome = CacheWriteOutcome.NOT_ATTEMPTED
+        sources = cache.source_trace if cache.is_loaded else None
+        cache_hit: bool | None = True if cache.is_loaded else None
 
         if query_obj and cache_key and not cache.is_loaded:
+            source_start_ns = time.perf_counter_ns()
+            parent_collector = active_source_collector()
+            collector = SourceTimingCollector()
             try:
-                if invalid_columns := [
-                    col
-                    for col in get_column_names_from_columns(query_obj.columns)
-                    + get_column_names_from_metrics(query_obj.metrics or [])
-                    if (
-                        col not in self._qc_datasource.column_names
-                        and col != DTTM_ALIAS
-                    )
-                ]:
-                    raise QueryObjectValidationError(
-                        _(
-                            "Columns missing in dataset: %(invalid_columns)s",
-                            invalid_columns=invalid_columns,
+                with (
+                    collector.activated(),
+                    collector.source(source_kind, self._source_provider()),
+                ):
+                    if invalid_columns := [
+                        col
+                        for col in get_column_names_from_columns(query_obj.columns)
+                        + get_column_names_from_metrics(query_obj.metrics or [])
+                        if (
+                            col not in self._qc_datasource.column_names
+                            and col != DTTM_ALIAS
                         )
-                    )
+                    ]:
+                        raise QueryObjectValidationError(
+                            _(
+                                "Columns missing in dataset: %(invalid_columns)s",
+                                invalid_columns=invalid_columns,
+                            )
+                        )
 
-                query_result = self.get_query_result(query_obj)
-                annotation_data = self.get_annotation_data(query_obj)
-                cache.set_query_result(
-                    key=cache_key,
-                    query_result=query_result,
-                    annotation_data=annotation_data,
-                    force_query=force_query,
-                    timeout=self.get_cache_timeout(),
-                    datasource_uid=self._qc_datasource.uid,
-                    region=CacheRegion.DATA,
-                )
+                    query_result = self.get_query_result(query_obj)
+                    if query_obj.annotation_layers:
+                        with source_timing(SourceKind.ANNOTATION, SourceProvider.OTHER):
+                            annotation_data = self.get_annotation_data(query_obj)
+                    else:
+                        annotation_data = {}
             except QueryObjectValidationError as ex:
                 cache.error_message = str(ex)
                 cache.status = QueryStatus.FAILED
+            finally:
+                source_ns = max(0, time.perf_counter_ns() - source_start_ns)
+
+            sources = collector.snapshot()
+            if parent_collector is not None:
+                parent_collector.attach(sources)
+            cache_hit = False
+            if cache.status != QueryStatus.FAILED:
+                query_result.source_trace = sources
+                cache.load_query_result(query_result, annotation_data, force_query)
+                cache_write_ns, cache_write_outcome = self._write_loaded_query_result(
+                    cache, cache_key
+                )
 
         # the N-dimensional DataFrame has converted into flat DataFrame
         # by `flatten operator`, "comma" in the column is escaped by `escape_separator`
@@ -202,7 +315,7 @@ class QueryContextProcessor:
                 row_count=f"{row_count:,}",
             )
 
-        return {
+        payload = {
             "cache_key": cache_key,
             "cached_dttm": cache.cache_dttm,
             "queried_dttm": cache.queried_dttm,
@@ -224,6 +337,44 @@ class QueryContextProcessor:
             "label_map": label_map,
             "warning": warning,
         }
+        return QueryAcquisitionResult(
+            payload=payload,
+            timing=QueryAcquisitionTiming(
+                cache_key_ns=cache_key_ns,
+                cache_read_ns=cache_read_ns,
+                source_ns=source_ns,
+                cache_write_ns=cache_write_ns,
+                cache_write_outcome=cache_write_outcome,
+                cache_hit=cache_hit,
+                sources=sources,
+                elapsed_ns=max(0, time.perf_counter_ns() - acquisition_start_ns),
+            ),
+        )
+
+    def _write_loaded_query_result(
+        self,
+        cache: QueryCacheManager,
+        cache_key: str,
+    ) -> tuple[int | None, CacheWriteOutcome]:
+        """Write eligible loaded data and measure only the backend write call."""
+
+        if cache.status == QueryStatus.FAILED or not cache.is_loaded:
+            return None, CacheWriteOutcome.NOT_ATTEMPTED
+        cache_write_start_ns = time.perf_counter_ns()
+        outcome = cache.write_query_result_with_outcome(
+            key=cache_key,
+            timeout=self.get_cache_timeout(),
+            datasource_uid=self._qc_datasource.uid,
+            region=CacheRegion.DATA,
+        )
+        return max(0, time.perf_counter_ns() - cache_write_start_ns), outcome
+
+    def _source_provider(self) -> SourceProvider:
+        if self._qc_datasource.type == DatasourceType.SEMANTIC_VIEW:
+            return SourceProvider.SEMANTIC
+        if self._qc_datasource.type in {DatasourceType.TABLE, DatasourceType.QUERY}:
+            return SourceProvider.SQL
+        return SourceProvider.OTHER
 
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:
         """
@@ -284,105 +435,33 @@ class QueryContextProcessor:
 
         return df.to_dict(orient="records")
 
-    def _prepare_contribution_totals(self) -> tuple[list[int], int | None]:
-        """
-        Identify contribution queries and normalize the totals query so cache keys
-        align with cached results.
-        """
-        queries_needing_totals: list[int] = []
-        totals_idx: int | None = None
-
-        for i, query in enumerate(self._query_context.queries):
-            needs_totals = any(
-                pp.get("operation") == "contribution"
-                for pp in getattr(query, "post_processing", []) or []
-            )
-
-            if needs_totals:
-                queries_needing_totals.append(i)
-
-            is_totals_query = (
-                not query.columns and query.metrics and not query.post_processing
-            )
-            if is_totals_query and totals_idx is None:
-                totals_idx = i
-
-        if queries_needing_totals and totals_idx is not None:
-            totals_query = self._query_context.queries[totals_idx]
-            totals_query.row_limit = None
-
-        return queries_needing_totals, totals_idx
-
-    def ensure_totals_available(
-        self,
-        queries_needing_totals: Sequence[int] | None = None,
-        totals_idx: int | None = None,
-    ) -> None:
-        if queries_needing_totals is None or totals_idx is None:
-            queries_needing_totals, totals_idx = self._prepare_contribution_totals()
-
-        if not queries_needing_totals or totals_idx is None:
-            return
-
-        totals_query = self._query_context.queries[totals_idx]
-
-        result = self._query_context.get_query_result(totals_query)
-        df = result.df
-
-        totals = {
-            col: df[col].sum() for col in df.columns if df[col].dtype.kind in "biufc"
-        }
-
-        for idx in queries_needing_totals:
-            query = self._query_context.queries[idx]
-            if hasattr(query, "post_processing") and query.post_processing:
-                for pp in query.post_processing:
-                    if pp.get("operation") == "contribution":
-                        pp["options"]["contribution_totals"] = totals
-
     def get_payload(
         self,
         cache_query_context: bool | None = False,
         force_cached: bool = False,
     ) -> dict[str, Any]:
-        """Returns the query results with both metadata and data"""
+        """Return the historical payload without timing metadata."""
+        result = self.get_payload_result(cache_query_context, force_cached)
+        return_value: dict[str, Any] = {
+            "queries": [query.payload for query in result.queries]
+        }
+        if result.cache_key is not None:
+            return_value["cache_key"] = result.cache_key
+        return return_value
 
-        queries_needing_totals, totals_idx = self._prepare_contribution_totals()
-
-        # Skip ensure_totals_available when force_cached=True
-        # This prevents recalculating contribution_totals from cached results
-        if not force_cached:
-            self.ensure_totals_available(queries_needing_totals, totals_idx)
-
-            # Update cache_values to reflect modifications made by
-            # ensure_totals_available()
-            # This ensures cache keys are generated from the actual query state
-            # We merge the original query dict with the updated query dict to preserve
-            # any fields that might not be in to_dict() but were in the original request
-            self._query_context.cache_values["queries"] = [
-                {**cached_query, **query.to_dict()}
-                for cached_query, query in zip(
-                    self._query_context.cache_values["queries"],
-                    self._query_context.queries,
-                    strict=True,
-                )
-            ]
-
-        query_results = [
-            get_query_results(
-                query_obj.result_type or self._query_context.result_type,
-                self._query_context,
-                query_obj,
-                force_cached,
-            )
-            for query_obj in self._query_context.queries
-        ]
-
-        return_value = {"queries": query_results}
-
+    def get_payload_result(
+        self,
+        cache_query_context: bool | None = False,
+        force_cached: bool = False,
+        materialize: bool = True,
+    ) -> QueryContextExecutionResult:
+        """Execute all queries and keep completed timing in a sidecar."""
+        query_results = self._execute_query_plan(force_cached, materialize)
+        cache_key: str | None = None
+        context_cache_write_outcome = CacheWriteOutcome.NOT_ATTEMPTED
         if cache_query_context:
             cache_key = self.cache_key()
-            set_and_log_cache(
+            context_cache_write_outcome = set_and_log_cache_with_outcome(
                 cache_manager.cache,
                 cache_key,
                 {
@@ -396,9 +475,362 @@ class QueryContextProcessor:
                 },
                 self.get_cache_timeout(),
             )
-            return_value["cache_key"] = cache_key  # type: ignore
+        return QueryContextExecutionResult(
+            queries=query_results,
+            cache_key=cache_key,
+            context_cache_write_outcome=context_cache_write_outcome,
+        )
 
-        return return_value
+    def _execute_query_plan(
+        self,
+        force_cached: bool,
+        materialize: bool,
+    ) -> tuple[QueryDataResult, ...]:
+        """Execute one dependency-aware plan for every response mode."""
+
+        contribution_plan = self._contribution_plan()
+        requested_result_types = {
+            query_idx: get_effective_result_type(self._query_context, query)
+            for query_idx, query in enumerate(self._query_context.queries)
+        }
+        contribution_dependencies = self._acquire_contribution_dependencies(
+            contribution_plan,
+            requested_result_types,
+            force_cached,
+            materialize,
+        )
+        output_acquisitions = dict(contribution_dependencies.reusable_outputs)
+        query_results: dict[int, QueryDataResult] = {}
+
+        for query_idx, query_obj in enumerate(self._query_context.queries):
+            if query_idx in output_acquisitions:
+                continue
+            result_type = requested_result_types[query_idx]
+            if not is_data_result_type(result_type):
+                query_results[query_idx] = (
+                    get_query_results_with_timing(
+                        result_type,
+                        self._query_context,
+                        query_obj,
+                        force_cached,
+                    )
+                    if materialize
+                    else get_query_results_cache_only(
+                        result_type,
+                        self._query_context,
+                        query_obj,
+                    )
+                )
+                continue
+
+            totals_idx = contribution_dependencies.consumer_to_producer.get(query_idx)
+            totals = (
+                contribution_dependencies.totals_by_producer.get(totals_idx)
+                if totals_idx is not None
+                else None
+            )
+            if totals_idx is not None and (
+                totals is None
+                or not self._totals_support_consumer(query_obj, totals.values)
+            ):
+                query_results[query_idx] = self._dependency_failed_result(
+                    _("Contribution totals query failed")
+                )
+                continue
+            execution_query = (
+                self._with_contribution_totals(
+                    query_obj,
+                    totals.values,
+                )
+                if totals is not None
+                else query_obj
+            )
+            acquired = acquire_query_data(
+                result_type,
+                self._query_context,
+                execution_query,
+                force_cached if materialize else False,
+                detect_currency_value=materialize,
+                cache_key_extra=(
+                    {"contribution_totals_cache_key": totals.cache_key}
+                    if totals is not None
+                    else None
+                ),
+            )
+            if acquired is not None:
+                output_acquisitions[query_idx] = acquired
+                continue
+            raise QueryObjectValidationError(
+                _("Data-backed result type did not produce a dataframe")
+            )
+
+        for query_idx, acquired in output_acquisitions.items():
+            query_results[query_idx] = (
+                materialize_acquired_query(self._query_context, acquired)
+                if materialize
+                else cache_acquired_query(acquired)
+            )
+        return tuple(
+            query_results[query_idx]
+            for query_idx in range(len(self._query_context.queries))
+        )
+
+    def _acquire_contribution_dependencies(
+        self,
+        contribution_plan: dict[int, int],
+        requested_result_types: dict[int, ChartDataResultType],
+        force_cached: bool,
+        materialize: bool,
+    ) -> _ContributionDependencies:
+        """Acquire dataframe producers needed by data-backed consumers."""
+
+        data_plan: dict[int, int] = {
+            consumer_idx: producer_idx
+            for consumer_idx, producer_idx in contribution_plan.items()
+            if is_data_result_type(requested_result_types[consumer_idx])
+        }
+        reusable_outputs: dict[int, AcquiredQuery] = {}
+        totals: dict[int, _ContributionTotals] = {}
+        for producer_idx in sorted(set(data_plan.values())):
+            producer = self._query_context.queries[producer_idx]
+            requested_result_type = requested_result_types[producer_idx]
+            dependency_query = self._totals_query(producer_idx)
+            reuse_for_output = (
+                requested_result_type in _REUSABLE_CONTRIBUTION_RESULT_TYPES
+                and self._same_acquisition_identity(producer, dependency_query)
+            )
+            if reuse_for_output:
+                dependency_query = producer
+                dependency_result_type = requested_result_type
+            else:
+                dependency_query.result_type = ChartDataResultType.FULL
+                dependency_result_type = ChartDataResultType.FULL
+            acquired = acquire_query_data(
+                dependency_result_type,
+                self._query_context,
+                dependency_query,
+                force_cached if materialize else False,
+                detect_currency_value=materialize and reuse_for_output,
+            )
+            if acquired is None:
+                raise QueryObjectValidationError(
+                    _("Contribution totals require a dataframe result type")
+                )
+            if reuse_for_output:
+                reusable_outputs[producer_idx] = acquired
+            if acquired.acquisition.payload["status"] != QueryStatus.FAILED:
+                cache_key = acquired.acquisition.payload.get("cache_key")
+                if not isinstance(cache_key, str) or not cache_key:
+                    raise QueryObjectValidationError(
+                        _("Contribution totals query has no cache identity")
+                    )
+                totals[producer_idx] = _ContributionTotals(
+                    values=self._totals_from_df(acquired.acquisition.payload["df"]),
+                    cache_key=cache_key,
+                )
+        return _ContributionDependencies(
+            consumer_to_producer=data_plan,
+            reusable_outputs=reusable_outputs,
+            totals_by_producer=totals,
+        )
+
+    def _contribution_plan(self) -> dict[int, int]:
+        """Resolve explicit contribution producers with a strict legacy fallback."""
+
+        totals_candidates = [
+            (idx, query)
+            for idx, query in enumerate(self._query_context.queries)
+            if self._is_contribution_totals_query(query)
+        ]
+        plan: dict[int, int] = {}
+        for idx, query in enumerate(self._query_context.queries):
+            if not any(
+                operation.get("operation") == "contribution"
+                for operation in query.post_processing
+            ):
+                continue
+            explicit_idx = query.contribution_totals_query_index
+            if explicit_idx is not None:
+                self._validate_contribution_producer(idx, explicit_idx, query)
+                plan[idx] = explicit_idx
+                continue
+            matching = [
+                candidate_idx
+                for candidate_idx, candidate in totals_candidates
+                if self._contribution_shape(candidate)
+                == self._contribution_shape(query)
+                and self._producer_metrics_match(candidate, query)
+            ]
+            if len(matching) > 1:
+                logger.warning(
+                    "Multiple totals queries match contribution query %d; "
+                    "using producer %d",
+                    idx,
+                    matching[0],
+                )
+            if matching:
+                plan[idx] = matching[0]
+        return plan
+
+    @staticmethod
+    def _is_contribution_totals_query(query: QueryObject) -> bool:
+        return bool(not query.columns and query.metrics and not query.post_processing)
+
+    def _validate_contribution_producer(
+        self,
+        consumer_idx: int,
+        producer_idx: int,
+        consumer: QueryObject,
+    ) -> None:
+        if producer_idx == consumer_idx or not (
+            0 <= producer_idx < len(self._query_context.queries)
+        ):
+            raise QueryObjectValidationError(
+                _("Invalid contribution totals query index")
+            )
+        producer = self._query_context.queries[producer_idx]
+        if (
+            not self._is_contribution_totals_query(producer)
+            or self._contribution_shape(producer) != self._contribution_shape(consumer)
+            or not self._producer_metrics_match(producer, consumer)
+        ):
+            raise QueryObjectValidationError(
+                _("Contribution totals query does not match its consumer")
+            )
+
+    @staticmethod
+    def _contribution_shape(query: QueryObject) -> dict[str, Any]:
+        shape: dict[str, Any] = dict(query.to_dict())
+        for key in (
+            "columns",
+            "is_timeseries",
+            "metrics",
+            "orderby",
+            "post_processing",
+            "row_limit",
+            "row_offset",
+            "series_columns",
+            "series_limit",
+            "series_limit_metric",
+            "group_others_when_limit_reached",
+            "order_desc",
+        ):
+            shape.pop(key, None)
+        shape["annotation_layers"] = query.annotation_layers
+        shape["datasource"] = getattr(query.datasource, "uid", None)
+        shape["time_offsets"] = query.time_offsets
+        return shape
+
+    @staticmethod
+    def _producer_metrics_match(
+        producer: QueryObject,
+        consumer: QueryObject,
+    ) -> bool:
+        producer_metrics = producer.metrics or []
+        consumer_metrics = consumer.metrics or []
+        if not producer_metrics or not all(
+            any(metric == consumer_metric for consumer_metric in consumer_metrics)
+            for metric in producer_metrics
+        ):
+            return False
+        has_implicit_columns = any(
+            operation.get("operation") == "contribution"
+            and not operation.get("options", {}).get("columns")
+            for operation in consumer.post_processing
+        )
+        return not has_implicit_columns or (
+            len(producer_metrics) == len(consumer_metrics)
+            and all(
+                any(metric == producer_metric for producer_metric in producer_metrics)
+                for metric in consumer_metrics
+            )
+        )
+
+    @staticmethod
+    def _totals_support_consumer(
+        consumer: QueryObject,
+        totals: dict[str, Any],
+    ) -> bool:
+        return all(
+            not columns or all(column in totals for column in columns)
+            for operation in consumer.post_processing
+            if operation.get("operation") == "contribution"
+            for columns in [operation.get("options", {}).get("columns")]
+        )
+
+    def _totals_query(self, totals_idx: int) -> QueryObject:
+        """Build a canonical all-record dependency from a public producer."""
+
+        totals_query = copy.copy(self._query_context.queries[totals_idx])
+        totals_query.row_limit = None
+        totals_query.row_offset = 0
+        totals_query.is_rowcount = False
+        totals_query.is_timeseries = False
+        totals_query.orderby = []
+        totals_query.series_columns = []
+        totals_query.series_limit = 0
+        totals_query.series_limit_metric = None
+        totals_query.group_others_when_limit_reached = False
+        totals_query.annotation_layers = []
+        return totals_query
+
+    @staticmethod
+    def _same_acquisition_identity(
+        left: QueryObject,
+        right: QueryObject,
+    ) -> bool:
+        """Return whether two queries share execution and dataframe cache identity."""
+
+        return (
+            left.to_dict() == right.to_dict()
+            and left.annotation_layers == right.annotation_layers
+            and left.time_offsets == right.time_offsets
+            and left.result_type == right.result_type
+            and getattr(left.datasource, "uid", None)
+            == getattr(right.datasource, "uid", None)
+        )
+
+    @staticmethod
+    def _totals_from_df(dataframe: pd.DataFrame) -> dict[str, Any]:
+        totals: dict[str, Any] = {}
+        for column in dataframe.columns:
+            values = dataframe[column]
+            non_null = values.dropna()
+            if pd.api.types.is_numeric_dtype(values) or any(
+                isinstance(value, Decimal) for value in non_null
+            ):
+                totals[column] = values.sum()
+            elif non_null.empty:
+                totals[column] = 0
+        return totals
+
+    @staticmethod
+    def _with_contribution_totals(
+        query: QueryObject,
+        totals: dict[str, Any],
+    ) -> QueryObject:
+        execution_query = copy.copy(query)
+        execution_query.post_processing = copy.deepcopy(query.post_processing)
+        for operation in execution_query.post_processing:
+            if operation.get("operation") == "contribution":
+                operation.setdefault("options", {})["contribution_totals"] = totals
+        return execution_query
+
+    @staticmethod
+    def _dependency_failed_result(message: str) -> QueryDataResult:
+        timing = QueryAcquisitionTiming(
+            cache_key_ns=0,
+            cache_read_ns=0,
+            source_ns=0,
+            cache_write_ns=None,
+            cache_write_outcome=CacheWriteOutcome.NOT_ATTEMPTED,
+            cache_hit=None,
+            sources=(),
+        ).materialized(0)
+        return QueryDataResult(
+            payload={"error": message, "status": QueryStatus.FAILED},
+            timing=timing,
+        )
 
     def get_cache_timeout(self) -> int:
         if cache_timeout_rv := self._query_context.get_cache_timeout():
@@ -438,22 +870,22 @@ class QueryContextProcessor:
 
     @staticmethod
     def get_native_annotation_data(query_obj: QueryObject) -> dict[str, Any]:
-        annotation_data = {}
-        annotation_layers = [
-            layer
-            for layer in query_obj.annotation_layers
-            if layer["sourceType"] == "NATIVE"
-        ]
-        layer_ids = [layer["value"] for layer in annotation_layers]
-        layer_objects = {
-            layer_object.id: layer_object
-            for layer_object in AnnotationLayerDAO.find_by_ids(layer_ids)
-        }
+        with source_phase("planning"):
+            annotation_layers = [
+                layer
+                for layer in query_obj.annotation_layers
+                if layer["sourceType"] == "NATIVE"
+            ]
+            layer_ids = [layer["value"] for layer in annotation_layers]
 
-        # annotations
-        for layer in annotation_layers:
-            layer_id = layer["value"]
-            layer_name = layer["name"]
+        with source_phase("execution"):
+            layer_objects = {
+                layer_object.id: list(layer_object.annotation)
+                for layer_object in AnnotationLayerDAO.find_by_ids(layer_ids)
+            }
+
+        with source_phase("processing"):
+            annotation_data: dict[str, Any] = {}
             columns = [
                 "start_dttm",
                 "end_dttm",
@@ -461,14 +893,27 @@ class QueryContextProcessor:
                 "long_descr",
                 "json_metadata",
             ]
-            layer_object = layer_objects[layer_id]
-            records = [
-                {column: getattr(annotation, column) for column in columns}
-                for annotation in layer_object.annotation
-            ]
-            result = {"columns": columns, "records": records}
-            annotation_data[layer_name] = result
-        return annotation_data
+            for layer in annotation_layers:
+                layer_id = layer["value"]
+                layer_name = layer["name"]
+                if (annotations := layer_objects.get(layer_id)) is None:
+                    raise QueryObjectValidationError(
+                        _(
+                            "Annotation layer with ID %(layer_id)s "
+                            "(referenced by '%(layer_name)s') was not found.",
+                            layer_id=layer_id,
+                            layer_name=layer_name,
+                        )
+                    )
+                records = [
+                    {column: getattr(annotation, column) for column in columns}
+                    for annotation in annotations
+                ]
+                annotation_data[layer_name] = {
+                    "columns": columns,
+                    "records": records,
+                }
+            return annotation_data
 
     @staticmethod
     def get_viz_annotation_data(  # noqa: C901
@@ -477,7 +922,9 @@ class QueryContextProcessor:
         # pylint: disable=import-outside-toplevel
         from superset.commands.chart.data.get_data_command import ChartDataCommand
 
-        if not (chart := ChartDAO.find_by_id(annotation_layer["value"])):
+        with source_phase("execution"):
+            chart = ChartDAO.find_by_id(annotation_layer["value"])
+        if not chart:
             raise QueryObjectValidationError(
                 _(
                     f"""Chart with ID {annotation_layer["value"]} (referenced by
@@ -486,59 +933,74 @@ class QueryContextProcessor:
                 )
             )
 
+        with source_phase("planning"):
+            annotation_stack = _annotation_chart_stack.get()
+            if chart.id in annotation_stack:
+                raise QueryObjectValidationError(
+                    _("Circular chart annotation dependency detected")
+                )
+            stack_token = _annotation_chart_stack.set((*annotation_stack, chart.id))
         try:
             if chart.viz_type in viz_types:
-                if not chart.datasource:
+                with source_phase("planning"):
+                    if not chart.datasource:
+                        raise QueryObjectValidationError(
+                            _(
+                                f"""The dataset for chart ID {chart.id} (referenced by
+                                annotation layer '{annotation_layer["name"]}') was
+                                not found. Please check that the dataset exists and
+                                is accessible."""
+                            )
+                        )
+
+                    form_data = chart.form_data.copy()
+                    form_data.update(annotation_layer.get("overrides", {}))
+
+                with source_phase("execution"):
+                    payload = get_viz(
+                        datasource_type=chart.datasource.type,
+                        datasource_id=chart.datasource.id,
+                        form_data=form_data,
+                        force=force,
+                    ).get_payload()
+
+                with source_phase("processing"):
+                    return payload["data"]
+
+            with source_phase("planning"):
+                if not (query_context := chart.get_query_context()):
                     raise QueryObjectValidationError(
                         _(
-                            f"""The dataset for chart ID {chart.id} (referenced by
-                            annotation layer '{annotation_layer["name"]}') was
-                            not found. Please check that the dataset exists and
-                            is accessible."""
+                            f"""The query context for chart ID {chart.id} (referenced
+                            by annotation layer '{annotation_layer["name"]}') was not
+                            found. Please ensure the chart is properly configured and
+                            has a valid query context."""
                         )
                     )
 
-                form_data = chart.form_data.copy()
-                form_data.update(annotation_layer.get("overrides", {}))
+                if overrides := annotation_layer.get("overrides"):
+                    if time_grain_sqla := overrides.get("time_grain_sqla"):
+                        for query_object in query_context.queries:
+                            query_object.extras["time_grain_sqla"] = time_grain_sqla
 
-                payload = get_viz(
-                    datasource_type=chart.datasource.type,
-                    datasource_id=chart.datasource.id,
-                    form_data=form_data,
-                    force=force,
-                ).get_payload()
+                    if time_range := overrides.get("time_range"):
+                        from_dttm, to_dttm = get_since_until_from_time_range(time_range)
 
-                return payload["data"]
+                        for query_object in query_context.queries:
+                            query_object.from_dttm = from_dttm
+                            query_object.to_dttm = to_dttm
 
-            if not (query_context := chart.get_query_context()):
-                raise QueryObjectValidationError(
-                    _(
-                        f"""The query context for chart ID {chart.id} (referenced
-                        by annotation layer '{annotation_layer["name"]}') was not found.
-                        Please ensure the chart is properly configured and has a valid
-                        query context."""
-                    )
-                )
-
-            if overrides := annotation_layer.get("overrides"):
-                if time_grain_sqla := overrides.get("time_grain_sqla"):
-                    for query_object in query_context.queries:
-                        query_object.extras["time_grain_sqla"] = time_grain_sqla
-
-                if time_range := overrides.get("time_range"):
-                    from_dttm, to_dttm = get_since_until_from_time_range(time_range)
-
-                    for query_object in query_context.queries:
-                        query_object.from_dttm = from_dttm
-                        query_object.to_dttm = to_dttm
-
-            query_context.force = force
-            command = ChartDataCommand(query_context)
-            command.validate()
-            payload = command.run()
-            return {"records": payload["queries"][0]["data"]}
+                query_context.force = force
+                command = ChartDataCommand(query_context)
+            with source_phase("execution"):
+                command.validate()
+                payload = command.run()
+            with source_phase("processing"):
+                return {"records": payload["queries"][0]["data"]}
         except SupersetException as ex:
             raise QueryObjectValidationError(error_msg_from_exception(ex)) from ex
+        finally:
+            _annotation_chart_stack.reset(stack_token)
 
     def raise_for_access(self) -> None:
         """
@@ -551,7 +1013,7 @@ class QueryContextProcessor:
         # come first to avoid rendering caller-supplied input for a resource the
         # caller is not allowed to access.
         if self._qc_datasource.type == DatasourceType.QUERY:
-            security_manager.raise_for_access(query=self._qc_datasource)
+            cast("SqlLabQuery", self._qc_datasource).raise_for_explore_access()
         else:
             security_manager.raise_for_access(query_context=self._query_context)
 

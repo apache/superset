@@ -31,6 +31,7 @@ from zoneinfo import ZoneInfo
 
 import isodate
 import numpy as np
+import pandas as pd
 import pyarrow as pa
 from superset_core.semantic_layers.types import (
     AdhocExpression,
@@ -50,6 +51,12 @@ from superset_core.semantic_layers.types import (
 )
 from superset_core.semantic_layers.view import SemanticViewFeature
 
+from superset.common.chart_data_timing import (
+    source_phase,
+    source_timing,
+    SourceKind,
+    SourceProvider,
+)
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_object import QueryObject
 from superset.common.utils.time_range_utils import (
@@ -119,14 +126,19 @@ def get_results(query_object: QueryObject) -> QueryResult:
 
     # Step 1: Convert QueryObject to list of SemanticQuery objects
     # The first query is the main query, subsequent queries are for time offsets
-    queries = map_query_object(query_object)
+    with source_phase("planning"):
+        queries = map_query_object(query_object)
 
     # Step 2: Execute the main query (first in the list)
     main_query = queries[0]
-    main_result = dispatcher(main_query)
+    with source_phase("execution"):
+        main_result = dispatcher(main_query)
     main_result = _coerce_empty_result(main_result, main_query)
 
-    main_df = stringify_extension_columns(main_result.results).to_pandas()
+    with source_phase("processing"):
+        main_df: pd.DataFrame = stringify_extension_columns(
+            main_result.results
+        ).to_pandas()
 
     # Collect all requests (SQL queries, HTTP requests, etc.) for troubleshooting
     all_requests = list(main_result.requests)
@@ -138,6 +150,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
             main_result,
             query_object,
             duration,
+            dataframe=main_df,
         )
 
     # Get metric names from the main query
@@ -155,13 +168,15 @@ def get_results(query_object: QueryObject) -> QueryResult:
         strict=False,
     ):
         # Execute the offset query
-        result = dispatcher(offset_query)
-        result = _coerce_empty_result(result, offset_query)
+        with source_timing(SourceKind.TIME_OFFSET, SourceProvider.SEMANTIC):
+            with source_phase("execution"):
+                result = dispatcher(offset_query)
+            with source_phase("processing"):
+                result = _coerce_empty_result(result, offset_query)
+                offset_df = stringify_extension_columns(result.results).to_pandas()
 
-        # Add this query's requests to the collection
+        # Request metadata belongs to the final combined result, not the child source.
         all_requests.extend(result.requests)
-
-        offset_df = stringify_extension_columns(result.results).to_pandas()
 
         # Handle empty results - add NaN columns directly instead of merging
         # This avoids dtype mismatch issues with empty DataFrames
@@ -212,15 +227,13 @@ def get_results(query_object: QueryObject) -> QueryResult:
                 main_df = main_df.drop(columns=duplicate_cols)
 
     # Convert final result to QueryResult
-    semantic_result = SemanticResult(
-        requests=all_requests,
-        results=pa.Table.from_pandas(main_df),
-    )
+    semantic_result = SemanticResult(requests=all_requests, results=main_result.results)
     duration = timedelta(seconds=current_time() - start_time)
     return map_semantic_result_to_query_result(
         semantic_result,
         query_object,
         duration,
+        dataframe=main_df,
     )
 
 
@@ -254,6 +267,7 @@ def map_semantic_result_to_query_result(
     semantic_result: SemanticResult,
     query_object: ValidatedQueryObject,
     duration: timedelta,
+    dataframe: pd.DataFrame | None = None,
 ) -> QueryResult:
     """
     Convert a SemanticResult to a QueryResult.
@@ -273,7 +287,11 @@ def map_semantic_result_to_query_result(
 
     return QueryResult(
         # Core data
-        df=stringify_extension_columns(semantic_result.results).to_pandas(),
+        df=(
+            dataframe
+            if dataframe is not None
+            else stringify_extension_columns(semantic_result.results).to_pandas()
+        ),
         query=query_str,
         duration=duration,
         # Template filters - not applicable to semantic layers

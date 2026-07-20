@@ -20,7 +20,6 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Hashable
 from dataclasses import dataclass
 from functools import cached_property
 from typing import Any, TYPE_CHECKING
@@ -42,6 +41,7 @@ from superset_core.semantic_layers.view import (
     SemanticView as SemanticViewABC,
 )
 
+from superset.common.chart_data_timing import source_phase
 from superset.common.query_object import QueryObject
 from superset.exceptions import (
     InvalidPostProcessingError,
@@ -288,7 +288,8 @@ class SemanticView(AuditMixinNullable, Model):
         result = get_results(query_object)
         if query_object.post_processing and not result.df.empty:
             try:
-                result.df = query_object.exec_post_processing(result.df)
+                with source_phase("processing"):
+                    result.df = query_object.exec_post_processing(result.df)
             except InvalidPostProcessingError as ex:
                 raise QueryObjectValidationError(ex.message) from ex
         return result
@@ -464,7 +465,7 @@ class SemanticView(AuditMixinNullable, Model):
     def data_for_slices(self, slices: list[Any]) -> ExplorableData:
         return self.data
 
-    def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
+    def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Any]:
         return []
 
     @property

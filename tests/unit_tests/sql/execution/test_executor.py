@@ -166,6 +166,67 @@ def test_execute_creates_query_record(
     mock_create_query.assert_called_once()
 
 
+def test_execute_records_post_jinja_source_before_query_transformations(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+) -> None:
+    """Explore replay binds to rendered source, not RLS/limit execution SQL."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    mock_query_execution(mocker, database, return_data=[(42,)], column_names=["value"])
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 30,
+            "SQL_MAX_ROW": 10,
+            "QUERY_LOGGER": None,
+        },
+    )
+    query = MagicMock(id=123)
+    create_query = mocker.patch.object(
+        SQLExecutor,
+        "_create_query_record",
+        return_value=query,
+    )
+
+    result = database.execute(
+        "SELECT {{ requested_value }} AS value",
+        QueryOptions(template_params={"requested_value": 42}, limit=10),
+    )
+
+    assert result.status == QueryStatus.SUCCESS
+    assert create_query.call_args.kwargs["explore_source_sql"] == "SELECT 42 AS value"
+    assert "LIMIT" in create_query.call_args.args[0]
+
+
+def test_create_query_record_persists_frozen_source(
+    database: Database,
+    app_context: None,
+    mock_db_session: MagicMock,
+) -> None:
+    from superset.sql.execution.executor import SQLExecutor
+
+    executor = SQLExecutor(database)
+
+    query = executor._create_query_record(
+        "SELECT 42 AS value LIMIT 10",
+        QueryOptions(limit=10),
+        catalog=None,
+        schema="main",
+        status=QueryStatus.RUNNING,
+        explore_source_sql="SELECT 42 AS value",
+    )
+
+    assert query.sql == "SELECT 42 AS value LIMIT 10"
+    assert query.extra["_explore_source"] == {
+        "version": 1,
+        "sql": "SELECT 42 AS value",
+    }
+    mock_db_session.commit.assert_called()
+
+
 # =============================================================================
 # DML Handling Tests
 # =============================================================================
@@ -749,6 +810,11 @@ def test_execute_async_creates_query(
     assert result.query_id is not None
     assert result.query_id == 123
     mock_db_session.add.assert_called()
+    query = mock_db_session.add.call_args.args[0]
+    assert query.extra["_explore_source"] == {
+        "version": 1,
+        "sql": "SELECT * FROM users",
+    }
     mock_celery_task.delay.assert_called()
 
 

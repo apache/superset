@@ -104,6 +104,7 @@ class TestSqlLab(SupersetTestCase):
                 == SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR
             )
             assert data["errors"][0]["level"] == ErrorLevel.ERROR
+
             assert data["errors"][0]["extra"] == {
                 "engine_name": "Presto",
                 "issue_codes": [
@@ -132,6 +133,17 @@ class TestSqlLab(SupersetTestCase):
                 ],
                 "engine_name": engine_name,
             }
+
+    def test_sql_json_persists_frozen_explore_source(self) -> None:
+        self.login(ADMIN_USERNAME)
+        client_id = "freeze_src"
+        sql = "SELECT 42 AS value"
+
+        self.run_sql(sql, client_id, raise_on_error=True)
+        db.session.expire_all()
+        query = db.session.query(Query).filter_by(client_id=client_id).one()
+
+        assert query.extra["_explore_source"] == {"version": 1, "sql": sql}
 
     @pytest.mark.skip(
         reason=(

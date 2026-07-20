@@ -183,6 +183,32 @@ describe('plugin-chart-table', () => {
       );
     });
 
+    test('uses display totals instead of contribution dependency data', () => {
+      const baseQuery = testData.basic.queriesData[0];
+      const displayTotals = {
+        ...baseQuery,
+        data: [{ sum__num: 42 }],
+      };
+      const contributionDependency = {
+        ...baseQuery,
+        data: [{ sum__num: 1000 }],
+      };
+
+      const result = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          metrics: ['sum__num'],
+          query_mode: QueryMode.Aggregate,
+          server_pagination: false,
+          show_totals: true,
+        },
+        queriesData: [baseQuery, displayTotals, contributionDependency],
+      });
+
+      expect(result.totals).toEqual({ sum__num: 42 });
+    });
+
     test('should format timestamp', () => {
       // eslint-disable-next-line no-underscore-dangle
       const parsedDate = transformProps(testData.basic).data[0]

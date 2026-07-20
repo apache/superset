@@ -181,6 +181,24 @@ SELECT * FROM some_table;
     )
 
 
+def test_get_default_schema_for_rendered_query_does_not_process_jinja(
+    mocker: MockerFixture,
+) -> None:
+    database = mocker.MagicMock()
+    database.db_engine_spec.engine = "postgresql"
+    query = mocker.MagicMock(
+        sql="SELECT '{{ preserved_literal }}' AS value",
+        schema="analytics",
+    )
+    process_jinja = mocker.patch(
+        "superset.db_engine_specs.postgres.process_jinja_sql",
+        side_effect=AssertionError("rendered SQL must not enter Jinja"),
+    )
+
+    assert spec.get_default_schema_for_rendered_query(database, query) == "analytics"
+    process_jinja.assert_not_called()
+
+
 def test_adjust_engine_params() -> None:
     """
     Test `adjust_engine_params`.

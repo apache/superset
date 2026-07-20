@@ -310,7 +310,7 @@ class TestCore(SupersetTestCase):
 
         with mock.patch.object(
             ChartDataCommand,
-            "run",
+            "execute",
             side_effect=ChartDataQueryFailedError(
                 _(
                     "Error: %(error)s",
