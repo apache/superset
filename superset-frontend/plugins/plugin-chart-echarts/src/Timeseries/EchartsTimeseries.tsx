@@ -27,6 +27,7 @@ import {
   LegendState,
   ensureIsArray,
 } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/theme';
 import type {
   ECElementEvent,
   ViewRootGroup,
@@ -68,6 +69,7 @@ export default function EchartsTimeseries({
   onLegendScroll,
 }: TimeseriesChartTransformedProps) {
   const { stack } = formData;
+  const theme = useTheme();
   const echartRef = useRef<EchartsHandler | null>(null);
   // eslint-disable-next-line no-param-reassign
   refs.echartRef = echartRef;
@@ -121,7 +123,7 @@ export default function EchartsTimeseries({
             x: px - 4,
             y: gridRect.top,
             shape: { width: 8, height: gridRect.height },
-            style: { fill: 'rgba(0, 0, 0, 0.02)' },
+            style: { fill: theme.colorFillQuaternary },
             cursor: 'ew-resize',
             draggable: true,
             z: 100,
@@ -143,7 +145,7 @@ export default function EchartsTimeseries({
                 left: 'center',
                 top: 0,
                 shape: { width: 2, height: gridRect.height },
-                style: { fill: '#666' },
+                style: { fill: theme.colorTextSecondary },
               },
             ],
           },
@@ -157,7 +159,7 @@ export default function EchartsTimeseries({
         graphic: [{ id: 'percent-change-baseline', $action: 'remove' }],
       });
     };
-  }, [rebaseEnabled, echartOptions, width, height]);
+  }, [rebaseEnabled, echartOptions, width, height, theme]);
   const extraControlRef = useRef<HTMLDivElement>(null);
   const [extraControlHeight, setExtraControlHeight] = useState(0);
   useEffect(() => {
