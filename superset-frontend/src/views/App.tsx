@@ -235,7 +235,7 @@ const App = () => {
         <InPortal node={layoutPortalNode}>
           <RouteSwitch />
         </InPortal>
-        <AppContent />
+        <AppContent layoutPortalNode={layoutPortalNode} />
         <ToastContainer />
       </RootContextProviders>
     </Router>
