@@ -135,6 +135,40 @@ assert_contains "user-supplied podLabel still rendered" \
 assert_contains "istio inject label rendered alongside" \
     'sidecar.istio.io/inject: "false"' "${init_job_labels}"
 
+echo "==> init.istio explicitly overridden to null"
+out_null_istio="$(render --set init.istio=null)"
+init_job_null_istio="$(extract_init_job "${out_null_istio}")"
+config_null_istio="$(extract_config_secret "${out_null_istio}")"
+assert_not_contains "null init.istio does not set inject label" \
+    'sidecar.istio.io/inject' "${init_job_null_istio}"
+assert_not_contains "null init.istio does not register quitquitquit trap" \
+    'quitquitquit' "${config_null_istio}"
+
+echo "==> EXIT trap propagates the script's exit code, not the notification's"
+# The trap's own curl call is best-effort (`|| true`) and must not mask a
+# failed migration. Extract the two rendered lines and actually run them,
+# with curl pointed at a closed local port so the notification itself fails,
+# to make sure the wrapped script's real exit code still comes through.
+quit_endpoint_line="$(grep -F 'ISTIO_QUIT_ENDPOINT=' <<<"${config_terminate}")"
+trap_line="$(grep -F "trap 'rc=\$?; curl" <<<"${config_terminate}")"
+set +e
+(
+    eval "${quit_endpoint_line}"
+    ISTIO_QUIT_ENDPOINT="http://127.0.0.1:1/quitquitquit"
+    eval "${trap_line}"
+    exit 42
+)
+trap_test_rc=$?
+set -e
+if [[ "${trap_test_rc}" -eq 42 ]]; then
+    echo "  PASS: script exit code (42) survives a failing quitquitquit notification"
+    pass=$((pass + 1))
+else
+    echo "  FAIL: script exit code (42) survives a failing quitquitquit notification"
+    echo "    got exit code: ${trap_test_rc}"
+    fail=$((fail + 1))
+fi
+
 echo
 echo "passed: ${pass}, failed: ${fail}"
 if [[ ${fail} -gt 0 ]]; then
