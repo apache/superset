@@ -53,7 +53,7 @@ const chartProps = (overrides: Partial<SqlaFormData> = {}) =>
 
 test('pivots periods into one line series each, current on top', () => {
   const { echartOptions } = transformProps(chartProps());
-  const series = (echartOptions as any).series;
+  const { series } = echartOptions as any;
 
   expect(series).toHaveLength(2);
   // drawn prior-first so "current" paints on top
@@ -72,7 +72,7 @@ test('honors log scale and y-axis bounds', () => {
   const { echartOptions } = transformProps(
     chartProps({ yLogScale: true, yAxisBounds: [1, 100] }),
   );
-  const yAxis = (echartOptions as any).yAxis;
+  const { yAxis } = echartOptions as any;
   expect(yAxis.type).toBe('log');
   expect(yAxis.min).toBe(1);
   expect(yAxis.max).toBe(100);
