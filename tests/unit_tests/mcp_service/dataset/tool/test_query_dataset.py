@@ -940,6 +940,41 @@ class TestQueryDatasetBracketShorthandNormalization:
         )
         assert req.time_range == "Last day"
 
+    def test_hour_bracket_normalized(self) -> None:
+        """'[hour]' maps to an explicit DATEADD/DATETIME expression.
+
+        'Last hour' is deliberately not used: get_since_until() resolves its
+        since-expression against 'now' but its default until-expression
+        against 'today' (midnight), so since ends up after until and raises
+        a "From date cannot be larger than to date" error.
+        """
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "[hour]"}
+        )
+        assert req.time_range == "DATEADD(DATETIME('now'), -1, HOUR) : DATETIME('now')"
+
+    def test_minute_bracket_normalized(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "[minute]"}
+        )
+        assert (
+            req.time_range == "DATEADD(DATETIME('now'), -1, MINUTE) : DATETIME('now')"
+        )
+
+    def test_second_bracket_normalized(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "[second]"}
+        )
+        assert (
+            req.time_range == "DATEADD(DATETIME('now'), -1, SECOND) : DATETIME('now')"
+        )
+
     def test_bracket_uppercase_normalized(self) -> None:
         from superset.mcp_service.dataset.schemas import QueryDatasetRequest
 
@@ -1043,3 +1078,68 @@ async def test_query_dataset_bracket_year_resolves_without_parse_error(
     ]
     assert len(temporal_filters) == 1
     assert temporal_filters[0]["val"] == "Last year"
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_bracket_hour_resolves_without_parse_error(
+    mcp_server: FastMCP,
+) -> None:
+    """'[hour]' as time_range must not raise TimeRangeParseFailError.
+
+    Regression test for SC-113648. Unlike the other bracket shorthands,
+    '[hour]' does not normalize to 'Last hour': get_since_until() resolves
+    that expression's since-clause against 'now' but its until-clause
+    against 'today' (midnight), which raises "From date cannot be larger
+    than to date" for any sub-day unit. The schema validator instead maps
+    '[hour]' to an explicit DATEADD/DATETIME range that resolves both ends
+    against 'now'.
+    """
+    dataset = _make_dataset(main_dttm_col="order_date")
+    result_data = _mock_command_result()
+    captured_queries: list[dict[str, Any]] = []
+
+    def capture_create(**kwargs):
+        captured_queries.extend(kwargs.get("queries", []))
+        return MagicMock()
+
+    with (
+        patch.object(
+            query_dataset_module,
+            "resolve_dataset",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=result_data,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            side_effect=capture_create,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "time_range": "[hour]",
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert "error_type" not in data or data.get("error_type") is None
+    assert len(captured_queries) == 1
+    temporal_filters = [
+        f for f in captured_queries[0]["filters"] if f["op"] == "TEMPORAL_RANGE"
+    ]
+    assert len(temporal_filters) == 1
+    assert (
+        temporal_filters[0]["val"]
+        == "DATEADD(DATETIME('now'), -1, HOUR) : DATETIME('now')"
+    )

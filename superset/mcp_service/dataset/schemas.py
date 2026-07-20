@@ -809,12 +809,19 @@ class QueryDatasetFilter(BaseModel):
 
 # Bracket shorthands (e.g. "[year]", "[quarter]") are not a Superset
 # time-range grammar — they appear when an LLM copies a grain token from a
-# dashboard filter context.  Map them to the equivalent "Last <unit>" form
-# that get_since_until() does support.
+# dashboard filter context.  Map them to an equivalent form that
+# get_since_until() resolves correctly.
+#
+# "Last second"/"Last minute"/"Last hour" are excluded: get_since_until()
+# pairs a "Last <unit>" since-expression (resolved against "now" for
+# sub-day units) with a default until-expression resolved against "today"
+# (midnight), so since ends up after until and raises "From date cannot
+# be larger than to date". Explicit DATEADD/DATETIME expressions sidestep
+# that mismatch by resolving both ends against "now".
 _BRACKET_SHORTHAND_TO_TIME_RANGE: dict[str, str] = {
-    "[second]": "Last second",
-    "[minute]": "Last minute",
-    "[hour]": "Last hour",
+    "[second]": "DATEADD(DATETIME('now'), -1, SECOND) : DATETIME('now')",
+    "[minute]": "DATEADD(DATETIME('now'), -1, MINUTE) : DATETIME('now')",
+    "[hour]": "DATEADD(DATETIME('now'), -1, HOUR) : DATETIME('now')",
     "[day]": "Last day",
     "[week]": "Last week",
     "[month]": "Last month",
