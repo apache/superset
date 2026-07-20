@@ -3800,3 +3800,53 @@ def test_like_filter_on_string_column_does_not_cast(database: Database) -> None:
     assert not any(isinstance(node, Cast) for node in iterate(whereclause)), (
         f"Unexpected Cast node in the filter expression: {whereclause}"
     )
+
+
+def test_get_sqla_query_calculated_column_inlined_in_raw_records(
+    database: Database,
+) -> None:
+    """Regression test for #34784: a calculated column selected as an adhoc
+    column in a raw-records query (no groupby/metrics) must have its stored
+    SQL expression inlined, not emitted as a bare column reference."""
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="b", type="TEXT"),
+            TableColumn(
+                column_name="name_test",
+                type="TEXT",
+                expression="CASE WHEN a > 0 THEN 'positive' ELSE 'non-positive' END",
+            ),
+        ],
+    )
+
+    # No metrics/groupby => the ``elif columns:`` branch runs.
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "name_test",
+        "label": "name_test",
+        "isColumnReference": True,
+    }
+    sqlaq = table.get_sqla_query(
+        columns=[adhoc_col],
+        is_timeseries=False,
+        row_limit=10,
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqlaq.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    # The stored expression must be inlined rather than emitted as a bare
+    # ``name_test`` reference.
+    assert "CASE WHEN a > 0" in sql
+    assert "'positive'" in sql
+    assert "'non-positive'" in sql
