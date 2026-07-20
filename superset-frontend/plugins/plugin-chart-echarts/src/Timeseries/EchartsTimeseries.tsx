@@ -144,7 +144,7 @@ export default function EchartsTimeseries({
               {
                 type: 'rect',
                 shape: { x: 0, y: 0, width: 8, height: gridRect.height },
-                style: { fill: 'rgba(0, 0, 0, 0.02)' },
+                style: { fill: theme.colorFillSecondary },
               },
               {
                 type: 'rect',
