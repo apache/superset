@@ -2482,6 +2482,47 @@ describe('plugin-chart-table', () => {
     );
     expect(screen.queryByText('Search by')).toBeInTheDocument();
   });
+
+  test('dropdown preserves serverPageLength if larger than rowCount and avoids invalid 0 (#42243)', async () => {
+    const props = transformProps({
+      ...testData.basic,
+      formData: {
+        ...testData.basic.formData,
+        server_pagination: true,
+      },
+    });
+    props.serverPagination = true;
+    props.serverPageLength = 20;
+    props.rowCount = 12;
+    props.data = Array.from({ length: 12 }, (_, i) => ({
+      name: `Row ${i}`,
+    })) as any;
+
+    const { container } = render(
+      <ProviderWrapper>
+        <TableChart {...props} sticky={false} />
+      </ProviderWrapper>,
+    );
+
+    // Initial page size selector text
+    const pageSizeSelector = container.querySelector('.dt-select-page-size');
+    expect(pageSizeSelector).toHaveTextContent('20');
+
+    // Open dropdown to check options
+    const selectTrigger = container.querySelector('.ant-select-selector');
+    if (selectTrigger) {
+      fireEvent.mouseDown(selectTrigger);
+
+      await waitFor(() => {
+        const options = screen.getAllByRole('option');
+        const optionTexts = options.map(opt => opt.textContent);
+        expect(optionTexts).toContain('10');
+        expect(optionTexts).toContain('20');
+        expect(optionTexts).not.toContain('0');
+        expect(optionTexts).not.toContain('All');
+      });
+    }
+  });
 });
 
 /**
