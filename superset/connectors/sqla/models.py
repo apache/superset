@@ -1364,7 +1364,14 @@ class SqlaTable(
 
     database: Database = relationship(
         "Database",
-        backref=backref("tables", cascade="all, delete-orphan"),
+        backref=backref(
+            "tables",
+            cascade="all, delete-orphan",
+            # SQLAlchemy 2.0 behavior: assigning `table.database` no longer
+            # cascades the SqlaTable into the Database's session; callers must
+            # add objects to a session explicitly.
+            cascade_backrefs=False,
+        ),
         foreign_keys=[database_id],
     )
     schema = Column(String(255))
