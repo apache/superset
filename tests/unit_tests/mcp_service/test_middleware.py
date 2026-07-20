@@ -1049,6 +1049,40 @@ class TestToolResultWrapping:
         assert len(reparsed["rows"]) < 200
 
     @pytest.mark.asyncio
+    async def test_data_query_truncation_fits_after_rewrap(self) -> None:
+        """The re-wrapped ToolResult must itself fit under the token limit.
+
+        Regression test: truncation used to size candidates against the bare
+        unwrapped payload, then re-wrap into a ToolResult afterward. The
+        ``content``/``meta`` envelope added by re-wrapping can push a
+        candidate that "fit" back over the limit. The binary search must
+        size candidates against the final wrapped object it will return.
+        """
+        from superset.mcp_service.utils.token_utils import estimate_response_tokens
+
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.message.params = {}
+
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        large_payload = {
+            "status": "success",
+            "rows": [row] * 200,
+            "row_count": 200,
+        }
+        tool_result = self._make_tool_result(large_payload)
+        call_next = AsyncMock(return_value=tool_result)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert estimate_response_tokens(result) <= middleware.token_limit
+
+    @pytest.mark.asyncio
     async def test_meta_preserved_after_truncation(self) -> None:
         """Should preserve the original ToolResult meta through truncation."""
         from fastmcp.tools.tool import ToolResult

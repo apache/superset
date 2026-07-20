@@ -1249,6 +1249,25 @@ class ResponseSizeGuardMiddleware(Middleware):
             meta=original.meta if isinstance(original, ToolResult) else None,
         )
 
+    def _make_size_fn(
+        self, extracted: dict[str, Any] | None, original: Any
+    ) -> Callable[[dict[str, Any]], int]:
+        """Build a size function that measures the object actually returned.
+
+        When the payload was unwrapped from a ToolResult, re-wrapping adds
+        overhead (the ``content``/``meta`` envelope) on top of the bare
+        payload. Truncation must search for a fit against that final
+        wrapped size, not the unwrapped payload, or a candidate that looks
+        like it fits can still end up oversized once re-wrapped.
+        """
+        if extracted is None:
+            return estimate_response_tokens
+
+        def _size(data: dict[str, Any]) -> int:
+            return estimate_response_tokens(self._rewrap_as_tool_result(data, original))
+
+        return _size
+
     def _try_truncate_info_response(
         self,
         tool_name: str,
@@ -1276,11 +1295,14 @@ class ResponseSizeGuardMiddleware(Middleware):
             )
             truncation_target = response
 
+        size_fn = self._make_size_fn(extracted, response)
+
         try:
             truncated, was_truncated, notes = truncate_oversized_response(
                 truncation_target,
                 self.token_limit,
                 max_list_items=self.max_list_items,
+                size_fn=size_fn,
             )
         except (MemoryError, RecursionError) as trunc_error:
             logger.warning(
@@ -1294,7 +1316,20 @@ class ResponseSizeGuardMiddleware(Middleware):
         if not was_truncated:
             return None
 
-        truncated_tokens = estimate_response_tokens(truncated)
+        if isinstance(truncated, dict):
+            truncated["_response_truncated"] = True
+            truncated["_truncation_notes"] = notes
+
+        # Re-wrap into ToolResult if we unwrapped one *before* re-checking
+        # the size: the wrapper (content/meta envelope) adds overhead on top
+        # of the payload, so the limit must be enforced against the object
+        # that is actually returned to the caller, not the bare payload.
+        if extracted is not None and isinstance(truncated, dict):
+            final_response = self._rewrap_as_tool_result(truncated, response)
+        else:
+            final_response = truncated
+
+        truncated_tokens = estimate_response_tokens(final_response)
         if truncated_tokens > self.token_limit:
             return None
 
@@ -1323,15 +1358,7 @@ class ResponseSizeGuardMiddleware(Middleware):
         except Exception as log_error:  # noqa: BLE001
             logger.warning("Failed to log truncation event: %s", log_error)
 
-        if isinstance(truncated, dict):
-            truncated["_response_truncated"] = True
-            truncated["_truncation_notes"] = notes
-
-        # Re-wrap into ToolResult if we unwrapped one
-        if extracted is not None and isinstance(truncated, dict):
-            return self._rewrap_as_tool_result(truncated, response)
-
-        return truncated
+        return final_response
 
     def _try_truncate_data_query_response(
         self,
@@ -1345,10 +1372,14 @@ class ResponseSizeGuardMiddleware(Middleware):
         """
         extracted = self._extract_payload_from_tool_result(response)
         truncation_target = extracted if extracted is not None else response
+        size_fn = self._make_size_fn(extracted, response)
 
         try:
             truncated, was_truncated, notes = truncate_query_result(
-                truncation_target, self.token_limit, tool_name=tool_name
+                truncation_target,
+                self.token_limit,
+                tool_name=tool_name,
+                size_fn=size_fn,
             )
         except Exception as trunc_error:  # noqa: BLE001
             logger.warning(
@@ -1362,11 +1393,20 @@ class ResponseSizeGuardMiddleware(Middleware):
         if not was_truncated:
             return None
 
+        # Re-wrap into ToolResult if we unwrapped one *before* re-checking
+        # the size: the wrapper (content/meta envelope) adds overhead on top
+        # of the payload, so the limit must be enforced against the object
+        # that is actually returned to the caller, not the bare payload.
+        if extracted is not None and isinstance(truncated, dict):
+            final_response = self._rewrap_as_tool_result(truncated, response)
+        else:
+            final_response = truncated
+
         # Mirror the info-tool path: if truncation couldn't bring the
         # response back under the limit (e.g. a single row/scalar field
         # alone exceeds it), fall back to the hard size-limit error instead
         # of shipping an over-budget response.
-        truncated_tokens = estimate_response_tokens(truncated)
+        truncated_tokens = estimate_response_tokens(final_response)
         if truncated_tokens > self.token_limit:
             return None
 
@@ -1395,10 +1435,7 @@ class ResponseSizeGuardMiddleware(Middleware):
         except Exception as log_error:  # noqa: BLE001
             logger.warning("Failed to log truncation event: %s", log_error)
 
-        if extracted is not None and isinstance(truncated, dict):
-            return self._rewrap_as_tool_result(truncated, response)
-
-        return truncated
+        return final_response
 
     def _handle_oversized_response(
         self,

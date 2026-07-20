@@ -822,6 +822,45 @@ class TestTruncateQueryResult:
         assert estimate_response_tokens(result) <= 500
         assert any("CSV" in n for n in notes)
 
+    def test_csv_truncation_keeps_header_and_whole_records(self) -> None:
+        """Truncated CSV must stay parseable: header intact, no partial rows.
+
+        Regression test: naive character-offset truncation can cut a CSV
+        payload mid-record (e.g. inside a quoted field), producing invalid
+        CSV. Truncation must cut on record boundaries instead.
+        """
+        import csv
+        import io
+
+        header = "col_0,col_1,col_2"
+        # Include a quoted field containing a comma and an embedded newline,
+        # which would corrupt a naive character-offset cut.
+        rows = [
+            f'{i},"value, with comma","line1\nline2 for row {i}"' for i in range(500)
+        ]
+        csv_data = header + "\n" + "\n".join(rows) + "\n"
+        response: dict[str, Any] = {
+            "chart_id": 1,
+            "data": [],
+            "csv_data": csv_data,
+            "format": "csv",
+        }
+        result, was_truncated, notes = truncate_query_result(
+            response, 500, tool_name="get_chart_data"
+        )
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert estimate_response_tokens(result) <= 500
+
+        parsed_rows = list(csv.reader(io.StringIO(result["csv_data"])))
+        assert parsed_rows, "truncated CSV must remain parseable"
+        assert parsed_rows[0] == header.split(",")
+        # Every parsed record must be a complete, well-formed row (3 fields),
+        # proving no record was cut mid-field.
+        assert all(len(row) == 3 for row in parsed_rows)
+        assert len(parsed_rows) - 1 < len(rows)
+        assert any("data rows" in n for n in notes)
+
     def test_does_not_truncate_excel_binary_field(self) -> None:
         """excel_data is base64 binary — truncating it would corrupt the file."""
         response = {
@@ -852,3 +891,90 @@ class TestTruncateQueryResult:
         response = self._rows_response("rows")
         _, _, notes = truncate_query_result(response, 500, tool_name="execute_sql")
         assert any("LIMIT clause" in n for n in notes)
+
+    def test_execute_sql_statements_rows_truncated_alongside_top_level(self) -> None:
+        """Real ``ExecuteSqlResponse`` shapes duplicate rows under ``statements``.
+
+        Regression test: ``ExecuteSqlResponse.rows`` is a copy of the last
+        data-bearing statement's ``data.rows``, and the SAME rows are also
+        serialised under ``statements[0].data.rows``. If only the top-level
+        field is bisected, the nested copy stays at full size and the
+        response can remain oversized after "truncation".
+        """
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        rows = [row] * 200
+        response: dict[str, Any] = {
+            "success": True,
+            "rows": rows,
+            "row_count": 200,
+            "statements": [
+                {
+                    "original_sql": "SELECT * FROM t",
+                    "executed_sql": "SELECT * FROM t",
+                    "row_count": 200,
+                    "data": {
+                        "rows": rows,
+                        "columns": [
+                            {"name": f"col_{i}", "type": "TEXT"} for i in range(10)
+                        ],
+                    },
+                }
+            ],
+        }
+        result, was_truncated, notes = truncate_query_result(
+            response, 500, tool_name="execute_sql"
+        )
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        # The overall payload — including the nested statements copy — must
+        # actually fit; this is what the middleware's post-truncation size
+        # check relies on to avoid falling back to a hard error.
+        assert estimate_response_tokens(result) <= 500
+        assert len(result["rows"]) < 200
+        assert len(result["statements"][0]["data"]["rows"]) == len(result["rows"])
+        assert notes
+
+    def test_execute_sql_multiple_statements_each_capped(self) -> None:
+        """Every statement's rows are capped, not just the last (top-level) one."""
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        first_stmt_rows = [row] * 150
+        last_stmt_rows = [row] * 150
+        response: dict[str, Any] = {
+            "success": True,
+            "rows": last_stmt_rows,
+            "row_count": 150,
+            "multi_statement_warning": "2 data-bearing statements",
+            "statements": [
+                {
+                    "original_sql": "SELECT * FROM a",
+                    "executed_sql": "SELECT * FROM a",
+                    "row_count": 150,
+                    "data": {
+                        "rows": first_stmt_rows,
+                        "columns": [
+                            {"name": f"col_{i}", "type": "TEXT"} for i in range(10)
+                        ],
+                    },
+                },
+                {
+                    "original_sql": "SELECT * FROM b",
+                    "executed_sql": "SELECT * FROM b",
+                    "row_count": 150,
+                    "data": {
+                        "rows": last_stmt_rows,
+                        "columns": [
+                            {"name": f"col_{i}", "type": "TEXT"} for i in range(10)
+                        ],
+                    },
+                },
+            ],
+        }
+        result, was_truncated, notes = truncate_query_result(
+            response, 2000, tool_name="execute_sql"
+        )
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert estimate_response_tokens(result) <= 2000
+        assert len(result["statements"][0]["data"]["rows"]) < 150
+        assert len(result["statements"][1]["data"]["rows"]) < 150
+        assert notes

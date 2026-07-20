@@ -46,7 +46,7 @@ that risk.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Union
+from typing import Any, Callable, Dict, List, Union
 
 from pydantic import BaseModel
 from typing_extensions import TypeAlias
@@ -57,6 +57,12 @@ logger = logging.getLogger(__name__)
 
 # Type alias for MCP tool responses (Pydantic models, dicts, lists, strings, bytes)
 ToolResponse: TypeAlias = Union[BaseModel, Dict[str, Any], List[Any], str, bytes]
+
+# Measures the token size of a candidate payload dict. Callers that re-wrap
+# the payload before returning it (e.g. back into a ToolResult) can supply a
+# size function that measures the *wrapped* size, so truncation converges on
+# a result that fits after re-wrapping, not just before it.
+SizeFn: TypeAlias = Callable[[Dict[str, Any]], int]
 
 # Fallback character-to-token ratio used when tiktoken is unavailable.
 # 3.0 is conservative for JSON content (the previous 3.5 under-counted
@@ -608,11 +614,18 @@ def _replace_collections_with_summaries(data: Dict[str, Any], notes: List[str]) 
     return changed
 
 
-def _is_under_limit(data: Dict[str, Any], token_limit: int) -> bool:
-    """Check if the serialized data fits within the token limit."""
+def _default_size_fn(data: Dict[str, Any]) -> int:
+    """Estimate tokens for a bare payload dict (no re-wrap overhead)."""
     from superset.utils import json as utils_json
 
-    return estimate_token_count(utils_json.dumps(data)) <= token_limit
+    return estimate_token_count(utils_json.dumps(data))
+
+
+def _is_under_limit(
+    data: Dict[str, Any], token_limit: int, size_fn: SizeFn = _default_size_fn
+) -> bool:
+    """Check if the serialized data fits within the token limit."""
+    return size_fn(data) <= token_limit
 
 
 def truncate_oversized_response(
@@ -620,6 +633,7 @@ def truncate_oversized_response(
     token_limit: int,
     # Configurable via MCP_RESPONSE_SIZE_CONFIG["max_list_items"]
     max_list_items: int = DEFAULT_MAX_LIST_ITEMS,
+    size_fn: SizeFn = _default_size_fn,
 ) -> tuple[ToolResponse, bool, list[str]]:
     """
     Dynamically truncate large fields in a response to fit within the token limit.
@@ -635,6 +649,11 @@ def truncate_oversized_response(
         response: The tool response (Pydantic model, dict, or other).
         token_limit: Maximum estimated tokens allowed.
         max_list_items: Maximum items to keep in list fields during Phase 2.
+        size_fn: Measures the token size of a candidate payload dict. Defaults
+            to measuring the bare dict; callers that re-wrap the payload
+            before returning it (e.g. back into a ToolResult) should pass a
+            function that measures the *wrapped* size, so truncation
+            converges on a result that still fits after re-wrapping.
 
     Returns:
         A tuple of (possibly-truncated response, was_truncated, list of notes).
@@ -653,24 +672,24 @@ def truncate_oversized_response(
 
     # Phase 1: Truncate long string fields
     was_truncated |= _truncate_strings(data, notes)
-    if _is_under_limit(data, token_limit):
+    if _is_under_limit(data, token_limit, size_fn):
         return data, was_truncated, notes
 
     # Phase 2: Truncate large list fields
     was_truncated |= _truncate_lists(data, notes, max_list_items)
-    if _is_under_limit(data, token_limit):
+    if _is_under_limit(data, token_limit, size_fn):
         return data, was_truncated, notes
 
     # Phase 3: Recursively truncate strings inside nested structures
     # (e.g. charts[i].description, native_filters[i].config, etc.)
     was_truncated |= _truncate_strings_recursive(data, notes)
-    if _is_under_limit(data, token_limit):
+    if _is_under_limit(data, token_limit, size_fn):
         return data, was_truncated, notes
 
     # Phase 4: Aggressively reduce lists and summarize large dicts
     was_truncated |= _truncate_lists(data, notes, max_items=10)
     was_truncated |= _summarize_large_dicts(data, notes)
-    if _is_under_limit(data, token_limit):
+    if _is_under_limit(data, token_limit, size_fn):
         return data, was_truncated, notes
 
     # Phase 5: Nuclear — replace all collections with empty values
@@ -679,25 +698,72 @@ def truncate_oversized_response(
     return data, was_truncated, notes
 
 
+def _linked_statement_row_lists(data: Dict[str, Any]) -> list[list[Any]]:
+    """Find per-statement row lists duplicated from an ``execute_sql`` response.
+
+    ``ExecuteSqlResponse.rows`` is a copy of the last data-bearing
+    statement's ``data.rows`` (see ``_convert_to_response`` in
+    ``sql_lab/tool/execute_sql.py``), and every data-bearing statement's
+    rows are additionally serialised under ``statements[*].data.rows``. If
+    only the top-level ``rows`` field is bisected, these nested copies keep
+    the full untruncated payload, which can leave the response oversized
+    even after "truncation". Returns the mutable row lists (if any) so the
+    caller can shrink them in lockstep with the top-level field.
+    """
+    statements = data.get("statements")
+    if not isinstance(statements, list):
+        return []
+
+    linked = []
+    for statement in statements:
+        if not isinstance(statement, dict):
+            continue
+        statement_data = statement.get("data")
+        if isinstance(statement_data, dict) and isinstance(
+            statement_data.get("rows"), list
+        ):
+            linked.append(statement_data["rows"])
+    return linked
+
+
 def _bisect_row_limit(
     data: Dict[str, Any],
     row_field: str,
     original_rows: List[Any],
     token_limit: int,
+    size_fn: SizeFn = _default_size_fn,
 ) -> int:
     """Binary-search for the largest row prefix that keeps data under limit.
 
     Mutates ``data[row_field]`` during the search and leaves it at the final
     kept count on return.  Returns the number of rows kept (>= 1 if the
     original list was non-empty).
+
+    When ``data`` is an ``execute_sql`` response, per-statement row lists
+    under ``statements[*].data.rows`` duplicate ``data[row_field]`` (see
+    ``_linked_statement_row_lists``) and are shrunk to the same length at
+    each step, so the size measured during the search — and the response
+    ultimately returned — reflects the truncated nested data too, not just
+    the top-level field.
+
+    ``size_fn`` measures each candidate; pass a function that re-wraps the
+    payload (e.g. back into a ToolResult) before measuring so the search
+    converges on a prefix that still fits the limit after re-wrapping.
     """
-    from superset.utils import json as utils_json
+    linked_rows = [list(rows) for rows in _linked_statement_row_lists(data)]
+
+    def _apply(count: int) -> None:
+        data[row_field] = original_rows[:count]
+        for original_linked, mutable_linked in zip(
+            linked_rows, _linked_statement_row_lists(data), strict=False
+        ):
+            mutable_linked[:] = original_linked[: min(count, len(original_linked))]
 
     lo, hi = 0, len(original_rows)
     while lo < hi:
         mid = (lo + hi + 1) // 2
-        data[row_field] = original_rows[:mid]
-        if estimate_token_count(utils_json.dumps(data)) <= token_limit:
+        _apply(mid)
+        if size_fn(data) <= token_limit:
             lo = mid
         else:
             hi = mid - 1
@@ -708,38 +774,61 @@ def _bisect_row_limit(
         # at least some data rather than an empty list.
         kept = 1
 
-    data[row_field] = original_rows[:kept]
+    _apply(kept)
     return kept
 
 
-def _bisect_string_length(
+def _bisect_csv_row_limit(
     data: Dict[str, Any],
     field: str,
     original_value: str,
     token_limit: int,
+    size_fn: SizeFn = _default_size_fn,
 ) -> int:
-    """Binary-search for the largest string prefix that keeps data under limit.
+    """Binary-search for the largest whole-record prefix of a CSV string.
+
+    Cuts on CSV record boundaries (via the ``csv`` module, which
+    understands quoted fields and embedded delimiters/newlines) rather than
+    an arbitrary character offset, so the result is always parseable CSV.
+    The header row (record 0) is always kept when present, since
+    ``get_chart_data`` always writes one via ``csv.DictWriter.writeheader()``.
 
     Mutates ``data[field]`` during the search and leaves it at the final
-    kept length on return.
-    """
-    from superset.utils import json as utils_json
+    kept CSV text on return.
 
-    lo, hi = 0, len(original_value)
+    ``size_fn`` measures each candidate; pass a function that re-wraps the
+    payload before measuring so the search converges on a prefix that still
+    fits the limit after re-wrapping.
+
+    Returns:
+        The number of records kept, including the header row.
+    """
+    import csv
+    import io
+
+    records = list(csv.reader(io.StringIO(original_value)))
+    total = len(records)
+    if total <= 1:
+        # No data rows to trim (just a header, or unparseable) — nothing to
+        # cut on a record boundary; leave the field untouched.
+        return total
+
+    def _render(count: int) -> str:
+        buf = io.StringIO()
+        csv.writer(buf).writerows(records[:count])
+        return buf.getvalue()
+
+    lo, hi = 1, total  # always keep at least the header row
     while lo < hi:
         mid = (lo + hi + 1) // 2
-        data[field] = original_value[:mid]
-        if estimate_token_count(utils_json.dumps(data)) <= token_limit:
+        data[field] = _render(mid)
+        if size_fn(data) <= token_limit:
             lo = mid
         else:
             hi = mid - 1
 
-    kept = lo
-    if kept == 0 and original_value:
-        kept = 1
-
-    data[field] = original_value[:kept]
-    return kept
+    data[field] = _render(lo)
+    return lo
 
 
 # Row-truncation advice, keyed by tool name. ``get_chart_data`` and
@@ -759,6 +848,7 @@ def _truncate_rows_field(
     row_field: str,
     token_limit: int,
     advice: str,
+    size_fn: SizeFn = _default_size_fn,
 ) -> list[str] | None:
     """Try to bisect ``data[row_field]`` down to fit the limit.
 
@@ -783,7 +873,7 @@ def _truncate_rows_field(
     data["_response_truncated"] = True
     data["_truncation_notes"] = [placeholder_note]
 
-    kept = _bisect_row_limit(data, row_field, original_rows, token_limit)
+    kept = _bisect_row_limit(data, row_field, original_rows, token_limit, size_fn)
 
     if kept < original_count:
         notes = [
@@ -806,37 +896,52 @@ def _truncate_csv_data_field(
     data: Dict[str, Any],
     token_limit: int,
     advice: str,
+    size_fn: SizeFn = _default_size_fn,
 ) -> list[str] | None:
-    """Try to bisect the scalar ``csv_data`` field down to fit the limit.
+    """Try to trim the scalar ``csv_data`` field down to fit the limit.
 
     Used when there are no rows to trim — e.g. a CSV export where ``data``
-    is empty and the actual payload lives in ``csv_data``. ``excel_data``
-    is base64-encoded binary and is intentionally left alone: cutting it
-    would produce a corrupt file, so oversized Excel exports still fall
-    through to the hard size-limit error.
+    is empty and the actual payload lives in ``csv_data``. Truncation cuts
+    on CSV record boundaries (see ``_bisect_csv_row_limit``) rather than an
+    arbitrary character offset, so the result is always parseable CSV; the
+    header row is always preserved. ``excel_data`` is base64-encoded binary
+    and is intentionally left alone: cutting it would produce a corrupt
+    file, so oversized Excel exports still fall through to the hard
+    size-limit error.
 
     Returns the truncation notes on success, or ``None`` if nothing could
     be trimmed, in which case ``data`` is left unmodified.
     """
+    import csv
+    import io
+
     csv_data = data.get("csv_data")
     if not isinstance(csv_data, str) or not csv_data:
         return None
 
-    original_len = len(csv_data)
+    total_records = sum(1 for _ in csv.reader(io.StringIO(csv_data)))
+    original_data_rows = max(total_records - 1, 0)
+    if original_data_rows == 0:
+        # Just a header (or unparseable) — nothing to cut on a record
+        # boundary.
+        return None
+
     # Same reservation trick as ``_truncate_rows_field``, keyed on the
-    # character count rather than a row count.
+    # data-row count rather than the raw character count.
     placeholder_note = (
-        f"CSV content truncated: kept {original_len:,} of {original_len:,} "
-        f"characters (limit ~{token_limit:,} tokens). {advice}"
+        f"CSV content truncated: {original_data_rows} of {original_data_rows} "
+        f"data rows returned (limit ~{token_limit:,} tokens). {advice}"
     )
     data["_response_truncated"] = True
     data["_truncation_notes"] = [placeholder_note]
 
-    kept_len = _bisect_string_length(data, "csv_data", csv_data, token_limit)
-    if kept_len < original_len:
+    kept_records = _bisect_csv_row_limit(
+        data, "csv_data", csv_data, token_limit, size_fn
+    )
+    if (kept_data_rows := max(kept_records - 1, 0)) < original_data_rows:
         notes = [
-            f"CSV content truncated: kept {kept_len:,} of {original_len:,} "
-            f"characters (limit ~{token_limit:,} tokens). {advice}"
+            f"CSV content truncated: {kept_data_rows} of {original_data_rows} "
+            f"data rows returned (limit ~{token_limit:,} tokens). {advice}"
         ]
         data["_truncation_notes"] = notes
         return notes
@@ -850,6 +955,7 @@ def truncate_query_result(
     response: ToolResponse,
     token_limit: int,
     tool_name: str | None = None,
+    size_fn: SizeFn = _default_size_fn,
 ) -> tuple[ToolResponse, bool, list[str]]:
     """Truncate a data-query tool response to fit within the token limit.
 
@@ -866,17 +972,25 @@ def truncate_query_result(
     describe the pre-truncation dataset and are not recomputed here; callers
     rely on ``_truncation_notes`` and the true ``total_rows`` to catch this.
 
+    For ``execute_sql``, per-statement row lists under
+    ``statements[*].data.rows`` are shrunk alongside the top-level field
+    (see ``_linked_statement_row_lists``) so a duplicate, untruncated copy
+    of the same rows can't leave the response oversized after "truncation".
+
     Args:
         response: The tool response containing tabular row data.
         token_limit: Maximum estimated tokens allowed.
         tool_name: Name of the calling tool, used to tailor the truncation
             advice (e.g. ``limit`` vs. ``row_limit`` vs. SQL ``LIMIT``).
+        size_fn: Measures the token size of a candidate payload dict.
+            Defaults to measuring the bare dict; callers that re-wrap the
+            payload before returning it (e.g. back into a ToolResult) should
+            pass a function that measures the *wrapped* size, so the binary
+            search converges on a result that still fits after re-wrapping.
 
     Returns:
         A tuple of (possibly-truncated response, was_truncated, list of notes).
     """
-    from superset.utils import json as utils_json
-
     advice = _ROW_LIMIT_ADVICE.get(tool_name or "", _DEFAULT_ROW_LIMIT_ADVICE)
 
     if hasattr(response, "model_dump"):
@@ -895,14 +1009,14 @@ def truncate_query_result(
 
     if row_field is None:
         # No recognised row field — fall back to generic field truncation.
-        return truncate_oversized_response(response, token_limit)
+        return truncate_oversized_response(response, token_limit, size_fn=size_fn)
 
-    if estimate_token_count(utils_json.dumps(data)) <= token_limit:
+    if size_fn(data) <= token_limit:
         return data, False, []
 
-    notes = _truncate_rows_field(data, row_field, token_limit, advice)
+    notes = _truncate_rows_field(data, row_field, token_limit, advice, size_fn)
     if notes is None:
-        notes = _truncate_csv_data_field(data, token_limit, advice)
+        notes = _truncate_csv_data_field(data, token_limit, advice, size_fn)
 
     return data, notes is not None, notes or []
 
