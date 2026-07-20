@@ -20,7 +20,6 @@ import {
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
-  smartDateFormatter,
   JsonObject,
   SMART_DATE_VERBOSE_ID,
 } from '@superset-ui/core';
@@ -102,7 +101,7 @@ export default function transformProps(
       nameGap: theme.sizeUnit * 8,
       axisLabel: {
         color: theme.colorTextSecondary,
-        ...(xAxisFormat && xAxisFormat !== smartDateFormatter.id
+        ...(xAxisFormat && xAxisFormat !== 'smart_date'
           ? {
               formatter: (value: number) =>
                 getTimeFormatter(xAxisFormat)(value),
