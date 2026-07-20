@@ -17,8 +17,7 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { t } from '@apache-superset/core/translation';
-import { tn } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import MetadataBar, {
   MetadataType,
 } from '@superset-ui/core/components/MetadataBar';

@@ -26,6 +26,7 @@ import {
   IntervalAnnotationLayer,
   VizType,
   ChartDataResponseResult,
+  TimeGranularity,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
@@ -52,6 +53,12 @@ type LabelFormatterParams = {
 type SeriesWithLabelFormatter = SeriesOption & {
   label?: {
     formatter?: (params: LabelFormatterParams) => string | number;
+  };
+};
+
+type TooltipFormatterOptions = {
+  tooltip: {
+    formatter: (params: unknown) => string;
   };
 };
 
@@ -1012,4 +1019,90 @@ test('temporal x coltype wires the time formatter and Time axis', () => {
   const label = xAxis.axisLabel.formatter(new Date(ts1));
   expect(typeof label).toBe('string');
   expect(label).not.toMatch(/NaN/);
+});
+
+test('tooltip time grain wiring: dashboard-level extraFormData time grain overrides the chart-level grain in the tooltip', () => {
+  const ts = Date.UTC(2021, 0, 7);
+  const temporalRows = [{ __timestamp: ts, metric: 100 }];
+  const temporalQueryData = createTestQueryData(temporalRows, {
+    colnames: ['__timestamp', 'metric'],
+    coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+    label_map: { __timestamp: ['__timestamp'], metric: ['metric'] },
+  });
+
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [temporalQueryData, temporalQueryData],
+    formData: {
+      ...formData,
+      x_axis: '__timestamp',
+      metrics: ['metric'],
+      metricsB: ['metric'],
+      groupby: [],
+      groupbyB: [],
+      // The chart itself is configured with a Day grain...
+      timeGrainSqla: TimeGranularity.DAY,
+      // ...but a dashboard-level filter/override resolves to Month.
+      extraFormData: { time_grain_sqla: TimeGranularity.MONTH },
+    },
+    queriesData: [temporalQueryData, temporalQueryData],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const tooltipFormatter = (echartOptions as unknown as TooltipFormatterOptions)
+    .tooltip.formatter;
+
+  const result = tooltipFormatter({
+    value: [ts, 100],
+    seriesName: 'metric',
+  });
+
+  // Month grain (the dashboard override) should win, so the tooltip title
+  // reads "Jan 2021" rather than the Day-grain "2021-01-07".
+  expect(result).toContain('Jan');
+  expect(result).toContain('2021');
+  expect(result).not.toContain('2021-01-07');
+});
+
+test('tooltip time grain wiring: chart-level time grain drives the tooltip when there is no dashboard override', () => {
+  const ts = Date.UTC(2021, 0, 7);
+  const temporalRows = [{ __timestamp: ts, metric: 100 }];
+  const temporalQueryData = createTestQueryData(temporalRows, {
+    colnames: ['__timestamp', 'metric'],
+    coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+    label_map: { __timestamp: ['__timestamp'], metric: ['metric'] },
+  });
+
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [temporalQueryData, temporalQueryData],
+    formData: {
+      ...formData,
+      x_axis: '__timestamp',
+      metrics: ['metric'],
+      metricsB: ['metric'],
+      groupby: [],
+      groupbyB: [],
+      timeGrainSqla: TimeGranularity.YEAR,
+    },
+    queriesData: [temporalQueryData, temporalQueryData],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const tooltipFormatter = (echartOptions as unknown as TooltipFormatterOptions)
+    .tooltip.formatter;
+
+  const result = tooltipFormatter({
+    value: [ts, 100],
+    seriesName: 'metric',
+  });
+
+  expect(result).toContain('2021');
+  expect(result).not.toContain('2021-01-07');
 });

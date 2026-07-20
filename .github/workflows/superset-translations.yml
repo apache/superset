@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   frontend-check-translations:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       pull-requests: read
@@ -38,7 +38,7 @@ jobs:
 
       - name: Setup Node.js
         if: steps.check.outputs.frontend
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: "./superset-frontend/.nvmrc"
           cache: "npm"
@@ -55,7 +55,7 @@ jobs:
           npm run build-translation
 
   babel-extract:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       pull-requests: read

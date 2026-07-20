@@ -29,6 +29,7 @@ import {
   canUserSaveAsDashboard,
   isUserAdmin,
   isUserDashboardEditor,
+  isUserEditorOrAdmin,
 } from './permissionUtils';
 
 const editorUser: UserWithPermissionsAndRoles = {
@@ -194,6 +195,32 @@ test('isUserAdmin returns false for undefined user', () => {
 
 test('isUserAdmin returns false for non-admin user', () => {
   expect(isUserAdmin(editorUser)).toEqual(false);
+});
+
+describe('isUserEditorOrAdmin', () => {
+  test('returns true when the user is a subject editor', () => {
+    expect(isUserEditorOrAdmin(editorUser, [editorSubject])).toEqual(true);
+  });
+
+  test('returns true when the user is an admin, regardless of subject membership', () => {
+    const nonMatchingSubject: Subject = { id: 999, label: 'Other', type: 1 };
+    expect(isUserEditorOrAdmin(adminUser, [nonMatchingSubject])).toEqual(true);
+  });
+
+  test('returns false when the user is neither a subject editor nor an admin', () => {
+    const nonMatchingSubject: Subject = { id: 999, label: 'Other', type: 1 };
+    expect(isUserEditorOrAdmin(outsiderUser, [nonMatchingSubject])).toEqual(
+      false,
+    );
+  });
+
+  test('returns false when editors is empty', () => {
+    expect(isUserEditorOrAdmin(editorUser, [])).toEqual(false);
+  });
+
+  test('returns false when editors is omitted', () => {
+    expect(isUserEditorOrAdmin(outsiderUser)).toEqual(false);
+  });
 });
 
 test('userHasPermission always returns true for admin user', () => {

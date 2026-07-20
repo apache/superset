@@ -23,7 +23,7 @@
   },
   "settings": {
     "react": {
-      "version": "17.0.2"
+      "version": "18.3.1"
     }
   },
   "rules": {
@@ -111,21 +111,14 @@
     "no-object-constructor": "error",
 
     // === Import plugin rules ===
-    // TODO: Fix incorrect named imports in Storybook and other files
-    "import/named": "warn",
-    // TODO: Fix duplicate exports in shared-controls and other modules
-    // Temporarily disabled during OXC migration
-    "import/export": "warn",
-    // TODO: Re-enable after fixing default export patterns across codebase
-    // This is temporarily disabled during OXC migration to unblock CI
-    // Tracking issue: [Create issue after PR merge]
-    "import/no-named-as-default": "off",
-    "import/no-named-as-default-member": "off",
+    "import/named": "error",
+    "import/export": "error",
+    "import/no-named-as-default": "error",
+    "import/no-named-as-default-member": "error",
     "import/no-mutable-exports": "error",
     "import/no-amd": "error",
     "import/first": "error",
-    // TODO: Consolidate duplicate imports in DatasetList and other files
-    "import/no-duplicates": "warn",
+    "import/no-duplicates": "error",
     "import/no-absolute-path": "error",
     "import/no-dynamic-require": "error",
     "import/no-webpack-loader-syntax": "error",

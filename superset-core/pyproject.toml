@@ -26,7 +26,7 @@ authors = [
 ]
 license = "Apache-2.0"
 license-files = ["LICENSE.txt"]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 keywords = ["superset", "apache", "analytics", "business-intelligence", "extensions", "visualization"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -34,7 +34,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Database",

@@ -18,7 +18,7 @@
  */
 /* eslint-disable no-param-reassign */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import {
   AppSection,
   DataMask,
@@ -28,7 +28,6 @@ import {
   JsonObject,
   finestTemporalGrainFormatter,
 } from '@superset-ui/core';
-import { tn } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
 import { debounce, isUndefined } from 'lodash-es';
@@ -44,6 +43,7 @@ import {
 import {
   hasOption,
   propertyComparator,
+  stripSurroundingQuotes,
 } from '@superset-ui/core/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
@@ -331,14 +331,15 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [data, datatype, col, labelFormatter, creatable, filterState.value]);
 
   const options = useMemo(() => {
+    const unquotedSearch = stripSurroundingQuotes(search);
     if (
-      search &&
+      unquotedSearch &&
       !searchAllOptions &&
       creatable !== false &&
-      !hasOption(search, uniqueOptions, true)
+      !hasOption(unquotedSearch, uniqueOptions, true)
     ) {
       return [
-        { label: search, value: search, isNewOption: true },
+        { label: unquotedSearch, value: unquotedSearch, isNewOption: true },
         ...uniqueOptions,
       ];
     }
