@@ -25,6 +25,7 @@ import {
 } from '@superset-ui/core';
 import type { EChartsCoreOption } from 'echarts/core';
 import { Refs } from '../types';
+import { calculateLowerLogTick } from '../utils/series';
 import transformData, { TimePivotSeries } from './transformData';
 import {
   EchartsTimePivotChartProps,
@@ -79,7 +80,23 @@ export default function transformProps(
   // Draw the current period last so it paints on top of the faded priors.
   const sortedSeries = [...series].sort((a, b) => b.rank - a.rank);
 
-  const [yMin, yMax] = yAxisBounds ?? [null, null];
+  const [, yMax] = yAxisBounds ?? [null, null];
+  let yMin = yAxisBounds?.[0] ?? null;
+  // ECharts log axes only accept strictly positive values, so anchor the
+  // default minimum to the smallest positive value rather than letting the
+  // axis include zero/negative territory it cannot render.
+  if (yLogScale && yMin == null) {
+    const minPositiveValue = Math.min(
+      ...series.flatMap(s =>
+        s.values
+          .map(({ y }) => y)
+          .filter((y): y is number => y != null && y > 0),
+      ),
+    );
+    if (Number.isFinite(minPositiveValue)) {
+      yMin = calculateLowerLogTick(minPositiveValue);
+    }
+  }
 
   const echartOptions: EChartsCoreOption = {
     grid: {
