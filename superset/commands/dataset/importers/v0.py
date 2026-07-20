@@ -21,10 +21,11 @@ import yaml
 from flask_appbuilder import Model
 from sqlalchemy.orm.session import make_transient
 
-from superset import db
+from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import DatabaseNotFoundError
 from superset.commands.dataset.exceptions import DatasetInvalidError
+from superset.commands.exceptions import ImportFailedError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import (
     BaseDatasource,
@@ -36,6 +37,7 @@ from superset.constants import PASSWORD_MASK
 from superset.databases.utils import make_url_safe
 from superset.models.core import Database
 from superset.utils import json
+from superset.utils.core import get_user
 from superset.utils.decorators import transaction
 from superset.utils.dict_import_export import DATABASES_KEY
 
@@ -211,8 +213,22 @@ def import_from_dict(data: dict[str, Any], sync: Optional[list[str]] = None) -> 
     if not sync:
         sync = []
     if isinstance(data, dict):
-        logger.info("Importing %d %s", len(data.get(DATABASES_KEY, [])), DATABASES_KEY)
-        for database in data.get(DATABASES_KEY, []):
+        databases = data.get(DATABASES_KEY, [])
+        # This legacy path creates/updates the embedded database connections.
+        # Mirror the versioned (v1) import commands and require database write
+        # permission for the objects being created here. Only enforced when there
+        # is something to import and a request user is present, so the CLI import
+        # paths keep working.
+        if (
+            databases
+            and get_user()
+            and not security_manager.can_access("can_write", "Database")
+        ):
+            raise ImportFailedError(
+                "User doesn't have permission to create or update databases"
+            )
+        logger.info("Importing %d %s", len(databases), DATABASES_KEY)
+        for database in databases:
             db_obj = Database.import_from_dict(database, sync=sync)
             # ``import_from_dict`` sets fields via setattr, bypassing
             # ``set_sqlalchemy_uri``.  Call it explicitly so that any plaintext
