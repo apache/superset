@@ -59,15 +59,16 @@ jobs:
           cache: "npm"
           cache-dependency-path: "superset-frontend/package-lock.json"
 
-      - name: Install Frontend Dependencies
-        run: |
-          cd superset-frontend
-          npm ci
+      - parallel:
+        - name: Install Frontend Dependencies
+          run: |
+            cd superset-frontend
+            npm ci
 
-      - name: Install Docs Dependencies
-        run: |
-          cd docs
-          yarn install --immutable
+        - name: Install Docs Dependencies
+          run: |
+            cd docs
+            yarn install --immutable
 
       - name: Cache pre-commit environments
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

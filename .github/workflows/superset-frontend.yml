@@ -143,7 +143,7 @@ jobs:
           files: merged-output/coverage-summary.json
           slug: apache/superset
 
-  lint-frontend:
+  lint-and-validate-frontend:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'
     runs-on: ubuntu-24.04
@@ -158,35 +158,16 @@ jobs:
         run: |
           zstd -d < docker-image.tar.zst | docker load
 
-      - name: lint
-        run: |
-          docker run --rm $TAG bash -c \
-          "npm i && npm run lint"
+      - parallel:
+        - name: lint
+          run: |
+            docker run --rm $TAG bash -c \
+            "npm run lint"
 
-      - name: tsc
-        run: |
-          docker run --rm $TAG bash -c \
-          "npm i && npm run plugins:build && npm run type"
-
-  validate-frontend:
-    needs: frontend-build
-    if: needs.frontend-build.outputs.should-run == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - name: Download Docker Image Artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: docker-image
-
-      - name: Load Docker Image
-        run: |
-          zstd -d < docker-image.tar.zst | docker load
-
-      - name: Build Plugins Packages
-        run: |
-          docker run --rm $TAG bash -c \
-          "npm run plugins:build"
+        - name: build plugin and typecheck
+          run: |
+            docker run --rm $TAG bash -c \
+            "npm run plugins:build && npm run type"
 
   test-storybook:
     needs: frontend-build
@@ -206,4 +187,4 @@ jobs:
       - name: Build Storybook and Run Tests
         run: |
           docker run --rm $TAG bash -c \
-          "npm run build-storybook && npx playwright install-deps && npx playwright install chromium && npm run test-storybook:ci"
+          "npm run build-storybook && npx playwright install chromium --with-deps && npm run test-storybook:ci"
