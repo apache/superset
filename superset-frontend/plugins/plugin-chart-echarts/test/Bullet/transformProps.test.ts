@@ -45,7 +45,7 @@ const chartProps = (overrides: Partial<SqlaFormData> = {}) =>
 
 test('renders the measure bar with markers, marker lines and range bands', () => {
   const { echartOptions } = transformProps(chartProps());
-  const series = (echartOptions as any).series;
+  const { series } = echartOptions as any;
 
   // measure bar
   expect(series[0].type).toBe('bar');
@@ -78,7 +78,7 @@ test('defaults the band to 110% of the measure when no ranges are set', () => {
       markerLineLabels: '',
     }),
   );
-  const series = (echartOptions as any).series;
+  const { series } = echartOptions as any;
   expect(series[0].data).toEqual([120]);
   const bandEnds = series[0].markArea.data.map((d: any) => d[1].xAxis);
   expect(bandEnds).toEqual([120 * 1.1]);
