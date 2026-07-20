@@ -67,7 +67,7 @@ jobs:
     # Build docs when PR changes docs/** (uses committed databases.json)
     if: github.event_name == 'pull_request'
     name: Build (PR trigger)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     defaults:
       run:
         working-directory: docs
@@ -106,7 +106,7 @@ jobs:
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_repository.full_name == github.repository
     name: Build (after integration tests)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     defaults:
       run:
         working-directory: docs

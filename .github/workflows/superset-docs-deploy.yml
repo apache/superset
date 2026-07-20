@@ -33,7 +33,7 @@ permissions:
 
 jobs:
   config:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
@@ -57,7 +57,7 @@ jobs:
       (github.event_name != 'workflow_run' ||
        github.event.workflow_run.head_repository.full_name == github.repository)
     name: Build & Deploy
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: "Checkout ${{ github.event.workflow_run.head_sha || github.sha }}"
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

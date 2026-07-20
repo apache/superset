@@ -28,7 +28,7 @@ concurrency:
 
 jobs:
   changes:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -50,8 +50,7 @@ jobs:
   cypress-matrix:
     needs: changes
     if: (needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true') && github.event.pull_request.draft == false
-    # Somehow one test flakes on 24.04 for unknown reasons, this is the only GHA left on 22.04
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -173,7 +172,7 @@ jobs:
   playwright-tests:
     needs: changes
     if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -301,7 +300,7 @@ jobs:
   cypress-matrix-required:
     needs: [changes, cypress-matrix]
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     permissions: {}
     steps:
@@ -323,7 +322,7 @@ jobs:
   playwright-tests-required:
     needs: [changes, playwright-tests]
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     permissions: {}
     steps:
