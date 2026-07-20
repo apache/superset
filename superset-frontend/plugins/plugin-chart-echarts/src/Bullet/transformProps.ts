@@ -112,6 +112,7 @@ export default function transformProps(
     .map(({ value, label }) => `${label}: \u2264 ${formatter(value)}`);
 
   const echartOptions: EChartsCoreOption = {
+    animation: false,
     // A single-measure chart needs no legend; the default one collides
     // with the x-axis labels.
     legend: { show: false },
@@ -139,13 +140,24 @@ export default function transformProps(
       axisTick: { show: false },
       axisLabel: { show: false },
     },
+    // Axis trigger so hovering anywhere on the chart shows the breakdown;
+    // precise hovers on the thin bar or bands are hard to hit.
     tooltip: {
       confine: true,
+      trigger: 'axis',
       formatter: () =>
         sanitizeHtml(
           [
             `${metricLabel}: <b>${formatter(measure)}</b>`,
             ...rangeTooltipLines,
+            ...markers.map(
+              (value, i) =>
+                `${markerLabelAt(i, markerLabels, markers)}: <b>${formatter(value)}</b>`,
+            ),
+            ...markerLines.map(
+              (value, i) =>
+                `${markerLabelAt(i, markerLineLabels, markerLines)}: <b>${formatter(value)}</b>`,
+            ),
           ].join('<br />'),
         ),
     },
