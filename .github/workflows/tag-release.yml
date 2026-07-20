@@ -56,7 +56,7 @@ jobs:
     strategy:
       matrix:
         build_preset:
-          ["dev", "lean", "py310", "websocket", "dockerize", "py311", "py312"]
+          ["dev", "lean", "websocket", "dockerize", "py311", "py312"]
       fail-fast: false
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
