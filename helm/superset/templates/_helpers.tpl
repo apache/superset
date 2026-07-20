@@ -691,7 +691,7 @@ set -eu
 # Completed state instead of hanging on a still-running envoy-proxy.
 # See https://github.com/apache/superset/issues/25798
 ISTIO_QUIT_ENDPOINT={{ dig "istio" "quitEndpoint" "http://localhost:15020/quitquitquit" .Values.init | replace "'" "'\\''" | squote }}
-trap 'rc=$?; curl -fsS -m 5 -X POST "$ISTIO_QUIT_ENDPOINT" >/dev/null 2>&1 || true; exit $rc' EXIT
+trap 'rc=$?; curl -fsS -m 5 -X POST "$ISTIO_QUIT_ENDPOINT" >/dev/null 2>&1 || echo "WARNING: failed to notify Istio sidecar at $ISTIO_QUIT_ENDPOINT to quit; the Job may hang if sidecar injection is active" >&2; exit $rc' EXIT
 {{- end }}
 echo "Upgrading DB schema..."
 superset db upgrade
