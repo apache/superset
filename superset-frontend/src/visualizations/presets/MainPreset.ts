@@ -33,7 +33,6 @@ import RoseChartPlugin from '@superset-ui/plugin-chart-rose';
 import TableChartPlugin from '@superset-ui/plugin-chart-table';
 import { WordCloudChartPlugin } from '@superset-ui/plugin-chart-word-cloud';
 import WorldMapChartPlugin from '@superset-ui/plugin-chart-world-map';
-import { BulletChartPlugin } from '@superset-ui/preset-chart-nvd3';
 import { DeckGLChartPreset } from '@superset-ui/preset-chart-deckgl';
 import ScatterMapChartPlugin from '@superset-ui/plugin-chart-point-cluster-map';
 import { CartodiagramPlugin } from '@superset-ui/plugin-chart-cartodiagram';
@@ -110,7 +109,7 @@ export default class MainPreset extends Preset {
           key: VizType.BigNumberTotal,
         }),
         new EchartsBoxPlotChartPlugin().configure({ key: VizType.BoxPlot }),
-        new BulletChartPlugin().configure({ key: VizType.Bullet }),
+        new EchartsBulletChartPlugin().configure({ key: VizType.Bullet }),
         new CalendarChartPlugin().configure({ key: VizType.Calendar }),
         new ChordChartPlugin().configure({ key: VizType.Chord }),
         new CountryMapChartPlugin().configure({ key: VizType.CountryMap }),
