@@ -40,7 +40,7 @@ concurrency:
 
 jobs:
   config:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
       latest-release: ${{ steps.latest.outputs.tag }}
@@ -93,12 +93,12 @@ jobs:
     needs: config
     if: needs.config.outputs.has-secrets == '1'
     name: docker-rebuild
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     strategy:
       # Mirror the same matrix the release publisher uses so every variant
       # operators consume from Docker Hub gets the refreshed base.
       matrix:
-        build_preset: ["dev", "lean", "py310", "websocket", "dockerize", "py311", "py312"]
+        build_preset: ["dev", "lean", "websocket", "dockerize", "py311", "py312"]
       fail-fast: false
     steps:
       - name: "Checkout release tag: ${{ needs.config.outputs.latest-release }}"
@@ -155,7 +155,7 @@ jobs:
   notify-on-failure:
     needs: [config, docker-rebuild]
     if: failure() && needs.config.outputs.has-secrets == '1'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       issues: write

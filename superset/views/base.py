@@ -193,7 +193,7 @@ def deprecated(
                     eol_version,
                 ]
                 if new_target:
-                    message += " . Use the following API endpoint instead: %s"
+                    message += ". Use the following API endpoint instead: %s"
                     logger_args.append(new_target)
                 logger.warning(message, *logger_args)
             return f(self, *args, **kwargs)
