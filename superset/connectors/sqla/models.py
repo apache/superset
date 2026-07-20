@@ -2021,6 +2021,7 @@ class SqlaTable(
                     type=col["type"],
                     table=self,
                 )
+                db.session.add(new_column)
                 new_column.is_dttm = new_column.is_temporal
                 # Set description from comment field if available
                 if col.get("comment"):
