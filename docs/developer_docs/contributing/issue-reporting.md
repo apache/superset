@@ -82,7 +82,7 @@ If applicable, add screenshots or recordings.
 
 ### Environment
 - Superset version: [e.g., 3.0.0]
-- Python version: [e.g., 3.9.7]
+- Python version: [e.g., 3.11.7]
 - Node version: [e.g., 18.17.0]
 - Database: [e.g., PostgreSQL 14]
 - Browser: [e.g., Chrome 120]
@@ -125,7 +125,7 @@ No error messages in browser console or server logs.
 
 ### Environment
 - Superset version: 3.0.0
-- Python version: 3.9.16
+- Python version: 3.11.16
 - Database: PostgreSQL 14.9
 - Browser: Chrome 120.0.6099.71
 - OS: macOS 14.2

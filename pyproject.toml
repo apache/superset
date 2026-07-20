@@ -24,13 +24,12 @@ name = "apache_superset"
 description = "A modern, enterprise-ready business intelligence web application"
 readme = "README.md"
 dynamic = ["version", "scripts", "entry-points"]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { file="LICENSE.txt" }
 authors = [
     { name = "Apache Software Foundation", email = "dev@superset.apache.org" },
 ]
 classifiers = [
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
@@ -84,7 +83,7 @@ dependencies = [
     "packaging",
     # --------------------------
     # pandas and related (wanting pandas[performance] without numba as it's 100+MB and not needed)
-    "pandas[excel]>=2.1.4, <2.4",
+    "pandas[excel]>=2.3.3, <2.4",
     "bottleneck", # recommended performance dependency for pandas, see https://pandas.pydata.org/docs/getting_started/install.html#performance-dependencies-recommended
     # --------------------------
     "parsedatetime",
@@ -167,7 +166,6 @@ gevent = ["gevent>=26.4.0"]
 gsheets = ["shillelagh[gsheetsapi]>=1.4.4, <2"]
 hana = ["hdbcli==2.29.25", "sqlalchemy_hana==3.0.3"]
 hive = [
-    "pyhive[hive]>=0.6.5;python_version<'3.11'",
     "pyhive[hive_pure_sasl]>=0.7.0",
     "tableschema",
     "thrift>=0.23.0, <1.0.0",
@@ -201,7 +199,6 @@ singlestore = ["sqlalchemy-singlestoredb>=1.2.1, <2"]
 snowflake = ["snowflake-sqlalchemy>=1.10.2, <2"]
 sqlite = ["syntaqlite>=0.7.0,<0.8.0"]
 spark = [
-    "pyhive[hive]>=0.6.5;python_version<'3.11'",
     "pyhive[hive_pure_sasl]>=0.7",
     "tableschema",
     "thrift>=0.23.0, <1",
@@ -344,8 +341,8 @@ exclude = [
 line-length = 88
 indent-width = 4
 
-# Assume Python 3.10
-target-version = "py310"
+# Assume Python 3.11
+target-version = "py311"
 
 [tool.ruff.lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.

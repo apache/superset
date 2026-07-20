@@ -3703,7 +3703,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 client_id=shortid()[:10],
                 user_id=get_user_id(),
             )
-            self.session.expunge(query)
+            # This ephemeral Query must never be persisted; with
+            # cascade_backrefs=False it is not added to the session in the
+            # first place, so only expunge if something else added it.
+            if query in self.session:
+                self.session.expunge(query)
 
         if database and table or query:
             if query:
