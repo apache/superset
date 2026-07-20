@@ -58,7 +58,6 @@ interface CalendarProps {
   theme: SupersetTheme;
   colorRangeEnd?: number;
   colorRangeStart?: number;
-  useCustomColorRange?: boolean;
 }
 
 function Calendar(element: HTMLElement, props: CalendarProps) {
@@ -81,7 +80,6 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
     theme,
     colorRangeEnd,
     colorRangeStart,
-    useCustomColorRange,
   } = props;
 
   const container = d3Select(element)
@@ -104,6 +102,8 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
       calContainer.text(`${METRIC_TEXT}: ${verboseMap[metric] || metric}`);
     }
     const timestamps = metricsData[metric];
+    const useCustomColorRange =
+      Number.isFinite(colorRangeStart) && Number.isFinite(colorRangeEnd);
     const rawExtents = useCustomColorRange
       ? ([
           Math.min(colorRangeStart as number, colorRangeEnd as number),

@@ -44,10 +44,6 @@ export default function transformProps(chartProps: ChartProps) {
     getFormattedUTCTime(ts, xAxisTimeFormat);
   const valueFormatter = getNumberFormatter(yAxisFormat);
 
-  // Use a fixed color range only when both bounds are valid numbers
-  const useCustomColorRange =
-    Number.isFinite(colorRangeStart) && Number.isFinite(colorRangeEnd);
-
   return {
     height,
     data: queriesData[0].data,
@@ -66,6 +62,5 @@ export default function transformProps(chartProps: ChartProps) {
     verboseMap,
     colorRangeEnd,
     colorRangeStart,
-    useCustomColorRange,
   };
 }
