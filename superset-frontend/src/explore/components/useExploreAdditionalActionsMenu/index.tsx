@@ -46,7 +46,6 @@ import {
 } from '@superset-ui/core/components';
 import { Menu, MenuProps } from '@superset-ui/core/components/Menu';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { DEFAULT_CSV_STREAMING_ROW_THRESHOLD } from 'src/constants';
 import { exportChart, getChartKey } from 'src/explore/exploreUtils';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
@@ -65,16 +64,14 @@ import {
   LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS,
 } from 'src/logger/LogUtils';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
-import {
-  useStreamingExport,
-  StreamingProgress,
-} from 'src/components/StreamingExportModal';
+import { StreamingProgress } from 'src/components/StreamingExportModal';
 import { Slice } from 'src/types/Chart';
 import { ChartState, ExplorePageInitialData } from 'src/explore/types';
 import { ReportObject } from 'src/features/reports/types';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
 import { useDashboardsMenuItems } from './DashboardsSubMenu';
+import { useExploreDataExport } from './useExploreDataExport';
 
 export const SEARCH_THRESHOLD = 10;
 
@@ -317,11 +314,6 @@ export const useExploreAdditionalActionsMenu = (
   const chart = useSelector<ExploreState, ChartState | undefined>(state =>
     state.explore ? state.charts?.[getChartKey(state.explore)] : undefined,
   );
-  const streamingThreshold = useSelector<ExploreState, number>(
-    state =>
-      state.common?.conf?.CSV_STREAMING_ROW_THRESHOLD ||
-      DEFAULT_CSV_STREAMING_ROW_THRESHOLD,
-  );
   const exploreChartState = useSelector<ExploreState, JsonObject | undefined>(
     state => {
       const chartKey = state.explore ? getChartKey(state.explore) : undefined;
@@ -362,31 +354,19 @@ export const useExploreAdditionalActionsMenu = (
     );
 
   // Streaming export state and handlers
-  const [isStreamingModalVisible, setIsStreamingModalVisible] = useState(false);
   const {
-    progress,
-    isExporting: _isExporting,
-    startExport,
-    cancelExport: _cancelExport,
-    resetExport,
-    retryExport,
-  } = useStreamingExport({
-    onComplete: () => {
-      // Don't show toast here - wait for user to click Download button
-    },
-    onError: () => {
-      addDangerToast(t('Export failed - please try again'));
-    },
+    exportCSV,
+    exportCSVPivoted,
+    exportJson,
+    exportExcel,
+    handleExportError,
+    streamingExportState,
+  } = useExploreDataExport({
+    latestQueryFormData,
+    canDownloadCSV,
+    slice,
+    ownState,
   });
-
-  const handleCloseStreamingModal = useCallback(() => {
-    setIsStreamingModalVisible(false);
-    resetExport();
-  }, [resetExport]);
-
-  const handleDownloadComplete = useCallback(() => {
-    addSuccessToast(t('CSV file downloaded successfully'));
-  }, [addSuccessToast]);
 
   // Use the updated report menu items hook
   const reportMenuItem = useHeaderReportMenuItems({
@@ -438,159 +418,6 @@ export const useExploreAdditionalActionsMenu = (
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
     }
   }, [addDangerToast, latestQueryFormData, permalinkChartState]);
-
-  const handleExportError = useCallback(
-    (error: unknown) => {
-      const exportError = error as Error & {
-        status?: number;
-        statusText?: string;
-        response?: { status?: number };
-      };
-      const status = exportError.status || exportError.response?.status;
-      if (status === 413) {
-        addDangerToast(
-          t(
-            'The chart data is too large to download. Please try reducing the date range, limiting rows, or using fewer columns.',
-          ),
-        );
-      } else {
-        const errorMessage =
-          exportError.message ||
-          exportError.statusText ||
-          t(
-            'Failed to export chart data. Please try again or contact your administrator.',
-          );
-        addDangerToast(errorMessage);
-      }
-    },
-    [addDangerToast],
-  );
-
-  const exportCSV = useCallback(async () => {
-    if (!canDownloadCSV) return null;
-
-    // Determine row count for streaming threshold check
-    let actualRowCount;
-    const isTableViz = latestQueryFormData?.viz_type === 'table';
-    const queriesResponse = chart?.queriesResponse;
-
-    if (
-      isTableViz &&
-      queriesResponse &&
-      queriesResponse.length > 1 &&
-      queriesResponse[1]?.data?.[0]?.rowcount
-    ) {
-      actualRowCount = queriesResponse[1].data[0].rowcount;
-    } else if (queriesResponse && queriesResponse[0]?.sql_rowcount != null) {
-      actualRowCount = queriesResponse[0].sql_rowcount;
-    } else if (queriesResponse && queriesResponse[0]?.rowcount != null) {
-      actualRowCount = queriesResponse[0].rowcount;
-    } else {
-      actualRowCount = latestQueryFormData?.row_limit;
-    }
-
-    // Check if streaming should be used
-    const shouldUseStreaming =
-      actualRowCount && actualRowCount >= streamingThreshold;
-
-    let filename: string | undefined;
-    if (shouldUseStreaming) {
-      const now = new Date();
-      const date = now.toISOString().slice(0, 10);
-      const time = now.toISOString().slice(11, 19).replace(/:/g, '');
-      const timestamp = `_${date}_${time}`;
-      const chartName =
-        slice?.slice_name || latestQueryFormData.viz_type || 'chart';
-      const safeChartName = chartName.replace(/[^a-zA-Z0-9_-]/g, '_');
-      filename = `${safeChartName}${timestamp}.csv`;
-    }
-
-    try {
-      await exportChart({
-        formData: latestQueryFormData as QueryFormData,
-        ownState,
-        resultType: 'full',
-        resultFormat: 'csv',
-        onStartStreamingExport: shouldUseStreaming
-          ? exportParams => {
-              if (exportParams.url) {
-                setIsStreamingModalVisible(true);
-                startExport({
-                  ...exportParams,
-                  url: exportParams.url,
-                  filename,
-                  expectedRows: actualRowCount,
-                  exportType: exportParams.exportType as 'csv' | 'xlsx',
-                });
-              }
-            }
-          : null,
-      });
-    } catch (error) {
-      handleExportError(error);
-    }
-    return null;
-  }, [
-    canDownloadCSV,
-    latestQueryFormData,
-    ownState,
-    chart,
-    streamingThreshold,
-    slice,
-    startExport,
-    handleExportError,
-  ]);
-
-  const exportCSVPivoted = useCallback(async () => {
-    if (!canDownloadCSV) {
-      return null;
-    }
-    try {
-      await exportChart({
-        formData: latestQueryFormData as QueryFormData,
-        ownState,
-        resultType: 'post_processed',
-        resultFormat: 'csv',
-      });
-    } catch (error) {
-      handleExportError(error);
-    }
-    return null;
-  }, [canDownloadCSV, latestQueryFormData, ownState, handleExportError]);
-
-  const exportJson = useCallback(async () => {
-    if (!canDownloadCSV) {
-      return null;
-    }
-    try {
-      await exportChart({
-        formData: latestQueryFormData as QueryFormData,
-        ownState,
-        resultType: 'results',
-        resultFormat: 'json',
-      });
-    } catch (error) {
-      handleExportError(error);
-    }
-    return null;
-  }, [canDownloadCSV, latestQueryFormData, ownState, handleExportError]);
-
-  const exportExcel = useCallback(async () => {
-    if (!canDownloadCSV) {
-      return null;
-    }
-    try {
-      await exportChart({
-        formData: latestQueryFormData as QueryFormData,
-        ownState,
-        resultType: 'results',
-        resultFormat: 'xlsx',
-      });
-    } catch (error) {
-      handleExportError(error);
-    }
-    return null;
-  }, [canDownloadCSV, latestQueryFormData, ownState, handleExportError]);
 
   const copyLink = useCallback(async () => {
     try {
@@ -1245,15 +1072,6 @@ export const useExploreAdditionalActionsMenu = (
     hasExportCurrentView,
     canExportImage,
   ]);
-
-  // Return streaming modal state and handlers for parent to render
-  const streamingExportState = {
-    isVisible: isStreamingModalVisible,
-    progress,
-    onCancel: handleCloseStreamingModal,
-    onRetry: retryExport,
-    onDownload: handleDownloadComplete,
-  };
 
   return [menu, isDropdownVisible, setIsDropdownVisible, streamingExportState];
 };
