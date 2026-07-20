@@ -60,8 +60,13 @@ export default function transformProps(
 
   const formatter = getNumberFormatter(yAxisFormat);
 
-  const axisMax = Math.max(measure, ...ranges, ...markers, ...markerLines);
   const axisMin = Math.min(0, measure, ...ranges, ...markers, ...markerLines);
+  let axisMax = Math.max(measure, ...ranges, ...markers, ...markerLines);
+  if (axisMax === axisMin) {
+    // All values identical (e.g. an empty result measuring 0) would produce a
+    // zero-width axis domain; expand it so the chart still renders.
+    axisMax = axisMin + (Math.abs(axisMin) || 1);
+  }
 
   // Nested qualitative bands like d3-bullet: draw from the largest threshold
   // down so smaller (darker) bands paint on top.

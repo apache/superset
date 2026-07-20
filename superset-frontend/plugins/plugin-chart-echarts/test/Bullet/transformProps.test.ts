@@ -130,4 +130,7 @@ test('handles an empty query result without crashing', () => {
   }) as unknown as EchartsBulletChartProps;
   const { echartOptions } = transformProps(props);
   expect((echartOptions as any).series[0].data).toEqual([0]);
+  // the axis domain must not collapse to zero width
+  const { min, max } = (echartOptions as any).xAxis;
+  expect(max).toBeGreaterThan(min);
 });
