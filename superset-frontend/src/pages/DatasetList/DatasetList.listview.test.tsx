@@ -1022,7 +1022,7 @@ test('edit action is enabled for dataset editor', async () => {
 
   const row = screen.getByText(dataset.table_name).closest('tr');
   const editIcon = within(row!).getByTestId('edit');
-  const editButton = editIcon.closest('[role="button"]');
+  const editButton = editIcon.closest('button');
 
   // Should be enabled (not disabled)
   expect(editButton).toHaveAttribute('aria-disabled', 'false');
@@ -1045,7 +1045,7 @@ test('edit action is disabled for non-editor', async () => {
 
   const row = screen.getByText(dataset.table_name).closest('tr');
   const editIcon = within(row!).getByTestId('edit');
-  const editButton = editIcon.closest('[role="button"]');
+  const editButton = editIcon.closest('button');
 
   // Should be disabled
   expect(editButton).toHaveAttribute('aria-disabled', 'true');
@@ -1072,10 +1072,10 @@ test('all action buttons are clickable and enabled for admin user', async () => 
   const editIcon = within(row!).getByTestId('edit');
   const duplicateIcon = within(row!).getByTestId('copy');
 
-  const deleteButton = deleteIcon.closest('[role="button"]');
-  const exportButton = exportIcon.closest('[role="button"]');
-  const editButton = editIcon.closest('[role="button"]');
-  const duplicateButton = duplicateIcon.closest('[role="button"]');
+  const deleteButton = deleteIcon.closest('button');
+  const exportButton = exportIcon.closest('button');
+  const editButton = editIcon.closest('button');
+  const duplicateButton = duplicateIcon.closest('button');
 
   // None should be disabled (export/duplicate never set aria-disabled at all)
   expect(deleteButton).not.toHaveAttribute('aria-disabled', 'true');
