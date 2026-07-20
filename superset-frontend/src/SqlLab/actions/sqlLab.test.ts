@@ -21,7 +21,7 @@ import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import type { ThunkDispatch } from 'redux-thunk';
 import type { AnyAction } from 'redux';
-import { waitFor } from 'spec/helpers/testing-library';
+import { waitFor, defaultStore } from 'spec/helpers/testing-library';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import type { QueryEditor, Table, SqlLabRootState } from 'src/SqlLab/types';
 import { LOG_EVENT } from 'src/logger/actions';
@@ -39,7 +39,6 @@ import {
   queryHistoryApi,
   type QueryResult,
 } from 'src/hooks/apiResources/queries';
-import { defaultStore } from 'spec/helpers/testing-library';
 import { ToastType } from '../../components/MessageToasts/types';
 
 const isFeatureEnabledMock = isFeatureEnabled as unknown as jest.Mock;
@@ -1996,6 +1995,58 @@ describe('async actions', () => {
             ).toHaveLength(2);
           });
       });
+    });
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('toggleLeftBar', () => {
+    const activeId = 'active-qe';
+    const makeState = (hideLeftBar: boolean, unsavedOverride?: boolean) => ({
+      sqlLab: {
+        tabHistory: [activeId],
+        queryEditors: [{ id: activeId, hideLeftBar }],
+        unsavedQueryEditor:
+          unsavedOverride !== undefined
+            ? { id: activeId, hideLeftBar: unsavedOverride }
+            : {},
+      },
+    });
+
+    test('dispatches QUERY_EDITOR_TOGGLE_LEFT_BAR when state differs', () => {
+      const store = mockStore(makeState(false));
+      store.dispatch(actions.toggleLeftBar(true));
+      expect(store.getActions()).toEqual([
+        {
+          type: actions.QUERY_EDITOR_TOGGLE_LEFT_BAR,
+          queryEditorId: activeId,
+          hideLeftBar: true,
+        },
+      ]);
+    });
+
+    test('does not dispatch when state is already the same', () => {
+      const store = mockStore(makeState(true));
+      store.dispatch(actions.toggleLeftBar(true));
+      expect(store.getActions()).toHaveLength(0);
+    });
+
+    test('uses unsavedQueryEditor state when available', () => {
+      // qe in queryEditors says false, but unsaved override says true
+      const store = mockStore(makeState(false, true));
+      store.dispatch(actions.toggleLeftBar(true));
+      expect(store.getActions()).toHaveLength(0);
+    });
+
+    test('does not dispatch when there is no active query editor', () => {
+      const store = mockStore({
+        sqlLab: {
+          tabHistory: [],
+          queryEditors: [],
+          unsavedQueryEditor: {},
+        },
+      });
+      store.dispatch(actions.toggleLeftBar(true));
+      expect(store.getActions()).toHaveLength(0);
     });
   });
 });

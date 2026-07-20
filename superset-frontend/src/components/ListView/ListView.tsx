@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { handleKeyboardActivation } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
 import { styled } from '@apache-superset/core/theme';
@@ -255,6 +256,7 @@ const ViewModeToggle = ({
           e.currentTarget.blur();
           setMode('card');
         }}
+        onKeyDown={handleKeyboardActivation(() => setMode('card'))}
         className={cx('toggle-button', { active: mode === 'card' })}
       >
         <Icons.AppstoreOutlined iconSize="xl" />
@@ -269,6 +271,7 @@ const ViewModeToggle = ({
           e.currentTarget.blur();
           setMode('table');
         }}
+        onKeyDown={handleKeyboardActivation(() => setMode('table'))}
         className={cx('toggle-button', { active: mode === 'table' })}
       >
         <Icons.UnorderedListOutlined iconSize="xl" />
@@ -509,6 +512,9 @@ export function ListView<T extends object = any>({
                         tabIndex={0}
                         className="deselect-all"
                         onClick={() => toggleAllRowsSelected(false)}
+                        onKeyDown={handleKeyboardActivation(() =>
+                          toggleAllRowsSelected(false),
+                        )}
                       >
                         {t('Deselect all')}
                       </span>
@@ -544,6 +550,9 @@ export function ListView<T extends object = any>({
                           tabIndex={0}
                           className="tag-btn"
                           onClick={() => setShowBulkTagModal(true)}
+                          onKeyDown={handleKeyboardActivation(() =>
+                            setShowBulkTagModal(true),
+                          )}
                         >
                           {t('Add Tag')}
                         </span>
@@ -573,7 +582,6 @@ export function ListView<T extends object = any>({
                     onChange={(page: number) => {
                       gotoPage(page - 1);
                     }}
-                    size="default"
                     showSizeChanger={false}
                     showQuickJumper={false}
                     hideOnSinglePage

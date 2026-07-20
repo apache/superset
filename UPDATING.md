@@ -24,6 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Python 3.10 support removed
+
+Python 3.10 is no longer supported. Superset now requires **Python 3.11 or higher**.
+Update your environment (virtualenv, Docker base image, CI configuration, etc.) to
+Python 3.11+ before upgrading. The `apache/superset-cache:3.10-slim-trixie` and
+`py310` Docker image variants are no longer published.
+
 ### Owners, dashboard roles, and RLS roles replaced by Subjects
 
 Superset now uses subject-based access assignments for dashboards, charts, datasets,
@@ -112,6 +119,8 @@ in a later major version.
 
 - [41044](https://github.com/apache/superset/issues/41044): Removes the deprecated `AVOID_COLORS_COLLISION` feature flag (it defaulted to `True`). Color-collision avoidance is now permanently enabled; any config override setting it to `False` is ignored.
 
+- [41813](https://github.com/apache/superset/pull/41813): `redis` (the Python client, `redis-py`) is bumped from 5.3.1 to 8.0.1. redis-py 8 changes several connection defaults; Superset's own Redis-backed features (`GLOBAL_ASYNC_QUERIES_CACHE_BACKEND`, `DISTRIBUTED_COORDINATION_CONFIG`, and the MCP Redis store) explicitly pin the pre-upgrade behavior so this bump is a no-op for them: the wire protocol stays RESP2 (not the new RESP3 default, which requires Redis/Sentinel 6+ to speak `HELLO`) and there is still no socket timeout by default (redis-py 8 defaults to 5s, which could otherwise newly time out large cached payloads or slow networks). The no-timeout default can now be overridden via two new config keys, `CACHE_REDIS_SOCKET_TIMEOUT` / `CACHE_REDIS_SOCKET_CONNECT_TIMEOUT`, on any `CacheConfig` dict using `CACHE_TYPE: RedisCache` or `RedisSentinelCache`. Separately, redis-py 6+ changed the default for `ssl_check_hostname` from `False` to `True` for SSL connections using `ssl_cert_reqs="required"` (the default) — this is a security improvement, so it has **not** been reverted; deployments with `CACHE_REDIS_SSL=True` whose certificates lack a hostname matching the connection address should set `CACHE_REDIS_SSL_CERT_REQS="none"` (disables cert verification entirely, matching hostname-check bypass) or replace the certificate. General-purpose cache/results backends configured via `CACHE_CONFIG` / `DATA_CACHE_CONFIG` / `RESULTS_BACKEND` with `CACHE_TYPE: RedisCache` go through `flask-caching`'s own Redis backend (outside Superset's code) and are subject to the same new defaults; pass `socket_timeout` / `protocol` via `CACHE_OPTIONS` there if needed. Celery broker and result-backend connections (built by `kombu`, also outside Superset's code) keep their no-socket-timeout behavior (`kombu` passes `socket_timeout=None` explicitly) but do **not** pin the wire protocol, so they follow redis-py's RESP3 default — which requires a Redis server new enough to speak `HELLO` (Redis 6+). Deployments using a pre-6.0 Redis server (EOL) as a Celery broker should upgrade the server before taking this bump.
+
 - [39925](https://github.com/apache/superset/pull/39925): URL prefixing for `SUPERSET_APP_ROOT` subdirectory deployments is now handled automatically by helpers in `src/utils/navigationUtils` (`openInNewTab`, `redirect`, `getShareableUrl`, `<AppLink>`). Direct imports of `ensureAppRoot` / `makeUrl` from `src/utils/pathUtils` are forbidden outside `navigationUtils.ts` (enforced by a static-invariant test); contributors writing new code should use the focused helpers instead. No runtime behaviour change for existing callers — all 19 prior call sites have been migrated and four pre-existing double-prefix and missing-prefix bugs are fixed as part of the migration.
 
 - [39925](https://github.com/apache/superset/pull/39925): `SupersetClient.getUrl()` now strips a single leading application-root segment from the supplied `endpoint` before building the request URL, so a caller that accidentally pre-prefixes its endpoint (for example by wrapping it with `ensureAppRoot` before passing it to the client) no longer produces a doubled `/superset/superset/...` URL under subdirectory deployment. The strip is **single-pass** — a genuine `/superset/superset/<slug>` route is preserved, not collapsed — and **silent** (no console warning); the static-invariant test remains the primary signal for pre-prefixing at the call site, and this runtime strip is a safety net beneath it. Code that intentionally targeted a literal `/<app_root>/<app_root>/...` endpoint through `getUrl` (a configuration that has no legitimate use under the prefixing model) would have its first redundant segment removed.
@@ -153,6 +162,16 @@ virtual-dataset SQL) raises a parse error in SQL Lab and dashboard-generated
 queries. Deployments that legitimately run queries above this size should raise
 the value, and `SQL_MAX_PARSE_LENGTH = None` disables the check entirely.
 
+### Ant Design upgraded from v5 to v6
+
+The frontend now builds against Ant Design 6, and `@superset-ui/core` / `@apache-superset/core` peer-depend on `antd ^6`. Custom plugins, extensions, and themes that interact with Ant Design need review:
+
+- **Internal DOM classes were renamed**, so any custom CSS targeting `.ant-*` internals silently stops matching. Notable renames: `.ant-tabs-content-holder` → `.ant-tabs-body-holder`, `.ant-tabs-content` → `.ant-tabs-body`, `.ant-tabs-tabpane` → `.ant-tabs-content`; `.ant-select-selector` → `.ant-select-content`, `.ant-select-selection-placeholder` → `.ant-select-placeholder`, `.ant-select-arrow` → `.ant-select-suffix`; `.ant-tooltip-inner` → `.ant-tooltip-container`; `.ant-popover-inner` → `.ant-popover-container`; `.ant-steps-item-tail` → `.ant-steps-item-rail`.
+- **Some component props changed or were removed** — e.g. `Select` no longer accepts `dropdownAlign`, `visible`/`onVisibleChange` are `open`/`onOpenChange`, `Dropdown` `overlay` is `menu`, `Steps.Step` children are the `items` prop, and `styles.body` on Tooltip/Popover is `styles.container`.
+- **CSS variables are on by default** in antd 6, and `ThemeConfig.cssVar` no longer accepts a boolean; Superset theme configs using `cssVar: true`/`false` are coerced (`true` → `{}`, `false` → omitted).
+
+Theme tokens are unaffected — antd 6 removed none of the tokens Superset exposes, so existing theme configurations continue to work. See the [Ant Design v6 migration guide](https://ant.design/docs/react/migration-v6) for the complete upstream list.
+
 ### Guest-token RLS rules reject unknown fields
 
 The `rls` rules passed to `POST /api/v1/security/guest_token/` are now validated strictly: a rule may only contain `dataset` and `clause`. Previously unknown fields were silently dropped, so a mistyped or legacy scope key (most commonly `datasource` instead of `dataset`) produced a rule with no `dataset`, which is treated as a *global* rule applied to every dataset the embedded resource can reach. Such a request now returns HTTP 400 identifying the offending field instead of issuing a token with an unintended global rule. Integrators that were sending extra fields in RLS rules must remove them; valid dataset-scoped (`{"dataset": 41, "clause": "..."}`) and global (`{"clause": "..."}`) rules are unaffected.
@@ -181,6 +200,10 @@ helm upgrade <release-name> superset/superset
 ```
 
 Alternatively, perform a fresh install. This is a one-time migration; subsequent upgrades are unaffected.
+
+### Time-series tooltips follow the selected time grain
+
+Tooltips on the Time-series and Mixed Time-series ECharts plugins now respect the chart's time grain (and any dashboard-level time-grain override delivered via `extra_form_data`) when the tooltip time format is left on Adaptive formatting (the default). Tooltips read grain-appropriate labels such as `Jan 2021` (month), `2021 Q1` (quarter), `2021` (year), and weekly date ranges, becoming grain-aware like the x-axis, though the two are formatted independently and their labels may not always match exactly. Only a custom, explicitly-set tooltip time format (a d3 format string) is unaffected — that always wins over the grain.
 
 ### Pivot table First/Last aggregations follow data order
 
@@ -224,6 +247,19 @@ A few save- and import-path internals change **unconditionally** (independent of
 - `UpdateDashboardCommand` runs its body under `no_autoflush`.
 
 These are behavior changes that take effect on upgrade regardless of `ENABLE_VERSIONING_CAPTURE`; no operator action is required.
+
+### Cross-entity version activity stream
+
+A read-only companion to the version-history endpoints: each entity type gains a `GET /api/v1/{chart,dashboard,dataset}/<uuid>/activity/` endpoint returning a chronological, access-filtered stream of edits — the entity's own edits plus, for charts and dashboards, transitive edits to related entities during their association windows. Datasets have no related layer in V2, so `include=related` returns an empty stream for a dataset and `include=all` reduces to the dataset's own edits.
+
+| Param | Type | Default | Purpose |
+|---|---|---|---|
+| `since` / `until` | ISO 8601 | — | Bound `issued_at` |
+| `include` | `self` \| `related` \| `all` | `all` | Own edits, related edits, or both |
+| `q` | string | — | Case-insensitive search over the full history, applied before pagination (so `count` reflects matches) |
+| `page` / `page_size` | integer | `0` / `25` | Pagination (`page_size` clamped to 200) |
+
+Authorization reuses the resource's `can_read` permission and per-object `raise_for_access`; related-entity rows are visibility-filtered to what the caller may see. The stream is empty unless version capture is on (`ENABLE_VERSIONING_CAPTURE`).
 
 ### Webhook alerts/reports block private/internal hosts by default
 
@@ -721,6 +757,7 @@ See `superset/mcp_service/PRODUCTION.md` for deployment guides.
 
 ---
 
+- [38358](https://github.com/apache/superset/pull/38358): Switched CrateDB PyPI package from `crate[sqlalchemy]` to `sqlalchemy-cratedb`.
 - [35621](https://github.com/apache/superset/pull/35621): The default hash algorithm has changed from MD5 to SHA-256 for improved security and FedRAMP compliance. This affects cache keys for thumbnails, dashboard digests, chart digests, and filter option names. Existing cached data will be invalidated upon upgrade. To opt out of this change and maintain backward compatibility, set `HASH_ALGORITHM = "md5"` in your `superset_config.py`.
 - [35062](https://github.com/apache/superset/pull/35062): Changed the function signature of `setupExtensions` to `setupCodeOverrides` with options as arguments.
 

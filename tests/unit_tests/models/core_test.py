@@ -318,7 +318,10 @@ def test_get_all_catalog_names(mocker: MockerFixture) -> None:
 
     get_inspector = mocker.patch.object(database, "get_inspector")
     with get_inspector() as inspector:
-        inspector.bind.execute.return_value = [("examples",), ("other",)]
+        inspector.engine.connect().__enter__().execute.return_value = [
+            ("examples",),
+            ("other",),
+        ]
 
     assert database.get_all_catalog_names(force=True) == {"examples", "other"}
     get_inspector.assert_called_with()
@@ -1810,6 +1813,50 @@ def test_execute_sql_preserves_line_comments_single_statement(
     executed_sql = execute.call_args.args[1]
     assert executed_sql == sql
     assert "/*" not in executed_sql
+
+
+def test_get_df_captures_description_after_fetch(mocker: MockerFixture) -> None:
+    """Fetch asynchronous results before capturing their final column metadata.
+
+    Some asynchronous DB-API drivers (e.g. Spark Thrift) expose placeholder
+    ``cursor.description`` until a fetch call waits for the operation to finish.
+    Capturing ``description`` after ``fetch_data`` ensures the real column
+    metadata is used.
+    """
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+
+    cursor = mocker.MagicMock()
+    placeholder_description: list[tuple[str, str, None, None, None, None, None]] = [
+        ("Result", "STRING", None, None, None, None, None),
+    ]
+    result_description: list[tuple[str, str, None, None, None, None, None]] = [
+        ("value", "BIGINT", None, None, None, None, None),
+    ]
+    cursor.description = placeholder_description
+
+    conn = mocker.MagicMock()
+    conn.cursor.return_value = cursor
+    get_raw_connection = mocker.patch.object(database, "get_raw_connection")
+    get_raw_connection.return_value.__enter__.return_value = conn
+    mocker.patch.object(database.db_engine_spec, "execute")
+
+    def fetch_data(_: object) -> list[tuple[int]]:
+        cursor.description = result_description
+        return [(1,)]
+
+    mocker.patch.object(
+        database.db_engine_spec,
+        "fetch_data",
+        side_effect=fetch_data,
+    )
+
+    _, rows, description = database._execute_sql_with_mutation_and_logging(
+        "SELECT 1",
+        fetch_last_result=True,
+    )
+
+    assert rows == [(1,)]
+    assert description == result_description
 
 
 def test_post_process_df_non_zero_based_index() -> None:

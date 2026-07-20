@@ -49,8 +49,10 @@ import {
   isPostProcessingRename,
   isPostProcessingFlatten,
   isPostProcessingRank,
+  ComparisonType,
+  RollingType,
+  TimeGranularity,
 } from '@superset-ui/core';
-import { ComparisonType, RollingType, TimeGranularity } from '../../../src';
 
 const AGGREGATES_OPTION: Aggregates = {
   bar: {

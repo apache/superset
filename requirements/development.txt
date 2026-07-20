@@ -97,7 +97,7 @@ cachelib==0.13.0
     #   -c requirements/base-constraint.txt
     #   flask-caching
     #   flask-session
-cachetools==6.2.1
+cachetools==7.1.4
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -130,7 +130,7 @@ charset-normalizer==3.4.2
     # via
     #   -c requirements/base-constraint.txt
     #   requests
-click==8.4.1
+click==8.4.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -238,9 +238,9 @@ et-xmlfile==2.0.0
     #   openpyxl
 exceptiongroup==1.3.0
     # via fastmcp-slim
-fastmcp==3.4.2
+fastmcp==3.4.4
     # via apache-superset
-fastmcp-slim==3.4.2
+fastmcp-slim==3.4.4
     # via fastmcp
 filelock==3.20.3
     # via
@@ -340,7 +340,6 @@ gevent==26.4.0
 google-api-core==2.23.0
     # via
     #   google-cloud-bigquery
-    #   google-cloud-bigquery-storage
     #   google-cloud-core
     #   pandas-gbq
     #   sqlalchemy-bigquery
@@ -350,7 +349,6 @@ google-auth==2.53.0
     #   google-api-core
     #   google-auth-oauthlib
     #   google-cloud-bigquery
-    #   google-cloud-bigquery-storage
     #   google-cloud-core
     #   pandas-gbq
     #   pydata-google-auth
@@ -365,8 +363,6 @@ google-cloud-bigquery==3.42.1
     #   apache-superset
     #   pandas-gbq
     #   sqlalchemy-bigquery
-google-cloud-bigquery-storage==2.26.0
-    # via pandas-gbq
 google-cloud-core==2.4.1
     # via google-cloud-bigquery
 google-crc32c==1.6.0
@@ -377,7 +373,7 @@ googleapis-common-protos==1.66.0
     # via
     #   google-api-core
     #   grpcio-status
-greenlet==3.5.1
+greenlet==3.5.3
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -407,7 +403,7 @@ hashids==1.3.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-holidays==0.82
+holidays==0.100
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -638,10 +634,11 @@ packaging==25.0
     #   kombu
     #   limits
     #   matplotlib
+    #   pandas-gbq
     #   pytest
     #   shillelagh
     #   sqlalchemy-bigquery
-pandas==2.1.4
+pandas==2.3.3
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -649,7 +646,7 @@ pandas==2.1.4
     #   db-dtypes
     #   pandas-gbq
     #   prophet
-pandas-gbq==0.19.1
+pandas-gbq==0.35.0
     # via apache-superset
 parameterized==0.9.0
     # via apache-superset
@@ -705,18 +702,17 @@ prompt-toolkit==3.0.51
 prophet==1.2.0
     # via apache-superset
 proto-plus==1.25.0
-    # via
-    #   google-api-core
-    #   google-cloud-bigquery-storage
+    # via google-api-core
 protobuf==5.29.6
     # via
     #   google-api-core
-    #   google-cloud-bigquery-storage
     #   googleapis-common-protos
     #   grpcio-status
     #   proto-plus
 psutil==6.1.0
-    # via apache-superset
+    # via
+    #   apache-superset
+    #   pandas-gbq
 psycopg2-binary==2.9.12
     # via apache-superset
 py-key-value-aio==0.4.4
@@ -784,7 +780,6 @@ pyjwt==2.13.0
     #   flask-appbuilder
     #   flask-jwt-extended
     #   mcp
-    #   redis
 pylint==3.3.7
     # via apache-superset
 pynacl==1.6.2
@@ -824,6 +819,10 @@ pytest-mock==3.10.0
     # via
     #   apache-superset
     #   apache-superset-extensions-cli
+python-calamine==0.8.2
+    # via
+    #   -c requirements/base-constraint.txt
+    #   pandas
 python-dateutil==2.9.0.post0
     # via
     #   -c requirements/base-constraint.txt
@@ -870,7 +869,7 @@ pyyaml==6.0.3
     #   fastmcp-slim
     #   jsonschema-path
     #   pre-commit
-redis==5.3.1
+redis==8.0.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -998,7 +997,7 @@ sqlalchemy-utils==0.42.1
     #   apache-superset
     #   apache-superset-core
     #   flask-appbuilder
-sqlglot==30.8.0
+sqlglot==30.12.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -1017,7 +1016,7 @@ starlette==1.3.1
     #   mcp
 statsd==4.0.1
     # via apache-superset
-syntaqlite==0.4.2
+syntaqlite==0.7.1
     # via apache-superset
 tabulate==0.10.0
     # via
@@ -1033,7 +1032,7 @@ tqdm==4.67.1
     # via
     #   cmdstanpy
     #   prophet
-trino==0.337.0
+trino==0.338.0
     # via apache-superset
 trio==0.33.0
     # via
@@ -1044,7 +1043,7 @@ trio-websocket==0.12.2
     # via
     #   -c requirements/base-constraint.txt
     #   selenium
-typing-extensions==4.15.0
+typing-extensions==4.16.0
     # via
     #   -c requirements/base-constraint.txt
     #   alembic

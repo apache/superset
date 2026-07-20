@@ -148,6 +148,7 @@ function QueryPreviewModal({
         <QueryViewToggle>
           <TabButton
             role="button"
+            tabIndex={0}
             data-test="toggle-user-sql"
             className={cx({ active: currentTab === 'user' })}
             onClick={() => setCurrentTab('user')}
@@ -156,6 +157,7 @@ function QueryPreviewModal({
           </TabButton>
           <TabButton
             role="button"
+            tabIndex={0}
             data-test="toggle-executed-sql"
             className={cx({ active: currentTab === 'executed' })}
             onClick={() => setCurrentTab('executed')}

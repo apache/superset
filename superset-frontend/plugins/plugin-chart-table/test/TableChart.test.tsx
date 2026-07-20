@@ -2023,7 +2023,7 @@ describe('plugin-chart-table', () => {
         );
 
         const arrow = container.querySelector(
-          '.dt-select-page-size .ant-select .ant-select-arrow',
+          '.dt-select-page-size .ant-select .ant-select-suffix',
         );
         expect(arrow).not.toBeNull();
         expect(getComputedStyle(arrow as HTMLElement).zIndex).toBe('11');
@@ -2431,6 +2431,56 @@ describe('plugin-chart-table', () => {
       expect(filters[0].col).toBe('name');
       expect(filters[0].val).toEqual(['Michael']);
     });
+  });
+
+  test('does not render "Search by" if there are no search options (server pagination enabled)', () => {
+    const props = transformProps({
+      ...testData.raw,
+      rawFormData: {
+        ...testData.raw.rawFormData,
+        server_pagination: true,
+        include_search: true,
+      },
+      queriesData: [
+        {
+          ...testData.raw.queriesData[0],
+          colnames: ['num'],
+          coltypes: [GenericDataType.Numeric],
+          data: [{ num: 1 }, { num: 2 }],
+        },
+      ],
+    });
+    render(
+      ProviderWrapper({
+        children: <TableChart {...props} sticky={false} />,
+      }),
+    );
+    expect(screen.queryByText('Search by')).not.toBeInTheDocument();
+  });
+
+  test('renders "Search by" if include_search is true and there are search options (server pagination enabled)', () => {
+    const props = transformProps({
+      ...testData.raw,
+      rawFormData: {
+        ...testData.raw.rawFormData,
+        server_pagination: true,
+        include_search: true,
+      },
+      queriesData: [
+        {
+          ...testData.raw.queriesData[0],
+          colnames: ['name'],
+          coltypes: [GenericDataType.String],
+          data: [{ name: 'Michael' }, { name: 'John' }],
+        },
+      ],
+    });
+    render(
+      ProviderWrapper({
+        children: <TableChart {...props} sticky={false} />,
+      }),
+    );
+    expect(screen.queryByText('Search by')).toBeInTheDocument();
   });
 });
 

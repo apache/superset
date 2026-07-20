@@ -131,3 +131,42 @@ async def test_get_theme_info_wraps_json_data(
 
     assert "UNTRUSTED-CONTENT" in data["json_data"]
     assert "fontFamily" in data["json_data"]
+
+
+@patch("superset.daos.theme.ThemeDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_theme_info_invalid_identifier_not_found(
+    mock_find: MagicMock, mcp_server: object
+) -> None:
+    """A string identifier that is neither an int nor a UUID cannot resolve.
+
+    Themes do not support slug lookups (``supports_slug=False``), so
+    ``ModelGetInfoCore._find_object`` falls through every branch and returns
+    None, which surfaces as a ``not_found`` ThemeError — without ever calling
+    the DAO.
+    """
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_theme_info", {"request": {"identifier": "not-a-real-identifier"}}
+        )
+        data = json.loads(result.content[0].text)
+    assert data["error_type"] == "not_found"
+    assert "not-a-real-identifier" in data["error"]
+    mock_find.assert_not_called()
+
+
+@patch("superset.daos.theme.ThemeDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_theme_info_internal_error(
+    mock_find: MagicMock, mcp_server: object
+) -> None:
+    """Unexpected DAO exceptions are caught and returned as a ThemeError
+    with error_type='InternalError', rather than propagating."""
+    mock_find.side_effect = RuntimeError("database connection lost")
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_theme_info", {"request": {"identifier": 1}}
+        )
+        data = json.loads(result.content[0].text)
+    assert data["error_type"] == "InternalError"
+    assert "database connection lost" in data["error"]

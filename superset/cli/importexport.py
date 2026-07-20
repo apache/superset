@@ -48,16 +48,38 @@ logger = logging.getLogger(__name__)
     is_flag=True,
     help="Force load data even if table already exists",
 )
-def import_directory(directory: str, overwrite: bool, force: bool) -> None:
+@click.option(
+    "--username",
+    "-u",
+    required=False,
+    default="admin",
+    help="Specify the user name to assign imported assets to",
+)
+def import_directory(
+    directory: str, overwrite: bool, force: bool, username: Optional[str]
+) -> None:
     """Imports configs from a given directory"""
     # pylint: disable=import-outside-toplevel
     from superset.examples.utils import load_configs_from_directory
 
-    load_configs_from_directory(
-        root=Path(directory),
-        overwrite=overwrite,
-        force_data=force,
-    )
+    user = security_manager.find_user(username=username)
+    if user is None:
+        raise click.BadParameter(
+            f"User '{username}' not found.", param_hint="'--username'"
+        )
+    with override_user(user=user):
+        try:
+            load_configs_from_directory(
+                root=Path(directory),
+                overwrite=overwrite,
+                force_data=force,
+            )
+        except Exception:  # pylint: disable=broad-except
+            logger.exception(
+                "There was an error when importing the directory, please check "
+                "the exception traceback in the log"
+            )
+            sys.exit(1)
 
 
 @click.command()
