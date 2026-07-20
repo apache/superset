@@ -1166,13 +1166,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
-            font-weight: ${color
-              ? `${theme.fontWeightBold}`
-              : `${theme.fontWeightNormal}`};
+            font-weight: ${
+              color ? `${theme.fontWeightBold}` : `${theme.fontWeightNormal}`
+            };
             background: ${backgroundColor || undefined};
-            padding-left: ${column.isChildColumn
-              ? `${theme.sizeUnit * 5}px`
-              : `${theme.sizeUnit}px`};
+            padding-left: ${
+              column.isChildColumn
+                ? `${theme.sizeUnit * 5}px`
+                : `${theme.sizeUnit}px`
+            };
           `;
 
           const cellBarStyles = css`
@@ -1180,20 +1182,21 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             height: 100%;
             display: block;
             top: 0;
-            ${valueRange &&
-            typeof value === 'number' &&
-            valueRangeFlag &&
-            `
-                width: ${`${cellWidth({
+            ${
+              valueRange &&
+              typeof value === 'number' &&
+              valueRangeFlag &&
+              css`
+                width: ${cellWidth({
                   value: value as number,
                   valueRange,
                   alignPositiveNegative,
-                })}%`};
-                left: ${`${cellOffset({
+                })}%;
+                left: ${cellOffset({
                   value: value as number,
                   valueRange,
                   alignPositiveNegative,
-                })}%`};
+                })}%;
                 background-color: ${
                   (backgroundColorCellBar && `${backgroundColorCellBar}99`) ||
                   cellBackground({
@@ -1202,15 +1205,18 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     theme,
                   })
                 };
-              `}
+              `
+            }
           `;
 
           let arrowStyles = css`
-            color: ${basicColorFormatters &&
-            basicColorFormatters[row.index][originKey]?.arrowColor ===
-              ColorSchemeEnum.Green
-              ? theme.colorSuccess
-              : theme.colorError};
+            color: ${
+              basicColorFormatters &&
+              basicColorFormatters[row.index][originKey]?.arrowColor ===
+                ColorSchemeEnum.Green
+                ? theme.colorSuccess
+                : theme.colorError
+            };
             margin-right: ${theme.sizeUnit}px;
           `;
 
@@ -1219,10 +1225,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             basicColorColumnFormatters?.length > 0
           ) {
             arrowStyles = css`
-              color: ${basicColorColumnFormatters[row.index][column.key]
-                ?.arrowColor === ColorSchemeEnum.Green
-                ? theme.colorSuccess
-                : theme.colorError};
+              color: ${
+                basicColorColumnFormatters[row.index][column.key]
+                  ?.arrowColor === ColorSchemeEnum.Green
+                  ? theme.colorSuccess
+                  : theme.colorError
+              };
               margin-right: ${theme.sizeUnit}px;
             `;
           }
