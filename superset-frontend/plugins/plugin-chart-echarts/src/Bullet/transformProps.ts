@@ -85,7 +85,13 @@ export default function transformProps(
     itemStyle: {
       color: bandFills[Math.min(i, bandFills.length - 1)],
     },
-    label: { show: false },
+    // Surface the range label inside the band's right edge
+    label: {
+      show: Boolean(label),
+      position: 'insideRight',
+      color: theme.colorTextSecondary,
+      fontSize: theme.fontSizeSM,
+    },
     // markArea item: [{start}, {end}]
     coords: [{ xAxis: axisMin }, { xAxis: value }],
   }));
@@ -97,6 +103,9 @@ export default function transformProps(
     labels[index] ? labels[index] : formatter(values[index]);
 
   const echartOptions: EChartsCoreOption = {
+    // A single-measure chart needs no legend; the default one collides
+    // with the x-axis labels.
+    legend: { show: false },
     grid: {
       top: theme.sizeUnit * 2,
       bottom: theme.sizeUnit * 6,
@@ -152,6 +161,7 @@ export default function transformProps(
           data: markerLines.map((value, index) => ({
             xAxis: value,
             label: {
+              position: 'insideEndTop',
               formatter: () =>
                 markerLabelAt(index, markerLineLabels, markerLines),
               color: theme.colorTextSecondary,
@@ -180,6 +190,8 @@ export default function transformProps(
         })),
         symbol: 'triangle',
         symbolSize: 14,
+        // Sit below the measure bar pointing up at the marked value
+        symbolOffset: [0, '160%'],
         itemStyle: { color: theme.colorText },
         z: 20,
       },

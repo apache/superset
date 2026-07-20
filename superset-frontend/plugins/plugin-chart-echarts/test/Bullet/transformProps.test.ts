@@ -65,6 +65,16 @@ test('renders the measure bar with markers, marker lines and range bands', () =>
 
   // axis spans all values
   expect((echartOptions as any).xAxis.max).toBe(300);
+
+  // markers sit below the bar; no legend on a single-measure chart
+  expect(series[1].symbolOffset).toEqual([0, '160%']);
+  expect((echartOptions as any).legend.show).toBe(false);
+
+  // range labels surface inside their bands
+  const labeled = series[0].markArea.data.find(
+    (d: any) => d[0].name === 'high',
+  );
+  expect(labeled[0].label.show).toBe(true);
 });
 
 test('defaults the band to 110% of the measure when no ranges are set', () => {

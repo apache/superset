@@ -40,7 +40,9 @@ const config: ControlPanelConfig = {
               label: t('Ranges'),
               default: '',
               renderTrigger: true,
-              description: t('Ranges to highlight with shading'),
+              description: t(
+                'Comma-separated numeric thresholds to shade as background ranges, e.g. 100,200,300',
+              ),
             },
           },
           {
@@ -50,7 +52,10 @@ const config: ControlPanelConfig = {
               label: t('Range labels'),
               default: '',
               renderTrigger: true,
-              description: t('Labels for the ranges'),
+              description: t(
+                'Comma-separated text labels, one per range value',
+              ),
+              visibility: ({ controls }) => Boolean(controls?.ranges?.value),
             },
           },
         ],
@@ -62,7 +67,9 @@ const config: ControlPanelConfig = {
               label: t('Markers'),
               default: '',
               renderTrigger: true,
-              description: t('List of values to mark with triangles'),
+              description: t(
+                'Comma-separated numeric values to mark with triangles, e.g. 150,250',
+              ),
             },
           },
           {
@@ -72,7 +79,10 @@ const config: ControlPanelConfig = {
               label: t('Marker labels'),
               default: '',
               renderTrigger: true,
-              description: t('Labels for the markers'),
+              description: t(
+                'Comma-separated text labels, one per marker value',
+              ),
+              visibility: ({ controls }) => Boolean(controls?.markers?.value),
             },
           },
         ],
@@ -84,7 +94,9 @@ const config: ControlPanelConfig = {
               label: t('Marker lines'),
               default: '',
               renderTrigger: true,
-              description: t('List of values to mark with lines'),
+              description: t(
+                'Comma-separated numeric values to mark with vertical lines, e.g. 250',
+              ),
             },
           },
           {
@@ -94,7 +106,11 @@ const config: ControlPanelConfig = {
               label: t('Marker line labels'),
               default: '',
               renderTrigger: true,
-              description: t('Labels for the marker lines'),
+              description: t(
+                'Comma-separated text labels, one per marker line value',
+              ),
+              visibility: ({ controls }) =>
+                Boolean(controls?.marker_lines?.value),
             },
           },
         ],
