@@ -29,7 +29,8 @@ from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
 from sqlalchemy.orm.session import Session
 from sqlalchemy.pool import StaticPool
-from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy.sql.elements import Cast, ColumnElement
+from sqlalchemy.sql.visitors import iterate
 
 from superset.superset_typing import AdhocColumn, AdhocMetric, OrderBy
 from superset.utils.core import FilterOperator, GenericDataType
@@ -3719,4 +3720,83 @@ def test_simple_metric_quotes_column_requiring_quoting(database: Database) -> No
     )
     assert f"SUM({column_name})" not in rendered, (
         f"Column requiring quoting was emitted unquoted: {rendered}"
+    )
+
+
+@pytest.mark.parametrize(
+    "native_type",
+    [
+        "UUID",
+        "uuid",
+        "Nullable(UUID)",
+        "uniqueidentifier",
+        "LowCardinality(UUID)",
+        "LowCardinality(Nullable(UUID))",
+    ],
+)
+@pytest.mark.parametrize(
+    "op",
+    ["LIKE", "ILIKE", "NOT LIKE", "NOT ILIKE"],
+)
+def test_like_filter_on_uuid_column_casts_to_string(
+    database: Database, native_type: str, op: str
+) -> None:
+    """
+    LIKE-family filters on native UUID columns must cast the column to string.
+
+    UUID columns map to ``GenericDataType.STRING``, so the generic-type guard
+    alone skips the string cast — but engines such as PostgreSQL and ClickHouse
+    reject LIKE/ILIKE against a raw UUID column (issue #41795: table chart
+    server-pagination search fails with e.g. "Illegal type UUID of argument of
+    function ilike"). The native column type must force the cast.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="event_id", type=native_type)],
+    )
+
+    result = table.get_sqla_query(
+        columns=["event_id"],
+        metrics=[],
+        extras={},
+        filter=[{"col": "event_id", "op": op, "val": "abc%"}],
+        granularity=None,
+        is_timeseries=False,
+        orderby=[],
+    )
+    whereclause: ColumnElement = result.sqla_query.whereclause
+    assert any(isinstance(node, Cast) for node in iterate(whereclause)), (
+        f"Expected a Cast node in the filter expression: {whereclause}"
+    )
+
+
+def test_like_filter_on_string_column_does_not_cast(database: Database) -> None:
+    """
+    LIKE-family filters on plain string columns must not add a redundant cast.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="b", type="TEXT")],
+    )
+
+    result = table.get_sqla_query(
+        columns=["b"],
+        metrics=[],
+        extras={},
+        filter=[{"col": "b", "op": "ILIKE", "val": "abc%"}],
+        granularity=None,
+        is_timeseries=False,
+        orderby=[],
+    )
+    whereclause: ColumnElement = result.sqla_query.whereclause
+    assert not any(isinstance(node, Cast) for node in iterate(whereclause)), (
+        f"Unexpected Cast node in the filter expression: {whereclause}"
     )

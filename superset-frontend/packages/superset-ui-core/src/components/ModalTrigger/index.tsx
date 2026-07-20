@@ -156,6 +156,9 @@ export const ModalTrigger = forwardRef(
           draggableConfig={draggableConfig}
           destroyOnHidden={destroyOnHidden}
         >
+          {/* Pure event-boundary wrapper: only stops menu-navigation keys
+              from bubbling out of the modal, not itself interactive. */}
+          {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
           <div
             style={{ display: 'contents' }}
             onKeyDown={e => {

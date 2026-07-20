@@ -98,7 +98,7 @@ async def list_dashboards(
         list_dashboards(search="sales", page=1)  # DO NOT DO THIS
 
     Valid filter columns for ``filters[].col``:
-        ``dashboard_title``, ``published``, ``favorite``,
+        ``dashboard_title``, ``published``, ``editor``, ``favorite``,
         ``created_by_fk``, ``changed_by_fk``
 
     Sortable columns for ``order_column``:
