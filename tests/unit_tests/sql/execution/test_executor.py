@@ -1183,6 +1183,30 @@ def test_execute_sql_with_cursor_empty_statements(app_context: None) -> None:
     assert result == []  # Returns empty list for empty statements
 
 
+def test_execute_sql_with_cursor_empty_after_mutation(app_context: None) -> None:
+    """A mutator that strips a statement to nothing raises a clean error."""
+    from superset.errors import SupersetErrorType
+    from superset.exceptions import SupersetErrorException
+    from superset.sql.execution.executor import execute_sql_with_cursor
+
+    mock_database = MagicMock()
+    mock_database.mutate_sql_based_on_config = lambda sql, **kw: "   \n"
+
+    mock_cursor = MagicMock()
+    mock_query = MagicMock()
+
+    with pytest.raises(SupersetErrorException) as excinfo:
+        execute_sql_with_cursor(
+            database=mock_database,
+            cursor=mock_cursor,
+            statements=["SELECT 1"],
+            query=mock_query,
+        )
+
+    assert excinfo.value.error.error_type == SupersetErrorType.INVALID_SQL_ERROR
+    mock_database.db_engine_spec.execute.assert_not_called()
+
+
 def test_execute_sql_with_cursor_stopped_mid_execution(
     mocker: MockerFixture, app_context: None
 ) -> None:

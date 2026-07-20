@@ -240,6 +240,21 @@ def execute_sql_with_cursor(
             statement,
             is_split=is_split,
         )
+        if not stmt_sql.strip():
+            # A `SQL_QUERY_MUTATOR` that strips a statement down to nothing
+            # would otherwise be sent to the database engine as an empty
+            # query, surfacing a confusing engine-specific error instead of
+            # a clean one.
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__(
+                        "The SQL query mutator removed all executable "
+                        "statements from this query."
+                    ),
+                    error_type=SupersetErrorType.INVALID_SQL_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
 
         # Log query
         if log_query_fn:
