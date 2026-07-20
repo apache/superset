@@ -530,8 +530,4 @@ export const StyledUploadWrapper = styled.div`
   .ant-progress-inner {
     display: none;
   }
-
-  .ant-upload-list-item-card-actions {
-    display: none;
-  }
 `;
