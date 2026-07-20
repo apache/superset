@@ -145,7 +145,8 @@ assert_not_contains "null init.istio does not register quitquitquit trap" \
     'quitquitquit' "${config_null_istio}"
 
 echo "==> EXIT trap propagates the script's exit code, not the notification's"
-# The trap's own curl call is best-effort (`|| true`) and must not mask a
+# The trap's own curl call is best-effort (failures are logged with
+# `|| echo ... >&2`, not swallowed with `|| true`) and must not mask a
 # failed migration. Extract the two rendered lines and actually run them,
 # with curl pointed at a closed local port so the notification itself fails,
 # to make sure the wrapped script's real exit code still comes through.
