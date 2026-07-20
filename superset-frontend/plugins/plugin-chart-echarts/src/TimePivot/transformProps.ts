@@ -20,6 +20,7 @@ import {
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
+  smartDateFormatter,
   JsonObject,
   SMART_DATE_VERBOSE_ID,
 } from '@superset-ui/core';
@@ -43,6 +44,7 @@ export default function transformProps(
     colorPicker,
     showLegend,
     lineInterpolation,
+    xAxisFormat,
     xAxisLabel,
     yAxisLabel,
     yAxisFormat,
@@ -98,7 +100,15 @@ export default function transformProps(
       name: xAxisLabel || undefined,
       nameLocation: 'middle',
       nameGap: theme.sizeUnit * 8,
-      axisLabel: { color: theme.colorTextSecondary },
+      axisLabel: {
+        color: theme.colorTextSecondary,
+        ...(xAxisFormat && xAxisFormat !== smartDateFormatter.id
+          ? {
+              formatter: (value: number) =>
+                getTimeFormatter(xAxisFormat)(value),
+            }
+          : {}),
+      },
     },
     yAxis: {
       type: yLogScale ? 'log' : 'value',
@@ -136,7 +146,9 @@ export default function transformProps(
       type: 'line',
       smooth,
       ...(step ? { step } : {}),
-      showSymbol: false,
+      // a line series with one point renders nothing without its symbol;
+      // sparse periods (e.g. yearly data pivoted by 52 weeks) need them
+      showSymbol: s.values.filter(({ y }) => y != null).length <= 2,
       connectNulls: false,
       lineStyle: {
         color: colorOf(s),

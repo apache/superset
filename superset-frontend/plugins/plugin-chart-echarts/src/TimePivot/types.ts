@@ -30,6 +30,7 @@ export type EchartsTimePivotFormData = QueryFormData & {
   colorPicker?: { r: number; g: number; b: number; a: number };
   showLegend?: boolean;
   lineInterpolation?: string;
+  xAxisFormat?: string;
   xAxisLabel?: string;
   yAxisLabel?: string;
   yAxisFormat?: string;

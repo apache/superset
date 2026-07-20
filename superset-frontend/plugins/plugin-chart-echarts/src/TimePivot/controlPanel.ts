@@ -17,7 +17,11 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  D3_TIME_FORMAT_OPTIONS,
+  sections,
+} from '@superset-ui/chart-controls';
 
 // Control names match the legacy nvd3 chart so saved charts keep working
 // without a form-data migration. nvd3-specific pixel-margin and min/max
@@ -76,7 +80,7 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Legend'),
               renderTrigger: true,
-              default: true,
+              default: false,
               description: t('Whether to display the legend (toggles)'),
             },
           },
@@ -114,6 +118,20 @@ const config: ControlPanelConfig = {
               label: t('X Axis Label'),
               renderTrigger: true,
               default: '',
+            },
+          },
+        ],
+        [
+          {
+            name: 'x_axis_format',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('X Axis Format'),
+              renderTrigger: true,
+              default: 'smart_date',
+              choices: D3_TIME_FORMAT_OPTIONS,
+              description: t('D3 time format for the x-axis labels'),
             },
           },
         ],
