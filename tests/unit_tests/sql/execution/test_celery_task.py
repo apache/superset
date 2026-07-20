@@ -32,11 +32,7 @@ from superset.exceptions import SupersetErrorException, SupersetErrorsException
 
 # Note: mock_query, mock_database, mock_result_set, and mock_db_session
 # fixtures are imported from conftest.py
-
-
-def _passthrough_mutator(sql: str, **kwargs: Any) -> str:
-    """SQL mutator stand-in that returns the SQL unchanged."""
-    return sql
+from .conftest import _passthrough_mutate_sql_based_on_config
 
 
 def _prefixing_mutator(sql: str, **kwargs: Any) -> str:
@@ -292,7 +288,7 @@ def test_prepare_statement_blocks_single_statement(
     """Test statement block preparation for single statement."""
     from superset.sql.execution.celery_task import _prepare_statement_blocks
 
-    mock_database.mutate_sql_based_on_config = _passthrough_mutator
+    mock_database.mutate_sql_based_on_config = _passthrough_mutate_sql_based_on_config
     sql = "SELECT * FROM users"
 
     script, blocks = _prepare_statement_blocks(
@@ -308,7 +304,7 @@ def test_prepare_statement_blocks_multiple_statements(
     """Test statement block preparation for multiple statements."""
     from superset.sql.execution.celery_task import _prepare_statement_blocks
 
-    mock_database.mutate_sql_based_on_config = _passthrough_mutator
+    mock_database.mutate_sql_based_on_config = _passthrough_mutate_sql_based_on_config
     sql = "SELECT * FROM users; SELECT * FROM orders;"
 
     script, blocks = _prepare_statement_blocks(
@@ -325,7 +321,7 @@ def test_prepare_statement_blocks_run_as_one(
     from superset.sql.execution.celery_task import _prepare_statement_blocks
 
     mock_database.db_engine_spec.run_multiple_statements_as_one = True
-    mock_database.mutate_sql_based_on_config = _passthrough_mutator
+    mock_database.mutate_sql_based_on_config = _passthrough_mutate_sql_based_on_config
     sql = "SELECT * FROM users; SELECT * FROM orders;"
 
     script, blocks = _prepare_statement_blocks(
