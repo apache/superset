@@ -3531,9 +3531,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         column_names_lower = {col.column_name.lower() for col in self.columns}
 
         metric_names = {
-            m.metric_name
-            for m in self.metrics
-            if getattr(m, "metric_name", None)
+            m.metric_name for m in self.metrics if getattr(m, "metric_name", None)
         }
 
         metric_names_lower = {
@@ -3552,7 +3550,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             if (
                 vname in columns_by_name
-                or vname in column_names              
+                or vname in column_names
                 or vname_lower in column_names_lower
                 or vname in metric_names
                 or vname_lower in metric_names_lower

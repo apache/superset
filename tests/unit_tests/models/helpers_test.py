@@ -3814,11 +3814,7 @@ def test_columns_by_name_verbose_overrides_column_name(database: Database) -> No
     col1 = TableColumn(column_name="revenue", verbose_name="sales")
     col2 = TableColumn(column_name="sales", verbose_name=None)
 
-    table = SqlaTable(
-        database=database,
-        table_name="test_table",
-        columns=[col1, col2]
-    )
+    table = SqlaTable(database=database, table_name="test_table", columns=[col1, col2])
 
     columns_by_name = table.columns_by_name
 
@@ -3826,11 +3822,12 @@ def test_columns_by_name_verbose_overrides_column_name(database: Database) -> No
     assert columns_by_name["sales"] == col2
     assert columns_by_name["revenue"] == col1
 
+
 def test_columns_by_name_excludes_metric_conflicts(database: Database) -> None:
     """
     Test that verbose_name does NOT conflict with metric names (exact case).
     """
-    from superset.connectors.sqla.models import SqlaTable, TableColumn, SqlMetric
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 
     # Column: revenue (verbose_name="profit")
     # Metric: profit
@@ -3838,10 +3835,7 @@ def test_columns_by_name_excludes_metric_conflicts(database: Database) -> None:
     metric = SqlMetric(metric_name="profit")
 
     table = SqlaTable(
-        database=database,
-        table_name="test_table",
-        columns=[col],
-        metrics=[metric]
+        database=database, table_name="test_table", columns=[col], metrics=[metric]
     )
 
     columns_by_name = table.columns_by_name
@@ -3855,17 +3849,14 @@ def test_metric_not_overridden_by_verbose_name(database: Database) -> None:
     """
     Test that verbose_name doesn't override metric names in columns_by_name.
     """
-    from superset.connectors.sqla.models import SqlaTable, TableColumn, SqlMetric
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 
     column = TableColumn(column_name="sales", verbose_name="total_revenue")
     metric = SqlMetric(metric_name="total_revenue", expression="SUM(sales)")
 
     # Use SqlaTable directly instead of MockDataset
     table = SqlaTable(
-        database=database,
-        table_name="test_table",
-        columns=[column],
-        metrics=[metric]
+        database=database, table_name="test_table", columns=[column], metrics=[metric]
     )
 
     # The columns_by_name property will use the logic from your PR
@@ -3903,6 +3894,7 @@ def test_verbose_name_does_not_override_metric():
 
     assert "total_revenue" not in columns
 
+
 def test_verbose_name_added_when_no_conflict():
     column = TableColumn(column_name="sales", verbose_name="revenue_label")
 
@@ -3914,6 +3906,7 @@ def test_verbose_name_added_when_no_conflict():
 
     assert "revenue_label" in columns
     assert columns["revenue_label"] == column
+
 
 def test_column_name_always_present():
     column = TableColumn(column_name="sales", verbose_name="sales_label")
