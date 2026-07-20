@@ -184,6 +184,16 @@ def take_tiled_screenshot(
         Combined screenshot bytes or None if failed
     """
     context_suffix = f" [{log_context}]" if log_context else ""
+    # Set right before re-raising the per-tile readiness timeout below, and
+    # checked in the except block at the bottom of this function. Deciding
+    # whether to propagate via `isinstance(e, PlaywrightTimeout)` would be
+    # unreliable: when the playwright package isn't installed,
+    # `PlaywrightTimeout` is aliased to the bare `Exception` class (see the
+    # try/except ImportError above this function), which would make *any*
+    # exception -- not just our own deliberate readiness-timeout raise --
+    # match `except PlaywrightTimeout` and incorrectly propagate instead of
+    # degrading to `None` like every other unexpected error in this function.
+    readiness_timeout = False
     try:
         # Get the target element
         element = page.locator(f".{element_name}")
@@ -263,6 +273,7 @@ def take_tiled_screenshot(
                     context_suffix,
                     unready_chart_holders,
                 )
+                readiness_timeout = True
                 raise
             else:
                 elapsed = time.monotonic() - tile_wait_start
@@ -328,13 +339,15 @@ def take_tiled_screenshot(
 
         return combined_screenshot
 
-    except PlaywrightTimeout:
-        # Let per-tile readiness timeouts propagate so the caller fails the
-        # report instead of silently falling back to a degraded screenshot.
-        raise
     except Exception as e:
-        # Unlike the readiness-timeout warning above, this is a genuine
-        # system-level fault (unexpected error, not a customer chart taking
-        # too long to load), so it stays at ERROR/exception level.
+        if readiness_timeout:
+            # Let the per-tile readiness timeout propagate so the caller
+            # fails the report instead of silently falling back to a
+            # degraded screenshot -- already logged as a WARNING above.
+            raise
+        # Any other exception is a genuine system-level fault (or a setup
+        # failure unrelated to chart readiness, e.g. the dashboard element
+        # itself never appearing), not a customer chart taking too long to
+        # load, so it stays at ERROR/exception level.
         logger.exception("Tiled screenshot failed: %s%s", e, context_suffix)
         return None
