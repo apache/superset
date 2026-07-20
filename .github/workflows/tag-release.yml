@@ -32,7 +32,7 @@ concurrency:
 
 jobs:
   config:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
@@ -50,7 +50,7 @@ jobs:
     needs: config
     if: needs.config.outputs.has-secrets
     name: docker-release
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
     strategy:
@@ -120,7 +120,7 @@ jobs:
   update-prs-with-release-info:
     needs: config
     if: needs.config.outputs.has-secrets
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       pull-requests: write

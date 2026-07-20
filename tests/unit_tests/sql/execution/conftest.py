@@ -77,6 +77,11 @@ def mock_query() -> MagicMock:
     return query
 
 
+def _passthrough_mutate_sql_based_on_config(sql: str, **kwargs: Any) -> str:
+    """Mirror the real `Database.mutate_sql_based_on_config` no-op default."""
+    return sql
+
+
 @pytest.fixture
 def mock_database() -> MagicMock:
     """Create a mock Database."""
@@ -94,6 +99,12 @@ def mock_database() -> MagicMock:
     database.db_engine_spec.get_cancel_query_id = MagicMock(return_value=None)
     database.db_engine_spec.patch = MagicMock()
     database.db_engine_spec.fetch_data = MagicMock(return_value=[])
+    # Mirrors the real `Database.mutate_sql_based_on_config` default (no-op
+    # when no `SQL_QUERY_MUTATOR` is configured), so SQL parsed from its
+    # return value stays valid instead of an un-parseable `MagicMock`.
+    database.mutate_sql_based_on_config = MagicMock(
+        side_effect=_passthrough_mutate_sql_based_on_config
+    )
     return database
 
 

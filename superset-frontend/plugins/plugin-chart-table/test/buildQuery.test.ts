@@ -17,7 +17,7 @@
  * under the License.
  */
 import { QueryMode, TimeGranularity, VizType } from '@superset-ui/core';
-import buildQuery, {
+import buildQueryCached, {
   buildQuery as buildQueryUncached,
 } from '../src/buildQuery';
 import { TableChartFormData } from '../src/types';
@@ -52,7 +52,7 @@ const extraQueryFormData: TableChartFormData = {
 describe('plugin-chart-table', () => {
   describe('buildQuery', () => {
     test('should add post-processing and ignore duplicate metrics', () => {
-      const query = buildQuery({
+      const query = buildQueryCached({
         ...basicFormData,
         query_mode: QueryMode.Aggregate,
         metrics: ['aaa', 'aaa'],
@@ -71,7 +71,7 @@ describe('plugin-chart-table', () => {
     });
 
     test('should not add metrics in raw records mode', () => {
-      const query = buildQuery({
+      const query = buildQueryCached({
         ...basicFormData,
         query_mode: QueryMode.Raw,
         columns: ['a'],
@@ -83,7 +83,7 @@ describe('plugin-chart-table', () => {
     });
 
     test('should not add post-processing when there is no percent metric', () => {
-      const query = buildQuery({
+      const query = buildQueryCached({
         ...basicFormData,
         query_mode: QueryMode.Aggregate,
         metrics: ['aaa'],
@@ -94,7 +94,7 @@ describe('plugin-chart-table', () => {
     });
 
     test('should not add post-processing in raw records mode', () => {
-      const query = buildQuery({
+      const query = buildQueryCached({
         ...basicFormData,
         query_mode: QueryMode.Raw,
         metrics: ['aaa'],
@@ -106,7 +106,7 @@ describe('plugin-chart-table', () => {
       expect(query.post_processing).toEqual([]);
     });
     test('should prefer extra_form_data.time_grain_sqla over formData.time_grain_sqla', () => {
-      const query = buildQuery({
+      const query = buildQueryCached({
         ...basicFormData,
         groupby: ['col1'],
         query_mode: QueryMode.Aggregate,
@@ -123,7 +123,7 @@ describe('plugin-chart-table', () => {
       });
     });
     test('should fallback to formData.time_grain_sqla if extra_form_data.time_grain_sqla is not set', () => {
-      const query = buildQuery({
+      const query = buildQueryCached({
         ...basicFormData,
         time_grain_sqla: TimeGranularity.MONTH,
         groupby: ['col1'],
@@ -139,7 +139,7 @@ describe('plugin-chart-table', () => {
       });
     });
     test('should include time_grain_sqla in extras if temporal colum is used and keep the rest', () => {
-      const { queries } = buildQuery({
+      const { queries } = buildQueryCached({
         ...extraQueryFormData,
         temporal_columns_lookup: { col1: true },
       });
@@ -161,7 +161,7 @@ describe('plugin-chart-table', () => {
       };
 
       test('should default to row_limit mode with single query', () => {
-        const { queries } = buildQuery(baseFormDataWithPercents);
+        const { queries } = buildQueryCached(baseFormDataWithPercents);
 
         expect(queries).toHaveLength(1);
         expect(queries[0].metrics).toEqual(['count', 'sum_sales']);
@@ -182,7 +182,7 @@ describe('plugin-chart-table', () => {
           percent_metric_calculation: 'all_records',
         };
 
-        const { queries } = buildQuery(formData);
+        const { queries } = buildQueryCached(formData);
 
         expect(queries).toHaveLength(2);
 
@@ -214,7 +214,7 @@ describe('plugin-chart-table', () => {
           show_totals: true,
         };
 
-        const { queries } = buildQuery(formData);
+        const { queries } = buildQueryCached(formData);
 
         expect(queries).toHaveLength(3);
         expect(queries[1].metrics).toEqual(['sum_sales']);
@@ -231,7 +231,7 @@ describe('plugin-chart-table', () => {
           groupby: ['category'],
         };
 
-        const { queries } = buildQuery(formData);
+        const { queries } = buildQueryCached(formData);
 
         expect(queries).toHaveLength(1);
         expect(queries[0].post_processing).toEqual([]);
@@ -247,7 +247,7 @@ describe('plugin-chart-table', () => {
           show_totals: true,
         };
 
-        const { queries } = buildQuery(formData);
+        const { queries } = buildQueryCached(formData);
 
         // row_limit mode + show_totals -> [main, totals].
         expect(queries).toHaveLength(2);
@@ -277,7 +277,7 @@ describe('plugin-chart-table', () => {
           comparison_type: 'values',
         };
 
-        const { queries } = buildQuery(formData);
+        const { queries } = buildQueryCached(formData);
 
         // row_limit mode + show_totals -> [main, totals].
         expect(queries).toHaveLength(2);
@@ -308,7 +308,7 @@ describe('plugin-chart-table', () => {
           show_totals: true,
         };
 
-        const { queries } = buildQuery(formData);
+        const { queries } = buildQueryCached(formData);
 
         expect(queries).toHaveLength(2);
         expect(queries[1].post_processing).toEqual([]);
@@ -331,7 +331,7 @@ describe('plugin-chart-table', () => {
       };
 
       test('includes search filter in query payload when server pagination is enabled', () => {
-        const { queries } = buildQuery(baseFormDataWithServerPagination, {
+        const { queries } = buildQueryCached(baseFormDataWithServerPagination, {
           ownState,
         });
 
@@ -347,7 +347,7 @@ describe('plugin-chart-table', () => {
       });
 
       test('does not include search filter when not provided', () => {
-        const { queries } = buildQuery(
+        const { queries } = buildQueryCached(
           {
             ...baseFormDataWithServerPagination,
             server_pagination: false,
@@ -359,7 +359,7 @@ describe('plugin-chart-table', () => {
       });
 
       test('uses user row limit when it is lower than server page size', () => {
-        const { queries } = buildQuery(
+        const { queries } = buildQueryCached(
           {
             ...baseFormDataWithServerPagination,
             row_limit: 10,
@@ -381,7 +381,7 @@ describe('plugin-chart-table', () => {
       });
 
       test('limits server page size by remaining rows inside user row limit', () => {
-        const { queries } = buildQuery(
+        const { queries } = buildQueryCached(
           {
             ...baseFormDataWithServerPagination,
             row_limit: 120,
@@ -410,7 +410,7 @@ describe('plugin-chart-table', () => {
       });
 
       test('clamps pages beyond the row limit instead of emitting row_limit: 0', () => {
-        const { queries } = buildQuery(
+        const { queries } = buildQueryCached(
           {
             ...baseFormDataWithServerPagination,
             row_limit: 120,
@@ -503,7 +503,7 @@ describe('plugin-chart-table', () => {
       });
 
       test('falls back to the page size when no row limit is configured', () => {
-        const { queries } = buildQuery(
+        const { queries } = buildQueryCached(
           {
             ...baseFormDataWithServerPagination,
             row_limit: undefined,
