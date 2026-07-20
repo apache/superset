@@ -3609,6 +3609,63 @@ def test_check_functions_present(sql: str, engine: str, expected: bool) -> None:
 @pytest.mark.parametrize(
     "sql, engine, expected",
     [
+        ("SELECT * FROM table", "postgresql", set()),
+        ("SELECT VERSION()", "postgresql", {"VERSION"}),
+        ("SELECT version(), query_to_xml()", "postgresql", {"VERSION", "QUERY_TO_XML"}),
+        ("SELECT @@version", "mysql", {"VERSION"}),
+        ("SELECT @@global.version, @@hostname", "mysql", {"VERSION", "HOSTNAME"}),
+        ("SELECT lo_export(12345, '/tmp/x')", "postgresql", {"LO_EXPORT"}),
+    ],
+)
+def test_sql_statement_get_present_functions(
+    sql: str, engine: str, expected: set[str]
+) -> None:
+    """
+    `SQLStatement.get_present_functions` should return the set of SQL
+    function names invoked in the statement, including names introduced by
+    `exp.SessionParameter` nodes (eg. MySQL `@@version`).
+
+    Dialects may normalise a call to a different internal name and record
+    aliases for it (eg. Postgres `VERSION()` -> `CurrentVersion`, which also
+    adds `CURRENT_VERSION` to the present set), so we only assert that the
+    expected names are a subset of what's returned rather than pinning down
+    the exact set.
+    """
+    present = SQLStatement(sql, engine).get_present_functions()
+    assert expected <= present
+    if not expected:
+        assert present == set()
+
+
+def test_sql_script_get_present_functions_aggregates_statements() -> None:
+    """
+    `SQLScript.get_present_functions` should union the present functions
+    across every statement in the script, not just the first one.
+    """
+    sql = "SELECT version(); SELECT query_to_xml(); SELECT 1"
+    present = SQLScript(sql, "postgresql").get_present_functions()
+    assert {"VERSION", "QUERY_TO_XML"} <= present
+
+
+def test_sql_script_get_present_functions_empty_script() -> None:
+    """
+    A script with no function calls should return an empty set, not raise.
+    """
+    assert SQLScript("SELECT 1", "postgresql").get_present_functions() == set()
+
+
+def test_kusto_kql_get_present_functions_returns_empty_set() -> None:
+    """
+    Kusto KQL doesn't support function detection; `get_present_functions`
+    should degrade gracefully to an empty set rather than raising.
+    """
+    statement = SQLScript("Table | limit 10", "kustokql").statements[0]
+    assert statement.get_present_functions() == set()
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
         ("SELECT * FROM my_table", "postgresql", False),
         ("SELECT * FROM pg_stat_activity", "postgresql", True),
         ("SELECT * FROM PG_STAT_ACTIVITY", "postgresql", True),

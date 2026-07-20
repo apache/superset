@@ -550,6 +550,12 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def get_present_functions(self) -> set[str]:
+        """
+        Return SQL function names invoked in the statement.
+        """
+        raise NotImplementedError()
+
     def check_functions_present(self, functions: set[str]) -> bool:
         """
         Check if any of the given functions are present in the script.
@@ -557,7 +563,8 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         :param functions: List of functions to check for
         :return: True if any of the functions are present
         """
-        raise NotImplementedError()
+        present = self.get_present_functions()
+        return any(function.upper() in present for function in functions)
 
     def check_tables_present(
         self, tables: set[str], default_schema: str | None = None
@@ -1052,19 +1059,16 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         return SQLStatement(ast=optimized, engine=self.engine)
 
-    def check_functions_present(self, functions: set[str]) -> bool:
+    def get_present_functions(self) -> set[str]:
         """
-        Check if any of the given functions are present in the script.
+        Return SQL function names invoked in the statement.
 
-        :param functions: List of functions to check for
-        :return: True if any of the functions are present
+        For Anonymous nodes the name is stored directly; for named Func nodes we
+        use sql_name(). We also add dialect parser aliases so that functions
+        that are normalised by a dialect (e.g. VERSION() -> CurrentVersion in
+        Postgres, sql_name = CURRENT_VERSION) can still be matched by their
+        original SQL name.
         """
-        # Build the set of SQL-level function names present in the AST. For
-        # Anonymous nodes the name is stored directly; for named Func nodes we
-        # use sql_name(). We also add dialect parser aliases so that functions
-        # that are normalised by a dialect (e.g. VERSION() -> CurrentVersion in
-        # Postgres, sql_name = CURRENT_VERSION) can still be matched by their
-        # original SQL name.
         dialect_cls = Dialect.get_or_raise(self._dialect) if self._dialect else None
         parser_cls = getattr(dialect_cls, "parser_class", None) if dialect_cls else None
         parser_functions: dict[str, Any] = (
@@ -1095,7 +1099,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         for param in self._parsed.find_all(exp.SessionParameter):
             present.add(param.name.upper())
 
-        return any(function.upper() in present for function in functions)
+        return present
 
     def check_tables_present(
         self, tables: set[str], default_schema: str | None = None
@@ -1647,15 +1651,15 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         """
         return KustoKQLStatement(ast=self._parsed, engine=self.engine)
 
-    def check_functions_present(self, functions: set[str]) -> bool:
+    def get_present_functions(self) -> set[str]:
         """
-        Check if any of the given functions are present in the script.
+        Return SQL function names invoked in the statement.
 
-        :param functions: List of functions to check for
-        :return: True if any of the functions are present
+        Kusto KQL doesn't support function detection, so this always
+        returns an empty set.
         """
         logger.warning("Kusto KQL doesn't support checking for functions present.")
-        return False
+        return set()
 
     def check_tables_present(
         self, tables: set[str], default_schema: str | None = None
@@ -1846,6 +1850,15 @@ class SQLScript:
 
         return script
 
+    def get_present_functions(self) -> set[str]:
+        """
+        Return SQL function names invoked across all statements in the script.
+        """
+        present: set[str] = set()
+        for statement in self.statements:
+            present.update(statement.get_present_functions())
+        return present
+
     def check_functions_present(self, functions: set[str]) -> bool:
         """
         Check if any of the given functions are present in the script.
@@ -1853,10 +1866,8 @@ class SQLScript:
         :param functions: List of functions to check for
         :return: True if any of the functions are present
         """
-        return any(
-            statement.check_functions_present(functions)
-            for statement in self.statements
-        )
+        present = self.get_present_functions()
+        return any(function.upper() in present for function in functions)
 
     def check_tables_present(
         self, tables: set[str], default_schema: str | None = None
