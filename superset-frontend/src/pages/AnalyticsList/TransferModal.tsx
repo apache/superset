@@ -60,11 +60,13 @@ interface FolderOption {
   uuid: string;
   name: string;
   parent_uuid: string | null;
+  is_private?: boolean;
 }
 
 interface TransferModalProps {
   currentFolderUuid: string | null;
   currentFolderName: string;
+  currentFolderIsPrivate?: boolean;
   preSelectedKeys?: string[];
   show: boolean;
   onHide: () => void;
@@ -233,6 +235,7 @@ async function fetchPage(
 export default function TransferModal({
   currentFolderUuid,
   currentFolderName,
+  currentFolderIsPrivate = false,
   preSelectedKeys,
   show,
   onHide,
@@ -589,6 +592,31 @@ export default function TransferModal({
       return;
     }
 
+    // Check if crossing the Only Me boundary
+    const targetFolder = allFolders.find(f => f.uuid === targetUuid);
+    const targetIsPrivate = targetFolder?.is_private ?? false;
+
+    // Moving OUT of Only Me to a non-private folder
+    if (currentFolderIsPrivate && !targetIsPrivate) {
+      showConfirm({
+        title: t('Move item out of Only Me?'),
+        body: t(
+          'Moving this item out of Only Me will apply the destination folder permissions and may change who can access it.',
+        ),
+        confirmText: t('Move'),
+        onConfirm: handleDone,
+        icon: null,
+      });
+      return;
+    }
+
+    // Moving between subfolders inside Only Me — no confirmation
+    if (currentFolderIsPrivate && targetIsPrivate) {
+      handleDone();
+      return;
+    }
+
+    // Standard permission diff check for non-private folders
     try {
       const [sourcePerms, targetPerms] = await Promise.all([
         sourceUuid
@@ -631,6 +659,8 @@ export default function TransferModal({
   }, [
     targetFolderUuid,
     currentFolderUuid,
+    currentFolderIsPrivate,
+    allFolders,
     handleDone,
     showConfirm,
     targetFolderName,

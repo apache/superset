@@ -19,7 +19,6 @@
 import { useCallback, useState } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
-import { styled, css } from '@apache-superset/core/theme';
 import { Checkbox, Input } from '@superset-ui/core/components';
 import { StandardModal } from 'src/components/Modal';
 

@@ -53,6 +53,7 @@ import {
   Flex,
   Tooltip,
 } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import {
   FolderBreadcrumb,
@@ -84,6 +85,7 @@ interface Crumb {
   uuid: string | null;
   name: string;
   user_permission?: 'editor' | 'viewer' | null;
+  is_only_me?: boolean;
 }
 
 interface SortColumn {
@@ -452,11 +454,13 @@ function AnalyticsList({
             name: string;
             parent_uuid: string | null;
             user_permission?: 'editor' | 'viewer' | null;
+            is_only_me?: boolean;
           };
           crumbs.unshift({
             uuid: folder.uuid,
             name: folder.name,
             user_permission: folder.user_permission,
+            is_only_me: folder.is_only_me,
           });
           uuid = folder.parent_uuid;
         }
@@ -693,7 +697,7 @@ function AnalyticsList({
             return null;
           }
           const pinIcon =
-            isAtRoot && isPinned(original) ? (
+            isAtRoot && (isPinned(original) || original.is_only_me) ? (
               <PushpinOutlined
                 style={{ fontSize: 12, color: theme.colorPrimary }}
               />
@@ -1348,6 +1352,7 @@ function AnalyticsList({
         <TransferModal
           currentFolderUuid={currentFolder.uuid}
           currentFolderName={currentFolder.name}
+          currentFolderIsPrivate={breadcrumb.some(c => c.is_only_me)}
           preSelectedKeys={
             moveTarget ? [`${moveTarget.type}-${moveTarget.id}`] : []
           }
@@ -1429,9 +1434,31 @@ function AnalyticsList({
               disableBulkSelect={() => setBulkSelectEnabled(false)}
               headerContent={
                 isAtRoot ? null : (
-                  <BreadcrumbWrap>
-                    <FolderBreadcrumb items={breadcrumbItems} />
-                  </BreadcrumbWrap>
+                  <>
+                    <BreadcrumbWrap>
+                      <FolderBreadcrumb items={breadcrumbItems} />
+                    </BreadcrumbWrap>
+                    {currentFolder.is_only_me && (
+                      <Alert
+                        type="success"
+                        showIcon
+                        message={
+                          <>
+                            <span style={{ fontWeight: 800 }}>
+                              {t("Only you can see what's in this folder.")}
+                            </span>{' '}
+                            {t(
+                              'New charts and dashboards land here by default. Move them out to share. Permissions then inherit from the destination folder.',
+                            )}
+                          </>
+                        }
+                        css={{
+                          marginBottom: theme.sizeUnit * 2,
+                          padding: `${theme.sizeUnit * 4}px ${theme.sizeUnit * 4}px`,
+                        }}
+                      />
+                    )}
+                  </>
                 )
               }
               bulkActions={[
