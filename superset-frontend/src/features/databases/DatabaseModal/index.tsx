@@ -2356,6 +2356,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     id="databaseFile"
                     data-test="database-file-input"
                     accept=".yaml,.json,.yml,.zip"
+                    fileList={fileList}
                     customRequest={() => {}}
                     onChange={onDbImport}
                     onRemove={removeFile}
