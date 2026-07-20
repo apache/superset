@@ -150,24 +150,30 @@ echo "==> EXIT trap propagates the script's exit code, not the notification's"
 # failed migration. Extract the two rendered lines and actually run them,
 # with curl pointed at a closed local port so the notification itself fails,
 # to make sure the wrapped script's real exit code still comes through.
-quit_endpoint_line="$(grep -F 'ISTIO_QUIT_ENDPOINT=' <<<"${config_terminate}")"
-trap_line="$(grep -F "trap 'rc=\$?; curl" <<<"${config_terminate}")"
-set +e
-(
-    eval "${quit_endpoint_line}"
-    ISTIO_QUIT_ENDPOINT="http://127.0.0.1:1/quitquitquit"
-    eval "${trap_line}"
-    exit 42
-)
-trap_test_rc=$?
-set -e
-if [[ "${trap_test_rc}" -eq 42 ]]; then
-    echo "  PASS: script exit code (42) survives a failing quitquitquit notification"
-    pass=$((pass + 1))
-else
+quit_endpoint_line="$(grep -F 'ISTIO_QUIT_ENDPOINT=' <<<"${config_terminate}" || true)"
+trap_line="$(grep -F "trap 'rc=\$?; curl" <<<"${config_terminate}" || true)"
+if [[ -z "${quit_endpoint_line}" || -z "${trap_line}" ]]; then
     echo "  FAIL: script exit code (42) survives a failing quitquitquit notification"
-    echo "    got exit code: ${trap_test_rc}"
+    echo "    could not locate the rendered ISTIO_QUIT_ENDPOINT/trap lines to exercise"
     fail=$((fail + 1))
+else
+    set +e
+    (
+        eval "${quit_endpoint_line}"
+        ISTIO_QUIT_ENDPOINT="http://127.0.0.1:1/quitquitquit"
+        eval "${trap_line}"
+        exit 42
+    )
+    trap_test_rc=$?
+    set -e
+    if [[ "${trap_test_rc}" -eq 42 ]]; then
+        echo "  PASS: script exit code (42) survives a failing quitquitquit notification"
+        pass=$((pass + 1))
+    else
+        echo "  FAIL: script exit code (42) survives a failing quitquitquit notification"
+        echo "    got exit code: ${trap_test_rc}"
+        fail=$((fail + 1))
+    fi
 fi
 
 echo
