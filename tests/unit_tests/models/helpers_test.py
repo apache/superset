@@ -2961,6 +2961,47 @@ def test_normalize_df_offset_skips_unconfigured_integer_temporal_columns() -> No
     assert result["ts"].tolist() == [1577836800, 1609459200, 1640995200]
 
 
+def test_normalize_df_offset_applied_once_for_already_collected_column() -> None:
+    """A column already handled by ``_collect_dttm_labels`` (here, the
+    granularity column, which also declares a ``python_date_format`` and
+    arrives as a native datetime in the dataframe) must not be re-added by
+    ``_offset_only_dttm_cols``: the dataset HOURS OFFSET must shift it by
+    exactly one offset, not two (see issue #23167)."""
+    import pandas as pd
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_s",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+    datasource.offset = 4
+
+    query_object = MagicMock()
+    query_object.columns = []
+    query_object.granularity = "ts"
+    query_object.time_shift = None
+
+    df = pd.DataFrame(
+        {"ts": pd.to_datetime(["2020-01-01 00:00:00", "2020-01-02 00:00:00"])}
+    )
+
+    # The granularity column is already collected, so the raw/offset-only
+    # pass must be a no-op for it.
+    already_collected = {
+        label for label, _ in datasource._collect_dttm_labels(query_object)
+    }
+    assert datasource._offset_only_dttm_cols(df, query_object, already_collected) == []
+
+    result = datasource.normalize_df(df, query_object)
+
+    assert (
+        result["ts"].tolist()
+        == pd.to_datetime(["2020-01-01 04:00:00", "2020-01-02 04:00:00"]).tolist()
+    )
+
+
 def test_adhoc_column_to_sqla_returns_type_from_column_metadata(
     database: Database,
 ) -> None:
