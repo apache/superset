@@ -18,6 +18,7 @@
  */
 import { act, ComponentProps } from 'react';
 import {
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -81,6 +82,32 @@ test('navigates to SQL Lab when a saved query card is clicked', async () => {
     expect(window.location.pathname).toBe('/sqllab');
     expect(window.location.search).toContain('savedQueryId=0');
   });
+});
+
+test('navigates to SQL Lab when a saved query card is activated by keyboard', async () => {
+  await renderSavedQueries(mockedProps);
+
+  const card = await screen.findByRole('button', { name: 'cool query 0' });
+  card.focus();
+  expect(card).toHaveFocus();
+
+  fireEvent.keyDown(card, { key: 'Enter' });
+
+  await waitFor(() => {
+    expect(window.location.pathname).toBe('/sqllab');
+    expect(window.location.search).toContain('savedQueryId=0');
+  });
+});
+
+test('does not navigate when a control inside the card is activated by keyboard', async () => {
+  await renderSavedQueries(mockedProps);
+
+  const [menuButton] = await screen.findAllByRole('button', {
+    name: 'More Options',
+  });
+  fireEvent.keyDown(menuButton, { key: 'Enter' });
+
+  expect(window.location.pathname).toBe('/');
 });
 
 test('navigates only via the card wrapper, without a competing link', async () => {

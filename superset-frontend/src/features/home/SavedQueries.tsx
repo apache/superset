@@ -19,7 +19,7 @@
 import { useCallback, useState, useEffect } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, handleKeyboardActivation } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
 import CodeSyntaxHighlighter, {
   preloadLanguages,
@@ -140,6 +140,10 @@ export const SavedQueries = ({
   const canDelete = hasPerm('can_delete');
 
   const history = useHistory();
+  const openQuery = useCallback(
+    (query: Query) => history.push(`/sqllab?savedQueryId=${query.id}`),
+    [history],
+  );
   const theme = useTheme();
 
   // Preload SQL language since we'll likely show SQL snippets
@@ -299,7 +303,15 @@ export const SavedQueries = ({
           {queries.map(q => (
             <CardStyles
               key={q.id}
-              onClick={() => history.push(`/sqllab?savedQueryId=${q.id}`)}
+              role="button"
+              tabIndex={0}
+              aria-label={q.label}
+              onClick={() => openQuery(q)}
+              onKeyDown={event => {
+                // Let controls inside the card handle their own keys.
+                if (event.target !== event.currentTarget) return;
+                handleKeyboardActivation(() => openQuery(q))(event);
+              }}
             >
               <ListViewCard
                 imgURL=""
