@@ -152,6 +152,18 @@ export const Styles = styled.div<{ isDashboardEditMode: boolean }>`
       cursor: pointer;
     }
 
+    .sort-icon-btn {
+      display: inline-flex;
+      align-items: center;
+      appearance: none;
+      border: none;
+      background: none;
+      padding: 0;
+      margin: 0;
+      font: inherit;
+      cursor: pointer;
+    }
+
     .hoverable:hover {
       background-color: ${theme.colorFillContentHover};
       cursor: pointer;

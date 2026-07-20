@@ -1036,7 +1036,9 @@ export function TableRenderer(props: TableRendererProps) {
                 namesMapping,
                 settingsAllowRenderHtml,
               )}
-              <span
+              <button
+                type="button"
+                className="sort-icon-btn"
                 // Prevents event bubbling to avoid conflict with column header click handlers
                 // Ensures sort operation executes without triggering cross-filtration
                 onClick={e => {
@@ -1050,7 +1052,7 @@ export function TableRenderer(props: TableRendererProps) {
                 }
               >
                 {visibleSortIcon && getSortIcon(i)}
-              </span>
+              </button>
             </th>,
           );
         } else if (attrIdx === colKey.length) {
