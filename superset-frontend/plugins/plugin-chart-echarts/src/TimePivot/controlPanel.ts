@@ -56,6 +56,8 @@ const config: ControlPanelConfig = {
               tooltipOnClick: () => {
                 window.open(
                   'https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases',
+                  '_blank',
+                  'noopener noreferrer',
                 );
               },
             },
