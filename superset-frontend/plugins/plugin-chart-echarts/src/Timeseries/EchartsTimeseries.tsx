@@ -127,7 +127,31 @@ export default function EchartsTimeseries({
     };
 
     const drawHandle = () => {
-      const gridRect = { top: 0, height: chart.getHeight() };
+      // Cap the handle to the plot area so it doesn't run through the
+      // legend above or the axis labels below.
+      let gridRect = { top: 0, height: chart.getHeight() };
+      try {
+        const rect = (
+          chart as unknown as {
+            getModel: () => {
+              getComponent: (
+                type: string,
+                index: number,
+              ) => {
+                coordinateSystem: {
+                  getRect: () => { y: number; height: number };
+                };
+              };
+            };
+          }
+        )
+          .getModel()
+          .getComponent('grid', 0)
+          .coordinateSystem.getRect();
+        gridRect = { top: rect.y, height: rect.height };
+      } catch {
+        // fall back to the full chart height
+      }
       let px: number;
       try {
         [px] = [chart.convertToPixel({ xAxisIndex: 0 }, baselineX) as number];
