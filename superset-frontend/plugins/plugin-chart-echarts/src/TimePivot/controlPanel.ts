@@ -53,9 +53,13 @@ const config: ControlPanelConfig = {
                 ['4W-MON', t('4 weeks (freq=4W-MON)')],
               ],
               description: t(
-                `The periodicity over which to pivot time. Users can provide
-                "Pandas" offset alias.
-                Click on the info bubble for more details on accepted "freq" expressions.`,
+                `The periodicity over which to pivot time. Each period becomes
+                its own overlaid series, so pick a Time Grain finer than this
+                frequency to see lines (e.g. Day grain with a weekly
+                frequency); with one data point per period each series renders
+                as a single dot. Users can provide "Pandas" offset aliases.
+                Click on the info bubble for more details on accepted "freq"
+                expressions.`,
               ),
               tooltipOnClick: () => {
                 window.open(
