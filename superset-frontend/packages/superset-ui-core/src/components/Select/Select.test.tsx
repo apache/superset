@@ -1540,11 +1540,11 @@ test('cancels pending debounce on unmount', async () => {
     />,
   );
 
-  await type('test', 0);
+  await type('test');
   await new Promise(resolve => setTimeout(resolve, 300));
   expect(mockOnSearch).toHaveBeenCalledWith('test');
   mockOnSearch.mockClear();
-  await type('unmounted', 0);
+  await type('unmounted');
   unmount();
   await new Promise(resolve => setTimeout(resolve, 400));
   expect(mockOnSearch).not.toHaveBeenCalled();
