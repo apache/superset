@@ -84,7 +84,8 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
         if table.sql:
             table.sql = table.sql.strip().strip(";")
         db.session.add(table)
-        table.columns = [
+
+        columns = [
             TableColumn(
                 column_name=c.column_name,
                 verbose_name=c.verbose_name,
@@ -97,6 +98,9 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
             )
             for c in self._base_model.columns
         ]
+        db.session.add_all(columns)
+        table.columns = columns
+
         table.metrics = [
             SqlMetric(
                 metric_name=m.metric_name,
