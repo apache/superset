@@ -380,6 +380,263 @@ class TestResponseSizeGuardMiddleware:
         # native_filters (48 items) fits under the custom cap, untouched
         assert len(result["native_filters"]) == 48
 
+    @pytest.mark.asyncio
+    async def test_truncates_execute_sql_rows_instead_of_blocking(self) -> None:
+        """execute_sql should truncate rows, not raise ToolError."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.message.params = {}
+
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        large_response = {
+            "status": "success",
+            "rows": [row] * 200,
+            "columns": [{"name": f"col_{i}", "type": "STRING"} for i in range(10)],
+            "row_count": 200,
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        assert result["_response_truncated"] is True
+        assert len(result["rows"]) < 200
+        assert isinstance(result.get("_truncation_notes"), list)
+        assert result["_truncation_notes"]
+
+    @pytest.mark.asyncio
+    async def test_truncates_query_dataset_data_field(self) -> None:
+        """query_dataset should truncate the 'data' list, not raise ToolError."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "query_dataset"
+        context.message.params = {}
+
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        large_response = {
+            "dataset_id": 1,
+            "dataset_name": "test",
+            "data": [row] * 200,
+            "row_count": 200,
+            "summary": "",
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        assert result["_response_truncated"] is True
+        assert len(result["data"]) < 200
+
+    @pytest.mark.asyncio
+    async def test_truncates_get_chart_data_rows(self) -> None:
+        """get_chart_data should truncate rows, not raise ToolError."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "get_chart_data"
+        context.message.params = {}
+
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        large_response = {
+            "chart_id": 1,
+            "chart_name": "test chart",
+            "chart_type": "table",
+            "data": [row] * 200,
+            "row_count": 200,
+            "summary": "",
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        assert result["_response_truncated"] is True
+        assert len(result["data"]) < 200
+
+    @pytest.mark.asyncio
+    async def test_data_query_truncation_updates_row_count(self) -> None:
+        """row_count should reflect the truncated count, not the original."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.message.params = {}
+
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        large_response = {
+            "status": "success",
+            "rows": [row] * 200,
+            "row_count": 200,
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result["_response_truncated"] is True
+        assert result["row_count"] == len(result["rows"])
+
+    @pytest.mark.asyncio
+    async def test_data_query_truncation_note_mentions_limit_clause(self) -> None:
+        """Truncation note must tell the caller to add a LIMIT clause."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.message.params = {}
+
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        large_response = {
+            "status": "success",
+            "rows": [row] * 200,
+            "row_count": 200,
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        notes = result.get("_truncation_notes", [])
+        assert notes, "Should have at least one truncation note"
+        assert any("LIMIT" in note for note in notes)
+
+    @pytest.mark.asyncio
+    async def test_data_query_truncation_logs_truncation_event(self) -> None:
+        """Should log mcp_response_truncated (not size_exceeded) for query tools."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.message.params = {}
+
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        large_response = {
+            "status": "success",
+            "rows": [row] * 200,
+            "row_count": 200,
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger") as mock_event_logger,
+        ):
+            await middleware.on_call_tool(context, call_next)
+
+        mock_event_logger.log.assert_called()
+        assert (
+            mock_event_logger.log.call_args.kwargs["action"] == "mcp_response_truncated"
+        )
+
+    @pytest.mark.asyncio
+    async def test_truncates_get_chart_data_csv_export(self) -> None:
+        """CSV exports (data=[], payload in csv_data) should be truncated too."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "get_chart_data"
+        context.message.params = {}
+
+        large_response: dict[str, Any] = {
+            "chart_id": 1,
+            "chart_name": "test chart",
+            "chart_type": "table",
+            "columns": [],
+            "data": [],
+            "row_count": 200,
+            "summary": "",
+            "csv_data": "col_0,col_1\n" + ("value,value\n" * 2000),
+            "format": "csv",
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        assert result["_response_truncated"] is True
+        assert len(result["csv_data"]) < len(large_response["csv_data"])
+
+    @pytest.mark.asyncio
+    async def test_data_query_blocks_when_single_row_still_exceeds_limit(self) -> None:
+        """Should raise ToolError, not ship an over-budget response.
+
+        ``_bisect_row_limit`` always keeps at least one row when the
+        original list is non-empty, even if that one row alone exceeds the
+        token limit. The middleware must re-check the truncated size and
+        fall back to the hard error rather than treating this as success.
+        """
+        middleware = ResponseSizeGuardMiddleware(token_limit=50)
+
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.message.params = {}
+
+        huge_row = {"col": "x" * 5000}
+        large_response = {
+            "status": "success",
+            "rows": [huge_row] * 3,
+            "row_count": 3,
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_call_tool(context, call_next)
+
+    @pytest.mark.asyncio
+    async def test_data_query_under_limit_passes_through(self) -> None:
+        """Small query results should pass through unchanged."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=25000)
+
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.message.params = {}
+
+        small_response = {
+            "status": "success",
+            "rows": [{"a": 1, "b": 2}] * 3,
+            "row_count": 3,
+        }
+        call_next = AsyncMock(return_value=small_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result == small_response
+        assert "_response_truncated" not in result
+
 
 class TestCreateResponseSizeGuardMiddleware:
     """Test create_response_size_guard_middleware factory function."""
@@ -752,6 +1009,44 @@ class TestToolResultWrapping:
             pytest.raises(ToolError),
         ):
             await middleware.on_call_tool(context, call_next)
+
+    @pytest.mark.asyncio
+    async def test_data_query_tool_result_is_truncated_and_rewrapped(self) -> None:
+        """Truncate a ToolResult-wrapped execute_sql response and re-wrap it.
+
+        Regression test for the production path: FastMCP always wraps tool
+        return values in ToolResult before middleware sees them, so
+        data-query truncation must be exercised through that wrapper, not
+        just against a plain dict.
+        """
+        from fastmcp.tools.tool import ToolResult
+
+        from superset.utils import json
+
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.message.params = {}
+
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        large_payload = {
+            "status": "success",
+            "rows": [row] * 200,
+            "row_count": 200,
+        }
+        tool_result = self._make_tool_result(large_payload)
+        call_next = AsyncMock(return_value=tool_result)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, ToolResult)
+        reparsed = json.loads(result.content[0].text)
+        assert reparsed["_response_truncated"] is True
+        assert len(reparsed["rows"]) < 200
 
     @pytest.mark.asyncio
     async def test_meta_preserved_after_truncation(self) -> None:
