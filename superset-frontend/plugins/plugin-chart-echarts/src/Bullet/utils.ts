@@ -16,16 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { validateNumber } from '@superset-ui/core';
-
 // Ported from the nvd3 bullet chart so saved comma-separated control values
 // keep their exact semantics.
 export function tokenizeToNumericArray(value?: string): number[] | null {
   if (!value?.trim()) return null;
-  const tokens = value.split(',');
-  if (tokens.some(token => validateNumber(token)))
-    throw new Error('All values should be numeric');
-  return tokens.map(token => parseFloat(token));
+  // Lenient by design: this runs on every keystroke, so partial input like
+  // "50," must not throw. Empty and non-numeric tokens are dropped.
+  const numbers = value
+    .split(',')
+    .map(token => token.trim())
+    .filter(token => token !== '')
+    .map(token => Number(token))
+    .filter(n => !Number.isNaN(n));
+  return numbers.length ? numbers : null;
 }
 
 export function tokenizeToStringArray(value?: string): string[] | null {

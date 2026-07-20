@@ -85,13 +85,7 @@ export default function transformProps(
     itemStyle: {
       color: bandFills[Math.min(i, bandFills.length - 1)],
     },
-    // Surface the range label inside the band's right edge
-    label: {
-      show: Boolean(label),
-      position: 'insideRight',
-      color: theme.colorTextSecondary,
-      fontSize: theme.fontSizeSM,
-    },
+    label: { show: false },
     // markArea item: [{start}, {end}]
     coords: [{ xAxis: axisMin }, { xAxis: value }],
   }));
@@ -101,6 +95,21 @@ export default function transformProps(
   // the first match.
   const markerLabelAt = (index: number, labels: string[], values: number[]) =>
     labels[index] ? labels[index] : formatter(values[index]);
+
+  // The measure bar spans MEASURE_BAR_FRACTION of the category band
+  // (roughly the grid height), so a percentage symbolOffset lands inside a
+  // tall bar. Compute pixels: half the bar plus a small gap below it.
+  const gridHeight = Math.max(height - theme.sizeUnit * 10, 40);
+  const markerOffsetPx = Math.round(
+    (MEASURE_BAR_FRACTION / 2) * gridHeight + 12,
+  );
+
+  // Surface range labels on the measure bar's tooltip
+  const rangeTooltipLines = [...ranges]
+    .map((value, i) => ({ value, label: rangeLabels[i] }))
+    .filter(({ label }) => Boolean(label))
+    .sort((a, b) => a.value - b.value)
+    .map(({ value, label }) => `${label}: \u2264 ${formatter(value)}`);
 
   const echartOptions: EChartsCoreOption = {
     // A single-measure chart needs no legend; the default one collides
@@ -133,7 +142,12 @@ export default function transformProps(
     tooltip: {
       confine: true,
       formatter: () =>
-        sanitizeHtml(`${metricLabel}: <b>${formatter(measure)}</b>`),
+        sanitizeHtml(
+          [
+            `${metricLabel}: <b>${formatter(measure)}</b>`,
+            ...rangeTooltipLines,
+          ].join('<br />'),
+        ),
     },
     series: [
       {
@@ -191,7 +205,7 @@ export default function transformProps(
         symbol: 'triangle',
         symbolSize: 14,
         // Sit below the measure bar pointing up at the marked value
-        symbolOffset: [0, '160%'],
+        symbolOffset: [0, markerOffsetPx],
         itemStyle: { color: theme.colorText },
         z: 20,
       },
