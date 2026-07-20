@@ -18,6 +18,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { arrayMove } from '@dnd-kit/sortable';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
@@ -87,13 +88,12 @@ const ContourControl = ({ onChange, ...props }: ContourControlProps) => {
     setContours(newContours);
   };
 
-  const onShiftContour = (hoverIndex: number, dragIndex: number) => {
-    const newContours = [...contours];
-    [newContours[hoverIndex], newContours[dragIndex]] = [
-      newContours[dragIndex],
-      newContours[hoverIndex],
-    ];
-    setContours(newContours);
+  const onShiftContour = (dragIndex: number, hoverIndex: number) => {
+    // @dnd-kit reports the final indices at drag-end, so reorder with a full
+    // arrayMove rather than an adjacent swap to support non-adjacent drags.
+    // Args are (from, to) to match arrayMove and the other Dnd controls;
+    // passing them reversed moved the wrong contour on non-adjacent drags.
+    setContours(arrayMove(contours, dragIndex, hoverIndex));
   };
 
   const editContour = (contour: ContourType, index: number) => {

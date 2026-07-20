@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { handleKeyboardActivation } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
 import { styled } from '@apache-superset/core/theme';
@@ -166,7 +167,6 @@ const BulkSelectWrapper = styled(Alert)`
       margin: ${`${-theme.sizeUnit * 2}px 0 ${-theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px`};
       width: 1px;
       height: ${theme.sizeUnit * 8}px;
-      box-shadow: inset -1px 0px 0px ${theme.colorBorder};
       display: inline-flex;
       vertical-align: middle;
       position: relative;
@@ -256,6 +256,7 @@ const ViewModeToggle = ({
           e.currentTarget.blur();
           setMode('card');
         }}
+        onKeyDown={handleKeyboardActivation(() => setMode('card'))}
         className={cx('toggle-button', { active: mode === 'card' })}
       >
         <Icons.AppstoreOutlined iconSize="xl" />
@@ -270,6 +271,7 @@ const ViewModeToggle = ({
           e.currentTarget.blur();
           setMode('table');
         }}
+        onKeyDown={handleKeyboardActivation(() => setMode('table'))}
         className={cx('toggle-button', { active: mode === 'table' })}
       >
         <Icons.UnorderedListOutlined iconSize="xl" />
@@ -316,6 +318,8 @@ export interface ListViewProps<T extends object = any> {
   }>;
   /** Optional expandable row configuration, passed through to antd Table. */
   expandable?: Record<string, unknown>;
+  /** Content rendered between the filter bar and the table/card body. */
+  headerContent?: ReactNode;
 }
 
 export function ListView<T extends object = any>({
@@ -344,6 +348,7 @@ export function ListView<T extends object = any>({
   bulkTagResourceName,
   filtersRef,
   expandable,
+  headerContent,
   addSuccessToast,
   addDangerToast,
 }: ListViewProps<T>) {
@@ -484,6 +489,7 @@ export function ListView<T extends object = any>({
             )}
           </div>
         </div>
+        {headerContent}
         <div className={`body ${rows.length === 0 ? 'empty' : ''} `}>
           {bulkSelectEnabled && (
             <BulkSelectWrapper
@@ -506,6 +512,9 @@ export function ListView<T extends object = any>({
                         tabIndex={0}
                         className="deselect-all"
                         onClick={() => toggleAllRowsSelected(false)}
+                        onKeyDown={handleKeyboardActivation(() =>
+                          toggleAllRowsSelected(false),
+                        )}
                       >
                         {t('Deselect all')}
                       </span>
@@ -514,27 +523,25 @@ export function ListView<T extends object = any>({
                         .filter(
                           action =>
                             !action.hidden?.(
-                              selectedFlatRows.map(
-                                (r: any) => r.original,
-                              ),
+                              selectedFlatRows.map((r: any) => r.original),
                             ),
                         )
                         .map(action => (
-                        <Button
-                          data-test="bulk-select-action"
-                          data-test-action-key={action.key}
-                          key={action.key}
-                          buttonStyle={action.type}
-                          cta
-                          onClick={() =>
-                            action.onSelect(
-                              selectedFlatRows.map((r: any) => r.original),
-                            )
-                          }
-                        >
-                          {action.name}
-                        </Button>
-                      ))}
+                          <Button
+                            data-test="bulk-select-action"
+                            data-test-action-key={action.key}
+                            key={action.key}
+                            buttonStyle={action.type}
+                            cta
+                            onClick={() =>
+                              action.onSelect(
+                                selectedFlatRows.map((r: any) => r.original),
+                              )
+                            }
+                          >
+                            {action.name}
+                          </Button>
+                        ))}
                       {enableBulkTag && (
                         <span
                           data-test="bulk-select-tag-btn"
@@ -543,6 +550,9 @@ export function ListView<T extends object = any>({
                           tabIndex={0}
                           className="tag-btn"
                           onClick={() => setShowBulkTagModal(true)}
+                          onKeyDown={handleKeyboardActivation(() =>
+                            setShowBulkTagModal(true),
+                          )}
                         >
                           {t('Add Tag')}
                         </span>
@@ -572,7 +582,6 @@ export function ListView<T extends object = any>({
                     onChange={(page: number) => {
                       gotoPage(page - 1);
                     }}
-                    size="default"
                     showSizeChanger={false}
                     showQuickJumper={false}
                     hideOnSinglePage

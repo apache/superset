@@ -15,9 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import urllib.parse
+import urllib.request
 from collections.abc import Sequence
+from contextlib import closing
 from datetime import datetime, timedelta
-from typing import Any, Optional, Union
+from typing import Any, Optional, TYPE_CHECKING, Union
+from urllib.error import URLError
 from uuid import UUID
 
 import pandas as pd
@@ -37,14 +41,19 @@ from superset.commands.report.exceptions import (
     ReportScheduleDataFrameFailedError,
     ReportScheduleDataFrameTimeout,
     ReportScheduleExecuteUnexpectedError,
+    ReportScheduleExecutorNotFoundError,
     ReportScheduleNotFoundError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
     ReportScheduleStateNotFoundError,
     ReportScheduleSystemErrorsException,
+    ReportScheduleTargetChartDeletedError,
+    ReportScheduleTargetDashboardDeletedError,
     ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
+    ReportScheduleXlsxFailedError,
+    ReportScheduleXlsxTimeout,
 )
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.daos.report import (
@@ -72,17 +81,46 @@ from superset.reports.notifications.exceptions import (
     NotificationParamException,
     SlackV1NotificationError,
 )
+from superset.subjects.types import SubjectType
 from superset.tasks.utils import get_executor
 from superset.utils import json
 from superset.utils.core import HeaderDataType, override_user, recipients_string_to_list
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.decorators import logs_context, transaction
+from superset.utils.file import sanitize_title
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.slack import get_channels_with_search, SlackChannelTypes
 from superset.utils.urls import get_url_path
 
+if TYPE_CHECKING:
+    from flask_appbuilder.security.sqla.models import User
+
 logger = logging.getLogger(__name__)
+
+
+def resolve_executor_user(model: ReportSchedule) -> tuple["User", str]:
+    """
+    Resolve the executor user for a report schedule.
+
+    Determines the configured executor username via ``get_executor`` and looks up
+    the corresponding user. A deleted/disabled user or a misconfigured
+    ``ALERT_REPORTS_EXECUTORS`` makes ``security_manager.find_user`` return
+    ``None``; rather than passing ``None`` into the webdriver/auth flow (which
+    fails with an opaque NoneType error), raise a dedicated, actionable error.
+
+    :returns: the ``(user, username)`` pair — the username is returned alongside
+        the user because several call sites log it after resolution.
+    :raises ReportScheduleExecutorNotFoundError: if the executor user is missing.
+    """
+    _, username = get_executor(
+        executors=app.config["ALERT_REPORTS_EXECUTORS"],
+        model=model,
+    )
+    user = security_manager.find_user(username)
+    if user is None:
+        raise ReportScheduleExecutorNotFoundError(username)
+    return user, username
 
 
 class BaseReportState:
@@ -134,46 +172,55 @@ class BaseReportState:
         """
         Update the report schedule type and channels for all slack recipients to v2.
         V2 uses ids instead of names for channels.
+
+        Channel ids for every Slack recipient are resolved first and the
+        recipients are only mutated once all of them resolve. This keeps the
+        upgrade all-or-nothing: a single unresolvable channel can no longer
+        leave the schedule with some recipients already switched to v2 (and
+        persisted by a later error-log commit) while others are untouched.
         """
+        resolved: list[tuple[ReportRecipients, str]] = []
         try:
             for recipient in self._report_schedule.recipients:
-                if recipient.type == ReportRecipientType.SLACK:
-                    recipient.type = ReportRecipientType.SLACKV2
-                    slack_recipients = json.loads(recipient.recipient_config_json)
-                    # V1 method allowed to use leading `#` in the channel name
-                    channel_names = (slack_recipients["target"] or "").replace("#", "")
-                    # we need to ensure that existing reports can also fetch
-                    # ids from private channels
-                    channels = get_channels_with_search(
-                        search_string=channel_names,
-                        types=[
-                            SlackChannelTypes.PRIVATE,
-                            SlackChannelTypes.PUBLIC,
-                        ],
-                        exact_match=True,
+                if recipient.type != ReportRecipientType.SLACK:
+                    continue
+                slack_recipients = json.loads(recipient.recipient_config_json)
+                # V1 method allowed to use leading `#` in the channel name
+                channel_names = (slack_recipients["target"] or "").replace("#", "")
+                # we need to ensure that existing reports can also fetch
+                # ids from private channels
+                channels = get_channels_with_search(
+                    search_string=channel_names,
+                    types=[
+                        SlackChannelTypes.PRIVATE,
+                        SlackChannelTypes.PUBLIC,
+                    ],
+                    exact_match=True,
+                )
+                channels_list = recipients_string_to_list(channel_names)
+                if len(channels_list) != len(channels):
+                    missing_channels = set(channels_list) - {
+                        channel["name"] for channel in channels
+                    }
+                    msg = (
+                        "Could not find the following channels: "
+                        f"{', '.join(missing_channels)}"
                     )
-                    channels_list = recipients_string_to_list(channel_names)
-                    if len(channels_list) != len(channels):
-                        missing_channels = set(channels_list) - {
-                            channel["name"] for channel in channels
-                        }
-                        msg = (
-                            "Could not find the following channels: "
-                            f"{', '.join(missing_channels)}"
-                        )
-                        raise UpdateFailedError(msg)
-                    channel_ids = ",".join(channel["id"] for channel in channels)
-                    recipient.recipient_config_json = json.dumps(
-                        {
-                            "target": channel_ids,
-                        }
-                    )
+                    raise UpdateFailedError(msg)
+                channel_ids = ",".join(channel["id"] for channel in channels)
+                resolved.append((recipient, json.dumps({"target": channel_ids})))
         except Exception as ex:
-            # Revert to v1 to preserve configuration (requires manual fix)
-            recipient.type = ReportRecipientType.SLACK
+            # No recipient has been mutated yet, so there is no partial upgrade
+            # to revert; surface the failure so the configuration can be fixed
+            # manually.
             msg = f"Failed to update slack recipients to v2: {str(ex)}"
             logger.exception(msg)
             raise UpdateFailedError(msg) from ex
+
+        # Every Slack recipient resolved; apply the upgrade atomically.
+        for recipient, recipient_config_json in resolved:
+            recipient.type = ReportRecipientType.SLACKV2
+            recipient.recipient_config_json = recipient_config_json
 
     def create_log(self, error_message: Optional[str] = None) -> None:
         """
@@ -218,11 +265,48 @@ class BaseReportState:
         """
         Get the url for this report schedule: chart or dashboard
         """
+        chart = self._report_schedule.chart
+        dashboard = self._report_schedule.dashboard
+
+        # Soft delete removed the FK-level guarantee that a report's target
+        # chart exists: ``chart`` is a visibility-filtered relationship, so a
+        # chart soft-deleted after this report was created (or attached via a
+        # validate/commit race with DeleteChartCommand) loads as ``None``
+        # while ``chart_id`` is still set. Without this guard the branch
+        # below silently falls through to the dashboard path and fails
+        # opaquely; raising here surfaces a clear, actionable error inside
+        # the state-machine envelope (ERROR log row + notification dispatch).
+        # Every content path (_get_screenshots, _get_csv_data,
+        # _get_embedded_data, _get_notification_content) funnels through this
+        # method, so this is the single choke point.
+        if chart is None and dashboard is None:
+            if self._report_schedule.chart_id is not None:
+                raise ReportScheduleTargetChartDeletedError()
+            # Symmetric guard for dashboard targets. Dashboard soft delete lands
+            # in the sibling rollout; until then this cannot fire (a dashboard
+            # with dependent reports cannot be deleted), which makes it inert
+            # rather than wrong — and it keeps the report-target error vocabulary
+            # parallel across entities from day one.
+            if self._report_schedule.dashboard_id is not None:
+                raise ReportScheduleTargetDashboardDeletedError()
+            # Defensive fallback for a malformed report with no target IDs.
+            # Missing relationships with a target ID are handled by the
+            # dedicated deleted-target errors above.
+            raise ReportScheduleUnexpectedError(
+                f"Report schedule {self._report_schedule.id} "
+                f"({self._report_schedule.name!r}) has no resolvable target "
+                f"(chart_id={self._report_schedule.chart_id}, "
+                f"dashboard_id={self._report_schedule.dashboard_id}); "
+                "the report has neither a chart nor a dashboard."
+            )
+
         force = "true" if self._report_schedule.force_screenshot else "false"
-        if self._report_schedule.chart:
+        if chart:
             if result_format in {
                 ChartDataResultFormat.CSV,
+                ChartDataResultFormat.XLSX,
                 ChartDataResultFormat.JSON,
+                ChartDataResultFormat.XLSX,
             }:
                 return get_url_path(
                     "ChartDataRestApi.get_data",
@@ -244,9 +328,8 @@ class BaseReportState:
         ) and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS"):
             return self._get_tab_url(dashboard_state, user_friendly=user_friendly)
 
-        dashboard = self._report_schedule.dashboard
         dashboard_id_or_slug = (
-            dashboard.uuid if dashboard and dashboard.uuid else dashboard.id
+            dashboard.uuid if dashboard.uuid is not None else dashboard.id
         )
         return get_url_path(
             "Superset.dashboard",
@@ -262,6 +345,14 @@ class BaseReportState:
         """
         Retrieve the URL for the dashboard tabs, or return the dashboard URL if no tabs are available.
         """  # noqa: E501
+        # Called directly from AsyncExecuteReportScheduleCommand.run (permalink
+        # pre-commit) without passing through _get_url, so it needs the same
+        # deleted-target guard.
+        if (
+            self._report_schedule.dashboard_id is not None
+            and self._report_schedule.dashboard is None
+        ):
+            raise ReportScheduleTargetDashboardDeletedError()
         force = "true" if self._report_schedule.force_screenshot else "false"
 
         if (
@@ -359,6 +450,18 @@ class BaseReportState:
             state=dashboard_state,
         ).run()
 
+        # The report-generation flow runs inside an outer ``@transaction``
+        # block (``ReportScheduleStateMachine.run``). Because of that,
+        # ``CreateDashboardPermalinkCommand``'s inner ``@transaction``
+        # decorator detects the active transaction and skips its own
+        # commit — the new row is flushed to the session but not yet
+        # visible to other database connections. Playwright then opens
+        # the permalink URL on a separate connection to render the
+        # report, which 404s because the row isn't committed. Commit
+        # explicitly here so the permalink is visible before navigation
+        # (#40996).
+        db.session.commit()  # pylint: disable=consider-using-transaction
+
         return get_url_path(
             "Superset.dashboard_permalink",
             key=permalink_key,
@@ -402,7 +505,6 @@ class BaseReportState:
         merged_params = self._merge_native_filters_into_url_params(
             base_state.get("urlParams"), native_filter_params
         )
-
         return [
             self._get_tab_url(
                 {
@@ -423,11 +525,7 @@ class BaseReportState:
         """
         start_time = datetime.utcnow()
 
-        _, username = get_executor(
-            executors=app.config["ALERT_REPORTS_EXECUTORS"],
-            model=self._report_schedule,
-        )
-        user = security_manager.find_user(username)
+        user, _ = resolve_executor_user(self._report_schedule)
 
         max_width = app.config["ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH"]
 
@@ -466,8 +564,12 @@ class BaseReportState:
         try:
             imges = []
             for screenshot in screenshots:
-                if imge := screenshot.get_screenshot(user=user):
-                    imges.append(imge)
+                imge = screenshot.get_screenshot(user=user)
+                if imge is None:
+                    raise ReportScheduleScreenshotFailedError(
+                        "Screenshot failed; aborting to avoid sending a partial report"
+                    )
+                imges.append(imge)
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.info(
                 "Screenshot capture took %.2fs - execution_id: %s",
@@ -506,25 +608,167 @@ class BaseReportState:
 
         return pdf
 
-    def _get_csv_data(self) -> bytes:
-        start_time = datetime.utcnow()
-        url = self._get_url(result_format=ChartDataResultFormat.CSV)
-        _, username = get_executor(
-            executors=app.config["ALERT_REPORTS_EXECUTORS"],
-            model=self._report_schedule,
+    def _get_chart_data_request_payload(
+        self,
+        result_format: ChartDataResultFormat,
+    ) -> dict[str, Any]:
+        """
+        Build the POST payload used for chart data exports.
+
+        :param result_format: Desired table-like chart data format.
+        :return: Query context updated with export result format/type and pagination.
+        :raises ReportScheduleExecuteUnexpectedError: If the chart query context is
+            missing or invalid.
+        """
+        try:
+            query_context = json.loads(self._report_schedule.chart.query_context)
+        except (TypeError, json.JSONDecodeError) as ex:
+            raise ReportScheduleExecuteUnexpectedError(
+                "Chart has no valid query context saved."
+            ) from ex
+
+        if not isinstance(query_context, dict):
+            raise ReportScheduleExecuteUnexpectedError(
+                "Chart has no valid query context saved."
+            )
+
+        result_type = ChartDataResultType.POST_PROCESSED.value
+        force = bool(self._report_schedule.force_screenshot)
+        query_context["result_format"] = result_format.value
+        query_context["result_type"] = result_type
+        query_context["force"] = force
+
+        form_data = query_context.get("form_data")
+        if isinstance(form_data, dict):
+            form_data["result_format"] = result_format.value
+            form_data["result_type"] = result_type
+            form_data["force"] = force
+
+            if form_data.get("server_pagination"):
+                row_limit = form_data.get("row_limit") or 0
+                queries = query_context.get("queries")
+                if isinstance(queries, list):
+                    data_query_updated = False
+                    download_queries = []
+                    for query in queries:
+                        if isinstance(query, dict) and query.get("is_rowcount"):
+                            continue
+                        if isinstance(query, dict) and not data_query_updated:
+                            query = {
+                                **query,
+                                "row_limit": row_limit,
+                                "row_offset": 0,
+                            }
+                            data_query_updated = True
+                        download_queries.append(query)
+                    query_context["queries"] = download_queries
+
+        return query_context
+
+    @staticmethod
+    def _post_chart_data(
+        chart_url: str,
+        auth_cookies: Optional[dict[str, str]],
+        request_payload: dict[str, Any],
+        timeout: Optional[float] = None,
+    ) -> Optional[bytes]:
+        """
+        POST a chart data request using report executor authentication.
+
+        :param chart_url: HTTP(S) chart data endpoint URL.
+        :param auth_cookies: Authentication cookies to attach to the request.
+        :param request_payload: Prepared chart data request payload.
+        :param timeout: Optional request timeout in seconds.
+        :return: Response body bytes, or None when response content is missing.
+        :raises URLError: If the URL scheme is unsupported or the response fails.
+        """
+        if not auth_cookies:
+            raise URLError("Missing authentication cookies for chart data request")
+
+        cookie_str = ";".join([f"{key}={val}" for key, val in auth_cookies.items()])
+        request_body = urllib.parse.urlencode(
+            {"form_data": json.dumps(request_payload)}
+        ).encode("utf-8")
+        parsed_url = urllib.parse.urlparse(chart_url)
+        if parsed_url.scheme not in {"http", "https"}:
+            raise URLError(f"Unsupported chart data URL scheme: {parsed_url.scheme}")
+
+        request = urllib.request.Request(  # noqa: S310
+            chart_url,
+            data=request_body,
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Cookie": cookie_str,
+            },
+            method="POST",
         )
-        user = security_manager.find_user(username)
+        with closing(
+            urllib.request.build_opener().open(request, timeout=timeout)  # noqa: S310
+        ) as response:
+            content = response.read()
+            if response.getcode() != 200:
+                raise URLError(response.getcode())
+        return content or None
+
+    def _get_data(self, result_format: ChartDataResultFormat) -> bytes:
+        """
+        Fetch tabular chart data (CSV or Excel) as raw bytes.
+
+        Both formats are produced by the chart data export endpoint, so the
+        bytes are fetched the same way and only differ by ``result_format``.
+        This reuses the export path's post-processing and index handling,
+        keeping report output consistent with a chart's manual export.
+        """
+        if result_format not in ChartDataResultFormat.table_like():
+            raise ReportScheduleExecuteUnexpectedError(
+                f"Unsupported chart data result format: {result_format}"
+            )
+
+        timeout_error: type[CommandException]
+        failed_error: type[CommandException]
+        if result_format == ChartDataResultFormat.XLSX:
+            label, timeout_error, failed_error = (
+                "Excel",
+                ReportScheduleXlsxTimeout,
+                ReportScheduleXlsxFailedError,
+            )
+        else:
+            label, timeout_error, failed_error = (
+                "CSV",
+                ReportScheduleCsvTimeout,
+                ReportScheduleCsvFailedError,
+            )
+
+        start_time = datetime.utcnow()
+        user, username = resolve_executor_user(self._report_schedule)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
         if self._report_schedule.chart.query_context is None:
             logger.warning("No query context found, taking a screenshot to generate it")
-            self._update_query_context()
+            self._update_query_context(failed_error)
+            db.session.refresh(self._report_schedule.chart)
 
         try:
-            csv_data = get_chart_csv_data(chart_url=url, auth_cookies=auth_cookies)
+            if self._report_schedule.chart.query_context is None:
+                url = self._get_url(result_format=result_format)
+                data = get_chart_csv_data(
+                    chart_url=url,
+                    auth_cookies=auth_cookies,
+                    timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+                )
+            else:
+                request_payload = self._get_chart_data_request_payload(result_format)
+                url = get_url_path("ChartDataRestApi.data")
+                data = self._post_chart_data(
+                    chart_url=url,
+                    auth_cookies=auth_cookies,
+                    request_payload=request_payload,
+                    timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+                )
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.info(
-                "CSV data generation from %s as user %s took %.2fs - execution_id: %s",
+                "%s data generation from %s as user %s took %.2fs - execution_id: %s",
+                label,
                 url,
                 username,
                 elapsed_seconds,
@@ -533,24 +777,24 @@ class BaseReportState:
         except SoftTimeLimitExceeded as ex:
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.warning(
-                "CSV generation timeout after %.2fs - execution_id: %s",
+                "%s generation timeout after %.2fs - execution_id: %s",
+                label,
                 elapsed_seconds,
                 self._execution_id,
             )
-            raise ReportScheduleCsvTimeout() from ex
+            raise timeout_error() from ex
         except Exception as ex:
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.exception(
-                "CSV generation failed after %.2fs - execution_id: %s",
+                "%s generation failed after %.2fs - execution_id: %s",
+                label,
                 elapsed_seconds,
                 self._execution_id,
             )
-            raise ReportScheduleCsvFailedError(
-                f"Failed generating csv {str(ex)}"
-            ) from ex
-        if not csv_data:
-            raise ReportScheduleCsvFailedError()
-        return csv_data
+            raise failed_error(f"Failed generating {label.lower()} {str(ex)}") from ex
+        if not data:
+            raise failed_error()
+        return data
 
     def _get_embedded_data(self) -> pd.DataFrame:
         """
@@ -559,11 +803,7 @@ class BaseReportState:
         start_time = datetime.utcnow()
 
         url = self._get_url(result_format=ChartDataResultFormat.JSON)
-        _, username = get_executor(
-            executors=app.config["ALERT_REPORTS_EXECUTORS"],
-            model=self._report_schedule,
-        )
-        user = security_manager.find_user(username)
+        user, username = resolve_executor_user(self._report_schedule)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
         if self._report_schedule.chart.query_context is None:
@@ -571,7 +811,11 @@ class BaseReportState:
             self._update_query_context()
 
         try:
-            dataframe = get_chart_dataframe(url, auth_cookies)
+            dataframe = get_chart_dataframe(
+                url,
+                auth_cookies,
+                timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+            )
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.info(
                 "DataFrame generation from %s as user %s took %.2fs - execution_id: %s",
@@ -602,14 +846,18 @@ class BaseReportState:
             raise ReportScheduleCsvFailedError()
         return dataframe
 
-    def _update_query_context(self) -> None:
+    def _update_query_context(
+        self,
+        failed_error: type[CommandException] = ReportScheduleCsvFailedError,
+    ) -> None:
         """
         Update chart query context.
 
-        To load CSV data from the endpoint the chart must have been saved
+        To load data from the endpoint the chart must have been saved
         with its query context. For charts without saved query context we
         get a screenshot to force the chart to produce and save the query
-        context.
+        context. ``failed_error`` lets the caller surface a format-specific
+        failure (e.g. Excel vs CSV) when the screenshot fallback fails.
         """
         try:
             self._get_screenshots()
@@ -617,7 +865,7 @@ class BaseReportState:
             ReportScheduleScreenshotFailedError,
             ReportScheduleScreenshotTimeout,
         ) as ex:
-            raise ReportScheduleCsvFailedError(
+            raise failed_error(
                 "Unable to fetch data because the chart has no query context "
                 "saved, and an error occurred when fetching it via a screenshot. "
                 "Please try loading the chart and saving it again."
@@ -649,7 +897,11 @@ class BaseReportState:
             "notification_format": self._report_schedule.report_format,
             "chart_id": chart_id,
             "dashboard_id": dashboard_id,
-            "owners": self._report_schedule.owners,
+            "editors": [
+                s.user.id
+                for s in self._report_schedule.editors
+                if s.type == SubjectType.USER and s.user
+            ],
             "slack_channels": slack_channels,
             "execution_id": str(self._execution_id),
         }
@@ -661,7 +913,8 @@ class BaseReportState:
 
         :raises: ReportScheduleScreenshotFailedError
         """
-        csv_data = None
+        csv_data: bytes | None = None
+        xlsx_data: bytes | None = None
         screenshot_data = []
         pdf_data = None
         embedded_data = None
@@ -683,14 +936,23 @@ class BaseReportState:
                     error_text = "Unexpected missing pdf"
             elif (
                 self._report_schedule.chart
-                and self._report_schedule.report_format == ReportDataFormat.CSV
+                and self._report_schedule.report_format in ReportDataFormat.tabular()
             ):
-                csv_data = self._get_csv_data()
-                if not csv_data:
-                    error_text = "Unexpected missing csv file"
+                if self._report_schedule.report_format == ReportDataFormat.XLSX:
+                    xlsx_data = self._get_data(ChartDataResultFormat.XLSX)
+                    if not xlsx_data:
+                        error_text = "Unexpected missing Excel file"
+                else:
+                    csv_data = self._get_data(ChartDataResultFormat.CSV)
+                    if not csv_data:
+                        error_text = "Unexpected missing csv file"
+            elif self._report_schedule.report_format == ReportDataFormat.XLSX:
+                raise ReportScheduleXlsxFailedError(
+                    "XLSX reports are only supported for chart schedules"
+                )
             if error_text:
                 return NotificationContent(
-                    name=self._report_schedule.name,
+                    name=sanitize_title(self._report_schedule.name),
                     text=error_text,
                     header_data=header_data,
                     url=url,
@@ -703,15 +965,15 @@ class BaseReportState:
             embedded_data = self._get_embedded_data()
 
         if self._report_schedule.email_subject:
-            name = self._report_schedule.email_subject
+            name = sanitize_title(self._report_schedule.email_subject)
         else:
             if self._report_schedule.chart:
-                name = (
+                name = sanitize_title(
                     f"{self._report_schedule.name}: "
                     f"{self._report_schedule.chart.slice_name}"
                 )
             else:
-                name = (
+                name = sanitize_title(
                     f"{self._report_schedule.name}: "
                     f"{self._report_schedule.dashboard.dashboard_title}"
                 )
@@ -723,6 +985,7 @@ class BaseReportState:
             pdf=pdf_data,
             description=self._report_schedule.description,
             csv=csv_data,
+            xlsx=xlsx_data,
             embedded_data=embedded_data,
             header_data=header_data,
         )
@@ -810,19 +1073,20 @@ class BaseReportState:
             self._execution_id,
         )
         notification_content = NotificationContent(
-            name=name, text=message, header_data=header_data, url=url
+            name=sanitize_title(name), text=message, header_data=header_data, url=url
         )
 
-        # filter recipients to recipients who are also owners
-        owner_recipients = [
+        # filter recipients to recipients who are also editors
+        editor_recipients = [
             ReportRecipients(
                 type=ReportRecipientType.EMAIL,
-                recipient_config_json=json.dumps({"target": owner.email}),
+                recipient_config_json=json.dumps({"target": s.user.email}),
             )
-            for owner in self._report_schedule.owners
+            for s in self._report_schedule.editors
+            if s.type == SubjectType.USER and s.user
         ]
 
-        self._send(notification_content, owner_recipients)
+        self._send(notification_content, editor_recipients)
 
     def is_in_grace_period(self) -> bool:
         """
@@ -1157,13 +1421,23 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
         self._scheduled_dttm = scheduled_dttm
         self._execution_id = UUID(task_id)
 
-    @transaction()
     def run(self) -> None:
         try:
             self.validate()
             if not self._model:
                 raise ReportScheduleExecuteUnexpectedError()
 
+            # Resolve the executor at the run() boundary, tolerating a missing
+            # user (find_user -> None) so the state machine still runs and its
+            # error envelope writes the ERROR execution-log row and sends the
+            # editor notification. The dedicated ReportScheduleExecutorNotFoundError
+            # guard lives at the content sites (_get_screenshots / _get_data /
+            # _get_embedded_data), which raise inside that envelope. Guarding here
+            # instead would surface the executor error above the state machine,
+            # suppressing both the log row and the editor notification. The
+            # alert-query path (AlertCommand) is intentionally left unchanged — a
+            # missing executor there surfaces as a query error, not the dedicated
+            # executor error; tightening it is out of scope here.
             _, username = get_executor(
                 executors=app.config["ALERT_REPORTS_EXECUTORS"],
                 model=self._model,
@@ -1172,6 +1446,19 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
 
             start_time = datetime.utcnow()
             with override_user(user):
+                # Pre-commit any permalink rows before the state machine's
+                # @transaction() opens. When called inside a transaction,
+                # CreateDashboardPermalinkCommand only flushes (not commits),
+                # leaving the row invisible to Playwright's separate DB
+                # connection. Running get_dashboard_urls() here — outside any
+                # transaction — lets the command commit normally. The state
+                # machine's inner call to get_dashboard_urls() hits get_entry()
+                # for the same deterministic UUID and returns the
+                # already-committed row without a second INSERT.
+                if self._model.dashboard_id:
+                    BaseReportState(
+                        self._model, self._scheduled_dttm, self._execution_id
+                    ).get_dashboard_urls()
                 ReportScheduleStateMachine(
                     self._execution_id, self._model, self._scheduled_dttm
                 ).run()

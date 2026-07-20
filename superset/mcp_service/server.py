@@ -747,9 +747,11 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
         flask_app.config.get("MCP_AUTH_ENABLED", False)
         or flask_app.config.get("MCP_API_KEY_ENABLED", False)
         or flask_app.config.get("FAB_API_KEY_ENABLED", False)
+        or flask_app.config.get("MCP_EMBEDDED_GUEST_AUTH_ENABLED", False)
     ):
         from superset.mcp_service.mcp_config import (
             create_default_mcp_auth_factory,
+            MCPAuthConfigError,
         )
 
         try:
@@ -758,6 +760,12 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
                 "Auth provider created from default factory: %s",
                 type(auth_provider).__name__ if auth_provider else "None",
             )
+        except MCPAuthConfigError:
+            # A misconfiguration that must fail closed: re-raise so the service
+            # refuses to start rather than falling through to an unauthenticated
+            # server. The message is operator-facing config guidance and carries
+            # no secret material.
+            raise
         except Exception:
             # Do not log the exception — it may contain secrets
             logger.error("Failed to create auth provider from default factory")
@@ -831,6 +839,21 @@ def _build_starlette_middleware(
             page_config=page_config,
         )
     ]
+
+
+def _register_health_endpoint(mcp_instance: Any) -> None:
+    """
+    Register /health for load balancers and K8s probes.
+
+    The health_check MCP tool exists but is only reachable via the MCP
+    protocol, not httpGet probes.
+    """
+    from starlette.requests import Request
+    from starlette.responses import JSONResponse
+
+    @mcp_instance.custom_route("/health", methods=["GET"])
+    async def _health(_: Request) -> JSONResponse:
+        return JSONResponse({"status": "ok"})
 
 
 def run_server(
@@ -909,6 +932,8 @@ def run_server(
             if size_guard_middleware:
                 search_name = tool_search_config.get("search_tool_name", "search_tools")
                 size_guard_middleware.excluded_tools.add(search_name)
+
+    _register_health_endpoint(mcp_instance)
 
     # Create EventStore for session management (Redis for multi-pod, None for in-memory)
     event_store = create_event_store(event_store_config)

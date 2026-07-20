@@ -59,6 +59,7 @@ from superset.constants import (
 from superset.jinja_context import BaseTemplateProcessor
 from superset.key_value.types import JsonKeyValueCodec
 from superset.stats_logger import DummyStatsLogger
+from superset.subjects.types import SubjectType
 from superset.superset_typing import CacheConfig
 from superset.tasks.types import ExecutorType
 from superset.themes.types import Theme
@@ -160,6 +161,15 @@ VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE, VERSION_SHA_LENGTH)
 # can be replaced at build time to expose build information.
 BUILD_NUMBER = None
 
+# Whether to expose precise build details (the git SHA and build number) to
+# all users via the "About" section and the bootstrap payload. When False
+# (default), these are only included for admins, so non-admin/anonymous viewers
+# cannot read the exact commit/build of the deployment. The release version
+# string is always included. Enable with SUPERSET_EXPOSE_BUILD_DETAILS.
+EXPOSE_BUILD_DETAILS_TO_USERS = utils.cast_to_boolean(
+    os.environ.get("SUPERSET_EXPOSE_BUILD_DETAILS", False)
+)
+
 # default viz used in chart explorer & SQL Lab explore
 DEFAULT_VIZ_TYPE = "table"
 
@@ -214,6 +224,20 @@ SUPERSET_WEBSERVER_TIMEOUT = int(timedelta(minutes=1).total_seconds())
 # please check PR #9886
 SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT = 0
 SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE = None
+
+# Manual dashboard refresh can stagger chart data requests across this many
+# milliseconds so they do not all hit the backend at the same instant. This
+# defaults to 0, which preserves the original behavior where every chart
+# request fires at the same time when the user clicks the Refresh dashboard
+# button. Set a positive value to opt in to staggering; the frontend then
+# uses the larger of this value and the dashboard's stagger_time metadata,
+# which itself defaults to 5000 ms when it is not set explicitly. A dashboard
+# with stagger_refresh set to false in its metadata skips staggering on the
+# manual refresh path entirely, even when this value is positive.
+# If the backend does not provide this value at all (an older backend that
+# predates the key, or it is set to None), the frontend falls back to a
+# built-in default of 5000 ms.
+SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS: int = 0
 
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
 CUSTOM_SECURITY_MANAGER = None
@@ -408,23 +432,49 @@ AUTH_PASSWORD_COMMON_BLOCKLIST: list[str] = []
 APP_NAME = "Superset"
 
 # Specify the App icon
+# NOTE: This variable is used to populate THEME_DEFAULT. If you override this in
+# superset_config.py, you must also override THEME_DEFAULT to see the change,
+# or set THEME_DEFAULT["token"]["brandLogoUrl"] directly.
 APP_ICON = "/static/assets/images/superset-logo-horiz.png"
 
-# Specify where clicking the logo would take the user'
+# Specify where clicking the logo would take the user
 # Default value of None will take you to '/superset/welcome'
 # You can also specify a relative URL e.g. '/superset/welcome' or '/dashboards/list'
 # or you can specify a full URL e.g. 'https://foo.bar'
+# NOTE: Overriding this in superset_config.py automatically updates the logo link
+# (THEME_DEFAULT["token"]["brandLogoHref"]); see sync_theme_logo_href below.
 LOGO_TARGET_PATH = None
 
+# When True, hide the navbar logo.
+HIDE_NAVBAR_LOGO: bool = False
+
 # Specify tooltip that should appear when hovering over the App Icon/Logo
+# NOTE: This variable is deprecated and not used in the new theme system.
 LOGO_TOOLTIP = ""
 
 # Specify any text that should appear to the right of the logo
+# NOTE: This variable is deprecated and not used in the new theme system.
 LOGO_RIGHT_TEXT: Callable[[], str] | str = ""
+
+# APP_ICON_WIDTH is deprecated.
+# Use THEME_DEFAULT["token"]["brandLogoHeight"] instead (default: "24px").
 
 # Enables SWAGGER UI for superset openapi spec
 # ex: http://localhost:8080/swagger/v1
-FAB_API_SWAGGER_UI = True
+# Disabled by default so the interactive API documentation surface is opt-in.
+# Enable it by setting the SUPERSET_ENABLE_SWAGGER_UI environment variable
+# (e.g. for local development) or by overriding FAB_API_SWAGGER_UI in
+# superset_config.py.
+FAB_API_SWAGGER_UI = utils.cast_to_boolean(
+    os.environ.get("SUPERSET_ENABLE_SWAGGER_UI", False)
+)
+
+# Enables an APPLICATION_ROOT-aware Swagger UI and OpenAPI spec, for Superset
+# deployments served behind a URL prefix (reverse proxy). When True, the spec
+# is exposed at ``/api/<version>/_openapi`` and the Swagger UI resolves it
+# through APPLICATION_ROOT. Defaults to False (standard FAB Swagger UI).
+# ex: http://localhost:8080/<prefix>/swagger/v1
+FAB_API_SWAGGER_UI_SUPERSET_APP_ROOT = False
 
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG
@@ -488,11 +538,19 @@ LANGUAGES = {
     "cs": {"flag": "cz", "name": "Czech"},
     "sk": {"flag": "sk", "name": "Slovak"},
     "sl": {"flag": "si", "name": "Slovenian"},
+    "sr": {"flag": "rs", "name": "Serbian (Cyrillic)"},
+    "sr_Latn": {"flag": "rs", "name": "Serbian (Latin)"},
     "lv": {"flag": "lv", "name": "Latvian"},
     "nl": {"flag": "nl", "name": "Dutch"},
     "uk": {"flag": "ua", "name": "Ukrainian"},
     "mi": {"flag": "nz", "name": "Māori"},
     "ro": {"flag": "ro", "name": "Romanian"},
+    "ar": {"flag": "sa", "name": "Arabic"},
+    "ca": {"flag": "es", "name": "Catalan"},
+    "fa": {"flag": "ir", "name": "Persian"},
+    "fi": {"flag": "fi", "name": "Finnish"},
+    "th": {"flag": "th", "name": "Thai"},
+    "tr": {"flag": "tr", "name": "Turkish"},
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
@@ -630,6 +688,13 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # can_copy_clipboard) instead of the single can_csv permission
     # @lifecycle: development
     "GRANULAR_EXPORT_CONTROLS": False,
+    # Temporary rollout / kill-switch gate for soft delete (default off = legacy
+    # hard delete). An emergency stop, not a clean rollback: flipping ON->OFF
+    # resurrects already-soft-deleted rows. Removed (along with its two gate
+    # points — BaseDAO.delete routing and the do_orm_execute visibility listener)
+    # once soft delete is stable.
+    # @lifecycle: development
+    "SOFT_DELETE": False,
     # Enable semantic layers and show semantic views alongside datasets
     # @lifecycle: development
     "SEMANTIC_LAYERS": False,
@@ -668,9 +733,15 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: testing
     # @docs: https://superset.apache.org/docs/configuration/alerts-reports
     "ALERT_REPORTS": False,
-    # Enables Slack V2 integration for Alerts and Reports
+    # Enables Slack V2 integration for Alerts and Reports.
+    # Defaults to True; the legacy Slack v1 path is deprecated and will be removed
+    # in the next major release. Operators must grant the Slack bot both the
+    # `channels:read` and `groups:read` scopes so existing v1 recipients can be
+    # auto-upgraded on their next send. Without those scopes, file uploads fail
+    # (Slack retired the `files.upload` endpoint in 2025) and only text-only
+    # `chat_postMessage` sends will continue to work via the legacy path.
     # @lifecycle: testing
-    "ALERT_REPORT_SLACK_V2": False,
+    "ALERT_REPORT_SLACK_V2": True,
     # Enables webhook integration for Alerts and Reports
     # @lifecycle: testing
     "ALERT_REPORT_WEBHOOK": False,
@@ -772,11 +843,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: stable
     # @category: runtime_config
     "CSS_TEMPLATES": True,
-    # Role-based access control for dashboards
-    # @lifecycle: stable
-    # @category: runtime_config
-    # @docs: https://superset.apache.org/docs/using-superset/creating-your-first-dashboard
-    "DASHBOARD_RBAC": False,
+    # Subject-based viewer access control for dashboards and charts.
+    # When enabled, resources can have explicit viewer Subject assignments.
+    # @lifecycle: testing
+    # @category: security
+    "ENABLE_VIEWERS": False,
     # Supports simultaneous data and dashboard virtualization for backend performance
     # @lifecycle: stable
     # @category: runtime_config
@@ -862,9 +933,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # These flags default to True and will be removed in a future major
     # release. Set to True in your config to avoid unexpected changes.
     # -----------------------------------------------------------------
-    # Avoid color collisions in charts by using distinct colors
-    # @lifecycle: deprecated
-    "AVOID_COLORS_COLLISION": True,
     # Enable drill-to-detail functionality in charts
     # @lifecycle: deprecated
     "DRILL_TO_DETAIL": True,
@@ -998,7 +1066,12 @@ EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
 # Default theme configuration - foundation for all themes
 # This acts as the base theme for all users
-THEME_DEFAULT: Theme = {
+#
+# _THEME_DEFAULT_BASE is a private copy of the built-in defaults.
+# It is NOT overridden by ``from superset_config import *`` (underscore prefix)
+# and is used to deep-merge partial user overrides so that unspecified token
+# fields gracefully fall back to the built-in values.
+_THEME_DEFAULT_BASE: Theme = {
     "token": {
         # Brand
         # Application name for window titles
@@ -1006,9 +1079,10 @@ THEME_DEFAULT: Theme = {
         "brandLogoAlt": "Apache Superset",
         "brandLogoUrl": APP_ICON,
         "brandLogoMargin": "18px 0",
-        "brandLogoHref": "/",
+        "brandLogoHref": LOGO_TARGET_PATH or "/",
         "brandLogoHeight": "24px",
-        # Spinner
+        # Spinner - Set this to use a custom GIF/image loader
+        # "brandSpinnerUrl": "/static/assets/images/loading.gif",
         "brandSpinnerUrl": None,
         "brandSpinnerSvg": None,
         # Default colors
@@ -1037,18 +1111,38 @@ THEME_DEFAULT: Theme = {
     "algorithm": "default",
 }
 
+THEME_DEFAULT: Theme = _THEME_DEFAULT_BASE
+
 # Dark theme configuration - foundation for dark mode
 # Inherits all tokens from THEME_DEFAULT and adds dark algorithm
 # Set to None to disable dark mode
-THEME_DARK: Optional[Theme] = {
-    **THEME_DEFAULT,
+_THEME_DARK_BASE: Theme = {
+    **_THEME_DEFAULT_BASE,
     "token": {
-        **THEME_DEFAULT["token"],
+        **_THEME_DEFAULT_BASE["token"],
         # Darker selection color for dark mode
         "colorEditorSelection": "#5c4d1a",
     },
     "algorithm": "dark",
 }
+
+THEME_DARK: Optional[Theme] = _THEME_DARK_BASE
+
+
+def sync_theme_logo_href(
+    theme: Optional[Theme], logo_target_path: Optional[str]
+) -> None:
+    """
+    Apply ``LOGO_TARGET_PATH`` to a theme's ``brandLogoHref`` token.
+
+    ``THEME_DEFAULT`` / ``THEME_DARK`` are built above, before ``superset_config.py``
+    and environment overrides are applied at the bottom of this module. This is
+    re-run after those overrides so that setting only ``LOGO_TARGET_PATH`` updates
+    the logo link without also having to override the whole theme object.
+    """
+    if theme and logo_target_path and isinstance(theme.get("token"), dict):
+        theme["token"]["brandLogoHref"] = logo_target_path
+
 
 # Theme behavior and user preference settings
 # To force a single theme on all users, set THEME_DARK = None
@@ -1058,6 +1152,9 @@ THEME_DARK: Optional[Theme] = {
 #
 # Enable UI-based theme administration for admins
 ENABLE_UI_THEME_ADMINISTRATION = True  # Allows admins to set system themes via UI
+
+# Default theme mode for sessions without a saved user preference.
+THEME_DEFAULT_MODE: Literal["default", "dark", "system"] = "system"
 
 # Maximum number of font URLs allowed per theme.
 THEME_FONTS_MAX_URLS: int = 15
@@ -1089,17 +1186,20 @@ THEME_FONT_URL_ALLOWED_DOMAINS: list[str] = [
 EXTRA_SEQUENTIAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
 # User used to execute cache warmup tasks
-# By default, the cache is warmed up using the primary owner. To fall back to using
-# a fixed user (admin in this example), use the following configuration:
+# By default, the cache is warmed up using a physical user represented by the
+# editors (giving priority to the last modifier, then the creator, then the first
+# direct user editor, then a deterministic user from editor role/group subjects).
+# To fall back to using a fixed user (admin in this example), use the following
+# configuration:
 #
 # from superset.tasks.types import ExecutorType, FixedExecutor
 #
-# CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER, FixedExecutor("admin")]
+# CACHE_WARMUP_EXECUTORS = [ExecutorType.EDITOR, FixedExecutor("admin")]
 #
 # NOTE: The `cache-warmup` Celery task no longer consults CACHE_WARMUP_EXECUTORS.
 # It authenticates as the single user configured via SUPERSET_CACHE_WARMUP_USER
 # (defined below). This setting is retained for other executor-based code paths.
-CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER]
+CACHE_WARMUP_EXECUTORS = [ExecutorType.EDITOR]
 
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
@@ -1139,11 +1239,43 @@ THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_NO_NULL_WARNING": True,
 }
 THUMBNAIL_ERROR_CACHE_TTL = int(timedelta(days=1).total_seconds())
+# How long to treat a COMPUTING cache entry as an active lease before considering
+# the worker stuck.  Should exceed the task soft_time_limit (300 s) by a margin.
+THUMBNAIL_COMPUTING_CACHE_TTL = int(timedelta(seconds=360).total_seconds())
 
 # Cache warmup user — must be set explicitly before enabling the cache-warmup
 # Celery task. Intentionally defaults to None so operators pick a dedicated
 # least-privilege user rather than inadvertently running warmup as "admin".
 SUPERSET_CACHE_WARMUP_USER: str | None = None
+# To warm up native filter option queries, use the `native_filter_options` strategy.
+# This strategy pre-populates the cache for Value-type native filter dropdowns by
+# executing the same chart-data queries the UI sends when a user opens a filter.
+#
+# Cache entries are warmed under SUPERSET_CACHE_WARMUP_USER. Without the shared
+# cache key optimization (not included in this PR), entries are scoped to the
+# warm-up user's normal cache partition. Users with different role sets may still
+# experience cache misses on first load.
+#
+# Example Celery beat configuration:
+#
+#     beat_schedule = {
+#         "cache-warmup-native-filters": {
+#             "task": "cache-warmup",
+#             "schedule": crontab(minute=0, hour=3),  # daily at 03:00
+#             "kwargs": {
+#                 "strategy_name": "native_filter_options",
+#                 "dashboard_ids": [1, 2, 3],
+#             },
+#         },
+#     }
+#
+# Requirements:
+# - SUPERSET_CACHE_WARMUP_USER must be set to a user with access to the
+#   dashboards and datasets referenced by the native filters.
+# - DATA_CACHE_CONFIG must be configured (Redis recommended).
+# - Celery beat must be running.
+# - Cascade/dependent filters and search-term variants are not warmed in this
+#   version; only base option queries are supported.
 
 # Time before selenium times out after trying to locate an element on the page and wait
 # for that element to load for a screenshot.
@@ -1151,6 +1283,12 @@ SCREENSHOT_LOCATE_WAIT = int(timedelta(seconds=10).total_seconds())
 # Time before selenium times out after waiting for all DOM class elements named
 # "loading" are gone.
 SCREENSHOT_LOAD_WAIT = int(timedelta(minutes=1).total_seconds())
+# Maximum time (in seconds) selenium waits for an initial page navigation
+# (driver.get) to complete. Without it the navigation blocks indefinitely when
+# the target page never finishes loading (e.g. an unreachable WEBDRIVER_BASEURL),
+# which leaves the report schedule stuck in the WORKING state. Set to None to
+# disable (not recommended).
+SCREENSHOT_PAGE_LOAD_WAIT = int(timedelta(minutes=2).total_seconds())
 # Selenium destroy retries
 SCREENSHOT_SELENIUM_RETRIES = 5
 # Give selenium an headstart, in seconds
@@ -1245,7 +1383,11 @@ CORS_OPTIONS: dict[Any, Any] = {
     "origins": [
         "https://tile.openstreetmap.org",
         "https://tile.osm.ch",
-    ]
+    ],
+    # Make the entity-version-history `ETag` header readable by cross-origin
+    # browser clients. Without this, `fetch()` callers cannot read the header
+    # even when CORS is otherwise permissive.
+    "expose_headers": ["ETag"],
 }
 
 # Sanitizes the HTML content used in markdowns to allow its rendering in a safe manner.
@@ -1425,12 +1567,34 @@ DATETIME_FORMAT_DETECTION_SAMPLE_SIZE = 1000
 # The limit for the Superset Meta DB when the feature flag ENABLE_SUPERSET_META_DB is on
 SUPERSET_META_DB_LIMIT: int | None = 1000
 
+# Master switch for entity-version-history capture. Ships defaulted ``False``
+# so the versioning infrastructure (schema + Continuum wiring) lands inert:
+# no save writes shadow rows or a ``version_transaction``/``version_changes``
+# record, while the /versions/ endpoints stay available read-only (returning
+# empty). Set to ``True`` in ``superset_config.py`` (or via the env var of the
+# same name) to enable the before-flush listeners that drive capture.
+# Capture is activated by flipping this default to on once validated in
+# production. It is an operational escape hatch — for use when a
+# versioning-induced regression needs a 30-second recovery instead of
+# revert-and-redeploy — not a feature flag, and remains as the permanent
+# kill-switch.
+ENABLE_VERSIONING_CAPTURE: bool = utils.parse_boolean_string(
+    os.environ.get("ENABLE_VERSIONING_CAPTURE", "false")
+)
+
 # Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None
 SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 
 # Max payload size (MB) for SQL Lab to prevent browser hangs with large results.
 SQLLAB_PAYLOAD_MAX_MB = None
+
+# Maximum UTF-8 byte length of a SQL script accepted by the SQL parser.
+# Scripts longer than this are rejected before being handed to sqlglot, which
+# bounds parser memory and CPU usage. The bound is in bytes (not Unicode
+# code points) so multi-byte payloads cannot exceed the intended memory cap.
+# Set to None to disable the check.
+SQL_MAX_PARSE_LENGTH: int | None = 1_000_000
 
 # Force refresh while auto-refresh in dashboard
 DASHBOARD_AUTO_REFRESH_MODE: Literal["fetch", "force"] = "force"
@@ -1450,7 +1614,7 @@ DASHBOARD_AUTO_REFRESH_INTERVALS = [
 
 # Performance optimization: Return only custom tags in dashboard list API
 # When enabled, filters out implicit tags (owner, type, favorited_by) at SQL JOIN level
-# Reduces response payload and query time for dashboards with many owners
+# Reduces response payload and query time for dashboards with many editors
 DASHBOARD_LIST_CUSTOM_TAGS_ONLY: bool = False
 
 # This is used as a workaround for the alerts & reports scheduler task to get the time
@@ -1731,9 +1895,19 @@ SMTP_USER = "superset"
 SMTP_PORT = 25
 SMTP_PASSWORD = "superset"  # noqa: S105
 SMTP_MAIL_FROM = "superset@superset.com"
-# If True creates a default SSL context with ssl.Purpose.CLIENT_AUTH using the
-# default system root CA certificates.
-SMTP_SSL_SERVER_AUTH = False
+# If True creates a default SSL context with ssl.Purpose.SERVER_AUTH using the
+# default system root CA certificates. This makes STARTTLS/SSL connections to the
+# SMTP server validate the server's certificate against the trusted CA store.
+# Defaults to True so the mail server identity is verified out of the box. Set to
+# False to restore the previous behavior of skipping certificate validation (for
+# example, when using a self-signed certificate that is not in the system CA
+# store).
+SMTP_SSL_SERVER_AUTH = True
+# Socket timeout (in seconds) for the SMTP connection used when sending
+# alert/report emails. Without a timeout the underlying socket blocks
+# indefinitely if the SMTP server becomes unreachable, which leaves report
+# schedules stuck in the WORKING state. Set to None to disable (not recommended).
+SMTP_TIMEOUT = 30
 ENABLE_CHUNK_ENCODING = False
 
 # Whether to bump the logging level to ERROR on the flask_appbuilder package
@@ -1872,6 +2046,24 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "pg_read_file",
         "pg_ls_dir",
         "pg_read_binary_file",
+        # PostgreSQL large-object functions: writers can plant arbitrary
+        # bytes on the server filesystem (lo_export, lo_from_bytea, lowrite,
+        # lo_put, lo_create, lo_creat, lo_import), readers can pull bytes back
+        # out (lo_get, loread), lo_truncate/lo_truncate64 shrink existing
+        # large objects, and lo_unlink deletes them outright. Defense-in-depth
+        # on top of is_mutating()'s function-name check.
+        "lo_from_bytea",
+        "lo_export",
+        "lo_import",
+        "lo_put",
+        "lo_create",
+        "lo_creat",
+        "lowrite",
+        "lo_get",
+        "loread",
+        "lo_truncate",
+        "lo_truncate64",
+        "lo_unlink",
         # XML functions that can execute SQL
         "database_to_xml",
         "database_to_xmlschema",
@@ -1962,6 +2154,30 @@ DISALLOWED_SQL_TABLES: dict[str, set[str]] = {
         "pg_stat_replication",
         "pg_stat_wal_receiver",
         "pg_user",
+        # The SQL-standard `information_schema` views expose table /
+        # column / privilege / view-definition metadata across the entire
+        # database role the connection user can see. Entries are
+        # schema-qualified so `check_tables_present` only matches when the
+        # reference resolves to `information_schema.<view>` -- either written
+        # explicitly or as an unqualified name under an `information_schema`
+        # search_path -- not any user table that happens to share a name.
+        "information_schema.tables",
+        "information_schema.columns",
+        "information_schema.schemata",
+        "information_schema.views",
+        "information_schema.routines",
+        "information_schema.role_table_grants",
+        "information_schema.role_column_grants",
+        "information_schema.role_routine_grants",
+        "information_schema.table_privileges",
+        "information_schema.column_privileges",
+        "information_schema.usage_privileges",
+        "information_schema.key_column_usage",
+        "information_schema.table_constraints",
+        "information_schema.referential_constraints",
+        "information_schema.view_table_usage",
+        "information_schema.applicable_roles",
+        "information_schema.enabled_roles",
     },
     "mysql": {
         "mysql.user",
@@ -2025,7 +2241,7 @@ def EMAIL_HEADER_MUTATOR(  # pylint: disable=invalid-name,unused-argument  # noq
 
 
 # Define a list of usernames to be excluded from all dropdown lists of users
-# Owners, filters for created_by, etc.
+# Editors, filters for created_by, etc.
 # The users can also be excluded by overriding the get_exclude_users_from_lists method
 # in security manager
 EXCLUDE_USERS_FROM_LISTS: list[str] | None = None
@@ -2050,25 +2266,27 @@ MACHINE_AUTH_PROVIDER_CLASS = "superset.utils.machine_auth.MachineAuthProvider"
 ALERT_REPORTS_CRON_WINDOW_SIZE = 59
 ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 # Which user to attempt to execute Alerts/Reports as. By default,
-# execute as the primary owner of the alert/report (giving priority to the last
-# modifier and then the creator if either is contained within the list of owners,
-# otherwise the first owner will be used).
+# execute as a physical user represented by the alert/report editors (giving
+# priority to the last modifier and then the creator if either is an editor,
+# otherwise the first direct user editor, then a deterministic user from editor
+# role/group subjects). Editor resolution checks both direct user-type subjects
+# and indirect membership through role/group subjects.
 #
-# To first try to execute as the creator in the owners list (if present), then fall
-# back to the creator, then the last modifier in the owners list (if present), then the
-# last modifier, then an owner and finally the "admin" user, set as follows:
+# To first try to execute as the creator if they're an editor (directly or via
+# role/group), then fall back to the creator, then the last modifier if they're an
+# editor, then the last modifier, then any editor, and finally the "admin" user:
 #
 # from superset.tasks.types import ExecutorType, FixedExecutor
 #
 # ALERT_REPORTS_EXECUTORS = [
-#     ExecutorType.CREATOR_OWNER,
+#     ExecutorType.CREATOR_EDITOR,
 #     ExecutorType.CREATOR,
-#     ExecutorType.MODIFIER_OWNER,
+#     ExecutorType.MODIFIER_EDITOR,
 #     ExecutorType.MODIFIER,
-#     ExecutorType.OWNER,
+#     ExecutorType.EDITOR,
 #     FixedExecutor("admin"),
 # ]
-ALERT_REPORTS_EXECUTORS: list[ExecutorType] = [ExecutorType.OWNER]
+ALERT_REPORTS_EXECUTORS: list[ExecutorType] = [ExecutorType.EDITOR]
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
 ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
@@ -2085,6 +2303,12 @@ ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
 # Max tries to run queries to prevent false errors caused by transient errors
 # being returned to users. Set to a value >1 to enable retries.
 ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
+# Socket timeout (in seconds) for the HTTP request that fetches chart data when
+# generating CSV/dataframe report attachments. Without a timeout the request
+# blocks indefinitely if the Superset webserver is unreachable from the worker,
+# which leaves the report schedule stuck in the WORKING state. Set to None to
+# disable (not recommended).
+ALERT_REPORTS_CSV_REQUEST_TIMEOUT = 60
 # Custom width for screenshots
 ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH = 600
 ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH = 2400
@@ -2122,12 +2346,29 @@ EMAIL_REPORTS_CTA = "Explore in Superset"
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Callable[[], str] | str | None = None
 SLACK_PROXY = None
+# Slack workspace (team) ID, either a string or a callable. Required when using
+# an org-scoped token on an Enterprise Grid org so that workspace-scoped methods
+# (e.g. conversations.list) know which workspace to target. It is accepted but
+# ignored for workspace-level tokens, so leaving it as None preserves the default
+# single-workspace behavior.
+SLACK_TEAM_ID: Callable[[], str] | str | None = None
+# How long the fetched channel list is cached. The Alerts & Reports recipient
+# picker serves channels from this cache, so on very large workspaces (tens of
+# thousands of channels) schedule the ``slack.cache_channels`` Celery task to
+# warm the cache ahead of the TTL — enumerating that many channels inside a
+# single interactive request will otherwise hit Slack rate limits and time out.
 SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 
 # Maximum number of retries when Slack API returns rate limit errors
 # Default: 2
 # For workspaces with 10k+ channels, consider increasing to 10
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 2
+
+# Timeout (in seconds) for outbound Slack API calls. The Slack SDK defaults to 30s;
+# exposing it here lets operators grant more time for large file uploads (multi-MB
+# CSVs, PDFs, screenshot sets) to congested or rate-limited Slack endpoints without
+# patching code, consistent with the SMTP/CSV/screenshot timeouts.
+SLACK_API_TIMEOUT = 30
 
 # The webdriver to use for generating reports when using Selenium (not Playwright).
 # This setting is ignored when PLAYWRIGHT_REPORTS_AND_THUMBNAILS is enabled, as
@@ -2259,6 +2500,13 @@ DATABASE_OAUTH2_TIMEOUT = timedelta(seconds=30)
 
 # Enable/disable CSP warning
 CONTENT_SECURITY_POLICY_WARNING = True
+
+# Superset uses Scarf (https://about.scarf.sh/) to collect anonymous, aggregated
+# telemetry via a pixel rendered in the UI. Set the SCARF_ANALYTICS environment
+# variable to "false" to opt out. This value is exposed to the frontend through
+# the bootstrap payload so it takes effect at runtime, including in pre-built
+# images where the webpack build-time flag of the same name cannot be changed.
+SCARF_ANALYTICS = utils.cast_to_boolean(os.environ.get("SCARF_ANALYTICS", True))
 
 # Do you want Talisman enabled?
 TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True))
@@ -2401,6 +2649,16 @@ PREVENT_UNSAFE_DB_CONNECTIONS = True
 
 # If true all default urls on datasets will be handled as relative URLs by the frontend
 PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
+
+# Opt-OUT for the frontend permalink-origin rewrite. By default the frontend
+# substitutes `window.location.origin` for the backend-supplied origin on
+# share/permalink URLs so a proxied or subdirectory-deployed Superset does not
+# hand the user an unreachable internal hostname. Operators whose reverse proxy
+# correctly forwards `X-Forwarded-Host` AND who *want* permalinks to carry the
+# backend's literal origin can set this flag to True to disable the rewrite.
+# Default False (rewrite is on) — flipping the default to True would regress
+# the dominant proxied/subdir deployment to an unreachable internal host.
+EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE = False
 
 # Define a list of allowed URL patterns (regex) for dataset data imports (v1).
 # Simple example to only allow URLs that belong to certain domains:
@@ -2591,8 +2849,8 @@ ENVIRONMENT_TAG_CONFIG = {
 
 
 # Extra related query filters make it possible to limit which objects are shown
-# in the UI. For examples, to only show "admin" or users starting with the letter "b" in
-# the "Owners" dropdowns, you could add the following in your config:
+# in the UI. For example, to only show "admin" or users starting with the letter "b"
+# in subject dropdowns, you could add the following in your config:
 # def user_filter(query: Query, *args, *kwargs):
 #     from superset import security_manager
 #
@@ -2605,14 +2863,35 @@ ENVIRONMENT_TAG_CONFIG = {
 #
 #  EXTRA_RELATED_QUERY_FILTERS = {"user": user_filter}
 #
-# Similarly, to restrict the roles in the "Roles" dropdown you can provide a custom
-# filter callback for the "role" key.
+# Similarly, to restrict the roles or groups in their respective dropdowns you can
+# provide custom filter callbacks for the "role" and "group" keys.
 class ExtraRelatedQueryFilters(TypedDict, total=False):
     role: Callable[[Query], Query]
     user: Callable[[Query], Query]
+    group: Callable[[Query], Query]
 
 
 EXTRA_RELATED_QUERY_FILTERS: ExtraRelatedQueryFilters = {}
+
+# When True, viewers of a dashboard/chart bypass dataset-level RBAC checks.
+# Only effective when ENABLE_VIEWERS is on.
+VIEWER_PROMISCUOUS_MODE = False
+
+# Default Subject types shown in editor/viewer/subject pickers.
+# Entity-specific SUBJECTS_RELATED_TYPES_* settings can replace this default.
+# None = show all types (USER, ROLE, GROUP).
+SUBJECTS_RELATED_TYPES: list[SubjectType] | None = [
+    SubjectType.USER,
+    SubjectType.GROUP,
+]
+
+# Per-entity overrides for the default SUBJECTS_RELATED_TYPES picker behavior.
+# When set, the entity-specific list completely replaces the global default.
+# None = inherit global behavior.
+SUBJECTS_RELATED_TYPES_DASHBOARDS: list[SubjectType] | None = None
+SUBJECTS_RELATED_TYPES_CHARTS: list[SubjectType] | None = None
+SUBJECTS_RELATED_TYPES_RLS: list[SubjectType] | None = None
+SUBJECTS_RELATED_TYPES_ALERT_REPORTS: list[SubjectType] | None = None
 
 
 # Extra dynamic query filters make it possible to limit which objects are shown
@@ -2649,9 +2928,9 @@ class ExtraAccessQueryFilters(TypedDict, total=False):
 EXTRA_ACCESS_QUERY_FILTERS: ExtraAccessQueryFilters = {}
 # Bypass raise_for_access for specific assets. Return True to skip checks.
 EXTRA_RAISE_FOR_ACCESS_BYPASS: Callable[..., bool] | None = None
-# Resolve extra owners for a resource. Also used for ownership checks and
-# to skip auto-adding the current user to owners on create.
-EXTRA_OWNERS_RESOLVER: Callable[..., list[Any]] | None = None
+# Resolve additional editor subjects for a resource. Also used for editorship
+# checks and lockout-prevention logic.
+EXTRA_EDITORS_RESOLVER: Callable[..., list[Any]] | None = None
 # Post-create hook for charts/dashboards. Receives (model, asset_type).
 AFTER_ASSET_CREATE: Callable[[Any, str], None] | None = None
 
@@ -2809,3 +3088,9 @@ for env_var in ENV_VAR_KEYS:
     if env_var in os.environ:
         config_var = env_var.replace("SUPERSET__", "")
         globals()[config_var] = os.environ[env_var]
+
+# THEME_DEFAULT / THEME_DARK are defined before the overrides above are applied,
+# so re-sync the logo link from the final LOGO_TARGET_PATH value here. This lets
+# users set just LOGO_TARGET_PATH without also overriding the whole theme.
+sync_theme_logo_href(THEME_DEFAULT, LOGO_TARGET_PATH)
+sync_theme_logo_href(THEME_DARK, LOGO_TARGET_PATH)

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { rgb } from 'd3-color';
+import tinycolor from 'tinycolor2';
 
 // eslint-disable-next-line import/prefer-default-export
 export function hexToRGB(
@@ -26,7 +26,7 @@ export function hexToRGB(
   if (!hex) {
     return [0, 0, 0, alpha];
   }
-  const { r, g, b } = rgb(hex);
+  const { r, g, b } = tinycolor(hex).toRgb();
 
   return [r, g, b, alpha];
 }
