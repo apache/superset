@@ -169,7 +169,7 @@
     "ag-grid-community": "36.0.0",
     "ag-grid-react": "36.0.0",
     "antd": "^6.0.0",
-    "chrono-node": "^2.9.1",
+    "chrono-node": "^2.10.0",
     "classnames": "^2.2.5",
     "content-disposition": "^2.0.1",
     "d3-scale": "^4.0.2",
