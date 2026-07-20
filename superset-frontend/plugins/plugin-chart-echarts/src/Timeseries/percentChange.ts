@@ -89,13 +89,25 @@ export function rebaseSeriesData(
   return data.map(([x, y]) => [x, y == null ? null : (1 + y) / divisor - 1]);
 }
 
-/** Snaps a dragged x position to the nearest available data x. */
+/**
+ * Snaps a dragged x position to the nearest available data x. Time/value
+ * axes report a continuous pixel-derived number, so the nearest point is
+ * found by numeric distance. Category axes report the exact category
+ * value already snapped by ECharts; there's no numeric scale to measure
+ * distance against, so it's only validated against the known x values
+ * (falling back to the first one if the pixel landed outside the axis).
+ */
 export function snapToNearestX(
-  xs: number[],
-  target: number,
-): number | undefined {
+  xs: (number | string)[],
+  target: number | string,
+): number | string | undefined {
   if (xs.length === 0) return undefined;
-  return xs.reduce((best, x) =>
+  if (typeof target === 'string') {
+    return xs.includes(target) ? target : xs[0];
+  }
+  const numericXs = xs.filter((x): x is number => typeof x === 'number');
+  if (numericXs.length === 0) return undefined;
+  return numericXs.reduce((best, x) =>
     Math.abs(x - target) < Math.abs(best - target) ? x : best,
   );
 }

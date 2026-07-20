@@ -89,3 +89,10 @@ test('snaps to the nearest available x', () => {
   expect(snapToNearestX([10, 20, 30], 26)).toBe(30);
   expect(snapToNearestX([], 5)).toBeUndefined();
 });
+
+test('validates a category-axis x instead of coercing it to a number', () => {
+  // category axes report their exact (already-snapped) value on drag
+  expect(snapToNearestX(['a', 'b', 'c'], 'b')).toBe('b');
+  // a pixel that landed outside the axis falls back to the first category
+  expect(snapToNearestX(['a', 'b', 'c'], 'unknown')).toBe('a');
+});

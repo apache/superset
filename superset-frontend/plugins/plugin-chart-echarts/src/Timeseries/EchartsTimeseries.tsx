@@ -81,6 +81,10 @@ export default function EchartsTimeseries({
   const rebaseEnabled = Boolean(
     (formData as { rebasePercentChange?: boolean }).rebasePercentChange,
   );
+  // Persists the dragged baseline across effect reruns (e.g. resizes or
+  // other option changes) so those don't silently snap it back to the
+  // first point.
+  const baselineXRef = useRef<number | string | null>(null);
   useEffect(() => {
     if (!rebaseEnabled) return undefined;
     const chart = echartRef.current?.getEchartInstance?.();
@@ -94,14 +98,27 @@ export default function EchartsTimeseries({
         ? (s.data.filter(Array.isArray) as SeriesDataPoint[])
         : [],
     );
-    const xs = Array.from(
-      new Set(baseSeries.flat().map(([x]) => Number(x))),
-    ).sort((a, b) => a - b);
+    // Preserve the axis' native x type: numeric for time/value axes,
+    // string for category axes (coercing categories with Number() would
+    // turn them into NaN and break snapping/positioning below).
+    const xs = Array.from(new Set(baseSeries.flat().map(([x]) => x)));
     if (xs.length === 0) return undefined;
-    let baselineX = xs[0];
+    if (typeof xs[0] === 'number') {
+      (xs as number[]).sort((a, b) => a - b);
+    }
+    let baselineX =
+      baselineXRef.current !== null && xs.includes(baselineXRef.current)
+        ? baselineXRef.current
+        : xs[0];
+    baselineXRef.current = baselineX;
+    // Coalesces drag updates to at most one setOption per animation
+    // frame; rebasing every series on every raw pointer-move event
+    // can stutter on large charts.
+    let dragFrame: ReturnType<typeof requestAnimationFrame> | null = null;
 
-    const applyBaseline = (newX: number) => {
+    const applyBaseline = (newX: number | string) => {
       baselineX = newX;
+      baselineXRef.current = newX;
       chart.setOption({
         series: baseSeries.map(data => ({
           data: rebaseSeriesData(data, newX),
@@ -133,11 +150,15 @@ export default function EchartsTimeseries({
               const dataX = chart.convertFromPixel(
                 { xAxisIndex: 0 },
                 this.x + 4,
-              ) as number;
-              const snapped = snapToNearestX(xs, dataX);
-              if (snapped !== undefined && snapped !== baselineX) {
-                applyBaseline(snapped);
-              }
+              ) as number | string;
+              if (dragFrame !== null) return;
+              dragFrame = requestAnimationFrame(() => {
+                dragFrame = null;
+                const snapped = snapToNearestX(xs, dataX);
+                if (snapped !== undefined && snapped !== baselineX) {
+                  applyBaseline(snapped);
+                }
+              });
             },
             ondragend: () => drawHandle(),
             children: [
@@ -159,6 +180,9 @@ export default function EchartsTimeseries({
     drawHandle();
 
     return () => {
+      if (dragFrame !== null) {
+        cancelAnimationFrame(dragFrame);
+      }
       chart.setOption({
         graphic: [{ id: 'percent-change-baseline', $action: 'remove' }],
       });
