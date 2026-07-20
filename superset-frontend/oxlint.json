@@ -111,11 +111,8 @@
     "no-object-constructor": "error",
 
     // === Import plugin rules ===
-    // TODO: Fix incorrect named imports in Storybook and other files
-    "import/named": "warn",
-    // TODO: Fix duplicate exports in shared-controls and other modules
-    // Temporarily disabled during OXC migration
-    "import/export": "warn",
+    "import/named": "error",
+    "import/export": "error",
     // TODO: Re-enable after fixing default export patterns across codebase
     // This is temporarily disabled during OXC migration to unblock CI
     // Tracking issue: [Create issue after PR merge]

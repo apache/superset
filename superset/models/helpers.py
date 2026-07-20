@@ -268,6 +268,28 @@ def json_to_dict(json_str: str) -> dict[Any, Any]:
     return {}
 
 
+UUID_NATIVE_TYPE_RE: re.Pattern[str] = re.compile(
+    r"\b(uuid|uniqueidentifier)\b", re.IGNORECASE
+)
+
+
+def is_uuid_native_type(native_type: Optional[str]) -> bool:
+    """
+    Return True if a native column type represents a UUID.
+
+    Engines such as PostgreSQL and ClickHouse expose native UUID column types
+    (e.g. ``UUID``, ``Nullable(UUID)``) that map to ``GenericDataType.STRING``
+    yet reject LIKE/ILIKE against the raw column, so these columns need an
+    explicit cast to string before pattern matching. SQL Server's equivalent
+    native type is ``uniqueidentifier``, which is matched too. The match is
+    on whole words so unrelated types that merely contain one of these as a
+    substring (e.g. a hypothetical ``uuidish`` type) aren't misclassified.
+    """
+    return native_type is not None and bool(
+        UUID_NATIVE_TYPE_RE.search(native_type.strip())
+    )
+
+
 def convert_uuids(obj: Any) -> Any:
     """
     Convert UUID objects to str so we can use yaml.safe_dump
@@ -1736,6 +1758,56 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 seen.add(label)
         return tuple(labels)
 
+    def _offset_only_dttm_cols(
+        self,
+        df: pd.DataFrame,
+        query_object: QueryObject,
+        already_collected: set[str],
+    ) -> list[DateColumn]:
+        """``DateColumn`` entries that only need the dataset HOURS OFFSET (and any
+        time shift) applied, for temporal columns the database already returns as
+        native datetimes.
+
+        The dataset offset must apply to *every* temporal column a query returns,
+        not just the selected time column. ``_collect_dttm_labels`` only covers
+        columns that need parsing (a declared ``python_date_format``) or the
+        base-axis / granularity column; a second temporal column returned as a
+        native datetime would otherwise keep its raw, un-offset value. Columns
+        arriving as plain integers/strings without a declared format are skipped,
+        since they cannot be safely interpreted as datetimes.
+        See https://github.com/apache/superset/issues/23167.
+        """
+        if not (self.offset or query_object.time_shift) or not hasattr(
+            self, "get_column"
+        ):
+            return []
+
+        extra: list[DateColumn] = []
+        for label in df.columns:
+            if label in already_collected or label == DTTM_ALIAS:
+                continue
+            if not pd.api.types.is_datetime64_any_dtype(df[label]):
+                continue
+            column_obj = self.get_column(label)
+            if not column_obj:
+                continue
+            is_dttm = (
+                column_obj.get("is_dttm")
+                if isinstance(column_obj, dict)
+                else getattr(column_obj, "is_dttm", False)
+            )
+            if is_dttm:
+                extra.append(
+                    DateColumn(
+                        timestamp_format=None,
+                        offset=self.offset,
+                        time_shift=query_object.time_shift,
+                        col_label=label,
+                    )
+                )
+                already_collected.add(label)
+        return extra
+
     def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
         """
         Normalize the dataframe by converting datetime columns and ensuring
@@ -1765,6 +1837,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     time_shift=query_object.time_shift,
                 )
             )
+
+        dttm_cols.extend(
+            self._offset_only_dttm_cols(
+                df, query_object, {col.col_label for col in dttm_cols}
+            )
+        )
 
         # Build format map from detected datetime formats stored in dataset columns
         format_map: dict[str, str] = {}
@@ -4000,22 +4078,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     elif op in {
                         utils.FilterOperator.ILIKE,
                         utils.FilterOperator.LIKE,
+                        utils.FilterOperator.NOT_LIKE,
+                        utils.FilterOperator.NOT_ILIKE,
                     }:
-                        if target_generic_type != GenericDataType.STRING:
+                        # Native UUID columns report GenericDataType.STRING but
+                        # reject LIKE/ILIKE without a cast (see issue #41795)
+                        needs_string_cast_for_like: bool = (
+                            target_generic_type != GenericDataType.STRING
+                            or is_uuid_native_type(col_type)
+                        )
+                        if needs_string_cast_for_like:
                             sqla_col = sa.cast(sqla_col, sa.String)
 
                         if op == utils.FilterOperator.LIKE:
                             target_clause_list.append(sqla_col.like(eq))
-                        else:
+                        elif op == utils.FilterOperator.ILIKE:
                             target_clause_list.append(sqla_col.ilike(eq))
-                    elif op in {
-                        utils.FilterOperator.NOT_LIKE,
-                        utils.FilterOperator.NOT_ILIKE,
-                    }:
-                        if target_generic_type != GenericDataType.STRING:
-                            sqla_col = sa.cast(sqla_col, sa.String)
-
-                        if op == utils.FilterOperator.NOT_LIKE:
+                        elif op == utils.FilterOperator.NOT_LIKE:
                             target_clause_list.append(sqla_col.not_like(eq))
                         else:
                             target_clause_list.append(sqla_col.not_ilike(eq))

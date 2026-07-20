@@ -109,7 +109,7 @@ def _get_previous_form_data(form_data_key: str) -> dict[str, Any] | None:
     annotations=ToolAnnotations(
         title="Update chart preview",
         readOnlyHint=False,
-        destructiveHint=True,
+        destructiveHint=False,
     ),
 )
 def update_chart_preview(  # noqa: C901
