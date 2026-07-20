@@ -57,9 +57,12 @@ import {
   getSuffixIcon,
   dropDownRenderHelper,
   handleFilterOptionHelper,
+  makeQuoteAwareTokenizer,
   mapOptions,
   getOption,
   isObject,
+  splitWithQuoteEscaping,
+  stripSurroundingQuotes,
   isEqual as utilsIsEqual,
 } from './utils';
 import {
@@ -173,6 +176,21 @@ const AsyncSelect = forwardRef(
     // request is still pending.
     const inFlightFetchesRef = useRef(0);
     const mappedMode = isSingleMode ? undefined : 'multiple';
+
+    const reconcileTokensRef = useRef<(tokens: string[]) => void>(() => {});
+    const fullSelectOptionsRef = useRef<SelectOptionsType>(EMPTY_OPTIONS);
+
+    const quoteAwareTokenSeparators = useMemo(() => {
+      const tokenize = makeQuoteAwareTokenizer(tokenSeparators);
+      return (input: string) => {
+        const tokens = tokenize(input);
+        if (tokens.length !== 1 || tokens[0] !== input) {
+          reconcileTokensRef.current(tokens);
+        }
+        return tokens;
+      };
+    }, [tokenSeparators]);
+
     const allowFetch = !fetchOnlyOnSearch || inputValue;
     const [maxTagCount, setMaxTagCount] = useState(
       propsMaxTagCount ?? MAX_TAG_COUNT,
@@ -281,6 +299,39 @@ const AsyncSelect = forwardRef(
       onSelect?.(selectedItem, option);
     };
 
+    // The underlying Select silently drops tokens it cannot match against the
+    // rendered options. That happens whenever tokenization outpaces the
+    // debounced option registration, e.g. dead-key keyboard layouts deliver a
+    // closing quote and a separator in a single input event.
+    reconcileTokensRef.current = (tokens: string[]) => {
+      if (isSingleMode || !allowNewOptions) {
+        return;
+      }
+      setTimeout(() => {
+        tokens.forEach(token => {
+          const matched = getOption(token, fullSelectOptionsRef.current, true);
+          const matchedValue = isObject(matched) ? matched.value : matched;
+          if (hasOption(matchedValue ?? token, selectValueRef.current)) {
+            return;
+          }
+          const option = isObject(matched)
+            ? (matched as AntdLabeledValue)
+            : { label: token, value: token, isNewOption: true };
+          if (!matched) {
+            setSelectOptions(previous =>
+              hasOption(token, previous, true)
+                ? previous
+                : [option, ...previous],
+            );
+          }
+          handleOnSelect(
+            { label: option.label, value: option.value } as AntdLabeledValue,
+            option as AntdLabeledValue,
+          );
+        });
+      });
+    };
+
     const handleOnDeselect: SelectProps['onDeselect'] = (value, option) => {
       if (Array.isArray(selectValue)) {
         if (isLabeledValue(value)) {
@@ -317,6 +368,8 @@ const AsyncSelect = forwardRef(
         }),
       [onError],
     );
+
+    fullSelectOptionsRef.current = fullSelectOptions;
 
     const mergeData = useCallback(
       (data: SelectOptionsType) => {
@@ -394,6 +447,14 @@ const AsyncSelect = forwardRef(
               initialOptionsRef.current = accumulated;
               if (!fetchOnlyOnSearch && accumulated.length >= totalCount) {
                 setAllValuesLoaded(true);
+                // Once every base value is loaded, searches are served by
+                // client-side filtering (fetchPage short-circuits), so the
+                // full set must reach the live options even when this
+                // response lands mid-search — otherwise the dropdown stays
+                // empty for the active search.
+                if (!matchesCurrentSearch) {
+                  mergeData(accumulated);
+                }
               }
               fetchedQueries.current.set(key, totalCount);
               if (matchesCurrentSearch) {
@@ -455,10 +516,11 @@ const AsyncSelect = forwardRef(
     const handleOnSearch = debounce((search: string) => {
       const searchValue = search.trim();
       if (allowNewOptions) {
-        const newOption = searchValue &&
-          !hasOption(searchValue, fullSelectOptions, true) && {
-            label: searchValue,
-            value: searchValue,
+        const unquotedSearch = stripSurroundingQuotes(searchValue);
+        const newOption = unquotedSearch &&
+          !hasOption(unquotedSearch, fullSelectOptions, true) && {
+            label: unquotedSearch,
+            value: unquotedSearch,
             isNewOption: true,
           };
         const cleanSelectOptions = fullSelectOptions.filter(
@@ -695,22 +757,11 @@ const AsyncSelect = forwardRef(
           setSelectValue(value);
         }
       } else {
-        // antd v6 widened `tokenSeparators` to `string[] | (input => string[])`;
-        // Superset always uses the array form.
+        // Superset's prop is the array form; antd receives the function form
         const separators = Array.isArray(tokenSeparators)
           ? tokenSeparators
           : [];
-        const token = separators.find((token: string) =>
-          pastedText.includes(token),
-        );
-        const array = token
-          ? uniq(
-              pastedText
-                .split(token)
-                .map(s => s.trim())
-                .filter(Boolean),
-            )
-          : [pastedText.trim()].filter(Boolean);
+        const array = uniq(splitWithQuoteEscaping(pastedText, separators));
         const values = (
           await Promise.all(array.map(item => getPastedTextValue(item)))
         ).filter(item => item !== undefined) as AntdLabeledValue[];
@@ -791,7 +842,7 @@ const AsyncSelect = forwardRef(
           optionRender={option => <Space>{option.label || option.value}</Space>}
           placeholder={placeholder}
           showSearch={shouldShowSearch}
-          tokenSeparators={tokenSeparators}
+          tokenSeparators={quoteAwareTokenSeparators}
           builtinPlacements={DROPDOWN_BUILTIN_PLACEMENTS}
           value={selectValue}
           suffixIcon={getSuffixIcon(

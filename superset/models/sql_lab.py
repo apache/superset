@@ -190,7 +190,14 @@ class Query(
     database = relationship(
         "Database",
         foreign_keys=[database_id],
-        backref=backref("queries", cascade="all, delete-orphan"),
+        backref=backref(
+            "queries",
+            cascade="all, delete-orphan",
+            # SQLAlchemy 2.0 behavior: assigning `query.database` no longer
+            # cascades the Query into the Database's session; callers must
+            # add objects to a session explicitly.
+            cascade_backrefs=False,
+        ),
     )
     user = relationship(security_manager.user_model, foreign_keys=[user_id])
 

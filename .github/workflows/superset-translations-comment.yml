@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   post-comment:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     # Only act when the Translations workflow failed (which means a regression
     # was detected — the workflow exits 1 on regression).
     if: github.event.workflow_run.conclusion == 'failure'
