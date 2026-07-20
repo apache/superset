@@ -1177,13 +1177,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
-            font-weight: ${color
-              ? `${theme.fontWeightBold}`
-              : `${theme.fontWeightNormal}`};
+            font-weight: ${
+              color ? `${theme.fontWeightBold}` : `${theme.fontWeightNormal}`
+            };
             background: ${backgroundColor || undefined};
-            padding-left: ${column.isChildColumn
-              ? `${theme.sizeUnit * 5}px`
-              : `${theme.sizeUnit}px`};
+            padding-left: ${
+              column.isChildColumn
+                ? `${theme.sizeUnit * 5}px`
+                : `${theme.sizeUnit}px`
+            };
           `;
 
           const cellBarStyles = css`
@@ -1191,20 +1193,21 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             height: 100%;
             display: block;
             top: 0;
-            ${valueRange &&
-            typeof value === 'number' &&
-            valueRangeFlag &&
-            `
-                width: ${`${cellWidth({
+            ${
+              valueRange &&
+              typeof value === 'number' &&
+              valueRangeFlag &&
+              css`
+                width: ${cellWidth({
                   value: value as number,
                   valueRange,
                   alignPositiveNegative,
-                })}%`};
-                left: ${`${cellOffset({
+                })}%;
+                left: ${cellOffset({
                   value: value as number,
                   valueRange,
                   alignPositiveNegative,
-                })}%`};
+                })}%;
                 background-color: ${
                   backgroundColorCellBar ||
                   cellBackground({
@@ -1213,7 +1216,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     theme,
                   })
                 };
-              `}
+              `
+            }
           `;
 
           // Plain inline style (rather than the `css` prop) so the arrow's
