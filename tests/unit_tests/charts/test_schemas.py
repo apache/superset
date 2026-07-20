@@ -103,8 +103,17 @@ def test_chart_put_schema_query_context_json_validation(
     """ChartPutSchema.query_context must reject invalid JSON (parity with POST)."""
     schema = ChartPutSchema()
 
-    # Valid JSON passes
-    assert schema.load({"query_context": '{"a": 1}'})["query_context"] == '{"a": 1}'
+    # Valid JSON containing the required metadata passes
+    valid_query_context = json.dumps(
+        {
+            "datasource": {"type": "table", "id": 1},
+            "queries": [{"metrics": ["count"], "columns": []}],
+        }
+    )
+    assert (
+        schema.load({"query_context": valid_query_context})["query_context"]
+        == valid_query_context
+    )
 
     # None is allowed (allow_none)
     assert schema.load({"query_context": None})["query_context"] is None
