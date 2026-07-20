@@ -155,6 +155,17 @@ jobs:
           INCLUDE_EMBEDDED: "true"
         with:
           run: playwright-run "${{ matrix.app_root }}" embedded
+      - name: Run Playwright (Mobile Tests)
+        uses: ./.github/actions/cached-dependencies
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          # Scoped to this step for the same reason as the embedded flags
+          # above: the mobile consumption mode should not alter Flask's
+          # configuration for the required desktop test steps.
+          SUPERSET_FEATURE_MOBILE_CONSUMPTION_MODE: "true"
+          INCLUDE_MOBILE: "true"
+        with:
+          run: playwright-run "${{ matrix.app_root }}" mobile/
       - name: Set safe app root
         if: failure()
         id: set-safe-app-root

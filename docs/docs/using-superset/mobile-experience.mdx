@@ -1,0 +1,89 @@
+---
+title: Mobile Experience
+sidebar_position: 7
+version: 1
+---
+
+import useBaseUrl from "@docusaurus/useBaseUrl";
+
+# Mobile Experience
+
+Superset ships an optional, consumption-only mobile experience for viewing
+dashboards on phones and other small screens. When enabled, screens below
+768px wide get a layout built for touch: dashboards render their charts
+stacked full-width, navigation collapses into a drawer, and dashboard
+filters open in a slide-out panel.
+
+The mobile experience is **read-only by design**. It is aimed at consumers
+of analytics — people checking a dashboard from a phone — not at dashboard
+authors. Authoring surfaces (chart builder, SQL Lab, dataset management,
+and administrative screens) remain desktop-only.
+
+## Enabling the mobile experience
+
+The mobile experience is gated behind the `MOBILE_CONSUMPTION_MODE` feature
+flag, which is off by default. Enable it in your `superset_config.py`:
+
+```python
+FEATURE_FLAGS = {
+    "MOBILE_CONSUMPTION_MODE": True,
+}
+```
+
+With the flag disabled, Superset renders identically at every screen size,
+and phones display the desktop layout scaled down (the pre-existing
+behavior). The flag also controls whether Superset serves a viewport meta
+tag, which is required for mobile browsers to apply the responsive layout
+at their native width.
+
+## What works on mobile
+
+| Area | Mobile behavior |
+| --- | --- |
+| **Dashboards** | Charts stack vertically at full width, sized to the screen. Tab bars are sticky and swipeable. Native filters open in a drawer via the filter icon in the header. |
+| **Dashboard list** | Card view with full-width cards; search and filters open in a drawer. |
+| **Home** | Recents (dashboards only) and dashboard cards; desktop-only sections are hidden. |
+| **Navigation** | A hamburger menu opens a drawer with links to dashboards, theme and language selection, and user info/logout. |
+
+<div style={{display: 'flex', gap: '1rem', flexWrap: 'wrap'}}>
+  <img src={useBaseUrl("/img/screenshots/mobile/mobile_dashboard.jpg")} alt="A dashboard on mobile with charts stacked full width" width="260" />
+  <img src={useBaseUrl("/img/screenshots/mobile/mobile_filter_drawer.jpg")} alt="The dashboard filter drawer on mobile" width="260" />
+  <img src={useBaseUrl("/img/screenshots/mobile/mobile_dashboard_list.jpg")} alt="The dashboard list in card view on mobile" width="260" />
+</div>
+
+<div style={{display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '1rem'}}>
+  <img src={useBaseUrl("/img/screenshots/mobile/mobile_home.jpg")} alt="The Superset home page on mobile" width="260" />
+  <img src={useBaseUrl("/img/screenshots/mobile/mobile_nav_drawer.jpg")} alt="The mobile navigation drawer" width="260" />
+  <img src={useBaseUrl("/img/screenshots/mobile/mobile_unsupported.jpg")} alt="The screen shown for views that are not available on mobile" width="260" />
+</div>
+
+## What doesn't work on mobile
+
+Everything not listed above shows a friendly "This view isn't available on
+mobile" screen with shortcuts back to dashboards and the home page. That
+includes:
+
+- Chart builder (Explore) and chart-level links — chart titles on
+  dashboards are plain text on mobile, and chart entries are filtered out
+  of the home page's Recents feed
+- SQL Lab and query history
+- Creating or editing dashboards, charts, datasets, and databases
+- List views other than dashboards (charts, datasets, saved queries, etc.)
+- Administrative and settings screens
+
+Editing controls are also removed from the screens that *are* supported:
+the dashboard header hides the edit, publish, and favorite controls, and
+dashboard/chart kebab menus are reduced to view-oriented actions.
+
+If a device crosses the 768px threshold — for example, rotating a tablet
+to landscape or resizing a window — the full desktop experience becomes
+available immediately.
+
+## Notes for operators
+
+- The flag is deployment-wide; there is no per-role or per-user targeting.
+- Dashboard permalinks and links shared from desktop resolve normally on
+  mobile as long as they point at dashboards.
+- Embedded dashboards are unaffected: the embedded SDK controls its own
+  layout, and the viewport meta tag is only interpreted by the top-level
+  page.
