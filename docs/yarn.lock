@@ -227,7 +227,7 @@
   resolved "https://registry.yarnpkg.com/@ant-design/icons-svg/-/icons-svg-4.5.0.tgz#7b1c567e489840d747f211d3688949bcba363ad2"
   integrity sha512-1BTUFyKPTBZ53MuTP8s0k5SFEXL7o3VHEOwLgzaoWKwnBeqIcqUtVshc4SKzhI6uACfqhJqBwBUE9FsWR3uULA==
 
-"@ant-design/icons@^6.2.5", "@ant-design/icons@^6.3.1":
+"@ant-design/icons@^6.2.5", "@ant-design/icons@^6.3.2":
   version "6.3.2"
   resolved "https://registry.yarnpkg.com/@ant-design/icons/-/icons-6.3.2.tgz#8291dffc53003db9a5df59f80ed758473cd5c8df"
   integrity sha512-B6O5a5XJ4wjtNOfZejXYwHW5zvKV5gYkjGf11dHGLEbKn0ABDGndo41+gfIiXyTFhvESj4XTotuud33mUFid0g==
@@ -3506,13 +3506,13 @@
     "@rc-component/util" "^1.9.0"
     clsx "^2.1.1"
 
-"@rc-component/dropdown@~1.0.0", "@rc-component/dropdown@~1.0.2":
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/@rc-component/dropdown/-/dropdown-1.0.2.tgz#c6010dac9e3ce0d7cf305523083d499dc779819e"
-  integrity sha512-6PY2ecUSYhDPhkNHHb4wfeAya04WhpmUSKzdR60G+kMNVUCX2vjT/AgTS0Lz0I/K6xrPMJ3enQbwVpeN3sHCgg==
+"@rc-component/dropdown@~1.0.0", "@rc-component/dropdown@~1.0.3":
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/@rc-component/dropdown/-/dropdown-1.0.3.tgz#9825e55df54b66284b2630a16ec8281244dc3236"
+  integrity sha512-YTST/N6kpqpDz3IMuM/PSSZnrDpSOA6dgHv12gPA90ZTSLv2CoqkZ0+9NtwTY6BeO7dstPblSic2QJg7dSFy/g==
   dependencies:
     "@rc-component/trigger" "^3.0.0"
-    "@rc-component/util" "^1.2.1"
+    "@rc-component/util" "^1.11.1"
     clsx "^2.1.1"
 
 "@rc-component/form@~1.8.5":
@@ -3634,7 +3634,7 @@
     "@rc-component/util" "^1.11.1"
     clsx "^2.1.1"
 
-"@rc-component/portal@^2.1.0", "@rc-component/portal@^2.1.2", "@rc-component/portal@^2.1.3", "@rc-component/portal@^2.2.0":
+"@rc-component/portal@^2.1.0", "@rc-component/portal@^2.1.2", "@rc-component/portal@^2.1.3", "@rc-component/portal@^2.2.0", "@rc-component/portal@^2.2.1":
   version "2.2.1"
   resolved "https://registry.yarnpkg.com/@rc-component/portal/-/portal-2.2.1.tgz#37c34b4c8cd73f53cc7072c96dd0e9ac332669ec"
   integrity sha512-ck+r1kW/JSv0wxPji3KN2ss9K6Z0qqwusw/mf/0JobXhZ8hC2ejZwCJObW/SvDi0uhA0VzmCnx0CaCci95tcmA==
@@ -3717,10 +3717,10 @@
     "@rc-component/util" "^1.3.0"
     clsx "^2.1.1"
 
-"@rc-component/table@~1.10.2":
-  version "1.10.2"
-  resolved "https://registry.yarnpkg.com/@rc-component/table/-/table-1.10.2.tgz#7b052fd5eb2ccf6996a93eebeb7af7036a262c8b"
-  integrity sha512-b3PjqB9Gp25p5t/zq+9QrbXbodkptT8/zvLmwgd2FNPUUtaYyDnQqfxeD5a7ao8E8lpinLHsi2u2vdfPhyNvAw==
+"@rc-component/table@~1.10.4":
+  version "1.10.4"
+  resolved "https://registry.yarnpkg.com/@rc-component/table/-/table-1.10.4.tgz#8c4e33bc150aa39f579c15426421348a789de326"
+  integrity sha512-HwoTnrwc29zeoXkXGhWqzJh8FIibGUxi1jM4LtoSzmR9d5Vv5osUQpZxnXKBP8iOCvyD6BQzZm1nXJRcnrxpAg==
   dependencies:
     "@rc-component/context" "^2.0.1"
     "@rc-component/resize-observer" "^1.0.0"
@@ -3779,15 +3779,15 @@
     "@rc-component/virtual-list" "^1.2.0"
     clsx "^2.1.1"
 
-"@rc-component/trigger@^3.0.0", "@rc-component/trigger@^3.6.15", "@rc-component/trigger@^3.7.1", "@rc-component/trigger@^3.9.1":
-  version "3.9.1"
-  resolved "https://registry.yarnpkg.com/@rc-component/trigger/-/trigger-3.9.1.tgz#3f730315c558bc392921a563ac9109a1d094ef23"
-  integrity sha512-LNsYvz60mrLJ/kRvKcHE7boUvcQfVMCfRqZ71x3Fo9AOiZ1KKIEqkzMA8DNvz2V3Bcvir/vwQNn7JF1NPODQ7Q==
+"@rc-component/trigger@^3.0.0", "@rc-component/trigger@^3.10.0", "@rc-component/trigger@^3.6.15", "@rc-component/trigger@^3.7.1":
+  version "3.10.1"
+  resolved "https://registry.yarnpkg.com/@rc-component/trigger/-/trigger-3.10.1.tgz#cb28e1bc0745a2af6897dd7ec774f9b56dc88f86"
+  integrity sha512-mXlDN0IXdtV8Yqqm8195ECCyrbmfvvfKvwVvSlH0+qvKD6BUF8gRhEjSy0FOcD1+CcDRHgTiX99LoxfQrmh3Cw==
   dependencies:
-    "@rc-component/motion" "^1.1.4"
-    "@rc-component/portal" "^2.2.0"
-    "@rc-component/resize-observer" "^1.1.1"
-    "@rc-component/util" "^1.2.1"
+    "@rc-component/motion" "^1.3.3"
+    "@rc-component/portal" "^2.2.1"
+    "@rc-component/resize-observer" "^1.1.2"
+    "@rc-component/util" "^1.11.1"
     clsx "^2.1.1"
 
 "@rc-component/upload@~1.1.1":
@@ -6124,16 +6124,16 @@ ansis@^3.2.0:
   resolved "https://registry.yarnpkg.com/ansis/-/ansis-3.17.0.tgz#fa8d9c2a93fe7d1177e0c17f9eeb562a58a832d7"
   integrity sha512-0qWUglt9JEqLFr3w1I1pbrChn1grhaiAR2ocX1PP/flRmxgtwTzPFFFnfIlD6aMOLQZgSuCRlidD70lvx8yhzg==
 
-antd@^6.5.0:
-  version "6.5.0"
-  resolved "https://registry.yarnpkg.com/antd/-/antd-6.5.0.tgz#29d3de40f354ab965e201f79c2d0e7658cecc655"
-  integrity sha512-9zbVc9UukfGuqCvIAov01nlpDQWfARNmZQyt21ZhqLX7ilXmi4cdkp12xA48WEmXRXwZvno8A03qQuGE9JG8fg==
+antd@^6.5.1:
+  version "6.5.1"
+  resolved "https://registry.yarnpkg.com/antd/-/antd-6.5.1.tgz#2623db1f3b0ae32a2e311ef20f2f1413934d0094"
+  integrity sha512-VZVVF9zYI6S0NHqboVhCoY9Iiqj6dphW1NPB+sEaAf2HuIQ0haXWXj7ZvAXTRDzusktV6+cvvrSZEdRi4twATg==
   dependencies:
     "@ant-design/colors" "^8.0.1"
     "@ant-design/cssinjs" "^2.1.2"
     "@ant-design/cssinjs-utils" "^2.1.2"
     "@ant-design/fast-color" "^3.0.1"
-    "@ant-design/icons" "^6.3.1"
+    "@ant-design/icons" "^6.3.2"
     "@ant-design/react-slick" "~2.0.0"
     "@babel/runtime" "^7.29.2"
     "@rc-component/cascader" "~1.17.0"
@@ -6142,7 +6142,7 @@ antd@^6.5.0:
     "@rc-component/color-picker" "~3.1.1"
     "@rc-component/dialog" "~1.10.0"
     "@rc-component/drawer" "~1.4.2"
-    "@rc-component/dropdown" "~1.0.2"
+    "@rc-component/dropdown" "~1.0.3"
     "@rc-component/form" "~1.8.5"
     "@rc-component/image" "~1.9.0"
     "@rc-component/input" "~1.3.1"
@@ -6163,13 +6163,13 @@ antd@^6.5.0:
     "@rc-component/slider" "~1.1.1"
     "@rc-component/steps" "~1.2.2"
     "@rc-component/switch" "~1.0.3"
-    "@rc-component/table" "~1.10.2"
+    "@rc-component/table" "~1.10.4"
     "@rc-component/tabs" "~1.11.0"
     "@rc-component/tooltip" "~1.4.0"
     "@rc-component/tour" "~2.4.0"
     "@rc-component/tree" "~1.3.2"
     "@rc-component/tree-select" "~1.11.0"
-    "@rc-component/trigger" "^3.9.1"
+    "@rc-component/trigger" "^3.10.0"
     "@rc-component/upload" "~1.1.1"
     "@rc-component/util" "^1.11.1"
     clsx "^2.1.1"
