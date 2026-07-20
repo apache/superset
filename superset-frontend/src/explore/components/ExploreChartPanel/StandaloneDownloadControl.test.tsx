@@ -19,6 +19,7 @@
 
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { VizType } from '@superset-ui/core';
+import { ExportStatus } from 'src/components/StreamingExportModal/StreamingExportModal';
 import { useExploreDataExport } from '../useExploreAdditionalActionsMenu/useExploreDataExport';
 import StandaloneDownloadControl from './StandaloneDownloadControl';
 
@@ -37,8 +38,13 @@ const exportExcel = jest.fn();
 const streamingExportState = {
   isVisible: false,
   progress: {
-    status: 'idle' as const,
-    percentage: 0,
+    rowsProcessed: 0,
+    totalRows: undefined,
+    totalSize: 0,
+    speed: 0,
+    mbPerSecond: 0,
+    elapsedTime: 0,
+    status: ExportStatus.STREAMING,
   },
   onCancel: jest.fn(),
   onRetry: jest.fn(),
