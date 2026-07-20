@@ -90,7 +90,9 @@ export default function EchartsTimeseries({
       series?: { data?: SeriesDataPoint[] }[];
     };
     const baseSeries = (option.series ?? []).map(s =>
-      Array.isArray(s.data) ? (s.data as SeriesDataPoint[]) : [],
+      Array.isArray(s.data)
+        ? (s.data.filter(Array.isArray) as SeriesDataPoint[])
+        : [],
     );
     const xs = Array.from(
       new Set(baseSeries.flat().map(([x]) => Number(x))),
@@ -119,11 +121,10 @@ export default function EchartsTimeseries({
         graphic: [
           {
             id: 'percent-change-baseline',
-            type: 'rect',
+            // only group elements support children in the graphic API
+            type: 'group',
             x: px - 4,
             y: gridRect.top,
-            shape: { width: 8, height: gridRect.height },
-            style: { fill: theme.colorFillQuaternary },
             cursor: 'ew-resize',
             draggable: true,
             z: 100,
@@ -142,9 +143,12 @@ export default function EchartsTimeseries({
             children: [
               {
                 type: 'rect',
-                left: 'center',
-                top: 0,
-                shape: { width: 2, height: gridRect.height },
+                shape: { x: 0, y: 0, width: 8, height: gridRect.height },
+                style: { fill: 'rgba(0, 0, 0, 0.02)' },
+              },
+              {
+                type: 'rect',
+                shape: { x: 3, y: 0, width: 2, height: gridRect.height },
                 style: { fill: theme.colorTextSecondary },
               },
             ],
