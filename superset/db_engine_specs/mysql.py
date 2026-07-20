@@ -238,6 +238,48 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
             LONGTEXT(),
             GenericDataType.STRING,
         ),
+        # wire-protocol FIELD_TYPE names emitted by `get_datatype`, seen on
+        # SQL Lab and virtual dataset columns instead of DDL type names
+        (
+            re.compile(r"^var_string", re.IGNORECASE),
+            types.String(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^newdecimal", re.IGNORECASE),
+            DECIMAL(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^tiny$", re.IGNORECASE),
+            TINYINT(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^short$", re.IGNORECASE),
+            types.SmallInteger(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^blob$", re.IGNORECASE),
+            types.String(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^year$", re.IGNORECASE),
+            types.Integer(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^enum\b", re.IGNORECASE),
+            types.String(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^set\b", re.IGNORECASE),
+            types.String(),
+            GenericDataType.STRING,
+        ),
     )
     column_type_mutators: dict[types.TypeEngine, Callable[[Any], Any]] = {
         DECIMAL: lambda val: Decimal(val) if isinstance(val, str) else val

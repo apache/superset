@@ -70,6 +70,15 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
         ("DATETIME", types.DateTime, None, GenericDataType.TEMPORAL, True),
         ("TIMESTAMP", types.TIMESTAMP, None, GenericDataType.TEMPORAL, True),
         ("TIME", types.Time, None, GenericDataType.TEMPORAL, True),
+        # Wire-protocol names
+        ("VAR_STRING", types.String, None, GenericDataType.STRING, False),
+        ("NEWDECIMAL", DECIMAL, None, GenericDataType.NUMERIC, False),
+        ("TINY", TINYINT, None, GenericDataType.NUMERIC, False),
+        ("SHORT", types.SmallInteger, None, GenericDataType.NUMERIC, False),
+        ("BLOB", types.String, None, GenericDataType.STRING, False),
+        ("YEAR", types.Integer, None, GenericDataType.NUMERIC, False),
+        ("ENUM", types.String, None, GenericDataType.STRING, False),
+        ("SET", types.String, None, GenericDataType.STRING, False),
     ],
 )
 def test_get_column_spec(
@@ -82,6 +91,19 @@ def test_get_column_spec(
     from superset.db_engine_specs.mysql import MySQLEngineSpec as spec  # noqa: N813
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
+
+
+def test_fetch_data_mutates_decimal_rows_in_tuple_results() -> None:
+    from superset.db_engine_specs.mysql import MySQLEngineSpec as spec  # noqa: N813
+
+    newdecimal, var_string = 246, 253
+    cursor = Mock()
+    cursor.description = [("amount", newdecimal), ("label", var_string)]
+    cursor.fetchall.return_value = (("10.50", "Ships"), ("22.30", "Planes"))
+
+    data = spec.fetch_data(cursor)
+
+    assert data == [(Decimal("10.50"), "Ships"), (Decimal("22.30"), "Planes")]
 
 
 @pytest.mark.parametrize(
