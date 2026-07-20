@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-23 03:46-0700\n"
+"POT-Creation-Date: 2026-07-17 15:46-0700\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -31,55 +31,6 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy, python-format
-msgid ""
-"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
-"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a "
-"new dataset over this table, or use a different table name."
-msgstr ""
-"He kohinga raraunga kua mukua māmā (uuid %(uuid)s) e tāhuri ana ki tēnei "
-"tēpu. Whakahokia mā te POST /api/v1/dataset/%(uuid)s/restore i mua i te "
-"hanga kohinga raraunga hou mō tēnei tēpu, rānei whakamahia he ingoa tēpu "
-"rerekē."
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy, python-format
-msgid ""
-"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
-"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or"
-" upload to a different table name."
-msgstr ""
-"He kohinga raraunga kua mukua māmā (uuid %(uuid)s) e tāhuri ana ki tēnei "
-"tēpu. Whakahokia mā te POST /api/v1/dataset/%(uuid)s/restore i mua i te "
-"tukuake, rānei tukuake ki tētahi ingoa tēpu rerekē."
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy
-msgid ""
-"Cannot delete a database whose only remaining datasets are soft-deleted. "
-"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
-"permanently once a purge capability ships, or remove the underlying rows "
-"out-of-band, before deleting the database."
-msgstr ""
-"Kāore e taea te muku i tētahi pātengi raraunga ko ōna kohinga raraunga e "
-"toe ana kua mukua māmā katoa. Whakahokia rātou (POST "
-"/api/v1/dataset/<uuid>/restore) ā mukua rātou mō ake ake ina tae mai te "
-"āheanga whakamā, rānei tangohia ngā raina o raro i waho o te puna, i mua "
-"i te muku i te pātengi raraunga."
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy
-msgid ""
-"Dataset cannot be restored because another active dataset already "
-"references the same physical table (same database, catalog, schema, and "
-"table name). Delete the duplicate or rename the table before restoring."
-msgstr ""
-"Kāore e taea te whakahoki i te kohinga raraunga nā te mea he kohinga "
-"raraunga kaha kē e tāhuri ana ki te tēpu ōrite (tēpu pātengi raraunga "
-"kotahi, katarogu, hoahoanga, me te ingoa tēpu). Mukua te tārua rānei "
-"tōhua anō te ingoa o te tēpu i mua i te whakahoki."
 
 msgid ""
 "\n"
@@ -269,6 +220,10 @@ msgid "% of total"
 msgstr "% o te katoa"
 
 #, python-format
+msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
+msgstr ""
+
+#, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 "Kāore e taea te whakamahi i te %(dialect)s hei puna raraunga mō ngā take "
@@ -277,6 +232,10 @@ msgstr ""
 #, python-format
 msgid "%(label)s file"
 msgstr "kōnae %(label)s"
+
+#, python-format
+msgid "%(name)s.%(extension)s"
+msgstr ""
 
 #, python-format
 msgid "%(name)s.csv"
@@ -495,12 +454,6 @@ msgstr "%s Kua Tīpakohia"
 #, python-format
 msgid "%s recipients"
 msgstr "%s kaiwhakawhiti"
-
-#, fuzzy, python-format
-msgid "%s record"
-msgid_plural "%s records..."
-msgstr[0] "%s Hapa"
-msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "%s record..."
@@ -1042,6 +995,29 @@ msgid ""
 "templating syntax"
 msgstr "He huinga tawhā ka wātea i te pātai mā te tikanga tauira Jinja"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a "
+"new dataset over this table, or use a different table name."
+msgstr ""
+"He kohinga raraunga kua mukua māmā (uuid %(uuid)s) e tāhuri ana ki tēnei "
+"tēpu. Whakahokia mā te POST /api/v1/dataset/%(uuid)s/restore i mua i te "
+"hanga kohinga raraunga hou mō tēnei tēpu, rānei whakamahia he ingoa tēpu "
+"rerekē."
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or"
+" upload to a different table name."
+msgstr ""
+"He kohinga raraunga kua mukua māmā (uuid %(uuid)s) e tāhuri ana ki tēnei "
+"tēpu. Whakahokia mā te POST /api/v1/dataset/%(uuid)s/restore i mua i te "
+"tukuake, rānei tukuake ki tētahi ingoa tēpu rerekē."
+
 msgid "A timeout occurred while executing the query."
 msgstr "I puta he wā-pau i te whakatutukitanga o te pātai."
 
@@ -1050,6 +1026,9 @@ msgstr "I puta he wā-pau i te hangarautanga o tētahi csv."
 
 msgid "A timeout occurred while generating a dataframe."
 msgstr "I puta he wā-pau i te hangarautanga o tētahi dataframe."
+
+msgid "A timeout occurred while generating an Excel file."
+msgstr ""
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "I puta he wā-pau i te tangohanga o tētahi hopuataata."
@@ -1103,9 +1082,6 @@ msgstr "Kua tango angitū te kī API"
 #, fuzzy
 msgid "API keys allow scoped programmatic access to Superset."
 msgstr "He āhei ngā kī API ki te uru rorohiko kua ārahitia ki Superset."
-
-msgid "APPLY"
-msgstr "WHAKAHAERETIA"
 
 msgid "APR"
 msgstr "PAE"
@@ -1375,6 +1351,9 @@ msgstr "Tāpiri uara whakahaere e hiahiatia ana hei arokite i te kauwhata"
 msgid "Add required control values to save chart"
 msgstr "Tāpiri uara whakahaere e hiahiatia ana hei tiaki i te kauwhata"
 
+msgid "Add service credentials"
+msgstr ""
+
 msgid "Add sheet"
 msgstr "Tāpiri hīti"
 
@@ -1445,6 +1424,12 @@ msgid ""
 msgstr ""
 "Ka tāpiri tae ki ngā tohu kauwhata i runga i te panoni pai, kino rānei "
 "mai i te uara whakatairite."
+
+msgid "Adhoc metric SQL expression is invalid"
+msgstr ""
+
+msgid "Adhoc metric aggregate is invalid"
+msgstr ""
 
 msgid "Adjust how this database will interact with SQL Lab."
 msgstr "Whakatikatika me pēhea te taunekeneke o tēnei pātengi raraunga ki SQL Lab."
@@ -1926,6 +1911,10 @@ msgid "An error occurred while fetching function names."
 msgstr "I puta he hapa i te tikitanga o ngā ingoa taumahi."
 
 #, python-format
+msgid "An error occurred while fetching row level security subject values: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching schema values: %s"
 msgstr "I puta he hapa i te tikitanga o ngā uara hanga: %s"
 
@@ -2046,6 +2035,9 @@ msgstr ""
 msgid "An error occurred while syncing permissions for %s: %s"
 msgstr "I puta he hapa i te hāngaitanga o ngā mōtika mō %s: %s"
 
+msgid "An error occurred while triggering the report"
+msgstr ""
+
 #, fuzzy
 msgid "An error occurred while updating the extension."
 msgstr "I puta he hapa i te whakahouhanga o te uara."
@@ -2069,6 +2061,11 @@ msgstr "I puta he hapa ohorere"
 
 msgid "Anchor to"
 msgstr "Punga ki"
+
+msgid ""
+"Angle at which the first slice begins, in degrees. 90° starts at the top,"
+" 0°/360° at the right, 270° at the bottom, and 180° at the left."
+msgstr ""
 
 msgid "Angle at which to end progress axis"
 msgstr "Koki hei mutu i te tukutuku kokenga"
@@ -2339,6 +2336,9 @@ msgstr "Kei te tino hiahia koe ki te muku i ngā ture kua tīpakohia?"
 
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Kei te tino hiahia koe ki te muku i ngā papa kua tīpakohia?"
+
+msgid "Are you sure you want to delete the selected queries?"
+msgstr ""
 
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Kei te tino hiahia koe ki te muku i ngā tūranga kua tīpakohia?"
@@ -2851,20 +2851,8 @@ msgstr "Mā te kī: whakamahia ngā ingoa rārangi hei kī kōmaka"
 msgid "By value: use metric values as sorting key"
 msgstr "Mā te uara: whakamahia ngā uara ine hei kī kōmaka"
 
-msgid "CANCEL"
-msgstr "WHAKAKORE"
-
 msgid "CC recipients"
 msgstr "Kaiwhakawhiti CC"
-
-#, fuzzy
-msgid "COPY QUERY"
-msgstr "Tārua URL pātai"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
-#, fuzzy
-msgid "Copy query"
-msgstr "Tāruatia te tono"
 
 msgid "CREATE TABLE AS"
 msgstr "HANGA RIPANGA HEI"
@@ -2940,9 +2928,6 @@ msgstr ""
 "pātai kei reira ko te kīanga whakamutunga he SELECT. Tēnā kia mārama he "
 "SELECT tō kīanga whakamutunga o tō pātai. Kātahi, whakamātauhia anō tō "
 "pātai."
-
-msgid "CUSTOM"
-msgstr "RITENGA"
 
 msgid ""
 "CVAS (create view as select) can only be run with a query with a single "
@@ -3041,6 +3026,20 @@ msgid "Cannot delete a database that has datasets attached"
 msgstr ""
 "Kāore e taea te muku i tētahi pātengi raraunga he rārangi raraunga tūhono"
 " tōna"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid ""
+"Cannot delete a database whose only remaining datasets are soft-deleted. "
+"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
+"permanently once a purge capability ships, or remove the underlying rows "
+"out-of-band, before deleting the database."
+msgstr ""
+"Kāore e taea te muku i tētahi pātengi raraunga ko ōna kohinga raraunga e "
+"toe ana kua mukua māmā katoa. Whakahokia rātou (POST "
+"/api/v1/dataset/<uuid>/restore) ā mukua rātou mō ake ake ina tae mai te "
+"āheanga whakamā, rānei tangohia ngā raina o raro i waho o te puna, i mua "
+"i te muku i te pātengi raraunga."
 
 #, fuzzy
 msgid "Cannot delete system themes"
@@ -3626,6 +3625,9 @@ msgstr "Whakakore puka"
 msgid "Clear local theme"
 msgstr "Kaupapa tae rārangi"
 
+msgid "Clear search"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -4186,6 +4188,9 @@ msgstr "I rahua te hononga, tēnā tirohia ō tautuhinga hononga"
 msgid "Connection failed, please check your connection settings."
 msgstr "I rahua te hononga, tēnā tirohia ō tautuhinga hononga."
 
+msgid "Connection looks good!"
+msgstr ""
+
 #, fuzzy
 msgid "Contains"
 msgstr "Auau tonu"
@@ -4265,6 +4270,14 @@ msgstr "Tārua pātai wāhanga ki te papatopenga"
 
 msgid "Copy permalink to clipboard"
 msgstr "Tārua hononga-ā-mau ki te papatopenga"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
+#, fuzzy
+msgid "Copy query"
+msgstr "Tāruatia te tono"
+
+msgid "Copy query URL"
+msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Tārua hono pātai ki tō papatopenga"
@@ -4389,6 +4402,11 @@ msgstr "hanga kauwhata hou"
 
 msgid "Create a new chart"
 msgstr "Hangaia he kauwhata hou"
+
+msgid ""
+"Create a new tag and assign it to existing entities like charts or "
+"dashboards"
+msgstr ""
 
 #, fuzzy
 msgid "Create and explore dataset"
@@ -4714,6 +4732,11 @@ msgstr "Kāore e taea te tārua i te papatohu nā te tawhā muhu."
 msgid "Dashboard cannot be favorited."
 msgstr "Kāore e taea te whakamakauhia te papatohu."
 
+msgid ""
+"Dashboard cannot be restored because its slug is now used by another "
+"active dashboard. Rename one of the dashboards and retry."
+msgstr ""
+
 msgid "Dashboard cannot be unfavorited."
 msgstr "Kāore e taea te kore-whakamakauhia te papatohu."
 
@@ -4972,6 +4995,18 @@ msgstr "Kei te tīari kē te rārangi raraunga %(table)s"
 
 msgid "Dataset Name"
 msgstr "Ingoa Rārangi Raraunga"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid ""
+"Dataset cannot be restored because another active dataset already "
+"references the same physical table (same database, catalog, schema, and "
+"table name). Delete the duplicate or rename the table before restoring."
+msgstr ""
+"Kāore e taea te whakahoki i te kohinga raraunga nā te mea he kohinga "
+"raraunga kaha kē e tāhuri ana ki te tēpu ōrite (tēpu pātengi raraunga "
+"kotahi, katarogu, hoahoanga, me te ingoa tēpu). Mukua te tārua rānei "
+"tōhua anō te ingoa o te tēpu i mua i te whakahoki."
 
 msgid "Dataset column delete failed."
 msgstr "I rahua te muku tīwae rārangi raraunga."
@@ -5408,6 +5443,9 @@ msgstr "Muku tūranga"
 msgid "Delete item"
 msgstr "Muku tauira"
 
+msgid "Delete query"
+msgstr ""
+
 msgid "Delete role"
 msgstr "Muku tūranga"
 
@@ -5720,6 +5758,11 @@ msgstr "Ingoa Whakaatu"
 msgid "Display all"
 msgstr "Whakaatu katoa"
 
+msgid ""
+"Display charts on a map. For using this plugin, users first have to "
+"create any other chart that can then be placed on the map."
+msgstr ""
+
 msgid "Display column in the chart"
 msgstr "Whakaatu tīwae i te kauwhata"
 
@@ -5875,9 +5918,6 @@ msgstr "Tikiake"
 
 msgid "Download as Image"
 msgstr "Tikiake hei Whakaahua"
-
-msgid "Download as image"
-msgstr "Tikiake hei whakaahua"
 
 msgid "Download is on the way"
 msgstr "Kei te haere mai te tikiake"
@@ -6135,6 +6175,10 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "HAPA"
 
+#, python-format
+msgid "ERROR: %s"
+msgstr ""
+
 msgid "Edge length"
 msgstr "Roa tapa"
 
@@ -6227,6 +6271,9 @@ msgstr "Whakatika Ture"
 msgid "Edit properties"
 msgstr "Whakatika āhuatanga"
 
+msgid "Edit query"
+msgstr ""
+
 #, fuzzy
 msgid "Edit report"
 msgstr "Whakatika Pūrongo"
@@ -6316,6 +6363,9 @@ msgstr "E hiahiatia ana he īmēra"
 #, fuzzy
 msgid "Email link"
 msgstr "Īmēra"
+
+msgid "Email recipients"
+msgstr ""
 
 msgid "Email reports active"
 msgstr "Pūrongo īmēra hohe"
@@ -6522,9 +6572,6 @@ msgstr "Tāuru Taipitopito Matua"
 msgid "Enter a name for this sheet"
 msgstr "Tāuru ingoa mō tēnei hīti"
 
-msgid "Enter a new title for the tab"
-msgstr "Tāuru taitara hou mō te ripa"
-
 #, fuzzy
 msgid "Enter a part of the object name"
 msgstr "Mēnā ka whakakī i ngā ahanoa"
@@ -6594,6 +6641,9 @@ msgstr "Tāuruhia tō ingoa takiuru me tō kupuhipa ki raro nei:"
 
 msgid "Entity"
 msgstr "Pūtahi"
+
+msgid "Entries per page"
+msgstr ""
 
 msgid "Equal Date Sizes"
 msgstr "Rahi Rā Ōrite"
@@ -6867,6 +6917,9 @@ msgstr "Ingoa pūrongo"
 msgid "Export as Example"
 msgstr "Kaweatu ki Excel"
 
+msgid "Export as PDF"
+msgstr ""
+
 #, fuzzy
 msgid "Export cancelled"
 msgstr "I rahua te pūrongo"
@@ -6886,11 +6939,17 @@ msgstr "Tikanga tauira-anō Pandas"
 msgid "Export failed: %s"
 msgstr "I rahua te pūrongo"
 
+msgid "Export query"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
 msgid "Export screenshot (jpeg)"
 msgstr "Kaweake pikitia mata (jpeg)"
+
+msgid "Export screenshot (png)"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Export successful: %s"
@@ -6930,6 +6989,17 @@ msgstr "Kaweatu ki .CSV taketake"
 
 msgid "Export to pivoted .CSV"
 msgstr "Kaweatu ki .CSV hurihuri"
+
+#, python-format
+msgid ""
+"Exporting semantic views is not supported yet — %s semantic-view row(s) "
+"were skipped."
+msgstr ""
+
+msgid ""
+"Exporting semantic views is not supported yet. Deselect the semantic-view"
+" rows and try again."
+msgstr ""
 
 msgid "Expose database in SQL Lab"
 msgstr "Whakaaturia te pātengi raraunga i SQL Lab"
@@ -7001,14 +7071,6 @@ msgstr "Kua whakaputaina"
 msgid "FEB"
 msgstr "HUI"
 
-msgid "FIT DATA"
-msgstr "WHAKAHĀNGAI RARAUNGA"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
-#, fuzzy
-msgid "Fit data"
-msgstr "Hāngai raraunga"
-
 msgid "FRI"
 msgstr "PAR"
 
@@ -7051,6 +7113,11 @@ msgstr "I rahua te hanga i te pūrongo"
 #, python-format
 msgid "Failed to execute %(query)s"
 msgstr "I rahua te whakatutuki i %(query)s"
+
+msgid ""
+"Failed to export chart data. Please try again or contact your "
+"administrator."
+msgstr ""
 
 #, fuzzy
 msgid "Failed to fetch API keys"
@@ -7141,6 +7208,10 @@ msgstr "I rahua te penapena i ngā hua pātai. Tēnā koa ngana anō."
 
 msgid "Failed to tag items"
 msgstr "I rahua te tohu i ngā mea"
+
+#, python-format
+msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
+msgstr ""
 
 msgid "Failed to update report"
 msgstr "I rahua te whakahou i te pūrongo"
@@ -7370,6 +7441,11 @@ msgstr "E hiahiatia ana te ingoa tuatahi"
 msgid "Fit columns dynamically"
 msgstr "Kōmaka tīwae mā te arapū"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
+#, fuzzy
+msgid "Fit data"
+msgstr "Hāngai raraunga"
+
 msgid ""
 "Fix the trend line to the full time range specified in case filtered "
 "results do not include the start or end dates"
@@ -7512,6 +7588,9 @@ msgstr ""
 msgid "Forecast periods"
 msgstr "Wā matapae"
 
+msgid "Forecast requires at least 2 data points"
+msgstr ""
+
 msgid "Foreign key"
 msgstr "Kī tāwāhi"
 
@@ -7571,6 +7650,9 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "CSV kua hōputuhia kua tāpiritia ki te īmēra"
+
+msgid "Formatted Excel attached in email"
+msgstr ""
 
 msgid "Formatted value"
 msgstr "Uara kua hōputuhia"
@@ -8567,6 +8649,9 @@ msgstr ""
 msgid "Label for your query"
 msgstr "Tapanga mō tō pātai"
 
+msgid "Label must not be empty."
+msgstr ""
+
 msgid "Label position"
 msgstr "Tūnga tapanga"
 
@@ -8872,6 +8957,9 @@ msgstr "Tīwae rārangi"
 
 msgid "Lines encoding"
 msgstr "Whakakohu rārangi"
+
+msgid "Link Copied!"
+msgstr ""
 
 #, fuzzy
 msgid "List"
@@ -9838,6 +9926,9 @@ msgstr ""
 "Kāore he raraunga i muri i te tātari, he NULL rānei ngā raraunga mō te "
 "rekoata wā whakamutunga"
 
+msgid "No data found"
+msgstr ""
+
 msgid "No data in file"
 msgstr "Kāore he raraunga i te kōnae"
 
@@ -10258,6 +10349,10 @@ msgstr "Kua tāruatia tētahi, nui ake rānei ine"
 
 msgid "One or more metrics do not exist"
 msgstr "Karekau tētahi, nui ake rānei ine"
+
+#, python-format
+msgid "One or more parameters are missing: %(missing)s"
+msgstr ""
 
 msgid "One or more parameters needed to configure a database are missing."
 msgstr ""
@@ -10957,6 +11052,13 @@ msgstr "Tēnā tohua te ID Rārangi Raraunga mō te ine ``%(name)s`` i te macro 
 msgid "Please use 3 different metric labels"
 msgstr "Tēnā whakamahia ngā tapanga ine rerekē e 3"
 
+msgid ""
+"Plot each time-shifted series across its full time range instead of "
+"truncating it to the main series. Useful for comparing a partial current "
+"period (e.g. today so far) against complete prior periods (e.g. all of "
+"yesterday)."
+msgstr ""
+
 msgid "Plot the distance (like flight paths) between origin and destination."
 msgstr ""
 "Whakatakoto i te tawhiti (pērā i ngā ara rererangi) i waenga i te puna me"
@@ -11110,9 +11212,6 @@ msgstr "Hōputu tukutuku-y matua"
 #, fuzzy
 msgid "Private"
 msgstr "Kī Matawhā"
-
-msgid "Private Channels (Bot in channel)"
-msgstr "Hongere Matawhā (Bot i te hongere)"
 
 msgid "Private Key"
 msgstr "Kī Matawhā"
@@ -11436,17 +11535,11 @@ msgid "Regular"
 msgstr "Auau"
 
 msgid ""
-"Regular filters add where clauses to queries if a user belongs to a role "
-"referenced in the filter, base filters apply filters to all queries "
-"except the roles defined in the filter, and can be used to define what "
-"users can see if no RLS filters within a filter group apply to them."
+"Regular filters add where clauses to queries if a user matches a subject "
+"referenced in the filter. Base filters apply filters to all queries "
+"except the subjects defined in the filter, and can be used to define what"
+" users can see if no RLS filters within a filter group apply to them."
 msgstr ""
-"Ka tāpiri ngā tātari auau i ngā rerenga kei hea ki ngā pātai mēnā nō "
-"tētahi tūranga te kaiwhakamahi kua tohutorohia i te tātari, ka "
-"whakahaeretia ngā tātari pūtake ki ngā pātai katoa haunga ngā tūranga kua"
-" tautuhia i te tātari, ā, ka taea te whakamahi hei tautuhi i ngā mea ka "
-"taea e ngā kaiwhakamahi te kite mēnā karekau he tātari RLS i roto i "
-"tētahi rōpū tātari e pā ana ki a rātou."
 
 msgid "Relational"
 msgstr "Hononga"
@@ -11491,6 +11584,9 @@ msgstr "Tango tātari-whiti"
 msgid "Remove customization"
 msgstr "Momo Whakakitenga"
 
+msgid "Remove dependency"
+msgstr ""
+
 #, fuzzy
 msgid "Remove filter"
 msgstr "Tango mea"
@@ -11498,8 +11594,14 @@ msgstr "Tango mea"
 msgid "Remove item"
 msgstr "Tango mea"
 
+msgid "Remove notification method"
+msgstr ""
+
 msgid "Remove query from log"
 msgstr "Tango pātai mai i te rārangi"
+
+msgid "Remove sheet"
+msgstr ""
 
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
@@ -11541,6 +11643,9 @@ msgstr "Kāore i taea te whakahou i te Hōtaka Pūrongo."
 msgid "Report Schedule delete failed."
 msgstr "I rahua te muku i te Hōtaka Pūrongo."
 
+msgid "Report Schedule execute now failed."
+msgstr ""
+
 msgid "Report Schedule execution failed when generating a csv."
 msgstr ""
 "I rahua te whakatutukitanga o te Hōtaka Pūrongo i te hangarautanga o "
@@ -11561,8 +11666,21 @@ msgstr ""
 "I rahua te whakatutukitanga o te Hōtaka Pūrongo i te hangarautanga o "
 "tētahi hopuataata."
 
+msgid "Report Schedule execution failed when generating an Excel file."
+msgstr ""
+
 msgid "Report Schedule execution got an unexpected error."
 msgstr "I puta tētahi hapa ohorere i te whakatutukitanga o te Hōtaka Pūrongo."
+
+msgid ""
+"Report Schedule execution requires a Celery backend to be configured. "
+"Please configure a Celery broker (Redis or RabbitMQ) and worker "
+"processes."
+msgstr ""
+
+#, python-format
+msgid "Report Schedule executor user %(username)s was not found."
+msgstr ""
 
 msgid "Report Schedule is still working, refusing to re-compute."
 msgstr "Kei te mahi tonu te Hōtaka Pūrongo, e whakakore ana ki te tatau-anō."
@@ -12267,15 +12385,14 @@ msgstr ""
 msgid "Search"
 msgstr "Rapu"
 
-#, python-format
-msgid "Search %s records"
-msgstr "Rapu %s rekoata"
-
 msgid "Search / Filter"
 msgstr "Rapu / Tātari"
 
 msgid "Search Metrics & Columns"
 msgstr "Rapu Ine me ngā Tīwae"
+
+msgid "Search a channel by name, or paste a channel ID"
+msgstr ""
 
 msgid "Search all charts"
 msgstr "Rapu i ngā kauwhata katoa"
@@ -12322,6 +12439,9 @@ msgstr "Rapu i ngā tātari"
 msgid "Search metrics by key or label"
 msgstr "Rapu Ine me ngā Tīwae"
 
+msgid "Search records"
+msgstr ""
+
 #, fuzzy
 msgid "Search tags"
 msgstr "Tīpako Tohu"
@@ -12331,6 +12451,9 @@ msgstr "Rapua ngā kaitiro"
 
 msgid "Search..."
 msgstr "Rapu..."
+
+msgid "Searches all text fields: Name, Description, Database & Schema"
+msgstr ""
 
 msgid "Second"
 msgstr "Hēkona"
@@ -12370,6 +12493,9 @@ msgstr "raupapa"
 #, python-format
 msgid "See all %(tableName)s"
 msgstr "Tirohia ngā %(tableName)s katoa"
+
+msgid "See all dashboards"
+msgstr ""
 
 msgid "See less"
 msgstr "Tirohia te iti ake"
@@ -12678,6 +12804,12 @@ msgstr ""
 msgid "Select operator"
 msgstr "Tīpakohia kaiwhakahaere"
 
+msgid "Select or type BCC recipients"
+msgstr ""
+
+msgid "Select or type CC recipients"
+msgstr ""
+
 msgid "Select or type a custom value..."
 msgstr "Tīpakohia, pato rānei i tētahi uara ritenga..."
 
@@ -12686,6 +12818,9 @@ msgstr "Tīpakohia, pato rānei i te tohu moni"
 
 msgid "Select or type dataset name"
 msgstr "Tīpakohia, pato rānei i te ingoa rārangi raraunga"
+
+msgid "Select or type email recipients"
+msgstr ""
 
 msgid "Select page size"
 msgstr "Tīpakohia rahi whārangi"
@@ -12963,6 +13098,9 @@ msgstr "ngā tirohanga tikanga"
 msgid "Send as CSV"
 msgstr "Tuku hei CSV"
 
+msgid "Send as Excel"
+msgstr ""
+
 msgid "Send as PDF"
 msgstr "Tuku hei PDF"
 
@@ -13211,6 +13349,9 @@ msgstr "Whakaatu Ingoa Ine"
 msgid "Show Metric Names"
 msgstr "Whakaatu Ingoa Ine"
 
+msgid "Show Null Values"
+msgstr ""
+
 msgid "Show Range Filter"
 msgstr "Whakaatu Tātari Korahi"
 
@@ -13251,6 +13392,15 @@ msgstr ""
 "tautuhia ā-ringa mēnā kua tautuhia, i ngā uara iti/rahi i ngā raraunga "
 "rānei."
 
+msgid "Show a draggable slider to control the visible range of the Y-axis."
+msgstr ""
+
+msgid ""
+"Show a summary row of total aggregations: the selected metrics in "
+"aggregate mode, or the sum of numeric columns in raw records mode. Note "
+"that row limit does not apply to the result."
+msgstr ""
+
 msgid "Show all columns"
 msgstr "Whakaatu tīwae katoa"
 
@@ -13289,6 +13439,9 @@ msgstr "Whakaatu tīwae kau"
 
 msgid "Show entries per page"
 msgstr "Whakaatu urunga ia whārangi"
+
+msgid "Show full range for time shift"
+msgstr ""
 
 msgid ""
 "Show hierarchical relationships of data, with the value represented by "
@@ -13373,6 +13526,11 @@ msgstr ""
 #, fuzzy
 msgid "Show value"
 msgstr "Whakaatu Uara"
+
+msgid ""
+"Showcases a metric along with a comparison of value, change, and percent "
+"change for a selected time period."
+msgstr ""
 
 msgid ""
 "Showcases a single metric front-and-center. Big number is best used to "
@@ -13523,6 +13681,9 @@ msgstr ""
 msgid "Solid"
 msgstr "Mārō"
 
+msgid "Solid background"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -13543,8 +13704,13 @@ msgstr ""
 "He uara ō ētahi tātari hiahiatia i runga i ērā atu ripa ā kāore e ūkuia "
 "ana"
 
-msgid "Some roles do not exist"
-msgstr "Karekau ētahi tūranga"
+msgid "Some tables are not shown. Refine your search."
+msgstr ""
+
+msgid ""
+"Something went wrong loading the dashboard. Check the dev console for "
+"details."
+msgstr ""
 
 #, fuzzy
 msgid "Something went wrong while saving the user info"
@@ -13973,6 +14139,9 @@ msgstr "Tapeke-iti"
 msgid "Success"
 msgstr "Angitu"
 
+msgid "Success message"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Successfully changed %s!"
 msgstr "I angitu te huri i te rārangi raraunga!"
@@ -14038,6 +14207,9 @@ msgstr "Huri rārangi raraunga"
 
 msgid "Swap rows and columns"
 msgstr "Huri rārangi me ngā tīwae"
+
+msgid "Sweep angle"
+msgstr ""
 
 msgid ""
 "Swiss army knife for visualizing data. Choose between step, line, "
@@ -14215,6 +14387,9 @@ msgstr "Kāore i taea te whakahou i te tohu."
 msgid "Tag created"
 msgstr "Tohu kua hangaia"
 
+msgid "Tag description"
+msgstr ""
+
 msgid "Tag name"
 msgstr "Ingoa tohu"
 
@@ -14358,6 +14533,10 @@ msgstr "Whakarite kupu"
 msgid "Text embedded in email"
 msgstr "Kupu tāmautia i te īmēra"
 
+#, python-format
+msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "The %s"
 msgstr "Kua tikihia %s"
@@ -14471,6 +14650,17 @@ msgstr ""
 "hāngai ana tētahi pona ki te nui atu i te kotahi kāwai, ko te tuatahi "
 "anake ka whakamahia."
 
+msgid ""
+"The chart data is too large to download. Please try reducing the date "
+"range, limiting rows, or using fewer columns."
+msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
+msgid "The chart is still loading. Please wait a moment and try again."
+msgstr "Kei te uta tonu te kāta. Tataria he wā iti, ka ngana anō."
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
 msgid ""
@@ -14480,11 +14670,8 @@ msgstr ""
 "Ko te hoahoa e whāia ana e tēnei pūrongo kua mukua. Whakahokia te hoahoa,"
 " rānei whakahouhia te pūrongo kia tohu ki tētahi hoahoa e kaha ana."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
-msgid "The chart is still loading. Please wait a moment and try again."
-msgstr "Kei te uta tonu te kāta. Tataria he wā iti, ka ngana anō."
+msgid "The chat failed to load."
+msgstr ""
 
 msgid ""
 "The classic. Great for showing how much of a company each investor gets, "
@@ -14577,6 +14764,9 @@ msgstr ""
 "Ko te papa tirohanga e whāia ana e tēnei pūrongo kua mukua. Whakahokia te"
 " papa tirohanga, rānei whakahouhia te pūrongo kia tohu ki tētahi papa "
 "tirohanga e kaha ana."
+
+msgid "The dashboard you are looking for may have been deleted or moved."
+msgstr ""
 
 msgid "The data source seems to have been deleted"
 msgstr "Kua mukua pea te puna raraunga"
@@ -14840,6 +15030,11 @@ msgstr ""
 msgid "The maximum value of metrics. It is an optional configuration"
 msgstr "Te uara rahi o ngā ine. He whirihora kōwhiringa"
 
+msgid ""
+"The metadata_cache_timeout must be a mapping from string keys to non-"
+"negative integer values."
+msgstr ""
+
 #, python-format
 msgid ""
 "The metadata_params in Extra field is not configured correctly. The key "
@@ -15069,6 +15264,9 @@ msgstr ""
 
 msgid "The query contains one or more malformed template parameters."
 msgstr "Kei roto i te pātai tētahi, nui ake rānei tawhā tauira kua hē."
+
+msgid "The query context datasource does not match the chart datasource"
+msgstr ""
 
 msgid "The query couldn't be loaded"
 msgstr "Kāore i taea te uta i te pātai"
@@ -15516,6 +15714,9 @@ msgstr ""
 "I puta he hapa i te tikitanga o ngā kauwhata me ngā papatohu kua "
 "tātaritia:"
 
+msgid "There was an error generating the permalink."
+msgstr ""
+
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "I puta he hapa i te utanga o ngā ripanga"
@@ -15618,6 +15819,10 @@ msgid "There was an issue deleting the selected layers: %s"
 msgstr "I puta he take i te mukutanga o ngā papa kua tīpakohia: %s"
 
 #, python-format
+msgid "There was an issue deleting the selected queries: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr "I puta he take i te mukutanga o ngā tauira kua tīpakohia: %s"
 
@@ -15652,6 +15857,9 @@ msgstr "I puta he take i te mukutanga o ngā kauwhata kua tīpakohia: %s"
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
 msgstr "I puta he take i te mukutanga o ngā papatohu kua tīpakohia: "
+
+msgid "There was an issue exporting the selected queries"
+msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -15816,6 +16024,9 @@ msgid ""
 "                  view should be passed down to the chart containing the "
 "annotation data."
 msgstr "Ka whakahaere tēnei mēnā me tuku iho rānei te āpure māeneene wā mai i te"
+
+msgid "This dashboard does not exist"
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
@@ -16225,8 +16436,8 @@ msgstr "Hōputu Wā"
 msgid "Time Grain"
 msgstr "Māeneene Wā"
 
-msgid "Time Grain must be specified when using Time Shift."
-msgstr "Me tohua te Māeneene Wā ina whakamahi i te Neke Wā."
+msgid "Time Grain must be specified when using Time Comparison."
+msgstr ""
 
 msgid "Time Granularity"
 msgstr "Māeneene Wā"
@@ -16522,6 +16733,13 @@ msgstr "Tapeke (%(aggfunc)s)"
 msgid "Total (%(aggregatorName)s)"
 msgstr "Tapeke (%(aggregatorName)s)"
 
+msgid ""
+"Total angle covered by the chart, in degrees. 360° draws a full circle "
+"and 180° draws a half donut. When the sweep is 180° or less and the start"
+" angle is a multiple of 90°, the chart is automatically re-centered to "
+"make use of the empty space."
+msgstr ""
+
 #, fuzzy
 msgid "Total color"
 msgstr "Tae Tohu"
@@ -16545,6 +16763,9 @@ msgstr "Ka taea te whakawhiti"
 
 msgid "Transparent"
 msgstr "Ataata"
+
+msgid "Transparent background"
+msgstr ""
 
 msgid "Transpose pivot"
 msgstr "Whakawhiti hurihuri"
@@ -16572,6 +16793,9 @@ msgstr "Tapatoru"
 
 msgid "Trigger Alert If..."
 msgstr "Whakaohongia te Matohi Mēnā..."
+
+msgid "Trigger now"
+msgstr ""
 
 #, fuzzy
 msgid "True"
@@ -16704,6 +16928,9 @@ msgstr "Slug URL"
 msgid "URL parameters"
 msgstr "Tawhā url"
 
+msgid "UUID to track the execution status"
+msgstr ""
+
 msgid "Unable to calculate such a date delta"
 msgstr "Kāore e taea te tatau i tētahi rerekētanga rā pēnei"
 
@@ -16773,6 +17000,10 @@ msgstr "Kāore e taea te kimi i tētahi hararei pēnei: [%(holiday)s]"
 msgid "Unable to generate download payload"
 msgstr "Kāore e taea te uta i te papatohu"
 
+#, python-format
+msgid "Unable to generate forecast: %(error)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -16782,6 +17013,12 @@ msgid ""
 msgstr ""
 "Kāore e taea te tautuhi i te tīwae wā mō te whakataurite wā o ngā awhe "
 "rā. Whakatauhia ō kohinga raraunga kia whai tīwae wā i whirihoratia tika."
+
+#, python-format
+msgid ""
+"Unable to interpret the time offset: %(offset)s. Use a relative time such"
+" as \"1 month ago\"."
+msgstr ""
 
 msgid ""
 "Unable to load columns for the selected table. Please select a different "
@@ -17845,6 +18082,9 @@ msgstr "Mēnā ka whakaatu i tētahi kōrero mō te kauwhata"
 msgid "Whether to display bubbles on top of countries"
 msgstr "Mēnā ka whakaatu i ngā pōro i runga i ngā whenua"
 
+msgid "Whether to display entries with null values in the hierarchy"
+msgstr ""
+
 msgid "Whether to display in the chart"
 msgstr "Mēnā ka whakaatu i te kauwhata"
 
@@ -17971,8 +18211,10 @@ msgstr "Mēnā ka kōmaka heke, piki rānei"
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "Mēnā ka kōmaka i ngā hua mā te ine kua tīpakohia i te raupapa heke."
 
-msgid "Whether to sort tooltip by the selected metric in descending order."
-msgstr "Mēnā ka kōmaka i te kītukutuku mā te ine kua tīpakohia i te raupapa heke."
+msgid ""
+"Whether to sort tooltip by the selected metric in descending order. On "
+"stacked charts, values are shown in ascending order."
+msgstr ""
 
 msgid "Whether to truncate metrics"
 msgstr "Mēnā ka porohita i ngā ine"
@@ -18134,6 +18376,9 @@ msgstr "Tukutuku-y"
 
 msgid "Y-axis bounds"
 msgstr "Rohe tukutuku-y"
+
+msgid "Y-axis range slider"
+msgstr ""
 
 msgid "Y-scale interval"
 msgstr "Wā tauine-Y"
@@ -18412,6 +18657,31 @@ msgstr ""
 "rānei."
 
 msgid ""
+"You must be a chart editor in order to delete. Please reach out to a "
+"chart editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a chart editor in order to edit. Please reach out to a chart "
+"editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dashboard editor in order to delete. Please reach out to a "
+"dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dashboard editor in order to edit. Please reach out to a "
+"dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dataset editor in order to delete. Please reach out to a "
+"dataset editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a dataset editor in order to edit. Please reach out to a "
 "dataset editor to request modifications or edit access."
 msgstr ""
@@ -18492,8 +18762,13 @@ msgstr "Kei te reri tō kauwhata!"
 msgid "Your dashboard is near the size limit."
 msgstr "Kei tata tō papatohu ki te tepe rahi."
 
-msgid "Your dashboard is too large. Please reduce its size before saving it."
-msgstr "He rahi rawa tō papatohu. Tēnā whakaiti i tōna rahi i mua i te tiaki."
+#, python-format
+msgid ""
+"Your dashboard is too large to save: the serialized layout length is %s "
+"but the limit is %s. Reduce the dashboard size (for example, split it "
+"into multiple dashboards) or raise the "
+"SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
+msgstr ""
 
 msgid "Your query could not be saved"
 msgstr "Kāore i taea te tiaki i tō pātai"
@@ -19000,9 +19275,6 @@ msgstr "Rārangi kau"
 msgid "entries"
 msgstr "urunga"
 
-msgid "entries per page"
-msgstr "urunga ia whārangi"
-
 msgid "error"
 msgstr "hapa"
 
@@ -19392,6 +19664,9 @@ msgstr "E hiahiatia ana te whakamana"
 msgid "quarter"
 msgstr "hautakiwā"
 
+msgid "queries"
+msgstr ""
+
 msgid "query"
 msgstr "pātai"
 
@@ -19434,6 +19709,9 @@ msgstr ""
 
 msgid "seconds"
 msgstr "hēkona"
+
+msgid "semantic layer"
+msgstr ""
 
 msgid "series"
 msgstr "raupapa"

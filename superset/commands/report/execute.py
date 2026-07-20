@@ -306,6 +306,7 @@ class BaseReportState:
                 ChartDataResultFormat.CSV,
                 ChartDataResultFormat.XLSX,
                 ChartDataResultFormat.JSON,
+                ChartDataResultFormat.XLSX,
             }:
                 return get_url_path(
                     "ChartDataRestApi.get_data",
@@ -720,6 +721,11 @@ class BaseReportState:
         This reuses the export path's post-processing and index handling,
         keeping report output consistent with a chart's manual export.
         """
+        if result_format not in ChartDataResultFormat.table_like():
+            raise ReportScheduleExecuteUnexpectedError(
+                f"Unsupported chart data result format: {result_format}"
+            )
+
         timeout_error: type[CommandException]
         failed_error: type[CommandException]
         if result_format == ChartDataResultFormat.XLSX:
@@ -942,6 +948,10 @@ class BaseReportState:
                     csv_data = self._get_data(ChartDataResultFormat.CSV)
                     if not csv_data:
                         error_text = "Unexpected missing csv file"
+            elif self._report_schedule.report_format == ReportDataFormat.XLSX:
+                raise ReportScheduleXlsxFailedError(
+                    "XLSX reports are only supported for chart schedules"
+                )
             if error_text:
                 return NotificationContent(
                     name=sanitize_title(self._report_schedule.name),
