@@ -240,11 +240,11 @@ def execute_sql_with_cursor(
             statement,
             is_split=is_split,
         )
-        if not stmt_sql.strip():
+        if not _has_executable_statements(stmt_sql, database.db_engine_spec.engine):
             # A `SQL_QUERY_MUTATOR` that strips a statement down to nothing
-            # would otherwise be sent to the database engine as an empty
-            # query, surfacing a confusing engine-specific error instead of
-            # a clean one.
+            # executable (whitespace or comments only) would otherwise be sent
+            # to the database engine as an empty query, surfacing a confusing
+            # engine-specific error instead of a clean one.
             raise SupersetErrorException(
                 SupersetError(
                     message=__(

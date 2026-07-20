@@ -1183,14 +1183,20 @@ def test_execute_sql_with_cursor_empty_statements(app_context: None) -> None:
     assert result == []  # Returns empty list for empty statements
 
 
-def test_execute_sql_with_cursor_empty_after_mutation(app_context: None) -> None:
-    """A mutator that strips a statement to nothing raises a clean error."""
+@pytest.mark.parametrize("mutated_output", ["   \n", "-- governance comment\n"])
+def test_execute_sql_with_cursor_empty_after_mutation(
+    app_context: None,
+    mutated_output: str,
+) -> None:
+    """A mutator that strips a statement to nothing executable (whitespace or
+    comments only) raises a clean error."""
     from superset.errors import SupersetErrorType
     from superset.exceptions import SupersetErrorException
     from superset.sql.execution.executor import execute_sql_with_cursor
 
     mock_database = MagicMock()
-    mock_database.mutate_sql_based_on_config = lambda sql, **kw: "   \n"
+    mock_database.db_engine_spec.engine = "postgresql"
+    mock_database.mutate_sql_based_on_config = lambda sql, **kw: mutated_output
 
     mock_cursor = MagicMock()
     mock_query = MagicMock()
