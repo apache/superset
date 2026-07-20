@@ -24,6 +24,14 @@ assists people when migrating to a new version.
 
 ## Next
 
+### SQL_QUERY_MUTATOR now honors MUTATE_AFTER_SPLIT in SQL Lab
+
+SQL Lab now applies `SQL_QUERY_MUTATOR` according to `MUTATE_AFTER_SPLIT`, matching the documented semantics and the chart/query path. This only affects deployments that define `SQL_QUERY_MUTATOR` in `superset_config.py`:
+
+- With `MUTATE_AFTER_SPLIT = True`, the mutator previously never ran in SQL Lab; it now runs on each individual statement (including on engines like BigQuery and Kusto that execute multiple statements as one block, where each statement is mutated before the statements are joined).
+- With `MUTATE_AFTER_SPLIT = False` (the default), multi-statement SQL Lab queries previously applied the mutator to each statement separately; the mutator now runs once on the whole un-split query, as documented. Single-statement queries are unaffected.
+- With `MUTATE_AFTER_SPLIT = False` on engines that execute statements individually, the mutator's output is re-parsed to split it into statements. A mutator that emits SQL Superset's parser cannot parse will now fail with a clear parse error before execution, and one that strips a query down to nothing raises an invalid-SQL error instead of executing an empty query.
+
 ### Webhook alerts/reports block private/internal hosts by default
 
 Webhook alert/report dispatch (`WebhookNotification.send`) now validates the target URL's host against the same private/internal-IP block applied to dataset import URLs. If the resolved host is in a loopback, link-local, private (RFC-1918), shared-CGNAT, or multicast range, the webhook is rejected with `NotificationParamException`.
