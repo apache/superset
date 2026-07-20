@@ -25,6 +25,22 @@ export const RESPONSIVE_WIDTH = 0;
 export const FilterPluginStyle = styled.div<PluginFilterStylesProps>`
   min-height: ${({ height }) => height}px;
   width: ${({ width }) => (width === RESPONSIVE_WIDTH ? '100%' : `${width}px`)};
+  /* Input / InputNumber filter value controls resolve text-align by */
+  /* inheritance, so pin them to the inline start to keep the caret and typed */
+  /* text at the left edge. */
+  text-align: start;
+
+  /* antd v6 sets 'text-align: center' directly on '.ant-select-content' for */
+  /* multiple-mode Selects (its selector '.ant-select-multiple */
+  /* .ant-select-content' has specificity 0,2,0). The Select search input */
+  /* lives inside '.ant-select-content' and inherits that value, so the caret */
+  /* and typed text render centered. A value inherited from this wrapper */
+  /* cannot beat a rule that targets '.ant-select-content' directly, so */
+  /* override the element itself: this wrapper class plus the two antd classes */
+  /* give specificity 0,3,0, which wins without !important. RTL-safe. */
+  .ant-select .ant-select-content {
+    text-align: start;
+  }
 `;
 
 export const StyledFormItem = styled(FormItem)`
