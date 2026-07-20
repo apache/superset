@@ -490,29 +490,6 @@ const Select = forwardRef(
         onSearch,
       };
     });
-    
-      if (allowNewOptions) {
-        const optionsWithoutTemporary = ensureIsArray(fullSelectOptions).filter(
-          opt => !opt.isNewOption,
-        );
-        const unquotedSearch = stripSurroundingQuotes(searchValue);
-        const shouldCreateNewOption =
-          unquotedSearch &&
-          !hasOption(unquotedSearch, optionsWithoutTemporary, true);
-
-        const newOption = shouldCreateNewOption && {
-          label: unquotedSearch,
-          value: unquotedSearch,
-          isNewOption: true,
-        };
-        const cleanSelectOptions = ensureIsArray(fullSelectOptions).filter(
-          opt => !opt.isNewOption || hasOption(opt.value, selectValue),
-        );
-        updatedOptions = newOption
-          ? [newOption, ...cleanSelectOptions]
-          : cleanSelectOptions;
-        setSelectOptions(updatedOptions);
-      }
 
     const handleOnSearch = useMemo(
       () =>
@@ -535,13 +512,14 @@ const Select = forwardRef(
             const optionsWithoutTemporary = ensureIsArray(
               fullSelectOptions,
             ).filter(opt => !opt.isNewOption);
+            const unquotedSearch = stripSurroundingQuotes(searchValue);
             const shouldCreateNewOption =
-              searchValue &&
-              !hasOption(searchValue, optionsWithoutTemporary, true);
+              unquotedSearch &&
+              !hasOption(unquotedSearch, optionsWithoutTemporary, true);
 
             const newOption = shouldCreateNewOption && {
-              label: searchValue,
-              value: searchValue,
+              label: unquotedSearch,
+              value: unquotedSearch,
               isNewOption: true,
             };
             const cleanSelectOptions = ensureIsArray(fullSelectOptions).filter(
@@ -556,9 +534,9 @@ const Select = forwardRef(
           const filteredOptions = updatedOptions
             .map((option: any) => {
               /*
-              If it's a group, filter its nested options and only return it
-              if it has matching options
-              */
+          If it's a group, filter its nested options and only return it
+          if it has matching options
+          */
               if ('options' in option && Array.isArray(option.options)) {
                 const filteredGroupOptions = option.options.filter(
                   (subOption: AntdLabeledValue) =>

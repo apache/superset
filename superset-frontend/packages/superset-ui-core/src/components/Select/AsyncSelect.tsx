@@ -513,38 +513,86 @@ const AsyncSelect = forwardRef(
       [fetchPage],
     );
 
-    const handleOnSearch = debounce((search: string) => {
-      const searchValue = search.trim();
-      if (allowNewOptions) {
-        const unquotedSearch = stripSurroundingQuotes(searchValue);
-        const newOption = unquotedSearch &&
-          !hasOption(unquotedSearch, fullSelectOptions, true) && {
-            label: unquotedSearch,
-            value: unquotedSearch,
-            isNewOption: true,
-          };
-        const cleanSelectOptions = fullSelectOptions.filter(
-          opt => !opt.isNewOption || hasOption(opt.value, selectValue),
-        );
-        const newOptions = newOption
-          ? [newOption, ...cleanSelectOptions]
-          : cleanSelectOptions;
-        setSelectOptions(newOptions);
-      }
-      if (
-        !allValuesLoaded &&
-        loadingEnabled &&
-        !fetchedQueries.current.has(getQueryCacheKey(searchValue, 0, pageSize))
-      ) {
-        // if fetch only on search but search value is empty, then should not be
-        // in loading state
-        setIsLoading(!(fetchOnlyOnSearch && !searchValue));
-      }
-      setInputValue(search);
-      onSearch?.(searchValue);
-    }, Constants.FAST_DEBOUNCE);
+    const searchStateRef = useRef({
+      allowNewOptions,
+      fullSelectOptions,
+      selectValue,
+      allValuesLoaded,
+      loadingEnabled,
+      fetchOnlyOnSearch,
+      pageSize,
+      onSearch,
+    });
 
-    useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
+    useEffect(() => {
+      searchStateRef.current = {
+        allowNewOptions,
+        fullSelectOptions,
+        selectValue,
+        allValuesLoaded,
+        loadingEnabled,
+        fetchOnlyOnSearch,
+        pageSize,
+        onSearch,
+      };
+    });
+
+    const handleOnSearch = useMemo(
+      () =>
+        debounce((search: string) => {
+          const {
+            allowNewOptions,
+            fullSelectOptions,
+            selectValue,
+            allValuesLoaded,
+            loadingEnabled,
+            fetchOnlyOnSearch,
+            pageSize,
+            onSearch,
+          } = searchStateRef.current;
+
+          const searchValue = search.trim();
+
+          if (allowNewOptions) {
+            const unquotedSearch = stripSurroundingQuotes(searchValue);
+            const newOption = unquotedSearch &&
+              !hasOption(unquotedSearch, fullSelectOptions, true) && {
+                label: unquotedSearch,
+                value: unquotedSearch,
+                isNewOption: true,
+              };
+            const cleanSelectOptions = fullSelectOptions.filter(
+              opt => !opt.isNewOption || hasOption(opt.value, selectValue),
+            );
+            const newOptions = newOption
+              ? [newOption, ...cleanSelectOptions]
+              : cleanSelectOptions;
+            setSelectOptions(newOptions);
+          }
+
+          if (
+            !allValuesLoaded &&
+            loadingEnabled &&
+            !fetchedQueries.current.has(
+              getQueryCacheKey(searchValue, 0, pageSize),
+            )
+          ) {
+            // if fetch only on search but search value is empty, then should not be
+            // in loading state
+            setIsLoading(!(fetchOnlyOnSearch && !searchValue));
+          }
+
+          setInputValue(search);
+          onSearch?.(searchValue);
+        }, Constants.FAST_DEBOUNCE),
+      [],
+    );
+
+    useEffect(() => 
+      () => {
+        handleOnSearch.cancel?.();
+      }
+    , [handleOnSearch]);
 
     const handlePagination = (e: UIEvent<HTMLElement>) => {
       const vScroll = e.currentTarget;
