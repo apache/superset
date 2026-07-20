@@ -1530,7 +1530,10 @@ export function popPermalink(key: string): SqlLabThunkAction<Promise<unknown>> {
           }),
         ),
       )
-      .catch(() => dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY)));
+      .catch(() => {
+        dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY));
+        dispatch(addNewQueryEditor());
+      });
   };
 }
 
@@ -1554,7 +1557,10 @@ export function popStoredQuery(
           }),
         ),
       )
-      .catch(() => dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY)));
+      .catch(() => {
+        dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY));
+        dispatch(addNewQueryEditor());
+      });
   };
 }
 export function popSavedQuery(
@@ -1582,7 +1588,10 @@ export function popSavedQuery(
         };
         return dispatch(addQueryEditor(tmpAdaptedProps));
       })
-      .catch(() => dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY)));
+      .catch(() => {
+        dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY));
+        dispatch(addNewQueryEditor());
+      });
   };
 }
 export function popQuery(queryId: string): SqlLabThunkAction<Promise<unknown>> {
@@ -1602,7 +1611,10 @@ export function popQuery(queryId: string): SqlLabThunkAction<Promise<unknown>> {
         };
         return dispatch(addQueryEditor(queryEditorProps));
       })
-      .catch(() => dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY)));
+      .catch(() => {
+        dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY));
+        dispatch(addNewQueryEditor());
+      });
   };
 }
 export function popDatasourceQuery(
@@ -1632,9 +1644,10 @@ export function popDatasourceQuery(
           }),
         ),
       )
-      .catch(() =>
-        dispatch(addDangerToast(t("The datasource couldn't be loaded"))),
-      );
+      .catch(() => {
+        dispatch(addDangerToast(t("The datasource couldn't be loaded")));
+        dispatch(addNewQueryEditor());
+      });
   };
 }
 export function createDatasourceStarted(): SqlLabAction {

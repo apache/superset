@@ -734,7 +734,7 @@ describe('async actions', () => {
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('popSavedQuery', () => {
     const supersetClientGetSpy = jest.spyOn(SupersetClient, 'get');
-    const store = mockStore({});
+    const store = mockStore(initialState);
 
     const mockSavedQueryApiResponse = {
       catalog: null,
@@ -825,17 +825,22 @@ describe('async actions', () => {
       );
     });
 
-    test('should dispatch addDangerToast on API error', async () => {
-      supersetClientGetSpy.mockResolvedValue(new Error() as any);
+    test('should dispatch addDangerToast and addNewQueryEditor on API error', async () => {
+      supersetClientGetSpy.mockRejectedValue(new Error('not found'));
 
       await makeRequest(1);
 
-      const addToastAction = store
-        .getActions()
-        .find(action => action.type === ADD_TOAST);
+      const dispatchedActions = store.getActions();
+      const addToastAction = dispatchedActions.find(
+        action => action.type === ADD_TOAST,
+      );
+      const addEditorAction = dispatchedActions.find(
+        action => action.type === actions.ADD_QUERY_EDITOR,
+      );
 
       expect(addToastAction).toBeTruthy();
       expect(addToastAction?.payload?.toastType).toBe(ToastType.Danger);
+      expect(addEditorAction).toBeTruthy();
     });
   });
 
