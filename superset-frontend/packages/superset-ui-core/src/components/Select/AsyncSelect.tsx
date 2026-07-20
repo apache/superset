@@ -588,11 +588,12 @@ const AsyncSelect = forwardRef(
       [],
     );
 
-    useEffect(() => 
-      () => {
+    useEffect(
+      () => () => {
         handleOnSearch.cancel?.();
-      }
-    , [handleOnSearch]);
+      },
+      [handleOnSearch],
+    );
 
     const handlePagination = (e: UIEvent<HTMLElement>) => {
       const vScroll = e.currentTarget;
