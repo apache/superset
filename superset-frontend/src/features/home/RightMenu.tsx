@@ -51,9 +51,16 @@ import {
   Icons,
   Typography,
   TelemetryPixel,
+  Drawer,
+  Button,
 } from '@superset-ui/core/components';
 import type { ItemType, MenuItem } from '@superset-ui/core/components/Menu';
-import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
+import {
+  ensureAppRoot,
+  navigateTo,
+  stripAppRoot,
+} from 'src/utils/navigationUtils';
+import { useIsMobile } from 'src/hooks/useIsMobile';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
@@ -119,6 +126,7 @@ const RightMenu = ({
   navbarRight,
   isFrontendRoute,
   environmentTag,
+  menu,
   setQuery,
 }: RightMenuProps & {
   setQuery: ({
@@ -130,6 +138,8 @@ const RightMenu = ({
   }) => void;
 }) => {
   const theme = useTheme();
+  const isMobile = useIsMobile();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
@@ -644,6 +654,64 @@ const RightMenu = ({
     handleLogout,
   ]);
 
+  // Build mobile menu items - consumption only (no create/admin actions)
+  const mobileMenuItems = useMemo(() => {
+    const items: MenuItem[] = [];
+
+    // Add Dashboards link at top (from main menu)
+    // Match on the FAB-internal `name`, which is stable across locales
+    // (`label` is translated and would break in non-English deployments)
+    const dashboardsMenu = menu?.find(item => item.name === 'Dashboards');
+    if (dashboardsMenu) {
+      const dashboardUrl = dashboardsMenu.url || '/dashboard/list/';
+      items.push({
+        key: 'dashboards',
+        label: isFrontendRoute(dashboardUrl) ? (
+          <Link to={dashboardUrl}>{t('Dashboards')}</Link>
+        ) : (
+          <Typography.Link href={dashboardUrl}>
+            {t('Dashboards')}
+          </Typography.Link>
+        ),
+        icon: <Icons.DashboardOutlined />,
+      });
+    }
+
+    // Add theme menu (flatten children directly)
+    menuItems.forEach(item => {
+      if (!item || !('key' in item)) return;
+
+      // Only include theme-sub-menu and language picker
+      if (item.key === 'theme-sub-menu' || item.key === 'language-picker') {
+        items.push({ type: 'divider', key: `divider-before-${item.key}` });
+
+        if ('children' in item && item.children) {
+          // Theme menu already has a nested group, so just add its children directly
+          item.children.forEach(child => {
+            items.push(child);
+          });
+        } else {
+          items.push(item);
+        }
+      }
+
+      // Extract user-related items from settings
+      if (item.key === 'settings' && 'children' in item && item.children) {
+        item.children.forEach(child => {
+          if (!child || !('key' in child)) return;
+
+          // Only include user-section and about-section
+          if (child.key === 'user-section' || child.key === 'about-section') {
+            items.push({ type: 'divider', key: `divider-before-${child.key}` });
+            items.push(child);
+          }
+        });
+      }
+    });
+
+    return items;
+  }, [menu, menuItems, isFrontendRoute]);
+
   return (
     <StyledDiv align={align}>
       {canDatabase && (
@@ -704,48 +772,98 @@ const RightMenu = ({
             </Tag>
           );
         })()}
-      <Menu
-        css={css`
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-          height: 100%;
-          border-bottom: none !important;
-
-          /* Remove the underline from menu items */
-          .ant-menu-item:after,
-          .ant-menu-submenu:after {
-            content: none !important;
-          }
-
-          .submenu-with-caret {
+      {/* Mobile: hamburger menu with drawer */}
+      {isMobile && (
+        <>
+          <Button
+            buttonStyle="link"
+            onClick={() => setMobileMenuOpen(true)}
+            aria-label={t('Menu')}
+          >
+            <Icons.MenuOutlined iconSize="l" />
+          </Button>
+          <Drawer
+            title={null}
+            placement="right"
+            onClose={() => setMobileMenuOpen(false)}
+            open={mobileMenuOpen}
+            width={280}
+            styles={{
+              header: { display: 'none' },
+              body: { padding: 0 },
+            }}
+          >
+            <Menu
+              mode="inline"
+              selectable={false}
+              onClick={info => {
+                handleMenuSelection(info);
+                // The reused desktop items navigate via anchors that only
+                // span their label text, but the drawer's tap target is the
+                // full menu row — navigate explicitly so row taps work.
+                if (info.key === 'info' && navbarRight.user_info_url) {
+                  navigateTo(navbarRight.user_info_url);
+                  return;
+                }
+                if (info.key === 'logout' && navbarRight.user_logout_url) {
+                  navigateTo(navbarRight.user_logout_url);
+                  return;
+                }
+                setMobileMenuOpen(false);
+              }}
+              items={mobileMenuItems}
+              css={css`
+                border-inline-end: none !important;
+              `}
+            />
+          </Drawer>
+        </>
+      )}
+      {/* Desktop: horizontal menu */}
+      {!isMobile && (
+        <Menu
+          css={css`
+            display: flex;
+            flex-direction: row;
+            align-items: center;
             height: 100%;
-            padding: 0;
-            .ant-menu-submenu-title {
-              align-items: center;
-              display: flex;
-              gap: ${theme.sizeUnit * 2}px;
-              flex-direction: row-reverse;
+            border-bottom: none !important;
+
+            /* Remove the underline from menu items */
+            .ant-menu-item:after,
+            .ant-menu-submenu:after {
+              content: none !important;
+            }
+
+            .submenu-with-caret {
               height: 100%;
-            }
-            &.ant-menu-submenu::after {
-              inset-inline: ${theme.sizeUnit}px;
-            }
-            &.ant-menu-submenu:hover,
-            &.ant-menu-submenu-active {
-              .ant-menu-title-content {
-                color: ${theme.colorPrimary};
+              padding: 0;
+              .ant-menu-submenu-title {
+                align-items: center;
+                display: flex;
+                gap: ${theme.sizeUnit * 2}px;
+                flex-direction: row-reverse;
+                height: 100%;
+              }
+              &.ant-menu-submenu::after {
+                inset-inline: ${theme.sizeUnit}px;
+              }
+              &.ant-menu-submenu:hover,
+              &.ant-menu-submenu-active {
+                .ant-menu-title-content {
+                  color: ${theme.colorPrimary};
+                }
               }
             }
-          }
-        `}
-        selectable={false}
-        mode="horizontal"
-        onClick={handleMenuSelection}
-        onOpenChange={onMenuOpen}
-        disabledOverflow
-        items={menuItems}
-      />
+          `}
+          selectable={false}
+          mode="horizontal"
+          onClick={handleMenuSelection}
+          onOpenChange={onMenuOpen}
+          disabledOverflow
+          items={menuItems}
+        />
+      )}
       {navbarRight.documentation_url && (
         <>
           <StyledAnchor

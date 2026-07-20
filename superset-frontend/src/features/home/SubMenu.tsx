@@ -37,6 +37,7 @@ import {
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { MenuObjectProps } from 'src/types/bootstrapTypes';
+import { isMobileConsumptionEnabled } from 'src/hooks/useIsMobile';
 import { Typography } from '@superset-ui/core/components/Typography';
 
 const StyledHeader = styled.div<{ backgroundColor?: string }>`
@@ -109,13 +110,44 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
   .btn-link {
     padding: 10px 0;
   }
-  @media (max-width: 767px) {
-    .header,
-    .nav-right {
-      position: relative;
-      margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
-    }
-  }
+  ${({ theme }) =>
+    isMobileConsumptionEnabled()
+      ? css`
+          @media (max-width: ${theme.screenSMMax}px) {
+            .header {
+              position: relative;
+              margin-left: 0;
+              flex: 1;
+              text-align: center;
+            }
+
+            /* Consumption mode: hide all buttons on mobile */
+            .nav-right,
+            .nav-right-collapse {
+              display: none !important;
+            }
+
+            /* Compact horizontal tabs on mobile (segmented-control style) */
+            .menu > .ant-menu {
+              padding-left: 0;
+
+              .ant-menu-item {
+                padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
+                margin-right: ${theme.sizeUnit / 2}px;
+                font-size: ${theme.fontSizeSM}px;
+              }
+            }
+          }
+        `
+      : css`
+          @media (max-width: ${theme.screenSMMax}px) {
+            .header,
+            .nav-right {
+              position: relative;
+              margin-left: ${theme.sizeUnit * 2}px;
+            }
+          }
+        `}
 `;
 
 const styledDisabled = (theme: SupersetTheme) => css`
@@ -165,6 +197,10 @@ export interface SubMenuProps {
   dropDownLinks?: Array<MenuObjectProps>;
   backgroundColor?: string;
   children?: ReactNode;
+  /** Left icon for mobile - shown before the header */
+  leftIcon?: ReactNode;
+  /** Right icon for mobile - shown after the header */
+  rightIcon?: ReactNode;
 }
 
 const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
@@ -186,8 +222,16 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
 
     function handleResize() {
       if (!isMounted) return;
-      if (window.innerWidth <= 767) setMenu('inline');
-      else setMenu('horizontal');
+      // In consumption mode the tabs stay horizontal on mobile (the CSS
+      // renders them compact); otherwise fall back to the inline layout.
+      if (
+        !isMobileConsumptionEnabled() &&
+        window.innerWidth <= theme.screenSMMax
+      ) {
+        setMenu('inline');
+      } else {
+        setMenu('horizontal');
+      }
 
       if (
         props.buttons &&
@@ -211,12 +255,14 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
       resize.cancel();
       window.removeEventListener('resize', resize);
     };
-  }, [props.buttons]);
+  }, [props.buttons, theme.screenSMMax]);
 
   return (
     <StyledHeader backgroundColor={props.backgroundColor}>
       <Row className="menu" role="navigation" aria-label={t('Page navigation')}>
+        {props.leftIcon}
         {props.name && <div className="header">{props.name}</div>}
+        {props.rightIcon}
         <Menu
           mode={showMenu}
           disabledOverflow

@@ -1063,6 +1063,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         @self.superset_app.context_processor
         def get_common_bootstrap_data() -> dict[str, Any]:
             # Import here to avoid circular imports
+            from superset.extensions import feature_flag_manager
             from superset.utils import json
             from superset.views.base import common_bootstrap_payload
 
@@ -1072,7 +1073,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                     default=json.pessimistic_json_iso_dttm_ser,
                 )
 
-            return {"bootstrap_data": serialize_bootstrap_data}
+            return {
+                "bootstrap_data": serialize_bootstrap_data,
+                "is_feature_enabled": feature_flag_manager.is_feature_enabled,
+            }
 
     def check_and_warn_database_connection(self) -> None:
         """Check database connection and warn if unavailable"""

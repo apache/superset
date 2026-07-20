@@ -32,7 +32,7 @@ import {
 import { useSelector } from 'react-redux';
 import cx from 'classnames';
 import { t } from '@apache-superset/core/translation';
-import { styled, useTheme } from '@apache-superset/core/theme';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { RootState } from 'src/dashboard/types';
 import { DataMaskStateWithId } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -141,6 +141,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
   onPendingCustomizationDataMaskChange,
   toggleFiltersBar,
   width,
+  mobileMode,
 }) => {
   const theme = useTheme();
   const [isScrolling, setIsScrolling] = useState(false);
@@ -260,33 +261,56 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
         {...getFilterBarTestId()}
         className={cx({ open: filtersOpen })}
         width={width}
+        css={
+          mobileMode &&
+          css`
+            width: 100%;
+            &.open {
+              width: 100%;
+            }
+          `
+        }
       >
-        <CollapsedBar
-          {...getFilterBarTestId('collapsable')}
-          className={cx({ open: !filtersOpen })}
-          onClick={openFiltersBar}
-          role="button"
-          tabIndex={0}
-          offset={offset}
+        {!mobileMode && (
+          <CollapsedBar
+            {...getFilterBarTestId('collapsable')}
+            className={cx({ open: !filtersOpen })}
+            onClick={openFiltersBar}
+            role="button"
+            tabIndex={0}
+            offset={offset}
+          >
+            <Icons.VerticalAlignTopOutlined
+              iconSize="l"
+              css={{
+                transform: 'rotate(90deg)',
+                marginBottom: `${theme.sizeUnit * 3}px`,
+              }}
+              className="collapse-icon"
+              iconColor={theme.colorPrimary}
+              {...getFilterBarTestId('expand-button')}
+            />
+            <Icons.FilterOutlined
+              {...getFilterBarTestId('filter-icon')}
+              iconColor={theme.colorTextTertiary}
+              iconSize="l"
+            />
+          </CollapsedBar>
+        )}
+        <Bar
+          className={cx({ open: filtersOpen })}
+          width={width}
+          css={
+            mobileMode &&
+            css`
+              position: relative;
+              width: 100%;
+              border-right: none;
+              border-bottom: none;
+            `
+          }
         >
-          <Icons.VerticalAlignTopOutlined
-            iconSize="l"
-            css={{
-              transform: 'rotate(90deg)',
-              marginBottom: `${theme.sizeUnit * 3}px`,
-            }}
-            className="collapse-icon"
-            iconColor={theme.colorPrimary}
-            {...getFilterBarTestId('expand-button')}
-          />
-          <Icons.FilterOutlined
-            {...getFilterBarTestId('filter-icon')}
-            iconColor={theme.colorTextTertiary}
-            iconSize="l"
-          />
-        </CollapsedBar>
-        <Bar className={cx({ open: filtersOpen })} width={width}>
-          <Header toggleFiltersBar={toggleFiltersBar} />
+          {!mobileMode && <Header toggleFiltersBar={toggleFiltersBar} />}
           {!isInitialized ? (
             <div
               css={{

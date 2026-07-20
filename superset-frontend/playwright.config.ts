@@ -96,6 +96,7 @@ export default defineConfig({
         '**/tests/auth/**/*.spec.ts',
         '**/tests/sqllab/**/*.spec.ts',
         '**/tests/embedded/**/*.spec.ts',
+        '**/tests/mobile/**/*.spec.ts',
         ...(process.env.INCLUDE_EXPERIMENTAL ? [] : ['**/experimental/**']),
       ],
       use: {
@@ -151,6 +152,23 @@ export default defineConfig({
               browserName: 'chromium' as const,
               testIdAttribute: 'data-test',
               // Uses admin auth for API calls to configure embedding and get guest tokens
+              storageState: 'playwright/.auth/user.json',
+            },
+          },
+        ]
+      : []),
+    // Mobile consumption-mode tests need the MOBILE_CONSUMPTION_MODE feature
+    // flag enabled in the Flask backend (the workflow's mobile step sets
+    // SUPERSET_FEATURE_MOBILE_CONSUMPTION_MODE), so they only run when the
+    // environment opts in. Same strict 'true' check as INCLUDE_EMBEDDED.
+    ...(process.env.INCLUDE_MOBILE?.toLowerCase() === 'true'
+      ? [
+          {
+            name: 'chromium-mobile',
+            testMatch: '**/tests/mobile/**/*.spec.ts',
+            use: {
+              browserName: 'chromium' as const,
+              testIdAttribute: 'data-test',
               storageState: 'playwright/.auth/user.json',
             },
           },

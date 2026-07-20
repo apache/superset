@@ -37,6 +37,7 @@ import {
   Droppable,
 } from 'src/dashboard/components/dnd/DragDroppable';
 import DragHandle from 'src/dashboard/components/dnd/DragHandle';
+import { isMobileConsumptionEnabled } from 'src/hooks/useIsMobile';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
@@ -119,6 +120,27 @@ const GridRow = styled.div<{ editMode: boolean }>`
 
     &.grid-row--empty {
       min-height: ${theme.sizeUnit * 25}px;
+    }
+
+    ${
+      isMobileConsumptionEnabled() &&
+      css`
+        @media (max-width: ${theme.screenSMMax}px) {
+          flex-direction: column;
+
+          & > :not(.hover-menu) {
+            width: 100% !important;
+            margin-right: 0 !important;
+          }
+
+          /* Stacked children get the same vertical gutter GridContent puts
+           between rows and Column puts between its children, so spacing
+           stays uniform across the whole stacked layout */
+          & > :not(.hover-menu):not(:last-child) {
+            margin-bottom: ${theme.sizeUnit * 4}px;
+          }
+        }
+      `
     }
   `}
 `;
