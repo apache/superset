@@ -85,6 +85,40 @@ test('defaults the band to 110% of the measure when no ranges are set', () => {
   expect(series[1].data).toHaveLength(0);
 });
 
+test('keeps distinct labels for duplicate marker and marker-line values', () => {
+  const { echartOptions } = transformProps(
+    chartProps({
+      markers: '150,150',
+      markerLabels: 'goal,forecast',
+      markerLines: '250,250',
+      markerLineLabels: 'stretch,ceiling',
+    }),
+  );
+  const { series } = echartOptions as any;
+
+  const markLineLabels = series[0].markLine.data.map((d: any) =>
+    d.label.formatter(),
+  );
+  expect(markLineLabels).toEqual(['stretch', 'ceiling']);
+
+  const markerTooltips = series[1].data.map((d: any) => d.tooltip.formatter());
+  expect(markerTooltips[0]).toContain('goal');
+  expect(markerTooltips[1]).toContain('forecast');
+});
+
+test('sanitizes HTML in metric and marker labels before rendering tooltips', () => {
+  const { echartOptions } = transformProps(
+    chartProps({
+      markers: '150',
+      markerLabels: '<img src=x onerror=alert(1)>',
+    }),
+  );
+  const { series, tooltip } = echartOptions as any;
+
+  expect(tooltip.formatter()).not.toContain('onerror');
+  expect(series[1].data[0].tooltip.formatter()).not.toContain('onerror');
+});
+
 test('handles an empty query result without crashing', () => {
   const props = new ChartProps({
     width: 800,

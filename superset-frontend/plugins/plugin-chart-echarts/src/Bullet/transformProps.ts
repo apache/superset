@@ -20,6 +20,7 @@ import {
   getMetricLabel,
   getNumberFormatter,
   JsonObject,
+  sanitizeHtml,
 } from '@superset-ui/core';
 import type { EChartsCoreOption } from 'echarts/core';
 import { Refs } from '../types';
@@ -84,10 +85,11 @@ export default function transformProps(
     coords: [{ xAxis: axisMin }, { xAxis: value }],
   }));
 
-  const markerLabelOf = (value: number, labels: string[], values: number[]) => {
-    const index = values.indexOf(value);
-    return index >= 0 && labels[index] ? labels[index] : formatter(value);
-  };
+  // Resolve by position rather than `indexOf(value)` so duplicate marker or
+  // marker-line values each keep their own label instead of collapsing onto
+  // the first match.
+  const markerLabelAt = (index: number, labels: string[], values: number[]) =>
+    labels[index] ? labels[index] : formatter(values[index]);
 
   const echartOptions: EChartsCoreOption = {
     grid: {
@@ -116,7 +118,8 @@ export default function transformProps(
     },
     tooltip: {
       confine: true,
-      formatter: () => `${metricLabel}: <b>${formatter(measure)}</b>`,
+      formatter: () =>
+        sanitizeHtml(`${metricLabel}: <b>${formatter(measure)}</b>`),
     },
     series: [
       {
@@ -141,11 +144,11 @@ export default function transformProps(
         markLine: {
           silent: true,
           symbol: 'none',
-          data: markerLines.map(value => ({
+          data: markerLines.map((value, index) => ({
             xAxis: value,
             label: {
               formatter: () =>
-                markerLabelOf(value, markerLineLabels, markerLines),
+                markerLabelAt(index, markerLineLabels, markerLines),
               color: theme.colorTextSecondary,
             },
             lineStyle: {
@@ -159,13 +162,15 @@ export default function transformProps(
       {
         name: 'markers',
         type: 'scatter',
-        data: markers.map(value => ({
+        data: markers.map((value, index) => ({
           value: [value, 0],
           tooltip: {
             formatter: () =>
-              `${markerLabelOf(value, markerLabels, markers)}: <b>${formatter(
-                value,
-              )}</b>`,
+              sanitizeHtml(
+                `${markerLabelAt(index, markerLabels, markers)}: <b>${formatter(
+                  value,
+                )}</b>`,
+              ),
           },
         })),
         symbol: 'triangle',
