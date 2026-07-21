@@ -30,6 +30,8 @@ SOURCE_FORM_DATA: dict[str, Any] = {
 TARGET_FORM_DATA: dict[str, Any] = {
     "form_data_bak": SOURCE_FORM_DATA,
     "viz_type": "echarts_timeseries_line",
+    # the percent-change view the nvd3 renderer computed client-side
+    "rebase_percent_change": True,
 }
 
 
