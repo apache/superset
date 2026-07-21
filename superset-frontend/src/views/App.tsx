@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useMemo } from 'react';
 import {
   BrowserRouter as Router,
   Switch,
@@ -24,6 +24,12 @@ import {
   Redirect,
   useLocation,
 } from 'react-router-dom';
+import {
+  createHtmlPortalNode,
+  InPortal,
+  OutPortal,
+  type HtmlPortalNode,
+} from 'react-reverse-portal';
 import { bindActionCreators } from 'redux';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Flex, Layout, Loading } from '@superset-ui/core/components';
@@ -122,7 +128,11 @@ const contentCss = css`
  * The full <Layout> tree lives inside the first panel so its internal flex
  * context is preserved — SQL Lab, Explore, and other pages are unaffected.
  */
-const AppContent = () => {
+const AppContent = ({
+  layoutPortalNode,
+}: {
+  layoutPortalNode: HtmlPortalNode;
+}) => {
   const isAuthenticated =
     isUser(bootstrapData.user) && !bootstrapData.user.isAnonymous;
   const chatExtensionsEnabled =
@@ -139,7 +149,7 @@ const AppContent = () => {
   const layoutContent = (
     <Layout css={layoutCss}>
       <Layout.Content css={contentCss}>
-        <RouteSwitch />
+        <OutPortal node={layoutPortalNode} />
       </Layout.Content>
     </Layout>
   );
@@ -169,6 +179,7 @@ const AppContent = () => {
         flex: 1;
         min-height: 0;
         overflow: hidden;
+        justify-content: center;
 
         /*
          * Splitter.Panel is not a flex container by default, so flex:1 on
@@ -189,29 +200,49 @@ const AppContent = () => {
   );
 };
 
-const App = () => (
-  <Router basename={applicationRoot()}>
-    <ScrollToTop />
-    <LocationPathnameLogger />
-    <RootContextProviders>
-      <Flex
-        vertical
-        css={css`
-          height: 100vh;
-          overflow: hidden;
-        `}
-      >
-        <Menu
-          data={bootstrapData.common.menu_data}
-          isFrontendRoute={isFrontendRoute}
-        />
-        <ExtensionsStartup>
-          <AppContent />
-        </ExtensionsStartup>
-      </Flex>
-      <ToastContainer />
-    </RootContextProviders>
-  </Router>
-);
+const App = () => {
+  // OutPortal renders this node's bare DOM element in place of <RouteSwitch />.
+  // Pages (e.g. SqlLab) rely on `flex: 1 1 auto` to stretch inside
+  // Layout.Content, which only works if their direct parent is a flex
+  // container; without this the portal's unstyled div collapses to 0 height.
+  const layoutPortalNode = useMemo(
+    () =>
+      createHtmlPortalNode({
+        attributes: {
+          style:
+            'display: flex; flex-direction: column; flex: 1 1 auto; height: 100%; min-height: 0;',
+        },
+      }),
+    [],
+  );
+
+  return (
+    <Router basename={applicationRoot()}>
+      <ScrollToTop />
+      <LocationPathnameLogger />
+      <RootContextProviders>
+        <InPortal node={layoutPortalNode}>
+          <RouteSwitch />
+        </InPortal>
+        <Flex
+          vertical
+          css={css`
+            height: 100vh;
+            overflow: hidden;
+          `}
+        >
+          <Menu
+            data={bootstrapData.common.menu_data}
+            isFrontendRoute={isFrontendRoute}
+          />
+          <ExtensionsStartup>
+            <AppContent layoutPortalNode={layoutPortalNode} />
+          </ExtensionsStartup>
+        </Flex>
+        <ToastContainer />
+      </RootContextProviders>
+    </Router>
+  );
+};
 
 export default App;
