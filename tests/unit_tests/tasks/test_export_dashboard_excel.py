@@ -216,6 +216,54 @@ def test_chart_with_empty_query_context_is_skipped(
     mocks["ChartDataCommand"].return_value.run.assert_called_once()
 
 
+def test_empty_query_context_rebuilt_from_form_data_for_eligible_viz(
+    mocks: dict[str, Any],
+) -> None:
+    # An eligible viz type (table) with no saved query context is rebuilt from
+    # its form data and exported instead of being skipped.
+    good = _chart(10, "Good")
+    rebuilt = _chart(20, "Rebuilt", viz_type="table")
+    rebuilt.query_context = None
+    rebuilt.params = json.dumps({"groupby": ["country"], "metrics": ["count"]})
+    rebuilt.datasource_id = 5
+    rebuilt.datasource_type = "table"
+    mocks["get_charts_in_layout_order"].return_value = [good, rebuilt]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    _run()
+
+    _, kwargs = mocks["email"].build_success_email.call_args
+    assert kwargs["errored"] == {}
+    # Both charts ran a query (the saved one and the rebuilt one).
+    assert mocks["ChartDataCommand"].return_value.run.call_count == 2
+
+
+def test_empty_query_context_ineligible_viz_is_skipped(
+    mocks: dict[str, Any],
+) -> None:
+    # A viz type outside the rebuild allowlist (mixed_timeseries — a multi-query
+    # chart the generic rebuild can't reproduce) is skipped, not exported wrong.
+    good = _chart(10, "Good")
+    ineligible = _chart(20, "Ineligible", viz_type="mixed_timeseries")
+    ineligible.query_context = None
+    ineligible.params = json.dumps({"groupby": ["x"], "metrics": ["count"]})
+    ineligible.datasource_id = 5
+    mocks["get_charts_in_layout_order"].return_value = [good, ineligible]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    _run()
+
+    _, kwargs = mocks["email"].build_success_email.call_args
+    assert kwargs["errored"] == {
+        mocks["email"].ERROR_NO_QUERY_CONTEXT: ["20 - Ineligible"]
+    }
+    mocks["ChartDataCommand"].return_value.run.assert_called_once()
+
+
 def test_chart_query_error_grouped_as_general_export_continues(
     mocks: dict[str, Any],
 ) -> None:
