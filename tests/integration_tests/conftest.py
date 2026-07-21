@@ -299,7 +299,8 @@ def virtual_dataset():
         TableColumn(column_name="col6", type="INTEGER", table=dataset),
     ]
 
-    SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+    metric = SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+    db.session.add(metric)
     db.session.add_all(columns)
     db.session.add(dataset)
     db.session.commit()
@@ -342,7 +343,8 @@ def virtual_dataset_with_comments():
         TableColumn(column_name="col6", type="INTEGER", table=dataset),
     ]
 
-    SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+    metric = SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+    db.session.add(metric)
     db.session.add(dataset)
     db.session.add_all(columns)
     db.session.commit()
@@ -411,7 +413,8 @@ def physical_dataset():
             table=dataset,
         ),
     ]
-    SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+    metric = SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+    db.session.add(metric)
     db.session.add(dataset)
     db.session.add_all(columns)
     db.session.commit()
@@ -447,7 +450,8 @@ def virtual_dataset_comma_in_column_value():
         TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset),
     ]
 
-    SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+    metric = SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+    db.session.add(metric)
     db.session.add(dataset)
     db.session.add_all(columns)
     db.session.commit()
