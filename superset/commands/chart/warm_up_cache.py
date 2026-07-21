@@ -60,7 +60,10 @@ class ChartWarmUpCacheCommand(BaseCommand):
         query_context = chart.get_query_context()
 
         if not query_context:
-            raise ChartInvalidError("Chart's query context does not exist")
+            raise ChartInvalidError(
+                "Chart's query context does not exist. Open the chart in "
+                "Explore once (or re-save it) to generate it."
+            )
 
         # Apply dashboard filters if dashboard_id is provided
         if dashboard_filters := self._get_dashboard_filters(chart.id):

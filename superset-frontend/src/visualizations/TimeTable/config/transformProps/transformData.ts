@@ -20,8 +20,11 @@ import { DTTM_ALIAS } from '@superset-ui/core';
 
 const FLAT_COLUMN_SEPARATOR = ', ';
 
-// escape every bare comma, exactly like the backend escape_separator
-const escapeSeparator = (value: string) => value.replace(/,/g, '\\,');
+// Escape backslashes before commas so values like "a\\," and "a," cannot
+// collide once joined (the backend escape_separator shares this gap, but
+// these labels are only ever built client-side).
+const escapeSeparator = (value: string) =>
+  value.replace(/\\/g, '\\\\').replace(/,/g, '\\,');
 
 const pad = (part: number) => String(part).padStart(2, '0');
 
