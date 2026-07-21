@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useMemo } from 'react';
 import { getCategoricalSchemeRegistry, rgbaToHex } from '@superset-ui/core';
 import {
   ColorPicker,
@@ -45,23 +46,38 @@ export interface ColorPickerControlProps {
   presets?: { label: string; colors: string[] }[];
 }
 
+const getReverseThemeColorMap = (
+  themeColors: Record<string, any>,
+): Record<string, string> => {
+  const reverseMap: Record<string, string> = {};
+  if (!themeColors) return reverseMap;
+
+  Object.entries(themeColors).forEach(([name, value]) => {
+    if (typeof value === 'string') {
+      reverseMap[value.toLowerCase()] = name;
+    }
+  });
+
+  return reverseMap;
+};
+
 function toDisplayHex(
   value: ColorPickerValue | undefined,
-  theme?: ReturnType<typeof useTheme>,
+  themeColors: Record<string, string>,
 ): string | undefined {
   if (!value) return undefined;
 
   if (typeof value === 'string') {
     if (value in SPECIAL_COLORS) {
-      return rgbaToHex(SPECIAL_COLORS[value as SpecialColorKey]);
+      return rgbaToHex(SPECIAL_COLORS[value as SpecialColorKey]).toLowerCase();
     }
-    if (theme && value in theme) {
-      return theme[value as keyof typeof theme];
+    if (themeColors && value in themeColors) {
+      return themeColors[value].toLowerCase();
     }
-    return value;
+    return value.toLowerCase();
   }
 
-  return rgbaToHex(value);
+  return rgbaToHex(value).toLowerCase();
 }
 
 export default function ColorPickerControl({
@@ -74,43 +90,64 @@ export default function ColorPickerControl({
   const defaultPresets = categoricalScheme?.colors.slice(0, 9) || [];
   const theme = useTheme();
 
-  const presets = customPresets
-    ? customPresets.map(item => ({
+  const themeColors = useMemo<Record<string, string>>(() => {
+    return (theme as any)?.colors || theme || {};
+  }, [theme]);
+
+  const reverseMap = useMemo(() => {
+    return getReverseThemeColorMap(themeColors);
+  }, [themeColors]);
+
+  const presets = useMemo(() => {
+    if (customPresets) {
+      return customPresets.map(item => ({
         label: item.label,
         colors: item.colors.map(color => {
-          if (theme && color in theme) {
-            return theme[color as keyof typeof theme];
-          }
           if (color in SPECIAL_COLORS) {
-            return rgbaToHex(SPECIAL_COLORS[color as SpecialColorKey]);
+            return rgbaToHex(
+              SPECIAL_COLORS[color as SpecialColorKey],
+            ).toLowerCase();
           }
-          return color;
+          if (themeColors && color in themeColors) {
+            return themeColors[color].toLowerCase();
+          }
+          return String(color).toLowerCase();
         }),
-      }))
-    : [{ label: 'Theme colors', colors: defaultPresets }];
+      }));
+    }
+
+    return [
+      {
+        label: 'Theme colors',
+        colors: defaultPresets.map(c => String(c).toLowerCase()),
+      },
+    ];
+  }, [customPresets, themeColors, defaultPresets]);
+
   const handleChange = (color: ColorValue) => {
     if (!onChange) return;
 
-    const hex = rgbaToHex(color.toRgb());
+    const rgb = color.toRgb();
+    const hex = rgbaToHex(rgb).toLowerCase();
 
     const specialEntry = Object.entries(SPECIAL_COLORS).find(
-      ([, rgba]) => rgbaToHex(rgba).toLowerCase() === hex.toLowerCase(),
+      ([, rgba]) => rgbaToHex(rgba).toLowerCase() === hex,
     );
 
     if (specialEntry) {
-      onChange(specialEntry[0]);
-    } else {
-      const rgb = color.toRgb();
-      onChange({
-        r: rgb.r,
-        g: rgb.g,
-        b: rgb.b,
-        a: rgb.a,
-      });
+      onChange(specialEntry[0] as SpecialColorKey);
+      return;
     }
+
+    if (reverseMap[hex]) {
+      onChange(reverseMap[hex]);
+      return;
+    }
+
+    onChange(rgb);
   };
 
-  const hexValue = toDisplayHex(value, theme);
+  const hexValue = toDisplayHex(value, themeColors);
 
   return (
     <div>
