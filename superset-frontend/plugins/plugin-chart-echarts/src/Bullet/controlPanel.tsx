@@ -128,6 +128,20 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'show_legend',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show legend'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'List every range, marker and marker line in a legend; clicking an entry toggles it on the chart',
+              ),
+            },
+          },
+        ],
         ['y_axis_format'],
       ],
     },

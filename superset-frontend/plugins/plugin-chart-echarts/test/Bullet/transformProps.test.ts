@@ -51,27 +51,31 @@ test('renders the measure bar with markers, marker lines and range bands', () =>
   expect(series[0].type).toBe('bar');
   expect(series[0].data).toEqual([120]);
 
-  // marker lines on the bar series
-  expect(series[0].markLine.data).toHaveLength(1);
-  expect(series[0].markLine.data[0].xAxis).toBe(250);
+  // marker lines are their own named series so the legend can toggle them
+  const lineSeries = series.filter((x: any) => x.type === 'line');
+  expect(lineSeries).toHaveLength(1);
+  expect(lineSeries[0].markLine.data[0].xAxis).toBe(250);
 
   // nested range bands, largest drawn first
   const bandEnds = series[0].markArea.data.map((d: any) => d[1].xAxis);
   expect(bandEnds).toEqual([300, 200, 100]);
 
-  // triangle markers
-  expect(series[2].type).toBe('scatter');
-  expect(series[2].data[0].value).toEqual([150, 0]);
+  // triangle markers, one named series each
+  const markerSeries = series.filter((x: any) => x.symbol === 'triangle');
+  expect(markerSeries).toHaveLength(1);
+  expect(markerSeries[0].data[0].value).toEqual([150, 0]);
 
   // axis spans all values
   expect((echartOptions as any).xAxis.max).toBe(300);
 
-  // markers sit below the bar (pixel offset); no legend on this chart
-  expect(series[2].symbolOffset[1]).toBeGreaterThan(0);
+  // markers sit below the bar (pixel offset); legend off unless enabled
+  const marker = series.find((x: any) => x.symbol === 'triangle');
+  expect(marker.symbolOffset[1]).toBeGreaterThan(0);
   expect((echartOptions as any).legend.show).toBe(false);
 
-  // range thresholds get their own hover targets carrying the labels
-  const rangeTips = series[1].data.map((d: any) => d.tooltip.formatter());
+  // range thresholds get their own named hover-target series
+  const rangeSeries = series.filter((x: any) => x.symbol === 'rect');
+  const rangeTips = rangeSeries.map((x: any) => x.data[0].tooltip.formatter());
   expect(rangeTips.join(' ')).toContain('low');
   expect(rangeTips.join(' ')).toContain('high');
 });
@@ -91,7 +95,7 @@ test('defaults the band to 110% of the measure when no ranges are set', () => {
   expect(series[0].data).toEqual([120]);
   const bandEnds = series[0].markArea.data.map((d: any) => d[1].xAxis);
   expect(bandEnds).toEqual([120 * 1.1]);
-  expect(series[2].data).toHaveLength(0);
+  expect(series.filter((x: any) => x.symbol === 'triangle')).toHaveLength(0);
 });
 
 test('keeps distinct labels for duplicate marker and marker-line values', () => {
@@ -105,12 +109,14 @@ test('keeps distinct labels for duplicate marker and marker-line values', () => 
   );
   const { series } = echartOptions as any;
 
-  const markLineLabels = series[0].markLine.data.map((d: any) =>
-    d.label.formatter(),
-  );
+  const markLineLabels = series
+    .filter((x: any) => x.type === 'line')
+    .map((x: any) => x.markLine.data[0].label.formatter());
   expect(markLineLabels).toEqual(['stretch', 'ceiling']);
 
-  const markerTooltips = series[2].data.map((d: any) => d.tooltip.formatter());
+  const markerTooltips = series
+    .filter((x: any) => x.symbol === 'triangle')
+    .map((x: any) => x.data[0].tooltip.formatter());
   expect(markerTooltips[0]).toContain('goal');
   expect(markerTooltips[1]).toContain('forecast');
 });

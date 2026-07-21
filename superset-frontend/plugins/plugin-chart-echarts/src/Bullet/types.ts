@@ -36,6 +36,7 @@ export type EchartsBulletFormData = QueryFormData & {
   markerLineLabels?: string;
   yAxisFormat?: string;
   showLabels?: boolean;
+  showLegend?: boolean;
 };
 
 export interface EchartsBulletChartProps extends BaseChartProps<EchartsBulletFormData> {

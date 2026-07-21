@@ -43,6 +43,7 @@ export default function transformProps(
     markerLineLabels: rawMarkerLineLabels,
     yAxisFormat,
     showLabels,
+    showLegend,
   } = formData;
   const refs: Refs = {};
   const { onContextMenu, setDataMask = () => {} } = hooks;
@@ -105,13 +106,20 @@ export default function transformProps(
     (MEASURE_BAR_FRACTION / 2) * gridHeight + 12,
   );
 
+  const rangeName = (value: number, i: number) =>
+    rangeLabels[i]
+      ? `${rangeLabels[i]}: \u2264 ${formatter(value)}`
+      : `\u2264 ${formatter(value)}`;
+  const markerName = (value: number, i: number, labels: string[]) =>
+    labels[i] ? `${labels[i]}: ${formatter(value)}` : String(formatter(value));
+
   const echartOptions: EChartsCoreOption = {
     animation: false,
-    // A single-measure chart needs no legend; the default one collides
-    // with the x-axis labels.
-    legend: { show: false },
+    // Optional legend listing every range, marker and line as a toggleable
+    // named entry; each is its own series so ECharts handles the toggling.
+    legend: { show: Boolean(showLegend), top: 0 },
     grid: {
-      top: theme.sizeUnit * 2,
+      top: showLegend ? theme.sizeUnit * 10 : theme.sizeUnit * 2,
       bottom: theme.sizeUnit * 6,
       left: theme.sizeUnit * 2,
       right: theme.sizeUnit * 2,
@@ -162,79 +170,84 @@ export default function transformProps(
             band.coords[1],
           ]),
         },
-        markLine: {
-          silent: true,
-          symbol: 'none',
-          data: markerLines.map((value, index) => ({
-            xAxis: value,
-            label: {
-              position: 'insideEndTop',
-              formatter: () =>
-                markerLabelAt(index, markerLineLabels, markerLines),
-              color: theme.colorTextSecondary,
-            },
-            lineStyle: {
-              color: theme.colorText,
-              type: 'solid',
-              width: 2,
-            },
-          })),
-        },
       },
-      {
-        // Invisible hover targets at each range threshold so ranges get their
-        // own item tooltip (markArea itself is not reliably hoverable), and a
-        // place to hang always-on labels.
-        name: 'ranges',
+      // Invisible hover targets at each range threshold: per-item tooltips
+      // (markArea is not reliably hoverable), optional on-chart labels, and a
+      // named legend entry each.
+      ...ranges.map((value, index) => ({
+        name: rangeName(value, index),
         type: 'scatter',
-        data: ranges.map((value, index) => ({
-          value: [value, 0],
-          tooltip: {
-            formatter: () =>
-              sanitizeHtml(
-                `${rangeLabels[index] || ''} \u2264 <b>${formatter(value)}</b>`,
-              ),
+        data: [
+          {
+            value: [value, 0],
+            tooltip: {
+              formatter: () =>
+                sanitizeHtml(
+                  `${rangeLabels[index] || ''} \u2264 <b>${formatter(value)}</b>`,
+                ),
+            },
+            label: {
+              show: Boolean(showLabels) && Boolean(rangeLabels[index]),
+              position: 'top',
+              color: theme.colorTextSecondary,
+              formatter: () => String(rangeLabels[index] || ''),
+            },
           },
-          label: {
-            show: Boolean(showLabels) && Boolean(rangeLabels[index]),
-            position: 'top',
-            color: theme.colorTextSecondary,
-            formatter: () => String(rangeLabels[index] || ''),
-          },
-        })),
+        ],
         symbol: 'rect',
         symbolSize: [14, 40],
         itemStyle: { color: 'transparent' },
         z: 15,
-      },
-      {
-        name: 'markers',
+      })),
+      ...markers.map((value, index) => ({
+        name: markerName(value, index, markerLabels),
         type: 'scatter',
-        data: markers.map((value, index) => ({
-          value: [value, 0],
-          tooltip: {
-            formatter: () =>
-              sanitizeHtml(
-                `${markerLabelAt(index, markerLabels, markers)}: <b>${formatter(
-                  value,
-                )}</b>`,
-              ),
+        data: [
+          {
+            value: [value, 0],
+            tooltip: {
+              formatter: () =>
+                sanitizeHtml(
+                  `${markerLabelAt(index, markerLabels, markers)}: <b>${formatter(value)}</b>`,
+                ),
+            },
           },
-        })),
+        ],
         symbol: 'triangle',
         symbolSize: 14,
+        symbolOffset: [0, markerOffsetPx],
         label: {
           show: Boolean(showLabels),
           position: 'bottom',
           color: theme.colorTextSecondary,
-          formatter: (params: { dataIndex: number }) =>
-            String(markerLabelAt(params.dataIndex, markerLabels, markers)),
+          formatter: () => String(markerLabelAt(index, markerLabels, markers)),
         },
-        // Sit below the measure bar pointing up at the marked value
-        symbolOffset: [0, markerOffsetPx],
         itemStyle: { color: theme.colorText },
         z: 20,
-      },
+      })),
+      // Marker lines as their own empty series so each gets a legend entry
+      // whose toggle shows and hides the line.
+      ...markerLines.map((value, index) => ({
+        name: markerName(value, index, markerLineLabels),
+        type: 'line',
+        data: [],
+        markLine: {
+          silent: true,
+          symbol: 'none',
+          data: [
+            {
+              xAxis: value,
+              label: {
+                position: 'insideEndTop',
+                formatter: () =>
+                  String(markerLabelAt(index, markerLineLabels, markerLines)),
+                color: theme.colorTextSecondary,
+              },
+              lineStyle: { color: theme.colorText, type: 'solid', width: 2 },
+            },
+          ],
+        },
+      })),
     ],
   };
 
