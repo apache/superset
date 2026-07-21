@@ -145,6 +145,25 @@ describe('getOverrideHtmlSchema', () => {
     expect(result.attributes?.li).toEqual(taskListSchemaFixture.attributes?.li);
   });
 
+  test('a malformed (null) element within an attribute override array falls back to the default definition instead of throwing', () => {
+    expect(() =>
+      getOverrideHtmlSchema(taskListSchemaFixture, {
+        // Runtime config isn't guaranteed to match the expected shape; a
+        // `null` element here must not crash the key lookup used to
+        // dedup overrides against the default definitions.
+        attributes: { li: [null] as unknown as string[] },
+      }),
+    ).not.toThrow();
+
+    const result = getOverrideHtmlSchema(taskListSchemaFixture, {
+      attributes: { li: [null] as unknown as string[] },
+    });
+    expect(result.attributes?.li).toEqual([
+      ...taskListSchemaFixture.attributes!.li!,
+      null,
+    ]);
+  });
+
   test('the default task-list class restriction on li/ul/ol still applies with no override', () => {
     const result = getOverrideHtmlSchema(taskListSchemaFixture, {});
 

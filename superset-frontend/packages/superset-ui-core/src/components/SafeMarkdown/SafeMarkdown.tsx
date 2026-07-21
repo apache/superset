@@ -86,7 +86,11 @@ type AttributeDefinition = string | readonly [string, ...unknown[]];
 function getAttributeDefinitionKey(
   definition: AttributeDefinition,
 ): string | undefined {
-  return typeof definition === 'string' ? definition : definition[0];
+  if (typeof definition === 'string') return definition;
+  // htmlSchemaOverrides comes from runtime config and isn't guaranteed to
+  // match the expected shape; a malformed element (e.g. `null`) has no key
+  // rather than crashing the lookup.
+  return Array.isArray(definition) ? definition[0] : undefined;
 }
 
 /**
