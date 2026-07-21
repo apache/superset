@@ -63,7 +63,7 @@ def upgrade() -> None:
             ["user_fk"],
             ["ab_user.id"],
             name="fk_extension_storage_user_fk_ab_user",
-            ondelete="SET NULL",
+            ondelete="CASCADE",
         ),
         sa.ForeignKeyConstraint(
             ["created_by_fk"],

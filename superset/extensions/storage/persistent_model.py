@@ -68,14 +68,17 @@ class ExtensionStorage(CoreExtensionStorageEntry, AuditMixinNullable, Model):
 
     # Scope discriminators — all nullable; NULLs define the scope (see docstring).
     # No relationship() is declared for user_fk: extension storage rows are
-    # not deleted when their owning user is (ondelete="SET NULL" demotes them
-    # to global scope instead), and nothing reads through such a relationship,
-    # so there's no ORM object here for a future change to attach a cascade to.
+    # deleted at the database level when their owning user is (ondelete=
+    # "CASCADE"), and nothing reads through such a relationship, so there's
+    # no ORM object here for a future change to attach a cascade to.
+    # CASCADE (rather than SET NULL) is required here: setting user_fk to
+    # NULL would silently promote a deleted user's private rows into
+    # global/shared scope, exposing them to every user of the extension.
     user_fk = Column(
         Integer,
         ForeignKey(
             "ab_user.id",
-            ondelete="SET NULL",
+            ondelete="CASCADE",
             name="fk_extension_storage_user_fk_ab_user",
         ),
         nullable=True,

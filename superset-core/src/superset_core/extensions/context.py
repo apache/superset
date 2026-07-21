@@ -41,43 +41,24 @@ Usage:
 
 from __future__ import annotations
 
-from typing import Any, Protocol, TYPE_CHECKING
+from typing import Protocol, TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from superset_core.extensions.storage.ephemeral import EphemeralStateAccessor
+    from superset_core.extensions.storage.persistent import PersistentStateAccessor
     from superset_core.extensions.types import BaseExtension
-
-
-class StorageAccessor(Protocol):
-    """Protocol for storage access with user-scoped and shared modes."""
-
-    def get(self, key: str) -> Any:
-        """Get a value from storage."""
-        ...
-
-    def set(self, key: str, value: Any, ttl: int = 3600) -> None:
-        """Set a value in storage with optional TTL."""
-        ...
-
-    def remove(self, key: str) -> None:
-        """Remove a value from storage."""
-        ...
-
-    @property
-    def shared(self) -> "StorageAccessor":
-        """Shared (cross-user) storage accessor."""
-        ...
 
 
 class ExtensionStorage(Protocol):
     """Extension-scoped storage accessor for all available tiers."""
 
     @property
-    def ephemeral(self) -> StorageAccessor:
+    def ephemeral(self) -> "EphemeralStateAccessor":
         """Server-side cache (Redis/Memcached) with TTL."""
         ...
 
     @property
-    def persistent(self) -> StorageAccessor:
+    def persistent(self) -> "PersistentStateAccessor":
         """Database-backed persistent storage."""
         ...
 
