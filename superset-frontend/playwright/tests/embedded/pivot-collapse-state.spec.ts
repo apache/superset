@@ -182,12 +182,43 @@ test.describe('Embedded Pivot Table collapse state (#33406)', () => {
         row_limit: 1000,
         order_desc: true,
       };
+      // Charts saved through Explore always persist a query_context alongside
+      // params. Store one here too: guest (embedded) requests are validated
+      // against the stored chart, and a params-only chart makes the guest
+      // payload look tampered (its query `columns` aren't found on the chart),
+      // failing every chart data request with a 403.
+      const queryContext = {
+        datasource: { id: datasetId, type: 'table' },
+        force: false,
+        queries: [
+          {
+            filters: [],
+            extras: { having: '', where: '' },
+            applied_time_extras: {},
+            columns: ['state', 'name'],
+            metrics: ['count'],
+            orderby: [['count', false]],
+            annotation_layers: [],
+            row_limit: 1000,
+            series_limit: 0,
+            order_desc: true,
+            url_params: {},
+            custom_params: {},
+            custom_form_data: {},
+          },
+        ],
+        form_data: params,
+        result_format: 'json',
+        result_type: 'full',
+      };
       const chartResp = await apiPost(setupPage, 'api/v1/chart/', {
         slice_name: `pivot_collapse_repro_${Date.now()}`,
         viz_type: 'pivot_table_v2',
         datasource_id: datasetId,
         datasource_type: 'table',
         params: JSON.stringify(params),
+        query_context: JSON.stringify(queryContext),
+        query_context_generation: true,
       });
       chartId = (await chartResp.json()).id;
 
