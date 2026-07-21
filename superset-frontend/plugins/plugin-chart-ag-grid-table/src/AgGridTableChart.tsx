@@ -124,6 +124,27 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     }
   }, [columns]);
 
+  // Tracks the most recently written ownState so that writes triggered
+  // asynchronously (e.g. clientView from AG Grid's onModelUpdated, which can
+  // fire with a stale closure) merge onto the latest known state instead of
+  // a stale render-time serverPaginationData snapshot. updateTableOwnState
+  // replaces ownState wholesale, so merging at write time - rather than at
+  // render time - is what keeps concurrent writers from clobbering one
+  // another's keys.
+  const ownStateRef = useRef(serverPaginationData);
+  useEffect(() => {
+    ownStateRef.current = serverPaginationData;
+  }, [serverPaginationData]);
+
+  const writeOwnState = useCallback(
+    (patch: Record<string, unknown>) => {
+      const nextOwnState = { ...ownStateRef.current, ...patch };
+      ownStateRef.current = nextOwnState;
+      updateTableOwnState(setDataMask, nextOwnState);
+    },
+    [setDataMask],
+  );
+
   // A single effect owns every ownState write derived from render state.
   // updateTableOwnState replaces ownState wholesale, so separate effects that
   // each spread serverPaginationData in the same render would clobber one
@@ -131,7 +152,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   // columns and nudging a re-query for missing totals must be one combined
   // delta.
   useEffect(() => {
-    const nextOwnState = { ...serverPaginationData };
+    const patch: Record<string, unknown> = {};
     let changed = false;
 
     if (serverPagination && serverPaginationData && rowCount !== undefined) {
@@ -142,7 +163,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       // last remaining page.
       const clampedPage = Math.max(0, Math.min(currentPage, totalPages - 1));
       if (clampedPage !== currentPage) {
-        nextOwnState.currentPage = clampedPage;
+        patch.currentPage = clampedPage;
         changed = true;
       }
     }
@@ -150,22 +171,22 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     const primed = (serverPaginationData?.rawSummaryColumns ?? []) as string[];
     const requested = Boolean(serverPaginationData?.totalsRequested);
     if (isRawRecords && showTotals && !isEqual(primed, rawSummaryColumns)) {
-      nextOwnState.rawSummaryColumns = rawSummaryColumns;
+      patch.rawSummaryColumns = rawSummaryColumns;
       changed = true;
     }
     // A renderTrigger toggle re-renders without re-querying; requesting totals
     // through ownState dispatches the standard re-query whose buildQuery
     // carries the totals query for the active mode.
     if (showTotals && totals === undefined && !requested) {
-      nextOwnState.totalsRequested = true;
+      patch.totalsRequested = true;
       changed = true;
     } else if (!showTotals && requested) {
-      nextOwnState.totalsRequested = false;
+      patch.totalsRequested = false;
       changed = true;
     }
 
     if (changed) {
-      updateTableOwnState(setDataMask, nextOwnState);
+      writeOwnState(patch);
     }
   }, [
     serverPagination,
@@ -176,7 +197,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     totals,
     rawSummaryColumns,
     serverPaginationData,
-    setDataMask,
+    writeOwnState,
   ]);
 
   const comparisonColumns = [
@@ -219,8 +240,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       }
 
       // Prepare modified own state for server pagination
-      const modifiedOwnState = {
-        ...serverPaginationData,
+      writeOwnState({
         agGridFilterModel:
           completeFilterState.originalFilterModel &&
           Object.keys(completeFilterState.originalFilterModel).length > 0
@@ -233,14 +253,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         lastFilteredInputPosition: completeFilterState.inputPosition,
         currentPage: 0, // Reset to first page when filtering
         metricSqlExpressions,
-      };
-
-      updateTableOwnState(setDataMask, modifiedOwnState);
+      });
     },
     [
-      setDataMask,
+      writeOwnState,
       serverPagination,
-      serverPaginationData,
       onChartStateChange,
       chartState,
       metricSqlExpressions,
@@ -421,19 +438,32 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               ? dataRecordValue
               : new Date(dataRecordValue as string | number);
 
-          const [rangeStartTime, rangeEndTime] = getTimeRangeFromGranularity(
-            startTime,
-            timeGrain,
-          );
-          const timeRangeValue = `${rangeStartTime.toISOString()} : ${rangeEndTime.toISOString()}`;
+          if (Number.isNaN(startTime.getTime())) {
+            // Malformed temporal value: fall back to an equality filter
+            // instead of building a TEMPORAL_RANGE, since toISOString()
+            // throws on an Invalid Date and would crash the context menu.
+            const sanitizedValue = extractTextFromHTML(dataRecordValue);
+            drillToDetailFilters.push({
+              col: col.key,
+              op: '==',
+              val: sanitizedValue as string | number | boolean,
+              formattedVal: formatColumnValue(col, sanitizedValue)[1],
+            });
+          } else {
+            const [rangeStartTime, rangeEndTime] = getTimeRangeFromGranularity(
+              startTime,
+              timeGrain,
+            );
+            const timeRangeValue = `${rangeStartTime.toISOString()} : ${rangeEndTime.toISOString()}`;
 
-          drillToDetailFilters.push({
-            col: col.key,
-            op: 'TEMPORAL_RANGE',
-            val: timeRangeValue,
-            grain: timeGrain,
-            formattedVal: formatColumnValue(col, dataRecordValue)[1],
-          });
+            drillToDetailFilters.push({
+              col: col.key,
+              op: 'TEMPORAL_RANGE',
+              val: timeRangeValue,
+              grain: timeGrain,
+              formattedVal: formatColumnValue(col, dataRecordValue)[1],
+            });
+          }
         } else {
           const sanitizedValue = extractTextFromHTML(dataRecordValue);
           drillToDetailFilters.push({
@@ -488,85 +518,77 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const handleServerPaginationChange = useCallback(
     (pageNumber: number, pageSize: number) => {
-      const modifiedOwnState = {
-        ...serverPaginationData,
+      writeOwnState({
         currentPage: pageNumber,
         pageSize,
         lastFilteredColumn: undefined,
         lastFilteredInputPosition: undefined,
-      };
-      updateTableOwnState(setDataMask, modifiedOwnState);
+      });
     },
-    [setDataMask],
+    [writeOwnState],
   );
 
   const handlePageSizeChange = useCallback(
     (pageSize: number) => {
-      const modifiedOwnState = {
-        ...serverPaginationData,
+      writeOwnState({
         currentPage: 0,
         pageSize,
         lastFilteredColumn: undefined,
         lastFilteredInputPosition: undefined,
-      };
-      updateTableOwnState(setDataMask, modifiedOwnState);
+      });
     },
-    [setDataMask],
+    [writeOwnState],
   );
 
   const handleChangeSearchCol = (searchCol: string) => {
     if (!isEqual(searchCol, serverPaginationData?.searchColumn)) {
-      const modifiedOwnState = {
-        ...serverPaginationData,
+      writeOwnState({
         searchColumn: searchCol,
         searchText: '',
         lastFilteredColumn: undefined,
         lastFilteredInputPosition: undefined,
-      };
-      updateTableOwnState(setDataMask, modifiedOwnState);
+      });
     }
   };
 
   const handleSearch = useCallback(
     (searchText: string) => {
-      const modifiedOwnState = {
-        ...serverPaginationData,
+      writeOwnState({
         searchColumn:
-          serverPaginationData?.searchColumn || searchOptions[0]?.value,
+          (ownStateRef.current?.searchColumn as string | undefined) ||
+          searchOptions[0]?.value,
         searchText,
         currentPage: 0, // Reset to first page when searching
         lastFilteredColumn: undefined,
         lastFilteredInputPosition: undefined,
-      };
-      updateTableOwnState(setDataMask, modifiedOwnState);
+      });
     },
-    [setDataMask, searchOptions],
+    [writeOwnState, searchOptions],
   );
 
   const handleSortByChange = useCallback(
     (sortBy: SortByItem[]) => {
       if (!serverPagination) return;
-      const modifiedOwnState = {
-        ...serverPaginationData,
+      writeOwnState({
         sortBy,
         lastFilteredColumn: undefined,
         lastFilteredInputPosition: undefined,
-      };
-      updateTableOwnState(setDataMask, modifiedOwnState);
+      });
     },
-    [setDataMask, serverPagination],
+    [writeOwnState, serverPagination],
   );
 
   // Feeds the "Export Current View" menu item (EXPORT_CURRENT_VIEW behavior),
-  // mirroring Table V1's clientView snapshot on ownState.
+  // mirroring Table V1's clientView snapshot on ownState. Written through
+  // writeOwnState (rather than spreading serverPaginationData directly)
+  // because onModelUpdated can fire with a stale closure relative to other
+  // ownState writers (e.g. a just-applied filter), and updateTableOwnState
+  // replaces ownState wholesale.
   const handleClientViewChange = useCallback(
     (clientView: ClientViewSnapshot) => {
-      updateTableOwnState(setDataMask, {
-        ...serverPaginationData,
-        clientView,
-      });
+      writeOwnState({ clientView });
     },
-    [setDataMask, serverPaginationData],
+    [writeOwnState],
   );
 
   const renderTimeComparisonVisibility = (): JSX.Element => (

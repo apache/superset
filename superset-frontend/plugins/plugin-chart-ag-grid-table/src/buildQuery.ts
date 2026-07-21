@@ -395,25 +395,6 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     const extraQueries: QueryObject[] = [];
 
-    const calculationMode = formData.percent_metric_calculation || 'row_limit';
-
-    if (
-      calculationMode === 'all_records' &&
-      percentMetrics &&
-      percentMetrics.length > 0
-    ) {
-      extraQueries.push({
-        ...queryObject,
-        columns: [],
-        metrics: percentMetrics,
-        post_processing: [],
-        row_limit: 0,
-        row_offset: 0,
-        orderby: [],
-        is_timeseries: false,
-      });
-    }
-
     const interactiveGroupBy = formData.extra_form_data?.interactive_groupby;
     if (interactiveGroupBy && queryObject.columns) {
       queryObject.columns = [
@@ -639,6 +620,29 @@ const buildQuery: BuildQuery<TableChartFormData> = (
           } as QueryObjectExtras;
         }
       }
+    }
+
+    // Build the "all records" percent-metric denominator query AFTER all
+    // filter mutations (interactive group-by, search, AG Grid WHERE/HAVING)
+    // above, so its denominator reflects the same filtered result set as the
+    // main query instead of a stale pre-filter snapshot.
+    const calculationMode = formData.percent_metric_calculation || 'row_limit';
+
+    if (
+      calculationMode === 'all_records' &&
+      percentMetrics &&
+      percentMetrics.length > 0
+    ) {
+      extraQueries.push({
+        ...queryObject,
+        columns: [],
+        metrics: percentMetrics,
+        post_processing: [],
+        row_limit: 0,
+        row_offset: 0,
+        orderby: [],
+        is_timeseries: false,
+      });
     }
 
     // Create totals query AFTER all filters (including AG Grid filters) are applied

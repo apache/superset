@@ -443,13 +443,18 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       }));
 
       const rows: Record<string, unknown>[] = [];
+      const rowIds: string[] = [];
       api.forEachNodeAfterFilterAndSort(node => {
         if (node.data) {
           rows.push(node.data);
+          rowIds.push(node.id ?? '');
         }
       });
 
-      const signature = `${rows.length}|${columns.map(c => c.key).join(',')}`;
+      // Node ids are stable per row, so their filtered+sorted sequence
+      // changes whenever the row set or its order changes, even if the
+      // count and visible columns stay the same (e.g. a pure sort).
+      const signature = `${rowIds.join(',')}|${columns.map(c => c.key).join(',')}`;
       if (signature === lastClientViewSignatureRef.current) {
         return;
       }

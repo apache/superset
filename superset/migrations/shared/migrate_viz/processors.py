@@ -666,6 +666,14 @@ def _get_table_chart_time_offsets(form_data: dict[str, Any]) -> list[Any]:
         time_offsets.append(form_data.get("start_date_offset"))
     if "inherit" in custom_or_inherit_shifts:
         time_offsets.append("inherit")
+
+    # Dashboard filter override - allows dashboard-level time shifts to
+    # OVERRIDE chart-level time shift settings, mirroring buildQuery.ts.
+    extra_form_data_time_compare = (form_data.get("extra_form_data") or {}).get(
+        "time_compare"
+    )
+    if extra_form_data_time_compare:
+        time_offsets = [extra_form_data_time_compare]
     return time_offsets
 
 
@@ -745,8 +753,23 @@ class MigrateTableChart(MigrateViz):
             orderby = [[metrics[0], False]]
 
         if percent_metrics := ensure_is_array(self.data.get("percent_metrics")):
+            percent_metric_base_labels = [get_metric_label(m) for m in percent_metrics]
+            if is_time_comparison(self.data, base_query_object):
+                # Mirror buildQuery.ts's addComparisonPercentMetrics: expand
+                # each percent metric with its time-offset suffixes so
+                # shifted percent columns are computed/renamed too.
+                percent_metric_labels_with_time_comparison = [
+                    label
+                    for metric_label in percent_metric_base_labels
+                    for label in [
+                        metric_label,
+                        *[f"{metric_label}__{shift}" for shift in time_offsets],
+                    ]
+                ]
+            else:
+                percent_metric_labels_with_time_comparison = percent_metric_base_labels
             percent_metric_labels = remove_duplicates(
-                [get_metric_label(m) for m in percent_metrics], get_metric_label
+                percent_metric_labels_with_time_comparison, get_metric_label
             )
             metrics = remove_duplicates(metrics + percent_metrics, get_metric_label)
             post_processing.append(
@@ -764,9 +787,15 @@ class MigrateTableChart(MigrateViz):
             if time_compare:
                 post_processing.append(time_compare)
 
+        # Dashboard-level grain override takes precedence over the
+        # chart-level time_grain_sqla, mirroring buildQuery.ts.
+        extra_form_data_time_grain = (self.data.get("extra_form_data") or {}).get(
+            "time_grain_sqla"
+        )
+        time_grain_sqla = extra_form_data_time_grain or self.data.get("time_grain_sqla")
         columns = _reorder_table_chart_temporal_column(
             columns,
-            self.data.get("time_grain_sqla"),
+            time_grain_sqla,
             self.data.get("temporal_columns_lookup") or {},
         )
 

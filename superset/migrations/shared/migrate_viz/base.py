@@ -40,8 +40,8 @@ class Slice(Base):  # type: ignore
     viz_type = Column(String(250))
     params = Column(Text)
     query_context = Column(Text)
-    datasource_id = Column(Integer)
-    datasource_type = Column(String(200))
+    datasource_id: int = Column(Integer)
+    datasource_type: str = Column(String(200))
 
 
 FORM_DATA_BAK_FIELD_NAME = "form_data_bak"

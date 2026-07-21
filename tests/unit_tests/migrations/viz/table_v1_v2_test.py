@@ -19,6 +19,7 @@ from typing import Any
 import pytest
 
 from superset.migrations.shared.migrate_viz import MigrateTableChart
+from superset.utils import json
 from tests.unit_tests.migrations.viz.utils import migrate_and_assert
 
 SOURCE_FORM_DATA: dict[str, Any] = {
@@ -80,9 +81,9 @@ def test_migration_without_datasource_key_in_params() -> None:
     source: dict[str, Any] = {
         k: v for k, v in SOURCE_FORM_DATA.items() if k != "datasource"
     }
-    dumped_form_data = json.dumps(source)
+    dumped_form_data: str = json.dumps(source)
 
-    slc = Slice(
+    slc: Slice = Slice(
         viz_type=MigrateTableChart.source_viz_type,
         datasource_id=1,
         datasource_type="table",
@@ -93,7 +94,7 @@ def test_migration_without_datasource_key_in_params() -> None:
     MigrateTableChart.upgrade_slice(slc)
 
     assert slc.viz_type == MigrateTableChart.target_viz_type
-    new_form_data = json.loads(slc.params)
+    new_form_data: dict[str, Any] = json.loads(slc.params)
     assert new_form_data["datasource"] == "1__table"
 
 
@@ -159,7 +160,7 @@ def test_migration_percent_metric_calculation_all_records_carries_over() -> None
 def test_migration_entire_row_conditional_formatting_carries_over() -> None:
     """'entire row' conditional formatting now has a v2 equivalent (control
     panel + getCellStyle.ts), so it should carry over unchanged."""
-    conditional_formatting = [
+    conditional_formatting: list[dict[str, Any]] = [
         {
             "operator": ">",
             "targetValue": 0,
@@ -221,3 +222,73 @@ def test_migration_auto_currency_carries_over(
         "form_data_bak": auto_currency_form_data,
     }
     migrate_and_assert(MigrateTableChart, auto_currency_form_data, target)
+
+
+def test_build_query_extra_form_data_time_compare_overrides_chart_level() -> None:
+    """A dashboard-level time_compare override (extra_form_data.time_compare)
+    must replace the chart-level time_compare shifts in the migrated
+    query_context, mirroring buildQuery.ts's override precedence."""
+    form_data: dict[str, Any] = {
+        "datasource": "1__table",
+        "viz_type": "table",
+        "query_mode": "aggregate",
+        "groupby": ["name"],
+        "metrics": ["count"],
+        "time_compare": ["1 year ago"],
+        "extra_form_data": {"time_compare": "4 weeks ago"},
+    }
+    main_query = MigrateTableChart(json.dumps(form_data))._build_query()["queries"][0]
+    assert main_query["time_offsets"] == ["4 weeks ago"]
+
+
+def test_build_query_extra_form_data_time_grain_sqla_overrides_chart_level() -> None:
+    """A dashboard-level time_grain_sqla override (extra_form_data) must be
+    used to decide temporal-column promotion, mirroring buildQuery.ts's
+    `extra_form_data?.time_grain_sqla || formData.time_grain_sqla`
+    precedence, even when the chart has no top-level time_grain_sqla set."""
+    form_data: dict[str, Any] = {
+        "datasource": "1__table",
+        "viz_type": "table",
+        "query_mode": "aggregate",
+        "groupby": ["ds", "name"],
+        "metrics": ["count"],
+        "temporal_columns_lookup": {"ds": True},
+        "extra_form_data": {"time_grain_sqla": "P1D"},
+    }
+    main_query = MigrateTableChart(json.dumps(form_data))._build_query()["queries"][0]
+    assert main_query["columns"][0] == {
+        "timeGrain": "P1D",
+        "columnType": "BASE_AXIS",
+        "sqlExpression": "ds",
+        "label": "ds",
+        "expressionType": "SQL",
+    }
+
+
+def test_build_query_percent_metric_expands_with_time_comparison() -> None:
+    """When time comparison is enabled, percent-metric contribution columns
+    must include the time-offset-suffixed labels (e.g. "metric__1 year
+    ago"), mirroring buildQuery.ts's addComparisonPercentMetrics, so shifted
+    percent columns are computed/renamed rather than only the base metric."""
+    form_data: dict[str, Any] = {
+        "datasource": "1__table",
+        "viz_type": "table",
+        "query_mode": "aggregate",
+        "groupby": ["name"],
+        "metrics": ["sum__sales"],
+        "percent_metrics": ["sum__sales"],
+        "time_compare": ["1 year ago"],
+        "comparison_type": "values",
+    }
+    main_query = MigrateTableChart(json.dumps(form_data))._build_query()["queries"][0]
+    contribution = next(
+        pp for pp in main_query["post_processing"] if pp["operation"] == "contribution"
+    )
+    assert contribution["options"]["columns"] == [
+        "sum__sales",
+        "sum__sales__1 year ago",
+    ]
+    assert contribution["options"]["rename_columns"] == [
+        "%sum__sales",
+        "%sum__sales__1 year ago",
+    ]

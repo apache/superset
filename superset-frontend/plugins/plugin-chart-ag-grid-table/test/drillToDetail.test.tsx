@@ -21,14 +21,21 @@ import { TimeGranularity } from '@superset-ui/core';
 import { ProviderWrapper } from '../../plugin-chart-table/test/testHelpers';
 import testData from '../../plugin-chart-table/test/testData';
 
+// Only the context-menu handler is exercised below; the mock below fakes
+// its event argument rather than a real ag-grid CellContextMenuEvent, so
+// it's typed loosely (unknown) rather than pinned to that library type.
+interface CapturedGridProps {
+  onCellContextMenu?: (event: Record<string, unknown>) => void;
+}
+
 // Capture the props the grid is rendered with, so we can invoke the
 // onCellContextMenu handler directly without depending on AG Grid's DOM
 // rendering or the (unregistered) Enterprise context-menu module.
-const captured: { props?: Record<string, any> } = {};
+const captured: { props?: CapturedGridProps } = {};
 
 jest.mock('@superset-ui/core/components/ThemedAgGridReact', () => ({
   __esModule: true,
-  ThemedAgGridReact: (props: Record<string, any>) => {
+  ThemedAgGridReact: (props: CapturedGridProps) => {
     captured.props = props;
     return null;
   },
@@ -101,7 +108,7 @@ test('right-clicking a dimension cell emits drillToDetail, crossFilter and drill
     'abc.com': 'foo',
   };
 
-  captured.props?.onCellContextMenu({
+  captured.props?.onCellContextMenu?.({
     column: makeColumn('name'),
     data: rowData,
     value: 'Michael',
@@ -147,7 +154,7 @@ test('right-clicking a metric cell omits crossFilter and drillBy', async () => {
   renderChart(onContextMenu);
   await waitFor(() => expect(captured.props?.onCellContextMenu).toBeDefined());
 
-  captured.props?.onCellContextMenu({
+  captured.props?.onCellContextMenu?.({
     column: makeColumn('sum__num', { isMetric: true }),
     data: { name: 'Michael', sum__num: 2467063 },
     value: 2467063,
@@ -171,7 +178,7 @@ test('right-clicking a temporal cell with a time grain emits a TEMPORAL_RANGE fi
   renderChart(onContextMenu, { timeGrain: TimeGranularity.DAY });
   await waitFor(() => expect(captured.props?.onCellContextMenu).toBeDefined());
 
-  captured.props?.onCellContextMenu({
+  captured.props?.onCellContextMenu?.({
     column: makeColumn('name'),
     data: {
       __timestamp: '2020-01-01T12:34:56.000Z',
@@ -206,7 +213,7 @@ test('does not call onContextMenu in raw records mode', async () => {
   renderChart(onContextMenu, { isRawRecords: true });
   await waitFor(() => expect(captured.props?.onCellContextMenu).toBeDefined());
 
-  captured.props?.onCellContextMenu({
+  captured.props?.onCellContextMenu?.({
     column: makeColumn('name'),
     data: { name: 'Michael' },
     value: 'Michael',
