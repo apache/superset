@@ -572,6 +572,12 @@ The partial-index replacement is dialect-dependent: PostgreSQL uses a native `WH
 
 **Importer behavior:** importing a dashboard YAML whose UUID matches an existing **soft-deleted** dashboard is treated as an implicit restore-with-update — **and this happens even when `overwrite` is not set**. This is a deliberate asymmetry with active rows: an active dashboard imported without `overwrite=true` is returned unchanged (the import never mutates it), but a soft-deleted UUID match is restored *and* has the upload's contents applied regardless of the `overwrite` argument, on the reasoning that re-importing a deleted dashboard's exact UUID is an explicit request to bring it back. The restore preserves the original PK and all pre-deletion relationship rows (`dashboard_slices` junctions, editor/viewer subjects, tags). Callers whose imports must never mutate existing state should treat bundles that may contain previously deleted UUIDs accordingly. The operation is permission-gated: it requires `can_write` and editorship of the deleted row (or admin) — non-editors get `ImportFailedError`, and callers without `can_write` get `ImportFailedError` instead of silently receiving the soft-deleted row.
 
+### Engine spec capability flag: `supports_offset`
+
+A new `BaseEngineSpec.supports_offset` attribute (default `True`) indicates whether a database engine supports the SQL `OFFSET` clause. Engines that do not support `OFFSET` — such as Elasticsearch SQL and OpenDistro — opt out by setting it to `False`, and Superset uses each engine's cursor API to paginate drill-to-detail samples instead of emitting `OFFSET`. Downstream forks maintaining custom engine specs may set the flag to `False` (and implement `fetch_data_with_cursor`) to avoid crashes when paginated drill-to-detail queries are run against engines without `OFFSET` support.
+
+**Note on deep-pagination cost:** Cursor-based engines (including Elasticsearch and OpenDistro) are forward-only, so reaching page `N` of a drill-to-detail view issues `N` round trips to the cluster. Deep pagination is therefore linear in page number; users paginating into the hundreds or thousands will notice added latency compared to `OFFSET`-capable engines.
+
 ### Granular Export Controls
 
 A new feature flag `GRANULAR_EXPORT_CONTROLS` introduces three fine-grained permissions that replace the legacy `can_csv` permission:
