@@ -264,6 +264,8 @@ class ExtensionStorageRestApi(BaseApi):
             return self.response_404("Extension not found")
 
         body = request.get_json(silent=True) or {}
+        if not isinstance(body, dict):
+            return self.response_400("Request body must be a JSON object")
         if "value" not in body:
             return self.response_400("Request body must contain 'value' field")
 
@@ -643,6 +645,8 @@ class ExtensionStorageRestApi(BaseApi):
             return self.response_404("Extension not found")
 
         body = request.get_json(silent=True) or {}
+        if not isinstance(body, dict):
+            return self.response_400("Request body must be a JSON object")
         if "value" not in body:
             return self.response_400("Request body must contain 'value' field")
 

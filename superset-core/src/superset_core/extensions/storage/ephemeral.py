@@ -81,6 +81,24 @@ class EphemeralStateAccessor(Protocol):
         ...
 
 
+class _UnconfiguredEphemeralStateAccessor:
+    """Placeholder for `.shared` before host replacement.
+
+    Raises the same `NotImplementedError` as the other stub methods, rather
+    than a bare `AttributeError`, if accessed before the host wires up the
+    concrete implementation.
+    """
+
+    def get(self, key: str) -> Any:
+        raise NotImplementedError("Class will be replaced during initialization")
+
+    def set(self, key: str, value: Any, options: EphemeralSetOptions) -> None:
+        raise NotImplementedError("Class will be replaced during initialization")
+
+    def remove(self, key: str) -> None:
+        raise NotImplementedError("Class will be replaced during initialization")
+
+
 class EphemeralState:
     """
     Tier 2 ephemeral state storage for extensions.
@@ -140,5 +158,5 @@ class EphemeralState:
     #: Shared (global) ephemeral state accessor.
     #: Data stored via this accessor is visible to all users of the extension.
     #: WARNING: Do not store user-specific or sensitive data here.
-    #: Host implementations will set this during initialization.
-    shared: ClassVar[EphemeralStateAccessor]
+    #: Host implementations will replace this during initialization.
+    shared: ClassVar[EphemeralStateAccessor] = _UnconfiguredEphemeralStateAccessor()

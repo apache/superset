@@ -141,6 +141,29 @@ class PersistentStateAccessor(Protocol):
         ...
 
 
+class _UnconfiguredPersistentStateAccessor:
+    """Placeholder for `.shared` before host replacement.
+
+    Raises the same `NotImplementedError` as the other stub methods, rather
+    than a bare `AttributeError`, if accessed before the host wires up the
+    concrete implementation.
+    """
+
+    def get(self, key: str) -> Any:
+        raise NotImplementedError("Class will be replaced during initialization")
+
+    def set(
+        self, key: str, value: Any, options: PersistentSetOptions | None = None
+    ) -> None:
+        raise NotImplementedError("Class will be replaced during initialization")
+
+    def list(self, options: PersistentListOptions) -> PersistentListResult:
+        raise NotImplementedError("Class will be replaced during initialization")
+
+    def remove(self, key: str) -> None:
+        raise NotImplementedError("Class will be replaced during initialization")
+
+
 class PersistentState:
     """
     Tier 3 persistent state storage for extensions.
@@ -216,5 +239,5 @@ class PersistentState:
     #: Shared (global) persistent state accessor.
     #: Data stored via this accessor is visible to all users of the extension.
     #: WARNING: Do not store user-specific or sensitive data here.
-    #: Host implementations will set this during initialization.
-    shared: ClassVar[PersistentStateAccessor]
+    #: Host implementations will replace this during initialization.
+    shared: ClassVar[PersistentStateAccessor] = _UnconfiguredPersistentStateAccessor()

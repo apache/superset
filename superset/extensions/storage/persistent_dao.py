@@ -528,6 +528,13 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
           before the other commits, both pass the check, and land a combined
           write that exceeds the extension's quota.
 
+        The commit happens here, inside the lock, rather than being left to
+        the caller's `@transaction()` — releasing the lock before the row is
+        committed would let a second writer's `SELECT`, run right after
+        acquiring the now-free lock, still miss the first writer's
+        not-yet-committed row under READ COMMITTED isolation, recreating the
+        exact duplicate-row race the lock exists to prevent.
+
         :raises ExtensionStorageKeyTooLong: if `key` exceeds MAX_KEY_LENGTH.
         :raises ExtensionStorageValueTooLarge: if `value` exceeds
             MAX_VALUE_SIZE.
@@ -580,6 +587,11 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
                 )
                 db.session.add(entry)
             db.session.flush()
+            # Committed here, inside the lock, rather than left to the
+            # caller's @transaction(): that decorator only commits after
+            # this whole function returns, which is after the lock above
+            # has already been released — see the docstring.
+            db.session.commit()  # pylint: disable=consider-using-transaction
             return entry
 
     # ── Create (disallowed) ─────────────────────────────────────────────────────
@@ -618,7 +630,13 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         resource_type: str | None = None,
         resource_uuid: str | None = None,
     ) -> bool:
-        """Delete a single entry by key. Returns True if a row was removed."""
+        """Delete a single entry by key. Returns True if a row was removed.
+
+        A single row is all there ever is to remove: `set()` commits its
+        upsert while still holding the extension-wide lock (see its
+        docstring), so two concurrent writes to the same scoped key can
+        never land as duplicate rows in the first place.
+        """
         entry = (
             db.session.query(ExtensionStorage)
             .filter(

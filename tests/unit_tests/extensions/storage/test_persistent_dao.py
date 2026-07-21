@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 from collections.abc import Generator
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from flask import Flask
@@ -620,6 +620,28 @@ def test_dao_delete_by_key_returns_false_when_not_found(
 
     assert result is False
     mock_db.session.delete.assert_not_called()
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_set_commits_before_releasing_the_lock(
+    mock_db: MagicMock, app: Flask, mock_distributed_lock: MagicMock
+) -> None:
+    """set() must commit its write while still holding the extension-wide
+    lock. Committing only after the lock is released would let a second
+    writer's SELECT run — and, under READ COMMITTED isolation, still miss
+    the first writer's not-yet-committed row — recreating the duplicate-row
+    race the lock exists to prevent."""
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
+
+    manager = Mock()
+    manager.attach_mock(mock_db.session.commit, "commit")
+    manager.attach_mock(mock_distributed_lock.return_value.__exit__, "lock_exit")
+
+    with app.app_context():
+        ExtensionStorageDAO.set("my-ext", "key", b"value")
+
+    call_names = [call[0] for call in manager.mock_calls]
+    assert call_names.index("commit") < call_names.index("lock_exit")
 
 
 # ── scoping ───────────────────────────────────────────────────────────────────

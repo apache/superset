@@ -105,11 +105,13 @@ def get_context() -> ExtensionContext:
         print(f"Version: {ctx.extension.version}")
 
         # Access extension-scoped storage
-        ctx.storage.ephemeral.set("tempData", data, ttl=3600)
+        ctx.storage.ephemeral.set("tempData", data, EphemeralSetOptions(ttl=3600))
         value = ctx.storage.ephemeral.get("tempData")
 
         # Access shared (cross-user) storage
-        ctx.storage.ephemeral.shared.set("globalCounter", count)
+        ctx.storage.ephemeral.shared.set(
+            "globalCounter", count, EphemeralSetOptions(ttl=3600)
+        )
     """
     raise NotImplementedError(
         "get_context() must be called within an extension context. "
