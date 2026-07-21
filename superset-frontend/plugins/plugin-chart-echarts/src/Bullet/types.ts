@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryFormData, QueryFormMetric } from '@superset-ui/core';
+import {
+  QueryFormColumn,
+  QueryFormData,
+  QueryFormMetric,
+} from '@superset-ui/core';
 import {
   BaseChartProps,
   BaseTransformedProps,
@@ -25,6 +29,8 @@ import {
 
 export type EchartsBulletFormData = QueryFormData & {
   metric?: QueryFormMetric;
+  /** split into one bullet row per group value */
+  groupby?: QueryFormColumn[];
   /** Comma-separated threshold values shaded as background bands */
   ranges?: string;
   rangeLabels?: string;

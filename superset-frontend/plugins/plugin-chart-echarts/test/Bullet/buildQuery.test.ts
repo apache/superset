@@ -35,3 +35,14 @@ test('issues no metrics when none is selected', () => {
   }).queries;
   expect(query.metrics).toEqual([]);
 });
+
+test('passes the groupby through as query columns', () => {
+  const [query] = buildQuery({
+    datasource: '5__table',
+    viz_type: 'bullet',
+    metric: 'sum__num',
+    groupby: ['state'],
+  }).queries;
+  expect(query.columns).toEqual(['state']);
+  expect(query.metrics).toEqual(['sum__num']);
+});

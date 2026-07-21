@@ -16,18 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext, QueryFormData } from '@superset-ui/core';
+import {
+  buildQueryContext,
+  ensureIsArray,
+  QueryFormData,
+} from '@superset-ui/core';
 
 /**
  * A single ungrouped aggregate of the selected metric, mirroring the query
  * the legacy nvd3 bullet chart issued.
  */
 export default function buildQuery(formData: QueryFormData) {
-  const { metric } = formData;
+  const { metric, groupby } = formData;
   return buildQueryContext(formData, baseQueryObject => [
     {
       ...baseQueryObject,
-      columns: [],
+      columns: ensureIsArray(groupby),
       metrics: metric ? [metric] : [],
     },
   ]);

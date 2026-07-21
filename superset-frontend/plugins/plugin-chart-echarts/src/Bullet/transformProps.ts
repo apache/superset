@@ -17,6 +17,8 @@
  * under the License.
  */
 import {
+  ensureIsArray,
+  getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
   JsonObject,
@@ -35,6 +37,7 @@ export default function transformProps(
   const { width, height, formData, queriesData, theme, hooks } = chartProps;
   const {
     metric,
+    groupby,
     ranges: rawRanges,
     rangeLabels: rawRangeLabels,
     markers: rawMarkers,
@@ -50,7 +53,17 @@ export default function transformProps(
 
   const metricLabel = getMetricLabel(metric ?? '');
   const records = (queriesData[0]?.data ?? []) as JsonObject[];
-  const measure = Number(records[0]?.[metricLabel] ?? 0);
+  const groupbyLabels = ensureIsArray(groupby).map(getColumnLabel);
+  const grouped = groupbyLabels.length > 0;
+  // one bullet row per group value; ungrouped charts keep a single row
+  const rows = grouped ? records : records.slice(0, 1);
+  const categories = grouped
+    ? rows.map(row => groupbyLabels.map(l => String(row[l])).join(', '))
+    : [''];
+  const measures = rows.map(row => Number(row?.[metricLabel] ?? 0));
+  if (measures.length === 0) measures.push(0);
+  // the largest row drives the default band and the axis extent
+  const measure = Math.max(...measures);
 
   // Match the legacy default: a single band up to 110% of the measure.
   const ranges = tokenizeToNumericArray(rawRanges) ?? [0, measure * 1.1];
@@ -62,8 +75,14 @@ export default function transformProps(
 
   const formatter = getNumberFormatter(yAxisFormat);
 
-  const axisMin = Math.min(0, measure, ...ranges, ...markers, ...markerLines);
-  let axisMax = Math.max(measure, ...ranges, ...markers, ...markerLines);
+  const axisMin = Math.min(
+    0,
+    ...measures,
+    ...ranges,
+    ...markers,
+    ...markerLines,
+  );
+  let axisMax = Math.max(...measures, ...ranges, ...markers, ...markerLines);
   if (axisMax === axisMin) {
     // All values identical (e.g. an empty result measuring 0) would produce a
     // zero-width axis domain; expand it so the chart still renders.
@@ -102,8 +121,9 @@ export default function transformProps(
   // (roughly the grid height), so a percentage symbolOffset lands inside a
   // tall bar. Compute pixels: half the bar plus a small gap below it.
   const gridHeight = Math.max(height - theme.sizeUnit * 10, 40);
+  const rowHeight = gridHeight / categories.length;
   const markerOffsetPx = Math.round(
-    (MEASURE_BAR_FRACTION / 2) * gridHeight + 12,
+    (MEASURE_BAR_FRACTION / 2) * rowHeight + 12,
   );
 
   const rangeName = (value: number, i: number) =>
@@ -137,10 +157,10 @@ export default function transformProps(
     },
     yAxis: {
       type: 'category',
-      data: [''],
+      data: categories,
       axisLine: { show: false },
       axisTick: { show: false },
-      axisLabel: { show: false },
+      axisLabel: { show: grouped, color: theme.colorTextSecondary },
     },
     tooltip: {
       confine: true,
@@ -150,12 +170,17 @@ export default function transformProps(
       {
         name: metricLabel,
         type: 'bar',
-        data: [measure],
+        data: measures,
         barWidth: `${MEASURE_BAR_FRACTION * 100}%`,
         itemStyle: { color: theme.colorPrimary },
         tooltip: {
-          formatter: () =>
-            sanitizeHtml(`${metricLabel}: <b>${formatter(measure)}</b>`),
+          formatter: (params?: { dataIndex?: number }) => {
+            const i = params?.dataIndex ?? 0;
+            const prefix = grouped ? `${categories[i]} \u2014 ` : '';
+            return sanitizeHtml(
+              `${prefix}${metricLabel}: <b>${formatter(measures[i])}</b>`,
+            );
+          },
         },
         z: 10,
         markArea: {
@@ -177,23 +202,24 @@ export default function transformProps(
       ...ranges.map((value, index) => ({
         name: rangeName(value, index),
         type: 'scatter',
-        data: [
-          {
-            value: [value, 0],
-            tooltip: {
-              formatter: () =>
-                sanitizeHtml(
-                  `${rangeLabels[index] || ''} \u2264 <b>${formatter(value)}</b>`,
-                ),
-            },
-            label: {
-              show: Boolean(showLabels) && Boolean(rangeLabels[index]),
-              position: 'top',
-              color: theme.colorTextSecondary,
-              formatter: () => String(rangeLabels[index] || ''),
-            },
+        data: categories.map((_, row) => ({
+          value: [value, row],
+          tooltip: {
+            formatter: () =>
+              sanitizeHtml(
+                `${rangeLabels[index] || ''} \u2264 <b>${formatter(value)}</b>`,
+              ),
           },
-        ],
+          label: {
+            show:
+              Boolean(showLabels) &&
+              Boolean(rangeLabels[index]) &&
+              row === categories.length - 1,
+            position: 'top',
+            color: theme.colorTextSecondary,
+            formatter: () => String(rangeLabels[index] || ''),
+          },
+        })),
         symbol: 'rect',
         symbolSize: [14, 40],
         itemStyle: { color: 'transparent' },
@@ -202,17 +228,15 @@ export default function transformProps(
       ...markers.map((value, index) => ({
         name: markerName(value, index, markerLabels),
         type: 'scatter',
-        data: [
-          {
-            value: [value, 0],
-            tooltip: {
-              formatter: () =>
-                sanitizeHtml(
-                  `${markerLabelAt(index, markerLabels, markers)}: <b>${formatter(value)}</b>`,
-                ),
-            },
+        data: categories.map((_, row) => ({
+          value: [value, row],
+          tooltip: {
+            formatter: () =>
+              sanitizeHtml(
+                `${markerLabelAt(index, markerLabels, markers)}: <b>${formatter(value)}</b>`,
+              ),
           },
-        ],
+        })),
         symbol: 'triangle',
         symbolSize: 14,
         symbolOffset: [0, markerOffsetPx],

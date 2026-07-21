@@ -149,3 +149,38 @@ test('handles an empty query result without crashing', () => {
   const { min, max } = (echartOptions as any).xAxis;
   expect(max).toBeGreaterThan(min);
 });
+
+test('splits into one bullet row per group value with shared markers', () => {
+  const props = new ChartProps({
+    width: 800,
+    height: 400,
+    formData: { ...formData, groupby: ['state'] },
+    theme: supersetTheme,
+    queriesData: [
+      {
+        data: [
+          { state: 'CA', sum__num: 120 },
+          { state: 'NY', sum__num: 90 },
+        ],
+      },
+    ],
+    hooks: {},
+  }) as unknown as EchartsBulletChartProps;
+  const { echartOptions } = transformProps(props);
+  const { series, yAxis } = echartOptions as any;
+
+  // one category and one bar value per group
+  expect(yAxis.data).toEqual(['CA', 'NY']);
+  expect(yAxis.axisLabel.show).toBe(true);
+  expect(series[0].data).toEqual([120, 90]);
+
+  // the same marker repeats on every row
+  const marker = series.find((x: any) => x.symbol === 'triangle');
+  expect(marker.data.map((d: any) => d.value)).toEqual([
+    [150, 0],
+    [150, 1],
+  ]);
+
+  // grouped bar tooltips name the row
+  expect(series[0].tooltip.formatter({ dataIndex: 1 })).toContain('NY');
+});
