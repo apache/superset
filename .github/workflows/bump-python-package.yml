@@ -23,7 +23,7 @@ on:
 
 jobs:
   bump-python-package:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       actions: write
       contents: write
@@ -42,7 +42,7 @@ jobs:
       - name: Set up Python ${{ inputs.python-version }}
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
       - name: Install uv
         run: pip install uv

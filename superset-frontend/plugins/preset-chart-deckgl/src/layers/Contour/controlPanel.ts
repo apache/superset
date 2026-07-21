@@ -25,10 +25,6 @@ import { validateNonEmpty } from '@superset-ui/core';
 import {
   autozoom,
   filterNulls,
-  jsColumns,
-  jsDataMutator,
-  jsOnclickHref,
-  jsTooltip,
   mapboxStyle,
   maplibreStyle,
   mapProvider,
@@ -112,15 +108,6 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-      ],
-    },
-    {
-      label: t('Advanced'),
-      controlSetRows: [
-        [jsColumns],
-        [jsDataMutator],
-        [jsTooltip],
-        [jsOnclickHref],
       ],
     },
   ],

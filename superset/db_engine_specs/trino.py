@@ -602,7 +602,11 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         Expanded columns are named foo.bar.baz and we provide a query_as property to
         instruct the base engine spec how to correctly query them: instead of quoting
         the whole string they have to be quoted like "foo"."bar"."baz" and we then
-        alias them to the full dotted string for ease of reference.
+        alias them to the full dotted string for ease of reference. We also provide
+        an `expression` property with the same correctly quoted path (without the
+        alias), so that a physical `TableColumn` created from this metadata selects
+        the column correctly instead of quoting the whole dotted name as a single
+        (invalid) identifier.
         """
         # pylint: disable=import-outside-toplevel
         from trino.sqlalchemy import datatype
@@ -625,6 +629,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 column_name=name,
                 type=inner_type,
                 is_dttm=is_dttm,
+                expression=query_name,
                 query_as=f'{query_name} AS "{name}"',
             )
             cols.extend(cls._expand_columns(inner_col))

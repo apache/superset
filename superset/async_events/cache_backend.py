@@ -39,6 +39,8 @@ class RedisCacheBackend(RedisCache):
         ssl_keyfile: str | None = None,
         ssl_cert_reqs: str = "required",
         ssl_ca_certs: str | None = None,
+        socket_timeout: float | None = None,
+        socket_connect_timeout: float | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(
@@ -50,18 +52,30 @@ class RedisCacheBackend(RedisCache):
             key_prefix=key_prefix,
             **kwargs,
         )
-        self._cache = redis.Redis(
-            host=host,
-            port=port,
-            password=password,
-            db=db,
-            ssl=ssl,
-            ssl_certfile=ssl_certfile,
-            ssl_keyfile=ssl_keyfile,
-            ssl_cert_reqs=ssl_cert_reqs,
-            ssl_ca_certs=ssl_ca_certs,
+        # redis-py 8 defaults to a 5s socket timeout and RESP3 on the wire
+        # (previously: no timeout, RESP2). Pin the pre-upgrade behavior
+        # explicitly so bumping the library doesn't silently introduce new
+        # timeouts or require RESP3 server support; socket_timeout/
+        # connect_timeout stay operator-configurable. Built as a single
+        # dict (rather than mixed explicit kwargs + **kwargs) because
+        # combining both against redis.Redis's many @overloads defeats
+        # mypy's overload resolution.
+        connection_kwargs: dict[str, Any] = {
+            "host": host,
+            "port": port,
+            "password": password,
+            "db": db,
+            "ssl": ssl,
+            "ssl_certfile": ssl_certfile,
+            "ssl_keyfile": ssl_keyfile,
+            "ssl_cert_reqs": ssl_cert_reqs,
+            "ssl_ca_certs": ssl_ca_certs,
+            "socket_timeout": socket_timeout,
+            "socket_connect_timeout": socket_connect_timeout,
+            "protocol": 2,
             **kwargs,
-        )
+        }
+        self._cache = redis.Redis(**connection_kwargs)
 
     def set(
         self,
@@ -145,6 +159,10 @@ class RedisCacheBackend(RedisCache):
             "ssl_keyfile": config.get("CACHE_REDIS_SSL_KEYFILE", None),
             "ssl_cert_reqs": config.get("CACHE_REDIS_SSL_CERT_REQS", "required"),
             "ssl_ca_certs": config.get("CACHE_REDIS_SSL_CA_CERTS", None),
+            "socket_timeout": config.get("CACHE_REDIS_SOCKET_TIMEOUT", None),
+            "socket_connect_timeout": config.get(
+                "CACHE_REDIS_SOCKET_CONNECT_TIMEOUT", None
+            ),
         }
 
         # Handle username separately as it's optional for Redis authentication.
@@ -171,14 +189,23 @@ class RedisSentinelCacheBackend(RedisSentinelCache):
         ssl_keyfile: str | None = None,
         ssl_cert_reqs: str = "required",
         ssl_ca_certs: str | None = None,
+        socket_timeout: float | None = None,
+        socket_connect_timeout: float | None = None,
         **kwargs: Any,
     ) -> None:
         # Sentinel dont directly support SSL
         # Initialize Sentinel without SSL parameters
         self._sentinel = Sentinel(
             sentinels,
+            # See the matching comment in RedisCacheBackend.__init__: pin the
+            # pre-redis-py-8 defaults (no socket timeout, RESP2) explicitly
+            # for the sentinel-node connections too, so this bump doesn't
+            # silently change connection behavior.
             sentinel_kwargs={
                 "password": sentinel_password,
+                "socket_timeout": socket_timeout,
+                "socket_connect_timeout": socket_connect_timeout,
+                "protocol": 2,
             },
             **{
                 k: v
@@ -195,7 +222,7 @@ class RedisSentinelCacheBackend(RedisSentinelCache):
         )
 
         # Prepare SSL-related arguments for master_for method
-        master_kwargs = {
+        master_kwargs: dict[str, Any] = {
             "password": password,
             "ssl": ssl,
             "ssl_certfile": ssl_certfile if ssl else None,
@@ -213,6 +240,12 @@ class RedisSentinelCacheBackend(RedisSentinelCache):
 
         # Filter out None values from master_kwargs
         master_kwargs = {k: v for k, v in master_kwargs.items() if v is not None}
+
+        # Added after the None-filtering above: these must be forwarded even
+        # when None (that's the explicit override), unlike the SSL args.
+        master_kwargs["socket_timeout"] = socket_timeout
+        master_kwargs["socket_connect_timeout"] = socket_connect_timeout
+        master_kwargs["protocol"] = 2
 
         # Initialize Redis master connection
         self._cache = self._sentinel.master_for(master, **master_kwargs)
@@ -310,5 +343,9 @@ class RedisSentinelCacheBackend(RedisSentinelCache):
             "ssl_keyfile": config.get("CACHE_REDIS_SSL_KEYFILE", None),
             "ssl_cert_reqs": config.get("CACHE_REDIS_SSL_CERT_REQS", "required"),
             "ssl_ca_certs": config.get("CACHE_REDIS_SSL_CA_CERTS", None),
+            "socket_timeout": config.get("CACHE_REDIS_SOCKET_TIMEOUT", None),
+            "socket_connect_timeout": config.get(
+                "CACHE_REDIS_SOCKET_CONNECT_TIMEOUT", None
+            ),
         }
         return cls(**kwargs)

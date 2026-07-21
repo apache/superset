@@ -80,7 +80,6 @@ FRONTEND_CONF_KEYS = (
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT",
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE",
     "SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS",
-    "ENABLE_JAVASCRIPT_CONTROLS",
     "DEFAULT_SQLLAB_LIMIT",
     "DEFAULT_VIZ_TYPE",
     "SQL_MAX_ROW",
@@ -193,7 +192,7 @@ def deprecated(
                     eol_version,
                 ]
                 if new_target:
-                    message += " . Use the following API endpoint instead: %s"
+                    message += ". Use the following API endpoint instead: %s"
                     logger_args.append(new_target)
                 logger.warning(message, *logger_args)
             return f(self, *args, **kwargs)

@@ -34,6 +34,7 @@ import {
   LatestQueryFormData,
   QueryFormData,
   Behavior,
+  getChartMetadataRegistry,
 } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
@@ -43,7 +44,6 @@ import {
   Button,
   Input,
 } from '@superset-ui/core/components';
-import { getChartMetadataRegistry } from '@superset-ui/core';
 import { Menu, MenuProps } from '@superset-ui/core/components/Menu';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { DEFAULT_CSV_STREAMING_ROW_THRESHOLD } from 'src/constants';

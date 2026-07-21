@@ -35,11 +35,6 @@ import {
   Row,
 } from 'react-table';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
-import {
-  CaretUpOutlined,
-  CaretDownOutlined,
-  ColumnHeightOutlined,
-} from '@ant-design/icons';
 import cx from 'classnames';
 import {
   DataRecord,
@@ -69,6 +64,9 @@ import {
   Tooltip,
 } from '@superset-ui/core/components';
 import {
+  CaretUpOutlined,
+  CaretDownOutlined,
+  ColumnHeightOutlined,
   CheckOutlined,
   InfoCircleOutlined,
   DownOutlined,

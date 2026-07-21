@@ -246,6 +246,40 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
+# -- Gateway API HTTPRoute for exposing Superset via a Gateway.
+# Requires the Gateway API CRDs (gateway.networking.k8s.io/v1) installed in the cluster.
+# @default -- see `values.yaml`
+httproute:
+  enabled: false
+  # -- HTTPRoute apiVersion. Override to gateway.networking.k8s.io/v1beta1 for
+  # older Gateway API installations that have not promoted HTTPRoute to v1.
+  apiVersion: gateway.networking.k8s.io/v1
+  # -- Additional labels to add to the HTTPRoute
+  labels: {}
+  # -- Annotations to add to the HTTPRoute
+  annotations: {}
+  # -- Gateways this HTTPRoute attaches to
+  parentRefs: []
+    # - name: my-gateway
+    #   namespace: gateway-system
+    #   sectionName: https
+  # -- Hostnames that match against the HTTP Host header (templated)
+  hostnames: []
+    # - chart-example.local
+  # -- Routing rules. Each rule is backed by the Superset service. Set `weight`
+  # per rule to leave room for traffic splitting (defaults to 1). When
+  # `supersetWebsockets.enabled` is true, an extra rule routing
+  # `supersetWebsockets.ingress.path` to the `-ws` service is appended
+  # automatically, mirroring the ingress behavior.
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+    # weight: 1
+    # filters: []
+    # timeouts: {}
+
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
@@ -415,6 +449,8 @@ supersetNode:
           cpu: "250m"
           memory: "128Mi"
 
+  # -- Extra init containers appended after supersetNode initContainers
+  extraInitContainers: []
   # -- Launch additional containers into supersetNode pod
   extraContainers: []
   # -- Annotations to be added to supersetNode deployment
@@ -542,6 +578,8 @@ supersetWorker:
         requests:
           cpu: "250m"
           memory: "128Mi"
+  # -- Extra init containers appended after supersetWorker initContainers
+  extraInitContainers: []
   # -- Launch additional containers into supersetWorker pod
   extraContainers: []
   # -- Annotations to be added to supersetWorker deployment
@@ -663,6 +701,8 @@ supersetCeleryBeat:
         requests:
           cpu: "250m"
           memory: "128Mi"
+  # -- Extra init containers appended after supersetCeleryBeat initContainers
+  extraInitContainers: []
   # -- Launch additional containers into supersetCeleryBeat pods
   extraContainers: []
   # -- Annotations to be added to supersetCeleryBeat deployment
@@ -780,6 +820,8 @@ supersetCeleryFlower:
         requests:
           cpu: "250m"
           memory: "128Mi"
+  # -- Extra init containers appended after supersetCeleryFlower initContainers
+  extraInitContainers: []
   # -- Launch additional containers into supersetCeleryFlower pods
   extraContainers: []
   # -- Annotations to be added to supersetCeleryFlower deployment
@@ -859,6 +901,38 @@ supersetWebsockets:
       # -- (int)
       http: nil
   command: []
+  # -- List of initContainers
+  # @default -- a container waiting for redis
+  initContainers:
+    - name: wait-for-redis
+      image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+      imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+      envFrom:
+        - secretRef:
+            name: "{{ tpl .Values.envFromSecret . }}"
+      command:
+        - /bin/bash
+        - -c
+        - |
+          # See supersetNode.initContainers for the rationale.
+          SECONDS=0
+          until (exec 3<>/dev/tcp/"$REDIS_HOST"/"$REDIS_PORT") 2>/dev/null; do
+            if [ "$SECONDS" -ge 120 ]; then
+              echo "timeout waiting for redis at $REDIS_HOST:$REDIS_PORT after 120s" >&2
+              exit 1
+            fi
+            echo "waiting for redis at $REDIS_HOST:$REDIS_PORT (elapsed ${SECONDS}s)"
+            sleep 2
+          done
+          echo "redis at $REDIS_HOST:$REDIS_PORT is up"
+      resources:
+        limits:
+          memory: "256Mi"
+        requests:
+          cpu: "250m"
+          memory: "128Mi"
+  # -- Extra init containers appended after supersetWebsockets initContainers
+  extraInitContainers: []
   resources: {}
   # -- Launch additional containers into supersetWebsockets pods
   extraContainers: []
@@ -902,6 +976,144 @@ supersetWebsockets:
     periodSeconds: 5
     successThreshold: 1
   # -- Set priorityClassName for supersetWebsockets pods
+  priorityClassName: ~
+
+
+supersetMcp:
+  # -- Enables the Superset MCP Server. To expose it via the shared ingress at /mcp,
+  # also set supersetMcp.ingress.enabled=true.
+  # WARNING: this requires fastMCP to be installed, which can be done by installing `apache-superset[fastmcp]`
+  enabled: false
+  replicaCount: 1
+  # -- Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetMcp pods
+  podDisruptionBudget:
+    # -- Whether the pod disruption budget should be created
+    enabled: false
+    # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/\#specifying-a-poddisruptionbudget
+    minAvailable: 1
+    # -- If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/\#specifying-a-poddisruptionbudget
+    maxUnavailable: 1
+  # -- Command
+  # @default -- a `superset mcp run` command
+  command:
+    - "/bin/sh"
+    - "-c"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; superset mcp run --host 0.0.0.0 --port {{ .Values.supersetMcp.service.port }}"
+  # -- If true, forces deployment to reload on each upgrade
+  forceReload: false
+  ingress:
+    # -- If true, the MCP server will be exposed via the ingress /mcp subpath
+    enabled: false
+    path: /mcp
+    pathType: Prefix
+  service:
+    type: ClusterIP
+    annotations: {}
+    loadBalancerIP: ~
+    port: 5008
+    nodePort:
+      # -- (int)
+      http: nil
+  startupProbe:
+    httpGet:
+      path: /health
+      port: mcp
+    initialDelaySeconds: 15
+    timeoutSeconds: 3
+    failureThreshold: 60
+    periodSeconds: 5
+    successThreshold: 1
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: mcp
+    initialDelaySeconds: 15
+    timeoutSeconds: 3
+    failureThreshold: 3
+    periodSeconds: 15
+    successThreshold: 1
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: mcp
+    initialDelaySeconds: 15
+    timeoutSeconds: 3
+    failureThreshold: 3
+    periodSeconds: 15
+    successThreshold: 1
+  # -- List of init containers
+  # @default -- a container waiting for postgres and redis
+  initContainers:
+    - name: wait-for-postgres-redis
+      image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+      imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+      envFrom:
+        - secretRef:
+            name: "{{ tpl .Values.envFromSecret . }}"
+      command:
+        - /bin/bash
+        - -c
+        - |
+          # See supersetNode.initContainers for the rationale.
+          SECONDS=0
+          wait_for() {
+            local host=$1 port=$2 name=$3
+            until (exec 3<>/dev/tcp/"$host"/"$port") 2>/dev/null; do
+              if [ "$SECONDS" -ge 120 ]; then
+                echo "timeout waiting for $name at $host:$port after 120s" >&2
+                exit 1
+              fi
+              echo "waiting for $name at $host:$port (elapsed ${SECONDS}s)"
+              sleep 2
+            done
+            echo "$name at $host:$port is up"
+          }
+          wait_for "$DB_HOST" "$DB_PORT" postgres
+          wait_for "$REDIS_HOST" "$REDIS_PORT" redis
+      resources:
+        limits:
+          memory: "256Mi"
+        requests:
+          cpu: "250m"
+          memory: "128Mi"
+  # -- Extra init containers appended after supersetMcp initContainers
+  extraInitContainers: []
+  # -- Launch additional containers into supersetMcp pods
+  extraContainers: []
+  # -- Annotations to be added to supersetMcp deployment
+  deploymentAnnotations: {}
+  # -- Labels to be added to supersetMcp deployment
+  deploymentLabels: {}
+  # -- Custom pod spec to be added to supersetMcp deployment
+  deploymentAdditionalPodSpec: {}
+  # -- Affinity to be added to supersetMcp deployment
+  affinity: {}
+  # -- TopologySpreadConstrains to be added to supersetMcp deployments
+  topologySpreadConstraints: []
+  # -- Annotations to be added to supersetMcp pods
+  podAnnotations: {}
+  # -- Labels to be added to supersetMcp pods
+  podLabels: {}
+  strategy: {}
+      # type: RollingUpdate
+    # rollingUpdate:
+    #   maxSurge: 25%
+    #   maxUnavailable: 25%
+  # -- Container lifecycle hooks for the worker pod
+  lifecycle: {}
+  # -- Pod termination grace period (seconds) for the worker pod so in-flight tasks can drain before SIGKILL
+  terminationGracePeriodSeconds: ~
+  # -- Resource settings for the supersetMcp pods - these settings overwrite might existing values from the global resources object defined above.
+  resources: {}
+    # limits:
+    #  cpu: 100m
+    #  memory: 128Mi
+    # requests:
+    #  cpu: 100m
+    #  memory: 128Mi
+  podSecurityContext: {}
+  containerSecurityContext: {}
+  # -- Set priorityClassName for supersetMcp pods
   priorityClassName: ~
 
 init:
@@ -967,6 +1179,8 @@ init:
         requests:
           cpu: "250m"
           memory: "128Mi"
+  # -- Extra init containers appended after init job initContainers
+  extraInitContainers: []
   # -- DEPRECATED: this field is no longer used by the chart.
   # The init script is rendered entirely from the internal `superset.initScript` template
   # (which runs `superset db upgrade`, `superset init`, admin creation, and examples).
