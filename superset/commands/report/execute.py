@@ -466,7 +466,9 @@ class BaseReportState:
         try:
             imges = []
             for screenshot in screenshots:
-                if imge := screenshot.get_screenshot(user=user):
+                if imge := screenshot.get_screenshot(
+                    user=user, log_context=f"execution_id={self._execution_id}"
+                ):
                     imges.append(imge)
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.info(

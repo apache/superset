@@ -159,9 +159,18 @@ class WebDriverProxy(ABC):
         self._screenshot_load_wait = app.config["SCREENSHOT_LOAD_WAIT"]
 
     @abstractmethod
-    def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:
+    def get_screenshot(
+        self,
+        url: str,
+        element_name: str,
+        user: User,
+        log_context: str | None = None,
+    ) -> bytes | None:
         """
         Run webdriver and return a screenshot
+
+        :param log_context: Optional identifier (e.g. report execution id, or
+            a cache key for thumbnails) included in log lines for tracing.
         """
 
 
@@ -224,7 +233,11 @@ class WebDriverPlaywright(WebDriverProxy):
             return element.screenshot()
 
     def get_screenshot(  # pylint: disable=too-many-locals, too-many-statements  # noqa: C901
-        self, url: str, element_name: str, user: User
+        self,
+        url: str,
+        element_name: str,
+        user: User,
+        log_context: str | None = None,
     ) -> bytes | None:
         if not PLAYWRIGHT_AVAILABLE:
             logger.info(
@@ -361,6 +374,7 @@ class WebDriverPlaywright(WebDriverProxy):
                             tile_height,
                             load_wait=self._screenshot_load_wait,
                             animation_wait=selenium_animation_wait,
+                            log_context=log_context,
                         )
                         if not img:
                             logger.warning(
@@ -679,7 +693,13 @@ class WebDriverSelenium(WebDriverProxy):
 
         return error_messages
 
-    def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:  # noqa: C901
+    def get_screenshot(  # noqa: C901
+        self,
+        url: str,
+        element_name: str,
+        user: User,
+        log_context: str | None = None,
+    ) -> bytes | None:
         driver = self.auth(user)
         driver.set_window_size(*self._window)
         driver.get(url)

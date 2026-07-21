@@ -207,10 +207,15 @@ class BaseScreenshot:
         return WebDriverSelenium(self.driver_type, window_size)
 
     def get_screenshot(
-        self, user: User, window_size: WindowSize | None = None
+        self,
+        user: User,
+        window_size: WindowSize | None = None,
+        log_context: str | None = None,
     ) -> bytes | None:
         driver = self.driver(window_size)
-        self.screenshot = driver.get_screenshot(self.url, self.element, user)
+        self.screenshot = driver.get_screenshot(
+            self.url, self.element, user, log_context=log_context
+        )
         return self.screenshot
 
     def get_cache_key(
