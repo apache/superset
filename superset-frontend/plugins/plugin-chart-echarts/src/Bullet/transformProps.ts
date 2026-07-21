@@ -105,13 +105,6 @@ export default function transformProps(
     (MEASURE_BAR_FRACTION / 2) * gridHeight + 12,
   );
 
-  // Surface range labels on the measure bar's tooltip
-  const rangeTooltipLines = [...ranges]
-    .map((value, i) => ({ value, label: rangeLabels[i] }))
-    .filter(({ label }) => Boolean(label))
-    .sort((a, b) => a.value - b.value)
-    .map(({ value, label }) => `${label}: \u2264 ${formatter(value)}`);
-
   const echartOptions: EChartsCoreOption = {
     animation: false,
     // A single-measure chart needs no legend; the default one collides
