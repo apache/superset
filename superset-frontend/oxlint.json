@@ -113,11 +113,8 @@
     // === Import plugin rules ===
     "import/named": "error",
     "import/export": "error",
-    // TODO: Re-enable after fixing default export patterns across codebase
-    // This is temporarily disabled during OXC migration to unblock CI
-    // Tracking issue: [Create issue after PR merge]
-    "import/no-named-as-default": "off",
-    "import/no-named-as-default-member": "off",
+    "import/no-named-as-default": "error",
+    "import/no-named-as-default-member": "error",
     "import/no-mutable-exports": "error",
     "import/no-amd": "error",
     "import/first": "error",

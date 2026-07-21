@@ -24,6 +24,21 @@ assists people when migrating to a new version.
 
 ## Next
 
+### SQL_QUERY_MUTATOR now honors MUTATE_AFTER_SPLIT in SQL Lab
+
+SQL Lab now applies `SQL_QUERY_MUTATOR` according to `MUTATE_AFTER_SPLIT`, matching the documented semantics and the chart/query path. This only affects deployments that define `SQL_QUERY_MUTATOR` in `superset_config.py`:
+
+- With `MUTATE_AFTER_SPLIT = True`, the mutator previously never ran in SQL Lab; it now runs on each individual statement (including on engines like BigQuery and Kusto that execute multiple statements as one block, where each statement is mutated before the statements are joined).
+- With `MUTATE_AFTER_SPLIT = False` (the default), multi-statement SQL Lab queries previously applied the mutator to each statement separately; the mutator now runs once on the whole un-split query, as documented. Single-statement queries are unaffected.
+- With `MUTATE_AFTER_SPLIT = False` on engines that execute statements individually, the mutator's output is re-parsed to split it into statements. A mutator that emits SQL Superset's parser cannot parse will now fail with a clear parse error before execution, and one that strips a query down to nothing raises an invalid-SQL error instead of executing an empty query.
+
+### Python 3.10 support removed
+
+Python 3.10 is no longer supported. Superset now requires **Python 3.11 or higher**.
+Update your environment (virtualenv, Docker base image, CI configuration, etc.) to
+Python 3.11+ before upgrading. The `apache/superset-cache:3.10-slim-trixie` and
+`py310` Docker image variants are no longer published.
+
 ### Owners, dashboard roles, and RLS roles replaced by Subjects
 
 Superset now uses subject-based access assignments for dashboards, charts, datasets,
@@ -215,6 +230,12 @@ The `thumbnail_url` field has been removed from `GET /api/v1/dashboard/` list re
 ```
 
 The thumbnail endpoint redirects to the current digest URL regardless of whether the supplied digest is exact. If the image is not yet cached, that digest URL may return `202` and trigger async generation. Using `changed_on_utc` as the digest is sufficient for cache-busting purposes.
+
+### Dashboard import can overwrite related charts, datasets, and databases
+
+Re-importing an existing dashboard previously overwrote only the dashboard itself; its related charts, datasets, and databases were never updated (the importer hardcoded `overwrite=False` for them). They can now be overwritten as part of the import.
+
+A new `overwrite_all` form field controls this, and defaults to `false` everywhere, so existing behavior is preserved: passing `overwrite=true` alone still overwrites only the dashboard, exactly as before. To also overwrite the related charts, datasets, and databases on the `/api/v1/dashboard/import/` endpoint, pass `overwrite_all=true` explicitly. The import modal in the UI exposes this as an "also overwrite all assets" checkbox, and the CLI `superset import-dashboards` and the `ImportDashboardsCommand` likewise default `overwrite_all` to `false`.
 
 ### Tagging fix for `create_all`-bootstrapped schemas
 
