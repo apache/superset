@@ -29,10 +29,13 @@ import * as chartAction from 'src/components/Chart/chartAction';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import * as downloadAsImage from 'src/utils/downloadAsImage';
 import * as exploreUtils from 'src/explore/exploreUtils';
-import { FeatureFlag, VizType } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  VizType,
+  getChartMetadataRegistry,
+} from '@superset-ui/core';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import ExploreHeader, { ExploreChartHeaderProps } from '.';
-import { getChartMetadataRegistry } from '@superset-ui/core';
 import fs from 'fs';
 import path from 'path';
 
@@ -114,12 +117,6 @@ const createProps = (additionalProps = {}) =>
         y_axis_label: 'count',
       },
       modified: '<span class="no-wrap">7 days ago</span>',
-      owners: [
-        {
-          text: 'Superset Admin',
-          value: 1,
-        },
-      ],
       slice_id: 318,
       slice_name: 'Age distribution of respondents',
       slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20318%7D',
@@ -138,7 +135,7 @@ const createProps = (additionalProps = {}) =>
     metadata: {
       created_on_humanized: 'a week ago',
       changed_on_humanized: '2 days ago',
-      owners: ['John Doe'],
+      editors: ['John Doe'],
       created_by: 'John Doe',
       changed_by: 'John Doe',
       dashboards: [{ id: 1, dashboard_title: 'Test' }],
@@ -910,23 +907,28 @@ describe('Additional actions tests', () => {
     let spyDownloadAsImage: jest.SpyInstance;
     let spyExportChart: jest.SpyInstance;
 
-    let originalURL: typeof URL;
     let anchorClickSpy: jest.SpyInstance;
+    let createObjectURLSpy: jest.SpyInstance;
+    let revokeObjectURLSpy: jest.SpyInstance;
 
     beforeAll(() => {
-      originalURL = global.URL;
-
-      // Replace global.URL with a version that has the blob helpers
-      const mockedURL = {
-        ...originalURL,
-        createObjectURL: jest.fn(() => 'blob:mock-url'),
-        revokeObjectURL: jest.fn(),
-      } as unknown as typeof URL;
-
-      Object.defineProperty(global, 'URL', {
-        writable: true,
-        value: mockedURL,
-      });
+      // jsdom does not define URL.createObjectURL / URL.revokeObjectURL, so we
+      // stub them before spying so that jest.spyOn finds a real property to wrap.
+      if (!URL.createObjectURL) {
+        URL.createObjectURL = () => '';
+      }
+      if (!URL.revokeObjectURL) {
+        URL.revokeObjectURL = () => {};
+      }
+      // Spy on static URL methods rather than replacing the constructor so that
+      // code paths calling `new URL(...)` (e.g. @braintree/sanitize-url) keep
+      // working while tests can assert on blob URL creation/revocation.
+      createObjectURLSpy = jest
+        .spyOn(URL, 'createObjectURL')
+        .mockReturnValue('blob:mock-url');
+      revokeObjectURLSpy = jest
+        .spyOn(URL, 'revokeObjectURL')
+        .mockImplementation(() => {});
 
       // Avoid jsdom navigation side-effects on <a>.click()
       anchorClickSpy = jest
@@ -935,11 +937,8 @@ describe('Additional actions tests', () => {
     });
 
     afterAll(() => {
-      // restore URL
-      Object.defineProperty(global, 'URL', {
-        writable: true,
-        value: originalURL,
-      });
+      createObjectURLSpy.mockRestore();
+      revokeObjectURLSpy.mockRestore();
       anchorClickSpy.mockRestore();
     });
 
@@ -1073,7 +1072,7 @@ describe('Additional actions tests', () => {
       userEvent.click(await screen.findByText('Export to .CSV'));
 
       expect(spyExportChart.mock.calls.length).toBe(1);
-      const args = spyExportChart.mock.calls[0][0];
+      const [[args]] = spyExportChart.mock.calls;
       expect(args.resultType).toBe('results');
       expect(args.resultFormat).toBe('csv');
 
@@ -1124,7 +1123,7 @@ describe('Additional actions tests', () => {
       userEvent.click(await screen.findByText(/Export to (Excel|\.XLSX)/i));
 
       expect(spyExportChart.mock.calls.length).toBe(1);
-      const args = spyExportChart.mock.calls[0][0];
+      const [[args]] = spyExportChart.mock.calls;
       expect(args.resultType).toBe('results');
       expect(args.resultFormat).toBe('xlsx');
       getSpy.mockRestore();
@@ -1162,7 +1161,7 @@ describe('Additional actions tests', () => {
         expect(spyExportChart.mock.calls.length).toBe(1);
       });
 
-      const args = spyExportChart.mock.calls[0][0];
+      const [[args]] = spyExportChart.mock.calls;
       expect(args.resultType).toBe('results');
       expect(args.resultFormat).toBe('json');
 

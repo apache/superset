@@ -17,16 +17,15 @@
 
 """
 List themes FastMCP tool
+
+This module contains the FastMCP tool for listing themes with filtering,
+search, and pagination support.
 """
 
 import logging
-from typing import TYPE_CHECKING
 
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
-
-if TYPE_CHECKING:
-    from superset.models.core import Theme
 
 from superset.extensions import event_logger
 from superset.mcp_service.mcp_core import ModelListCore
@@ -40,6 +39,27 @@ from superset.mcp_service.theme.schemas import (
 )
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_THEME_COLUMNS = [
+    "id",
+    "theme_name",
+    "is_system_default",
+    "is_system_dark",
+]
+SORTABLE_THEME_COLUMNS = ["id", "theme_name", "changed_on", "created_on"]
+ALL_THEME_COLUMNS = [
+    "id",
+    "theme_name",
+    "json_data",
+    "uuid",
+    "is_system",
+    "is_system_default",
+    "is_system_dark",
+    "changed_on",
+    "changed_on_humanized",
+    "created_on",
+    "created_on_humanized",
+]
 
 _DEFAULT_LIST_THEMES_REQUEST = ListThemesRequest()
 
@@ -59,7 +79,8 @@ async def list_themes(
 ) -> ThemeList | ThemeError:
     """List themes with filtering and search.
 
-    Returns theme metadata including name and UUID.
+    Returns theme metadata including name, system flags, and the antd
+    design-token configuration (json_data).
 
     Sortable columns for order_column: id, theme_name, changed_on, created_on
     """
@@ -85,18 +106,8 @@ async def list_themes(
 
     try:
         from superset.daos.theme import ThemeDAO
-        from superset.mcp_service.common.schema_discovery import (
-            get_all_column_names,
-            get_theme_columns,
-            THEME_DEFAULT_COLUMNS,
-            THEME_SORTABLE_COLUMNS,
-        )
 
-        all_columns = get_all_column_names(get_theme_columns())
-
-        def _serialize_theme(
-            obj: "Theme | None", cols: list[str] | None
-        ) -> ThemeInfo | None:
+        def _serialize_theme(obj: object, cols: list[str] | None) -> ThemeInfo | None:
             return serialize_theme_object(obj)
 
         list_tool = ModelListCore(
@@ -104,12 +115,12 @@ async def list_themes(
             output_schema=ThemeInfo,
             item_serializer=_serialize_theme,
             filter_type=ThemeFilter,
-            default_columns=THEME_DEFAULT_COLUMNS,
+            default_columns=DEFAULT_THEME_COLUMNS,
             search_columns=["theme_name"],
             list_field_name="themes",
             output_list_schema=ThemeList,
-            all_columns=all_columns,
-            sortable_columns=THEME_SORTABLE_COLUMNS,
+            all_columns=ALL_THEME_COLUMNS,
+            sortable_columns=SORTABLE_THEME_COLUMNS,
             logger=logger,
         )
 
@@ -125,14 +136,19 @@ async def list_themes(
             )
 
         await ctx.info(
-            "Themes listed successfully: count=%s, total_count=%s"
+            "Themes listed successfully: count=%s, total_count=%s, total_pages=%s"
             % (
                 len(result.themes) if hasattr(result, "themes") else 0,
                 getattr(result, "total_count", None),
+                getattr(result, "total_pages", None),
             )
         )
 
         columns_to_filter = result.columns_requested
+        await ctx.debug(
+            "Applying field filtering via serialization context: columns=%s"
+            % (columns_to_filter,)
+        )
         with event_logger.log_context(action="mcp.list_themes.serialization"):
             return result.model_dump(
                 mode="json",

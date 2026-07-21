@@ -28,9 +28,9 @@ import {
 
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { shallowEqual, useSelector } from 'react-redux';
-import { useAppDispatch } from 'src/views/store';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { useHistory } from 'react-router-dom';
-import { pick } from 'lodash';
+import { pick } from 'lodash-es';
 import {
   Button,
   ButtonGroup,
@@ -44,8 +44,10 @@ import {
   FilterableTable,
   ErrorMessageWithStackTrace,
 } from 'src/components';
+import type { GridThemeOverrides } from 'src/components/GridTable/types';
+import { buildResultsGridThemeOverrides } from './buildResultsGridThemeOverrides';
 import { nanoid } from 'nanoid';
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import {
   QueryState,
   usePrevious,
@@ -53,7 +55,6 @@ import {
   getExtensionsRegistry,
   ErrorTypeEnum,
 } from '@superset-ui/core';
-import { tn } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
 import {
@@ -87,7 +88,7 @@ import { usePermissions } from 'src/hooks/usePermissions';
 import { StreamingExportModal } from 'src/components/StreamingExportModal';
 import { useStreamingExport } from 'src/components/StreamingExportModal/useStreamingExport';
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
-import { makeUrl } from 'src/utils/pathUtils';
+import { makeUrl, openInNewTab, redirect } from 'src/utils/navigationUtils';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
@@ -106,14 +107,12 @@ export interface ResultSetProps {
   csv?: boolean;
   database?: Record<string, any>;
   displayLimit: number;
-  height?: number;
   queryId: string;
   search?: boolean;
   showSql?: boolean;
   showSqlInline?: boolean;
   visualize?: boolean;
   defaultQueryLimit: number;
-  useFixedHeight?: boolean;
 }
 
 const ResultContainer = styled.div`
@@ -138,7 +137,6 @@ const ResultlessStyles = styled.div`
 // but wrapping text too so text doesn't overflow
 const MonospaceDiv = styled.div`
   font-family: ${({ theme }) => theme.fontFamilyCode};
-  white-space: pre;
   word-break: break-word;
   overflow-x: auto;
   white-space: pre-wrap;
@@ -164,14 +162,12 @@ const ResultSet = ({
   csv = true,
   database = {},
   displayLimit,
-  height,
   queryId,
   search = true,
   showSql = false,
   showSqlInline = false,
   visualize = true,
   defaultQueryLimit,
-  useFixedHeight = false,
 }: ResultSetProps) => {
   const streamingThreshold = useSelector(
     (state: SqlLabRootState) =>
@@ -214,6 +210,12 @@ const ResultSet = ({
     extensionsRegistry.get('sqleditor.extension.resultTable') ??
     FilterableTable;
   const theme = useTheme();
+
+  const resultsGridThemeOverrides = useMemo<GridThemeOverrides | undefined>(
+    () => buildResultsGridThemeOverrides(theme),
+    [theme],
+  );
+
   const [searchText, setSearchText] = useState('');
   const [cachedData, setCachedData] = useState<Record<string, unknown>[]>([]);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
@@ -311,7 +313,9 @@ const ResultSet = ({
         includeAppRoot,
       );
       if (openInNewWindow) {
-        window.open(url, '_blank', 'noreferrer');
+        // `url` is from `mountExploreUrl(..., includeAppRoot=true)`; the
+        // helper re-applies `ensureAppRoot` idempotently.
+        openInNewTab(url);
       } else {
         history.push(url);
       }
@@ -378,7 +382,13 @@ const ResultSet = ({
               { rows: rowsCount.toLocaleString() },
             ),
             onConfirm: () => {
-              window.location.href = getExportCsvUrl(query.id);
+              // `getExportCsvUrl` already runs the path through `makeUrl`;
+              // `redirect` re-applies `ensureAppRoot` idempotently and routes
+              // the sink through navigationUtils' barriers (scheme allowlist,
+              // userinfo rejection, backslash rejection), which is a
+              // strict superset of what `sanitizeUrl` from master PR #40546
+              // provides.
+              redirect(getExportCsvUrl(query.id));
             },
             confirmText: t('OK'),
             cancelText: t('Close'),
@@ -424,6 +434,7 @@ const ResultSet = ({
                     url: makeUrl('/api/v1/sqllab/export_streaming/'),
                     payload: { client_id: query.id },
                     exportType: 'csv',
+                    exportSource: 'sqllab',
                     expectedRows: rows,
                   });
                 } else {
@@ -699,6 +710,7 @@ const ResultSet = ({
         filterText: searchText,
         expandedColumns,
         allowHTML,
+        themeOverrides: resultsGridThemeOverrides,
       };
 
       return (
@@ -756,22 +768,18 @@ const ResultSet = ({
                 />
               )}
             </div>
-            {useFixedHeight && height !== undefined ? (
-              <ResultTable {...tableProps} height={height} />
-            ) : (
-              <div
-                css={css`
-                  flex: 1 1 auto;
-                  padding-bottom: ${theme.sizeUnit * 3}px;
-                `}
-              >
-                <AutoSizer disableWidth>
-                  {({ height: autoHeight }) => (
-                    <ResultTable {...tableProps} height={autoHeight} />
-                  )}
-                </AutoSizer>
-              </div>
-            )}
+            <div
+              css={css`
+                flex: 1 1 auto;
+                padding-bottom: ${theme.sizeUnit * 3}px;
+              `}
+            >
+              <AutoSizer disableWidth>
+                {({ height: autoHeight }) => (
+                  <ResultTable {...tableProps} height={autoHeight} />
+                )}
+              </AutoSizer>
+            </div>
           </ResultContainer>
           <StreamingExportModal
             visible={showStreamingModal}

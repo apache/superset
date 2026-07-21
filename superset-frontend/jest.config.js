@@ -25,6 +25,9 @@ module.exports = {
     '\\.(css|less|geojson)$': '<rootDir>/spec/__mocks__/mockExportObject.js',
     '\\.(gif|ttf|eot|png|jpg)$': '<rootDir>/spec/__mocks__/mockExportString.js',
     '\\.svg$': '<rootDir>/spec/__mocks__/svgrMock.tsx',
+    // lodash-es is ESM (type: module) which jest.mock cannot intercept; alias to
+    // the CJS lodash build (identical API) so module mocks work in tests.
+    '^lodash-es$': '<rootDir>/node_modules/lodash',
     '^src/(.*)$': '<rootDir>/src/$1',
     '^spec/(.*)$': '<rootDir>/spec/$1',
     // mapping plugins of superset-ui to source code
@@ -69,7 +72,10 @@ module.exports = {
   ],
   coverageReporters: ['lcov', 'json-summary', 'html', 'text'],
   transformIgnorePatterns: [
-    'node_modules/(?!d3-(array|interpolate|color|time|scale|time-format|format)|internmap|@mapbox/tiny-sdf|remark-gfm|(?!@ngrx|(?!deck.gl)|d3-scale)|markdown-table|micromark-*.|decode-named-character-reference|character-entities|mdast-util-*.|unist-util-*.|ccount|escape-string-regexp|nanoid|uuid|@rjsf/*.|echarts|zrender|fetch-mock|pretty-ms|parse-ms|ol|@babel/runtime|@emotion|cheerio|cheerio/lib|parse5|dom-serializer|entities|htmlparser2|rehype-sanitize|hast-util-sanitize|unified|unist-.*|hast-.*|rehype-.*|remark-.*|mdast-.*|micromark-.*|parse-entities|property-information|space-separated-tokens|comma-separated-tokens|bail|devlop|zwitch|longest-streak|geostyler|geostyler-.*|(?!geostyler)lodash|react-error-boundary|react-json-tree|react-base16-styling|lodash-es|rbush|quickselect|react-diff-viewer-continued)',
+    // @ant-design/colors and @ant-design/fast-color are allowed through because
+    // @ant-design/icons >= 6.3 deep-imports the ESM build of @ant-design/colors
+    // from its CJS output, so babel-jest must transform those files.
+    'node_modules/(?!@ant-design/(colors|fast-color)|@formatjs/.*|d3-(array|interpolate|color|time|scale|time-format|format)|internmap|@mapbox/tiny-sdf|remark-gfm|(?!@ngrx|(?!deck.gl)|d3-scale)|markdown-table|micromark-*.|decode-named-character-reference|character-entities|mdast-util-*.|unist-util-*.|ccount|escape-string-regexp|nanoid|uuid|@rjsf/*.|@x0k/.*|echarts|zrender|fetch-mock|pretty-ms|parse-ms|ol|@babel/runtime|@emotion|cheerio|cheerio/lib|parse5|dom-serializer|entities|htmlparser2|rehype-sanitize|hast-util-sanitize|unified|unist-.*|hast-.*|rehype-.*|remark-.*|mdast-.*|micromark-.*|parse-entities|property-information|space-separated-tokens|comma-separated-tokens|bail|devlop|zwitch|longest-streak|geostyler|geostyler-.*|(?!geostyler)lodash|react-error-boundary|react-json-tree|react-base16-styling|lodash-es|rbush|quickselect|react-diff-viewer-continued|storybook/*.|json-stringify-pretty-compact|@x0k/json-schema-merge)',
   ],
   preset: 'ts-jest',
   transform: {

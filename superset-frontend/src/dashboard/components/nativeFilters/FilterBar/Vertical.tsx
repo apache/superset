@@ -18,7 +18,7 @@
  */
 
 /* eslint-disable no-param-reassign */
-import { throttle } from 'lodash';
+import { throttle } from 'lodash-es';
 import {
   memo,
   useEffect,
@@ -45,6 +45,7 @@ import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
 import CrossFiltersVertical from './CrossFilters/Vertical';
 import crossFiltersSelector from './CrossFilters/selectors';
+import UrlFiltersVertical from './UrlFilters/Vertical';
 
 enum SectionType {
   Filters = 'filters',
@@ -59,7 +60,7 @@ const BarWrapper = styled.div<{ width: number }>`
     margin: 0;
   }
   &.open {
-    width: ${({ width }) => width}px; // arbitrary...
+    width: ${({ width }) => width}px; /* arbitrary... */
   }
 `;
 
@@ -140,8 +141,6 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
   onPendingCustomizationDataMaskChange,
   toggleFiltersBar,
   width,
-  clearAllTriggers,
-  onClearAllComplete,
 }) => {
   const theme = useTheme();
   const [isScrolling, setIsScrolling] = useState(false);
@@ -267,6 +266,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
           className={cx({ open: !filtersOpen })}
           onClick={openFiltersBar}
           role="button"
+          tabIndex={0}
           offset={offset}
         >
           <Icons.VerticalAlignTopOutlined
@@ -301,6 +301,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
           ) : (
             <div css={tabPaneStyle} onScroll={onScroll}>
               <>
+                <UrlFiltersVertical />
                 <CrossFiltersVertical hideHeader={hasOnlyOneSectionType} />
                 {filterControls}
               </>

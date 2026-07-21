@@ -16,41 +16,81 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { MouseEventHandler } from 'react';
-import { styled } from '@apache-superset/core/theme';
+import { forwardRef, HTMLAttributes, MouseEventHandler } from 'react';
+import { styled, SupersetTheme } from '@apache-superset/core/theme';
 
-interface IconButtonProps {
+interface IconButtonProps extends HTMLAttributes<HTMLDivElement> {
   icon: JSX.Element;
   label?: string;
   onClick: MouseEventHandler<HTMLDivElement>;
+  disabled?: boolean;
+  'data-test'?: string;
 }
 
-const StyledDiv = styled.div`
+const disabledCss = `
+  cursor: not-allowed;
+  opacity: 0.5;
+`;
+
+const activeCss = ({ theme }: { theme: SupersetTheme }) => `
+  &:hover {
+    color: ${theme.colorPrimary};
+    background: ${theme.colorBgTextHover};
+  }
+`;
+
+const StyledDiv = styled.div<{ isDisabled?: boolean }>`
   display: flex;
   align-items: center;
   cursor: pointer;
   color: ${({ theme }) => theme.colorIcon};
-  &:hover {
-    color: ${({ theme }) => theme.colorPrimary};
-  }
+  padding: ${({ theme }) => theme.paddingXXS}px;
+  border-radius: ${({ theme }) => theme.borderRadiusXS}px;
+
+  ${({ isDisabled, theme }) => (isDisabled ? disabledCss : activeCss({ theme }))}
 `;
 
 const StyledSpan = styled.span`
   margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
-const IconButton = ({ icon, label, onClick }: IconButtonProps) => (
-  <StyledDiv
-    tabIndex={0}
-    role="button"
-    onClick={e => {
-      e.preventDefault();
-      onClick(e);
-    }}
-  >
-    {icon}
-    {label && <StyledSpan>{label}</StyledSpan>}
-  </StyledDiv>
+const IconButton = forwardRef<HTMLDivElement, IconButtonProps>(
+  (
+    {
+      icon,
+      label,
+      onClick,
+      onKeyDown,
+      disabled,
+      'data-test': dataTest,
+      ...rest
+    },
+    ref,
+  ) => (
+    <StyledDiv
+      {...rest}
+      ref={ref}
+      tabIndex={disabled ? -1 : 0}
+      role="button"
+      isDisabled={disabled}
+      aria-disabled={disabled}
+      data-test={dataTest}
+      onClick={e => {
+        e.preventDefault();
+        if (!disabled) {
+          onClick(e);
+        }
+      }}
+      onKeyDown={e => {
+        if (!disabled) {
+          onKeyDown?.(e);
+        }
+      }}
+    >
+      {icon}
+      {label && <StyledSpan>{label}</StyledSpan>}
+    </StyledDiv>
+  ),
 );
 
 export default IconButton;

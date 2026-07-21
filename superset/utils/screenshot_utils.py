@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import io
 import logging
+import time
 from typing import TYPE_CHECKING
 
 from PIL import Image
@@ -38,6 +39,80 @@ if TYPE_CHECKING:
         from playwright.sync_api import Page
     except ImportError:
         Page = None
+
+# Selectors used to build a positive per-tile readiness check. A chart holder
+# is only "ready" once it shows a terminal state (a rendered chart or an
+# error/empty state) -- the mere absence of a `.loading` element is not
+# sufficient, since a chart holder that intersects the viewport but hasn't
+# mounted anything yet (e.g. its IntersectionObserver callback hasn't fired)
+# would otherwise pass vacuously.
+# See superset-frontend/src/dashboard/components/gridComponents/ChartHolder/
+# ChartHolder.tsx for `data-test="dashboard-component-chart-holder"`,
+# superset-frontend/src/components/Chart/Chart.tsx for `.slice_container`
+# (rendered chart container, `data-test="slice-container"`) and `.loading`
+# (spinner, via the shared Loading component), and
+# superset-frontend/packages/superset-ui-core/src/components/EmptyState for
+# `.ant-empty` (e.g. "no results"/"add required control values" states).
+#
+# For diagnostics, each unready holder is additionally classified by *why*
+# it isn't ready, distinguishing a slow query from the virtualization race:
+#   - "waiting_on_database": `.loading` present with no `.slice_container`
+#     -- Chart.tsx's `renderSpinner()` replaces the whole container while
+#     the initial query is in flight (`chartStatus === 'loading'`).
+#   - "spinner_mounted": `.loading` present *inside* `.slice_container`
+#     -- the chart's query finished, but it isn't in the virtualization
+#     viewport yet, so `renderChartContainer()` shows a bare spinner instead
+#     of the chart.
+#   - "nothing_mounted": neither `.loading` nor any ready marker present --
+#     the vacuous-pass race this check exists to close.
+_UNREADY_CHART_HOLDERS_JS_BODY = """
+    const holders = document.querySelectorAll(
+        '[data-test="dashboard-component-chart-holder"]'
+    );
+    const unready = [];
+    for (const holder of holders) {
+        const r = holder.getBoundingClientRect();
+        if (!(r.top < window.innerHeight && r.bottom > 0)) {
+            continue;
+        }
+        const hasSliceContainer = holder.querySelector(
+            '[data-test="slice-container"]'
+        ) !== null;
+        const stillLoading = holder.querySelector('.loading') !== null;
+        const isReady = hasSliceContainer || holder.querySelector(
+            '[role="alert"], .ant-empty, .missing-chart-container'
+        ) !== null;
+        if (stillLoading || !isReady) {
+            const chartIdEl = holder.querySelector('[data-test-chart-id]');
+            let state;
+            if (stillLoading && hasSliceContainer) {
+                state = 'spinner_mounted';
+            } else if (stillLoading) {
+                state = 'waiting_on_database';
+            } else {
+                state = 'nothing_mounted';
+            }
+            unready.push({
+                chartId: chartIdEl
+                    ? chartIdEl.getAttribute('data-test-chart-id')
+                    : 'unknown',
+                state: state,
+            });
+        }
+    }
+"""
+
+# Predicate for page.wait_for_function: true once every viewport-visible chart
+# holder has reached a terminal state.
+_TILE_READY_CHECK_JS = (
+    f"() => {{ {_UNREADY_CHART_HOLDERS_JS_BODY} return unready.length === 0; }}"
+)
+
+# Diagnostic query for page.evaluate: chart id + state of holders still not
+# ready, used to build the timeout log message.
+_FIND_UNREADY_CHART_HOLDERS_JS = (
+    f"() => {{ {_UNREADY_CHART_HOLDERS_JS_BODY} return unready; }}"
+)
 
 
 def combine_screenshot_tiles(screenshot_tiles: list[bytes]) -> bytes:
@@ -89,6 +164,8 @@ def take_tiled_screenshot(
     element_name: str,
     tile_height: int,
     load_wait: int = 60,
+    animation_wait: int = 0,
+    log_context: str | None = None,
 ) -> bytes | None:
     """
     Take a tiled screenshot of a large dashboard by scrolling and capturing sections.
@@ -98,10 +175,25 @@ def take_tiled_screenshot(
         element_name: CSS class name of the element to screenshot
         tile_height: Height of each tile in pixels
         load_wait: Seconds to wait for charts to load per tile (default 60)
+        animation_wait: Seconds to wait for chart animations per tile (default 0)
+        log_context: Optional identifier (e.g. report execution id, or a
+            cache key for thumbnails) appended to log lines so a slow/timed-out
+            capture can be traced back to the run that produced it.
 
     Returns:
         Combined screenshot bytes or None if failed
     """
+    context_suffix = f" [{log_context}]" if log_context else ""
+    # Set right before re-raising the per-tile readiness timeout below, and
+    # checked in the except block at the bottom of this function. Deciding
+    # whether to propagate via `isinstance(e, PlaywrightTimeout)` would be
+    # unreliable: when the playwright package isn't installed,
+    # `PlaywrightTimeout` is aliased to the bare `Exception` class (see the
+    # try/except ImportError above this function), which would make *any*
+    # exception -- not just our own deliberate readiness-timeout raise --
+    # match `except PlaywrightTimeout` and incorrectly propagate instead of
+    # degrading to `None` like every other unexpected error in this function.
+    readiness_timeout = False
     try:
         # Get the target element
         element = page.locator(f".{element_name}")
@@ -148,31 +240,57 @@ def take_tiled_screenshot(
             )
             # Wait for scroll to settle and content to load
             page.wait_for_timeout(SCROLL_SETTLE_TIMEOUT_MS)
-            # Wait for any loading spinners visible in the current viewport to clear.
-            # Only check viewport-visible spinners to avoid blocking on
-            # virtualization placeholders rendered for off-screen charts.
+            # Wait for every chart holder visible in the current viewport to reach
+            # a terminal state (rendered chart or error/empty state). Only check
+            # viewport-visible chart holders to avoid blocking on virtualization
+            # placeholders rendered for off-screen charts. A holder that hasn't
+            # mounted anything yet does not satisfy this check -- unlike checking
+            # for the absence of `.loading`, which passes vacuously in that case.
+            tile_wait_start = time.monotonic()
             try:
                 page.wait_for_function(
-                    """() => {
-                        const els = document.querySelectorAll('.loading');
-                        for (const el of els) {
-                            const r = el.getBoundingClientRect();
-                            if (r.top < window.innerHeight && r.bottom > 0) {
-                                return false;
-                            }
-                        }
-                        return true;
-                    }""",
+                    _TILE_READY_CHECK_JS,
                     timeout=load_wait * 1000,
                 )
             except PlaywrightTimeout:
+                elapsed = time.monotonic() - tile_wait_start
+                unready_chart_holders = page.evaluate(_FIND_UNREADY_CHART_HOLDERS_JS)
+                # A chart failing to load in time is a customer chart-loading
+                # issue (slow query, error state, etc.), not a Superset system
+                # fault, so this stays at WARNING -- the report still fails
+                # loudly via the `raise` below. See #38130 / #38441, which
+                # made the same call for the other screenshot timeout paths.
                 logger.warning(
-                    "Timed out waiting for visible spinners to clear on tile %s/%s "
-                    "(load_wait=%ss)",
+                    "Timed out after %.2fs waiting for %s chart container(s) to "
+                    "become ready on tile %s/%s (load_wait=%ss)%s; unready chart "
+                    "holders (chart id, state): %s. Aborting tiled screenshot "
+                    "rather than capturing a blank or partially-loaded tile.",
+                    elapsed,
+                    len(unready_chart_holders),
                     i + 1,
                     num_tiles,
                     load_wait,
+                    context_suffix,
+                    unready_chart_holders,
                 )
+                readiness_timeout = True
+                raise
+            else:
+                elapsed = time.monotonic() - tile_wait_start
+                logger.debug(
+                    "Tile %s/%s chart holders ready after %.2fs (load_wait=%ss)%s",
+                    i + 1,
+                    num_tiles,
+                    elapsed,
+                    load_wait,
+                    context_suffix,
+                )
+
+            # Wait for chart animations (e.g. ECharts) to finish after spinner clears.
+            # The global animation wait before tiling only covers the first tile;
+            # subsequent tiles need their own wait after data loads.
+            if animation_wait > 0:
+                page.wait_for_timeout(animation_wait * 1000)
 
             # Calculate what portion of the element we want to capture for this tile
             tile_start_in_element = i * tile_height
@@ -222,5 +340,14 @@ def take_tiled_screenshot(
         return combined_screenshot
 
     except Exception as e:
-        logger.exception("Tiled screenshot failed: %s", e)
+        if readiness_timeout:
+            # Let the per-tile readiness timeout propagate so the caller
+            # fails the report instead of silently falling back to a
+            # degraded screenshot -- already logged as a WARNING above.
+            raise
+        # Any other exception is a genuine system-level fault (or a setup
+        # failure unrelated to chart readiness, e.g. the dashboard element
+        # itself never appearing), not a customer chart taking too long to
+        # load, so it stays at ERROR/exception level.
+        logger.exception("Tiled screenshot failed: %s%s", e, context_suffix)
         return None

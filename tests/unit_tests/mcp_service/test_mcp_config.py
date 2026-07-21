@@ -19,6 +19,8 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from superset.mcp_service.app import get_default_instructions, init_fastmcp_server
 
 
@@ -101,7 +103,7 @@ def test_get_default_instructions_forbid_disclosing_other_user_access_or_roles()
     assert "Do NOT disclose dashboard access lists" in instructions
     assert "other users' names, usernames, email addresses" in instructions
     assert "current user's own identity details" in instructions
-    assert "Do NOT use execute_sql to query user, role, owner" in instructions
+    assert "Do NOT use execute_sql to query user, role, editor" in instructions
     assert "direct them to their workspace admin" in instructions
 
 
@@ -224,3 +226,261 @@ def test_get_mcp_config_respects_app_config_override() -> None:
     custom = {"execute_sql", "health_check"}
     config = get_mcp_config({"MCP_DISABLED_TOOLS": custom})
     assert config["MCP_DISABLED_TOOLS"] == custom
+
+
+def test_build_composite_verifier_string_prefix():
+    """A plain-string FAB_API_KEY_PREFIXES is wrapped into a single-element list."""
+    from superset.mcp_service.mcp_config import _build_composite_verifier
+
+    mock_app = MagicMock()
+    mock_app.config.get.side_effect = lambda key, default=None: (
+        "sst_" if key == "FAB_API_KEY_PREFIXES" else default
+    )
+
+    result = _build_composite_verifier(mock_app, jwt_verifier=None)
+
+    assert result._api_key_prefixes == ("sst_",)
+
+
+def test_build_composite_verifier_list_prefix():
+    """A list FAB_API_KEY_PREFIXES is passed through as-is."""
+    from superset.mcp_service.mcp_config import _build_composite_verifier
+
+    mock_app = MagicMock()
+    mock_app.config.get.side_effect = lambda key, default=None: (
+        ["sst_", "api_"] if key == "FAB_API_KEY_PREFIXES" else default
+    )
+
+    result = _build_composite_verifier(mock_app, jwt_verifier=None)
+
+    assert result._api_key_prefixes == ("sst_", "api_")
+
+
+def test_build_composite_verifier_invalid_prefix_falls_back_to_default():
+    """A non-iterable FAB_API_KEY_PREFIXES (e.g. None) falls back to ['sst_']."""
+    from superset.mcp_service.mcp_config import _build_composite_verifier
+
+    mock_app = MagicMock()
+    mock_app.config.get.side_effect = lambda key, default=None: (
+        None if key == "FAB_API_KEY_PREFIXES" else default
+    )
+
+    result = _build_composite_verifier(mock_app, jwt_verifier=None)
+
+    assert result._api_key_prefixes == ("sst_",)
+
+
+# -- get_mcp_api_key_enabled --
+
+
+def test_get_mcp_api_key_enabled_explicit_true():
+    """MCP_API_KEY_ENABLED=True returns True regardless of FAB setting."""
+    from superset.mcp_service.mcp_config import get_mcp_api_key_enabled
+
+    mock_app = MagicMock()
+    mock_app.config.get.side_effect = lambda key, default=None: (
+        True if key == "MCP_API_KEY_ENABLED" else default
+    )
+
+    assert get_mcp_api_key_enabled(mock_app) is True
+
+
+def test_get_mcp_api_key_enabled_explicit_false():
+    """MCP_API_KEY_ENABLED=False returns False even when FAB setting is True."""
+    from superset.mcp_service.mcp_config import get_mcp_api_key_enabled
+
+    mock_app = MagicMock()
+    mock_app.config.get.side_effect = lambda key, default=None: (
+        False if key == "MCP_API_KEY_ENABLED" else True
+    )
+
+    assert get_mcp_api_key_enabled(mock_app) is False
+
+
+def test_get_mcp_api_key_enabled_falls_back_to_fab():
+    """When MCP_API_KEY_ENABLED is not set, falls back to FAB_API_KEY_ENABLED."""
+    from superset.mcp_service.mcp_config import get_mcp_api_key_enabled
+
+    mock_app = MagicMock()
+    mock_app.config.get.side_effect = lambda key, default=None: (
+        None
+        if key == "MCP_API_KEY_ENABLED"
+        else (True if key == "FAB_API_KEY_ENABLED" else default)
+    )
+
+    assert get_mcp_api_key_enabled(mock_app) is True
+
+
+def test_get_mcp_api_key_enabled_both_absent_returns_false():
+    """When neither setting is configured, returns False."""
+    from superset.mcp_service.mcp_config import get_mcp_api_key_enabled
+
+    mock_app = MagicMock()
+    mock_app.config.get.return_value = None
+
+    assert get_mcp_api_key_enabled(mock_app) is False
+
+
+# -- create_default_mcp_auth_factory --
+
+
+def test_create_default_mcp_auth_factory_returns_none_when_disabled():
+    """Returns None when neither MCP_AUTH_ENABLED nor API key auth is on."""
+    from superset.mcp_service.mcp_config import create_default_mcp_auth_factory
+
+    mock_app = MagicMock()
+    mock_app.config.get.side_effect = lambda key, default=None: (
+        False
+        if key in ("MCP_AUTH_ENABLED", "MCP_API_KEY_ENABLED", "FAB_API_KEY_ENABLED")
+        else default
+    )
+
+    result = create_default_mcp_auth_factory(mock_app)
+
+    assert result is None
+
+
+def test_create_default_mcp_auth_factory_api_key_only():
+    """Returns a CompositeTokenVerifier when only API key auth is enabled."""
+    from superset.mcp_service.composite_token_verifier import CompositeTokenVerifier
+    from superset.mcp_service.mcp_config import create_default_mcp_auth_factory
+
+    mock_app = MagicMock()
+    mock_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_ENABLED": False,
+        "MCP_API_KEY_ENABLED": True,
+        "FAB_API_KEY_PREFIXES": ["sst_"],
+        "MCP_REQUIRED_SCOPES": [],
+    }.get(key, default)
+
+    result = create_default_mcp_auth_factory(mock_app)
+
+    assert isinstance(result, CompositeTokenVerifier)
+
+
+def test_get_mcp_api_key_enabled_fab_fallback_logs_startup_warning():
+    """startup_warning=True logs a warning when the value is inherited from FAB."""
+    from superset.mcp_service.mcp_config import get_mcp_api_key_enabled
+
+    mock_app = MagicMock()
+    mock_app.config.get.side_effect = lambda key, default=None: (
+        None
+        if key == "MCP_API_KEY_ENABLED"
+        else (True if key == "FAB_API_KEY_ENABLED" else default)
+    )
+
+    with patch("superset.mcp_service.mcp_config.logger") as mock_logger:
+        result = get_mcp_api_key_enabled(mock_app, startup_warning=True)
+
+    assert result is True
+    mock_logger.warning.assert_called_once()
+
+
+def test_create_default_mcp_auth_factory_jwt_with_keys():
+    """JWT auth with keys configured returns the built JWT verifier."""
+    from superset.mcp_service.mcp_config import create_default_mcp_auth_factory
+
+    mock_app = MagicMock()
+    mock_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_ENABLED": True,
+        "MCP_API_KEY_ENABLED": False,
+        "FAB_API_KEY_ENABLED": False,
+        "MCP_JWT_AUDIENCE": "superset-mcp",
+        "MCP_JWT_SECRET": "shhh",
+    }.get(key, default)
+
+    sentinel = object()
+    with patch(
+        "superset.mcp_service.mcp_config._build_jwt_verifier", return_value=sentinel
+    ) as mock_build:
+        result = create_default_mcp_auth_factory(mock_app)
+
+    assert result is sentinel
+    mock_build.assert_called_once()
+
+
+def test_create_default_mcp_auth_factory_jwt_enabled_without_keys_returns_none():
+    """MCP_AUTH_ENABLED=True with no keys/secret and no API key auth returns None."""
+    from superset.mcp_service.mcp_config import create_default_mcp_auth_factory
+
+    mock_app = MagicMock()
+    mock_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_ENABLED": True,
+        "MCP_API_KEY_ENABLED": False,
+        "FAB_API_KEY_ENABLED": False,
+        "MCP_JWT_AUDIENCE": "superset-mcp",
+    }.get(key, default)
+
+    with patch("superset.mcp_service.mcp_config.logger") as mock_logger:
+        result = create_default_mcp_auth_factory(mock_app)
+
+    assert result is None
+    mock_logger.warning.assert_called_once()
+
+
+def test_create_default_mcp_auth_factory_jwt_build_failure_returns_none():
+    """A JWT verifier build failure with no API key fallback returns None."""
+    from superset.mcp_service.mcp_config import create_default_mcp_auth_factory
+
+    mock_app = MagicMock()
+    mock_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_ENABLED": True,
+        "MCP_API_KEY_ENABLED": False,
+        "FAB_API_KEY_ENABLED": False,
+        "MCP_JWT_AUDIENCE": "superset-mcp",
+        "MCP_JWT_SECRET": "shhh",
+    }.get(key, default)
+
+    with (
+        patch(
+            "superset.mcp_service.mcp_config._build_jwt_verifier",
+            side_effect=ValueError("bad key"),
+        ),
+        patch("superset.mcp_service.mcp_config.logger") as mock_logger,
+    ):
+        result = create_default_mcp_auth_factory(mock_app)
+
+    assert result is None
+    mock_logger.error.assert_called_once()
+
+
+def test_create_default_mcp_auth_factory_requires_audience_when_jwt_enabled():
+    """MCP_AUTH_ENABLED=True without MCP_JWT_AUDIENCE fails closed.
+
+    A missing audience must raise MCPAuthConfigError (rather than returning a
+    permissive verifier) so the bootstrap refuses to start the service instead
+    of accepting same-issuer tokens minted for other services.
+    """
+    from superset.mcp_service.mcp_config import (
+        create_default_mcp_auth_factory,
+        MCPAuthConfigError,
+    )
+
+    mock_app = MagicMock()
+    mock_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_ENABLED": True,
+        "MCP_API_KEY_ENABLED": False,
+        "FAB_API_KEY_ENABLED": False,
+        "MCP_JWT_SECRET": "shhh",
+    }.get(key, default)
+
+    with pytest.raises(MCPAuthConfigError):
+        create_default_mcp_auth_factory(mock_app)
+
+
+def test_create_default_mcp_auth_factory_audience_not_required_for_api_key_only():
+    """API-key-only auth (JWT disabled) does not require MCP_JWT_AUDIENCE."""
+    from superset.mcp_service.composite_token_verifier import CompositeTokenVerifier
+    from superset.mcp_service.mcp_config import create_default_mcp_auth_factory
+
+    mock_app = MagicMock()
+    mock_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_ENABLED": False,
+        "MCP_API_KEY_ENABLED": True,
+        "FAB_API_KEY_PREFIXES": ["sst_"],
+        "MCP_REQUIRED_SCOPES": [],
+    }.get(key, default)
+
+    result = create_default_mcp_auth_factory(mock_app)
+
+    assert isinstance(result, CompositeTokenVerifier)

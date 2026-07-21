@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from unittest.mock import MagicMock
+
 import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
@@ -22,10 +24,19 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session
 
-from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.connectors.sqla.models import (
+    SqlaTable,
+    TableColumn,
+    validate_stored_expression,
+)
 from superset.daos.dataset import DatasetDAO
 from superset.daos.exceptions import DatasourceNotFound
-from superset.exceptions import OAuth2RedirectError
+from superset.exceptions import (
+    OAuth2RedirectError,
+    SupersetDisallowedSQLFunctionException,
+    SupersetDisallowedSQLTableException,
+    SupersetSecurityException,
+)
 from superset.models.core import Database
 from superset.sql.parse import Table
 from superset.superset_typing import QueryObjectDict
@@ -72,6 +83,116 @@ def test_query_bubbles_errors(mocker: MockerFixture) -> None:
     }
     with pytest.raises(OAuth2RedirectError):
         sqla_table.query(query_obj)
+
+
+def _query_obj() -> QueryObjectDict:
+    return {
+        "granularity": None,
+        "from_dttm": None,
+        "to_dttm": None,
+        "groupby": ["id"],
+        "metrics": [],
+        "is_timeseries": False,
+        "filter": [],
+    }
+
+
+def _build_sqla_table_for_query(
+    mocker: MockerFixture, sql: str, engine: str = "postgresql"
+) -> SqlaTable:
+    db_engine_spec = mocker.MagicMock()
+    db_engine_spec.engine = engine
+    database = mocker.MagicMock()
+    database.db_engine_spec = db_engine_spec
+    sqla_table = SqlaTable(
+        table_name="my_sqla_table",
+        columns=[],
+        metrics=[],
+        database=database,
+    )
+    mocker.patch.object(
+        SqlaTable,
+        "db_engine_spec",
+        new=property(lambda self: db_engine_spec),
+    )
+    mocker.patch.object(
+        sqla_table,
+        "get_query_str_extended",
+        return_value=mocker.MagicMock(sql=sql, labels_expected=[]),
+    )
+    return sqla_table
+
+
+def test_query_blocks_disallowed_function_on_chart_data_path(
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch.dict(
+        "flask.current_app.config",
+        {
+            "DISALLOWED_SQL_FUNCTIONS": {"postgresql": {"version"}},
+            "DISALLOWED_SQL_TABLES": {},
+        },
+        clear=False,
+    )
+    sqla_table = _build_sqla_table_for_query(mocker, "SELECT version()")
+    with pytest.raises(SupersetDisallowedSQLFunctionException):
+        sqla_table.query(_query_obj())
+    sqla_table.database.get_df.assert_not_called()  # type: ignore[attr-defined]
+
+
+def test_query_blocks_disallowed_table_on_chart_data_path(
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch.dict(
+        "flask.current_app.config",
+        {
+            "DISALLOWED_SQL_FUNCTIONS": {},
+            "DISALLOWED_SQL_TABLES": {"postgresql": {"pg_authid"}},
+        },
+        clear=False,
+    )
+    sqla_table = _build_sqla_table_for_query(mocker, "SELECT rolname FROM pg_authid")
+    with pytest.raises(SupersetDisallowedSQLTableException):
+        sqla_table.query(_query_obj())
+    sqla_table.database.get_df.assert_not_called()  # type: ignore[attr-defined]
+
+
+def test_query_disallowed_table_error_reports_only_matched_tables(
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch.dict(
+        "flask.current_app.config",
+        {
+            "DISALLOWED_SQL_FUNCTIONS": {},
+            "DISALLOWED_SQL_TABLES": {
+                "postgresql": {"pg_authid", "pg_shadow", "pg_stat_activity"}
+            },
+        },
+        clear=False,
+    )
+    sqla_table = _build_sqla_table_for_query(mocker, "SELECT rolname FROM pg_authid")
+    with pytest.raises(SupersetDisallowedSQLTableException) as excinfo:
+        sqla_table.query(_query_obj())
+    message = str(excinfo.value)
+    assert "pg_authid" in message
+    assert "pg_shadow" not in message
+    assert "pg_stat_activity" not in message
+
+
+def test_query_allows_benign_sql_on_chart_data_path(mocker: MockerFixture) -> None:
+    mocker.patch.dict(
+        "flask.current_app.config",
+        {
+            "DISALLOWED_SQL_FUNCTIONS": {"postgresql": {"version"}},
+            "DISALLOWED_SQL_TABLES": {"postgresql": {"pg_authid"}},
+        },
+        clear=False,
+    )
+    sqla_table = _build_sqla_table_for_query(mocker, "SELECT id FROM my_sqla_table")
+    sqla_table.database.get_df.return_value = pd.DataFrame()  # type: ignore[attr-defined]
+    result = sqla_table.query(_query_obj())
+    sqla_table.database.get_df.assert_called_once()  # type: ignore[attr-defined]
+    assert result is not None
 
 
 def test_permissions_without_catalog() -> None:
@@ -269,7 +390,7 @@ def test_dataset_uniqueness(session: Session) -> None:
 
 def test_normalize_prequery_result_type_custom_sql() -> None:
     """
-    Test that the `_normalize_prequery_result_type` can hanndle custom SQL.
+    Test that the `_normalize_prequery_result_type` can handle custom SQL.
     """
     sqla_table = SqlaTable(
         table_name="my_sqla_table",
@@ -421,6 +542,91 @@ def test_fetch_metadata_with_comment_field_existing_columns(
 
     assert columns_by_name["id"].description == "Updated primary key description"
     assert columns_by_name["name"].description == "Updated name description"
+
+
+def test_fetch_metadata_sets_expression_for_expanded_nested_columns(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that fetch_metadata uses the `expression` hint provided by the db engine
+    spec (e.g. Trino's expansion of nested `ROW` columns via `expand_rows`) to set
+    the physical `TableColumn.expression`.
+
+    Without this, a nested column like `metadata.uuid` would have no expression,
+    causing SQLAlchemy to render the whole dotted `column_name` as a single quoted
+    identifier (`"metadata.uuid"`), which Trino rejects, instead of the correct
+    per-segment quoting (`"metadata"."uuid"`).
+
+    See: https://github.com/apache/superset/issues/27034
+    """
+    # Mock database
+    database: MagicMock = mocker.MagicMock()
+    database.get_metrics.return_value = []
+
+    # Mock db_engine_spec
+    mock_db_engine_spec: MagicMock = mocker.MagicMock()
+    mock_db_engine_spec.alter_new_orm_column = mocker.MagicMock()
+    database.db_engine_spec = mock_db_engine_spec
+
+    # Create table with a pre-existing (already synced) expanded column, to also
+    # cover the "sync columns from source" (re-fetch) code path
+    table: SqlaTable = SqlaTable(table_name="test_table_nested", database=database)
+    table.id = 1
+
+    existing_col: TableColumn = TableColumn(
+        column_name="metadata.uuid",
+        type="VARCHAR",
+        table=table,
+        expression="",
+    )
+    table.columns = [existing_col]
+
+    mock_columns: list[dict[str, str]] = [
+        {
+            "column_name": "metadata",
+            "type": "ROW",
+        },
+        {
+            "column_name": "metadata.uuid",
+            "type": "VARCHAR",
+            "expression": '"metadata"."uuid"',
+            "query_as": '"metadata"."uuid" AS "metadata.uuid"',
+        },
+    ]
+
+    mock_session: MagicMock = mocker.patch("superset.connectors.sqla.models.db.session")
+    mock_session.query.return_value.filter.return_value.all.return_value = [
+        existing_col
+    ]
+    mocker.patch.object(table, "external_metadata", return_value=mock_columns)
+    mocker.patch(
+        "superset.connectors.sqla.models.config", {"SQLA_TABLE_MUTATOR": lambda x: None}
+    )
+
+    table.fetch_metadata()
+
+    columns_by_name: dict[str, TableColumn] = {
+        col.column_name: col for col in table.columns
+    }
+    assert len(table.columns) == len(mock_columns)
+    assert not columns_by_name["metadata"].expression
+    assert columns_by_name["metadata.uuid"].expression == '"metadata"."uuid"'
+
+    # Re-run fetch_metadata a second time to simulate re-syncing columns from
+    # source. The previously synced physical column now carries a truthy
+    # `expression`, which must not cause it to be duplicated in `self.columns`.
+    mock_session_2 = mocker.patch("superset.connectors.sqla.models.db.session")
+    mock_session_2.query.return_value.filter.return_value.all.return_value = list(
+        table.columns
+    )
+    mocker.patch.object(table, "external_metadata", return_value=mock_columns)
+
+    table.fetch_metadata()
+
+    assert len(table.columns) == len(mock_columns)
+    columns_by_name = {col.column_name: col for col in table.columns}
+    assert not columns_by_name["metadata"].expression
+    assert columns_by_name["metadata.uuid"].expression == '"metadata"."uuid"'
 
 
 def test_fetch_metadata_mixed_comment_scenarios(mocker: MockerFixture) -> None:
@@ -948,32 +1154,113 @@ def test_data_for_slices_handles_missing_datasource(mocker: MockerFixture) -> No
     assert "verbose_map" in result
 
 
-def test_owners_data_includes_email(mocker: MockerFixture) -> None:
-    """Test that the owners_data property includes the email field."""
-    database = mocker.MagicMock()
+def _database_for_expression(mocker: MockerFixture) -> Database:
+    database = mocker.MagicMock(spec=Database)
+    database.backend = "sqlite"
+    database.allow_multi_catalog = False
+    return database
 
-    table = SqlaTable(
-        table_name="test_table",
-        database=database,
-        columns=[],
-        metrics=[],
+
+def test_validate_stored_expression_rejects_multi_statement(
+    mocker: MockerFixture,
+) -> None:
+    database = _database_for_expression(mocker)
+    with pytest.raises(SupersetSecurityException):
+        validate_stored_expression(database, None, None, "1; DROP TABLE users")
+
+
+def test_validate_stored_expression_rejects_set_operation(
+    mocker: MockerFixture,
+) -> None:
+    database = _database_for_expression(mocker)
+    with pytest.raises(SupersetSecurityException):
+        validate_stored_expression(
+            database, None, None, "1 UNION SELECT password FROM ab_user"
+        )
+
+
+def test_validate_stored_expression_accepts_case_expression(
+    mocker: MockerFixture,
+) -> None:
+    database = _database_for_expression(mocker)
+    validate_stored_expression(
+        database, None, None, "CASE WHEN amount > 0 THEN 'a' ELSE 'b' END"
     )
 
-    mock_owner = mocker.MagicMock()
-    mock_owner.first_name = "John"
-    mock_owner.last_name = "Doe"
-    mock_owner.username = "johndoe"
-    mock_owner.id = 1
-    mock_owner.email = "john@example.com"
 
-    table.owners = [mock_owner]
+def test_validate_stored_expression_rejects_subquery(
+    mocker: MockerFixture,
+) -> None:
+    """
+    With ``ALLOW_ADHOC_SUBQUERY=False`` (the default), a stored
+    expression that contains a sub-query is rejected by the same
+    ``validate_adhoc_subquery`` gate that already covers adhoc SQL.
+    Locks in the sub-query branch so a future refactor that
+    removes the ``validate_adhoc_subquery`` call gets a red test.
+    """
+    database = _database_for_expression(mocker)
+    mocker.patch("superset.models.helpers.is_feature_enabled", return_value=False)
+    with pytest.raises(SupersetSecurityException):
+        validate_stored_expression(
+            database,
+            None,
+            None,
+            "(SELECT password FROM ab_user LIMIT 1)",
+        )
 
-    owners_data = table.owners_data
-    assert len(owners_data) == 1
-    assert owners_data[0] == {
-        "first_name": "John",
-        "last_name": "Doe",
-        "username": "johndoe",
-        "id": 1,
-        "email": "john@example.com",
-    }
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "case when '{{ current_username() }}' = 'abc' then 'yes' else 'no' end",
+        "SUM(price) * {{ url_param('multiplier') }}",
+        "{# comment #} amount",
+        "{% if 1 %}amount{% endif %}",
+    ],
+)
+def test_validate_stored_expression_accepts_jinja(
+    mocker: MockerFixture, expression: str
+) -> None:
+    """
+    Stored expressions can contain Jinja templating. Balanced Jinja blocks
+    are replaced with a placeholder so the surrounding SQL is still parsed;
+    skeletons whose control flow leaves them unparseable defer to runtime.
+    """
+    database = _database_for_expression(mocker)
+    validate_stored_expression(database, None, None, expression)
+
+
+def test_validate_stored_expression_rejects_set_op_around_jinja(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A ``UNION`` smuggled around a Jinja block must still be rejected: the
+    Jinja substitution leaves the set operator visible to the parser.
+    """
+    database = _database_for_expression(mocker)
+    with pytest.raises(SupersetSecurityException):
+        validate_stored_expression(
+            database,
+            None,
+            None,
+            "'{{ current_username() }}' UNION SELECT password FROM ab_user",
+        )
+
+
+def test_validate_stored_expression_rejects_subquery_around_jinja(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Sub-queries combined with a Jinja comment block must still be rejected:
+    stripping the ``{# ... #}`` block leaves the sub-query visible to the
+    ``validate_adhoc_subquery`` gate.
+    """
+    database = _database_for_expression(mocker)
+    mocker.patch("superset.models.helpers.is_feature_enabled", return_value=False)
+    with pytest.raises(SupersetSecurityException):
+        validate_stored_expression(
+            database,
+            None,
+            None,
+            "(SELECT password FROM ab_user LIMIT 1) {# x #}",
+        )

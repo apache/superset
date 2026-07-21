@@ -21,6 +21,7 @@ from typing import Any, TYPE_CHECKING
 from urllib import parse
 
 import sqlalchemy as sqla
+from flask import has_request_context, url_for
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from markupsafe import escape, Markup
@@ -31,7 +32,6 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
-    Table,
     Text,
 )
 from sqlalchemy.engine.base import Connection
@@ -42,7 +42,13 @@ from superset_core.common.models import Chart as CoreChart
 
 from superset import db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
-from superset.models.helpers import AuditMixinNullable, ImportExportMixin
+from superset.models.helpers import (
+    AuditMixinNullable,
+    ImportExportMixin,
+    SoftDeleteMixin,
+)
+from superset.security.manager import get_extra_editor_subject_ids
+from superset.subjects.models import chart_editors, chart_viewers, Subject
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_chart_digest
@@ -55,24 +61,54 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
 
 metadata = Model.metadata  # pylint: disable=no-member
-slice_user = Table(
-    "slice_user",
-    metadata,
-    Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
-    Column("slice_id", Integer, ForeignKey("slices.id", ondelete="CASCADE")),
-)
 logger = logging.getLogger(__name__)
 
 
 class Slice(  # pylint: disable=too-many-public-methods
-    CoreChart, AuditMixinNullable, ImportExportMixin
+    CoreChart, SoftDeleteMixin, AuditMixinNullable, ImportExportMixin
 ):
     """A slice is essentially a report or a view on data"""
 
     query_context_factory: QueryContextFactory | None = None
 
     __tablename__ = "slices"
+    # query_context is excluded: it is a cached/regenerated field, not user-authored.
+    # deleted_at is deletion-state metadata (SoftDeleteMixin), tracked by soft
+    # delete, not content versioning; it is also absent from the slices_version
+    # shadow table, so leaving it in would fail every capture INSERT.
+    # Exclude M2M association relationships: Continuum only captures FK columns on
+    # association INSERTs (not the auto-increment id), which breaks the NOT NULL PK.
+    # Ownership changes are administrative metadata, not user-authored content.
+    # Audit / save-marker columns are auto-bumped on every save. Excluding
+    # them lets Continuum's is_modified() return False on no-op saves
+    # (e.g. owners-only edits) so we don't create empty version rows.
+    # version_transaction.user_id / issued_at preserve "who/when".
+    # The perm-string class (perm / schema_perm / catalog_perm) is derived
+    # security state, not user-authored content: permission maintenance
+    # rewrites it in bulk, and versioning it produced phantom transactions
+    # flooding the activity stream (10 "Chart updated" rows for one user
+    # save — surfaced by the version-history UI). Excluding it
+    # also means a restore can't resurrect stale permission strings; the
+    # live, derived values stay authoritative.
+    __versioned__: dict[str, Any] = {
+        "exclude": [
+            "query_context",
+            "owners",
+            "editors",
+            "viewers",
+            "dashboards",
+            "changed_on",
+            "created_on",
+            "changed_by_fk",
+            "created_by_fk",
+            "last_saved_at",
+            "last_saved_by_fk",
+            "perm",
+            "schema_perm",
+            "catalog_perm",
+            "deleted_at",
+        ]
+    }
     id = Column(Integer, primary_key=True)
     slice_name = Column(String(250))
     datasource_id = Column(Integer)
@@ -97,11 +133,17 @@ class Slice(  # pylint: disable=too-many-public-methods
     last_saved_by = relationship(
         security_manager.user_model, foreign_keys=[last_saved_by_fk]
     )
-    owners = relationship(
-        security_manager.user_model,
-        secondary=slice_user,
+    editors = relationship(
+        Subject,
+        secondary=chart_editors,
         passive_deletes=True,
     )
+    viewers = relationship(
+        Subject,
+        secondary=chart_viewers,
+        passive_deletes=True,
+    )
+
     tags = relationship(
         "Tag",
         secondary="tagged_object",
@@ -224,7 +266,9 @@ class Slice(  # pylint: disable=too-many-public-methods
             "form_data": self.form_data,
             "query_context": self.query_context,
             "modified": self.modified(),
-            "owners": [owner.id for owner in self.owners],
+            "editors": [s.id for s in self.editors],
+            "extra_editors": get_extra_editor_subject_ids(self),
+            "viewers": [s.id for s in self.viewers],
             "slice_id": self.id,
             "slice_name": self.slice_name,
             "slice_url": self.slice_url,
@@ -244,7 +288,14 @@ class Slice(  # pylint: disable=too-many-public-methods
         if the dashboard has changed
         """
         if digest := self.digest:
-            return f"/api/v1/chart/{self.id}/thumbnail/{digest}/"
+            if not has_request_context():
+                # Out-of-request callers (CLI, celery tasks) have no
+                # SCRIPT_NAME to honor; keep the router-relative shape so
+                # the property stays callable anywhere.
+                return f"/api/v1/chart/{self.id}/thumbnail/{digest}/"
+            # url_for respects SCRIPT_NAME, so the URL carries the application
+            # root prefix under subdirectory deployments.
+            return url_for("ChartRestApi.thumbnail", pk=self.id, digest=digest)
 
         return None
 
@@ -309,7 +360,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     @property
     def explore_json_url(self) -> str:
         """Defines the url to access the slice"""
-        return self.get_explore_url("/superset/explore_json")
+        return self.get_explore_url("/explore_json")
 
     @property
     def edit_url(self) -> str:
@@ -322,15 +373,23 @@ class Slice(  # pylint: disable=too-many-public-methods
     @property
     def slice_link(self) -> Markup:
         name = escape(self.chart)
-        return Markup(f'<a href="{self.url}">{name}</a>')
+        # FAB list view renders this raw HTML; use url_for so Flask prepends
+        # SCRIPT_NAME (the application_root). `Slice.url` itself stays router-
+        # relative so frontend callers can apply ensureAppRoot exactly once.
+        href = url_for("ExploreView.root", slice_id=self.id)
+        return Markup(f'<a href="{href}">{name}</a>')
 
     @property
     def icons(self) -> str:
+        # Escape the data-controlled datasource name and edit URL before they
+        # are interpolated into HTML attributes.
+        url = escape(self.datasource_edit_url)
+        datasource = escape(self.datasource)
         return f"""
         <a
-                href="{self.datasource_edit_url}"
+                href="{url}"
                 data-toggle="tooltip"
-                title="{self.datasource}">
+                title="{datasource}">
             <i class="fa fa-database"></i>
         </a>
         """

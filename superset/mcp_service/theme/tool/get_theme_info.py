@@ -17,6 +17,9 @@
 
 """
 Get theme info FastMCP tool
+
+This module contains the FastMCP tool for getting detailed information
+about a specific theme by numeric ID or UUID.
 """
 
 import logging
@@ -49,25 +52,18 @@ logger = logging.getLogger(__name__)
 async def get_theme_info(
     request: GetThemeInfoRequest, ctx: Context
 ) -> ThemeInfo | ThemeError:
-    """Get theme details by ID or UUID.
+    """Get theme metadata by numeric ID or UUID.
 
-    Returns theme configuration including json_data.
+    Returns theme details including name, system flags, and the antd
+    design-token configuration (json_data).
 
-    IMPORTANT FOR LLM CLIENTS:
-    - Use numeric ID (e.g., 123) or UUID string (e.g., "a1b2c3d4-...")
-    - To find a theme ID, use the list_themes tool first
+    The identifier may be a numeric ID or a UUID string. To find a theme
+    ID, use the list_themes tool first.
 
     Example usage:
     ```json
     {
         "identifier": 1
-    }
-    ```
-
-    Or with UUID:
-    ```json
-    {
-        "identifier": "a1b2c3d4-5678-90ab-cdef-1234567890ab"
     }
     ```
     """
@@ -92,9 +88,8 @@ async def get_theme_info(
 
         if isinstance(result, ThemeInfo):
             await ctx.info(
-                "Theme information retrieved successfully: "
-                "id=%s, theme_name=%s, uuid=%s"
-                % (result.id, result.theme_name, result.uuid)
+                "Theme information retrieved successfully: theme_id=%s, name=%s"
+                % (result.id, result.theme_name)
             )
         else:
             await ctx.warning(

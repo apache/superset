@@ -86,6 +86,39 @@ instead requires a cachelib object.
 
 See [Async Queries via Celery](/admin-docs/configuration/async-queries-celery) for details.
 
+## Celery beat
+
+Superset has a Celery task that will periodically warm up the cache based on different strategies.
+To use it, add the following to your `superset_config.py`:
+
+```python
+from celery.schedules import crontab
+from superset.config import CeleryConfig
+
+# User that will be used to authenticate and render dashboards for cache warmup
+SUPERSET_CACHE_WARMUP_USER = "user_with_permission_to_dashboards"
+
+# Extend the default CeleryConfig to add cache warmup schedule
+class CustomCeleryConfig(CeleryConfig):
+    beat_schedule = {
+        **CeleryConfig.beat_schedule,
+        'cache-warmup-hourly': {
+            'task': 'cache-warmup',
+            'schedule': crontab(minute=0, hour='*'),  # hourly
+            'kwargs': {
+                'strategy_name': 'top_n_dashboards',
+                'top_n': 5,
+                'since': '7 days ago',
+            },
+        },
+    }
+
+CELERY_CONFIG = CustomCeleryConfig
+```
+
+This will cache the top 5 most popular dashboards every hour. For other
+strategies, check the `superset/tasks/cache.py` file.
+
 ## Caching Thumbnails
 
 This is an optional feature that can be turned on by activating its [feature flag](/admin-docs/configuration/configuring-superset#feature-flags) on config:
@@ -105,6 +138,10 @@ from superset.tasks.types import FixedExecutor
 
 THUMBNAIL_EXECUTORS = [FixedExecutor("admin")]
 ```
+
+When using `ExecutorType.EDITOR`, thumbnails are rendered as a physical user represented by
+the dashboard or chart editors. Superset prioritizes the last modifier, then the creator,
+then the first direct user editor, then a deterministic user from editor roles or groups.
 
 For this feature you will need a cache system and celery workers. All thumbnails are stored on cache
 and are processed asynchronously by the workers.
@@ -146,10 +183,10 @@ WEBDRIVER_BASEURL = "https://superset.company.com"
 
 To control which user account is used for rendering thumbnails and warming up caches, configure
 `THUMBNAIL_EXECUTORS` and `CACHE_WARMUP_EXECUTORS`. Each accepts a list of executor types (which
-resolve to an owner, creator, modifier, or the currently-logged-in user) and/or a `FixedExecutor`
-pinned to a specific username. By default, thumbnails render as the current user
-(`ExecutorType.CURRENT_USER`) and cache warmup runs as the chart/dashboard owner
-(`ExecutorType.OWNER`).
+resolve to an editor, creator, modifier, or the currently-logged-in user) and/or a
+`FixedExecutor` pinned to a specific username. By default, thumbnails render as the current user
+(`ExecutorType.CURRENT_USER`) and cache warmup uses editor-based execution
+(`ExecutorType.EDITOR`) where executor-based cache warmup is used.
 
 To force both to run as a dedicated service account (`admin` in this example):
 

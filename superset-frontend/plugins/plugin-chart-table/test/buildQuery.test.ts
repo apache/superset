@@ -17,7 +17,9 @@
  * under the License.
  */
 import { QueryMode, TimeGranularity, VizType } from '@superset-ui/core';
-import buildQuery from '../src/buildQuery';
+import buildQueryCached, {
+  buildQuery as buildQueryUncached,
+} from '../src/buildQuery';
 import { TableChartFormData } from '../src/types';
 
 const basicFormData: TableChartFormData = {
@@ -50,7 +52,7 @@ const extraQueryFormData: TableChartFormData = {
 describe('plugin-chart-table', () => {
   describe('buildQuery', () => {
     test('should add post-processing and ignore duplicate metrics', () => {
-      const query = buildQuery({
+      const query = buildQueryCached({
         ...basicFormData,
         query_mode: QueryMode.Aggregate,
         metrics: ['aaa', 'aaa'],
@@ -69,7 +71,7 @@ describe('plugin-chart-table', () => {
     });
 
     test('should not add metrics in raw records mode', () => {
-      const query = buildQuery({
+      const query = buildQueryCached({
         ...basicFormData,
         query_mode: QueryMode.Raw,
         columns: ['a'],
@@ -81,7 +83,7 @@ describe('plugin-chart-table', () => {
     });
 
     test('should not add post-processing when there is no percent metric', () => {
-      const query = buildQuery({
+      const query = buildQueryCached({
         ...basicFormData,
         query_mode: QueryMode.Aggregate,
         metrics: ['aaa'],
@@ -92,7 +94,7 @@ describe('plugin-chart-table', () => {
     });
 
     test('should not add post-processing in raw records mode', () => {
-      const query = buildQuery({
+      const query = buildQueryCached({
         ...basicFormData,
         query_mode: QueryMode.Raw,
         metrics: ['aaa'],
@@ -104,7 +106,7 @@ describe('plugin-chart-table', () => {
       expect(query.post_processing).toEqual([]);
     });
     test('should prefer extra_form_data.time_grain_sqla over formData.time_grain_sqla', () => {
-      const query = buildQuery({
+      const query = buildQueryCached({
         ...basicFormData,
         groupby: ['col1'],
         query_mode: QueryMode.Aggregate,
@@ -121,7 +123,7 @@ describe('plugin-chart-table', () => {
       });
     });
     test('should fallback to formData.time_grain_sqla if extra_form_data.time_grain_sqla is not set', () => {
-      const query = buildQuery({
+      const query = buildQueryCached({
         ...basicFormData,
         time_grain_sqla: TimeGranularity.MONTH,
         groupby: ['col1'],
@@ -137,7 +139,7 @@ describe('plugin-chart-table', () => {
       });
     });
     test('should include time_grain_sqla in extras if temporal colum is used and keep the rest', () => {
-      const { queries } = buildQuery({
+      const { queries } = buildQueryCached({
         ...extraQueryFormData,
         temporal_columns_lookup: { col1: true },
       });
@@ -159,7 +161,7 @@ describe('plugin-chart-table', () => {
       };
 
       test('should default to row_limit mode with single query', () => {
-        const { queries } = buildQuery(baseFormDataWithPercents);
+        const { queries } = buildQueryCached(baseFormDataWithPercents);
 
         expect(queries).toHaveLength(1);
         expect(queries[0].metrics).toEqual(['count', 'sum_sales']);
@@ -180,7 +182,7 @@ describe('plugin-chart-table', () => {
           percent_metric_calculation: 'all_records',
         };
 
-        const { queries } = buildQuery(formData);
+        const { queries } = buildQueryCached(formData);
 
         expect(queries).toHaveLength(2);
 
@@ -212,7 +214,7 @@ describe('plugin-chart-table', () => {
           show_totals: true,
         };
 
-        const { queries } = buildQuery(formData);
+        const { queries } = buildQueryCached(formData);
 
         expect(queries).toHaveLength(3);
         expect(queries[1].metrics).toEqual(['sum_sales']);
@@ -229,10 +231,87 @@ describe('plugin-chart-table', () => {
           groupby: ['category'],
         };
 
-        const { queries } = buildQuery(formData);
+        const { queries } = buildQueryCached(formData);
 
         expect(queries).toHaveLength(1);
         expect(queries[0].post_processing).toEqual([]);
+      });
+
+      test('should reapply contribution op to totals query in row_limit mode', () => {
+        // Regression test for #37627: with a percent metric and Show Summary
+        // (show_totals) enabled, the totals query must rename percent-metric
+        // columns (`metric` -> `%metric`) so the footer can look them up.
+        // Otherwise the totals row renders 0.000%.
+        const formData = {
+          ...baseFormDataWithPercents,
+          show_totals: true,
+        };
+
+        const { queries } = buildQueryCached(formData);
+
+        // row_limit mode + show_totals -> [main, totals].
+        expect(queries).toHaveLength(2);
+
+        const contributionRule = {
+          operation: 'contribution',
+          options: {
+            columns: ['sum_sales'],
+            rename_columns: ['%sum_sales'],
+          },
+        };
+
+        expect(queries[1]).toMatchObject({
+          columns: [],
+          post_processing: [contributionRule],
+        });
+      });
+
+      test('should omit time-comparison op from totals post_processing', () => {
+        // The totals query must reuse ONLY the contribution rule; the
+        // time-comparison operator from the main query must not run against
+        // the single-row totals query.
+        const formData = {
+          ...baseFormDataWithPercents,
+          show_totals: true,
+          time_compare: ['1 year ago'],
+          comparison_type: 'values',
+        };
+
+        const { queries } = buildQueryCached(formData);
+
+        // row_limit mode + show_totals -> [main, totals].
+        expect(queries).toHaveLength(2);
+
+        const totalsQuery = queries[1];
+
+        // Exactly one op (contribution) — the time-comparison operator from the
+        // main query must not be carried over to the single-row totals query.
+        expect(totalsQuery.post_processing).toHaveLength(1);
+        expect(totalsQuery.post_processing?.[0]).toMatchObject({
+          operation: 'contribution',
+        });
+        // The reused rule matches the main query's contribution rule verbatim.
+        expect(totalsQuery.post_processing?.[0]).toEqual(
+          queries[0].post_processing?.find(
+            op => op?.operation === 'contribution',
+          ),
+        );
+      });
+
+      test('should leave totals post_processing empty without percent metrics', () => {
+        const formData = {
+          ...basicFormData,
+          query_mode: QueryMode.Aggregate,
+          metrics: ['count'],
+          percent_metrics: [],
+          groupby: ['category'],
+          show_totals: true,
+        };
+
+        const { queries } = buildQueryCached(formData);
+
+        expect(queries).toHaveLength(2);
+        expect(queries[1].post_processing).toEqual([]);
       });
     });
 
@@ -252,7 +331,7 @@ describe('plugin-chart-table', () => {
       };
 
       test('includes search filter in query payload when server pagination is enabled', () => {
-        const { queries } = buildQuery(baseFormDataWithServerPagination, {
+        const { queries } = buildQueryCached(baseFormDataWithServerPagination, {
           ownState,
         });
 
@@ -268,7 +347,7 @@ describe('plugin-chart-table', () => {
       });
 
       test('does not include search filter when not provided', () => {
-        const { queries } = buildQuery(
+        const { queries } = buildQueryCached(
           {
             ...baseFormDataWithServerPagination,
             server_pagination: false,
@@ -277,6 +356,172 @@ describe('plugin-chart-table', () => {
         );
 
         expect(queries[0].filters?.some(f => f.op === 'ILIKE')).toBeFalsy();
+      });
+
+      test('uses user row limit when it is lower than server page size', () => {
+        const { queries } = buildQueryCached(
+          {
+            ...baseFormDataWithServerPagination,
+            row_limit: 10,
+            server_page_length: 20,
+            slice_id: 101,
+          },
+          {
+            ownState: {
+              currentPage: 0,
+              pageSize: 20,
+            },
+          },
+        );
+
+        expect(queries[0]).toMatchObject({
+          row_limit: 10,
+          row_offset: 0,
+        });
+      });
+
+      test('limits server page size by remaining rows inside user row limit', () => {
+        const { queries } = buildQueryCached(
+          {
+            ...baseFormDataWithServerPagination,
+            row_limit: 120,
+            server_page_length: 50,
+            slice_id: 102,
+          },
+          {
+            ownState: {
+              currentPage: 2,
+              pageSize: 50,
+              sortBy: [{ key: 'category', desc: true }],
+            },
+          },
+        );
+
+        expect(queries[0]).toMatchObject({
+          orderby: [['category', false]],
+          row_limit: 20,
+          row_offset: 100,
+        });
+        expect(queries[1]).toMatchObject({
+          is_rowcount: true,
+          row_limit: 120,
+          row_offset: 0,
+        });
+      });
+
+      test('clamps pages beyond the row limit instead of emitting row_limit: 0', () => {
+        const { queries } = buildQueryCached(
+          {
+            ...baseFormDataWithServerPagination,
+            row_limit: 120,
+            server_page_length: 50,
+            slice_id: 103,
+          },
+          {
+            ownState: {
+              // Page 5 is well past the cap; offset would be 250 > 120, which
+              // previously made row_limit collapse to 0 ("no limit").
+              currentPage: 5,
+              pageSize: 50,
+            },
+          },
+        );
+
+        expect(queries[0].row_limit).not.toBe(0);
+        expect(queries[0]).toMatchObject({
+          row_limit: 20,
+          row_offset: 100,
+        });
+      });
+
+      test('restores the full first-page row limit after a filter change reset', () => {
+        // Uncached export lets us seed cachedChanges directly; the default
+        // export overrides extras with its own closure.
+        const { queries } = buildQueryUncached(
+          {
+            ...baseFormDataWithServerPagination,
+            row_limit: 120,
+            server_page_length: 50,
+            slice_id: 104,
+          },
+          {
+            // User was on the capped last page (row_limit would be 20)...
+            ownState: {
+              currentPage: 2,
+              pageSize: 50,
+            },
+            // ...then an external filter changed, so the cached filters differ
+            // from the current ones and pagination resets to page 0.
+            extras: {
+              cachedChanges: {
+                104: [{ col: 'category', op: '==', val: 'previous' }],
+              },
+            },
+          },
+        );
+
+        expect(queries[0].row_limit).not.toBe(0);
+        expect(queries[0]).toMatchObject({
+          row_limit: 50,
+          row_offset: 0,
+        });
+      });
+
+      test('persists the user page size, not the capped limit, on filter reset', () => {
+        const setDataMask = jest.fn();
+        buildQueryUncached(
+          {
+            ...baseFormDataWithServerPagination,
+            row_limit: 120,
+            server_page_length: 50,
+            slice_id: 106,
+          },
+          {
+            // On the capped last page, the per-request row_limit is 20.
+            ownState: {
+              currentPage: 2,
+              pageSize: 50,
+            },
+            extras: {
+              cachedChanges: {
+                106: [{ col: 'category', op: '==', val: 'previous' }],
+              },
+            },
+            hooks: { setDataMask, setCachedChanges: jest.fn() },
+          },
+        );
+
+        // The persisted page size must stay 50, not collapse to the capped 20.
+        expect(setDataMask).toHaveBeenCalledWith(
+          expect.objectContaining({
+            ownState: expect.objectContaining({
+              currentPage: 0,
+              pageSize: 50,
+            }),
+          }),
+        );
+      });
+
+      test('falls back to the page size when no row limit is configured', () => {
+        const { queries } = buildQueryCached(
+          {
+            ...baseFormDataWithServerPagination,
+            row_limit: undefined,
+            server_page_length: 50,
+            slice_id: 105,
+          },
+          {
+            ownState: {
+              currentPage: 3,
+              pageSize: 50,
+            },
+          },
+        );
+
+        expect(queries[0]).toMatchObject({
+          row_limit: 50,
+          row_offset: 150,
+        });
       });
     });
   });

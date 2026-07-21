@@ -24,7 +24,7 @@ from unittest.mock import Mock, patch
 import pytest
 from sqlalchemy import Boolean, Column, Integer, String
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 from superset_core.common.models import CoreModel
 
 from superset.daos.base import BaseDAO, ColumnOperatorEnum
@@ -258,3 +258,118 @@ def test_find_by_ids_none_id_column():
         results = TestDAO.find_by_ids([1, 2, 3])
 
         assert results == []
+
+
+def _list_with_page_size(page_size: int) -> Mock:
+    """
+    Run ``BaseDAO.list`` with a mocked query chain and return the mock query so
+    the ``.limit()`` call (the effective page size) can be inspected.
+    """
+    mock_query = Mock()
+    # Every chainable call returns the same mock so the chain is easy to inspect
+    mock_query.options.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.order_by.return_value = mock_query
+    mock_query.offset.return_value = mock_query
+    mock_query.limit.return_value = mock_query
+    mock_query.count.return_value = 0
+    mock_query.all.return_value = []
+
+    mock_data_model = Mock()
+    mock_data_model.session.query.return_value = mock_query
+
+    with (
+        patch("superset.daos.base.SQLAInterface", return_value=mock_data_model),
+        patch.object(TestDAO, "_apply_base_filter", side_effect=lambda q, **_: q),
+    ):
+        TestDAO.list(page=0, page_size=page_size)
+
+    return mock_query
+
+
+def test_list_page_size_oversized_is_clamped():
+    """An oversized page_size is clamped to the configured maximum."""
+    from flask import current_app
+
+    max_page_size = current_app.config.get("SQLALCHEMY_DAO_MAX_PAGE_SIZE", 1000)
+    mock_query = _list_with_page_size(max_page_size + 5000)
+
+    mock_query.limit.assert_called_once_with(max_page_size)
+
+
+def test_list_page_size_normal_unaffected():
+    """A page_size within the allowed range is passed through unchanged."""
+    mock_query = _list_with_page_size(50)
+
+    mock_query.limit.assert_called_once_with(50)
+
+
+def test_list_page_size_below_one_is_floored():
+    """A non-positive page_size is floored to 1 (existing semantics)."""
+    mock_query = _list_with_page_size(0)
+
+    mock_query.limit.assert_called_once_with(1)
+
+
+def test_like_operators_none_value_matches_no_rows() -> None:
+    """A ``None`` value on a LIKE-family operator must match no rows.
+
+    Mirrors SQL three-valued logic (``x LIKE NULL`` is NULL). The failure
+    modes this pins against: raising ``AttributeError`` (``None`` has no
+    ``.replace``) and, worse, coercing ``None`` to ``""`` — which builds a
+    wildcard-only pattern (``%%``/``%``) that silently matches every row.
+    """
+    Base_test = declarative_base()  # noqa: N806
+
+    class NoneValueModel(Base_test):  # type: ignore
+        __tablename__ = "none_value_model"
+        id = Column(Integer, primary_key=True)
+        name = Column(String(50))
+
+    like_family = [
+        ColumnOperatorEnum.sw,
+        ColumnOperatorEnum.ew,
+        ColumnOperatorEnum.ct,
+        ColumnOperatorEnum.like,
+        ColumnOperatorEnum.ilike,
+    ]
+    for operator in like_family:
+        clause = operator.apply(NoneValueModel.name, None)
+        sql = str(clause.compile(compile_kwargs={"literal_binds": True}))
+        assert sql.strip().lower() == "false", (
+            f"{operator.name} with None should compile to a no-match clause, "
+            f"got: {sql!r}"
+        )
+        assert "%" not in sql, (
+            f"{operator.name} with None must not build a wildcard pattern "
+            f"(would match every row): {sql!r}"
+        )
+
+
+def test_like_operators_non_string_value_matches_literally() -> None:
+    """Non-string scalars (e.g. numeric JSON payloads) degrade to a literal
+    match instead of raising ``AttributeError``."""
+    Base_test = declarative_base()  # noqa: N806
+
+    class NumericValueModel(Base_test):  # type: ignore
+        __tablename__ = "numeric_value_model"
+        id = Column(Integer, primary_key=True)
+        name = Column(String(50))
+
+    clause = ColumnOperatorEnum.ct.apply(NumericValueModel.name, 123)
+    sql = str(clause.compile(compile_kwargs={"literal_binds": True}))
+    assert "'%123%'" in sql
+
+
+def test_like_operators_escape_wildcards_in_value() -> None:
+    """User-supplied ``%``/``_`` are escaped, not treated as wildcards."""
+    Base_test = declarative_base()  # noqa: N806
+
+    class WildcardValueModel(Base_test):  # type: ignore
+        __tablename__ = "wildcard_value_model"
+        id = Column(Integer, primary_key=True)
+        name = Column(String(50))
+
+    clause = ColumnOperatorEnum.ct.apply(WildcardValueModel.name, "100%_done")
+    sql = str(clause.compile(compile_kwargs={"literal_binds": True}))
+    assert "100\\%\\_done" in sql

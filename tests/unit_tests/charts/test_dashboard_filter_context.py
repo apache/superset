@@ -140,15 +140,24 @@ def test_filter_in_scope_via_charts_in_scope() -> None:
     assert _is_filter_in_scope_for_chart(flt, 10, SAMPLE_POSITION_JSON) is True
 
 
-def test_filter_not_in_scope_via_charts_in_scope() -> None:
-    flt = _make_filter(charts_in_scope=[20, 30])
-    assert _is_filter_in_scope_for_chart(flt, 10, SAMPLE_POSITION_JSON) is False
+def test_filter_in_scope_ignores_stale_charts_in_scope() -> None:
+    """
+    Regression: a chart present in the layout and within scope.rootPath is in
+    scope even when the (stale) chartsInScope cache omits it. chartsInScope is a
+    denormalized cache the frontend recomputes from scope on load (persisted
+    only on save).
+    """
+    flt = _make_filter(charts_in_scope=[20, 30], scope_root=["ROOT_ID"])
+    assert _is_filter_in_scope_for_chart(flt, 10, SAMPLE_POSITION_JSON) is True
 
 
-def test_filter_empty_charts_in_scope_not_in_scope() -> None:
-    """Empty chartsInScope means in scope for no charts; do not fall back to rootPath"""
+def test_filter_in_scope_ignores_empty_charts_in_scope() -> None:
+    """
+    An empty (stale) chartsInScope must not exclude a chart that scope.rootPath
+    includes; scope is the source of truth.
+    """
     flt = _make_filter(charts_in_scope=[], scope_root=["ROOT_ID"])
-    assert _is_filter_in_scope_for_chart(flt, 10, SAMPLE_POSITION_JSON) is False
+    assert _is_filter_in_scope_for_chart(flt, 10, SAMPLE_POSITION_JSON) is True
 
 
 def test_filter_in_scope_via_root_path() -> None:
@@ -166,9 +175,38 @@ def test_filter_not_in_scope_different_root() -> None:
     assert _is_filter_in_scope_for_chart(flt, 10, SAMPLE_POSITION_JSON) is False
 
 
-def test_filter_in_scope_chart_not_in_layout() -> None:
+def test_filter_in_scope_chart_not_in_layout_whole_dashboard_scope() -> None:
+    """Charts not in position_json receive whole-dashboard (ROOT_ID) filters."""
     flt = _make_filter(scope_root=["ROOT_ID"])
+    assert _is_filter_in_scope_for_chart(flt, 999, SAMPLE_POSITION_JSON) is True
+
+
+def test_filter_not_in_scope_chart_not_in_layout_tab_scope() -> None:
+    """Charts not in position_json do not receive tab/section-specific filters."""
+    flt = _make_filter(scope_root=["TAB-some-tab"])
     assert _is_filter_in_scope_for_chart(flt, 999, SAMPLE_POSITION_JSON) is False
+
+
+def test_filter_not_in_scope_chart_not_in_layout_excluded() -> None:
+    """Explicit exclusion is respected even when chart is not in layout."""
+    flt = _make_filter(scope_root=["ROOT_ID"], scope_excluded=[999])
+    assert _is_filter_in_scope_for_chart(flt, 999, SAMPLE_POSITION_JSON) is False
+
+
+def test_filter_in_scope_stale_charts_in_scope_unpositioned_chart() -> None:
+    """
+    chartsInScope is a denormalized cache. When a chart is absent from both
+    chartsInScope and position_json (added to the dashboard after the filter
+    was saved), fall through to rootPath — a whole-dashboard filter applies.
+    """
+    flt = _make_filter(charts_in_scope=[10, 20], scope_root=["ROOT_ID"])
+    assert _is_filter_in_scope_for_chart(flt, 999, SAMPLE_POSITION_JSON) is True
+
+
+def test_filter_in_scope_chart_not_in_layout_empty_position_json() -> None:
+    """With empty position_json, a root-scoped filter still applies."""
+    flt = _make_filter(scope_root=["ROOT_ID"])
+    assert _is_filter_in_scope_for_chart(flt, 999, {}) is True
 
 
 # --- _extract_filter_extra_form_data ---
@@ -523,3 +561,52 @@ def test_get_dashboard_filter_context_out_of_scope_filter_excluded(
     ctx = get_dashboard_filter_context(dashboard_id=1, chart_id=10)
     assert len(ctx.filters) == 1
     assert ctx.filters[0].id == "f1"
+
+
+@patch("superset.charts.data.dashboard_filter_context._check_dashboard_access")
+@patch("superset.charts.data.dashboard_filter_context.db")
+def test_get_dashboard_filter_context_chart_not_in_layout_receives_root_filters(
+    mock_db: MagicMock,
+    mock_check_access: MagicMock,
+) -> None:
+    """
+    Charts added to a dashboard via the Save Chart dialog exist in dashboard.slices
+    but not in position_json. They should receive whole-dashboard filters and be
+    excluded from tab/section-specific filters.
+    """
+    filter_config = [
+        _make_filter(
+            flt_id="f1",
+            name="Region",
+            scope_root=["ROOT_ID"],
+            default_value=["US"],
+            target_column="region",
+        ),
+        _make_filter(
+            flt_id="f2",
+            name="Tab filter",
+            scope_root=["TAB-some-tab"],
+            default_value=["active"],
+            target_column="status",
+        ),
+    ]
+    metadata = {"native_filter_configuration": filter_config}
+
+    dashboard = MagicMock()
+    dashboard.id = 1
+    slice_obj = MagicMock()
+    slice_obj.id = 42  # chart 42 is in slices but NOT in SAMPLE_POSITION_JSON
+    dashboard.slices = [slice_obj]
+    dashboard.json_metadata = json.dumps(metadata)
+    dashboard.position_json = json.dumps(SAMPLE_POSITION_JSON)
+    (
+        mock_db.session.query.return_value.filter_by.return_value.one_or_none.return_value
+    ) = dashboard
+
+    ctx = get_dashboard_filter_context(dashboard_id=1, chart_id=42)
+
+    # Only the whole-dashboard filter (ROOT_ID) applies; tab filter does not
+    assert len(ctx.filters) == 1
+    assert ctx.filters[0].id == "f1"
+    assert ctx.filters[0].status == DashboardFilterStatus.APPLIED
+    assert ctx.extra_form_data["filters"][0]["val"] == ["US"]

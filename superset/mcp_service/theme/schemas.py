@@ -35,15 +35,14 @@ from pydantic import (
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-from superset.mcp_service.common.cache_schemas import MetadataCacheControl
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.system.schemas import PaginationInfo
+from superset.mcp_service.utils.response_utils import humanize_timestamp
 from superset.mcp_service.utils.sanitization import sanitize_for_llm_context
 from superset.mcp_service.utils.schema_utils import (
     parse_json_or_list,
     parse_json_or_model_list,
 )
-from superset.utils import json as superset_json
 
 
 class ThemeFilter(ColumnOperator):
@@ -54,22 +53,14 @@ class ThemeFilter(ColumnOperator):
     value: The value to filter by (type depends on col and opr).
     """
 
-    col: Literal[
-        "theme_name",
-        "is_system",
-        "is_system_default",
-        "is_system_dark",
-        "created_by_fk",
-    ] = Field(
+    col: Literal["theme_name"] = Field(
         ...,
-        description="Column to filter on. Use get_schema(model_type='theme') for "
-        "available filter columns. To filter by creator, first call find_users "
-        "to resolve a name to a user ID, then filter by created_by_fk with "
-        "that integer ID.",
+        description="Column to filter on. Supported: 'theme_name' (string match).",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
-        description="Operator to use.",
+        description="Operator to use. Common operators: 'eq' (equals), "
+        "'ct' (contains), 'sw' (starts with), 'ew' (ends with).",
     )
     value: str | int | float | bool | List[str | int | float | bool] = Field(
         ..., description="Value to filter by (type depends on col and opr)"
@@ -77,25 +68,27 @@ class ThemeFilter(ColumnOperator):
 
 
 class ThemeInfo(BaseModel):
-    id: int | None = Field(None, description="Theme ID")
-    uuid: str | None = Field(None, description="Theme UUID")
-    theme_name: str | None = Field(None, description="Theme display name")
-    json_data: Dict[str, Any] | None = Field(
-        None,
-        description="Theme token configuration as a parsed dictionary",
+    """Theme metadata returned by MCP list/get tools."""
+
+    id: int | None = None
+    theme_name: str | None = None
+    json_data: str | None = Field(
+        None, description="Raw antd design-token JSON configuration as a string"
     )
-    is_system: bool | None = Field(None, description="Whether this is a system theme")
-    is_system_default: bool | None = Field(
-        None, description="Whether this is the default system theme"
-    )
-    is_system_dark: bool | None = Field(
-        None, description="Whether this is the dark system theme"
-    )
+    uuid: str | None = None
+    is_system: bool | None = None
+    is_system_default: bool | None = None
+    is_system_dark: bool | None = None
     changed_on: str | datetime | None = Field(
         None, description="Last modification timestamp"
     )
+    changed_on_humanized: str | None = Field(
+        None, description="Humanized modification time"
+    )
     created_on: str | datetime | None = Field(None, description="Creation timestamp")
-
+    created_on_humanized: str | None = Field(
+        None, description="Humanized creation time"
+    )
     model_config = ConfigDict(
         from_attributes=True,
         ser_json_timedelta="iso8601",
@@ -104,19 +97,13 @@ class ThemeInfo(BaseModel):
 
     @model_serializer(mode="wrap")
     def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:
-        """Filter fields based on serialization context.
-
-        If context contains 'select_columns', only include those fields.
-        Otherwise, include all fields (default behavior).
-        """
-        data = serializer(self)
-
+        """Filter serialized fields to those requested via select_columns context."""
+        data: Dict[str, Any] = serializer(self)
         if info.context and isinstance(info.context, dict):
             select_columns = info.context.get("select_columns")
             if select_columns:
                 requested_fields = set(select_columns)
                 return {k: v for k, v in data.items() if k in requested_fields}
-
         return data
 
 
@@ -129,40 +116,26 @@ class ThemeList(BaseModel):
     total_pages: int
     has_previous: bool
     has_next: bool
-    columns_requested: List[str] = Field(
-        default_factory=list,
-        description="Requested columns for the response",
-    )
-    columns_loaded: List[str] = Field(
-        default_factory=list,
-        description="Columns that were actually loaded for each theme",
-    )
-    columns_available: List[str] = Field(
-        default_factory=list,
-        description="All columns available for selection via select_columns parameter",
-    )
-    sortable_columns: List[str] = Field(
-        default_factory=list,
-        description="Columns that can be used with order_column parameter",
-    )
-    filters_applied: List[ThemeFilter] = Field(
-        default_factory=list,
-        description="List of advanced filter dicts applied to the query.",
-    )
+    columns_requested: List[str] = Field(default_factory=list)
+    columns_loaded: List[str] = Field(default_factory=list)
+    columns_available: List[str] = Field(default_factory=list)
+    sortable_columns: List[str] = Field(default_factory=list)
+    filters_applied: List[ThemeFilter] = Field(default_factory=list)
     pagination: PaginationInfo | None = None
     timestamp: datetime | None = None
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-class ListThemesRequest(MetadataCacheControl):
+class ListThemesRequest(BaseModel):
     """Request schema for list_themes."""
 
     filters: Annotated[
         List[ThemeFilter],
         Field(
             default_factory=list,
-            description="List of filter objects (column, operator, value). Cannot be "
-            "used together with 'search'.",
+            description="List of filter objects (column, operator, value). Each "
+            "filter has 'col', 'opr', and 'value' properties. Cannot be used "
+            "together with 'search'.",
         ),
     ]
     select_columns: Annotated[
@@ -177,8 +150,8 @@ class ListThemesRequest(MetadataCacheControl):
         str | None,
         Field(
             default=None,
-            description="Text search string to match against theme fields. "
-            "Cannot be used together with 'filters'.",
+            description="Text search string to match against theme name. Cannot be "
+            "used together with 'filters'.",
         ),
     ]
     order_column: Annotated[
@@ -187,7 +160,8 @@ class ListThemesRequest(MetadataCacheControl):
     order_direction: Annotated[
         Literal["asc", "desc"],
         Field(
-            default="desc", description="Direction to order results ('asc' or 'desc')"
+            default="desc",
+            description="Direction to order results ('asc' or 'desc')",
         ),
     ]
     page: Annotated[
@@ -207,23 +181,20 @@ class ListThemesRequest(MetadataCacheControl):
     @field_validator("filters", mode="before")
     @classmethod
     def parse_filters(cls, v: Any) -> List[ThemeFilter]:
-        """Accept both JSON string and list of objects."""
         return parse_json_or_model_list(v, ThemeFilter, "filters")
 
     @field_validator("select_columns", mode="before")
     @classmethod
     def parse_columns(cls, v: Any) -> List[str]:
-        """Accept JSON array, list, or comma-separated string."""
         return parse_json_or_list(v, "select_columns")
 
     @model_validator(mode="after")
     def validate_search_and_filters(self) -> "ListThemesRequest":
-        """Prevent using both search and filters simultaneously."""
         if self.search and self.filters:
             raise ValueError(
                 "Cannot use both 'search' and 'filters' parameters simultaneously. "
-                "Use either 'search' for text-based searching across multiple fields, "
-                "or 'filters' for precise column-based filtering, but not both."
+                "Use either 'search' for text-based searching or 'filters' for "
+                "precise column-based filtering, but not both."
             )
         return self
 
@@ -234,72 +205,97 @@ class ThemeError(BaseModel):
     timestamp: str | datetime | None = Field(None, description="Error timestamp")
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
-    @field_validator("error")
-    @classmethod
-    def sanitize_error_for_llm_context(cls, value: str) -> str:
-        """Wrap error text before it is exposed to LLM context."""
-        return sanitize_for_llm_context(value, field_path=("error",))
-
     @classmethod
     def create(cls, error: str, error_type: str) -> "ThemeError":
-        """Create a standardized ThemeError with timestamp."""
-        from datetime import datetime, timezone
+        from datetime import timezone
 
         return cls(
             error=error, error_type=error_type, timestamp=datetime.now(timezone.utc)
         )
 
 
-class GetThemeInfoRequest(MetadataCacheControl):
-    """Request schema for get_theme_info with support for ID or UUID."""
+class GetThemeInfoRequest(BaseModel):
+    """Request schema for get_theme_info with numeric ID or UUID string."""
 
     identifier: Annotated[
         int | str,
-        Field(description="Theme identifier - can be numeric ID or UUID string"),
+        Field(description="Theme identifier — numeric ID or UUID string"),
     ]
 
 
-def _sanitize_theme_info_for_llm_context(
-    theme_info: ThemeInfo,
-) -> ThemeInfo:
-    """Wrap theme user-controlled fields before LLM exposure."""
+class CreateThemeRequest(BaseModel):
+    """Request schema for create_theme."""
+
+    theme_name: Annotated[
+        str,
+        Field(description="Human-readable name for the theme"),
+    ]
+    json_data: Annotated[
+        dict[str, Any] | str,
+        Field(
+            description="The antd design-token configuration. Accepts either a JSON "
+            "object (dict) or a JSON string."
+        ),
+    ]
+
+    @field_validator("theme_name")
+    @classmethod
+    def reject_blank_theme_name(cls, value: str) -> str:
+        """Mirror the REST ThemePostSchema check: no empty/whitespace names."""
+        if not value or not value.strip():
+            raise ValueError("Theme name cannot be empty.")
+        return value
+
+
+class CreateThemeResponse(BaseModel):
+    success: bool = Field(..., description="Whether the theme was created")
+    id: int | None = Field(None, description="ID of the created theme")
+    uuid: str | None = Field(None, description="UUID of the created theme")
+    theme_name: str | None = Field(None, description="Name of the created theme")
+    message: str | None = Field(None, description="Human-readable success message")
+    error: str | None = Field(None, description="Error message if creation failed")
+    error_type: str | None = Field(None, description="Type of error if creation failed")
+
+
+def _sanitize_theme_info_for_llm_context(theme_info: ThemeInfo) -> ThemeInfo:
+    """Wrap user-controlled theme fields before LLM exposure.
+
+    ``theme_name`` is user-supplied free text. ``json_data`` is structured
+    configuration, but its token values (font families, URLs, arbitrary antd
+    tokens) are equally user-controlled and pass ``is_valid_theme`` /
+    ``sanitize_theme_tokens`` untouched, so the whole JSON string is wrapped
+    as one untrusted block — the JSON stays parseable inside the delimiters,
+    and embedded delimiter tokens are escaped so a hostile value cannot close
+    the wrapper early.
+    """
     payload = theme_info.model_dump(mode="python")
     payload["theme_name"] = sanitize_for_llm_context(
         payload.get("theme_name"),
         field_path=("theme_name",),
     )
-    if payload.get("json_data") is not None:
-        payload["json_data"] = sanitize_for_llm_context(
-            payload["json_data"],
-            field_path=("json_data",),
-        )
-    return ThemeInfo.model_validate(payload)
+    payload["json_data"] = sanitize_for_llm_context(
+        payload.get("json_data"),
+        field_path=("json_data",),
+    )
+    return ThemeInfo(**payload)
 
 
-def serialize_theme_object(obj: Any) -> ThemeInfo | None:
-    if not obj:
+def serialize_theme_object(theme: Any) -> ThemeInfo | None:
+    if not theme:
         return None
-
-    parsed_json_data: Dict[str, Any] | None = None
-    if (raw_json_data := getattr(obj, "json_data", None)) is not None:
-        if isinstance(raw_json_data, dict):
-            parsed_json_data = raw_json_data
-        elif isinstance(raw_json_data, str):
-            try:
-                parsed_json_data = superset_json.loads(raw_json_data)
-            except (TypeError, ValueError):
-                pass
 
     return _sanitize_theme_info_for_llm_context(
         ThemeInfo(
-            id=getattr(obj, "id", None),
-            uuid=str(getattr(obj, "uuid", "")) if getattr(obj, "uuid", None) else None,
-            theme_name=getattr(obj, "theme_name", None),
-            json_data=parsed_json_data,
-            is_system=getattr(obj, "is_system", None),
-            is_system_default=getattr(obj, "is_system_default", None),
-            is_system_dark=getattr(obj, "is_system_dark", None),
-            changed_on=getattr(obj, "changed_on", None),
-            created_on=getattr(obj, "created_on", None),
+            id=getattr(theme, "id", None),
+            theme_name=getattr(theme, "theme_name", None),
+            json_data=getattr(theme, "json_data", None),
+            uuid=str(uuid) if (uuid := getattr(theme, "uuid", None)) else None,
+            is_system=getattr(theme, "is_system", None),
+            is_system_default=getattr(theme, "is_system_default", None),
+            is_system_dark=getattr(theme, "is_system_dark", None),
+            changed_on=getattr(theme, "changed_on", None),
+            changed_on_humanized=humanize_timestamp(getattr(theme, "changed_on", None)),
+            created_on=getattr(theme, "created_on", None),
+            created_on_humanized=humanize_timestamp(getattr(theme, "created_on", None)),
         )
     )

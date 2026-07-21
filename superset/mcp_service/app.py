@@ -125,11 +125,21 @@ necessary access — do NOT attempt to call it.
 Available tools:
 
 Dashboard Management:
-- list_dashboards: List dashboards with advanced filters (1-based pagination)
+- list_dashboards: List dashboards with advanced filters (1-based pagination; deleted_state='only'/'include' surfaces trashed dashboards the caller may restore)
 - get_dashboard_info: Get detailed dashboard information by ID
 - get_dashboard_layout: Get parsed tabs and chart positions for a dashboard (companion to get_dashboard_info when its omitted_fields hint flags position_json)
+- get_dashboard_datasets: List the datasets used by a dashboard's charts, with columns and metrics (context for configuring native filters)
 - generate_dashboard: Create a dashboard from chart IDs (requires write access)
+- update_dashboard: Update an existing dashboard's title/description/slug/published/layout/theme/CSS (requires write access; editorship-checked per-instance)
+- duplicate_dashboard: Duplicate an existing dashboard, optionally deep-copying its charts (requires write access)
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
+- delete_dashboard: Delete a dashboard by ID/UUID/slug (requires editor rights — owner or Admin; destructive; does not delete its charts; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
+- manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select and filter_time)
+- remove_chart_from_dashboard: Remove a chart from an existing dashboard (requires write access)
+- restore_dashboard: Restore a soft-deleted dashboard from trash by ID/UUID (requires editor rights — owner or Admin; only applies to dashboards trashed under the SOFT_DELETE feature flag)
+- manage_dashboard_owners: Add/remove dashboard owners by explicit operation (requires write access; rejects changes that would leave zero owners)
+- manage_dashboard_roles: Add/remove dashboard access roles by explicit operation (requires write access; only affects access when ENABLE_VIEWERS is enabled)
+- manage_dashboard_certification: Set or clear a dashboard's certified_by/certification_details badge (requires write access)
 
 Annotation Layers:
 - list_annotation_layers: List annotation layers with advanced filters (1-based pagination)
@@ -141,17 +151,14 @@ Tag Management:
 - list_tags: List tags with advanced filters (1-based pagination)
 - get_tag_info: Get detailed tag information by ID
 
+Theme Management:
+- list_themes: Discover themes (antd design-token configurations) with filters (1-based pagination)
+- get_theme_info: Get a theme's tokens (json_data) by ID or UUID
+- create_theme: Create a reusable theme from antd design tokens (requires write access)
+
 Database Connections:
 - list_databases: List database connections with advanced filters (1-based pagination)
 - get_database_info: Get detailed database connection info by ID (backend, capabilities)
-
-CSS Templates:
-- list_css_templates: List CSS templates with advanced filters (1-based pagination)
-- get_css_template_info: Get CSS template details by ID (includes full css content)
-
-Themes:
-- list_themes: List themes with advanced filters (1-based pagination)
-- get_theme_info: Get theme details by ID or UUID (includes json_data configuration)
 
 User and Role Management:
 - list_users: List users with filtering (1-based pagination, admin only)
@@ -161,28 +168,40 @@ User and Role Management:
 
 Row Level Security (Admin only):
 - list_rls_filters: List RLS filters with filtering and search (1-based pagination)
-- get_rls_filter_info: Get detailed RLS filter info by ID (tables, roles, clause)
+- get_rls_filter_info: Get detailed RLS filter info by ID (tables, subjects, clause)
 
-Plugins (Admin only):
-- list_plugins: List dynamic plugins with filtering and search (1-based pagination)
-- get_plugin_info: Get detailed plugin info by ID (name, key, bundle URL)
+Alerts & Reports:
+- list_reports: List alerts and reports with filtering and search (1-based pagination)
+- get_report_info: Get detailed alert/report schedule info by ID
 
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
+- create_dataset: Register a physical table as a dataset against an existing DB connection (requires write access)
 - create_virtual_dataset: Save a SQL query as a virtual dataset for charting (requires write access)
+- update_dataset_metric: Update a saved metric on a dataset — expression, name, verbose_name, format (requires dataset ownership)
 - query_dataset: Query a dataset using its semantic layer (saved metrics, dimensions, filters) without needing a saved chart
 
+Semantic Layer:
+- list_metrics: Discover metrics across built-in datasets and external semantic views (1-based pagination)
+- get_table: Query a data source (built-in dataset or external semantic view) by metric/dimension names
+- get_compatible_dimensions: Get dimensions compatible with a given metric/dimension selection
+- get_compatible_metrics: Get metrics compatible with a given dimension/metric selection
+
 Chart Management:
-- list_charts: List charts with advanced filters (1-based pagination)
+- list_charts: List charts with advanced filters (1-based pagination; deleted_state='only'/'include' surfaces trashed charts the caller may restore)
 - get_chart_info: Get detailed chart information by ID
 - get_chart_preview: Get a visual preview of a chart as formatted content or URL
 - get_chart_data: Get underlying chart data in text-friendly format
 - get_chart_sql: Get the rendered SQL query for a chart (without executing it)
-- generate_chart: Create and save a new chart permanently (requires write access)
+- get_chart_type_schema: Get the JSON Schema and examples for a chart_type before calling generate_chart/update_chart
+- generate_chart: Create a chart preview, optionally saving it permanently with save_chart=True (requires write access)
 - generate_explore_link: Create an interactive explore URL (preferred for exploration)
-- update_chart: Update existing saved chart configuration (requires write access)
+- update_chart: Update existing saved chart configuration (requires write access;
+  by default returns an unsaved preview URL — pass generate_preview=False to persist)
 - update_chart_preview: Update cached chart preview without saving (requires write access)
+- delete_chart: Delete a chart by ID/UUID (requires editor rights — owner or Admin; destructive; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
+- restore_chart: Restore a soft-deleted chart from trash by ID/UUID (requires editor rights — owner or Admin; only applies to charts trashed under the SOFT_DELETE feature flag)
 
 SQL Lab Integration:
 - execute_sql: Execute SQL queries and get results (requires database_id and SQL access)
@@ -194,11 +213,7 @@ SQL Lab Integration:
 - get_query_info: Get SQL query history details by ID
 
 Schema Discovery:
-- get_schema: Get schema metadata for chart/dataset/dashboard/database/css_template/theme (columns, filters)
-
-Action Logs (requires SUPERSET_LOG_VIEW and FAB_ADD_SECURITY_VIEWS):
-- list_action_logs: List user action logs with filtering and pagination (defaults to last 7 days)
-- get_action_log_info: Get a single action log entry by integer ID
+- get_schema: Get schema metadata for chart/dataset/dashboard/database/report (columns, filters)
 
 Task Management (requires GLOBAL_TASK_FRAMEWORK feature flag):
 - list_tasks: List background tasks with status filtering and pagination
@@ -214,6 +229,10 @@ System Information:
 Available Resources:
 - instance://metadata: Instance configuration, stats, and available dataset IDs
 - chart://configs: Valid chart configuration examples and best practices
+- superset://schema/chart: Filterable/sortable/select columns for the chart model
+- superset://schema/dataset: Filterable/sortable/select columns for the dataset model
+- superset://schema/dashboard: Filterable/sortable/select columns for the dashboard model
+- superset://schema/all: Combined schema metadata for chart, dataset, and dashboard
 
 Available Prompts:
 - quickstart: Interactive guide for getting started with the MCP service
@@ -283,19 +302,44 @@ To find your own charts/dashboards/datasets/databases:
 - list_datasets(request={{"created_by_me": true}})    — items you created
 - list_databases(request={{"created_by_me": true}})   — items you created
 
-To find items where you are listed as an owner (edit access):
-- list_charts(request={{"owned_by_me": true}})
-- list_dashboards(request={{"owned_by_me": true}})
-- list_datasets(request={{"owned_by_me": true}})
+To find items where you are listed as an editor:
+- list_charts(request={{"edited_by_me": true}})
+- list_dashboards(request={{"edited_by_me": true}})
+- list_datasets(request={{"edited_by_me": true}})
 
-To find all items you have any connection to (created OR own):
-- list_charts(request={{"created_by_me": true, "owned_by_me": true}})
-- list_dashboards(request={{"created_by_me": true, "owned_by_me": true}})
-- list_datasets(request={{"created_by_me": true, "owned_by_me": true}})
+To find all items you have any connection to (created OR edit):
+- list_charts(request={{"created_by_me": true, "edited_by_me": true}})
+- list_dashboards(request={{"created_by_me": true, "edited_by_me": true}})
+- list_datasets(request={{"created_by_me": true, "edited_by_me": true}})
 
-Use created_by_me for authorship, owned_by_me for edit ownership, or both
-together for the union. All flags can be combined with 'filters' but not
+Use created_by_me for authorship, edited_by_me for edit access, or both
+together for the union. These flags can be combined with 'filters' but not
 with 'search'.
+
+To explore metrics across all data sources (built-in datasets + external semantic views):
+1. list_metrics(request={{"search": "<keyword>"}})
+   -> returns metrics with dataset_id/view_id and compatible_dimensions inline
+2. get_table(request={{
+     "dataset_id": <id>,          # OR "view_id": <id> for external semantic views
+     "metrics": ["revenue"],
+     "dimensions": ["region"],
+     "time_range": "Last 30 days",
+     "row_limit": 500
+   }}) -> returns tabular results
+   - Use "dataset_id" when list_metrics returned source="builtin"
+   - Use "view_id" when list_metrics returned source="external"
+
+To progressively refine a query (compatible dimensions/metrics):
+- get_compatible_dimensions(request={{
+    "selected_metrics": ["revenue"],
+    "selected_dimensions": [],
+    "dataset_id": <id>  # or "view_id": <id>
+  }}) -> dimensions valid to add to the current selection
+- get_compatible_metrics(request={{
+    "selected_metrics": [],
+    "selected_dimensions": ["region"],
+    "view_id": <id>  # useful for external semantic layers with constraints
+  }}) -> metrics valid to add to the current selection
 
 To query a dataset's semantic layer (metrics, dimensions):
 1. list_datasets(request={{}}) -> find a dataset
@@ -339,7 +383,16 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="xy", kind="scatter": Scatter plot for correlation analysis
 - chart_type="big_number": Big Number display (single metric, header only)
 - chart_type="big_number", show_trendline=True,
-  temporal_column="<date_col>": Big Number with trendline
+  temporal_column="<date_col>", aggregation="sum": Big Number with trendline
+  (aggregation controls how the value is computed from trendline data points;
+   default when omitted is "LAST_VALUE" — most recent point only.
+   Use aggregation="sum" for all-time totals, "mean" for averages, "max"/"min" for extremes.
+   DIAGNOSIS: if a Big Number with Trendline shows wrong values, check
+   form_data["aggregation"] — missing/LAST_VALUE means the chart shows only the last data
+   point, not a total. Fix by calling update_chart with a complete Big Number config:
+   chart_type="big_number", metric=<metric>, show_trendline=True,
+   temporal_column=<date_col>, aggregation="sum". update_chart requires the full
+   config — omitting chart_type or metric causes a validation error.)
 - chart_type="table": Data table for detailed views
 - chart_type="table", viz_type="ag-grid-table": Interactive AG Grid table
 - chart_type="pie": Pie chart for proportional data (set donut=True for donut)
@@ -349,15 +402,26 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
   Requires handlebars_template with Handlebars HTML template string.
   Supports query_mode="aggregate" (with metrics/groupby) or "raw" (with columns).
   Data available as {{{{data}}}} array; helpers: dateFormat, formatNumber, stringify.
+- chart_type="histogram": Histogram of a numeric column's distribution
+  (column required; optional bins, groupby, normalize, cumulative)
+- chart_type="box_plot": Box plot comparing statistical spread
+  (metrics + distribute_across required — distribute_across is the sample
+   axis, e.g. a temporal column; dimensions splits into one box per value;
+   whisker_type: tukey | min_max | percentile)
+- chart_type="waterfall": Waterfall chart of cumulative increases/decreases
+  (x_axis + metric required; optional single breakdown column, show_total)
 
 Time grain for temporal x-axis (time_grain parameter):
 - PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P1Y (yearly)
 
 Chart Types in Existing Charts (viewable via list_charts/get_chart_info):
-- pie, big_number, big_number_total, funnel, gauge_chart
-- echarts_timeseries_line, echarts_timeseries_bar, echarts_timeseries_area
-- pivot_table_v2, heatmap_v2, sankey_v2, sunburst_v2, treemap_v2
-- word_cloud, world_map, box_plot, bubble, mixed_timeseries
+Each chart returned by list_charts / get_chart_info includes a
+chart_type_display_name field with a human-readable name when available.
+This field is populated only for the 10 chart types supported by generate_chart
+(xy, pie, table, pivot_table, big_number, mixed_timeseries, handlebars,
+histogram, box_plot, waterfall).
+For all other viz_types (Funnel, Gauge, Heatmap, etc.) it will be null —
+use the raw viz_type field instead when referring to those chart types.
 
 Query Examples:
 - List all tables:
@@ -376,7 +440,11 @@ To modify an existing chart (add filters, change metrics, etc.):
    -> examine current configuration
 2. update_chart(request={{
      "identifier": <chart_id>, "config": {{...}}
-   }}) -> apply changes
+   }}) -> by default (generate_preview=True) this only returns a preview
+   explore URL — nothing is persisted until the user clicks Save in Explore.
+   Pass generate_preview=False to persist the change immediately instead.
+   Do NOT tell the user the chart has been updated unless you called
+   update_chart with generate_preview=False.
 Do NOT use execute_sql for chart modifications.
 Use update_chart instead.
 
@@ -409,10 +477,10 @@ IMPORTANT - Tool-Only Interaction:
 
 General usage tips:
 - All listing tools use 1-based pagination (first page is 1)
-- Use get_schema (chart/dataset/dashboard/database) to discover filterable columns,
+- Use get_schema (chart/dataset/dashboard/database/report) to discover filterable columns,
   sortable columns, and default columns for those resource types
-- For action_log, task, list_rls_filters, and list_plugins tools, filterable/sortable
-  columns are listed inline in each tool's docstring — get_schema does not cover these
+- For task and list_rls_filters tools, filterable/sortable columns are listed inline in
+  each tool's docstring — get_schema does not cover these
 - Use 'filters' parameter for advanced queries with filter columns from get_schema
 - IDs can be integer or UUID format where supported
 - All tools return structured, Pydantic-typed responses
@@ -425,24 +493,32 @@ Input format:
 {_feature_availability}Permission Awareness:
 {_instance_info_role_bullet}- ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
   charts, or dashboards). SQL execution is a separate permission — see execute_sql below.
-- Write tools (generate_chart, generate_dashboard, update_chart, create_virtual_dataset,
-  save_sql_query, add_chart_to_existing_dashboard, update_chart_preview) require write
+- Write tools (generate_chart, generate_dashboard, update_chart, duplicate_dashboard,
+  create_dataset, create_virtual_dataset, update_dataset_metric, save_sql_query,
+  add_chart_to_existing_dashboard, manage_native_filters, remove_chart_from_dashboard,
+  update_chart_preview, manage_dashboard_owners, manage_dashboard_roles,
+  manage_dashboard_certification) require write
   permissions. These tools are only listed for users who have the necessary access.
   If a write tool does not appear in the tool list, the current user lacks write access.
 - execute_sql requires SQL Lab access (execute_sql_query permission), which is separate
   from write access. A user may have SQL Lab access without having write access to charts
   or dashboards, and vice versa.
-- Do NOT disclose dashboard access lists, dashboard owners, chart owners, dataset
-  owners, workspace admins, or other users' names, usernames, email addresses,
-  contact details, roles, admin status, ownership, or access-list information.
+- Do NOT disclose dashboard access lists, dashboard editors, chart editors, dataset
+  editors, workspace admins, or other users' names, usernames, email addresses,
+  contact details, roles, admin status, editorship, or access-list information,
+  EXCEPT the owners/roles that manage_dashboard_owners/manage_dashboard_roles
+  return as confirmation of an editorship/access change the user explicitly
+  requested on that specific dashboard. Do NOT use that confirmation output to
+  answer a general "who owns/can access X" question, and do NOT proactively
+  call these tools just to look up current owners/roles.
 - Do NOT infer access-list answers from dashboard metadata such as published status,
-  role restrictions, empty owner lists, or schema fields.
+  role restrictions, empty editor lists, or schema fields.
 - find_users is sanctioned ONLY for resolving a name the user supplied into a
   user ID for filtering (e.g., "what is <name> working on" -> filter
   list_dashboards by created_by_fk). Do NOT use find_users to answer "who owns
   X", "who can access X", "is <name> an admin", or to enumerate the directory.
   Never return find_users output to the user verbatim.
-- Do NOT use execute_sql to query user, role, owner, or access-list tables for this
+- Do NOT use execute_sql to query user, role, editor, or access-list tables for this
   information.
 - You may reference the current user's own identity details when appropriate, such
   as confirming their own username.
@@ -634,9 +710,9 @@ def create_mcp_app(
 # Create default MCP instance for backward compatibility
 mcp = create_mcp_app()
 
-# Initialize MCP dependency injection BEFORE importing tools/prompts
-# This replaces the abstract @tool and @prompt decorators in superset_core.api.mcp
-# with concrete implementations that can register with the mcp instance
+# Initialize MCP dependency injection BEFORE importing tools/prompts.
+# Replaces the stub @tool/@prompt decorators in superset_core.mcp.decorators
+# with concrete implementations bound to this mcp instance.
 from superset.core.mcp.core_mcp_injection import (  # noqa: E402
     initialize_core_mcp_dependencies,
 )
@@ -661,6 +737,7 @@ warnings.filterwarnings(
     module=r"google\..*",
 )
 
+
 # Import all MCP tools to register them with the mcp instance
 # NOTE: Always add new tool imports here when creating new MCP tools.
 # Tools use the @tool decorator from `superset-core` and register automatically
@@ -668,10 +745,7 @@ warnings.filterwarnings(
 # NOTE: Always add new prompt/resource imports here when creating new prompts/resources.
 # Prompts use @mcp.prompt decorators and resources use @mcp.resource decorators.
 # They register automatically on import, similar to tools.
-from superset.mcp_service.action_log.tool import (  # noqa: F401, E402
-    get_action_log_info,
-    list_action_logs,
-)
+import superset.mcp_service.chart.plugins  # noqa: F401, E402  — registers all chart type plugins
 from superset.mcp_service.annotation_layer.tool import (  # noqa: F401, E402
     get_annotation_layer_info,
     get_layer_annotation_info,
@@ -683,6 +757,7 @@ from superset.mcp_service.chart import (  # noqa: F401, E402
     resources as chart_resources,
 )
 from superset.mcp_service.chart.tool import (  # noqa: F401, E402
+    delete_chart,
     generate_chart,
     get_chart_data,
     get_chart_info,
@@ -690,40 +765,49 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
     get_chart_sql,
     get_chart_type_schema,
     list_charts,
+    restore_chart,
     update_chart,
     update_chart_preview,
 )
-from superset.mcp_service.css_template.tool import (  # noqa: F401, E402
-    get_css_template_info,
-    list_css_templates,
-)
 from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     add_chart_to_existing_dashboard,
+    delete_dashboard,
+    duplicate_dashboard,
     generate_dashboard,
+    get_dashboard_datasets,
     get_dashboard_info,
     get_dashboard_layout,
     list_dashboards,
+    manage_dashboard_certification,
+    manage_dashboard_owners,
+    manage_dashboard_roles,
+    manage_native_filters,
+    remove_chart_from_dashboard,
+    restore_dashboard,
+    update_dashboard,
 )
 from superset.mcp_service.database.tool import (  # noqa: F401, E402
     get_database_info,
     list_databases,
 )
 from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
+    create_dataset,
     create_virtual_dataset,
     get_dataset_info,
     list_datasets,
     query_dataset,
+    update_dataset_metric,
 )
 from superset.mcp_service.explore.tool import (  # noqa: F401, E402
     generate_explore_link,
 )
-from superset.mcp_service.plugin.tool import (  # noqa: F401, E402
-    get_plugin_info,
-    list_plugins,
-)
 from superset.mcp_service.query.tool import (  # noqa: F401, E402
     get_query_info,
     list_queries,
+)
+from superset.mcp_service.report.tool import (  # noqa: F401, E402
+    get_report_info,
+    list_reports,
 )
 from superset.mcp_service.rls.tool import (  # noqa: F401, E402
     get_rls_filter_info,
@@ -736,6 +820,12 @@ from superset.mcp_service.role.tool import (  # noqa: F401, E402
 from superset.mcp_service.saved_query.tool import (  # noqa: F401, E402
     get_saved_query_info,
     list_saved_queries,
+)
+from superset.mcp_service.semantic_layer.tool import (  # noqa: F401, E402
+    get_compatible_dimensions,
+    get_compatible_metrics,
+    get_table,
+    list_metrics,
 )
 from superset.mcp_service.sql_lab.tool import (  # noqa: F401, E402
     execute_sql,
@@ -762,6 +852,7 @@ from superset.mcp_service.task.tool import (  # noqa: F401, E402
     list_tasks,
 )
 from superset.mcp_service.theme.tool import (  # noqa: F401, E402
+    create_theme,
     get_theme_info,
     list_themes,
 )
@@ -769,6 +860,69 @@ from superset.mcp_service.user.tool import (  # noqa: F401, E402
     get_user_info,
     list_users,
 )
+
+#: Tool names exempt from the mcp_auth_hook protection check. Adding a tool
+#: here is a security-significant choice — review carefully. Entries are tools
+#: that intentionally run without authentication; ``generate_bug_report`` is
+#: public so users can collect diagnostics even when auth itself is broken.
+#: Frozen so accidental post-init mutation (``ALLOWED_UNPROTECTED.add(...)``)
+#: raises ``AttributeError`` rather than silently widening the security
+#: allowlist after the startup assertion has already run.
+ALLOWED_UNPROTECTED: frozenset[str] = frozenset({"generate_bug_report"})
+
+
+def assert_all_tools_protected(mcp_instance: FastMCP) -> None:
+    """Fail loudly at startup if any registered tool bypassed ``mcp_auth_hook``.
+
+    The fresh-app-context-per-call fix in #39385 only protects tools that
+    actually go through ``mcp_auth_hook``. This catches all three known bypass
+    paths (see #39395):
+
+    * ``@tool(protect=False)`` — the wrapper is skipped entirely.
+    * Silent fallback in ``create_tool_decorator`` (now fail-fast, but a future
+      regression could reintroduce it).
+    * Direct ``mcp.add_tool()`` calls that skip the decorator.
+
+    Raises:
+        RuntimeError: if any tool's underlying function lacks the
+            ``_mcp_auth_protected`` marker set by ``mcp_auth_hook``.
+    """
+    # FastMCP 3.x exposes components keyed as ``"<kind>:<name>@..."`` (tools,
+    # prompts, resources) in the local provider's component dict. Tool values
+    # are ``FunctionTool`` objects with ``.name`` and ``.fn`` attributes.
+    tools_checked = 0
+    for key, component in mcp_instance.local_provider._components.items():
+        # Prompts and resources are intentionally skipped here. They use the
+        # same ``mcp_auth_hook`` (via ``create_prompt_decorator`` and the
+        # resource-level ``@mcp_auth_hook`` convention documented in
+        # ``mcp_service/CLAUDE.md``) but their bypass surface is different —
+        # ``protect=False`` on a prompt would need its own ``assert_all_
+        # prompts_protected`` check. Tracked as a follow-up per @aminghadersohi.
+        if not key.startswith("tool:"):
+            continue
+        tools_checked += 1
+        name = getattr(component, "name", None) or key
+        fn = getattr(component, "fn", None)
+        if name in ALLOWED_UNPROTECTED:
+            continue
+        if not getattr(fn, "_mcp_auth_protected", False):
+            raise RuntimeError(
+                f"SECURITY: MCP tool '{name}' registered without mcp_auth_hook. "
+                f"All tools must use @tool() with protect=True or be explicitly "
+                f"allowlisted in ALLOWED_UNPROTECTED."
+            )
+
+    # Defense against silent FastMCP API drift: if the private
+    # ``local_provider._components`` attribute or the ``"tool:"`` key prefix
+    # changes in a future FastMCP release, this loop would match nothing and
+    # vacuously return success. Log a warning so the regression is visible in
+    # the startup logs and routine ops review.
+    if tools_checked == 0:
+        logger.warning(
+            "assert_all_tools_protected inspected 0 tools — FastMCP internal "
+            "API (local_provider._components, 'tool:' key prefix) may have "
+            "changed. Review and update the iteration in app.py."
+        )
 
 
 def _remove_disabled_tools(disabled_tools: set[str]) -> None:
@@ -805,22 +959,12 @@ def _apply_config_guards(flask_app: Any) -> set[str]:
     Returns the set of tool names that were removed so that callers can exclude
     them from generated instructions.
 
-    - Action-log tools: mirrors LogRestApi.is_enabled() which checks
-      FAB_ADD_SECURITY_VIEWS and SUPERSET_LOG_VIEW.
     - Task tools: mirrors TaskRestApi conditional registration which checks
       the GLOBAL_TASK_FRAMEWORK feature flag via feature_flag_manager so that
       all Superset enablement paths (DEFAULT_FEATURE_FLAGS, GET_FEATURE_FLAGS_FUNC,
       IS_FEATURE_ENABLED_FUNC, etc.) are respected.
     """
     removed: set[str] = set()
-
-    if not (
-        flask_app.config["FAB_ADD_SECURITY_VIEWS"]
-        and flask_app.config["SUPERSET_LOG_VIEW"]
-    ):
-        for tool_name in ("list_action_logs", "get_action_log_info"):
-            _remove_tool_quietly(tool_name, "logging disabled by config flags")
-            removed.add(tool_name)
 
     from superset.extensions import feature_flag_manager  # noqa: PLC0415
 
@@ -860,8 +1004,9 @@ def init_fastmcp_server(
     Returns:
         The global FastMCP instance configured with the provided settings
     """
-    # Read branding from Flask config's APP_NAME
-    from superset.mcp_service.flask_singleton import app as flask_app
+    # circular import: flask_singleton imports from superset.extensions which
+    # re-enters mcp_service during startup; must stay lazy inside the function.
+    from superset.mcp_service.flask_singleton import app as flask_app  # noqa: PLC0415
 
     # Derive branding from Superset's APP_NAME config (defaults to "Superset")
     app_name = flask_app.config.get("APP_NAME", "Superset")
@@ -910,6 +1055,9 @@ def init_fastmcp_server(
 
     # Apply any additional configuration
     _apply_config(mcp, config)
+
+    # Final invariant: every tool must have gone through mcp_auth_hook.
+    assert_all_tools_protected(mcp)
 
     logger.info("Configured FastMCP instance: %s (auth=%s)", name, auth is not None)
     return mcp

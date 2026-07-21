@@ -34,6 +34,7 @@ import { capitalize } from 'lodash/fp';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { useDispatch } from 'react-redux';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { ensureAppRoot } from 'src/utils/navigationUtils';
 
 type OAuthProvider = {
   name: string;
@@ -100,10 +101,10 @@ export default function Login() {
   );
 
   const buildProviderLoginUrl = (providerName: string) => {
-    const base = `/login/${providerName}`;
-    return nextUrl
-      ? `${base}${base.includes('?') ? '&' : '?'}next=${encodeURIComponent(nextUrl)}`
-      : base;
+    const base = `/login/${encodeURIComponent(providerName)}`;
+    return ensureAppRoot(
+      nextUrl ? `${base}?next=${encodeURIComponent(nextUrl)}` : base,
+    );
   };
 
   const authType: AuthType = bootstrapData.common.conf.AUTH_TYPE;
@@ -132,7 +133,7 @@ export default function Login() {
     sessionStorage.setItem('login_attempted', 'true');
 
     // Use standard form submission for Flask-AppBuilder compatibility
-    SupersetClient.postForm(loginEndpoint, values, '');
+    SupersetClient.postForm(ensureAppRoot(loginEndpoint), values, '');
   };
 
   const getAuthIconElement = (
@@ -256,7 +257,7 @@ export default function Login() {
                     <Button
                       block
                       type="default"
-                      href="/register/"
+                      href={ensureAppRoot('/register/')}
                       data-test="register-button"
                     >
                       {t('Register')}
