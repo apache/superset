@@ -826,7 +826,9 @@ def test_email_chart_report_schedule_alpha_owner(
     # setup screenshot mock
     username = ""
 
-    def _screenshot_side_effect(user: User) -> Optional[bytes]:
+    def _screenshot_side_effect(
+        user: User, log_context: Optional[str] = None
+    ) -> Optional[bytes]:
         nonlocal username
         username = user.username
 
