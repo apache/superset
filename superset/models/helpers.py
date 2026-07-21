@@ -3914,6 +3914,26 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                 if (
                     col_obj is None
+                    and sqla_col is None
+                    and isinstance(flt_col, str)
+                    and flt_col in adhoc_columns_by_label
+                ):
+                    # The filter references a display label from an adhoc column
+                    # (e.g. a renamed column in the Table chart). Resolve it to
+                    # the underlying SQL expression so the filter is applied.
+                    try:
+                        sqla_col, adhoc_generic_type = self.adhoc_column_to_sqla(
+                            col=adhoc_columns_by_label[flt_col],
+                            force_type_check=True,
+                            template_processor=template_processor,
+                        )
+                        applied_adhoc_filters_columns.append(flt_col)
+                    except ColumnNotFoundException:
+                        rejected_adhoc_filters_columns.append(flt_col)
+                        continue
+                if (
+                    col_obj is None
+                    and sqla_col is None
                     and isinstance(flt_col, str)
                     and flt_col in metrics_by_name
                 ):
@@ -4384,6 +4404,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             and not is_adhoc_column(col)
             and col not in self.column_names
             and col not in applied_template_filters
+            and col not in adhoc_columns_by_label
         ] + rejected_adhoc_filters_columns
 
         applied_filter_columns = [
@@ -4391,7 +4412,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             for col in filter_columns
             if col
             and not is_adhoc_column(col)
-            and (col in self.column_names or col in applied_template_filters)
+            and (
+                col in self.column_names
+                or col in applied_template_filters
+                or col in adhoc_columns_by_label
+            )
         ] + applied_adhoc_filters_columns
 
         return SqlaQuery(
