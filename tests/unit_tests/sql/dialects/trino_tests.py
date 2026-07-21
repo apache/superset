@@ -130,12 +130,26 @@ WITH FUNCTION classify(a bigint)
   END
 SELECT classify(x) FROM some_table
         """,
+        """
+WITH FUNCTION classify(a bigint)
+  RETURNS varchar
+  BEGIN
+    IF (a > 100) THEN
+      RETURN 'big';
+    ELSEIF a > 0 THEN
+      RETURN 'small';
+    END IF;
+    RETURN 'negative';
+  END
+SELECT classify(x) FROM some_table
+        """,
     ],
 )
 def test_inline_udf_nested_blocks(sql: str) -> None:
     """
     Test nested blocks: ``CASE ... END CASE``, ``IF ... END IF``,
-    ``WHILE ... END WHILE``, and scalar ``IF()`` function calls.
+    ``WHILE ... END WHILE``, scalar ``IF()`` function calls, and a
+    parenthesized ``IF (...) THEN`` condition.
     """
     statements = sqlglot.parse(sql.strip(), dialect=Trino)
     assert len(statements) == 1
