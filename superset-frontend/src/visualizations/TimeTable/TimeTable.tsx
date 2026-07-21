@@ -24,7 +24,7 @@ import { sortNumberWithMixedTypes, processTimeTableData } from './utils';
 import { ValueCell, LeftCell, Sparkline } from './components';
 import type { TimeTableProps } from './types';
 
-const RESIZE_DEBOUNCE_MS = 300;
+const RESIZE_DEBOUNCE_MS = 500;
 
 // @z-index-above-dashboard-charts + 1 = 11
 const TimeTableStyles = styled.div<{ height?: number; hideTable?: boolean }>`
