@@ -500,12 +500,19 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         """Upsert a storage entry.  Encrypts value when encrypt=True.
 
         The select-then-insert/update below is guarded by a distributed lock
-        scoped to this exact key: the row's unique constraint can't be relied
-        on to catch concurrent writes here, since `user_fk`, `resource_type`,
-        and `resource_uuid` are nullable and standard SQL never treats
-        NULL = NULL, so two concurrent inserts for the same *global* or
-        *resource*-scoped key (where one or more of those columns is NULL)
-        would not violate it and would land as duplicate rows.
+        scoped to the whole extension, for two independent reasons:
+
+        * The row's unique constraint can't be relied on to catch concurrent
+          writes to the same key, since `user_fk`, `resource_type`, and
+          `resource_uuid` are nullable and standard SQL never treats
+          NULL = NULL, so two concurrent inserts for the same *global* or
+          *resource*-scoped key (where one or more of those columns is NULL)
+          would not violate it and would land as duplicate rows.
+        * `_check_quota` below enforces usage extension-wide, summed across
+          every key. A lock scoped to only this key would let concurrent
+          writes to *different* keys of the same extension each read usage
+          before the other commits, both pass the check, and land a combined
+          write that exceeds the extension's quota.
 
         :raises ExtensionStorageKeyTooLong: if `key` exceeds MAX_KEY_LENGTH.
         :raises ExtensionStorageValueTooLarge: if `value` exceeds
@@ -525,10 +532,6 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
             namespace="extension_storage_set",
             ttl_seconds=SET_LOCK_TTL_SECONDS,
             extension_id=extension_id,
-            key=key,
-            user_fk=user_fk,
-            resource_type=resource_type,
-            resource_uuid=resource_uuid,
         ):
             entry = (
                 db.session.query(ExtensionStorage)

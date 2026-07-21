@@ -38,6 +38,7 @@ from superset.extensions.storage.persistent_dao import (
     ExtensionStorageQuotaExceeded,
     ExtensionStorageValueTooLarge,
     MAX_KEY_LENGTH,
+    SET_LOCK_TTL_SECONDS,
 )
 from superset.extensions.storage.persistent_model import ExtensionStorage
 
@@ -277,6 +278,27 @@ def test_dao_set_creates_new_entry_when_absent(mock_db: MagicMock, app: Flask) -
 
     mock_db.session.add.assert_called_once()
     mock_db.session.flush.assert_called_once()
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_set_locks_the_whole_extension_not_just_the_key(
+    mock_db: MagicMock, mock_distributed_lock: MagicMock, app: Flask
+) -> None:
+    """set()'s lock is scoped to extension_id alone, not to the specific key:
+    _check_quota sums usage across every key in the extension, so a lock
+    scoped to just this key would let concurrent writes to different keys
+    each pass the quota check before either commits, letting the extension
+    exceed its quota."""
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
+
+    with app.app_context():
+        ExtensionStorageDAO.set("my-ext", "key", b'{"value": 1}', user_fk=1)
+
+    mock_distributed_lock.assert_called_once_with(
+        namespace="extension_storage_set",
+        ttl_seconds=SET_LOCK_TTL_SECONDS,
+        extension_id="my-ext",
+    )
 
 
 @patch("superset.extensions.storage.persistent_dao.db")

@@ -48,6 +48,7 @@ from superset.extensions.storage.persistent_dao import (
     ExtensionStorageValueTooLarge,
 )
 from superset.extensions.storage.utils import get_extension_or_404, parse_ttl
+from superset.key_value.exceptions import KeyValueCodecEncodeException
 from superset.utils.decorators import transaction
 
 
@@ -85,7 +86,7 @@ def _wire_value_for_request(value: Any, is_binary: bool) -> Any:
 
 
 class ExtensionStorageRestApi(BaseApi):
-    """REST API for extension ephemeral state storage."""
+    """REST API for extension ephemeral (Tier 2) and persistent (Tier 3) storage."""
 
     allow_browser_login = True
     route_base = "/api/v1/extensions"
@@ -267,7 +268,7 @@ class ExtensionStorageRestApi(BaseApi):
             return self.response_400("Request body must contain 'value' field")
 
         codec = body.get("codec", DEFAULT_CODEC)
-        if codec not in SAFE_CODECS:
+        if not isinstance(codec, str) or codec not in SAFE_CODECS:
             return self.response_400(
                 f"Codec '{codec}' is not allowed over the REST API."
             )
@@ -644,7 +645,7 @@ class ExtensionStorageRestApi(BaseApi):
             return self.response_400("Request body must contain 'value' field")
 
         codec = body.get("codec", DEFAULT_CODEC)
-        if codec not in SAFE_CODECS:
+        if not isinstance(codec, str) or codec not in SAFE_CODECS:
             return self.response_400(
                 f"Codec '{codec}' is not allowed over the REST API."
             )
@@ -659,7 +660,12 @@ class ExtensionStorageRestApi(BaseApi):
             return self.response_400(
                 "Value must be a valid base64 string when 'isBinary' is true."
             )
-        value_bytes = get_codec(codec).encode(wire_value)
+        try:
+            value_bytes = get_codec(codec).encode(wire_value)
+        except (KeyValueCodecEncodeException, TypeError, ValueError) as ex:
+            return self.response_400(
+                f"Value could not be encoded with codec '{codec}': {ex}"
+            )
         try:
             ExtensionStorageDAO.set(
                 extension_id,

@@ -280,6 +280,34 @@ def test_ephemeral_set_rejects_unsafe_codec(
 
 @patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
 @patch("superset.extensions.storage.utils.get_extensions")
+def test_ephemeral_set_rejects_non_string_codec(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
+) -> None:
+    """set_ephemeral returns 400, rather than a 500 from an unhashable-type
+    membership check, when 'codec' is a non-string JSON value (e.g. a list).
+    """
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/ephemeral/job",
+        method="PUT",
+        json={"value": {"progress": 50}, "ttl": 600, "codec": ["json"]},
+    ):
+        g.user = MagicMock(id=7)
+
+        body, status_code = ExtensionStorageRestApi().set_ephemeral(
+            "acme", "dashboard", "job"
+        )
+
+        assert status_code == 400
+        mock_dao.set.assert_not_called()
+
+
+@patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_ephemeral_set_returns_400_on_ttl_invalid(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -588,6 +616,64 @@ def test_persistent_set_rejects_unsafe_codec(
 
         assert status_code == 400
         assert "not allowed" in body.get_json()["message"].lower()
+        mock_dao.set.assert_not_called()
+
+
+@patch("superset.db")
+@patch("superset.extensions.storage.api.ExtensionStorageDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_persistent_set_rejects_non_string_codec(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, mock_db: MagicMock, app: Flask
+) -> None:
+    """Persistent PUT returns 400, rather than a 500 from an unhashable-type
+    membership check, when 'codec' is a non-string JSON value (e.g. a list).
+    """
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/persistent/prefs",
+        method="PUT",
+        json={"value": "sk-...", "codec": ["json"]},
+    ):
+        g.user = MagicMock(id=42)
+
+        body, status_code = ExtensionStorageRestApi().set_persistent(
+            "acme", "dashboard", "prefs"
+        )
+
+        assert status_code == 400
+        mock_dao.set.assert_not_called()
+
+
+@patch("superset.db")
+@patch("superset.extensions.storage.api.ExtensionStorageDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_persistent_set_returns_400_when_isbinary_codec_mismatch(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, mock_db: MagicMock, app: Flask
+) -> None:
+    """Persistent PUT returns 400, rather than a 500 from an uncaught codec
+    encode error, when 'isBinary' decodes 'value' to raw bytes but 'codec'
+    (e.g. the default "json") can't encode a bytes value."""
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/persistent/prefs",
+        method="PUT",
+        json={"value": "aGVsbG8=", "isBinary": True},
+    ):
+        g.user = MagicMock(id=42)
+
+        body, status_code = ExtensionStorageRestApi().set_persistent(
+            "acme", "dashboard", "prefs"
+        )
+
+        assert status_code == 400
         mock_dao.set.assert_not_called()
 
 

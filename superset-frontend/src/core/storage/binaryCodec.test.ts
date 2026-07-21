@@ -69,11 +69,13 @@ test('resolveSetPayload base64-encodes an ArrayBuffer when isBinary is true', ()
 
 test('resolveSetPayload base64-encodes a Uint8Array when isBinary is true, even with an explicit codec', () => {
   const bytes = new Uint8Array([1, 2, 3]);
-  expect(resolveSetPayload(bytes, { codec: 'pickle', isBinary: true })).toEqual({
-    value: bytesToBase64(bytes),
-    codec: 'pickle',
-    isBinary: true,
-  });
+  expect(resolveSetPayload(bytes, { codec: 'pickle', isBinary: true })).toEqual(
+    {
+      value: bytesToBase64(bytes),
+      codec: 'pickle',
+      isBinary: true,
+    },
+  );
 });
 
 test('resolveSetPayload respects an explicit codec for a non-binary value and does not flag isBinary', () => {
