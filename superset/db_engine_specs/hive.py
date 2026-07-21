@@ -303,8 +303,37 @@ class HiveEngineSpec(PrestoEngineSpec):
         catalog: str | None = None,
         schema: str | None = None,
     ) -> tuple[URL, dict[str, Any]]:
+        """
+        Return the URI and connection arguments unchanged.
 
+        This overrides the Presto implementation, whose ``catalog/schema`` URI
+        convention doesn't apply to PyHive URLs. The URI must also not be
+        rewritten to point at the selected schema: PyHive issues ``USE`` on the
+        URI database at connect time, so on backends where the URI database
+        selects a catalog (e.g. Spark Thrift Server) rewriting it would be seen
+        as a catalog change and break table resolution. Schema selection is
+        handled by :meth:`get_prequeries` instead.
+        """
         return uri, connect_args
+
+    @classmethod
+    def get_prequeries(
+        cls,
+        database: Database,
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> list[str]:
+        """
+        Return a ``USE`` statement to select the schema for new connections.
+
+        A plain single-identifier ``USE`` is valid on both HiveServer2 and
+        Spark Thrift Server, and on the latter it resolves within the current
+        catalog rather than replacing it.
+        """
+        if schema:
+            escaped_schema = schema.replace("`", "``")
+            return [f"USE `{escaped_schema}`"]
+        return []
 
     @classmethod
     def get_schema_from_engine_params(
