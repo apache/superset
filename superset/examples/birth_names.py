@@ -135,13 +135,12 @@ def _add_table_metrics(datasource: SqlaTable) -> None:
     if not any(col.column_name == "num_california" for col in columns):
         col_state = str(column("state").compile(db.engine))
         col_num = str(column("num").compile(db.engine))
-        columns.append(
-            TableColumn(
-                column_name="num_california",
-                expression="CASE WHEN %s = 'CA' THEN %s ELSE 0 END"
-                % (col_state, col_num),
-            )
+        column_it = TableColumn(
+            column_name="num_california",
+            expression="CASE WHEN %s = 'CA' THEN %s ELSE 0 END" % (col_state, col_num),
         )
+        db.session.add(column_it)
+        columns.append(column_it)
 
     if not any(col.metric_name == "sum__num" for col in metrics):
         col = str(column("num").compile(db.engine))

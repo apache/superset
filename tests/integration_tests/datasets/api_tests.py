@@ -121,6 +121,7 @@ class TestDatasetApi(SupersetTestCase):
             extra=extra,
         )
         if columns:
+            db.session.add_all(columns)
             table.columns = columns
         if metrics:
             table.metrics = metrics

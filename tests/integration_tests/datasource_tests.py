@@ -153,17 +153,17 @@ class TestDatasource(SupersetTestCase):
             "row_limit": 1000,
             "row_offset": 0,
         }
+        columns = [
+            TableColumn(column_name="default_dttm", type="DATETIME", is_dttm=True),
+            TableColumn(column_name="additional_dttm", type="DATETIME", is_dttm=True),
+        ]
+        db.session.add_all(columns)
         table = SqlaTable(
             table_name="dummy_sql_table",
             database=database,
             schema=get_example_default_schema(),
             main_dttm_col="default_dttm",
-            columns=[
-                TableColumn(column_name="default_dttm", type="DATETIME", is_dttm=True),
-                TableColumn(
-                    column_name="additional_dttm", type="DATETIME", is_dttm=True
-                ),
-            ],
+            columns=columns,
             sql=sql,
         )
 
@@ -660,12 +660,13 @@ def test_get_samples_with_incorrect_cc(test_client, login_as_admin, virtual_data
     if get_example_database().backend == "sqlite":
         return
 
-    TableColumn(
+    column = TableColumn(
         column_name="DUMMY CC",
         type="VARCHAR(255)",
         table=virtual_dataset,
         expression="INCORRECT SQL",
     )
+    db.session.add(column)
 
     uri = (
         f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
