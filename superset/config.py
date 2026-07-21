@@ -937,9 +937,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable drill-to-detail functionality in charts
     # @lifecycle: deprecated
     "DRILL_TO_DETAIL": True,
-    # Allow JavaScript in chart controls. WARNING: XSS security vulnerability!
-    # @lifecycle: deprecated
-    "ENABLE_JAVASCRIPT_CONTROLS": False,
 }
 
 # ------------------------------
@@ -1444,6 +1441,27 @@ CSV_STREAMING_ROW_THRESHOLD = 100000
 EXCEL_EXPORT: dict[str, Any] = {}
 
 # ---------------------------------------------------
+# Dashboard "Export Data to Excel" (async, S3-backed)
+# ---------------------------------------------------
+# Destination S3 bucket for generated dashboard .xlsx exports. The feature is
+# disabled until this is set: the export endpoint returns 501 when it is None.
+EXCEL_EXPORT_S3_BUCKET: str | None = None
+# Key prefix for export objects: {prefix}{dashboard_id}/{job_id}.xlsx
+EXCEL_EXPORT_S3_KEY_PREFIX = "dashboard-exports/"
+# Lifetime (seconds) of the pre-signed download URL emailed to the user (24h).
+# Note: AWS S3 caps pre-signed URL lifetime at 7 days (604800 seconds); larger
+# values are rejected by S3, so keep this at or below that when using AWS.
+EXCEL_EXPORT_LINK_TTL_SECONDS = 86400
+# Extra kwargs passed to boto3.client("s3", ...) — e.g. region_name, or an
+# endpoint_url for S3-compatible stores (MinIO/LocalStack). Credentials
+# otherwise resolve through the standard boto3 chain.
+EXCEL_EXPORT_S3_CLIENT_KWARGS: dict[str, Any] = {}
+# Viz types treated as tables in the "Export Images to Excel" mode: these charts
+# stay tabular (one worksheet of data) while every other viz type is embedded as
+# a rendered image. Set to None to fall back to the built-in default.
+EXCEL_EXPORT_TABLE_VIZ_TYPES: set[str] | None = None
+
+# ---------------------------------------------------
 # Time grain configurations
 # ---------------------------------------------------
 # List of time grains to disable in the application (see list of builtin
@@ -1635,6 +1653,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "superset.tasks.thumbnails",
         "superset.tasks.cache",
         "superset.tasks.slack",
+        "superset.tasks.export_dashboard_excel",
     )
     result_backend = "db+sqlite:///celery_results.sqlite"
     worker_prefetch_multiplier = 1
