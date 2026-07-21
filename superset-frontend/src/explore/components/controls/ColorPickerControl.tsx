@@ -90,13 +90,15 @@ export default function ColorPickerControl({
   const defaultPresets = categoricalScheme?.colors.slice(0, 9) || [];
   const theme = useTheme();
 
-  const themeColors = useMemo<Record<string, string>>(() => 
-    (theme as any)?.colors || theme || {}
-  , [theme]);
+  const themeColors = useMemo<Record<string, string>>(
+    () => (theme as any)?.colors || theme || {},
+    [theme],
+  );
 
-  const reverseMap = useMemo(() => 
-    getReverseThemeColorMap(themeColors)
-  , [themeColors]);
+  const reverseMap = useMemo(
+    () => getReverseThemeColorMap(themeColors),
+    [themeColors],
+  );
 
   const presets = useMemo(() => {
     if (customPresets) {
