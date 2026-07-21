@@ -31,6 +31,7 @@ from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import is_tool_visible_to_current_user
 from superset.mcp_service.privacy import tool_requires_data_model_metadata_access
 from superset.utils import json
+from superset.utils.date_parser import get_since_until
 
 query_dataset_module = importlib.import_module(
     "superset.mcp_service.dataset.tool.query_dataset"
@@ -896,7 +897,9 @@ class TestQueryDatasetBracketShorthandNormalization:
 
     LLM clients sometimes pass values like '[year]' or '[quarter]' after
     seeing grain tokens in dashboard filter contexts.  The schema validator
-    maps them to the canonical 'Last <unit>' form so get_since_until() can
+    maps day-and-up units ('[day]' through '[year]') to the canonical
+    'Last <unit>' form, and sub-day units ('[second]'/'[minute]'/'[hour]')
+    to an explicit DATEADD/DATETIME expression, so get_since_until() can
     parse them without raising TimeRangeParseFailError.
     """
 
@@ -1092,6 +1095,12 @@ async def test_query_dataset_bracket_year_resolves_without_parse_error(
     ]
     assert len(temporal_filters) == 1
     assert temporal_filters[0]["val"] == "Last year"
+    # Exercise the real parser (not mocked above) to prove the normalized
+    # value is actually parseable, not just forwarded unchanged.
+    since, until = get_since_until(time_range=temporal_filters[0]["val"])
+    assert since is not None
+    assert until is not None
+    assert since < until
 
 
 @pytest.mark.asyncio
@@ -1157,3 +1166,9 @@ async def test_query_dataset_bracket_hour_resolves_without_parse_error(
         temporal_filters[0]["val"]
         == "DATEADD(DATETIME('now'), -1, HOUR) : DATETIME('now')"
     )
+    # Exercise the real parser (not mocked above) to prove the normalized
+    # value is actually parseable, not just forwarded unchanged.
+    since, until = get_since_until(time_range=temporal_filters[0]["val"])
+    assert since is not None
+    assert until is not None
+    assert since < until
