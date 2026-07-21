@@ -149,6 +149,32 @@ test('right-clicking a dimension cell emits drillToDetail, crossFilter and drill
   });
 });
 
+test('right-clicking a null cell emits an IS NULL drillBy filter with a null val', async () => {
+  const onContextMenu = jest.fn();
+  renderChart(onContextMenu);
+  await waitFor(() => expect(captured.props?.onCellContextMenu).toBeDefined());
+
+  captured.props?.onCellContextMenu?.({
+    column: makeColumn('__timestamp'),
+    data: { __timestamp: null, name: 'Michael', sum__num: 2467063 },
+    value: null,
+    event: {
+      preventDefault: jest.fn(),
+      stopPropagation: jest.fn(),
+      clientX: 0,
+      clientY: 0,
+    },
+  });
+
+  const [, , filters] = onContextMenu.mock.calls[0];
+  // op and val must agree: IS NULL must carry a null val, not the clicked
+  // cell's (possibly wrapped) value.
+  expect(filters.drillBy).toEqual({
+    filters: [{ col: '__timestamp', op: 'IS NULL', val: null }],
+    groupbyFieldName: 'groupby',
+  });
+});
+
 test('right-clicking a metric cell omits crossFilter and drillBy', async () => {
   const onContextMenu = jest.fn();
   renderChart(onContextMenu);

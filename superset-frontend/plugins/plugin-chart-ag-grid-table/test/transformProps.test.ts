@@ -264,3 +264,48 @@ test('uses description from column even when verboseMap renames the column', () 
   expect(columnMeta!.label).toBe('Custom Label');
   expect(columnMeta!.description).toBe('Original column description');
 });
+
+test('does not mistake the all_records percent-metric query for the totals query', () => {
+  // buildQuery.ts appends both an "all records" percent-metric denominator
+  // query and a totals query as independent extraQueries when percent
+  // metrics with percent_metric_calculation "all_records" and show_totals
+  // are both enabled — queriesData has 3 entries, not 2.
+  const props = createMockChartProps({
+    rawFormData: {
+      viz_type: 'table',
+      datasource: '1__table',
+      query_mode: QueryMode.Aggregate,
+      metrics: ['sum__num'],
+      percent_metrics: ['sum__num'],
+      percent_metric_calculation: 'all_records',
+      show_totals: true,
+      column_config: {},
+      table_timestamp_format: '',
+    },
+    queriesData: [
+      {
+        data: [{ name: 'a', sum__num: 1 }],
+        colnames: ['name', 'sum__num'],
+        coltypes: [GenericDataType.String, GenericDataType.Numeric],
+        rowcount: 1,
+        applied_filters: [],
+        rejected_filters: [],
+      },
+      // all_records extra query: raw percent-metric denominator, not totals.
+      {
+        data: [{ sum__num: 100 }],
+        colnames: ['sum__num'],
+        coltypes: [GenericDataType.Numeric],
+      },
+      // totals extra query: the real one.
+      {
+        data: [{ sum__num: 42 }],
+        colnames: ['sum__num'],
+        coltypes: [GenericDataType.Numeric],
+      },
+    ] as unknown as TableChartProps['queriesData'],
+  });
+
+  const result = transformProps(props);
+  expect(result.totals).toEqual({ sum__num: 42 });
+});

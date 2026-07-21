@@ -669,33 +669,21 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     );
 
     if (showAggregateTotals || rawSummaryColumns.length > 0) {
-      // Create a copy of extras without the AG Grid WHERE clause
-      // AG Grid filters in extras.where can reference calculated columns
-      // which aren't available in the totals subquery
-      const totalsExtras = { ...queryObject.extras };
-      if (ownState.agGridComplexWhere) {
-        // Remove AG Grid WHERE clause from totals query
-        const whereClause = totalsExtras.where;
-        if (whereClause) {
-          // Remove the AG Grid filter part from the WHERE clause using string methods
-          const agGridWhere = ownState.agGridComplexWhere;
-          let newWhereClause = whereClause;
-
-          // Try to remove with " AND " before
-          newWhereClause = newWhereClause.replace(` AND ${agGridWhere}`, '');
-          // Try to remove with " AND " after
-          newWhereClause = newWhereClause.replace(`${agGridWhere} AND `, '');
-          // If it's the only clause, remove it entirely
-          if (newWhereClause === agGridWhere) {
-            newWhereClause = '';
-          }
-
-          if (newWhereClause.trim()) {
-            totalsExtras.where = newWhereClause;
-          } else {
-            delete totalsExtras.where;
-          }
-        }
+      // Start from the original, pre-filter extras (captured before any
+      // AG Grid WHERE/HAVING or download sqlClauses were merged in above)
+      // rather than trying to subtract those fragments back out of the
+      // now-combined `queryObject.extras` string. AG Grid filters can
+      // reference calculated columns that aren't available once the
+      // totals subquery drops all grouping columns (columns: []), and that
+      // applies to HAVING just as much as WHERE, and to the download
+      // sqlClauses path just as much as the live agGridComplexWhere path —
+      // starting clean avoids having to special-case each source.
+      const totalsExtras = { ...extras };
+      if (!totalsExtras.where) {
+        delete totalsExtras.where;
+      }
+      if (!totalsExtras.having) {
+        delete totalsExtras.having;
       }
 
       extraQueries.push({
@@ -709,7 +697,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
             label: columnName,
           })),
         }),
-        extras: totalsExtras, // Use extras with AG Grid WHERE removed
+        extras: totalsExtras, // Chart-level extras only, no interactive filters
         row_limit: 0,
         row_offset: 0,
         // Reapply only the percent-metric contribution rule so the totals row

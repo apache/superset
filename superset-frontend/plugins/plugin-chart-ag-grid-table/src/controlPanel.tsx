@@ -562,11 +562,14 @@ const config: ControlPanelConfig = {
                   const updatedColtypes: GenericDataType[] = [];
 
                   colnames
+                    .map(
+                      (colname, index) => [colname, index] as [string, number],
+                    )
                     .filter(
-                      colname =>
+                      ([colname]) =>
                         last(colname.split('__')) !== timeComparisonValue,
                     )
-                    .forEach((colname, index) => {
+                    .forEach(([colname, originalIndex]) => {
                       if (
                         shouldSkipMetricColumn({
                           colname,
@@ -603,7 +606,12 @@ const config: ControlPanelConfig = {
                         });
                       } else {
                         updatedColnames.push(colname);
-                        updatedColtypes.push(coltypes[index]);
+                        // Look up by the column's original position in
+                        // colnames/coltypes, not its position after the
+                        // filter above — those diverge whenever any
+                        // earlier column is a comparison-suffixed one that
+                        // got filtered out.
+                        updatedColtypes.push(coltypes[originalIndex]);
                         childColumnMap[colname] = false;
                         timeComparisonColumnMap[colname] = false;
                       }
@@ -800,8 +808,10 @@ const config: ControlPanelConfig = {
                         label: Array.isArray(verboseMap)
                           ? colname
                           : (verboseMap[colname] ?? colname),
-                        dataType:
-                          colnames && coltypes[colnames?.indexOf(colname)],
+                        // Every entry here already passed the Numeric filter
+                        // above, so the type is always Numeric — no need to
+                        // re-look it up (which breaks on duplicate colnames).
+                        dataType: GenericDataType.Numeric,
                       }))
                   : [];
                 const columnOptions = hasTimeComparison

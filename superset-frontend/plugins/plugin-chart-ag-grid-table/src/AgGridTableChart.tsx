@@ -475,6 +475,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         }
       });
 
+      const isCellValueNull =
+        cellValue == null ||
+        (cellValue instanceof DateWithFormatter && cellValue.input == null);
+
       onContextMenu(nativeEvent.clientX, nativeEvent.clientY, {
         drillToDetail: drillToDetailFilters,
         crossFilter: isMetric
@@ -491,15 +495,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           ? undefined
           : {
               filters: [
-                {
-                  col: key,
-                  op: (cellValue == null ||
-                  (cellValue instanceof DateWithFormatter &&
-                    cellValue.input == null)
-                    ? 'IS NULL'
-                    : '==') as any,
-                  val: extractTextFromHTML(cellValue),
-                },
+                isCellValueNull
+                  ? { col: key, op: 'IS NULL' as any, val: null }
+                  : {
+                      col: key,
+                      op: '==' as any,
+                      val: extractTextFromHTML(cellValue),
+                    },
               ],
               groupbyFieldName: 'groupby',
             },
@@ -541,7 +543,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   );
 
   const handleChangeSearchCol = (searchCol: string) => {
-    if (!isEqual(searchCol, serverPaginationData?.searchColumn)) {
+    if (!isEqual(searchCol, ownStateRef.current?.searchColumn)) {
       writeOwnState({
         searchColumn: searchCol,
         searchText: '',

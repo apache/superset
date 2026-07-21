@@ -673,7 +673,11 @@ def _get_table_chart_time_offsets(form_data: dict[str, Any]) -> list[Any]:
         "time_compare"
     )
     if extra_form_data_time_compare:
-        time_offsets = [extra_form_data_time_compare]
+        # extra_form_data.time_compare is typed as a single string on the
+        # frontend, but self.data comes from deserialized JSON with no
+        # runtime type guarantee — normalize defensively so an already-list
+        # value doesn't get double-nested into [[...]].
+        time_offsets = list(ensure_is_array(extra_form_data_time_compare))
     return time_offsets
 
 

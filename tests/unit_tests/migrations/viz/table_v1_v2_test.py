@@ -265,6 +265,23 @@ def test_build_query_extra_form_data_time_grain_sqla_overrides_chart_level() -> 
     }
 
 
+def test_build_query_extra_form_data_time_compare_override_not_double_nested() -> None:
+    """extra_form_data.time_compare is typed as a single string on the
+    frontend, but self.data comes from deserialized JSON with no runtime
+    type guarantee. If a malformed/legacy record already carries it as a
+    list, the override must not double-nest it into [[...]]."""
+    form_data: dict[str, Any] = {
+        "datasource": "1__table",
+        "viz_type": "table",
+        "query_mode": "aggregate",
+        "groupby": ["name"],
+        "metrics": ["count"],
+        "extra_form_data": {"time_compare": ["4 weeks ago"]},
+    }
+    main_query = MigrateTableChart(json.dumps(form_data))._build_query()["queries"][0]
+    assert main_query["time_offsets"] == ["4 weeks ago"]
+
+
 def test_build_query_percent_metric_expands_with_time_comparison() -> None:
     """When time comparison is enabled, percent-metric contribution columns
     must include the time-offset-suffixed labels (e.g. "metric__1 year

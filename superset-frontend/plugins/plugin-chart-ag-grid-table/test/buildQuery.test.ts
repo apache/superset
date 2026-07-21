@@ -834,6 +834,51 @@ describe('plugin-chart-ag-grid-table', () => {
         expect(totalsQuery.extras).toBeDefined();
       });
 
+      test('should exclude AG Grid HAVING filters from totals query', () => {
+        const { queries } = buildQuery(
+          {
+            ...basicFormData,
+            server_pagination: true,
+            show_totals: true,
+            query_mode: QueryMode.Aggregate,
+          },
+          {
+            ownState: {
+              agGridHavingClause: 'count > 10',
+            },
+          },
+        );
+
+        const mainQuery = queries[0];
+        const totalsQuery = queries[2]; // queries[1] is rowcount, queries[2] is totals
+
+        expect(mainQuery.extras?.having).toBe('count > 10');
+        expect(totalsQuery.extras?.having).toBeUndefined();
+      });
+
+      test('should exclude download HAVING filters (sqlClauses) from totals query', () => {
+        const { queries } = buildQuery(
+          {
+            ...basicFormData,
+            show_totals: true,
+            query_mode: QueryMode.Aggregate,
+            result_format: 'csv',
+          },
+          {
+            ownState: {
+              sqlClauses: { count: 'count > 10' },
+            },
+          },
+        );
+
+        const mainQuery = queries[0];
+        // Downloads never get a rowcount query, so totals is queries[1].
+        const totalsQuery = queries[1];
+
+        expect(mainQuery.extras?.having).toBe('count > 10');
+        expect(totalsQuery.extras?.having).toBeUndefined();
+      });
+
       test('should not modify totals query when no AG Grid filters applied', () => {
         const { queries } = buildQuery(
           {

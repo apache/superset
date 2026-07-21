@@ -372,6 +372,15 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       [onColumnStateChange],
     );
 
+    useEffect(
+      () =>
+        // Cleanup debounced grid-state capture
+        () => {
+          handleGridStateChange.cancel();
+        },
+      [handleGridStateChange],
+    );
+
     const handleFilterChanged = useCallback(async () => {
       filterOperationVersionRef.current += 1;
       const currentVersion = filterOperationVersionRef.current;
@@ -429,38 +438,56 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     // snapshot can't represent the full filtered/sorted result and export
     // falls back to a fresh backend query instead (see useExploreAdditionalActionsMenu).
     const lastClientViewSignatureRef = useRef<string | null>(null);
-    const handleModelUpdated = useCallback(() => {
-      if (serverPagination || !onClientViewChange || !gridRef.current?.api) {
-        return;
-      }
-      const { api } = gridRef.current;
-      const displayedColumns = api
-        .getAllDisplayedColumns()
-        .filter(column => column.getColId() !== ROW_NUMBER_COL_ID);
-      const columns = displayedColumns.map(column => ({
-        key: column.getColId(),
-        label: column.getColDef().headerName || column.getColId(),
-      }));
-
-      const rows: Record<string, unknown>[] = [];
-      const rowIds: string[] = [];
-      api.forEachNodeAfterFilterAndSort(node => {
-        if (node.data) {
-          rows.push(node.data);
-          rowIds.push(node.id ?? '');
+    // Debounced (like handleGridStateChange below) because the full
+    // filtered+sorted traversal is O(n) and onModelUpdated can fire rapidly
+    // in succession (e.g. while typing into a quick filter); only the
+    // trailing update needs to recompute the snapshot.
+    const handleModelUpdated = useCallback(
+      debounce(() => {
+        if (serverPagination || !onClientViewChange || !gridRef.current?.api) {
+          return;
         }
-      });
+        const { api } = gridRef.current;
+        const displayedColumns = api
+          .getAllDisplayedColumns()
+          .filter(column => column.getColId() !== ROW_NUMBER_COL_ID);
+        const columns = displayedColumns.map(column => ({
+          key: column.getColId(),
+          label: column.getColDef().headerName || column.getColId(),
+        }));
 
-      // Node ids are stable per row, so their filtered+sorted sequence
-      // changes whenever the row set or its order changes, even if the
-      // count and visible columns stay the same (e.g. a pure sort).
-      const signature = `${rowIds.join(',')}|${columns.map(c => c.key).join(',')}`;
-      if (signature === lastClientViewSignatureRef.current) {
-        return;
-      }
-      lastClientViewSignatureRef.current = signature;
-      onClientViewChange({ rows, columns, count: rows.length });
-    }, [serverPagination, onClientViewChange]);
+        const rows: Record<string, unknown>[] = [];
+        api.forEachNodeAfterFilterAndSort(node => {
+          if (node.data) {
+            rows.push(node.data);
+          }
+        });
+
+        // Without a getRowId callback, AG Grid's node ids are purely
+        // positional and reset to 0..n-1 on every setRowData call, so they
+        // don't identify a row's content across a data refresh — hashing
+        // the actual filtered+sorted row content (which this function
+        // already has to visit to build `rows`) is what actually detects
+        // both value changes (e.g. a refresh with the same row count) and
+        // order changes (e.g. a pure sort), not just count/column changes.
+        const signature = `${JSON.stringify(rows)}|${columns.map(c => c.key).join(',')}`;
+        if (signature === lastClientViewSignatureRef.current) {
+          return;
+        }
+        lastClientViewSignatureRef.current = signature;
+        onClientViewChange({ rows, columns, count: rows.length });
+      }, Constants.SLOW_DEBOUNCE),
+      [serverPagination, onClientViewChange],
+    );
+
+    useEffect(
+      () =>
+        // Cleanup debounced client-view snapshot capture
+        () => {
+          handleModelUpdated.cancel();
+        },
+      [handleModelUpdated],
+    );
 
     useEffect(() => {
       if (

@@ -181,6 +181,38 @@ test('extraColorChoices not included when time_compare is empty array', () => {
   expect(result.extraColorChoices).toEqual([]);
 });
 
+test('numericColumns resolves dataType by position, not a stale name lookup', () => {
+  const controlConfig = findConditionalFormattingControl();
+  expect(controlConfig).toBeTruthy();
+
+  const explore = createMockExplore(undefined);
+  // Two columns share the name "metric" (e.g. a dimension and a metric
+  // both aliased the same way); only the second occurrence is Numeric.
+  const chart = {
+    chartStatus: 'success' as const,
+    queriesResponse: [
+      {
+        colnames: ['metric', 'metric'],
+        coltypes: [GenericDataType.String, GenericDataType.Numeric],
+      },
+    ],
+  };
+  const result = controlConfig!.mapStateToProps!(
+    explore,
+    createMockControlStateForConditionalFormatting(),
+    chart,
+  );
+
+  // Resolving dataType via `colnames.indexOf(colname)` would always find
+  // the first "metric" (String) and misclassify this numeric column.
+  expect(result.columnOptions).toEqual([
+    expect.objectContaining({
+      value: 'metric',
+      dataType: GenericDataType.Numeric,
+    }),
+  ]);
+});
+
 test('consistency between extraColorChoices and columnOptions', () => {
   const controlConfig = findConditionalFormattingControl();
   expect(controlConfig).toBeTruthy();

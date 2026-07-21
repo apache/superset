@@ -372,13 +372,18 @@ const processColumns = memoizeOne(function processColumns(
   const rawPercentMetricsSet = new Set(rawPercentMetrics);
 
   const columns: DataColumnMeta[] = (colnames || [])
+    .map((key: string, originalIndex: number) => ({ key, originalIndex }))
     .filter(
-      key =>
+      ({ key }) =>
         // if a metric was only added to percent_metrics, they should not show up in the table.
         !(rawPercentMetricsSet.has(key) && !metricsSet.has(key)),
     )
-    .map((key: string, i) => {
-      const dataType = coltypes[i];
+    .map(({ key, originalIndex }) => {
+      // Look up by the column's original position in colnames/coltypes,
+      // not its position after the filter above — those diverge whenever
+      // an earlier column (e.g. a percent-metric-only one) got filtered
+      // out, which would otherwise shift every later column's dataType.
+      const dataType = coltypes[originalIndex];
       const config = columnConfig[key] || {};
       // for the purpose of presentation, only numeric values are treated as metrics
       // because users can also add things like `MAX(str_col)` as a metric.
@@ -722,15 +727,28 @@ const transformProps = (
     );
   }
 
+  // buildQuery.ts can append an "all records" percent-metric denominator
+  // query *and* a totals query, independently of each other, both landing
+  // in extraQueries before the totals one. A fixed totalQuery index would
+  // silently bind to the wrong query's data (or drop the totals query
+  // entirely) whenever both are present, so replicate buildQuery.ts's own
+  // gating condition here to know whether to skip that extra slot.
+  const hasAllRecordsExtraQuery = Boolean(
+    formData.percent_metrics?.length &&
+    (formData.percent_metric_calculation || 'row_limit') === 'all_records',
+  );
+
   let baseQuery;
   let countQuery;
   let rowCount;
   let totalQuery;
   if (serverPagination) {
-    [baseQuery, countQuery, totalQuery] = queriesData;
+    [baseQuery, countQuery] = queriesData;
+    totalQuery = hasAllRecordsExtraQuery ? queriesData[3] : queriesData[2];
     rowCount = (countQuery?.data?.[0]?.rowcount as number) ?? 0;
   } else {
-    [baseQuery, totalQuery] = queriesData;
+    [baseQuery] = queriesData;
+    totalQuery = hasAllRecordsExtraQuery ? queriesData[2] : queriesData[1];
     rowCount = baseQuery?.rowcount ?? 0;
   }
 
