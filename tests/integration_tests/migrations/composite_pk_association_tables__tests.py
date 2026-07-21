@@ -72,7 +72,7 @@ def post_upgrade_engine() -> sa.engine.Engine:
 
     # Apply the migration's upgrade() against this engine via Alembic's
     # MigrationContext, patching the migration module's ``op`` reference.
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         ctx = MigrationContext.configure(conn)
         ops = Operations(ctx)
         original_op = _migration.op
