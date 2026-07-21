@@ -532,7 +532,7 @@ const Select = forwardRef(
           }
 
           const filteredOptions = updatedOptions
-            .map((option: any) => {
+            .map((option: DefaultOptionType) => {
               /*
           If it's a group, filter its nested options and only return it
           if it has matching options
