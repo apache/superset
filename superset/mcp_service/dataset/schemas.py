@@ -863,7 +863,7 @@ class QueryDatasetRequest(QueryCacheControl):
         description=(
             "Time range filter. Use Superset relative shorthands like "
             "'Last 7 days', 'Last month', 'Last year', 'Last quarter', "
-            "'this week', 'previous calendar year', or an ISO-8601 range "
+            "'Current week', 'previous calendar year', or an ISO-8601 range "
             "like '2024-01-01 : 2024-12-31'. Requires a temporal column "
             "on the dataset. Do NOT use bracket shorthands like '[year]' "
             "or '[quarter]' — use 'Last year' / 'Last quarter' instead."

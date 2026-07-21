@@ -896,11 +896,15 @@ class TestQueryDatasetBracketShorthandNormalization:
     """QueryDatasetRequest normalizes bracket-shorthand time ranges.
 
     LLM clients sometimes pass values like '[year]' or '[quarter]' after
-    seeing grain tokens in dashboard filter contexts.  The schema validator
-    maps day-and-up units ('[day]' through '[year]') to the canonical
-    'Last <unit>' form, and sub-day units ('[second]'/'[minute]'/'[hour]')
-    to an explicit DATEADD/DATETIME expression, so get_since_until() can
-    parse them without raising TimeRangeParseFailError.
+    seeing grain tokens in dashboard filter contexts.  Passed through
+    unnormalized, these separator-less tokens match none of
+    get_since_until()'s recognized prefixes and silently resolve to an
+    unbounded range (matching the whole table) instead of raising an
+    error.  The schema validator maps day-and-up units ('[day]' through
+    '[year]') to the canonical 'Last <unit>' form, and sub-day units
+    ('[second]'/'[minute]'/'[hour]') to an explicit DATEADD/DATETIME
+    expression, so get_since_until() resolves them to an actual bounded
+    range.
     """
 
     def test_year_bracket_normalized(self) -> None:
@@ -1028,6 +1032,35 @@ class TestQueryDatasetBracketShorthandNormalization:
         )
         assert req.time_range == "Last 7 days"
 
+    def test_time_range_field_description_examples_are_parseable(self) -> None:
+        """Every relative shorthand named in the time_range field description
+        must actually resolve to a bounded range via get_since_until().
+
+        Regression guard: the description previously named 'this week' as
+        an example, but that value has no ' : ' separator and matches none
+        of get_since_until()'s recognized prefixes, so it silently resolved
+        to an unbounded range (matching the whole table) instead of the
+        current period. 'Current week' is the working equivalent.
+        """
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        description = QueryDatasetRequest.model_fields["time_range"].description or ""
+        for example in [
+            "Last 7 days",
+            "Last month",
+            "Last year",
+            "Last quarter",
+            "Current week",
+            "previous calendar year",
+        ]:
+            assert f"'{example}'" in description, (
+                f"{example!r} missing from time_range field description"
+            )
+            since, until = get_since_until(time_range=example)
+            assert since is not None, f"{example!r} did not resolve to a bounded range"
+            assert until is not None
+            assert since < until
+
     def test_none_unchanged(self) -> None:
         from superset.mcp_service.dataset.schemas import QueryDatasetRequest
 
@@ -1041,12 +1074,15 @@ class TestQueryDatasetBracketShorthandNormalization:
 async def test_query_dataset_bracket_year_resolves_without_parse_error(
     mcp_server: FastMCP,
 ) -> None:
-    """'[year]' as time_range must not raise TimeRangeParseFailError.
+    """'[year]' as time_range must resolve to a bounded range.
 
-    Regression test for SC-113648: LLM clients passing '[year]' verbatim
-    triggered TimeRangeParseFailError because the raw token was forwarded to
-    parse_human_datetime() without normalization.  The schema validator now
-    maps it to 'Last year' before the query context is built.
+    Regression test: LLM clients passing '[year]' verbatim reach
+    get_since_until(time_range="[year]") unnormalized. That string contains
+    no ' : ' separator and matches none of get_since_until()'s recognized
+    prefixes, so it falls through to the unbounded default -- (None, today)
+    -- silently matching the entire table rather than raising an error.
+    The schema validator now maps '[year]' to 'Last year' before the query
+    context is built, so the range is actually bounded.
     """
     dataset = _make_dataset(main_dttm_col="order_date")
     result_data = _mock_command_result()
@@ -1107,15 +1143,17 @@ async def test_query_dataset_bracket_year_resolves_without_parse_error(
 async def test_query_dataset_bracket_hour_resolves_without_parse_error(
     mcp_server: FastMCP,
 ) -> None:
-    """'[hour]' as time_range must not raise TimeRangeParseFailError.
+    """'[hour]' as time_range must resolve to a bounded range.
 
-    Regression test for SC-113648. Unlike the other bracket shorthands,
-    '[hour]' does not normalize to 'Last hour': get_since_until() resolves
-    that expression's since-clause against 'now' but its until-clause
-    against 'today' (midnight), which raises "From date cannot be larger
-    than to date" for any sub-day unit. The schema validator instead maps
-    '[hour]' to an explicit DATEADD/DATETIME range that resolves both ends
-    against 'now'.
+    Regression test: like '[year]', a raw '[hour]' token has no ' : '
+    separator and matches none of get_since_until()'s recognized prefixes,
+    so it silently falls through to (None, today) rather than raising an
+    error. Unlike the other bracket shorthands, '[hour]' also can't simply
+    normalize to 'Last hour': get_since_until() resolves that expression's
+    since-clause against 'now' but its until-clause against 'today'
+    (midnight), which raises "From date cannot be larger than to date" for
+    any sub-day unit. The schema validator instead maps '[hour]' to an
+    explicit DATEADD/DATETIME range that resolves both ends against 'now'.
     """
     dataset = _make_dataset(main_dttm_col="order_date")
     result_data = _mock_command_result()
