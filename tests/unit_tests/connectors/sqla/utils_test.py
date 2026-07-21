@@ -226,8 +226,8 @@ def test_get_virtual_table_metadata_renders_jinja(mocker: MockerFixture) -> None
         return_value=[{"name": "rendered_col", "type": "INTEGER"}],
     )
 
-    raw_sql = "SELECT * FROM tbl WHERE ts > '{{ current_user_id() }}'"
-    rendered_sql = "SELECT * FROM tbl WHERE ts > '42'"
+    raw_sql = "SELECT * FROM tbl WHERE user_id = {{ current_user_id() }}"
+    rendered_sql = "SELECT * FROM tbl WHERE user_id = 42"
 
     dataset = mocker.MagicMock(sql=raw_sql)
     dataset.database.db_engine_spec.engine = "postgresql"
