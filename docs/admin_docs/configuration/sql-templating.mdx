@@ -418,10 +418,13 @@ Here's a concrete example:
 
 ### Time Filter
 
-The `{{ get_time_filter() }}` macro returns the time filter applied to a specific column. This is useful if you want
-to handle time filters inside the virtual dataset, as by default the time filter is placed on the outer query. This can
-considerably improve performance, as many databases and query engines are able to optimize the query better
-if the temporal filter is placed on the inner query, as opposed to the outer query.
+The `{{ get_time_filter() }}` macro is the standard way to reference the selected time range
+in a virtual dataset. It returns a `TimeFilter` object whose `from_expr` and `to_expr`
+properties are fully-formatted SQL expressions for the start and end of the range — use them
+directly in your `WHERE` clause without quoting.
+
+Placing the filter inside the virtual dataset (rather than relying on it being applied to
+the outer query) also gives many database engines the opportunity to optimize the query better.
 
 The macro takes the following parameters:
 

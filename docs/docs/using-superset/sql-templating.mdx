@@ -146,7 +146,9 @@ The `where_in` filter converts the list to SQL format: `('value1', 'value2', 'va
 
 ### Time Filters
 
-For charts with time range filters:
+`get_time_filter()` is the standard way to reference the selected time range in a virtual dataset.
+It returns a `TimeFilter` object with `from_expr` and `to_expr` — fully-formatted SQL expressions
+that should be used directly in `WHERE` clauses without quoting.
 
 | Macro | Description |
 |-------|-------------|
