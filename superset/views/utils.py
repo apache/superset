@@ -41,7 +41,7 @@ from superset.exceptions import (
     SerializationError,
     SupersetException,
 )
-from superset.extensions import feature_flag_manager, security_manager
+from superset.extensions import security_manager
 from superset.legacy import update_time_range
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
