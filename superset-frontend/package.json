@@ -179,7 +179,7 @@
     "echarts": "^6.1.0",
     "fast-glob": "^3.3.2",
     "fs-extra": "^11.3.6",
-    "fuse.js": "^7.4.2",
+    "fuse.js": "^7.5.0",
     "geolib": "^3.3.14",
     "geostyler": "^18.6.0",
     "geostyler-data": "^1.1.0",
