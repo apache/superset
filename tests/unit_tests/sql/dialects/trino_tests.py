@@ -285,6 +285,49 @@ def test_sqlstatement_regular_queries_unaffected() -> None:
         SQLStatement("SELECT * FROM", "trino")
 
 
+def test_inline_udf_nested_parens_in_condition() -> None:
+    """
+    A parenthesized ``IF`` condition containing its own nested parens must
+    still be recognized as a block opener, not a scalar function call.
+    """
+    sql = """
+WITH FUNCTION classify(a bigint, b bigint)
+  RETURNS varchar
+  BEGIN
+    IF ((a > 100) AND (b > 100)) THEN
+      RETURN 'big';
+    END IF;
+    RETURN 'small';
+  END
+SELECT classify(x, y) FROM some_table
+    """.strip()
+    statements = sqlglot.parse(sql, dialect=Trino)
+    assert len(statements) == 1
+
+
+def test_scalar_function_named_function() -> None:
+    """
+    A regular scalar function call literally named ``function`` (outside a
+    ``CREATE``/``WITH`` routine specification) must parse normally.
+    """
+    sql = "SELECT function(x) FROM t"
+    statements = sqlglot.parse(sql, dialect=Trino)
+    assert len(statements) == 1
+
+
+def test_unclosed_if_condition_raises() -> None:
+    """
+    An ``IF`` condition with an unbalanced opening paren should fail to
+    parse rather than being silently misread as a block.
+    """
+    sql = (
+        "WITH FUNCTION f() RETURNS int BEGIN "
+        "IF (a > 1 THEN RETURN 1; END IF; RETURN 2; END SELECT 1"
+    )
+    with pytest.raises(sqlglot.errors.ParseError):
+        sqlglot.parse(sql, dialect=Trino)
+
+
 def test_create_function_not_split() -> None:
     """
     ``CREATE FUNCTION`` bodies should not be split on semicolons either.
