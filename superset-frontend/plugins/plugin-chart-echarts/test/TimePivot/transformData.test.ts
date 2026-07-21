@@ -93,3 +93,16 @@ describe('TimePivot transformData', () => {
     expect(transformData([], 'sum__num', 'W-MON')).toEqual([]);
   });
 });
+
+test('limits to the N most recent periods, clamped to what exists', () => {
+  const WEEK = 7 * 24 * 3600 * 1000;
+  const M1 = 1578268800000;
+  const records = [0, 1, 2, 3].map(i => ({
+    __timestamp: M1 + i * WEEK,
+    m: 10 + i,
+  }));
+  const limited = transformData(records, 'm', 'W-MON', 2);
+  expect(limited.map(s => s.key).sort()).toEqual(['-1', 'current']);
+  // clamped: asking for more than available keeps them all
+  expect(transformData(records, 'm', 'W-MON', 99)).toHaveLength(4);
+});

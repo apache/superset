@@ -71,6 +71,22 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'period_limit',
+            config: {
+              type: 'TextControl',
+              isInt: true,
+              label: t('Number of periods'),
+              renderTrigger: true,
+              default: '',
+              description: t(
+                'Show only the N most recent periods, from 1 up to the number ' +
+                  'of periods in the data. Leave empty to overlay them all.',
+              ),
+            },
+          },
+        ],
       ],
     },
     {

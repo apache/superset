@@ -27,6 +27,8 @@ export type EchartsTimePivotFormData = QueryFormData & {
   metric?: QueryFormMetric;
   /** pandas-style period offset, e.g. W-MON, D, AS */
   freq?: string;
+  /** keep only the N most recent periods; empty keeps all */
+  periodLimit?: number | string;
   colorPicker?: { r: number; g: number; b: number; a: number };
   showLegend?: boolean;
   lineInterpolation?: string;

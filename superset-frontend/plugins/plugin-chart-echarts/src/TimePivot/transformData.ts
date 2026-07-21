@@ -109,6 +109,7 @@ export default function transformData(
   records: Record<string, unknown>[],
   metricLabel: string,
   freq: string,
+  periodLimit?: number,
 ): TimePivotSeries[] {
   const rows = records
     .filter(record => record[DTTM_ALIAS] != null)
@@ -124,9 +125,13 @@ export default function transformData(
     return [];
   }
 
-  const periods = Array.from(new Set(rows.map(row => row.period))).sort(
-    (a, b) => b - a,
-  );
+  const periods = Array.from(new Set(rows.map(row => row.period)))
+    .sort((a, b) => b - a)
+    .slice(
+      0,
+      // clamp to [1, available periods]; undefined keeps them all
+      periodLimit && periodLimit > 0 ? Math.floor(periodLimit) : undefined,
+    );
   const maxPeriod = periods[0];
   const rankOf = new Map(periods.map((period, index) => [period, index]));
   const maxRank = periods.length - 1;
@@ -137,6 +142,9 @@ export default function transformData(
   const values = new Map<string, Map<number, number | null>>();
   const shiftedTimestamps = new Set<number>();
   rows.forEach(({ timestamp, period, value }) => {
+    if (!rankOf.has(period)) {
+      return; // period dropped by the limit
+    }
     const series = seriesOf(rankOf.get(period)!);
     const shifted = timestamp + (maxPeriod - period);
     shiftedTimestamps.add(shifted);

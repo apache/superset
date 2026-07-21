@@ -41,6 +41,7 @@ export default function transformProps(
   const {
     metric,
     freq,
+    periodLimit,
     colorPicker,
     showLegend,
     lineInterpolation,
@@ -57,7 +58,12 @@ export default function transformProps(
   const metricLabel = getMetricLabel(metric ?? '');
   const records = (queriesData[0]?.data ?? []) as Record<string, unknown>[];
   const series: TimePivotSeries[] = Array.isArray(records)
-    ? transformData(records, metricLabel, (freq as string) || 'W-MON')
+    ? transformData(
+        records,
+        metricLabel,
+        (freq as string) || 'W-MON',
+        periodLimit ? Number(periodLimit) : undefined,
+      )
     : [];
 
   const { r, g, b } = colorPicker ?? DEFAULT_COLOR;
