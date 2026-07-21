@@ -42,6 +42,7 @@ export default function transformProps(
     markerLines: rawMarkerLines,
     markerLineLabels: rawMarkerLineLabels,
     yAxisFormat,
+    showLabels,
   } = formData;
   const refs: Refs = {};
   const { onContextMenu, setDataMask = () => {} } = hooks;
@@ -140,26 +141,9 @@ export default function transformProps(
       axisTick: { show: false },
       axisLabel: { show: false },
     },
-    // Axis trigger so hovering anywhere on the chart shows the breakdown;
-    // precise hovers on the thin bar or bands are hard to hit.
     tooltip: {
       confine: true,
-      trigger: 'axis',
-      formatter: () =>
-        sanitizeHtml(
-          [
-            `${metricLabel}: <b>${formatter(measure)}</b>`,
-            ...rangeTooltipLines,
-            ...markers.map(
-              (value, i) =>
-                `${markerLabelAt(i, markerLabels, markers)}: <b>${formatter(value)}</b>`,
-            ),
-            ...markerLines.map(
-              (value, i) =>
-                `${markerLabelAt(i, markerLineLabels, markerLines)}: <b>${formatter(value)}</b>`,
-            ),
-          ].join('<br />'),
-        ),
+      show: !showLabels,
     },
     series: [
       {
@@ -168,6 +152,10 @@ export default function transformProps(
         data: [measure],
         barWidth: `${MEASURE_BAR_FRACTION * 100}%`,
         itemStyle: { color: theme.colorPrimary },
+        tooltip: {
+          formatter: () =>
+            sanitizeHtml(`${metricLabel}: <b>${formatter(measure)}</b>`),
+        },
         z: 10,
         markArea: {
           silent: true,
@@ -201,6 +189,32 @@ export default function transformProps(
         },
       },
       {
+        // Invisible hover targets at each range threshold so ranges get their
+        // own item tooltip (markArea itself is not reliably hoverable), and a
+        // place to hang always-on labels.
+        name: 'ranges',
+        type: 'scatter',
+        data: ranges.map((value, index) => ({
+          value: [value, 0],
+          tooltip: {
+            formatter: () =>
+              sanitizeHtml(
+                `${rangeLabels[index] || ''} \u2264 <b>${formatter(value)}</b>`,
+              ),
+          },
+          label: {
+            show: Boolean(showLabels) && Boolean(rangeLabels[index]),
+            position: 'top',
+            color: theme.colorTextSecondary,
+            formatter: () => String(rangeLabels[index] || ''),
+          },
+        })),
+        symbol: 'rect',
+        symbolSize: [14, 40],
+        itemStyle: { color: 'transparent' },
+        z: 15,
+      },
+      {
         name: 'markers',
         type: 'scatter',
         data: markers.map((value, index) => ({
@@ -216,6 +230,13 @@ export default function transformProps(
         })),
         symbol: 'triangle',
         symbolSize: 14,
+        label: {
+          show: Boolean(showLabels),
+          position: 'bottom',
+          color: theme.colorTextSecondary,
+          formatter: (params: { dataIndex: number }) =>
+            String(markerLabelAt(params.dataIndex, markerLabels, markers)),
+        },
         // Sit below the measure bar pointing up at the marked value
         symbolOffset: [0, markerOffsetPx],
         itemStyle: { color: theme.colorText },

@@ -60,20 +60,20 @@ test('renders the measure bar with markers, marker lines and range bands', () =>
   expect(bandEnds).toEqual([300, 200, 100]);
 
   // triangle markers
-  expect(series[1].type).toBe('scatter');
-  expect(series[1].data[0].value).toEqual([150, 0]);
+  expect(series[2].type).toBe('scatter');
+  expect(series[2].data[0].value).toEqual([150, 0]);
 
   // axis spans all values
   expect((echartOptions as any).xAxis.max).toBe(300);
 
   // markers sit below the bar (pixel offset); no legend on this chart
-  expect(series[1].symbolOffset[1]).toBeGreaterThan(0);
+  expect(series[2].symbolOffset[1]).toBeGreaterThan(0);
   expect((echartOptions as any).legend.show).toBe(false);
 
-  // range labels surface in the measure tooltip
-  const tooltip = (echartOptions as any).tooltip.formatter();
-  expect(tooltip).toContain('low');
-  expect(tooltip).toContain('high');
+  // range thresholds get their own hover targets carrying the labels
+  const rangeTips = series[1].data.map((d: any) => d.tooltip.formatter());
+  expect(rangeTips.join(' ')).toContain('low');
+  expect(rangeTips.join(' ')).toContain('high');
 });
 
 test('defaults the band to 110% of the measure when no ranges are set', () => {
@@ -91,7 +91,7 @@ test('defaults the band to 110% of the measure when no ranges are set', () => {
   expect(series[0].data).toEqual([120]);
   const bandEnds = series[0].markArea.data.map((d: any) => d[1].xAxis);
   expect(bandEnds).toEqual([120 * 1.1]);
-  expect(series[1].data).toHaveLength(0);
+  expect(series[2].data).toHaveLength(0);
 });
 
 test('keeps distinct labels for duplicate marker and marker-line values', () => {
@@ -110,7 +110,7 @@ test('keeps distinct labels for duplicate marker and marker-line values', () => 
   );
   expect(markLineLabels).toEqual(['stretch', 'ceiling']);
 
-  const markerTooltips = series[1].data.map((d: any) => d.tooltip.formatter());
+  const markerTooltips = series[2].data.map((d: any) => d.tooltip.formatter());
   expect(markerTooltips[0]).toContain('goal');
   expect(markerTooltips[1]).toContain('forecast');
 });
@@ -122,10 +122,10 @@ test('sanitizes HTML in metric and marker labels before rendering tooltips', () 
       markerLabels: '<img src=x onerror=alert(1)>',
     }),
   );
-  const { series, tooltip } = echartOptions as any;
+  const { series } = echartOptions as any;
 
-  expect(tooltip.formatter()).not.toContain('onerror');
-  expect(series[1].data[0].tooltip.formatter()).not.toContain('onerror');
+  expect(series[0].tooltip.formatter()).not.toContain('onerror');
+  expect(series[2].data[0].tooltip.formatter()).not.toContain('onerror');
 });
 
 test('handles an empty query result without crashing', () => {

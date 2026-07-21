@@ -114,6 +114,20 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'show_labels',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show labels'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Print range and marker labels on the chart instead of showing tooltips on hover',
+              ),
+            },
+          },
+        ],
         ['y_axis_format'],
       ],
     },
