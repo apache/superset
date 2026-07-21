@@ -24,7 +24,7 @@ permissions:
 jobs:
   dependency-review:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: "Checkout Repository"
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -48,7 +48,7 @@ jobs:
   python-dependency-liccheck:
     # NOTE: Configuration for liccheck lives in our pyproject.yml.
     # You cannot use a liccheck.ini file in this workflow.
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
     steps:
       - name: "Checkout Repository"
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

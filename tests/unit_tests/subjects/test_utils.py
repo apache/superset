@@ -30,6 +30,7 @@ from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
 from superset.subjects.utils import (
     get_current_user_subject_ids,
+    get_or_create_role_subject,
     get_user_subject_ids_subquery,
 )
 
@@ -85,6 +86,61 @@ def test_get_current_user_subject_ids_guest_user(app_context):
 
     mock_subjects_from_roles.assert_called_once_with([1, 2])
     mock_get_user_id.assert_not_called()
+
+
+# --------------------------------------------------------------------------
+# get_or_create_role_subject
+# --------------------------------------------------------------------------
+
+
+@patch("superset.subjects.utils.get_role_subject")
+def test_get_or_create_role_subject_returns_existing(
+    mock_get_role_subject: MagicMock,
+) -> None:
+    """An already-synced role resolves to its Subject with no sync."""
+    existing = _make_subject(10, SubjectType.ROLE)
+    mock_get_role_subject.return_value = existing
+
+    assert get_or_create_role_subject(5) is existing
+    mock_get_role_subject.assert_called_once_with(5)
+
+
+def test_get_or_create_role_subject_syncs_unsynced_role() -> None:
+    """A role that exists but has no Subject row yet is synced on demand
+    rather than treated as nonexistent."""
+    created = _make_subject(11, SubjectType.ROLE)
+    role = MagicMock()
+    role.id = 5
+
+    with (
+        patch(
+            "superset.subjects.utils.get_role_subject",
+            side_effect=[None, created],
+        ) as mock_get_role_subject,
+        patch("superset.subjects.utils.db") as mock_db,
+        patch("superset.subjects.sync.sync_role_subject") as mock_sync,
+    ):
+        mock_db.session.get.return_value = role
+
+        assert get_or_create_role_subject(5) is created
+
+    mock_sync.assert_called_once_with(role)
+    mock_db.session.flush.assert_called_once()
+    assert mock_get_role_subject.call_count == 2
+
+
+def test_get_or_create_role_subject_missing_role_returns_none() -> None:
+    """A role ID with no matching role at all resolves to None."""
+    with (
+        patch("superset.subjects.utils.get_role_subject", return_value=None),
+        patch("superset.subjects.utils.db") as mock_db,
+        patch("superset.subjects.sync.sync_role_subject") as mock_sync,
+    ):
+        mock_db.session.get.return_value = None
+
+        assert get_or_create_role_subject(999) is None
+
+    mock_sync.assert_not_called()
 
 
 # --------------------------------------------------------------------------

@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { handleKeyboardActivation } from '../../utils';
 import {
   forwardRef,
   ForwardedRef,
   useState,
   ReactNode,
-  MouseEvent,
+  SyntheticEvent,
 } from 'react';
 
 import { Button } from '../Button';
@@ -96,7 +97,7 @@ export const ModalTrigger = forwardRef(
       onExit?.();
     };
 
-    const open = (e: MouseEvent) => {
+    const open = (e: SyntheticEvent) => {
       e.preventDefault();
       beforeOpen?.();
       setShowModal(true);
@@ -126,7 +127,13 @@ export const ModalTrigger = forwardRef(
           </Button>
         )}
         {!isButton && (
-          <div data-test="span-modal-trigger" onClick={open} role="button">
+          <div
+            data-test="span-modal-trigger"
+            onClick={open}
+            onKeyDown={handleKeyboardActivation(open)}
+            role="button"
+            tabIndex={0}
+          >
             {triggerNode}
           </div>
         )}
@@ -149,6 +156,9 @@ export const ModalTrigger = forwardRef(
           draggableConfig={draggableConfig}
           destroyOnHidden={destroyOnHidden}
         >
+          {/* Pure event-boundary wrapper: only stops menu-navigation keys
+              from bubbling out of the modal, not itself interactive. */}
+          {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
           <div
             style={{ display: 'contents' }}
             onKeyDown={e => {

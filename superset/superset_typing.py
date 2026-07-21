@@ -132,6 +132,12 @@ class ResultSetColumnType(TypedDict):
 
     query_as: NotRequired[Any]
 
+    # A SQL expression (without an alias) that should be used to select this
+    # column, e.g. for a nested field whose path segments must each be quoted
+    # separately rather than the whole dotted name being quoted as a single
+    # identifier.
+    expression: NotRequired[Any]
+
 
 CacheConfig: TypeAlias = dict[str, Any]
 DbapiDescriptionRow: TypeAlias = tuple[

@@ -86,7 +86,7 @@ const createFetchResourceMethod =
     resource: string,
     relation: string,
     handleError: (error: Response) => void,
-    user?: { userId: string | number; firstName: string; lastName: string },
+    user?: { userId?: string | number; firstName: string; lastName: string },
   ) =>
   async (filterValue = '', page: number, pageSize: number) => {
     const resourceEndpoint = `/api/v1/${resource}/${method}/${relation}`;
@@ -101,12 +101,13 @@ const createFetchResourceMethod =
 
     let fetchedLoggedUser = false;
     let loggedUserExtra: Record<string, unknown> | undefined;
-    const loggedUser = user
-      ? {
-          label: `${user.firstName} ${user.lastName}`,
-          value: user.userId,
-        }
-      : undefined;
+    const loggedUser =
+      user?.userId === undefined
+        ? undefined
+        : {
+            label: `${user.firstName} ${user.lastName}`,
+            value: user.userId,
+          };
 
     const data: {
       label: string;
@@ -271,7 +272,7 @@ const createFetchSubjectRelation =
   (
     resource: string,
     handleError: (error: Response) => void,
-    user?: { userId: string | number; firstName: string; lastName: string },
+    user?: { userId?: string | number; firstName: string; lastName: string },
   ) => {
     const currentUserSubjectId = getBootstrapData()?.common?.user_subject_id;
     const subjectUser =

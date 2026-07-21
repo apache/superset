@@ -111,11 +111,19 @@ const getCellStyle = (params: CellStyleParams) => {
     col?.metricName &&
     node?.rowPinned !== 'bottom'
   ) {
-    backgroundColor = getRowBasicColorFormatter(
+    const basicBackgroundColor = getRowBasicColorFormatter(
       node,
       rowIndex,
       basicColorFormatters,
     )?.[col.metricName]?.backgroundColor;
+    // Only override when this column actually has an increase/decrease
+    // formatter. Green/Red conditional-format rules only target some metrics,
+    // so a column carrying only a standard conditional-format rule would
+    // otherwise have its background clobbered with `undefined` when Green/Red
+    // rules exist on other columns.
+    if (basicBackgroundColor) {
+      backgroundColor = basicBackgroundColor;
+    }
   }
 
   const textAlign =
