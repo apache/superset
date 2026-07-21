@@ -160,6 +160,20 @@ const config: ControlPanelConfig = {
           },
         ],
         ['zoomable'],
+        [
+          {
+            name: 'y_axis_slider',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Y-axis range slider'),
+              default: false,
+              renderTrigger: true,
+              description: t(
+                'Show a draggable slider to control the visible range of the Y-axis.',
+              ),
+            },
+          },
+        ],
       ],
     },
   ],

@@ -68,7 +68,7 @@ def test_get_allowed_fields_always_denies_user_directory_fields():
     allowed_fields = get_allowed_fields(
         "dashboard",
         user=user,
-        requested_fields=["id", "dashboard_title", "owners", "roles", "created_by"],
+        requested_fields=["id", "dashboard_title", "editors", "created_by"],
     )
 
     assert allowed_fields == {"id", "dashboard_title"}
@@ -78,8 +78,7 @@ def test_filter_sensitive_data_strips_user_directory_fields_even_if_allowed():
     data = {
         "id": 1,
         "dashboard_title": "Executive Dashboard",
-        "owners": [{"username": "admin"}],
-        "roles": [{"name": "Admin"}],
+        "editors": [{"username": "admin"}],
         "created_by": "admin",
     }
 
@@ -100,7 +99,7 @@ def test_apply_field_permissions_to_columns_omits_user_directory_fields():
     user.roles = []
 
     columns = apply_field_permissions_to_columns(
-        ["id", "slice_name", "owners", "changed_by_fk"],
+        ["id", "slice_name", "editors", "changed_by_fk"],
         "chart",
         user=user,
     )

@@ -59,8 +59,7 @@ export default async function handleError(error: ErrorInput): Promise<never> {
     errorMessage = `${status} ${statusText}`;
     try {
       errorJson = (await error.json()) as
-        | SupersetApiErrorPayload
-        | SupersetApiMultiErrorsPayload;
+        SupersetApiErrorPayload | SupersetApiMultiErrorsPayload;
       originalError = errorJson;
     } catch (error_) {
       originalError = error;

@@ -94,7 +94,7 @@ def _mock_chart(id: int = 10, slice_name: str = "Test Chart") -> Mock:
     chart.slice_name = slice_name
     chart.uuid = f"chart-uuid-{id}"
     chart.tags = []
-    chart.owners = []
+    chart.editors = []
     chart.viz_type = "table"
     chart.datasource_name = None
     chart.description = None
@@ -119,9 +119,8 @@ def _mock_dashboard(
     dashboard.changed_by_name = "test_user"
     dashboard.uuid = f"dashboard-uuid-{id}"
     dashboard.slices = slices or []
-    dashboard.owners = []
+    dashboard.editors = []
     dashboard.tags = []
-    dashboard.roles = []
     dashboard.position_json = "{}"
     dashboard.json_metadata = None
     dashboard.css = None
@@ -155,11 +154,11 @@ async def test_dashboard_not_found(mock_find_by_id: Mock, mcp_server: object) ->
     assert "not found" in (result.structured_content["error"] or "").lower()
 
 
-@patch("superset.security_manager.raise_for_ownership")
+@patch("superset.security_manager.raise_for_editorship")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_permission_denied(
-    mock_find_by_id: Mock, mock_raise_for_ownership: Mock, mcp_server: object
+    mock_find_by_id: Mock, mock_raise_for_editorship: Mock, mcp_server: object
 ) -> None:
     """Returns permission_denied=True and an actionable error when the user
     cannot edit the dashboard.
@@ -174,7 +173,7 @@ async def test_permission_denied(
 
     dashboard = _mock_dashboard(id=1, title="Sales Dashboard")
     mock_find_by_id.return_value = dashboard
-    mock_raise_for_ownership.side_effect = SupersetSecurityException(
+    mock_raise_for_editorship.side_effect = SupersetSecurityException(
         SupersetError(
             message="Changing this Dashboard is forbidden",
             error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
@@ -201,19 +200,19 @@ async def test_permission_denied(
 
 
 @patch("superset.db.session.get")
-@patch("superset.security_manager.raise_for_ownership")
+@patch("superset.security_manager.raise_for_editorship")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_chart_not_found(
     mock_find_by_id: Mock,
-    mock_raise_for_ownership: Mock,
+    mock_raise_for_editorship: Mock,
     mock_session_get: Mock,
     mcp_server: object,
 ) -> None:
     """Returns an error when the requested chart does not exist."""
     dashboard = _mock_dashboard()
     mock_find_by_id.return_value = dashboard
-    mock_raise_for_ownership.return_value = None
+    mock_raise_for_editorship.return_value = None
     mock_session_get.return_value = None  # chart not found
 
     async with Client(mcp_server) as client:
@@ -229,12 +228,12 @@ async def test_chart_not_found(
 
 
 @patch("superset.db.session.get")
-@patch("superset.security_manager.raise_for_ownership")
+@patch("superset.security_manager.raise_for_editorship")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_chart_already_in_dashboard(
     mock_find_by_id: Mock,
-    mock_raise_for_ownership: Mock,
+    mock_raise_for_editorship: Mock,
     mock_session_get: Mock,
     mcp_server: object,
 ) -> None:
@@ -242,7 +241,7 @@ async def test_chart_already_in_dashboard(
     chart = _mock_chart(id=10)
     dashboard = _mock_dashboard(slices=[chart])
     mock_find_by_id.return_value = dashboard
-    mock_raise_for_ownership.return_value = None
+    mock_raise_for_editorship.return_value = None
     mock_session_get.return_value = chart
 
     async with Client(mcp_server) as client:
@@ -259,12 +258,12 @@ async def test_chart_already_in_dashboard(
 
 @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
 @patch("superset.db.session.get")
-@patch("superset.security_manager.raise_for_ownership")
+@patch("superset.security_manager.raise_for_editorship")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_successful_add(
     mock_find_by_id: Mock,
-    mock_raise_for_ownership: Mock,
+    mock_raise_for_editorship: Mock,
     mock_session_get: Mock,
     mock_update_cmd_cls: Mock,
     mcp_server: object,
@@ -275,7 +274,7 @@ async def test_successful_add(
     updated_dashboard = _mock_dashboard(id=1, slices=[chart])
 
     mock_find_by_id.side_effect = [dashboard, updated_dashboard]
-    mock_raise_for_ownership.return_value = None
+    mock_raise_for_editorship.return_value = None
     mock_session_get.return_value = chart
 
     mock_update_cmd = Mock()
@@ -292,7 +291,8 @@ async def test_successful_add(
     assert content["error"] is None
     assert content["permission_denied"] is False
     assert content["dashboard_url"] is not None
-    assert "/superset/dashboard/1/" in content["dashboard_url"]
+    assert content["dashboard_url"].endswith("/dashboard/1/")
+    assert "/superset/superset/dashboard/" not in content["dashboard_url"]
     assert content["position"] is not None
     assert "chart_key" in content["position"]
 

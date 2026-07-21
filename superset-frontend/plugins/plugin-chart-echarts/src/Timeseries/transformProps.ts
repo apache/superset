@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { invert } from 'lodash';
+import { invert } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import {
   AnnotationLayer,
@@ -502,6 +502,15 @@ export default function transformProps(
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
 
+  // With the "full range" time-shift option, offset series are outer-joined onto
+  // the main series, which inserts null rows into the main series wherever the
+  // comparison period has data the current period lacks. Connect nulls so the
+  // main line stays continuous (matching the default left-join appearance) rather
+  // than fragmenting at every inserted gap.
+  const timeCompareFullRange = Boolean(
+    chartProps.rawFormData?.time_compare_full_range,
+  );
+
   const offsetLineWidths: { [key: string]: number } = {};
 
   // For horizontal bar charts, calculate min/max from data to avoid cutting off labels
@@ -620,7 +629,7 @@ export default function transformProps(
       colorScaleKey,
       {
         area,
-        connectNulls: derivedSeries,
+        connectNulls: derivedSeries || timeCompareFullRange,
         filterState,
         seriesContexts,
         markerEnabled,
@@ -858,13 +867,19 @@ export default function transformProps(
     }
   }
 
+  // A dashboard-level time grain override (e.g. via a filter or the temporal
+  // range control) is delivered in extraFormData and should take precedence
+  // over the chart's own time grain when formatting temporal axes/tooltips.
+  const resolvedTimeGrain =
+    formData.extraFormData?.time_grain_sqla ?? timeGrainSqla;
+
   const tooltipFormatter =
     xAxisDataType === GenericDataType.Temporal
-      ? getTooltipTimeFormatter(tooltipTimeFormat)
+      ? getTooltipTimeFormatter(tooltipTimeFormat, resolvedTimeGrain)
       : String;
   const xAxisFormatter =
     xAxisDataType === GenericDataType.Temporal
-      ? getXAxisFormatter(xAxisTimeFormat, timeGrainSqla)
+      ? getXAxisFormatter(xAxisTimeFormat, resolvedTimeGrain)
       : xAxisDataType === GenericDataType.Numeric
         ? getNumberFormatter(xAxisNumberFormat)
         : String;
@@ -1005,7 +1020,9 @@ export default function transformProps(
   // "2005" appears twice with Year grain). Wrap the formatter to suppress
   // consecutive duplicate labels.
   const showMaxLabel =
-    xAxisType === AxisType.Time && xAxisLabelRotation === 0 && !!timeGrainSqla;
+    xAxisType === AxisType.Time &&
+    xAxisLabelRotation === 0 &&
+    !!resolvedTimeGrain;
   const deduplicatedFormatter = showMaxLabel
     ? (() => {
         let lastLabel: string | undefined;
@@ -1032,6 +1049,10 @@ export default function transformProps(
     name: xAxisTitle,
     nameGap: convertInteger(xAxisTitleMargin),
     nameLocation: 'middle',
+    ...(xAxisType === AxisType.Category &&
+      groupBy.length === 0 && {
+        triggerEvent: true,
+      }),
     axisLabel: {
       // When rotation is applied on time axes, hideOverlap can
       // aggressively hide the last label. Rotated labels already
@@ -1053,15 +1074,15 @@ export default function transformProps(
     },
     minorTick: { show: minorTicks },
     minInterval:
-      xAxisType === AxisType.Time && timeGrainSqla && !forceMaxInterval
-        ? TIMEGRAIN_TO_TIMESTAMP[
-            timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
-          ]
+      xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval
+        ? (TIMEGRAIN_TO_TIMESTAMP[
+            resolvedTimeGrain as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+          ] ?? 0)
         : 0,
     maxInterval:
-      xAxisType === AxisType.Time && timeGrainSqla && forceMaxInterval
+      xAxisType === AxisType.Time && resolvedTimeGrain && forceMaxInterval
         ? TIMEGRAIN_TO_TIMESTAMP[
-            timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+            resolvedTimeGrain as keyof typeof TIMEGRAIN_TO_TIMESTAMP
           ]
         : undefined,
     ...getMinAndMaxFromBounds(

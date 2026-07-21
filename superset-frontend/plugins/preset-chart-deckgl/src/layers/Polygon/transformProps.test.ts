@@ -493,4 +493,40 @@ describe('Polygon transformProps', () => {
     expect(features.flatMap(p => p?.polygon || [])).toHaveLength(20); // 4 geohashes x 5 corners each
     expect(features[0]?.elevation).toBe(1000);
   });
+
+  test('should include configured metric label and value in extraProps', () => {
+    const metricProps = {
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        metric: {
+          expressionType: 'SQL',
+          sqlExpression: 'SUM(population)',
+          label: 'SUM(population)',
+        },
+      },
+      queriesData: [
+        {
+          data: [
+            {
+              geom: JSON.stringify([
+                [-122.4, 37.8],
+                [-122.3, 37.8],
+                [-122.3, 37.9],
+                [-122.4, 37.9],
+              ]),
+              'SUM(population)': 50000,
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = transformProps(metricProps as ChartProps);
+    const features = result.payload.data.features as PolygonFeature[];
+
+    expect(features).toHaveLength(1);
+    expect(features[0]?.extraProps?.['SUM(population)']).toBe(50000);
+    expect(features[0]?.metrics?.['SUM(population)']).toBe(50000);
+  });
 });

@@ -190,7 +190,14 @@ class Query(
     database = relationship(
         "Database",
         foreign_keys=[database_id],
-        backref=backref("queries", cascade="all, delete-orphan"),
+        backref=backref(
+            "queries",
+            cascade="all, delete-orphan",
+            # SQLAlchemy 2.0 behavior: assigning `query.database` no longer
+            # cascades the Query into the Database's session; callers must
+            # add objects to a session explicitly.
+            cascade_backrefs=False,
+        ),
     )
     user = relationship(security_manager.user_model, foreign_keys=[user_id])
 
@@ -294,7 +301,6 @@ class Query(
             "id": self.id,
             "type": self.type,
             "sql": self.sql,
-            "owners": self.owners_data,
             "database": {"id": self.database_id, "backend": self.database.backend},
             "order_by_choices": order_by_choices,
             "catalog": self.catalog,
@@ -324,10 +330,6 @@ class Query(
         self,
     ) -> builtins.type["BaseEngineSpec"]:  # pylint: disable=unsubscriptable-object
         return self.database.db_engine_spec
-
-    @property
-    def owners_data(self) -> list[dict[str, Any]]:
-        return []
 
     @property
     def uid(self) -> str:
@@ -422,7 +424,7 @@ class Query(
     def tracking_url(self, value: str) -> None:
         self.tracking_url_raw = value
 
-    def get_column(self, column_name: Optional[str]) -> Optional[dict[str, Any]]:
+    def get_column(self, column_name: Optional[str]) -> Optional["TableColumn"]:
         if not column_name:
             return None
         for col in self.columns:
@@ -446,14 +448,32 @@ class Query(
         :rtype: tuple[sqlalchemy.sql.ColumnElement, Optional[GenericDataType]]
         """
         label = get_column_name(col)
+        sql_expression = col["sqlExpression"]
+        time_grain = col.get("timeGrain")
+        has_timegrain = col.get("columnType") == "BASE_AXIS" and time_grain
+        is_dttm = False
+        pdf = None
+
+        if col_in_metadata := self.get_column(sql_expression):
+            is_dttm = col_in_metadata.is_temporal
+            pdf = col_in_metadata.python_date_format
+
         expression = self._process_sql_expression(
-            expression=col["sqlExpression"],
+            expression=sql_expression,
             database_id=self.database_id,
             engine=self.database.backend,
             schema=self.schema,
             template_processor=template_processor,
         )
         sqla_column = literal_column(expression)
+
+        if is_dttm and has_timegrain:
+            sqla_column = self.db_engine_spec.get_timestamp_expr(
+                col=sqla_column,
+                pdf=pdf,
+                time_grain=time_grain,
+            )
+
         col_meta = next((c for c in self.columns if c.column_name == label), None)
         generic_type = col_meta.type_generic if col_meta else None
         return self.make_sqla_column_compatible(sqla_column, label), generic_type
@@ -480,13 +500,25 @@ class SavedQuery(
     template_parameters = Column(Text)
     user = relationship(
         security_manager.user_model,
-        backref=backref("saved_queries", cascade="all, delete-orphan"),
+        backref=backref(
+            "saved_queries",
+            cascade="all, delete-orphan",
+            # SQLAlchemy 2.0 behavior: assigning `saved_query.user` no longer
+            # cascades the SavedQuery into the User's session; callers must
+            # add objects to a session explicitly.
+            cascade_backrefs=False,
+        ),
         foreign_keys=[user_id],
     )
     database = relationship(
         "Database",
         foreign_keys=[db_id],
-        backref=backref("saved_queries", cascade="all, delete-orphan"),
+        backref=backref(
+            "saved_queries",
+            cascade="all, delete-orphan",
+            # SQLAlchemy 2.0 behavior: see `user` above.
+            cascade_backrefs=False,
+        ),
     )
     rows = Column(Integer, nullable=True)
     last_run = Column(DateTime, nullable=True)

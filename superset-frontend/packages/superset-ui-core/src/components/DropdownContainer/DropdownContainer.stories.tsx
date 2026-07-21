@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useRef, useCallback, useState } from 'react';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import { css } from '@apache-superset/core/theme';
 import { Button } from '../Button';
 import { Select } from '../Select';

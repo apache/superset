@@ -35,6 +35,8 @@ export default function transformProps(chartProps: ChartProps) {
     subdomainGranularity,
     xAxisTimeFormat,
     yAxisFormat,
+    colorRangeEnd,
+    colorRangeStart,
   } = formData;
 
   const { verboseMap } = datasource;
@@ -58,5 +60,7 @@ export default function transformProps(chartProps: ChartProps) {
     timeFormatter,
     valueFormatter,
     verboseMap,
+    colorRangeEnd,
+    colorRangeStart,
   };
 }

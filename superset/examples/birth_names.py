@@ -135,13 +135,12 @@ def _add_table_metrics(datasource: SqlaTable) -> None:
     if not any(col.column_name == "num_california" for col in columns):
         col_state = str(column("state").compile(db.engine))
         col_num = str(column("num").compile(db.engine))
-        columns.append(
-            TableColumn(
-                column_name="num_california",
-                expression="CASE WHEN %s = 'CA' THEN %s ELSE 0 END"
-                % (col_state, col_num),
-            )
+        column_it = TableColumn(
+            column_name="num_california",
+            expression="CASE WHEN %s = 'CA' THEN %s ELSE 0 END" % (col_state, col_num),
         )
+        db.session.add(column_it)
+        columns.append(column_it)
 
     if not any(col.metric_name == "sum__num" for col in metrics):
         col = str(column("num").compile(db.engine))
@@ -157,6 +156,8 @@ def _add_table_metrics(datasource: SqlaTable) -> None:
 
 
 def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
+    from superset.subjects.utils import get_user_subject
+
     owner = security_manager.get_user_by_id(1)
     metrics = [
         {
@@ -215,7 +216,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 compare_suffix="over 5Y",
                 metric=metric,
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -224,7 +225,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             params=get_slice_json(
                 defaults, viz_type="pie", groupby=["gender"], metric=metric
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -239,7 +240,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 show_legend=True,
                 metrics=metrics,
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -276,7 +277,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 ],
                 groupby=["state"],
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -290,7 +291,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 timeseries_limit_metric=metric,
                 metrics=[metric],
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -307,7 +308,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 adhoc_filters=[gen_filter("gender", "girl")],
                 metric=metric,
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -321,7 +322,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 timeseries_limit_metric=metric,
                 metrics=[metric],
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -338,7 +339,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 adhoc_filters=[gen_filter("gender", "boy")],
                 metric=metric,
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -356,7 +357,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 x_axis_forma="smart_date",
                 metrics=metrics,
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -374,7 +375,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 x_axis_forma="smart_date",
                 metrics=metrics,
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -396,7 +397,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                     }
                 ],
             ),
-            owners=[],
+            editors=[],
         ),
     ]
     misc_slices = [
@@ -421,7 +422,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 yAxisIndex=0,
                 yAxisIndexB=1,
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -430,7 +431,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             params=get_slice_json(
                 defaults, viz_type="echarts_timeseries_line", metrics=metrics
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -453,7 +454,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                     }
                 ],
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -473,7 +474,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 viz_type="big_number_total",
                 granularity_sqla="ds",
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -506,7 +507,9 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 },
                 limit="10",
             ),
-            owners=[owner] if owner else [],
+            editors=[get_user_subject(owner.id)]
+            if owner and get_user_subject(owner.id)
+            else [],
         ),
         Slice(
             **slice_kwargs,
@@ -527,7 +530,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                     "label": "SUM(num_california)",
                 },
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -541,7 +544,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 adhoc_filters=[gen_filter("gender", "girl")],
                 subheader="total female participants",
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -554,7 +557,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 groupbyColumns=["state"],
                 metrics=metrics,
             ),
-            owners=[],
+            editors=[],
         ),
     ]
     for slc in slices:

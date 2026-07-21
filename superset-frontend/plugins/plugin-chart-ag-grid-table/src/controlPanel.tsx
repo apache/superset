@@ -55,7 +55,7 @@ import {
   withLabel,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import { isEmpty, last } from 'lodash';
+import { isEmpty, last } from 'lodash-es';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 
 /**
@@ -80,8 +80,7 @@ function getQueryMode(controls: ControlStateMapping): QueryMode {
     return mode as QueryMode;
   }
   const rawColumns = controls?.all_columns?.value as
-    | QueryFormColumn[]
-    | undefined;
+    QueryFormColumn[] | undefined;
   const hasRawColumns = rawColumns && rawColumns.length > 0;
   return hasRawColumns ? QueryMode.Raw : QueryMode.Aggregate;
 }
@@ -425,21 +424,6 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [
-          {
-            name: 'show_totals',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Show summary'),
-              default: false,
-              description: t(
-                'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
-              ),
-              visibility: isAggMode,
-              resetOnHide: false,
-            },
-          },
-        ],
       ],
     },
     {
@@ -496,6 +480,20 @@ const config: ControlPanelConfig = {
       label: t('Visual formatting'),
       expanded: true,
       controlSetRows: [
+        [
+          {
+            name: 'show_totals',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show summary'),
+              default: false,
+              renderTrigger: true,
+              description: t(
+                'Show a summary row of total aggregations: the selected metrics in aggregate mode, or the sum of numeric columns in raw records mode. Note that row limit does not apply to the result.',
+              ),
+            },
+          },
+        ],
         [
           {
             name: 'show_numbered_column',

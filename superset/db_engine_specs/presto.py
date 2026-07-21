@@ -326,7 +326,8 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         """
         Get all catalogs.
         """
-        return {catalog for (catalog,) in inspector.bind.execute(text("SHOW CATALOGS"))}
+        with inspector.engine.connect() as conn:
+            return {catalog for (catalog,) in conn.execute(text("SHOW CATALOGS"))}
 
     @classmethod
     def adjust_engine_params(
@@ -498,7 +499,10 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         if filters:
             l = []  # noqa: E741
             for field, value in filters.items():
-                l.append(f"{field} = '{value}'")
+                # Escape single quotes so a ``'`` in the caller-supplied value
+                # cannot break out of the SQL string literal. See #41869.
+                escaped_value: str = str(value).replace("'", "''")
+                l.append(f"{field} = '{escaped_value}'")
             where_clause = "WHERE " + " AND ".join(l)
 
         # Partition select syntax changed in v0.199, so check here.
@@ -671,9 +675,9 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
             )
 
         part_fields = indexes[0]["column_names"]
-        for k in kwargs.keys():  # pylint: disable=consider-iterating-dictionary
-            if k not in k in part_fields:  # pylint: disable=comparison-with-itself
-                msg = f"Field [{k}] is not part of the portioning key"
+        for k in kwargs:
+            if k not in part_fields:
+                msg: str = f"Field [{k}] is not part of the partitioning key"
                 raise SupersetTemplateException(msg)
         if len(kwargs.keys()) != len(part_fields) - 1:
             # pylint: disable=consider-using-f-string
@@ -712,9 +716,8 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         :return: list of column objects
         """
         full_table_name = cls.quote_table(table, inspector.engine.dialect)
-        return inspector.bind.execute(
-            text(f"SHOW COLUMNS FROM {full_table_name}")
-        ).fetchall()
+        with inspector.engine.connect() as conn:
+            return conn.execute(text(f"SHOW COLUMNS FROM {full_table_name}")).fetchall()
 
     @classmethod
     def _create_column_info(

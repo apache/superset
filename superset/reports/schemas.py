@@ -59,6 +59,9 @@ get_slack_channels_schema = {
             "items": {"type": "string", "enum": ["public_channel", "private_channel"]},
         },
         "exact_match": {"type": "boolean"},
+        "force": {"type": "boolean"},
+        "page": {"type": "integer", "minimum": 0},
+        "page_size": {"type": "integer", "minimum": 1},
     },
 }
 
@@ -78,9 +81,8 @@ sql_description = (
     "A SQL statement that defines whether the alert should get triggered or "
     "not. The query is expected to return either NULL or a number value."
 )
-owners_description = (
-    "Owner are users ids allowed to delete or change this report. "
-    "If left empty you will be one of the owners of the report."
+editors_description = (
+    "A list of subject IDs (users, roles, or groups) that can alter the report."
 )
 validator_type_description = (
     "Determines when to trigger alert based off value from alert query. "
@@ -231,7 +233,7 @@ class ReportSchedulePostSchema(Schema):
     )
     dashboard = fields.Integer(required=False, allow_none=True)
     database = fields.Integer(required=False)
-    owners = fields.List(fields.Integer(metadata={"description": owners_description}))
+    editors = fields.List(fields.Integer(metadata={"description": editors_description}))
     validator_type = fields.String(
         metadata={"description": validator_type_description},
         validate=validate.OneOf(
@@ -326,7 +328,7 @@ class ReportScheduleSubscribeSchema(ReportSchedulePostSchema):
     )
 
     class Meta:
-        exclude = ("recipients", "creation_method", "owners")
+        exclude = ("recipients", "creation_method", "editors")
         unknown = EXCLUDE
 
 
@@ -390,8 +392,8 @@ class ReportSchedulePutSchema(Schema):
     )
     dashboard = fields.Integer(required=False, allow_none=True)
     database = fields.Integer(required=False, allow_none=True)
-    owners = fields.List(
-        fields.Integer(metadata={"description": owners_description}), required=False
+    editors = fields.List(
+        fields.Integer(metadata={"description": editors_description}), required=False
     )
     validator_type = fields.String(
         metadata={"description": validator_type_description},
@@ -469,3 +471,15 @@ class SlackChannelSchema(Schema):
     name = fields.String()
     is_member = fields.Boolean()
     is_private = fields.Boolean()
+
+
+class ReportScheduleExecuteResponseSchema(Schema):
+    """Schema for the response when executing a report schedule immediately."""
+
+    class Meta:
+        unknown = EXCLUDE
+
+    execution_id = fields.UUID(
+        metadata={"description": _("UUID to track the execution status")}
+    )
+    message = fields.String(metadata={"description": _("Success message")})

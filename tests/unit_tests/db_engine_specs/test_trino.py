@@ -683,11 +683,14 @@ def test_get_columns_error(mocker: MockerFixture):
         "The specified table does not exist."
     )
     Row = namedtuple("Row", ["Column", "Type"])
-    mock_inspector.bind.execute().fetchall.return_value = [
+
+    mock_connection = mocker.MagicMock()
+    mock_connection.execute().fetchall.return_value = [
         Row("field1", "row(a varchar, b date)"),
         Row("field2", "row(r1 row(a varchar, b varchar))"),
         Row("field3", "int"),
     ]
+    mock_inspector.engine.connect().__enter__.return_value = mock_connection
 
     actual = TrinoEngineSpec.get_columns(mock_inspector, Table("table", "schema"))
     expected = [
@@ -722,10 +725,11 @@ def test_get_columns_error(mocker: MockerFixture):
 
     _assert_columns_equal(actual, expected)
 
-    assert_called_with_text(
-        mock_inspector.bind.execute,
-        'SHOW COLUMNS FROM schema."table"',
-    )
+    with mock_inspector.engine.connect() as conn:
+        assert_called_with_text(
+            conn.execute,
+            'SHOW COLUMNS FROM schema."table"',
+        )
 
 
 def test_get_columns_expand_rows(mocker: MockerFixture):
@@ -758,6 +762,7 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
             column_name="field1.a",
             type=types.VARCHAR(),
             is_dttm=False,
+            expression='"field1"."a"',
             query_as='"field1"."a" AS "field1.a"',
         ),
         ResultSetColumnType(
@@ -765,6 +770,7 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
             column_name="field1.b",
             type=types.DATE(),
             is_dttm=True,
+            expression='"field1"."b"',
             query_as='"field1"."b" AS "field1.b"',
         ),
         ResultSetColumnType(
@@ -775,6 +781,7 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
             column_name="field2.r1",
             type=datatype.parse_sqltype("row(a varchar, b varchar)"),
             is_dttm=False,
+            expression='"field2"."r1"',
             query_as='"field2"."r1" AS "field2.r1"',
         ),
         ResultSetColumnType(
@@ -782,6 +789,7 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
             column_name="field2.r1.a",
             type=types.VARCHAR(),
             is_dttm=False,
+            expression='"field2"."r1"."a"',
             query_as='"field2"."r1"."a" AS "field2.r1.a"',
         ),
         ResultSetColumnType(
@@ -789,6 +797,7 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
             column_name="field2.r1.b",
             type=types.VARCHAR(),
             is_dttm=False,
+            expression='"field2"."r1"."b"',
             query_as='"field2"."r1"."b" AS "field2.r1.b"',
         ),
         ResultSetColumnType(

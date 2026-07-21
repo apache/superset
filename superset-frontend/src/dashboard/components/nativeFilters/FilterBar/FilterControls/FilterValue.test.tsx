@@ -190,6 +190,115 @@ test('does not render loading spinner when filter has no data source', () => {
   expect(screen.getByTestId('mock-super-chart')).toBeInTheDocument();
 });
 
+const defaultFirstItemParentFilter = createMockFilter({
+  id: 'NATIVE_FILTER-PARENT',
+  controlValues: { defaultToFirstItem: true },
+});
+const guardChildFilter = createMockFilter({
+  id: 'NATIVE_FILTER-CHILD',
+  cascadeParentIds: ['NATIVE_FILTER-PARENT'],
+});
+const stateWithDefaultFirstItemParent = {
+  nativeFilters: {
+    filters: {
+      'NATIVE_FILTER-CHILD': guardChildFilter,
+      'NATIVE_FILTER-PARENT': defaultFirstItemParentFilter,
+    },
+    filterSets: {},
+  },
+};
+
+test('guard: does not fetch while a defaultToFirstItem parent has not yet auto-selected', () => {
+  // Reproduces sc-108451: B should not fetch from unfiltered data before A selects.
+  mockUseTransitiveParentIds.mockReturnValue(['NATIVE_FILTER-PARENT']);
+  mockUseFilterDependencies.mockReturnValue({});
+
+  renderFilterValue(
+    {
+      filter: guardChildFilter,
+      // Parent entry exists but filterState.value is undefined (no selection yet).
+      dataMaskSelected: {
+        'NATIVE_FILTER-PARENT': { filterState: {}, extraFormData: {} },
+      },
+    },
+    stateWithDefaultFirstItemParent,
+  );
+
+  expect(mockGetChartDataRequest).not.toHaveBeenCalled();
+});
+
+test('guard: fetches once a defaultToFirstItem parent has set its first value', async () => {
+  mockGetChartDataRequest.mockResolvedValue({
+    response: { status: 200 },
+    json: { result: [{ data: [{ model: 'Corolla' }] }] },
+  });
+  mockUseTransitiveParentIds.mockReturnValue(['NATIVE_FILTER-PARENT']);
+  mockUseFilterDependencies.mockReturnValue({
+    filters: [{ col: 'make', op: 'IN', val: ['Toyota'] }],
+  });
+
+  renderFilterValue(
+    {
+      filter: guardChildFilter,
+      dataMaskSelected: {
+        'NATIVE_FILTER-PARENT': {
+          // Parent has auto-selected its first value → guard should pass.
+          filterState: { value: ['Toyota'] },
+          extraFormData: {
+            filters: [{ col: 'make', op: 'IN', val: ['Toyota'] }],
+          },
+        },
+      },
+    },
+    stateWithDefaultFirstItemParent,
+  );
+
+  await waitFor(() => {
+    expect(mockGetChartDataRequest).toHaveBeenCalled();
+  });
+});
+
+test('guard: does not block fetch for a parent without defaultToFirstItem', async () => {
+  // Non-defaultToFirstItem parents with values should pass the guard as before.
+  mockGetChartDataRequest.mockResolvedValue({
+    response: { status: 200 },
+    json: { result: [{ data: [] }] },
+  });
+  mockUseTransitiveParentIds.mockReturnValue(['NATIVE_FILTER-PARENT']);
+  mockUseFilterDependencies.mockReturnValue({
+    filters: [{ col: 'make', op: 'IN', val: ['Toyota'] }],
+  });
+
+  const regularParent = createMockFilter({ id: 'NATIVE_FILTER-PARENT' });
+
+  renderFilterValue(
+    {
+      filter: guardChildFilter,
+      dataMaskSelected: {
+        'NATIVE_FILTER-PARENT': {
+          filterState: { value: ['Toyota'] },
+          extraFormData: {
+            filters: [{ col: 'make', op: 'IN', val: ['Toyota'] }],
+          },
+        },
+      },
+    },
+    {
+      nativeFilters: {
+        filters: {
+          'NATIVE_FILTER-CHILD': guardChildFilter,
+          'NATIVE_FILTER-PARENT': regularParent,
+        },
+        filterSets: {},
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(mockGetChartDataRequest).toHaveBeenCalled();
+  });
+});
+
 test('skips data fetch when cascade parent filters have no values selected', () => {
   // useFilterDependencies returns dependencies with a filter (from parent defaults),
   // but dataMaskSelected has no extraFormData for the parent -- counts disagree, so

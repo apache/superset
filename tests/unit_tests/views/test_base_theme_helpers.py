@@ -18,6 +18,7 @@
 from unittest.mock import MagicMock, mock_open, patch
 
 from superset.themes.types import ThemeMode
+from superset.utils import json
 from superset.views.base import (
     _load_theme_from_model,
     _merge_theme_dicts,
@@ -358,10 +359,10 @@ class TestGetThemeBootstrapData:
 
         result = get_theme_bootstrap_data()
 
-        # Verify
+        # Verify user overrides are applied (merged with base defaults)
         assert result["theme"]["enableUiThemeAdministration"] is False
-        assert result["theme"]["default"] == {"token": {"colorPrimary": "#config1"}}
-        assert result["theme"]["dark"] == {"token": {"colorPrimary": "#config2"}}
+        assert result["theme"]["default"]["token"]["colorPrimary"] == "#config1"
+        assert result["theme"]["dark"]["token"]["colorPrimary"] == "#config2"
 
     @patch("superset.views.base.app")
     @patch("superset.views.base.get_config_value")
@@ -466,10 +467,10 @@ class TestGetThemeBootstrapData:
 
         result = get_theme_bootstrap_data()
 
-        # Should fall back to config themes
+        # Should fall back to config themes (merged with base defaults)
         assert result["theme"]["enableUiThemeAdministration"] is True
-        assert result["theme"]["default"] == {"token": {"colorPrimary": "#config1"}}
-        assert result["theme"]["dark"] == {"token": {"colorPrimary": "#config2"}}
+        assert result["theme"]["default"]["token"]["colorPrimary"] == "#config1"
+        assert result["theme"]["dark"]["token"]["colorPrimary"] == "#config2"
 
     @patch("superset.views.base.app")
     @patch("superset.views.base.get_config_value")
@@ -505,8 +506,8 @@ class TestGetThemeBootstrapData:
         with patch("superset.views.base.logger") as mock_logger:
             result = get_theme_bootstrap_data()
 
-            # Should fall back to config theme and log error
-            assert result["theme"]["default"] == {"token": {"colorPrimary": "#config1"}}
+            # Should fall back to config theme (merged with base defaults)
+            assert result["theme"]["default"]["token"]["colorPrimary"] == "#config1"
             mock_logger.error.assert_called_once()
 
     @patch("superset.views.base.app")
@@ -530,6 +531,64 @@ class TestGetThemeBootstrapData:
         assert result["theme"]["enableUiThemeAdministration"] is False
         assert result["theme"]["default"] == {}
         assert result["theme"]["dark"] == {}
+
+    @patch("superset.views.base.app")
+    @patch("superset.views.base.get_config_value")
+    def test_partial_theme_override_preserves_base_tokens(
+        self, mock_get_config, mock_app
+    ):
+        """Regression test for #40375: partial THEME_DEFAULT override must
+        preserve unspecified token fields from the built-in defaults so the
+        frontend does not crash on undefined values."""
+        from superset.config import _THEME_DARK_BASE, _THEME_DEFAULT_BASE
+
+        mock_app.config = MagicMock()
+        mock_app.config.get.side_effect = lambda k, d=None: {
+            "ENABLE_UI_THEME_ADMINISTRATION": False,
+        }.get(k, d)
+
+        # Simulate a minimal user override in superset_config.py
+        partial_default = {
+            "token": {"colorPrimary": "#ff0000"},
+            "algorithm": "default",
+        }
+        partial_dark = {
+            "token": {"colorPrimary": "#00ff00"},
+            "algorithm": "dark",
+        }
+        mock_get_config.side_effect = lambda k: {
+            "THEME_DEFAULT": partial_default,
+            "THEME_DARK": partial_dark,
+        }.get(k)
+
+        result = get_theme_bootstrap_data()
+
+        default_theme = result["theme"]["default"]
+        dark_theme = result["theme"]["dark"]
+
+        # User overrides must be applied
+        assert default_theme["token"]["colorPrimary"] == "#ff0000"
+        assert dark_theme["token"]["colorPrimary"] == "#00ff00"
+
+        # All built-in base tokens must still be present
+        for key in _THEME_DEFAULT_BASE["token"]:
+            assert key in default_theme["token"], (
+                f"Missing base token '{key}' in default theme after partial override"
+            )
+        for key in _THEME_DARK_BASE["token"]:
+            assert key in dark_theme["token"], (
+                f"Missing base token '{key}' in dark theme after partial override"
+            )
+
+        # Spot-check a few critical fields that caused the original crash
+        assert (
+            default_theme["token"]["fontFamily"]
+            == (_THEME_DEFAULT_BASE["token"]["fontFamily"])
+        )
+        assert (
+            default_theme["token"]["colorLink"]
+            == (_THEME_DEFAULT_BASE["token"]["colorLink"])
+        )
 
 
 class TestBrandAppNameFallback:
@@ -832,6 +891,137 @@ class TestBrandAppNameFallback:
 
         # Should handle gracefully and use default title
         assert result["default_title"] == "Superset"
+
+
+class TestBrandSpinnerUrlPrefix:
+    """Test brandSpinnerUrl static asset prefix handling."""
+
+    @patch("superset.views.base.get_spa_payload")
+    @patch("superset.views.base.app")
+    def test_brandspinnerurl_adds_static_assets_prefix(self, mock_app, mock_payload):
+        """Test that root-relative spinner URLs include the static assets prefix."""
+        from superset.views.base import get_spa_template_context
+
+        mock_app.config = {
+            "STATIC_ASSETS_PREFIX": "/analytics",
+        }
+        mock_payload.return_value = {
+            "common": {
+                "theme": {
+                    "default": {
+                        "token": {
+                            "brandSpinnerUrl": "/static/assets/spinner.gif",
+                        }
+                    },
+                    "dark": {
+                        "token": {
+                            "brandSpinnerUrl": "/static/assets/dark-spinner.gif",
+                        }
+                    },
+                }
+            }
+        }
+
+        result = get_spa_template_context("app")
+
+        assert (
+            result["theme_tokens"]["brandSpinnerUrl"]
+            == "/analytics/static/assets/spinner.gif"
+        )
+        bootstrap_data = json.loads(result["bootstrap_data"])
+        assert (
+            bootstrap_data["common"]["theme"]["default"]["token"]["brandSpinnerUrl"]
+            == "/analytics/static/assets/spinner.gif"
+        )
+        assert (
+            bootstrap_data["common"]["theme"]["dark"]["token"]["brandSpinnerUrl"]
+            == "/analytics/static/assets/dark-spinner.gif"
+        )
+
+    @patch("superset.views.base.get_spa_payload")
+    @patch("superset.views.base.app")
+    def test_brandspinnerurl_keeps_absolute_url(self, mock_app, mock_payload):
+        """Test that absolute spinner URLs are not prefixed."""
+        from superset.views.base import get_spa_template_context
+
+        mock_app.config = {
+            "STATIC_ASSETS_PREFIX": "/analytics",
+        }
+        mock_payload.return_value = {
+            "common": {
+                "theme": {
+                    "default": {
+                        "token": {
+                            "brandSpinnerUrl": "https://cdn.example.com/spinner.gif",
+                        }
+                    }
+                }
+            }
+        }
+
+        result = get_spa_template_context("app")
+
+        assert (
+            result["theme_tokens"]["brandSpinnerUrl"]
+            == "https://cdn.example.com/spinner.gif"
+        )
+
+    @patch("superset.views.base.get_spa_payload")
+    @patch("superset.views.base.app")
+    def test_brandspinnerurl_keeps_protocol_relative_url(self, mock_app, mock_payload):
+        """Test that protocol-relative spinner URLs are not prefixed."""
+        from superset.views.base import get_spa_template_context
+
+        mock_app.config = {
+            "STATIC_ASSETS_PREFIX": "/analytics",
+        }
+        mock_payload.return_value = {
+            "common": {
+                "theme": {
+                    "default": {
+                        "token": {
+                            "brandSpinnerUrl": "//cdn.example.com/spinner.gif",
+                        }
+                    }
+                }
+            }
+        }
+
+        result = get_spa_template_context("app")
+
+        assert (
+            result["theme_tokens"]["brandSpinnerUrl"] == "//cdn.example.com/spinner.gif"
+        )
+
+    @patch("superset.views.base.get_spa_payload")
+    @patch("superset.views.base.app")
+    def test_brandspinnerurl_does_not_duplicate_static_assets_prefix(
+        self, mock_app, mock_payload
+    ):
+        """Test that already-prefixed spinner URLs are not prefixed again."""
+        from superset.views.base import get_spa_template_context
+
+        mock_app.config = {
+            "STATIC_ASSETS_PREFIX": "/analytics",
+        }
+        mock_payload.return_value = {
+            "common": {
+                "theme": {
+                    "default": {
+                        "token": {
+                            "brandSpinnerUrl": "/analytics/static/assets/spinner.gif",
+                        }
+                    }
+                }
+            }
+        }
+
+        result = get_spa_template_context("app")
+
+        assert (
+            result["theme_tokens"]["brandSpinnerUrl"]
+            == "/analytics/static/assets/spinner.gif"
+        )
 
 
 class TestGetDefaultSpinnerSvg:
