@@ -1514,6 +1514,11 @@ export function persistEditorHeight(
   };
 }
 
+function handlePopError(dispatch: AppDispatch, errorMessage: string) {
+  dispatch(addDangerToast(errorMessage));
+  dispatch(addNewQueryEditor());
+}
+
 export function popPermalink(key: string): SqlLabThunkAction<Promise<unknown>> {
   return function (dispatch: AppDispatch) {
     return SupersetClient.get({ endpoint: `/api/v1/sqllab/permalink/${key}` })
@@ -1530,10 +1535,7 @@ export function popPermalink(key: string): SqlLabThunkAction<Promise<unknown>> {
           }),
         ),
       )
-      .catch(() => {
-        dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY));
-        dispatch(addNewQueryEditor());
-      });
+      .catch(() => handlePopError(dispatch, ERR_MSG_CANT_LOAD_QUERY));
   };
 }
 
@@ -1557,10 +1559,7 @@ export function popStoredQuery(
           }),
         ),
       )
-      .catch(() => {
-        dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY));
-        dispatch(addNewQueryEditor());
-      });
+      .catch(() => handlePopError(dispatch, ERR_MSG_CANT_LOAD_QUERY));
   };
 }
 export function popSavedQuery(
@@ -1588,10 +1587,7 @@ export function popSavedQuery(
         };
         return dispatch(addQueryEditor(tmpAdaptedProps));
       })
-      .catch(() => {
-        dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY));
-        dispatch(addNewQueryEditor());
-      });
+      .catch(() => handlePopError(dispatch, ERR_MSG_CANT_LOAD_QUERY));
   };
 }
 export function popQuery(queryId: string): SqlLabThunkAction<Promise<unknown>> {
@@ -1611,10 +1607,7 @@ export function popQuery(queryId: string): SqlLabThunkAction<Promise<unknown>> {
         };
         return dispatch(addQueryEditor(queryEditorProps));
       })
-      .catch(() => {
-        dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY));
-        dispatch(addNewQueryEditor());
-      });
+      .catch(() => handlePopError(dispatch, ERR_MSG_CANT_LOAD_QUERY));
   };
 }
 export function popDatasourceQuery(
@@ -1644,10 +1637,9 @@ export function popDatasourceQuery(
           }),
         ),
       )
-      .catch(() => {
-        dispatch(addDangerToast(t("The datasource couldn't be loaded")));
-        dispatch(addNewQueryEditor());
-      });
+      .catch(() =>
+        handlePopError(dispatch, t("The datasource couldn't be loaded")),
+      );
   };
 }
 export function createDatasourceStarted(): SqlLabAction {
