@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-07-17 15:46-0700\n"
+"POT-Creation-Date: 2026-07-21 13:03-0700\n"
 "PO-Revision-Date: 2024-10-05 23:46+0200\n"
 "Last-Translator: dkrat7 <dkrat7 @github.com>\n"
 "Language: sl_SI\n"
@@ -136,9 +136,6 @@ msgstr "Podrobnosti"
 msgid " near '%(highlight)s'"
 msgstr " blizu '%(highlight)s'"
 
-msgid " source code of Superset's sandboxed parser"
-msgstr " izvorno kodo za Supersetov \"sandboxed parser\""
-
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
@@ -251,6 +248,30 @@ msgstr "%(name)s.csv"
 #, python-format
 msgid "%(name)s.pdf"
 msgstr "%(name)s.pdf"
+
+#, python-format
+msgid "%(num)d hour"
+msgid_plural "%(num)d hours"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#, python-format
+msgid "%(num)d minute"
+msgid_plural "%(num)d minutes"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#, python-format
+msgid "%(num)d second"
+msgid_plural "%(num)d seconds"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
 
 #, python-format
 msgid "%(object)s does not exist in this database."
@@ -878,18 +899,6 @@ msgstr ">= (večje ali enako)"
 msgid "A Big Number"
 msgstr "Velika številka"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "A JavaScript function that generates a label configuration object"
-msgstr "Funkcija JavaScript, ki ustvari konfiguracijski objekt oznake"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "A JavaScript function that generates an icon configuration object"
-msgstr "Funkcija JavaScript, ki ustvari konfiguracijski objekt ikone"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-brace-format
@@ -903,6 +912,9 @@ msgstr ""
 "druge možnosti kontrolnika z višjo prednostjo. (npr. { title: { text: "
 "\"My Chart\" }, tooltip: { trigger: \"item\" } }). Podrobnosti: "
 "https://echarts.apache.org/en/option.html. "
+
+msgid "A TTL is required for ephemeral state."
+msgstr ""
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -1296,6 +1308,12 @@ msgstr "Dodaj barvo za pozitivno/negativno spremembo"
 #, fuzzy
 msgid "Add colors to cell bars for +/- for all columns"
 msgstr "dodajte barvo za graf v celici za +/-"
+
+msgid ""
+"Add columns to filter by. When typing or pasting filter values, commas "
+"will separate values into multiple entries. To include a comma within a "
+"value, wrap it in double quotes: \"San Francisco, CA\""
+msgstr ""
 
 msgid "Add cross-filter"
 msgstr "Dodaj medsebojni filter"
@@ -1757,6 +1775,9 @@ msgstr ""
 "povprečje, mediano in notranja 2 kvartila. Brki na vsaki škatli "
 "prikazujejo minimum, maksimum, območje in zunanja dva kvartila."
 
+msgid "Also overwrite all assets (charts, datasets and databases)"
+msgstr ""
+
 msgid "Altered"
 msgstr "Spremenjeno"
 
@@ -2012,6 +2033,11 @@ msgstr "Pri pridobivanju vrednosti uporabnika je prišlo do napake: %s"
 msgid "An error occurred while formatting SQL"
 msgstr "Pri nalaganju SQL je prišlo do napake"
 
+msgid ""
+"An error occurred while generating the file. Please try again, or contact"
+" your administrator if the problem persists."
+msgstr ""
+
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "Napaka pri uvažanju %s: %s"
@@ -2100,6 +2126,9 @@ msgstr "Pri posodabljanju/vstavljanju vrednosti je prišlo do težave."
 
 msgid "An error occurred while upserting the value."
 msgstr "Pri posodabljanju/vstavljanju vrednosti je prišlo do težave."
+
+msgid "An export for this dashboard is already in progress."
+msgstr ""
 
 msgid "An unexpected error occurred"
 msgstr "Prišlo je do nepričakovane napake"
@@ -3837,6 +3866,12 @@ msgstr "Barva glede na"
 msgid "Color Metric"
 msgstr "Mera za barvo"
 
+msgid "Color Range End"
+msgstr ""
+
+msgid "Color Range Start"
+msgstr ""
+
 msgid "Color Scheme"
 msgstr "Barvna shema"
 
@@ -5357,24 +5392,6 @@ msgstr ""
 "Privzeta vrednost je samodejno izbrana, če je izbrano \"Prvi element je "
 "izbran kot privzet\""
 
-msgid ""
-"Define a function that receives the input and outputs the content for a "
-"tooltip"
-msgstr "Določite funkcijo, ki sprejme vhodne podatke in vrne vsebino opisa orodja"
-
-msgid "Define a function that returns a URL to navigate to when user clicks"
-msgstr "Določite funkcijo, ki vrne URL za navigacijo, ko uporabnik klikne"
-
-msgid ""
-"Define a javascript function that receives the data array used in the "
-"visualization and is expected to return a modified version of that array."
-" This can be used to alter properties of the data, filter, or enrich the "
-"array."
-msgstr ""
-"Določite Javascript funkcijo, ki sprejme podatkovni niz za vizualizacijo "
-"in vrne spremenjeno verzijo tega niza. Lahko se uporabi za spreminjanje "
-"lastnosti podatkov, filtra ali obogatitve niza."
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -6020,6 +6037,9 @@ msgstr "Pikčasto"
 msgid "Download"
 msgstr "Prenesi"
 
+msgid "Download Excel file"
+msgstr ""
+
 msgid "Download as Image"
 msgstr "Izvozi kot sliko"
 
@@ -6553,21 +6573,9 @@ msgstr "Omogoči napovedovanje"
 msgid "Enable graph roaming"
 msgstr "Omogoči preoblikovanje grafikona"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Enable icon JavaScript mode"
-msgstr "Omogoči JavaScript način za ikone"
-
 #, fuzzy
 msgid "Enable icons"
 msgstr "Stolpci tabele"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Enable label JavaScript mode"
-msgstr "Omogoči JavaScript način za oznake"
 
 #, fuzzy
 msgid "Enable labels"
@@ -6592,18 +6600,6 @@ msgid "Enable server side pagination of results (experimental feature)"
 msgstr ""
 "Omogoči številčenje strani rezultatov na strani strežnika (funkcija v "
 "razvoju)"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Enables custom icon configuration via JavaScript"
-msgstr "Omogoča prilagojeno konfiguracijo ikon prek JavaScripta"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Enables custom label configuration via JavaScript"
-msgstr "Omogoča prilagojeno konfiguracijo oznak prek JavaScripta"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
@@ -6953,6 +6949,9 @@ msgstr "Tedensko poročilo"
 msgid "Excel XML Export"
 msgstr "Tedensko poročilo"
 
+msgid "Excel export is not configured on this server."
+msgstr ""
+
 msgid "Excel file format cannot be determined"
 msgstr "Ni mogoče določiti formata Excel-ove datoteke"
 
@@ -7042,6 +7041,12 @@ msgstr "Počisti vse podatke"
 #, fuzzy
 msgid "Export Current View"
 msgstr "Invertiraj trenutno stran"
+
+msgid "Export Data to Excel"
+msgstr ""
+
+msgid "Export Images to Excel"
+msgstr ""
 
 #, fuzzy
 msgid "Export YAML"
@@ -7149,6 +7154,12 @@ msgstr "SQL-izraz"
 msgid "Expression cannot be empty"
 msgstr "ne sme biti prazno"
 
+#, python-format
+msgid ""
+"Extension '%(extension_id)s' has exceeded its persistent storage quota of"
+" %(quota)d bytes."
+msgstr ""
+
 #, fuzzy
 msgid "Extensions"
 msgstr "Dimenzije"
@@ -7171,9 +7182,6 @@ msgstr "Dodatni kontrolniki"
 
 msgid "Extra Parameters"
 msgstr "Dodatni parametri"
-
-msgid "Extra data for JS"
-msgstr "Dodatni podatki za JS"
 
 #, python-brace-format
 msgid ""
@@ -7653,11 +7661,6 @@ msgstr ""
 
 msgid "For further instructions, consult the"
 msgstr "Za nadaljnja navodila se posvetujte z"
-
-msgid ""
-"For more information about objects are in context in the scope of this "
-"function, refer to the"
-msgstr "Za dodatne informacije o objektih v kontekstu te funkcije si oglejte"
 
 #, fuzzy
 msgid ""
@@ -8148,10 +8151,6 @@ msgid "ISO 8601"
 msgstr "ISO 8601"
 
 #, fuzzy
-msgid "Icon JavaScript config generator"
-msgstr "JavaScript generator opisa orodja"
-
-#, fuzzy
 msgid "Icon URL"
 msgstr "Nadzor"
 
@@ -8203,6 +8202,9 @@ msgstr ""
 #, fuzzy
 msgid "If table already exists"
 msgstr "Oznaka že obstaja"
+
+msgid "If you did not request this, you can ignore this email."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -8706,15 +8708,6 @@ msgstr "JUN"
 msgid "January"
 msgstr "Januar"
 
-msgid "JavaScript data interceptor"
-msgstr "JavaScript prestreznik podatkov"
-
-msgid "JavaScript onClick href"
-msgstr "JavaScript onClick href"
-
-msgid "JavaScript tooltip generator"
-msgstr "JavaScript generator opisa orodja"
-
 msgid "Jinja templating"
 msgstr "Jinja"
 
@@ -8757,10 +8750,6 @@ msgstr "Naziv"
 
 msgid "Label Contents"
 msgstr "Označi vsebino"
-
-#, fuzzy
-msgid "Label JavaScript config generator"
-msgstr "JavaScript generator opisa orodja"
 
 msgid "Label Line"
 msgstr "Črta oznake"
@@ -8989,6 +8978,15 @@ msgstr "Tip legende"
 msgid "Legend type"
 msgstr "Tip legende"
 
+msgid "Length in cm (12345678cm => 123.46km)"
+msgstr ""
+
+msgid "Length in cm (12345cm => 123.45m)"
+msgstr ""
+
+msgid "Length in m (12345m => 12.35km)"
+msgstr ""
+
 #, fuzzy
 msgid "Less Than"
 msgstr "Manjše kot (<)"
@@ -9136,9 +9134,6 @@ msgstr "Seznam unikatnih vrednosti"
 msgid "List Users"
 msgstr "Število razdelitev"
 
-msgid "List of extra columns made available in JavaScript functions"
-msgstr "Seznam dodatnih stolpcev, ki bodo na razpolago v JavaScript funkcijah"
-
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "Seznam n+1 vrednosti za mero razvrščanja v n razdelkov."
 
@@ -9270,6 +9265,11 @@ msgstr "Dolžina privzetega pogleda"
 
 msgid "Lower Threshold"
 msgstr "Spodnji prag"
+
+msgid ""
+"Lower bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Spodnji prag mora biti manjši od zgornjega"
@@ -11966,6 +11966,13 @@ msgstr "Zahtevaj manjkajoča podatkovna polja."
 msgid "Request timed out"
 msgstr "Zahtevek pretečen"
 
+#, python-format
+msgid ""
+"Requested page would return %(requested_size)d bytes, exceeding the "
+"maximum allowed list payload size of %(max_size)d bytes. Reduce page_size"
+" and try again."
+msgstr ""
+
 msgid "Required"
 msgstr "Obvezno"
 
@@ -14252,6 +14259,12 @@ msgstr "Ustavi (Ctrl + x)"
 msgid "Stopped an unsafe database connection"
 msgstr "Nevarna povezava s podatkovno bazo je bila ustavljena"
 
+#, python-format
+msgid ""
+"Storage key exceeds the maximum allowed length of %(max_length)d "
+"characters."
+msgstr ""
+
 msgid "Stream"
 msgstr "Tok"
 
@@ -14493,6 +14506,13 @@ msgstr "ČASOVNI_OBSEG"
 
 msgid "THU"
 msgstr "ČET"
+
+msgid "TTL must be a positive integer."
+msgstr ""
+
+#, python-format
+msgid "TTL must not exceed %(max_ttl)d seconds."
+msgstr ""
 
 msgid "TUE"
 msgstr "TOR"
@@ -14796,6 +14816,9 @@ msgstr ""
 " svojih zastavicah funkcij za uporabo @task. Za podrobnosti o "
 "konfiguraciji glejte https://superset.apache.org/docs/configuration"
 "/async-queries-celery."
+
+msgid "The SQL query mutator removed all executable statements from this query."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
@@ -15125,6 +15148,19 @@ msgstr ""
 #, fuzzy
 msgid "The feature property to use for point labels"
 msgstr "Lastnost elementa, ki se uporablja za oznake točk"
+
+msgid "The following charts could not be exported:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because an error occurred while "
+"exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because they have no saved query "
+"context. To include them, open each chart in Explore and re-save."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16328,6 +16364,10 @@ msgid ""
 "one."
 msgstr "Ta e-poštni naslov je že povezan z računom. Prosimo, izberite drugega."
 
+#, python-format
+msgid "This export was requested on %(when)s UTC."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -16373,9 +16413,6 @@ msgstr "Ta mapa podpira samo stolpce"
 #, fuzzy
 msgid "This folder only supports metrics"
 msgstr "Ta mapa podpira samo metrike"
-
-msgid "This functionality is disabled in your environment for security reasons."
-msgstr "Ta funkcionalnost je v vašem okolju onemogočena zaradi varnosti."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -16454,6 +16491,10 @@ msgstr ""
 #, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
 msgstr "Tej povezavi ni mogoče slediti, ker je njen naslov nevaren."
+
+#, python-format
+msgid "This link expires in %(duration)s (%(when)s UTC)."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -16954,9 +16995,8 @@ msgstr "Skupaj (%(aggregatorName)s)"
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
-"and 180° draws a half donut. When the sweep is 180° or less and the start"
-" angle is a multiple of 90°, the chart is automatically re-centered to "
-"make use of the empty space."
+"and 180° draws a half donut. Partial arcs are automatically re-centered "
+"and scaled to make use of the available space."
 msgstr ""
 
 #, fuzzy
@@ -17504,6 +17544,11 @@ msgstr "Zahtevano je nalaganje datoteke"
 msgid "Upper Threshold"
 msgstr "Zgornji prag"
 
+msgid ""
+"Upper bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
 msgid "Upper threshold must be greater than lower threshold"
 msgstr "Zgornji prag mora biti večji od spodnjega"
 
@@ -17741,6 +17786,10 @@ msgstr "Vrednost ne sme presegati %s"
 
 msgid "Value difference between the time periods"
 msgstr "Razlika vrednosti med časovnimi obdobji"
+
+#, python-format
+msgid "Value exceeds the maximum allowed size of %(max_size)d bytes."
+msgstr ""
 
 msgid "Value format"
 msgstr "Oblika zapisa vrednosti"
@@ -18212,6 +18261,12 @@ msgid ""
 msgstr ""
 "Če so sekundarni časovni stolpci filtrirani, uporabi enak filter tudi za "
 "glavni časovni stolpec."
+
+msgid ""
+"When typing or pasting filter values, commas will separate values into "
+"multiple entries. To include a comma within a value, wrap it in double "
+"quotes: \"San Francisco, CA\""
+msgstr ""
 
 msgid ""
 "When unchecked, colors from the selected color scheme will be used for "
@@ -18976,6 +19031,14 @@ msgstr "Grafikon ni aktualen"
 msgid "Your chart is ready to go!"
 msgstr "Grafikon je pripravljen!"
 
+#, python-format
+msgid "Your dashboard export could not be completed: %(title)s"
+msgstr ""
+
+#, python-format
+msgid "Your dashboard export is ready: %(title)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -18988,6 +19051,17 @@ msgid ""
 "but the limit is %s. Reduce the dashboard size (for example, split it "
 "into multiple dashboards) or raise the "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
+msgstr ""
+
+msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" could not be completed."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" is ready."
 msgstr ""
 
 msgid "Your query could not be saved"

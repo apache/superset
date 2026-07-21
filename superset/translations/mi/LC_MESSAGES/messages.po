@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-07-17 15:46-0700\n"
+"POT-Creation-Date: 2026-07-21 13:03-0700\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -142,9 +142,6 @@ msgstr "Taipitopito"
 msgid " near '%(highlight)s'"
 msgstr " tata ki '%(highlight)s'"
 
-msgid " source code of Superset's sandboxed parser"
-msgstr " waehere puna o te kaiwaewae koheru a Superset"
-
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
@@ -244,6 +241,24 @@ msgstr "%(name)s.csv"
 #, python-format
 msgid "%(name)s.pdf"
 msgstr "%(name)s.pdf"
+
+#, python-format
+msgid "%(num)d hour"
+msgid_plural "%(num)d hours"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)d minute"
+msgid_plural "%(num)d minutes"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)d second"
+msgid_plural "%(num)d seconds"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "%(object)s does not exist in this database."
@@ -841,18 +856,6 @@ msgstr ">= (Rahi ake, ōrite rānei)"
 msgid "A Big Number"
 msgstr "He Tau Nui"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "A JavaScript function that generates a label configuration object"
-msgstr "He mahi JavaScript e waihanga ana i tētahi ahanoa tautuhinga tāpanga"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "A JavaScript function that generates an icon configuration object"
-msgstr "He mahi JavaScript e waihanga ana i tētahi ahanoa tautuhinga tohu"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-brace-format
@@ -866,6 +869,9 @@ msgstr ""
 " i ērā atu kōwhiringa takiwā me te taumaha nui ake. (arā { title: { text:"
 " \"My Chart\" }, tooltip: { trigger: \"item\" } }). Taipitopito: "
 "https://echarts.apache.org/en/option.html. "
+
+msgid "A TTL is required for ephemeral state."
+msgstr ""
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -1256,6 +1262,12 @@ msgstr "Tāpiri tae mō te panoni pai/kino"
 #, fuzzy
 msgid "Add colors to cell bars for +/- for all columns"
 msgstr "Tāpiri tae ki ngā pae pūtau mō +/-"
+
+msgid ""
+"Add columns to filter by. When typing or pasting filter values, commas "
+"will separate values into multiple entries. To include a comma within a "
+"value, wrap it in double quotes: \"San Francisco, CA\""
+msgstr ""
 
 msgid "Add cross-filter"
 msgstr "Tāpiri tātari-whiti"
@@ -1720,6 +1732,9 @@ msgstr ""
 "hautakiwā 2 o roto. Ko ngā whīhau i ia taha o ia pouaka ka whakakite i te"
 " iti, te rahi, te korahi, me ngā hautakiwā 2 o waho."
 
+msgid "Also overwrite all assets (charts, datasets and databases)"
+msgstr ""
+
 msgid "Altered"
 msgstr "Kua Whakarereke"
 
@@ -1967,6 +1982,11 @@ msgstr "I puta he hapa i te tikitanga o ngā uara kaiwhakamahi: %s"
 msgid "An error occurred while formatting SQL"
 msgstr "I puta he hapa i te utanga o te SQL"
 
+msgid ""
+"An error occurred while generating the file. Please try again, or contact"
+" your administrator if the problem persists."
+msgstr ""
+
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "I puta he hapa i te kawemaitanga o %s: %s"
@@ -2055,6 +2075,9 @@ msgstr "I puta he hapa i te whakahoutanga o te uara."
 
 msgid "An error occurred while upserting the value."
 msgstr "I puta he hapa i te whakahoutanga o te uara."
+
+msgid "An export for this dashboard is already in progress."
+msgstr ""
 
 msgid "An unexpected error occurred"
 msgstr "I puta he hapa ohorere"
@@ -3783,6 +3806,12 @@ msgstr "Tae mā"
 msgid "Color Metric"
 msgstr "Ine Tae"
 
+msgid "Color Range End"
+msgstr ""
+
+msgid "Color Range Start"
+msgstr ""
+
 msgid "Color Scheme"
 msgstr "Kaupapa Tae"
 
@@ -5265,30 +5294,6 @@ msgstr ""
 "Ka tautuhi aunoa te uara taunoa ina pātia \"Tīpakohia te uara tātari "
 "tuatahi mā te taunoa\""
 
-msgid ""
-"Define a function that receives the input and outputs the content for a "
-"tooltip"
-msgstr ""
-"Tautuhia he taumahi ka whakawhiti i te tāuru, ā, ka puta te ihirangi mō "
-"tētahi kītukutuku"
-
-msgid "Define a function that returns a URL to navigate to when user clicks"
-msgstr ""
-"Tautuhia he taumahi ka whakahoki i tētahi URL hei whakatere atu ina "
-"pāwhiria e te kaiwhakamahi"
-
-msgid ""
-"Define a javascript function that receives the data array used in the "
-"visualization and is expected to return a modified version of that array."
-" This can be used to alter properties of the data, filter, or enrich the "
-"array."
-msgstr ""
-"Tautuhia he taumahi javascript ka whakawhiti i te huinga raraunga kua "
-"whakamahia i te whakakitenga, ā, e tūmanakohia ana ka whakahoki i tētahi "
-"putanga kua whakarerekeahia o taua huinga. Ka taea te whakamahi i tēnei "
-"hei huri i ngā āhuatanga o ngā raraunga, hei tātari, hei whakanui rānei i"
-" te huinga."
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -5916,6 +5921,9 @@ msgstr "Tongi"
 msgid "Download"
 msgstr "Tikiake"
 
+msgid "Download Excel file"
+msgstr ""
+
 msgid "Download as Image"
 msgstr "Tikiake hei Whakaahua"
 
@@ -6438,21 +6446,9 @@ msgstr "Whakahohe matapae"
 msgid "Enable graph roaming"
 msgstr "Whakahohe kauwhata takahuri"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Enable icon JavaScript mode"
-msgstr "Whakamana te aratau JavaScript tohu"
-
 #, fuzzy
 msgid "Enable icons"
 msgstr "Tīwae ripanga"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Enable label JavaScript mode"
-msgstr "Whakamana te aratau JavaScript tūtohu"
 
 #, fuzzy
 msgid "Enable labels"
@@ -6475,18 +6471,6 @@ msgstr "Whakahohe whakawhānuitanga rārangi i ngā hanga"
 
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "Whakahohe whārangitanga taha-tūmau o ngā hua (āhuatanga whakamātau)"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Enables custom icon configuration via JavaScript"
-msgstr "Ka whakamana i te whakaahua tohu whakaahuatia mā JavaScript"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Enables custom label configuration via JavaScript"
-msgstr "Ka whakamana i te whakaahua tūtohu whakaahuatia mā JavaScript"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
@@ -6824,6 +6808,9 @@ msgstr "Pūrongo Ia Wiki"
 msgid "Excel XML Export"
 msgstr "Pūrongo Ia Wiki"
 
+msgid "Excel export is not configured on this server."
+msgstr ""
+
 msgid "Excel file format cannot be determined"
 msgstr "Kāore e taea te whakatau i te hōputu kōnae Excel"
 
@@ -6908,6 +6895,12 @@ msgstr "Whakakore i ngā raraunga katoa"
 #, fuzzy
 msgid "Export Current View"
 msgstr "Whakahuri whārangi o nāianei"
+
+msgid "Export Data to Excel"
+msgstr ""
+
+msgid "Export Images to Excel"
+msgstr ""
 
 #, fuzzy
 msgid "Export YAML"
@@ -7015,6 +7008,12 @@ msgstr "Kīanga SQL"
 msgid "Expression cannot be empty"
 msgstr "kāore e taea te noho kau"
 
+#, python-format
+msgid ""
+"Extension '%(extension_id)s' has exceeded its persistent storage quota of"
+" %(quota)d bytes."
+msgstr ""
+
 #, fuzzy
 msgid "Extensions"
 msgstr "Āhuahanga"
@@ -7036,9 +7035,6 @@ msgstr "Whakahaere Taapiri"
 
 msgid "Extra Parameters"
 msgstr "Tawhā Taapiri"
-
-msgid "Extra data for JS"
-msgstr "Raraunga taapiri mō JS"
 
 #, python-brace-format
 msgid ""
@@ -7509,13 +7505,6 @@ msgstr ""
 
 msgid "For further instructions, consult the"
 msgstr "Mō ētahi tohutohu atu, tirohia te"
-
-msgid ""
-"For more information about objects are in context in the scope of this "
-"function, refer to the"
-msgstr ""
-"Mō ētahi mōhiohio atu mō ngā ahanoa kei roto i te horopaki i te korahi o "
-"tēnei taumahi, tirohia te"
 
 #, fuzzy
 msgid ""
@@ -8010,10 +7999,6 @@ msgid "ISO 8601"
 msgstr "ISO 8601"
 
 #, fuzzy
-msgid "Icon JavaScript config generator"
-msgstr "Kaihanga kītukutuku JavaScript"
-
-#, fuzzy
 msgid "Icon URL"
 msgstr "Tārua URL"
 
@@ -8068,6 +8053,9 @@ msgstr ""
 
 msgid "If table already exists"
 msgstr "Mēnā kei te tīari kē te ripanga"
+
+msgid "If you did not request this, you can ignore this email."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -8561,15 +8549,6 @@ msgstr "HUI"
 msgid "January"
 msgstr "Hānuere"
 
-msgid "JavaScript data interceptor"
-msgstr "Kaiwhakawaenga raraunga JavaScript"
-
-msgid "JavaScript onClick href"
-msgstr "JavaScript onClick href"
-
-msgid "JavaScript tooltip generator"
-msgstr "Kaihanga kītukutuku JavaScript"
-
 msgid "Jinja templating"
 msgstr "Tauira Jinja"
 
@@ -8612,10 +8591,6 @@ msgstr "Tapanga"
 
 msgid "Label Contents"
 msgstr "Ihirangi Tapanga"
-
-#, fuzzy
-msgid "Label JavaScript config generator"
-msgstr "Kaihanga kītukutuku JavaScript"
 
 msgid "Label Line"
 msgstr "Rārangi Tapanga"
@@ -8834,6 +8809,15 @@ msgstr "Momo Kōrero"
 msgid "Legend type"
 msgstr "Momo kōrero"
 
+msgid "Length in cm (12345678cm => 123.46km)"
+msgstr ""
+
+msgid "Length in cm (12345cm => 123.45m)"
+msgstr ""
+
+msgid "Length in m (12345m => 12.35km)"
+msgstr ""
+
 #, fuzzy
 msgid "Less Than"
 msgstr "Iti ake i (<)"
@@ -8978,9 +8962,6 @@ msgstr "Rārangi Uara Ahurei"
 msgid "List Users"
 msgstr "Rārangi Kaiwhakamahi"
 
-msgid "List of extra columns made available in JavaScript functions"
-msgstr "Rārangi tīwae taapiri ka wātea i ngā taumahi JavaScript"
-
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "Rārangi uara n+1 mō te peeke ine ki ngā peeke n."
 
@@ -9110,6 +9091,11 @@ msgstr "Longitude o te tirohanga taunoa"
 
 msgid "Lower Threshold"
 msgstr "Paepae Raro"
+
+msgid ""
+"Lower bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Me iti ake te paepae raro i te paepae runga"
@@ -11763,6 +11749,13 @@ msgstr "Kei te ngaro te āpure raraunga o te tono."
 msgid "Request timed out"
 msgstr "Wā-pau tono"
 
+#, python-format
+msgid ""
+"Requested page would return %(requested_size)d bytes, exceeding the "
+"maximum allowed list payload size of %(max_size)d bytes. Reduce page_size"
+" and try again."
+msgstr ""
+
 msgid "Required"
 msgstr "E Hiahiatia Ana"
 
@@ -14056,6 +14049,12 @@ msgstr "Mutu rere (Ctrl + x)"
 msgid "Stopped an unsafe database connection"
 msgstr "I whakamutua tētahi hononga pātengi raraunga kore haumaru"
 
+#, python-format
+msgid ""
+"Storage key exceeds the maximum allowed length of %(max_length)d "
+"characters."
+msgstr ""
+
 msgid "Stream"
 msgstr "Rere"
 
@@ -14289,6 +14288,13 @@ msgstr "TEMPORAL_RANGE"
 
 msgid "THU"
 msgstr "PAR"
+
+msgid "TTL must be a positive integer."
+msgstr ""
+
+#, python-format
+msgid "TTL must not exceed %(max_ttl)d seconds."
+msgstr ""
 
 msgid "TUE"
 msgstr "TŪR"
@@ -14599,6 +14605,9 @@ msgstr ""
 "@task. Tirohia https://superset.apache.org/docs/configuration/async-"
 "queries-celery mō ngā taipitopito whirihora."
 
+msgid "The SQL query mutator removed all executable statements from this query."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
 msgid "The SSH server host key could not be verified against the expected key."
@@ -14906,6 +14915,19 @@ msgstr ""
 #, fuzzy
 msgid "The feature property to use for point labels"
 msgstr "Ko te āhuatanga o te tūemi hei whakamahi mō ngā tapanga tohu"
+
+msgid "The following charts could not be exported:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because an error occurred while "
+"exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because they have no saved query "
+"context. To include them, open each chart in Explore and re-save."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16117,6 +16139,10 @@ msgid ""
 "one."
 msgstr "Kei te hono kē tēnei īmēra ki tētahi kaute."
 
+#, python-format
+msgid "This export was requested on %(when)s UTC."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -16162,9 +16188,6 @@ msgstr "Ko ngā tīwae anake e tautokona ana e tēnei kōpaki"
 #, fuzzy
 msgid "This folder only supports metrics"
 msgstr "Ko ngā inenga anake e tautokona ana e tēnei kōpaki"
-
-msgid "This functionality is disabled in your environment for security reasons."
-msgstr "Kua whakakore tēnei āheinga i tō taiao mō ngā take haumaru."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -16247,6 +16270,10 @@ msgstr ""
 #, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
 msgstr "Kāore e taea te whai i tēnei hononga nā te mea he tūraru tōna wāhitau."
+
+#, python-format
+msgid "This link expires in %(duration)s (%(when)s UTC)."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -16735,9 +16762,8 @@ msgstr "Tapeke (%(aggregatorName)s)"
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
-"and 180° draws a half donut. When the sweep is 180° or less and the start"
-" angle is a multiple of 90°, the chart is automatically re-centered to "
-"make use of the empty space."
+"and 180° draws a half donut. Partial arcs are automatically re-centered "
+"and scaled to make use of the available space."
 msgstr ""
 
 #, fuzzy
@@ -17281,6 +17307,11 @@ msgstr "E hiahiatia ana te tukuake kōnae"
 msgid "Upper Threshold"
 msgstr "Paepae Runga"
 
+msgid ""
+"Upper bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
 msgid "Upper threshold must be greater than lower threshold"
 msgstr "Me rahi ake te paepae runga i te paepae raro"
 
@@ -17528,6 +17559,10 @@ msgstr "Kāore e taea e te uara te nui ake i %s"
 
 msgid "Value difference between the time periods"
 msgstr "Rerekētanga uara i waenga i ngā wā"
+
+#, python-format
+msgid "Value exceeds the maximum allowed size of %(max_size)d bytes."
+msgstr ""
 
 msgid "Value format"
 msgstr "Hōputu uara"
@@ -17997,6 +18032,12 @@ msgid ""
 msgstr ""
 "Ina tātaritia ngā tīwae wā tuarua, whakahaeretia te tātari ōrite ki te "
 "tīwae wā matua."
+
+msgid ""
+"When typing or pasting filter values, commas will separate values into "
+"multiple entries. To include a comma within a value, wrap it in double "
+"quotes: \"San Francisco, CA\""
+msgstr ""
 
 msgid ""
 "When unchecked, colors from the selected color scheme will be used for "
@@ -18759,6 +18800,14 @@ msgstr "Kāore tō kauwhata i te hou"
 msgid "Your chart is ready to go!"
 msgstr "Kei te reri tō kauwhata!"
 
+#, python-format
+msgid "Your dashboard export could not be completed: %(title)s"
+msgstr ""
+
+#, python-format
+msgid "Your dashboard export is ready: %(title)s"
+msgstr ""
+
 msgid "Your dashboard is near the size limit."
 msgstr "Kei tata tō papatohu ki te tepe rahi."
 
@@ -18768,6 +18817,17 @@ msgid ""
 "but the limit is %s. Reduce the dashboard size (for example, split it "
 "into multiple dashboards) or raise the "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
+msgstr ""
+
+msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" could not be completed."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" is ready."
 msgstr ""
 
 msgid "Your query could not be saved"

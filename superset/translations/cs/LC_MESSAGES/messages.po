@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-07-17 15:46-0700\n"
+"POT-Creation-Date: 2026-07-21 13:03-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -137,9 +137,6 @@ msgstr "pro podrobnosti."
 msgid " near '%(highlight)s'"
 msgstr " poblíž '%(highlight)s'"
 
-msgid " source code of Superset's sandboxed parser"
-msgstr " zdrojový kód parseru Supersetu v sandboxu"
-
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
@@ -242,6 +239,27 @@ msgstr "%(name)s.csv"
 #, python-format
 msgid "%(name)s.pdf"
 msgstr "%(name)s.pdf"
+
+#, python-format
+msgid "%(num)d hour"
+msgid_plural "%(num)d hours"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#, python-format
+msgid "%(num)d minute"
+msgid_plural "%(num)d minutes"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#, python-format
+msgid "%(num)d second"
+msgid_plural "%(num)d seconds"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, python-format
 msgid "%(object)s does not exist in this database."
@@ -847,12 +865,6 @@ msgstr ">= (Větší nebo rovno)"
 msgid "A Big Number"
 msgstr "Velké číslo"
 
-msgid "A JavaScript function that generates a label configuration object"
-msgstr "Funkce JavaScriptu, která generuje konfigurační objekt popisku"
-
-msgid "A JavaScript function that generates an icon configuration object"
-msgstr "Funkce JavaScriptu, která generuje konfigurační objekt ikony"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-brace-format
@@ -866,6 +878,9 @@ msgstr ""
 "přepisuje jiné možnosti ovládacích prvků s vyšší prioritou. (tj. { title:"
 " { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). Podrobnosti: "
 "https://echarts.apache.org/en/option.html. "
+
+msgid "A TTL is required for ephemeral state."
+msgstr ""
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -1248,6 +1263,12 @@ msgstr "Přidat barvu pro kladnou/zápornou změnu"
 #, fuzzy
 msgid "Add colors to cell bars for +/- for all columns"
 msgstr "Přidat barvy do sloupců v buňkách pro +/-"
+
+msgid ""
+"Add columns to filter by. When typing or pasting filter values, commas "
+"will separate values into multiple entries. To include a comma within a "
+"value, wrap it in double quotes: \"San Francisco, CA\""
+msgstr ""
 
 msgid "Add cross-filter"
 msgstr "Přidat křížový filtr"
@@ -1702,6 +1723,9 @@ msgstr ""
 "zdůrazňuje průměr, medián a vnitřní 2 kvartily. Vousy kolem každé krabice"
 " vizualizují minimum, maximum, rozsah a vnější 2 kvartily."
 
+msgid "Also overwrite all assets (charts, datasets and databases)"
+msgstr ""
+
 msgid "Altered"
 msgstr "Změněno"
 
@@ -1945,6 +1969,11 @@ msgstr "Při načítání uživatelských hodnot došlo k chybě: %s"
 msgid "An error occurred while formatting SQL"
 msgstr "Při formátování SQL došlo k chybě"
 
+msgid ""
+"An error occurred while generating the file. Please try again, or contact"
+" your administrator if the problem persists."
+msgstr ""
+
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "Při importu %s došlo k chybě: %s"
@@ -2033,6 +2062,9 @@ msgstr "Při vkládání nebo aktualizaci rozšíření došlo k chybě."
 
 msgid "An error occurred while upserting the value."
 msgstr "Při vkládání nebo aktualizaci hodnoty došlo k chybě."
+
+msgid "An export for this dashboard is already in progress."
+msgstr ""
 
 msgid "An unexpected error occurred"
 msgstr "Došlo k neočekávané chybě"
@@ -3662,6 +3694,12 @@ msgstr "Barva podle"
 msgid "Color Metric"
 msgstr "Metrika barvy"
 
+msgid "Color Range End"
+msgstr ""
+
+msgid "Color Range Start"
+msgstr ""
+
 msgid "Color Scheme"
 msgstr "Barevné schéma"
 
@@ -5110,26 +5148,6 @@ msgstr ""
 "Výchozí hodnota se nastaví automaticky, když je zaškrtnuto „Vybrat první "
 "hodnotu filtru jako výchozí“"
 
-msgid ""
-"Define a function that receives the input and outputs the content for a "
-"tooltip"
-msgstr "Definujte funkci, která přijímá vstup a vrací obsah pro nápovědu"
-
-msgid "Define a function that returns a URL to navigate to when user clicks"
-msgstr ""
-"Definujte funkci, která vrací URL, na kterou se má přejít, když uživatel "
-"klikne"
-
-msgid ""
-"Define a javascript function that receives the data array used in the "
-"visualization and is expected to return a modified version of that array."
-" This can be used to alter properties of the data, filter, or enrich the "
-"array."
-msgstr ""
-"Definujte javascriptovou funkci, která přijímá pole dat použité ve "
-"vizualizaci a očekává se, že vrátí upravenou verzi tohoto pole. To lze "
-"použít ke změně vlastností dat, filtrování nebo obohacení pole."
-
 msgid "Define color breakpoints for the data"
 msgstr "Definujte hranice barev pro data"
 
@@ -5746,6 +5764,9 @@ msgstr "Tečkovaný"
 msgid "Download"
 msgstr "Stáhnout"
 
+msgid "Download Excel file"
+msgstr ""
+
 msgid "Download as Image"
 msgstr "Stáhnout jako obrázek"
 
@@ -6262,15 +6283,9 @@ msgstr "Povolit prognózování"
 msgid "Enable graph roaming"
 msgstr "Povolit pohyb po grafu"
 
-msgid "Enable icon JavaScript mode"
-msgstr "Povolit JavaScriptový režim ikon"
-
 #, fuzzy
 msgid "Enable icons"
 msgstr "Sloupce tabulky"
-
-msgid "Enable label JavaScript mode"
-msgstr "Povolit JavaScriptový režim popisků"
 
 #, fuzzy
 msgid "Enable labels"
@@ -6291,12 +6306,6 @@ msgstr "Povolit rozbalení řádků ve schématech"
 
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "Povolit stránkování výsledků na straně serveru (experimentální funkce)"
-
-msgid "Enables custom icon configuration via JavaScript"
-msgstr "Povolí vlastní konfiguraci ikon prostřednictvím JavaScriptu"
-
-msgid "Enables custom label configuration via JavaScript"
-msgstr "Povolí vlastní konfiguraci popisků prostřednictvím JavaScriptu"
 
 msgid "Enables rendering of icons for GeoJSON points"
 msgstr "Povolí vykreslování ikon pro GeoJSON body"
@@ -6618,6 +6627,9 @@ msgstr "Export do Excelu"
 msgid "Excel XML Export"
 msgstr "XML Export do Excelu"
 
+msgid "Excel export is not configured on this server."
+msgstr ""
+
 msgid "Excel file format cannot be determined"
 msgstr "Formát souboru Excel nelze určit"
 
@@ -6706,6 +6718,12 @@ msgstr "Vymazat všechna data"
 #, fuzzy
 msgid "Export Current View"
 msgstr "Exportovat aktuální zobrazení"
+
+msgid "Export Data to Excel"
+msgstr ""
+
+msgid "Export Images to Excel"
+msgstr ""
 
 #, fuzzy
 msgid "Export YAML"
@@ -6810,6 +6828,12 @@ msgstr "SQL výraz"
 msgid "Expression cannot be empty"
 msgstr "Výraz nesmí být prázdný"
 
+#, python-format
+msgid ""
+"Extension '%(extension_id)s' has exceeded its persistent storage quota of"
+" %(quota)d bytes."
+msgstr ""
+
 #, fuzzy
 msgid "Extensions"
 msgstr "Rozšíření"
@@ -6831,9 +6855,6 @@ msgstr "Další ovládací prvky"
 
 msgid "Extra Parameters"
 msgstr "Další parametry"
-
-msgid "Extra data for JS"
-msgstr "Další data pro JS"
 
 #, python-brace-format
 msgid ""
@@ -7273,13 +7294,6 @@ msgstr ""
 
 msgid "For further instructions, consult the"
 msgstr "Pro další pokyny se obraťte na"
-
-msgid ""
-"For more information about objects are in context in the scope of this "
-"function, refer to the"
-msgstr ""
-"Pro více informací o objektech, které jsou v kontextu v rozsahu této "
-"funkce, se podívejte na"
 
 #, fuzzy
 msgid ""
@@ -7730,10 +7744,6 @@ msgstr "Kódy ISO 3166-2"
 msgid "ISO 8601"
 msgstr "ISO 8601"
 
-#, fuzzy
-msgid "Icon JavaScript config generator"
-msgstr "JavaScriptový generátor ikon"
-
 msgid "Icon URL"
 msgstr "URL ikony"
 
@@ -7783,6 +7793,9 @@ msgstr ""
 
 msgid "If table already exists"
 msgstr "Pokud tabulka již existuje"
+
+msgid "If you did not request this, you can ignore this email."
+msgstr ""
 
 msgid "If you don't save, changes will be lost."
 msgstr "Pokud neuložíte, změny budou ztraceny."
@@ -8257,15 +8270,6 @@ msgstr "ČER"
 msgid "January"
 msgstr "Leden"
 
-msgid "JavaScript data interceptor"
-msgstr "JavaScriptový zachytávač dat"
-
-msgid "JavaScript onClick href"
-msgstr "JavaScriptový onClick href"
-
-msgid "JavaScript tooltip generator"
-msgstr "JavaScriptový generátor nápovědy"
-
 msgid "Jinja templating"
 msgstr "Šablonování Jinja"
 
@@ -8308,10 +8312,6 @@ msgstr "Popisek"
 
 msgid "Label Contents"
 msgstr "Obsah popisku"
-
-#, fuzzy
-msgid "Label JavaScript config generator"
-msgstr "JavaScriptový generátor konfigurace popisku"
 
 msgid "Label Line"
 msgstr "Čára popisku"
@@ -8525,6 +8525,15 @@ msgstr "Typ legendy"
 msgid "Legend type"
 msgstr "Typ legendy"
 
+msgid "Length in cm (12345678cm => 123.46km)"
+msgstr ""
+
+msgid "Length in cm (12345cm => 123.45m)"
+msgstr ""
+
+msgid "Length in m (12345m => 12.35km)"
+msgstr ""
+
 #, fuzzy
 msgid "Less Than"
 msgstr "Menší než"
@@ -8667,9 +8676,6 @@ msgstr "Seznam jedinečných hodnot"
 msgid "List Users"
 msgstr "Seznam uživatelů"
 
-msgid "List of extra columns made available in JavaScript functions"
-msgstr "Seznam dodatečných sloupců dostupných ve funkcích JavaScriptu"
-
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "Seznam n+1 hodnot pro rozdělení metriky do n intervalů."
 
@@ -8793,6 +8799,11 @@ msgstr "Zeměpisná délka výchozího zobrazení"
 
 msgid "Lower Threshold"
 msgstr "Dolní práh"
+
+msgid ""
+"Lower bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Dolní práh musí být nižší než horní práh"
@@ -11375,6 +11386,13 @@ msgstr "V požadavku chybí datové pole."
 msgid "Request timed out"
 msgstr "Časový limit požadavku vypršel"
 
+#, python-format
+msgid ""
+"Requested page would return %(requested_size)d bytes, exceeding the "
+"maximum allowed list payload size of %(max_size)d bytes. Reduce page_size"
+" and try again."
+msgstr ""
+
 msgid "Required"
 msgstr "Povinné"
 
@@ -13584,6 +13602,12 @@ msgstr "Zastavit běh (Ctrl + x)"
 msgid "Stopped an unsafe database connection"
 msgstr "Zastaveno nebezpečné databázové připojení"
 
+#, python-format
+msgid ""
+"Storage key exceeds the maximum allowed length of %(max_length)d "
+"characters."
+msgstr ""
+
 msgid "Stream"
 msgstr "Proud"
 
@@ -13806,6 +13830,13 @@ msgstr "ČASOVÝ_ROZSAH"
 
 msgid "THU"
 msgstr "ČT"
+
+msgid "TTL must be a positive integer."
+msgstr ""
+
+#, python-format
+msgid "TTL must not exceed %(max_ttl)d seconds."
+msgstr ""
 
 msgid "TUE"
 msgstr "ÚT"
@@ -14104,6 +14135,9 @@ msgstr ""
 " příznacích funkcí, abyste mohli používat @task. Podrobnosti o "
 "konfiguraci naleznete na https://superset.apache.org/docs/configuration"
 "/async-queries-celery."
+
+msgid "The SQL query mutator removed all executable statements from this query."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
@@ -14404,6 +14438,19 @@ msgstr ""
 
 msgid "The feature property to use for point labels"
 msgstr "Vlastní vlastnost pro popisky bodů"
+
+msgid "The following charts could not be exported:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because an error occurred while "
+"exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because they have no saved query "
+"context. To include them, open each chart in Explore and re-save."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -15564,6 +15611,10 @@ msgid ""
 "one."
 msgstr "Tento e-mail je již spojen s účtem."
 
+#, python-format
+msgid "This export was requested on %(when)s UTC."
+msgstr ""
+
 msgid "This feature is experimental and may change or have limitations"
 msgstr "Tato funkce je experimentální a může se změnit nebo mít omezení."
 
@@ -15599,9 +15650,6 @@ msgstr "Tento složka pouze přijímá sloupce."
 #, fuzzy
 msgid "This folder only supports metrics"
 msgstr "Tento složka pouze přijímá metriky."
-
-msgid "This functionality is disabled in your environment for security reasons."
-msgstr "Tato funkcionalita je ve vašem prostředí z bezpečnostních důvodů zakázána."
 
 msgid ""
 "This is a default columns folder. Its name cannot be changed or removed. "
@@ -15669,6 +15717,10 @@ msgstr ""
 #, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
 msgstr "Tento odkaz nelze sledovat, protože jeho adresa je nebezpečná."
+
+#, python-format
+msgid "This link expires in %(duration)s (%(when)s UTC)."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -16139,9 +16191,8 @@ msgstr "Celkem (%(aggregatorName)s)"
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
-"and 180° draws a half donut. When the sweep is 180° or less and the start"
-" angle is a multiple of 90°, the chart is automatically re-centered to "
-"make use of the empty space."
+"and 180° draws a half donut. Partial arcs are automatically re-centered "
+"and scaled to make use of the available space."
 msgstr ""
 
 #, fuzzy
@@ -16663,6 +16714,11 @@ msgstr "Nahrání souboru je povinné"
 msgid "Upper Threshold"
 msgstr "Horní práh"
 
+msgid ""
+"Upper bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
 msgid "Upper threshold must be greater than lower threshold"
 msgstr "Horní práh musí být větší než dolní práh"
 
@@ -16892,6 +16948,10 @@ msgstr "Hodnota nemůže překročit %s"
 
 msgid "Value difference between the time periods"
 msgstr "Rozdíl hodnot mezi časovými obdobími"
+
+#, python-format
+msgid "Value exceeds the maximum allowed size of %(max_size)d bytes."
+msgstr ""
 
 msgid "Value format"
 msgstr "Formát hodnoty"
@@ -17353,6 +17413,12 @@ msgid ""
 msgstr ""
 "Když jsou filtrovány sekundární časové sloupce, aplikujte stejný filtr na"
 " hlavní sloupec data a času."
+
+msgid ""
+"When typing or pasting filter values, commas will separate values into "
+"multiple entries. To include a comma within a value, wrap it in double "
+"quotes: \"San Francisco, CA\""
+msgstr ""
 
 msgid ""
 "When unchecked, colors from the selected color scheme will be used for "
@@ -18087,6 +18153,14 @@ msgstr "Váš graf není aktuální"
 msgid "Your chart is ready to go!"
 msgstr "Váš graf je připraven!"
 
+#, python-format
+msgid "Your dashboard export could not be completed: %(title)s"
+msgstr ""
+
+#, python-format
+msgid "Your dashboard export is ready: %(title)s"
+msgstr ""
+
 msgid "Your dashboard is near the size limit."
 msgstr "Vaše nástěnka se blíží limitu velikosti."
 
@@ -18096,6 +18170,17 @@ msgid ""
 "but the limit is %s. Reduce the dashboard size (for example, split it "
 "into multiple dashboards) or raise the "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
+msgstr ""
+
+msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" could not be completed."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" is ready."
 msgstr ""
 
 msgid "Your query could not be saved"

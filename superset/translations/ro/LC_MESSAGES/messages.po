@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-07-17 15:46-0700\n"
+"POT-Creation-Date: 2026-07-21 13:03-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -144,9 +144,6 @@ msgstr " pentru detalii."
 msgid " near '%(highlight)s'"
 msgstr " lângă '%(highlight)s'"
 
-msgid " source code of Superset's sandboxed parser"
-msgstr " codul sursă pentru parserul în mediu izolat al Superset"
-
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
@@ -253,6 +250,27 @@ msgstr "%(name)s.csv"
 #, python-format
 msgid "%(name)s.pdf"
 msgstr "%(name)s.pdf"
+
+#, python-format
+msgid "%(num)d hour"
+msgid_plural "%(num)d hours"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#, python-format
+msgid "%(num)d minute"
+msgid_plural "%(num)d minutes"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#, python-format
+msgid "%(num)d second"
+msgid_plural "%(num)d seconds"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, python-format
 msgid "%(object)s does not exist in this database."
@@ -896,18 +914,6 @@ msgstr ">= (Mai mare sau egal)"
 msgid "A Big Number"
 msgstr "Un Număr Mare"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "A JavaScript function that generates a label configuration object"
-msgstr "O funcție JavaScript care generează un obiect de configurare a etichetei"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "A JavaScript function that generates an icon configuration object"
-msgstr "O funcție JavaScript care generează un obiect de configurare a pictogramei"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
 #, fuzzy, python-brace-format
@@ -921,6 +927,9 @@ msgstr ""
 "suprascriind alte opțiuni de control cu prioritate mai mare. (de ex. { "
 "title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). "
 "Detalii: https://echarts.apache.org/en/option.html. "
+
+msgid "A TTL is required for ephemeral state."
+msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "O listă separată prin virgulă de coloane care ar trebui analizate ca date"
@@ -1337,6 +1346,12 @@ msgstr "Adaugă culoare pentru schimbare pozitivă/negativă"
 #, fuzzy
 msgid "Add colors to cell bars for +/- for all columns"
 msgstr "Adaugă culori barelor de celule pentru +/- pentru toate coloanele"
+
+msgid ""
+"Add columns to filter by. When typing or pasting filter values, commas "
+"will separate values into multiple entries. To include a comma within a "
+"value, wrap it in double quotes: \"San Francisco, CA\""
+msgstr ""
 
 msgid "Add cross-filter"
 msgstr "Adaugă filtrare încrucișată"
@@ -1811,6 +1826,9 @@ msgstr ""
 "cuartile interioare. Mustățile fiecărei casete vizualizează valorile "
 "minimă și maximă, intervalul și cele două cuartile exterioare."
 
+msgid "Also overwrite all assets (charts, datasets and databases)"
+msgstr ""
+
 msgid "Altered"
 msgstr "Modificat"
 
@@ -2084,6 +2102,11 @@ msgstr "A apărut o eroare la preluarea valorilor utilizatorului: %s"
 msgid "An error occurred while formatting SQL"
 msgstr "A apărut o eroare la formatarea SQL"
 
+msgid ""
+"An error occurred while generating the file. Please try again, or contact"
+" your administrator if the problem persists."
+msgstr ""
+
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "A apărut o eroare la importarea %s: %s"
@@ -2176,6 +2199,9 @@ msgstr "A apărut o eroare la upsertarea extensiei."
 
 msgid "An error occurred while upserting the value."
 msgstr "A apărut o eroare la upsertarea valorii."
+
+msgid "An export for this dashboard is already in progress."
+msgstr ""
 
 msgid "An unexpected error occurred"
 msgstr "A apărut o eroare neașteptată"
@@ -3874,6 +3900,12 @@ msgstr "Colorați după axa Y"
 msgid "Color Metric"
 msgstr "Indicator culoare"
 
+msgid "Color Range End"
+msgstr ""
+
+msgid "Color Range Start"
+msgstr ""
+
 msgid "Color Scheme"
 msgstr "Schemă Culori"
 
@@ -5399,29 +5431,6 @@ msgstr ""
 "Valoarea implicită setată automat când \"Selectează prima valoare de "
 "filtru în mod implicit\" este bifată"
 
-msgid ""
-"Define a function that receives the input and outputs the content for a "
-"tooltip"
-msgstr ""
-"Definește o funcție care primește input-ul și afișează conținutul pentru "
-"un tooltip"
-
-msgid "Define a function that returns a URL to navigate to when user clicks"
-msgstr ""
-"Definește o funcție care returnează un URL pentru navigare când "
-"utilizatorul face clic"
-
-msgid ""
-"Define a javascript function that receives the data array used in the "
-"visualization and is expected to return a modified version of that array."
-" This can be used to alter properties of the data, filter, or enrich the "
-"array."
-msgstr ""
-"Definește o funcție javascript care primește matricea de date folosită în"
-" vizualizare și este așteptat să returneze o versiune modificată a acelei"
-" matrice. Acest lucru poate fi folosit pentru a modifica proprietățile "
-"datelor, a filtra sau a îmbogăți matricea."
-
 msgid "Define color breakpoints for the data"
 msgstr "Definește puncte de întrerupere de culoare pentru date"
 
@@ -6067,6 +6076,9 @@ msgstr "Punctat"
 msgid "Download"
 msgstr "Descarcă"
 
+msgid "Download Excel file"
+msgstr ""
+
 msgid "Download as Image"
 msgstr "Descarcă ca Imagine"
 
@@ -6604,23 +6616,11 @@ msgstr "Activează prognozarea"
 msgid "Enable graph roaming"
 msgstr "Activează roaming grafic"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Enable icon JavaScript mode"
-msgstr "Activează modul JavaScript pentru pictograme"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # lv, ru, sr, sr_Latn, uk]
 #, fuzzy
 msgid "Enable icons"
 msgstr "Activează pictogramele"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, it,
-# ja, lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Enable label JavaScript mode"
-msgstr "Activează modul JavaScript pentru etichete"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # lv, ru, sr, sr_Latn, uk]
@@ -6645,18 +6645,6 @@ msgstr "Activează extinderea rândurilor în scheme"
 
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "Activează paginarea pe server a rezultatelor (funcție experimentală)"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Enables custom icon configuration via JavaScript"
-msgstr "Activează configurarea personalizată a pictogramelor prin JavaScript"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Enables custom label configuration via JavaScript"
-msgstr "Activează configurarea personalizată a etichetelor prin JavaScript"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
@@ -6987,6 +6975,9 @@ msgstr "Export Excel"
 msgid "Excel XML Export"
 msgstr "Export Excel XML"
 
+msgid "Excel export is not configured on this server."
+msgstr ""
+
 msgid "Excel file format cannot be determined"
 msgstr "Formatul fișierului Excel nu poate fi determinat"
 
@@ -7079,6 +7070,12 @@ msgstr "Exportă Toate Datele"
 
 msgid "Export Current View"
 msgstr "Exportă Vederea Curentă"
+
+msgid "Export Data to Excel"
+msgstr ""
+
+msgid "Export Images to Excel"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # lv, ru, sr, sr_Latn, uk]
@@ -7186,6 +7183,12 @@ msgstr "Expresie"
 msgid "Expression cannot be empty"
 msgstr "Expresia nu poate fi goală"
 
+#, python-format
+msgid ""
+"Extension '%(extension_id)s' has exceeded its persistent storage quota of"
+" %(quota)d bytes."
+msgstr ""
+
 msgid "Extensions"
 msgstr "Extensii"
 
@@ -7206,9 +7209,6 @@ msgstr "Controale Suplimentare"
 
 msgid "Extra Parameters"
 msgstr "Parametri Suplimentari"
-
-msgid "Extra data for JS"
-msgstr "Date suplimentare pentru JS"
 
 #, python-brace-format
 msgid ""
@@ -7681,13 +7681,6 @@ msgstr ""
 
 msgid "For further instructions, consult the"
 msgstr "Pentru instrucțiuni suplimentare, consultă"
-
-msgid ""
-"For more information about objects are in context in the scope of this "
-"function, refer to the"
-msgstr ""
-"Pentru mai multe informații despre obiectele care sunt în context în "
-"domeniul acestei funcții, consultă"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, tr]
 #, fuzzy
@@ -8169,12 +8162,6 @@ msgstr "Coduri ISO 3166-2"
 msgid "ISO 8601"
 msgstr "ISO 8601"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
-# ru, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Icon JavaScript config generator"
-msgstr "Generator de configurație JavaScript pentru pictogramă"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # it, ja, lv, ru, sk, sr, sr_Latn, uk]
 #, fuzzy
@@ -8236,6 +8223,9 @@ msgstr ""
 
 msgid "If table already exists"
 msgstr "Dacă tabelul există deja"
+
+msgid "If you did not request this, you can ignore this email."
+msgstr ""
 
 msgid "If you don't save, changes will be lost."
 msgstr "Dacă nu salvezi, modificările vor fi pierdute."
@@ -8736,15 +8726,6 @@ msgstr "IUN"
 msgid "January"
 msgstr "Ianuarie"
 
-msgid "JavaScript data interceptor"
-msgstr "Interceptor date JavaScript"
-
-msgid "JavaScript onClick href"
-msgstr "href onClick JavaScript"
-
-msgid "JavaScript tooltip generator"
-msgstr "Generator tooltip JavaScript"
-
 msgid "Jinja templating"
 msgstr "Șabloane Jinja"
 
@@ -8789,12 +8770,6 @@ msgstr "Etichetă"
 
 msgid "Label Contents"
 msgstr "Conținut Etichetă"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
-# ru, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Label JavaScript config generator"
-msgstr "Generator de configurație JavaScript pentru etichetă"
 
 msgid "Label Line"
 msgstr "Linie Etichetă"
@@ -9023,6 +8998,15 @@ msgstr "Tip Legendă"
 msgid "Legend type"
 msgstr "Tip legendă"
 
+msgid "Length in cm (12345678cm => 123.46km)"
+msgstr ""
+
+msgid "Length in cm (12345cm => 123.45m)"
+msgstr ""
+
+msgid "Length in m (12345m => 12.35km)"
+msgstr ""
+
 msgid "Less Than"
 msgstr "Mai Mic Decât"
 
@@ -9165,9 +9149,6 @@ msgstr "Listează Valori Unice"
 msgid "List Users"
 msgstr "Listează Utilizatori"
 
-msgid "List of extra columns made available in JavaScript functions"
-msgstr "Listă de coloane suplimentare făcute disponibile în funcții JavaScript"
-
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "Listă de n+1 valori pentru gruparea indicatorului în n intervale."
 
@@ -9297,6 +9278,11 @@ msgstr "Longitudinea viewport-ului implicit"
 
 msgid "Lower Threshold"
 msgstr "Prag Inferior"
+
+msgid ""
+"Lower bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Pragul inferior trebuie să fie mai mic decât pragul superior"
@@ -11965,6 +11951,13 @@ msgstr "Cererea lipsește câmpul de date."
 msgid "Request timed out"
 msgstr "Cererea a expirat"
 
+#, python-format
+msgid ""
+"Requested page would return %(requested_size)d bytes, exceeding the "
+"maximum allowed list payload size of %(max_size)d bytes. Reduce page_size"
+" and try again."
+msgstr ""
+
 msgid "Required"
 msgstr "Obligatoriu"
 
@@ -14283,6 +14276,12 @@ msgstr "Oprește rularea (Ctrl + x)"
 msgid "Stopped an unsafe database connection"
 msgstr "Oprește o conexiune la bază de date nesigură"
 
+#, python-format
+msgid ""
+"Storage key exceeds the maximum allowed length of %(max_length)d "
+"characters."
+msgstr ""
+
 msgid "Stream"
 msgstr "Flux"
 
@@ -14526,6 +14525,13 @@ msgstr "INTERVAL_TEMPORAL"
 
 msgid "THU"
 msgstr "JOI"
+
+msgid "TTL must be a positive integer."
+msgstr ""
+
+#, python-format
+msgid "TTL must not exceed %(max_ttl)d seconds."
+msgstr ""
 
 msgid "TUE"
 msgstr "MAR"
@@ -14848,6 +14854,9 @@ msgstr ""
 "în flag-urile de funcționalitate pentru a utiliza @task. Consultați "
 "https://superset.apache.org/docs/configuration/async-queries-celery "
 "pentru detalii de configurare."
+
+msgid "The SQL query mutator removed all executable statements from this query."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
@@ -15172,6 +15181,19 @@ msgstr ""
 #, fuzzy
 msgid "The feature property to use for point labels"
 msgstr "Proprietatea entității de utilizat pentru etichetele punctelor"
+
+msgid "The following charts could not be exported:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because an error occurred while "
+"exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because they have no saved query "
+"context. To include them, open each chart in Explore and re-save."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16391,6 +16413,10 @@ msgid ""
 "one."
 msgstr "Acest email este deja asociat cu un cont. Vă rugăm să alegeți altul."
 
+#, python-format
+msgid "This export was requested on %(when)s UTC."
+msgstr ""
+
 msgid "This feature is experimental and may change or have limitations"
 msgstr ""
 "Această funcționalitate este experimentală și poate schimba sau avea "
@@ -16437,11 +16463,6 @@ msgstr "Acest dosar acceptă doar coloane"
 #, fuzzy
 msgid "This folder only supports metrics"
 msgstr "Acest dosar acceptă doar metrici"
-
-msgid "This functionality is disabled in your environment for security reasons."
-msgstr ""
-"Această funcționalitate este dezactivată în mediul dvs. din motive de "
-"securitate."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -16523,6 +16544,10 @@ msgstr ""
 #, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
 msgstr "Acest link nu poate fi accesat deoarece adresa sa este nesigură."
+
+#, python-format
+msgid "This link expires in %(duration)s (%(when)s UTC)."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
@@ -17014,9 +17039,8 @@ msgstr "Total (%(aggregatorName)s)"
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
-"and 180° draws a half donut. When the sweep is 180° or less and the start"
-" angle is a multiple of 90°, the chart is automatically re-centered to "
-"make use of the empty space."
+"and 180° draws a half donut. Partial arcs are automatically re-centered "
+"and scaled to make use of the available space."
 msgstr ""
 
 msgid "Total color"
@@ -17564,6 +17588,11 @@ msgstr "Încărcarea unui fișier este obligatorie"
 msgid "Upper Threshold"
 msgstr "Prag superior"
 
+msgid ""
+"Upper bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
 msgid "Upper threshold must be greater than lower threshold"
 msgstr "Pragul superior trebuie să fie mai mare decât pragul inferior"
 
@@ -17801,6 +17830,10 @@ msgstr "Valoarea nu poate depăși %s"
 
 msgid "Value difference between the time periods"
 msgstr "Diferență valoare între perioadele de timp"
+
+#, python-format
+msgid "Value exceeds the maximum allowed size of %(max_size)d bytes."
+msgstr ""
 
 msgid "Value format"
 msgstr "Format valoare"
@@ -18278,6 +18311,12 @@ msgid ""
 msgstr ""
 "Când coloanele temporale secundare sunt filtrate, aplicați același filtru"
 " la coloana datetime principală."
+
+msgid ""
+"When typing or pasting filter values, commas will separate values into "
+"multiple entries. To include a comma within a value, wrap it in double "
+"quotes: \"San Francisco, CA\""
+msgstr ""
 
 msgid ""
 "When unchecked, colors from the selected color scheme will be used for "
@@ -19056,6 +19095,14 @@ msgstr "Graficul dvs. nu este la zi"
 msgid "Your chart is ready to go!"
 msgstr "Graficul dvs. este gata!"
 
+#, python-format
+msgid "Your dashboard export could not be completed: %(title)s"
+msgstr ""
+
+#, python-format
+msgid "Your dashboard export is ready: %(title)s"
+msgstr ""
+
 msgid "Your dashboard is near the size limit."
 msgstr "Panoul de control este aproape de limita de dimensiune."
 
@@ -19065,6 +19112,17 @@ msgid ""
 "but the limit is %s. Reduce the dashboard size (for example, split it "
 "into multiple dashboards) or raise the "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
+msgstr ""
+
+msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" could not be completed."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" is ready."
 msgstr ""
 
 msgid "Your query could not be saved"

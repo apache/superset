@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-07-17 15:46-0700\n"
+"POT-Creation-Date: 2026-07-21 13:03-0700\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -154,9 +154,6 @@ msgstr "Details"
 msgid " near '%(highlight)s'"
 msgstr " bij '%(highlight)s'"
 
-msgid " source code of Superset's sandboxed parser"
-msgstr " broncode van Superset's sandboxed parser"
-
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
@@ -268,6 +265,24 @@ msgstr "%(name)s.csv"
 #, fuzzy, python-format
 msgid "%(name)s.pdf"
 msgstr "%(name)s.csv"
+
+#, python-format
+msgid "%(num)d hour"
+msgid_plural "%(num)d hours"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)d minute"
+msgid_plural "%(num)d minutes"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)d second"
+msgid_plural "%(num)d seconds"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "%(object)s does not exist in this database."
@@ -866,18 +881,6 @@ msgstr ">= (Groter of gelijk)"
 msgid "A Big Number"
 msgstr "Een groot getal"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "A JavaScript function that generates a label configuration object"
-msgstr "Een JavaScript-functie die een labelconfiguratieobject genereert"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "A JavaScript function that generates an icon configuration object"
-msgstr "Een JavaScript-functie die een pictogramconfiguratieobject genereert"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-brace-format
@@ -891,6 +894,9 @@ msgstr ""
 "andere besturingsopties overschrijft met hogere prioriteit. (bijv. { "
 "title: { text: \"Mijn grafiek\" }, tooltip: { trigger: \"item\" } }). "
 "Details: https://echarts.apache.org/en/option.html. "
+
+msgid "A TTL is required for ephemeral state."
+msgstr ""
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -1296,6 +1302,12 @@ msgstr "Kleur toevoegen voor positieve/negatieve wijziging"
 #, fuzzy
 msgid "Add colors to cell bars for +/- for all columns"
 msgstr "Voeg kleuren toe aan celbalken voor +/- voor alle kolommen"
+
+msgid ""
+"Add columns to filter by. When typing or pasting filter values, commas "
+"will separate values into multiple entries. To include a comma within a "
+"value, wrap it in double quotes: \"San Francisco, CA\""
+msgstr ""
 
 msgid "Add cross-filter"
 msgstr "Cross-filter toevoegen"
@@ -1777,6 +1789,9 @@ msgstr ""
 "binnenste kwartieren. De whiskers rond elke box visualiseer de min, max, "
 "bereik en de buitenste 2 quartiles."
 
+msgid "Also overwrite all assets (charts, datasets and databases)"
+msgstr ""
+
 msgid "Altered"
 msgstr "Gewijzigd"
 
@@ -2054,6 +2069,11 @@ msgstr "Er is een fout opgetreden bij het ophalen van gebruikers waarden: %s"
 msgid "An error occurred while formatting SQL"
 msgstr "Er is een fout opgetreden bij het laden van de SQL"
 
+msgid ""
+"An error occurred while generating the file. Please try again, or contact"
+" your administrator if the problem persists."
+msgstr ""
+
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "Er is een fout opgetreden tijdens het importeren van %s: %s"
@@ -2143,6 +2163,9 @@ msgstr "Er is een fout opgetreden tijdens het upserten van de waarde."
 
 msgid "An error occurred while upserting the value."
 msgstr "Er is een fout opgetreden tijdens het upserten van de waarde."
+
+msgid "An export for this dashboard is already in progress."
+msgstr ""
 
 msgid "An unexpected error occurred"
 msgstr "Een onverwachte fout is opgetreden"
@@ -3925,6 +3948,12 @@ msgstr "Kleur op"
 msgid "Color Metric"
 msgstr "Kleur Metriek"
 
+msgid "Color Range End"
+msgstr ""
+
+msgid "Color Range Start"
+msgstr ""
+
 msgid "Color Scheme"
 msgstr "Kleurenschema"
 
@@ -5491,29 +5520,6 @@ msgstr ""
 "Standaardwaarde wordt automatisch ingesteld wanneer \"Selecteer eerste "
 "standaard filter\" is aangevinkt"
 
-msgid ""
-"Define a function that receives the input and outputs the content for a "
-"tooltip"
-msgstr ""
-"Definieer een functie die de invoer ontvangt en de inhoud van een tooltip"
-" uitvoert"
-
-msgid "Define a function that returns a URL to navigate to when user clicks"
-msgstr ""
-"Definieer een functie die een URL geeft om naar te navigeren wanneer de "
-"gebruiker klikt"
-
-msgid ""
-"Define a javascript function that receives the data array used in the "
-"visualization and is expected to return a modified version of that array."
-" This can be used to alter properties of the data, filter, or enrich the "
-"array."
-msgstr ""
-"Definieer een javascript functie die de in de visualisatie gebruikte data"
-" array ontvangt en verwacht een aangepaste versie van die array te "
-"retourneren. Dit kan worden gebruikt om de eigenschappen van de gegevens,"
-" het filteren of de array te verrijken."
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -6157,6 +6163,9 @@ msgstr "Gestippeld"
 msgid "Download"
 msgstr "Download"
 
+msgid "Download Excel file"
+msgstr ""
+
 msgid "Download as Image"
 msgstr "Download als Afbeelding"
 
@@ -6701,21 +6710,9 @@ msgstr "Voorspelling inschakelen"
 msgid "Enable graph roaming"
 msgstr "Schakel grafiekroaming in"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Enable icon JavaScript mode"
-msgstr "JavaScript-modus voor pictogrammen inschakelen"
-
 #, fuzzy
 msgid "Enable icons"
 msgstr "Tabel kolommen"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Enable label JavaScript mode"
-msgstr "JavaScript-modus voor labels inschakelen"
 
 #, fuzzy
 msgid "Enable labels"
@@ -6738,18 +6735,6 @@ msgstr "Rij-expansie in schema's inschakelen"
 
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "Schakel server side paginering van resultaten in (experimentele functie)"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Enables custom icon configuration via JavaScript"
-msgstr "Maakt aangepaste pictogramconfiguratie via JavaScript mogelijk"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Enables custom label configuration via JavaScript"
-msgstr "Maakt aangepaste labelconfiguratie via JavaScript mogelijk"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
@@ -7107,6 +7092,9 @@ msgstr "Wekelijks Rapport"
 msgid "Excel XML Export"
 msgstr "Wekelijks Rapport"
 
+msgid "Excel export is not configured on this server."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -7199,6 +7187,12 @@ msgstr "Wis alle gegevens"
 #, fuzzy
 msgid "Export Current View"
 msgstr "Huidige pagina omkeren"
+
+msgid "Export Data to Excel"
+msgstr ""
+
+msgid "Export Images to Excel"
+msgstr ""
 
 #, fuzzy
 msgid "Export YAML"
@@ -7309,6 +7303,12 @@ msgstr "SQL expressie"
 msgid "Expression cannot be empty"
 msgstr "mag niet leeg zijn"
 
+#, python-format
+msgid ""
+"Extension '%(extension_id)s' has exceeded its persistent storage quota of"
+" %(quota)d bytes."
+msgstr ""
+
 #, fuzzy
 msgid "Extensions"
 msgstr "Dimensies"
@@ -7331,9 +7331,6 @@ msgstr "Extra bediening"
 
 msgid "Extra Parameters"
 msgstr "Extra Parameters"
-
-msgid "Extra data for JS"
-msgstr "Extra data voor JS"
 
 #, python-brace-format
 msgid ""
@@ -7823,13 +7820,6 @@ msgstr ""
 
 msgid "For further instructions, consult the"
 msgstr "Voor verdere instructies, raadpleeg de"
-
-msgid ""
-"For more information about objects are in context in the scope of this "
-"function, refer to the"
-msgstr ""
-"Voor meer informatie over objecten in de context van deze functie, "
-"verwijzen we naar de"
 
 #, fuzzy
 msgid ""
@@ -8338,10 +8328,6 @@ msgid "ISO 8601"
 msgstr "ISO 8601"
 
 #, fuzzy
-msgid "Icon JavaScript config generator"
-msgstr "JavaScript tooltip generator"
-
-#, fuzzy
 msgid "Icon URL"
 msgstr "Controle"
 
@@ -8399,6 +8385,9 @@ msgstr ""
 #, fuzzy
 msgid "If table already exists"
 msgstr "Label bestaat al"
+
+msgid "If you did not request this, you can ignore this email."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -8908,15 +8897,6 @@ msgstr "JUN"
 msgid "January"
 msgstr "Januari"
 
-msgid "JavaScript data interceptor"
-msgstr "JavaScript gegevens onderschepper"
-
-msgid "JavaScript onClick href"
-msgstr "JavaScript onClick href"
-
-msgid "JavaScript tooltip generator"
-msgstr "JavaScript tooltip generator"
-
 msgid "Jinja templating"
 msgstr "Jinja templating"
 
@@ -8961,10 +8941,6 @@ msgstr "Label"
 
 msgid "Label Contents"
 msgstr "Label Inhoud"
-
-#, fuzzy
-msgid "Label JavaScript config generator"
-msgstr "JavaScript tooltip generator"
 
 msgid "Label Line"
 msgstr "Label Regel"
@@ -9198,6 +9174,15 @@ msgstr "Legenda type"
 msgid "Legend type"
 msgstr "Legenda type"
 
+msgid "Length in cm (12345678cm => 123.46km)"
+msgstr ""
+
+msgid "Length in cm (12345cm => 123.45m)"
+msgstr ""
+
+msgid "Length in m (12345m => 12.35km)"
+msgstr ""
+
 #, fuzzy
 msgid "Less Than"
 msgstr "Minder dan (<)"
@@ -9349,9 +9334,6 @@ msgstr "Lijst Unieke Waarden"
 msgid "List Users"
 msgstr "Splits nummer"
 
-msgid "List of extra columns made available in JavaScript functions"
-msgstr "Lijst met extra kolommen beschikbaar gemaakt in JavaScript functies"
-
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "Lijst van n+1 waarden voor het indelen van metriek in n groepen."
 
@@ -9484,6 +9466,11 @@ msgstr "Lengtegraad van standaard viewport"
 
 msgid "Lower Threshold"
 msgstr "Ondergrens"
+
+msgid ""
+"Lower bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Ondergrens moet lager zijn dan bovengrens"
@@ -12241,6 +12228,13 @@ msgstr "Verzoek om ontbrekend data veld."
 msgid "Request timed out"
 msgstr "Verzoek is verlopen"
 
+#, python-format
+msgid ""
+"Requested page would return %(requested_size)d bytes, exceeding the "
+"maximum allowed list payload size of %(max_size)d bytes. Reduce page_size"
+" and try again."
+msgstr ""
+
 msgid "Required"
 msgstr "Vereist"
 
@@ -14583,6 +14577,12 @@ msgstr "Stop de uitvoering (Ctrl + x)"
 msgid "Stopped an unsafe database connection"
 msgstr "Stopte een onveilige database connectie"
 
+#, python-format
+msgid ""
+"Storage key exceeds the maximum allowed length of %(max_length)d "
+"characters."
+msgstr ""
+
 msgid "Stream"
 msgstr "Stroom"
 
@@ -14829,6 +14829,13 @@ msgstr "TIJDELIJK_BEREIK"
 
 msgid "THU"
 msgstr "DO"
+
+msgid "TTL must be a positive integer."
+msgstr ""
+
+#, python-format
+msgid "TTL must not exceed %(max_ttl)d seconds."
+msgstr ""
 
 msgid "TUE"
 msgstr "DI"
@@ -15142,6 +15149,9 @@ msgstr ""
 "GLOBAL_TASK_FRAMEWORK=True in bij uw functievlaggen om @task te "
 "gebruiken. Zie https://superset.apache.org/docs/configuration/async-"
 "queries-celery voor configuratiedetails."
+
+msgid "The SQL query mutator removed all executable statements from this query."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
@@ -15499,6 +15509,19 @@ msgstr ""
 #, fuzzy
 msgid "The feature property to use for point labels"
 msgstr "De objecteigenschap die voor puntlabels moet worden gebruikt"
+
+msgid "The following charts could not be exported:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because an error occurred while "
+"exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because they have no saved query "
+"context. To include them, open each chart in Explore and re-save."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16771,6 +16794,10 @@ msgstr ""
 "Dit e-mailadres is al gekoppeld aan een account. Kies een ander "
 "e-mailadres."
 
+#, python-format
+msgid "This export was requested on %(when)s UTC."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -16817,11 +16844,6 @@ msgstr "Deze map ondersteunt alleen kolommen"
 #, fuzzy
 msgid "This folder only supports metrics"
 msgstr "Deze map ondersteunt alleen metrische waarden"
-
-msgid "This functionality is disabled in your environment for security reasons."
-msgstr ""
-"Deze functionaliteit is uitgeschakeld in uw omgeving om "
-"veiligheidsredenen."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -16905,6 +16927,10 @@ msgstr ""
 #, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
 msgstr "Deze link kan niet worden gevolgd omdat het adres onveilig is."
+
+#, python-format
+msgid "This link expires in %(duration)s (%(when)s UTC)."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -17416,9 +17442,8 @@ msgstr "Totaal (%(aggregatorName)s)"
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
-"and 180° draws a half donut. When the sweep is 180° or less and the start"
-" angle is a multiple of 90°, the chart is automatically re-centered to "
-"make use of the empty space."
+"and 180° draws a half donut. Partial arcs are automatically re-centered "
+"and scaled to make use of the available space."
 msgstr ""
 
 #, fuzzy
@@ -17989,6 +18014,11 @@ msgstr "Naam is vereist"
 msgid "Upper Threshold"
 msgstr "Bovengrens"
 
+msgid ""
+"Upper bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
 msgid "Upper threshold must be greater than lower threshold"
 msgstr "Bovengrens moet groter zijn dan de ondergrens"
 
@@ -18233,6 +18263,10 @@ msgstr "Waarde kan niet hoger zijn dan %s"
 #, fuzzy
 msgid "Value difference between the time periods"
 msgstr "Waardeverschil tussen de tijdperioden"
+
+#, python-format
+msgid "Value exceeds the maximum allowed size of %(max_size)d bytes."
+msgstr ""
 
 msgid "Value format"
 msgstr "Waarde opmaak"
@@ -18710,6 +18744,12 @@ msgid ""
 msgstr ""
 "Wanneer de secundaire tijdelijke kolommen worden gefilterd, pas hetzelfde"
 " filter toe op de belangrijkste datumtijd kolom."
+
+msgid ""
+"When typing or pasting filter values, commas will separate values into "
+"multiple entries. To include a comma within a value, wrap it in double "
+"quotes: \"San Francisco, CA\""
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, es,
 # fa, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -19504,6 +19544,14 @@ msgstr "Je grafiek is niet up to date"
 msgid "Your chart is ready to go!"
 msgstr "Je grafiek is klaar om te beginnen!"
 
+#, python-format
+msgid "Your dashboard export could not be completed: %(title)s"
+msgstr ""
+
+#, python-format
+msgid "Your dashboard export is ready: %(title)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -19516,6 +19564,17 @@ msgid ""
 "but the limit is %s. Reduce the dashboard size (for example, split it "
 "into multiple dashboards) or raise the "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
+msgstr ""
+
+msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" could not be completed."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" is ready."
 msgstr ""
 
 msgid "Your query could not be saved"
