@@ -93,3 +93,18 @@ test('preserves sub-second timestamps as distinct keys', () => {
     '2024-01-01 00:00:00.123000',
   ]);
 });
+
+test('escapes backslashes so escaped commas cannot collide with literal ones', () => {
+  // Under comma-only escaping, group tuples ("a\\", "b") and ("a,", "b")
+  // both flattened to "a\\, b"; escaping backslashes first keeps them apart.
+  const { columns } = transformData(
+    [
+      { __timestamp: 0, g1: 'a\\', g2: 'b', sum__num: 1 },
+      { __timestamp: 0, g1: 'a,', g2: 'b', sum__num: 2 },
+    ],
+    ['g1', 'g2'],
+    ['sum__num'],
+  );
+  expect(columns).toHaveLength(2);
+  expect(new Set(columns).size).toBe(2);
+});
