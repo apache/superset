@@ -154,7 +154,6 @@ testWithAssets(
           groupby: [],
           row_limit: 100,
           color_scheme: 'supersetColors',
-          markerEnabled: true,
           show_legend: false,
         },
       },
