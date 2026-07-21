@@ -303,6 +303,7 @@ SELECT classify(x, y) FROM some_table
     """.strip()
     statements = sqlglot.parse(sql, dialect=Trino)
     assert len(statements) == 1
+    assert len(list(statements[0].find_all(InlineUDF))) == 1
 
 
 def test_scalar_function_named_function() -> None:
