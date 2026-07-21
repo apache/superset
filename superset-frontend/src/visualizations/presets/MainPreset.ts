@@ -64,6 +64,7 @@ import {
   EchartsHeatmapChartPlugin,
   EchartsGanttChartPlugin,
   EchartsTimePivotChartPlugin,
+  EchartsBulletChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
 import {
   SelectFilterPlugin,
