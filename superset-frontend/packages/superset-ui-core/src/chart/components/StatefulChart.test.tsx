@@ -67,19 +67,19 @@ beforeEach(() => {
   jest.clearAllMocks();
 
   // Setup default registry mocks
-  (getChartMetadataRegistry as any).mockReturnValue({
+  jest.mocked(getChartMetadataRegistry).mockReturnValue({
     get: jest.fn().mockReturnValue({
       useLegacyApi: false,
     }),
-  });
+  } as unknown as ReturnType<typeof getChartMetadataRegistry>);
 
-  (getChartBuildQueryRegistry as any).mockReturnValue({
+  jest.mocked(getChartBuildQueryRegistry).mockReturnValue({
     get: jest.fn().mockResolvedValue(null),
-  });
+  } as unknown as ReturnType<typeof getChartBuildQueryRegistry>);
 
-  (getChartControlPanelRegistry as any).mockReturnValue({
+  jest.mocked(getChartControlPanelRegistry).mockReturnValue({
     get: jest.fn().mockReturnValue(null),
-  });
+  } as unknown as ReturnType<typeof getChartControlPanelRegistry>);
 
   // Mock ChartClient constructor
   // eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
@@ -113,9 +113,9 @@ test('should refetch data when non-renderTrigger control changes', async () => {
     ],
   };
 
-  (getChartControlPanelRegistry as any).mockReturnValue({
+  jest.mocked(getChartControlPanelRegistry).mockReturnValue({
     get: jest.fn().mockReturnValue(controlPanelConfig),
-  });
+  } as unknown as ReturnType<typeof getChartControlPanelRegistry>);
 
   const { rerender } = render(
     <StatefulChart formData={mockFormData} chartType="test_chart" />,
@@ -165,9 +165,9 @@ test('should NOT refetch data when only renderTrigger controls change', async ()
     ],
   };
 
-  (getChartControlPanelRegistry as any).mockReturnValue({
+  jest.mocked(getChartControlPanelRegistry).mockReturnValue({
     get: jest.fn().mockReturnValue(controlPanelConfig),
-  });
+  } as unknown as ReturnType<typeof getChartControlPanelRegistry>);
 
   const { rerender, getByTestId } = render(
     <StatefulChart formData={mockFormData} chartType="test_chart" />,
@@ -201,9 +201,9 @@ test('should NOT refetch data when only renderTrigger controls change', async ()
 
 test('should refetch when control panel config is not available', async () => {
   // No control panel config available
-  (getChartControlPanelRegistry as any).mockReturnValue({
+  jest.mocked(getChartControlPanelRegistry).mockReturnValue({
     get: jest.fn().mockReturnValue(null),
-  });
+  } as unknown as ReturnType<typeof getChartControlPanelRegistry>);
 
   const { rerender } = render(
     <StatefulChart formData={mockFormData} chartType="test_chart" />,
@@ -245,9 +245,9 @@ test('should refetch when viz_type changes', async () => {
     ],
   };
 
-  (getChartControlPanelRegistry as any).mockReturnValue({
+  jest.mocked(getChartControlPanelRegistry).mockReturnValue({
     get: jest.fn().mockReturnValue(controlPanelConfig),
-  });
+  } as unknown as ReturnType<typeof getChartControlPanelRegistry>);
 
   const { rerender } = render(
     <StatefulChart formData={mockFormData} chartType="test_chart" />,
@@ -299,9 +299,9 @@ test('should handle mixed renderTrigger and non-renderTrigger changes', async ()
     ],
   };
 
-  (getChartControlPanelRegistry as any).mockReturnValue({
+  jest.mocked(getChartControlPanelRegistry).mockReturnValue({
     get: jest.fn().mockReturnValue(controlPanelConfig),
-  });
+  } as unknown as ReturnType<typeof getChartControlPanelRegistry>);
 
   const { rerender } = render(
     <StatefulChart formData={mockFormData} chartType="test_chart" />,
@@ -352,9 +352,9 @@ test('should handle controls with complex structure', async () => {
     ],
   };
 
-  (getChartControlPanelRegistry as any).mockReturnValue({
+  jest.mocked(getChartControlPanelRegistry).mockReturnValue({
     get: jest.fn().mockReturnValue(controlPanelConfig),
-  });
+  } as unknown as ReturnType<typeof getChartControlPanelRegistry>);
 
   const { rerender, getByTestId } = render(
     <StatefulChart formData={mockFormData} chartType="test_chart" />,
@@ -404,11 +404,11 @@ test('should not refetch when formData has not changed', async () => {
 
 test('should handle errors gracefully when accessing registry', async () => {
   // Mock registry to throw an error
-  (getChartControlPanelRegistry as any).mockReturnValue({
+  jest.mocked(getChartControlPanelRegistry).mockReturnValue({
     get: jest.fn().mockImplementation(() => {
       throw new Error('Registry error');
     }),
-  });
+  } as unknown as ReturnType<typeof getChartControlPanelRegistry>);
 
   const { rerender } = render(
     <StatefulChart formData={mockFormData} chartType="test_chart" />,
@@ -492,9 +492,9 @@ test('should NOT refetch data when string-based renderTrigger control (zoomable)
     ],
   };
 
-  (getChartControlPanelRegistry as any).mockReturnValue({
+  jest.mocked(getChartControlPanelRegistry).mockReturnValue({
     get: jest.fn().mockReturnValue(controlPanelConfig),
-  });
+  } as unknown as ReturnType<typeof getChartControlPanelRegistry>);
 
   const formDataWithZoom = {
     ...mockFormData,
@@ -542,9 +542,9 @@ test('should NOT refetch data when other string-based renderTrigger controls cha
     ],
   };
 
-  (getChartControlPanelRegistry as any).mockReturnValue({
+  jest.mocked(getChartControlPanelRegistry).mockReturnValue({
     get: jest.fn().mockReturnValue(controlPanelConfig),
-  });
+  } as unknown as ReturnType<typeof getChartControlPanelRegistry>);
 
   const { rerender, getByTestId } = render(
     <StatefulChart formData={mockFormData} chartType="test_chart" />,
@@ -585,9 +585,9 @@ test('should refetch when string control is NOT in RENDER_TRIGGER_SHARED_CONTROL
     ],
   };
 
-  (getChartControlPanelRegistry as any).mockReturnValue({
+  jest.mocked(getChartControlPanelRegistry).mockReturnValue({
     get: jest.fn().mockReturnValue(controlPanelConfig),
-  });
+  } as unknown as ReturnType<typeof getChartControlPanelRegistry>);
 
   const { rerender } = render(
     <StatefulChart formData={mockFormData} chartType="test_chart" />,
@@ -631,9 +631,9 @@ test('should handle mixed string and object controls correctly', async () => {
     ],
   };
 
-  (getChartControlPanelRegistry as any).mockReturnValue({
+  jest.mocked(getChartControlPanelRegistry).mockReturnValue({
     get: jest.fn().mockReturnValue(controlPanelConfig),
-  });
+  } as unknown as ReturnType<typeof getChartControlPanelRegistry>);
 
   const formDataWithControls = {
     ...mockFormData,
@@ -687,9 +687,9 @@ test('should refetch when mixing renderTrigger string control with non-renderTri
     ],
   };
 
-  (getChartControlPanelRegistry as any).mockReturnValue({
+  jest.mocked(getChartControlPanelRegistry).mockReturnValue({
     get: jest.fn().mockReturnValue(controlPanelConfig),
-  });
+  } as unknown as ReturnType<typeof getChartControlPanelRegistry>);
 
   const formDataWithZoom = {
     ...mockFormData,
@@ -805,9 +805,9 @@ test('wraps the legacy async body as { result: [body] } for the async handler', 
     json: legacyBody,
   });
   // Force the legacy API path for this viz type
-  (getChartMetadataRegistry as any).mockReturnValue({
+  jest.mocked(getChartMetadataRegistry).mockReturnValue({
     get: jest.fn().mockReturnValue({ useLegacyApi: true }),
-  });
+  } as unknown as ReturnType<typeof getChartMetadataRegistry>);
   const handleAsyncChartData = jest
     .fn()
     .mockResolvedValue([{ data: 'legacy result' }]);
@@ -968,7 +968,7 @@ test('does not revert a render-only change when a slow async request resolves', 
     json: { job_id: 'j', channel_id: 'c' },
   });
   // color_scheme is a renderTrigger control -> its change does not refetch
-  (getChartControlPanelRegistry as any).mockReturnValue({
+  jest.mocked(getChartControlPanelRegistry).mockReturnValue({
     get: jest.fn().mockReturnValue({
       controlPanelSections: [
         {
@@ -978,7 +978,7 @@ test('does not revert a render-only change when a slow async request resolves', 
         },
       ],
     }),
-  });
+  } as unknown as ReturnType<typeof getChartControlPanelRegistry>);
   let resolveAsync: (data: unknown) => void = () => {};
   const handleAsyncChartData = jest.fn(
     () =>

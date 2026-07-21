@@ -395,7 +395,7 @@ export default function StatefulChart(props: StatefulChartProps) {
         latestProps.formData
           ? {
               ...latestProps.formData,
-              ...(latestProps.formDataOverrides || {}),
+              ...latestProps.formDataOverrides,
               viz_type: finalFormData.viz_type,
             }
           : finalFormData,
