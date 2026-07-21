@@ -209,9 +209,7 @@ def test_chart_with_empty_query_context_is_skipped(
     _run()
 
     _, kwargs = mocks["email"].build_success_email.call_args
-    assert kwargs["errored"] == {
-        mocks["email"].ERROR_NO_QUERY_CONTEXT: ["20 - Empty"]
-    }
+    assert kwargs["errored"] == {mocks["email"].ERROR_NO_QUERY_CONTEXT: ["20 - Empty"]}
     # The empty chart is skipped before any query runs; only the good one runs.
     mocks["ChartDataCommand"].return_value.run.assert_called_once()
 
