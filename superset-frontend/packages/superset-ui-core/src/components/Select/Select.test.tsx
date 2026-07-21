@@ -1529,6 +1529,26 @@ describe('grouped options search', () => {
   });
 });
 
+test('cancels pending debounce on unmount', async () => {
+  const mockOnSearch = jest.fn();
+  const { unmount } = render(
+    <Select
+      {...defaultProps}
+      allowNewOptions
+      mode="multiple"
+      onSearch={mockOnSearch}
+    />,
+  );
+
+  await type('test');
+  await new Promise(resolve => setTimeout(resolve, 300));
+  expect(mockOnSearch).toHaveBeenCalledWith('test');
+  mockOnSearch.mockClear();
+  await type('unmounted');
+  unmount();
+  await new Promise(resolve => setTimeout(resolve, 400));
+  expect(mockOnSearch).not.toHaveBeenCalled();
+});
 /*
  TODO: Add tests that require scroll interaction. Needs further investigation.
  - Fetches more data when scrolling and more data is available

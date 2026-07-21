@@ -24,6 +24,31 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Dashboard "Export Data to Excel" requires a Celery worker and S3 bucket
+
+A new dashboard action exports every chart's data to a single multi-sheet
+`.xlsx` asynchronously. It is disabled by default and turns on only when
+`EXCEL_EXPORT_S3_BUCKET` is set (the endpoint returns `501` otherwise). It also
+requires a running Celery worker and a configured SMTP transport, since the task
+emails the requesting user a pre-signed download link. New config keys:
+`EXCEL_EXPORT_S3_BUCKET`, `EXCEL_EXPORT_S3_KEY_PREFIX`,
+`EXCEL_EXPORT_LINK_TTL_SECONDS`, `EXCEL_EXPORT_S3_CLIENT_KWARGS`, and
+`EXCEL_EXPORT_TABLE_VIZ_TYPES`.
+
+The feature depends on `boto3`, which is **not** installed by default; install it
+with `pip install apache-superset[excel-export]`.
+
+A second mode, **Export Images to Excel**, embeds non-table charts as rendered
+images (which viz types stay tabular is controlled by
+`EXCEL_EXPORT_TABLE_VIZ_TYPES`). It renders through the headless webdriver, so the
+menu option only appears when the webdriver screenshot feature flags
+(`ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS`,
+`ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT`) are enabled.
+
+Deployments that override `CELERY_CONFIG` must add
+`"superset.tasks.export_dashboard_excel"` to their `imports` tuple, or the task
+will not register and exports will silently never run.
+
 ### SQL_QUERY_MUTATOR now honors MUTATE_AFTER_SPLIT in SQL Lab
 
 SQL Lab now applies `SQL_QUERY_MUTATOR` according to `MUTATE_AFTER_SPLIT`, matching the documented semantics and the chart/query path. This only affects deployments that define `SQL_QUERY_MUTATOR` in `superset_config.py`:
@@ -60,6 +85,26 @@ WHERE dttm_col > {{ tf.from_expr }} AND dttm_col <= {{ tf.to_expr }}
 
 Note that `from_expr` and `to_expr` are already fully-formatted SQL expressions (e.g.
 `TO_TIMESTAMP('2024-01-01', ...)`) — do not wrap them in single quotes.
+
+### Removed deck.gl JavaScript tooltip/data-mutator controls and ENABLE_JAVASCRIPT_CONTROLS
+
+The `ENABLE_JAVASCRIPT_CONTROLS` feature flag and the deck.gl chart controls it gated
+(`js_tooltip`, `js_onclick_href`, `js_data_mutator`, and the GeoJSON layer's label/icon
+JavaScript-mode generators) have been removed. These controls let users write arbitrary
+JavaScript, sandboxed via Node's `vm` module, to customize deck.gl tooltips, click
+behavior, and data transforms; the flag defaulted off and the feature saw negligible use.
+
+The deck.gl "Extra data for JS" control (`js_columns`) has also been removed. It only
+ever existed to feed extra columns into the JavaScript controls above; deck.gl's
+built-in field-based tooltips and cross-filtering already pull in any columns they need
+via `tooltip_contents`/`cross_filter_column`, so this control had no remaining purpose.
+Any chart layer whose "Advanced" control panel section only contained this control no
+longer has an "Advanced" section.
+
+Any saved charts with these fields set will simply ignore them going forward and fall back
+to deck.gl's built-in field-based tooltips (`tooltip_contents`/`tooltip_template`) and
+native click/cross-filter behavior. No migration is required; the fields are dropped
+silently on next save.
 
 ### Owners, dashboard roles, and RLS roles replaced by Subjects
 
@@ -548,6 +593,12 @@ The partial-index replacement is dialect-dependent: PostgreSQL uses a native `WH
 **Slug semantics:** on PostgreSQL and MySQL 8.0.13+, the slug of a soft-deleted dashboard is **free for reuse**. A new active dashboard can claim it immediately. Restoring a soft-deleted dashboard whose slug has since been claimed returns **422 with a clean error** (`DashboardSlugConflictError`) — rename one of the dashboards and retry; the restore is not silently rejected by a database-level constraint violation.
 
 **Importer behavior:** importing a dashboard YAML whose UUID matches an existing **soft-deleted** dashboard is treated as an implicit restore-with-update — **and this happens even when `overwrite` is not set**. This is a deliberate asymmetry with active rows: an active dashboard imported without `overwrite=true` is returned unchanged (the import never mutates it), but a soft-deleted UUID match is restored *and* has the upload's contents applied regardless of the `overwrite` argument, on the reasoning that re-importing a deleted dashboard's exact UUID is an explicit request to bring it back. The restore preserves the original PK and all pre-deletion relationship rows (`dashboard_slices` junctions, editor/viewer subjects, tags). Callers whose imports must never mutate existing state should treat bundles that may contain previously deleted UUIDs accordingly. The operation is permission-gated: it requires `can_write` and editorship of the deleted row (or admin) — non-editors get `ImportFailedError`, and callers without `can_write` get `ImportFailedError` instead of silently receiving the soft-deleted row.
+
+### Engine spec capability flag: `supports_offset`
+
+A new `BaseEngineSpec.supports_offset` attribute (default `True`) indicates whether a database engine supports the SQL `OFFSET` clause. Engines that do not support `OFFSET` — such as Elasticsearch SQL and OpenDistro — opt out by setting it to `False`, and Superset uses each engine's cursor API to paginate drill-to-detail samples instead of emitting `OFFSET`. Downstream forks maintaining custom engine specs may set the flag to `False` (and implement `fetch_data_with_cursor`) to avoid crashes when paginated drill-to-detail queries are run against engines without `OFFSET` support.
+
+**Note on deep-pagination cost:** Cursor-based engines (including Elasticsearch and OpenDistro) are forward-only, so reaching page `N` of a drill-to-detail view issues `N` round trips to the cluster. Deep pagination is therefore linear in page number; users paginating into the hundreds or thousands will notice added latency compared to `OFFSET`-capable engines.
 
 ### Granular Export Controls
 
