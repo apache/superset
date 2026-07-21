@@ -27,14 +27,39 @@ from sqlglot.tokens import Token, TokenType
 # (https://trino.io/docs/current/udf/sql.html). ``CASE`` is included because
 # both the ``CASE`` statement and the ``CASE`` expression are terminated by
 # ``END``, so counting them keeps the depth balanced either way.
-BLOCK_OPENERS = {"BEGIN", "CASE", "IF", "LOOP", "REPEAT", "WHILE"}
+BLOCK_OPENERS: set[str] = {"BEGIN", "CASE", "IF", "LOOP", "REPEAT", "WHILE"}
 
 # Keywords that are also scalar functions in Trino (e.g. ``IF(a, b, c)`` and
 # ``REPEAT('a', 3)``). When immediately followed by ``(`` they are function
-# calls, not block openers.
-AMBIGUOUS_OPENERS = {"IF", "REPEAT"}
+# calls, not block openers, unless the token stream shows otherwise (see
+# ``_is_paren_condition_block``).
+AMBIGUOUS_OPENERS: set[str] = {"IF", "REPEAT"}
 
-BODY_KEYWORDS = ("RETURN", "BEGIN")
+BODY_KEYWORDS: tuple[str, str] = ("RETURN", "BEGIN")
+
+
+def _is_paren_condition_block(tokens: t.Sequence[Token], paren_index: int) -> bool:
+    """
+    Determine whether the parenthesized group starting at ``tokens[paren_index]``
+    (an ``L_PAREN``) is a procedural block condition, e.g. ``IF (a > b) THEN``,
+    as opposed to a scalar function call argument list, e.g. ``IF(a, b, c)``.
+
+    Only ``IF`` has this ambiguity: a parenthesized condition is followed by
+    ``THEN``, while a scalar function call's closing paren never is.
+    """
+    depth = 0
+    for i in range(paren_index, len(tokens)):
+        token_type = tokens[i].token_type
+        if token_type == TokenType.L_PAREN:
+            depth += 1
+        elif token_type == TokenType.R_PAREN:
+            depth -= 1
+            if depth == 0:
+                next_token = tokens[i + 1] if i + 1 < len(tokens) else None
+                return (
+                    next_token is not None and next_token.token_type == TokenType.THEN
+                )
+    return False
 
 
 class InlineUDF(exp.CTE):
@@ -93,21 +118,26 @@ class Trino(SqlglotTrino):
     class Parser(SqlglotTrino.Parser):
         @staticmethod
         def _block_depth_delta(
-            text: str,
+            tokens: list[Token],
+            index: int,
             prev_text: str,
-            next_token: Token | None,
         ) -> int:
             """
-            Compute the block nesting change contributed by a routine token.
+            Compute the block nesting change contributed by the routine token
+            at ``tokens[index]``.
             """
+            text = tokens[index].text.upper()
             if text in BLOCK_OPENERS:
                 if prev_text == "END":
                     return 0  # block terminator, e.g. `END IF`, `END CASE`
+                next_token = tokens[index + 1] if index + 1 < len(tokens) else None
                 if (
                     text in AMBIGUOUS_OPENERS
                     and next_token
                     and next_token.token_type == TokenType.L_PAREN
                 ):
+                    if text == "IF" and _is_paren_condition_block(tokens, index + 1):
+                        return 1  # procedural `IF (...) THEN`, not a call
                     return 0  # scalar function call, e.g. `IF(a, b, c)`
                 return 1
             if text == "END":
@@ -123,19 +153,23 @@ class Trino(SqlglotTrino):
             """
             Split tokens into statements, keeping routine bodies intact.
 
-            This is a copy of ``sqlglot.parser.Parser._parse`` with one
-            change: when a statement starts with ``WITH FUNCTION``, ``CREATE
-            FUNCTION``, or ``CREATE OR REPLACE FUNCTION``, semicolons inside
-            ``BEGIN ... END`` blocks do not split the statement.
+            This is a copy of ``sqlglot.parser.Parser._parse`` (as of
+            sqlglot 30.8.0, the version pinned in ``requirements/base.txt``)
+            with one change: when a statement starts with ``WITH FUNCTION``,
+            ``CREATE FUNCTION``, or ``CREATE OR REPLACE FUNCTION``, semicolons
+            inside ``BEGIN ... END`` blocks do not split the statement. If
+            sqlglot's own ``_parse`` changes on a future upgrade, this copy
+            will silently drift from it and should be re-diffed against the
+            new version.
             """
             self.reset()
             self.sql = sql or ""
 
             total = len(raw_tokens)
             chunks: list[list[Token]] = [[]]
-            routine_mode = False
-            depth = 0
-            prev_text = ""
+            routine_mode: bool = False
+            depth: int = 0
+            prev_text: str = ""
 
             for i, token in enumerate(raw_tokens):
                 if token.token_type == TokenType.SEMICOLON and depth <= 0:
@@ -159,9 +193,7 @@ class Trino(SqlglotTrino):
                         [TokenType.CREATE, TokenType.OR, TokenType.REPLACE],
                     )
                 elif routine_mode:
-                    text = token.text.upper()
-                    next_token = raw_tokens[i + 1] if i < total - 1 else None
-                    depth += self._block_depth_delta(text, prev_text, next_token)
+                    depth += self._block_depth_delta(raw_tokens, i, prev_text)
 
                 prev_text = token.text.upper()
 
@@ -203,7 +235,7 @@ class Trino(SqlglotTrino):
 
             # scan for the start of the function body, skipping over the
             # signature, return type, and routine characteristics
-            paren_depth = 0
+            paren_depth: int = 0
             body: str | None = None
             while self._curr:
                 token_type = self._curr.token_type
@@ -236,15 +268,20 @@ class Trino(SqlglotTrino):
             """
             Consume a ``BEGIN ... END`` block, tracking nested blocks.
             """
-            depth = 0
+            depth: int = 0
             while self._curr:
                 text = self._curr.text.upper()
                 if text in BLOCK_OPENERS:
-                    if (
+                    is_scalar_call = (
                         text in AMBIGUOUS_OPENERS
                         and self._next
                         and self._next.token_type == TokenType.L_PAREN
-                    ):
+                        and not (
+                            text == "IF"
+                            and _is_paren_condition_block(self._tokens, self._index + 1)
+                        )
+                    )
+                    if is_scalar_call:
                         pass  # scalar function call, e.g. `IF(a, b, c)`
                     else:
                         depth += 1
