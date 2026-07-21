@@ -17,14 +17,14 @@
 """add_extension_storage_table
 
 Revision ID: e5f6a7b8c9d0
-Revises: 8f3a1b2c4d5e
+Revises: d24e6b0a9c7f
 Create Date: 2026-06-23 12:00:00.000000
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "e5f6a7b8c9d0"
-down_revision = "8f3a1b2c4d5e"
+down_revision = "d24e6b0a9c7f"
 
 import sqlalchemy as sa  # noqa: E402
 from alembic import op  # noqa: E402
