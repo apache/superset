@@ -86,13 +86,14 @@ export function createPersistentState(
       value: T,
       options?: PersistentSetOptions,
     ): Promise<void> {
-      const payload = resolveSetPayload(value, options?.codec);
+      const payload = resolveSetPayload(value, options);
       await SupersetClient.put({
         endpoint: buildUrl(key, true),
         body: JSON.stringify({
           value: payload.value,
           encrypt: options?.encrypt ?? false,
           codec: payload.codec,
+          isBinary: payload.isBinary,
         }),
         headers: { 'Content-Type': 'application/json' },
       });
@@ -117,13 +118,14 @@ export function createPersistentState(
       value: T,
       options?: PersistentSetOptions,
     ): Promise<void> {
-      const payload = resolveSetPayload(value, options?.codec);
+      const payload = resolveSetPayload(value, options);
       await SupersetClient.put({
         endpoint: buildUrl(key),
         body: JSON.stringify({
           value: payload.value,
           encrypt: options?.encrypt ?? false,
           codec: payload.codec,
+          isBinary: payload.isBinary,
         }),
         headers: { 'Content-Type': 'application/json' },
       });

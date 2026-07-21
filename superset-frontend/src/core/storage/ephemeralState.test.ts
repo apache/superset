@@ -65,7 +65,12 @@ test('set calls correct URL and includes value and ttl in body', async () => {
   await store.set('job_progress', { pct: 42 }, { ttl: 300 });
   expect(mockPut).toHaveBeenCalledWith({
     endpoint: '/api/v1/extensions/myorg/myext/storage/ephemeral/job_progress',
-    body: JSON.stringify({ value: { pct: 42 }, ttl: 300, codec: 'json' }),
+    body: JSON.stringify({
+      value: { pct: 42 },
+      ttl: 300,
+      codec: 'json',
+      isBinary: false,
+    }),
     headers: { 'Content-Type': 'application/json' },
   });
 });
@@ -75,18 +80,34 @@ test('set passes codec from options', async () => {
   await store.set('job_progress', 'sk-...', { ttl: 300, codec: 'pickle' });
   expect(mockPut).toHaveBeenCalledWith({
     endpoint: '/api/v1/extensions/myorg/myext/storage/ephemeral/job_progress',
-    body: JSON.stringify({ value: 'sk-...', ttl: 300, codec: 'pickle' }),
+    body: JSON.stringify({
+      value: 'sk-...',
+      ttl: 300,
+      codec: 'pickle',
+      isBinary: false,
+    }),
     headers: { 'Content-Type': 'application/json' },
   });
 });
 
-test('set auto base64-encodes a Uint8Array value with no codec specified', async () => {
+test('set does not base64-encode a Uint8Array value unless isBinary is set', async () => {
   const store = createEphemeralState('myorg.myext');
   const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
   await store.set('icon', bytes, { ttl: 300 });
   const body = JSON.parse(mockPut.mock.calls[0][0].body);
+  expect(body.codec).toBe('json');
+  expect(body.value).toEqual({ 0: 0x89, 1: 0x50, 2: 0x4e, 3: 0x47 });
+  expect(body.isBinary).toBe(false);
+});
+
+test('set base64-encodes a Uint8Array value when isBinary is true', async () => {
+  const store = createEphemeralState('myorg.myext');
+  const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+  await store.set('icon', bytes, { ttl: 300, isBinary: true });
+  const body = JSON.parse(mockPut.mock.calls[0][0].body);
   expect(body.codec).toBe('binary');
   expect(body.value).toBe(btoa('\x89PNG'));
+  expect(body.isBinary).toBe(true);
 });
 
 test('remove calls correct URL', async () => {
@@ -129,7 +150,12 @@ test('shared.set appends ?shared=true and includes value and ttl', async () => {
   expect(mockPut).toHaveBeenCalledWith({
     endpoint:
       '/api/v1/extensions/myorg/myext/storage/ephemeral/result?shared=true',
-    body: JSON.stringify({ value: [1, 2, 3], ttl: 600, codec: 'json' }),
+    body: JSON.stringify({
+      value: [1, 2, 3],
+      ttl: 600,
+      codec: 'json',
+      isBinary: false,
+    }),
     headers: { 'Content-Type': 'application/json' },
   });
 });

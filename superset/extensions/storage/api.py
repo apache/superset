@@ -34,12 +34,7 @@ from flask import g, request
 from flask.wrappers import Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 
-from superset.extensions.storage.codecs import (
-    BYTES_CODECS,
-    DEFAULT_CODEC,
-    get_codec,
-    SAFE_CODECS,
-)
+from superset.extensions.storage.codecs import DEFAULT_CODEC, get_codec, SAFE_CODECS
 from superset.extensions.storage.ephemeral_dao import (
     ExtensionEphemeralDAO,
     ExtensionEphemeralTTLInvalid,
@@ -56,28 +51,35 @@ from superset.extensions.storage.utils import get_extension_or_404, parse_ttl
 from superset.utils.decorators import transaction
 
 
-def _decoded_result_for_wire(codec: str, decoded: Any) -> Any:
+def _decoded_result_for_wire(decoded: Any) -> tuple[Any, bool]:
     """Convert a codec-decoded value into its JSON wire representation.
 
-    JSON has no byte type, so a `BYTES_CODECS` value (raw `bytes`) is
-    base64-encoded to a string for the response; every other codec's
-    decoded value is already JSON-representable as-is.
+    JSON has no byte type, so a raw `bytes` value is base64-encoded to a
+    string for the response and flagged as such; every other value is
+    already JSON-representable as-is. Checked on the decoded value's
+    actual type, not the codec's name, so this keeps working for a codec
+    this module didn't define.
+
+    :returns: (wire_value, is_binary)
     """
-    if codec in BYTES_CODECS:
-        return base64.b64encode(decoded).decode("ascii")
-    return decoded
+    if isinstance(decoded, bytes):
+        return base64.b64encode(decoded).decode("ascii"), True
+    return decoded, False
 
 
-def _wire_value_for_codec(codec: str, value: Any) -> Any:
+def _wire_value_for_request(value: Any, is_binary: bool) -> Any:
     """Convert a request body's JSON `value` into a codec's input type.
 
-    JSON has no byte type, so a `BYTES_CODECS` value arrives as a base64
-    string and must be base64-decoded to bytes before it is handed to the
-    codec's `encode`; every other codec takes the JSON value as-is.
+    `is_binary` is an explicit flag from the caller: JSON has no byte
+    type, so there is no way to tell, from the JSON `value` alone,
+    whether it is a base64 string that must be decoded to bytes before
+    being handed to the codec's `encode`, or a literal value to pass
+    through as-is. Only the caller knows which it sent.
 
-    :raises ValueError: if `value` is not a valid base64 string.
+    :raises ValueError: if `is_binary` is set and `value` is not a valid
+        base64 string.
     """
-    if codec in BYTES_CODECS:
+    if is_binary:
         return base64.b64decode(value, validate=True)
     return value
 
@@ -150,11 +152,17 @@ class ExtensionStorageRestApi(BaseApi):
                     type: object
                     properties:
                       result:
-                        description: The stored value
+                        description: The stored value. When 'isBinary' is
+                          true, this is a base64 string that must be
+                          decoded to get the actual value.
                       codec:
                         type: string
                         description: Name of the codec 'result' was encoded
                           with, e.g. "json" (default) or "binary"
+                      isBinary:
+                        type: boolean
+                        description: Whether the stored value is binary
+                          data
             400:
               description: Value was stored with a codec unavailable over the API
             404:
@@ -176,8 +184,8 @@ class ExtensionStorageRestApi(BaseApi):
                 "read over the REST API."
             )
 
-        result = _decoded_result_for_wire(codec, get_codec(codec).decode(value))
-        return self.response(200, result=result, codec=codec)
+        result, is_binary = _decoded_result_for_wire(get_codec(codec).decode(value))
+        return self.response(200, result=result, codec=codec, isBinary=is_binary)
 
     @protect()
     @safe
@@ -226,12 +234,17 @@ class ExtensionStorageRestApi(BaseApi):
                   properties:
                     value:
                       description: The value to store (must not exceed
-                        MAX_VALUE_SIZE bytes once encoded with 'codec')
+                        MAX_VALUE_SIZE bytes once encoded with 'codec').
+                        When 'isBinary' is true, this must be a base64
+                        string, decoded before being handed to 'codec'.
                     codec:
                       type: string
                       description: Name of the codec used to encode 'value',
                         e.g. "json" (default). Must be one of the codecs
                         allowed over the REST API.
+                    isBinary:
+                      type: boolean
+                      description: Whether 'value' is binary data
                     ttl:
                       type: integer
                       description: Time-to-live in seconds (must be a positive
@@ -259,11 +272,12 @@ class ExtensionStorageRestApi(BaseApi):
                 f"Codec '{codec}' is not allowed over the REST API."
             )
 
+        is_binary = bool(body.get("isBinary", False))
         try:
-            value = _wire_value_for_codec(codec, body["value"])
+            value = _wire_value_for_request(body["value"], is_binary)
         except (ValueError, TypeError):
             return self.response_400(
-                f"Value must be a valid base64 string for codec '{codec}'."
+                "Value must be a valid base64 string when 'isBinary' is true."
             )
         ttl, error = parse_ttl(body)
         if error:
@@ -401,9 +415,16 @@ class ExtensionStorageRestApi(BaseApi):
                               type: string
                             value:
                               description: The stored value, or null if its
-                                codec cannot be read over the REST API
+                                codec cannot be read over the REST API.
+                                When 'isBinary' is true, this is a base64
+                                string that must be decoded to get the
+                                actual value.
                             codec:
                               type: string
+                            isBinary:
+                              type: boolean
+                              description: Whether the stored value is
+                                binary data
                       count:
                         type: integer
                         description: Total number of entries matching the
@@ -441,20 +462,21 @@ class ExtensionStorageRestApi(BaseApi):
         except ExtensionStorageListPayloadTooLarge as ex:
             return self.response(ex.status, message=ex.message)
 
-        result = [
-            {
-                "key": entry.key,
-                "value": (
-                    _decoded_result_for_wire(
-                        entry.codec, get_codec(entry.codec).decode(entry.value)
-                    )
-                    if entry.codec in SAFE_CODECS and entry.value is not None
-                    else None
-                ),
-                "codec": entry.codec,
-            }
-            for entry in entries
-        ]
+        result = []
+        for entry in entries:
+            value: Any = None
+            is_binary = False
+            if entry.codec in SAFE_CODECS and entry.value is not None:
+                decoded = get_codec(entry.codec).decode(entry.value)
+                value, is_binary = _decoded_result_for_wire(decoded)
+            result.append(
+                {
+                    "key": entry.key,
+                    "value": value,
+                    "codec": entry.codec,
+                    "isBinary": is_binary,
+                }
+            )
 
         return self.response(200, result=result, count=count)
 
@@ -502,11 +524,17 @@ class ExtensionStorageRestApi(BaseApi):
                     type: object
                     properties:
                       result:
-                        description: The stored value
+                        description: The stored value. When 'isBinary' is
+                          true, this is a base64 string that must be
+                          decoded to get the actual value.
                       codec:
                         type: string
                         description: Name of the codec 'result' was encoded
                           with, e.g. "json" (default) or "binary"
+                      isBinary:
+                        type: boolean
+                        description: Whether the stored value is binary
+                          data
             400:
               description: Value was stored with a codec unavailable over the API
             404:
@@ -528,13 +556,12 @@ class ExtensionStorageRestApi(BaseApi):
                 "read over the REST API."
             )
 
-        value = ExtensionStorageDAO.get_decoded_value(
+        decoded = ExtensionStorageDAO.get_decoded_value(
             extension_id, key, user_fk=user_fk
         )
+        result, is_binary = _decoded_result_for_wire(decoded)
 
-        return self.response(
-            200, result=_decoded_result_for_wire(entry.codec, value), codec=entry.codec
-        )
+        return self.response(200, result=result, codec=entry.codec, isBinary=is_binary)
 
     @protect()
     @safe
@@ -582,12 +609,17 @@ class ExtensionStorageRestApi(BaseApi):
                     - value
                   properties:
                     value:
-                      description: The value to store
+                      description: The value to store. When 'isBinary' is
+                        true, this must be a base64 string, decoded
+                        before being handed to 'codec'.
                     codec:
                       type: string
                       description: Name of the codec used to encode 'value',
                         e.g. "json" (default). Must be one of the codecs
                         allowed over the REST API.
+                    isBinary:
+                      type: boolean
+                      description: Whether 'value' is binary data
                     encrypt:
                       type: boolean
                       description: If true, the value is encrypted at rest
@@ -617,14 +649,15 @@ class ExtensionStorageRestApi(BaseApi):
                 f"Codec '{codec}' is not allowed over the REST API."
             )
 
+        is_binary = bool(body.get("isBinary", False))
         encrypt = bool(body.get("encrypt", False))
         shared = request.args.get("shared", "false").lower() == "true"
         user_fk = None if shared else g.user.id
         try:
-            wire_value = _wire_value_for_codec(codec, body["value"])
+            wire_value = _wire_value_for_request(body["value"], is_binary)
         except (ValueError, TypeError):
             return self.response_400(
-                f"Value must be a valid base64 string for codec '{codec}'."
+                "Value must be a valid base64 string when 'isBinary' is true."
             )
         value_bytes = get_codec(codec).encode(wire_value)
         try:

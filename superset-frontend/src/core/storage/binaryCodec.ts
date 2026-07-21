@@ -31,44 +31,35 @@ function isBinaryValue(value: unknown): value is Uint8Array | ArrayBuffer {
 }
 
 /**
- * Infer which codec to use for `value` when the caller didn't specify one.
+ * Resolve the codec, request-body value, and `isBinary` flag for a
+ * `set()` call.
  *
- * "json" names the serialization format applied to encode the value for
- * storage/transport -- it is not a claim about the value's shape. Per
- * RFC 8259, a JSON text may be any JSON value (object, array, string,
- * number, boolean, or null), so scalars like `1` or `"foo"` are encoded
- * with the "json" codec too, alongside objects and arrays.
- *
- * Binary values (Uint8Array/ArrayBuffer) are the one case JSON cannot
- * represent, so they're stored with the "binary" codec instead.
- */
-function inferDefaultCodec(value: unknown): 'json' | 'binary' {
-  return isBinaryValue(value) ? 'binary' : 'json';
-}
-
-/**
- * Resolve the codec and request-body value for a `set()` call.
- *
- * If the caller explicitly set `options.codec`, it is always respected
- * as-is and `value` is passed through untouched -- the caller is
- * responsible for encoding it correctly (e.g. base64-encoding it
- * themselves before calling `set()`, if the chosen codec is "binary").
- * Auto base64-encoding only happens when no codec was specified and
- * `value` is binary.
- *
- * base64 itself is not a codec -- it's how a "binary" codec's raw bytes
- * are carried inside a JSON request body, since JSON has no byte type.
+ * `isBinary` is caller-driven, not inferred from `value`'s JS type: it
+ * tells the REST API whether `value` on the wire is a base64 string that
+ * must be decoded before being handed to whichever codec was chosen,
+ * since JSON has no byte type and there is no way for the server to
+ * infer this from the JSON value alone. When set and `value` is a
+ * `Uint8Array`/`ArrayBuffer`, it is base64-encoded here for transport; a
+ * caller that already has a base64 string (e.g. encoded for a codec this
+ * SDK doesn't know about) can pass that directly instead.
  */
 export function resolveSetPayload<T>(
   value: T,
-  explicitCodec: string | undefined,
-): { value: unknown; codec: string } {
-  if (explicitCodec !== undefined) {
-    return { value, codec: explicitCodec };
-  }
-  if (isBinaryValue(value)) {
+  options: { codec?: string; isBinary?: boolean } | undefined,
+): { value: unknown; codec: string; isBinary: boolean } {
+  const explicitCodec = options?.codec;
+  const binary = options?.isBinary ?? false;
+  if (binary && isBinaryValue(value)) {
     const bytes = value instanceof ArrayBuffer ? new Uint8Array(value) : value;
-    return { value: bytesToBase64(bytes), codec: 'binary' };
+    return {
+      value: bytesToBase64(bytes),
+      codec: explicitCodec ?? 'binary',
+      isBinary: true,
+    };
   }
-  return { value, codec: inferDefaultCodec(value) };
+  return {
+    value,
+    codec: explicitCodec ?? (binary ? 'binary' : 'json'),
+    isBinary: binary,
+  };
 }

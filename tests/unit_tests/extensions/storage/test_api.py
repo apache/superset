@@ -27,6 +27,7 @@ call into it correctly.
 
 from __future__ import annotations
 
+import base64
 from unittest.mock import MagicMock, patch
 
 from flask import Flask, g
@@ -129,6 +130,37 @@ def test_ephemeral_get_returns_400_for_unsafe_stored_codec(
 
 @patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
 @patch("superset.extensions.storage.utils.get_extensions")
+def test_ephemeral_get_returns_binary_value_base64_encoded(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
+) -> None:
+    """get_ephemeral base64-encodes a binary-codec value for the response
+    and flags it with isBinary=True, since JSON has no byte type. Checked
+    on the decoded value's actual type, not the codec's name."""
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    raw_bytes = b"\x89PNG\r\n"
+    mock_dao.get_raw.return_value = (get_codec("binary").encode(raw_bytes), "binary")
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/ephemeral/logo"
+    ):
+        g.user = MagicMock(id=7)
+
+        body, status_code = ExtensionStorageRestApi().get_ephemeral(
+            "acme", "dashboard", "logo"
+        )
+
+        assert status_code == 200
+        payload = body.get_json()
+        assert payload["result"] == base64.b64encode(raw_bytes).decode("ascii")
+        assert payload["codec"] == "binary"
+        assert payload["isBinary"] is True
+
+
+@patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_ephemeral_set_passes_ttl_and_value_to_dao(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -153,6 +185,68 @@ def test_ephemeral_set_passes_ttl_and_value_to_dao(
         mock_dao.set.assert_called_once_with(
             "acme.dashboard", "job", {"progress": 50}, 600, codec="json", shared=False
         )
+
+
+@patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_ephemeral_set_with_binary_flag_decodes_base64(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
+) -> None:
+    """set_ephemeral base64-decodes 'value' before handing it to the DAO
+    when 'isBinary' is true, independent of which codec was chosen."""
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    raw_bytes = b"\x89PNG\r\n"
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/ephemeral/logo",
+        method="PUT",
+        json={
+            "value": base64.b64encode(raw_bytes).decode("ascii"),
+            "codec": "binary",
+            "isBinary": True,
+            "ttl": 600,
+        },
+    ):
+        g.user = MagicMock(id=7)
+
+        body, status_code = ExtensionStorageRestApi().set_ephemeral(
+            "acme", "dashboard", "logo"
+        )
+
+        assert status_code == 200
+        mock_dao.set.assert_called_once_with(
+            "acme.dashboard", "logo", raw_bytes, 600, codec="binary", shared=False
+        )
+
+
+@patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_ephemeral_set_rejects_invalid_base64_when_binary_flag_set(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
+) -> None:
+    """set_ephemeral returns 400 when 'isBinary' is true but 'value' is not
+    valid base64, and never calls the DAO."""
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/ephemeral/logo",
+        method="PUT",
+        json={"value": "not-base64!!", "isBinary": True, "ttl": 600},
+    ):
+        g.user = MagicMock(id=7)
+
+        body, status_code = ExtensionStorageRestApi().set_ephemeral(
+            "acme", "dashboard", "logo"
+        )
+
+        assert status_code == 400
+        mock_dao.set.assert_not_called()
 
 
 @patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
@@ -530,6 +624,74 @@ def test_persistent_set_defaults_codec_to_json(
         )
 
 
+@patch("superset.db")
+@patch("superset.extensions.storage.api.ExtensionStorageDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_persistent_set_with_binary_flag_decodes_base64(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, mock_db: MagicMock, app: Flask
+) -> None:
+    """Persistent PUT base64-decodes 'value' before encoding it with 'codec'
+    when 'isBinary' is true, independent of which codec was chosen."""
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+    raw_bytes = b"\x89PNG\r\n"
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/persistent/logo",
+        method="PUT",
+        json={
+            "value": base64.b64encode(raw_bytes).decode("ascii"),
+            "codec": "binary",
+            "isBinary": True,
+        },
+    ):
+        g.user = MagicMock(id=42)
+
+        body, status_code = ExtensionStorageRestApi().set_persistent(
+            "acme", "dashboard", "logo"
+        )
+
+        assert status_code == 200
+        mock_dao.set.assert_called_once_with(
+            "acme.dashboard",
+            "logo",
+            raw_bytes,
+            codec="binary",
+            user_fk=42,
+            encrypt=False,
+        )
+
+
+@patch("superset.db")
+@patch("superset.extensions.storage.api.ExtensionStorageDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_persistent_set_rejects_invalid_base64_when_binary_flag_set(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, mock_db: MagicMock, app: Flask
+) -> None:
+    """Persistent PUT returns 400 when 'isBinary' is true but 'value' is not
+    valid base64, and never calls the DAO."""
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/persistent/logo",
+        method="PUT",
+        json={"value": "not-base64!!", "codec": "binary", "isBinary": True},
+    ):
+        g.user = MagicMock(id=42)
+
+        body, status_code = ExtensionStorageRestApi().set_persistent(
+            "acme", "dashboard", "logo"
+        )
+
+        assert status_code == 400
+        mock_dao.set.assert_not_called()
+
+
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
 @patch("superset.extensions.storage.utils.get_extensions")
 def test_persistent_get_returns_400_for_unsafe_stored_codec(
@@ -583,6 +745,39 @@ def test_persistent_get_returns_none_when_entry_missing(
         assert body.get_json()["result"] is None
 
 
+@patch("superset.extensions.storage.api.ExtensionStorageDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_persistent_get_returns_binary_value_base64_encoded(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
+) -> None:
+    """Persistent GET base64-encodes a binary-codec value for the response
+    and flags it with isBinary=True."""
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+    entry = MagicMock()
+    entry.codec = "binary"
+    mock_dao.get.return_value = entry
+    raw_bytes = b"\x89PNG\r\n"
+    mock_dao.get_decoded_value.return_value = raw_bytes
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/persistent/logo"
+    ):
+        g.user = MagicMock(id=42)
+
+        body, status_code = ExtensionStorageRestApi().get_persistent(
+            "acme", "dashboard", "logo"
+        )
+
+        assert status_code == 200
+        payload = body.get_json()
+        assert payload["result"] == base64.b64encode(raw_bytes).decode("ascii")
+        assert payload["codec"] == "binary"
+        assert payload["isBinary"] is True
+
+
 # ── Persistent list endpoint ──────────────────────────────────────────────────
 
 
@@ -626,6 +821,7 @@ def test_list_persistent_returns_decoded_entries_and_count(
                 "key": "prefs",
                 "value": {"theme": "dark"},
                 "codec": "json",
+                "isBinary": False,
             }
         ]
         mock_dao.list_entries.assert_called_once_with(
@@ -677,6 +873,51 @@ def test_list_persistent_omits_value_for_unsafe_codec(
                 "key": "secret",
                 "value": None,
                 "codec": "pickle",
+                "isBinary": False,
+            }
+        ]
+
+
+@patch("superset.extensions.storage.api.ExtensionStorageDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_list_persistent_flags_binary_entries_as_base64(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
+) -> None:
+    """list_persistent base64-encodes a binary-codec entry's value and
+    flags it with isBinary=True."""
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+    raw_bytes = b"\x89PNG\r\n"
+    mock_dao.list_entries.return_value = (
+        [
+            ExtensionStorageListEntry(
+                key="logo",
+                value=get_codec("binary").encode(raw_bytes),
+                codec="binary",
+                is_encrypted=False,
+            ),
+        ],
+        1,
+    )
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/persistent"
+    ):
+        g.user = MagicMock(id=42)
+
+        body, status_code = ExtensionStorageRestApi().list_persistent(
+            "acme", "dashboard"
+        )
+
+        assert status_code == 200
+        assert body.get_json()["result"] == [
+            {
+                "key": "logo",
+                "value": base64.b64encode(raw_bytes).decode("ascii"),
+                "codec": "binary",
+                "isBinary": True,
             }
         ]
 

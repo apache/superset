@@ -330,6 +330,59 @@ ExtensionStorageDAO.delete(orphaned)
 - Subject to the per-extension quota configured via `EXTENSIONS_PERSISTENT_STORAGE.QUOTA_PER_EXTENSION` (see [Quotas](#quotas))
 - Requires a database migration when first deployed
 
+## Working with Binary Data
+
+Tiers 2 and 3 accept a `codec` option describing how `value` is encoded — `"json"` (the default) for JSON-native values, or `"binary"` for raw bytes. `list()` and `get()` report which codec an entry was written with via `entry.codec`.
+
+### Backend
+
+Backend code talks to the storage DAO directly and works with real Python `bytes` — no extra flag is needed:
+
+```python
+from superset_core.extensions.context import get_context
+from superset_core.extensions.storage.persistent import PersistentSetOptions
+
+ctx = get_context()
+
+with open('logo.png', 'rb') as f:
+    png_bytes = f.read()
+
+ctx.storage.persistent.set('logo', png_bytes, PersistentSetOptions(codec='binary'))
+
+stored = ctx.storage.persistent.get('logo')  # raw bytes back, unchanged
+```
+
+### Frontend
+
+The frontend SDK talks to the backend over a JSON REST API, which has no byte type — a binary value must be base64-encoded to travel in a JSON request body. There is no way for the SDK to infer this from a JS value's type, so it is never detected automatically: set `isBinary: true` explicitly whenever `value` is binary.
+
+```typescript
+import { extensions } from '@apache-superset/core';
+
+const ctx = extensions.getContext();
+
+const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47 /* ... */]);
+await ctx.storage.persistent.set('logo', pngBytes, { isBinary: true });
+```
+
+`get()` returns a binary entry's value exactly as stored on the wire — a base64 string, not a `Uint8Array` — so decode it yourself:
+
+```typescript
+const base64 = await ctx.storage.persistent.get<string>('logo');
+const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+```
+
+`list()` entries report `isBinary` alongside `codec`, so you know which entries need decoding before you read `value`:
+
+```typescript
+const result = await ctx.storage.persistent.list({ page: 0, pageSize: 10 });
+result.entries.forEach(entry => {
+  const value = entry.isBinary
+    ? Uint8Array.from(atob(entry.value as string), c => c.charCodeAt(0))
+    : entry.value;
+});
+```
+
 ## Key Patterns
 
 All storage keys are automatically namespaced:

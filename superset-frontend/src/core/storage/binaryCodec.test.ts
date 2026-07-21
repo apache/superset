@@ -25,52 +25,83 @@ test('bytesToBase64 encodes bytes to a base64 string', () => {
 });
 
 test('resolveSetPayload passes through a plain number with the json codec', () => {
-  expect(resolveSetPayload(1, undefined)).toEqual({ value: 1, codec: 'json' });
+  expect(resolveSetPayload(1, undefined)).toEqual({
+    value: 1,
+    codec: 'json',
+    isBinary: false,
+  });
 });
 
 test('resolveSetPayload passes through a plain object with the json codec', () => {
   expect(resolveSetPayload({ a: 1 }, undefined)).toEqual({
     value: { a: 1 },
     codec: 'json',
+    isBinary: false,
   });
 });
 
-test('resolveSetPayload auto base64-encodes a Uint8Array when no codec is given', () => {
+test('resolveSetPayload does not base64-encode a Uint8Array unless isBinary is true', () => {
   const bytes = new Uint8Array([1, 2, 3]);
   expect(resolveSetPayload(bytes, undefined)).toEqual({
-    value: bytesToBase64(bytes),
-    codec: 'binary',
-  });
-});
-
-test('resolveSetPayload auto base64-encodes an ArrayBuffer when no codec is given', () => {
-  const bytes = new Uint8Array([1, 2, 3]);
-  expect(resolveSetPayload(bytes.buffer, undefined)).toEqual({
-    value: bytesToBase64(bytes),
-    codec: 'binary',
-  });
-});
-
-test('resolveSetPayload respects an explicit codec and leaves the value untouched, even for binary input', () => {
-  const bytes = new Uint8Array([1, 2, 3]);
-  expect(resolveSetPayload(bytes, 'pickle')).toEqual({
     value: bytes,
-    codec: 'pickle',
+    codec: 'json',
+    isBinary: false,
   });
 });
 
-test('resolveSetPayload respects an explicit codec for a non-binary value', () => {
-  expect(resolveSetPayload('sk-...', 'pickle')).toEqual({
+test('resolveSetPayload base64-encodes a Uint8Array when isBinary is true', () => {
+  const bytes = new Uint8Array([1, 2, 3]);
+  expect(resolveSetPayload(bytes, { isBinary: true })).toEqual({
+    value: bytesToBase64(bytes),
+    codec: 'binary',
+    isBinary: true,
+  });
+});
+
+test('resolveSetPayload base64-encodes an ArrayBuffer when isBinary is true', () => {
+  const bytes = new Uint8Array([1, 2, 3]);
+  expect(resolveSetPayload(bytes.buffer, { isBinary: true })).toEqual({
+    value: bytesToBase64(bytes),
+    codec: 'binary',
+    isBinary: true,
+  });
+});
+
+test('resolveSetPayload base64-encodes a Uint8Array when isBinary is true, even with an explicit codec', () => {
+  const bytes = new Uint8Array([1, 2, 3]);
+  expect(resolveSetPayload(bytes, { codec: 'pickle', isBinary: true })).toEqual({
+    value: bytesToBase64(bytes),
+    codec: 'pickle',
+    isBinary: true,
+  });
+});
+
+test('resolveSetPayload respects an explicit codec for a non-binary value and does not flag isBinary', () => {
+  expect(resolveSetPayload('sk-...', { codec: 'pickle' })).toEqual({
     value: 'sk-...',
     codec: 'pickle',
+    isBinary: false,
   });
 });
 
-test('resolveSetPayload does not double-encode when the caller already base64-encoded a binary value', () => {
+test('resolveSetPayload does not double-encode a caller-provided base64 string, and flags isBinary when told to', () => {
   const bytes = new Uint8Array([1, 2, 3]);
   const preEncoded = bytesToBase64(bytes);
-  expect(resolveSetPayload(preEncoded, 'binary')).toEqual({
+  expect(
+    resolveSetPayload(preEncoded, { codec: 'binary', isBinary: true }),
+  ).toEqual({
     value: preEncoded,
     codec: 'binary',
+    isBinary: true,
+  });
+});
+
+test('resolveSetPayload does not flag isBinary for a caller-provided string unless told to', () => {
+  const bytes = new Uint8Array([1, 2, 3]);
+  const preEncoded = bytesToBase64(bytes);
+  expect(resolveSetPayload(preEncoded, { codec: 'binary' })).toEqual({
+    value: preEncoded,
+    codec: 'binary',
+    isBinary: false,
   });
 });

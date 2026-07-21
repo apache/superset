@@ -67,6 +67,8 @@ export interface EphemeralSetOptions {
   ttl: number;
   /** Name of the codec used to encode the value, e.g. "json" (default). */
   codec?: string;
+  /** Whether `value` is binary data. */
+  isBinary?: boolean;
 }
 
 /**
@@ -76,6 +78,8 @@ export interface PersistentSetOptions {
   encrypt?: boolean;
   /** Name of the codec used to encode the value, e.g. "json" (default). */
   codec?: string;
+  /** Whether `value` is binary data. */
+  isBinary?: boolean;
 }
 
 /**
@@ -109,9 +113,15 @@ export interface PersistentListOptions {
  */
 export interface PersistentListEntry<T = JsonValue> {
   key: string;
+  /**
+   * The stored value. When `isBinary` is true, this is a base64 string
+   * that must be decoded to get the actual value.
+   */
   value: T | null;
   /** Name of the codec `value` was encoded with, e.g. "json" or "binary". */
   codec: string;
+  /** Whether the stored value is binary data. */
+  isBinary: boolean;
 }
 
 /**

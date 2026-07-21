@@ -45,12 +45,6 @@ DEFAULT_CODEC = "json"
 #: calling the DAO directly.
 SAFE_CODECS = frozenset({"json", "binary"})
 
-#: Codec identifiers whose value is raw bytes rather than a native JSON
-#: value. JSON has no byte type, so the REST layer base64-decodes/-encodes
-#: the wire value around any codec in this set, before/after it reaches the
-#: codec's own `encode`/`decode`.
-BYTES_CODECS = frozenset({"binary"})
-
 _CODECS: dict[str, KeyValueCodec] = {
     "json": JsonKeyValueCodec(),
     "pickle": PickleKeyValueCodec(),

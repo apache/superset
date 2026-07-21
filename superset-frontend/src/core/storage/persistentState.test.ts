@@ -68,6 +68,7 @@ test('set calls correct URL with value in body', async () => {
       value: { theme: 'dark' },
       encrypt: false,
       codec: 'json',
+      isBinary: false,
     }),
     headers: { 'Content-Type': 'application/json' },
   });
@@ -82,30 +83,43 @@ test('set passes codec from options', async () => {
       value: 'sk-...',
       encrypt: false,
       codec: 'pickle',
+      isBinary: false,
     }),
     headers: { 'Content-Type': 'application/json' },
   });
 });
 
-test('set auto base64-encodes a Uint8Array value with no codec specified', async () => {
+test('set does not base64-encode a Uint8Array value unless isBinary is set', async () => {
   const store = createPersistentState('myorg.myext');
   const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
   await store.set('icon', bytes);
   const body = JSON.parse(mockPut.mock.calls[0][0].body);
-  expect(body.codec).toBe('binary');
-  expect(body.value).toBe(btoa('\x89PNG'));
+  expect(body.codec).toBe('json');
+  expect(body.value).toEqual({ 0: 0x89, 1: 0x50, 2: 0x4e, 3: 0x47 });
+  expect(body.isBinary).toBe(false);
 });
 
-test('set respects an explicit codec for a Uint8Array value instead of auto-encoding', async () => {
+test('set base64-encodes a Uint8Array value when isBinary is true, with no codec specified', async () => {
   const store = createPersistentState('myorg.myext');
   const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
-  await store.set('icon', bytes, { codec: 'pickle' });
+  await store.set('icon', bytes, { isBinary: true });
+  const body = JSON.parse(mockPut.mock.calls[0][0].body);
+  expect(body.codec).toBe('binary');
+  expect(body.value).toBe(btoa('\x89PNG'));
+  expect(body.isBinary).toBe(true);
+});
+
+test('set base64-encodes a Uint8Array value when isBinary is true, even with an explicit codec', async () => {
+  const store = createPersistentState('myorg.myext');
+  const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+  await store.set('icon', bytes, { codec: 'pickle', isBinary: true });
   expect(mockPut).toHaveBeenCalledWith({
     endpoint: '/api/v1/extensions/myorg/myext/storage/persistent/icon',
     body: JSON.stringify({
-      value: bytes,
+      value: btoa('\x89PNG'),
       encrypt: false,
       codec: 'pickle',
+      isBinary: true,
     }),
     headers: { 'Content-Type': 'application/json' },
   });
@@ -124,7 +138,14 @@ test('list calls correct URL with only page/pageSize as query params', async () 
 test('list returns entries and count from response', async () => {
   mockGet.mockResolvedValue({
     json: {
-      result: [{ key: 'prefs', value: { theme: 'dark' }, codec: 'json' }],
+      result: [
+        {
+          key: 'prefs',
+          value: { theme: 'dark' },
+          codec: 'json',
+          isBinary: false,
+        },
+      ],
       count: 1,
     },
   });
@@ -132,7 +153,7 @@ test('list returns entries and count from response', async () => {
   const result = await store.list({ page: 0, pageSize: 10 });
   expect(result.count).toBe(1);
   expect(result.entries).toEqual([
-    { key: 'prefs', value: { theme: 'dark' }, codec: 'json' },
+    { key: 'prefs', value: { theme: 'dark' }, codec: 'json', isBinary: false },
   ]);
 });
 
@@ -224,6 +245,7 @@ test('shared.set appends ?shared=true', async () => {
       value: { version: 2 },
       encrypt: false,
       codec: 'json',
+      isBinary: false,
     }),
     headers: { 'Content-Type': 'application/json' },
   });
