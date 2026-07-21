@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-06-23 03:46-0700\n"
+"POT-Creation-Date: 2026-07-17 15:46-0700\n"
 "PO-Revision-Date: 2024-10-05 23:46+0200\n"
 "Last-Translator: dkrat7 <dkrat7 @github.com>\n"
 "Language: sl_SI\n"
@@ -28,55 +28,6 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy, python-format
-msgid ""
-"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
-"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a "
-"new dataset over this table, or use a different table name."
-msgstr ""
-"Mehko izbrisana podatkovna zbirka (uuid %(uuid)s) že sklicuje na to "
-"tabelo. Obnovite jo prek POST /api/v1/dataset/%(uuid)s/restore, preden "
-"ustvarite novo podatkovno zbirko nad to tabelo, ali uporabite drugo ime "
-"tabele."
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy, python-format
-msgid ""
-"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
-"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or"
-" upload to a different table name."
-msgstr ""
-"Mehko izbrisana podatkovna zbirka (uuid %(uuid)s) že sklicuje na to "
-"tabelo. Obnovite jo prek POST /api/v1/dataset/%(uuid)s/restore pred "
-"nalaganjem ali naložite v drugo ime tabele."
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy
-msgid ""
-"Cannot delete a database whose only remaining datasets are soft-deleted. "
-"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
-"permanently once a purge capability ships, or remove the underlying rows "
-"out-of-band, before deleting the database."
-msgstr ""
-"Ni mogoče izbrisati podatkovne baze, katere edine preostale podatkovne "
-"zbirke so mehko izbrisane. Obnovite jih (POST "
-"/api/v1/dataset/<uuid>/restore) in jih trajno izbrišite, ko bo na voljo "
-"funkcija čiščenja, ali odstranite temeljne vrstice zunaj pasu, preden "
-"izbrišete podatkovno bazo."
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy
-msgid ""
-"Dataset cannot be restored because another active dataset already "
-"references the same physical table (same database, catalog, schema, and "
-"table name). Delete the duplicate or rename the table before restoring."
-msgstr ""
-"Podatkovne zbirke ni mogoče obnoviti, ker druga aktivna podatkovna zbirka"
-" že sklicuje na isto fizično tabelo (ista podatkovna baza, katalog, shema"
-" in ime tabele). Izbrišite dvojnik ali preimenujte tabelo pred "
-"obnovitvijo."
 
 msgid ""
 "\n"
@@ -276,6 +227,10 @@ msgid "% of total"
 msgstr "% celote"
 
 #, python-format
+msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
+msgstr ""
+
+#, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 "%(dialect)s ni mogoče uporabiti kot podatkovni vir zaradi varnostnih "
@@ -284,6 +239,10 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%(label)s file"
 msgstr "%(type)s datoteka"
+
+#, python-format
+msgid "%(name)s.%(extension)s"
+msgstr ""
 
 #, python-format
 msgid "%(name)s.csv"
@@ -525,14 +484,6 @@ msgstr "Izbranih: %s"
 #, python-format
 msgid "%s recipients"
 msgstr "%s prejemnikov"
-
-#, fuzzy, python-format
-msgid "%s record"
-msgid_plural "%s records..."
-msgstr[0] "%s napaka"
-msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #, fuzzy, python-format
 msgid "%s record..."
@@ -1082,6 +1033,29 @@ msgstr ""
 "Nabor parametrov, ki postanejo razpoložljivi za poizvedbo z uporabo Jinja"
 " sintakse"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a "
+"new dataset over this table, or use a different table name."
+msgstr ""
+"Mehko izbrisana podatkovna zbirka (uuid %(uuid)s) že sklicuje na to "
+"tabelo. Obnovite jo prek POST /api/v1/dataset/%(uuid)s/restore, preden "
+"ustvarite novo podatkovno zbirko nad to tabelo, ali uporabite drugo ime "
+"tabele."
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or"
+" upload to a different table name."
+msgstr ""
+"Mehko izbrisana podatkovna zbirka (uuid %(uuid)s) že sklicuje na to "
+"tabelo. Obnovite jo prek POST /api/v1/dataset/%(uuid)s/restore pred "
+"nalaganjem ali naložite v drugo ime tabele."
+
 msgid "A timeout occurred while executing the query."
 msgstr "Pri izvajanju poizvedbe je potekel čas."
 
@@ -1090,6 +1064,9 @@ msgstr "Pri ustvarjanju csv je potekel čas."
 
 msgid "A timeout occurred while generating a dataframe."
 msgstr "Pri ustvarjanju podatkovnega okvira je potekel čas."
+
+msgid "A timeout occurred while generating an Excel file."
+msgstr ""
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "Pri ustvarjanju zaslonske slike je potekel čas."
@@ -1144,9 +1121,6 @@ msgstr "Ključ API je bil uspešno preklican"
 #, fuzzy
 msgid "API keys allow scoped programmatic access to Superset."
 msgstr "Ključi API omogočajo omejeni programski dostop do Superset."
-
-msgid "APPLY"
-msgstr "UPORABI"
 
 msgid "APR"
 msgstr "APR"
@@ -1413,6 +1387,9 @@ msgstr "Dodaj potrebne parametre za predogled grafikona"
 msgid "Add required control values to save chart"
 msgstr "Dodaj potrebne parametre za shranjenje grafikona"
 
+msgid "Add service credentials"
+msgstr ""
+
 msgid "Add sheet"
 msgstr "Dodaj preglednico"
 
@@ -1487,6 +1464,12 @@ msgid ""
 msgstr ""
 "Doda barvo za simbole na grafikonu, glede na to ali je pozitivna ali "
 "negativna sprememba."
+
+msgid "Adhoc metric SQL expression is invalid"
+msgstr ""
+
+msgid "Adhoc metric aggregate is invalid"
+msgstr ""
 
 msgid "Adjust how this database will interact with SQL Lab."
 msgstr "Nastavite kako bo ta podatkovna baza delovala z SQL laboratorijem."
@@ -1973,6 +1956,10 @@ msgid "An error occurred while fetching function names."
 msgstr "Pri pridobivanju imen funkcij je prišlo do napake."
 
 #, python-format
+msgid "An error occurred while fetching row level security subject values: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching schema values: %s"
 msgstr "Pri pridobivanju vrednosti shem je prišlo do napake: %s"
 
@@ -2093,6 +2080,9 @@ msgstr ""
 msgid "An error occurred while syncing permissions for %s: %s"
 msgstr "Napaka pri pridobivanju informacij za %s: %s"
 
+msgid "An error occurred while triggering the report"
+msgstr ""
+
 #, fuzzy
 msgid "An error occurred while updating the extension."
 msgstr "Pri posodabljanju vrednosti je prišlo do težave."
@@ -2116,6 +2106,11 @@ msgstr "Prišlo je do nepričakovane napake"
 
 msgid "Anchor to"
 msgstr "Sidraj na"
+
+msgid ""
+"Angle at which the first slice begins, in degrees. 90° starts at the top,"
+" 0°/360° at the right, 270° at the bottom, and 180° at the left."
+msgstr ""
 
 msgid "Angle at which to end progress axis"
 msgstr "Kot, pri katerem se konča številčnica"
@@ -2381,6 +2376,9 @@ msgstr "Ali ste prepričani, da želite izbrisati izbrana pravila?"
 
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Ali ste prepričani, da želite izbrisati izbrane sloje?"
+
+msgid "Are you sure you want to delete the selected queries?"
+msgstr ""
 
 #, fuzzy
 msgid "Are you sure you want to delete the selected roles?"
@@ -2907,20 +2905,8 @@ msgstr "Po ključu: za razvrščanje uporabite imena vrstic"
 msgid "By value: use metric values as sorting key"
 msgstr "Po vrednosti: za razvrščanje uporabite vrednosti mere"
 
-msgid "CANCEL"
-msgstr "PREKINI"
-
 msgid "CC recipients"
 msgstr "V vednost (CC)"
-
-#, fuzzy
-msgid "COPY QUERY"
-msgstr "Kopiraj URL poizvedbe"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
-#, fuzzy
-msgid "Copy query"
-msgstr "Kopiraj poizvedbo"
 
 msgid "CREATE TABLE AS"
 msgstr "CREATE TABLE AS"
@@ -2996,10 +2982,6 @@ msgstr ""
 "CTAS (create table as select) lahko izvajate le v poizvedbah, kjer je "
 "zadnji stavek SELECT. Poskrbite, da bo zadnji stavek v vaši poizvedbi "
 "SELECT in poskusite ponovno zagnati poizvedbo."
-
-#, fuzzy
-msgid "CUSTOM"
-msgstr "Prilagojen"
 
 msgid ""
 "CVAS (create view as select) can only be run with a query with a single "
@@ -3096,6 +3078,20 @@ msgstr "Dostop do poizvedbe ni mogoč"
 
 msgid "Cannot delete a database that has datasets attached"
 msgstr "Podatkovne baze s povezanimi podatkovnimi viri ni mogoče izbrisati"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid ""
+"Cannot delete a database whose only remaining datasets are soft-deleted. "
+"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
+"permanently once a purge capability ships, or remove the underlying rows "
+"out-of-band, before deleting the database."
+msgstr ""
+"Ni mogoče izbrisati podatkovne baze, katere edine preostale podatkovne "
+"zbirke so mehko izbrisane. Obnovite jih (POST "
+"/api/v1/dataset/<uuid>/restore) in jih trajno izbrišite, ko bo na voljo "
+"funkcija čiščenja, ali odstranite temeljne vrstice zunaj pasu, preden "
+"izbrišete podatkovno bazo."
 
 #, fuzzy
 msgid "Cannot delete system themes"
@@ -3682,6 +3678,9 @@ msgstr "Počisti polja"
 msgid "Clear local theme"
 msgstr "Linearna barvna shema"
 
+msgid "Clear search"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -4253,6 +4252,9 @@ msgstr "Povezava neuspešna. Preverite nastavitve povezave"
 msgid "Connection failed, please check your connection settings."
 msgstr "Povezava neuspešna. Preverite nastavitve povezave."
 
+msgid "Connection looks good!"
+msgstr ""
+
 #, fuzzy
 msgid "Contains"
 msgstr "Zvezno"
@@ -4338,6 +4340,14 @@ msgstr "Kopiraj particijsko poizvedbo na odložišče"
 
 msgid "Copy permalink to clipboard"
 msgstr "Kopiraj povezavo v odložišče"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
+#, fuzzy
+msgid "Copy query"
+msgstr "Kopiraj poizvedbo"
+
+msgid "Copy query URL"
+msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Kopiraj povezavo do poizvedbe v odložišče"
@@ -4470,6 +4480,11 @@ msgstr "ustvarite nov grafikon"
 
 msgid "Create a new chart"
 msgstr "Ustvarite nov grafikon"
+
+msgid ""
+"Create a new tag and assign it to existing entities like charts or "
+"dashboards"
+msgstr ""
 
 #, fuzzy
 msgid "Create and explore dataset"
@@ -4798,6 +4813,11 @@ msgstr "Nadzorne plošče ni mogoče kopirati zaradi neveljavnih parametrov."
 msgid "Dashboard cannot be favorited."
 msgstr "Nadzorne plošče ni mogoče dodati med priljubljene."
 
+msgid ""
+"Dashboard cannot be restored because its slug is now used by another "
+"active dashboard. Rename one of the dashboards and retry."
+msgstr ""
+
 msgid "Dashboard cannot be unfavorited."
 msgstr "Nadzorne plošče ni mogoče odstraniti iz priljubljenih."
 
@@ -5062,6 +5082,18 @@ msgstr "Podatkovni set %(table)s že obstaja"
 
 msgid "Dataset Name"
 msgstr "Ime podatkovnega seta"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid ""
+"Dataset cannot be restored because another active dataset already "
+"references the same physical table (same database, catalog, schema, and "
+"table name). Delete the duplicate or rename the table before restoring."
+msgstr ""
+"Podatkovne zbirke ni mogoče obnoviti, ker druga aktivna podatkovna zbirka"
+" že sklicuje na isto fizično tabelo (ista podatkovna baza, katalog, shema"
+" in ime tabele). Izbrišite dvojnik ali preimenujte tabelo pred "
+"obnovitvijo."
 
 msgid "Dataset column delete failed."
 msgstr "Brisanje stolpca podatkovnega seta neuspešno."
@@ -5494,6 +5526,9 @@ msgstr "Izberite datoteko"
 msgid "Delete item"
 msgstr "Izbriši predlogo"
 
+msgid "Delete query"
+msgstr ""
+
 #, fuzzy
 msgid "Delete role"
 msgstr "Izberite datoteko"
@@ -5826,6 +5861,11 @@ msgstr "Ime za prikaz"
 msgid "Display all"
 msgstr "Prikaži vse"
 
+msgid ""
+"Display charts on a map. For using this plugin, users first have to "
+"create any other chart that can then be placed on the map."
+msgstr ""
+
 #, fuzzy
 msgid "Display column in the chart"
 msgstr "Prikaži vsoto na nivoju stolpca"
@@ -5981,9 +6021,6 @@ msgid "Download"
 msgstr "Prenesi"
 
 msgid "Download as Image"
-msgstr "Izvozi kot sliko"
-
-msgid "Download as image"
 msgstr "Izvozi kot sliko"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -6249,6 +6286,10 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "NAPAKA"
 
+#, python-format
+msgid "ERROR: %s"
+msgstr ""
+
 msgid "Edge length"
 msgstr "Dolžina povezave"
 
@@ -6343,6 +6384,9 @@ msgstr "Uredi pravilo"
 msgid "Edit properties"
 msgstr "Uredi lastnosti"
 
+msgid "Edit query"
+msgstr ""
+
 #, fuzzy
 msgid "Edit report"
 msgstr "Uredi poročilo"
@@ -6436,6 +6480,9 @@ msgstr "Zahtevana je vrednost"
 #, fuzzy
 msgid "Email link"
 msgstr "Podrobnosti"
+
+msgid "Email recipients"
+msgstr ""
 
 msgid "Email reports active"
 msgstr "E-poštna poročila aktivna"
@@ -6642,9 +6689,6 @@ msgstr "Vnesite primarne vpisne podatke"
 msgid "Enter a name for this sheet"
 msgstr "Vnesite ime te preglednice"
 
-msgid "Enter a new title for the tab"
-msgstr "Vnesite novo naslov zavihka"
-
 #, fuzzy
 msgid "Enter a part of the object name"
 msgstr "Če želite zapolniti objekte"
@@ -6725,6 +6769,9 @@ msgstr "Vnesite svoje prijavne podatke in geslo spodaj:"
 
 msgid "Entity"
 msgstr "Entiteta"
+
+msgid "Entries per page"
+msgstr ""
 
 msgid "Equal Date Sizes"
 msgstr "Enaki datumi"
@@ -7004,6 +7051,9 @@ msgstr "Naslov poročila"
 msgid "Export as Example"
 msgstr "Izvozi v Excel"
 
+msgid "Export as PDF"
+msgstr ""
+
 #, fuzzy
 msgid "Export cancelled"
 msgstr "Poročilo ni uspelo"
@@ -7023,11 +7073,17 @@ msgstr "Prenos slike ni uspel. Osvežite in poskusite ponovno."
 msgid "Export failed: %s"
 msgstr "Poročilo ni uspelo"
 
+msgid "Export query"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
 msgid "Export screenshot (jpeg)"
 msgstr "Izvozi posnetek zaslona (jpeg)"
+
+msgid "Export screenshot (png)"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Export successful: %s"
@@ -7067,6 +7123,17 @@ msgstr "Izvozi v izvorni .CSV"
 
 msgid "Export to pivoted .CSV"
 msgstr "Izvozi v vrtilni .CSV"
+
+#, python-format
+msgid ""
+"Exporting semantic views is not supported yet — %s semantic-view row(s) "
+"were skipped."
+msgstr ""
+
+msgid ""
+"Exporting semantic views is not supported yet. Deselect the semantic-view"
+" rows and try again."
+msgstr ""
 
 msgid "Expose database in SQL Lab"
 msgstr "Prikaži podatkovno bazo v SQL laboratoriju"
@@ -7139,15 +7206,6 @@ msgstr "Relief"
 msgid "FEB"
 msgstr "FEB"
 
-#, fuzzy
-msgid "FIT DATA"
-msgstr "Uredi podatkovni set"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
-#, fuzzy
-msgid "Fit data"
-msgstr "Prilagodi podatkom"
-
 msgid "FRI"
 msgstr "PET"
 
@@ -7193,6 +7251,11 @@ msgstr "Ustvarjanje poročila nesupešno"
 #, python-format
 msgid "Failed to execute %(query)s"
 msgstr "Neuspešno izvajanje %(query)s"
+
+msgid ""
+"Failed to export chart data. Please try again or contact your "
+"administrator."
+msgstr ""
 
 #, fuzzy
 msgid "Failed to fetch API keys"
@@ -7284,6 +7347,10 @@ msgstr "Rezultatov poizvedbe ni bilo mogoče shraniti. Poskusite znova."
 
 msgid "Failed to tag items"
 msgstr "Napaka pri označevanju elementov"
+
+#, python-format
+msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
+msgstr ""
 
 msgid "Failed to update report"
 msgstr "Posodabljanje poročila neuspešno"
@@ -7520,6 +7587,11 @@ msgstr "Zahtevano je ime"
 msgid "Fit columns dynamically"
 msgstr "Razvrsti stolpce po abecedi"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
+#, fuzzy
+msgid "Fit data"
+msgstr "Prilagodi podatkom"
+
 msgid ""
 "Fix the trend line to the full time range specified in case filtered "
 "results do not include the start or end dates"
@@ -7656,6 +7728,9 @@ msgstr "Prisili izbrano časovno zrnatost kot največji interval za oznake osi X
 msgid "Forecast periods"
 msgstr "Periode napovedi"
 
+msgid "Forecast requires at least 2 data points"
+msgstr ""
+
 msgid "Foreign key"
 msgstr "Tuji ključ"
 
@@ -7714,6 +7789,9 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "Oblikovan CSV pripet e-pošti"
+
+msgid "Formatted Excel attached in email"
+msgstr ""
 
 msgid "Formatted value"
 msgstr "Oblikovana vrednost"
@@ -8714,6 +8792,9 @@ msgstr "Oznaka za indeksni stolpec. Ne smete uporabiti obstoječega imena stolpc
 msgid "Label for your query"
 msgstr "Ime vaše poizvedbe"
 
+msgid "Label must not be empty."
+msgstr ""
+
 msgid "Label position"
 msgstr "Položaj oznake"
 
@@ -9030,6 +9111,9 @@ msgstr "Stolpec črt"
 
 msgid "Lines encoding"
 msgstr "Kodiranje črt"
+
+msgid "Link Copied!"
+msgstr ""
 
 #, fuzzy
 msgid "List"
@@ -10037,6 +10121,9 @@ msgstr ""
 "Ni podatkov po filtriranju ali pa imajo vrednost NULL za zadnji časovni "
 "zapis"
 
+msgid "No data found"
+msgstr ""
+
 msgid "No data in file"
 msgstr "V datoteki ni podatkov"
 
@@ -10459,6 +10546,10 @@ msgstr "Ena ali več mer je podvojenih"
 
 msgid "One or more metrics do not exist"
 msgstr "Ena ali več mer ne obstaja"
+
+#, python-format
+msgid "One or more parameters are missing: %(missing)s"
+msgstr ""
 
 msgid "One or more parameters needed to configure a database are missing."
 msgstr "En ali več parametrov, potrebnih za nastavitev podatkovne baze, manjka."
@@ -11165,6 +11256,13 @@ msgstr "Podajte ID podatkovnega seta za mero ``%(name)s`` v Jinja kodi."
 msgid "Please use 3 different metric labels"
 msgstr "Uporabite 3 različne nazive mer"
 
+msgid ""
+"Plot each time-shifted series across its full time range instead of "
+"truncating it to the main series. Useful for comparing a partial current "
+"period (e.g. today so far) against complete prior periods (e.g. all of "
+"yesterday)."
+msgstr ""
+
 msgid "Plot the distance (like flight paths) between origin and destination."
 msgstr "Izriši razdalje (kot letalske koridorje) med izhodiščem in ciljem."
 
@@ -11313,9 +11411,6 @@ msgstr "Oblika primarne y-osi"
 #, fuzzy
 msgid "Private"
 msgstr "Privatni ključ"
-
-msgid "Private Channels (Bot in channel)"
-msgstr "Zasebni kanali (Bot na kanalu)"
 
 msgid "Private Key"
 msgstr "Privatni ključ"
@@ -11637,16 +11732,11 @@ msgid "Regular"
 msgstr "Navaden"
 
 msgid ""
-"Regular filters add where clauses to queries if a user belongs to a role "
-"referenced in the filter, base filters apply filters to all queries "
-"except the roles defined in the filter, and can be used to define what "
-"users can see if no RLS filters within a filter group apply to them."
+"Regular filters add where clauses to queries if a user matches a subject "
+"referenced in the filter. Base filters apply filters to all queries "
+"except the subjects defined in the filter, and can be used to define what"
+" users can see if no RLS filters within a filter group apply to them."
 msgstr ""
-"Navadni filtri dodajo WHERE stavek v poizvedbe, če ima uporabnik vlogo "
-"podano v filtru. Osnovni filtri filtrirajo vse poizvedbe, razen vlog, "
-"definiranih v filtru, in jih je mogoče uporabiti za nastavitev tega kaj "
-"uporabnik vidi, če v skupini filtrov ni RLS-filtrov, ki bi se nanašali "
-"nanje."
 
 msgid "Relational"
 msgstr "Relacijsko"
@@ -11691,6 +11781,9 @@ msgstr "Odstrani medsebojne filtre"
 msgid "Remove customization"
 msgstr "Tip vizualizacije"
 
+msgid "Remove dependency"
+msgstr ""
+
 #, fuzzy
 msgid "Remove filter"
 msgstr "Odstrani element"
@@ -11698,8 +11791,14 @@ msgstr "Odstrani element"
 msgid "Remove item"
 msgstr "Odstrani element"
 
+msgid "Remove notification method"
+msgstr ""
+
 msgid "Remove query from log"
 msgstr "Odstrani poizvedbo iz dnevnika"
+
+msgid "Remove sheet"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -11748,6 +11847,9 @@ msgstr "Urnika poročanja ni mogoče posodobiti."
 msgid "Report Schedule delete failed."
 msgstr "Izbris urnika poročanja ni uspel."
 
+msgid "Report Schedule execute now failed."
+msgstr ""
+
 msgid "Report Schedule execution failed when generating a csv."
 msgstr "Izvajanje urnika poročanja je bilo neuspešno pri ustvarjanju csv."
 
@@ -11764,8 +11866,21 @@ msgstr ""
 "Izvajanje urnika poročanja je bilo neuspešno pri ustvarjanju zaslonske "
 "slike."
 
+msgid "Report Schedule execution failed when generating an Excel file."
+msgstr ""
+
 msgid "Report Schedule execution got an unexpected error."
 msgstr "Pri izvajanju urnika poročanja je prišlo do nepričakovane napake."
+
+msgid ""
+"Report Schedule execution requires a Celery backend to be configured. "
+"Please configure a Celery broker (Redis or RabbitMQ) and worker "
+"processes."
+msgstr ""
+
+#, python-format
+msgid "Report Schedule executor user %(username)s was not found."
+msgstr ""
 
 msgid "Report Schedule is still working, refusing to re-compute."
 msgstr "Urnik poročanja se še vedno izvaja, ponovni izračun je zavrnjen."
@@ -12471,15 +12586,14 @@ msgstr "Pomaknite se do dna, da omogočite prepis sprememb. "
 msgid "Search"
 msgstr "Iskanje"
 
-#, python-format
-msgid "Search %s records"
-msgstr "Išči %s zapisov"
-
 msgid "Search / Filter"
 msgstr "Iskanje / Filter"
 
 msgid "Search Metrics & Columns"
 msgstr "Iskanje mer in stolpcev"
+
+msgid "Search a channel by name, or paste a channel ID"
+msgstr ""
 
 msgid "Search all charts"
 msgstr "Išči vse grafikone"
@@ -12526,6 +12640,9 @@ msgstr "Iskanje v filtrih"
 msgid "Search metrics by key or label"
 msgstr "Iskanje mer in stolpcev"
 
+msgid "Search records"
+msgstr ""
+
 #, fuzzy
 msgid "Search tags"
 msgstr "Izberite oznake"
@@ -12535,6 +12652,9 @@ msgstr "Iskanje gledalcev"
 
 msgid "Search..."
 msgstr "Iskanje ..."
+
+msgid "Searches all text fields: Name, Description, Database & Schema"
+msgstr ""
 
 msgid "Second"
 msgstr "Sekunda"
@@ -12574,6 +12694,9 @@ msgstr "serije"
 #, python-format
 msgid "See all %(tableName)s"
 msgstr "Poglej vse %(tableName)s"
+
+msgid "See all dashboards"
+msgstr ""
 
 msgid "See less"
 msgstr "Oglejte si manj"
@@ -12880,6 +13003,12 @@ msgstr ""
 msgid "Select operator"
 msgstr "Izberite operator"
 
+msgid "Select or type BCC recipients"
+msgstr ""
+
+msgid "Select or type CC recipients"
+msgstr ""
+
 msgid "Select or type a custom value..."
 msgstr "Izberite ali vnesite poljubno vrednost..."
 
@@ -12888,6 +13017,9 @@ msgstr "Izberite ali vnesite simbol valute"
 
 msgid "Select or type dataset name"
 msgstr "Izberite ali vnesite ime podatkovnega seta"
+
+msgid "Select or type email recipients"
+msgstr ""
 
 #, fuzzy
 msgid "Select page size"
@@ -13168,6 +13300,9 @@ msgstr "Semantični pogledi"
 msgid "Send as CSV"
 msgstr "Pošlji kot CSV"
 
+msgid "Send as Excel"
+msgstr ""
+
 msgid "Send as PDF"
 msgstr "Pošlji kot PDF"
 
@@ -13420,6 +13555,9 @@ msgstr "Prikaži imena mer"
 msgid "Show Metric Names"
 msgstr "Prikaži imena mer"
 
+msgid "Show Null Values"
+msgstr ""
+
 msgid "Show Range Filter"
 msgstr "Prikaži filter obdobja"
 
@@ -13458,6 +13596,15 @@ msgid ""
 msgstr ""
 "Prikaz Y-osi na hitrem grafikonu. Če je nastavljena vrednost min/max, "
 "pokaže to, drugače pa glede na podatke."
+
+msgid "Show a draggable slider to control the visible range of the Y-axis."
+msgstr ""
+
+msgid ""
+"Show a summary row of total aggregations: the selected metrics in "
+"aggregate mode, or the sum of numeric columns in raw records mode. Note "
+"that row limit does not apply to the result."
+msgstr ""
 
 msgid "Show all columns"
 msgstr "Prikaži vse stolpce"
@@ -13498,6 +13645,9 @@ msgstr "Prikaži prazne stolpce"
 #, fuzzy
 msgid "Show entries per page"
 msgstr "Prikaži %s vnosov"
+
+msgid "Show full range for time shift"
+msgstr ""
 
 msgid ""
 "Show hierarchical relationships of data, with the value represented by "
@@ -13583,6 +13733,11 @@ msgstr ""
 #, fuzzy
 msgid "Show value"
 msgstr "Prikaži vrednost"
+
+msgid ""
+"Showcases a metric along with a comparison of value, change, and percent "
+"change for a selected time period."
+msgstr ""
 
 msgid ""
 "Showcases a single metric front-and-center. Big number is best used to "
@@ -13729,6 +13884,9 @@ msgstr ""
 msgid "Solid"
 msgstr "Zapolnjen"
 
+msgid "Solid background"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -13749,8 +13907,13 @@ msgstr ""
 "Nekateri zahtevani filtri na drugih zavihkih imajo vrednosti in ne bodo "
 "počiščeni"
 
-msgid "Some roles do not exist"
-msgstr "Nekatere vloge ne obstajajo"
+msgid "Some tables are not shown. Refine your search."
+msgstr ""
+
+msgid ""
+"Something went wrong loading the dashboard. Check the dev console for "
+"details."
+msgstr ""
 
 #, fuzzy
 msgid "Something went wrong while saving the user info"
@@ -14173,6 +14336,9 @@ msgstr "Delna vsota"
 msgid "Success"
 msgstr "Uspelo"
 
+msgid "Success message"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Successfully changed %s!"
 msgstr "Podatkovni set uspešno spremenjen!"
@@ -14238,6 +14404,9 @@ msgstr "Zamenjaj podatkovni set"
 
 msgid "Swap rows and columns"
 msgstr "Zamenjaj vrstice in stolpce"
+
+msgid "Sweep angle"
+msgstr ""
 
 msgid ""
 "Swiss army knife for visualizing data. Choose between step, line, "
@@ -14422,6 +14591,9 @@ msgstr "Oznake ni mogoče posodobiti."
 msgid "Tag created"
 msgstr "Oznaka ustvarjena"
 
+msgid "Tag description"
+msgstr ""
+
 msgid "Tag name"
 msgstr "Ime oznake"
 
@@ -14563,6 +14735,10 @@ msgstr "Poravnava besedila"
 msgid "Text embedded in email"
 msgstr "Besedilo vključeno v e-pošto"
 
+#, python-format
+msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "The %s"
 msgstr "Pridobljeno %s"
@@ -14678,6 +14854,19 @@ msgstr ""
 "Kategorija izvornih vozlišč, na podlagi katere je določena barva. Če je "
 "vozlišče povezano z več kot eno kategorijo, bo uporabljena samo prva."
 
+msgid ""
+"The chart data is too large to download. Please try reducing the date "
+"range, limiting rows, or using fewer columns."
+msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
+msgid "The chart is still loading. Please wait a moment and try again."
+msgstr ""
+"Grafikon se še vedno nalaga. Prosimo, počakajte trenutek in poskusite "
+"znova."
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
 msgid ""
@@ -14687,13 +14876,8 @@ msgstr ""
 "Grafikon, na katerega cilja to poročilo, je bil izbrisan. Obnovite "
 "grafikon ali posodobite poročilo, da kaže na aktivni grafikon."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
-msgid "The chart is still loading. Please wait a moment and try again."
+msgid "The chat failed to load."
 msgstr ""
-"Grafikon se še vedno nalaga. Prosimo, počakajte trenutek in poskusite "
-"znova."
 
 msgid ""
 "The classic. Great for showing how much of a company each investor gets, "
@@ -14792,6 +14976,9 @@ msgstr ""
 "Nadzorna plošča, na katero cilja to poročilo, je bila izbrisana. Obnovite"
 " nadzorno ploščo ali posodobite poročilo, da kaže na aktivno nadzorno "
 "ploščo."
+
+msgid "The dashboard you are looking for may have been deleted or moved."
+msgstr ""
 
 msgid "The data source seems to have been deleted"
 msgstr "Zdi se, da je bil podatkovni vir izbrisan"
@@ -15065,6 +15252,11 @@ msgstr ""
 msgid "The maximum value of metrics. It is an optional configuration"
 msgstr "Največja vrednost mere. To je opcijska nastavitev"
 
+msgid ""
+"The metadata_cache_timeout must be a mapping from string keys to non-"
+"negative integer values."
+msgstr ""
+
 #, python-format
 msgid ""
 "The metadata_params in Extra field is not configured correctly. The key "
@@ -15285,6 +15477,9 @@ msgstr ""
 
 msgid "The query contains one or more malformed template parameters."
 msgstr "Poizvedba vsebuje enega ali več parametrov predlog z napačno obliko."
+
+msgid "The query context datasource does not match the chart datasource"
+msgstr ""
 
 msgid "The query couldn't be loaded"
 msgstr "Poizvedbe ni mogoče naložiti"
@@ -15733,6 +15928,9 @@ msgstr "Napaka pri pridobivanju statusa \"Priljubljeno\": %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Napaka pri pridobivanju filtriranih grafikonov in nadzornih plošč:"
 
+msgid "There was an error generating the permalink."
+msgstr ""
+
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "Napaka pri nalaganju tabel"
@@ -15835,6 +16033,10 @@ msgid "There was an issue deleting the selected layers: %s"
 msgstr "Pri brisanju izbranih slojev je prišlo do težave: %s"
 
 #, python-format
+msgid "There was an issue deleting the selected queries: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr "Pri brisanju izbranih predlog je prišlo do težave: %s"
 
@@ -15869,6 +16071,9 @@ msgstr "Pri brisanju izbranih grafikonov je prišlo do težave: %s"
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Pri brisanju izbranih nadzornih plošč je prišlo do težave: "
+
+msgid "There was an issue exporting the selected queries"
+msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -16030,6 +16235,9 @@ msgid ""
 msgstr ""
 "Upravlja ali je polje časovne granulacije iz trenutnega pogleda lahko\n"
 "                  posredovano grafikonu, ki vsebuje podatke oznak slojev."
+
+msgid "This dashboard does not exist"
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
@@ -16441,8 +16649,8 @@ msgstr "Oblika zapisa časa"
 msgid "Time Grain"
 msgstr "Granulacija časa"
 
-msgid "Time Grain must be specified when using Time Shift."
-msgstr "Pri časovnem premiku mora biti definirana granulacija časa."
+msgid "Time Grain must be specified when using Time Comparison."
+msgstr ""
 
 msgid "Time Granularity"
 msgstr "Granulacija časa"
@@ -16744,6 +16952,13 @@ msgstr "Skupaj (%(aggfunc)s)"
 msgid "Total (%(aggregatorName)s)"
 msgstr "Skupaj (%(aggregatorName)s)"
 
+msgid ""
+"Total angle covered by the chart, in degrees. 360° draws a full circle "
+"and 180° draws a half donut. When the sweep is 180° or less and the start"
+" angle is a multiple of 90°, the chart is automatically re-centered to "
+"make use of the empty space."
+msgstr ""
+
 #, fuzzy
 msgid "Total color"
 msgstr "Barva točke"
@@ -16767,6 +16982,9 @@ msgstr "Prilagodljiv"
 
 msgid "Transparent"
 msgstr "Prozorno"
+
+msgid "Transparent background"
+msgstr ""
 
 msgid "Transpose pivot"
 msgstr "Transponirano vrtenje"
@@ -16794,6 +17012,9 @@ msgstr "Trikotnik"
 
 msgid "Trigger Alert If..."
 msgstr "Sproži opozorilo v primeru ..."
+
+msgid "Trigger now"
+msgstr ""
 
 #, fuzzy
 msgid "True"
@@ -16926,6 +17147,9 @@ msgstr "URL slug"
 msgid "URL parameters"
 msgstr "Parametri URL"
 
+msgid "UUID to track the execution status"
+msgstr ""
+
 msgid "Unable to calculate such a date delta"
 msgstr "Časovne razlike ni mogoče izračunati"
 
@@ -16993,6 +17217,10 @@ msgstr "Ni mogoče najti takšnega praznika: [%(holiday)s]"
 msgid "Unable to generate download payload"
 msgstr "Nadzorne plošče ni mogoče naložiti"
 
+#, python-format
+msgid "Unable to generate forecast: %(error)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -17003,6 +17231,12 @@ msgstr ""
 "Časovnega stolpca za primerjavo časovnih razponov ni mogoče "
 "identificirati. Prepričajte se, da ima vaš nabor podatkov pravilno "
 "konfiguriran časovni stolpec."
+
+#, python-format
+msgid ""
+"Unable to interpret the time offset: %(offset)s. Use a relative time such"
+" as \"1 month ago\"."
+msgstr ""
 
 msgid ""
 "Unable to load columns for the selected table. Please select a different "
@@ -18062,6 +18296,9 @@ msgstr "Če želite prikaz legende za grafikon"
 msgid "Whether to display bubbles on top of countries"
 msgstr "Če želite prikaz mehurčkov nad državami"
 
+msgid "Whether to display entries with null values in the hierarchy"
+msgstr ""
+
 #, fuzzy
 msgid "Whether to display in the chart"
 msgstr "Če želite prikaz legende za grafikon"
@@ -18191,8 +18428,10 @@ msgstr "Če želite padajoče ali naraščajoče razvrščanje"
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "Če želite padajoče razvrstiti rezultate z izbrano mero."
 
-msgid "Whether to sort tooltip by the selected metric in descending order."
-msgstr "Če želite padajoče razvrstiti opis orodja z izbrano mero."
+msgid ""
+"Whether to sort tooltip by the selected metric in descending order. On "
+"stacked charts, values are shown in ascending order."
+msgstr ""
 
 msgid "Whether to truncate metrics"
 msgstr "Če želite odstraniti naziv mere"
@@ -18355,6 +18594,9 @@ msgstr "Y-os"
 
 msgid "Y-axis bounds"
 msgstr "Meje Y-osi"
+
+msgid "Y-axis range slider"
+msgstr ""
 
 msgid "Y-scale interval"
 msgstr "Interval Y-osi"
@@ -18633,6 +18875,31 @@ msgstr ""
 "zahtevate spremembe ali dostop za urejanje."
 
 msgid ""
+"You must be a chart editor in order to delete. Please reach out to a "
+"chart editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a chart editor in order to edit. Please reach out to a chart "
+"editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dashboard editor in order to delete. Please reach out to a "
+"dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dashboard editor in order to edit. Please reach out to a "
+"dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dataset editor in order to delete. Please reach out to a "
+"dataset editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a dataset editor in order to edit. Please reach out to a "
 "dataset editor to request modifications or edit access."
 msgstr ""
@@ -18715,8 +18982,13 @@ msgstr "Grafikon je pripravljen!"
 msgid "Your dashboard is near the size limit."
 msgstr "Vaša nadzorna plošča se približuje omejitvi velikosti."
 
-msgid "Your dashboard is too large. Please reduce its size before saving it."
-msgstr "Vaša nadzorna plošča je prevelika. Pred shranjevanjem jo zmanjšajte."
+#, python-format
+msgid ""
+"Your dashboard is too large to save: the serialized layout length is %s "
+"but the limit is %s. Reduce the dashboard size (for example, split it "
+"into multiple dashboards) or raise the "
+"SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
+msgstr ""
 
 msgid "Your query could not be saved"
 msgstr "Vaše poizvedbe ni mogoče shraniti"
@@ -19226,10 +19498,6 @@ msgstr "Prazna vrstica"
 msgid "entries"
 msgstr "vnosi"
 
-#, fuzzy
-msgid "entries per page"
-msgstr "vnosi"
-
 msgid "error"
 msgstr "napaka"
 
@@ -19623,6 +19891,9 @@ msgstr "Potrebna je avtorizacija"
 msgid "quarter"
 msgstr "četrtletje"
 
+msgid "queries"
+msgstr ""
+
 msgid "query"
 msgstr "poizvedba"
 
@@ -19666,6 +19937,9 @@ msgstr ""
 
 msgid "seconds"
 msgstr "sekunde"
+
+msgid "semantic layer"
+msgstr ""
 
 msgid "series"
 msgstr "serije"

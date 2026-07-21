@@ -133,6 +133,7 @@ interface PivotSettings {
   maxColVisible?: number;
   rowAttrSpans?: number[][];
   colAttrSpans?: number[][];
+  visibleRowCount?: number;
 }
 
 const parseLabel = (value: unknown): string | number => {
@@ -804,6 +805,7 @@ export function TableRenderer(props: TableRendererProps) {
     maxColVisible: Math.max(...visibleColKeys.map((k: string[]) => k.length)),
     rowAttrSpans: calcAttrSpans(visibleRowKeys, rowAttrs.length),
     colAttrSpans: calcAttrSpans(visibleColKeys, colAttrs.length),
+    visibleRowCount: visibleRowKeys.length + (colTotals ? 1 : 0),
     allowRenderHtml,
     ...basePivotSettings,
   };
@@ -1228,6 +1230,7 @@ export function TableRenderer(props: TableRendererProps) {
         rowTotalCallbacks,
         namesMapping,
         allowRenderHtml: settingsAllowRenderHtml,
+        visibleRowCount,
       } = settings;
 
       const {
@@ -1264,6 +1267,11 @@ export function TableRenderer(props: TableRendererProps) {
         }
         const rowSpan = rowAttrSpans![rowIdx][i];
         if (rowSpan > 0) {
+          const isLastRow = rowIdx + rowSpan === visibleRowCount;
+          let cellClassName = valueCellClassName;
+          if (isLastRow) {
+            cellClassName += ' pvtRowLabelLast';
+          }
           const flatRowKeySlice = flatKey(rowKey.slice(0, i + 1));
           const colSpan =
             1 + (i === settingsRowAttrs.length - 1 ? colIncrSpan : 0);
@@ -1298,7 +1306,7 @@ export function TableRenderer(props: TableRendererProps) {
           return (
             <th
               key={`rowKeyLabel-${i}`}
-              className={valueCellClassName}
+              className={cellClassName}
               style={rowHeaderStyle}
               rowSpan={rowSpan}
               colSpan={colSpan}
