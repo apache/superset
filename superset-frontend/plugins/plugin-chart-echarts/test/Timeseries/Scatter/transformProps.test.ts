@@ -452,7 +452,7 @@ describe('Scatter Chart Orientation and Dot Size Metric', () => {
         minMarkerSize: 5,
         maxMarkerSize: 30,
         time_compare: ['1 week ago'],
-      },
+      } as EchartsTimeseriesFormData,
     });
 
     const transformedProps = transformProps(
