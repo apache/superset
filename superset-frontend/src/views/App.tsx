@@ -189,6 +189,7 @@ const AppContent = ({
         flex: 1;
         min-height: 0;
         overflow: hidden;
+        justify-content: center;
 
         /*
          * Splitter.Panel is not a flex container by default, so flex:1 on
@@ -233,7 +234,8 @@ const App = () => {
     () =>
       createHtmlPortalNode({
         attributes: {
-          style: 'display: flex; flex-direction: column; flex: 1 1 auto;',
+          style:
+            'display: flex; flex-direction: column; flex: 1 1 auto; height: 100%; min-height: 0;',
         },
       }),
     [],
