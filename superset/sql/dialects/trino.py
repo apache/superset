@@ -144,6 +144,31 @@ class Trino(SqlglotTrino):
                 return -1
             return 0
 
+        @staticmethod
+        def _starts_routine(
+            heads: list[TokenType],
+            paren_depth: int,
+        ) -> bool:
+            """
+            Determine whether a ``FUNCTION`` token at the end of ``heads``
+            (excluded from the list) begins a new routine specification:
+            ``CREATE FUNCTION``, ``CREATE OR REPLACE FUNCTION``, or an entry
+            in a ``WITH`` list, either right after ``WITH`` itself or after a
+            top-level comma separating it from a preceding CTE, e.g.
+            ``WITH cte AS (...), FUNCTION f() ...``.
+            """
+            if heads[:1] == [TokenType.CREATE]:
+                return heads in (
+                    [TokenType.CREATE],
+                    [TokenType.CREATE, TokenType.OR, TokenType.REPLACE],
+                )
+            if heads[:1] == [TokenType.WITH]:
+                return paren_depth == 0 and heads[-1] in (
+                    TokenType.WITH,
+                    TokenType.COMMA,
+                )
+            return False
+
         def _parse(
             self,
             parse_method: t.Callable[..., exp.Expression | None],
@@ -169,6 +194,7 @@ class Trino(SqlglotTrino):
             chunks: list[list[Token]] = [[]]
             routine_mode: bool = False
             depth: int = 0
+            paren_depth: int = 0
             prev_text: str = ""
 
             for i, token in enumerate(raw_tokens):
@@ -179,6 +205,7 @@ class Trino(SqlglotTrino):
                         chunks.append([])
                     routine_mode = False
                     depth = 0
+                    paren_depth = 0
                     prev_text = ""
                     continue
 
@@ -187,13 +214,14 @@ class Trino(SqlglotTrino):
 
                 if token.token_type == TokenType.FUNCTION and not routine_mode:
                     heads = [tok.token_type for tok in chunk[:-1]]
-                    routine_mode = heads in (
-                        [TokenType.WITH],
-                        [TokenType.CREATE],
-                        [TokenType.CREATE, TokenType.OR, TokenType.REPLACE],
-                    )
+                    routine_mode = self._starts_routine(heads, paren_depth)
                 elif routine_mode:
                     depth += self._block_depth_delta(raw_tokens, i, prev_text)
+
+                if token.token_type == TokenType.L_PAREN:
+                    paren_depth += 1
+                elif token.token_type == TokenType.R_PAREN:
+                    paren_depth -= 1
 
                 prev_text = token.text.upper()
 

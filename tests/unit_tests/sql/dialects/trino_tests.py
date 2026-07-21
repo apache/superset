@@ -165,6 +165,27 @@ def test_cte_named_function_still_works() -> None:
     assert statement.sql(dialect=Trino) == sql
 
 
+def test_inline_udf_after_regular_cte() -> None:
+    """
+    An inline UDF following a regular CTE in the same ``WITH`` clause must
+    still have its body's semicolons kept intact.
+    """
+    sql = """
+WITH cte AS (SELECT 1),
+FUNCTION meaning_of_life()
+  RETURNS tinyint
+  BEGIN
+    DECLARE a tinyint DEFAULT CAST(6 AS tinyint);
+    DECLARE b tinyint DEFAULT CAST(7 AS tinyint);
+    RETURN a * b;
+  END
+SELECT meaning_of_life()
+""".strip()
+    statements = sqlglot.parse(sql, dialect=Trino)
+    assert len(statements) == 1
+    assert len(list(statements[0].find_all(InlineUDF))) == 1
+
+
 def test_unbalanced_body_raises() -> None:
     """
     An unterminated routine body should raise a parse error.
