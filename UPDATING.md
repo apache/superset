@@ -24,6 +24,31 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Dashboard "Export Data to Excel" requires a Celery worker and S3 bucket
+
+A new dashboard action exports every chart's data to a single multi-sheet
+`.xlsx` asynchronously. It is disabled by default and turns on only when
+`EXCEL_EXPORT_S3_BUCKET` is set (the endpoint returns `501` otherwise). It also
+requires a running Celery worker and a configured SMTP transport, since the task
+emails the requesting user a pre-signed download link. New config keys:
+`EXCEL_EXPORT_S3_BUCKET`, `EXCEL_EXPORT_S3_KEY_PREFIX`,
+`EXCEL_EXPORT_LINK_TTL_SECONDS`, `EXCEL_EXPORT_S3_CLIENT_KWARGS`, and
+`EXCEL_EXPORT_TABLE_VIZ_TYPES`.
+
+The feature depends on `boto3`, which is **not** installed by default; install it
+with `pip install apache-superset[excel-export]`.
+
+A second mode, **Export Images to Excel**, embeds non-table charts as rendered
+images (which viz types stay tabular is controlled by
+`EXCEL_EXPORT_TABLE_VIZ_TYPES`). It renders through the headless webdriver, so the
+menu option only appears when the webdriver screenshot feature flags
+(`ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS`,
+`ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT`) are enabled.
+
+Deployments that override `CELERY_CONFIG` must add
+`"superset.tasks.export_dashboard_excel"` to their `imports` tuple, or the task
+will not register and exports will silently never run.
+
 ### SQL_QUERY_MUTATOR now honors MUTATE_AFTER_SPLIT in SQL Lab
 
 SQL Lab now applies `SQL_QUERY_MUTATOR` according to `MUTATE_AFTER_SPLIT`, matching the documented semantics and the chart/query path. This only affects deployments that define `SQL_QUERY_MUTATOR` in `superset_config.py`:
