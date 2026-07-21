@@ -816,3 +816,117 @@ async def test_dashboard_forbidden(mcp_server):
 
     assert data["permission_denied"] is True
     assert "permission" in data["error"]
+
+
+# ---------------------------------------------------------------------------
+# time_range validation (SC-114824)
+# ---------------------------------------------------------------------------
+
+
+class TestFilterTimeSpecTimeRangeValidation:
+    """FilterTimeSpec.default_time_range rejects values get_since_until()
+    would otherwise silently resolve to an unbounded, full-table range
+    (e.g. baking a dead default into a saved dashboard filter config).
+
+    See SC-114824: shared validator in
+    superset.mcp_service.common.time_range_validation.
+    """
+
+    def test_valid_relative_range_passes(self) -> None:
+        from superset.mcp_service.dashboard.schemas import FilterTimeSpec
+
+        spec = FilterTimeSpec.model_validate(
+            {
+                "filter_type": "filter_time",
+                "name": "Time Range",
+                "default_time_range": "Last week",
+            }
+        )
+        assert spec.default_time_range == "Last week"
+
+    def test_bracket_shorthand_normalizes(self) -> None:
+        from superset.mcp_service.dashboard.schemas import FilterTimeSpec
+
+        spec = FilterTimeSpec.model_validate(
+            {
+                "filter_type": "filter_time",
+                "name": "Time Range",
+                "default_time_range": "[year]",
+            }
+        )
+        assert spec.default_time_range == "Last year"
+
+    def test_omitted_default_passes(self) -> None:
+        from superset.mcp_service.dashboard.schemas import FilterTimeSpec
+
+        spec = FilterTimeSpec.model_validate(
+            {"filter_type": "filter_time", "name": "Time Range"}
+        )
+        assert spec.default_time_range is None
+
+    @pytest.mark.parametrize("bad_value", ["banana", "[year", "this month"])
+    def test_previously_silent_values_now_raise(self, bad_value: str) -> None:
+        from pydantic import ValidationError
+
+        from superset.mcp_service.dashboard.schemas import FilterTimeSpec
+
+        with pytest.raises(ValidationError, match="Unrecognized time_range"):
+            FilterTimeSpec.model_validate(
+                {
+                    "filter_type": "filter_time",
+                    "name": "Time Range",
+                    "default_time_range": bad_value,
+                }
+            )
+
+
+class TestNativeFilterUpdateSpecTimeRangeValidation:
+    """NativeFilterUpdateSpec.default_time_range gets the same guard."""
+
+    def test_valid_relative_range_passes(self) -> None:
+        from superset.mcp_service.dashboard.schemas import NativeFilterUpdateSpec
+
+        spec = NativeFilterUpdateSpec.model_validate(
+            {"id": "NATIVE_FILTER-1", "default_time_range": "Last month"}
+        )
+        assert spec.default_time_range == "Last month"
+
+    def test_previously_silent_value_now_raises(self) -> None:
+        from pydantic import ValidationError
+
+        from superset.mcp_service.dashboard.schemas import NativeFilterUpdateSpec
+
+        with pytest.raises(ValidationError, match="Unrecognized time_range"):
+            NativeFilterUpdateSpec.model_validate(
+                {"id": "NATIVE_FILTER-1", "default_time_range": "this week"}
+            )
+
+
+@pytest.mark.asyncio
+async def test_add_filter_time_rejects_unparseable_default(mcp_server):
+    """End-to-end: manage_native_filters must not persist a dead time
+    filter default into the dashboard's saved filter config.
+
+    Request-schema validation errors (like an unrecognized time_range)
+    happen at the MCP tool-call boundary, before the tool body runs, so
+    the client raises ToolError rather than returning a JSON error body.
+    """
+    from fastmcp.exceptions import ToolError
+
+    dashboard = _mock_dashboard(filters=[])
+
+    with patch(DAO_FIND_BY_ID, return_value=dashboard):
+        with pytest.raises(ToolError, match="Unrecognized time_range"):
+            await _call(
+                mcp_server,
+                {
+                    "dashboard_id": 1,
+                    "add": [
+                        {
+                            "filter_type": "filter_time",
+                            "name": "Time Range",
+                            "default_time_range": "this week",
+                        }
+                    ],
+                },
+            )

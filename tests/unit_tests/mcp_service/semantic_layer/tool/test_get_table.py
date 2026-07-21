@@ -526,3 +526,65 @@ async def test_get_table_builtin_time_range_without_configured_dttm_validation_e
     assert data["success"] is False
     assert data["error_type"] == "ValidationError"
     assert "no temporal column is configured" in data["message"]
+
+
+class TestGetTableTimeRangeValidation:
+    """GetTableRequest.time_range rejects values get_since_until() would
+    otherwise silently resolve to an unbounded, full-table range.
+
+    See SC-114824: shared validator in
+    superset.mcp_service.common.time_range_validation.
+    """
+
+    def test_valid_relative_range_passes(self) -> None:
+        from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+        req = GetTableRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "Last 30 days"}
+        )
+        assert req.time_range == "Last 30 days"
+
+    def test_iso_range_passes(self) -> None:
+        from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+        req = GetTableRequest.model_validate(
+            {
+                "dataset_id": 1,
+                "metrics": ["count"],
+                "time_range": "2003-01-01 : 2004-01-01",
+            }
+        )
+        assert req.time_range == "2003-01-01 : 2004-01-01"
+
+    def test_bracket_shorthand_normalizes(self) -> None:
+        from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+        req = GetTableRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "[quarter]"}
+        )
+        assert req.time_range == "Last quarter"
+
+    @pytest.mark.parametrize(
+        "bad_value",
+        ["banana", "this week", "this month", "last week", "yesterday", "[decade]"],
+    )
+    def test_previously_silent_values_now_raise(self, bad_value: str) -> None:
+        """Live testing against dataset 28 (cleaned_sales_data, 2823 rows)
+        showed these values returned the entire table with success: true
+        and empty warnings. They must now raise a ValidationError."""
+        from pydantic import ValidationError
+
+        from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+        with pytest.raises(ValidationError, match="Unrecognized time_range"):
+            GetTableRequest.model_validate(
+                {"dataset_id": 1, "metrics": ["count"], "time_range": bad_value}
+            )
+
+    def test_none_passes(self) -> None:
+        from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+        req = GetTableRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": None}
+        )
+        assert req.time_range is None
