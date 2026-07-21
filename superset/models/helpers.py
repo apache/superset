@@ -1948,8 +1948,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         offset, outer_to_dttm
                     )
 
-                    query_object_clone.inner_from_dttm = query_object_clone.from_dttm
-                    query_object_clone.inner_to_dttm = query_object_clone.to_dttm
+                    query_object_clone.inner_from_dttm = outer_from_dttm
+                    query_object_clone.inner_to_dttm = outer_to_dttm
 
                 x_axis_label = get_x_axis_label(query_object.columns)
                 query_object_clone.granularity = (

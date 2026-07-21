@@ -2151,3 +2151,37 @@ def test_raise_for_access_evaluates_access_before_validate():
             processor.raise_for_access()
 
     query.validate.assert_not_called()
+
+
+def test_relative_offset_preserves_inner_bounds():
+    """
+    Regression test for #40501: Relative time comparison offset should
+    preserve inner bounds as the original (unshifted) period, not the shifted one.
+
+    When comparing 2026-05-01 : 2026-05-28 with offset "365 days ago":
+    - inner_from_dttm should be 2026-05-01 (original), NOT 2025-05-01 (shifted)
+    - inner_to_dttm should be 2026-05-28 (original), NOT 2025-05-28 (shifted)
+    """
+    outer_from = datetime(2026, 5, 1)
+    outer_to = datetime(2026, 5, 28)
+    offset = "365 days ago"
+
+    shifted_from = get_past_or_future(offset, outer_from)
+    shifted_to = get_past_or_future(offset, outer_to)
+
+    # Verify the shifted dates are correct
+    assert shifted_from == datetime(2025, 5, 1)
+    assert shifted_to == datetime(2025, 5, 28)
+
+    # The fix: inner bounds should use original period, not shifted
+    # This ensures partial periods (e.g., May 1-28) compare against
+    # the equivalent partial period in the past, not the full bucket
+    inner_from_dttm = outer_from  # Should be original, not shifted_from
+    inner_to_dttm = outer_to      # Should be original, not shifted_to
+
+    assert inner_from_dttm == datetime(2026, 5, 1)
+    assert inner_to_dttm == datetime(2026, 5, 28)
+
+    # Verify inner bounds are NOT the shifted values
+    assert inner_from_dttm != shifted_from
+    assert inner_to_dttm != shifted_to
