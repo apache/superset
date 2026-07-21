@@ -3652,9 +3652,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                 if utils.is_adhoc_metric(col):
                     # add adhoc sort by column to columns_by_name if not exists
+                    # Pass the template processor so a SIMPLE adhoc metric that
+                    # references a calculated column has that column's Jinja
+                    # expression rendered, matching SELECT/WHERE/GROUP BY. This
+                    # is a no-op for the SQL expression type, whose
+                    # `sqlExpression` was already rendered above; `processed`
+                    # only guards that branch.
                     col = self.adhoc_metric_to_sqla(
                         col,
                         columns_by_name,
+                        template_processor=template_processor,
                         processed=True,
                     )
                     # use the existing instance, if possible
