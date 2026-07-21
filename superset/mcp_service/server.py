@@ -841,6 +841,21 @@ def _build_starlette_middleware(
     ]
 
 
+def _register_health_endpoint(mcp_instance: Any) -> None:
+    """
+    Register /health for load balancers and K8s probes.
+
+    The health_check MCP tool exists but is only reachable via the MCP
+    protocol, not httpGet probes.
+    """
+    from starlette.requests import Request
+    from starlette.responses import JSONResponse
+
+    @mcp_instance.custom_route("/health", methods=["GET"])
+    async def _health(_: Request) -> JSONResponse:
+        return JSONResponse({"status": "ok"})
+
+
 def run_server(
     host: str = "127.0.0.1",
     port: int = 5008,
@@ -917,6 +932,8 @@ def run_server(
             if size_guard_middleware:
                 search_name = tool_search_config.get("search_tool_name", "search_tools")
                 size_guard_middleware.excluded_tools.add(search_name)
+
+    _register_health_endpoint(mcp_instance)
 
     # Create EventStore for session management (Redis for multi-pod, None for in-memory)
     event_store = create_event_store(event_store_config)

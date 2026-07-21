@@ -24,6 +24,66 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Dashboard "Export Data to Excel" requires a Celery worker and S3 bucket
+
+A new dashboard action exports every chart's data to a single multi-sheet
+`.xlsx` asynchronously. It is disabled by default and turns on only when
+`EXCEL_EXPORT_S3_BUCKET` is set (the endpoint returns `501` otherwise). It also
+requires a running Celery worker and a configured SMTP transport, since the task
+emails the requesting user a pre-signed download link. New config keys:
+`EXCEL_EXPORT_S3_BUCKET`, `EXCEL_EXPORT_S3_KEY_PREFIX`,
+`EXCEL_EXPORT_LINK_TTL_SECONDS`, `EXCEL_EXPORT_S3_CLIENT_KWARGS`, and
+`EXCEL_EXPORT_TABLE_VIZ_TYPES`.
+
+The feature depends on `boto3`, which is **not** installed by default; install it
+with `pip install apache-superset[excel-export]`.
+
+A second mode, **Export Images to Excel**, embeds non-table charts as rendered
+images (which viz types stay tabular is controlled by
+`EXCEL_EXPORT_TABLE_VIZ_TYPES`). It renders through the headless webdriver, so the
+menu option only appears when the webdriver screenshot feature flags
+(`ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS`,
+`ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT`) are enabled.
+
+Deployments that override `CELERY_CONFIG` must add
+`"superset.tasks.export_dashboard_excel"` to their `imports` tuple, or the task
+will not register and exports will silently never run.
+
+### SQL_QUERY_MUTATOR now honors MUTATE_AFTER_SPLIT in SQL Lab
+
+SQL Lab now applies `SQL_QUERY_MUTATOR` according to `MUTATE_AFTER_SPLIT`, matching the documented semantics and the chart/query path. This only affects deployments that define `SQL_QUERY_MUTATOR` in `superset_config.py`:
+
+- With `MUTATE_AFTER_SPLIT = True`, the mutator previously never ran in SQL Lab; it now runs on each individual statement (including on engines like BigQuery and Kusto that execute multiple statements as one block, where each statement is mutated before the statements are joined).
+- With `MUTATE_AFTER_SPLIT = False` (the default), multi-statement SQL Lab queries previously applied the mutator to each statement separately; the mutator now runs once on the whole un-split query, as documented. Single-statement queries are unaffected.
+- With `MUTATE_AFTER_SPLIT = False` on engines that execute statements individually, the mutator's output is re-parsed to split it into statements. A mutator that emits SQL Superset's parser cannot parse will now fail with a clear parse error before execution, and one that strips a query down to nothing raises an invalid-SQL error instead of executing an empty query.
+
+### Python 3.10 support removed
+
+Python 3.10 is no longer supported. Superset now requires **Python 3.11 or higher**.
+Update your environment (virtualenv, Docker base image, CI configuration, etc.) to
+Python 3.11+ before upgrading. The `apache/superset-cache:3.10-slim-trixie` and
+`py310` Docker image variants are no longer published.
+
+### Removed deck.gl JavaScript tooltip/data-mutator controls and ENABLE_JAVASCRIPT_CONTROLS
+
+The `ENABLE_JAVASCRIPT_CONTROLS` feature flag and the deck.gl chart controls it gated
+(`js_tooltip`, `js_onclick_href`, `js_data_mutator`, and the GeoJSON layer's label/icon
+JavaScript-mode generators) have been removed. These controls let users write arbitrary
+JavaScript, sandboxed via Node's `vm` module, to customize deck.gl tooltips, click
+behavior, and data transforms; the flag defaulted off and the feature saw negligible use.
+
+The deck.gl "Extra data for JS" control (`js_columns`) has also been removed. It only
+ever existed to feed extra columns into the JavaScript controls above; deck.gl's
+built-in field-based tooltips and cross-filtering already pull in any columns they need
+via `tooltip_contents`/`cross_filter_column`, so this control had no remaining purpose.
+Any chart layer whose "Advanced" control panel section only contained this control no
+longer has an "Advanced" section.
+
+Any saved charts with these fields set will simply ignore them going forward and fall back
+to deck.gl's built-in field-based tooltips (`tooltip_contents`/`tooltip_template`) and
+native click/cross-filter behavior. No migration is required; the fields are dropped
+silently on next save.
+
 ### Owners, dashboard roles, and RLS roles replaced by Subjects
 
 Superset now uses subject-based access assignments for dashboards, charts, datasets,
@@ -112,6 +172,8 @@ in a later major version.
 
 - [41044](https://github.com/apache/superset/issues/41044): Removes the deprecated `AVOID_COLORS_COLLISION` feature flag (it defaulted to `True`). Color-collision avoidance is now permanently enabled; any config override setting it to `False` is ignored.
 
+- [41813](https://github.com/apache/superset/pull/41813): `redis` (the Python client, `redis-py`) is bumped from 5.3.1 to 8.0.1. redis-py 8 changes several connection defaults; Superset's own Redis-backed features (`GLOBAL_ASYNC_QUERIES_CACHE_BACKEND`, `DISTRIBUTED_COORDINATION_CONFIG`, and the MCP Redis store) explicitly pin the pre-upgrade behavior so this bump is a no-op for them: the wire protocol stays RESP2 (not the new RESP3 default, which requires Redis/Sentinel 6+ to speak `HELLO`) and there is still no socket timeout by default (redis-py 8 defaults to 5s, which could otherwise newly time out large cached payloads or slow networks). The no-timeout default can now be overridden via two new config keys, `CACHE_REDIS_SOCKET_TIMEOUT` / `CACHE_REDIS_SOCKET_CONNECT_TIMEOUT`, on any `CacheConfig` dict using `CACHE_TYPE: RedisCache` or `RedisSentinelCache`. Separately, redis-py 6+ changed the default for `ssl_check_hostname` from `False` to `True` for SSL connections using `ssl_cert_reqs="required"` (the default) — this is a security improvement, so it has **not** been reverted; deployments with `CACHE_REDIS_SSL=True` whose certificates lack a hostname matching the connection address should set `CACHE_REDIS_SSL_CERT_REQS="none"` (disables cert verification entirely, matching hostname-check bypass) or replace the certificate. General-purpose cache/results backends configured via `CACHE_CONFIG` / `DATA_CACHE_CONFIG` / `RESULTS_BACKEND` with `CACHE_TYPE: RedisCache` go through `flask-caching`'s own Redis backend (outside Superset's code) and are subject to the same new defaults; pass `socket_timeout` / `protocol` via `CACHE_OPTIONS` there if needed. Celery broker and result-backend connections (built by `kombu`, also outside Superset's code) keep their no-socket-timeout behavior (`kombu` passes `socket_timeout=None` explicitly) but do **not** pin the wire protocol, so they follow redis-py's RESP3 default — which requires a Redis server new enough to speak `HELLO` (Redis 6+). Deployments using a pre-6.0 Redis server (EOL) as a Celery broker should upgrade the server before taking this bump.
+
 - [39925](https://github.com/apache/superset/pull/39925): URL prefixing for `SUPERSET_APP_ROOT` subdirectory deployments is now handled automatically by helpers in `src/utils/navigationUtils` (`openInNewTab`, `redirect`, `getShareableUrl`, `<AppLink>`). Direct imports of `ensureAppRoot` / `makeUrl` from `src/utils/pathUtils` are forbidden outside `navigationUtils.ts` (enforced by a static-invariant test); contributors writing new code should use the focused helpers instead. No runtime behaviour change for existing callers — all 19 prior call sites have been migrated and four pre-existing double-prefix and missing-prefix bugs are fixed as part of the migration.
 
 - [39925](https://github.com/apache/superset/pull/39925): `SupersetClient.getUrl()` now strips a single leading application-root segment from the supplied `endpoint` before building the request URL, so a caller that accidentally pre-prefixes its endpoint (for example by wrapping it with `ensureAppRoot` before passing it to the client) no longer produces a doubled `/superset/superset/...` URL under subdirectory deployment. The strip is **single-pass** — a genuine `/superset/superset/<slug>` route is preserved, not collapsed — and **silent** (no console warning); the static-invariant test remains the primary signal for pre-prefixing at the call site, and this runtime strip is a safety net beneath it. Code that intentionally targeted a literal `/<app_root>/<app_root>/...` endpoint through `getUrl` (a configuration that has no legitimate use under the prefixing model) would have its first redundant segment removed.
@@ -192,6 +254,10 @@ helm upgrade <release-name> superset/superset
 
 Alternatively, perform a fresh install. This is a one-time migration; subsequent upgrades are unaffected.
 
+### Time-series tooltips follow the selected time grain
+
+Tooltips on the Time-series and Mixed Time-series ECharts plugins now respect the chart's time grain (and any dashboard-level time-grain override delivered via `extra_form_data`) when the tooltip time format is left on Adaptive formatting (the default). Tooltips read grain-appropriate labels such as `Jan 2021` (month), `2021 Q1` (quarter), `2021` (year), and weekly date ranges, becoming grain-aware like the x-axis, though the two are formatted independently and their labels may not always match exactly. Only a custom, explicitly-set tooltip time format (a d3 format string) is unaffected — that always wins over the grain.
+
 ### Pivot table First/Last aggregations follow data order
 
 The pivot table chart's `First` and `Last` aggregations now return the first and last value in data (query result) order, instead of effectively returning the minimum and maximum. Existing pivot tables that use these aggregations for totals/subtotals may show different values after upgrading. For deterministic results, ensure the underlying query has a stable sort order.
@@ -209,6 +275,12 @@ The `thumbnail_url` field has been removed from `GET /api/v1/dashboard/` list re
 ```
 
 The thumbnail endpoint redirects to the current digest URL regardless of whether the supplied digest is exact. If the image is not yet cached, that digest URL may return `202` and trigger async generation. Using `changed_on_utc` as the digest is sufficient for cache-busting purposes.
+
+### Dashboard import can overwrite related charts, datasets, and databases
+
+Re-importing an existing dashboard previously overwrote only the dashboard itself; its related charts, datasets, and databases were never updated (the importer hardcoded `overwrite=False` for them). They can now be overwritten as part of the import.
+
+A new `overwrite_all` form field controls this, and defaults to `false` everywhere, so existing behavior is preserved: passing `overwrite=true` alone still overwrites only the dashboard, exactly as before. To also overwrite the related charts, datasets, and databases on the `/api/v1/dashboard/import/` endpoint, pass `overwrite_all=true` explicitly. The import modal in the UI exposes this as an "also overwrite all assets" checkbox, and the CLI `superset import-dashboards` and the `ImportDashboardsCommand` likewise default `overwrite_all` to `false`.
 
 ### Tagging fix for `create_all`-bootstrapped schemas
 
@@ -234,6 +306,19 @@ A few save- and import-path internals change **unconditionally** (independent of
 - `UpdateDashboardCommand` runs its body under `no_autoflush`.
 
 These are behavior changes that take effect on upgrade regardless of `ENABLE_VERSIONING_CAPTURE`; no operator action is required.
+
+### Cross-entity version activity stream
+
+A read-only companion to the version-history endpoints: each entity type gains a `GET /api/v1/{chart,dashboard,dataset}/<uuid>/activity/` endpoint returning a chronological, access-filtered stream of edits — the entity's own edits plus, for charts and dashboards, transitive edits to related entities during their association windows. Datasets have no related layer in V2, so `include=related` returns an empty stream for a dataset and `include=all` reduces to the dataset's own edits.
+
+| Param | Type | Default | Purpose |
+|---|---|---|---|
+| `since` / `until` | ISO 8601 | — | Bound `issued_at` |
+| `include` | `self` \| `related` \| `all` | `all` | Own edits, related edits, or both |
+| `q` | string | — | Case-insensitive search over the full history, applied before pagination (so `count` reflects matches) |
+| `page` / `page_size` | integer | `0` / `25` | Pagination (`page_size` clamped to 200) |
+
+Authorization reuses the resource's `can_read` permission and per-object `raise_for_access`; related-entity rows are visibility-filtered to what the caller may see. The stream is empty unless version capture is on (`ENABLE_VERSIONING_CAPTURE`).
 
 ### Webhook alerts/reports block private/internal hosts by default
 
@@ -487,6 +572,12 @@ The partial-index replacement is dialect-dependent: PostgreSQL uses a native `WH
 
 **Importer behavior:** importing a dashboard YAML whose UUID matches an existing **soft-deleted** dashboard is treated as an implicit restore-with-update — **and this happens even when `overwrite` is not set**. This is a deliberate asymmetry with active rows: an active dashboard imported without `overwrite=true` is returned unchanged (the import never mutates it), but a soft-deleted UUID match is restored *and* has the upload's contents applied regardless of the `overwrite` argument, on the reasoning that re-importing a deleted dashboard's exact UUID is an explicit request to bring it back. The restore preserves the original PK and all pre-deletion relationship rows (`dashboard_slices` junctions, editor/viewer subjects, tags). Callers whose imports must never mutate existing state should treat bundles that may contain previously deleted UUIDs accordingly. The operation is permission-gated: it requires `can_write` and editorship of the deleted row (or admin) — non-editors get `ImportFailedError`, and callers without `can_write` get `ImportFailedError` instead of silently receiving the soft-deleted row.
 
+### Engine spec capability flag: `supports_offset`
+
+A new `BaseEngineSpec.supports_offset` attribute (default `True`) indicates whether a database engine supports the SQL `OFFSET` clause. Engines that do not support `OFFSET` — such as Elasticsearch SQL and OpenDistro — opt out by setting it to `False`, and Superset uses each engine's cursor API to paginate drill-to-detail samples instead of emitting `OFFSET`. Downstream forks maintaining custom engine specs may set the flag to `False` (and implement `fetch_data_with_cursor`) to avoid crashes when paginated drill-to-detail queries are run against engines without `OFFSET` support.
+
+**Note on deep-pagination cost:** Cursor-based engines (including Elasticsearch and OpenDistro) are forward-only, so reaching page `N` of a drill-to-detail view issues `N` round trips to the cluster. Deep pagination is therefore linear in page number; users paginating into the hundreds or thousands will notice added latency compared to `OFFSET`-capable engines.
+
 ### Granular Export Controls
 
 A new feature flag `GRANULAR_EXPORT_CONTROLS` introduces three fine-grained permissions that replace the legacy `can_csv` permission:
@@ -731,6 +822,7 @@ See `superset/mcp_service/PRODUCTION.md` for deployment guides.
 
 ---
 
+- [38358](https://github.com/apache/superset/pull/38358): Switched CrateDB PyPI package from `crate[sqlalchemy]` to `sqlalchemy-cratedb`.
 - [35621](https://github.com/apache/superset/pull/35621): The default hash algorithm has changed from MD5 to SHA-256 for improved security and FedRAMP compliance. This affects cache keys for thumbnails, dashboard digests, chart digests, and filter option names. Existing cached data will be invalidated upon upgrade. To opt out of this change and maintain backward compatibility, set `HASH_ALGORITHM = "md5"` in your `superset_config.py`.
 - [35062](https://github.com/apache/superset/pull/35062): Changed the function signature of `setupExtensions` to `setupCodeOverrides` with options as arguments.
 

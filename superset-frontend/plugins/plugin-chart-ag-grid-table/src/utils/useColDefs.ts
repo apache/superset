@@ -18,7 +18,12 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { ColDef } from '@superset-ui/core/components/ThemedAgGridReact';
+import {
+  ColDef,
+  ValueFormatterParams,
+  ValueGetterParams,
+  CellClassParams,
+} from '@superset-ui/core/components/ThemedAgGridReact';
 import { useCallback, useMemo } from 'react';
 import { DataRecordValue, JsonObject } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -289,9 +294,9 @@ export const useColDefs = ({
         field: colId,
         headerName: getHeaderLabel(col),
         headerTooltip: col.description,
-        valueFormatter: p => valueFormatter(p, col),
-        valueGetter: p => valueGetter(p, col),
-        cellStyle: p => {
+        valueFormatter: (p: ValueFormatterParams) => valueFormatter(p, col),
+        valueGetter: (p: ValueGetterParams) => valueGetter(p, col),
+        cellStyle: (p: CellClassParams) => {
           const cellSurfaceColor =
             p.node?.rowPinned != null
               ? theme.colorBgBase
@@ -315,7 +320,7 @@ export const useColDefs = ({
 
           return getCellStyle(cellStyleParams);
         },
-        cellClass: p =>
+        cellClass: (p: CellClassParams) =>
           getCellClass({
             ...p,
             col,
@@ -477,7 +482,7 @@ export const useColDefs = ({
       headerName: t('№'),
       headerClass: 'ag-header-center',
       field: ROW_NUMBER_COL_ID,
-      valueGetter: params => {
+      valueGetter: (params: ValueGetterParams) => {
         if (params.node?.rowPinned != null) return '';
         if (serverPagination && serverPaginationData) {
           return currentPage * pageSize + (params.node?.rowIndex ?? 0) + 1;

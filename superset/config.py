@@ -25,6 +25,7 @@ at the end of this file.
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import logging
@@ -936,9 +937,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable drill-to-detail functionality in charts
     # @lifecycle: deprecated
     "DRILL_TO_DETAIL": True,
-    # Allow JavaScript in chart controls. WARNING: XSS security vulnerability!
-    # @lifecycle: deprecated
-    "ENABLE_JAVASCRIPT_CONTROLS": False,
 }
 
 # ------------------------------
@@ -1372,6 +1370,42 @@ EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
     "CODEC": JsonKeyValueCodec(),
 }
 
+# Extension Tier 2: Ephemeral State - Server-side cache with TTL.
+# Short-lived KV storage that automatically expires. Not guaranteed to
+# survive server restarts. Use for temporary state like job progress,
+# intermediate results, or cross-request state. Can be replaced by any
+# `Flask-Caching` backend (e.g. RedisCache for production).
+EXTENSIONS_EPHEMERAL_STORAGE: CacheConfig = {
+    "CACHE_TYPE": "SupersetMetastoreCache",
+    # Maximum TTL (in seconds) that clients may request. Requests exceeding
+    # this value are rejected. Defaults to 7 days.
+    "MAX_TTL": int(timedelta(days=7).total_seconds()),
+    # Maximum size (in bytes) of a single stored value. Requests exceeding
+    # this value are rejected. Defaults to 100 KB.
+    "MAX_VALUE_SIZE": 100 * 1024,
+    # The following parameter only applies to `MetastoreCache`:
+    # How should entries be serialized/deserialized?
+    "CODEC": JsonKeyValueCodec(),
+}
+
+# Extension Tier 3: Persistent State - Database storage.
+# Durable KV storage backed by a dedicated database table (`extension_storage`).
+# Survives server restarts, cache evictions, and browser clears.
+EXTENSIONS_PERSISTENT_STORAGE: dict[str, Any] = {
+    # Maximum storage quota per extension in bytes (default: 100 MB)
+    "QUOTA_PER_EXTENSION": 100 * 1024 * 1024,
+    # Maximum size (in bytes) of a single stored value. Requests exceeding
+    # this value are rejected. Defaults to 1 MB.
+    "MAX_VALUE_SIZE": 1024 * 1024,
+    # Maximum combined value size (in bytes) that a single `list()` page may
+    # return. Requests whose page would exceed this are rejected rather than
+    # silently truncated. Defaults to 10 MB.
+    # NOTE: this response is consumed as JSON by the browser (REST API and
+    # frontend SDK), not just backend code — raising this substantially
+    # above the default risks client-side memory/parse-time issues.
+    "MAX_LIST_PAYLOAD_SIZE": 10 * 1024 * 1024,
+}
+
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
 STORE_CACHE_KEYS_IN_METADATA_DB = False
 
@@ -1441,6 +1475,27 @@ CSV_STREAMING_ROW_THRESHOLD = 100000
 # method.
 # note: index option should not be overridden
 EXCEL_EXPORT: dict[str, Any] = {}
+
+# ---------------------------------------------------
+# Dashboard "Export Data to Excel" (async, S3-backed)
+# ---------------------------------------------------
+# Destination S3 bucket for generated dashboard .xlsx exports. The feature is
+# disabled until this is set: the export endpoint returns 501 when it is None.
+EXCEL_EXPORT_S3_BUCKET: str | None = None
+# Key prefix for export objects: {prefix}{dashboard_id}/{job_id}.xlsx
+EXCEL_EXPORT_S3_KEY_PREFIX = "dashboard-exports/"
+# Lifetime (seconds) of the pre-signed download URL emailed to the user (24h).
+# Note: AWS S3 caps pre-signed URL lifetime at 7 days (604800 seconds); larger
+# values are rejected by S3, so keep this at or below that when using AWS.
+EXCEL_EXPORT_LINK_TTL_SECONDS = 86400
+# Extra kwargs passed to boto3.client("s3", ...) — e.g. region_name, or an
+# endpoint_url for S3-compatible stores (MinIO/LocalStack). Credentials
+# otherwise resolve through the standard boto3 chain.
+EXCEL_EXPORT_S3_CLIENT_KWARGS: dict[str, Any] = {}
+# Viz types treated as tables in the "Export Images to Excel" mode: these charts
+# stay tabular (one worksheet of data) while every other viz type is embedded as
+# a rendered image. Set to None to fall back to the built-in default.
+EXCEL_EXPORT_TABLE_VIZ_TYPES: set[str] | None = None
 
 # ---------------------------------------------------
 # Time grain configurations
@@ -1634,6 +1689,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "superset.tasks.thumbnails",
         "superset.tasks.cache",
         "superset.tasks.slack",
+        "superset.tasks.export_dashboard_excel",
     )
     result_backend = "db+sqlite:///celery_results.sqlite"
     worker_prefetch_multiplier = 1
@@ -2221,6 +2277,9 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument  # noqa: 
 # An example use case is if data has role based access controls, and you want to apply
 # a SET ROLE statement alongside every user query. Changing this variable maintains
 # functionality for both the SQL_Lab and Charts.
+# This applies consistently in SQL Lab: with MUTATE_AFTER_SPLIT = True the mutator runs
+# on each individual statement, and with MUTATE_AFTER_SPLIT = False it runs once on the
+# un-split query block.
 MUTATE_AFTER_SPLIT = False
 
 
@@ -3041,20 +3100,50 @@ TASKS_ABORT_CHANNEL_PREFIX = "gtf:abort:"
 # -------------------------------------------------------------------
 # Don't add config values below this line since local configs won't be
 # able to override them.
+
+
+def _config_fingerprint(source: bytes | None) -> str:
+    """
+    A short digest of the config file's bytes, as read at import time.
+
+    Auto-reloaders (e.g. werkzeug's) re-import this module when the config
+    file changes, and on some filesystems (notably macOS Docker mounts) the
+    re-read can race the write and observe stale content while still
+    "loading successfully". Logging the digest of the exact bytes that were
+    executed (rather than reopening the file afterward, which can observe
+    different bytes than the ones that were actually loaded) makes that skew
+    diagnosable: compare it against ``md5 <path>`` on the host.
+    """
+    if source is None:
+        return "unreadable"
+    return hashlib.md5(source).hexdigest()[:12]  # noqa: S324
+
+
 if CONFIG_PATH_ENV_VAR in os.environ:
     # Explicitly import config module that is not necessarily in pythonpath; useful
     # for case where app is being executed via pex.
     cfg_path = os.environ[CONFIG_PATH_ENV_VAR]
     try:
         module = sys.modules[__name__]
+        with open(cfg_path, "rb") as fh:
+            config_source = fh.read()
         spec = importlib.util.spec_from_file_location("superset_config", cfg_path)
         override_conf = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(override_conf)
+        # Execute the exact bytes that were just read, rather than letting the
+        # loader re-read the file, so the fingerprint below always matches
+        # what was actually loaded into `override_conf`.
+        exec(  # noqa: S102
+            compile(config_source, cfg_path, "exec"), override_conf.__dict__
+        )
         for key in dir(override_conf):
             if key.isupper():
                 setattr(module, key, getattr(override_conf, key))
 
-        click.secho(f"Loaded your LOCAL configuration at [{cfg_path}]", fg="cyan")
+        click.secho(
+            f"Loaded your LOCAL configuration at [{cfg_path}] "
+            f"(md5:{_config_fingerprint(config_source)})",
+            fg="cyan",
+        )
     except Exception:
         logger.exception(
             "Failed to import config for %s=%s", CONFIG_PATH_ENV_VAR, cfg_path
@@ -3066,8 +3155,15 @@ elif importlib.util.find_spec("superset_config"):
         import superset_config
         from superset_config import *  # noqa: F403, F401
 
+        try:
+            with open(superset_config.__file__, "rb") as fh:
+                config_source = fh.read()
+        except OSError:
+            config_source = None
+
         click.secho(
-            f"Loaded your LOCAL configuration at [{superset_config.__file__}]",
+            f"Loaded your LOCAL configuration at [{superset_config.__file__}] "
+            f"(md5:{_config_fingerprint(config_source)})",
             fg="cyan",
         )
     except Exception:

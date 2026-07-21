@@ -52,7 +52,7 @@ Everything you need to contribute to the Apache Superset project. This section i
 ## Development Resources
 
 ### Prerequisites
-- **Python**: 3.9, 3.10, or 3.11
+- **Python**: 3.11 or 3.12
 - **Node.js**: 18.x or 20.x
 - **npm**: 9.x or 10.x
 - **Git**: Basic understanding
