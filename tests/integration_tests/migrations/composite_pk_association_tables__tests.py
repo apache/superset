@@ -55,7 +55,7 @@ def post_upgrade_engine() -> sa.engine.Engine:
     NULLs — with ``nullable=False`` here, ``test_fk_columns_not_null``
     would pass trivially rather than because the migration promoted
     anything."""
-    engine = sa.create_engine("sqlite:///:memory:")
+    engine = sa.create_engine("sqlite:///:memory:", future=True)
     md = sa.MetaData()
     for t in AFFECTED_TABLES:
         nullable = t.name in TABLES_WITH_NULLABLE_FKS
