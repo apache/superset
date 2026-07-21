@@ -47,24 +47,34 @@ import { TIMEOUT } from '../../utils/constants';
 import { DashboardPage } from '../../pages/DashboardPage';
 
 const DATASET_NAME = 'birth_names';
+const ECHARTS_SERIES_COLOR: [number, number, number] = [31, 168, 201];
 
 type ChartOutput = 'big-number' | 'table' | 'echarts';
 type CreatedChart = DashboardLayoutChart & { output: ChartOutput };
 
-async function canvasHasPaintedPixels(canvas: Locator): Promise<boolean> {
-  return canvas.evaluate((element: HTMLCanvasElement) => {
+async function canvasColorPixelCount(
+  canvas: Locator,
+  target: [number, number, number],
+): Promise<number> {
+  return canvas.evaluate((element: HTMLCanvasElement, [red, green, blue]) => {
     const context = element.getContext('2d');
     if (!context || element.width === 0 || element.height === 0) {
-      return false;
+      return 0;
     }
     const pixels = context.getImageData(0, 0, element.width, element.height);
-    for (let index = 3; index < pixels.data.length; index += 4) {
-      if (pixels.data[index] !== 0) {
-        return true;
+    let count = 0;
+    for (let index = 0; index < pixels.data.length; index += 4) {
+      if (
+        pixels.data[index + 3] >= 200 &&
+        Math.abs(pixels.data[index] - red) < 12 &&
+        Math.abs(pixels.data[index + 1] - green) < 12 &&
+        Math.abs(pixels.data[index + 2] - blue) < 12
+      ) {
+        count += 1;
       }
     }
-    return false;
-  });
+    return count;
+  }, target);
 }
 
 async function expectChartOutput(
@@ -89,11 +99,11 @@ async function expectChartOutput(
   const canvas = chart.locator('canvas').first();
   await expect(canvas).toBeVisible();
   await expect
-    .poll(() => canvasHasPaintedPixels(canvas), {
+    .poll(() => canvasColorPixelCount(canvas, ECHARTS_SERIES_COLOR), {
       timeout: TIMEOUT.API_RESPONSE * 2,
-      message: 'ECharts canvas should contain painted pixels',
+      message: 'ECharts canvas should paint the configured data series',
     })
-    .toBe(true);
+    .toBeGreaterThan(20);
 }
 
 testWithAssets(
@@ -143,6 +153,9 @@ testWithAssets(
           metrics: ['count'],
           groupby: [],
           row_limit: 100,
+          color_scheme: 'supersetColors',
+          markerEnabled: true,
+          show_legend: false,
         },
       },
     ];
@@ -175,6 +188,7 @@ testWithAssets(
       dashboard_title: `load_smoke_${uniqueSuffix}`,
       published: true,
       position_json: JSON.stringify(positionJson),
+      json_metadata: JSON.stringify({ color_scheme: 'supersetColors' }),
     });
     expect(dashResp.ok()).toBe(true);
     const dashboardId = await extractIdFromResponse(dashResp);
