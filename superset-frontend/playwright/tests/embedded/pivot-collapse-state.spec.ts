@@ -38,6 +38,14 @@
  *
  * NOTE: the embedded suite only runs when the embedded SDK bundle is built and
  * INCLUDE_EMBEDDED=true (CI sets both). It is skipped otherwise.
+ *
+ * NOTE: the embedded project runs with admin storageState, and the session
+ * cookie the iframe ends up with is racy: the /embedded/<uuid> response
+ * rotates it to an anonymous session while the SDK's parallel csrf and
+ * guest-token fetches rewrite the admin one, so chart data requests are
+ * evaluated as either admin or guest depending on which response lands last.
+ * Fixture charts must therefore hold up under GUEST evaluation — see the
+ * query_context note below — or the suite only passes when admin wins.
  */
 import { test, expect, Browser, BrowserContext, Page } from '@playwright/test';
 import { createServer, IncomingMessage, ServerResponse, Server } from 'http';
