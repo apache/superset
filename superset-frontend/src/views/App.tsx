@@ -225,7 +225,19 @@ const AppContent = ({
 };
 
 const App = () => {
-  const layoutPortalNode = useMemo(() => createHtmlPortalNode(), []);
+  // OutPortal renders this node's bare DOM element in place of <RouteSwitch />.
+  // Pages (e.g. SqlLab) rely on `flex: 1 1 auto` to stretch inside
+  // Layout.Content, which only works if their direct parent is a flex
+  // container; without this the portal's unstyled div collapses to 0 height.
+  const layoutPortalNode = useMemo(
+    () =>
+      createHtmlPortalNode({
+        attributes: {
+          style: 'display: flex; flex-direction: column; flex: 1 1 auto;',
+        },
+      }),
+    [],
+  );
 
   return (
     <Router basename={applicationRoot()}>
