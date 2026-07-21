@@ -31,6 +31,7 @@ from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
 from superset.models.sql_lab import Query
+from superset.sql.dialects.postgres import normalize_date_trunc_units
 from superset.sql.parse import Table
 from superset.utils import json
 
@@ -81,6 +82,11 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     engine_name = "Amazon Redshift"
     max_column_name_length = 127
     default_driver = "psycopg2"
+
+    @classmethod
+    def normalize_custom_sql_metric(cls, expression: str) -> str:
+        """Canonicalize DATE_TRUNC units to match generated time grains."""
+        return normalize_date_trunc_units(expression)
 
     sqlalchemy_uri_placeholder = (
         "redshift+psycopg2://user:password@host:port/dbname[?key=value&key=value...]"

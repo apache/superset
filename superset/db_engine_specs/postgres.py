@@ -40,6 +40,7 @@ from superset.db_engine_specs.base import (
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.sql_lab import Query
+from superset.sql.dialects.postgres import normalize_date_trunc_units
 from superset.sql.parse import process_jinja_sql
 from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType, QuerySource
@@ -48,7 +49,6 @@ if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
 
 logger = logging.getLogger()
-
 
 # Regular expressions to catch custom errors
 CONNECTION_INVALID_USERNAME_REGEX = re.compile(
@@ -274,6 +274,11 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     engine = "postgresql"
     engine_name = "PostgreSQL"
     engine_aliases = {"postgres"}
+
+    @classmethod
+    def normalize_custom_sql_metric(cls, expression: str) -> str:
+        """Canonicalize DATE_TRUNC units to match generated time grains."""
+        return normalize_date_trunc_units(expression)
 
     supports_dynamic_schema = True
     supports_catalog = True

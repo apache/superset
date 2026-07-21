@@ -41,6 +41,72 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
 @pytest.mark.parametrize(
+    "unit",
+    [
+        "SECOND",
+        "MINUTE",
+        "HOUR",
+        "DAY",
+        "WEEK",
+        "MONTH",
+        "QUARTER",
+        "YEAR",
+        "quarter",
+        "QuArTeR",
+    ],
+)
+def test_normalize_custom_sql_metric_date_trunc_unit(unit: str) -> None:
+    """DATE_TRUNC unit casing matches PostgreSQL time-grain templates."""
+    expression: str = (
+        f"CASE WHEN DATE_TRUNC('{unit}', created_at) = '2024-01-01' "
+        "THEN COUNT(*) / 1000 END"
+    )
+
+    assert spec.normalize_custom_sql_metric(expression) == (
+        f"CASE WHEN DATE_TRUNC('{unit.lower()}', created_at) = '2024-01-01' "
+        "THEN COUNT(*) / 1000 END"
+    )
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "'QUARTER'",
+        "OTHER_DATE_TRUNC('QUARTER', created_at)",
+        "custom.DATE_TRUNC('QUARTER', created_at)",
+        "DATE_TRUNC(grain, created_at)",
+        "DATE_TRUNC('FISCAL_QUARTER', created_at)",
+        'DATE_TRUNC("QUARTER", created_at)',
+        "'DATE_TRUNC(''QUARTER'', created_at)'",
+    ],
+)
+def test_normalize_custom_sql_metric_does_not_rewrite_unrelated_sql(
+    expression: str,
+) -> None:
+    assert spec.normalize_custom_sql_metric(expression) == expression
+
+
+def test_normalize_custom_sql_metric_preserves_source_around_multiple_calls() -> None:
+    expression: str = (
+        "/* lead */ CASE WHEN DATE_TRUNC('QUARTER', created_at) = start_date\n"
+        "THEN DATE_TRUNC('MONTH', created_at) END /* tail */"
+    )
+
+    assert spec.normalize_custom_sql_metric(expression) == (
+        "/* lead */ CASE WHEN DATE_TRUNC('quarter', created_at) = start_date\n"
+        "THEN DATE_TRUNC('month', created_at) END /* tail */"
+    )
+
+
+def test_normalize_custom_sql_metric_normalizes_pg_catalog_date_trunc() -> None:
+    expression: str = "pg_catalog.DATE_TRUNC('QUARTER', created_at)"
+
+    assert spec.normalize_custom_sql_metric(expression) == (
+        "pg_catalog.DATE_TRUNC('quarter', created_at)"
+    )
+
+
+@pytest.mark.parametrize(
     "target_type,expected_result",
     [
         ("Date", "TO_DATE('2019-01-02', 'YYYY-MM-DD')"),

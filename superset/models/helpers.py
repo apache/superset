@@ -106,6 +106,7 @@ from superset.exceptions import (
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
+from superset.sql.metric_normalization import normalize_custom_metric
 from superset.sql.parse import sanitize_clause, SQLScript, SQLStatement
 from superset.superset_typing import (
     AdhocColumn,
@@ -783,6 +784,15 @@ class AuditMixinNullable(AuditMixin):
 _NO_BYPASS: frozenset[type] = frozenset()
 
 
+@dataclasses.dataclass(frozen=True)
+class SqlExpressionContext:
+    """Database context required to validate and render a SQL expression."""
+
+    engine: str
+    schema: str
+    template_processor: BaseTemplateProcessor | None
+
+
 class SoftDeleteMixin:
     """Mixin that adds soft-delete support to a SQLAlchemy model.
 
@@ -1310,28 +1320,70 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         return self._denylist_default_schema
 
-    def _process_sql_expression(  # pylint: disable=too-many-arguments
+    def _process_sql_expression(
         self,
         expression: Optional[str],
-        database_id: int,
-        engine: str,
-        schema: str,
-        template_processor: Optional[BaseTemplateProcessor],
+        context: SqlExpressionContext,
     ) -> Optional[str]:
-        if template_processor and expression:
-            expression = template_processor.process_template(expression)
+        return self._process_validated_sql_expression(expression, context)
+
+    def _process_metric_sql_expression(
+        self,
+        expression: Optional[str],
+        context: SqlExpressionContext,
+    ) -> Optional[str]:
+        if context.template_processor and expression:
+            expression = context.template_processor.process_template(expression)
+        if not expression:
+            return expression
+
+        expression = validate_adhoc_subquery(
+            expression,
+            self.database,
+            self.catalog,
+            context.schema,
+            context.engine,
+        )
+        normalized_metric = normalize_custom_metric(
+            expression,
+            context.engine,
+            self.database.db_engine_spec.normalize_custom_sql_metric,
+        )
+        return self._process_validated_sql_expression(
+            normalized_metric.expression,
+            context,
+            preserve_source=normalized_metric.may_preserve_source,
+            render_template=False,
+            validate_subquery=False,
+        )
+
+    def _process_validated_sql_expression(  # noqa: C901
+        self,
+        expression: Optional[str],
+        context: SqlExpressionContext,
+        *,
+        preserve_source: bool = False,
+        render_template: bool = True,
+        validate_subquery: bool = True,
+    ) -> Optional[str]:
+        if render_template and context.template_processor and expression:
+            expression = context.template_processor.process_template(expression)
         if expression:
-            expression = validate_adhoc_subquery(
-                expression,
-                self.database,
-                self.catalog,
-                schema,
-                engine,
-            )
+            if validate_subquery:
+                expression = validate_adhoc_subquery(
+                    expression,
+                    self.database,
+                    self.catalog,
+                    context.schema,
+                    context.engine,
+                )
+            source_expression = expression
             try:
-                expression = sanitize_clause(expression, engine)
+                expression = sanitize_clause(expression, context.engine)
             except QueryClauseValidationException as ex:
                 raise QueryObjectValidationError(ex.message) from ex
+            if preserve_source:
+                expression = source_expression.rstrip().rstrip(";").rstrip()
             # Adhoc expressions are user-controlled SQL that ends up inside a
             # `literal_column(...)`. Apply the operator-configured
             # `DISALLOWED_SQL_FUNCTIONS` / `DISALLOWED_SQL_TABLES` gates at the
@@ -1341,9 +1393,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # the same gate applied at query-execution time and gives the
             # adhoc-expression path defense in depth.
             disallowed_functions = app.config["DISALLOWED_SQL_FUNCTIONS"].get(
-                engine, set()
+                context.engine, set()
             )
-            disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(engine, set())
+            disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(
+                context.engine, set()
+            )
             if disallowed_functions or disallowed_tables:
                 # `_process_select_expression` (and siblings) pre-wraps the
                 # input with `SELECT ...`; other callers pass bare
@@ -1354,7 +1408,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     if expression.strip().upper().startswith("SELECT")
                     else f"SELECT {expression}"
                 )
-                parsed = SQLScript(sql_to_check, engine=engine)
+                parsed = SQLScript(sql_to_check, engine=context.engine)
                 if disallowed_functions and parsed.check_functions_present(
                     disallowed_functions
                 ):
@@ -1381,7 +1435,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def _process_select_expression(
         self,
         expression: Optional[str],
-        database_id: int,
         engine: str,
         schema: str,
         template_processor: Optional[BaseTemplateProcessor],
@@ -1395,14 +1448,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if expression:
             expression = f"SELECT {expression}"
 
-        if processed := self._process_sql_expression(
-            expression=expression,
-            database_id=database_id,
-            engine=engine,
-            schema=schema,
-            template_processor=template_processor,
-        ):
-            prefix, expression = re.split(
+        context = SqlExpressionContext(engine, schema, template_processor)
+        if processed := self._process_sql_expression(expression, context):
+            _prefix, expression = re.split(
                 r"SELECT\s+",
                 processed,
                 maxsplit=1,
@@ -1412,10 +1460,31 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return None
 
+    def _process_metric_select_expression(
+        self,
+        expression: Optional[str],
+        engine: str,
+        schema: str,
+        template_processor: Optional[BaseTemplateProcessor],
+    ) -> Optional[str]:
+        """Validate and normalize an ad hoc metric used in SELECT."""
+        if expression:
+            expression = f"SELECT {expression}"
+
+        context = SqlExpressionContext(engine, schema, template_processor)
+        if processed := self._process_metric_sql_expression(expression, context):
+            _prefix, expression = re.split(
+                r"SELECT\s+",
+                processed,
+                maxsplit=1,
+                flags=re.IGNORECASE,
+            )
+            return expression.strip()
+        return None
+
     def _process_orderby_expression(
         self,
         expression: Optional[str],
-        database_id: int,
         engine: str,
         schema: str,
         template_processor: Optional[BaseTemplateProcessor],
@@ -1429,14 +1498,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if expression:
             expression = f"SELECT 1 ORDER BY {expression}"
 
-        if processed := self._process_sql_expression(
-            expression=expression,
-            database_id=database_id,
-            engine=engine,
-            schema=schema,
-            template_processor=template_processor,
-        ):
-            prefix, expression = re.split(
+        context = SqlExpressionContext(engine, schema, template_processor)
+        if processed := self._process_sql_expression(expression, context):
+            _prefix, expression = re.split(
                 r"ORDER\s+BY",
                 processed,
                 maxsplit=1,
@@ -1444,6 +1508,28 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
             return expression.strip()
 
+        return None
+
+    def _process_metric_orderby_expression(
+        self,
+        expression: Optional[str],
+        engine: str,
+        schema: str,
+        template_processor: Optional[BaseTemplateProcessor],
+    ) -> Optional[str]:
+        """Validate and normalize an ad hoc metric used in ORDER BY."""
+        if expression:
+            expression = f"SELECT 1 ORDER BY {expression}"
+
+        context = SqlExpressionContext(engine, schema, template_processor)
+        if processed := self._process_metric_sql_expression(expression, context):
+            _prefix, expression = re.split(
+                r"ORDER\s+BY",
+                processed,
+                maxsplit=1,
+                flags=re.IGNORECASE,
+            )
+            return expression.strip()
         return None
 
     def make_sqla_column_compatible(
@@ -2893,9 +2979,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
 
             if not processed:
-                expression = self._process_select_expression(
+                expression = self._process_metric_select_expression(
                     expression=expression,
-                    database_id=self.database_id,
                     engine=self.database.backend,
                     schema=self.schema,
                     template_processor=template_processor,
@@ -3021,7 +3106,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     ) -> Column:
         if utils.is_adhoc_metric(series_limit_metric):
             assert isinstance(series_limit_metric, dict)
-            ob = self.adhoc_metric_to_sqla(series_limit_metric, columns_by_name)
+            ob = self.adhoc_metric_to_sqla(
+                series_limit_metric,
+                columns_by_name,
+                template_processor=template_processor,
+            )
         elif (
             isinstance(series_limit_metric, str)
             and series_limit_metric in metrics_by_name
@@ -3643,9 +3732,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # back would change the cache key of a rehydrated query context
                 col = cast(AdhocMetric, dict(col))
                 if col.get("sqlExpression"):
-                    col["sqlExpression"] = self._process_orderby_expression(
+                    col["sqlExpression"] = self._process_metric_orderby_expression(
                         expression=col["sqlExpression"],
-                        database_id=self.database_id,
                         engine=self.database.backend,
                         schema=self.schema,
                         template_processor=template_processor,
@@ -3723,7 +3811,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     else:
                         selected = self._process_select_expression(
                             expression=selected,
-                            database_id=self.database_id,
                             engine=self.database.backend,
                             schema=self.schema,
                             template_processor=template_processor,
@@ -3775,7 +3862,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
                 selected = self._process_select_expression(
                     expression=_sql,
-                    database_id=self.database_id,
                     engine=self.database.backend,
                     schema=self.schema,
                     template_processor=template_processor,
@@ -4139,7 +4225,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if where:
                 where = self._process_select_expression(
                     expression=where,
-                    database_id=self.database_id,
                     engine=self.database.backend,
                     schema=self.schema,
                     template_processor=template_processor,
@@ -4149,7 +4234,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if having:
                 having = self._process_select_expression(
                     expression=having,
-                    database_id=self.database_id,
                     engine=self.database.backend,
                     schema=self.schema,
                     template_processor=template_processor,

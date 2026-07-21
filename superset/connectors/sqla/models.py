@@ -109,6 +109,7 @@ from superset.models.helpers import (
 )
 from superset.models.slice import Slice
 from superset.models.sql_types.base import CurrencyType
+from superset.sql.metric_normalization import normalize_custom_metric
 from superset.sql.parse import sanitize_clause, SQLStatement, Table
 from superset.subjects.models import sqlatable_editors, Subject
 from superset.superset_typing import (
@@ -1245,7 +1246,12 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
                     )
                 ) from ex
 
-        sqla_col: ColumnClause = literal_column(expression)
+        normalized_metric = normalize_custom_metric(
+            expression,
+            self.table.database.backend,
+            self.table.database.db_engine_spec.normalize_custom_sql_metric,
+        )
+        sqla_col: ColumnClause = literal_column(normalized_metric.expression)
         return self.table.database.make_sqla_column_compatible(sqla_col, label)
 
     @property
@@ -1734,9 +1740,8 @@ class SqlaTable(
 
             if not processed:
                 try:
-                    expression = self._process_select_expression(
+                    expression = self._process_metric_select_expression(
                         expression=expression,
-                        database_id=self.database_id,
                         engine=self.database.backend,
                         schema=self.schema,
                         template_processor=template_processor,
@@ -1831,7 +1836,6 @@ class SqlaTable(
 
                 expression = self._process_select_expression(
                     expression=expression_to_process,
-                    database_id=self.database_id,
                     engine=self.database.backend,
                     schema=self.schema,
                     template_processor=template_processor,
@@ -1895,7 +1899,11 @@ class SqlaTable(
     ) -> Column:
         if utils.is_adhoc_metric(series_limit_metric):
             assert isinstance(series_limit_metric, dict)
-            ob = self.adhoc_metric_to_sqla(series_limit_metric, columns_by_name)
+            ob = self.adhoc_metric_to_sqla(
+                series_limit_metric,
+                columns_by_name,
+                template_processor=template_processor,
+            )
         elif (
             isinstance(series_limit_metric, str)
             and series_limit_metric in metrics_by_name

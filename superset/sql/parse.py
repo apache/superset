@@ -139,6 +139,7 @@ SQLGLOT_DIALECTS = {
     "parseable": Dialects.POSTGRES,
     "pinot": Pinot,
     "postgresql": Dialects.POSTGRES,
+    "postgres": Dialects.POSTGRES,
     "presto": Dialects.PRESTO,
     "pydoris": Dialects.DORIS,
     "redshift": Dialects.REDSHIFT,
