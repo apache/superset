@@ -134,7 +134,9 @@ class TestImportExport(SupersetTestCase):
             params=json.dumps(params),
         )
         for col_name in cols_names:
-            table.columns.append(TableColumn(column_name=col_name))
+            column = TableColumn(column_name=col_name)
+            db.session.add(column)
+            table.columns.append(column)
         for metric_name in metric_names:
             table.metrics.append(SqlMetric(metric_name=metric_name, expression=""))
         return table

@@ -473,6 +473,35 @@ def test_format_oracle_group_by_keeps_explicit_expressions() -> None:
     assert not any(item.isdigit() for item in group_by_items)
 
 
+def test_format_oracle_group_by_keeps_explicit_expressions_subquery() -> None:
+    """
+    Test that formatting an Oracle chart query doesn't rewrite ``GROUP BY``
+    to ordinals when the aggregated column comes from a virtual dataset
+    subquery.
+
+    This mirrors the query shape SQLAlchemy generates for a bar chart with a
+    dimension and a ``COUNT(*)`` metric on a virtual dataset, which is the
+    reproduction reported in
+    https://github.com/apache/superset/issues/28327 (``ORA-00979: not a
+    GROUP BY expression``). Fixed by the same sqlglot upgrade that resolved
+    https://github.com/apache/superset/issues/35414.
+    """
+    sql = (
+        "SELECT bar AS bar, COUNT(*) AS count "
+        "FROM (SELECT 'foo' AS bar FROM dual) AS virtual_table "
+        "GROUP BY bar"
+    )
+    formatted = SQLStatement(sql, engine="oracle").format()
+
+    group_by_clause = formatted.split("GROUP BY")[1]
+    group_by_items = [
+        line.strip().rstrip(",") for line in group_by_clause.strip().splitlines()
+    ]
+    assert group_by_items == ["bar"]
+    # no item should have been replaced by a positional reference
+    assert not any(item.isdigit() for item in group_by_items)
+
+
 def test_split_no_dialect() -> None:
     """
     Test the statement split when the engine has no corresponding dialect.

@@ -25,7 +25,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import SavedQueriesWithToasts from './SavedQueries';
+import ToastedSavedQueries from './SavedQueries';
 
 const savedQueriesEndpoint = 'glob:*/api/v1/saved_query/?*';
 const savedQueriesInfoEndpoint = 'glob:*/api/v1/saved_query/_info*';
@@ -37,7 +37,7 @@ const mockQueries = Array.from({ length: 3 }).map((_, i) => ({
   changed_on_delta_humanized: '1 day ago',
 }));
 
-const mockedProps: ComponentProps<typeof SavedQueriesWithToasts> = {
+const mockedProps: ComponentProps<typeof ToastedSavedQueries> = {
   addDangerToast: jest.fn(),
   addSuccessToast: jest.fn(),
   user: {
@@ -55,10 +55,10 @@ const mockedProps: ComponentProps<typeof SavedQueriesWithToasts> = {
 };
 
 const renderSavedQueries = (
-  props: ComponentProps<typeof SavedQueriesWithToasts>,
+  props: ComponentProps<typeof ToastedSavedQueries>,
 ) =>
   act(async () => {
-    render(<SavedQueriesWithToasts {...props} />, {
+    render(<ToastedSavedQueries {...props} />, {
       useRedux: true,
       useRouter: true,
     });
