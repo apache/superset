@@ -40,9 +40,11 @@ if TYPE_CHECKING:
     except ImportError:
         Page = None
 
-# Selectors used to build a positive per-tile readiness check. A chart holder
-# is only "ready" once it shows a terminal state (a rendered chart or an
-# error/empty state) -- the mere absence of a `.loading` element is not
+# Selectors used to build a positive readiness check, shared by both the
+# tiled (take_tiled_screenshot, below) and standard/non-tiled
+# (WebDriverPlaywright.get_screenshot in webdriver.py) capture paths. A chart
+# holder is only "ready" once it shows a terminal state (a rendered chart or
+# an error/empty state) -- the mere absence of a `.loading` element is not
 # sufficient, since a chart holder that intersects the viewport but hasn't
 # mounted anything yet (e.g. its IntersectionObserver callback hasn't fired)
 # would otherwise pass vacuously.
@@ -53,6 +55,16 @@ if TYPE_CHECKING:
 # (spinner, via the shared Loading component), and
 # superset-frontend/packages/superset-ui-core/src/components/EmptyState for
 # `.ant-empty` (e.g. "no results"/"add required control values" states).
+#
+# Scoped to viewport-intersecting holders only (not just "in the tile", but
+# actually intersecting `window.innerHeight` at evaluation time) in both call
+# sites, since neither one resizes the browser viewport to the full dashboard
+# height before capturing: the tiled path scrolls tile-by-tile and the
+# standard path relies on Playwright's ability to capture below-the-fold
+# content without ever scrolling it into view. In both cases, chart holders
+# outside the current viewport are DashboardVirtualization placeholders that
+# haven't mounted anything real yet by design, so requiring them to reach a
+# terminal state would deadlock the wait.
 #
 # For diagnostics, each unready holder is additionally classified by *why*
 # it isn't ready, distinguishing a slow query from the virtualization race:
@@ -65,7 +77,7 @@ if TYPE_CHECKING:
 #     of the chart.
 #   - "nothing_mounted": neither `.loading` nor any ready marker present --
 #     the vacuous-pass race this check exists to close.
-_UNREADY_CHART_HOLDERS_JS_BODY = """
+UNREADY_CHART_HOLDERS_JS_BODY = """
     const holders = document.querySelectorAll(
         '[data-test="dashboard-component-chart-holder"]'
     );
@@ -104,14 +116,14 @@ _UNREADY_CHART_HOLDERS_JS_BODY = """
 
 # Predicate for page.wait_for_function: true once every viewport-visible chart
 # holder has reached a terminal state.
-_TILE_READY_CHECK_JS = (
-    f"() => {{ {_UNREADY_CHART_HOLDERS_JS_BODY} return unready.length === 0; }}"
+CHART_HOLDERS_READY_JS = (
+    f"() => {{ {UNREADY_CHART_HOLDERS_JS_BODY} return unready.length === 0; }}"
 )
 
 # Diagnostic query for page.evaluate: chart id + state of holders still not
 # ready, used to build the timeout log message.
-_FIND_UNREADY_CHART_HOLDERS_JS = (
-    f"() => {{ {_UNREADY_CHART_HOLDERS_JS_BODY} return unready; }}"
+FIND_UNREADY_CHART_HOLDERS_JS = (
+    f"() => {{ {UNREADY_CHART_HOLDERS_JS_BODY} return unready; }}"
 )
 
 
@@ -249,12 +261,12 @@ def take_tiled_screenshot(
             tile_wait_start = time.monotonic()
             try:
                 page.wait_for_function(
-                    _TILE_READY_CHECK_JS,
+                    CHART_HOLDERS_READY_JS,
                     timeout=load_wait * 1000,
                 )
             except PlaywrightTimeout:
                 elapsed = time.monotonic() - tile_wait_start
-                unready_chart_holders = page.evaluate(_FIND_UNREADY_CHART_HOLDERS_JS)
+                unready_chart_holders = page.evaluate(FIND_UNREADY_CHART_HOLDERS_JS)
                 # A chart failing to load in time is a customer chart-loading
                 # issue (slow query, error state, etc.), not a Superset system
                 # fault, so this stays at WARNING -- the report still fails

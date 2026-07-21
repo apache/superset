@@ -41,7 +41,11 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from superset.extensions import machine_auth_provider_factory
 from superset.utils.retries import retry_call
-from superset.utils.screenshot_utils import take_tiled_screenshot
+from superset.utils.screenshot_utils import (
+    CHART_HOLDERS_READY_JS,
+    FIND_UNREADY_CHART_HOLDERS_JS,
+    take_tiled_screenshot,
+)
 
 WindowSize = tuple[int, int]
 logger = logging.getLogger(__name__)
@@ -275,6 +279,62 @@ class WebDriverPlaywright(WebDriverProxy):
         else:
             return element.screenshot()
 
+    @staticmethod
+    def _wait_for_charts_ready(
+        page: Page,
+        url: str,
+        load_wait: int,
+        log_context: str | None = None,
+    ) -> None:
+        """
+        Wait for every viewport-visible chart holder to reach a terminal state
+        (rendered, or errored/empty) before taking a standard (non-tiled)
+        screenshot.
+
+        Uses the same positive readiness predicate as the tiled screenshot
+        path (see `take_tiled_screenshot` in screenshot_utils.py, #42119)
+        instead of checking for the mere absence of a `.loading` element: a
+        chart holder that hasn't mounted anything yet (no spinner, no
+        rendered content -- e.g. in the gap between page-load completing and
+        React/query bootstrap) would otherwise satisfy an absence-of-spinner
+        check immediately, producing a silently blank screenshot with no
+        timeout, warning, or error anywhere.
+
+        Scoped to viewport-intersecting chart holders only, same as the tiled
+        path: this method's caller never resizes the browser viewport to the
+        full dashboard height before capturing, so DashboardVirtualization
+        placeholders below the fold haven't mounted anything real yet by
+        design and must not block this wait.
+        """
+        context_suffix = f" [{log_context}]" if log_context else ""
+        logger.debug(
+            "Waiting for all chart holders to reach a terminal state at "
+            "url: %s (SCREENSHOT_LOAD_WAIT=%ss)%s",
+            url,
+            load_wait,
+            context_suffix,
+        )
+        try:
+            page.wait_for_function(
+                CHART_HOLDERS_READY_JS,
+                timeout=load_wait * 1000,
+            )
+        except PlaywrightTimeout:
+            unready_chart_holders = page.evaluate(FIND_UNREADY_CHART_HOLDERS_JS)
+            logger.warning(
+                "Timed out waiting for %s chart container(s) to become ready "
+                "at url %s (SCREENSHOT_LOAD_WAIT=%ss)%s; unready chart "
+                "holders (chart id, state): %s. Aborting screenshot rather "
+                "than capturing a blank or partially-loaded dashboard.",
+                len(unready_chart_holders),
+                url,
+                load_wait,
+                context_suffix,
+                unready_chart_holders,
+            )
+            raise
+        logger.debug("All chart holders ready at url: %s%s", url, context_suffix)
+
     def get_screenshot(  # pylint: disable=too-many-locals, too-many-statements  # noqa: C901
         self,
         url: str,
@@ -443,28 +503,14 @@ class WebDriverPlaywright(WebDriverProxy):
                             url,
                         )
                         # Standard screenshot captures the full element including
-                        # below-the-fold content, so wait for all spinners globally.
-                        try:
-                            logger.debug(
-                                "Waiting for all spinners to clear at url: %s "
-                                "(SCREENSHOT_LOAD_WAIT=%ss)",
-                                url,
-                                self._screenshot_load_wait,
-                            )
-                            page.wait_for_function(
-                                "() => document.querySelectorAll("
-                                "'.loading').length === 0",
-                                timeout=self._screenshot_load_wait * 1000,
-                            )
-                        except PlaywrightTimeout:
-                            logger.warning(
-                                "Timed out waiting for charts to load at url %s "
-                                "(SCREENSHOT_LOAD_WAIT=%ss)",
-                                url,
-                                self._screenshot_load_wait,
-                            )
-                            raise
-                        logger.debug("All spinners cleared for url: %s", url)
+                        # below-the-fold content, so wait for all viewport-visible
+                        # chart holders to reach a terminal state.
+                        WebDriverPlaywright._wait_for_charts_ready(
+                            page,
+                            url,
+                            self._screenshot_load_wait,
+                            log_context=log_context,
+                        )
                         if selenium_animation_wait > 0:
                             logger.debug(
                                 "Wait %i seconds for chart animation",
@@ -491,27 +537,14 @@ class WebDriverPlaywright(WebDriverProxy):
                         url,
                     )
                     # Standard screenshot captures the full element including
-                    # below-the-fold content, so wait for all spinners globally.
-                    try:
-                        logger.debug(
-                            "Waiting for all spinners to clear at url: %s "
-                            "(SCREENSHOT_LOAD_WAIT=%ss)",
-                            url,
-                            self._screenshot_load_wait,
-                        )
-                        page.wait_for_function(
-                            "() => document.querySelectorAll('.loading').length === 0",
-                            timeout=self._screenshot_load_wait * 1000,
-                        )
-                    except PlaywrightTimeout:
-                        logger.warning(
-                            "Timed out waiting for charts to load at url %s "
-                            "(SCREENSHOT_LOAD_WAIT=%ss)",
-                            url,
-                            self._screenshot_load_wait,
-                        )
-                        raise
-                    logger.debug("All spinners cleared for url: %s", url)
+                    # below-the-fold content, so wait for all viewport-visible
+                    # chart holders to reach a terminal state.
+                    WebDriverPlaywright._wait_for_charts_ready(
+                        page,
+                        url,
+                        self._screenshot_load_wait,
+                        log_context=log_context,
+                    )
                     if selenium_animation_wait > 0:
                         logger.debug(
                             "Wait %i seconds for chart animation",
