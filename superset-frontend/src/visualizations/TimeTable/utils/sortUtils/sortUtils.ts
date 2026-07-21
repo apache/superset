@@ -36,7 +36,12 @@ function compareValues(
   const isAValid = numA !== null && numA !== undefined && !Number.isNaN(numA);
   const isBValid = numB !== null && numB !== undefined && !Number.isNaN(numB);
 
-  if (!isAValid && !isBValid) return 0;
+  if (!isAValid && !isBValid) {
+    if (typeof a === 'string' && typeof b === 'string') {
+      return a < b ? -1 : a > b ? 1 : 0;
+    }
+    return 0;
+  }
   if (!isAValid) return nanTreatment === 'asSmallest' ? -1 : 1;
   if (!isBValid) return nanTreatment === 'asSmallest' ? 1 : -1;
 
@@ -58,8 +63,8 @@ export function sortNumberWithMixedTypes(
   rowB: any,
   columnId: string,
 ) {
-  const cellA = rowA.values?.[columnId];
-  const cellB = rowB.values?.[columnId];
+  const cellA = rowA.original?.[columnId] ?? rowA.values?.[columnId];
+  const cellB = rowB.original?.[columnId] ?? rowB.values?.[columnId];
 
   // Both ValueCell and Sparkline cells pass React elements here.
   // ValueCell provides the precomputed value directly.
@@ -121,3 +126,5 @@ export function sortNumberWithMixedTypes(
 
   return compareValues(valueA, valueB, 'asSmallest');
 }
+
+
