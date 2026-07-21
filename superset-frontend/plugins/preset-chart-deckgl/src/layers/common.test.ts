@@ -103,11 +103,8 @@ describe('commonLayerProps', () => {
   ) as any;
   const mockOnSelect = jest.fn();
 
-  test('returns correct props when js_tooltip is provided', () => {
-    const formData = {
-      ...partialformData,
-      js_tooltip: 'tooltip => tooltip.content',
-    } as QueryFormData;
+  test('returns correct props with a tooltip content generator', () => {
+    const formData = { ...partialformData } as QueryFormData;
     const props = commonLayerProps({
       formData,
       setTooltip: mockSetTooltip,
@@ -118,7 +115,7 @@ describe('commonLayerProps', () => {
   });
 
   test('calls onHover and sets tooltip', () => {
-    const formData = { ...partialformData, js_tooltip: null } as QueryFormData;
+    const formData = { ...partialformData } as QueryFormData;
     const props = commonLayerProps({
       formData,
       setTooltip: mockSetTooltip,

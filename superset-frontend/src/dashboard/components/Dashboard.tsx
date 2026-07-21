@@ -24,7 +24,14 @@ import { Loading } from '@superset-ui/core/components';
 import { PluginContext } from 'src/components';
 import type { PluginContextType } from 'src/components/DynamicPlugins/types';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import type { Slice } from 'src/dashboard/types';
+import type {
+  Slice,
+  ActiveFilters,
+  ChartConfiguration,
+  DashboardLayout,
+  DatasourcesState,
+  LayoutItem,
+} from 'src/dashboard/types';
 import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
 import getLayoutComponentFromChartId from '../util/getLayoutComponentFromChartId';
 
@@ -44,13 +51,6 @@ import type {
 } from '@superset-ui/core';
 import { getAffectedOwnDataCharts } from '../util/charts/getOwnDataCharts';
 import { getRelatedCharts } from '../util/getRelatedCharts';
-import type {
-  ActiveFilters,
-  ChartConfiguration,
-  DashboardLayout,
-  DatasourcesState,
-  LayoutItem,
-} from '../types';
 
 type RelatedChartsFilter =
   AppliedNativeFilterType | AppliedCrossFilterType | Filter;

@@ -33,17 +33,20 @@ if TYPE_CHECKING:
 from superset.constants import NO_TIME_RANGE
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
+    BoxPlotChartConfig,
     ChartCapabilities,
     ChartSemantics,
     ColumnRef,
     CurrencyFormat,
     FilterConfig,
     HandlebarsChartConfig,
+    HistogramChartConfig,
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
     SortByConfig,
     TableChartConfig,
+    WaterfallChartConfig,
     XYChartConfig,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
@@ -375,7 +378,7 @@ def map_config_to_form_data(
 ) -> Dict[str, Any]:
     """Map chart config to Superset form_data via the plugin registry.
 
-    The previous if/elif chain across all 7 chart types has been replaced by a
+    The previous per-chart-type if/elif chain has been replaced by a
     single registry lookup. Cross-field constraints (e.g. BigNumber trendline
     temporal check) are now owned by each plugin's post_map_validate() method
     rather than being baked into this dispatcher.
@@ -888,6 +891,99 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
     add_currency_format(form_data, config.currency_format)
     _add_adhoc_filters(form_data, config.filters)
 
+    return form_data
+
+
+def map_histogram_config(config: "HistogramChartConfig") -> Dict[str, Any]:
+    """Map histogram config to Superset form_data (viz_type histogram_v2).
+
+    Matches the frontend Histogram buildQuery contract: a single ``column``
+    string to bin, ``groupby`` name list for series, plus bins/normalize/
+    cumulative passed straight through to the histogram post-processing
+    operator.
+    """
+    form_data: Dict[str, Any] = {
+        "viz_type": "histogram_v2",
+        "column": config.column.name,
+        "groupby": [g.name for g in (config.groupby or [])],
+        "bins": config.bins,
+        "normalize": config.normalize,
+        "cumulative": config.cumulative,
+        "row_limit": config.row_limit,
+    }
+    _add_adhoc_filters(form_data, config.filters)
+    return form_data
+
+
+# The exact strings the frontend boxplotOperator understands; the percentile
+# variant must match its PERCENTILE_REGEX: "<low>/<high> percentiles".
+_WHISKER_TYPE_TO_OPTION = {
+    "tukey": "Tukey",
+    "min_max": "Min/max (no outliers)",
+}
+
+
+def map_box_plot_config(config: "BoxPlotChartConfig") -> Dict[str, Any]:
+    """Map box plot config to Superset form_data (viz_type box_plot).
+
+    Matches the frontend BoxPlot buildQuery contract: ``columns`` are the
+    distribute-across values (one box per value), ``groupby`` the series
+    dimensions, and ``whiskerOptions`` one of the strings the
+    boxplotOperator post-processor parses.
+    """
+    if config.whisker_type == "percentile":
+        whisker_options = (
+            f"{config.percentile_low}/{config.percentile_high} percentiles"
+        )
+    else:
+        whisker_options = _WHISKER_TYPE_TO_OPTION[config.whisker_type]
+
+    form_data: Dict[str, Any] = {
+        "viz_type": "box_plot",
+        "columns": [c.name for c in config.distribute_across],
+        "groupby": [d.name for d in (config.dimensions or [])],
+        "metrics": [create_metric_object(m) for m in config.metrics],
+        "whiskerOptions": whisker_options,
+        "row_limit": config.row_limit,
+        "number_format": config.number_format,
+        "date_format": config.date_format,
+    }
+    _add_adhoc_filters(form_data, config.filters)
+    return form_data
+
+
+def map_waterfall_config(config: WaterfallChartConfig) -> Dict[str, Any]:
+    """Map waterfall config to Superset form_data (viz_type waterfall).
+
+    Matches the frontend Waterfall buildQuery contract: a single ``x_axis``
+    column, an optional single-select ``groupby`` breakdown, and one
+    ``metric``; the query orders by the axis columns ascending, which the
+    frontend derives from these keys.
+    """
+    form_data: Dict[str, Any] = {
+        "viz_type": "waterfall",
+        "x_axis": config.x_axis.name,
+        "groupby": [config.breakdown.name] if config.breakdown else [],
+        "metric": create_metric_object(config.metric),
+        "show_total": config.show_total,
+        "show_legend": config.show_legend,
+        "increase_label": config.increase_label,
+        "decrease_label": config.decrease_label,
+        "total_label": config.total_label,
+        "x_axis_time_format": config.x_axis_time_format,
+        "y_axis_format": config.y_axis_format,
+        "row_limit": config.row_limit,
+    }
+    # Bucket a temporal x_axis: the grain (time_grain_sqla) needs the temporal
+    # column it applies to (granularity_sqla), mirroring the xy path's
+    # configure_temporal_handling and the frontend buildQuery's
+    # `x_axis || granularity_sqla`. Providing time_grain signals temporal
+    # intent; Superset ignores both for a non-temporal column.
+    if config.time_grain:
+        form_data["time_grain_sqla"] = config.time_grain
+        form_data["granularity_sqla"] = config.x_axis.name
+    add_currency_format(form_data, config.currency_format)
+    _add_adhoc_filters(form_data, config.filters)
     return form_data
 
 

@@ -18,14 +18,16 @@
 
 import importlib
 import logging
+from collections.abc import Iterator
 from unittest.mock import MagicMock, patch
 
 import pytest
-from fastmcp import Client
+from fastmcp import Client, FastMCP
 from fastmcp.exceptions import ToolError
 from pydantic import ValidationError
 
 from superset.mcp_service.app import mcp
+from superset.mcp_service.constants import MAX_PAGE_SIZE
 from superset.mcp_service.database.schemas import DatabaseFilter, ListDatabasesRequest
 from superset.mcp_service.privacy import DATA_MODEL_METADATA_ERROR_TYPE
 from superset.utils import json
@@ -120,7 +122,7 @@ def mock_auth():
 
 
 @pytest.fixture(autouse=True)
-def allow_data_model_metadata():
+def _allow_data_model_metadata() -> Iterator[None]:
     """Keep database tests in the normal metadata-allowed path by default."""
     with (
         patch.object(
@@ -378,3 +380,71 @@ async def test_list_databases_does_not_expose_sensitive_credential_columns(
     # Verify the exploit path: DAO must never receive sensitive column names.
     dao_columns = mock_list.call_args.kwargs["columns"]
     assert not sensitive.intersection(dao_columns)
+
+
+# ---------------------------------------------------------------------------
+# Pagination edge cases
+# ---------------------------------------------------------------------------
+
+
+class TestListDatabasesRequestPagination:
+    """Schema-level pagination boundary tests — ``page`` is PositiveInt and
+    ``page_size`` is constrained to (0, MAX_PAGE_SIZE]."""
+
+    def test_page_zero_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="greater than 0"):
+            ListDatabasesRequest(page=0)
+
+    def test_negative_page_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="greater than 0"):
+            ListDatabasesRequest(page=-1)
+
+    def test_page_size_zero_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="greater than 0"):
+            ListDatabasesRequest(page_size=0)
+
+    def test_page_size_over_max_rejected(self) -> None:
+        with pytest.raises(
+            ValidationError,
+            match=f"less than or equal to {MAX_PAGE_SIZE}",
+        ):
+            ListDatabasesRequest(page_size=MAX_PAGE_SIZE + 1)
+
+    def test_page_size_at_max_accepted(self) -> None:
+        request = ListDatabasesRequest(page_size=MAX_PAGE_SIZE)
+        assert request.page_size == MAX_PAGE_SIZE
+
+
+@pytest.mark.asyncio
+async def test_list_databases_invalid_page_size_surfaces_as_tool_error(
+    mcp_server: FastMCP,
+) -> None:
+    """page_size=0 is rejected before the tool body runs, surfacing as a
+    structured ToolError rather than a raw 500."""
+    async with Client(mcp_server) as client:
+        with pytest.raises(ToolError, match="greater than 0"):
+            await client.call_tool("list_databases", {"request": {"page_size": 0}})
+
+
+@patch("superset.daos.database.DatabaseDAO.list")
+@pytest.mark.asyncio
+async def test_list_databases_page_beyond_last_page_returns_empty(
+    mock_list: MagicMock, mcp_server: FastMCP
+) -> None:
+    """A page far past the last page returns an empty list, not an error."""
+    # DAO's offset lands past all rows; total_count still reflects the full set.
+    mock_list.return_value = ([], 2)
+    async with Client(mcp_server) as client:
+        request = ListDatabasesRequest(page=9999, page_size=10)
+        result = await client.call_tool(
+            "list_databases", {"request": request.model_dump()}
+        )
+        data = json.loads(result.content[0].text)
+
+    assert data["databases"] == []
+    assert data["count"] == 0
+    assert data["total_count"] == 2
+    assert data["page"] == 9999
+    assert data["total_pages"] == 1
+    assert data["has_next"] is False
+    assert data["has_previous"] is True

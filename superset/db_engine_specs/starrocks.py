@@ -238,6 +238,11 @@ class StarRocksEngineSpec(MySQLEngineSpec):
         (re.compile(r"^array.*", re.IGNORECASE), ARRAY(), GenericDataType.STRING),
         (re.compile(r"^map.*", re.IGNORECASE), MAP(), GenericDataType.STRING),
         (re.compile(r"^struct.*", re.IGNORECASE), STRUCT(), GenericDataType.STRING),
+        (
+            re.compile(r"^var_string", re.IGNORECASE),
+            types.VARCHAR(),
+            GenericDataType.STRING,
+        ),
     )
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
