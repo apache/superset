@@ -3962,8 +3962,9 @@ def test_get_sqla_query_calculated_column_inlined_in_raw_records(
     column in a raw-records query (no groupby/metrics) must have its stored
     SQL expression inlined, not emitted as a bare column reference."""
     from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.helpers import SqlaQuery
 
-    table = SqlaTable(
+    table: SqlaTable = SqlaTable(
         database=database,
         schema=None,
         table_name="t",
@@ -3984,14 +3985,14 @@ def test_get_sqla_query_calculated_column_inlined_in_raw_records(
         "label": "name_test",
         "isColumnReference": True,
     }
-    sqlaq = table.get_sqla_query(
+    sqlaq: SqlaQuery = table.get_sqla_query(
         columns=[adhoc_col],
         is_timeseries=False,
         row_limit=10,
     )
 
     with database.get_sqla_engine() as engine:
-        sql = str(
+        sql: str = str(
             sqlaq.sqla_query.compile(
                 dialect=engine.dialect,
                 compile_kwargs={"literal_binds": True},
