@@ -398,6 +398,28 @@ export default function transformProps(
   const rawSeries = sizeSeriesLabel
     ? allRawSeries.filter(entry => !isSizeSeries(String(entry.name ?? '')))
     : allRawSeries;
+  // A hidden size-only series carries its own value range (e.g. a revenue
+  // metric driving dot size while a different metric renders on the value
+  // axis), so recompute the lower bound used for log-axis ticks from the
+  // series that actually render rather than the pre-filter allRawSeries.
+  const renderedMinPositiveValue =
+    rawSeries === allRawSeries
+      ? minPositiveValue
+      : rawSeries.reduce<number | undefined>((min, entry) => {
+          (
+            entry.data as [DataRecordValue, DataRecordValue][] | undefined
+          )?.forEach(datum => {
+            const value = isHorizontal ? datum[0] : datum[1];
+            if (
+              typeof value === 'number' &&
+              value > 0 &&
+              (min === undefined || value < min)
+            ) {
+              min = value;
+            }
+          });
+          return min;
+        }, undefined);
   // Maps each value series' dimension key to a lookup from primary-axis value
   // to size value.
   let sizeLookups: Map<string, Map<DataRecordValue, number>> | undefined;
@@ -834,9 +856,9 @@ export default function transformProps(
   } else if (
     logAxis &&
     yAxisMin === undefined &&
-    minPositiveValue !== undefined
+    renderedMinPositiveValue !== undefined
   ) {
-    yAxisMin = calculateLowerLogTick(minPositiveValue);
+    yAxisMin = calculateLowerLogTick(renderedMinPositiveValue);
   }
 
   // For horizontal bar charts, set max/min from calculated data bounds

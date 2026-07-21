@@ -244,7 +244,18 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
         },
       },
     ],
-    ['currency_format'],
+    [
+      {
+        name: 'currency_format',
+        config: {
+          ...sharedControls.currency_format,
+          visibility: ({ controls }: ControlPanelsContainerProps) =>
+            showsMetricAxis(controls),
+          disableStash: true,
+          resetOnHide: false,
+        },
+      },
+    ],
     [
       {
         name: 'logAxis',
