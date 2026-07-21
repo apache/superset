@@ -141,7 +141,7 @@ describe('plugin-chart-table', () => {
     test('should retain percent-metric post-processing on the summary (show_totals) query', () => {
       // #37627: the summary row dropped post_processing, so percent-metric
       // columns came back empty. The totals query must recompute them.
-      const { queries } = buildQuery({
+      const { queries } = buildQueryCached({
         ...basicFormData,
         query_mode: QueryMode.Aggregate,
         metrics: ['count'],
