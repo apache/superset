@@ -52,6 +52,7 @@ def database(mocker: MockerFixture, session: Session) -> Database:
         "sqlite://",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
+        future=True,
     )
     database = Database(database_name="db", sqlalchemy_uri="sqlite://")
 
@@ -123,6 +124,7 @@ def test_values_for_column_passes_catalog_and_schema(
         "sqlite://",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
+        future=True,
     )
     database = Database(database_name="db", sqlalchemy_uri="sqlite://")
 
@@ -183,6 +185,7 @@ def test_values_for_column_passes_none_catalog_and_schema(
         "sqlite://",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
+        future=True,
     )
     database = Database(database_name="db", sqlalchemy_uri="sqlite://")
 

@@ -93,7 +93,7 @@ def find_models(module: ModuleType) -> list[type[Model]]:  # noqa: C901
     # where the current model is out-of-sync with the existing table after a
     # downgrade
     sqlalchemy_uri = current_app.config["SQLALCHEMY_DATABASE_URI"]
-    engine = create_engine(sqlalchemy_uri)
+    engine = create_engine(sqlalchemy_uri, future=True)
     Base = automap_base()  # noqa: N806
     Base.prepare(engine, reflect=True)
     seen = set()

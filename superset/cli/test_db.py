@@ -280,7 +280,7 @@ def test_sqlalchemy_dialect(
     """
     Test the SQLAlchemy dialect, making sure it supports everything Superset needs.
     """
-    engine = create_engine(sqlalchemy_uri, **engine_kwargs)
+    engine = create_engine(sqlalchemy_uri, future=True, **engine_kwargs)
     dialect = engine.dialect
 
     console.print("[bold]Checking functions used by the inspector...")
