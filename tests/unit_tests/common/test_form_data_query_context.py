@@ -25,8 +25,12 @@ DATASOURCE = {"id": 7, "type": "table"}
 
 def test_adhoc_filters_converts_simple_and_drops_custom_sql() -> None:
     adhoc = [
-        {"expressionType": "SIMPLE", "subject": "country", "operator": "==",
-         "comparator": "US"},
+        {
+            "expressionType": "SIMPLE",
+            "subject": "country",
+            "operator": "==",
+            "comparator": "US",
+        },
         {"expressionType": "SQL", "sqlExpression": "1 = 1"},
     ]
     assert adhoc_filters_to_query_filters(adhoc) == [
@@ -50,8 +54,12 @@ def test_build_context_maps_groupby_metrics_and_filters() -> None:
         "groupby": ["country"],
         "metrics": ["count"],
         "adhoc_filters": [
-            {"expressionType": "SIMPLE", "subject": "year", "operator": ">",
-             "comparator": 2000},
+            {
+                "expressionType": "SIMPLE",
+                "subject": "year",
+                "operator": ">",
+                "comparator": 2000,
+            },
         ],
         "time_range": "Last year",
         "row_limit": 500,
