@@ -1393,6 +1393,10 @@ class ResponseSizeGuardMiddleware(Middleware):
         if not was_truncated:
             return None
 
+        if isinstance(truncated, dict):
+            truncated["_response_truncated"] = True
+            truncated["_truncation_notes"] = notes
+
         # Re-wrap into ToolResult if we unwrapped one *before* re-checking
         # the size: the wrapper (content/meta envelope) adds overhead on top
         # of the payload, so the limit must be enforced against the object
