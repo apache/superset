@@ -214,7 +214,7 @@ class SupersetTestCases(SupersetTestCase):
         SELECT/WHERE/GROUP BY.
         """
         table = self.get_table(name="birth_names")
-        TableColumn(
+        column = TableColumn(
             column_name="gender_cc_jinja",
             type="VARCHAR(255)",
             table=table,
@@ -225,6 +225,7 @@ class SupersetTestCases(SupersetTestCase):
             end
             """,
         )
+        db.session.add(column)
 
         table.database.sqlalchemy_uri = "sqlite://"
         query_obj: QueryObjectDict = {
