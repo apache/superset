@@ -18,7 +18,6 @@
  */
 
 import {
-  QueryFormColumn,
   QueryFormMetric,
   QueryObject,
   TimeGranularity,
@@ -28,8 +27,10 @@ import { PivotTableQueryFormData } from '../../src/types';
 
 // buildQuery attaches `grouping_sets` (one entry per rollup level) to the
 // query object; it is not part of the base QueryObject type, so narrow to a
-// local type instead of casting through `any`.
-type GroupingSetsQuery = QueryObject & { grouping_sets: QueryFormColumn[][] };
+// local type instead of casting through `any`. Each level is serialized as
+// column *labels* (string[]), matching the backend's `list[list[str]]`
+// (see superset/common/query_context_processor.py), not `QueryFormColumn[]`.
+type GroupingSetsQuery = QueryObject & { grouping_sets: string[][] };
 
 const formData: PivotTableQueryFormData = {
   groupbyRows: ['row1', 'row2'],

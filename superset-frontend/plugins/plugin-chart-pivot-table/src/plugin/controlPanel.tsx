@@ -128,7 +128,12 @@ const config: ControlPanelConfig = {
             config: {
               ...sharedControls.row_limit,
               label: t('Cell limit'),
-              description: t('Limits the number of cells that get retrieved.'),
+              description: t(
+                'Limits the number of cells that get retrieved. Not applied when ' +
+                  'non-additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) ' +
+                  'are present, since totals and subtotals are then computed via a ' +
+                  'database rollup query that must see every row to stay correct.',
+              ),
             },
           },
         ],
