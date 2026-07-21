@@ -278,6 +278,12 @@ class QueryContextProcessor:
         Emulate a GROUPING SETS query on engines without native support: run one
         query per rollup level and concatenate, tagging each level's rows with
         the same per-column markers the native path emits.
+
+        This issues one sequential query per rollup level, with no cap on the
+        number of levels. The level count is bounded by the pivot's row/column
+        dimensionality (powerset of grouped dimensions in the worst case), so a
+        chart with many dimensions on an engine lacking native GROUPING SETS
+        support could fan out to a non-trivial number of queries per render.
         """
         levels: list[list[str]] = query_object.grouping_sets
         # Use the same label derivation as the native path (physical column name
