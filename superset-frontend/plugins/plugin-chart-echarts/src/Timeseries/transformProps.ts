@@ -361,10 +361,40 @@ export default function transformProps(
   const sizeIsValueMetric = isDefined(sizeSeriesLabel)
     ? valueMetricLabels.includes(sizeSeriesLabel!)
     : false;
+  // Time-comparison series keep the raw metric label with an `__<offset>`
+  // suffix (verbose mapping only applies to base columns, see
+  // rebaseForecastDatum), so a metric's series can be named `<label>`,
+  // `<label>, <dims>`, `<raw label>__<offset>` or
+  // `<raw label>__<offset>, <dims>`. Given a raw metric label, return the
+  // `<offset>|<dims>` key for a series name belonging to that metric, or
+  // undefined if the name doesn't belong to it. Keying by offset pairs each
+  // comparison value series with the size series from the same offset.
+  const timeCompareOffsets = ensureIsArray(timeCompare).map(String);
+  const matchSeriesKey = (
+    name: string,
+    rawLabel: string,
+  ): string | undefined => {
+    const candidates = [
+      { label: verboseMap[rawLabel] ?? rawLabel, offset: '' },
+      ...timeCompareOffsets.map(offset => ({
+        label: `${rawLabel}__${offset}`,
+        offset,
+      })),
+    ];
+    for (const { label, offset } of candidates) {
+      if (name === label) {
+        return `${offset}|`;
+      }
+      if (name.startsWith(`${label}, `)) {
+        return `${offset}|${name.slice(label.length + 2)}`;
+      }
+    }
+    return undefined;
+  };
   const isSizeSeries = (name: string) =>
-    isDefined(sizeSeriesLabel) &&
+    isDefined(sizeMetricLabel) &&
     !sizeIsValueMetric &&
-    (name === sizeSeriesLabel || name.startsWith(`${sizeSeriesLabel}, `));
+    matchSeriesKey(name, sizeMetricLabel!) !== undefined;
   const rawSeries = sizeSeriesLabel
     ? allRawSeries.filter(entry => !isSizeSeries(String(entry.name ?? '')))
     : allRawSeries;
@@ -391,10 +421,7 @@ export default function transformProps(
         .filter(entry => isSizeSeries(String(entry.name ?? '')))
         .forEach(entry => {
           const name = String(entry.name ?? '');
-          const dimsKey =
-            name === sizeSeriesLabel
-              ? ''
-              : name.slice(sizeSeriesLabel.length + 2);
+          const dimsKey = matchSeriesKey(name, sizeMetricLabel!)!;
           const lookup = new Map<DataRecordValue, number>();
           (entry.data as DataRecordValue[][]).forEach(datum => {
             const axisValue = isHorizontal ? datum[1] : datum[0];
@@ -412,16 +439,17 @@ export default function transformProps(
       sizeExtent = [sizeMin, sizeMax];
     }
   }
-  // Strips the metric label off a series name, leaving the dimension key used
-  // to match a value series with its size series.
+  // Strips the metric label off a series name, leaving the `<offset>|<dims>`
+  // key used to match a value series with its size series.
+  const rawValueMetricLabels = ensureIsArray(metrics).map(getMetricLabel);
   const getSeriesDimsKey = (name: string): string => {
-    const matchedLabel = valueMetricLabels.find(
-      label => name === label || name.startsWith(`${label}, `),
-    );
-    if (matchedLabel === undefined) {
-      return name;
+    for (const rawLabel of rawValueMetricLabels) {
+      const key = matchSeriesKey(name, rawLabel);
+      if (key !== undefined) {
+        return key;
+      }
     }
-    return name === matchedLabel ? '' : name.slice(matchedLabel.length + 2);
+    return `|${name}`;
   };
   // Normalize the configured dot size range so an inverted min/max still
   // scales larger metric values to larger dots.

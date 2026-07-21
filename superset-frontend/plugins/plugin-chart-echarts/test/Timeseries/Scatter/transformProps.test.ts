@@ -397,6 +397,81 @@ describe('Scatter Chart Orientation and Dot Size Metric', () => {
     expect(g2.symbolSize(['A', 2])).toBe(30);
   });
 
+  test('size metric composes with time comparison offsets', () => {
+    // Time-comparison series are named `<metric>__<offset>`; the size
+    // metric's offset series must be excluded from rendering like its base
+    // series, and each comparison value series must be sized from the size
+    // series of the same offset.
+    const timeCompareData = [
+      {
+        data: [
+          {
+            category_col: 'A',
+            sum_val: 1,
+            size_metric: 10,
+            'sum_val__1 week ago': 3,
+            'size_metric__1 week ago': 40,
+          },
+          {
+            category_col: 'B',
+            sum_val: 2,
+            size_metric: 20,
+            'sum_val__1 week ago': 4,
+            'size_metric__1 week ago': 30,
+          },
+        ],
+        colnames: [
+          'category_col',
+          'sum_val',
+          'size_metric',
+          'sum_val__1 week ago',
+          'size_metric__1 week ago',
+        ],
+        coltypes: [
+          GenericDataType.String,
+          GenericDataType.Numeric,
+          GenericDataType.Numeric,
+          GenericDataType.Numeric,
+          GenericDataType.Numeric,
+        ],
+        label_map: {
+          category_col: ['category_col'],
+          sum_val: ['sum_val'],
+          size_metric: ['size_metric'],
+          'sum_val__1 week ago': ['1 week ago', 'sum_val'],
+          'size_metric__1 week ago': ['1 week ago', 'size_metric'],
+        },
+      },
+    ];
+    const chartProps = new ChartProps({
+      ...baseChartPropsConfig,
+      queriesData: timeCompareData,
+      formData: {
+        ...baseFormData,
+        size: 'size_metric',
+        minMarkerSize: 5,
+        maxMarkerSize: 30,
+        time_compare: ['1 week ago'],
+      },
+    });
+
+    const transformedProps = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+    const series = getScatterSeries(transformedProps);
+    // Neither the size metric's base series nor its offset series renders.
+    expect(series.map(s => s.name).sort()).toEqual([
+      'sum_val',
+      'sum_val__1 week ago',
+    ]);
+    const base = series.find(s => s.name === 'sum_val')!;
+    const offset = series.find(s => s.name === 'sum_val__1 week ago')!;
+    // The size extent is global across offsets: the base series' point A
+    // holds the minimum (10), the offset series' point A the maximum (40).
+    expect(base.symbolSize(['A', 1])).toBe(5);
+    expect(offset.symbolSize(['A', 3])).toBe(30);
+  });
+
   test('horizontal orientation and size metric compose', () => {
     const chartProps = new ChartProps({
       ...baseChartPropsConfig,
