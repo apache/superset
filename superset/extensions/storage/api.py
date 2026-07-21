@@ -662,9 +662,9 @@ class ExtensionStorageRestApi(BaseApi):
             )
         try:
             value_bytes = get_codec(codec).encode(wire_value)
-        except (KeyValueCodecEncodeException, TypeError, ValueError) as ex:
+        except (KeyValueCodecEncodeException, TypeError, ValueError):
             return self.response_400(
-                f"Value could not be encoded with codec '{codec}': {ex}"
+                f"Value could not be encoded with codec '{codec}'."
             )
         try:
             ExtensionStorageDAO.set(
