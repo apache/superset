@@ -50,7 +50,7 @@ Superset can be configured to log events to [StatsD](https://github.com/statsd/s
 if desired. Most endpoints hit are logged as
 well as key events like query start and end in SQL Lab.
 
-By default, Superset also collects gunicorn [metrics](https://docs.gunicorn.org/en/stable/instrumentation.html).
+By default, Superset also collects gunicorn [metrics](https://gunicorn.org/instrumentation/).
 To enable these, the following environment variables should be set:
 
 ```bash
@@ -64,9 +64,15 @@ To setup StatsD logging for Superset, it’s a matter of configuring the logger 
 ```python
 import os
 from superset.stats_logger import StatsdStatsLogger
+
+try:
+    STATSD_PORT = int(os.environ.get("SERVER_STATSD_PORT", "8125"))
+except ValueError:
+    STATSD_PORT = 8125
+
 STATS_LOGGER = StatsdStatsLogger(
     host=os.environ.get("SERVER_STATSD_HOST", "localhost"),
-    port=int(os.environ.get("SERVER_STATSD_PORT", "8125")),
+    port=STATSD_PORT,
     prefix=os.environ.get("SERVER_STATSD_PREFIX", "superset"),
 )
 ```
