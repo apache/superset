@@ -56,6 +56,8 @@ interface CalendarProps {
   valueFormatter: (value: number) => string;
   verboseMap: Record<string, string>;
   theme: SupersetTheme;
+  colorRangeEnd?: number;
+  colorRangeStart?: number;
 }
 
 function Calendar(element: HTMLElement, props: CalendarProps) {
@@ -76,6 +78,8 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
     valueFormatter,
     verboseMap,
     theme,
+    colorRangeEnd,
+    colorRangeStart,
   } = props;
 
   const container = d3Select(element)
@@ -98,10 +102,14 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
       calContainer.text(`${METRIC_TEXT}: ${verboseMap[metric] || metric}`);
     }
     const timestamps = metricsData[metric];
-    const rawExtents = d3Extent(
-      Object.keys(timestamps),
-      key => timestamps[key],
-    );
+    const useCustomColorRange =
+      Number.isFinite(colorRangeStart) && Number.isFinite(colorRangeEnd);
+    const rawExtents = useCustomColorRange
+      ? ([
+          Math.min(colorRangeStart as number, colorRangeEnd as number),
+          Math.max(colorRangeStart as number, colorRangeEnd as number),
+        ] as [number, number])
+      : d3Extent(Object.keys(timestamps), key => timestamps[key]);
     // Guard against undefined extents (empty data)
     const extents: [number, number] =
       rawExtents[0] != null && rawExtents[1] != null
