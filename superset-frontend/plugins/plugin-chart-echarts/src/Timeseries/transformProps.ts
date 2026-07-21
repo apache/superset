@@ -18,6 +18,7 @@
  */
 /* eslint-disable camelcase */
 import { invert } from 'lodash-es';
+import { rebaseToPercentChange } from './percentChange';
 import { t } from '@apache-superset/core/translation';
 import {
   AnnotationLayer,
@@ -290,7 +291,7 @@ export default function transformProps(
     return { ...acc, [entry[0]]: entry[1] };
   }, {});
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
-  const rebasedData = rebaseForecastDatum(data, verboseMap);
+  const forecastRebasedData = rebaseForecastDatum(data, verboseMap);
   let xAxisLabel = getXAxisLabel(chartProps.rawFormData) as string;
   if (
     isPhysicalColumn(chartProps.rawFormData?.x_axis) &&
@@ -298,6 +299,16 @@ export default function transformProps(
   ) {
     xAxisLabel = verboseMap[xAxisLabel];
   }
+  // Restores the legacy nvd3 "Time-series Percent Change" view: every series
+  // rebased client-side to its percent change from the first point. The
+  // baseline can be re-indexed interactively via the draggable line the
+  // chart component installs.
+  const rebasePercentChange = Boolean(
+    (formData as { rebasePercentChange?: boolean }).rebasePercentChange,
+  );
+  const rebasedData = rebasePercentChange
+    ? rebaseToPercentChange(forecastRebasedData, xAxisLabel)
+    : forecastRebasedData;
   const isHorizontal = orientation === OrientationType.Horizontal;
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedData,
@@ -349,7 +360,9 @@ export default function transformProps(
   const isAreaExpand = stack === StackControlsValue.Expand;
   const series: SeriesOption[] = [];
 
-  const forcePercentFormatter = Boolean(contributionMode || isAreaExpand);
+  const forcePercentFormatter = Boolean(
+    contributionMode || isAreaExpand || rebasePercentChange,
+  );
   const percentFormatter = forcePercentFormatter
     ? getPercentFormatter(yAxisFormat)
     : getPercentFormatter(NumberFormats.PERCENT_2_POINT);
