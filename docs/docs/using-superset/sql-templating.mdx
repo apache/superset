@@ -198,17 +198,9 @@ GROUP BY category
 
 ## Testing Templates in SQL Lab
 
-Some variables like `from_dttm` and `filter_values()` only work when filters are applied from dashboards or charts. To test in SQL Lab:
+Some variables like `filter_values()` only work when filters are applied from dashboards or charts. To test in SQL Lab:
 
-**Option 1: Use defaults**
-
-```sql
-SELECT *
-FROM orders
-WHERE date >= '{{ from_dttm | default("2024-01-01", true) }}'
-```
-
-**Option 2: Set test parameters**
+**Option 1: Set test parameters**
 
 Add to the Parameters menu:
 
@@ -220,7 +212,7 @@ Add to the Parameters menu:
 }
 ```
 
-**Option 3: Use `{% set %}`**
+**Option 2: Use `{% set %}`**
 
 ```sql
 {% set start_date = "2024-01-01" %}
