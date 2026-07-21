@@ -315,7 +315,7 @@ orphaned = [e for e in entries if e.resource_uuid not in my_extension_live_resou
 ExtensionStorageDAO.delete(orphaned)
 ```
 
-`ExtensionStorageDAO` is automatically scoped to the calling extension's own rows — `extension_id` is never a parameter you pass, so there is no way to reach another extension's storage through this API. It supports the standard DAO operations (`find_all`, `find_one_or_none`, `filter_by`, `query`, `create`, `update`, `delete`).
+`ExtensionStorageDAO` is automatically scoped to the calling extension's own rows — `extension_id` is never a parameter you pass, so there is no way to reach another extension's storage through this API. It supports the standard DAO operations `find_all`, `find_one_or_none`, `filter_by`, `query`, `update`, and `delete`. `create()` is not supported — it's a raw insert with no upsert dedup, quota check, or locking against the key `.set()` writes to, so use `ctx.storage.persistent.set()` to write a value instead.
 
 ### When to Use Tier 3
 

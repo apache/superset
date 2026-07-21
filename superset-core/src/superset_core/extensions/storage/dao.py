@@ -54,9 +54,14 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorageEntry]):
     Host implementations will replace this class during initialization
     with a concrete implementation providing actual functionality.
 
-    Inherits `find_all`, `find_one_or_none`, `filter_by`, `query`, `create`,
-    `update`, and `delete` from `BaseDAO`. Every one of these methods is
-    automatically restricted to the calling extension's own rows.
+    Inherits `find_all`, `find_one_or_none`, `filter_by`, `query`, `update`,
+    and `delete` from `BaseDAO`, every one restricted to the calling
+    extension's own rows. `create()` is overridden by the host
+    implementation to always raise: it is a raw insert with no upsert
+    dedup, quota check, or locking against the key
+    `superset_core.extensions.storage.persistent`'s `set()` writes to, so
+    use that (or the ambient `ctx.storage.persistent.set()` accessor) to
+    write a value instead.
     """
 
     # Class variables that will be set by host implementation

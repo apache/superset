@@ -405,7 +405,21 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         )
         if entry is None:
             return None
-        raw = _decrypt_if_needed(entry, extension_id, key)
+        return ExtensionStorageDAO.decode_entry(entry)
+
+    @staticmethod
+    def decode_entry(entry: ExtensionStorage) -> Any:
+        """Decode an already-fetched entry's value with the codec it was
+        written with.
+
+        Unlike `get_decoded_value`, this takes the entry directly instead
+        of re-querying for it, so a caller that already fetched (and, e.g.,
+        validated the codec of) an entry decodes that exact same row
+        instead of racing a concurrent write between two separate reads.
+
+        :returns: The decoded value, or None if the value fails to decrypt.
+        """
+        raw = _decrypt_if_needed(entry, entry.extension_id, entry.key)
         if raw is None:
             return None
         return get_codec(entry.codec).decode(raw)
@@ -567,6 +581,32 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
                 db.session.add(entry)
             db.session.flush()
             return entry
+
+    # ── Create (disallowed) ─────────────────────────────────────────────────────
+
+    @classmethod
+    def create(
+        cls,
+        item: ExtensionStorage | None = None,
+        attributes: dict[str, Any] | None = None,
+    ) -> ExtensionStorage:
+        """Not supported for this DAO.
+
+        `create()` is `BaseDAO`'s raw insert: no upsert dedup against an
+        existing row for the same scoped key, no quota/key-length/value-size
+        validation, and no locking — calling it directly could construct a
+        duplicate row for a key `set()` already wrote (see `set()`'s
+        docstring) without any of the checks that make that safe.
+
+        :raises NotImplementedError: always; use `ExtensionStorageDAO.set()`
+            (or the ambient `ctx.storage.persistent.set()` accessor) instead.
+        """
+        raise NotImplementedError(
+            "ExtensionStorageDAO.create() is not supported for extension "
+            "storage: it bypasses the locking, quota, and validation that "
+            "make writing a value safe. Use ctx.storage.persistent.set() "
+            "(or ExtensionStorageDAO.set() from backend code) instead."
+        )
 
     # ── Delete ────────────────────────────────────────────────────────────────
 

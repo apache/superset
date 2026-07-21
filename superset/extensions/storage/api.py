@@ -291,6 +291,10 @@ class ExtensionStorageRestApi(BaseApi):
             )
         except (ExtensionEphemeralTTLInvalid, ExtensionEphemeralValueTooLarge) as ex:
             return self.response_400(ex.message)
+        except (KeyValueCodecEncodeException, TypeError, ValueError):
+            return self.response_400(
+                f"Value could not be encoded with codec '{codec}'."
+            )
 
         return self.response(200, message="Value stored successfully")
 
@@ -557,9 +561,7 @@ class ExtensionStorageRestApi(BaseApi):
                 "read over the REST API."
             )
 
-        decoded = ExtensionStorageDAO.get_decoded_value(
-            extension_id, key, user_fk=user_fk
-        )
+        decoded = ExtensionStorageDAO.decode_entry(entry)
         result, is_binary = _decoded_result_for_wire(decoded)
 
         return self.response(200, result=result, codec=entry.codec, isBinary=is_binary)

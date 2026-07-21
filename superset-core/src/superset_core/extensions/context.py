@@ -35,7 +35,7 @@ Usage:
         print(f"Running {ctx.extension.displayName} v{ctx.extension.version}")
 
         # Access extension-scoped storage
-        ctx.storage.ephemeral.set("lastRun", time.time())
+        ctx.storage.ephemeral.set("lastRun", time.time(), EphemeralSetOptions(ttl=3600))
         data = ctx.storage.ephemeral.get("cachedData")
 """
 

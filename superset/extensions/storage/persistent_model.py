@@ -102,7 +102,10 @@ class ExtensionStorage(CoreExtensionStorageEntry, AuditMixinNullable, Model):
     is_encrypted = Column(Boolean, nullable=False, default=False)
 
     __table_args__ = (
-        # Unique constraint prevents duplicate rows from concurrent writes
+        # user_fk, resource_type, and resource_uuid are nullable, and
+        # standard SQL never treats NULL = NULL, so this constraint applies
+        # only when all three are non-NULL — a global/resource-scoped key
+        # (all three NULL) falls outside it.
         UniqueConstraint(
             "extension_id",
             "user_fk",

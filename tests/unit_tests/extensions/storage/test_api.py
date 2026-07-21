@@ -803,7 +803,7 @@ def test_persistent_get_returns_400_for_unsafe_stored_codec(
         )
 
         assert status_code == 400
-        mock_dao.get_decoded_value.assert_not_called()
+        mock_dao.decode_entry.assert_not_called()
 
 
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
@@ -846,7 +846,7 @@ def test_persistent_get_returns_binary_value_base64_encoded(
     entry.codec = "binary"
     mock_dao.get.return_value = entry
     raw_bytes = b"\x89PNG\r\n"
-    mock_dao.get_decoded_value.return_value = raw_bytes
+    mock_dao.decode_entry.return_value = raw_bytes
 
     with app.test_request_context(
         "/api/v1/extensions/acme/dashboard/storage/persistent/logo"

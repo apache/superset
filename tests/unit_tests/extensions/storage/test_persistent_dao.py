@@ -581,7 +581,15 @@ def test_dao_set_overwrite_still_rejected_when_growth_exceeds_quota(
     assert existing.value_size == 20
 
 
-# ── delete ────────────────────────────────────────────────────────────────────
+# ── create (disallowed) ────────────────────────────────────────────────────────
+
+
+def test_dao_create_raises_not_implemented(app: Flask) -> None:
+    """create() is BaseDAO's raw insert, with no upsert dedup, quota check,
+    or locking against the key set() writes to — it must raise rather than
+    silently allow constructing a row outside set()'s guarantees."""
+    with app.app_context(), pytest.raises(NotImplementedError):
+        ExtensionStorageDAO.create()
 
 
 @patch("superset.extensions.storage.persistent_dao.db")
