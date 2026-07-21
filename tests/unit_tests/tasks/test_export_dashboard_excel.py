@@ -182,6 +182,40 @@ def test_chart_without_query_context_is_skipped(mocks: dict[str, Any]) -> None:
     }
 
 
+@pytest.mark.parametrize(
+    "raw_context",
+    [
+        "",  # blank
+        "null",  # parses to None
+        "{}",  # object with no queries
+        '{"queries": []}',  # object with an empty queries list
+        "not valid json",  # unparseable
+    ],
+)
+def test_chart_with_empty_query_context_is_skipped(
+    mocks: dict[str, Any], raw_context: str
+) -> None:
+    # A present-but-empty/unusable query context is treated the same as a
+    # missing one: the chart is listed under "no query context" and the export
+    # continues, rather than raising mid-export and landing in the general bucket.
+    good = _chart(10, "Good")
+    empty = _chart(20, "Empty")
+    empty.query_context = raw_context
+    mocks["get_charts_in_layout_order"].return_value = [good, empty]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    _run()
+
+    _, kwargs = mocks["email"].build_success_email.call_args
+    assert kwargs["errored"] == {
+        mocks["email"].ERROR_NO_QUERY_CONTEXT: ["20 - Empty"]
+    }
+    # The empty chart is skipped before any query runs; only the good one runs.
+    mocks["ChartDataCommand"].return_value.run.assert_called_once()
+
+
 def test_chart_query_error_grouped_as_general_export_continues(
     mocks: dict[str, Any],
 ) -> None:

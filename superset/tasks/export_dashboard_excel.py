@@ -96,6 +96,25 @@ def _chart_label(chart: Any) -> str:
     return f"{chart.id} - {chart.slice_name or ''}".strip()
 
 
+def _has_empty_query_context(raw: Any) -> bool:
+    """
+    Whether a chart has no usable saved query context to export data from.
+
+    Covers a missing/blank value, a string that does not parse as JSON, a value
+    that parses to something other than an object (e.g. ``"null"``), and an
+    object with no queries (e.g. ``"{}"`` or ``{"queries": []}``). All of these
+    are treated the same as a missing context: the chart is skipped and listed
+    under the "no query context" remediation rather than raising mid-export.
+    """
+    if not raw:
+        return True
+    try:
+        parsed = json.loads(raw)
+    except (TypeError, ValueError):
+        return True
+    return not isinstance(parsed, dict) or not parsed.get("queries")
+
+
 def _record_to_row(record: dict[str, Any], colnames: list[str]) -> list[Any]:
     return [record.get(col) for col in colnames]
 
@@ -198,8 +217,9 @@ def _build_workbook(
             label = _chart_label(chart)
             as_image = _renders_as_image(chart, mode)
             # Image charts render from their saved params and don't need a query
-            # context; data (and table) charts still do.
-            if not as_image and not chart.query_context:
+            # context; data (and table) charts still do. Skip cleanly when the
+            # saved context is missing or empty rather than failing mid-export.
+            if not as_image and _has_empty_query_context(chart.query_context):
                 errored.setdefault(email.ERROR_NO_QUERY_CONTEXT, []).append(label)
                 continue
             try:
