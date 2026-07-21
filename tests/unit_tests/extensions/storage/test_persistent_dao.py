@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -87,6 +88,17 @@ def app_with_max_list_payload_size(app: Flask) -> Flask:
     app.config["EXTENSIONS_PERSISTENT_STORAGE"] = {"MAX_LIST_PAYLOAD_SIZE": 20}
     Babel(app)
     return app
+
+
+@pytest.fixture(autouse=True)
+def mock_distributed_lock() -> Generator[MagicMock, None, None]:
+    """`ExtensionStorageDAO.set` wraps its select-then-write section in a
+    `DistributedLock`, which needs a configured lock backend (Redis or an
+    initialized DB session) to acquire. These tests exercise DAO logic
+    against a mocked `db`, not lock acquisition, so replace it with a no-op.
+    """
+    with patch("superset.extensions.storage.persistent_dao.DistributedLock") as mock:
+        yield mock
 
 
 @pytest.fixture

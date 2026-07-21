@@ -23,13 +23,18 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
+import backoff
 from flask import current_app
 from flask_babel import gettext as _
 from sqlalchemy import and_, desc, func, LargeBinary
 
 from superset import db
 from superset.daos.base import BaseDAO
-from superset.exceptions import SupersetGenericErrorException
+from superset.distributed_lock import DistributedLock
+from superset.exceptions import (
+    AcquireDistributedLockFailedException,
+    SupersetGenericErrorException,
+)
 from superset.extensions.storage.codecs import DEFAULT_CODEC, get_codec
 from superset.extensions.storage.filters import ExtensionStorageFilter
 from superset.extensions.storage.persistent_model import ExtensionStorage
@@ -112,6 +117,12 @@ class ExtensionStorageKeyTooLong(SupersetGenericErrorException):
 #: SDK enforces the same limit client-side purely so it can fail fast
 #: without a round trip, not as the source of truth.
 MAX_KEY_LENGTH = 255
+
+#: TTL for the lock guarding `ExtensionStorageDAO.set`'s select-then-write.
+#: Short because the guarded section is a handful of local DB operations, no
+#: network calls — long enough to cover normal execution, short enough that
+#: a crashed holder doesn't block the same key for long.
+SET_LOCK_TTL_SECONDS = 5
 
 
 def _validate_key_length(key: str) -> None:
@@ -469,6 +480,13 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
     # ── Write (upsert) ────────────────────────────────────────────────────────
 
     @staticmethod
+    @backoff.on_exception(
+        backoff.expo,
+        AcquireDistributedLockFailedException,
+        factor=0.1,
+        base=2,
+        max_tries=8,
+    )
     def set(
         extension_id: str,
         key: str,
@@ -480,6 +498,14 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         encrypt: bool = False,
     ) -> ExtensionStorage:
         """Upsert a storage entry.  Encrypts value when encrypt=True.
+
+        The select-then-insert/update below is guarded by a distributed lock
+        scoped to this exact key: the row's unique constraint can't be relied
+        on to catch concurrent writes here, since `user_fk`, `resource_type`,
+        and `resource_uuid` are nullable and standard SQL never treats
+        NULL = NULL, so two concurrent inserts for the same *global* or
+        *resource*-scoped key (where one or more of those columns is NULL)
+        would not violate it and would land as duplicate rows.
 
         :raises ExtensionStorageKeyTooLong: if `key` exceeds MAX_KEY_LENGTH.
         :raises ExtensionStorageValueTooLarge: if `value` exceeds
@@ -495,40 +521,49 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
             else value
         )
 
-        entry = (
-            db.session.query(ExtensionStorage)
-            .filter(
-                and_(
-                    *_scope_filter(
-                        extension_id, key, user_fk, resource_type, resource_uuid
+        with DistributedLock(
+            namespace="extension_storage_set",
+            ttl_seconds=SET_LOCK_TTL_SECONDS,
+            extension_id=extension_id,
+            key=key,
+            user_fk=user_fk,
+            resource_type=resource_type,
+            resource_uuid=resource_uuid,
+        ):
+            entry = (
+                db.session.query(ExtensionStorage)
+                .filter(
+                    and_(
+                        *_scope_filter(
+                            extension_id, key, user_fk, resource_type, resource_uuid
+                        )
                     )
                 )
+                .first()
             )
-            .first()
-        )
-        new_size = len(stored_value)
-        existing_size = entry.value_size if entry is not None else 0
-        _check_quota(extension_id, new_size, existing_size)
-        if entry is not None:
-            entry.value = stored_value
-            entry.value_size = new_size
-            entry.codec = codec
-            entry.is_encrypted = encrypt
-        else:
-            entry = ExtensionStorage(
-                extension_id=extension_id,
-                key=key,
-                value=stored_value,
-                value_size=new_size,
-                codec=codec,
-                user_fk=user_fk,
-                resource_type=resource_type,
-                resource_uuid=resource_uuid,
-                is_encrypted=encrypt,
-            )
-            db.session.add(entry)
-        db.session.flush()
-        return entry
+            new_size = len(stored_value)
+            existing_size = entry.value_size if entry is not None else 0
+            _check_quota(extension_id, new_size, existing_size)
+            if entry is not None:
+                entry.value = stored_value
+                entry.value_size = new_size
+                entry.codec = codec
+                entry.is_encrypted = encrypt
+            else:
+                entry = ExtensionStorage(
+                    extension_id=extension_id,
+                    key=key,
+                    value=stored_value,
+                    value_size=new_size,
+                    codec=codec,
+                    user_fk=user_fk,
+                    resource_type=resource_type,
+                    resource_uuid=resource_uuid,
+                    is_encrypted=encrypt,
+                )
+                db.session.add(entry)
+            db.session.flush()
+            return entry
 
     # ── Delete ────────────────────────────────────────────────────────────────
 
