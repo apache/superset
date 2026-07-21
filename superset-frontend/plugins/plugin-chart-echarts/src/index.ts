@@ -18,6 +18,7 @@
  */
 export { default as EchartsBoxPlotChartPlugin } from './BoxPlot';
 export { default as EchartsTimePivotChartPlugin } from './TimePivot';
+export { default as EchartsBulletChartPlugin } from './Bullet';
 export { default as EchartsTimeseriesChartPlugin } from './Timeseries';
 export { default as EchartsAreaChartPlugin } from './Timeseries/Area';
 export { default as EchartsTimeseriesBarChartPlugin } from './Timeseries/Regular/Bar';
