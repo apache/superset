@@ -216,13 +216,30 @@ test('Collapse panel/body classes (Collapse.tsx, VizTypeGallery, config modals)'
   expect(classes).not.toContain('ant-collapse-content-box');
 });
 
-test('Modal body class (many *.styles.ts modal overrides target it)', () => {
+test('Modal section classes (superset-ui-core Modal + per-modal spacing overrides)', () => {
+  // antd 6 renamed the modal box wrapper `.ant-modal-content` -> `.ant-modal-container`.
+  // The shared Modal (Modal/Modal.tsx) resets its padding to 0 and makes it a flex
+  // column; DatasourceModal and the native-filter ConfigModal size it too. When the
+  // class went stale the reset stopped matching and the box regained antd's default
+  // contentPadding, inflating every "properties" modal's spacing (SC-114841). The
+  // header/body/footer names are unchanged and carry the rest of the spacing.
   render(
-    <Modal open title="t">
+    <Modal open title="t" footer={<button type="button">ok</button>}>
       body
     </Modal>,
   );
-  expect(antClasses(document.body)).toContain('ant-modal-body');
+  const classes = antClasses(document.body);
+  expect(classes).toEqual(
+    expect.arrayContaining([
+      'ant-modal-container',
+      'ant-modal-header',
+      'ant-modal-title',
+      'ant-modal-body',
+      'ant-modal-footer',
+      'ant-modal-close',
+    ]),
+  );
+  expect(classes).not.toContain('ant-modal-content');
 });
 
 test('Tag keeps its v5 trailing margin (GlobalStyles parity rule)', () => {

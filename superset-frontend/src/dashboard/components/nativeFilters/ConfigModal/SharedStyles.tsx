@@ -66,7 +66,7 @@ export const BaseModalWrapper = styled(StyledModal)<BaseModalWrapperProps>`
       .ant-modal-body {
         flex: 1 1 auto;
       }
-      .ant-modal-content {
+      .ant-modal-container {
         height: 100%;
       }
     `}

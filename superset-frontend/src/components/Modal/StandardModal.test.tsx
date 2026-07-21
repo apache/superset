@@ -125,3 +125,16 @@ test('applies wrapProps to modal wrapper', () => {
 
   expect(screen.getByTestId('custom-modal')).toBeInTheDocument();
 });
+
+test('renders the modal box as the antd 6 container class its spacing targets', () => {
+  // The shared Modal + StandardModal overrides size the box via
+  // `.ant-modal-container` (renamed from `.ant-modal-content` in antd 6). If antd
+  // reverts/renames it the padding reset stops matching and the "properties" modal
+  // spacing regresses (SC-114841), so pin the class the styles depend on.
+  const { baseElement } = render(<StandardModal {...defaultProps} />);
+
+  expect(baseElement.querySelector('.ant-modal-container')).toBeInTheDocument();
+  expect(
+    baseElement.querySelector('.ant-modal-content'),
+  ).not.toBeInTheDocument();
+});
