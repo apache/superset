@@ -25,7 +25,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import SavedQueries from './SavedQueries';
+import { SavedQueries } from './SavedQueries';
 
 const savedQueriesEndpoint = 'glob:*/api/v1/saved_query/?*';
 const savedQueriesInfoEndpoint = 'glob:*/api/v1/saved_query/_info*';
