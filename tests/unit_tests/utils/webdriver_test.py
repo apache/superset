@@ -910,10 +910,13 @@ class TestWebDriverPlaywrightErrorHandling:
     @patch("superset.utils.webdriver._browser_manager")
     @patch("superset.utils.webdriver.logger")
     @patch("superset.utils.webdriver.take_tiled_screenshot")
-    def test_tiled_screenshot_failure_falls_back_to_standard_screenshot(
+    def test_tiled_screenshot_failure_raises_without_fallback(
         self, mock_take_tiled, mock_logger, mock_browser_manager
     ) -> None:
-        """When take_tiled_screenshot returns None, fall back to standard screenshot."""
+        """When take_tiled_screenshot returns None, fail loudly instead of
+        falling back to an unguarded standard screenshot."""
+        from superset.utils.webdriver import PlaywrightTimeout
+
         mock_user = MagicMock()
         mock_user.username = "test_user"
 
@@ -927,7 +930,8 @@ class TestWebDriverPlaywrightErrorHandling:
         mock_context.new_page.return_value = mock_page
         mock_page.locator.return_value = mock_element
         mock_element.wait_for.return_value = None
-        # page.screenshot is used by _get_screenshot for the "standalone" element
+        # page.screenshot is used by _get_screenshot for the "standalone" element;
+        # it must never be reached by the failure path under test.
         mock_page.screenshot.return_value = b"fallback_screenshot"
 
         def evaluate_side_effect(script):
@@ -963,14 +967,16 @@ class TestWebDriverPlaywrightErrorHandling:
                 mock_auth.return_value = mock_context
 
                 driver = WebDriverPlaywright("chrome")
-                result = driver.get_screenshot(
-                    "http://example.com", "standalone", mock_user
-                )
+                with pytest.raises(PlaywrightTimeout):
+                    driver.get_screenshot("http://example.com", "standalone", mock_user)
 
-        assert result == b"fallback_screenshot"
         mock_take_tiled.assert_called_once()
+        mock_page.screenshot.assert_not_called()
+        mock_element.screenshot.assert_not_called()
         mock_logger.warning.assert_any_call(
-            ("Tiled screenshot failed, falling back to standard screenshot"),
+            "Tiled screenshot failed for url %s and no safe fallback "
+            "exists; failing the report",
+            "http://example.com",
         )
 
 
@@ -1038,9 +1044,9 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         assert "animation_wait" in call_order
         spinner_idx = call_order.index("spinner_wait")
         anim_idx = call_order.index("animation_wait")
-        assert spinner_idx < anim_idx, (
-            "spinner wait must precede animation wait in non-tiled path"
-        )
+        assert (
+            spinner_idx < anim_idx
+        ), "spinner wait must precede animation wait in non-tiled path"
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
@@ -1130,18 +1136,21 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
             for call in mock_page.wait_for_timeout.call_args_list
             if call[0][0] == 2 * 1000
         ]
-        assert animation_waits == [], (
-            "No global 2s animation wait_for_timeout should fire on the tiled path"
-        )
+        assert (
+            animation_waits == []
+        ), "No global 2s animation wait_for_timeout should fire on the tiled path"
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
     @patch("superset.utils.webdriver.take_tiled_screenshot")
     @patch("superset.utils.webdriver.app")
-    def test_tiled_fallback_triggered_on_empty_bytes(
+    def test_tiled_empty_bytes_raises_without_fallback(
         self, mock_app, mock_take_tiled, mock_browser_manager
     ):
-        """Tiled fallback fires when take_tiled_screenshot returns b"" (not None)."""
+        """Tiled failure raises when take_tiled_screenshot returns b"" (not None),
+        instead of silently falling through to an unguarded raw capture."""
+        from superset.utils.webdriver import PlaywrightTimeout
+
         mock_user = MagicMock()
         mock_user.username = "test_user"
         mock_app.config = {
@@ -1156,20 +1165,20 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         mock_page.evaluate.side_effect = [25, 6000]
         # Empty bytes — falsy but not None; was silently passed through before the fix
         mock_take_tiled.return_value = b""
-        # _get_screenshot("standalone") calls page.screenshot(full_page=True);
-        # configure that return value so we can assert the fallback was reached
+        # _get_screenshot("standalone") calls page.screenshot(full_page=True); it
+        # must never be reached by the failure path under test.
         mock_page.screenshot.return_value = b"fallback"
 
         with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
-            result = WebDriverPlaywright("chrome").get_screenshot(
-                "http://example.com", "standalone", mock_user
-            )
+            with pytest.raises(PlaywrightTimeout):
+                WebDriverPlaywright("chrome").get_screenshot(
+                    "http://example.com", "standalone", mock_user
+                )
 
-        assert result == b"fallback"
         # Tiled path was taken (take_tiled_screenshot was called)
         mock_take_tiled.assert_called_once()
-        # Standard screenshot was called as fallback (full_page=True for "standalone")
-        mock_page.screenshot.assert_called_with(full_page=True)
+        # Standard screenshot must never be called as a fallback
+        mock_page.screenshot.assert_not_called()
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
@@ -1195,6 +1204,6 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         timeout_values = [
             call[0][0] for call in mock_page.wait_for_timeout.call_args_list
         ]
-        assert timeout_values == [0], (
-            f"Expected only [0] (headstart), got {timeout_values}"
-        )
+        assert timeout_values == [
+            0
+        ], f"Expected only [0] (headstart), got {timeout_values}"
